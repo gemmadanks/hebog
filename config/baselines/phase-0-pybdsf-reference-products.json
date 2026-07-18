@@ -18,9 +18,9 @@
           "sha256": "25ad6bdf94e17a5a78fc28bf425905132dfc2468fec27004991eed794917c7b7"
         },
         "diagnostics.json": {
-          "bytes": 15,
+          "bytes": 20,
           "relative_path": "tests/data/pybdsf/pybdsf-compact-reference-256/release/diagnostics.json",
-          "sha256": "32228968d2f89325f36d21b883fc3e555e1278c14685fe6db8b9983109c9ce59"
+          "sha256": "9dc92c157621dc16db4fbe4c143a65eb7fcde1c864a36dd3a4612f40e5ec198b"
         },
         "flat_noise_rms.fits": {
           "bytes": 267840,
@@ -86,9 +86,9 @@
           "sha256": "25ad6bdf94e17a5a78fc28bf425905132dfc2468fec27004991eed794917c7b7"
         },
         "diagnostics.json": {
-          "bytes": 15,
+          "bytes": 20,
           "relative_path": "tests/data/pybdsf/pybdsf-compact-reference-256/master/diagnostics.json",
-          "sha256": "32228968d2f89325f36d21b883fc3e555e1278c14685fe6db8b9983109c9ce59"
+          "sha256": "9dc92c157621dc16db4fbe4c143a65eb7fcde1c864a36dd3a4612f40e5ec198b"
         },
         "flat_noise_rms.fits": {
           "bytes": 267840,
