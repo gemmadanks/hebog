@@ -16,6 +16,11 @@ integrated flux, then angular proximity. Product readers and frozen-reference
 tests must call this implementation rather than reproduce matching or report
 calculations in an integration test.
 
+Persist each released-PyBDSF, pinned-`master`, and Hebog/reference comparison
+as a separate `ScientificComparisonEvidence` document. Candidate/reference
+revision identities, dataset and configuration checksums, match gates, and all
+catalogue/RMS/mask reports belong in the same validated record.
+
 Reference products are immutable test inputs. A separate documented generation
 command must record dataset checksums, PyBDSF and dependency revisions, and the
 complete configuration. Review reference metadata and the scientific diff

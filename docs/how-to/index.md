@@ -72,6 +72,11 @@ Use one warm-up and at least five measured repetitions. Store generated
 results under the ignored `benchmark-results/` directory and commit only small
 reviewed summaries with reproduction commands.
 
+Construct and write runs with `hebog.validation.evidence.BenchmarkEvidence`
+and `write_evidence`. Use `null` plus an explicit `unavailable_metrics` reason
+when instrumentation is genuinely unavailable; never substitute zero. Mark a
+document `reviewed` only when its protocol and environment have passed review.
+
 Measure the performance curve at 256, 512, 1,024, 3,000, 8,000, 10,000,
 30,000, and 100,000 pixels per side, plus cases immediately below and above
 each observed executor, storage, partition, or batching crossover. Include

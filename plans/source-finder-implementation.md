@@ -614,8 +614,11 @@ removal is separately justified.
 - [ ] Reproduce the representative PyBDSF operation timings and current `filter_skymodel` median
       separately for released PyBDSF `1.14.1` and `master` at
       `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
-- [ ] Record per-stage wall time, CPU time, peak RSS, array copies, Dask task count, transfer, and
-      spill metrics in machine-readable JSON.
+- [x] Define versioned machine-readable benchmark and scientific-comparison evidence schemas that
+      require exact revisions, checksums, resource topology, per-stage metrics, and explicit
+      reasons for unavailable instrumentation.
+- [ ] Capture per-stage wall time, CPU time, peak RSS, array copies, Dask task count, transfer, and
+      spill metrics in separate released-PyBDSF, pinned-`master`, and Hebog evidence documents.
 - [ ] Freeze the logarithmic 256-to-100,000-pixel performance matrix, workload-density classes,
       previous-Hebog comparison schema, and cases bracketing every execution crossover.
 - [ ] Measure one-tile setup, I/O, partition-planning, and executor-dispatch overhead so small-image

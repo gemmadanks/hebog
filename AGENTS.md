@@ -225,6 +225,12 @@ Performance changes must record:
   throughput, node/worker RAM and headroom, and strong/weak-scaling efficiency;
 - warm-up policy and every measured repetition.
 
+Serialize runs with the versioned models in `hebog.validation.evidence` under
+the ignored `benchmark-results/` directory or controlled external storage.
+Record unavailable instrumentation with an explicit reason, never a fabricated
+zero. Only label evidence `reviewed` after its protocol, environment, and
+scientific results have passed review.
+
 Use at least five measured repetitions after warm-up, compare medians, report
 dispersion, and retain machine-readable results. Benchmark exact released and
 `master` PyBDSF revisions in isolated, matched environments; never substitute

@@ -828,3 +828,51 @@ source evidence.
   schemas before capturing external PyBDSF products or timings.
 - Freeze exact installed dependencies and container digests in the controlled
   released-PyBDSF and pinned-`master` environments.
+
+## 2026-07-18 — Versioned benchmark and comparison evidence
+
+**Plan phase:** Phase 0
+
+**Completed**
+
+- Added strict version-1 benchmark and scientific-comparison evidence models
+  with deterministic atomic JSON writing and validated loading.
+- Required exact software revisions, container/dependency/environment and
+  dataset/configuration checksums, workload roles/classes, resource topology,
+  complete-run metrics, and uniquely named stage metrics.
+- Bound scientific reports to exact candidate and reference product-manifest
+  checksums rather than only the shared input dataset.
+- Distinguished unavailable optional instrumentation from measured zeroes and
+  required a non-empty reason for every unavailable metric.
+- Required one warm-up plus five measured repetitions for reviewed benchmark
+  evidence and full topology/efficiency metrics for reviewed multi-node runs.
+- Enforced aggregate worker-memory limits within node RAM after reserved
+  headroom.
+
+**Evidence**
+
+- Nine focused tests passed for canonical JSON round trips, reviewed-run
+  protocol enforcement, duplicate detection, unavailable metrics, timezone
+  safety, memory admission, multi-node scaling records, and embedded
+  catalogue/RMS/mask reports.
+- Focused Ruff and strict Pyright checks passed with no diagnostics.
+- `just ci` passed: 54 portable tests passed at 90.30% branch-aware coverage;
+  all push-stage hooks, strict documentation and Marimo validation, lock
+  validation, and the isolated wheel build/install/import succeeded.
+
+**Decisions**
+
+- Exploratory evidence remains recordable but cannot silently satisfy reviewed
+  benchmark protocol requirements.
+- Released PyBDSF, pinned PyBDSF `master`, previous Hebog, and candidate Hebog
+  runs use separate evidence documents with exact identities rather than one
+  favourable aggregate.
+- Raw evidence remains ignored or externally stored; only compact reviewed
+  summaries and reproduction metadata enter Git.
+
+**Next**
+
+- Use the schema to capture exact installed packages, container digests, and
+  matched timings for released PyBDSF and pinned `master`.
+- Freeze the logarithmic workload matrix and controlled facility resource
+  contract, then record Hebog evidence at every runnable size tier.
