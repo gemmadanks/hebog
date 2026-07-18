@@ -14,12 +14,16 @@ Use the project records as follows:
   Please;
 - architecture decision records under `docs/architecture/adr/` explain
   significant architectural choices;
-- Git history remains the detailed record of individual code changes.
+- atomic Conventional Commits remain the detailed record of individual code
+  changes: their subjects are written for user-facing release notes and their
+  bodies provide developer context and validation;
+- all agent-created commits remain local for human review and manual push.
 
 Add entries in chronological order using ISO dates. Include commands, dataset
 identifiers, revisions, and measured evidence when they affect a scientific or
-performance conclusion. Update the plan only when execution changes its scope,
-sequence, gates, risks, or decisions.
+performance conclusion. Do not add an entry for a routine implementation
+commit that is fully explained by its subject and body. Update the plan only
+when execution changes its scope, sequence, gates, risks, or decisions.
 
 ## Current position
 

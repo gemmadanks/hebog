@@ -259,11 +259,25 @@ relevant scientific suite passes.
 
 ## Changes, releases, and handoff
 
-- Keep commits and reviews aligned to one milestone or measurable experiment.
-- Use Conventional Commit subjects when asked to create commits.
+- During plan execution, create local commits for each coherent, validated,
+  reviewable change. Do not combine unrelated milestones or experiments.
+- Use Conventional Commit subjects. Keep the subject short, imperative, and
+  informative to users because Release Please uses it to generate release
+  notes; for example, `feat: add catalogue comparison reports`.
+- Add a concise commit body for developers. Explain the motivation, important
+  design or compatibility consequences, and validation performed. Record
+  scientific datasets, measurements, and gate evidence in `LOG.md` rather than
+  overloading the commit body.
+- Keep an implementation and the tests and documentation that establish its
+  behaviour in the same commit when they form one coherent change. Do not
+  commit a known-failing TDD red state unless the user explicitly requests it.
+- Never push commits or tags. Leave all commits local so a human can review
+  them individually and push them manually.
 - Record significant architecture or scientific decisions in the
   source-finder plan before spreading them through the implementation.
-- Record the outcome and evidence of material plan execution in `LOG.md`.
+- Use Git history for routine implementation detail. Record only material plan
+  execution, scientific or performance evidence, gate outcomes, deviations,
+  and cross-commit decisions in `LOG.md`.
 - Preserve a feature-flagged PyBDSF fallback in Rapthor until the complete
   acceptance matrix passes.
 - Do not make generated benchmark data the source of truth; store compact JSON
@@ -286,3 +300,5 @@ Before handing off a meaningful change:
    or risks changed.
 9. Run `just check`, plus `just package-smoke-test` for packaging changes.
 10. Review the final diff using `CODE_REVIEW.md` and report checks not run.
+11. Create the atomic local commit after validation and review, then inspect
+    the commit and working tree. Do not push it.

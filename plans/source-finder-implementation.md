@@ -351,6 +351,14 @@ from Conventional Commits; its `bump-minor-pre-major` policy means features norm
 minor version before 1.0 while fixes can produce patch releases. Do not manually force a version to
 match a phase number.
 
+Execute the plan as a sequence of local, atomic Conventional Commits. Each commit must represent
+one coherent, validated, reviewable change. Its short, imperative subject should describe the
+user-visible outcome for Release Please; its body should give developers the motivation, important
+design or compatibility consequences, and validation performed. Keep the tests and documentation
+that establish a change's behaviour with its implementation. Use `LOG.md` only for material
+scientific or performance evidence, gate outcomes, deviations, and decisions that span commits.
+Never push commits or tags: a human reviews each local commit and pushes it manually.
+
 The following bands are indicative capability milestones, not promises or rigid mappings:
 
 | Version band | Expected capability |
