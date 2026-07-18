@@ -27,10 +27,12 @@ when execution changes its scope, sequence, gates, risks, or decisions.
 
 ## Current position
 
-Hebog has a validated package and development scaffold, but the scientific
-source-finding algorithms and Phase 0 equivalence harness are not implemented.
-The next milestone is to freeze the Rapthor/PyBDSF contract, datasets,
-comparison oracles, and matched baseline before algorithm development begins.
+Hebog has a validated package and development scaffold. The first Phase 0
+slice records the provisional Rapthor/PyBDSF contract, shared language, system
+boundaries, and scope/scheduling ADRs. The scientific algorithms, frozen
+datasets, comparison harness, and matched runtime baseline are not implemented.
+The next milestone is to resolve the exact runtime revisions and reproduce the
+matched PyBDSF baseline before algorithm development begins.
 
 ## 2026-07-16 — Profiled the existing PyBDSF path
 
@@ -308,3 +310,73 @@ evidence.
 
 - Begin Phase 0 by inventorying the PyBDSF, LSMTool, and Rapthor contracts and
   terminology, then draft the glossary, domain model, and ADRs 003 and 004.
+
+## 2026-07-18 — Captured the first Phase 0 contract slice
+
+**Plan phase:** Phase 0 — freeze baselines and contracts
+
+**Completed**
+
+- Traced the source-finding inputs, defaults, products, catalogue fields,
+  empty behaviour, downstream diagnostics, and task boundary consumed by
+  Rapthor.
+- Added a machine-readable candidate inventory of repository revisions,
+  dependency-definition hashes, and container-definition hashes.
+- Added the provisional domain glossary, naming conventions, system-context
+  diagram, and processing/data-flow diagram.
+- Accepted ADR 003 limiting Hebog to Rapthor's source-finding contract and ADR
+  004 retaining top-level scheduler ownership in Rapthor.
+
+**Evidence**
+
+- Rapthor was traced at
+  `b1a64674b1022476cf052fc2d06ee3b16f031ecd` on the
+  `gec-468-ai-migrate-to-prefect` branch.
+- The local PyBDSF reference was
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c`; the local LSMTool reference was
+  `4e5cf93046e309844c04382375f86e68929bd2d8` with two untracked files.
+- Rapthor's pinned LSMTool commit
+  `3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a` was available after refreshing
+  the checkout, and its source-finding module matched the checked-out module.
+- Rapthor directly consumes `Source_id`, `RA`, `DEC`, `Isl_Total_flux`,
+  `Total_flux`, `DC_Maj`, `E_RA`, and `E_DEC`, plus true-sky/flat-noise RMS
+  images, the island mask, filtered sky models, and source-count diagnostics.
+- `just ci` passed: eight portable tests passed, equivalence and acceptance
+  scaffolds skipped as intended, and linting, type checking, strict Marimo and
+  MkDocs validation, lockfile validation, and the isolated wheel smoke test
+  succeeded.
+
+**Decisions**
+
+- Treat the Rapthor source-finding contract, rather than the complete PyBDSF
+  feature set, as Hebog's initial compatibility surface.
+- Keep PyBDSF objects and terminology outside Hebog's scientific kernels;
+  preserve external names only at a compatibility boundary.
+- Treat Rapthor's `gec-468-ai-migrate-to-prefect` branch as the authoritative
+  integration target because it owns the Prefect/Dask task runner.
+- Keep the revision inventory in candidate status until it records the exact
+  installed PyBDSF/LSMTool packages and an immutable built-container digest.
+
+**Deviations and gaps**
+
+- Rapthor declares `bdsf` without a version or revision.
+- The refreshed PyBDSF checkout contains changes to island, RMS, and output
+  behaviour, so its revision cannot substitute for the still-unknown package
+  installed in the benchmark runtime.
+- The inspected container definitions use mutable base-image tags; no built
+  benchmark-container digest was available.
+- The Phase 0 revision-capture task therefore remains open.
+
+**Plan impact**
+
+- Completed the contract inventory, provisional glossary, domain diagrams,
+  and ADR 003/004 tasks.
+- Kept domain review, frozen examples, contract tests, exact runtime capture,
+  comparison oracles, datasets, and baseline reproduction open.
+
+**Next**
+
+- Capture installed package versions and the benchmark-container digest from
+  the controlled Rapthor environment.
+- Reproduce the representative PyBDSF timings and current matched
+  `filter_skymodel` median before implementing the comparison harness.

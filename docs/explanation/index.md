@@ -1,5 +1,10 @@
 # Architecture
 
+The [domain model](domain-model.md) maps Hebog's system boundary, processing
+flow, product ownership, and shared language. The
+[Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md)
+records the current compatibility evidence behind this target architecture.
+
 Hebog separates scientific algorithms from execution policy. Algorithms
 operate on NumPy arrays and immutable configuration; an executor decides
 whether coarse batches run serially, in local threads, or on Dask workers.

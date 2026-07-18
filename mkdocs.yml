@@ -45,6 +45,13 @@ plugins:
   - search
   - tags
 
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -54,9 +61,14 @@ nav:
   - Home: index.md
   - Quick start: tutorials/index.md
   - Development: how-to/index.md
-  - Reference: reference/index.md
+  - Reference:
+      - API: reference/index.md
+      - Domain glossary: reference/domain-glossary.md
+      - Rapthor source-finding contract: reference/rapthor-source-finding-contract.md
+      - Phase 0 starting revisions: reference/starting-revisions.md
   - Explanation:
       - Architecture: explanation/index.md
+      - Domain model: explanation/domain-model.md
   - Architecture:
       - Overview: architecture/index.md
       - ADRs: architecture/adr/index.md

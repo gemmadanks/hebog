@@ -406,16 +406,20 @@ removal is separately justified.
 
 ### Phase 0: freeze baselines and contracts
 
-- [ ] Capture the current Rapthor, PyBDSF, LSMTool, dependency, and container revisions.
+- [ ] Capture the current Rapthor, PyBDSF, LSMTool, dependency, and container revisions. A
+      [candidate starting inventory](../docs/reference/starting-revisions.md) records repository
+      and definition hashes; exact installed packages and a built container digest remain open.
 - [ ] Reproduce the representative PyBDSF operation timings and current `filter_skymodel` median.
 - [ ] Record per-stage wall time, CPU time, peak RSS, array copies, Dask task count, transfer, and
       spill metrics in machine-readable JSON.
-- [ ] Inventory exactly which PyBDSF catalogue fields and image products Rapthor consumes.
-- [ ] Inventory the domain language used by PyBDSF, LSMTool, and Rapthor; draft the provisional
-      glossary and agree naming conventions for Hebog's public and internal concepts.
-- [ ] Create the system-context and processing/data-flow diagrams and document the domain
+- [x] Inventory exactly which PyBDSF catalogue fields and image products Rapthor consumes in the
+      [provisional contract](../docs/reference/rapthor-source-finding-contract.md).
+- [x] Inventory the domain language used by PyBDSF, LSMTool, and Rapthor; draft the provisional
+      [glossary](../docs/reference/domain-glossary.md) and agree naming conventions for Hebog's
+      public and internal concepts.
+- [x] Create the system-context and processing/data-flow diagrams and document the domain
       boundaries in `docs/explanation/domain-model.md`.
-- [ ] Record ADR 003 for Hebog's deliberately narrow scope and ADR 004 for external scheduler
+- [x] Record ADR 003 for Hebog's deliberately narrow scope and ADR 004 for external scheduler
       ownership before those boundaries are implemented.
 - [ ] Decide and record ADR 005 after the compatibility boundary and consumed products are known.
 - [ ] Add the dataset manifest, deterministic synthetic generator, and frozen reference products.
