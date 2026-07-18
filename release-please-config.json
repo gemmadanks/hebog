@@ -58,13 +58,13 @@
           "type": "yaml"
         },
         {
-          "jsonpath": "$.package[?(@.name.value=='package-name')].version",
+          "jsonpath": "$.package[?(@.name.value=='hebog')].version",
           "path": "uv.lock",
           "type": "toml"
         }
       ],
       "include-component-in-tag": false,
-      "package-name": "package_name",
+      "package-name": "hebog",
       "release-type": "python"
     }
   }

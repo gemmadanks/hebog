@@ -6,7 +6,7 @@ working on this Python project template.
 ## Repository overview
 
 - The distributable package uses a `src` layout and lives in
-  `src/package_name/`.
+  `src/hebog/`.
 - Unit tests live in `tests/unit/`; shared fixtures belong in
   `tests/conftest.py`.
 - Documentation is built with MkDocs Material from `docs/`.
@@ -76,8 +76,8 @@ not installed, run the corresponding `uv run ...` command from the `justfile`.
 
 ## Python code conventions
 
-- Put production code under `src/package_name/`, not at the repository root.
-- Use absolute imports from `package_name` in tests and consumer examples.
+- Put production code under `src/hebog/`, not at the repository root.
+- Use absolute imports from `hebog` in tests and consumer examples.
 - Use four spaces, UTF-8, LF line endings, and a final newline, as configured in
   `.editorconfig`.
 - Let Ruff determine formatting. Do not hand-format code against Ruff's output.
@@ -88,7 +88,7 @@ not installed, run the corresponding `uv run ...` command from the `justfile`.
   Examples in Python docstrings must be valid doctests because the quick test
   recipes collect doctests from `*.py` files.
 - Keep the package importable after changes. Export names from
-  `src/package_name/__init__.py` only when they are intentionally part of the
+  `src/hebog/__init__.py` only when they are intentionally part of the
   top-level public API.
 
 ## Tests
@@ -124,7 +124,7 @@ not installed, run the corresponding `uv run ...` command from the `justfile`.
 - Add new pages to `mkdocs.yml` when they should appear in navigation.
 - Build docs with `just docs-build`; the build is strict and warnings fail CI.
 - Keep API reference paths aligned with importable modules under
-  `src/package_name/`.
+  `src/hebog/`.
 - Notebook outputs are stripped by pre-commit. After changing a notebook, run
   `just test-notebooks` and do not commit execution output or local kernel
   metadata.

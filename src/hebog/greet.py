@@ -3,7 +3,7 @@
 This module provides functions to greet users.
 
 Example:
-    >>> from package_name.greet import say_hello
+    >>> from hebog.greet import say_hello
     >>> say_hello("Alice")
     'Hello, Alice!'
 """

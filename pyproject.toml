@@ -1,5 +1,5 @@
 [project]
-name = "package_name"
+name = "hebog"
 version = "0.10.0"
 description = "A python package."
 authors = [
@@ -34,7 +34,7 @@ docs = [
 
 
 [tool.coverage.run]
-source = ["src/package_name"]
+source = ["src/hebog"]
 omit = [
     "tests/*",
     "conftest.py"
@@ -45,5 +45,5 @@ requires = ["uv-build>=0.11.29,<1.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "package_name"
+module-name = "hebog"
 module-root = "src"

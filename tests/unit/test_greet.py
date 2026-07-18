@@ -1,7 +1,7 @@
 """Test the greet functions."""
 
 import pytest
-from package_name.greet import say_hello, say_goodbye
+from hebog.greet import say_hello, say_goodbye
 
 
 @pytest.mark.parametrize(

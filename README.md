@@ -23,9 +23,9 @@ The goal is to help you start writing code immediately without having to spend t
     1.	Pick a name for your new project (for example, `my-awesome-package`).
     1.	Clone your new repo locally
 1. 🏡 Customise the repository
-    1. Rename your package directory `cd src; mv package_name my_package`
+    1. Rename your package directory `cd src; mv hebog my_package`
     1. Update [pyproject.toml](pyproject.toml) with your package name, author, and description.
-    1. Update all references to package_name in:
+    1. Update all references to hebog in:
         - [tests/](tests/)
         - [docs/](docs/)
         - [.github/workflows/](.github/workflows/)
@@ -93,7 +93,7 @@ Hook definitions: [.pre-commit-config.yaml](.pre-commit-config.yaml)
 ## 🏁 Quickstart
 
 ```python
-from package_name.greet import say_hello
+from hebog.greet import say_hello
 print(say_hello("World"))
 ```
 
@@ -156,7 +156,7 @@ Managed by release-please: ([conventional commits](https://www.conventionalcommi
 ```
 .
 ├── src/
-│   └── package_name/              # Source package
+│   └── hebog/                     # Source package
 │       ├── __init__.py
 │       └── greet.py               # Example module (replace with real code)
 ├── tests/                         # Test suite

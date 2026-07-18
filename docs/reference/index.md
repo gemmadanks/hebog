@@ -1,5 +1,5 @@
 # API
 
-::: package_name.greet
+::: hebog.greet
     options:
       show_symbol_type_toc: true
