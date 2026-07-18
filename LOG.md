@@ -31,10 +31,11 @@ Hebog has a validated package and development scaffold. The first Phase 0
 slice records the provisional Rapthor/PyBDSF contract, shared language, system
 boundaries, and scope/scheduling ADRs. The scientific algorithms, frozen
 datasets, comparison harness, and matched runtime baselines are not
-implemented.
-The next milestone is to resolve the exact runtime revisions and reproduce
-matched baselines for released PyBDSF and the performance-improved `master`
-reference before algorithm development begins.
+implemented. ADR 005 now requires out-of-core hierarchical tiling for
+100,000-by-100,000 images and qualification across 100 to several hundred
+Dask worker nodes. The next milestone is to resolve the exact runtime
+revisions, reproduce both PyBDSF baselines, and freeze the large-image resource
+and scaling gates before algorithm development begins.
 
 ## 2026-07-16 — Profiled the existing PyBDSF path
 
@@ -454,3 +455,77 @@ source evidence.
   benchmark environment.
 - Build isolated, matched environments and reproduce the same operation and
   complete `filter_skymodel` benchmark matrix for both PyBDSF references.
+
+## 2026-07-18 — Made large-image scalability a core requirement
+
+**Plan phase:** Cross-cutting architecture and qualification
+
+**Completed**
+
+- Added the 100,000-by-100,000-pixel target and 100-to-several-hundred-node
+  Dask deployment to Hebog's scope, Phase 0 contract, delivery phases, risks,
+  release milestones, and definition of done.
+- Recorded that production nodes are expected to provide hundreds of GB of
+  RAM and made tile batching and caches resource-aware rather than fixed-size.
+- Accepted ADR 005, selecting bounded haloed tiles, deterministic ownership,
+  boundary summaries, and hierarchical reconciliation for image-sized work.
+- Required partition-invariance tests for tile edges and corners, tile shape,
+  partition origin, worker topology, task order, and retry.
+- Defined the large-image scientific oracle as generated truth, global
+  invariants, partition invariance, and PyBDSF-comparable cut-outs rather than
+  requiring PyBDSF itself to process the full 100,000-by-100,000 image.
+- Added a dedicated `scalability` pytest marker, `just test-scalability` lane,
+  and a skipped Phase 0 harness placeholder for controlled multi-node runs.
+- Renumbered the planned compatibility-schema decision to ADR 006.
+
+**Decisions**
+
+- Treat a small image as one tile using the same scientific ownership and
+  reconciliation semantics as a distributed image; do not develop a
+  whole-image-only scientific path first.
+- Keep worker memory proportional to a tile core, its stage-specific halo, and
+  bounded work buffers. No worker, scheduler payload, or public record may
+  require a complete large plane.
+- Keep Dask graph size proportional to tiles and stages, not pixels, RMS
+  windows, or small islands. Use mergeable boundary summaries and tree
+  reductions instead of central image-sized gathers.
+- Use admitted worker memory to exploit memory-rich nodes while reserving
+  headroom for concurrent Rapthor work. Resource sizing may change batching
+  and caching, but never scientific ownership or results.
+- Reuse Rapthor's existing Dask cluster and resource budget in accordance with
+  ADR 004; Hebog may construct a bounded operation subgraph but does not own a
+  private cluster.
+- Leave the physical chunk store and distributed output format open until
+  Phase 0/1 I/O and restart benchmarks provide evidence.
+
+**Evidence**
+
+- A 100,000-by-100,000 image contains 10 billion pixels. One plane is 40 GB at
+  `float32` or 80 GB at `float64`, before RMS, normalized, mask, multiscale,
+  residual, and work arrays.
+- Multiple simultaneously useful planes and work buffers can exceed one
+  memory-rich node even when it has hundreds of GB of RAM, so distributed
+  bounded-memory execution remains necessary.
+- `just test-scalability`, `just test-benchmark`, and
+  `just test-qualification` each selected only their intended scaffold and
+  skipped pending Phase 0 data or infrastructure.
+- `just ci` passed: eight portable tests passed; equivalence and acceptance
+  scaffolds skipped as intended; and linting, type checking, strict Marimo and
+  MkDocs validation, lock validation, and the isolated wheel smoke test
+  succeeded.
+
+**Plan impact**
+
+- Phase 0 must freeze the input/output plane set, storage target, tile/halo
+  constraints, per-worker memory ceiling, runtime, scheduler-overhead, and
+  strong/weak-scaling efficiency gates.
+- Phase 6 must qualify the 100,000-by-100,000 case at 100 and at least 200
+  worker nodes and record the complete 1/10/50/100/200-plus-node matrix where
+  the approved facility provides it.
+
+**Next**
+
+- Identify the representative large-image storage and Dask facility, then
+  agree the provisional resource and scaling SLOs.
+- Add analytic partition-manifest, halo, ownership, and boundary-reconciliation
+  tests before implementing image I/O or scientific kernels.

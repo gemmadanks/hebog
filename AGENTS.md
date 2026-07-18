@@ -10,7 +10,10 @@ Processor pipelines. Its first production consumer is Rapthor's
 PyBDSF: reproduce the behaviour and products Rapthor uses, demonstrate
 scientific equivalence, reduce the complete filter step's matched median wall
 time by at least 50% relative to the released PyBDSF version used by Rapthor,
-and also outperform a pinned PyBDSF `master` reference.
+and also outperform a pinned PyBDSF `master` reference. The architecture must
+scale out of core to 100,000-by-100,000 images and distribute work across 100
+to several hundred nodes through Rapthor's existing Dask cluster. Production
+nodes are expected to have hundreds of GB of RAM.
 
 The durable
 [`plans/source-finder-implementation.md`](plans/source-finder-implementation.md)
@@ -64,6 +67,13 @@ Never hard-code those paths in package code or normal tests.
   performance gate is the median wall time of Rapthor's complete
   `filter_skymodel` step against both the released PyBDSF version used by
   Rapthor and the pinned performance-improved PyBDSF `master` reference.
+- Do not introduce an image-sized algorithm that requires a complete large
+  plane on one worker. A small image is one tile; large images use explicit
+  cores, stage-specific halos, bounded summaries, and hierarchical
+  reconciliation.
+- Do not create one Dask task per pixel, RMS window, or small island. Graph
+  size must scale with tiles and scientific stages, and reductions must remain
+  hierarchical rather than gathering image-sized state on the scheduler.
 - Do not weaken detection thresholds, skip extended-source processing, or
   silently change output semantics to meet a runtime target.
 - Do not use Python loops over pixels or RMS windows in production kernels.
@@ -96,6 +106,7 @@ just test-equivalence   # frozen PyBDSF comparisons
 just test-acceptance    # Rapthor-facing behaviour scenarios
 just test-qualification # held-out scientific cases on an approved data host
 just test-benchmark     # controlled performance runs
+just test-scalability   # controlled 100-to-200-plus-node scale runs
 just marimo-check       # validate Marimo notebooks
 just lint               # Ruff checks
 just format             # Ruff formatting
@@ -127,14 +138,24 @@ core runtime solely for tests.
   boundaries.
 - Maintain `SerialExecutor` as the deterministic reference. Local and Dask
   executors must produce equivalent results.
-- Prefer coarse Dask batches whose execution time is measured in hundreds of
-  milliseconds or seconds. Never create one scheduler task per pixel, RMS
-  window, or small island.
+- Prefer coarse Dask batches that amortise scheduler and I/O overhead while
+  leaving enough runnable work for occupancy. Memory-rich scale runs may use
+  larger batches than local tests. Never create one scheduler task per pixel,
+  RMS window, or small island.
 - Let algorithms accept an executor rather than importing a global client. A
   Dask executor may receive an existing client, but scheduler objects must not
   enter public result records.
 - Read each image once where possible. Reuse background, RMS, convolution,
   WCS, and beam products across stages and wavelet scales.
+- Give every tile a deterministic non-overlapping output core, explicit global
+  coordinates, and the smallest reviewed halo required by its stage. Reconcile
+  labels, sources, and products independently of worker count and task order.
+- Keep large planes in bounded window-readable files or a chunk-addressable
+  store. Never publish a complete 100,000-by-100,000 plane to Dask.
+- Size tile batches and worker caches from admitted memory metadata. Exploit
+  memory-rich production nodes while reserving headroom for concurrent work;
+  do not hard-code one tiny tile size or let resource sizing change scientific
+  ownership and results.
 - Control array dtype and copies deliberately. A change from `float64` to
   `float32` requires scientific-equivalence evidence, not only a performance
   result.
@@ -156,6 +177,8 @@ bitwise equality with PyBDSF. Every algorithm milestone needs tests for:
 - extended and multiscale emission;
 - edge sources and non-square images;
 - different beams, WCS orientations, pixel scales, and image units.
+- sources and islands crossing tile edges and corners;
+- partition, tile-shape, worker-count, task-order, and retry invariance.
 
 Compare Dask results against the serial reference before comparing either with
 PyBDSF. Report low-SNR threshold crossings as completeness and reliability
@@ -170,6 +193,9 @@ Performance changes must record:
 - configuration and output mode;
 - worker count, threads per worker, CPU affinity, and memory limits;
 - wall time, CPU time, peak RSS, task count, and Dask transfer/spill metrics;
+- logical image and plane sizes, tile cores and halos, partition count,
+  boundary-summary volume, scheduler load, worker occupancy, storage
+  throughput, node/worker RAM and headroom, and strong/weak-scaling efficiency;
 - warm-up policy and every measured repetition.
 
 Use at least five measured repetitions after warm-up, compare medians, report
@@ -202,15 +228,15 @@ passes.
 
 - Place unit tests in `tests/unit/`, Dask/FITS boundary tests in
   `tests/integration/`, PyBDSF comparisons in `tests/equivalence/`,
-  Rapthor-facing scenarios in `tests/acceptance/`, and timing tests in
-  `tests/benchmark/`.
+  Rapthor-facing scenarios in `tests/acceptance/`, and timing and controlled
+  scalability tests in `tests/benchmark/`.
 - Use TDD for public contracts, pure scientific kernels, schemas, matching,
   error behaviour, and executor semantics: add a test that fails for the
   intended reason, implement the smallest serial behaviour, refactor, then add
   executor conformance and scientific comparisons.
 - Mark tests with `integration`, `equivalence`, `acceptance`, `qualification`,
-  `benchmark`, `slow`, and `requires_data` as applicable. Marker names are
-  strict.
+  `benchmark`, `scalability`, `slow`, and `requires_data` as applicable.
+  Marker names are strict.
 - Unit tests must not require a running scheduler, download data, or depend on
   execution order.
 - Use analytic truth before generated truth, the serial implementation before
@@ -218,6 +244,9 @@ passes.
   oracle. Test matchers and comparison reports independently.
 - Use property-based tests for numerical invariants and boundary combinations.
   Bound generated arrays and metadata to physically meaningful ranges.
+- Test one-tile versus many-tile equivalence on small analytic data before
+  using the controlled scalability lane. Put sources on every edge/corner
+  topology and vary partition origin, tile shape, completion order, and retry.
 - Give every dataset a `development`, `regression`, or `qualification` role.
   Do not tune with held-out qualification results. Store generator version and
   configuration as well as random seeds.

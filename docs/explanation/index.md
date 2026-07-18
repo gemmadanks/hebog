@@ -6,8 +6,9 @@ flow, product ownership, and shared language. The
 records the current compatibility evidence behind this target architecture.
 
 Hebog separates scientific algorithms from execution policy. Algorithms
-operate on NumPy arrays and immutable configuration; an executor decides
-whether coarse batches run serially, in local threads, or on Dask workers.
+operate on bounded NumPy tiles with explicit halos and immutable metadata; an
+executor decides whether coarse batches run serially, in local threads, or on
+Dask workers. A small image is one tile.
 
 ```text
 FITS input
@@ -35,6 +36,18 @@ The serial executor is the deterministic scientific reference. Local and Dask
 executions must match it before either is compared with PyBDSF. Dask batches
 should be coarse enough to amortise scheduling, and common image data should
 be read or published once rather than embedded in every task.
+
+Images up to 100,000 by 100,000 pixels use a deterministic partition manifest,
+stage-specific halos, bounded tile maps, boundary summaries, and hierarchical
+reconciliation. No worker holds a complete large plane. Qualification must
+demonstrate partition-invariant results and useful distribution across 100 and
+at least 200 worker nodes; Rapthor still owns the supplied cluster and resource
+budget.
+
+Production nodes are expected to provide hundreds of GB of RAM. Hebog sizes
+bounded batches and caches from admitted worker memory so it can use that
+capacity without assuming exclusive access or making results topology
+dependent.
 
 The [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines the target modules, scientific gates, performance budget, delivery

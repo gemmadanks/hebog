@@ -52,31 +52,35 @@ type-check:
 test: test-unit
 
 test-unit:
-    uv run pytest -q -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+    uv run pytest -q -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
 
 # Run Dask, FITS, and Rapthor integration tests
 test-integration:
-    uv run pytest -q -m "integration and not qualification and not slow and not requires_data" tests/
+    uv run pytest -q -m "integration and not qualification and not scalability and not slow and not requires_data" tests/
 
 # Run small, redistributable scientific comparisons with frozen PyBDSF products
 test-equivalence:
-    uv run pytest -q -m "equivalence and not qualification and not slow and not requires_data" tests/
+    uv run pytest -q -m "equivalence and not qualification and not scalability and not slow and not requires_data" tests/
 
 # Run held-out scientific qualification cases on an approved data host
 test-qualification:
-    uv run pytest -q -m "qualification" tests/
+    uv run pytest -q -m "qualification and not scalability" tests/
 
 # Run lightweight Rapthor-facing behaviour scenarios
 test-acceptance:
-    uv run pytest -q -m "acceptance and not qualification and not slow and not requires_data" tests/
+    uv run pytest -q -m "acceptance and not qualification and not scalability and not slow and not requires_data" tests/
 
 # Run explicitly requested performance tests
 test-benchmark:
-    uv run pytest -q -m "benchmark" tests/
+    uv run pytest -q -m "benchmark and not scalability" tests/
+
+# Run controlled out-of-core and multi-node scalability qualification
+test-scalability:
+    uv run pytest -q -m "scalability" tests/
 
 # Run tests with verbose output (exclude slow)
 test-vv:
-    uv run pytest -vv -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+    uv run pytest -vv -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
 
 # Run the fast, non-mutating handoff checks
 check: format-check lint type-check test
@@ -87,7 +91,7 @@ marimo-check:
 
 # Run the portable unit and integration suite with coverage
 coverage:
-    uv run pytest -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not requires_data" --cov --cov-report=term-missing
+    uv run pytest -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --cov --cov-report=term-missing
 
 # Build docs (MkDocs strict)
 docs-build:

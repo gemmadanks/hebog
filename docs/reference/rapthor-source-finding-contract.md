@@ -132,5 +132,12 @@ remove that tool-specific escape while preserving coarse task boundaries,
 serializable path-based results, deterministic ordering, and explicit CPU and
 memory budgets.
 
+For future large images, one admitted source-finding operation may expand into
+the bounded haloed-tile and hierarchical-reconciliation subgraph defined by
+[ADR-005](../architecture/adr/005-scale-large-images-with-hierarchical-tiles.md).
+Hebog must use Rapthor's existing client rather than creating a private cluster
+or nested process pool, and no worker may require a complete large image
+plane.
+
 The boundary is provisional until domain review, frozen examples, and failing
 contract tests confirm normal, empty, corrupt, retry, and restart behaviour.

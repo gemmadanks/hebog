@@ -16,6 +16,14 @@ at least a 50% reduction in the median wall time of the complete
 pinned performance-improved PyBDSF `master` reference. Scientific
 equivalence—not bitwise equality—is the acceptance criterion.
 
+Hebog is designed to scale out of core to 100,000-by-100,000-pixel images.
+Large planes are processed as deterministic haloed tiles with hierarchical
+boundary reconciliation, allowing an existing Dask cluster to distribute work
+across 100 to several hundred nodes without any worker holding a full plane.
+Production nodes are expected to have hundreds of GB of RAM; Hebog will use
+that capacity through resource-aware tile batching and caches while preserving
+bounded tasks and topology-independent results.
+
 See the [source-finder implementation plan](plans/source-finder-implementation.md)
 for the profiling evidence, scientific gates, dataset matrix, staged delivery,
 performance budget, risks, and definition of done.
@@ -38,6 +46,10 @@ algorithms are not implemented yet.
 - Materialise compatible catalogue, RMS-image, and mask products.
 - Provide the same scientific API for deterministic serial, local, and Dask
   execution.
+- Process images up to 100,000 by 100,000 pixels out of core with
+  partition-invariant results and bounded per-worker memory.
+- Scale through Rapthor's existing Dask cluster to 100 and at least 200 worker
+  nodes without per-pixel or per-window tasks.
 - Integrate into Rapthor without its current PyBDSF fork-safety subprocess
   escape.
 - Demonstrate scientific equivalence with frozen PyBDSF products and injected
@@ -98,6 +110,7 @@ just test-equivalence   # frozen PyBDSF comparisons
 just test-acceptance    # Rapthor-facing behaviour scenarios
 just test-qualification # held-out scientific validation
 just test-benchmark     # explicitly requested performance tests
+just test-scalability   # controlled large-image and multi-node scale tests
 just marimo-check       # validate Marimo notebooks
 just check              # format, lint, type, and quick tests
 just docs-build         # strict MkDocs build
@@ -127,6 +140,12 @@ reviewable, testable, and version controlled. Validate them with
 Scientific kernels operate on NumPy arrays and immutable configuration. An
 executor decides whether coarse batches run serially, in local threads, or on
 Dask workers.
+
+Image-sized kernels receive bounded tile cores, stage-specific read-only
+halos, and global coordinates. Boundary summaries and tree reductions
+reconcile statistics, connected labels, sources, and output chunks. A small
+image uses the same semantics as one tile; a large image never becomes one
+scheduler payload.
 
 ```text
 FITS input

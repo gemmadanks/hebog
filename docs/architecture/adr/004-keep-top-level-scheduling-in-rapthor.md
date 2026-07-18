@@ -55,6 +55,12 @@ Task boundaries exchange paths and small serializable records. Scientific
 kernels operate on NumPy arrays and immutable configuration. Dask is execution
 policy, not the array type required by every function.
 
+For large images, Hebog may use the supplied client to construct a bounded
+subgraph of coarse haloed-tile maps and hierarchical reductions as defined by
+ADR-005. This does not transfer cluster ownership to Hebog: Rapthor still
+admits the operation and owns the scheduler, worker resources, retries at the
+pipeline boundary, and cancellation.
+
 The serial executor is the deterministic reference. Local and Dask executors
 must match its membership, ordering, outputs, and tolerances.
 
@@ -86,6 +92,6 @@ duration, transfer, spill, and memory before distributed execution is accepted.
 
 | Type | Links |
 | --- | --- |
-| **ADRs** | [ADR-003](003-limit-hebog-to-rapthor-source-finding-contract.md) |
+| **ADRs** | [ADR-003](003-limit-hebog-to-rapthor-source-finding-contract.md), [ADR-005](005-scale-large-images-with-hierarchical-tiles.md) |
 | **Documentation** | [Domain model](../../explanation/domain-model.md) |
 | **Plan** | [Implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md) |

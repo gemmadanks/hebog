@@ -48,7 +48,7 @@ example products, and scientific thresholds are reviewed.
 | Source catalogue | Materialised table of measured source rows. Hebog documentation uses “catalogue”; compatibility code may retain external names such as `source_catalog`. |
 | Source-filtering mask | Image-aligned island mask used to retain and group sky-model components. Do not call it a clean mask; a clean mask controls deconvolution. |
 | Materialised product | Closed, restartable file plus plain metadata. It must not contain an open FITS handle, mutable full-image object, or scheduler client. |
-| Compatibility adapter | Boundary that maps Hebog's internal schema and terms to the filenames, fields, units, and empty behaviour required by Rapthor/LSMTool. Its final design is an open ADR-005 decision. |
+| Compatibility adapter | Boundary that maps Hebog's internal schema and terms to the filenames, fields, units, and empty behaviour required by Rapthor/LSMTool. Its final design is an open ADR-006 decision. |
 
 ## Execution
 
@@ -56,7 +56,13 @@ example products, and scientific thresholds are reviewed.
 | --- | --- |
 | Scientific kernel | Deterministic array operation independent of scheduler state and file lifecycle where practical. |
 | Executor | Policy object that runs coarse scientific work serially, locally, or through an existing Dask client. It does not own Rapthor's top-level graph. |
+| Admitted worker memory | RAM budget Rapthor makes available to one Hebog worker after reserving node headroom and concurrent pipeline demand. It may be substantially less than the hundreds of GB physically installed on a production node. |
 | Serial reference | Deterministic Hebog execution used as the first oracle for local and Dask conformance. It is not the same as the PyBDSF compatibility oracle. |
+| Partition manifest | Small, deterministic record describing a logical image's shape, tile cores, stage-specific halos, global coordinates, ownership, and chunk locations. It contains no image plane or scheduler object. |
+| Tile core | Non-overlapping image region owned by one tile for output and source-assignment purposes. A small image is represented as one tile core. |
+| Halo | Read-only pixels surrounding a tile core that provide neighbourhood context for windows, convolution, connectivity, or fitting. Qualify the stage and pixel width; halo pixels are not duplicate output ownership. |
+| Boundary summary | Bounded metadata emitted by a tile for cross-tile reconciliation, such as mergeable statistics, connected-label equivalences, or edge-source state. It is proportional to a boundary or catalogue shard, not the full image. |
+| Reconciliation | Deterministic merge of tile summaries into global statistics, stable labels, sources, catalogues, or products, normally through hierarchical reductions. |
 | True-sky branch | Detection, measurement, catalogue, mask, and true-sky RMS work driven by the true-sky image when beam information is available. |
 | Flat-noise branch | Independent RMS-estimation work driven by the flat-noise image. It may run concurrently only within the admitted memory budget. |
 
@@ -79,6 +85,10 @@ example products, and scientific thresholds are reviewed.
   external field names and filenames when compatibility requires it.
 - Use `serial`, `local`, and `dask` for executor modes. Do not use `parallel`
   as a mode name because it does not identify ownership or resource policy.
+- Use `tile_y_index`, `tile_x_index`, `core_bounds`, and stage-qualified halo
+  names such as `detection_halo_pixels`. Do not use “chunk” and “tile”
+  interchangeably: a chunk is a storage unit; a tile is a scientific work and
+  ownership unit.
 
 ## Legacy term map
 

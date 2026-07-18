@@ -39,7 +39,7 @@ configuration and source-finding behaviour. It may use an executor for coarse
 work, but it does not create a hidden cluster or send live scheduler state in
 results.
 
-The compatibility adapter is a boundary rather than a settled package. ADR-005
+The compatibility adapter is a boundary rather than a settled package. ADR-006
 will decide its schema after frozen products and contract tests expose the
 required mapping. PyBDSF remains a test oracle and feature-flagged fallback,
 not a runtime dependency of Hebog's scientific kernels.
@@ -86,10 +86,54 @@ Rapthor admits their combined CPU and memory demand. Both produce files before
 the diagnostics join, allowing retries and restarts without serializing image
 objects through Dask.
 
+## Large-image decomposition
+
+```mermaid
+flowchart LR
+    IN["Logical image planes<br/>up to 100,000 × 100,000"]
+    PM["Partition manifest<br/>cores, halos, ownership, chunks"]
+    TM["Bounded tile maps<br/>local scientific kernels"]
+    BS["Boundary summaries<br/>statistics, labels, source state"]
+    HR["Hierarchical reconciliation<br/>tree reductions and stable IDs"]
+    CP["Retryable chunk products<br/>RMS, masks, catalogue shards"]
+    CM["Compatibility materialisation<br/>Rapthor products"]
+    DC["Existing Dask cluster<br/>1 to 200+ worker nodes"]
+
+    IN --> PM --> TM --> BS --> HR --> CP --> CM
+    DC --> TM
+    DC --> HR
+    DC --> CP
+```
+
+ADR-005 makes the partition manifest part of the stable scientific boundary.
+Every tile has a non-overlapping output core and a stage-specific read-only
+halo. Local maps emit bounded boundary summaries; tree reductions reconcile
+global statistics, connected labels, cross-scale sources, and stable
+identifiers without gathering a full plane on the scheduler or one worker.
+The one-tile path uses the same ownership and reconciliation rules as the
+multi-node path.
+
+The physical chunk store and final large-product materialisation format remain
+Phase 0 and Phase 1 evidence-driven decisions. FITS compatibility at the
+Rapthor boundary does not require every internal stage to rewrite a complete
+FITS plane.
+
+Production nodes are expected to have hundreds of GB of RAM. Executor policy
+may use the admitted fraction for larger tile batches and bounded caches, while
+retaining headroom for concurrent Rapthor work. Resource sizing changes
+execution topology, not tile ownership or scientific results.
+
 ## Boundary invariants
 
 - Scientific kernels accept arrays, immutable configuration, and explicit
   metadata; they do not import Rapthor or a global Dask client.
+- Image-sized kernels accept bounded tile cores, explicit halos, and global
+  coordinates; no worker or public record requires a complete large plane.
+- Source membership, stable identifiers, and materialised values are invariant
+  to valid tile geometry, partition origin, worker count, task order, and
+  retries within reviewed numerical tolerances.
+- Production graph size is proportional to tiles and stages, never pixels,
+  RMS windows, or small islands.
 - Public task inputs and results contain paths and small serializable records.
 - Apparent-sky, true-sky, flat-noise, RMS, residual, mask, catalogue, and
   filtered-model products remain distinguishable.
@@ -101,4 +145,6 @@ objects through Dask.
   and downstream Rapthor decisions pass contract tests.
 
 A detailed executor diagram is intentionally deferred until the asynchronous
-executor contract stabilizes in Phase 6.
+executor contract stabilizes in Phase 6. The large-image decomposition above
+records the stable data and ownership boundaries without fixing executor
+classes or a physical chunk-store technology.

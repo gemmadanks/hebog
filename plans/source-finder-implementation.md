@@ -17,6 +17,14 @@ results to the subset of PyBDSF used by Rapthor. Reduce the median wall time of 
 `filter_skymodel` step by at least 50% relative to the released PyBDSF version used by Rapthor, and
 also outperform the current performance-improved PyBDSF `master` reference.
 
+Scalability is a core requirement, not an optional optimization. Hebog must
+eventually process images up to 100,000 by 100,000 pixels without materialising
+a complete image plane on any worker, and distribute that work through an
+existing Dask cluster spanning 100 to several hundred worker nodes. Production
+nodes are expected to provide hundreds of GB of RAM, so tile and batch sizing
+must use explicit worker memory budgets to exploit that capacity without
+coupling scientific results to one hardware topology.
+
 The primary acceptance formula is:
 
 ```text
@@ -77,7 +85,13 @@ and fork-based worker startup.
 - Connected islands, deblending, compact-source measurements, and Gaussian fitting where needed.
 - Multiscale detection sufficient for the extended sources relevant to sky-model filtering.
 - Catalogue, RMS image, and mask products consumed by LSMTool/Rapthor.
+- Out-of-core, haloed tile processing for images up to 100,000 by 100,000
+  pixels.
+- Deterministic boundary reconciliation for background grids, islands,
+  multiscale detections, catalogues, masks, and image products.
 - Serial, local, and Dask execution through the same scientific API.
+- Distributed execution across 100 to several hundred Dask worker nodes
+  without per-pixel or per-window scheduler tasks.
 - Direct integration into Rapthor without the current fork-safety subprocess escape.
 - Reproducible PyBDSF equivalence and end-to-end performance harnesses.
 
@@ -86,7 +100,7 @@ and fork-based worker startup.
 - Complete compatibility with every PyBDSF option and output format.
 - Polarization-specific analysis not exercised by Rapthor.
 - GPU execution.
-- Distributed connected-component labelling for images that fit comfortably in one worker.
+- Requiring a distributed cluster for images that fit within one bounded tile.
 - Reproducing undocumented PyBDSF implementation defects.
 - Copying or mechanically translating PyBDSF source code.
 
@@ -102,7 +116,9 @@ result = find_sources(request, config, executor)
 
 Requests contain input paths, an output directory, identifiers, and immutable configuration.
 Results contain materialised output paths, counts, timings, schema versions, and small metadata.
-They never contain open FITS handles, a Dask client, or a mutable full-image object.
+They never contain open FITS handles, a Dask client, or a mutable full-image object. A request may
+identify a logical image through a partition manifest or chunk-addressable store, but storage and
+partition details remain explicit boundary metadata rather than scheduler state.
 
 ### 4.2 Rapthor graph
 
@@ -116,7 +132,9 @@ estimate_flat_noise_rms ---------+
 
 The first two operations are independent and may run concurrently when their combined memory fits
 the configured resource budget. Each operation emits restartable file products. The join applies
-the existing filtering rules and creates the final sky model.
+the existing filtering rules and creates the final sky model. For a large image, either operation
+may construct a bounded haloed-tile subgraph on Rapthor's existing Dask client; this does not move
+top-level graph or resource ownership into Hebog.
 
 ### 4.3 Output compatibility
 
@@ -177,7 +195,13 @@ The suite must cover:
 5. Edges, NaNs, masks, negative bowls, spatially varying noise, and bright-source artefacts.
 6. The representative 3000 by 3000 Rapthor image used in exploratory profiling.
 7. At least one larger production-like image, initially 8000 by 8000 or larger.
-8. Several `filter_skymodel` calls from a complete Rapthor benchmark run.
+8. A generated scalability ladder at 10,000, 30,000, and 100,000 pixels per side, with controlled
+   source populations and features deliberately crossing tile boundaries.
+9. Several `filter_skymodel` calls from a complete Rapthor benchmark run.
+
+Treat the 10,000-pixel case as development data, the 30,000-pixel case as a reviewed regression
+case, and the frozen 100,000-pixel case as qualification data unless the manifest records an
+approved equivalent split. The large-image generator, not just its random seed, is versioned.
 
 Use generated truth to measure absolute completeness and flux accuracy. Use frozen outputs from
 the released PyBDSF reference to measure current Rapthor compatibility, and frozen outputs from the
@@ -250,11 +274,12 @@ tests must never regenerate expected products implicitly.
 | Acceptance | Lightweight Rapthor-facing behaviour scenarios | Pull request |
 | Qualification | Held-out production-like scientific matrix | Milestone and release |
 | Benchmark | Component and complete `filter_skymodel` performance | Controlled scheduled runner |
+| Scalability | Out-of-core execution, partition invariance, and 100-to-200-plus-node scaling | Controlled multi-node runner |
 
 Mark tests explicitly with `integration`, `equivalence`, `acceptance`, `qualification`,
-`benchmark`, `slow`, and `requires_data` as applicable. Portable CI must not run wall-time gates,
-download data, or require private production inputs. Small equivalence and acceptance cases must
-remain deterministic and redistributable.
+`benchmark`, `scalability`, `slow`, and `requires_data` as applicable. Portable CI must not run
+wall-time or scale gates, download data, or require private production inputs. Small equivalence
+and acceptance cases must remain deterministic and redistributable.
 
 Property-based tests should generate bounded, physically meaningful arrays and metadata with
 recorded failure examples. Important properties include:
@@ -264,6 +289,9 @@ recorded failure examples. Important properties include:
 - increasing a threshold cannot create a new detection;
 - invalid or masked pixels never contribute to statistics or flux;
 - translating an isolated source changes pixel and sky coordinates consistently;
+- changing tile shape, halo size above the required minimum, task batching, worker count, or task
+  completion order preserves source membership and product values within reviewed tolerances;
+- sources and islands crossing tile corners and edges are neither lost nor duplicated;
 - serial, local, and Dask execution preserve stable membership, ordering, and tolerances.
 
 ### 7.4 Behaviour-driven acceptance tests
@@ -285,6 +313,23 @@ ordering, serialization, exceptions, cancellation, retry semantics, determinism,
 metadata with fakes or an in-process cluster where possible. Reserve real worker termination,
 spill, and resource-contention tests for a controlled integration environment.
 
+Use small analytic images to prove that a single tile and many tiles produce
+the same result before running large scale tests. The controlled scalability
+lane must exercise 1, 10, 50, 100, and at least 200 worker nodes where the
+approved facility provides them. It records tile and halo geometry, partition
+count, graph size, scheduler throughput, worker occupancy, per-worker and
+aggregate memory, transfer, spill, storage throughput, retries, stragglers,
+and strong- and weak-scaling efficiency. Phase 0 must freeze reviewed runtime,
+memory, scheduler-overhead, and scaling-efficiency gates for the 100,000 by
+100,000 qualification case.
+
+Do not require PyBDSF to process the complete 100,000-by-100,000 image. Its
+scientific oracle combines versioned generated truth, global conservation and
+count invariants, partition-invariant Hebog runs, and representative cut-outs
+that can be processed as one tile and compared with both exact PyBDSF
+references. This keeps large-scale correctness independent of PyBDSF's own
+memory and distribution limits.
+
 Never enforce absolute wall-time assertions on shared or portable CI runners. Use microbenchmarks
 to diagnose regressions, component budgets on controlled hosts, and matched end-to-end Rapthor
 benchmarks against both exact PyBDSF references as the release gate. A performance result is
@@ -300,6 +345,8 @@ src/hebog/
     background.py           robust coarse and adaptive RMS estimation
     detection.py            matched filters and threshold masks
     labelling.py            components, boundaries, and island properties
+    partitioning.py         deterministic tile, halo, and ownership planning
+    reconciliation.py       boundary labels and hierarchical reductions
     deblending.py           split overlapping emission
     fitting.py              moments and selective nonlinear fits
     multiscale.py           compact/extended filter bank and merging
@@ -310,14 +357,18 @@ src/hebog/
     dask.py                 existing-client, coarse-batch execution
   io/
     fits.py                 image, beam, WCS, masks, and memory mapping
+    chunks.py               bounded window and chunk-addressable plane I/O
     catalogue.py            internal and compatibility schemas
   data_models/              small serializable requests and results
 ```
 
-Scientific kernels operate on NumPy arrays. Use SciPy for validated array operations and Numba for
-batched robust statistics or other kernels that otherwise require Python pixel/window loops.
-Compiled kernels must release the GIL when practical. Dask is execution policy, not the array API
-inside every function.
+Scientific kernels operate on bounded NumPy tile arrays with explicit core,
+halo, and global-coordinate metadata; a small image is one tile. Use SciPy for
+validated array operations and Numba for batched robust statistics or other
+kernels that otherwise require Python pixel/window loops. Compiled kernels
+must release the GIL when practical. Dask is execution policy, not the array
+API inside every function. Large planes live in window-readable files or a
+chunk-addressable store, never as one scheduler payload.
 
 ### 8.1 Domain language and architecture records
 
@@ -342,9 +393,10 @@ Create `docs/explanation/domain-model.md` with two small, code-native Mermaid di
 2. A processing and data-flow diagram showing the true-sky and flat-noise branches, their join,
    and the materialised RMS, mask, catalogue, and comparison products.
 
-Keep diagrams at stable architectural boundaries and update them with the code. Defer a detailed
-executor diagram until the asynchronous executor contract has stabilized in Phase 6, and avoid
-speculative class diagrams.
+Keep diagrams at stable architectural boundaries and update them with the code. Include the
+large-image partition, halo, reconciliation, and materialisation flow. Defer a detailed executor
+diagram until the asynchronous executor contract has stabilized in Phase 6, and avoid speculative
+class diagrams.
 
 Record decisions when their consequences are durable:
 
@@ -352,7 +404,9 @@ Record decisions when their consequences are durable:
   all of PyBDSF.
 - ADR 004: keep top-level scheduling and Dask graph ownership in Rapthor while Hebog exposes
   scheduler-independent scientific work and coarse executor tasks.
-- ADR 005, after the Phase 0 contract inventory: decide whether to use versioned internal schemas
+- ADR 005: require hierarchical, haloed tile processing and deterministic boundary reconciliation
+  so no worker needs a complete image plane.
+- ADR 006, after the Phase 0 contract inventory: decide whether to use versioned internal schemas
   with an isolated PyBDSF/LSMTool compatibility adapter.
 
 Do not write algorithm-selection ADRs merely to fill the record. Decisions about RMS estimation,
@@ -390,8 +444,8 @@ The following bands are indicative capability milestones, not promises or rigid 
 | `0.5.x` | Thresholding, islands, deblending, and compact-source detection |
 | `0.6.x` | Measurement, fitting, and catalogue compatibility |
 | `0.7.x` | Multiscale and extended-emission processing |
-| `0.8.x` | Local and Dask execution with executor conformance |
-| `0.9.x` | Experimental Rapthor backend, dual-run comparison, and qualification |
+| `0.8.x` | Local and Dask execution, out-of-core tiling, reconciliation, and executor conformance |
+| `0.9.x` | Experimental Rapthor backend, dual-run comparison, and multi-node qualification |
 | `1.0.0` | Qualified production replacement after operational soak |
 
 A phase may produce several minor or patch releases, and one release may contain compatible
@@ -436,6 +490,12 @@ removal is separately justified.
       `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
 - [ ] Record per-stage wall time, CPU time, peak RSS, array copies, Dask task count, transfer, and
       spill metrics in machine-readable JSON.
+- [ ] Freeze the 100,000-by-100,000 scalability contract: input and output planes, target storage,
+      tile/halo constraints, 1/10/50/100/200-plus-node matrix, per-worker memory ceiling, runtime,
+      scheduler-overhead, and strong/weak-scaling efficiency gates.
+- [ ] Record the representative production node RAM, workers and threads per node, reserved
+      headroom, concurrent pipeline demand, and permitted cache/spill policy; define a resource-
+      aware tile and batch-sizing policy rather than a fixed universal tile size.
 - [x] Inventory exactly which PyBDSF catalogue fields and image products Rapthor consumes in the
       [provisional contract](../docs/reference/rapthor-source-finding-contract.md).
 - [x] Inventory the domain language used by PyBDSF, LSMTool, and Rapthor; draft the provisional
@@ -445,7 +505,9 @@ removal is separately justified.
       boundaries in `docs/explanation/domain-model.md`.
 - [x] Record ADR 003 for Hebog's deliberately narrow scope and ADR 004 for external scheduler
       ownership before those boundaries are implemented.
-- [ ] Decide and record ADR 005 after the compatibility boundary and consumed products are known.
+- [x] Record ADR 005 requiring hierarchical haloed tiles, bounded worker memory, and deterministic
+      boundary reconciliation for large images.
+- [ ] Decide and record ADR 006 after the compatibility boundary and consumed products are known.
 - [ ] Add the dataset manifest, deterministic synthetic generator, and frozen reference products.
 - [ ] Assign development, regression, or qualification roles to every dataset and freeze the
       initial qualification set before algorithm work.
@@ -461,27 +523,39 @@ removal is separately justified.
 Exit gate: documented commands reproduce both baselines and their separate equivalence reports in
 clean, isolated environments; comparison tests prove the harness against analytic cases; and the
 held-out qualification set is frozen. The provisional glossary and domain diagrams have been
-reviewed, and ADRs 003 and 004 are accepted. No algorithm implementation begins without this
-foundation.
+reviewed, and ADRs 003, 004, and 005 are accepted. The provisional large-image resource and scaling
+gates are frozen. No algorithm implementation begins without this foundation.
 
 ### Phase 1: FITS, beam, WCS, and internal models
 
 - [ ] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
       unsupported FITS inputs and products.
+- [ ] Write failing tests for partition manifests, bounded window reads, halo clipping, global and
+      tile coordinates, chunk checksums, interrupted writes, and restartable materialisation.
 - [ ] Define versioned internal catalogue and materialised result schemas from those tests.
-- [ ] Read and validate the required image planes using memory mapping where safe.
+- [ ] Define a deterministic partition manifest and ownership rule so every output pixel and source
+      has exactly one owning tile.
+- [ ] Read and validate required image planes through bounded windows or a chunk-addressable store;
+      use memory mapping where safe without requiring a worker to map or materialise every plane.
+- [ ] Write large intermediate planes in independently retryable chunks before compatibility
+      materialisation.
 - [ ] Make FITS, mask, RMS, and catalogue round-trip tests pass without weakening assertions.
 - [ ] Measure and cap avoidable full-image copies.
 
 Exit gate: reference inputs round-trip with correct coordinates, units, shapes, and invalid pixels;
-the package can emit empty but structurally compatible products.
+the package can emit empty but structurally compatible products; and the same I/O contract handles
+one-tile and many-tile images with memory bounded by configured tile and halo sizes.
 
 ### Phase 2: robust background and RMS estimation
 
 - [ ] Write failing analytic and property tests for constant and affine backgrounds, positive
       scaling, masks, NaNs, edges, negative values, sparse adaptive cells, and interpolation
       fallback.
+- [ ] Add tile-boundary and partition-invariance tests for RMS windows, interpolation, and adaptive
+      bright-source regions.
 - [ ] Implement batched sigma-clipped statistics on a coarse window grid to satisfy those tests.
+- [ ] Compute global coarse-grid and interpolation metadata through hierarchical reductions and
+      bounded tile summaries rather than gathering full planes.
 - [ ] Reuse buffers and calculate adaptive fine-grid cells only around bright candidates.
 - [ ] Interpolate cached coarse samples; fallback interpolation must not recompute statistics.
 - [ ] Treat masks, NaNs, edges, negative values, and insufficient samples explicitly.
@@ -499,17 +573,21 @@ without increasing peak memory above the matched PyBDSF run.
 
 - [ ] Write failing analytic and generated-truth tests for threshold monotonicity, connectivity,
       stable labels, close blends, edges, and empty detections.
+- [ ] Put sources and islands across every tile-edge and tile-corner topology; prove invariance to
+      tile shape, worker count, task order, retry, and partition origin.
 - [ ] Apply seed and island thresholds to normalized residuals.
 - [ ] Label connected pixels with explicit connectivity and edge conventions.
 - [ ] Calculate island bounding boxes and properties without copying the whole image per island.
 - [ ] Implement deterministic deblending using a documented multilevel or watershed algorithm.
 - [ ] Establish stable source and island ordering independent of executor completion order.
+- [ ] Reconcile connected-component equivalences and deblending state across tile halos using
+      bounded boundary summaries and deterministic hierarchical merging.
 - [ ] Expand the initial tests into injected-source completeness, reliability, blend, and edge
       regression cases.
 
-Start with whole-image labelling in one worker. Only add distributed labelling if large-image
-profiling proves it necessary; a distributed implementation must reconcile labels across chunk
-halos exactly.
+Use the same labelling and reconciliation semantics for a one-tile image and a distributed image.
+Whole-image labelling may optimize the one-tile case, but it must not become a separate scientific
+implementation or a prerequisite for correctness.
 
 Exit gate: compact-source detection and island membership pass the relevant scientific gates and
 show no quadratic scaling with source count.
@@ -524,6 +602,8 @@ show no quadratic scaling with source count.
 - [ ] Batch remaining nonlinear Gaussian fits by estimated pixel/component cost.
 - [ ] Implement beam deconvolution, sky-coordinate conversion, uncertainties, and units.
 - [ ] Write the compatibility catalogue and side products required by LSMTool/Rapthor.
+- [ ] Write catalogue shards independently and merge them hierarchically with stable global source
+      identifiers; never gather image-sized intermediates on the scheduler or one worker.
 - [ ] Compare retained/rejected sky-model components end to end.
 
 Exit gate: compact and blended source catalogues pass the position, flux, shape, and downstream
@@ -537,6 +617,8 @@ filter-decision gates.
       convolutions and background products.
 - [ ] Detect significant emission at each configured scale without recursively rerunning the full
       pipeline.
+- [ ] Derive scale-specific halos and trim ownership regions so tile-boundary convolutions match
+      the one-tile reference.
 - [ ] Merge cross-scale islands deterministically and prevent duplicate compact components.
 - [ ] Promote reviewed failures and boundary cases to regression fixtures.
 - [ ] Compare completeness and integrated flux by angular scale.
@@ -544,7 +626,7 @@ filter-decision gates.
 Exit gate: extended-source cases meet reviewed scientific tolerances and the multiscale path stays
 within the complete runtime budget.
 
-### Phase 6: local and Dask execution
+### Phase 6: local, out-of-core, and distributed Dask execution
 
 - [ ] Define a parameterized executor contract suite for ordering, serialization, exceptions,
       retry, cancellation, determinism, and resource metadata.
@@ -552,7 +634,12 @@ within the complete runtime budget.
       serial implementation satisfies the contract.
 - [ ] Add a persistent local threaded executor for GIL-releasing kernels.
 - [ ] Add a Dask executor that receives an existing client and never creates nested pools.
+- [ ] Build bounded map, boundary-summary, hierarchical-reduction, and materialisation subgraphs
+      from the partition manifest without creating a task per pixel, RMS window, or small island.
 - [ ] Batch RMS cells, interpolation slabs, multiscale filters, and island fits by measured cost.
+- [ ] Use admitted worker memory metadata to size tile batches and caches, allowing memory-rich
+      production nodes to do more useful work without changing tile ownership or scientific
+      results.
 - [ ] Keep common image data in worker-local storage or publish it once; do not embed full arrays in
       every task.
 - [ ] Add resource annotations for CPU and memory; use deterministic failure injection for normal
@@ -560,12 +647,20 @@ within the complete runtime budget.
 - [ ] Record graph size, scheduler overhead, transfer volume, task-duration distribution, and
       peak aggregate memory.
 - [ ] Prove serial/local/Dask scientific equivalence.
+- [ ] Demonstrate topology-independent results across tile geometries and 1, 10, 50, 100, and at
+      least 200 worker nodes on the approved scalability facility.
+- [ ] Process the 100,000-by-100,000 qualification image without any worker materialising a full
+      plane or exceeding the frozen per-worker memory and spill budgets.
 
-Initial task-duration target: 0.2 to 2 seconds per coarse batch on the reference worker. Adjust from
-measured scheduler overhead rather than fixing an arbitrary item count.
+Use 0.2 to 2 seconds only as an initial lower-scale diagnostic range for amortising scheduler
+overhead. On memory-rich production nodes, size bounded batches from measured CPU, I/O, memory,
+and straggler behaviour while keeping enough runnable batches to occupy every admitted worker; do
+not impose one universal task duration or item count.
 
-Exit gate: Dask improves throughput or critical-path time on the supported workloads, has no nested
-fork behaviour, and stays within configured CPU and memory budgets.
+Exit gate: Dask improves throughput or critical-path time on supported workloads, has no nested
+fork behaviour, and meets the frozen 100,000-by-100,000 correctness, runtime, worker occupancy,
+memory, scheduler-overhead, recovery, and scaling-efficiency gates at 100 and at least 200 worker
+nodes representative of the production hundreds-of-GB RAM class.
 
 ### Phase 7: Rapthor integration and dual-baseline performance gate
 
@@ -641,6 +736,16 @@ Component improvements are not added arithmetically unless their end-to-end effe
 Run both cold-cache and warm-cache I/O measurements when FITS reading is material. Use warm-cache
 results for algorithm tuning and cold-cache results for operational expectations.
 
+For scalability runs, also record logical image shape and bytes, input and
+output plane count, storage layout, tile cores and halos, partition count,
+worker-node count, workers and threads per node, scheduler CPU and memory,
+RAM per node and worker, admitted memory, reserved headroom, worker occupancy,
+task throughput, boundary-summary volume, reduction depth,
+storage throughput, straggler distribution, and recovery cost. Run strong
+scaling on the same 100,000-by-100,000 case and weak scaling with fixed pixels
+per worker. Preserve every topology result; do not report only the best node
+count.
+
 ## 13. Risks and mitigations
 
 | Risk | Mitigation |
@@ -654,6 +759,11 @@ results for algorithm tuning and cold-cache results for operational expectations
 | A comparator defect hides divergence | Test matching and report calculations against analytic catalogues and known assignments |
 | Distributed failure tests are flaky | Prefer deterministic fault injection; reserve real worker loss and spill for controlled runners |
 | Dask overhead erases kernel gains | Use coarse batches, publish data once, and retain an efficient local executor |
+| Full planes or global gathers exhaust workers | Make memory proportional to tile core plus halo, use bounded summaries and hierarchical reductions, and enforce worker-memory gates |
+| Conservative tiles underuse memory-rich nodes | Derive tile batching and caches from admitted memory and measured kernels while keeping ownership and results partition invariant |
+| Tile boundaries change scientific results | Use explicit halos and ownership, boundary/corner fixtures, partition-invariance properties, and deterministic reconciliation |
+| Scheduler load grows faster than useful work | Keep graph size proportional to tiles and stages, batch small work, use tree reductions, and qualification-test scheduler throughput at 100-plus nodes |
+| Shared storage bottlenecks hundreds of workers | Benchmark windowed FITS and chunk-addressable stores, stagger or batch I/O, and freeze storage-specific throughput gates |
 | Concurrent branches exceed memory | Use resource annotations and measure aggregate RSS before enabling concurrency |
 | Numba compilation affects latency | Warm/cache kernels explicitly and report cold and warm timings |
 | Catalogue compatibility becomes coupled to internals | Keep a versioned internal schema and an isolated PyBDSF/LSMTool adapter |
@@ -669,7 +779,7 @@ results for algorithm tuning and cold-cache results for operational expectations
 - Where are the exact boundaries between an island, Gaussian component, source, catalogue row, and
   sky-model component, and which terms belong in Hebog's public API?
 - Which domain experts approve the glossary and naming conventions before the Phase 0 exit gate?
-- Does the contract inventory support ADR 005's proposed versioned internal schema and isolated
+- Does the contract inventory support ADR 006's proposed versioned internal schema and isolated
   compatibility adapter, or does it reveal a different boundary?
 - Which production datasets can be retained as reproducible benchmark fixtures?
 - Should nonlinear fitting use SciPy least-squares, a small dedicated compiled kernel, or both?
@@ -677,6 +787,8 @@ results for algorithm tuning and cold-cache results for operational expectations
   extended-source gate more efficiently?
 - Which worker-local storage mechanism best matches Rapthor deployment: FITS memory mapping, shared
   memory, Dask worker data, or an array-store format?
+- Which chunk-addressable intermediate and distributed output format meets the 100,000-by-100,000
+  I/O, restart, provenance, and final FITS-compatibility requirements?
 - What resource names and limits should Rapthor use for source-finder CPU and memory admission?
 - Which scientific tolerances require formal SKA science approval before default cutover?
 - Which qualification datasets and gates can be frozen before algorithm development begins?
@@ -701,3 +813,7 @@ The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
    performance regressions.
 9. The glossary, domain model, and code-native diagrams match the released architecture and make
    legacy compatibility names distinct from Hebog's internal concepts.
+10. A 100,000-by-100,000 qualification image completes with scientifically equivalent,
+    partition-invariant products on 100 and at least 200 Dask worker nodes; no worker materialises
+    a full plane, and the frozen memory, spill, scheduler, recovery, runtime, and scaling-efficiency
+    gates pass on representative production nodes with hundreds of GB of RAM.

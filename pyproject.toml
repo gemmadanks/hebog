@@ -58,6 +58,7 @@ markers = [
     "integration: Dask, FITS, and Rapthor integration tests",
     "qualification: held-out scientific validation for milestone and release gates",
     "requires_data: tests requiring external or non-redistributable datasets",
+    "scalability: controlled large-image and multi-node scaling tests",
     "slow: tests excluded from the fast development and pull-request suites",
 ]
 

@@ -9,14 +9,15 @@ just test-equivalence
 just test-acceptance
 just test-qualification
 just test-benchmark
+just test-scalability
 ```
 
 Unit tests must be deterministic and require no scheduler or downloaded data.
 Integration tests cover Dask, FITS, and Rapthor boundaries. Equivalence tests
 compare small redistributable cases with frozen PyBDSF products. Acceptance
-tests describe Rapthor-facing behaviour. Qualification and benchmark tests
-require controlled resources or approved data and are never implied by the
-quick suite.
+tests describe Rapthor-facing behaviour. Qualification, benchmark, and
+scalability tests require controlled resources or approved data and are never
+implied by the quick suite.
 
 ## Develop test-first
 
@@ -53,6 +54,14 @@ not substitute `master` for Rapthor's released runtime.
 Use one warm-up and at least five measured repetitions. Store generated
 results under the ignored `benchmark-results/` directory and commit only small
 reviewed summaries with reproduction commands.
+
+For a scalability run, additionally record the logical image and plane sizes,
+tile cores and stage-specific halos, partition count, storage layout, worker
+nodes and processes, node/worker RAM, admitted memory and reserved headroom,
+scheduler load, worker occupancy, boundary-summary and transfer volumes,
+spill, storage throughput, retries, and stragglers. Report
+the full 1/10/50/100/200-plus-node matrix, including strong- and weak-scaling
+efficiency; do not retain only the best topology.
 
 ## Work with notebooks
 
