@@ -1,9 +1,9 @@
 # Validation dataset manifests
 
 Hebog identifies validation data through strict, versioned JSON manifests.
-The initial development manifest is
-`config/datasets/phase-0-development.json`. A manifest can be loaded without
-resolving, downloading, or generating any image:
+Phase 0 freezes separate development, regression, and qualification manifests
+under `config/datasets/`. A manifest can be loaded without resolving,
+downloading, or generating any image:
 
 ```python
 from pathlib import Path
@@ -33,8 +33,13 @@ geometry, stale checksums, and inconsistent statistics.
 
 A recipe checksum protects the generation inputs. It is not an artifact
 checksum for a materialised FITS file. Frozen released-PyBDSF and
-PyBDSF-`master` reference products will additionally record artifact checksums,
+PyBDSF-`master` reference products additionally record artifact checksums,
 complete tool revisions, and configuration in their own Phase 0 manifest.
+
+The 30,000-square regression and 100,000-square qualification entries are
+logical recipes: tests generate bounded windows and must never allocate the
+whole plane. The qualification case is held out from routine tuning even
+though its seed is necessarily recorded for reproducibility.
 
 ## Deterministic generation
 

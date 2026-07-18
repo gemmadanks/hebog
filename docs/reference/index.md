@@ -8,6 +8,8 @@ Related project references:
 - [Validation dataset manifests](dataset-manifests.md)
 - [Scientific comparison reports](scientific-comparison.md)
 - [Evidence documents](evidence-documents.md)
+- [Performance and scalability contracts](performance-scalability-contracts.md)
+- [Phase 0 review record](phase-0-review-record.md)
 
 ## Top-level package
 
@@ -36,5 +38,11 @@ Related project references:
 ## Pipeline
 
 ::: hebog.pipeline
+    options:
+      show_symbol_type_toc: true
+
+## Validation contracts
+
+::: hebog.validation.contracts
     options:
       show_symbol_type_toc: true

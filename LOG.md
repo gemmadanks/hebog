@@ -876,3 +876,53 @@ source evidence.
   matched timings for released PyBDSF and pinned `master`.
 - Freeze the logarithmic workload matrix and controlled facility resource
   contract, then record Hebog evidence at every runnable size tier.
+
+## 2026-07-18 — Froze Phase 0 validation and scale contracts
+
+**Plan phase:** Phase 0
+
+**Completed**
+
+- Froze a complete 256-to-100,000 performance ladder across sparse, normal,
+  and dense-or-extended work, with initial execution/storage crossover probes
+  and a rule requiring measured crossovers to gain adjacent cases.
+- Froze the previous-Hebog confidence rule and warm one-tile configuration,
+  FITS I/O, partition-planning, serial, local, and Dask overhead budgets.
+- Froze the provisional 100,000-square plane, storage, tile/halo, graph,
+  memory, spill, runtime, occupancy, and strong/weak scaling contract at 1,
+  10, 50, 100, and 200 nodes.
+- Added separate regression and held-out qualification manifests, including a
+  window-generated 30,000-square regression case and the 100,000-square
+  qualification recipe.
+- Replaced the acceptance placeholder with ten strict-xfail contract and
+  Given/When/Then-style acceptance specifications. Each frozen public
+  behaviour has one test owner, and an unexpected pass now fails CI until the
+  specification is reviewed and made normally passing.
+
+**Evidence**
+
+- The checked-in contracts validate through strict immutable Pydantic models;
+  focused tests cover matrix completeness, worker-memory admission, topology
+  coverage, dataset roles/checksums, and exact behaviour-to-test ownership.
+- `just check` passed with 60 portable tests and four expected contract
+  failures. `just test-contract` reported four expected failures;
+  `just test-acceptance` reported six. The strict documentation build passed.
+
+**Decisions**
+
+- Use a representative 512 GiB production planning node with four 80 GiB
+  worker limits after 64 GiB platform and 128 GiB concurrent-pipeline
+  reserves. Qualification records the real facility rather than treating this
+  planning profile as measured fact.
+- Treat the scale and scientific gates as frozen engineering requirements,
+  not demonstrated or domain-approved evidence. The review record names the
+  independent scientific and facility sign-offs still required.
+- Keep the qualification recipe reproducible but held out from routine tuning;
+  large recipes are generated only through bounded windows.
+
+**Next**
+
+- Capture released and pinned-master PyBDSF products and matched repetitions
+  in the now-frozen environment and evidence schemas.
+- Measure the one-tile overhead probes and replace exploratory timing notes
+  with compact provenance-bound summaries.

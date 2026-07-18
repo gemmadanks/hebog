@@ -15,7 +15,14 @@ Changing a recipe requires a new digest and, when the generator algorithm
 changes, a new generator version. Loading a manifest validates metadata only;
 it never downloads or generates data.
 
-The initial Phase 0 manifest contains small development cases. Frozen PyBDSF
-products and the reviewed regression and qualification manifests remain
-separate deliverables; do not add a role merely to make a dataset available in
-more than one test lane.
+Phase 0 freezes separate development, regression, and held-out qualification
+manifests. The qualification seed is recorded for reproducibility but its
+results must not be inspected during routine algorithm tuning. Do not add a
+role merely to make a dataset available in more than one test lane.
+
+`benchmarks/` contains the complete size/density matrix, crossover rule,
+one-tile overhead budgets, and the provisional 100,000-square resource and
+scaling gates. `contracts/` maps each frozen public behaviour to one executable
+strict-xfail contract or acceptance test. These files are gates, not measured
+evidence; raw measurements use the evidence schemas and stay under the ignored
+`benchmark-results/` directory.

@@ -58,6 +58,7 @@ testpaths = ["tests"]
 markers = [
     "acceptance: Rapthor-facing behaviour scenarios",
     "benchmark: performance regression and scaling tests",
+    "contract: scheduler-independent public behaviour and product contracts",
     "equivalence: scientific comparisons with PyBDSF reference products",
     "integration: Dask, FITS, and Rapthor integration tests",
     "qualification: held-out scientific validation for milestone and release gates",

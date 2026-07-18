@@ -1,0 +1,62 @@
+{
+  "initial_crossover_probes": [
+    {
+      "boundary": "direct-to-local",
+      "lower_size_pixels": 1024,
+      "upper_size_pixels": 4096
+    },
+    {
+      "boundary": "local-to-dask",
+      "lower_size_pixels": 8000,
+      "upper_size_pixels": 30000
+    },
+    {
+      "boundary": "direct-to-chunked-storage",
+      "lower_size_pixels": 8000,
+      "upper_size_pixels": 30000
+    }
+  ],
+  "crossover_bracketing_rule": "After a fastest valid plan changes, add the nearest reproducible sizes immediately below and above that measured crossover before accepting a performance claim.",
+  "master_pybdsf_exclusive_ratio_limit": 1.0,
+  "matrix_id": "phase-0-performance",
+  "one_tile_overhead_budget": {
+    "configuration_seconds": 0.25,
+    "dask_dispatch_seconds": 0.5,
+    "fits_io_seconds": 0.5,
+    "local_dispatch_seconds": 0.05,
+    "partition_planning_seconds": 0.01,
+    "serial_dispatch_seconds": 0.005
+  },
+  "previous_hebog": {
+    "bootstrap_resamples": 10000,
+    "confidence_level": 0.95,
+    "minimum_measured_repetitions": 5,
+    "regression_ratio_lower_bound": 1.05,
+    "schema_version": 1,
+    "warmup_repetitions": 1
+  },
+  "released_pybdsf_maximum_ratio": 0.5,
+  "schema_version": 1,
+  "sizes_pixels": [
+    256,
+    512,
+    1024,
+    2048,
+    3000,
+    4096,
+    8000,
+    8192,
+    10000,
+    16384,
+    30000,
+    32768,
+    65536,
+    100000
+  ],
+  "status": "frozen-provisional",
+  "workload_classes": [
+    "empty-or-sparse",
+    "normal",
+    "dense-or-extended"
+  ]
+}

@@ -23,8 +23,8 @@ with a reason instead of a fabricated zero. Reviewed runs require one warm-up
 and at least five measured repetitions; reviewed multi-node runs also require
 the complete topology and scaling record.
 
-Performance-regression evidence spans 256 to 100,000 pixels per side on a
-logarithmic ladder, plus cases bracketing measured execution crossovers.
+Performance-regression evidence uses the complete checked-in 256-to-100,000
+matrix, plus cases bracketing measured execution crossovers.
 Record empty or sparse, normal, and dense or extended workloads, and compare
 every tier with the previous reviewed Hebog baseline. The 50% PyBDSF gate is a
 minimum release floor, not a reason to stop optimizing or accept a regression

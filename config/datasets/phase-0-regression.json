@@ -1,0 +1,196 @@
+{
+  "datasets": [
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.0,
+        "minor_fwhm_pixels": 3.0,
+        "position_angle_degrees": 15.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "pybdsf-compact-reference-256",
+      "provenance": "Defined and frozen by the Hebog Phase 0 validation-data contract.",
+      "purpose": "Redistributable compact-source regression input and dual-PyBDSF reference-product source.",
+      "recipe": {
+        "background": 0.0,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 1,
+        "noise_rms": 0.0002,
+        "seed": 2026071801,
+        "shape_yx": [256, 256],
+        "sources": [
+          {
+            "major_sigma_pixels": 1.8,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 20.0,
+            "x_pixel": 64.0,
+            "y_pixel": 64.0
+          },
+          {
+            "major_sigma_pixels": 3.5,
+            "minor_sigma_pixels": 2.0,
+            "peak_flux_jy_per_beam": 0.015,
+            "rotation_degrees_counterclockwise_from_x": 45.0,
+            "x_pixel": 128.0,
+            "y_pixel": 128.0
+          },
+          {
+            "major_sigma_pixels": 1.5,
+            "minor_sigma_pixels": 1.0,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 0.0,
+            "x_pixel": 196.0,
+            "y_pixel": 160.0
+          }
+        ]
+      },
+      "recipe_sha256": "b1ff156c92deabda683d29b286bd1cec050708d24a6e61a8e3eff6055653a5be",
+      "redistribution": "generated-locally",
+      "role": "regression",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [-0.0002777777777777778, 0.0002777777777777778],
+        "reference_pixel_xy": [127.5, 127.5],
+        "reference_sky_degrees": [180.0, -30.0]
+      }
+    },
+    {
+      "beam": {
+        "major_fwhm_pixels": 5.0,
+        "minor_fwhm_pixels": 3.5,
+        "position_angle_degrees": 30.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": -0.0001,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.00025
+      },
+      "identifier": "synthetic-blend-edge-512",
+      "provenance": "Defined and frozen by the Hebog Phase 0 validation-data contract.",
+      "purpose": "Regression coverage for close blends, an edge source, negative background, and extended emission.",
+      "recipe": {
+        "background": -0.0001,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 1,
+        "noise_rms": 0.00025,
+        "seed": 2026071802,
+        "shape_yx": [512, 512],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 90.0,
+            "x_pixel": 4.0,
+            "y_pixel": 250.0
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.006,
+            "rotation_degrees_counterclockwise_from_x": 30.0,
+            "x_pixel": 255.0,
+            "y_pixel": 255.0
+          },
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.4,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 120.0,
+            "x_pixel": 258.0,
+            "y_pixel": 256.0
+          },
+          {
+            "major_sigma_pixels": 12.0,
+            "minor_sigma_pixels": 6.0,
+            "peak_flux_jy_per_beam": 0.008,
+            "rotation_degrees_counterclockwise_from_x": 60.0,
+            "x_pixel": 400.0,
+            "y_pixel": 400.0
+          }
+        ]
+      },
+      "recipe_sha256": "390c349a84efe8550b12be0cc43ce7c73472ece8458b20f2fd178fd4ec5e1be8",
+      "redistribution": "generated-locally",
+      "role": "regression",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [-0.0002777777777777778, 0.0002777777777777778],
+        "reference_pixel_xy": [255.5, 255.5],
+        "reference_sky_degrees": [180.0, -30.0]
+      }
+    },
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.5,
+        "minor_fwhm_pixels": 3.0,
+        "position_angle_degrees": 25.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "synthetic-distributed-regression-30000",
+      "provenance": "Defined and frozen by the Hebog Phase 0 validation-data contract.",
+      "purpose": "Window-generated regression case with compact and extended sources deliberately crossing candidate tile boundaries.",
+      "recipe": {
+        "background": 0.0,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 1,
+        "noise_rms": 0.0002,
+        "seed": 2026071803,
+        "shape_yx": [30000, 30000],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.4,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
+            "x_pixel": 4096.0,
+            "y_pixel": 4096.0
+          },
+          {
+            "major_sigma_pixels": 8.0,
+            "minor_sigma_pixels": 3.0,
+            "peak_flux_jy_per_beam": 0.008,
+            "rotation_degrees_counterclockwise_from_x": 45.0,
+            "x_pixel": 8191.5,
+            "y_pixel": 8192.0
+          },
+          {
+            "major_sigma_pixels": 32.0,
+            "minor_sigma_pixels": 10.0,
+            "peak_flux_jy_per_beam": 0.02,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
+            "x_pixel": 15000.0,
+            "y_pixel": 15000.0
+          },
+          {
+            "major_sigma_pixels": 3.0,
+            "minor_sigma_pixels": 2.0,
+            "peak_flux_jy_per_beam": 0.006,
+            "rotation_degrees_counterclockwise_from_x": 0.0,
+            "x_pixel": 29995.0,
+            "y_pixel": 20000.0
+          }
+        ]
+      },
+      "recipe_sha256": "2dbeea1a4fd20f9bff1575bad924180f57033c3453c5d4dd434347149e2b598d",
+      "redistribution": "generated-locally",
+      "role": "regression",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [-0.0002777777777777778, 0.0002777777777777778],
+        "reference_pixel_xy": [14999.5, 14999.5],
+        "reference_sky_degrees": [180.0, -30.0]
+      }
+    }
+  ],
+  "manifest_id": "phase-0-regression",
+  "schema_version": 1
+}

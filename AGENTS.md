@@ -113,6 +113,7 @@ Prefer the `just` recipes because they document the intended workflow:
 
 ```bash
 just test-unit          # fast deterministic tests
+just test-contract      # scheduler-independent public behaviour contracts
 just test-integration   # Dask and FITS integration tests
 just test-equivalence   # frozen PyBDSF comparisons
 just test-acceptance    # Rapthor-facing behaviour scenarios

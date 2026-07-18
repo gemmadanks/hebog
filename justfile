@@ -54,6 +54,10 @@ test: test-unit
 test-unit:
     uv run pytest -q -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
 
+# Run scheduler-independent public behaviour and product contracts
+test-contract:
+    uv run pytest -q -m "contract and not integration and not qualification and not scalability and not slow and not requires_data" tests/
+
 # Run Dask, FITS, and Rapthor integration tests
 test-integration:
     uv run pytest -q -m "integration and not qualification and not scalability and not slow and not requires_data" tests/

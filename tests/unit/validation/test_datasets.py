@@ -19,12 +19,8 @@ from hebog.validation.datasets import (
     recipe_sha256,
 )
 
-MANIFEST_PATH = (
-    Path(__file__).parents[3]
-    / "config"
-    / "datasets"
-    / "phase-0-development.json"
-)
+_DATASET_DIRECTORY = Path(__file__).parents[3] / "config" / "datasets"
+MANIFEST_PATH = _DATASET_DIRECTORY / "phase-0-development.json"
 
 
 def _recipe(
@@ -56,6 +52,33 @@ def test_checked_in_manifest_is_valid_and_role_complete() -> None:
     assert len({dataset.identifier for dataset in manifest.datasets}) == len(
         manifest.datasets
     )
+
+
+def test_phase_zero_freezes_regression_and_qualification_roles() -> None:
+    """Algorithm work starts with reviewed lanes and held-out data frozen."""
+    manifests = {
+        path.stem: load_dataset_manifest(path)
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-0-*.json"))
+    }
+
+    assert set(manifests) == {
+        "phase-0-development",
+        "phase-0-qualification",
+        "phase-0-regression",
+    }
+    assert {
+        item.role for item in manifests["phase-0-regression"].datasets
+    } == {DatasetRole.REGRESSION}
+    qualification = manifests["phase-0-qualification"].datasets
+    assert {item.role for item in qualification} == {DatasetRole.QUALIFICATION}
+    assert qualification[0].recipe.shape_yx == (100_000, 100_000)
+
+    identifiers = [
+        dataset.identifier
+        for manifest in manifests.values()
+        for dataset in manifest.datasets
+    ]
+    assert len(set(identifiers)) == len(identifiers)
 
 
 def test_manifest_rejects_duplicate_dataset_identifiers() -> None:

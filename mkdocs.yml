@@ -69,6 +69,8 @@ nav:
       - Validation dataset manifests: reference/dataset-manifests.md
       - Scientific comparison reports: reference/scientific-comparison.md
       - Evidence documents: reference/evidence-documents.md
+      - Performance and scalability contracts: reference/performance-scalability-contracts.md
+      - Phase 0 review record: reference/phase-0-review-record.md
   - Explanation:
       - Architecture: explanation/index.md
       - Domain model: explanation/domain-model.md

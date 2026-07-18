@@ -4,6 +4,7 @@
 
 ```console
 just test-unit
+just test-contract
 just test-integration
 just test-equivalence
 just test-acceptance
@@ -13,7 +14,10 @@ just test-scalability
 ```
 
 Unit tests must be deterministic and require no scheduler or downloaded data.
-Integration tests cover Dask, FITS, and Rapthor boundaries. Equivalence tests
+Contract tests hold strict-xfail executable specifications until their planned
+implementation turns them green; an unexpected pass fails CI until the test is
+reviewed and converted to a normal assertion. Integration tests cover Dask,
+FITS, and Rapthor boundaries. Equivalence tests
 compare small redistributable cases with frozen PyBDSF products. Acceptance
 tests describe Rapthor-facing behaviour. Qualification, benchmark, and
 scalability tests require controlled resources or approved data and are never
@@ -77,9 +81,10 @@ and `write_evidence`. Use `null` plus an explicit `unavailable_metrics` reason
 when instrumentation is genuinely unavailable; never substitute zero. Mark a
 document `reviewed` only when its protocol and environment have passed review.
 
-Measure the performance curve at 256, 512, 1,024, 3,000, 8,000, 10,000,
-30,000, and 100,000 pixels per side, plus cases immediately below and above
-each observed executor, storage, partition, or batching crossover. Include
+Use the complete frozen ladder in the
+[performance contract](../reference/performance-scalability-contracts.md),
+plus cases immediately below and above each observed executor, storage,
+partition, or batching crossover. Include
 empty or sparse, normal, and dense or extended workloads. Compare every size
 with the previous reviewed Hebog baseline and, wherever both references can
 run, with released PyBDSF and pinned PyBDSF `master`; never report only the
