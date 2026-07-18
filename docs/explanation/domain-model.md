@@ -45,7 +45,7 @@ results.
 Other pipelines and science workflows enter through the same public
 scientific boundary and provide their own orchestration, executor, and product
 adapter. Their integration code does not need Rapthor, Prefect, LSMTool, or
-Dask objects when serial execution and Hebog's native products satisfy the
+Dask objects when serial execution and Hebog-format products satisfy the
 workflow.
 
 The compatibility adapter is a boundary rather than a settled package. ADR-006

@@ -83,6 +83,12 @@ performance tiers, and code review pass. Material architectural complexity
 requires a design note or ADR explaining why the simpler implementation was
 insufficient.
 
+Do not add a compiled extension pre-emptively. The
+[native-code assessment](native-code-assessment.md) keeps NumPy/SciPy and then
+Numba as the default path, defines quantitative reconsideration gates, and
+compares Rust/PyO3 with C++/pybind11. Any accepted native kernel remains behind
+a small typed Python boundary and preserves the readable serial oracle.
+
 ## Enforced quality gates
 
 Every code change must satisfy:

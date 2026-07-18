@@ -35,6 +35,8 @@ source-finding algorithms are not implemented yet.
 
 Start with the [quick start](tutorials/index.md), read the
 [architecture](explanation/index.md) and
-[quality attributes](explanation/quality-attributes.md), or review the complete
+[quality attributes](explanation/quality-attributes.md), review the
+[native-code assessment](explanation/native-code-assessment.md), or read the
+complete
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 and [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).

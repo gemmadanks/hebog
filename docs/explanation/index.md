@@ -65,4 +65,6 @@ The [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/so
 defines the target modules, scientific gates, performance budget, delivery
 phases, risks, and cutover criteria. The
 [quality attributes and coding principles](quality-attributes.md) define the
-maintainability, extensibility, interoperability, and clean-code gates.
+maintainability, extensibility, interoperability, and clean-code gates. The
+[native-code assessment](native-code-assessment.md) records when C++ or Rust
+would be worth their additional build and maintenance cost.

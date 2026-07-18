@@ -626,3 +626,50 @@ source evidence.
   are implemented.
 - Define image-source and product-sink seams from concrete FITS and alternate
   workflow tests rather than designing them speculatively.
+
+## 2026-07-18 — Assessed Rust and C++ native acceleration
+
+**Plan phase:** Cross-cutting performance and maintainability architecture
+
+**Completed**
+
+- Assessed whether project-owned Rust or C++ would improve Hebog after
+  accounting for NumPy/SciPy compiled kernels, Numba, end-to-end bottlenecks,
+  Dask thread ownership, array-copy costs, and the supported wheel matrix.
+- Documented candidate kernels, non-candidates, Rust/PyO3 and C++/pybind11
+  trade-offs, FFI requirements, packaging implications, and primary sources.
+- Added a quantitative reconsideration gate and conditional native-code tasks,
+  risks, release requirements, review checks, and definition-of-done criteria.
+
+**Decisions**
+
+- Do not add a Hebog C++ or Rust extension before scientific kernels and
+  representative end-to-end profiles exist. Use vectorized NumPy/SciPy first,
+  then a reviewed Numba implementation for material custom loops.
+- Consider a native prototype only when a self-contained kernel remains at
+  least 10% of complete time in two size regimes, blocks a frozen resource or
+  scale gate, or already exists as a mature reviewed native library.
+- Require at least a 2x kernel speedup and a statistically supported 5%
+  end-to-end improvement unless the extension instead unlocks a failed memory
+  or scalability gate.
+- Prefer Rust for a new self-contained kernel because memory and thread safety
+  support maintainability. Prefer C++ when reusing a mature C/C++ library or
+  when ecosystem or team evidence makes it lower risk.
+- Require an accepted ADR, coarse zero-copy-capable array boundary, explicit
+  interpreter and thread handling, safety tests, scientific parity, and the
+  complete supported binary-wheel matrix before production use.
+
+**Evidence**
+
+- `just check` passed with nine quick tests; `just docs-build` passed strictly.
+- `just ci` passed: all push-stage hooks, strict typing and documentation,
+  ten portable coverage tests at 81.03%, lock and Marimo validation, and the
+  isolated universal wheel build/install/import succeeded; equivalence and
+  acceptance scaffolds skipped as intended.
+
+**Next**
+
+- Profile each implemented phase before considering a native spike; record
+  array copies, memory bandwidth, I/O, scheduling, and kernel time separately.
+- If a kernel passes the decision gate, benchmark the smallest Rust and/or C++
+  prototype against the same Python/Numba contract before choosing a language.

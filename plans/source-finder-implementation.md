@@ -498,6 +498,36 @@ does not replace behaviour-focused normal, edge, failure, property, and
 contract tests. Ratchet the floor upward when reviewed coverage makes that
 stable.
 
+### 8.3 Native acceleration policy
+
+Do not add C++ or Rust to the initial implementation. Start with vectorized
+NumPy/SciPy and use Numba for measured custom loops. The
+[native-code assessment](../docs/explanation/native-code-assessment.md)
+defines the evidence required to reconsider this decision.
+
+A native prototype is eligible only after vectorization, copy removal,
+batching, and a reviewed Numba attempt, when a self-contained kernel consumes
+at least 10% of complete time in two representative size regimes, blocks a
+frozen resource/scaling gate, or is already available in a mature reviewed
+native library. It must deliver at least a twofold kernel speedup and a
+statistically supported 5% end-to-end improvement unless it instead unlocks a
+failed memory or scaling gate.
+
+Prefer Rust with PyO3/maturin for new self-contained kernels because memory and
+thread safety support Hebog's maintainability goals. Prefer C++ with pybind11
+when wrapping a mature C/C++ library or when measured ecosystem or team
+expertise makes it lower risk. Before either language enters production,
+accept an ADR covering language choice, ownership, FFI contracts, GIL release,
+thread budgets, fallback behaviour, licensing, and binary distribution.
+
+Native boundaries operate on coarse bounded arrays or summaries with explicit
+dtype, shape, stride, alignment, mutability, and ownership. They must avoid
+avoidable copies, release Python during native-only work, preserve the readable
+serial oracle, pass scientific and sanitizer-equivalent tests, and ship tested
+wheels for every supported release platform and Python ABI. Never move FITS,
+WCS, schemas, workflow orchestration, or Dask graph construction into a native
+extension.
+
 ## 9. Release strategy
 
 Release coherent, tested vertical slices frequently rather than waiting for every delivery phase
@@ -557,6 +587,9 @@ Every release requires:
 8. A `LOG.md` entry containing material execution evidence and immediate next steps. Release Please
    owns `CHANGELOG.md` and the user-visible release notes.
 9. No regression against gates completed by earlier releases.
+10. When a native extension is present, tested wheels for every supported
+    platform and Python ABI, a verified source distribution, native safety
+    checks, provenance/licensing evidence, and the reviewed fallback policy.
 
 Do not present an experimental release as scientifically equivalent, faster, Rapthor-ready, or
 production-ready until the relevant reviewed gate has passed. A release tag records available
@@ -603,6 +636,8 @@ removal is separately justified.
       boundary reconciliation for large images.
 - [x] Document the maintainability, extensibility, interoperability, Pythonic
       style, clean-code, dependency-direction, and coverage requirements.
+- [x] Assess C++ and Rust acceleration and record an evidence-driven Python,
+      NumPy/SciPy, Numba, then native escalation policy.
 - [x] Add architecture tests that reject forbidden inward dependencies from
       algorithms and domain records.
 - [ ] Add tests that reject import-time orchestration or I/O side effects.
@@ -663,6 +698,9 @@ one-tile and many-tile images with memory bounded by configured tile and halo si
 - [ ] Interpolate cached coarse samples; fallback interpolation must not recompute statistics.
 - [ ] Treat masks, NaNs, edges, negative values, and insufficient samples explicitly.
 - [ ] Add Numba only where profiling shows vectorised SciPy/NumPy is insufficient.
+- [ ] If a candidate still meets the native-code decision gate, benchmark one
+      minimal Rust and/or C++ prototype against the same Python/Numba contract
+      before selecting a language or accepting an ADR.
 - [ ] Benchmark array dtype, window batching, and interpolation slab size.
 
 Provisional component budget on the 3000 by 3000 reference image: no more than 4 seconds for the
@@ -801,6 +839,9 @@ unless an explicitly approved throughput trade-off justifies it.
       or construct Dask, Prefect, LSMTool, or Rapthor objects.
 - [ ] Add structured stage timings and scientific summary metrics to normal runs.
 - [ ] Perform licensing, dependency, security, and reproducibility review.
+- [ ] If native code has been accepted, build, install, test, inspect, and
+      validate publishable wheels across the complete supported OS,
+      architecture, Python, and NumPy matrix.
 - [ ] Continue incremental experimental `0.x` releases and prepare `1.0.0` only after the complete
       definition of done and operational soak are satisfied.
 
@@ -905,6 +946,9 @@ count.
 | Rapthor details leak into the scientific core | Enforce inward dependencies, isolate workflow adapters, and test a non-Rapthor public-API workflow |
 | Premature extensibility obscures the science | Add narrow protocols only for demonstrated variation points; reject generic registries, service locators, and plugin frameworks without a concrete use case |
 | Performance work makes code opaque or duplicated | Isolate optimized kernels behind typed APIs, retain the readable serial oracle, and require profile, science, and review evidence for added complexity |
+| Native code adds more maintenance than speed | Require the 10% profile, 2x kernel, and 5% end-to-end gates; retain Python/Numba unless a prototype and full wheel matrix pass |
+| Native threads oversubscribe Dask workers | Release Python for native-only work, pass explicit thread budgets, default to one native thread per Dask task, and benchmark aggregate CPU occupancy |
+| Binary wheels reduce portability | Keep native acceleration optional until all supported wheels and source builds pass; never require users to compile during a normal supported install |
 | Terminology drifts across PyBDSF, LSMTool, Rapthor, and Hebog | Maintain a reviewed glossary, map legacy names explicitly, and include vocabulary in contract review |
 | Architecture diagrams become speculative or stale | Keep code-native diagrams at stable boundaries, review them with architectural changes, and defer unstable detail |
 | Full PyBDSF scope delays delivery | Implement only features proven necessary by the Rapthor contract and dataset matrix |
@@ -962,3 +1006,6 @@ The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
     partition-invariant products on 100 and at least 200 Dask worker nodes; no worker materialises
     a full plane, and the frozen memory, spill, scheduler, recovery, runtime, and scaling-efficiency
     gates pass on representative production nodes with hundreds of GB of RAM.
+13. If Hebog contains native code, the accepted native-code ADR, complete
+    supported wheel matrix, source build, safety checks, license/provenance,
+    scientific equivalence, fallback, and cold/warm performance gates pass.

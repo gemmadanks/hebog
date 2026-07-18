@@ -181,6 +181,11 @@ code and narrow demonstrated extension seams over framework-specific coupling
 or a speculative plugin system. See the
 [quality attributes and coding principles](docs/explanation/quality-attributes.md).
 
+Hebog does not currently need a project-owned C++ or Rust extension. The
+[native-code assessment](docs/explanation/native-code-assessment.md) keeps
+NumPy/SciPy and profiled Numba as the first choices, with quantitative gates
+for reconsidering Rust or C++ after end-to-end profiling.
+
 ## Repository layout
 
 - `src/hebog/`: library, CLI, public records, execution policies, algorithms,

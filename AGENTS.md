@@ -294,6 +294,36 @@ any supported tier requires an explicitly approved and documented trade-off.
   coverage merely to satisfy the number; new behaviour still needs focused
   normal, edge, and failure tests.
 
+## Native code
+
+- Do not introduce C++, Rust, Cython, or another compiled extension merely
+  because a kernel is numerical. Use NumPy/SciPy first and Numba for profiled
+  custom loops; follow the decision gate in the native-code assessment.
+- A native candidate must remain material after vectorization, copy removal,
+  batching, and Numba. Require the reviewed 10% profile, 2x kernel, and 5%
+  end-to-end gates unless native code instead unlocks a failed memory or
+  scalability requirement.
+- Prefer Rust with PyO3/maturin for a new self-contained kernel. Prefer C++
+  with pybind11 when wrapping a mature C/C++ library or when ecosystem and team
+  evidence makes it the lower-risk maintained choice. Record the selection in
+  an accepted ADR before production use.
+- Keep native boundaries small, typed, coarse-grained, and array-oriented.
+  Specify dtype, shape, strides, alignment, ownership, mutability, errors, and
+  whether a copy is permitted; never call native code once per pixel or source.
+- Release the Python interpreter during long native-only work. Obey executor
+  thread budgets and prevent OpenMP, Rayon, TBB, BLAS, or other internal pools
+  from oversubscribing a Dask worker.
+- Preserve the deterministic Python/Numba serial oracle. Require identical
+  scientific contract tests, no uncaught Rust panic or C++ exception, and
+  sanitizer, Miri, or equivalent memory/thread-safety evidence appropriate to
+  the selected implementation.
+- Do not make native code mandatory until prebuilt wheels, isolated install
+  tests, source builds, licensing/provenance review, and fallback behaviour pass
+  for every supported operating system, architecture, Python ABI, and NumPy
+  version. A supported user must not need a compiler for a normal install.
+- Keep FITS, WCS, schemas, configuration, adapters, workflow orchestration,
+  and Dask graph construction in Python.
+
 ## Tests
 
 - Place unit tests in `tests/unit/`, Dask/FITS boundary tests in

@@ -70,6 +70,7 @@ nav:
       - Architecture: explanation/index.md
       - Domain model: explanation/domain-model.md
       - Quality attributes: explanation/quality-attributes.md
+      - Native-code assessment: explanation/native-code-assessment.md
   - Architecture:
       - Overview: architecture/index.md
       - ADRs: architecture/adr/index.md

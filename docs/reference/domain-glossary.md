@@ -58,6 +58,8 @@ example products, and scientific thresholds are reviewed.
 | Executor | Policy object that runs coarse scientific work serially, locally, or through an existing Dask client. It does not own Rapthor's top-level graph. |
 | Port | Narrow typed protocol at a demonstrated boundary, such as execution, image input, or product output. A port describes a capability needed by the scientific pipeline; it is not a generic plugin registry. |
 | Workflow adapter | Boundary that translates another pipeline's orchestration, configuration, product schema, and failure behaviour to and from Hebog's public scientific API. It depends on the core, never the reverse. |
+| Native extension | Optional compiled Hebog module implemented outside Python, such as Rust or C++. Use “native” only for implementation language in this context; call ordinary Hebog outputs “Hebog-format products”. |
+| FFI boundary | Foreign-function interface between Python/NumPy and a native extension. Its contract includes dtype, shape, strides, alignment, ownership, mutability, copying, errors, interpreter state, and thread budget. |
 | Performance curve | Size-stratified record of complete latency, throughput, memory, and execution evidence across the frozen workload matrix. It is preferred to a single headline benchmark. |
 | Execution crossover | Measured resource and workload boundary where a different valid executor, storage, partition, or batching plan becomes faster end to end. It is evidence-based, not a permanent image-size constant. |
 | Admitted worker memory | RAM budget Rapthor makes available to one Hebog worker after reserving node headroom and concurrent pipeline demand. It may be substantially less than the hundreds of GB physically installed on a production node. |

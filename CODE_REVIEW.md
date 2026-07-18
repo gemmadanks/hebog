@@ -37,7 +37,12 @@ tool handles automatically.
 8. For a new executor, store, adapter, or workflow integration, confirm the
    existing public API or a narrow protocol supports it without conditionals
    spreading through unrelated scientific modules.
-9. Finish with `just check` when proportional to the change, plus the additional
+9. For native code, verify the recorded profile and end-to-end gate, FFI array
+   ownership and copy contract, interpreter release, thread budget, exception
+   safety, readable serial oracle, scientific parity, safety tooling, license,
+   and complete supported wheel matrix. Reject a kernel-only speedup that is
+   immaterial end to end.
+10. Finish with `just check` when proportional to the change, plus the additional
    commands required by `AGENTS.md`.
 
 ## Finding quality
