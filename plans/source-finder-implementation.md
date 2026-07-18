@@ -4,6 +4,12 @@ Execution progress, evidence, and deviations are recorded in
 [`LOG.md`](../LOG.md) so this plan can remain focused on intended work and
 acceptance gates.
 
+This is a Hebog-owned plan. Derive requirements and compatibility evidence
+from the current Rapthor integration target, Rapthor's pinned LSMTool code,
+and the applicable PyBDSF implementation and runtime. Do not use the
+preliminary `ska-sdp-source-finder` scaffold or plan as an evidence source or
+migration target.
+
 ## 1. Objective
 
 Create a maintainable radio-continuum source finder that produces scientifically equivalent

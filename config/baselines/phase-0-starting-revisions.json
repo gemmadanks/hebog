@@ -64,11 +64,6 @@
       "commit": "b1a64674b1022476cf052fc2d06ee3b16f031ecd",
       "describe": "v2.1-671-gb1a64674",
       "working_tree": "clean"
-    },
-    "ska_sdp_source_finder_predecessor": {
-      "branch": "main",
-      "commit": null,
-      "working_tree": "unversioned local scaffold"
     }
   },
   "reproducibility_gaps": [

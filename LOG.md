@@ -380,3 +380,26 @@ evidence.
   the controlled Rapthor environment.
 - Reproduce the representative PyBDSF timings and current matched
   `filter_skymodel` median before implementing the comparison harness.
+
+## 2026-07-18 — Excluded the preliminary scaffold from project evidence
+
+**Plan phase:** Cross-cutting scope clarification
+
+**Completed**
+
+- Removed `ska-sdp-source-finder` from the Phase 0 starting-revision inventory.
+- Clarified that the implementation plan is owned by Hebog and must be
+  justified against current consumer, dependency, and reference behaviour.
+
+**Decision**
+
+- Do not use the preliminary `ska-sdp-source-finder` scaffold or plan as a
+  source of requirements, compatibility evidence, or migration constraints.
+- Treat Rapthor's `gec-468-ai-migrate-to-prefect` branch, its pinned LSMTool
+  code, and the applicable PyBDSF implementation and runtime as the
+  authoritative technical sources.
+
+This clarification supersedes any earlier implication that the preliminary
+repository is a continuing project input. Work already adopted into Hebog
+must stand on its current tests, documentation, decisions, and authoritative
+source evidence.

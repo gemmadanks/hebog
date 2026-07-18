@@ -18,7 +18,6 @@ runtime versions and container digest are captured.
 | PyBDSF local reference | `c70103be3ae9ae9908286f144e6ce956acc0ce5c` | Clean |
 | LSMTool dependency pin | `3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a` | Object available locally |
 | LSMTool local reference | `4e5cf93046e309844c04382375f86e68929bd2d8` | Two untracked files |
-| `ska-sdp-source-finder` predecessor | No commit | Unversioned local scaffold |
 
 The `gec-468-ai-migrate-to-prefect` Rapthor branch at the recorded revision
 defines the consumer and Prefect/Dask task-runner contract. Rapthor pins
