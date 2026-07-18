@@ -94,6 +94,12 @@ scientific results cannot depend on that resource choice. The policy reserves
 headroom for concurrent pipeline work and configurable spill thresholds rather
 than treating all node RAM as exclusively available to Hebog.
 
+The executor's planner selects the lowest-overhead valid realization of these
+semantics. A small image normally remains one direct-I/O tile and may bypass
+chunk-store conversion and distributed fan-out. Partitioning, batching, and
+distribution are introduced only where size-stratified end-to-end benchmarks
+show that their benefit exceeds their setup and data-movement costs.
+
 ## Consequences
 
 - Good, because peak worker memory is proportional to a tile core plus halo
@@ -120,6 +126,9 @@ than treating all node RAM as exclusively available to Hebog.
 
 - Unit and property tests compare one tile with multiple tile sizes and
   partition origins, including sources and islands on tile edges and corners.
+- Controlled benchmarks compare the full logarithmic size ladder with the
+  previous reviewed Hebog curve and measure both sides of every executor,
+  storage, partition, and batching crossover.
 - Executor conformance tests vary worker count, completion order, retries, and
   batching without changing stable source membership or products beyond
   reviewed numerical tolerances.

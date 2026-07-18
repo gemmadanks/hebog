@@ -16,6 +16,10 @@ at least a 50% reduction in the median wall time of the complete
 pinned performance-improved PyBDSF `master` reference. Scientific
 equivalence—not bitwise equality—is the acceptance criterion.
 
+Those comparisons are minimum release gates, not the optimization target.
+Hebog aims to minimize complete latency and maximize useful throughput at
+every supported image size.
+
 Hebog is designed to scale out of core to 100,000-by-100,000-pixel images.
 Large planes are processed as deterministic haloed tiles with hierarchical
 boundary reconciliation, allowing an existing Dask cluster to distribute work
@@ -57,6 +61,8 @@ algorithms are not implemented yet.
 - Reduce matched median `filter_skymodel` wall time by at least 50% relative to
   released PyBDSF, outperform pinned PyBDSF `master`, and avoid an unapproved
   memory regression.
+- Maintain a size-stratified performance curve so large-image throughput is
+  not bought by silently regressing small-input latency, or vice versa.
 
 Complete compatibility with every PyBDSF option, polarization analysis not
 used by Rapthor, GPU execution, and undocumented PyBDSF defects are initially
@@ -139,7 +145,10 @@ reviewable, testable, and version controlled. Validate them with
 
 Scientific kernels operate on NumPy arrays and immutable configuration. An
 executor decides whether coarse batches run serially, in local threads, or on
-Dask workers.
+Dask workers. Its partition and batching planner selects the lowest-overhead
+valid plan for the admitted resources: small work can stay as one direct-I/O
+tile without Dask or chunk-store conversion, while larger work moves through
+local batching and distributed execution where measurements show a benefit.
 
 Image-sized kernels receive bounded tile cores, stage-specific read-only
 halos, and global coordinates. Boundary summaries and tree reductions

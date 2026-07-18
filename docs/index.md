@@ -10,6 +10,11 @@ with a target of reducing the complete filter step's matched median wall time
 by at least 50% relative to released PyBDSF and also outperforming a pinned
 PyBDSF `master` reference.
 
+The 50% reduction is a minimum release gate, not an optimization endpoint.
+Hebog treats small, current, large, and extreme images as first-class
+performance regimes on a logarithmic benchmark matrix from 256 to 100,000
+pixels per side.
+
 Scalability is a core requirement. Hebog's target architecture processes
 images up to 100,000 by 100,000 pixels as bounded haloed tiles and distributes
 them across 100 to several hundred nodes on an existing Dask cluster, without

@@ -15,3 +15,10 @@ scheduler load, node/worker RAM, admitted memory, headroom, occupancy,
 transfer, spill, storage throughput, retries, stragglers, and
 strong/weak-scaling efficiency. Generated data and raw benchmark output remain
 outside Git; commit only reviewed summaries and reproduction metadata.
+
+Performance-regression evidence spans 256 to 100,000 pixels per side on a
+logarithmic ladder, plus cases bracketing measured execution crossovers.
+Record empty or sparse, normal, and dense or extended workloads, and compare
+every tier with the previous reviewed Hebog baseline. The 50% PyBDSF gate is a
+minimum release floor, not a reason to stop optimizing or accept a regression
+at another supported size.

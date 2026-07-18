@@ -17,6 +17,11 @@ results to the subset of PyBDSF used by Rapthor. Reduce the median wall time of 
 `filter_skymodel` step by at least 50% relative to the released PyBDSF version used by Rapthor, and
 also outperform the current performance-improved PyBDSF `master` reference.
 
+The 50% reduction and `master` comparison are minimum release gates, not an
+optimization stopping point. Subject to scientific, memory, and operational
+gates, Hebog should minimize complete end-to-end latency and maximize useful
+throughput across the full supported image-size range.
+
 Scalability is a core requirement, not an optional optimization. Hebog must
 eventually process images up to 100,000 by 100,000 pixels without materialising
 a complete image plane on any worker, and distribute that work through an
@@ -44,6 +49,13 @@ claim that Hebog outperforms `master` when the observed difference is indistingu
 run-to-run noise. The upper bound of a 95% bootstrap confidence interval for each median runtime
 ratio must be at most `0.50` against released PyBDSF and below `1.00` against `master`; increase the
 repetition count when the minimum sample is inconclusive.
+
+Apply the dual-PyBDSF gates at every frozen size that both reference
+environments can process. Track Hebog against its previous reviewed baseline
+at every size, including larger cases that PyBDSF cannot complete. A change
+with a lower 95% confidence bound above `1.05` for the new/previous Hebog
+median ratio is a performance regression and requires an explicitly approved,
+documented trade-off.
 
 Scientific equivalence is required; bitwise equality is not. The replacement must preserve the
 sources that affect filtering, catalogue meaning, units, coordinates, masks, RMS products, and
@@ -199,6 +211,13 @@ The suite must cover:
    source populations and features deliberately crossing tile boundaries.
 9. Several `filter_skymodel` calls from a complete Rapthor benchmark run.
 
+The performance manifest samples image dimensions logarithmically, initially
+including 256, 512, 1,024, 3,000, 8,000, 10,000, 30,000, and 100,000 pixels
+per side. Add cases immediately below and above every measured executor,
+partition, storage, or batching crossover. At each size include representative
+empty/sparse, normal, and source-dense or extended-emission workloads so a
+fast empty path cannot conceal poor scientific-work scaling.
+
 Treat the 10,000-pixel case as development data, the 30,000-pixel case as a reviewed regression
 case, and the frozen 100,000-pixel case as qualification data unless the manifest records an
 approved equivalent split. The large-image generator, not just its random seed, is versioned.
@@ -335,6 +354,14 @@ to diagnose regressions, component budgets on controlled hosts, and matched end-
 benchmarks against both exact PyBDSF references as the release gate. A performance result is
 considered only after the corresponding scientific suite passes.
 
+Benchmark serial, local, and existing-client Dask execution around every
+crossover that fits the available resources. Small inputs must avoid
+unnecessary distributed fan-out, chunk-store conversion, and repeated startup;
+large inputs must not stay local after distribution provides a measured
+benefit. The caller still supplies the executor under the public API; the
+executor's partition and batching planner selects the lowest-overhead valid
+graph for its admitted resources.
+
 ## 8. Target architecture
 
 ```text
@@ -460,13 +487,16 @@ Every release requires:
 4. Matched controlled benchmarks against both the released and pinned `master` PyBDSF references
    for any performance claim; an optimization may be released without a speed claim when its
    scientific behaviour is valid.
-5. Public documentation of implemented capabilities, experimental limitations, configuration,
+5. For a performance-affecting change, comparison with the previous reviewed Hebog baseline at
+   affected and adjacent size tiers and crossovers; milestone qualification refreshes the complete
+   curve, and regressions follow the 5% confidence rule in Section 1.
+6. Public documentation of implemented capabilities, experimental limitations, configuration,
    output schemas, and known compatibility gaps.
-6. Versioned schemas and a migration note for a breaking public API or product change. Breaking
+7. Versioned schemas and a migration note for a breaking public API or product change. Breaking
    changes are permitted before 1.0 but must never be silent.
-7. A `LOG.md` entry containing material execution evidence and immediate next steps. Release Please
+8. A `LOG.md` entry containing material execution evidence and immediate next steps. Release Please
    owns `CHANGELOG.md` and the user-visible release notes.
-8. No regression against gates completed by earlier releases.
+9. No regression against gates completed by earlier releases.
 
 Do not present an experimental release as scientifically equivalent, faster, Rapthor-ready, or
 production-ready until the relevant reviewed gate has passed. A release tag records available
@@ -490,6 +520,10 @@ removal is separately justified.
       `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
 - [ ] Record per-stage wall time, CPU time, peak RSS, array copies, Dask task count, transfer, and
       spill metrics in machine-readable JSON.
+- [ ] Freeze the logarithmic 256-to-100,000-pixel performance matrix, workload-density classes,
+      previous-Hebog comparison schema, and cases bracketing every execution crossover.
+- [ ] Measure one-tile setup, I/O, partition-planning, and executor-dispatch overhead so small-image
+      latency has an explicit budget.
 - [ ] Freeze the 100,000-by-100,000 scalability contract: input and output planes, target storage,
       tile/halo constraints, 1/10/50/100/200-plus-node matrix, per-worker memory ceiling, runtime,
       scheduler-overhead, and strong/weak-scaling efficiency gates.
@@ -539,6 +573,8 @@ gates are frozen. No algorithm implementation begins without this foundation.
       use memory mapping where safe without requiring a worker to map or materialise every plane.
 - [ ] Write large intermediate planes in independently retryable chunks before compatibility
       materialisation.
+- [ ] Bypass chunk-store conversion and distributed materialisation when bounded direct I/O is
+      measurably faster for a one-tile request without changing product semantics.
 - [ ] Make FITS, mask, RMS, and catalogue round-trip tests pass without weakening assertions.
 - [ ] Measure and cap avoidable full-image copies.
 
@@ -634,6 +670,8 @@ within the complete runtime budget.
       serial implementation satisfies the contract.
 - [ ] Add a persistent local threaded executor for GIL-releasing kernels.
 - [ ] Add a Dask executor that receives an existing client and never creates nested pools.
+- [ ] Benchmark serial, local, and existing-client Dask plans around every size/resource crossover
+      and encode the lowest-overhead valid partition and batching choice within each executor.
 - [ ] Build bounded map, boundary-summary, hierarchical-reduction, and materialisation subgraphs
       from the partition manifest without creating a task per pixel, RMS window, or small island.
 - [ ] Batch RMS cells, interpolation slabs, multiscale filters, and island fits by measured cost.
@@ -673,6 +711,8 @@ nodes representative of the production hundreds-of-GB RAM class.
 - [ ] Preserve PyBDSF as a feature-flagged fallback and support dual-run comparison mode.
 - [ ] Measure complete `filter_skymodel` wall time for Hebog, the released PyBDSF reference, and
       the pinned PyBDSF `master` reference across the full benchmark matrix.
+- [ ] Compare every size tier with the previous reviewed Hebog baseline and investigate any
+      statistically supported regression, even when the dual-PyBDSF gates still pass.
 - [ ] Profile at least 1, 2, 4, 8, and the current 15 allocated cores without oversubscription.
 - [ ] Validate resume, retry, empty catalogue, corrupt input, and worker-loss behaviour.
 
@@ -697,7 +737,23 @@ unless an explicitly approved throughput trade-off justifies it.
 ## 11. Performance budget
 
 Phase 0 will replace provisional values with matched, versioned released and `master` baselines.
-The design budget for the representative 3000 by 3000 case is:
+Performance is evaluated as a curve, not one headline image. The initial size
+regimes are:
+
+| Regime | Frozen representative sizes | Primary concern |
+| --- | --- | --- |
+| Small | 256, 512, and 1,024 pixels per side | Startup, I/O, validation, and dispatch overhead |
+| Current representative | 3,000 pixels per side | Dual-PyBDSF latency and component budgets |
+| Large single-node candidates | 8,000 and 10,000 pixels per side | Memory-rich local batching versus Dask crossover |
+| Distributed | 30,000 pixels per side | Storage throughput, occupancy, reconciliation, and graph overhead |
+| Extreme qualification | 100,000 pixels per side | Out-of-core correctness and 100-to-200-plus-node scaling |
+
+These are benchmark anchors, not hard-coded execution thresholds. Phase 0 and
+subsequent controlled measurements determine crossovers from image planes,
+halos, source density, storage, admitted CPUs/RAM, and executor overhead. Add
+near-boundary cases whenever the fastest valid plan changes.
+
+The design budget for the representative 3,000-by-3,000 case is:
 
 | Component | Provisional budget |
 | --- | ---: |
@@ -713,6 +769,9 @@ The design budget for the representative 3000 by 3000 case is:
 The true-sky critical path should therefore remain near 20 seconds, with the flat-noise branch
 hidden by concurrency. The complete Rapthor gate, not this component table, decides acceptance.
 Component improvements are not added arithmetically unless their end-to-end effects are measured.
+Meeting this table does not excuse a slower small-, large-, or extreme-image
+path. Optimization continues after the minimum gates pass, and reviewed
+Hebog-on-Hebog performance curves are retained as regression baselines.
 
 ## 12. Benchmark protocol
 
@@ -730,7 +789,11 @@ Component improvements are not added arithmetically unless their end-to-end effe
 7. Measure wall time, process CPU, peak RSS, aggregate worker memory, read/write bytes, Dask task
    count, transfer bytes, spill bytes, and failures/retries.
 8. Produce separate scientific comparisons for the same outputs before accepting a speedup.
-9. Store JSON results under `benchmark-results/` and commit only compact reviewed summaries with
+9. Interleave size regimes and implementation order where practical to reduce thermal, cache, and
+   storage-drift bias. Record serial, local, and Dask results around measured crossovers rather
+   than reporting only the selected winner.
+10. Compare with the previous reviewed Hebog curve and apply the regression rule in Section 1.
+11. Store JSON results under `benchmark-results/` and commit only compact reviewed summaries with
    reproduction commands.
 
 Run both cold-cache and warm-cache I/O measurements when FITS reading is material. Use warm-cache
@@ -761,6 +824,8 @@ count.
 | Dask overhead erases kernel gains | Use coarse batches, publish data once, and retain an efficient local executor |
 | Full planes or global gathers exhaust workers | Make memory proportional to tile core plus halo, use bounded summaries and hierarchical reductions, and enforce worker-memory gates |
 | Conservative tiles underuse memory-rich nodes | Derive tile batching and caches from admitted memory and measured kernels while keeping ownership and results partition invariant |
+| Large-image tuning slows common small inputs | Maintain logarithmic size-stratified benchmarks, collapse small work to one low-overhead tile, and reject unapproved per-tier regressions |
+| A fixed executor crossover becomes stale | Benchmark both sides of every transition and derive planning from measured resources, storage, workload, and overhead rather than image size alone |
 | Tile boundaries change scientific results | Use explicit halos and ownership, boundary/corner fixtures, partition-invariance properties, and deterministic reconciliation |
 | Scheduler load grows faster than useful work | Keep graph size proportional to tiles and stages, batch small work, use tree reductions, and qualification-test scheduler throughput at 100-plus nodes |
 | Shared storage bottlenecks hundreds of workers | Benchmark windowed FITS and chunk-addressable stores, stagger or batch I/O, and freeze storage-specific throughput gates |
@@ -805,15 +870,18 @@ The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
 3. For every gate-designated case, the complete `filter_skymodel` matched median is at least 50%
    lower than released PyBDSF and lower than the pinned PyBDSF `master` median, with both ratios
    satisfying the confidence rule in Section 1.
-4. Peak memory, scheduler overhead, graph size, retry, and resume behaviour meet operational gates.
-5. Rapthor can select either backend, dual-run them for comparison, and safely fall back to PyBDSF.
-6. Public schemas, configuration, migration, benchmark reproduction, and limitations are documented.
-7. Analytic tests validate the matching and comparison oracles independently of PyBDSF.
-8. CI covers deterministic tests and controlled runners continuously monitor science and
+4. Every frozen size and execution-crossover tier has a reviewed Hebog baseline and no unapproved
+   regression under the 5% confidence rule; the 50% gate is treated as a floor, not an optimization
+   endpoint.
+5. Peak memory, scheduler overhead, graph size, retry, and resume behaviour meet operational gates.
+6. Rapthor can select either backend, dual-run them for comparison, and safely fall back to PyBDSF.
+7. Public schemas, configuration, migration, benchmark reproduction, and limitations are documented.
+8. Analytic tests validate the matching and comparison oracles independently of PyBDSF.
+9. CI covers deterministic tests and controlled runners continuously monitor science and
    performance regressions.
-9. The glossary, domain model, and code-native diagrams match the released architecture and make
+10. The glossary, domain model, and code-native diagrams match the released architecture and make
    legacy compatibility names distinct from Hebog's internal concepts.
-10. A 100,000-by-100,000 qualification image completes with scientifically equivalent,
+11. A 100,000-by-100,000 qualification image completes with scientifically equivalent,
     partition-invariant products on 100 and at least 200 Dask worker nodes; no worker materialises
     a full plane, and the frozen memory, spill, scheduler, recovery, runtime, and scaling-efficiency
     gates pass on representative production nodes with hundreds of GB of RAM.

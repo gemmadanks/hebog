@@ -55,6 +55,14 @@ Use one warm-up and at least five measured repetitions. Store generated
 results under the ignored `benchmark-results/` directory and commit only small
 reviewed summaries with reproduction commands.
 
+Measure the performance curve at 256, 512, 1,024, 3,000, 8,000, 10,000,
+30,000, and 100,000 pixels per side, plus cases immediately below and above
+each observed executor, storage, partition, or batching crossover. Include
+empty or sparse, normal, and dense or extended workloads. Compare every size
+with the previous reviewed Hebog baseline and, wherever both references can
+run, with released PyBDSF and pinned PyBDSF `master`; never report only the
+most favourable size or execution mode.
+
 For a scalability run, additionally record the logical image and plane sizes,
 tile cores and stage-specific halos, partition count, storage layout, worker
 nodes and processes, node/worker RAM, admitted memory and reserved headroom,

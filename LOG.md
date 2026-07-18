@@ -529,3 +529,47 @@ source evidence.
   agree the provisional resource and scaling SLOs.
 - Add analytic partition-manifest, halo, ownership, and boundary-reconciliation
   tests before implementing image I/O or scientific kernels.
+
+## 2026-07-18 — Made performance goals size-stratified
+
+**Plan phase:** Cross-cutting performance contract
+
+**Completed**
+
+- Reframed the 50% improvement over released PyBDSF and the pinned `master`
+  comparison as minimum release gates rather than an optimization endpoint.
+- Added a logarithmic 256-to-100,000-pixel performance matrix with sparse,
+  normal, and dense or extended workloads at every representative size.
+- Required benchmark cases on both sides of executor, storage, partition, and
+  batching crossovers instead of hard-coding one image-size threshold.
+- Added a previous-Hebog performance curve and a confidence-based rule for
+  reviewing supported-size regressions greater than 5%.
+- Updated architecture and contributor guidance so small inputs use the
+  lowest-overhead one-tile path and acquire chunking or Dask overhead only
+  when complete-runtime measurements justify it.
+
+**Decisions**
+
+- Optimize complete end-to-end latency and useful throughput across all
+  supported sizes; do not trade small-input latency for large-image throughput
+  silently, or vice versa.
+- Treat 256, 512, 1,024, 3,000, 8,000, 10,000, 30,000, and 100,000 pixels per
+  side as benchmark anchors, not permanent execution thresholds.
+- Use image planes, halos, source density, storage, admitted CPU and RAM, and
+  measured overhead to select the lowest-cost valid plan within the executor
+  supplied by the caller.
+
+**Evidence**
+
+- `just check` and `just docs-build` passed.
+- `just ci` passed: all push-stage hooks succeeded; eight portable tests
+  passed; equivalence and acceptance scaffolds skipped as intended; and strict
+  Marimo and MkDocs validation, lock validation, and the isolated wheel smoke
+  test succeeded.
+
+**Next**
+
+- During Phase 0, reproduce both PyBDSF references and establish the initial
+  Hebog performance curve at every runnable size.
+- Freeze one-tile overhead budgets and the first measured serial, local, Dask,
+  storage, partition, and batching crossover cases.

@@ -37,6 +37,12 @@ executions must match it before either is compared with PyBDSF. Dask batches
 should be coarse enough to amortise scheduling, and common image data should
 be read or published once rather than embedded in every task.
 
+The partition and batching planner collapses small work to a one-tile direct
+path and introduces partitioning, chunk conversion, or distributed fan-out
+only when complete-runtime measurements justify the overhead. Executor,
+storage, and batching crossovers are benchmarked on both sides rather than
+encoded as permanent image-size thresholds.
+
 Images up to 100,000 by 100,000 pixels use a deterministic partition manifest,
 stage-specific halos, bounded tile maps, boundary summaries, and hierarchical
 reconciliation. No worker holds a complete large plane. Qualification must

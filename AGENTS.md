@@ -15,6 +15,10 @@ scale out of core to 100,000-by-100,000 images and distribute work across 100
 to several hundred nodes through Rapthor's existing Dask cluster. Production
 nodes are expected to have hundreds of GB of RAM.
 
+The 50% reduction is a minimum release gate, not an optimization stopping
+point. Optimize complete latency and useful throughput across the supported
+size range, including small inputs where setup and scheduler overhead dominate.
+
 The durable
 [`plans/source-finder-implementation.md`](plans/source-finder-implementation.md)
 is the authoritative delivery plan. Update it when a milestone, benchmark
@@ -67,6 +71,10 @@ Never hard-code those paths in package code or normal tests.
   performance gate is the median wall time of Rapthor's complete
   `filter_skymodel` step against both the released PyBDSF version used by
   Rapthor and the pinned performance-improved PyBDSF `master` reference.
+- Do not optimize one size tier by silently regressing another. Benchmark the
+  affected and adjacent anchors against the previous reviewed Hebog curve and
+  both sides of relevant crossovers; refresh the full frozen ladder at
+  milestone qualification.
 - Do not introduce an image-sized algorithm that requires a complete large
   plane on one worker. A small image is one tile; large images use explicit
   cores, stage-specific halos, bounded summaries, and hierarchical
@@ -156,6 +164,9 @@ core runtime solely for tests.
   memory-rich production nodes while reserving headroom for concurrent work;
   do not hard-code one tiny tile size or let resource sizing change scientific
   ownership and results.
+- Collapse bounded small work to the lowest-overhead one-tile plan. Avoid Dask
+  fan-out, chunk-store conversion, and repeated setup unless controlled
+  end-to-end measurements show a benefit.
 - Control array dtype and copies deliberately. A change from `float64` to
   `float32` requires scientific-equivalence evidence, not only a performance
   result.
@@ -206,6 +217,12 @@ include FITS I/O, catalogue generation, Dask overhead, and Rapthor filtering.
 Performance claims must satisfy the confidence rule in the implementation
 plan. An optimization is acceptable only when the relevant scientific suite
 passes.
+
+The controlled performance matrix spans 256, 512, 1,024, 3,000, 8,000,
+10,000, 30,000, and 100,000 pixels per side, plus cases on both sides of every
+measured execution crossover. Exercise empty or sparse, normal, and dense or
+extended workloads. A statistically supported regression greater than 5% at
+any supported tier requires an explicitly approved and documented trade-off.
 
 ## Python conventions
 
