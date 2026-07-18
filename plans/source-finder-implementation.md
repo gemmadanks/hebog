@@ -299,7 +299,62 @@ batched robust statistics or other kernels that otherwise require Python pixel/w
 Compiled kernels must release the GIL when practical. Dask is execution policy, not the array API
 inside every function.
 
-## 9. Delivery phases
+## 9. Release strategy
+
+Release coherent, tested vertical slices frequently rather than waiting for every delivery phase
+to finish. Phase exit gates determine readiness to begin dependent work; they are not release
+gates. An incomplete later phase does not block a release when the implemented capability is
+useful, installable, documented, and clearly identified as experimental.
+
+All pre-production releases remain in the `0.x` series. Release Please derives versions and notes
+from Conventional Commits; its `bump-minor-pre-major` policy means features normally advance the
+minor version before 1.0 while fixes can produce patch releases. Do not manually force a version to
+match a phase number.
+
+The following bands are indicative capability milestones, not promises or rigid mappings:
+
+| Version band | Expected capability |
+| --- | --- |
+| `0.1.x` | Package, interfaces, development scaffold, plan, and test strategy |
+| `0.2.x` | Phase 0 contracts, comparison harness, manifests, and reproducible baselines |
+| `0.3.x` | FITS, beam, WCS, schemas, validation, and compatible empty products |
+| `0.4.x` | Deterministic serial background and RMS estimation |
+| `0.5.x` | Thresholding, islands, deblending, and compact-source detection |
+| `0.6.x` | Measurement, fitting, and catalogue compatibility |
+| `0.7.x` | Multiscale and extended-emission processing |
+| `0.8.x` | Local and Dask execution with executor conformance |
+| `0.9.x` | Experimental Rapthor backend, dual-run comparison, and qualification |
+| `1.0.0` | Qualified production replacement after operational soak |
+
+A phase may produce several minor or patch releases, and one release may contain compatible
+vertical slices from more than one phase. Prefer small releases that expose one understandable
+capability over large releases that combine unrelated scientific, execution, and schema changes.
+
+Every release requires:
+
+1. Portable CI, packaging, documentation, lockfile validation, and wheel smoke tests to pass.
+2. The relevant unit/property, contract, integration, and small scientific suites to pass.
+3. Scientific regression evidence for changes to algorithms, measurements, or output semantics.
+4. Matched controlled benchmarks for any performance claim; an optimization may be released
+   without a speed claim when its scientific behaviour is valid.
+5. Public documentation of implemented capabilities, experimental limitations, configuration,
+   output schemas, and known compatibility gaps.
+6. Versioned schemas and a migration note for a breaking public API or product change. Breaking
+   changes are permitted before 1.0 but must never be silent.
+7. A `LOG.md` entry containing material execution evidence and immediate next steps. Release Please
+   owns `CHANGELOG.md` and the user-visible release notes.
+8. No regression against gates completed by earlier releases.
+
+Do not present an experimental release as scientifically equivalent, faster, Rapthor-ready, or
+production-ready until the relevant reviewed gate has passed. A release tag records available
+software; it does not by itself confer readiness for the next phase or for operational adoption.
+
+Release `1.0.0` only after the definition of done in Section 15 is satisfied, the public API and
+output schemas are declared stable, the Rapthor backend has completed operational soak, and the
+required scientific reviewers approve default cutover. Preserve the PyBDSF fallback until its
+removal is separately justified.
+
+## 10. Delivery phases
 
 ### Phase 0: freeze baselines and contracts
 
@@ -452,9 +507,10 @@ must not regress by more than 10% unless an explicitly approved throughput trade
 - [ ] Publish configuration and output schema documentation and a migration guide.
 - [ ] Add structured stage timings and scientific summary metrics to normal runs.
 - [ ] Perform licensing, dependency, security, and reproducibility review.
-- [ ] Release 0.1 as experimental, then make it the Rapthor default only after operational soak.
+- [ ] Continue incremental experimental `0.x` releases and prepare `1.0.0` only after the complete
+      definition of done and operational soak are satisfied.
 
-## 10. Performance budget
+## 11. Performance budget
 
 Phase 0 will replace provisional values with a matched, versioned baseline. The design budget for
 the representative 3000 by 3000 case is:
@@ -474,7 +530,7 @@ The true-sky critical path should therefore remain near 20 seconds, with the fla
 hidden by concurrency. The complete Rapthor gate, not this component table, decides acceptance.
 Component improvements are not added arithmetically unless their end-to-end effects are measured.
 
-## 11. Benchmark protocol
+## 12. Benchmark protocol
 
 1. Pin CPU affinity and disable unrelated workloads.
 2. Record the host, logical/physical cores, RAM, storage, filesystem cache policy, and worker
@@ -492,7 +548,7 @@ Component improvements are not added arithmetically unless their end-to-end effe
 Run both cold-cache and warm-cache I/O measurements when FITS reading is material. Use warm-cache
 results for algorithm tuning and cold-cache results for operational expectations.
 
-## 12. Risks and mitigations
+## 13. Risks and mitigations
 
 | Risk | Mitigation |
 | --- | --- |
@@ -508,8 +564,9 @@ results for algorithm tuning and cold-cache results for operational expectations
 | Catalogue compatibility becomes coupled to internals | Keep a versioned internal schema and an isolated PyBDSF/LSMTool adapter |
 | Full PyBDSF scope delays delivery | Implement only features proven necessary by the Rapthor contract and dataset matrix |
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
+| A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
 
-## 13. Open decisions for Phase 0
+## 14. Open decisions for Phase 0
 
 - Which exact PyBDSF/LSMTool catalogue schema is the compatibility boundary?
 - Which production datasets can be retained as reproducible benchmark fixtures?
@@ -524,9 +581,9 @@ results for algorithm tuning and cold-cache results for operational expectations
 - Will domain experts review pytest acceptance scenarios directly, or would a Gherkin layer add
   real collaboration value later?
 
-## 14. Definition of done
+## 15. Definition of done
 
-The project is ready to replace PyBDSF in Rapthor when:
+The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
 
 1. Development, regression, and held-out qualification suites cover compact, blended, extended,
    low-SNR, edge, invalid-pixel, and varying-noise cases without qualification-set tuning.

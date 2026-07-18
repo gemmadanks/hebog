@@ -218,3 +218,45 @@ evidence.
 - Freeze development, regression, and qualification manifests.
 - Write failing analytic tests for catalogue matching and RMS/mask comparison
   before implementing the Phase 0 comparison harness.
+
+## 2026-07-18 — Adopted an incremental release strategy
+
+**Plan phase:** Cross-cutting delivery policy
+
+**Completed**
+
+- Added a release strategy that permits coherent, tested vertical slices to be
+  released before an entire delivery phase is complete.
+- Added indicative `0.1.x` through `0.9.x` capability bands and defined the
+  qualification required for `1.0.0`.
+- Added release evidence requirements covering portable CI, relevant
+  scientific suites, documentation, schemas, migration notes, and performance
+  claims.
+- Replaced the stale Phase 8 instruction to release `0.1` in the future; the
+  repository is already versioned `0.1.0`.
+
+**Decisions**
+
+- Keep all pre-production releases experimental in the `0.x` series.
+- Treat phase exit gates as readiness gates for dependent work rather than as
+  release gates.
+- Let Release Please and Conventional Commits determine actual versions; do
+  not force phase numbers and release versions to match.
+- Permit documented breaking changes before 1.0 while keeping public schemas
+  explicitly versioned.
+- Reserve `1.0.0` and Rapthor default cutover for the complete definition of
+  done, scientific approval, and operational soak.
+
+**Evidence**
+
+- `just ci` passed after the plan and log changes.
+
+**Plan impact**
+
+- Frequent releases can now communicate incremental capability without
+  weakening scientific, performance, or production-readiness gates.
+
+**Next**
+
+- Use the `0.2.x` capability band as guidance for the first Phase 0 vertical
+  slices, without treating it as a fixed phase-version contract.
