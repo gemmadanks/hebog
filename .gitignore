@@ -75,13 +75,6 @@ docs/_build/
 .pybuilder/
 target/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
@@ -208,3 +201,15 @@ __marimo__/
 
 # MacOS
 .DS_Store
+
+# Source-finder data and generated products
+benchmark-results/
+output/
+tmp/
+*.fits
+*.fits.gz
+*.parquet
+*.reg
+
+!tests/data/**/*.fits
+!tests/data/**/*.fits.gz

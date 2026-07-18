@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# 🧰 Python Project Template — Justfile
+# 🧰 Hebog — Justfile
 # -----------------------------------------------------------------------------
 # Common developer commands for uv-based projects.
 # Run `just <command>` (e.g., `just test`).
@@ -48,20 +48,34 @@ format-check:
 type-check:
     uv run pyright
 
-# Run quick tests (exclude slow)
-test:
-    uv run pytest -q -m "not slow" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+# Run quick deterministic unit tests
+test: test-unit
+
+test-unit:
+    uv run pytest -q -m "not slow and not integration and not equivalence and not benchmark" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+
+# Run Dask, FITS, and Rapthor integration tests
+test-integration:
+    uv run pytest -q -m "integration" tests/
+
+# Run scientific comparisons with frozen PyBDSF products
+test-equivalence:
+    uv run pytest -q -m "equivalence" tests/
+
+# Run explicitly requested performance tests
+test-benchmark:
+    uv run pytest -q -m "benchmark" tests/
 
 # Run tests with verbose output (exclude slow)
 test-vv:
-    uv run pytest -vv -m "not slow" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+    uv run pytest -vv -m "not slow and not integration and not equivalence and not benchmark" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
 
 # Run the fast, non-mutating handoff checks
 check: format-check lint type-check test
 
-# Test notebooks
-test-notebooks:
-    uv run pytest --nbmake notebooks/
+# Validate Marimo notebooks
+marimo-check:
+    uv run marimo check --strict notebooks/*.py
 
 # Run full test suite with coverage
 coverage:
@@ -99,8 +113,4 @@ package-smoke-test:
     uv run --no-sync python scripts/package_smoke_test.py
 
 # Run the comprehensive local equivalent of CI (excluding its OS/Python matrix)
-ci: pre-commit coverage docs-build package-smoke-test
-
-# Start Jupyter lab from inside a container
-jupyter-devcontainer:
-    uv run jupyter lab --allow-root --ip 0.0.0.0 --no-browser
+ci: pre-commit coverage marimo-check docs-build package-smoke-test

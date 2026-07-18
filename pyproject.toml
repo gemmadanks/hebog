@@ -1,29 +1,35 @@
 [project]
 name = "hebog"
 version = "0.1.0"
-description = "A python package."
+description = "Dask-aware radio-continuum source finding for SKA SDP pipelines"
 authors = [
-    {name = "Your Name",email = "you@example.com"}
+    {name = "Gemma Danks", email = "gemma.danks@skao.int"},
 ]
 license = "BSD-3-Clause"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "jupyter (>=1.1.1,<2.0.0)",
-    "ipywidgets (>=8.1.7,<9.0.0)",
-    "plotly>=6.8.0,<7.0.0",
-    "numpy>=2.4.6,<3.0.0",
-    "matplotlib (>=3.10.6,<4.0.0)",
-    "nbmake>=1.5.5",
+    "astropy>=6.1,<8",
+    "dask[array,distributed]>=2025.1,<2027",
+    "numba>=0.61,<1",
+    "numpy>=1.26,<3",
+    "pydantic>=2.10,<3",
+    "scipy>=1.12,<2",
 ]
+
+[project.scripts]
+hebog = "hebog.cli:main"
 
 [dependency-groups]
 dev = [
+    "marimo>=0.23.14",
     "pytest>=9.1.1,<10.0.0",
+    "pytest-benchmark>=5.1,<6",
     "ruff>=0.15.17,<0.16.0",
     "pre-commit>=4.6.0,<5.0.0",
     "pyright>=1.1.410,<2.0.0",
-    "pytest-cov>=7.1.0,<8.0.0"
+    "pytest-cov>=7.1.0,<8.0.0",
+    "pytest-mock>=3.15,<4",
 ]
 
 docs = [
@@ -34,11 +40,35 @@ docs = [
 
 
 [tool.coverage.run]
+branch = true
 source = ["src/hebog"]
 omit = [
     "tests/*",
     "conftest.py"
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "benchmark: performance regression and scaling tests",
+    "equivalence: scientific comparisons with PyBDSF reference products",
+    "integration: Dask, FITS, and Rapthor integration tests",
+]
+
+[tool.ruff]
+line-length = 79
+src = ["src", "tests"]
+extend-exclude = ["benchmark-results"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "PL"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hebog"]
+
+[tool.ruff.lint.per-file-ignores]
+"notebooks/**" = ["PLC0415", "PLR1711"]
+"tests/**" = ["PLR2004"]
 
 [build-system]
 requires = ["uv-build>=0.11.29,<1.0"]

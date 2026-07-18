@@ -41,16 +41,15 @@ repos:
             ^.*/vendor/.*
           )
 
-  # --- Notebooks: strip outputs ---
-  - repo: https://github.com/kynan/nbstripout
-    rev: 0.7.1
-    hooks:
-      - id: nbstripout
-        files: "\\.ipynb$"
-
-  # --- Type checking ---
+  # --- Marimo notebooks and type checking ---
   - repo: local
     hooks:
+      - id: marimo-check
+        name: marimo check (strict)
+        entry: uv run marimo check --strict
+        language: system
+        files: "^notebooks/.*\\.py$"
+        stages: [pre-push]
       - id: pyright
         name: pyright (type check)
         entry: uv run pyright
@@ -74,7 +73,7 @@ repos:
     hooks:
       - id: pytest
         name: pytest (quick)
-        entry: uv run pytest -q -m "not slow" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+        entry: uv run pytest -q -m "not slow and not integration and not equivalence and not benchmark" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
         language: system
         types: [python]
         pass_filenames: false
