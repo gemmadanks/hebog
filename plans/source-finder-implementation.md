@@ -644,7 +644,7 @@ removal is separately justified.
 - [x] Add architecture tests that reject forbidden inward dependencies from
       algorithms and domain records.
 - [ ] Add tests that reject import-time orchestration or I/O side effects.
-- [ ] Decide and record ADR 006 after the compatibility boundary and consumed products are known.
+- [x] Decide and record ADR 006 after the compatibility boundary and consumed products are known.
 - [x] Add a versioned dataset-manifest schema and a deterministic,
       window-addressable synthetic generator whose output is invariant to
       partition layout.

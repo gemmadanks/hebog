@@ -758,3 +758,33 @@ source evidence.
   released PyBDSF and pinned `master`, then apply these reports to both.
 - Stratify catalogue metrics by compact, blended, extended, edge, and SNR
   classes after the reference schemas and qualification manifest are frozen.
+
+## 2026-07-18 — Isolated compatibility behind versioned schemas
+
+**Plan phase:** Phase 0
+
+**Completed**
+
+- Recorded ADR 006 after reconciling the provisional Rapthor contract with the
+  domain model, large-image architecture, and alternate-workflow requirement.
+- Selected versioned, domain-oriented internal schemas with legacy
+  PyBDSF/LSMTool/Rapthor names and product behaviour confined to outer
+  adapters.
+- Defined schema-version, unsupported-version, migration, unit, null,
+  ordering, empty-product, and downstream-behaviour confirmation requirements
+  for Phase 1.
+
+**Decisions**
+
+- Internal records remain small, typed, serializable, and free of live files,
+  scheduler clients, workflow state, and image-sized arrays.
+- Compatibility adapters own legacy columns, suffixes, units, filtering,
+  grouping, diagnostics, and reviewed empty/failure translations.
+- Frozen PyBDSF products validate compatibility but do not define Hebog's
+  internal object model or become a runtime dependency.
+
+**Next**
+
+- Enforce import-time side-effect and compatibility dependency boundaries.
+- Derive the exact versioned catalogue and materialised-product fields from
+  failing Phase 1 round-trip and Rapthor adapter contract tests.

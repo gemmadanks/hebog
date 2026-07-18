@@ -48,9 +48,10 @@ adapter. Their integration code does not need Rapthor, Prefect, LSMTool, or
 Dask objects when serial execution and Hebog-format products satisfy the
 workflow.
 
-The compatibility adapter is a boundary rather than a settled package. ADR-006
-will decide its schema after frozen products and contract tests expose the
-required mapping. PyBDSF remains a test oracle and feature-flagged fallback,
+ADR-006 defines versioned, domain-oriented internal schemas and keeps legacy
+product names, units, suffixes, empty behaviour, and filtering rules in outer
+compatibility adapters. Phase 1 contract tests still freeze the exact fields
+and representation. PyBDSF remains a test oracle and feature-flagged fallback,
 not a runtime dependency of Hebog's scientific kernels.
 
 ## Processing and data flow
