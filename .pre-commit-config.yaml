@@ -73,7 +73,7 @@ repos:
     hooks:
       - id: pytest
         name: pytest (quick)
-        entry: uv run pytest -q -m "not slow and not integration and not equivalence and not benchmark" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+        entry: uv run pytest -q -m "not slow and not integration and not equivalence and not acceptance and not qualification and not benchmark and not requires_data" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
         language: system
         types: [python]
         pass_filenames: false

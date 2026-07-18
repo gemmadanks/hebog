@@ -30,6 +30,7 @@ dev = [
     "pyright>=1.1.411,<2.0.0",
     "pytest-cov>=7.1.0,<8.0.0",
     "pytest-mock>=3.15,<4",
+    "hypothesis>=6,<7",
 ]
 
 docs = [
@@ -48,11 +49,16 @@ omit = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "--strict-markers"
 testpaths = ["tests"]
 markers = [
+    "acceptance: Rapthor-facing behaviour scenarios",
     "benchmark: performance regression and scaling tests",
     "equivalence: scientific comparisons with PyBDSF reference products",
     "integration: Dask, FITS, and Rapthor integration tests",
+    "qualification: held-out scientific validation for milestone and release gates",
+    "requires_data: tests requiring external or non-redistributable datasets",
+    "slow: tests excluded from the fast development and pull-request suites",
 ]
 
 [tool.ruff]
