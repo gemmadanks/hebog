@@ -18,6 +18,8 @@ acceptance criterion.
 See the [source-finder implementation plan](plans/source-finder-implementation.md)
 for the profiling evidence, scientific gates, dataset matrix, staged delivery,
 performance budget, risks, and definition of done.
+See the [execution log](LOG.md) for completed work, validation evidence,
+decisions, and immediate next steps.
 
 ## Status
 
@@ -91,6 +93,8 @@ commands:
 just test-unit          # fast deterministic tests
 just test-integration   # Dask and FITS integration tests
 just test-equivalence   # frozen PyBDSF comparisons
+just test-acceptance    # Rapthor-facing behaviour scenarios
+just test-qualification # held-out scientific validation
 just test-benchmark     # explicitly requested performance tests
 just marimo-check       # validate Marimo notebooks
 just check              # format, lint, type, and quick tests
@@ -98,8 +102,9 @@ just docs-build         # strict MkDocs build
 just package-smoke-test # build and import the wheel in isolation
 ```
 
-The equivalence and benchmark lanes are explicit because they may require
-large data, stable CPU allocation, or external PyBDSF, LSMTool, and Rapthor
+Small equivalence and acceptance suites are suitable for pull requests.
+Qualification and benchmark lanes are explicit because they may require held-
+out data, stable CPU allocation, or external PyBDSF, LSMTool, and Rapthor
 environments.
 
 ## Interactive demonstrations
@@ -138,13 +143,16 @@ restartable, and scheduler payloads remain small.
 
 - `src/hebog/`: library, CLI, public records, execution policies, algorithms,
   and I/O boundaries.
-- `tests/`: unit, integration, scientific-equivalence, and benchmark suites.
+- `tests/`: unit, integration, scientific-equivalence, acceptance,
+  qualification, and benchmark suites.
 - `scripts/benchmark/`: reproducible PyBDSF, Hebog, and Rapthor benchmarks.
 - `config/`: checked-in algorithm, equivalence, and benchmark configurations.
 - `notebooks/`: reproducible interactive demonstrations.
 - `docs/`: user, reference, explanation, and architecture documentation.
 - `plans/source-finder-implementation.md`: authoritative delivery plan and
   acceptance gates.
+- `LOG.md`: chronological execution progress, evidence, decisions, and next
+  steps.
 
 ## Contributing
 

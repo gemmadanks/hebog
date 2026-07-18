@@ -1,5 +1,9 @@
 # Hebog implementation plan
 
+Execution progress, evidence, and deviations are recorded in
+[`LOG.md`](../LOG.md) so this plan can remain focused on intended work and
+acceptance gates.
+
 ## 1. Objective
 
 Create a maintainable radio-continuum source finder that produces scientifically equivalent
@@ -164,7 +168,109 @@ Use generated truth to measure absolute completeness and flux accuracy. Use froz
 to measure compatibility. Production data that cannot be redistributed stays in an external data
 store referenced by environment-neutral dataset identifiers.
 
-## 7. Target architecture
+Every manifest entry must have exactly one test role:
+
+- `development`: small analytic or synthetic cases used freely during red-green-refactor work;
+- `regression`: reviewed cases added after a defect or scientific decision and run in normal CI;
+- `qualification`: frozen production-like cases reserved for milestone and release decisions.
+
+Do not tune thresholds or algorithms against qualification results. Freeze the qualification set
+and its gates before the corresponding algorithm phase begins. Record generator versions and seeds
+for synthetic data; a seed alone is not sufficient provenance.
+
+## 7. Testing strategy
+
+### 7.1 Test-driven development
+
+Use TDD for public contracts, pure scientific kernels, schemas, matching, error behaviour, and
+executor semantics. Each planned behaviour follows this loop:
+
+1. State the observable behaviour, units, tolerances, and failure semantics.
+2. Add the smallest analytic, property, contract, or regression test and confirm that it fails for
+   the intended reason.
+3. Implement the simplest deterministic serial behaviour that makes the test pass.
+4. Refactor while the fast suite remains green.
+5. Add pathological and property-based cases before optimizing the implementation.
+6. Prove local and Dask conformance against the serial reference.
+7. Run compatibility and performance lanes only after the correctness tests pass.
+
+Exploratory prototypes may precede tests when selecting an algorithm, but prototype code does not
+enter the production package until its required behaviour is expressed as tests. Every defect fix
+starts with a reproducing test when practical.
+
+### 7.2 Oracle hierarchy
+
+Use the strongest independent oracle available, in this order:
+
+1. Analytic truth for small images, coordinate transforms, moments, and known distributions.
+2. Mathematical and metamorphic properties, such as translation, positive scaling, threshold
+   monotonicity, mask exclusion, and conservation relationships.
+3. The deterministic Hebog serial implementation for executor conformance.
+4. Frozen PyBDSF products for compatibility with the behaviour Rapthor currently consumes.
+5. End-to-end Rapthor retained/rejected decisions for operational acceptance.
+
+PyBDSF is a compatibility oracle, not scientific ground truth. Unit-test the comparison machinery
+itself with hand-constructed catalogues, known ambiguous assignments, unmatched rows, coordinate
+wraparound, unit conversions, masks, and RMS maps. A matcher defect must not be able to make a
+scientific regression appear equivalent.
+
+Frozen reference products are immutable test inputs. Generate or update them only through a
+separate documented command that records tool revisions, configuration, dataset checksum, and
+provenance. Reference changes require review of both metadata and scientific comparison output;
+tests must never regenerate expected products implicitly.
+
+### 7.3 Test lanes
+
+| Lane | Purpose | Normal trigger |
+| --- | --- | --- |
+| Unit and property | Pure kernels, schemas, validation, matching, invariants | Every commit |
+| Contract | I/O and executor behaviour shared by all implementations | Every commit |
+| Integration | Small FITS and in-process/local Dask boundaries | Pull request |
+| Small equivalence | Redistributable frozen PyBDSF cases | Pull request |
+| Acceptance | Lightweight Rapthor-facing behaviour scenarios | Pull request |
+| Qualification | Held-out production-like scientific matrix | Milestone and release |
+| Benchmark | Component and complete `filter_skymodel` performance | Controlled scheduled runner |
+
+Mark tests explicitly with `integration`, `equivalence`, `acceptance`, `qualification`,
+`benchmark`, `slow`, and `requires_data` as applicable. Portable CI must not run wall-time gates,
+download data, or require private production inputs. Small equivalence and acceptance cases must
+remain deterministic and redistributable.
+
+Property-based tests should generate bounded, physically meaningful arrays and metadata with
+recorded failure examples. Important properties include:
+
+- adding a constant shifts the background without changing RMS or SNR-based membership;
+- positive scaling changes background, RMS, and flux consistently while preserving labels;
+- increasing a threshold cannot create a new detection;
+- invalid or masked pixels never contribute to statistics or flux;
+- translating an isolated source changes pixel and sky coordinates consistently;
+- serial, local, and Dask execution preserve stable membership, ordering, and tolerances.
+
+### 7.4 Behaviour-driven acceptance tests
+
+Use lightweight BDD for behaviour that crosses Hebog, its materialised products, Dask, and
+Rapthor. Write readable pytest acceptance tests with Given/When/Then structure and scenario tables.
+Initial scenarios include valid empty images, corrupt metadata, low-SNR threshold crossings,
+restart from existing products, worker retry, backend fallback, dual-run reporting, and unchanged
+Rapthor decisions.
+
+Do not add a Gherkin framework initially. Consider one only if domain experts actively review or
+author feature files and the shared vocabulary has stabilized. Numerical kernels remain clearer as
+unit, property, and equivalence tests.
+
+### 7.5 Distributed and performance testing
+
+Apply one parameterized executor contract suite to serial, local, and Dask implementations. Test
+ordering, serialization, exceptions, cancellation, retry semantics, determinism, and resource
+metadata with fakes or an in-process cluster where possible. Reserve real worker termination,
+spill, and resource-contention tests for a controlled integration environment.
+
+Never enforce absolute wall-time assertions on shared or portable CI runners. Use microbenchmarks
+to diagnose regressions, component budgets on controlled hosts, and the matched end-to-end Rapthor
+benchmark as the release gate. A performance result is considered only after the corresponding
+scientific suite passes.
+
+## 8. Target architecture
 
 ```text
 src/hebog/
@@ -193,7 +299,62 @@ batched robust statistics or other kernels that otherwise require Python pixel/w
 Compiled kernels must release the GIL when practical. Dask is execution policy, not the array API
 inside every function.
 
-## 8. Delivery phases
+## 9. Release strategy
+
+Release coherent, tested vertical slices frequently rather than waiting for every delivery phase
+to finish. Phase exit gates determine readiness to begin dependent work; they are not release
+gates. An incomplete later phase does not block a release when the implemented capability is
+useful, installable, documented, and clearly identified as experimental.
+
+All pre-production releases remain in the `0.x` series. Release Please derives versions and notes
+from Conventional Commits; its `bump-minor-pre-major` policy means features normally advance the
+minor version before 1.0 while fixes can produce patch releases. Do not manually force a version to
+match a phase number.
+
+The following bands are indicative capability milestones, not promises or rigid mappings:
+
+| Version band | Expected capability |
+| --- | --- |
+| `0.1.x` | Package, interfaces, development scaffold, plan, and test strategy |
+| `0.2.x` | Phase 0 contracts, comparison harness, manifests, and reproducible baselines |
+| `0.3.x` | FITS, beam, WCS, schemas, validation, and compatible empty products |
+| `0.4.x` | Deterministic serial background and RMS estimation |
+| `0.5.x` | Thresholding, islands, deblending, and compact-source detection |
+| `0.6.x` | Measurement, fitting, and catalogue compatibility |
+| `0.7.x` | Multiscale and extended-emission processing |
+| `0.8.x` | Local and Dask execution with executor conformance |
+| `0.9.x` | Experimental Rapthor backend, dual-run comparison, and qualification |
+| `1.0.0` | Qualified production replacement after operational soak |
+
+A phase may produce several minor or patch releases, and one release may contain compatible
+vertical slices from more than one phase. Prefer small releases that expose one understandable
+capability over large releases that combine unrelated scientific, execution, and schema changes.
+
+Every release requires:
+
+1. Portable CI, packaging, documentation, lockfile validation, and wheel smoke tests to pass.
+2. The relevant unit/property, contract, integration, and small scientific suites to pass.
+3. Scientific regression evidence for changes to algorithms, measurements, or output semantics.
+4. Matched controlled benchmarks for any performance claim; an optimization may be released
+   without a speed claim when its scientific behaviour is valid.
+5. Public documentation of implemented capabilities, experimental limitations, configuration,
+   output schemas, and known compatibility gaps.
+6. Versioned schemas and a migration note for a breaking public API or product change. Breaking
+   changes are permitted before 1.0 but must never be silent.
+7. A `LOG.md` entry containing material execution evidence and immediate next steps. Release Please
+   owns `CHANGELOG.md` and the user-visible release notes.
+8. No regression against gates completed by earlier releases.
+
+Do not present an experimental release as scientifically equivalent, faster, Rapthor-ready, or
+production-ready until the relevant reviewed gate has passed. A release tag records available
+software; it does not by itself confer readiness for the next phase or for operational adoption.
+
+Release `1.0.0` only after the definition of done in Section 15 is satisfied, the public API and
+output schemas are declared stable, the Rapthor backend has completed operational soak, and the
+required scientific reviewers approve default cutover. Preserve the PyBDSF fallback until its
+removal is separately justified.
+
+## 10. Delivery phases
 
 ### Phase 0: freeze baselines and contracts
 
@@ -203,18 +364,27 @@ inside every function.
       spill metrics in machine-readable JSON.
 - [ ] Inventory exactly which PyBDSF catalogue fields and image products Rapthor consumes.
 - [ ] Add the dataset manifest, deterministic synthetic generator, and frozen reference products.
+- [ ] Assign development, regression, or qualification roles to every dataset and freeze the
+      initial qualification set before algorithm work.
+- [ ] Write analytic unit tests for coordinate/flux matching, ambiguous assignments, RMS/mask
+      comparison, and the report calculations before implementing the comparison harness.
 - [ ] Implement coordinate/flux catalogue matching and RMS/mask comparison reports.
+- [ ] Configure and document the unit/property, contract, integration, small-equivalence,
+      acceptance, qualification, and benchmark lanes.
+- [ ] Write at least one failing contract or acceptance test for every frozen public behaviour.
 - [ ] Obtain domain review of the scientific thresholds in Section 5.
 
 Exit gate: a documented command reproduces the baseline and equivalence report on a clean
-environment. No algorithm implementation begins without this comparison harness.
+environment; comparison tests prove the harness against analytic cases; and the held-out
+qualification set is frozen. No algorithm implementation begins without this foundation.
 
 ### Phase 1: FITS, beam, WCS, and internal models
 
-- [ ] Read the required image planes using memory mapping where safe.
-- [ ] Validate shape, units, WCS, beam, finite pixels, and masks at the boundary.
-- [ ] Define versioned internal catalogue and materialised result schemas.
-- [ ] Write round-trip tests for FITS, mask, RMS, and catalogue products.
+- [ ] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
+      unsupported FITS inputs and products.
+- [ ] Define versioned internal catalogue and materialised result schemas from those tests.
+- [ ] Read and validate the required image planes using memory mapping where safe.
+- [ ] Make FITS, mask, RMS, and catalogue round-trip tests pass without weakening assertions.
 - [ ] Measure and cap avoidable full-image copies.
 
 Exit gate: reference inputs round-trip with correct coordinates, units, shapes, and invalid pixels;
@@ -222,7 +392,10 @@ the package can emit empty but structurally compatible products.
 
 ### Phase 2: robust background and RMS estimation
 
-- [ ] Implement batched sigma-clipped statistics on a coarse window grid.
+- [ ] Write failing analytic and property tests for constant and affine backgrounds, positive
+      scaling, masks, NaNs, edges, negative values, sparse adaptive cells, and interpolation
+      fallback.
+- [ ] Implement batched sigma-clipped statistics on a coarse window grid to satisfy those tests.
 - [ ] Reuse buffers and calculate adaptive fine-grid cells only around bright candidates.
 - [ ] Interpolate cached coarse samples; fallback interpolation must not recompute statistics.
 - [ ] Treat masks, NaNs, edges, negative values, and insufficient samples explicitly.
@@ -238,12 +411,15 @@ without increasing peak memory above the matched PyBDSF run.
 
 ### Phase 3: thresholding, islands, and deblending
 
+- [ ] Write failing analytic and generated-truth tests for threshold monotonicity, connectivity,
+      stable labels, close blends, edges, and empty detections.
 - [ ] Apply seed and island thresholds to normalized residuals.
 - [ ] Label connected pixels with explicit connectivity and edge conventions.
 - [ ] Calculate island bounding boxes and properties without copying the whole image per island.
 - [ ] Implement deterministic deblending using a documented multilevel or watershed algorithm.
 - [ ] Establish stable source and island ordering independent of executor completion order.
-- [ ] Add injected-source completeness, reliability, blend, and edge tests.
+- [ ] Expand the initial tests into injected-source completeness, reliability, blend, and edge
+      regression cases.
 
 Start with whole-image labelling in one worker. Only add distributed labelling if large-image
 profiling proves it necessary; a distributed implementation must reconcile labels across chunk
@@ -254,6 +430,8 @@ show no quadratic scaling with source count.
 
 ### Phase 4: measurement, fitting, and catalogue compatibility
 
+- [ ] Write failing analytic tests for moments, beam deconvolution, units, WCS conversion,
+      uncertainties, selective fitting, and downstream filter decisions.
 - [ ] Calculate vectorised moments for every island and use them to initialize fits.
 - [ ] Accept moment-based measurements directly where nonlinear fitting cannot materially change
       filtering or catalogue acceptance.
@@ -267,12 +445,14 @@ filter-decision gates.
 
 ### Phase 5: multiscale and extended emission
 
+- [ ] Add failing analytic and generated-truth tests for diffuse, filamentary, mixed,
+      cross-scale, duplicate, and artefact-dominated cases.
 - [ ] Implement an undecimated wavelet or equivalent beam-aware filter bank with reused
       convolutions and background products.
 - [ ] Detect significant emission at each configured scale without recursively rerunning the full
       pipeline.
 - [ ] Merge cross-scale islands deterministically and prevent duplicate compact components.
-- [ ] Add diffuse, filamentary, mixed, and artefact-dominated fixtures.
+- [ ] Promote reviewed failures and boundary cases to regression fixtures.
 - [ ] Compare completeness and integrated flux by angular scale.
 
 Exit gate: extended-source cases meet reviewed scientific tolerances and the multiscale path stays
@@ -280,14 +460,17 @@ within the complete runtime budget.
 
 ### Phase 6: local and Dask execution
 
-- [ ] Extend the executor protocol for asynchronous coarse batches and resource metadata.
+- [ ] Define a parameterized executor contract suite for ordering, serialization, exceptions,
+      retry, cancellation, determinism, and resource metadata.
+- [ ] Extend the executor protocol for asynchronous coarse batches and resource metadata until the
+      serial implementation satisfies the contract.
 - [ ] Add a persistent local threaded executor for GIL-releasing kernels.
 - [ ] Add a Dask executor that receives an existing client and never creates nested pools.
 - [ ] Batch RMS cells, interpolation slabs, multiscale filters, and island fits by measured cost.
 - [ ] Keep common image data in worker-local storage or publish it once; do not embed full arrays in
       every task.
-- [ ] Add resource annotations for CPU and memory and tests for spill, retry, worker loss, and
-      cancellation.
+- [ ] Add resource annotations for CPU and memory; use deterministic failure injection for normal
+      tests and controlled integration tests for spill and real worker loss.
 - [ ] Record graph size, scheduler overhead, transfer volume, task-duration distribution, and
       peak aggregate memory.
 - [ ] Prove serial/local/Dask scientific equivalence.
@@ -300,6 +483,8 @@ fork behaviour, and stays within configured CPU and memory budgets.
 
 ### Phase 7: Rapthor integration and 50% gate
 
+- [ ] Write Given/When/Then acceptance scenarios for empty and corrupt inputs, restart, retry,
+      backend selection, dual-run reporting, and retained/rejected decisions.
 - [ ] Add a Rapthor backend flag selecting PyBDSF or `hebog`.
 - [ ] Split true-sky finding, flat-noise RMS estimation, and final filtering into restartable tasks.
 - [ ] Run independent tasks concurrently only when Dask resource annotations admit both.
@@ -315,15 +500,17 @@ must not regress by more than 10% unless an explicitly approved throughput trade
 
 ### Phase 8: hardening and release
 
-- [ ] Add CI jobs for unit tests, small equivalence fixtures, Dask integration, packaging, and docs.
-- [ ] Schedule production-data and performance suites on controlled runners outside merge-request
+- [ ] Enforce the Phase 0 test lanes in CI, including unit/property tests, small equivalence
+      fixtures, acceptance scenarios, Dask integration, packaging, and docs.
+- [ ] Run qualification and performance suites on controlled runners outside merge-request
       critical paths.
 - [ ] Publish configuration and output schema documentation and a migration guide.
 - [ ] Add structured stage timings and scientific summary metrics to normal runs.
 - [ ] Perform licensing, dependency, security, and reproducibility review.
-- [ ] Release 0.1 as experimental, then make it the Rapthor default only after operational soak.
+- [ ] Continue incremental experimental `0.x` releases and prepare `1.0.0` only after the complete
+      definition of done and operational soak are satisfied.
 
-## 9. Performance budget
+## 11. Performance budget
 
 Phase 0 will replace provisional values with a matched, versioned baseline. The design budget for
 the representative 3000 by 3000 case is:
@@ -343,7 +530,7 @@ The true-sky critical path should therefore remain near 20 seconds, with the fla
 hidden by concurrency. The complete Rapthor gate, not this component table, decides acceptance.
 Component improvements are not added arithmetically unless their end-to-end effects are measured.
 
-## 10. Benchmark protocol
+## 12. Benchmark protocol
 
 1. Pin CPU affinity and disable unrelated workloads.
 2. Record the host, logical/physical cores, RAM, storage, filesystem cache policy, and worker
@@ -361,21 +548,25 @@ Component improvements are not added arithmetically unless their end-to-end effe
 Run both cold-cache and warm-cache I/O measurements when FITS reading is material. Use warm-cache
 results for algorithm tuning and cold-cache results for operational expectations.
 
-## 11. Risks and mitigations
+## 13. Risks and mitigations
 
 | Risk | Mitigation |
 | --- | --- |
 | Low-SNR threshold crossings differ | Report completeness/reliability curves and validate Rapthor filter decisions |
 | Extended or blended sources diverge | Maintain dedicated fixtures and stratified metrics; do not hide them in aggregate recovery |
 | PyBDSF is not deterministic | Freeze multiple reference runs and separate same-tool scatter from replacement differences |
+| Development overfits the validation matrix | Keep a frozen qualification set out of routine TDD and tune only on development/regression cases |
+| A comparator defect hides divergence | Test matching and report calculations against analytic catalogues and known assignments |
+| Distributed failure tests are flaky | Prefer deterministic fault injection; reserve real worker loss and spill for controlled runners |
 | Dask overhead erases kernel gains | Use coarse batches, publish data once, and retain an efficient local executor |
 | Concurrent branches exceed memory | Use resource annotations and measure aggregate RSS before enabling concurrency |
 | Numba compilation affects latency | Warm/cache kernels explicitly and report cold and warm timings |
 | Catalogue compatibility becomes coupled to internals | Keep a versioned internal schema and an isolated PyBDSF/LSMTool adapter |
 | Full PyBDSF scope delays delivery | Implement only features proven necessary by the Rapthor contract and dataset matrix |
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
+| A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
 
-## 12. Open decisions for Phase 0
+## 14. Open decisions for Phase 0
 
 - Which exact PyBDSF/LSMTool catalogue schema is the compatibility boundary?
 - Which production datasets can be retained as reproducible benchmark fixtures?
@@ -386,17 +577,21 @@ results for algorithm tuning and cold-cache results for operational expectations
   memory, Dask worker data, or an array-store format?
 - What resource names and limits should Rapthor use for source-finder CPU and memory admission?
 - Which scientific tolerances require formal SKA science approval before default cutover?
+- Which qualification datasets and gates can be frozen before algorithm development begins?
+- Will domain experts review pytest acceptance scenarios directly, or would a Gherkin layer add
+  real collaboration value later?
 
-## 13. Definition of done
+## 15. Definition of done
 
-The project is ready to replace PyBDSF in Rapthor when:
+The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
 
-1. The versioned dataset and equivalence suites cover compact, blended, extended, low-SNR, edge,
-   invalid-pixel, and varying-noise cases.
+1. Development, regression, and held-out qualification suites cover compact, blended, extended,
+   low-SNR, edge, invalid-pixel, and varying-noise cases without qualification-set tuning.
 2. All reviewed scientific gates pass for serial and Dask execution.
 3. The matched median wall time of the complete `filter_skymodel` step is at least 50% lower.
 4. Peak memory, scheduler overhead, graph size, retry, and resume behaviour meet operational gates.
 5. Rapthor can select either backend, dual-run them for comparison, and safely fall back to PyBDSF.
 6. Public schemas, configuration, migration, benchmark reproduction, and limitations are documented.
-7. CI covers deterministic tests and controlled runners continuously monitor science and
+7. Analytic tests validate the matching and comparison oracles independently of PyBDSF.
+8. CI covers deterministic tests and controlled runners continuously monitor science and
    performance regressions.

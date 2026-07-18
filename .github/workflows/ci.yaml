@@ -41,7 +41,7 @@ jobs:
           extra_args: --all-files --hook-stage push
 
   test:
-    name: Tests ${{ matrix.os }} / py${{ matrix.python }}
+    name: Portable tests ${{ matrix.os }} / py${{ matrix.python }}
     needs: pre-commit
     runs-on: ${{ matrix.os }}
     strategy:
@@ -67,11 +67,41 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups
 
-      - name: Run tests (full suite)
-        run: uv run pytest --cov --cov-branch --cov-report=xml
+      - name: Run portable tests
+        run: >-
+          uv run pytest
+          -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not requires_data"
+          --cov --cov-branch --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v7
+
+  scientific-validation:
+    name: Small scientific and acceptance suites
+    needs: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Run redistributable scientific and acceptance tests
+        run: >-
+          uv run pytest -q
+          -m "(equivalence or acceptance) and not qualification and not slow and not requires_data"
 
   notebooks:
     name: Validate Marimo notebooks

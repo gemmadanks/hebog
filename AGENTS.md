@@ -16,6 +16,8 @@ The durable
 is the authoritative delivery plan. Update it when a milestone, benchmark
 baseline, scientific threshold, architecture decision, or risk changes.
 `PLAN.md` remains the reusable template for other work plans.
+Record material execution progress, evidence, deviations, and immediate next
+steps chronologically in [`LOG.md`](LOG.md).
 
 The repository contains:
 
@@ -43,6 +45,8 @@ Never hard-code those paths in package code or normal tests.
   when public APIs, setup steps, output schemas, or workflows change.
 - Use the lightest planning level in `PLAN.md`; keep the source-finder plan
   current for project milestones and scientific or performance decisions.
+- Append material completed work and validation evidence to `LOG.md`; do not
+  duplicate routine commits or user-visible release notes there.
 - Use one writing agent by default. Delegate only independent, bounded work.
 - Review meaningful changes against `CODE_REVIEW.md` before handoff.
 - Record architecturally significant decisions with an ADR based on
@@ -87,6 +91,8 @@ Prefer the `just` recipes because they document the intended workflow:
 just test-unit          # fast deterministic tests
 just test-integration   # Dask and FITS integration tests
 just test-equivalence   # frozen PyBDSF comparisons
+just test-acceptance    # Rapthor-facing behaviour scenarios
+just test-qualification # held-out scientific cases on an approved data host
 just test-benchmark     # controlled performance runs
 just marimo-check       # validate Marimo notebooks
 just lint               # Ruff checks
@@ -190,16 +196,37 @@ relevant scientific suite passes.
 ## Tests
 
 - Place unit tests in `tests/unit/`, Dask/FITS boundary tests in
-  `tests/integration/`, PyBDSF comparisons in `tests/equivalence/`, and timing
-  tests in `tests/benchmark/`.
-- Mark cluster tests `integration`, PyBDSF comparisons `equivalence`, and
-  controlled timing tests `benchmark`.
+  `tests/integration/`, PyBDSF comparisons in `tests/equivalence/`,
+  Rapthor-facing scenarios in `tests/acceptance/`, and timing tests in
+  `tests/benchmark/`.
+- Use TDD for public contracts, pure scientific kernels, schemas, matching,
+  error behaviour, and executor semantics: add a test that fails for the
+  intended reason, implement the smallest serial behaviour, refactor, then add
+  executor conformance and scientific comparisons.
+- Mark tests with `integration`, `equivalence`, `acceptance`, `qualification`,
+  `benchmark`, `slow`, and `requires_data` as applicable. Marker names are
+  strict.
 - Unit tests must not require a running scheduler, download data, or depend on
   execution order.
-- Seed generated-data tests and store generator configuration with expected
-  products.
+- Use analytic truth before generated truth, the serial implementation before
+  executor comparisons, and frozen PyBDSF products only as a compatibility
+  oracle. Test matchers and comparison reports independently.
+- Use property-based tests for numerical invariants and boundary combinations.
+  Bound generated arrays and metadata to physically meaningful ranges.
+- Give every dataset a `development`, `regression`, or `qualification` role.
+  Do not tune with held-out qualification results. Store generator version and
+  configuration as well as random seeds.
+- Frozen expected products are immutable during tests. Regenerate them only
+  through a separate documented command with checksums, tool revisions, and
+  scientific review.
+- Write lightweight acceptance tests in readable Given/When/Then form. Do not
+  add a Gherkin framework unless domain experts will review or author feature
+  files.
 - Test observable behaviour, error messages, and public-boundary validation.
 - Add a regression test before fixing incorrect behaviour when practical.
+- Use deterministic fault injection for normal executor tests; reserve actual
+  worker termination, spilling, private data, and wall-time gates for
+  controlled runners.
 - Run the narrowest relevant lane while iterating, then `just check` for normal
   code changes. Run equivalence tests for scientific changes and reproducible
   before/after benchmarks for performance claims.
@@ -236,6 +263,7 @@ relevant scientific suite passes.
 - Use Conventional Commit subjects when asked to create commits.
 - Record significant architecture or scientific decisions in the
   source-finder plan before spreading them through the implementation.
+- Record the outcome and evidence of material plan execution in `LOG.md`.
 - Preserve a feature-flagged PyBDSF fallback in Rapthor until the complete
   acceptance matrix passes.
 - Do not make generated benchmark data the source of truth; store compact JSON
@@ -253,7 +281,8 @@ Before handing off a meaningful change:
 4. Run reproducible before/after benchmarks for performance claims.
 5. Test serial and Dask execution for scheduler-facing changes.
 6. Build docs for public API, configuration, plan, or workflow changes.
-7. Update the source-finder plan with evidence, decisions, risks, and the next
-   milestone when applicable.
-8. Run `just check`, plus `just package-smoke-test` for packaging changes.
-9. Review the final diff using `CODE_REVIEW.md` and report checks not run.
+7. Append material progress, evidence, deviations, and next steps to `LOG.md`.
+8. Update the source-finder plan only when scope, sequencing, gates, decisions,
+   or risks changed.
+9. Run `just check`, plus `just package-smoke-test` for packaging changes.
+10. Review the final diff using `CODE_REVIEW.md` and report checks not run.
