@@ -299,6 +299,46 @@ batched robust statistics or other kernels that otherwise require Python pixel/w
 Compiled kernels must release the GIL when practical. Dask is execution policy, not the array API
 inside every function.
 
+### 8.1 Domain language and architecture records
+
+Create a provisional domain glossary in `docs/reference/domain-glossary.md` during Phase 0. It must
+define the terms that cross the PyBDSF, LSMTool, Rapthor, and Hebog boundaries, including image,
+background, RMS, residual, normalized image, detection threshold, island threshold, pixel, island,
+Gaussian component, source, catalogue row, sky-model component, mask, beam, and materialised
+product. It must also distinguish compact, blended, extended, and multiscale emission and explain
+the true-sky and flat-noise branches. Mark definitions as provisional until the Phase 0 contract
+inventory and domain review are complete.
+
+Agree naming conventions alongside the glossary. Array axes use `(y, x)`; coordinate frames and
+physical units are explicit in public field names where ambiguity is possible; and `source`,
+`component`, `island`, and `catalogue row` are not interchangeable. The glossary must map legacy
+PyBDSF/LSMTool names to Hebog's internal vocabulary rather than allowing compatibility terminology
+to leak into scientific kernels.
+
+Create `docs/explanation/domain-model.md` with two small, code-native Mermaid diagrams:
+
+1. A system-context diagram showing Rapthor orchestration, Hebog's scientific boundary, executor
+   policy, FITS/catalogue products, PyBDSF compatibility, and LSMTool/sky-model filtering.
+2. A processing and data-flow diagram showing the true-sky and flat-noise branches, their join,
+   and the materialised RMS, mask, catalogue, and comparison products.
+
+Keep diagrams at stable architectural boundaries and update them with the code. Defer a detailed
+executor diagram until the asynchronous executor contract has stabilized in Phase 6, and avoid
+speculative class diagrams.
+
+Record decisions when their consequences are durable:
+
+- ADR 003: limit Hebog to the source-finding behaviour required by Rapthor instead of reproducing
+  all of PyBDSF.
+- ADR 004: keep top-level scheduling and Dask graph ownership in Rapthor while Hebog exposes
+  scheduler-independent scientific work and coarse executor tasks.
+- ADR 005, after the Phase 0 contract inventory: decide whether to use versioned internal schemas
+  with an isolated PyBDSF/LSMTool compatibility adapter.
+
+Do not write algorithm-selection ADRs merely to fill the record. Decisions about RMS estimation,
+deblending, fitting, or multiscale processing become ADRs only after tests, scientific evidence,
+and benchmarks expose a consequential choice.
+
 ## 9. Release strategy
 
 Release coherent, tested vertical slices frequently rather than waiting for every delivery phase
@@ -310,6 +350,14 @@ All pre-production releases remain in the `0.x` series. Release Please derives v
 from Conventional Commits; its `bump-minor-pre-major` policy means features normally advance the
 minor version before 1.0 while fixes can produce patch releases. Do not manually force a version to
 match a phase number.
+
+Execute the plan as a sequence of local, atomic Conventional Commits. Each commit must represent
+one coherent, validated, reviewable change. Its short, imperative subject should describe the
+user-visible outcome for Release Please; its body should give developers the motivation, important
+design or compatibility consequences, and validation performed. Keep the tests and documentation
+that establish a change's behaviour with its implementation. Use `LOG.md` only for material
+scientific or performance evidence, gate outcomes, deviations, and decisions that span commits.
+Never push commits or tags: a human reviews each local commit and pushes it manually.
 
 The following bands are indicative capability milestones, not promises or rigid mappings:
 
@@ -363,6 +411,13 @@ removal is separately justified.
 - [ ] Record per-stage wall time, CPU time, peak RSS, array copies, Dask task count, transfer, and
       spill metrics in machine-readable JSON.
 - [ ] Inventory exactly which PyBDSF catalogue fields and image products Rapthor consumes.
+- [ ] Inventory the domain language used by PyBDSF, LSMTool, and Rapthor; draft the provisional
+      glossary and agree naming conventions for Hebog's public and internal concepts.
+- [ ] Create the system-context and processing/data-flow diagrams and document the domain
+      boundaries in `docs/explanation/domain-model.md`.
+- [ ] Record ADR 003 for Hebog's deliberately narrow scope and ADR 004 for external scheduler
+      ownership before those boundaries are implemented.
+- [ ] Decide and record ADR 005 after the compatibility boundary and consumed products are known.
 - [ ] Add the dataset manifest, deterministic synthetic generator, and frozen reference products.
 - [ ] Assign development, regression, or qualification roles to every dataset and freeze the
       initial qualification set before algorithm work.
@@ -372,11 +427,13 @@ removal is separately justified.
 - [ ] Configure and document the unit/property, contract, integration, small-equivalence,
       acceptance, qualification, and benchmark lanes.
 - [ ] Write at least one failing contract or acceptance test for every frozen public behaviour.
-- [ ] Obtain domain review of the scientific thresholds in Section 5.
+- [ ] Obtain domain review of the glossary, naming conventions, and scientific thresholds in
+      Section 5.
 
 Exit gate: a documented command reproduces the baseline and equivalence report on a clean
 environment; comparison tests prove the harness against analytic cases; and the held-out
-qualification set is frozen. No algorithm implementation begins without this foundation.
+qualification set is frozen. The provisional glossary and domain diagrams have been reviewed, and
+ADRs 003 and 004 are accepted. No algorithm implementation begins without this foundation.
 
 ### Phase 1: FITS, beam, WCS, and internal models
 
@@ -562,6 +619,8 @@ results for algorithm tuning and cold-cache results for operational expectations
 | Concurrent branches exceed memory | Use resource annotations and measure aggregate RSS before enabling concurrency |
 | Numba compilation affects latency | Warm/cache kernels explicitly and report cold and warm timings |
 | Catalogue compatibility becomes coupled to internals | Keep a versioned internal schema and an isolated PyBDSF/LSMTool adapter |
+| Terminology drifts across PyBDSF, LSMTool, Rapthor, and Hebog | Maintain a reviewed glossary, map legacy names explicitly, and include vocabulary in contract review |
+| Architecture diagrams become speculative or stale | Keep code-native diagrams at stable boundaries, review them with architectural changes, and defer unstable detail |
 | Full PyBDSF scope delays delivery | Implement only features proven necessary by the Rapthor contract and dataset matrix |
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
 | A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
@@ -569,6 +628,11 @@ results for algorithm tuning and cold-cache results for operational expectations
 ## 14. Open decisions for Phase 0
 
 - Which exact PyBDSF/LSMTool catalogue schema is the compatibility boundary?
+- Where are the exact boundaries between an island, Gaussian component, source, catalogue row, and
+  sky-model component, and which terms belong in Hebog's public API?
+- Which domain experts approve the glossary and naming conventions before the Phase 0 exit gate?
+- Does the contract inventory support ADR 005's proposed versioned internal schema and isolated
+  compatibility adapter, or does it reveal a different boundary?
 - Which production datasets can be retained as reproducible benchmark fixtures?
 - Should nonlinear fitting use SciPy least-squares, a small dedicated compiled kernel, or both?
 - Is an undecimated wavelet transform required, or does a beam-aware matched-filter bank satisfy the
@@ -595,3 +659,5 @@ The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
 7. Analytic tests validate the matching and comparison oracles independently of PyBDSF.
 8. CI covers deterministic tests and controlled runners continuously monitor science and
    performance regressions.
+9. The glossary, domain model, and code-native diagrams match the released architecture and make
+   legacy compatibility names distinct from Hebog's internal concepts.
