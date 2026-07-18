@@ -655,9 +655,9 @@ removal is separately justified.
 - [ ] Freeze the reviewed regression and initial qualification manifests before
       algorithm work; the checked-in Phase 0 manifest currently contains only
       development cases.
-- [ ] Write analytic unit tests for coordinate/flux matching, ambiguous assignments, RMS/mask
+- [x] Write analytic unit tests for coordinate/flux matching, ambiguous assignments, RMS/mask
       comparison, and the report calculations before implementing the comparison harness.
-- [ ] Implement coordinate/flux catalogue matching and RMS/mask comparison reports.
+- [x] Implement coordinate/flux catalogue matching and RMS/mask comparison reports.
 - [x] Configure and document the unit/property, contract, integration, small-equivalence,
       acceptance, qualification, and benchmark lanes.
 - [ ] Write at least one failing contract or acceptance test for every frozen public behaviour.

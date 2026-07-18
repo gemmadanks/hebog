@@ -31,8 +31,9 @@ Hebog has a validated package and development scaffold. Phase 0 records the
 provisional Rapthor/PyBDSF contract, shared language, system boundaries,
 scope/scheduling ADRs, and the initial governed synthetic-development data.
 The scientific algorithms, frozen PyBDSF products, qualification datasets,
-comparison harness, and matched runtime baselines are not implemented. ADR
-005 requires out-of-core hierarchical tiling for
+external-product comparison runner, and matched runtime baselines are not
+implemented. The analytic catalogue, RMS-map, and mask comparison oracle is
+now independently tested. ADR 005 requires out-of-core hierarchical tiling for
 100,000-by-100,000 images and qualification across 100 to several hundred
 Dask worker nodes. The next milestone is to resolve the exact runtime
 revisions, reproduce both PyBDSF baselines, and freeze the large-image resource
@@ -717,3 +718,43 @@ source evidence.
 - Define the large performance/scalability recipes, assign reviewed regression
   and qualification roles, and capture immutable products from both exact
   PyBDSF references.
+
+## 2026-07-18 — Proved the scientific comparison oracle
+
+**Plan phase:** Phase 0
+
+**Completed**
+
+- Implemented canonical catalogue records with explicit angular and flux
+  units, great-circle coordinate separation, right-ascension wraparound, and a
+  global one-to-one assignment.
+- Defined a deterministic assignment objective that maximizes valid match
+  count, then total matched integrated flux, then angular proximity.
+- Added catalogue reports for unmatched rows, completeness, reliability,
+  beam-normalized position differences, and peak/integrated flux differences.
+- Added RMS-map reports with explicit masking, non-finite and zero-reference
+  exclusions, plus boolean-mask confusion and agreement reports.
+
+**Decisions**
+
+- Keep the oracle independent of Hebog algorithms and PyBDSF readers so an
+  adapter defect cannot redefine scientific equivalence.
+- Use explicit empty-set semantics and `None` for unavailable numerical
+  metrics; never manufacture a denominator epsilon or allow array
+  broadcasting.
+- Keep this first matcher one-to-one. Source/component grouping requires an
+  independently tested compatibility adapter rather than duplicated rows.
+
+**Evidence**
+
+- Seventeen analytic tests passed for unit conversion, spherical coordinates,
+  ambiguous assignments, unmatched and empty catalogues, flux/report metrics,
+  masks, RMS exclusions, and invalid inputs.
+- Focused Ruff and strict Pyright checks passed with no diagnostics.
+
+**Next**
+
+- Add the machine-readable external-product runner and immutable outputs from
+  released PyBDSF and pinned `master`, then apply these reports to both.
+- Stratify catalogue metrics by compact, blended, extended, edge, and SNR
+  classes after the reference schemas and qualification manifest are frozen.

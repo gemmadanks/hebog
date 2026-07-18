@@ -6,6 +6,7 @@ Related project references:
 - [Rapthor source-finding contract](rapthor-source-finding-contract.md)
 - [Phase 0 starting revisions](starting-revisions.md)
 - [Validation dataset manifests](dataset-manifests.md)
+- [Scientific comparison reports](scientific-comparison.md)
 
 ## Top-level package
 
