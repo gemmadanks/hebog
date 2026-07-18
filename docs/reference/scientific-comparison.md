@@ -56,10 +56,12 @@ or all-false masks have value `1.0` for all three fractions. A missing
 candidate-positive class has precision `0.0` when the reference contains
 positive pixels, and `1.0` otherwise.
 
-The report dataclasses can be converted with `dataclasses.asdict` by the
-machine-readable external-product runner. That runner, immutable reference
-products, reviewed gates, and per-source-class stratification remain Phase 0
-work.
+The compact released/master products now exercise the same oracle through the
+equivalence lane. Their immutable manifest and persisted scientific record are
+summarized in the [Phase 0 baseline results](phase-0-baseline-results.md).
+Future Hebog/reference documents use the same typed reports. Per-source-class
+stratification begins with later algorithm/regression slices; it must not
+change these core calculations.
 
 ::: hebog.validation.comparison
     options:

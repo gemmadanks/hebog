@@ -66,6 +66,7 @@ nav:
       - Domain glossary: reference/domain-glossary.md
       - Rapthor source-finding contract: reference/rapthor-source-finding-contract.md
       - Phase 0 starting revisions: reference/starting-revisions.md
+      - Phase 0 baseline results: reference/phase-0-baseline-results.md
       - Validation dataset manifests: reference/dataset-manifests.md
       - Scientific comparison reports: reference/scientific-comparison.md
       - Evidence documents: reference/evidence-documents.md

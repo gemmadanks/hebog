@@ -8,6 +8,13 @@ The files have `frozen-provisional` status: changing a gate requires a reviewed
 plan decision and a `LOG.md` entry; passing the file schema does not claim that
 the gate has been demonstrated.
 
+The [Phase 0 baseline results](phase-0-baseline-results.md) record the matched
+released/master timings and the exploratory warm one-tile measurements. All
+six overhead probes passed their provisional budgets. The local-thread and
+planning probes remain framework proxies until their Phase 1 implementations
+replace them; this preserves the budgets without presenting placeholder code
+as production performance.
+
 ## Complete performance curve
 
 The initial ladder is 256, 512, 1,024, 2,048, 3,000, 4,096, 8,000, 8,192,

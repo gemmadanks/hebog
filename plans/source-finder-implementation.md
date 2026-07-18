@@ -607,26 +607,33 @@ removal is separately justified.
 
 ### Phase 0: freeze baselines and contracts
 
-- [ ] Capture the current Rapthor, released PyBDSF, PyBDSF `master`, LSMTool, dependency, and
-      container revisions. A
-      [candidate starting inventory](../docs/reference/starting-revisions.md) records repository
-      and definition hashes; exact installed packages and a built container digest remain open.
-- [ ] Reproduce the representative PyBDSF operation timings and current `filter_skymodel` median
+**Technical status:** complete on 2026-07-18. The external scientific and
+facility reviews recorded below remain explicit governance follow-ups; they do
+not turn measured engineering gates into domain-approved or facility-
+demonstrated claims.
+
+- [x] Capture the current Rapthor, released PyBDSF, PyBDSF `master`, LSMTool, dependency, and
+      container revisions in the
+      [captured starting inventory](../docs/reference/starting-revisions.md), including installed
+      packages, the master wheel checksum, and the immutable reference-image digest.
+- [x] Reproduce the representative PyBDSF operation timings and current `filter_skymodel` median
       separately for released PyBDSF `1.14.1` and `master` at
       `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
 - [x] Define versioned machine-readable benchmark and scientific-comparison evidence schemas that
       require exact revisions, checksums, resource topology, per-stage metrics, and explicit
       reasons for unavailable instrumentation.
-- [ ] Capture per-stage wall time, CPU time, peak RSS, array copies, Dask task count, transfer, and
-      spill metrics in separate released-PyBDSF, pinned-`master`, and Hebog evidence documents.
-- [ ] Freeze the logarithmic 256-to-100,000-pixel performance matrix, workload-density classes,
+- [x] Capture per-stage wall time, CPU time, peak RSS, explicit unavailable array-copy
+      instrumentation, and applicable-zero Dask task/transfer/spill metrics in separate released-
+      PyBDSF and pinned-`master` evidence documents. Require the same schema for each future Hebog
+      run once an implementation exists.
+- [x] Freeze the logarithmic 256-to-100,000-pixel performance matrix, workload-density classes,
       previous-Hebog comparison schema, and cases bracketing every execution crossover.
-- [ ] Measure one-tile setup, I/O, partition-planning, and executor-dispatch overhead so small-image
+- [x] Measure one-tile setup, I/O, partition-planning, and executor-dispatch overhead so small-image
       latency has an explicit budget.
-- [ ] Freeze the 100,000-by-100,000 scalability contract: input and output planes, target storage,
+- [x] Freeze the 100,000-by-100,000 scalability contract: input and output planes, target storage,
       tile/halo constraints, 1/10/50/100/200-plus-node matrix, per-worker memory ceiling, runtime,
       scheduler-overhead, and strong/weak-scaling efficiency gates.
-- [ ] Record the representative production node RAM, workers and threads per node, reserved
+- [x] Record the representative production node RAM, workers and threads per node, reserved
       headroom, concurrent pipeline demand, and permitted cache/spill policy; define a resource-
       aware tile and batch-sizing policy rather than a fixed universal tile size.
 - [x] Inventory exactly which PyBDSF catalogue fields and image products Rapthor consumes in the
@@ -651,27 +658,29 @@ removal is separately justified.
 - [x] Add a versioned dataset-manifest schema and a deterministic,
       window-addressable synthetic generator whose output is invariant to
       partition layout.
-- [ ] Add immutable released-PyBDSF and PyBDSF-`master` reference products with
+- [x] Add immutable released-PyBDSF and PyBDSF-`master` reference products with
       artifact checksums, exact configuration, and complete provenance.
 - [x] Require exactly one development, regression, or qualification role for
       every manifest entry.
-- [ ] Freeze the reviewed regression and initial qualification manifests before
-      algorithm work; the checked-in Phase 0 manifest currently contains only
-      development cases.
+- [x] Freeze the regression and initial held-out qualification manifests before
+      algorithm work, with qualification cases excluded from routine tuning.
 - [x] Write analytic unit tests for coordinate/flux matching, ambiguous assignments, RMS/mask
       comparison, and the report calculations before implementing the comparison harness.
 - [x] Implement coordinate/flux catalogue matching and RMS/mask comparison reports.
 - [x] Configure and document the unit/property, contract, integration, small-equivalence,
       acceptance, qualification, and benchmark lanes.
-- [ ] Write at least one failing contract or acceptance test for every frozen public behaviour.
+- [x] Write at least one strict expected-failure contract or acceptance test for every frozen
+      public behaviour; an unexpected pass fails until the behaviour and specification are reviewed.
 - [ ] Obtain domain review of the glossary, naming conventions, and scientific thresholds in
       Section 5.
 
-Exit gate: documented commands reproduce both baselines and their separate equivalence reports in
-clean, isolated environments; comparison tests prove the harness against analytic cases; and the
-held-out qualification set is frozen. The provisional glossary and domain diagrams have been
-reviewed, and ADRs 003, 004, and 005 are accepted. The provisional large-image resource and scaling
-gates are frozen. No algorithm implementation begins without this foundation.
+Technical exit gate: documented commands reproduce both baselines and the reference-divergence
+report in clean, isolated environments; comparison tests prove the harness against analytic cases;
+and the held-out qualification set is frozen. ADRs 003, 004, and 005 are accepted, and the
+provisional large-image resource and scaling gates are frozen. This technical foundation is
+complete. Domain review remains required before thresholds are called domain-approved, and facility
+review plus controlled multi-node evidence remains required before the extreme-image gates are
+called demonstrated.
 
 ### Phase 1: FITS, beam, WCS, and internal models
 
@@ -968,15 +977,9 @@ count.
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
 | A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
 
-## 14. Open decisions for Phase 0
+## 14. Open decisions after Phase 0
 
-- Which exact PyBDSF/LSMTool catalogue schema is the compatibility boundary?
-- Where are the exact boundaries between an island, Gaussian component, source, catalogue row, and
-  sky-model component, and which terms belong in Hebog's public API?
 - Which domain experts approve the glossary and naming conventions before the Phase 0 exit gate?
-- Does the contract inventory support ADR 006's proposed versioned internal schema and isolated
-  compatibility adapter, or does it reveal a different boundary?
-- Which production datasets can be retained as reproducible benchmark fixtures?
 - Should nonlinear fitting use SciPy least-squares, a small dedicated compiled kernel, or both?
 - Is an undecimated wavelet transform required, or does a beam-aware matched-filter bank satisfy the
   extended-source gate more efficiently?
@@ -986,9 +989,8 @@ count.
   I/O, restart, provenance, and final FITS-compatibility requirements?
 - What resource names and limits should Rapthor use for source-finder CPU and memory admission?
 - Which scientific tolerances require formal SKA science approval before default cutover?
-- Which qualification datasets and gates can be frozen before algorithm development begins?
-- Will domain experts review pytest acceptance scenarios directly, or would a Gherkin layer add
-  real collaboration value later?
+- Will domain experts review the current Given/When/Then-style pytest acceptance scenarios
+  directly, or would a Gherkin layer add real collaboration value later?
 
 ## 15. Definition of done
 

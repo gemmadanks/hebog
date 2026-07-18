@@ -27,17 +27,16 @@ when execution changes its scope, sequence, gates, risks, or decisions.
 
 ## Current position
 
-Hebog has a validated package and development scaffold. Phase 0 records the
-provisional Rapthor/PyBDSF contract, shared language, system boundaries,
-scope/scheduling ADRs, and the initial governed synthetic-development data.
-The scientific algorithms, frozen PyBDSF products, qualification datasets,
-external-product comparison runner, and matched runtime baselines are not
-implemented. The analytic catalogue, RMS-map, and mask comparison oracle is
-now independently tested. ADR 005 requires out-of-core hierarchical tiling for
-100,000-by-100,000 images and qualification across 100 to several hundred
-Dask worker nodes. The next milestone is to resolve the exact runtime
-revisions, reproduce both PyBDSF baselines, and freeze the large-image resource
-and scaling gates before algorithm development begins.
+Hebog has completed the technical Phase 0 foundation. Released PyBDSF 1.14.1
+and pinned master have matched compact and representative reviewed evidence,
+frozen products, exact runtime and input identities, and an independent
+scientific divergence report. The validation matrix, held-out qualification
+recipes, public-behaviour specifications, 100,000-square resource contract,
+and warm one-tile budgets are frozen. Scientific algorithms remain
+unimplemented. Phase 1 can proceed through TDD where it does not prejudge an
+unapproved scientific choice; named domain and facility review remain required
+before engineering thresholds are called domain-approved or large-scale gates
+are called demonstrated.
 
 ## 2026-07-16 — Profiled the existing PyBDSF path
 
@@ -926,3 +925,68 @@ source evidence.
   in the now-frozen environment and evidence schemas.
 - Measure the one-tile overhead probes and replace exploratory timing notes
   with compact provenance-bound summaries.
+
+## 2026-07-18 — Completed the technical Phase 0 baseline
+
+**Plan phase:** Phase 0
+
+**Commits**
+
+- `88ac484` — reproducible released/master PyBDSF campaigns and evidence
+- `2ff1946` — immutable PyBDSF products and real equivalence tests
+- `ffdbf2c` — typed warm one-tile overhead probe
+- `3a74134` — final runtime, dataset, wheel, and overhead evidence
+- `b89bfee` — immutable image guard for master-wheel rebuilds
+
+**Completed**
+
+- Confirmed released PyBDSF 1.14.1, built pinned master at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c`, and captured the exact LSMTool,
+  Rapthor, dependency-inventory, wheel, container, environment, configuration,
+  and dataset identities.
+- Ran one warm-up and five measured repetitions for both references on the
+  compact 256-square and representative 3,000-square cases in a fresh
+  container per repetition.
+- Froze the seven compact Rapthor-facing products for both references and
+  replaced the skipped equivalence scaffold with checksum, catalogue, true-
+  and flat-RMS, and mask comparisons.
+- Bound the restricted representative dataset to individual hashes for both
+  images, both sky models, vertices, and the Measurement Set directory tree.
+- Measured configuration, FITS I/O, one-tile planning arithmetic, serial,
+  reused local-thread, and caller-owned warm Dask overhead 50 times; all
+  exploratory 95th percentiles passed the provisional budgets.
+
+**Evidence**
+
+| Matched median | PyBDSF 1.14.1 | PyBDSF master |
+| --- | ---: | ---: |
+| Compact complete | 0.715 s | 0.672 s |
+| Representative complete | 46.654 s | 45.015 s |
+| Representative true-sky stage | 32.945 s | 31.860 s |
+| Representative flat-noise stage | 12.851 s | 12.694 s |
+
+Pinned master was 3.51% faster than release on the representative complete
+median. The reference catalogues, RMS arrays, and mask arrays agreed exactly
+on the compact case. Maximum measured representative RSS was approximately
+1.30 GB for each reference. Copy counts remain explicitly unavailable because
+external PyBDSF exposes no counter; Dask task, transfer, and spill counts are
+applicable zeroes for these single-process reference runs.
+
+**Deviations and limitations**
+
+- LSMTool adds wall-clock history comments to sky-model text outputs. The
+  campaign gate excludes only `#` history comments from cross-repetition
+  identity; catalogues, diagnostics, RMS maps, and masks remain byte-stable.
+- The original Rapthor run moved its intermediate sky-model inputs. The
+  controlled run uses the corresponding generated rich-demo models, now bound
+  by individual checksums.
+- One-tile planning and local-thread measurements are Phase 0 proxies. Phase 1
+  replaces them with real implementations without changing the frozen budgets.
+- Domain and facility sign-off are not inferred from technical completion.
+
+**Next**
+
+- Record named scientific and facility review when those authorities are
+  available.
+- Begin Phase 1 with failing FITS, WCS, beam, partition, and internal-schema
+  tests while retaining released and master PyBDSF as separate comparators.

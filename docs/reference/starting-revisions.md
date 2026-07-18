@@ -1,69 +1,64 @@
 # Phase 0 starting revisions
 
-The machine-readable starting inventory is
+The captured machine-readable inventory is
 [`config/baselines/phase-0-starting-revisions.json`](https://github.com/gemmadanks/hebog/blob/main/config/baselines/phase-0-starting-revisions.json).
-It captures the local evidence used for the first Phase 0 contract inventory.
-Commit identifiers, rather than branch names, are authoritative.
-
-This is a **candidate inventory**, not a qualification baseline. No scientific
-equivalence or performance claim may be attributed to it until the unresolved
-runtime versions and container digest are captured.
+Commit identifiers, artifact checksums, and the built-image digest are
+authoritative; branch names and the local image tag are descriptive only.
 
 ## Repository evidence
 
 | Repository | Starting revision | State |
 | --- | --- | --- |
-| Hebog | `9ab6b6068aa515885b29bbbe54d1b96feb7965ff` | Clean |
-| Rapthor | `b1a64674b1022476cf052fc2d06ee3b16f031ecd` | Clean |
-| PyBDSF released reference | `v1.14.1` at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc` | Expected current Rapthor comparator; runtime confirmation pending |
-| PyBDSF `master` reference | `c70103be3ae9ae9908286f144e6ce956acc0ce5c` | Clean; 40 commits after `v1.14.1` |
-| LSMTool dependency pin | `3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a` | Object available locally |
-| LSMTool local reference | `4e5cf93046e309844c04382375f86e68929bd2d8` | Two untracked files |
+| Hebog | `9ab6b6068aa515885b29bbbe54d1b96feb7965ff` | Clean starting point |
+| Rapthor | `b1a64674b1022476cf052fc2d06ee3b16f031ecd` | Clean Prefect/Dask comparator |
+| PyBDSF released reference | `v1.14.1` at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc` | Installed as `1.14.1` |
+| PyBDSF `master` reference | `c70103be3ae9ae9908286f144e6ce956acc0ce5c` | Built as `1.14.2.dev40+gc70103be3` |
+| LSMTool dependency pin | `3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a` | Installed as `1.8.0` |
+| LSMTool local reference | `4e5cf93046e309844c04382375f86e68929bd2d8` | Two unrelated untracked files retained |
 
-The `gec-468-ai-migrate-to-prefect` Rapthor branch at the recorded revision
-defines the consumer and Prefect/Dask task-runner contract. Rapthor pins
-LSMTool at `3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a`; that object is available
-locally, and its source-finding module matches the module in the checked-out
-LSMTool branch.
+Rapthor's recorded `gec-468-ai-migrate-to-prefect` branch defines the consumer
+contract and uses a Prefect Dask task runner. It resolves the latest released
+`bdsf` distribution; the controlled runtime confirms that this installed
+`1.14.1`. The `master` comparator is exactly 40 commits after that release.
 
-Rapthor currently resolves the latest released PyBDSF distribution. At the
-capture date [PyPI identifies that release as `1.14.1`](https://pypi.org/project/bdsf/1.14.1/);
-its tag and package provenance resolve to
-`1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`. The refreshed `master` reference
-is `c70103be3ae9ae9908286f144e6ce956acc0ce5c`. These are separate mandatory
-performance comparators: Hebog must reduce the released version's matched
-median `filter_skymodel` time by at least 50% and must also be faster than the
-`master` reference under the same benchmark conditions.
+## Controlled reference runtime
 
-The released version remains the current compatibility reference. Frozen
-products from `master` provide forward-looking comparison evidence, but any
-scientific differences between the two PyBDSF references must be adjudicated
-against independent truth and the Rapthor contract rather than copied
-automatically.
+Both references ran in fresh containers from the same local image, resolved to
+immutable digest
+`sha256:dce93991e2e671428ff8043a7e0d132294d2d2decf1e1587e9904d3e8f49b754`.
+The runtime used Python 3.12.3 on `aarch64` and reported 16,321,134,592 bytes
+of visible RAM. The complete installed distributions are bound by separate
+dependency-inventory digests because the master run adds its wheel ahead of
+the installed release:
 
-## Dependency and container evidence
+- release: `ad533f28942ba1d3891a1c5d960028c7bde558ea682e08da21a246235d2eb3c8`;
+- master: `9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76`.
 
-The JSON inventory records SHA-256 checksums for Hebog's `uv.lock` and each
-relevant `pyproject.toml`, development-container definition, and Dockerfile.
-It also records the released PyBDSF source-distribution checksum published by
-PyPI. These checksums make later changes to the candidate environment visible.
+The master wheel is
+`bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl` with SHA-256
+`2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d`.
+Its pinned build-helper versions are in the JSON inventory. Rebuild it with
+`scripts/benchmark/build_pybdsf_master_wheel.py`; the command fails if the
+checkout is dirty, at another commit, the local image has another digest, the
+build emits more than one wheel, or the platform artifact has another checksum.
 
-The inventory deliberately records these unresolved gaps:
+## Evidence and remaining limits
 
-- Rapthor declares `bdsf` using a latest-release resolution policy rather than
-  pinning `1.14.1`; the controlled benchmark runtime must still confirm the
-  installed distribution.
-- Hebog and Rapthor container definitions use mutable base-image tags, and no
-  digest from a built benchmark image has been captured.
+The compact and representative released/master evidence documents in
+`config/baselines/` contain exact environment, configuration, dataset,
+software, and container identities. The separate representative-dataset
+inventory binds both images, both sky models, the sector vertices, and the
+Measurement Set tree without committing restricted data.
 
-The 40 commits from `v1.14.1` to the recorded `master` include residual-image
-statistics speedups and RMS/adaptive-RMS simplification, as well as changes to
-island masks, flux calculations, fitting, and output handling. Both exact
-references therefore need isolated, matched benchmark environments and
-separate scientific reports.
+Three reproducibility limits remain explicit rather than blocking the captured
+reference evidence:
 
-Resolve these gaps before checking off the Phase 0 revision-capture task or
-using a run as release evidence. The eventual benchmark record must include
-the released and `master` PyBDSF revisions, the installed LSMTool version, the
-built container digest, and the full dependency inventory from each isolated
-environment.
+- later Hebog runs must capture the digest of their own application image;
+- the source container definitions still use mutable parent tags, so a rebuild
+  must record newly resolved parents; and
+- the original Rapthor run moved its intermediate sky-model files, so the
+  controlled rerun uses the corresponding generated rich-demo source models
+  frozen by checksum.
+
+These limits prohibit treating a future rebuild as byte-identical without new
+evidence. They do not weaken the immutable identity of the completed runs.

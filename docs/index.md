@@ -29,14 +29,15 @@ scientific partition ownership.
 
 ## Current status
 
-The public records, configuration, executor interface, serial and Dask
-executors, CLI, test lanes, and delivery plan are scaffolded. Scientific
-source-finding algorithms are not implemented yet.
+The technical Phase 0 contracts, released/master PyBDSF baselines, immutable
+reference products, comparison oracle, validation manifests, and warm overhead
+budgets are complete. Scientific source-finding algorithms are not implemented
+yet; Phase 1 starts with failing FITS, WCS, beam, partition, and schema tests.
 
 Start with the [quick start](tutorials/index.md), read the
 [architecture](explanation/index.md) and
 [quality attributes](explanation/quality-attributes.md), review the
-[native-code assessment](explanation/native-code-assessment.md), or read the
-complete
+[native-code assessment](explanation/native-code-assessment.md), then see the
+[Phase 0 baseline results](reference/phase-0-baseline-results.md), the complete
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 and [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).

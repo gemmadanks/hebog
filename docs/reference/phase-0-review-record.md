@@ -16,6 +16,14 @@ manifests, and provisional large-image resource envelope are frozen for Phase
 0. A later measured crossover or facility constraint may amend them only
 through reviewed evidence, the implementation plan, and `LOG.md`.
 
+The technical Phase 0 evidence was completed on 2026-07-18. It includes exact
+released/master revisions and dependency inventories, an immutable reference
+container digest, one warm-up and five measured compact and representative
+runs per reference, per-stage timing/CPU/RSS records, frozen reference
+products, an independent reference-divergence report, and warm one-tile
+overhead measurements. The technical completion does not confer the external
+approvals below.
+
 ## Scientific review still required
 
 An SKA imaging/domain reviewer must confirm or amend, with their name and date:
@@ -30,8 +38,9 @@ An SKA imaging/domain reviewer must confirm or amend, with their name and date:
 
 Until that sign-off is appended here, thresholds remain engineering gates and
 must not be described as domain-approved. This does not block reproducibility,
-I/O scaffolding, or red-green-refactor work that cannot prejudge a scientific
-choice; it does block a scientific-equivalence or production-readiness claim.
+I/O scaffolding, or red-green-refactor Phase 1 work that cannot prejudge a
+scientific choice; it does block a domain-approved scientific-equivalence or
+production-readiness claim.
 
 ## Facility review still required
 

@@ -83,6 +83,24 @@ The Python models expose `model_json_schema()` when a runner or validation
 service needs JSON Schema. Schema changes follow ADR 006: breaking semantics
 require a new integer version, migration guidance, and contract tests.
 
+## Phase 0 records
+
+`config/baselines/` contains reviewed compact and representative benchmark
+documents for released PyBDSF and pinned master. The reference-product manifest
+binds all seven compact products, and the master-versus-release scientific
+document records exact catalogue, RMS, and mask agreement. The exploratory
+one-tile overhead record uses the separate strict model in
+`hebog.validation.overhead`.
+
+The [baseline results](phase-0-baseline-results.md) summarize the observations,
+limitations, and reproduction workflow. Raw logs and repeated products remain
+ignored; the committed records are complete typed evidence rather than copied
+console summaries.
+
 ::: hebog.validation.evidence
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.validation.overhead
     options:
       show_symbol_type_toc: true
