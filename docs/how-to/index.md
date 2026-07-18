@@ -44,9 +44,11 @@ domain experts will actively review or write feature files.
 ## Record a benchmark
 
 Benchmark runs must record the dataset identifier and checksum, Hebog,
-PyBDSF, and Rapthor revisions, dependency versions, configuration, worker
-topology, CPU allocation, wall and CPU time, peak resident memory, and Dask
-task/transfer/spill metrics.
+Rapthor, released PyBDSF, and PyBDSF `master` revisions, dependency versions,
+configuration, worker topology, CPU allocation, wall and CPU time, peak
+resident memory, and Dask task/transfer/spill metrics. Run the exact PyBDSF
+references in separate matched environments and report both comparisons; do
+not substitute `master` for Rapthor's released runtime.
 
 Use one warm-up and at least five measured repetitions. Store generated
 results under the ignored `benchmark-results/` directory and commit only small

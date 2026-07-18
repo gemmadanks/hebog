@@ -7,7 +7,8 @@ compatible replacement for the PyBDSF work performed by Rapthor's
 
 Its scope is deliberately limited to the behaviour and products Rapthor consumes,
 with a target of reducing the complete filter step's matched median wall time
-by at least 50%.
+by at least 50% relative to released PyBDSF and also outperforming a pinned
+PyBDSF `master` reference.
 
 ## Current status
 

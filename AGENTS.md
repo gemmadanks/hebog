@@ -8,8 +8,9 @@ Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
 Processor pipelines. Its first production consumer is Rapthor's
 `filter_skymodel` step. The implementation is intentionally narrower than
 PyBDSF: reproduce the behaviour and products Rapthor uses, demonstrate
-scientific equivalence, and reduce the complete filter step's matched median
-wall time by at least 50%.
+scientific equivalence, reduce the complete filter step's matched median wall
+time by at least 50% relative to the released PyBDSF version used by Rapthor,
+and also outperform a pinned PyBDSF `master` reference.
 
 The durable
 [`plans/source-finder-implementation.md`](plans/source-finder-implementation.md)
@@ -61,7 +62,8 @@ Never hard-code those paths in package code or normal tests.
   comparison. Use the dataset matrix and metrics in the implementation plan.
 - Do not claim a speedup from isolated kernel timing alone. The primary
   performance gate is the median wall time of Rapthor's complete
-  `filter_skymodel` step.
+  `filter_skymodel` step against both the released PyBDSF version used by
+  Rapthor and the pinned performance-improved PyBDSF `master` reference.
 - Do not weaken detection thresholds, skip extended-source processing, or
   silently change output semantics to meet a runtime target.
 - Do not use Python loops over pixels or RMS windows in production kernels.
@@ -171,10 +173,13 @@ Performance changes must record:
 - warm-up policy and every measured repetition.
 
 Use at least five measured repetitions after warm-up, compare medians, report
-dispersion, and retain machine-readable results. Avoid concurrent unrelated
-workloads. End-to-end speedups include FITS I/O, catalogue generation, Dask
-overhead, and Rapthor filtering. An optimization is acceptable only when the
-relevant scientific suite passes.
+dispersion, and retain machine-readable results. Benchmark exact released and
+`master` PyBDSF revisions in isolated, matched environments; never substitute
+one for the other. Avoid concurrent unrelated workloads. End-to-end speedups
+include FITS I/O, catalogue generation, Dask overhead, and Rapthor filtering.
+Performance claims must satisfy the confidence rule in the implementation
+plan. An optimization is acceptable only when the relevant scientific suite
+passes.
 
 ## Python conventions
 

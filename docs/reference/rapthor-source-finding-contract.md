@@ -46,7 +46,7 @@ Rapthor's current default configuration is:
 | Threshold mode | Hard | Thresholds are not false-discovery-rate derived |
 | Wavelet processing | Enabled, three scales | Extended/multiscale emission is in scope |
 | Filter by mask | Enabled | Components outside detected islands are removed |
-| Source finder | `bdsf` | Current compatibility oracle |
+| Source finder | `bdsf` | Released PyBDSF is the current compatibility oracle; pinned `master` is a separate performance comparator |
 | Rapthor core count | `15` | Execution input, not a scientific result |
 
 ## Materialised products

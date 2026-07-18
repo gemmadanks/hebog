@@ -12,8 +12,9 @@ Processor pipelines. It is being developed first as a faster, scientifically com
 The implementation is intentionally narrower than PyBDSF. It will reproduce
 the behaviour and materialised products that Rapthor consumes while targeting
 at least a 50% reduction in the median wall time of the complete
-`filter_skymodel` step. Scientific equivalence—not bitwise equality—is the
-acceptance criterion.
+`filter_skymodel` step relative to released PyBDSF, and a lower runtime than a
+pinned performance-improved PyBDSF `master` reference. Scientific
+equivalence—not bitwise equality—is the acceptance criterion.
 
 See the [source-finder implementation plan](plans/source-finder-implementation.md)
 for the profiling evidence, scientific gates, dataset matrix, staged delivery,
@@ -41,8 +42,9 @@ algorithms are not implemented yet.
   escape.
 - Demonstrate scientific equivalence with frozen PyBDSF products and injected
   truth before making performance claims.
-- Reduce matched median `filter_skymodel` wall time by at least 50% without an
-  unapproved memory regression.
+- Reduce matched median `filter_skymodel` wall time by at least 50% relative to
+  released PyBDSF, outperform pinned PyBDSF `master`, and avoid an unapproved
+  memory regression.
 
 Complete compatibility with every PyBDSF option, polarization analysis not
 used by Rapthor, GPU execution, and undocumented PyBDSF defects are initially

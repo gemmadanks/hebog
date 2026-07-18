@@ -30,9 +30,11 @@ when execution changes its scope, sequence, gates, risks, or decisions.
 Hebog has a validated package and development scaffold. The first Phase 0
 slice records the provisional Rapthor/PyBDSF contract, shared language, system
 boundaries, and scope/scheduling ADRs. The scientific algorithms, frozen
-datasets, comparison harness, and matched runtime baseline are not implemented.
-The next milestone is to resolve the exact runtime revisions and reproduce the
-matched PyBDSF baseline before algorithm development begins.
+datasets, comparison harness, and matched runtime baselines are not
+implemented.
+The next milestone is to resolve the exact runtime revisions and reproduce
+matched baselines for released PyBDSF and the performance-improved `master`
+reference before algorithm development begins.
 
 ## 2026-07-16 — Profiled the existing PyBDSF path
 
@@ -403,3 +405,52 @@ This clarification supersedes any earlier implication that the preliminary
 repository is a continuing project input. Work already adopted into Hebog
 must stand on its current tests, documentation, decisions, and authoritative
 source evidence.
+
+## 2026-07-18 — Required released and master PyBDSF baselines
+
+**Plan phase:** Phase 0 — freeze baselines and contracts
+
+**Completed**
+
+- Identified released PyBDSF `v1.14.1` at
+  `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc` as the current Rapthor
+  comparator.
+- Identified the refreshed performance-improved PyBDSF `master` reference at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c`, 40 commits after `v1.14.1`.
+- Updated the plan, project guidance, and candidate revision inventory to
+  require separate scientific and performance comparisons for both exact
+  references.
+
+**Decisions**
+
+- Retain the original target of at least a 50% reduction in matched median
+  `filter_skymodel` wall time relative to the released PyBDSF version used by
+  Rapthor.
+- Also require Hebog to be faster than the pinned PyBDSF `master` reference;
+  the upper bound of the 95% bootstrap confidence interval for the median
+  runtime ratio must be below `1.00`.
+- Use released PyBDSF as the current compatibility reference. Treat `master`
+  as forward-looking comparison evidence; adjudicate scientific differences
+  using independent truth and the Rapthor contract.
+- Pin both references for every benchmark record. Refresh `master`
+  deliberately at qualification milestones without replacing historical
+  results.
+
+**Evidence**
+
+- The local PyBDSF tag `v1.14.1` resolves to
+  `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`.
+- PyPI identifies `1.14.1` as the latest release at the capture date, publishes
+  source provenance for the same commit, and reports source-distribution
+  SHA-256
+  `8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2`.
+- The range from `v1.14.1` to the recorded `master` includes an explicit
+  residual-statistics speedup and RMS/adaptive-RMS simplifications, alongside
+  scientific fixes affecting masks, fitting, fluxes, and outputs.
+
+**Next**
+
+- Confirm the installed released PyBDSF version inside the controlled Rapthor
+  benchmark environment.
+- Build isolated, matched environments and reproduce the same operation and
+  complete `filter_skymodel` benchmark matrix for both PyBDSF references.

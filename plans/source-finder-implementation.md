@@ -6,27 +6,36 @@ acceptance gates.
 
 This is a Hebog-owned plan. Derive requirements and compatibility evidence
 from the current Rapthor integration target, Rapthor's pinned LSMTool code,
-and the applicable PyBDSF implementation and runtime. Do not use the
-preliminary `ska-sdp-source-finder` scaffold or plan as an evidence source or
-migration target.
+the latest released PyBDSF used by Rapthor, and a pinned PyBDSF `master`
+reference. Do not use the preliminary `ska-sdp-source-finder` scaffold or plan
+as an evidence source or migration target.
 
 ## 1. Objective
 
 Create a maintainable radio-continuum source finder that produces scientifically equivalent
-results to the subset of PyBDSF used by Rapthor and reduces the median wall time of Rapthor's
-complete `filter_skymodel` step by at least 50%.
+results to the subset of PyBDSF used by Rapthor. Reduce the median wall time of Rapthor's complete
+`filter_skymodel` step by at least 50% relative to the released PyBDSF version used by Rapthor, and
+also outperform the current performance-improved PyBDSF `master` reference.
 
 The primary acceptance formula is:
 
 ```text
-new median filter_skymodel wall time
-------------------------------------  <= 0.50
-matched PyBDSF baseline median wall time
+Hebog median filter_skymodel wall time
+--------------------------------------  <= 0.50
+released PyBDSF median wall time
+
+Hebog median filter_skymodel wall time
+--------------------------------------  < 1.00
+PyBDSF master median wall time
 ```
 
-Both measurements must use the same Rapthor revision, inputs, filter configuration, allocated
-resources, output products, and benchmark host. Use at least five measured repetitions after
-warm-up.
+Both gates apply to every gate-designated benchmark case. The three measurements must use the same
+Rapthor revision, inputs, filter configuration, allocated resources, output products, and
+benchmark host. Use at least five measured repetitions after warm-up and report dispersion; do not
+claim that Hebog outperforms `master` when the observed difference is indistinguishable from
+run-to-run noise. The upper bound of a 95% bootstrap confidence interval for each median runtime
+ratio must be at most `0.50` against released PyBDSF and below `1.00` against `master`; increase the
+repetition count when the minimum sample is inconclusive.
 
 Scientific equivalence is required; bitwise equality is not. The replacement must preserve the
 sources that affect filtering, catalogue meaning, units, coordinates, masks, RMS products, and
@@ -51,8 +60,8 @@ windows although only a small neighbourhood around five bright sources was used.
 
 Rapthor profiling previously reduced an aggregate `filter_skymodel` measurement from 89.54 to
 69.881 seconds by reducing PyBDSF's requested cores from 30 to 15. The provisional 50% target for
-that exact benchmark is therefore 34.94 seconds. Phase 0 must reproduce and replace this with a
-versioned baseline before it becomes a release gate.
+that exact benchmark is therefore 34.94 seconds. Phase 0 must reproduce and replace this with
+matched, versioned released and `master` baselines before it becomes a release gate.
 
 These observations indicate that a new array-oriented implementation can meet the target by
 avoiding repeated statistics, whole-image copies, recursively repeated source-finding pipelines,
@@ -170,9 +179,12 @@ The suite must cover:
 7. At least one larger production-like image, initially 8000 by 8000 or larger.
 8. Several `filter_skymodel` calls from a complete Rapthor benchmark run.
 
-Use generated truth to measure absolute completeness and flux accuracy. Use frozen PyBDSF outputs
-to measure compatibility. Production data that cannot be redistributed stays in an external data
-store referenced by environment-neutral dataset identifiers.
+Use generated truth to measure absolute completeness and flux accuracy. Use frozen outputs from
+the released PyBDSF reference to measure current Rapthor compatibility, and frozen outputs from the
+`master` reference to expose forward-looking changes. When the references disagree, use analytic
+truth and the Rapthor contract to adjudicate the difference; neither reference is scientific
+ground truth. Production data that cannot be redistributed stays in an external data store
+referenced by environment-neutral dataset identifiers.
 
 Every manifest entry must have exactly one test role:
 
@@ -212,8 +224,10 @@ Use the strongest independent oracle available, in this order:
 2. Mathematical and metamorphic properties, such as translation, positive scaling, threshold
    monotonicity, mask exclusion, and conservation relationships.
 3. The deterministic Hebog serial implementation for executor conformance.
-4. Frozen PyBDSF products for compatibility with the behaviour Rapthor currently consumes.
-5. End-to-end Rapthor retained/rejected decisions for operational acceptance.
+4. Frozen products from the released PyBDSF version for compatibility with the behaviour Rapthor
+   currently consumes.
+5. Frozen products from the pinned PyBDSF `master` reference for forward-looking comparison.
+6. End-to-end Rapthor retained/rejected decisions for operational acceptance.
 
 PyBDSF is a compatibility oracle, not scientific ground truth. Unit-test the comparison machinery
 itself with hand-constructed catalogues, known ambiguous assignments, unmatched rows, coordinate
@@ -232,7 +246,7 @@ tests must never regenerate expected products implicitly.
 | Unit and property | Pure kernels, schemas, validation, matching, invariants | Every commit |
 | Contract | I/O and executor behaviour shared by all implementations | Every commit |
 | Integration | Small FITS and in-process/local Dask boundaries | Pull request |
-| Small equivalence | Redistributable frozen PyBDSF cases | Pull request |
+| Small equivalence | Redistributable frozen released and `master` PyBDSF cases | Pull request |
 | Acceptance | Lightweight Rapthor-facing behaviour scenarios | Pull request |
 | Qualification | Held-out production-like scientific matrix | Milestone and release |
 | Benchmark | Component and complete `filter_skymodel` performance | Controlled scheduled runner |
@@ -272,9 +286,9 @@ metadata with fakes or an in-process cluster where possible. Reserve real worker
 spill, and resource-contention tests for a controlled integration environment.
 
 Never enforce absolute wall-time assertions on shared or portable CI runners. Use microbenchmarks
-to diagnose regressions, component budgets on controlled hosts, and the matched end-to-end Rapthor
-benchmark as the release gate. A performance result is considered only after the corresponding
-scientific suite passes.
+to diagnose regressions, component budgets on controlled hosts, and matched end-to-end Rapthor
+benchmarks against both exact PyBDSF references as the release gate. A performance result is
+considered only after the corresponding scientific suite passes.
 
 ## 8. Target architecture
 
@@ -389,8 +403,9 @@ Every release requires:
 1. Portable CI, packaging, documentation, lockfile validation, and wheel smoke tests to pass.
 2. The relevant unit/property, contract, integration, and small scientific suites to pass.
 3. Scientific regression evidence for changes to algorithms, measurements, or output semantics.
-4. Matched controlled benchmarks for any performance claim; an optimization may be released
-   without a speed claim when its scientific behaviour is valid.
+4. Matched controlled benchmarks against both the released and pinned `master` PyBDSF references
+   for any performance claim; an optimization may be released without a speed claim when its
+   scientific behaviour is valid.
 5. Public documentation of implemented capabilities, experimental limitations, configuration,
    output schemas, and known compatibility gaps.
 6. Versioned schemas and a migration note for a breaking public API or product change. Breaking
@@ -412,10 +427,13 @@ removal is separately justified.
 
 ### Phase 0: freeze baselines and contracts
 
-- [ ] Capture the current Rapthor, PyBDSF, LSMTool, dependency, and container revisions. A
+- [ ] Capture the current Rapthor, released PyBDSF, PyBDSF `master`, LSMTool, dependency, and
+      container revisions. A
       [candidate starting inventory](../docs/reference/starting-revisions.md) records repository
       and definition hashes; exact installed packages and a built container digest remain open.
-- [ ] Reproduce the representative PyBDSF operation timings and current `filter_skymodel` median.
+- [ ] Reproduce the representative PyBDSF operation timings and current `filter_skymodel` median
+      separately for released PyBDSF `1.14.1` and `master` at
+      `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
 - [ ] Record per-stage wall time, CPU time, peak RSS, array copies, Dask task count, transfer, and
       spill metrics in machine-readable JSON.
 - [x] Inventory exactly which PyBDSF catalogue fields and image products Rapthor consumes in the
@@ -440,10 +458,11 @@ removal is separately justified.
 - [ ] Obtain domain review of the glossary, naming conventions, and scientific thresholds in
       Section 5.
 
-Exit gate: a documented command reproduces the baseline and equivalence report on a clean
-environment; comparison tests prove the harness against analytic cases; and the held-out
-qualification set is frozen. The provisional glossary and domain diagrams have been reviewed, and
-ADRs 003 and 004 are accepted. No algorithm implementation begins without this foundation.
+Exit gate: documented commands reproduce both baselines and their separate equivalence reports in
+clean, isolated environments; comparison tests prove the harness against analytic cases; and the
+held-out qualification set is frozen. The provisional glossary and domain diagrams have been
+reviewed, and ADRs 003 and 004 are accepted. No algorithm implementation begins without this
+foundation.
 
 ### Phase 1: FITS, beam, WCS, and internal models
 
@@ -548,7 +567,7 @@ measured scheduler overhead rather than fixing an arbitrary item count.
 Exit gate: Dask improves throughput or critical-path time on the supported workloads, has no nested
 fork behaviour, and stays within configured CPU and memory budgets.
 
-### Phase 7: Rapthor integration and 50% gate
+### Phase 7: Rapthor integration and dual-baseline performance gate
 
 - [ ] Write Given/When/Then acceptance scenarios for empty and corrupt inputs, restart, retry,
       backend selection, dual-run reporting, and retained/rejected decisions.
@@ -557,13 +576,16 @@ fork behaviour, and stays within configured CPU and memory budgets.
 - [ ] Run independent tasks concurrently only when Dask resource annotations admit both.
 - [ ] Remove the PyBDSF-specific subprocess escape from the new backend.
 - [ ] Preserve PyBDSF as a feature-flagged fallback and support dual-run comparison mode.
-- [ ] Measure complete `filter_skymodel` wall time across the full benchmark matrix.
+- [ ] Measure complete `filter_skymodel` wall time for Hebog, the released PyBDSF reference, and
+      the pinned PyBDSF `master` reference across the full benchmark matrix.
 - [ ] Profile at least 1, 2, 4, 8, and the current 15 allocated cores without oversubscription.
 - [ ] Validate resume, retry, empty catalogue, corrupt input, and worker-loss behaviour.
 
-Exit gate: the new backend passes all reviewed scientific gates and its matched median
-`filter_skymodel` wall time is at most 50% of the PyBDSF baseline. Peak worker and aggregate memory
-must not regress by more than 10% unless an explicitly approved throughput trade-off justifies it.
+Exit gate: the new backend passes all reviewed scientific gates. For every gate-designated case,
+its matched median `filter_skymodel` wall time is at most 50% of released PyBDSF and is lower than
+the pinned PyBDSF `master` median, with both comparisons satisfying the confidence rule in Section
+1. Peak worker and aggregate memory must not regress by more than 10% against either comparator
+unless an explicitly approved throughput trade-off justifies it.
 
 ### Phase 8: hardening and release
 
@@ -579,8 +601,8 @@ must not regress by more than 10% unless an explicitly approved throughput trade
 
 ## 11. Performance budget
 
-Phase 0 will replace provisional values with a matched, versioned baseline. The design budget for
-the representative 3000 by 3000 case is:
+Phase 0 will replace provisional values with matched, versioned released and `master` baselines.
+The design budget for the representative 3000 by 3000 case is:
 
 | Component | Provisional budget |
 | --- | ---: |
@@ -599,17 +621,21 @@ Component improvements are not added arithmetically unless their end-to-end effe
 
 ## 12. Benchmark protocol
 
-1. Pin CPU affinity and disable unrelated workloads.
-2. Record the host, logical/physical cores, RAM, storage, filesystem cache policy, and worker
+1. Freeze exact released and `master` PyBDSF revisions. Run each in an isolated environment with
+   the same dependency versions where compatibility permits, and record every unavoidable
+   dependency difference.
+2. Pin CPU affinity and disable unrelated workloads.
+3. Record the host, logical/physical cores, RAM, storage, filesystem cache policy, and worker
    topology.
-3. Pin native BLAS/OpenMP thread counts to avoid hidden oversubscription.
-4. Execute one unmeasured warm-up followed by at least five measured repetitions.
-5. Record every repetition; compare medians and report minimum, maximum, and median absolute
-   deviation.
-6. Measure wall time, process CPU, peak RSS, aggregate worker memory, read/write bytes, Dask task
+4. Pin native BLAS/OpenMP thread counts to avoid hidden oversubscription.
+5. Execute one unmeasured warm-up followed by at least five measured repetitions.
+6. Record every repetition; compare medians and report minimum, maximum, and median absolute
+   deviation. Compute the 95% bootstrap confidence intervals required by the performance gates;
+   add repetitions when either result is inconclusive.
+7. Measure wall time, process CPU, peak RSS, aggregate worker memory, read/write bytes, Dask task
    count, transfer bytes, spill bytes, and failures/retries.
-7. Produce the scientific comparison for the same outputs before accepting a speedup.
-8. Store JSON results under `benchmark-results/` and commit only compact reviewed summaries with
+8. Produce separate scientific comparisons for the same outputs before accepting a speedup.
+9. Store JSON results under `benchmark-results/` and commit only compact reviewed summaries with
    reproduction commands.
 
 Run both cold-cache and warm-cache I/O measurements when FITS reading is material. Use warm-cache
@@ -622,6 +648,8 @@ results for algorithm tuning and cold-cache results for operational expectations
 | Low-SNR threshold crossings differ | Report completeness/reliability curves and validate Rapthor filter decisions |
 | Extended or blended sources diverge | Maintain dedicated fixtures and stratified metrics; do not hide them in aggregate recovery |
 | PyBDSF is not deterministic | Freeze multiple reference runs and separate same-tool scatter from replacement differences |
+| PyBDSF `master` moves during development | Pin the exact commit for every benchmark record; refresh deliberately at qualification milestones without rewriting prior results |
+| Released and `master` PyBDSF differ scientifically | Compare both with independent truth and the Rapthor contract; document rather than average or silently select divergent outputs |
 | Development overfits the validation matrix | Keep a frozen qualification set out of routine TDD and tune only on development/regression cases |
 | A comparator defect hides divergence | Test matching and report calculations against analytic catalogues and known assignments |
 | Distributed failure tests are flaky | Prefer deterministic fault injection; reserve real worker loss and spill for controlled runners |
@@ -662,7 +690,9 @@ The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
 1. Development, regression, and held-out qualification suites cover compact, blended, extended,
    low-SNR, edge, invalid-pixel, and varying-noise cases without qualification-set tuning.
 2. All reviewed scientific gates pass for serial and Dask execution.
-3. The matched median wall time of the complete `filter_skymodel` step is at least 50% lower.
+3. For every gate-designated case, the complete `filter_skymodel` matched median is at least 50%
+   lower than released PyBDSF and lower than the pinned PyBDSF `master` median, with both ratios
+   satisfying the confidence rule in Section 1.
 4. Peak memory, scheduler overhead, graph size, retry, and resume behaviour meet operational gates.
 5. Rapthor can select either backend, dual-run them for comparison, and safely fall back to PyBDSF.
 6. Public schemas, configuration, migration, benchmark reproduction, and limitations are documented.

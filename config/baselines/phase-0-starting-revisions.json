@@ -26,15 +26,18 @@
       "source_finding_module_sha256": "eccb93f128f7be0659e0bb8a433a49e80291661d38f6f4002b5c75fe50dc35d2"
     },
     "rapthor_pybdsf": {
+      "expected_release_at_capture": "1.14.1",
+      "installed_version": null,
       "requirement": "bdsf",
-      "resolved_revision": null
+      "resolution_policy": "latest released distribution"
     }
   },
   "dependency_definitions": {
     "hebog_pyproject_sha256": "20766ab63c7db5f559e1e374ffdb6a0216893b77d445f0a43ce1b7cb512a9b49",
     "hebog_uv_lock_sha256": "c10efbc49a964fdc63f9b037f6c309382d187da9f56eb4d9050256b324d24b32",
     "lsmtool_pyproject_sha256": "836a6fc553bd974a83da1f0a1ad3aae4ed60cc04922f7f3c0c7ba7ba1e16b2c8",
-    "pybdsf_pyproject_sha256": "d374ecec561984ce84715fe6543bd75df7965f9882b2cf782ed6e1051d2a4dbc",
+    "pybdsf_master_pyproject_sha256": "d374ecec561984ce84715fe6543bd75df7965f9882b2cf782ed6e1051d2a4dbc",
+    "pybdsf_release_pyproject_sha256": "0ed97e057157aa0eece3699217853352ff73188b177fd17467268c61e3ad9764",
     "rapthor_pyproject_sha256": "ea01645aa153721d24435b831fd15c526067706fb123d8701614953b9dd4d718"
   },
   "repositories": {
@@ -53,11 +56,18 @@
       ],
       "working_tree": "untracked files present"
     },
-    "pybdsf_local_reference": {
+    "pybdsf_master_reference": {
       "branch": "master",
       "commit": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
       "describe": "v1.14.1-40-gc70103b",
       "working_tree": "clean"
+    },
+    "pybdsf_release_reference": {
+      "commit": "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc",
+      "published_at": "2026-06-12",
+      "pypi_sdist_sha256": "8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2",
+      "ref": "v1.14.1",
+      "version": "1.14.1"
     },
     "rapthor": {
       "branch": "gec-468-ai-migrate-to-prefect",
@@ -67,7 +77,7 @@
     }
   },
   "reproducibility_gaps": [
-    "Rapthor does not pin the bdsf package version or revision.",
+    "Rapthor resolves the latest released bdsf distribution rather than pinning a version; the controlled benchmark environment has not yet been inspected to confirm that it installed 1.14.1.",
     "The container definitions use mutable base-image tags and no built image digest has been captured."
   ],
   "schema_version": 1,
