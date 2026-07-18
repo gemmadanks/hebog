@@ -5,6 +5,7 @@ Related project references:
 - [Source-finding domain glossary](domain-glossary.md)
 - [Rapthor source-finding contract](rapthor-source-finding-contract.md)
 - [Phase 0 starting revisions](starting-revisions.md)
+- [Validation dataset manifests](dataset-manifests.md)
 
 ## Top-level package
 

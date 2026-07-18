@@ -403,6 +403,9 @@ src/hebog/
     catalogue.py            versioned internal catalogue schemas
   adapters/
     rapthor.py              PyBDSF/LSMTool product and failure compatibility
+  validation/
+    datasets.py             governed manifests and partition-invariant truth
+    comparison.py           independently tested scientific comparison reports
   data_models/              small serializable requests and results
 ```
 
@@ -642,13 +645,20 @@ removal is separately justified.
       algorithms and domain records.
 - [ ] Add tests that reject import-time orchestration or I/O side effects.
 - [ ] Decide and record ADR 006 after the compatibility boundary and consumed products are known.
-- [ ] Add the dataset manifest, deterministic synthetic generator, and frozen reference products.
-- [ ] Assign development, regression, or qualification roles to every dataset and freeze the
-      initial qualification set before algorithm work.
+- [x] Add a versioned dataset-manifest schema and a deterministic,
+      window-addressable synthetic generator whose output is invariant to
+      partition layout.
+- [ ] Add immutable released-PyBDSF and PyBDSF-`master` reference products with
+      artifact checksums, exact configuration, and complete provenance.
+- [x] Require exactly one development, regression, or qualification role for
+      every manifest entry.
+- [ ] Freeze the reviewed regression and initial qualification manifests before
+      algorithm work; the checked-in Phase 0 manifest currently contains only
+      development cases.
 - [ ] Write analytic unit tests for coordinate/flux matching, ambiguous assignments, RMS/mask
       comparison, and the report calculations before implementing the comparison harness.
 - [ ] Implement coordinate/flux catalogue matching and RMS/mask comparison reports.
-- [ ] Configure and document the unit/property, contract, integration, small-equivalence,
+- [x] Configure and document the unit/property, contract, integration, small-equivalence,
       acceptance, qualification, and benchmark lanes.
 - [ ] Write at least one failing contract or acceptance test for every frozen public behaviour.
 - [ ] Obtain domain review of the glossary, naming conventions, and scientific thresholds in

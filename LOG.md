@@ -27,11 +27,12 @@ when execution changes its scope, sequence, gates, risks, or decisions.
 
 ## Current position
 
-Hebog has a validated package and development scaffold. The first Phase 0
-slice records the provisional Rapthor/PyBDSF contract, shared language, system
-boundaries, and scope/scheduling ADRs. The scientific algorithms, frozen
-datasets, comparison harness, and matched runtime baselines are not
-implemented. ADR 005 now requires out-of-core hierarchical tiling for
+Hebog has a validated package and development scaffold. Phase 0 records the
+provisional Rapthor/PyBDSF contract, shared language, system boundaries,
+scope/scheduling ADRs, and the initial governed synthetic-development data.
+The scientific algorithms, frozen PyBDSF products, qualification datasets,
+comparison harness, and matched runtime baselines are not implemented. ADR
+005 requires out-of-core hierarchical tiling for
 100,000-by-100,000 images and qualification across 100 to several hundred
 Dask worker nodes. The next milestone is to resolve the exact runtime
 revisions, reproduce both PyBDSF baselines, and freeze the large-image resource
@@ -673,3 +674,46 @@ source evidence.
   array copies, memory bandwidth, I/O, scheduling, and kernel time separately.
 - If a kernel passes the decision gate, benchmark the smallest Rust and/or C++
   prototype against the same Python/Numba contract before choosing a language.
+
+## 2026-07-18 — Established deterministic validation data
+
+**Plan phase:** Phase 0
+
+**Completed**
+
+- Added a strict versioned manifest for two analytic and seeded development
+  datasets with explicit roles, provenance, redistribution status, beam/WCS
+  metadata, expected statistics, complete recipes, and canonical SHA-256
+  recipe digests.
+- Added an in-memory generator for bounded analytic tests and a
+  window-addressable generator for large logical planes.
+- Derived random noise from global pixel addresses so generation is exactly
+  invariant to window layout, call order, and worker assignment.
+- Added validation for duplicate identifiers, stale recipe digests, invalid
+  WCS/beam/source geometry, inconsistent statistics, and accidental unbounded
+  complete-plane allocations.
+
+**Decisions**
+
+- Treat a generator version and complete canonical recipe as provenance; a
+  random seed alone is insufficient.
+- Keep the initial checked-in datasets in the `development` role. Do not claim
+  frozen regression, qualification, or PyBDSF reference products until their
+  manifests and scientific review are complete.
+- Generate the future 100,000-by-100,000 cases through bounded windows and
+  external materialised storage, never one NumPy allocation or a Git artifact.
+
+**Evidence**
+
+- Twelve analytic tests passed, including exact whole-plane versus stitched-
+  window equality, seed repeatability, analytic source amplitude, checksum
+  enforcement, role completeness, and allocation safety.
+- Focused Ruff and strict Pyright checks passed with no diagnostics.
+
+**Next**
+
+- Implement and analytically prove the catalogue, RMS-map, and mask comparison
+  reports before comparing frozen external products.
+- Define the large performance/scalability recipes, assign reviewed regression
+  and qualification roles, and capture immutable products from both exact
+  PyBDSF references.

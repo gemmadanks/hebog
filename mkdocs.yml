@@ -66,6 +66,7 @@ nav:
       - Domain glossary: reference/domain-glossary.md
       - Rapthor source-finding contract: reference/rapthor-source-finding-contract.md
       - Phase 0 starting revisions: reference/starting-revisions.md
+      - Validation dataset manifests: reference/dataset-manifests.md
   - Explanation:
       - Architecture: explanation/index.md
       - Domain model: explanation/domain-model.md

@@ -18,3 +18,10 @@ qualification roles respectively. Their manifests record the logical recipe
 and checksums, generator version, source population, deliberate tile-edge and
 tile-corner cases, storage layout, and approved facility identifier; tests
 must not check large planes into the repository.
+
+The checked-in schema and initial development cases live in
+`config/datasets/phase-0-development.json`. Synthetic noise is addressed by
+global pixel coordinate, so generating a plane through different window or
+tile layouts produces identical values. Complete in-memory generation has a
+safety limit; large cases must use bounded windows and external materialised
+storage.
