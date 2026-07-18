@@ -1,0 +1,89 @@
+repos:
+  # --- Ruff: lint + format (fast) ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.17
+    hooks:
+      - id: ruff
+        args: [--fix]         # remove if you want fail-only
+      - id: ruff-format
+
+  # --- Basic hygiene ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: pretty-format-json
+        args: ["--autofix", "--no-ensure-ascii"]
+        files: "\\.(json)$"
+
+  # --- Conventional commits ---
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0  # check for latest version
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  # --- Spelling (code+docs) ---
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args: ["--skip", "uv.lock,dist,build,.venv,*.min.js"]
+        exclude: |
+          (?x)(
+            ^docs/_build/|
+            ^.*/vendor/.*
+          )
+
+  # --- Notebooks: strip outputs ---
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
+        files: "\\.ipynb$"
+
+  # --- Type checking ---
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright (type check)
+        entry: uv run pyright
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+  # --- Docs: verify MkDocs build ---
+  - repo: local
+    hooks:
+      - id: mkdocs-build
+        name: mkdocs build (check docs)
+        entry: uv run --group docs mkdocs build --config-file mkdocs.yml --strict
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+
+  # --- Tests: exclude slow tests and run on pre-push ---
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (quick)
+        entry: uv run pytest -q -m "not slow" --doctest-modules --doctest-glob="*.py" --maxfail=1 --disable-warnings
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-push]
+
+
+# --- uv: check environment is in sync ---
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.9.4
+    hooks:
+      - id: uv-lock

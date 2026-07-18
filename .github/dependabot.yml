@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Keep uv dependencies up to date
+  - package-ecosystem: "uv"
+    directory: "/"                    # where pyproject.toml lives
+    schedule:
+      interval: "daily"
+    versioning-strategy: "increase"   # allow minor/patch bumps
+    commit-message:
+      prefix: "build(deps)"
+    labels:
+      - "dependencies"
+
+  # Keep GitHub Actions up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "ci"
