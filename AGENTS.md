@@ -1,23 +1,36 @@
 # AGENTS.md
 
-This file applies to the entire repository. It is guidance for coding agents
-working on this Python project template.
+This file applies to the entire repository.
 
 ## Repository overview
 
-- The distributable package uses a `src` layout and lives in
-  `src/package_name/`.
-- Unit tests live in `tests/unit/`; shared fixtures belong in
-  `tests/conftest.py`.
-- Documentation is built with MkDocs Material from `docs/`.
-- Example notebooks live in `notebooks/`.
-- Dependencies and environments are managed with `uv`; common tasks are
-  exposed through the root `justfile`.
-- Python 3.11 and newer are supported. `.python-version` selects Python 3.14
-  for the default development environment.
+Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
+Processor pipelines. Its first production consumer is Rapthor's
+`filter_skymodel` step. The implementation is intentionally narrower than
+PyBDSF: reproduce the behaviour and products Rapthor uses, demonstrate
+scientific equivalence, and reduce the complete filter step's matched median
+wall time by at least 50%.
 
-This is a reusable template. Keep examples and configuration generic unless a
-task explicitly asks to customize the template for a specific project.
+The durable
+[`plans/source-finder-implementation.md`](plans/source-finder-implementation.md)
+is the authoritative delivery plan. Update it when a milestone, benchmark
+baseline, scientific threshold, architecture decision, or risk changes.
+`PLAN.md` remains the reusable template for other work plans.
+
+The repository contains:
+
+- the Python package in `src/hebog/`;
+- scientific algorithms in `src/hebog/algorithms/`;
+- scheduler-independent execution policies in `src/hebog/executors/`;
+- serializable public records in `src/hebog/data_models/`;
+- unit, integration, equivalence, and benchmark tests in `tests/`;
+- reproducible benchmark tooling in `scripts/benchmark/`;
+- checked-in algorithm and benchmark configuration in `config/`;
+- MkDocs documentation in `docs/`;
+- Marimo notebooks in `notebooks/`.
+
+Adjacent checkouts of PyBDSF and Rapthor are development references only.
+Never hard-code those paths in package code or normal tests.
 
 ## Working principles
 
@@ -26,133 +39,221 @@ task explicitly asks to customize the template for a specific project.
   after editing, and do not revert changes you did not make.
 - Follow the existing structure and naming conventions instead of introducing
   a second tool or parallel configuration.
-- Add or update tests when behavior changes. Update user-facing documentation
-  when public APIs, setup steps, or workflows change.
-- Use the lightest planning level in `PLAN.md`: routine work needs no plan file,
-  while durable task plans are copied into `plans/`.
-- Use one writing agent by default. Delegate only independent, bounded work;
-  prefer parallel agents for read-heavy exploration, testing, or review. Give
-  parallel writers separate worktrees and non-overlapping ownership.
+- Add or update tests when behaviour changes. Update user-facing documentation
+  when public APIs, setup steps, output schemas, or workflows change.
+- Use the lightest planning level in `PLAN.md`; keep the source-finder plan
+  current for project milestones and scientific or performance decisions.
+- Use one writing agent by default. Delegate only independent, bounded work.
 - Review meaningful changes against `CODE_REVIEW.md` before handoff.
 - Record architecturally significant decisions with an ADR based on
   `docs/architecture/adr/template.md`.
 
+## Source-finder constraints
+
+- Do not copy PyBDSF implementation code. Reimplement documented scientific
+  behaviour with new, independently structured code and retain attribution for
+  papers, algorithms, and test data.
+- Do not claim PyBDSF equivalence from a single image or source-count
+  comparison. Use the dataset matrix and metrics in the implementation plan.
+- Do not claim a speedup from isolated kernel timing alone. The primary
+  performance gate is the median wall time of Rapthor's complete
+  `filter_skymodel` step.
+- Do not weaken detection thresholds, skip extended-source processing, or
+  silently change output semantics to meet a runtime target.
+- Do not use Python loops over pixels or RMS windows in production kernels.
+  Use vectorised NumPy/SciPy operations or compiled, GIL-releasing kernels and
+  measure them.
+- Do not start a private Dask cluster or multiprocessing pool inside the
+  library by default. Rapthor owns the top-level scheduler and resource budget.
+- Never send open files, scheduler clients, mutable pipeline state, or
+  repeatedly embedded full images through Dask tasks. Public requests and
+  results remain small and serializable.
+- Generated FITS products, catalogues, benchmark results, profiles, and
+  production data stay out of Git. Small redistributable fixtures may be added
+  under `tests/data/` with provenance.
+
 ## Setup and commands
 
-Install the complete development environment with:
+Dependencies and environments are managed with uv. Install the complete
+development environment with:
 
 ```bash
 uv sync --all-groups
 ```
 
-Prefer the `just` recipes because they document the intended local workflow:
+Prefer the `just` recipes because they document the intended workflow:
 
 ```bash
-just test             # quick tests, excluding tests marked slow
-just test-vv          # verbose quick tests
-just coverage         # full pytest run with terminal coverage
-just test-notebooks   # execute notebooks through nbmake
-just lint             # Ruff checks
-just format           # Ruff formatting
-just format-check     # verify formatting without changing files
-just type-check       # Pyright
-just check            # fast, non-mutating handoff checks
-just docs-build       # strict MkDocs build
-just build            # build wheel and source distribution
-just package-smoke-test # install and import the built wheel in isolation
-just ci               # comprehensive local CI equivalent
-just pre-commit       # all push-stage hooks
+just test-unit          # fast deterministic tests
+just test-integration   # Dask and FITS integration tests
+just test-equivalence   # frozen PyBDSF comparisons
+just test-benchmark     # controlled performance runs
+just marimo-check       # validate Marimo notebooks
+just lint               # Ruff checks
+just format             # Ruff formatting
+just format-check       # verify formatting without changes
+just type-check         # Pyright
+just check              # fast non-mutating handoff checks
+just docs-build         # strict MkDocs build
+just package-smoke-test # build and import the wheel in isolation
+just ci                 # comprehensive local CI equivalent
 ```
 
-For a focused test while iterating, run pytest through `uv`, for example:
+For a focused test, run pytest through uv, for example:
 
 ```bash
-uv run pytest -q tests/unit/test_greet.py
-uv run pytest -q tests/unit/test_greet.py::test_say_hello
+uv run pytest -q tests/unit/test_config.py
+uv run pytest -q tests/integration/test_dask_executor.py
 ```
 
-Do not invoke tools from an unrelated global Python environment. If `just` is
-not installed, run the corresponding `uv run ...` command from the `justfile`.
+If `just` is unavailable, run the corresponding `uv run ...` command from the
+`justfile`. PyBDSF equivalence and Rapthor end-to-end runs may require a
+separate integration container; do not add heavyweight production tools to the
+core runtime solely for tests.
 
-## Python code conventions
+## Architecture rules
 
-- Put production code under `src/package_name/`, not at the repository root.
-- Use absolute imports from `package_name` in tests and consumer examples.
-- Use four spaces, UTF-8, LF line endings, and a final newline, as configured in
-  `.editorconfig`.
-- Let Ruff determine formatting. Do not hand-format code against Ruff's output.
-- Add type annotations to new or changed functions. Keep code compatible with
-  every supported Python version (3.11 through 3.14), not only the version in
+- Keep scientific functions pure where practical: arrays and immutable
+  configuration in, arrays or records out.
+- Keep FITS, catalogue, Rapthor, and scheduler integration at explicit
+  boundaries.
+- Maintain `SerialExecutor` as the deterministic reference. Local and Dask
+  executors must produce equivalent results.
+- Prefer coarse Dask batches whose execution time is measured in hundreds of
+  milliseconds or seconds. Never create one scheduler task per pixel, RMS
+  window, or small island.
+- Let algorithms accept an executor rather than importing a global client. A
+  Dask executor may receive an existing client, but scheduler objects must not
+  enter public result records.
+- Read each image once where possible. Reuse background, RMS, convolution,
+  WCS, and beam products across stages and wavelet scales.
+- Control array dtype and copies deliberately. A change from `float64` to
+  `float32` requires scientific-equivalence evidence, not only a performance
+  result.
+- Batch nonlinear fits by estimated island cost. Use moments for
+  initialization and avoid fitting pixels that cannot affect an accepted
+  catalogue entry.
+- Version output schemas. Rapthor-facing outputs use paths and plain metadata
+  so tasks can be retried and resumed.
+
+## Scientific validation
+
+Scientific equivalence means matching the behaviour required by Rapthor, not
+bitwise equality with PyBDSF. Every algorithm milestone needs tests for:
+
+- empty and all-NaN images;
+- negative backgrounds and invalid pixels;
+- isolated compact sources over a range of signal-to-noise ratios;
+- close blends and multi-component islands;
+- extended and multiscale emission;
+- edge sources and non-square images;
+- different beams, WCS orientations, pixel scales, and image units.
+
+Compare Dask results against the serial reference before comparing either with
+PyBDSF. Report low-SNR threshold crossings as completeness and reliability
+changes rather than hiding them as unmatched rows.
+
+## Performance validation
+
+Performance changes must record:
+
+- dataset identity and checksums;
+- Hebog, PyBDSF, Rapthor, Python, and dependency revisions;
+- configuration and output mode;
+- worker count, threads per worker, CPU affinity, and memory limits;
+- wall time, CPU time, peak RSS, task count, and Dask transfer/spill metrics;
+- warm-up policy and every measured repetition.
+
+Use at least five measured repetitions after warm-up, compare medians, report
+dispersion, and retain machine-readable results. Avoid concurrent unrelated
+workloads. End-to-end speedups include FITS I/O, catalogue generation, Dask
+overhead, and Rapthor filtering. An optimization is acceptable only when the
+relevant scientific suite passes.
+
+## Python conventions
+
+- Put production code under `src/hebog/` and use absolute `hebog` imports in
+  tests and examples.
+- Python 3.11 through 3.14 is supported. Do not rely only on the version in
   `.python-version`.
-- Follow the existing Google-style docstrings for public modules and functions.
-  Examples in Python docstrings must be valid doctests because the quick test
-  recipes collect doctests from `*.py` files.
-- Keep the package importable after changes. Export names from
-  `src/package_name/__init__.py` only when they are intentionally part of the
+- Use four spaces, UTF-8, LF endings, a final newline, and type annotations for
+  new or changed functions.
+- Ruff is the formatter and linter; Python line length is 79.
+- Use immutable dataclasses for small public records where practical.
+- Follow Google-style docstrings. Python examples are collected as doctests
+  and must remain valid.
+- Export names from `src/hebog/__init__.py` only when intentionally part of the
   top-level public API.
+- Keep comments focused on numerical assumptions, units, array shape, halo
+  requirements, and scheduler/resource constraints.
 
 ## Tests
 
-- Place unit tests in `tests/unit/` and name files `test_*.py`.
-- Use pytest idioms, including parametrization for compact input/output cases
-  and fixtures in `tests/conftest.py` when they are shared.
-- Test observable behavior rather than implementation details.
-- Cover normal behavior and relevant edge or failure cases introduced by a
-  change. Keep tests deterministic and independent of execution order.
-- Run the narrowest relevant test during development, then run `just test` for
-  code changes. Use `just coverage` when the change has broader impact.
-- CI runs the full test suite on Linux, macOS, and Windows with Python
-  3.11-3.14. Avoid platform-specific paths, shell assumptions, and timing-based
-  assertions in Python code and tests.
+- Place unit tests in `tests/unit/`, Dask/FITS boundary tests in
+  `tests/integration/`, PyBDSF comparisons in `tests/equivalence/`, and timing
+  tests in `tests/benchmark/`.
+- Mark cluster tests `integration`, PyBDSF comparisons `equivalence`, and
+  controlled timing tests `benchmark`.
+- Unit tests must not require a running scheduler, download data, or depend on
+  execution order.
+- Seed generated-data tests and store generator configuration with expected
+  products.
+- Test observable behaviour, error messages, and public-boundary validation.
+- Add a regression test before fixing incorrect behaviour when practical.
+- Run the narrowest relevant lane while iterating, then `just check` for normal
+  code changes. Run equivalence tests for scientific changes and reproducible
+  before/after benchmarks for performance claims.
 
 ## Dependencies and lockfiles
 
-- Declare runtime and development dependencies in `pyproject.toml`; do not add
-  `requirements.txt`, Poetry, or another environment manager.
+- Declare dependencies in `pyproject.toml`; do not add `requirements.txt`,
+  Poetry, or another environment manager.
 - Use `uv add <package>` for runtime dependencies, `uv add --dev <package>` for
   development dependencies, and `uv add --group docs <package>` for docs-only
   dependencies.
-- Commit the resulting `pyproject.toml` and `uv.lock` changes together.
-- Use `uv lock` after a manual metadata change and `uv lock --upgrade` only when
-  an upgrade is intended. Do not casually regenerate or broadly upgrade the
-  lockfile for an unrelated task.
+- Commit `pyproject.toml` and `uv.lock` changes together.
+- Use `uv lock` after manual metadata changes and `uv lock --upgrade` only when
+  an upgrade is intended.
+- Dependency additions require a reason, compatibility bounds, and
+  consideration of worker image size and serialization behaviour.
 
 ## Documentation and notebooks
 
-- Keep documentation within the existing Diataxis sections: `tutorials/`,
+- Keep documentation within the existing Diátaxis sections: `tutorials/`,
   `how-to/`, `reference/`, and `explanation/`.
-- Add new pages to `mkdocs.yml` when they should appear in navigation.
-- Build docs with `just docs-build`; the build is strict and warnings fail CI.
-- Keep API reference paths aligned with importable modules under
-  `src/package_name/`.
-- Notebook outputs are stripped by pre-commit. After changing a notebook, run
-  `just test-notebooks` and do not commit execution output or local kernel
-  metadata.
+- Add pages to `mkdocs.yml` navigation and build with `just docs-build`; the
+  strict build treats warnings as failures.
+- Keep API paths aligned with importable modules under `src/hebog/`.
+- Keep interactive examples exclusively as Marimo Python files under
+  `notebooks/`.
+- Validate Marimo notebooks with `just marimo-check` after changing them.
 - `site/`, `dist/`, and `build/` are generated artifacts and must not be
   committed.
 
-## Releases and commits
+## Changes, releases, and handoff
 
-- Use Conventional Commit subjects such as `feat:`, `fix:`, `docs:`, `test:`,
-  `refactor:`, `build:`, and `ci:` when asked to create commits.
-- Release Please manages version bumps, release notes, and release metadata.
-  Do not manually edit `CHANGELOG.md`, `.release-please-manifest.json`, or
-  release version fields in `pyproject.toml`, `CITATION.cff`, and `uv.lock`
-  unless the task is specifically about a release.
-- Never commit secrets, local virtual environments, caches, coverage output, or
-  generated documentation.
+- Keep commits and reviews aligned to one milestone or measurable experiment.
+- Use Conventional Commit subjects when asked to create commits.
+- Record significant architecture or scientific decisions in the
+  source-finder plan before spreading them through the implementation.
+- Preserve a feature-flagged PyBDSF fallback in Rapthor until the complete
+  acceptance matrix passes.
+- Do not make generated benchmark data the source of truth; store compact JSON
+  summaries and reproducible commands.
+- Never add credentials, private dataset locations, cluster secrets, or
+  tokens. Use documented environment variables and ignored local config.
+- Release Please manages version bumps and release notes. Do not manually edit
+  release-managed files unless the task is specifically about a release.
 
-## Validation before handoff
+Before handing off a meaningful change:
 
-Choose checks proportional to the change. For a typical Python change, run the
-non-mutating handoff suite:
-
-```bash
-just check
-```
-
-Also run `just docs-build` for documentation or public API changes,
-`just test-notebooks` for notebook changes, and `just package-smoke-test` for
-packaging changes. Use `just ci` before handing off a broad or high-risk change.
-Review the final diff using `CODE_REVIEW.md`, report which checks ran, and
-clearly identify any check that could not be run.
+1. Inspect the full diff and remove unrelated or generated files.
+2. Run targeted tests and the relevant linter.
+3. Run equivalence tests for scientific changes.
+4. Run reproducible before/after benchmarks for performance claims.
+5. Test serial and Dask execution for scheduler-facing changes.
+6. Build docs for public API, configuration, plan, or workflow changes.
+7. Update the source-finder plan with evidence, decisions, risks, and the next
+   milestone when applicable.
+8. Run `just check`, plus `just package-smoke-test` for packaging changes.
+9. Review the final diff using `CODE_REVIEW.md` and report checks not run.

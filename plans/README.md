@@ -3,6 +3,10 @@
 This directory holds task-specific plans copied from the templates in
 [`PLAN.md`](../PLAN.md).
 
+The durable [source-finder implementation plan](source-finder-implementation.md)
+was ported from the predecessor scaffold and is the authoritative roadmap for
+scientific equivalence, performance, and Rapthor integration.
+
 - Use `<issue-number>-<short-name>.md` when an issue exists, or
   `<YYYY-MM-DD>-<short-name>.md` otherwise.
 - Keep the issue or pull request as the source of truth for status when one

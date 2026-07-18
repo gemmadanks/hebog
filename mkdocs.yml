@@ -1,7 +1,8 @@
-site_name: Python Project Template Documentation
-site_url: https://gemmadanks.github.io/python-project-template/
-repo_url: https://github.com/gemmadanks/python-project-template
-repo_name: python-project-template
+site_name: Hebog Documentation
+site_description: Dask-aware radio-continuum source finding for SKA SDP pipelines
+site_url: https://gemmadanks.github.io/hebog/
+repo_url: https://github.com/gemmadanks/hebog
+repo_name: gemmadanks/hebog
 
 theme:
   name: "material"
@@ -22,7 +23,7 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
   icon:
-    logo: simple/rocket
+    logo: simple/falcon
 
   features:
     - navigation.instant
@@ -47,17 +48,15 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/gemmadanks
+      link: https://github.com/gemmadanks/hebog
 
 nav:
   - Home: index.md
-  - Tutorials:
-      - Overview: tutorials/index.md
-  - How-To:
-      - Overview: how-to/index.md
+  - Quick start: tutorials/index.md
+  - Development: how-to/index.md
   - Reference: reference/index.md
   - Explanation:
-      - Overview: explanation/index.md
+      - Architecture: explanation/index.md
   - Architecture:
       - Overview: architecture/index.md
       - ADRs: architecture/adr/index.md

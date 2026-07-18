@@ -9,7 +9,6 @@ import tempfile
 import tomllib
 from pathlib import Path
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -42,7 +41,7 @@ def package_module_name() -> str:
 
 
 def main() -> None:
-    """Build a wheel, install its dependencies, and verify its top-level import."""
+    """Build, install, and verify the wheel's top-level import."""
     module_name = package_module_name()
 
     with tempfile.TemporaryDirectory(prefix="package-smoke-") as temporary_dir:
@@ -54,10 +53,21 @@ def main() -> None:
 
         wheels = list(distribution_dir.glob("*.whl"))
         if len(wheels) != 1:
-            msg = f"expected one wheel in {distribution_dir}, found {len(wheels)}"
+            msg = (
+                f"expected one wheel in {distribution_dir}, "
+                f"found {len(wheels)}"
+            )
             raise RuntimeError(msg)
 
-        run(["uv", "venv", "--python", sys.executable, str(virtual_environment)])
+        run(
+            [
+                "uv",
+                "venv",
+                "--python",
+                sys.executable,
+                str(virtual_environment),
+            ]
+        )
 
         python_executable = virtual_environment / (
             "Scripts/python.exe" if os.name == "nt" else "bin/python"

@@ -1,0 +1,8 @@
+# Set default behavior to use LF line endings for all text files
+* text=auto eol=lf
+
+# Binary scientific and image files
+*.fits binary
+*.fits.gz binary
+*.h5 binary
+*.png binary

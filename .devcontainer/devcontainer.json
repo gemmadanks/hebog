@@ -1,7 +1,8 @@
 {
   "build": {
     "context": "..",
-    "dockerfile": "Dockerfile"
+    "dockerfile": "../Dockerfile",
+    "target": "dev"
   },
   "customizations": {
     "vscode": {
@@ -9,7 +10,6 @@
         "ms-python.python",
         "ms-python.vscode-pylance",
         "charliermarsh.ruff",
-        "ms-toolsai.jupyter",
         "tamasfe.even-better-toml",
         "redhat.vscode-yaml",
         "esbenp.prettier-vscode"
@@ -21,6 +21,6 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "forwardPorts": [],
-  "name": "Python 3",
+  "name": "Hebog Dev Container",
   "postCreateCommand": "uv sync --all-groups && just pre-commit-install && just pre-commit"
 }

@@ -1,5 +1,5 @@
 {
-  "bootstrap-sha": "5f23c343086ed6d8d138b07740444558bf1fc243",
+  "bootstrap-sha": "fa252e9ec4f81aa05238fad7f40358426012f671",
   "packages": {
     ".": {
       "bump-minor-pre-major": true,
@@ -58,13 +58,13 @@
           "type": "yaml"
         },
         {
-          "jsonpath": "$.package[?(@.name.value=='package-name')].version",
+          "jsonpath": "$.package[?(@.name.value=='hebog')].version",
           "path": "uv.lock",
           "type": "toml"
         }
       ],
       "include-component-in-tag": false,
-      "package-name": "package_name",
+      "package-name": "hebog",
       "release-type": "python"
     }
   }
