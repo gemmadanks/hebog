@@ -48,6 +48,10 @@ omit = [
     "conftest.py"
 ]
 
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
 testpaths = ["tests"]
@@ -62,13 +66,32 @@ markers = [
     "slow: tests excluded from the fast development and pull-request suites",
 ]
 
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+
 [tool.ruff]
 line-length = 79
 src = ["src", "tests"]
 extend-exclude = ["benchmark-results"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "PL"]
+select = [
+    "ARG",
+    "B",
+    "C4",
+    "C90",
+    "E",
+    "F",
+    "I",
+    "N",
+    "PERF",
+    "PL",
+    "RUF",
+    "SIM",
+    "W",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["hebog"]

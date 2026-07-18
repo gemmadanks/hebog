@@ -12,10 +12,15 @@ as an evidence source or migration target.
 
 ## 1. Objective
 
-Create a maintainable radio-continuum source finder that produces scientifically equivalent
-results to the subset of PyBDSF used by Rapthor. Reduce the median wall time of Rapthor's complete
-`filter_skymodel` step by at least 50% relative to the released PyBDSF version used by Rapthor, and
-also outperform the current performance-improved PyBDSF `master` reference.
+Create a maintainable and extensible radio-continuum source finder that
+produces scientifically equivalent results to the subset of PyBDSF used by
+Rapthor. Rapthor is the first production consumer, not an architectural
+dependency: other data pipelines and science workflows must be able to use
+the scheduler-independent scientific API with their own orchestration and
+product adapters. Reduce the median wall time of Rapthor's complete
+`filter_skymodel` step by at least 50% relative to the released PyBDSF version
+used by Rapthor, and also outperform the current performance-improved PyBDSF
+`master` reference.
 
 The 50% reduction and `master` comparison are minimum release gates, not an
 optimization stopping point. Subject to scientific, memory, and operational
@@ -102,6 +107,8 @@ and fork-based worker startup.
 - Deterministic boundary reconciliation for background grids, islands,
   multiscale detections, catalogues, masks, and image products.
 - Serial, local, and Dask execution through the same scientific API.
+- A pipeline-neutral scientific API, domain schema, and explicit adapter
+  boundaries suitable for other data pipelines and science workflows.
 - Distributed execution across 100 to several hundred Dask worker nodes
   without per-pixel or per-window scheduler tasks.
 - Direct integration into Rapthor without the current fork-safety subprocess escape.
@@ -115,6 +122,8 @@ and fork-based worker startup.
 - Requiring a distributed cluster for images that fit within one bounded tile.
 - Reproducing undocumented PyBDSF implementation defects.
 - Copying or mechanically translating PyBDSF source code.
+- A speculative generic plugin framework or support for unreviewed workflows
+  before a concrete use case and contract test establish the required seam.
 
 ## 4. Required contracts
 
@@ -131,6 +140,12 @@ Results contain materialised output paths, counts, timings, schema versions, and
 They never contain open FITS handles, a Dask client, or a mutable full-image object. A request may
 identify a logical image through a partition manifest or chunk-addressable store, but storage and
 partition details remain explicit boundary metadata rather than scheduler state.
+
+The public scientific API and domain records must not import Rapthor, Prefect,
+LSMTool, or a concrete scheduler. Workflow-specific configuration, filenames,
+filtering rules, and failure translation live in adapters that depend on this
+API. Extension protocols remain narrow and capability-oriented; introduce one
+only when a second implementation or workflow test demonstrates the variation.
 
 ### 4.2 Rapthor graph
 
@@ -385,7 +400,9 @@ src/hebog/
   io/
     fits.py                 image, beam, WCS, masks, and memory mapping
     chunks.py               bounded window and chunk-addressable plane I/O
-    catalogue.py            internal and compatibility schemas
+    catalogue.py            versioned internal catalogue schemas
+  adapters/
+    rapthor.py              PyBDSF/LSMTool product and failure compatibility
   data_models/              small serializable requests and results
 ```
 
@@ -428,7 +445,8 @@ class diagrams.
 Record decisions when their consequences are durable:
 
 - ADR 003: limit Hebog to the source-finding behaviour required by Rapthor instead of reproducing
-  all of PyBDSF.
+  all of PyBDSF, while keeping the scientific core independent of Rapthor so other workflows can
+  supply their own orchestration and adapters.
 - ADR 004: keep top-level scheduling and Dask graph ownership in Rapthor while Hebog exposes
   scheduler-independent scientific work and coarse executor tasks.
 - ADR 005: require hierarchical, haloed tile processing and deterministic boundary reconciliation
@@ -439,6 +457,46 @@ Record decisions when their consequences are durable:
 Do not write algorithm-selection ADRs merely to fill the record. Decisions about RMS estimation,
 deblending, fitting, or multiscale processing become ADRs only after tests, scientific evidence,
 and benchmarks expose a consequential choice.
+
+### 8.2 Quality attributes and dependency rules
+
+Maintainability and extensibility are release qualities alongside scientific
+correctness, performance, and scalability. Apply these requirements to every
+vertical slice:
+
+| Quality | Requirement | Verification |
+| --- | --- | --- |
+| Maintainability | Cohesive modules, descriptive domain names, small typed APIs, explicit side effects, and no hidden global state | Ruff, Pyright, focused tests, coverage gate, and `CODE_REVIEW.md` review |
+| Extensibility | Add algorithms, executors, stores, and workflow adapters through narrow demonstrated seams without editing unrelated scientific stages | Contract tests for every implementation and architecture dependency tests |
+| Interoperability | The scientific core has no Rapthor, Prefect, LSMTool, or concrete-scheduler dependency | Import-boundary tests and a documented non-Rapthor workflow smoke test |
+| Testability | Deterministic serial behaviour, injectable boundaries, and pure kernels where practical | TDD, analytic/property tests, fakes at I/O and execution ports, and executor conformance |
+| Performance transparency | Optimized complexity stays isolated behind a clear typed API and is justified by profiles | Readable serial oracle, scientific regression tests, benchmark evidence, and design notes or ADRs when consequential |
+
+Dependency direction is inward:
+
+```text
+workflow orchestration -> compatibility/workflow adapters -> public pipeline
+public pipeline -> narrow ports <- concrete I/O and executor implementations
+public pipeline -> domain records and scientific algorithms
+scientific algorithms -> NumPy/SciPy and domain value types
+```
+
+Scientific algorithms and domain records must not import adapters,
+orchestration frameworks, concrete schedulers, or process-wide configuration.
+Keep I/O and scheduling side effects at boundaries and pass dependencies
+explicitly. Prefer composition, functions, immutable dataclasses, context
+managers, iterators, and structural protocols over inheritance trees and
+service-locator patterns. Avoid boolean mode proliferation, generic manager
+objects, premature registries, and abstractions introduced without a concrete
+variation point.
+
+The configured Ruff rules cover formatting, imports, Pylint diagnostics,
+complexity, Bugbear, comprehensions, naming, performance idioms, Ruff-specific
+checks, simplification, and unused arguments. Pyright must report no issues.
+Branch-aware coverage may not fall below 80%; this floor prevents erosion but
+does not replace behaviour-focused normal, edge, failure, property, and
+contract tests. Ratchet the floor upward when reviewed coverage makes that
+stable.
 
 ## 9. Release strategy
 
@@ -482,7 +540,9 @@ capability over large releases that combine unrelated scientific, execution, and
 Every release requires:
 
 1. Portable CI, packaging, documentation, lockfile validation, and wheel smoke tests to pass.
-2. The relevant unit/property, contract, integration, and small scientific suites to pass.
+2. Ruff, Pyright, the branch-aware coverage floor, architecture boundaries,
+   and the relevant unit/property, contract, integration, and small scientific
+   suites to pass.
 3. Scientific regression evidence for changes to algorithms, measurements, or output semantics.
 4. Matched controlled benchmarks against both the released and pinned `master` PyBDSF references
    for any performance claim; an optimization may be released without a speed claim when its
@@ -541,6 +601,11 @@ removal is separately justified.
       ownership before those boundaries are implemented.
 - [x] Record ADR 005 requiring hierarchical haloed tiles, bounded worker memory, and deterministic
       boundary reconciliation for large images.
+- [x] Document the maintainability, extensibility, interoperability, Pythonic
+      style, clean-code, dependency-direction, and coverage requirements.
+- [x] Add architecture tests that reject forbidden inward dependencies from
+      algorithms and domain records.
+- [ ] Add tests that reject import-time orchestration or I/O side effects.
 - [ ] Decide and record ADR 006 after the compatibility boundary and consumed products are known.
 - [ ] Add the dataset manifest, deterministic synthetic generator, and frozen reference products.
 - [ ] Assign development, regression, or qualification roles to every dataset and freeze the
@@ -567,6 +632,8 @@ gates are frozen. No algorithm implementation begins without this foundation.
 - [ ] Write failing tests for partition manifests, bounded window reads, halo clipping, global and
       tile coordinates, chunk checksums, interrupted writes, and restartable materialisation.
 - [ ] Define versioned internal catalogue and materialised result schemas from those tests.
+- [ ] Define narrow image-source and product-sink seams from concrete FITS and
+      workflow tests; do not introduce a registry or plugin system pre-emptively.
 - [ ] Define a deterministic partition manifest and ownership rule so every output pixel and source
       has exactly one owning tile.
 - [ ] Read and validate required image planes through bounded windows or a chunk-addressable store;
@@ -729,6 +796,9 @@ unless an explicitly approved throughput trade-off justifies it.
 - [ ] Run qualification and performance suites on controlled runners outside merge-request
       critical paths.
 - [ ] Publish configuration and output schema documentation and a migration guide.
+- [ ] Publish and execute a minimal non-Rapthor science-workflow example using
+      the public API and serial executor whose integration code does not import
+      or construct Dask, Prefect, LSMTool, or Rapthor objects.
 - [ ] Add structured stage timings and scientific summary metrics to normal runs.
 - [ ] Perform licensing, dependency, security, and reproducibility review.
 - [ ] Continue incremental experimental `0.x` releases and prepare `1.0.0` only after the complete
@@ -832,6 +902,9 @@ count.
 | Concurrent branches exceed memory | Use resource annotations and measure aggregate RSS before enabling concurrency |
 | Numba compilation affects latency | Warm/cache kernels explicitly and report cold and warm timings |
 | Catalogue compatibility becomes coupled to internals | Keep a versioned internal schema and an isolated PyBDSF/LSMTool adapter |
+| Rapthor details leak into the scientific core | Enforce inward dependencies, isolate workflow adapters, and test a non-Rapthor public-API workflow |
+| Premature extensibility obscures the science | Add narrow protocols only for demonstrated variation points; reject generic registries, service locators, and plugin frameworks without a concrete use case |
+| Performance work makes code opaque or duplicated | Isolate optimized kernels behind typed APIs, retain the readable serial oracle, and require profile, science, and review evidence for added complexity |
 | Terminology drifts across PyBDSF, LSMTool, Rapthor, and Hebog | Maintain a reviewed glossary, map legacy names explicitly, and include vocabulary in contract review |
 | Architecture diagrams become speculative or stale | Keep code-native diagrams at stable boundaries, review them with architectural changes, and defer unstable detail |
 | Full PyBDSF scope delays delivery | Implement only features proven necessary by the Rapthor contract and dataset matrix |
@@ -879,9 +952,13 @@ The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
 8. Analytic tests validate the matching and comparison oracles independently of PyBDSF.
 9. CI covers deterministic tests and controlled runners continuously monitor science and
    performance regressions.
-10. The glossary, domain model, and code-native diagrams match the released architecture and make
+10. Ruff and Pyright pass, branch-aware coverage remains at or above 80%,
+    architecture tests enforce inward dependencies, and a documented
+    non-Rapthor workflow uses the public API and serial executor without its
+    integration code importing or constructing orchestration-specific objects.
+11. The glossary, domain model, and code-native diagrams match the released architecture and make
    legacy compatibility names distinct from Hebog's internal concepts.
-11. A 100,000-by-100,000 qualification image completes with scientifically equivalent,
+12. A 100,000-by-100,000 qualification image completes with scientifically equivalent,
     partition-invariant products on 100 and at least 200 Dask worker nodes; no worker materialises
     a full plane, and the frozen memory, spill, scheduler, recovery, runtime, and scaling-efficiency
     gates pass on representative production nodes with hundreds of GB of RAM.

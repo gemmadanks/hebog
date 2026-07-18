@@ -18,6 +18,10 @@ nodes are expected to have hundreds of GB of RAM.
 The 50% reduction is a minimum release gate, not an optimization stopping
 point. Optimize complete latency and useful throughput across the supported
 size range, including small inputs where setup and scheduler overhead dominate.
+Maintainability, extensibility, and interoperability are also primary
+architecture qualities. Rapthor is the first production consumer, but the
+scientific library must remain usable from other data pipelines and science
+workflows without importing Rapthor, Prefect, or LSMTool.
 
 The durable
 [`plans/source-finder-implementation.md`](plans/source-finder-implementation.md)
@@ -144,6 +148,10 @@ core runtime solely for tests.
   configuration in, arrays or records out.
 - Keep FITS, catalogue, Rapthor, and scheduler integration at explicit
   boundaries.
+- Dependencies point inward: algorithms and domain records know nothing about
+  orchestration frameworks, compatibility adapters, concrete schedulers, or
+  process-wide configuration. Adapters may depend on the stable scientific
+  API, never the reverse.
 - Maintain `SerialExecutor` as the deterministic reference. Local and Dask
   executors must produce equivalent results.
 - Prefer coarse Dask batches that amortise scheduler and I/O overhead while
@@ -233,6 +241,15 @@ any supported tier requires an explicitly approved and documented trade-off.
 - Use four spaces, UTF-8, LF endings, a final newline, and type annotations for
   new or changed functions.
 - Ruff is the formatter and linter; Python line length is 79.
+- Prefer Python's standard protocols and data model: `pathlib.Path`, context
+  managers, iterators, comprehensions, dataclasses, and structural `Protocol`
+  types where they make ownership or extension seams clearer.
+- Use descriptive domain names from the glossary. Avoid unexplained
+  abbreviations, generic names such as `data` or `manager`, and boolean
+  arguments whose meaning is unclear at the call site.
+- Prefer composition and small functions over inheritance hierarchies. Do not
+  reproduce Java-style getters, service classes, factories, or interfaces
+  when a function, dataclass, callable, or protocol is sufficient.
 - Use immutable dataclasses for small public records where practical.
 - Follow Google-style docstrings. Python examples are collected as doctests
   and must remain valid.
@@ -240,6 +257,42 @@ any supported tier requires an explicitly approved and documented trade-off.
   top-level public API.
 - Keep comments focused on numerical assumptions, units, array shape, halo
   requirements, and scheduler/resource constraints.
+
+## Code quality and reusable architecture
+
+- Treat readability, maintainability, extensibility, and testability as
+  acceptance requirements, not cleanup deferred until after performance work.
+- Keep modules cohesive and functions at one useful level of abstraction.
+  Refactor branching or parameter lists that obscure the scientific intent;
+  never split code only to satisfy a metric without improving the design.
+- Make dependencies, side effects, units, coordinate systems, array shapes,
+  mutability, ownership, and failure behaviour explicit. Avoid hidden global
+  state, import-time I/O, ambient scheduler clients, and environment-dependent
+  scientific behaviour.
+- Keep the scheduler-independent scientific API and internal domain schema
+  pipeline-neutral. Rapthor/LSMTool names, filtering rules, filenames, and
+  failure translations belong in a versioned compatibility adapter.
+- Add extension seams only at demonstrated variation points. Prefer a narrow
+  executor, image-source, product-sink, or compatibility protocol over a
+  generic plugin framework, registry, service locator, or conditional spread
+  across scientific modules.
+- Preserve substitutability: alternate executors, stores, and workflow
+  adapters must pass the same contract suite. A non-Rapthor workflow must be
+  able to use the public API and serial executor without its integration code
+  importing or constructing Dask, Prefect, LSMTool, or Rapthor objects.
+- Remove accidental duplication, but wait for a stable shared concept before
+  extracting an abstraction. A few explicit lines are preferable to a clever
+  generalized mechanism that hides scientific intent.
+- Keep public APIs deliberately small, typed, documented, and versioned.
+  Breaking schema or behavioural changes require migration notes; deprecations
+  need an executable test and a stated removal release.
+- Optimize only from profiles or scale evidence. Isolate unavoidable
+  low-level or compiled complexity behind a clear typed function, retain a
+  readable serial oracle, and document why the complexity is necessary.
+- All committed code must pass Ruff, Pyright, and the relevant tests. Maintain
+  at least 80% branch-aware project coverage and do not lower meaningful
+  coverage merely to satisfy the number; new behaviour still needs focused
+  normal, edge, and failure tests.
 
 ## Tests
 

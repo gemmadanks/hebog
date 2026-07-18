@@ -573,3 +573,56 @@ source evidence.
   Hebog performance curve at every runnable size.
 - Freeze one-tile overhead budgets and the first measured serial, local, Dask,
   storage, partition, and batching crossover cases.
+
+## 2026-07-18 — Made maintainability and reuse explicit quality gates
+
+**Plan phase:** Cross-cutting architecture and engineering quality
+
+**Completed**
+
+- Defined maintainability, extensibility, interoperability, testability, and
+  performance transparency as release qualities alongside scientific
+  correctness, speed, and scalability.
+- Clarified ADR 003: Rapthor defines the first qualified feature slice but is
+  not a dependency of Hebog's scientific core; other pipelines and science
+  workflows use the public API through their own orchestration and adapters.
+- Added Pythonic clean-code guidance, inward dependency rules, code-review
+  checks, and a dedicated quality-attributes documentation page.
+- Expanded Ruff to enforce Bugbear, comprehension, complexity, naming,
+  performance-idiom, simplification, unused-argument, and Ruff-specific rules
+  in addition to the existing formatting, import, and Pylint checks.
+- Enabled strict Pyright checking across `src/` and `tests/` and added an 80%
+  branch-aware coverage floor.
+- Added an architecture test that prevents algorithms and domain records from
+  importing adapters, I/O, executors, workflow frameworks, or concrete
+  schedulers.
+
+**Decisions**
+
+- Keep the qualified scope Rapthor-focused while making the scientific API,
+  domain records, configuration, and algorithms pipeline-neutral.
+- Introduce narrow protocols only at demonstrated variation points. Do not add
+  a generic plugin framework, registry, or service locator in anticipation of
+  unknown consumers.
+- Isolate profiled low-level optimization behind small typed functions and
+  retain a readable deterministic serial oracle.
+- Require a documented non-Rapthor workflow through the public API before
+  `1.0.0` as evidence that reuse works through supported boundaries.
+
+**Evidence**
+
+- The focused architecture and Dask executor tests passed: three tests.
+- The expanded Ruff rules and strict Pyright passed with zero diagnostics.
+- `just coverage` passed with ten portable tests and 81.03% branch-aware
+  coverage against the new 80% floor; `just docs-build` passed strictly.
+- `just ci` passed: all push-stage hooks, strict typing and documentation,
+  portable coverage tests, lock validation, Marimo validation, and isolated
+  wheel build/install/import succeeded; equivalence and acceptance scaffolds
+  skipped as intended.
+
+**Next**
+
+- Add import-time side-effect checks as the I/O and orchestration boundaries
+  are implemented.
+- Define image-source and product-sink seams from concrete FITS and alternate
+  workflow tests rather than designing them speculatively.

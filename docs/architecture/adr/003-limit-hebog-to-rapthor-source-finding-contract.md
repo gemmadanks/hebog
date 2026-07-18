@@ -23,6 +23,9 @@ group WSClean sky-model components, and produce catalogue, RMS, mask, and
 diagnostic products. PyBDSF has a much broader feature set than Rapthor uses.
 Reproducing that complete feature set would increase delivery time and the
 scientific validation surface without improving the first production use case.
+At the same time, coupling scientific algorithms or domain records directly to
+Rapthor would make Hebog unnecessarily difficult to maintain, extend, test, or
+reuse in another data pipeline or science workflow.
 
 The Phase 0 [contract inventory](../../reference/rapthor-source-finding-contract.md)
 identifies the current consumer boundary. Hebog must demonstrate scientific
@@ -32,7 +35,8 @@ qualification.
 ## Problem Statement
 
 Should Hebog reproduce PyBDSF generally, provide a generic source-finder
-framework, or implement only the source-finding contract consumed by Rapthor?
+framework, or implement only the source-finding contract consumed by Rapthor
+through a pipeline-neutral scientific core?
 
 ## Options Considered
 
@@ -61,6 +65,17 @@ compatibility products and Rapthor decisions.
 Additional features enter scope only when the Rapthor contract, approved
 dataset matrix, or a separately accepted use case demonstrates their need.
 
+This limits the qualified feature set, not the library architecture. Hebog's
+scientific algorithms, domain records, and public pipeline do not import
+Rapthor, Prefect, LSMTool, or a concrete scheduler. Rapthor-specific names,
+schemas, product layout, filtering rules, and failure translation stay in an
+adapter that depends on the scientific API. Other workflows may supply their
+own orchestration and adapter through the same explicit boundaries.
+
+Hebog will not build a generic plugin framework in anticipation of unknown
+consumers. New protocols or extension mechanisms require a concrete alternate
+implementation or workflow contract test.
+
 ## Consequences
 
 - Good, because delivery and validation stay focused on measurable production
@@ -69,8 +84,11 @@ dataset matrix, or a separately accepted use case demonstrates their need.
   than inheriting PyBDSF's object model.
 - Good, because the compatibility boundary can be tested and versioned
   independently.
-- Bad, because Hebog is not a drop-in PyBDSF replacement for unrelated users
-  or workflows.
+- Good, because the qualified scope can stay narrow while the scientific core
+  remains usable from other pipelines and workflows.
+- Bad, because Hebog is not a drop-in PyBDSF replacement or turnkey integration
+  for unrelated users; each new workflow needs an explicit adapter and
+  qualification appropriate to its science.
 - Bad, because new Rapthor requirements may expand the qualified contract and
   dataset matrix.
 - Risk: an incomplete contract inventory could omit behaviour that only appears
@@ -79,9 +97,13 @@ dataset matrix, or a separately accepted use case demonstrates their need.
 ## Confirmation
 
 The implementation plan, domain glossary, contract tests, dataset manifest,
-and compatibility reports define the supported surface. Reviews reject
-features justified only as “PyBDSF supports it” without a Rapthor requirement
-or accepted use case.
+and compatibility reports define the supported surface. Architecture tests
+reject inward imports from the scientific core to workflow or scheduler
+implementations. Before `1.0.0`, a documented non-Rapthor smoke workflow must
+use the public API and serial executor without its integration code importing
+or constructing orchestration-specific objects. Reviews reject features
+justified only as “PyBDSF supports it” without a Rapthor requirement or
+accepted use case.
 
 ## Links
 

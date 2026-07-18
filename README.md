@@ -7,7 +7,10 @@
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
 
 Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
-Processor pipelines. It is being developed first as a faster, scientifically compatible replacement for the PyBDSF work performed by Rapthor's `filter_skymodel` step.
+Processor pipelines. It is being developed first as a faster, scientifically
+compatible replacement for the PyBDSF work performed by Rapthor's
+`filter_skymodel` step, while keeping the scientific API usable by other data
+pipelines and science workflows.
 
 The implementation is intentionally narrower than PyBDSF. It will reproduce
 the behaviour and materialised products that Rapthor consumes while targeting
@@ -50,6 +53,9 @@ algorithms are not implemented yet.
 - Materialise compatible catalogue, RMS-image, and mask products.
 - Provide the same scientific API for deterministic serial, local, and Dask
   execution.
+- Keep the scientific core independent of Rapthor, Prefect, LSMTool, and
+  concrete schedulers so other workflows can supply their own orchestration
+  and product adapters.
 - Process images up to 100,000 by 100,000 pixels out of core with
   partition-invariant results and bounded per-worker memory.
 - Scale through Rapthor's existing Dask cluster to 100 and at least 200 worker
@@ -169,6 +175,12 @@ The true-sky and flat-noise analyses are independent operations that join only
 when Rapthor applies the final sky-model filter. Intermediate file products are
 restartable, and scheduler payloads remain small.
 
+Dependencies point inward from workflow and compatibility adapters to the
+public pipeline and scientific core. Hebog favours Pythonic, typed, cohesive
+code and narrow demonstrated extension seams over framework-specific coupling
+or a speculative plugin system. See the
+[quality attributes and coding principles](docs/explanation/quality-attributes.md).
+
 ## Repository layout
 
 - `src/hebog/`: library, CLI, public records, execution policies, algorithms,
@@ -189,8 +201,9 @@ restartable, and scheduler payloads remain small.
 Use [Conventional Commits](https://www.conventionalcommits.org/) and follow
 [AGENTS.md](AGENTS.md). A scientific or performance change must include the
 relevant equivalence evidence; isolated kernel timings are not sufficient for
-an end-to-end speedup claim. Significant architectural decisions belong in an
-ADR under `docs/architecture/adr/`.
+an end-to-end speedup claim. Code must pass the configured Ruff, Pyright,
+coverage, and test gates. Significant architectural decisions belong in an ADR
+under `docs/architecture/adr/`.
 
 ## Citation and license
 

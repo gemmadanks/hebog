@@ -69,6 +69,7 @@ nav:
   - Explanation:
       - Architecture: explanation/index.md
       - Domain model: explanation/domain-model.md
+      - Quality attributes: explanation/quality-attributes.md
   - Architecture:
       - Overview: architecture/index.md
       - ADRs: architecture/adr/index.md

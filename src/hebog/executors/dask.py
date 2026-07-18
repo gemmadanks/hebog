@@ -24,5 +24,16 @@ class DaskExecutor:
         batches: Iterable[Input],
     ) -> list[Output]:
         """Submit batches and gather their results in input order."""
-        futures = self.client.map(function, list(batches), pure=False)
-        return cast(list[Output], self.client.gather(futures))
+        # Distributed's annotations leave parts of these generic methods
+        # unknown; the executor protocol and cast preserve our typed boundary.
+        futures = self.client.map(  # pyright: ignore[reportUnknownMemberType]
+            function,
+            list(batches),
+            pure=False,
+        )
+        gather = cast(
+            Callable[[object], object],
+            self.client.gather,  # pyright: ignore[reportUnknownMemberType]
+        )
+        gathered = gather(futures)
+        return cast(list[Output], gathered)

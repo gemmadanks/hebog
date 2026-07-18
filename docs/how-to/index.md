@@ -35,6 +35,23 @@ oracle. PyBDSF products establish compatibility; they are not assumed to be
 scientific ground truth. Qualification datasets are held out from routine TDD
 and used only for milestone or release decisions.
 
+## Keep changes maintainable and reusable
+
+Start a vertical slice at the public behaviour, then keep scientific kernels
+independent of workflow and scheduler details. Pass I/O, execution, and
+configuration explicitly; put Rapthor/LSMTool names and product translations
+in the compatibility adapter.
+
+Prefer a function, dataclass, context manager, or narrow structural protocol
+to an inheritance hierarchy or generic plugin registry. Add a new extension
+seam only when a second implementation or workflow test demonstrates the
+variation. Run `just check` while iterating and preserve the branch-aware 80%
+coverage floor with meaningful normal, edge, and failure tests.
+
+Use the [quality attributes and coding principles](../explanation/quality-attributes.md)
+and [code review guide](https://github.com/gemmadanks/hebog/blob/main/CODE_REVIEW.md)
+for the complete requirements.
+
 ## Describe acceptance behaviour
 
 Use readable pytest scenarios for behaviour that crosses Hebog, materialised

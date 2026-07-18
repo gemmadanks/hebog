@@ -11,6 +11,7 @@ behaviour is frozen in the
 ```mermaid
 flowchart LR
     R["Rapthor orchestration<br/>Prefect/Dask graph, retries, resources"]
+    W["Other pipelines and science workflows<br/>own orchestration and adapters"]
     F["FITS and WSClean products<br/>images, sky models, sector geometry"]
     H["Hebog scientific boundary<br/>configuration, kernels, materialised results"]
     E["Hebog executor policy<br/>serial, local, existing Dask client"]
@@ -21,6 +22,7 @@ flowchart LR
     Q["Equivalence harness<br/>science and downstream decisions"]
 
     R -->|"paths, config, resource budget"| H
+    W -->|"inputs, config, executor"| H
     F --> H
     H --> E
     H --> A
@@ -28,6 +30,7 @@ flowchart LR
     L --> P
     H --> P
     P --> R
+    H -->|"versioned domain results"| W
     B --> Q
     H --> Q
     Q --> R
@@ -38,6 +41,12 @@ state, and resource admission. Hebog owns scheduler-independent scientific
 configuration and source-finding behaviour. It may use an executor for coarse
 work, but it does not create a hidden cluster or send live scheduler state in
 results.
+
+Other pipelines and science workflows enter through the same public
+scientific boundary and provide their own orchestration, executor, and product
+adapter. Their integration code does not need Rapthor, Prefect, LSMTool, or
+Dask objects when serial execution and Hebog's native products satisfy the
+workflow.
 
 The compatibility adapter is a boundary rather than a settled package. ADR-006
 will decide its schema after frozen products and contract tests expose the
@@ -127,6 +136,9 @@ execution topology, not tile ownership or scientific results.
 
 - Scientific kernels accept arrays, immutable configuration, and explicit
   metadata; they do not import Rapthor or a global Dask client.
+- Domain records, algorithms, and the public pipeline do not import Rapthor,
+  Prefect, LSMTool, workflow adapters, or concrete scheduler implementations;
+  adapters depend inward on the public scientific API.
 - Image-sized kernels accept bounded tile cores, explicit halos, and global
   coordinates; no worker or public record requires a complete large plane.
 - Source membership, stable identifiers, and materialised values are invariant

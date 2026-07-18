@@ -10,6 +10,12 @@ operate on bounded NumPy tiles with explicit halos and immutable metadata; an
 executor decides whether coarse batches run serially, in local threads, or on
 Dask workers. A small image is one tile.
 
+Rapthor is the first production consumer, not a scientific-core dependency.
+Other pipelines and science workflows use the same public pipeline and domain
+records with their own orchestration and compatibility adapters. Dependencies
+point inward so algorithms never import Rapthor, Prefect, LSMTool, or a
+concrete scheduler.
+
 ```text
 FITS input
    -> background and RMS estimation
@@ -57,4 +63,6 @@ dependent.
 
 The [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines the target modules, scientific gates, performance budget, delivery
-phases, risks, and cutover criteria.
+phases, risks, and cutover criteria. The
+[quality attributes and coding principles](quality-attributes.md) define the
+maintainability, extensibility, interoperability, and clean-code gates.
