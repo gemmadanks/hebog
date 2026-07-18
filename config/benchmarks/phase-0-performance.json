@@ -1,4 +1,5 @@
 {
+  "crossover_bracketing_rule": "After a fastest valid plan changes, add the nearest reproducible sizes immediately below and above that measured crossover before accepting a performance claim.",
   "initial_crossover_probes": [
     {
       "boundary": "direct-to-local",
@@ -16,7 +17,6 @@
       "upper_size_pixels": 30000
     }
   ],
-  "crossover_bracketing_rule": "After a fastest valid plan changes, add the nearest reproducible sizes immediately below and above that measured crossover before accepting a performance claim.",
   "master_pybdsf_exclusive_ratio_limit": 1.0,
   "matrix_id": "phase-0-performance",
   "one_tile_overhead_budget": {

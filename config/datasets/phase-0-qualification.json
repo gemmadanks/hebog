@@ -20,7 +20,10 @@
         "generator_version": 1,
         "noise_rms": 0.00025,
         "seed": 2026071899,
-        "shape_yx": [100000, 100000],
+        "shape_yx": [
+          100000,
+          100000
+        ],
         "sources": [
           {
             "major_sigma_pixels": 2.0,
@@ -69,9 +72,18 @@
       "role": "qualification",
       "wcs": {
         "frame": "icrs",
-        "pixel_scale_degrees_xy": [-0.0002777777777777778, 0.0002777777777777778],
-        "reference_pixel_xy": [49999.5, 49999.5],
-        "reference_sky_degrees": [180.0, -30.0]
+        "pixel_scale_degrees_xy": [
+          -0.0002777777777777778,
+          0.0002777777777777778
+        ],
+        "reference_pixel_xy": [
+          49999.5,
+          49999.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          -30.0
+        ]
       }
     }
   ],

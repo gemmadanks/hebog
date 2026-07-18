@@ -19,12 +19,12 @@
   },
   "controlled_reference_environment": {
     "machine": "aarch64",
+    "master_dependency_inventory_sha256": "9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76",
+    "master_environment_sha256": "c18cbcf07e15aba45884d1f88079ab0f038c1f42e71090895cb124c6187da8bd",
     "node_memory_bytes": 16321134592,
     "python": "3.12.3",
     "release_dependency_inventory_sha256": "ad533f28942ba1d3891a1c5d960028c7bde558ea682e08da21a246235d2eb3c8",
-    "release_environment_sha256": "c18cbcf07e15aba45884d1f88079ab0f038c1f42e71090895cb124c6187da8bd",
-    "master_dependency_inventory_sha256": "9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76",
-    "master_environment_sha256": "c18cbcf07e15aba45884d1f88079ab0f038c1f42e71090895cb124c6187da8bd"
+    "release_environment_sha256": "c18cbcf07e15aba45884d1f88079ab0f038c1f42e71090895cb124c6187da8bd"
   },
   "declared_dependencies": {
     "rapthor_lsmtool": {
@@ -57,6 +57,11 @@
     "filename": "bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl",
     "sha256": "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d"
   },
+  "remaining_reproducibility_limits": [
+    "The Hebog application image has not been built because Phase 0 measures external PyBDSF references; each later Hebog benchmark must capture its own immutable image digest.",
+    "Container definitions retain mutable parent-image tags. The completed reference evidence is bound to the immutable built-image digest, but rebuilding it requires refreshing and recording the resolved parents.",
+    "The original Rapthor run moved its intermediate sky-model inputs. The controlled rerun uses the corresponding generated demo source models, whose individual hashes are frozen in the representative dataset inventory."
+  ],
   "repositories": {
     "hebog": {
       "branch": "feat-freeze-baseline",
@@ -93,11 +98,6 @@
       "working_tree": "clean"
     }
   },
-  "remaining_reproducibility_limits": [
-    "The Hebog application image has not been built because Phase 0 measures external PyBDSF references; each later Hebog benchmark must capture its own immutable image digest.",
-    "Container definitions retain mutable parent-image tags. The completed reference evidence is bound to the immutable built-image digest, but rebuilding it requires refreshing and recording the resolved parents.",
-    "The original Rapthor run moved its intermediate sky-model inputs. The controlled rerun uses the corresponding generated demo source models, whose individual hashes are frozen in the representative dataset inventory."
-  ],
   "schema_version": 1,
   "status": "captured"
 }
