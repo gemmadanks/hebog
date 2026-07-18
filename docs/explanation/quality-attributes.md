@@ -37,6 +37,14 @@ process configuration or perform import-time I/O. The public pipeline composes
 explicit dependencies; compatibility adapters translate external names,
 schemas, products, and failure behaviour at the edge.
 
+Library-module imports are inert. They may construct types, validators,
+immutable constants, and package metadata, but they do not read or write
+science/workflow data, inspect the filesystem for work, mutate process state,
+access the network, create clients or clusters, or submit computation. The
+explicit `__main__.py` command-line entry point is the exception. Importing the
+public pipeline also does not import the optional concrete Dask runtime; a
+caller requesting `DaskExecutor` loads it deliberately.
+
 An executor, image source, product sink, or compatibility protocol is
 appropriate when there is a demonstrated alternate implementation. A generic
 plugin system, global registry, service locator, or abstraction created only
@@ -103,7 +111,9 @@ Every code change must satisfy:
 - contract tests for interchangeable executors, storage boundaries, and
   adapters;
 - architecture checks that prevent workflow and scheduler dependencies from
-  leaking into algorithms and domain records; and
+  leaking into algorithms and domain records, reject import-scope I/O and
+  orchestration calls, and keep concrete schedulers out of public-core imports;
+  and
 - documentation and migration notes for public behaviour, configuration, or
   schema changes.
 

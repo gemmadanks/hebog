@@ -788,3 +788,43 @@ source evidence.
 - Enforce import-time side-effect and compatibility dependency boundaries.
 - Derive the exact versioned catalogue and materialised-product fields from
   failing Phase 1 round-trip and Rapthor adapter contract tests.
+
+## 2026-07-18 — Enforced inert library imports
+
+**Plan phase:** Phase 0
+
+**Completed**
+
+- Added a static architecture gate that resolves imported aliases and rejects
+  file, process, network, scheduler-construction, and task-submission calls at
+  module or class import scope while allowing explicit calls inside functions.
+- Added inward-dependency checks for public configuration and pipeline modules
+  in addition to the existing algorithm and domain-record rules.
+- Added an isolated runtime test proving that importing `hebog.pipeline` does
+  not load `distributed`.
+- Changed the executor package to load `DaskExecutor` lazily while preserving
+  the existing `from hebog.executors import DaskExecutor` API.
+
+**Evidence**
+
+- The new runtime test first failed because `hebog.executors` eagerly imported
+  its Dask implementation, then passed after the lazy boundary was added.
+- Ten focused architecture, serial-executor, and Dask integration tests
+  passed; Ruff and strict Pyright reported no diagnostics.
+
+**Decisions**
+
+- Library imports may define types, validators, immutable constants, and
+  package metadata, but do not discover work, touch science/workflow data,
+  mutate process state, access the network, create clients, or start work.
+- `__main__.py` remains the explicit CLI side-effect boundary and is excluded
+  from the inert-library-module scan.
+- Concrete scheduler implementations are optional outer dependencies and are
+  imported only when requested by a caller.
+
+**Next**
+
+- Add the versioned machine-readable comparison-run and benchmark evidence
+  schemas before capturing external PyBDSF products or timings.
+- Freeze exact installed dependencies and container digests in the controlled
+  released-PyBDSF and pinned-`master` environments.

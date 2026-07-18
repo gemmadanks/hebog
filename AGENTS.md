@@ -152,6 +152,14 @@ core runtime solely for tests.
   orchestration frameworks, compatibility adapters, concrete schedulers, or
   process-wide configuration. Adapters may depend on the stable scientific
   API, never the reverse.
+- Keep library-module imports inert: they may define types and immutable
+  constants but must not read or write science/workflow data, inspect the
+  filesystem for work, change process state, access the network, create
+  clients or clusters, or submit computation. `__main__.py` is the explicit
+  CLI entry-point exception.
+- Importing `hebog` or `hebog.pipeline` must not eagerly import a concrete
+  scheduler. Optional executor implementations load only when a caller asks
+  for them.
 - Maintain `SerialExecutor` as the deterministic reference. Local and Dask
   executors must produce equivalent results.
 - Prefer coarse Dask batches that amortise scheduler and I/O overhead while
