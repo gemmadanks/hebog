@@ -710,6 +710,57 @@ wheels = [
 ]
 
 [[package]]
+name = "hebog"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "ipywidgets" },
+    { name = "jupyter" },
+    { name = "matplotlib" },
+    { name = "nbmake" },
+    { name = "numpy" },
+    { name = "plotly" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extra = ["python"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ipywidgets", specifier = ">=8.1.7,<9.0.0" },
+    { name = "jupyter", specifier = ">=1.1.1,<2.0.0" },
+    { name = "matplotlib", specifier = ">=3.10.6,<4.0.0" },
+    { name = "nbmake", specifier = ">=1.5.5" },
+    { name = "numpy", specifier = ">=2.4.6,<3.0.0" },
+    { name = "plotly", specifier = ">=6.8.0,<7.0.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pre-commit", specifier = ">=4.6.0,<5.0.0" },
+    { name = "pyright", specifier = ">=1.1.410,<2.0.0" },
+    { name = "pytest", specifier = ">=9.1.1,<10.0.0" },
+    { name = "pytest-cov", specifier = ">=7.1.0,<8.0.0" },
+    { name = "ruff", specifier = ">=0.15.17,<0.16.0" },
+]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extras = ["python"] },
+]
+
+[[package]]
 name = "httpcore"
 version = "1.0.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1738,57 +1789,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/36/86/b585f53236dec60aba864e050778b25045f857e17f6e5ea0ae95fe80edd2/overrides-7.7.0.tar.gz", hash = "sha256:55158fa3d93b98cc75299b1e67078ad9003ca27945c76162c1c0766d6f91820a", size = 22812, upload-time = "2024-01-27T21:01:33.423Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/ab/fc8290c6a4c722e5514d80f62b2dc4c4df1a68a41d1364e625c35990fcf3/overrides-7.7.0-py3-none-any.whl", hash = "sha256:c7ed9d062f78b8e4c1a7b70bd8796b35ead4d9f510227ef9c5dc7626c60d7e49", size = 17832, upload-time = "2024-01-27T21:01:31.393Z" },
-]
-
-[[package]]
-name = "hebog"
-version = "0.10.0"
-source = { editable = "." }
-dependencies = [
-    { name = "ipywidgets" },
-    { name = "jupyter" },
-    { name = "matplotlib" },
-    { name = "nbmake" },
-    { name = "numpy" },
-    { name = "plotly" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pre-commit" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-]
-docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extra = ["python"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ipywidgets", specifier = ">=8.1.7,<9.0.0" },
-    { name = "jupyter", specifier = ">=1.1.1,<2.0.0" },
-    { name = "matplotlib", specifier = ">=3.10.6,<4.0.0" },
-    { name = "nbmake", specifier = ">=1.5.5" },
-    { name = "numpy", specifier = ">=2.4.6,<3.0.0" },
-    { name = "plotly", specifier = ">=6.8.0,<7.0.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pre-commit", specifier = ">=4.6.0,<5.0.0" },
-    { name = "pyright", specifier = ">=1.1.410,<2.0.0" },
-    { name = "pytest", specifier = ">=9.1.1,<10.0.0" },
-    { name = "pytest-cov", specifier = ">=7.1.0,<8.0.0" },
-    { name = "ruff", specifier = ">=0.15.17,<0.16.0" },
-]
-docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extras = ["python"] },
 ]
 
 [[package]]
