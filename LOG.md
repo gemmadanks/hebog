@@ -260,3 +260,47 @@ evidence.
 
 - Use the `0.2.x` capability band as guidance for the first Phase 0 vertical
   slices, without treating it as a fixed phase-version contract.
+
+## 2026-07-18 — Planned domain language and architecture records
+
+**Plan phase:** Phase 0 preparation
+
+**Completed**
+
+- Added a provisional domain glossary and explicit naming conventions to the
+  Phase 0 deliverables.
+- Added a domain model with code-native system-context and processing/data-flow
+  diagrams, while deferring unstable executor detail.
+- Added ADR tasks for Hebog's narrow Rapthor scope, external scheduler
+  ownership, and the compatibility-schema boundary.
+- Added domain-review requirements to the Phase 0 exit gate and terminology
+  and diagram-maintenance risks to the plan.
+
+**Decisions**
+
+- Treat the glossary and diagrams as testable architectural documentation that
+  is reviewed with the Phase 0 contracts, not as speculative upfront design.
+- Record the already-settled scope and scheduler boundaries in ADRs 003 and
+  004 before implementing them.
+- Defer ADR 005 until the compatibility inventory supplies evidence, and write
+  algorithm ADRs only when tests and benchmarks expose consequential choices.
+- Use Mermaid for diagrams so they remain reviewable beside the documentation.
+
+**Evidence**
+
+- `just ci` passed after the plan and log changes: eight portable tests passed,
+  the equivalence and acceptance scaffolds skipped as intended, and linting,
+  type checking, strict Marimo validation, strict documentation, lockfile
+  validation, and the isolated wheel smoke test succeeded.
+
+**Plan impact**
+
+- Phase 0 now freezes shared vocabulary and architectural boundaries as well as
+  scientific contracts, datasets, comparison oracles, and baselines.
+- The definition of done now requires the glossary and diagrams to match the
+  released architecture and separate compatibility names from internal terms.
+
+**Next**
+
+- Begin Phase 0 by inventorying the PyBDSF, LSMTool, and Rapthor contracts and
+  terminology, then draft the glossary, domain model, and ADRs 003 and 004.
