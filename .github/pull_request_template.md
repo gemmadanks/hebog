@@ -10,7 +10,8 @@ Please check each of the following before merging:
 - [ ] I have updated relevant documentation
 - [ ] I have linked to relevant issues
 - [ ] I have created an ADR (Architectural Decision Record) for architecturally significant changes
-- [ ] I have updated the source-finder implementation plan when a milestone, scientific gate, performance baseline, or risk changed
+- [ ] I have updated `LOG.md` when this pull request records material plan execution
+- [ ] I have updated the source-finder implementation plan when scope, sequencing, gates, decisions, or risks changed
 - [ ] Scientific changes include the relevant equivalence evidence
 - [ ] Performance claims include matched end-to-end benchmark evidence
 

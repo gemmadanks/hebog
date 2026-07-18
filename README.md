@@ -18,6 +18,8 @@ acceptance criterion.
 See the [source-finder implementation plan](plans/source-finder-implementation.md)
 for the profiling evidence, scientific gates, dataset matrix, staged delivery,
 performance budget, risks, and definition of done.
+See the [execution log](LOG.md) for completed work, validation evidence,
+decisions, and immediate next steps.
 
 ## Status
 
@@ -149,6 +151,8 @@ restartable, and scheduler payloads remain small.
 - `docs/`: user, reference, explanation, and architecture documentation.
 - `plans/source-finder-implementation.md`: authoritative delivery plan and
   acceptance gates.
+- `LOG.md`: chronological execution progress, evidence, decisions, and next
+  steps.
 
 ## Contributing
 

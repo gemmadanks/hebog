@@ -17,4 +17,5 @@ source-finding algorithms are not implemented yet.
 
 Start with the [quick start](tutorials/index.md), read the
 [architecture](explanation/index.md), or review the complete
-[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
+[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
+and [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).

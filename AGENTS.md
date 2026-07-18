@@ -16,6 +16,8 @@ The durable
 is the authoritative delivery plan. Update it when a milestone, benchmark
 baseline, scientific threshold, architecture decision, or risk changes.
 `PLAN.md` remains the reusable template for other work plans.
+Record material execution progress, evidence, deviations, and immediate next
+steps chronologically in [`LOG.md`](LOG.md).
 
 The repository contains:
 
@@ -43,6 +45,8 @@ Never hard-code those paths in package code or normal tests.
   when public APIs, setup steps, output schemas, or workflows change.
 - Use the lightest planning level in `PLAN.md`; keep the source-finder plan
   current for project milestones and scientific or performance decisions.
+- Append material completed work and validation evidence to `LOG.md`; do not
+  duplicate routine commits or user-visible release notes there.
 - Use one writing agent by default. Delegate only independent, bounded work.
 - Review meaningful changes against `CODE_REVIEW.md` before handoff.
 - Record architecturally significant decisions with an ADR based on
@@ -259,6 +263,7 @@ relevant scientific suite passes.
 - Use Conventional Commit subjects when asked to create commits.
 - Record significant architecture or scientific decisions in the
   source-finder plan before spreading them through the implementation.
+- Record the outcome and evidence of material plan execution in `LOG.md`.
 - Preserve a feature-flagged PyBDSF fallback in Rapthor until the complete
   acceptance matrix passes.
 - Do not make generated benchmark data the source of truth; store compact JSON
@@ -276,7 +281,8 @@ Before handing off a meaningful change:
 4. Run reproducible before/after benchmarks for performance claims.
 5. Test serial and Dask execution for scheduler-facing changes.
 6. Build docs for public API, configuration, plan, or workflow changes.
-7. Update the source-finder plan with evidence, decisions, risks, and the next
-   milestone when applicable.
-8. Run `just check`, plus `just package-smoke-test` for packaging changes.
-9. Review the final diff using `CODE_REVIEW.md` and report checks not run.
+7. Append material progress, evidence, deviations, and next steps to `LOG.md`.
+8. Update the source-finder plan only when scope, sequencing, gates, decisions,
+   or risks changed.
+9. Run `just check`, plus `just package-smoke-test` for packaging changes.
+10. Review the final diff using `CODE_REVIEW.md` and report checks not run.

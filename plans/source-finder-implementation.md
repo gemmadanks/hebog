@@ -1,5 +1,9 @@
 # Hebog implementation plan
 
+Execution progress, evidence, and deviations are recorded in
+[`LOG.md`](../LOG.md) so this plan can remain focused on intended work and
+acceptance gates.
+
 ## 1. Objective
 
 Create a maintainable radio-continuum source finder that produces scientifically equivalent
