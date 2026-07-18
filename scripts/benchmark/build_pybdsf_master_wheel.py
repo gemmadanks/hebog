@@ -23,6 +23,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pybdsf-repo", required=True, type=Path)
     parser.add_argument("--container-image", required=True)
+    parser.add_argument("--expected-container-digest", required=True)
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--expected-sha256", required=True)
     parser.add_argument("--expected-commit", default=_MASTER_COMMIT)
@@ -48,6 +49,16 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _container_digest(image: str) -> str:
+    """Resolve one local image tag to its immutable digest."""
+    return subprocess.run(
+        ["podman", "image", "inspect", "--format", "{{.Digest}}", image],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
 def main() -> None:
     """Build exactly one wheel and verify its pinned provenance."""
     args = _parse_args()
@@ -55,6 +66,9 @@ def main() -> None:
         raise ValueError("PyBDSF checkout is not at the expected commit")
     if _git(args.pybdsf_repo, "status", "--porcelain"):
         raise ValueError("PyBDSF checkout must be clean")
+    observed_digest = _container_digest(args.container_image)
+    if observed_digest != args.expected_container_digest:
+        raise ValueError("container image is not at the expected digest")
     args.output_directory.mkdir(parents=True, exist_ok=False)
     subprocess.run(
         [
