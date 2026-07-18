@@ -19,9 +19,16 @@ and checksums, generator version, source population, deliberate tile-edge and
 tile-corner cases, storage layout, and approved facility identifier; tests
 must not check large planes into the repository.
 
-The checked-in schema and initial development cases live in
-`config/datasets/phase-0-development.json`. Synthetic noise is addressed by
-global pixel coordinate, so generating a plane through different window or
-tile layouts produces identical values. Complete in-memory generation has a
-safety limit; large cases must use bounded windows and external materialised
-storage.
+The checked-in manifests live in `config/datasets/`. Synthetic noise is
+addressed by global pixel coordinate, so generating a plane through different
+window or tile layouts produces identical values. Complete in-memory
+generation has a safety limit; large cases must use bounded windows and
+external materialised storage.
+
+`pybdsf/pybdsf-compact-reference-256/` contains the seven standardized
+Rapthor-facing products from released PyBDSF 1.14.1 and pinned PyBDSF master.
+`config/baselines/phase-0-pybdsf-reference-products.json` binds every file to
+its checksum, exact configuration, dependency inventory, container digest,
+and reviewed benchmark run. Regenerate them only with
+`scripts/validation/freeze_reference_products.py` after rerunning and
+reviewing both isolated campaigns.
