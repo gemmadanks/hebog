@@ -1,0 +1,102 @@
+{
+  "captured_at": "2026-07-18T21:30:35.056162Z",
+  "dataset_content_sha256": "80e7d55f5ff22a46be2d977babe0d05f7899972f13b9518a606959eeab502ffc",
+  "dataset_identifier": "pybdsf-compact-reference-256",
+  "environment": {
+    "cpu_count": 12,
+    "dependency_versions": {
+      "astropy": "7.2.2",
+      "dask": "2026.7.1",
+      "distributed": "2026.7.1",
+      "hebog": "0.1.0",
+      "numpy": "2.4.6"
+    },
+    "machine": "arm64",
+    "node_memory_bytes": 19327352832,
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "python": "3.14.2"
+  },
+  "environment_sha256": "1d11dbbd333d1a6df59e36859bbc676062650377796c936da8b988a548b10bde",
+  "measurements": [
+    {
+      "budget_seconds": 0.25,
+      "maximum_seconds": 3.0840019462630153e-06,
+      "measured_repetitions": 50,
+      "median_seconds": 7.90998456068337e-07,
+      "method": "SourceFinderConfig construction",
+      "minimum_seconds": 7.499984349124134e-07,
+      "operation": "configuration",
+      "percentile_95_seconds": 1.0000003385357559e-06,
+      "warmup_repetitions": 1,
+      "within_budget": true
+    },
+    {
+      "budget_seconds": 0.5,
+      "maximum_seconds": 0.006109875001129694,
+      "measured_repetitions": 50,
+      "median_seconds": 0.0027782495017163455,
+      "method": "Astropy memmap open plus complete 256-square plane read",
+      "minimum_seconds": 0.0018240419958601706,
+      "operation": "fits-io",
+      "percentile_95_seconds": 0.004070762803530669,
+      "warmup_repetitions": 1,
+      "within_budget": true
+    },
+    {
+      "budget_seconds": 0.01,
+      "maximum_seconds": 2.416003553662449e-06,
+      "measured_repetitions": 50,
+      "median_seconds": 1.0000003385357559e-06,
+      "method": "one core and clipped halo slice calculation",
+      "minimum_seconds": 9.57996235229075e-07,
+      "operation": "partition-planning",
+      "percentile_95_seconds": 1.1291976989014072e-06,
+      "warmup_repetitions": 1,
+      "within_budget": true
+    },
+    {
+      "budget_seconds": 0.005,
+      "maximum_seconds": 1.5410041669383645e-06,
+      "measured_repetitions": 50,
+      "median_seconds": 3.7500285543501377e-07,
+      "method": "SerialExecutor one-batch identity map",
+      "minimum_seconds": 3.3299875212833285e-07,
+      "operation": "serial-dispatch",
+      "percentile_95_seconds": 4.810979589819906e-07,
+      "warmup_repetitions": 1,
+      "within_budget": true
+    },
+    {
+      "budget_seconds": 0.05,
+      "maximum_seconds": 0.0005788330017821863,
+      "measured_repetitions": 50,
+      "median_seconds": 1.7541500710649416e-05,
+      "method": "reused one-worker ThreadPoolExecutor submit and result",
+      "minimum_seconds": 1.6208003216888756e-05,
+      "operation": "local-dispatch",
+      "percentile_95_seconds": 5.021410179324448e-05,
+      "warmup_repetitions": 1,
+      "within_budget": true
+    },
+    {
+      "budget_seconds": 0.5,
+      "maximum_seconds": 0.015884332999121398,
+      "measured_repetitions": 50,
+      "median_seconds": 0.011393166500056395,
+      "method": "caller-owned warm in-process Dask client one-batch map",
+      "minimum_seconds": 0.005752624994784128,
+      "operation": "dask-dispatch",
+      "percentile_95_seconds": 0.014547593449970008,
+      "warmup_repetitions": 1,
+      "within_budget": true
+    }
+  ],
+  "performance_contract_sha256": "4fd09649b37ae0a54bf452909536caba70a478390b2f72bfe215b530f1a92092",
+  "schema_version": 1,
+  "shape_yx": [
+    256,
+    256
+  ],
+  "source_commit": "ffdbf2ce914480bcb981c084ac74fb1889406eab",
+  "status": "exploratory"
+}

@@ -17,6 +17,13 @@ in the immutable container. The master campaign installs a separately built
 wheel for commit `c70103be3ae9ae9908286f144e6ce956acc0ce5c` into an ephemeral
 target directory, preserving every other container dependency.
 
+Build the pinned platform wheel first with
+`build_pybdsf_master_wheel.py`. It requires the expected output SHA-256,
+rejects a dirty or incorrect checkout, pins the four build helpers, and fails
+if the platform artifact differs from the frozen identity. Dependency download
+is the only network-requiring step; baseline runs themselves use local inputs
+and the built image.
+
 `pybdsf_reference_run.py` executes the current pinned Rapthor/LSMTool
 compatibility path. It records complete wall/CPU/RSS metrics and instruments
 the true-sky and flat-noise PyBDSF calls separately. Parent RSS sampling plus
@@ -37,3 +44,12 @@ uv run python scripts/validation/materialize_dataset.py \
 The baseline driver accepts all repository and input paths explicitly; see
 `--help` for the release and master commands. Never point it at a mutable
 container tag without checking the digest printed into `baseline-index.json`.
+It verifies stable scientific products across repetitions. LSMTool sky-model
+history timestamps are the only normalized metadata, and the index records
+that normalization explicitly. `--finalize-existing` revalidates a complete
+campaign without rerunning it.
+
+`measure_phase0_overhead.py` measures warm framework overhead with a reused
+local thread pool and caller-owned in-process Dask client. It does not include
+Dask client startup and labels Phase 0 planning/local results as proxies rather
+than production implementations.

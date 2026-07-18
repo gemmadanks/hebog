@@ -1,0 +1,55 @@
+{
+  "availability": "local-only",
+  "content_sha256": "b77da6dbd12c4fa059395de4bfd0270f642464e6b1e658e2598f2a2cde45e9e5",
+  "dataset_id": "rapthor-representative-3000",
+  "inputs": {
+    "apparent_skymodel": {
+      "format": "makesourcedb text",
+      "identifier": "prefect-demo-rich-apparent-sky",
+      "sha256": "4f2060ce9e43bdae3fefc0ba6893a9551fd68fafd7a7cf51376c08d1523c27d8"
+    },
+    "beam_ms_0": {
+      "format": "CASA Measurement Set directory tree",
+      "identifier": "prefect-demo-rich-ms",
+      "sha256": "f00ca5bb2f6cf53896839d168ce71d1b09de5f6134f3d28732e88a98035ae00d"
+    },
+    "flat_noise_image": {
+      "format": "FITS",
+      "identifier": "sector-1-mfs-image",
+      "sha256": "6c3d136b4c0719098e6dac687852ca6b05a1314620c836704dd225310b58642d"
+    },
+    "true_sky_image": {
+      "format": "FITS",
+      "identifier": "sector-1-mfs-image-pb",
+      "sha256": "71fe0398218b51ca62b7066204450d2ac6c2d3aeaea8b04dcb54ab7a38842160"
+    },
+    "true_skymodel": {
+      "format": "makesourcedb text",
+      "identifier": "prefect-demo-rich-true-sky",
+      "sha256": "e30abab9324ce1248de2b48a1a89793507f7ffa2e8d095c23c9a94d999aa3f64"
+    },
+    "vertices": {
+      "format": "NumPy array",
+      "identifier": "sector-1-vertices",
+      "sha256": "12bee2128613e6096de6b330ee76be7bd041ce2a0798643112c6ad30130e9874"
+    }
+  },
+  "limitations": [
+    "The original run moved its intermediate sky-model inputs; the matching generated demo source models are used by the controlled rerun.",
+    "The dataset is not redistributed in Git and must be resolved on an approved local or controlled runner."
+  ],
+  "provenance": {
+    "rapthor_commit": "b1a64674b1022476cf052fc2d06ee3b16f031ecd",
+    "rapthor_run_id": "prefect-demo-20260717-073830-980b7212",
+    "source": "Rapthor Prefect rich-demo run and its generated input fixture"
+  },
+  "redistribution": "restricted",
+  "role": "regression",
+  "schema_version": 1,
+  "shape_yx": [
+    3000,
+    3000
+  ],
+  "tree_hash_algorithm": "SHA-256 over sorted relative file names and file bytes separated by NUL",
+  "workload_class": "normal"
+}

@@ -18,6 +18,7 @@ from hebog.validation.evidence import (
     EvidenceStatus,
     ExecutorKind,
     WorkloadClass,
+    load_evidence,
 )
 
 _ARTIFACT_NAMES = (
@@ -204,3 +205,58 @@ def test_compile_pybdsf_campaign_rejects_protocol_drift(
 
     with pytest.raises(ValueError, match="ncores"):
         _compile(tmp_path)
+
+
+def test_phase_zero_representative_inventory_matches_evidence() -> None:
+    """Every restricted representative input is bound to reviewed evidence."""
+    root = Path(__file__).parents[3]
+    baseline_directory = root / "config" / "baselines"
+    inventory = json.loads(
+        (baseline_directory / "phase-0-representative-dataset.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    input_sha256 = {
+        name: item["sha256"] for name, item in inventory["inputs"].items()
+    }
+    evidence = load_evidence(
+        baseline_directory
+        / "phase-0-pybdsf-release-representative-evidence.json"
+    )
+
+    assert isinstance(evidence, BenchmarkEvidence)
+    assert set(input_sha256) == {
+        "apparent_skymodel",
+        "beam_ms_0",
+        "flat_noise_image",
+        "true_sky_image",
+        "true_skymodel",
+        "vertices",
+    }
+    assert _canonical_sha256(input_sha256) == inventory["content_sha256"]
+    assert evidence.dataset.content_sha256 == inventory["content_sha256"]
+    assert evidence.dataset.shape_yx == tuple(inventory["shape_yx"])
+
+
+def test_phase_zero_starting_inventory_captures_runtime() -> None:
+    """The baseline inventory no longer leaves runtime identity unresolved."""
+    root = Path(__file__).parents[3]
+    inventory = json.loads(
+        (
+            root / "config" / "baselines" / "phase-0-starting-revisions.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert inventory["status"] == "captured"
+    assert (
+        inventory["declared_dependencies"]["rapthor_pybdsf"][
+            "installed_version"
+        ]
+        == "1.14.1"
+    )
+    assert inventory["container_definitions"]["reference_runtime"][
+        "built_image_digest"
+    ].startswith("sha256:")
+    assert inventory["master_wheel"]["sha256"] == (
+        "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d"
+    )

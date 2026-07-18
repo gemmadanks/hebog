@@ -10,35 +10,52 @@
       "devcontainer_sha256": "36a82e6492f070dcea7f994ee497e3df4622e4cb285f5134cd90a34f0c7b1700",
       "dockerfile_sha256": "45b2bd9408d77dc0b90ee6320b0e2eee9ec3758bcbd089c3933e43328238daf5"
     },
-    "rapthor": {
-      "base_images": [
-        "ubuntu:22.04"
-      ],
-      "built_image_digest": null,
-      "devcontainer_sha256": "22cfabe4d80cf2f58306198d010f235b79b6cce935cf3a763fd7381bce92a990",
-      "dockerfile_sha256": "90d607798eb29c811e8e87445f5a9b1745ef254b6ad2c54f81a7d5848b7c69b6"
+    "reference_runtime": {
+      "built_image_digest": "sha256:dce93991e2e671428ff8043a7e0d132294d2d2decf1e1587e9904d3e8f49b754",
+      "image_tag_at_capture": "localhost/rapthor-dev:ci-aligned",
+      "rapthor_devcontainer_sha256": "22cfabe4d80cf2f58306198d010f235b79b6cce935cf3a763fd7381bce92a990",
+      "rapthor_dockerfile_sha256": "90d607798eb29c811e8e87445f5a9b1745ef254b6ad2c54f81a7d5848b7c69b6"
     }
+  },
+  "controlled_reference_environment": {
+    "machine": "aarch64",
+    "node_memory_bytes": 16321134592,
+    "python": "3.12.3",
+    "release_dependency_inventory_sha256": "ad533f28942ba1d3891a1c5d960028c7bde558ea682e08da21a246235d2eb3c8",
+    "release_environment_sha256": "c18cbcf07e15aba45884d1f88079ab0f038c1f42e71090895cb124c6187da8bd",
+    "master_dependency_inventory_sha256": "9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76",
+    "master_environment_sha256": "c18cbcf07e15aba45884d1f88079ab0f038c1f42e71090895cb124c6187da8bd"
   },
   "declared_dependencies": {
     "rapthor_lsmtool": {
+      "installed_version": "1.8.0",
       "local_object_available": true,
       "requirement": "lsmtool @ git+https://git.astron.nl/RD/LSMTool.git@3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a",
       "source_finding_module_sha256": "eccb93f128f7be0659e0bb8a433a49e80291661d38f6f4002b5c75fe50dc35d2"
     },
     "rapthor_pybdsf": {
-      "expected_release_at_capture": "1.14.1",
-      "installed_version": null,
+      "installed_version": "1.14.1",
       "requirement": "bdsf",
       "resolution_policy": "latest released distribution"
     }
   },
   "dependency_definitions": {
-    "hebog_pyproject_sha256": "20766ab63c7db5f559e1e374ffdb6a0216893b77d445f0a43ce1b7cb512a9b49",
+    "hebog_pyproject_sha256": "9d3cd86906f6da60ee6d172b20972cfb3117239ef431a32274628b16d1997df7",
     "hebog_uv_lock_sha256": "c10efbc49a964fdc63f9b037f6c309382d187da9f56eb4d9050256b324d24b32",
     "lsmtool_pyproject_sha256": "836a6fc553bd974a83da1f0a1ad3aae4ed60cc04922f7f3c0c7ba7ba1e16b2c8",
     "pybdsf_master_pyproject_sha256": "d374ecec561984ce84715fe6543bd75df7965f9882b2cf782ed6e1051d2a4dbc",
     "pybdsf_release_pyproject_sha256": "0ed97e057157aa0eece3699217853352ff73188b177fd17467268c61e3ad9764",
     "rapthor_pyproject_sha256": "ea01645aa153721d24435b831fd15c526067706fb123d8701614953b9dd4d718"
+  },
+  "master_wheel": {
+    "build_helpers": {
+      "meson": "1.8.3",
+      "scikit-build": "0.18.1",
+      "setuptools": "80.9.0",
+      "setuptools-scm": "9.2.2"
+    },
+    "filename": "bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl",
+    "sha256": "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d"
   },
   "repositories": {
     "hebog": {
@@ -76,10 +93,11 @@
       "working_tree": "clean"
     }
   },
-  "reproducibility_gaps": [
-    "Rapthor resolves the latest released bdsf distribution rather than pinning a version; the controlled benchmark environment has not yet been inspected to confirm that it installed 1.14.1.",
-    "The container definitions use mutable base-image tags and no built image digest has been captured."
+  "remaining_reproducibility_limits": [
+    "The Hebog application image has not been built because Phase 0 measures external PyBDSF references; each later Hebog benchmark must capture its own immutable image digest.",
+    "Container definitions retain mutable parent-image tags. The completed reference evidence is bound to the immutable built-image digest, but rebuilding it requires refreshing and recording the resolved parents.",
+    "The original Rapthor run moved its intermediate sky-model inputs. The controlled rerun uses the corresponding generated demo source models, whose individual hashes are frozen in the representative dataset inventory."
   ],
   "schema_version": 1,
-  "status": "candidate"
+  "status": "captured"
 }
