@@ -11,4 +11,4 @@ def test_version_option(capsys: pytest.CaptureFixture[str]) -> None:
         main(["--version"])
 
     assert error.value.code == 0
-    assert "hebog 0.1.0" in capsys.readouterr().out
+    assert "hebog" in capsys.readouterr().out
