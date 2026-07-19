@@ -71,11 +71,17 @@ def _freeze_set(
     artifacts = {}
     for name, identity in sorted(raw_artifacts.items()):
         artifact = Path(name)
-        if artifact.name != name or artifact.is_absolute() or ".." in artifact.parts:
+        if (
+            artifact.name != name
+            or artifact.is_absolute()
+            or ".." in artifact.parts
+        ):
             raise ValueError(f"invalid artifact name: {name!r}")
         source = (repetition_directory / artifact).resolve()
         if not source.is_relative_to(repetition_directory.resolve()):
-            raise ValueError(f"artifact path escapes repetition directory: {name!r}")
+            raise ValueError(
+                f"artifact path escapes repetition directory: {name!r}"
+            )
         target = (product_destination / artifact).resolve()
         if not target.is_relative_to(product_destination.resolve()):
             raise ValueError(f"artifact target escapes destination: {name!r}")
