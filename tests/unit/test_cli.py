@@ -1,5 +1,7 @@
 """Tests for the command-line interface."""
 
+import re
+
 import pytest
 
 from hebog.cli import main
@@ -11,4 +13,4 @@ def test_version_option(capsys: pytest.CaptureFixture[str]) -> None:
         main(["--version"])
 
     assert error.value.code == 0
-    assert "hebog" in capsys.readouterr().out
+    assert re.search(r"hebog \d+\.\d+\.\d+", capsys.readouterr().out)
