@@ -70,8 +70,15 @@ def _freeze_set(
     product_destination.mkdir(parents=True, exist_ok=True)
     artifacts = {}
     for name, identity in sorted(raw_artifacts.items()):
-        source = repetition_directory / name
-        target = product_destination / name
+        artifact = Path(name)
+        if artifact.name != name or artifact.is_absolute() or ".." in artifact.parts:
+            raise ValueError(f"invalid artifact name: {name!r}")
+        source = (repetition_directory / artifact).resolve()
+        if not source.is_relative_to(repetition_directory.resolve()):
+            raise ValueError(f"artifact path escapes repetition directory: {name!r}")
+        target = (product_destination / artifact).resolve()
+        if not target.is_relative_to(product_destination.resolve()):
+            raise ValueError(f"artifact target escapes destination: {name!r}")
         if target.exists() and _sha256(target) != _sha256(source):
             raise ValueError(f"existing frozen artifact differs: {target}")
         if not target.exists():
