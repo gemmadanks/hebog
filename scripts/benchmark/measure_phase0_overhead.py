@@ -94,11 +94,13 @@ def _plan_one_tile() -> tuple[slice, slice, slice, slice]:
     """Calculate one bounded core and clipped halo window."""
     height, width = 256, 256
     halo = 32
+    core_y_start, core_y_stop = 0, height
+    core_x_start, core_x_stop = 0, width
     return (
-        slice(0, height),
-        slice(0, width),
-        slice(max(0, -halo), min(height, height + halo)),
-        slice(max(0, -halo), min(width, width + halo)),
+        slice(core_y_start, core_y_stop),
+        slice(core_x_start, core_x_stop),
+        slice(max(0, core_y_start - halo), min(height, core_y_stop + halo)),
+        slice(max(0, core_x_start - halo), min(width, core_x_stop + halo)),
     )
 
 
