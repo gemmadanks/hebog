@@ -7,6 +7,11 @@ from pathlib import Path
 from typing import Any
 
 
+def _empty_metadata() -> dict[str, Any]:
+    """Create an explicitly typed empty metadata mapping."""
+    return {}
+
+
 @dataclass(frozen=True, slots=True)
 class SourceFinderRequest:
     """Inputs for one independent source-finding analysis."""
@@ -25,4 +30,4 @@ class SourceFinderResult:
     mask_path: Path
     source_count: int
     wall_seconds: float
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=_empty_metadata)

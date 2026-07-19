@@ -4,19 +4,24 @@
 
 ```console
 just test-unit
+just test-contract
 just test-integration
 just test-equivalence
 just test-acceptance
 just test-qualification
 just test-benchmark
+just test-scalability
 ```
 
 Unit tests must be deterministic and require no scheduler or downloaded data.
-Integration tests cover Dask, FITS, and Rapthor boundaries. Equivalence tests
+Contract tests hold strict-xfail executable specifications until their planned
+implementation turns them green; an unexpected pass fails CI until the test is
+reviewed and converted to a normal assertion. Integration tests cover Dask,
+FITS, and Rapthor boundaries. Equivalence tests
 compare small redistributable cases with frozen PyBDSF products. Acceptance
-tests describe Rapthor-facing behaviour. Qualification and benchmark tests
-require controlled resources or approved data and are never implied by the
-quick suite.
+tests describe Rapthor-facing behaviour. Qualification, benchmark, and
+scalability tests require controlled resources or approved data and are never
+implied by the quick suite.
 
 ## Develop test-first
 
@@ -34,6 +39,23 @@ oracle. PyBDSF products establish compatibility; they are not assumed to be
 scientific ground truth. Qualification datasets are held out from routine TDD
 and used only for milestone or release decisions.
 
+## Keep changes maintainable and reusable
+
+Start a vertical slice at the public behaviour, then keep scientific kernels
+independent of workflow and scheduler details. Pass I/O, execution, and
+configuration explicitly; put Rapthor/LSMTool names and product translations
+in the compatibility adapter.
+
+Prefer a function, dataclass, context manager, or narrow structural protocol
+to an inheritance hierarchy or generic plugin registry. Add a new extension
+seam only when a second implementation or workflow test demonstrates the
+variation. Run `just check` while iterating and preserve the branch-aware 80%
+coverage floor with meaningful normal, edge, and failure tests.
+
+Use the [quality attributes and coding principles](../explanation/quality-attributes.md)
+and [code review guide](https://github.com/gemmadanks/hebog/blob/main/CODE_REVIEW.md)
+for the complete requirements.
+
 ## Describe acceptance behaviour
 
 Use readable pytest scenarios for behaviour that crosses Hebog, materialised
@@ -44,13 +66,37 @@ domain experts will actively review or write feature files.
 ## Record a benchmark
 
 Benchmark runs must record the dataset identifier and checksum, Hebog,
-PyBDSF, and Rapthor revisions, dependency versions, configuration, worker
-topology, CPU allocation, wall and CPU time, peak resident memory, and Dask
-task/transfer/spill metrics.
+Rapthor, released PyBDSF, and PyBDSF `master` revisions, dependency versions,
+configuration, worker topology, CPU allocation, wall and CPU time, peak
+resident memory, and Dask task/transfer/spill metrics. Run the exact PyBDSF
+references in separate matched environments and report both comparisons; do
+not substitute `master` for Rapthor's released runtime.
 
 Use one warm-up and at least five measured repetitions. Store generated
 results under the ignored `benchmark-results/` directory and commit only small
 reviewed summaries with reproduction commands.
+
+Construct and write runs with `hebog.validation.evidence.BenchmarkEvidence`
+and `write_evidence`. Use `null` plus an explicit `unavailable_metrics` reason
+when instrumentation is genuinely unavailable; never substitute zero. Mark a
+document `reviewed` only when its protocol and environment have passed review.
+
+Use the complete frozen ladder in the
+[performance contract](../reference/performance-scalability-contracts.md),
+plus cases immediately below and above each observed executor, storage,
+partition, or batching crossover. Include
+empty or sparse, normal, and dense or extended workloads. Compare every size
+with the previous reviewed Hebog baseline and, wherever both references can
+run, with released PyBDSF and pinned PyBDSF `master`; never report only the
+most favourable size or execution mode.
+
+For a scalability run, additionally record the logical image and plane sizes,
+tile cores and stage-specific halos, partition count, storage layout, worker
+nodes and processes, node/worker RAM, admitted memory and reserved headroom,
+scheduler load, worker occupancy, boundary-summary and transfer volumes,
+spill, storage throughput, retries, and stragglers. Report
+the full 1/10/50/100/200-plus-node matrix, including strong- and weak-scaling
+efficiency; do not retain only the best topology.
 
 ## Work with notebooks
 

@@ -7,13 +7,29 @@
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
 
 Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
-Processor pipelines. It is being developed first as a faster, scientifically compatible replacement for the PyBDSF work performed by Rapthor's `filter_skymodel` step.
+Processor pipelines. It is being developed first as a faster, scientifically
+compatible replacement for the PyBDSF work performed by Rapthor's
+`filter_skymodel` step, while keeping the scientific API usable by other data
+pipelines and science workflows.
 
 The implementation is intentionally narrower than PyBDSF. It will reproduce
 the behaviour and materialised products that Rapthor consumes while targeting
 at least a 50% reduction in the median wall time of the complete
-`filter_skymodel` step. Scientific equivalence—not bitwise equality—is the
-acceptance criterion.
+`filter_skymodel` step relative to released PyBDSF, and a lower runtime than a
+pinned performance-improved PyBDSF `master` reference. Scientific
+equivalence—not bitwise equality—is the acceptance criterion.
+
+Those comparisons are minimum release gates, not the optimization target.
+Hebog aims to minimize complete latency and maximize useful throughput at
+every supported image size.
+
+Hebog is designed to scale out of core to 100,000-by-100,000-pixel images.
+Large planes are processed as deterministic haloed tiles with hierarchical
+boundary reconciliation, allowing an existing Dask cluster to distribute work
+across 100 to several hundred nodes without any worker holding a full plane.
+Production nodes are expected to have hundreds of GB of RAM; Hebog will use
+that capacity through resource-aware tile batching and caches while preserving
+bounded tasks and topology-independent results.
 
 See the [source-finder implementation plan](plans/source-finder-implementation.md)
 for the profiling evidence, scientific gates, dataset matrix, staged delivery,
@@ -37,12 +53,22 @@ algorithms are not implemented yet.
 - Materialise compatible catalogue, RMS-image, and mask products.
 - Provide the same scientific API for deterministic serial, local, and Dask
   execution.
+- Keep the scientific core independent of Rapthor, Prefect, LSMTool, and
+  concrete schedulers so other workflows can supply their own orchestration
+  and product adapters.
+- Process images up to 100,000 by 100,000 pixels out of core with
+  partition-invariant results and bounded per-worker memory.
+- Scale through Rapthor's existing Dask cluster to 100 and at least 200 worker
+  nodes without per-pixel or per-window tasks.
 - Integrate into Rapthor without its current PyBDSF fork-safety subprocess
   escape.
 - Demonstrate scientific equivalence with frozen PyBDSF products and injected
   truth before making performance claims.
-- Reduce matched median `filter_skymodel` wall time by at least 50% without an
-  unapproved memory regression.
+- Reduce matched median `filter_skymodel` wall time by at least 50% relative to
+  released PyBDSF, outperform pinned PyBDSF `master`, and avoid an unapproved
+  memory regression.
+- Maintain a size-stratified performance curve so large-image throughput is
+  not bought by silently regressing small-input latency, or vice versa.
 
 Complete compatibility with every PyBDSF option, polarization analysis not
 used by Rapthor, GPU execution, and undocumented PyBDSF defects are initially
@@ -96,6 +122,7 @@ just test-equivalence   # frozen PyBDSF comparisons
 just test-acceptance    # Rapthor-facing behaviour scenarios
 just test-qualification # held-out scientific validation
 just test-benchmark     # explicitly requested performance tests
+just test-scalability   # controlled large-image and multi-node scale tests
 just marimo-check       # validate Marimo notebooks
 just check              # format, lint, type, and quick tests
 just docs-build         # strict MkDocs build
@@ -124,7 +151,16 @@ reviewable, testable, and version controlled. Validate them with
 
 Scientific kernels operate on NumPy arrays and immutable configuration. An
 executor decides whether coarse batches run serially, in local threads, or on
-Dask workers.
+Dask workers. Its partition and batching planner selects the lowest-overhead
+valid plan for the admitted resources: small work can stay as one direct-I/O
+tile without Dask or chunk-store conversion, while larger work moves through
+local batching and distributed execution where measurements show a benefit.
+
+Image-sized kernels receive bounded tile cores, stage-specific read-only
+halos, and global coordinates. Boundary summaries and tree reductions
+reconcile statistics, connected labels, sources, and output chunks. A small
+image uses the same semantics as one tile; a large image never becomes one
+scheduler payload.
 
 ```text
 FITS input
@@ -138,6 +174,17 @@ FITS input
 The true-sky and flat-noise analyses are independent operations that join only
 when Rapthor applies the final sky-model filter. Intermediate file products are
 restartable, and scheduler payloads remain small.
+
+Dependencies point inward from workflow and compatibility adapters to the
+public pipeline and scientific core. Hebog favours Pythonic, typed, cohesive
+code and narrow demonstrated extension seams over framework-specific coupling
+or a speculative plugin system. See the
+[quality attributes and coding principles](docs/explanation/quality-attributes.md).
+
+Hebog does not currently need a project-owned C++ or Rust extension. The
+[native-code assessment](docs/explanation/native-code-assessment.md) keeps
+NumPy/SciPy and profiled Numba as the first choices, with quantitative gates
+for reconsidering Rust or C++ after end-to-end profiling.
 
 ## Repository layout
 
@@ -159,8 +206,9 @@ restartable, and scheduler payloads remain small.
 Use [Conventional Commits](https://www.conventionalcommits.org/) and follow
 [AGENTS.md](AGENTS.md). A scientific or performance change must include the
 relevant equivalence evidence; isolated kernel timings are not sufficient for
-an end-to-end speedup claim. Significant architectural decisions belong in an
-ADR under `docs/architecture/adr/`.
+an end-to-end speedup claim. Code must pass the configured Ruff, Pyright,
+coverage, and test gates. Significant architectural decisions belong in an ADR
+under `docs/architecture/adr/`.
 
 ## Citation and license
 

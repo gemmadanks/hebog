@@ -17,13 +17,13 @@ def test_dask_executor_matches_serial_executor() -> None:
     inputs = [3, 1, 2]
     expected = SerialExecutor().map_batches(_square, inputs)
 
-    with LocalCluster(
+    cluster = LocalCluster(
         n_workers=1,
         threads_per_worker=1,
         processes=False,
         dashboard_address="",
-    ) as cluster:
-        with Client(cluster) as client:
-            actual = DaskExecutor(client).map_batches(_square, inputs)
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(_square, inputs)
 
     assert actual == expected

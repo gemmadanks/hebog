@@ -4,8 +4,8 @@ This directory holds task-specific plans copied from the templates in
 [`PLAN.md`](../PLAN.md).
 
 The durable [source-finder implementation plan](source-finder-implementation.md)
-was ported from the predecessor scaffold and is the authoritative roadmap for
-scientific equivalence, performance, and Rapthor integration. The repository's
+is Hebog's authoritative roadmap for scientific equivalence, performance, and
+Rapthor integration. The repository's
 [`LOG.md`](../LOG.md) records material progress, evidence, deviations, and next
 steps while the plan remains focused on intended work and acceptance gates.
 

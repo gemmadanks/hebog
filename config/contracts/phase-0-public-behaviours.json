@@ -1,0 +1,77 @@
+{
+  "behaviours": [
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "valid-request-products",
+      "lane": "contract",
+      "scenario": "A valid request returns versioned catalogue, true-sky RMS, flat-noise RMS, mask, filtered sky-model, diagnostics, and timing paths without live scheduler or FITS objects.",
+      "test_id": "test_valid_request_materialises_versioned_products"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "empty-image-products",
+      "lane": "acceptance",
+      "scenario": "Given a valid empty image, source finding succeeds with zero sources and structurally valid empty products.",
+      "test_id": "test_empty_image_returns_compatible_products"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "invalid-metadata-failure",
+      "lane": "acceptance",
+      "scenario": "Given corrupt or unsupported beam, WCS, unit, or dimensional metadata, source finding fails before writing a successful result.",
+      "test_id": "test_invalid_metadata_fails_before_success"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "threshold-monotonicity",
+      "lane": "contract",
+      "scenario": "Increasing a detection or island threshold cannot create a new accepted source on the same finite input.",
+      "test_id": "test_threshold_increase_cannot_create_source"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "partition-invariance",
+      "lane": "contract",
+      "scenario": "Changing a valid tile shape, worker count, completion order, or batch size preserves source membership and product values within the serial tolerance.",
+      "test_id": "test_partition_choices_preserve_results"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "bounded-worker-memory",
+      "lane": "contract",
+      "scenario": "No worker materialises a complete large-image plane and admitted peak memory remains bounded by tile, halo, and batch metadata.",
+      "test_id": "test_large_request_respects_worker_memory_budget"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "restart-products",
+      "lane": "acceptance",
+      "scenario": "Given valid completed stage products, retry resumes without recomputing or publishing a partial replacement.",
+      "test_id": "test_retry_reuses_valid_stage_products"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "worker-retry",
+      "lane": "acceptance",
+      "scenario": "Given a retryable worker loss, idempotent chunks are retried and the final deterministic products match the no-failure run.",
+      "test_id": "test_worker_loss_preserves_final_products"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "rapthor-fallback",
+      "lane": "acceptance",
+      "scenario": "Given a Hebog failure behind the Rapthor feature flag, the workflow can select the pinned PyBDSF fallback without treating partial Hebog products as complete.",
+      "test_id": "test_rapthor_can_fallback_to_pybdsf"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "dual-run-report",
+      "lane": "acceptance",
+      "scenario": "Given dual-run mode, Hebog and PyBDSF products remain separate and produce a provenance-bound comparison report before either is selected.",
+      "test_id": "test_dual_run_keeps_products_and_reports_separate"
+    }
+  ],
+  "manifest_id": "phase-0-public-behaviours",
+  "schema_version": 1,
+  "status": "frozen-provisional"
+}

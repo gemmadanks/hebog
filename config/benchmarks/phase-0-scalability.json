@@ -1,0 +1,90 @@
+{
+  "candidate_tile_core_sizes": [
+    2048,
+    4096,
+    8192
+  ],
+  "contract_id": "phase-0-100k-scalability",
+  "input_planes": [
+    "flat-noise-intensity",
+    "true-sky-intensity"
+  ],
+  "logical_shape_yx": [
+    100000,
+    100000
+  ],
+  "maximum_graph_tasks": 50000,
+  "maximum_halo_fraction_of_core": 0.25,
+  "maximum_live_float32_plane_equivalents": 8,
+  "maximum_worker_peak_fraction": 0.75,
+  "node_gates": [
+    {
+      "maximum_runtime_seconds": 3600.0,
+      "maximum_scheduler_overhead_fraction": 0.1,
+      "minimum_strong_scaling_efficiency": null,
+      "minimum_weak_scaling_efficiency": null,
+      "minimum_worker_occupancy_fraction": 0.5,
+      "worker_nodes": 1
+    },
+    {
+      "maximum_runtime_seconds": 600.0,
+      "maximum_scheduler_overhead_fraction": 0.1,
+      "minimum_strong_scaling_efficiency": 0.7,
+      "minimum_weak_scaling_efficiency": 0.75,
+      "minimum_worker_occupancy_fraction": 0.65,
+      "worker_nodes": 10
+    },
+    {
+      "maximum_runtime_seconds": 180.0,
+      "maximum_scheduler_overhead_fraction": 0.1,
+      "minimum_strong_scaling_efficiency": 0.6,
+      "minimum_weak_scaling_efficiency": 0.72,
+      "minimum_worker_occupancy_fraction": 0.7,
+      "worker_nodes": 50
+    },
+    {
+      "maximum_runtime_seconds": 120.0,
+      "maximum_scheduler_overhead_fraction": 0.1,
+      "minimum_strong_scaling_efficiency": 0.5,
+      "minimum_weak_scaling_efficiency": 0.7,
+      "minimum_worker_occupancy_fraction": 0.7,
+      "worker_nodes": 100
+    },
+    {
+      "maximum_runtime_seconds": 90.0,
+      "maximum_scheduler_overhead_fraction": 0.1,
+      "minimum_strong_scaling_efficiency": 0.4,
+      "minimum_weak_scaling_efficiency": 0.65,
+      "minimum_worker_occupancy_fraction": 0.65,
+      "worker_nodes": 200
+    }
+  ],
+  "output_planes": [
+    "true-sky-rms",
+    "flat-noise-rms",
+    "source-filter-mask"
+  ],
+  "resource_profile": {
+    "concurrent_pipeline_reserve_bytes": 137438953472,
+    "dask_pause_fraction": 0.9,
+    "dask_spill_fraction": 0.8,
+    "dask_target_fraction": 0.7,
+    "dask_terminate_fraction": 0.95,
+    "node_memory_bytes": 549755813888,
+    "os_scheduler_headroom_bytes": 68719476736,
+    "spill_medium": "worker-local-nvme",
+    "threads_per_worker": 8,
+    "worker_memory_limit_bytes": 85899345920,
+    "workers_per_node": 4
+  },
+  "schema_version": 1,
+  "status": "frozen-provisional",
+  "storage": {
+    "input": "window-readable-fits-or-chunk-addressable",
+    "intermediate": "independently-retryable-chunks",
+    "normal_run_spill_fraction_limit": 0.05,
+    "output": "chunked-then-compatible-materialisation",
+    "shared_storage_identifier": "qualification-facility-parallel-storage"
+  },
+  "tile_batch_policy": "Choose the largest stage-valid tile batch whose pessimistic live buffers remain below 75% of the worker limit after executor and I/O reserves; reduce the batch before the scientific tile core, and never change ownership or results from resource choices."
+}

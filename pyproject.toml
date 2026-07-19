@@ -48,18 +48,29 @@ omit = [
     "conftest.py"
 ]
 
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
 testpaths = ["tests"]
 markers = [
     "acceptance: Rapthor-facing behaviour scenarios",
     "benchmark: performance regression and scaling tests",
+    "contract: scheduler-independent public behaviour and product contracts",
     "equivalence: scientific comparisons with PyBDSF reference products",
     "integration: Dask, FITS, and Rapthor integration tests",
     "qualification: held-out scientific validation for milestone and release gates",
     "requires_data: tests requiring external or non-redistributable datasets",
+    "scalability: controlled large-image and multi-node scaling tests",
     "slow: tests excluded from the fast development and pull-request suites",
 ]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
 
 [tool.ruff]
 line-length = 79
@@ -67,7 +78,21 @@ src = ["src", "tests"]
 extend-exclude = ["benchmark-results"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "PL"]
+select = [
+    "ARG",
+    "B",
+    "C4",
+    "C90",
+    "E",
+    "F",
+    "I",
+    "N",
+    "PERF",
+    "PL",
+    "RUF",
+    "SIM",
+    "W",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["hebog"]

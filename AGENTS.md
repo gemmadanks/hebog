@@ -8,8 +8,20 @@ Hebog is a Dask-aware radio-continuum source finder for SKA Science Data
 Processor pipelines. Its first production consumer is Rapthor's
 `filter_skymodel` step. The implementation is intentionally narrower than
 PyBDSF: reproduce the behaviour and products Rapthor uses, demonstrate
-scientific equivalence, and reduce the complete filter step's matched median
-wall time by at least 50%.
+scientific equivalence, reduce the complete filter step's matched median wall
+time by at least 50% relative to the released PyBDSF version used by Rapthor,
+and also outperform a pinned PyBDSF `master` reference. The architecture must
+scale out of core to 100,000-by-100,000 images and distribute work across 100
+to several hundred nodes through Rapthor's existing Dask cluster. Production
+nodes are expected to have hundreds of GB of RAM.
+
+The 50% reduction is a minimum release gate, not an optimization stopping
+point. Optimize complete latency and useful throughput across the supported
+size range, including small inputs where setup and scheduler overhead dominate.
+Maintainability, extensibility, and interoperability are also primary
+architecture qualities. Rapthor is the first production consumer, but the
+scientific library must remain usable from other data pipelines and science
+workflows without importing Rapthor, Prefect, or LSMTool.
 
 The durable
 [`plans/source-finder-implementation.md`](plans/source-finder-implementation.md)
@@ -61,7 +73,19 @@ Never hard-code those paths in package code or normal tests.
   comparison. Use the dataset matrix and metrics in the implementation plan.
 - Do not claim a speedup from isolated kernel timing alone. The primary
   performance gate is the median wall time of Rapthor's complete
-  `filter_skymodel` step.
+  `filter_skymodel` step against both the released PyBDSF version used by
+  Rapthor and the pinned performance-improved PyBDSF `master` reference.
+- Do not optimize one size tier by silently regressing another. Benchmark the
+  affected and adjacent anchors against the previous reviewed Hebog curve and
+  both sides of relevant crossovers; refresh the full frozen ladder at
+  milestone qualification.
+- Do not introduce an image-sized algorithm that requires a complete large
+  plane on one worker. A small image is one tile; large images use explicit
+  cores, stage-specific halos, bounded summaries, and hierarchical
+  reconciliation.
+- Do not create one Dask task per pixel, RMS window, or small island. Graph
+  size must scale with tiles and scientific stages, and reductions must remain
+  hierarchical rather than gathering image-sized state on the scheduler.
 - Do not weaken detection thresholds, skip extended-source processing, or
   silently change output semantics to meet a runtime target.
 - Do not use Python loops over pixels or RMS windows in production kernels.
@@ -89,11 +113,13 @@ Prefer the `just` recipes because they document the intended workflow:
 
 ```bash
 just test-unit          # fast deterministic tests
+just test-contract      # scheduler-independent public behaviour contracts
 just test-integration   # Dask and FITS integration tests
 just test-equivalence   # frozen PyBDSF comparisons
 just test-acceptance    # Rapthor-facing behaviour scenarios
 just test-qualification # held-out scientific cases on an approved data host
 just test-benchmark     # controlled performance runs
+just test-scalability   # controlled 100-to-200-plus-node scale runs
 just marimo-check       # validate Marimo notebooks
 just lint               # Ruff checks
 just format             # Ruff formatting
@@ -123,16 +149,41 @@ core runtime solely for tests.
   configuration in, arrays or records out.
 - Keep FITS, catalogue, Rapthor, and scheduler integration at explicit
   boundaries.
+- Dependencies point inward: algorithms and domain records know nothing about
+  orchestration frameworks, compatibility adapters, concrete schedulers, or
+  process-wide configuration. Adapters may depend on the stable scientific
+  API, never the reverse.
+- Keep library-module imports inert: they may define types and immutable
+  constants but must not read or write science/workflow data, inspect the
+  filesystem for work, change process state, access the network, create
+  clients or clusters, or submit computation. `__main__.py` is the explicit
+  CLI entry-point exception.
+- Importing `hebog` or `hebog.pipeline` must not eagerly import a concrete
+  scheduler. Optional executor implementations load only when a caller asks
+  for them.
 - Maintain `SerialExecutor` as the deterministic reference. Local and Dask
   executors must produce equivalent results.
-- Prefer coarse Dask batches whose execution time is measured in hundreds of
-  milliseconds or seconds. Never create one scheduler task per pixel, RMS
-  window, or small island.
+- Prefer coarse Dask batches that amortise scheduler and I/O overhead while
+  leaving enough runnable work for occupancy. Memory-rich scale runs may use
+  larger batches than local tests. Never create one scheduler task per pixel,
+  RMS window, or small island.
 - Let algorithms accept an executor rather than importing a global client. A
   Dask executor may receive an existing client, but scheduler objects must not
   enter public result records.
 - Read each image once where possible. Reuse background, RMS, convolution,
   WCS, and beam products across stages and wavelet scales.
+- Give every tile a deterministic non-overlapping output core, explicit global
+  coordinates, and the smallest reviewed halo required by its stage. Reconcile
+  labels, sources, and products independently of worker count and task order.
+- Keep large planes in bounded window-readable files or a chunk-addressable
+  store. Never publish a complete 100,000-by-100,000 plane to Dask.
+- Size tile batches and worker caches from admitted memory metadata. Exploit
+  memory-rich production nodes while reserving headroom for concurrent work;
+  do not hard-code one tiny tile size or let resource sizing change scientific
+  ownership and results.
+- Collapse bounded small work to the lowest-overhead one-tile plan. Avoid Dask
+  fan-out, chunk-store conversion, and repeated setup unless controlled
+  end-to-end measurements show a benefit.
 - Control array dtype and copies deliberately. A change from `float64` to
   `float32` requires scientific-equivalence evidence, not only a performance
   result.
@@ -154,6 +205,8 @@ bitwise equality with PyBDSF. Every algorithm milestone needs tests for:
 - extended and multiscale emission;
 - edge sources and non-square images;
 - different beams, WCS orientations, pixel scales, and image units.
+- sources and islands crossing tile edges and corners;
+- partition, tile-shape, worker-count, task-order, and retry invariance.
 
 Compare Dask results against the serial reference before comparing either with
 PyBDSF. Report low-SNR threshold crossings as completeness and reliability
@@ -168,13 +221,31 @@ Performance changes must record:
 - configuration and output mode;
 - worker count, threads per worker, CPU affinity, and memory limits;
 - wall time, CPU time, peak RSS, task count, and Dask transfer/spill metrics;
+- logical image and plane sizes, tile cores and halos, partition count,
+  boundary-summary volume, scheduler load, worker occupancy, storage
+  throughput, node/worker RAM and headroom, and strong/weak-scaling efficiency;
 - warm-up policy and every measured repetition.
 
+Serialize runs with the versioned models in `hebog.validation.evidence` under
+the ignored `benchmark-results/` directory or controlled external storage.
+Record unavailable instrumentation with an explicit reason, never a fabricated
+zero. Only label evidence `reviewed` after its protocol, environment, and
+scientific results have passed review.
+
 Use at least five measured repetitions after warm-up, compare medians, report
-dispersion, and retain machine-readable results. Avoid concurrent unrelated
-workloads. End-to-end speedups include FITS I/O, catalogue generation, Dask
-overhead, and Rapthor filtering. An optimization is acceptable only when the
-relevant scientific suite passes.
+dispersion, and retain machine-readable results. Benchmark exact released and
+`master` PyBDSF revisions in isolated, matched environments; never substitute
+one for the other. Avoid concurrent unrelated workloads. End-to-end speedups
+include FITS I/O, catalogue generation, Dask overhead, and Rapthor filtering.
+Performance claims must satisfy the confidence rule in the implementation
+plan. An optimization is acceptable only when the relevant scientific suite
+passes.
+
+The controlled performance matrix spans 256, 512, 1,024, 3,000, 8,000,
+10,000, 30,000, and 100,000 pixels per side, plus cases on both sides of every
+measured execution crossover. Exercise empty or sparse, normal, and dense or
+extended workloads. A statistically supported regression greater than 5% at
+any supported tier requires an explicitly approved and documented trade-off.
 
 ## Python conventions
 
@@ -185,6 +256,15 @@ relevant scientific suite passes.
 - Use four spaces, UTF-8, LF endings, a final newline, and type annotations for
   new or changed functions.
 - Ruff is the formatter and linter; Python line length is 79.
+- Prefer Python's standard protocols and data model: `pathlib.Path`, context
+  managers, iterators, comprehensions, dataclasses, and structural `Protocol`
+  types where they make ownership or extension seams clearer.
+- Use descriptive domain names from the glossary. Avoid unexplained
+  abbreviations, generic names such as `data` or `manager`, and boolean
+  arguments whose meaning is unclear at the call site.
+- Prefer composition and small functions over inheritance hierarchies. Do not
+  reproduce Java-style getters, service classes, factories, or interfaces
+  when a function, dataclass, callable, or protocol is sufficient.
 - Use immutable dataclasses for small public records where practical.
 - Follow Google-style docstrings. Python examples are collected as doctests
   and must remain valid.
@@ -193,19 +273,85 @@ relevant scientific suite passes.
 - Keep comments focused on numerical assumptions, units, array shape, halo
   requirements, and scheduler/resource constraints.
 
+## Code quality and reusable architecture
+
+- Treat readability, maintainability, extensibility, and testability as
+  acceptance requirements, not cleanup deferred until after performance work.
+- Keep modules cohesive and functions at one useful level of abstraction.
+  Refactor branching or parameter lists that obscure the scientific intent;
+  never split code only to satisfy a metric without improving the design.
+- Make dependencies, side effects, units, coordinate systems, array shapes,
+  mutability, ownership, and failure behaviour explicit. Avoid hidden global
+  state, import-time I/O, ambient scheduler clients, and environment-dependent
+  scientific behaviour.
+- Keep the scheduler-independent scientific API and internal domain schema
+  pipeline-neutral. Rapthor/LSMTool names, filtering rules, filenames, and
+  failure translations belong in a versioned compatibility adapter.
+- Add extension seams only at demonstrated variation points. Prefer a narrow
+  executor, image-source, product-sink, or compatibility protocol over a
+  generic plugin framework, registry, service locator, or conditional spread
+  across scientific modules.
+- Preserve substitutability: alternate executors, stores, and workflow
+  adapters must pass the same contract suite. A non-Rapthor workflow must be
+  able to use the public API and serial executor without its integration code
+  importing or constructing Dask, Prefect, LSMTool, or Rapthor objects.
+- Remove accidental duplication, but wait for a stable shared concept before
+  extracting an abstraction. A few explicit lines are preferable to a clever
+  generalized mechanism that hides scientific intent.
+- Keep public APIs deliberately small, typed, documented, and versioned.
+  Breaking schema or behavioural changes require migration notes; deprecations
+  need an executable test and a stated removal release.
+- Optimize only from profiles or scale evidence. Isolate unavoidable
+  low-level or compiled complexity behind a clear typed function, retain a
+  readable serial oracle, and document why the complexity is necessary.
+- All committed code must pass Ruff, Pyright, and the relevant tests. Maintain
+  at least 80% branch-aware project coverage and do not lower meaningful
+  coverage merely to satisfy the number; new behaviour still needs focused
+  normal, edge, and failure tests.
+
+## Native code
+
+- Do not introduce C++, Rust, Cython, or another compiled extension merely
+  because a kernel is numerical. Use NumPy/SciPy first and Numba for profiled
+  custom loops; follow the decision gate in the native-code assessment.
+- A native candidate must remain material after vectorization, copy removal,
+  batching, and Numba. Require the reviewed 10% profile, 2x kernel, and 5%
+  end-to-end gates unless native code instead unlocks a failed memory or
+  scalability requirement.
+- Prefer Rust with PyO3/maturin for a new self-contained kernel. Prefer C++
+  with pybind11 when wrapping a mature C/C++ library or when ecosystem and team
+  evidence makes it the lower-risk maintained choice. Record the selection in
+  an accepted ADR before production use.
+- Keep native boundaries small, typed, coarse-grained, and array-oriented.
+  Specify dtype, shape, strides, alignment, ownership, mutability, errors, and
+  whether a copy is permitted; never call native code once per pixel or source.
+- Release the Python interpreter during long native-only work. Obey executor
+  thread budgets and prevent OpenMP, Rayon, TBB, BLAS, or other internal pools
+  from oversubscribing a Dask worker.
+- Preserve the deterministic Python/Numba serial oracle. Require identical
+  scientific contract tests, no uncaught Rust panic or C++ exception, and
+  sanitizer, Miri, or equivalent memory/thread-safety evidence appropriate to
+  the selected implementation.
+- Do not make native code mandatory until prebuilt wheels, isolated install
+  tests, source builds, licensing/provenance review, and fallback behaviour pass
+  for every supported operating system, architecture, Python ABI, and NumPy
+  version. A supported user must not need a compiler for a normal install.
+- Keep FITS, WCS, schemas, configuration, adapters, workflow orchestration,
+  and Dask graph construction in Python.
+
 ## Tests
 
 - Place unit tests in `tests/unit/`, Dask/FITS boundary tests in
   `tests/integration/`, PyBDSF comparisons in `tests/equivalence/`,
-  Rapthor-facing scenarios in `tests/acceptance/`, and timing tests in
-  `tests/benchmark/`.
+  Rapthor-facing scenarios in `tests/acceptance/`, and timing and controlled
+  scalability tests in `tests/benchmark/`.
 - Use TDD for public contracts, pure scientific kernels, schemas, matching,
   error behaviour, and executor semantics: add a test that fails for the
   intended reason, implement the smallest serial behaviour, refactor, then add
   executor conformance and scientific comparisons.
 - Mark tests with `integration`, `equivalence`, `acceptance`, `qualification`,
-  `benchmark`, `slow`, and `requires_data` as applicable. Marker names are
-  strict.
+  `benchmark`, `scalability`, `slow`, and `requires_data` as applicable.
+  Marker names are strict.
 - Unit tests must not require a running scheduler, download data, or depend on
   execution order.
 - Use analytic truth before generated truth, the serial implementation before
@@ -213,6 +359,9 @@ relevant scientific suite passes.
   oracle. Test matchers and comparison reports independently.
 - Use property-based tests for numerical invariants and boundary combinations.
   Bound generated arrays and metadata to physically meaningful ranges.
+- Test one-tile versus many-tile equivalence on small analytic data before
+  using the controlled scalability lane. Put sources on every edge/corner
+  topology and vary partition origin, tile shape, completion order, and retry.
 - Give every dataset a `development`, `regression`, or `qualification` role.
   Do not tune with held-out qualification results. Store generator version and
   configuration as well as random seeds.

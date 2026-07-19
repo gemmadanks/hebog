@@ -1,0 +1,92 @@
+{
+  "datasets": [
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.5,
+        "minor_fwhm_pixels": 3.0,
+        "position_angle_degrees": 25.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0001,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.00025
+      },
+      "identifier": "synthetic-extreme-qualification-100000",
+      "provenance": "Defined and frozen by the Hebog Phase 0 validation-data contract; hold out from routine algorithm tuning.",
+      "purpose": "Extreme out-of-core qualification with compact and extended emission crossing multiple candidate tile boundaries and one image edge.",
+      "recipe": {
+        "background": 0.0001,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 1,
+        "noise_rms": 0.00025,
+        "seed": 2026071899,
+        "shape_yx": [
+          100000,
+          100000
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.3,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 20.0,
+            "x_pixel": 8192.0,
+            "y_pixel": 8192.0
+          },
+          {
+            "major_sigma_pixels": 10.0,
+            "minor_sigma_pixels": 4.0,
+            "peak_flux_jy_per_beam": 0.012,
+            "rotation_degrees_counterclockwise_from_x": 50.0,
+            "x_pixel": 32767.5,
+            "y_pixel": 32768.0
+          },
+          {
+            "major_sigma_pixels": 64.0,
+            "minor_sigma_pixels": 18.0,
+            "peak_flux_jy_per_beam": 0.03,
+            "rotation_degrees_counterclockwise_from_x": 75.0,
+            "x_pixel": 50000.0,
+            "y_pixel": 50000.0
+          },
+          {
+            "major_sigma_pixels": 4.0,
+            "minor_sigma_pixels": 2.0,
+            "peak_flux_jy_per_beam": 0.007,
+            "rotation_degrees_counterclockwise_from_x": 5.0,
+            "x_pixel": 65536.0,
+            "y_pixel": 65536.0
+          },
+          {
+            "major_sigma_pixels": 3.0,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.009,
+            "rotation_degrees_counterclockwise_from_x": 110.0,
+            "x_pixel": 99995.0,
+            "y_pixel": 75000.0
+          }
+        ]
+      },
+      "recipe_sha256": "57ffeb85d02cfaca4642573d4476f97a7d8ce84023b31ac7d20bc5d614b2e476",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0002777777777777778,
+          0.0002777777777777778
+        ],
+        "reference_pixel_xy": [
+          49999.5,
+          49999.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          -30.0
+        ]
+      }
+    }
+  ],
+  "manifest_id": "phase-0-qualification",
+  "schema_version": 1
+}

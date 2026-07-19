@@ -1,0 +1,130 @@
+{
+  "datasets": [
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.0,
+        "minor_fwhm_pixels": 3.0,
+        "position_angle_degrees": 0.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0
+      },
+      "identifier": "analytic-single-source-64",
+      "provenance": "Defined by the Hebog Phase 0 validation-data contract.",
+      "purpose": "Noiseless analytic Gaussian for source, coordinate, and flux unit tests.",
+      "recipe": {
+        "background": 0.0,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 1,
+        "noise_rms": 0.0,
+        "seed": 0,
+        "shape_yx": [
+          64,
+          64
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 1.5,
+            "minor_sigma_pixels": 1.0,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 0.0,
+            "x_pixel": 32.0,
+            "y_pixel": 32.0
+          }
+        ]
+      },
+      "recipe_sha256": "947b1c6c9f4d51ad8a32a8afa0150873672699bb0f59a4f0ab22c354b4e56ccb",
+      "redistribution": "generated-locally",
+      "role": "development",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0002777777777777778,
+          0.0002777777777777778
+        ],
+        "reference_pixel_xy": [
+          31.5,
+          31.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          -30.0
+        ]
+      }
+    },
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.0,
+        "minor_fwhm_pixels": 3.0,
+        "position_angle_degrees": 15.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.001,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "synthetic-compact-field-128",
+      "provenance": "Defined by the Hebog Phase 0 validation-data contract.",
+      "purpose": "Seeded compact-source field for deterministic development and partition tests.",
+      "recipe": {
+        "background": 0.001,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 1,
+        "noise_rms": 0.0002,
+        "seed": 20260718,
+        "shape_yx": [
+          128,
+          128
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 1.5,
+            "minor_sigma_pixels": 1.0,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 20.0,
+            "x_pixel": 31.5,
+            "y_pixel": 47.0
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 45.0,
+            "x_pixel": 64.0,
+            "y_pixel": 64.0
+          },
+          {
+            "major_sigma_pixels": 1.0,
+            "minor_sigma_pixels": 1.0,
+            "peak_flux_jy_per_beam": 0.001,
+            "rotation_degrees_counterclockwise_from_x": 0.0,
+            "x_pixel": 95.0,
+            "y_pixel": 80.5
+          }
+        ]
+      },
+      "recipe_sha256": "4ef6490e592a4ef571d6ef2d324c702ab1322b399ba35f5aa1e0f5768aea2e88",
+      "redistribution": "generated-locally",
+      "role": "development",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0002777777777777778,
+          0.0002777777777777778
+        ],
+        "reference_pixel_xy": [
+          63.5,
+          63.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          -30.0
+        ]
+      }
+    }
+  ],
+  "manifest_id": "phase-0-development",
+  "schema_version": 1
+}
