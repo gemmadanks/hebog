@@ -524,7 +524,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=8.0.1,<9" },
-    { name = "dask", extras = ["array", "distributed"], specifier = ">=2025.1,<2027" },
+    { name = "dask", extras = ["array", "distributed"], specifier = ">=2026.7.1,<2027" },
     { name = "numba", specifier = ">=0.61,<1" },
     { name = "numpy", specifier = ">=1.26,<3" },
     { name = "pydantic", specifier = ">=2.10,<3" },
