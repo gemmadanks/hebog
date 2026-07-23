@@ -30,7 +30,7 @@ dev = [
     "pyright>=1.1.411,<2.0.0",
     "pytest-cov>=7.1.0,<8.0.0",
     "pytest-mock>=3.15,<4",
-    "hypothesis>=6,<7",
+    "hypothesis>=6.161.1,<7",
 ]
 
 docs = [
