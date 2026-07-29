@@ -22,7 +22,7 @@ hebog = "hebog.cli:main"
 
 [dependency-groups]
 dev = [
-    "marimo>=0.23.14",
+    "marimo>=0.23.15",
     "pytest>=9.1.1,<10.0.0",
     "pytest-benchmark>=5.1,<6",
     "ruff>=0.15.22,<0.16.0",
