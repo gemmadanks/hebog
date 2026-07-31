@@ -1,6 +1,6 @@
 {
   "availability": "local-only",
-  "content_sha256": "b77da6dbd12c4fa059395de4bfd0270f642464e6b1e658e2598f2a2cde45e9e5",
+  "content_sha256": "59fff08e164c6e30b8dfcc70f1f4f55f06ab2547a62032f289a172f5a40d6569",
   "dataset_id": "rapthor-representative-3000",
   "inputs": {
     "apparent_skymodel": {
@@ -11,7 +11,7 @@
     "beam_ms_0": {
       "format": "CASA Measurement Set directory tree",
       "identifier": "prefect-demo-rich-ms",
-      "sha256": "f00ca5bb2f6cf53896839d168ce71d1b09de5f6134f3d28732e88a98035ae00d"
+      "sha256": "e3ca488a860454bd9bfdd114a6ac93a45993e3dd3a5bb385fcb6e523a664626b"
     },
     "flat_noise_image": {
       "format": "FITS",
@@ -50,6 +50,6 @@
     3000,
     3000
   ],
-  "tree_hash_algorithm": "SHA-256 over sorted relative file names and file bytes separated by NUL",
+  "tree_hash_algorithm": "SHA-256 over sorted relative file names and file bytes separated by NUL; mutable CASA table.lock files excluded",
   "workload_class": "normal"
 }

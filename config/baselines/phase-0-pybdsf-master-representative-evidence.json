@@ -1,8 +1,8 @@
 {
-  "captured_at": "2026-07-18T21:15:35.277132Z",
-  "configuration_sha256": "2148ceabc96a9207d1ad2b086ab4514c54a69f673ecebb7b061a6deddf097c1a",
+  "captured_at": "2026-07-31T10:56:28.279801Z",
+  "configuration_sha256": "8bf63e5f39159595b8ed20c4e0fe03da55bbed6a94d4ac27678aa22f41ac11f9",
   "dataset": {
-    "content_sha256": "b77da6dbd12c4fa059395de4bfd0270f642464e6b1e658e2598f2a2cde45e9e5",
+    "content_sha256": "59fff08e164c6e30b8dfcc70f1f4f55f06ab2547a62032f289a172f5a40d6569",
     "identifier": "rapthor-representative-3000",
     "role": "regression",
     "shape_yx": [
@@ -18,9 +18,9 @@
       "complete": {
         "array_copy_bytes": null,
         "array_copy_count": null,
-        "cpu_seconds": 124.388337,
+        "cpu_seconds": 121.35286599999999,
         "dask_task_count": 0,
-        "peak_rss_bytes": 1302687744,
+        "peak_rss_bytes": 1295990784,
         "spill_bytes": 0,
         "transfer_bytes": 0,
         "unavailable_metrics": [
@@ -33,7 +33,7 @@
             "reason": "external PyBDSF does not expose array-copy instrumentation"
           }
         ],
-        "wall_seconds": 44.481294596000225
+        "wall_seconds": 42.997535343999516
       },
       "repetition_index": 0,
       "stages": [
@@ -41,9 +41,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 83.70816300000001,
+            "cpu_seconds": 83.430891,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1302687744,
+            "peak_rss_bytes": 1295990784,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -56,7 +56,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 30.72467705800227
+            "wall_seconds": 30.56198607999977
           },
           "stage": "true-sky-pybdsf"
         },
@@ -64,9 +64,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 40.28077299999999,
+            "cpu_seconds": 37.59103,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1302687744,
+            "peak_rss_bytes": 1295990784,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -79,7 +79,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 13.338747293004417
+            "wall_seconds": 12.076425123000263
           },
           "stage": "flat-noise-pybdsf"
         }
@@ -90,9 +90,9 @@
       "complete": {
         "array_copy_bytes": null,
         "array_copy_count": null,
-        "cpu_seconds": 126.077633,
+        "cpu_seconds": 120.09031900000001,
         "dask_task_count": 0,
-        "peak_rss_bytes": 1297313792,
+        "peak_rss_bytes": 1297588224,
         "spill_bytes": 0,
         "transfer_bytes": 0,
         "unavailable_metrics": [
@@ -105,7 +105,7 @@
             "reason": "external PyBDSF does not expose array-copy instrumentation"
           }
         ],
-        "wall_seconds": 45.21159153699409
+        "wall_seconds": 42.52679917500063
       },
       "repetition_index": 1,
       "stages": [
@@ -113,9 +113,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 86.30563200000002,
+            "cpu_seconds": 82.762764,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1297313792,
+            "peak_rss_bytes": 1297588224,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -128,7 +128,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 31.85977988200466
+            "wall_seconds": 30.304548045000047
           },
           "stage": "true-sky-pybdsf"
         },
@@ -136,9 +136,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 39.40564699999999,
+            "cpu_seconds": 37.01235400000001,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1297313792,
+            "peak_rss_bytes": 1297588224,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -151,7 +151,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 12.965530000001309
+            "wall_seconds": 11.867264284000157
           },
           "stage": "flat-noise-pybdsf"
         }
@@ -162,9 +162,9 @@
       "complete": {
         "array_copy_bytes": null,
         "array_copy_count": null,
-        "cpu_seconds": 125.351576,
+        "cpu_seconds": 119.811622,
         "dask_task_count": 0,
-        "peak_rss_bytes": 1299279872,
+        "peak_rss_bytes": 1302560768,
         "spill_bytes": 0,
         "transfer_bytes": 0,
         "unavailable_metrics": [
@@ -177,7 +177,7 @@
             "reason": "external PyBDSF does not expose array-copy instrumentation"
           }
         ],
-        "wall_seconds": 45.01503529599722
+        "wall_seconds": 42.47874022800079
       },
       "repetition_index": 2,
       "stages": [
@@ -185,9 +185,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 85.85448699999999,
+            "cpu_seconds": 82.599903,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1299279872,
+            "peak_rss_bytes": 1302560768,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -200,7 +200,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 31.83382107900252
+            "wall_seconds": 30.201037187999646
           },
           "stage": "true-sky-pybdsf"
         },
@@ -208,9 +208,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 39.131434000000006,
+            "cpu_seconds": 36.89609799999999,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1299279872,
+            "peak_rss_bytes": 1302560768,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -223,7 +223,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 12.777955123994616
+            "wall_seconds": 11.938818786999946
           },
           "stage": "flat-noise-pybdsf"
         }
@@ -234,9 +234,9 @@
       "complete": {
         "array_copy_bytes": null,
         "array_copy_count": null,
-        "cpu_seconds": 125.409075,
+        "cpu_seconds": 119.13088499999999,
         "dask_task_count": 0,
-        "peak_rss_bytes": 1303146496,
+        "peak_rss_bytes": 1290858496,
         "spill_bytes": 0,
         "transfer_bytes": 0,
         "unavailable_metrics": [
@@ -249,7 +249,7 @@
             "reason": "external PyBDSF does not expose array-copy instrumentation"
           }
         ],
-        "wall_seconds": 45.130180335996556
+        "wall_seconds": 42.256510088999676
       },
       "repetition_index": 3,
       "stages": [
@@ -257,9 +257,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 86.417733,
+            "cpu_seconds": 81.99019,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1303146496,
+            "peak_rss_bytes": 1290858496,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -272,7 +272,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 32.04301243000373
+            "wall_seconds": 30.0297163310006
           },
           "stage": "true-sky-pybdsf"
         },
@@ -280,9 +280,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 38.612367,
+            "cpu_seconds": 36.820697,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1303146496,
+            "peak_rss_bytes": 1290858496,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -295,7 +295,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 12.694156924997515
+            "wall_seconds": 11.883337127000232
           },
           "stage": "flat-noise-pybdsf"
         }
@@ -306,9 +306,9 @@
       "complete": {
         "array_copy_bytes": null,
         "array_copy_count": null,
-        "cpu_seconds": 123.912168,
+        "cpu_seconds": 120.47357799999999,
         "dask_task_count": 0,
-        "peak_rss_bytes": 1300037632,
+        "peak_rss_bytes": 1300848640,
         "spill_bytes": 0,
         "transfer_bytes": 0,
         "unavailable_metrics": [
@@ -321,7 +321,7 @@
             "reason": "external PyBDSF does not expose array-copy instrumentation"
           }
         ],
-        "wall_seconds": 44.48367584399966
+        "wall_seconds": 42.84180778799964
       },
       "repetition_index": 4,
       "stages": [
@@ -329,9 +329,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 86.41771599999998,
+            "cpu_seconds": 82.771417,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1300037632,
+            "peak_rss_bytes": 1300848640,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -344,7 +344,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 32.1016154070021
+            "wall_seconds": 30.343979027000387
           },
           "stage": "true-sky-pybdsf"
         },
@@ -352,9 +352,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 37.146876000000006,
+            "cpu_seconds": 37.36920300000001,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1300037632,
+            "peak_rss_bytes": 1300848640,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -367,7 +367,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 12.013019888996496
+            "wall_seconds": 12.121012650999546
           },
           "stage": "flat-noise-pybdsf"
         }
@@ -378,9 +378,9 @@
       "complete": {
         "array_copy_bytes": null,
         "array_copy_count": null,
-        "cpu_seconds": 120.03129500000001,
+        "cpu_seconds": 121.27633799999998,
         "dask_task_count": 0,
-        "peak_rss_bytes": 1295806464,
+        "peak_rss_bytes": 1301356544,
         "spill_bytes": 0,
         "transfer_bytes": 0,
         "unavailable_metrics": [
@@ -393,7 +393,7 @@
             "reason": "external PyBDSF does not expose array-copy instrumentation"
           }
         ],
-        "wall_seconds": 42.3598321150057
+        "wall_seconds": 43.018546355999206
       },
       "repetition_index": 5,
       "stages": [
@@ -401,9 +401,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 81.947979,
+            "cpu_seconds": 83.18912399999999,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1295806464,
+            "peak_rss_bytes": 1301356544,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -416,7 +416,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 29.79115413499676
+            "wall_seconds": 30.45818076500018
           },
           "stage": "true-sky-pybdsf"
         },
@@ -424,9 +424,9 @@
           "metrics": {
             "array_copy_bytes": null,
             "array_copy_count": null,
-            "cpu_seconds": 37.752390000000005,
+            "cpu_seconds": 37.76299900000001,
             "dask_task_count": 0,
-            "peak_rss_bytes": 1295806464,
+            "peak_rss_bytes": 1301356544,
             "spill_bytes": 0,
             "transfer_bytes": 0,
             "unavailable_metrics": [
@@ -439,7 +439,7 @@
                 "reason": "external PyBDSF does not expose array-copy instrumentation"
               }
             ],
-            "wall_seconds": 12.22110853200138
+            "wall_seconds": 12.19460473899926
           },
           "stage": "flat-noise-pybdsf"
         }

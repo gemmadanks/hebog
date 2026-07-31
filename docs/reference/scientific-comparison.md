@@ -63,6 +63,12 @@ Future Hebog/reference documents use the same typed reports. Per-source-class
 stratification begins with later algorithm/regression slices; it must not
 change these core calculations.
 
+The corrected representative `5.0/3.0` campaigns produce 12 released-PyBDSF
+source rows and 14 pinned-master rows. They are not yet frozen as a row-level
+comparison because the controlled 3,000-square input is restricted. That
+count difference is an explicit reference divergence to resolve against
+governed truth, not by selecting either PyBDSF version as authoritative.
+
 ::: hebog.validation.comparison
     options:
       show_symbol_type_toc: true

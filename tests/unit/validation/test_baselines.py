@@ -133,7 +133,17 @@ def _write_campaign(directory: Path) -> None:
             "flat_noise_image": "b" * 64,
             "true_sky_image": "b" * 64,
         },
+        "lsmtool_checkout": {
+            "branch": "pinned-lsmtool",
+            "commit": "d" * 40,
+            "working_tree": "clean",
+        },
         "ncores": 4,
+        "rapthor_checkout": {
+            "branch": "pinned-rapthor",
+            "commit": "e" * 40,
+            "working_tree": "clean",
+        },
         "reference": "release",
         "repetitions": 5,
         "runs": run_paths,
@@ -142,6 +152,12 @@ def _write_campaign(directory: Path) -> None:
             "apparent_sky.txt": "history comments excluded",
             "true_sky.txt": "history comments excluded",
         },
+        "tool_sha256": {
+            "campaign_runner": "c" * 64,
+            "evidence_compiler": "d" * 64,
+            "reference_runner": "e" * 64,
+        },
+        "tree_hash_exclusions": ["table.lock"],
         "warmups": 1,
     }
     (directory / "baseline-index.json").write_text(
@@ -260,3 +276,44 @@ def test_phase_zero_starting_inventory_captures_runtime() -> None:
     assert inventory["master_wheel"]["sha256"] == (
         "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d"
     )
+
+
+def test_phase_zero_reference_environments_bind_tools_and_packages() -> None:
+    """Corrected baselines retain durable sanitized runtime provenance."""
+    root = Path(__file__).parents[3]
+    record = json.loads(
+        (
+            root
+            / "config"
+            / "baselines"
+            / "phase-0-reference-environments.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert record["configuration"]["threshold_pixel_sigma"] == 5.0
+    assert record["configuration"]["threshold_island_sigma"] == 3.0
+    assert record["lsmtool_checkout"]["commit"] == (
+        "3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a"
+    )
+    expected_tools = {
+        "campaign_runner": "run_phase0_pybdsf_baseline.py",
+        "evidence_compiler": "compile_phase0_pybdsf_evidence.py",
+        "reference_runner": "pybdsf_reference_run.py",
+    }
+    for name, filename in expected_tools.items():
+        path = root / "scripts" / "benchmark" / filename
+        assert (
+            hashlib.sha256(path.read_bytes()).hexdigest()
+            == record["tool_sha256"][name]
+        )
+    release_packages = record["environments"]["release"][
+        "installed_distributions"
+    ]
+    master_packages = record["environments"]["master"][
+        "installed_distributions"
+    ]
+    assert {"name": "bdsf", "version": "1.14.1"} in release_packages
+    assert {
+        "name": "bdsf",
+        "version": "1.14.2.dev40+gc70103be3",
+    } in master_packages

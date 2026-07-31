@@ -31,4 +31,6 @@ Rapthor-facing products from released PyBDSF 1.14.1 and pinned PyBDSF master.
 its checksum, exact configuration, dependency inventory, container digest,
 and reviewed benchmark run. Regenerate them only with
 `scripts/validation/freeze_reference_products.py` after rerunning and
-reviewing both isolated campaigns.
+reviewing both isolated campaigns. The freezer fails closed when an artifact
+already exists; replacing a reviewed reference requires the explicit
+`--replace-existing` option and a fresh review of every resulting checksum.
