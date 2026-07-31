@@ -53,6 +53,11 @@ Never hard-code those paths in package code or normal tests.
   after editing, and do not revert changes you did not make.
 - Follow the existing structure and naming conventions instead of introducing
   a second tool or parallel configuration.
+- Prefer established standards, standard-library facilities, and mature,
+  actively maintained libraries over custom infrastructure or algorithms when
+  they satisfy Hebog's requirements. Evaluate reuse before implementing a
+  significant storage format, serializer, scheduler primitive, protocol,
+  numerical utility, or other generally available capability.
 - Add or update tests when behaviour changes. Update user-facing documentation
   when public APIs, setup steps, output schemas, or workflows change.
 - Use the lightest planning level in `PLAN.md`; keep the source-finder plan
@@ -401,6 +406,16 @@ any supported tier requires an explicitly approved and documented trade-off.
 
 ## Dependencies and lockfiles
 
+- Reuse is not automatic dependency approval. Before adding a library, assess
+  scientific semantics, performance and memory behaviour, scalability,
+  platform and Python support, maintenance health, security, licence,
+  interoperability, package and worker-image cost, and whether the existing
+  dependency set or standard library already provides the capability.
+- Write custom code only when established options fail a concrete requirement
+  or a small implementation is materially clearer and lower risk than a new
+  dependency. Record the comparison and reason in the implementation plan,
+  `LOG.md`, or an ADR in proportion to the decision's significance, and hide
+  unavoidable custom infrastructure behind a narrow tested boundary.
 - Declare dependencies in `pyproject.toml`; do not add `requirements.txt`,
   Poetry, or another environment manager.
 - Use `uv add <package>` for runtime dependencies, `uv add --dev <package>` for
