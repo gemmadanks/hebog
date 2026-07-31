@@ -150,7 +150,7 @@ meaningful alternatives and trade-offs.]
 ### Expected files or components
 
 - `[path/to/file]` — [expected change]
-- `[path/to/test]` — [expected coverage]
+- `[path/to/test]` — [intended red failure and behaviour/branches covered]
 - `[path/to/docs]` — [expected documentation change]
 
 ## Execution
@@ -162,10 +162,11 @@ completed step should leave evidence.
 | --- | --- | --- | --- | --- |
 | 1 | Confirm current behavior and constraints | Agent | `not started` | [Findings or reproduction] |
 | 2 | Resolve outcome-changing questions | Human + Agent | `not started` | [Recorded decisions] |
-| 3 | Implement the smallest coherent change | Agent | `not started` | [Files or commit] |
-| 4 | Add or update tests and documentation | Agent | `not started` | [Tests/docs changed] |
-| 5 | Validate and review the diff | Agent | `not started` | [Commands and results] |
-| 6 | Review against success criteria | Human | `not started` | [Approval or feedback] |
+| 3 | Write the smallest behavioural test and confirm the intended red result | Agent | `not started` | [Test and observed failure] |
+| 4 | Implement the smallest coherent change that makes the test pass | Agent | `not started` | [Green test and files] |
+| 5 | Refactor and update documentation while tests remain green | Agent | `not started` | [Tests/docs changed] |
+| 6 | Validate coverage and review the complete diff | Agent | `not started` | [Coverage/check commands and results] |
+| 7 | Review against success criteria | Human | `not started` | [Approval or feedback] |
 
 ## Checkpoints and risks
 
@@ -188,6 +189,8 @@ needed.
 Map validation directly to the success criteria and `AGENTS.md`.
 
 - `[focused test command]` — [behavior covered]
+- `just coverage` — [project percentage, changed-file branch coverage, and any
+  approved patch-coverage exception]
 - `[lint/type-check command]` — [quality covered]
 - `[broader test/build command]` — [integration covered]
 - [Manual or environment-specific check]
@@ -195,7 +198,11 @@ Map validation directly to the success criteria and `AGENTS.md`.
 Before handoff, confirm:
 
 - [ ] Every success criterion has evidence.
+- [ ] Behavioural changes followed red-green-refactor, or the recorded
+      test-first exception is justified.
 - [ ] Relevant tests, checks, documentation, and builds pass.
+- [ ] Project coverage did not fall and changed production lines and branches
+      satisfy the patch-coverage gate, with no coverage gaming.
 - [ ] The diff contains no unrelated changes or generated artifacts.
 - [ ] Known limitations and checks not run are documented.
 

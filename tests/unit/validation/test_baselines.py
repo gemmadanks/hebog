@@ -223,6 +223,36 @@ def test_compile_pybdsf_campaign_rejects_protocol_drift(
         _compile(tmp_path)
 
 
+def test_compile_pybdsf_campaign_requires_complete_tool_identity(
+    tmp_path: Path,
+) -> None:
+    """Every provenance-critical baseline tool must be identified."""
+    _write_campaign(tmp_path)
+    index_path = tmp_path / "baseline-index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    del index["tool_sha256"]["reference_runner"]
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="tool SHA-256 set is incomplete"):
+        _compile(tmp_path)
+
+
+@pytest.mark.parametrize("digest", ["a" * 63, "g" * 64])
+def test_compile_pybdsf_campaign_rejects_invalid_tool_digest(
+    tmp_path: Path,
+    digest: str,
+) -> None:
+    """Baseline tool identities must be complete lowercase SHA-256 values."""
+    _write_campaign(tmp_path)
+    index_path = tmp_path / "baseline-index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    index["tool_sha256"]["campaign_runner"] = digest
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="tool SHA-256 is invalid"):
+        _compile(tmp_path)
+
+
 def test_phase_zero_representative_inventory_matches_evidence() -> None:
     """Every restricted representative input is bound to reviewed evidence."""
     root = Path(__file__).parents[3]
