@@ -1232,3 +1232,37 @@ applicable zeroes for these single-process reference runs.
   empty and populated round-trip tests.
 - Measure bounded FITS reads and avoidable copies across the small-image
   crossover anchors.
+
+## 2026-07-31 — Repaired cross-platform and equivalence CI
+
+**Plan phase:** Phase 0 maintenance during Phase 1
+
+**Completed**
+
+- Limited the reference-runner configuration test to platforms that provide
+  the POSIX-only `resource` instrumentation used by its Linux container, so
+  Windows does not import an execution script that it cannot run.
+- Preserved the benchmark runner byte-for-byte because its SHA-256 is part of
+  the reviewed Phase 0 campaign provenance.
+- Restored both compact diagnostics fixtures byte-for-byte from measured
+  repetition 1 of the reviewed 5/3 release and master campaigns. The Phase 0
+  merge had updated their governed manifest to the new 15-byte artifact and
+  checksum but retained the older 20-byte pretty-printed files.
+
+**Evidence**
+
+- The test now reports an intentional platform skip when `resource` is
+  unavailable and continues to exercise the explicit 5/3 configuration on
+  supported systems.
+- The reference runner retains its governed SHA-256
+  `61d72af98fe00e44fce59ae20032d467e9fcb3b1fcf91afa2ebb126b7dafbea7`.
+- Both restored diagnostics files are 15 bytes with SHA-256
+  `32228968d2f89325f36d21b883fc3e555e1278c14685fe6db8b9983109c9ce59`,
+  exactly matching the governed product manifest and the retained reviewed
+  campaign artifacts.
+- The focused baseline-script tests and the complete equivalence lane pass.
+
+**Next**
+
+- Resume Phase 1 product-sink and retryable materialisation work after the
+  CI-fix commit is reviewed.
