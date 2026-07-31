@@ -161,9 +161,11 @@ reviewable, testable, and version controlled. Validate them with
 Scientific kernels operate on NumPy arrays and immutable configuration. An
 executor decides whether coarse batches run serially, in local threads, or on
 Dask workers. Its partition and batching planner selects the lowest-overhead
-valid plan for the admitted resources: small work can stay as one direct-I/O
-tile without Dask or chunk-store conversion, while larger work moves through
-local batching and distributed execution where measurements show a benefit.
+valid plan for the admitted resources: small work stays as one Zarr-backed
+tile without Dask, while larger work moves through local batching and
+distributed execution where measurements show a benefit. Zarr is the single
+intermediate image-plane backend; FITS is used at input and final compatibility
+boundaries.
 
 Image-sized kernels receive bounded tile cores, stage-specific read-only
 halos, and global coordinates. Boundary summaries and tree reductions

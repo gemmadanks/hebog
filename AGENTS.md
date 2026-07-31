@@ -191,9 +191,10 @@ core runtime solely for tests.
   memory-rich production nodes while reserving headroom for concurrent work;
   do not hard-code one tiny tile size or let resource sizing change scientific
   ownership and results.
-- Collapse bounded small work to the lowest-overhead one-tile plan. Avoid Dask
-  fan-out, chunk-store conversion, and repeated setup unless controlled
-  end-to-end measurements show a benefit.
+- Use Zarr as the sole backend for intermediate image planes. Bounded small
+  work uses one Zarr chunk and serial execution; reduce Zarr initialization,
+  codec, and materialisation overhead instead of adding another intermediate
+  backend. FITS remains an ingress and final compatibility format.
 - Control array dtype and copies deliberately. A change from `float64` to
   `float32` requires scientific-equivalence evidence, not only a performance
   result.

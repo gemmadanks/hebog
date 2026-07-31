@@ -385,11 +385,11 @@ considered only after the corresponding scientific suite passes.
 
 Benchmark serial, local, and existing-client Dask execution around every
 crossover that fits the available resources. Small inputs must avoid
-unnecessary distributed fan-out, chunk-store conversion, and repeated startup;
-large inputs must not stay local after distribution provides a measured
-benefit. The caller still supplies the executor under the public API; the
-executor's partition and batching planner selects the lowest-overhead valid
-graph for its admitted resources.
+unnecessary distributed fan-out and repeated startup; they still use the sole
+Zarr intermediate backend as one chunk. Large inputs must not stay local after
+distribution provides a measured benefit. The caller still supplies the
+executor under the public API; the executor's partition and batching planner
+selects the lowest-overhead valid graph for its admitted resources.
 
 ## 8. Target architecture
 
@@ -433,31 +433,29 @@ chunk-addressable store, never as one scheduler payload.
 
 ### 8.1 Intermediate storage and materialisation decision gate
 
-Do not implement a private array-storage format when a maintained standard
-meets the scientific, restart, interoperability, and performance gates. Treat
-the Phase 1 NumPy-file/hard-link `FilesystemProductSink` as a behavioural
-prototype and readable serial oracle, not the selected production backend.
-Preserve its storage-neutral tests for atomic visibility, idempotent retries,
-conflict detection, checksums, bounded memory, and path-only result records.
-
-[Zarr v3](https://zarr.readthedocs.io/en/stable/) is the preferred candidate
-for intermediate image planes. It has independent multidimensional chunks,
+[Zarr v3](https://zarr.readthedocs.io/en/stable/) is Hebog's single backend for
+intermediate image planes. It provides independent multidimensional chunks,
 local and remote stores, codec pipelines, checksum codecs, and direct
 [Dask array integration](https://docs.dask.org/en/stable/generated/dask.array.to_zarr.html).
-Its documented parallel-write model is compatible with Hebog only when each
-worker writes different complete chunks, the Dask and storage chunks are
-aligned, and the selected backend provides atomic writes. Hebog's canonical
-tile ownership must enforce those conditions; overlapping chunk writes require
-explicit coordination rather than relying on Zarr to resolve them.
+Do not introduce a private NumPy-file store, direct-FITS intermediate path, or
+size-based storage switch. Small work uses one Zarr chunk and serial execution;
+FITS remains an input and final compatibility format.
 
-[ADR-007](../docs/architecture/adr/007-use-a-gated-zarr-intermediate-store.md)
-accepts Zarr as a gated distributed-store candidate, not an unconditional
-default. The measured 1024² and 3000² local probes retained the NumPy-file
-oracle because Zarr was respectively 1.75 and 1.42 times slower end to end,
-although the relative overhead narrowed and the encoded footprint was modestly
-smaller. Keep `zarr>=3.1.6,<3.2` while Python 3.11 remains supported; the 3.1
-adapter distinguishes missing chunks through the configured standard v3 key
-because the 3.2 strict-read option is unavailable on Python 3.11.
+[ADR-007](../docs/architecture/adr/007-use-zarr-for-intermediate-image-storage.md)
+accepts the measured simplicity trade-off. Exploratory local probes found Zarr
+1.75 and 1.42 times slower than the removed NumPy-file prototype at 1024² and
+3000², respectively, with modestly smaller encoded footprints. Optimize Zarr
+initialization, codecs, concurrency, ingestion, and materialisation rather than
+maintaining a second record, error model, retry path, and test suite. Keep
+`zarr>=3.1.6,<3.2` while Python 3.11 remains supported; the adapter checks the
+configured standard v3 key because the 3.2 strict-read option is unavailable
+on Python 3.11.
+
+Zarr's parallel-write model is compatible with Hebog only when each worker
+writes different complete chunks, execution and storage chunks are aligned,
+and the selected store provides the required atomicity. Canonical tile
+ownership must enforce those conditions. Overlapping writes require explicit
+reconciliation rather than relying on Zarr to resolve them.
 
 Zarr remains a storage mechanism rather than the scientific transaction or
 domain model. Hebog must still own:
@@ -474,9 +472,7 @@ domain model. Hebog must still own:
 - streaming compatibility materialisation to FITS, LSMTool, or another
   workflow-facing format.
 
-Before another Phase 1 schema depends on a concrete storage layout, write and
-accept an ADR comparing at least Zarr v3 with the current NumPy-file oracle.
-The prototype must:
+The implementation must:
 
 1. Create one run-scoped Zarr group with one array per intermediate plane and
    no process-wide configuration or scheduler ownership.
@@ -493,25 +489,24 @@ The prototype must:
    resumed writes with deterministic fault injection. A Zarr hierarchy is not
    consumable merely because its metadata exists; only a validated completion
    manifest publishes a generation.
-6. Compare direct Zarr writes, Dask `to_zarr`, and the current oracle with cold
-   and warm storage across the affected size anchors and both sides of every
-   crossover. Record latency, CPU, peak memory, copies, bytes, object count,
-   task count, scheduler load, concurrency, and recovery cost.
+6. Compare Zarr store and codec configurations with cold and warm storage
+   across affected size anchors and both sides of each execution crossover.
+   Include FITS ingestion and final materialisation. Record latency, CPU, peak
+   memory, copies, bytes, object count, task count, scheduler load,
+   concurrency, and recovery cost.
 7. Tune Zarr's own asynchronous and thread concurrency within each Dask worker
    so the storage library does not oversubscribe the scheduler's resource
    budget.
-8. Retain the one-tile direct-FITS path when it is measurably faster and has
-   identical product semantics.
+8. Keep the one-tile path on Zarr and remove avoidable Dask, initialization,
+   copy, codec, and final-materialisation overhead without adding a second
+   backend.
 
-If Zarr passes the scientific, recovery, portability, and performance gates,
-replace the custom filesystem sink with a small `ZarrProductSink` adapter and
-remove the redundant low-level serializer. If it fails, the ADR must identify
-the measured failure and select the smallest maintained alternative rather
-than accepting custom I/O by default. Xarray may be an optional labelled-array
-facade when multi-axis workflows demonstrate a need; it is not the storage
-transaction layer. Prototype Arrow/Parquet separately for internal catalogue
-shards, while retaining FITS or the required LSMTool representation at the
-compatibility boundary.
+If Zarr fails a scientific, recovery, portability, or scalability gate, update
+ADR-007 before changing the backend decision. Xarray may be an optional
+labelled-array facade when multi-axis workflows demonstrate a need; it is not
+the storage transaction layer. Prototype Arrow/Parquet separately for
+internal catalogue shards, while retaining FITS or the required LSMTool
+representation at the compatibility boundary.
 
 ### 8.2 Domain language and architecture records
 
@@ -850,22 +845,24 @@ Phase 0 closure order are recorded.
 - [x] Write failing tests for partition manifests, bounded window reads, halo clipping, global and
       tile coordinates, chunk checksums, interrupted writes, and restartable materialisation.
 - [ ] Define versioned internal catalogue and materialised result schemas from those tests.
-- [x] Define narrow image-source and product-sink seams from concrete FITS and
-      workflow tests; do not introduce a registry or plugin system pre-emptively.
-- [x] Write and accept the intermediate-storage ADR after a measured Zarr v3 prototype against the
-      NumPy-file oracle; do not let further schemas depend on the prototype's file layout.
+- [x] Define a narrow image-source seam and explicit Zarr product boundary from
+      concrete FITS and workflow tests; do not introduce a generic sink protocol,
+      registry, or plugin system before a demonstrated second implementation.
+- [x] Write and accept the intermediate-storage ADR after a measured Zarr v3 prototype; use Zarr
+      as the sole intermediate image-plane backend and remove the private NumPy-file path.
 - [ ] Prove aligned independent Zarr writes, strict missing-chunk behaviour, corruption detection,
       duplicate/conflicting retries, interrupted-run recovery, and validated completion manifests.
-- [ ] Benchmark Zarr local and deployment-representative stores against direct FITS and the current
-      oracle across the affected size/crossover anchors; select or reject Zarr from recorded evidence.
+- [ ] Benchmark Zarr local and deployment-representative stores, codecs, FITS ingestion, and final
+      materialisation across affected size and execution-crossover anchors; tune Zarr from recorded
+      evidence without adding a second intermediate backend.
 - [ ] Define a deterministic partition manifest and ownership rule so every output pixel and source
       has exactly one owning tile.
 - [ ] Read and validate required image planes through bounded windows or a chunk-addressable store;
       use memory mapping where safe without requiring a worker to map or materialise every plane.
 - [ ] Write large intermediate planes in independently retryable chunks before compatibility
       materialisation.
-- [ ] Bypass chunk-store conversion and distributed materialisation when bounded direct I/O is
-      measurably faster for a one-tile request without changing product semantics.
+- [ ] Keep one-tile work to one serial Zarr chunk and eliminate avoidable scheduler, initialization,
+      copy, codec, and materialisation overhead without changing product semantics.
 - [ ] Make FITS, mask, RMS, and catalogue round-trip tests pass without weakening assertions.
 - [ ] Measure and cap avoidable full-image copies.
 
@@ -1138,7 +1135,7 @@ count.
 | Tile boundaries change scientific results | Use explicit halos and ownership, boundary/corner fixtures, partition-invariance properties, and deterministic reconciliation |
 | Scheduler load grows faster than useful work | Keep graph size proportional to tiles and stages, batch small work, use tree reductions, and qualification-test scheduler throughput at 100-plus nodes |
 | Shared storage bottlenecks hundreds of workers | Benchmark windowed FITS and chunk-addressable stores, stagger or batch I/O, and freeze storage-specific throughput gates |
-| Custom chunk I/O duplicates a mature format or embeds filesystem assumptions | Treat the NumPy-file sink as an oracle, prototype Zarr v3 behind the existing protocol, accept an evidence-backed ADR before depending on a layout, and retain custom storage only for a documented failed standard-format gate |
+| A second storage backend duplicates policy and obscures performance behaviour | Keep Zarr as the sole intermediate image-plane backend, optimize it across all tiers, and require an ADR amendment before adding another backend |
 | A missing Zarr chunk is silently interpreted as valid fill data | Configure strict missing-chunk reads and publish a run generation only after its exact expected chunks and checksums validate |
 | Concurrent branches exceed memory | Use resource annotations and measure aggregate RSS before enabling concurrency |
 | Numba compilation affects latency | Warm/cache kernels explicitly and report cold and warm timings |
@@ -1161,11 +1158,11 @@ count.
 - Should nonlinear fitting use SciPy least-squares, a small dedicated compiled kernel, or both?
 - Is an undecimated wavelet transform required, or does a beam-aware matched-filter bank satisfy the
   extended-source gate more efficiently?
-- Which worker-local storage mechanism best matches Rapthor deployment: FITS memory mapping, shared
-  memory, Dask worker data, or an array-store format?
-- Does Zarr v3 meet the 100,000-by-100,000 I/O, restart, provenance, and final
-  FITS-compatibility gates on Rapthor's deployment stores, or does measured
-  evidence justify a different maintained format?
+- Which worker-local cache policy best complements the Zarr intermediate store:
+  bounded in-memory arrays, Dask worker data, or store-backed rereads?
+- Which Zarr store, codec, chunk geometry, and concurrency settings meet the
+  100,000-by-100,000 I/O, restart, provenance, and final FITS-materialisation
+  gates on Rapthor's deployment?
 - Should internal catalogue shards use Arrow/Parquet before the compatibility
   adapter materialises FITS or LSMTool products?
 - What resource names and limits should Rapthor use for source-finder CPU and memory admission?

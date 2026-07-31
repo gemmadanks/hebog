@@ -24,9 +24,10 @@ near-duplicates deliberately retain operational anchors alongside powers of
 two, making partition and storage effects visible.
 
 Initial probes cover direct-to-local execution, local-to-Dask execution, and
-direct FITS to chunked-storage conversion. A probe range is not an execution
-threshold. As soon as a fastest valid plan changes, the matrix must gain the
-nearest reproducible case immediately below and above the observed crossover.
+FITS-to-Zarr ingestion and final FITS materialisation. A probe range is not an
+execution threshold. As soon as a fastest valid execution plan changes, the
+matrix must gain the nearest reproducible case immediately below and above the
+observed crossover.
 
 Every affected tier compares a candidate Hebog run with the previous reviewed
 Hebog baseline. One warm-up and at least five measured repetitions are

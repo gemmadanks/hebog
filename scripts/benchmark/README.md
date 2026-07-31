@@ -62,19 +62,11 @@ local thread pool and caller-owned in-process Dask client. It does not include
 Dask client startup and labels Phase 0 planning/local results as proxies rather
 than production implementations.
 
-`compare_intermediate_stores.py` measures the Phase 1 Zarr v3 local-store
-prototype against the NumPy-file oracle with matched generated data, tile
-geometry, warm-up policy, and repetitions. It writes one versioned
-`BenchmarkEvidence` document per implementation beneath the ignored output
-directory. For example:
-
-```console
-uv run python scripts/benchmark/compare_intermediate_stores.py \
-  benchmark-results/phase1-zarr-prototype \
-  --height 1024 --width 1024 \
-  --chunk-height 256 --chunk-width 256 \
-  --warmups 1 --repetitions 5 --seed 20260731
-```
-
-This is a local exploratory component probe, not the distributed, direct-FITS,
-or Rapthor end-to-end qualification required for a performance claim.
+Intermediate-storage benchmarks should measure the selected Zarr backend with
+the same versioned evidence models: include store type, codecs, chunk geometry,
+object count, stored bytes, concurrency, and atomicity guarantees. Compare
+configuration changes against the previous reviewed Zarr curve and include
+FITS ingestion, final materialisation, Dask overhead, and Rapthor end-to-end
+latency where applicable. The exploratory backend-comparison runner was
+removed after ADR-007 selected a single backend, so rejected private storage
+code does not become a maintained benchmark dependency.

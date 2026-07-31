@@ -18,11 +18,10 @@ import numpy.typing as npt
 import pytest
 import zarr
 
-from hebog.data_models import PartitionManifest, ZarrProductChunk
+from hebog.data_models import PartitionManifest, ProductChunk
 from hebog.io import (
-    InvalidZarrProductChunkError,
+    InvalidProductChunkError,
     ProductChunkConflictError,
-    ProductSink,
     ZarrProductSink,
 )
 
@@ -49,13 +48,6 @@ def _values_for(tile_index: int) -> npt.NDArray[np.float64]:
     if tile_index == 0:
         values[0, 0] = np.nan
     return values
-
-
-def _accepts_product_sink(
-    sink: ProductSink[ZarrProductChunk],
-) -> ProductSink[ZarrProductChunk]:
-    """Exercise structural conformance without a concrete dependency."""
-    return sink
 
 
 def test_initializes_one_strict_zarr_v3_array_per_product(
@@ -90,12 +82,12 @@ def test_initialization_rejects_conflicting_group_or_array_metadata(
     sink = ZarrProductSink(root, _manifest())
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
 
-    with pytest.raises(InvalidZarrProductChunkError, match="metadata"):
+    with pytest.raises(InvalidProductChunkError, match="metadata"):
         sink.initialize_product(product_name="rms", dtype=np.dtype("<f4"))
 
     group = zarr.open_group(store=root, mode="r+")
     group.attrs["image_shape_yx"] = [99, 99]
-    with pytest.raises(InvalidZarrProductChunkError, match="attribute"):
+    with pytest.raises(InvalidProductChunkError, match="attribute"):
         ZarrProductSink(root, _manifest()).initialize_product(
             product_name="mask",
             dtype=np.dtype("u1"),
@@ -116,10 +108,8 @@ def test_writes_and_reads_independent_complete_chunks(tmp_path: Path) -> None:
     manifest = _manifest()
     sink = ZarrProductSink(root, manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
-    accepted = _accepts_product_sink(sink)
-
     records = tuple(
-        accepted.write_chunk(
+        sink.write_chunk(
             product_name="rms",
             tile=tile,
             values=_values_for(index),
@@ -127,7 +117,7 @@ def test_writes_and_reads_independent_complete_chunks(tmp_path: Path) -> None:
         for index, tile in enumerate(manifest.tiles)
     )
 
-    assert all(isinstance(record, ZarrProductChunk) for record in records)
+    assert all(isinstance(record, ProductChunk) for record in records)
     for index, record in enumerate(records):
         restored = sink.read_chunk(record)
         np.testing.assert_array_equal(restored, _values_for(index))
@@ -167,11 +157,10 @@ def test_read_rejects_a_missing_chunk_instead_of_returning_fill(
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
     missing_tile = manifest.tiles[1]
     missing_values = _values_for(1)
-    missing = ZarrProductChunk(
+    missing = ProductChunk(
         product_name="rms",
         tile_id=missing_tile.tile_id,
         core_bounds=missing_tile.core_bounds,
-        array_name="rms",
         dtype=missing_values.dtype.str,
         shape_yx=tuple(missing_values.shape),
         content_sha256=hashlib.sha256(
@@ -179,7 +168,7 @@ def test_read_rejects_a_missing_chunk_instead_of_returning_fill(
         ).hexdigest(),
     )
 
-    with pytest.raises(InvalidZarrProductChunkError, match="missing"):
+    with pytest.raises(InvalidProductChunkError, match="missing"):
         sink.read_chunk(missing)
 
 
@@ -235,7 +224,7 @@ def test_crc32c_rejects_corrupt_stored_bytes(tmp_path: Path) -> None:
     payload[-1] ^= 1
     chunk_path.write_bytes(payload)
 
-    with pytest.raises(InvalidZarrProductChunkError, match="corrupt"):
+    with pytest.raises(InvalidProductChunkError, match="corrupt"):
         sink.read_chunk(record)
 
 
@@ -250,10 +239,10 @@ def test_read_rejects_record_content_disagreement(tmp_path: Path) -> None:
         values=_values_for(0),
     )
 
-    with pytest.raises(InvalidZarrProductChunkError, match="SHA-256"):
+    with pytest.raises(InvalidProductChunkError, match="SHA-256"):
         sink.read_chunk(replace(record, content_sha256="0" * 64))
 
-    with pytest.raises(InvalidZarrProductChunkError, match="metadata"):
+    with pytest.raises(InvalidProductChunkError, match="metadata"):
         sink.read_chunk(replace(record, dtype="<f4"))
 
 
@@ -306,12 +295,12 @@ def test_read_rejects_noncanonical_records_and_changed_policy(
     )
 
     for invalid_record in invalid_records:
-        with pytest.raises(InvalidZarrProductChunkError, match="manifest"):
+        with pytest.raises(InvalidProductChunkError, match="manifest"):
             sink.read_chunk(invalid_record)
 
     group = zarr.open_group(store=root, mode="r+")
     group["rms"].attrs["hebog_missing_chunk_policy"] = "fill"
-    with pytest.raises(InvalidZarrProductChunkError, match="policy"):
+    with pytest.raises(InvalidProductChunkError, match="policy"):
         sink.read_chunk(record)
 
 
@@ -322,7 +311,7 @@ def test_requires_preinitialized_products_and_canonical_tiles(
     manifest = _manifest()
     sink = ZarrProductSink(tmp_path / "run.zarr", manifest)
 
-    with pytest.raises(InvalidZarrProductChunkError, match="initialized"):
+    with pytest.raises(InvalidProductChunkError, match="initialized"):
         sink.write_chunk(
             product_name="rms",
             tile=manifest.tiles[0],

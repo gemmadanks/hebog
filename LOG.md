@@ -1397,3 +1397,44 @@ applicable zeroes for these single-process reference runs.
 - Run direct-FITS, Dask, and deployment-representative store comparisons across
   affected size anchors before selecting a default crossover or removing the
   NumPy oracle.
+
+## 2026-07-31 — Simplified intermediate storage to Zarr only
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Amended ADR-007 to make Zarr v3 the sole intermediate image-plane backend
+  for every execution tier. FITS remains an input and final compatibility
+  format, not an alternative intermediate store.
+- Accepted the measured small/local Zarr overhead as a deliberate simplicity
+  trade-off. Future performance work will tune Zarr initialization, codecs,
+  concurrency, ingestion, and materialisation rather than maintain a
+  size-based backend switch.
+- Removed the private NumPy-file sink, its duplicate integration suite, and the
+  exploratory backend-comparison runner.
+- Consolidated `ProductChunk` and the product-chunk error hierarchy around the
+  Zarr implementation, removing the redundant Zarr-specific record and the
+  unused generic product-sink protocol.
+- Updated the implementation plan, contributor instructions, architecture and
+  performance guidance, how-to documentation, and benchmark guidance to
+  prevent an alternate intermediate backend from being reintroduced without
+  an explicit ADR amendment.
+
+**Evidence**
+
+- Followed a red-green cycle for the consolidated `ProductChunk` contract; the
+  focused unit and Zarr integration suite passes with 21 tests.
+- `just check` passes Ruff formatting and linting, Pyright, doctests, and 149
+  fast tests with four expected failures.
+- `just coverage` passes 191 unit and integration tests with four expected
+  failures and 90.29% branch-aware project coverage. The consolidated product
+  model and Zarr implementation each have 100% coverage.
+- `just docs-build` and `just package-smoke-test` pass.
+
+**Next**
+
+- Define the exact expected-chunk completion manifest and deterministic tests
+  for duplicate, mixed-run, interrupted, and concurrent-conflict records.
+- Benchmark and tune Zarr codecs, store configuration, concurrency, FITS
+  ingestion, and final materialisation across the affected size anchors.

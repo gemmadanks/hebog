@@ -108,16 +108,20 @@ for invariance tests while still assigning every pixel to exactly one core.
 
 ## Publish retryable product chunks
 
-Publish large intermediate planes as independent tile-owned cores. The
-filesystem sink returns a small serializable record containing the canonical
-relative path, global core bounds, dtype, shape, byte size, and SHA-256:
+Publish intermediate image planes as independent tile-owned chunks in one
+Zarr v3 group. Create each product array on the caller before workers start so
+workers never race metadata creation:
 
 ```python
 from pathlib import Path
 
-from hebog.io import FilesystemProductSink
+import numpy as np
 
-sink = FilesystemProductSink(Path("work/products"))
+from hebog.io import ZarrProductSink
+
+sink = ZarrProductSink(Path("work/run.zarr"), manifest)
+sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+
 chunks = []
 for tile in manifest.tiles:
     tile_window = source.read_window(tile.read_bounds)
@@ -132,54 +136,20 @@ restored = sink.read_chunk(chunks[0])
 assert restored.shape == chunks[0].shape_yx
 ```
 
-Publication uses a flushed private partial file and an atomic same-directory
-hard link. A final path is therefore never visible with partial bytes.
-Identical retries reuse the published chunk without changing it; a retry that
-produces different bytes for the same product and tile fails closed. A worker
-failure before publication leaves no final path, while a lost response after
-publication is recovered by the next identical retry.
+`ProductChunk` is a small serializable identity containing global core bounds,
+dtype, shape, and logical content SHA-256; it does not contain an open Zarr
+object or pixel payload. Identical retries reuse a completed chunk, while a
+different value for the same product and tile fails closed.
 
-All workers using this sink must see the same caller-owned filesystem, and it
-must support atomic hard links. Private `*.partial` files are not products and
-may be removed by run-level cleanup only after no writers remain. These NumPy
-chunks are internal restart artifacts; later compatibility materialisation
-creates the versioned FITS, mask, RMS, and catalogue products consumed by
-Rapthor or another workflow.
-
-For the gated distributed-store prototype, pre-create each Zarr v3 plane on
-the caller before submitting tile writes:
-
-```python
-from pathlib import Path
-
-import numpy as np
-
-from hebog.io import ZarrProductSink
-
-zarr_sink = ZarrProductSink(Path("work/run.zarr"), manifest)
-zarr_sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
-
-zarr_chunks = []
-for tile in manifest.tiles:
-    tile_window = source.read_window(tile.read_bounds)
-    zarr_chunks.append(
-        zarr_sink.write_chunk(
-            product_name="rms",
-            tile=tile,
-            values=tile_window.values[tile.core_slices_yx],
-        )
-    )
-```
-
-The current Zarr adapter requires a zero-origin partition whose complete cores
+The current adapter requires a zero-origin partition whose complete cores
 align with regular storage chunks. It explicitly writes fill-valued chunks,
 checks missing standard v3 chunk keys, validates CRC32C and logical SHA-256,
-and rejects sequential conflicting retries. It is a Phase 1 prototype, not a
-published generation: consumers must wait for the completion-manifest and
-deployment-store gates in
-[ADR-007](../architecture/adr/007-use-a-gated-zarr-intermediate-store.md).
-The NumPy-file and future direct-FITS paths remain valid for tiers where they
-measure faster with the same product semantics.
+and rejects sequential conflicting retries. Consumers must still wait for the
+Phase 1 completion-manifest and deployment-store gates in
+[ADR-007](../architecture/adr/007-use-zarr-for-intermediate-image-storage.md).
+Zarr is the only intermediate image-plane backend. Small inputs use one Zarr
+chunk and serial execution; FITS remains an input and final compatibility
+format rather than an alternative intermediate store.
 
 ## Keep changes maintainable and reusable
 

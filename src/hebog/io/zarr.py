@@ -19,12 +19,8 @@ from zarr.storage import LocalStore
 
 from hebog.data_models.partitioning import PartitionManifest, TilePartition
 from hebog.data_models.products import (
-    ZarrProductChunk,
+    ProductChunk,
     validate_product_name,
-)
-from hebog.io.chunks import (
-    ProductChunkConflictError,
-    ProductChunkError,
 )
 
 _IMAGE_DIMENSIONS = 2
@@ -40,7 +36,15 @@ _ARRAY_ATTRIBUTES: dict[str, Any] = {
 }
 
 
-class InvalidZarrProductChunkError(ProductChunkError):
+class ProductChunkError(ValueError):
+    """A Zarr product chunk cannot be safely published or consumed."""
+
+
+class ProductChunkConflictError(ProductChunkError):
+    """A completed Zarr chunk contains different values for one tile."""
+
+
+class InvalidProductChunkError(ProductChunkError):
     """A Zarr product chunk is missing, corrupt, or inconsistent."""
 
 
@@ -107,7 +111,7 @@ class ZarrProductSink:
         for name, expected in expected_group_attributes.items():
             existing = group.attrs.get(name)
             if existing is not None and existing != expected:
-                raise InvalidZarrProductChunkError(
+                raise InvalidProductChunkError(
                     f"Zarr group attribute {name!r} conflicts with manifest"
                 )
             group.attrs[name] = expected
@@ -151,12 +155,12 @@ class ZarrProductSink:
             or tuple(zarr_array.chunks) != self._manifest.tile_core_shape_yx
             or (dtype is not None and zarr_array.dtype != dtype)
         ):
-            raise InvalidZarrProductChunkError(
+            raise InvalidProductChunkError(
                 f"Zarr product {product_name!r} metadata conflicts with sink"
             )
         for name, expected in _ARRAY_ATTRIBUTES.items():
             if zarr_array.attrs.get(name) != expected:
-                raise InvalidZarrProductChunkError(
+                raise InvalidProductChunkError(
                     f"Zarr product {product_name!r} policy is invalid"
                 )
         return zarr_array.with_config({"write_empty_chunks": True})
@@ -171,7 +175,7 @@ class ZarrProductSink:
                 mode="r+",
             )
         except (ArrayNotFoundError, FileNotFoundError) as error:
-            raise InvalidZarrProductChunkError(
+            raise InvalidProductChunkError(
                 f"Zarr product {product_name!r} is not initialized"
             ) from error
         return self._require_array_metadata(
@@ -199,20 +203,22 @@ class ZarrProductSink:
                 tile_y_index * tiles_per_row + tile_x_index
             ]
         except (IndexError, ValueError) as error:
-            raise InvalidZarrProductChunkError(
+            raise InvalidProductChunkError(
                 "Zarr product chunk is not in the canonical manifest"
             ) from error
         if tile.tile_id != tile_id:
-            raise InvalidZarrProductChunkError(
+            raise InvalidProductChunkError(
                 "Zarr product chunk is not in the canonical manifest"
             )
         return tile
 
     @staticmethod
-    def _chunk_key(record: ZarrProductChunk) -> str:
+    def _chunk_key(record: ProductChunk) -> str:
         """Return the explicit Zarr v3 default-encoding storage key."""
         _, tile_y_index, tile_x_index = record.tile_id.split("-")
-        return f"{record.array_name}/c/{int(tile_y_index)}/{int(tile_x_index)}"
+        return (
+            f"{record.product_name}/c/{int(tile_y_index)}/{int(tile_x_index)}"
+        )
 
     def _record(
         self,
@@ -220,13 +226,12 @@ class ZarrProductSink:
         product_name: str,
         tile: TilePartition,
         values: npt.NDArray[np.generic],
-    ) -> ZarrProductChunk:
+    ) -> ProductChunk:
         """Build the small logical identity returned to the scheduler."""
-        return ZarrProductChunk(
+        return ProductChunk(
             product_name=product_name,
             tile_id=tile.tile_id,
             core_bounds=tile.core_bounds,
-            array_name=product_name,
             dtype=values.dtype.str,
             shape_yx=tuple(values.shape),
             content_sha256=_content_sha256(values),
@@ -238,7 +243,7 @@ class ZarrProductSink:
         product_name: str,
         tile: TilePartition,
         values: npt.NDArray[np.generic],
-    ) -> ZarrProductChunk:
+    ) -> ProductChunk:
         """Write one complete aligned chunk or accept an identical retry."""
         self._require_canonical_tile(tile)
         array = self._open_array(product_name)
@@ -264,7 +269,7 @@ class ZarrProductSink:
         if existing is not None:
             try:
                 self.read_chunk(record)
-            except InvalidZarrProductChunkError as error:
+            except InvalidProductChunkError as error:
                 raise ProductChunkConflictError(
                     "published Zarr product chunk contains different values"
                 ) from error
@@ -276,18 +281,18 @@ class ZarrProductSink:
 
     def read_chunk(
         self,
-        record: ZarrProductChunk,
+        record: ProductChunk,
     ) -> npt.NDArray[np.generic]:
         """Validate one expected chunk and return an owned read-only array."""
         tile = self._canonical_tile(record.tile_id)
         if tile.core_bounds != record.core_bounds:
-            raise InvalidZarrProductChunkError(
+            raise InvalidProductChunkError(
                 "Zarr product chunk is not in the canonical manifest"
             )
         with LocalStore(self._root, read_only=True) as store:
             encoded = store.get_sync(self._chunk_key(record))
         if encoded is None:
-            raise InvalidZarrProductChunkError("Zarr product chunk is missing")
+            raise InvalidProductChunkError("Zarr product chunk is missing")
         array = self._open_array(record.product_name)
         try:
             values = np.array(
@@ -295,7 +300,7 @@ class ZarrProductSink:
                 copy=True,
             )
         except (OSError, ValueError) as error:
-            raise InvalidZarrProductChunkError(
+            raise InvalidProductChunkError(
                 "Zarr product chunk is corrupt"
             ) from error
         if (
@@ -303,11 +308,11 @@ class ZarrProductSink:
             or tuple(values.shape) != record.shape_yx
             or values.dtype.str != record.dtype
         ):
-            raise InvalidZarrProductChunkError(
+            raise InvalidProductChunkError(
                 "Zarr product chunk array metadata disagrees with its record"
             )
         if _content_sha256(values) != record.content_sha256:
-            raise InvalidZarrProductChunkError(
+            raise InvalidProductChunkError(
                 "Zarr product chunk SHA-256 disagrees with its record"
             )
         values.setflags(write=False)
