@@ -39,7 +39,9 @@ def _values() -> npt.NDArray[np.float64]:
     return np.array([[1.0, np.nan, 3.0], [4.0, 5.0, 6.0]])
 
 
-def _accepts_product_sink(sink: ProductSink) -> ProductSink:
+def _accepts_product_sink(
+    sink: ProductSink[ProductChunk],
+) -> ProductSink[ProductChunk]:
     """Exercise structural conformance without a concrete dependency."""
     return sink
 

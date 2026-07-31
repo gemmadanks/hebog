@@ -1,4 +1,4 @@
-"""FITS and catalogue input/output boundaries."""
+"""Image and product input/output boundaries."""
 
 from hebog.data_models.partitioning import ImageBounds
 from hebog.io.base import ImageMetadata, ImageSource, ImageWindow, ProductSink
@@ -14,6 +14,7 @@ from hebog.io.fits import (
     UnsupportedFitsImageError,
     celestial_wcs_from_metadata,
 )
+from hebog.io.zarr import InvalidZarrProductChunkError, ZarrProductSink
 
 __all__ = [
     "FilesystemProductSink",
@@ -24,9 +25,11 @@ __all__ = [
     "ImageWindow",
     "InvalidFitsImageError",
     "InvalidProductChunkError",
+    "InvalidZarrProductChunkError",
     "ProductChunkConflictError",
     "ProductChunkError",
     "ProductSink",
     "UnsupportedFitsImageError",
+    "ZarrProductSink",
     "celestial_wcs_from_metadata",
 ]

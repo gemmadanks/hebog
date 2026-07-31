@@ -28,6 +28,7 @@ from hebog.validation.evidence import (
     ScientificComparisonEvidence,
     SoftwareIdentity,
     StageMetrics,
+    StorageEvidence,
     UnavailableMetric,
     WorkloadClass,
     load_evidence,
@@ -141,6 +142,18 @@ def test_evidence_round_trips_through_canonical_json(tmp_path: Path) -> None:
     assert loaded == evidence
     assert path.read_bytes() == first_bytes
     assert first_bytes.endswith(b"\n")
+
+
+def test_software_identity_can_record_an_uncommitted_source_tree() -> None:
+    """Exploratory code is identified even before its commit exists."""
+    identity = SoftwareIdentity(
+        name="hebog",
+        version="0.2.0",
+        source_tree_sha256="4" * 64,
+        dependency_inventory_sha256="5" * 64,
+    )
+
+    assert identity.source_tree_sha256 == "4" * 64
 
 
 def test_reviewed_benchmark_requires_warmup_and_five_measurements() -> None:
@@ -264,6 +277,56 @@ def test_resource_allocation_preserves_memory_headroom() -> None:
 
     with pytest.raises(ValidationError, match="aggregate worker memory"):
         ResourceAllocation.model_validate(document)
+
+
+def _storage_evidence(**changes: object) -> StorageEvidence:
+    """Return valid intermediate-store evidence for mutation tests."""
+    document = StorageEvidence(
+        format_name="zarr-v3",
+        library_name="zarr",
+        library_version="3.1.6",
+        backend_name="local-store",
+        chunk_shape_yx=(256, 256),
+        shard_shape_yx=None,
+        codec_pipeline=("bytes-little-endian", "zstd-1", "crc32c"),
+        fill_value="0",
+        missing_chunk_policy="error",
+        write_empty_chunks=True,
+        object_count=19,
+        stored_bytes=4096,
+        internal_concurrency=1,
+        atomic_write_guarantee="not documented by LocalStore",
+        conditional_create=False,
+    ).model_dump(mode="python")
+    document.update(changes)
+    return StorageEvidence.model_validate(document)
+
+
+def test_benchmark_records_intermediate_storage_configuration() -> None:
+    """A store comparison retains layout, policy, and durability evidence."""
+    storage = _storage_evidence(shard_shape_yx=(512, 512))
+
+    evidence = _benchmark().model_copy(update={"storage": storage})
+
+    assert evidence.storage == storage
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"chunk_shape_yx": (0, 256)}, "chunk dimensions"),
+        ({"shard_shape_yx": (0, 512)}, "shard dimensions"),
+        ({"codec_pipeline": ("",)}, "descriptions"),
+        ({"internal_concurrency": 0}, "greater than or equal to 1"),
+    ],
+)
+def test_storage_evidence_rejects_invalid_configuration(
+    changes: dict[str, object],
+    message: str,
+) -> None:
+    """Storage evidence rejects unusable geometry, policy, and resources."""
+    with pytest.raises(ValidationError, match=message):
+        _storage_evidence(**changes)
 
 
 def test_scientific_comparison_evidence_round_trips(tmp_path: Path) -> None:

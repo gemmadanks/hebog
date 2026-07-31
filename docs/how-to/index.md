@@ -146,6 +146,41 @@ chunks are internal restart artifacts; later compatibility materialisation
 creates the versioned FITS, mask, RMS, and catalogue products consumed by
 Rapthor or another workflow.
 
+For the gated distributed-store prototype, pre-create each Zarr v3 plane on
+the caller before submitting tile writes:
+
+```python
+from pathlib import Path
+
+import numpy as np
+
+from hebog.io import ZarrProductSink
+
+zarr_sink = ZarrProductSink(Path("work/run.zarr"), manifest)
+zarr_sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+
+zarr_chunks = []
+for tile in manifest.tiles:
+    tile_window = source.read_window(tile.read_bounds)
+    zarr_chunks.append(
+        zarr_sink.write_chunk(
+            product_name="rms",
+            tile=tile,
+            values=tile_window.values[tile.core_slices_yx],
+        )
+    )
+```
+
+The current Zarr adapter requires a zero-origin partition whose complete cores
+align with regular storage chunks. It explicitly writes fill-valued chunks,
+checks missing standard v3 chunk keys, validates CRC32C and logical SHA-256,
+and rejects sequential conflicting retries. It is a Phase 1 prototype, not a
+published generation: consumers must wait for the completion-manifest and
+deployment-store gates in
+[ADR-007](../architecture/adr/007-use-a-gated-zarr-intermediate-store.md).
+The NumPy-file and future direct-FITS paths remain valid for tiers where they
+measure faster with the same product semantics.
+
 ## Keep changes maintainable and reusable
 
 Start a vertical slice at the public behaviour, then keep scientific kernels

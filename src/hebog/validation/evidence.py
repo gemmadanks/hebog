@@ -73,6 +73,10 @@ class SoftwareIdentity(_EvidenceModel):
     name: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     version: str | None = Field(default=None, min_length=1)
     commit_sha: str | None = Field(default=None, pattern=_COMMIT_PATTERN)
+    source_tree_sha256: str | None = Field(
+        default=None,
+        pattern=_SHA256_PATTERN,
+    )
     container_image_digest: str | None = Field(
         default=None,
         pattern=_CONTAINER_DIGEST_PATTERN,
@@ -134,6 +138,48 @@ class ResourceAllocation(_EvidenceModel):
             raise ValueError(
                 "aggregate worker memory exceeds node memory after headroom"
             )
+        return self
+
+
+class StorageEvidence(_EvidenceModel):
+    """Intermediate-store layout, policy, and observed footprint."""
+
+    format_name: str = Field(min_length=1)
+    library_name: str = Field(min_length=1)
+    library_version: str = Field(min_length=1)
+    backend_name: str = Field(min_length=1)
+    chunk_shape_yx: tuple[int, int]
+    shard_shape_yx: tuple[int, int] | None
+    codec_pipeline: tuple[str, ...] = Field(min_length=1)
+    fill_value: str = Field(min_length=1)
+    missing_chunk_policy: Literal["error", "fill"]
+    write_empty_chunks: bool
+    object_count: int = Field(ge=1)
+    stored_bytes: int = Field(ge=1)
+    internal_concurrency: int = Field(ge=1)
+    atomic_write_guarantee: str = Field(min_length=1)
+    conditional_create: bool
+
+    @model_validator(mode="after")
+    def validate_storage_configuration(self) -> Self:
+        """Require usable geometry and non-blank policy descriptions."""
+        if any(dimension <= 0 for dimension in self.chunk_shape_yx):
+            raise ValueError("storage chunk dimensions must be positive")
+        if self.shard_shape_yx is not None and any(
+            dimension <= 0 for dimension in self.shard_shape_yx
+        ):
+            raise ValueError("storage shard dimensions must be positive")
+        descriptions = (
+            self.format_name,
+            self.library_name,
+            self.library_version,
+            self.backend_name,
+            self.fill_value,
+            self.atomic_write_guarantee,
+            *self.codec_pipeline,
+        )
+        if any(not description.strip() for description in descriptions):
+            raise ValueError("storage descriptions must not be blank")
         return self
 
 
@@ -279,6 +325,7 @@ class BenchmarkEvidence(_EvidenceDocument):
     environment_sha256: str = Field(pattern=_SHA256_PATTERN)
     resources: ResourceAllocation
     measurements: tuple[Measurement, ...] = Field(min_length=1)
+    storage: StorageEvidence | None = None
     scalability: ScalabilityMetrics | None = None
 
     @model_validator(mode="after")

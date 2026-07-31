@@ -1343,3 +1343,57 @@ applicable zeroes for these single-process reference runs.
   Zarr v3 prototype behind the existing product-sink boundary.
 - Compare it with the NumPy-file oracle before defining a materialised-result
   schema that depends on either physical layout.
+
+## 2026-07-31 — Accepted the gated Zarr intermediate-store decision
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added Zarr 3.1.6 as the newest Zarr v3 line compatible with Hebog's Python
+  3.11 support floor; Zarr 3.2 requires Python 3.12.
+- Implemented a small `ZarrProductSink` behind the generic product-sink
+  protocol, with caller-side product initialization and no scheduler or open
+  store in its serializable state.
+- Added a physical-layout-neutral, versioned `ZarrProductChunk` record with
+  global core bounds, dtype, shape, and logical content SHA-256.
+- Aligned zero-origin canonical tile cores one-to-one with regular Zarr chunks
+  and explicitly configured little-endian bytes, Zstandard level 1, CRC32C,
+  fill value zero, and writing of all-fill chunks.
+- Made missing chunks fail closed on Python 3.11 by checking the configured
+  standard Zarr v3 chunk key before decoding. Added sequential idempotent retry
+  and conflict checks while reserving concurrent and generation-level
+  guarantees for the next closure step.
+- Extended versioned benchmark evidence with store layout, codec, missing/fill,
+  object-count, footprint, concurrency, and atomicity fields.
+- Added and accepted ADR-007 with a tiered decision: continue qualifying Zarr
+  for distributed planes, but retain lower-overhead NumPy/direct paths until
+  measured crossovers justify using it.
+
+**Evidence**
+
+- Twenty-two focused Zarr unit and integration tests cover serialization,
+  initialization, aligned and edge writes, NaNs, all-fill chunks, missing and
+  corrupt chunks, content disagreement, normal and conflicting retries,
+  invalid values, changed metadata/policy, and shifted-origin rejection.
+- The reproducible local probe used one warm-up and five measured repetitions
+  per store. At 1024² with 256² chunks, complete median time was 0.281 seconds
+  for the NumPy oracle and 0.491 seconds for Zarr (1.75 times the oracle); Zarr
+  stored 8,041,519 bytes versus 8,390,656 bytes.
+- At 3000² with 512² chunks, complete median time was 0.828 seconds for the
+  NumPy oracle and 1.177 seconds for Zarr (1.42 times the oracle); Zarr stored
+  69,023,524 bytes versus 72,004,608 bytes.
+- Both ignored evidence pairs load through Hebog's `BenchmarkEvidence` model.
+  Each identifies the exact uncommitted Hebog source tree and benchmark runner
+  by SHA-256 in addition to package and dependency versions.
+  These are exploratory local component results and support no distributed or
+  end-to-end speed claim.
+
+**Next**
+
+- Add the exact expected-chunk completion manifest and deterministic tests for
+  duplicate, mixed-run, interrupted, and concurrently conflicting records.
+- Compare uncompressed plus CRC32C and faster codec choices by product role.
+- Run direct-FITS, Dask, and deployment-representative store comparisons across
+  affected size anchors before selecting a default crossover or removing the
+  NumPy oracle.

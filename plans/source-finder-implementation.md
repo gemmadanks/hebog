@@ -450,6 +450,15 @@ aligned, and the selected backend provides atomic writes. Hebog's canonical
 tile ownership must enforce those conditions; overlapping chunk writes require
 explicit coordination rather than relying on Zarr to resolve them.
 
+[ADR-007](../docs/architecture/adr/007-use-a-gated-zarr-intermediate-store.md)
+accepts Zarr as a gated distributed-store candidate, not an unconditional
+default. The measured 1024² and 3000² local probes retained the NumPy-file
+oracle because Zarr was respectively 1.75 and 1.42 times slower end to end,
+although the relative overhead narrowed and the encoded footprint was modestly
+smaller. Keep `zarr>=3.1.6,<3.2` while Python 3.11 remains supported; the 3.1
+adapter distinguishes missing chunks through the configured standard v3 key
+because the 3.2 strict-read option is unavailable on Python 3.11.
+
 Zarr remains a storage mechanism rather than the scientific transaction or
 domain model. Hebog must still own:
 
@@ -843,7 +852,7 @@ Phase 0 closure order are recorded.
 - [ ] Define versioned internal catalogue and materialised result schemas from those tests.
 - [x] Define narrow image-source and product-sink seams from concrete FITS and
       workflow tests; do not introduce a registry or plugin system pre-emptively.
-- [ ] Write and accept the intermediate-storage ADR after a measured Zarr v3 prototype against the
+- [x] Write and accept the intermediate-storage ADR after a measured Zarr v3 prototype against the
       NumPy-file oracle; do not let further schemas depend on the prototype's file layout.
 - [ ] Prove aligned independent Zarr writes, strict missing-chunk behaviour, corruption detection,
       duplicate/conflicting retries, interrupted-run recovery, and validated completion manifests.

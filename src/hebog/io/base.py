@@ -3,14 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
 from hebog.data_models.images import ImageMetadata
 from hebog.data_models.partitioning import ImageBounds, TilePartition
-from hebog.data_models.products import ProductChunk
+from hebog.data_models.products import ProductChunkRecord
+
+ProductChunkT_co = TypeVar(
+    "ProductChunkT_co",
+    bound=ProductChunkRecord,
+    covariant=True,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,8 +40,8 @@ class ImageSource(Protocol):
         ...
 
 
-class ProductSink(Protocol):
-    """Narrow publication seam for independently retryable product chunks."""
+class ProductSink(Protocol[ProductChunkT_co]):
+    """Narrow storage seam for independently retryable product chunks."""
 
     def write_chunk(
         self,
@@ -43,6 +49,6 @@ class ProductSink(Protocol):
         product_name: str,
         tile: TilePartition,
         values: npt.NDArray[np.generic],
-    ) -> ProductChunk:
-        """Atomically publish or reuse one tile-owned output core."""
+    ) -> ProductChunkT_co:
+        """Write and validate or reuse one tile-owned output core."""
         ...
