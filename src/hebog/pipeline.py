@@ -12,7 +12,11 @@ def find_sources(
     config: SourceFinderConfig,
     executor: Executor,
 ) -> SourceFinderResult:
-    """Find sources and materialise catalogue, mask, and RMS products.
+    """Analyse one image and materialise its scientific products.
+
+    Workflow adapters may compose multiple analyses and translate their
+    products. In particular, the Rapthor adapter owns the true-/apparent-sky
+    model filtering and its two RMS-image compatibility contract.
 
     Raises:
         NotImplementedError: Until the equivalence baseline in the

@@ -16,15 +16,23 @@ manifests, and provisional large-image resource envelope are frozen for Phase
 0. A later measured crossover or facility constraint may amend them only
 through reviewed evidence, the implementation plan, and `LOG.md`.
 
-The technical Phase 0 evidence was completed on 2026-07-18. It includes exact
-released/master revisions and dependency inventories, an immutable reference
-container digest, one warm-up and five measured compact and representative
-runs per reference, per-stage timing/CPU/RSS records, frozen reference
-products, an independent reference-divergence report, and warm one-tile
-overhead measurements. The technical completion does not confer the external
-approvals below.
+The technical Phase 0 evidence was first captured on 2026-07-18 and corrected
+on 2026-07-31 after closure review found that it had exercised Rapthor's
+`7.5/5.0` helper fallback and that the reference image's preinstalled LSMTool
+module did not match Rapthor's declared commit. The replacement evidence uses
+the representative `5.0/3.0` strategy, verifies exact clean Rapthor and
+LSMTool checkouts and imported package identities, retains sanitized package
+inventories and script hashes, and repeats one warm-up plus five compact and
+representative measurements per reference. The technical completion does not
+confer the external approvals below.
 
 ## Scientific review still required
+
+The [2026-07-31 scientific pre-review](scientific-pre-review.md) compared the
+provisional contracts with official PyBDSF, ASKAPsoft/Selavy, Aegean, SKA SDP,
+WSClean, CASA, LOFAR, and published source-finder comparison material. Its
+disposition is **amend before scientific approval**. It is research and a
+reviewer aid, not the named sign-off required below.
 
 An SKA imaging/domain reviewer must confirm or amend, with their name and date:
 
@@ -36,11 +44,61 @@ An SKA imaging/domain reviewer must confirm or amend, with their name and date:
 - the classification and coverage of the frozen regression and held-out
   qualification cases.
 
+### Reviewer packet
+
+Review these sources together because no single document contains the full
+scientific contract:
+
+1. [Domain glossary](domain-glossary.md), including the legacy mappings and
+   public/internal naming conventions.
+2. [Scientific pre-review findings](scientific-pre-review.md), including the
+   cross-pipeline consensus, Rapthor disagreements, and recommended
+   amendments.
+3. [Domain model](../explanation/domain-model.md) and
+   [Rapthor source-finding contract](rapthor-source-finding-contract.md),
+   including catalogue, RMS, mask, empty-result, and failure semantics.
+4. [Scientific equivalence gates](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#5-scientific-equivalence-gates)
+   and the associated
+   [dataset matrix](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#6-dataset-matrix).
+5. Frozen
+   [development](https://github.com/gemmadanks/hebog/blob/main/config/datasets/phase-0-development.json),
+   [regression](https://github.com/gemmadanks/hebog/blob/main/config/datasets/phase-0-regression.json),
+   and
+   [qualification](https://github.com/gemmadanks/hebog/blob/main/config/datasets/phase-0-qualification.json)
+   manifests.
+6. [Phase 0 baseline results](phase-0-baseline-results.md) and the
+   [scientific comparison method](scientific-comparison.md) as supporting
+   context rather than scientific truth.
+
+The project owner may perform this review when acting with the required SKA
+imaging/source-finding competence and authority. If the reviewer is also the
+ADR decider, record that dual role explicitly. Independent confirmation is
+still advisable before production cutover, but is not a Phase 0 prerequisite.
+
+### Scientific sign-off
+
+Append a completed record here using this form:
+
+- **Reviewer:** _name_
+- **Role or scientific authority:** _role and relevant domain responsibility_
+- **Review date:** _YYYY-MM-DD_
+- **Decision:** _approved, or approved with required amendments_
+- **Required amendments:** _none, or links to the amended contracts, gates,
+  manifests, and decision record_
+- **Qualification-data confirmation:** _confirm that held-out qualification
+  results were not used to tune the reviewed thresholds or algorithms_
+
 Until that sign-off is appended here, thresholds remain engineering gates and
 must not be described as domain-approved. This does not block reproducibility,
 I/O scaffolding, or red-green-refactor Phase 1 work that cannot prejudge a
 scientific choice; it does block a domain-approved scientific-equivalence or
 production-readiness claim.
+
+The human reviewer must specifically decide whether to approve the proposed
+`5.0/3.0` Rapthor normal-cycle profile, the separate `5.0/4.0` early-cycle
+profile, primary-beam terminology, source/component/island schema, empty RMS
+and dummy-component migration, MFS-only initial scope, and the revised
+low-SNR curve/confidence rule.
 
 ## Facility review still required
 

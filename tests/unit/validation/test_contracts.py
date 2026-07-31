@@ -73,7 +73,7 @@ def test_every_public_behaviour_has_one_strict_xfail_owner() -> None:
     """Frozen behaviours start with a failing executable specification."""
     manifest = load_public_behaviours(_BEHAVIOURS_PATH)
 
-    assert len(manifest.behaviours) == 10
+    assert len(manifest.behaviours) == 11
     assert all(
         behaviour.expected_until_implemented == "strict-xfail"
         for behaviour in manifest.behaviours

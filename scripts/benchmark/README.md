@@ -32,6 +32,13 @@ concurrent child RSS; the raw result states this limitation. PyBDSF has no
 array-copy counter, and these external-process runs do not use Dask, so those
 facts are explicit rather than fabricated as measured zeroes.
 
+The driver requires explicit detection and island thresholds and clean
+checkouts at the pinned Rapthor and LSMTool commits. Both checkouts are mounted
+read-only and precede image-installed code. The runner verifies the imported
+PyBDSF version and LSMTool module hash, the master wheel, and the exact script
+hashes. This prevents a container's stale preinstalled compatibility code from
+being labelled with a newer declared revision.
+
 Materialise the compact frozen input with:
 
 ```console
@@ -46,7 +53,8 @@ The baseline driver accepts all repository and input paths explicitly; see
 container tag without checking the digest printed into `baseline-index.json`.
 It verifies stable scientific products across repetitions. LSMTool sky-model
 history timestamps are the only normalized metadata, and the index records
-that normalization explicitly. `--finalize-existing` revalidates a complete
+that normalization explicitly. Mutable CASA `table.lock` files are excluded
+from Measurement Set identity. `--finalize-existing` revalidates a complete
 campaign without rerunning it.
 
 `measure_phase0_overhead.py` measures warm framework overhead with a reused

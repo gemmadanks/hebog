@@ -141,6 +141,13 @@ They never contain open FITS handles, a Dask client, or a mutable full-image obj
 identify a logical image through a partition manifest or chunk-addressable store, but storage and
 partition details remain explicit boundary metadata rather than scheduler state.
 
+One pipeline-neutral request represents one scientific image analysis and
+returns one catalogue, RMS image, source-filtering mask, and diagnostics
+record. Scientific thresholds are explicit rather than inherited from a
+workflow or survey default. A workflow adapter may compose several analyses;
+the Rapthor adapter owns its primary-beam-corrected and flat-noise branches,
+filtered sky models, legacy filenames, and compatibility configuration.
+
 The public scientific API and domain records must not import Rapthor, Prefect,
 LSMTool, or a concrete scheduler. Workflow-specific configuration, filenames,
 filtering rules, and failure translation live in adapters that depend on this
@@ -181,14 +188,18 @@ versioned.
 ## 5. Scientific equivalence gates
 
 The initial thresholds below are engineering gates and require review with an SKA imaging/domain
-expert during Phase 0. Report metrics separately for isolated compact, blended, extended, edge,
-and low-SNR sources.
+expert during Phase 0. The 2026-07-31
+[scientific pre-review](../docs/reference/scientific-pre-review.md) amended the low-SNR rule and
+terminology after comparison with several observatory pipelines and published source-finder
+challenges. Report metrics separately for isolated compact, blended, extended, edge,
+varying-noise, and low-SNR cases, and distinguish source, fitted-component, island, and
+sky-model-component populations.
 
 | Metric | Initial gate |
 | --- | ---: |
 | Rapthor retained/rejected input components | at least 99.5% agreement |
 | PyBDSF sources at SNR >= 10 recovered | at least 99% |
-| PyBDSF sources at SNR >= 5 recovered | at least 98% |
+| PyBDSF sources at SNR >= 5 recovered | compatibility curve only; no single pass fraction |
 | False-discovery rate | no more than 1 percentage point above PyBDSF |
 | Median position difference, isolated SNR >= 10 | at most 0.02 beam widths |
 | 95th-percentile position difference, isolated SNR >= 10 | at most 0.10 beam widths |
@@ -201,7 +212,10 @@ and low-SNR sources.
 
 Matching uses sky coordinates and beam-normalized distances, then resolves ambiguous blends by
 maximum total matched flux. Low-SNR differences are also reported as completeness and reliability
-curves versus injected truth; PyBDSF is not assumed to be ground truth.
+curves versus injected truth; PyBDSF is not assumed to be ground truth. Use predeclared SNR bins,
+report two-sided 95% confidence intervals, and require a reviewer-approved non-inferiority margin
+before promotion. A true source at exactly the detection threshold is not expected to have
+near-certain recovery after noise fluctuations, local-RMS estimation, blending, and masking.
 
 Serial and Dask executions of this project must match more tightly than the PyBDSF comparison.
 Unless a reduction order is explicitly nondeterministic, source membership and labels should be
@@ -607,10 +621,70 @@ removal is separately justified.
 
 ### Phase 0: freeze baselines and contracts
 
-**Technical status:** complete on 2026-07-18. The external scientific and
-facility reviews recorded below remain explicit governance follow-ups; they do
-not turn measured engineering gates into domain-approved or facility-
-demonstrated claims.
+**Technical foundation status:** complete on 2026-07-18. **Closure status:** in
+progress. The captured baselines, comparison harness, contracts, and governed
+manifests are sufficient to begin Phase 1 infrastructure work, but the closure
+sequence below must be completed before Phase 0 is recorded as fully closed.
+The external facility review remains a separate governance follow-up and does
+not turn measured engineering gates into facility-demonstrated claims.
+
+#### Phase 0 closure order
+
+Complete the remaining work in this order:
+
+1. **Completed 2026-07-31:** reconcile the exported request, result, and
+   configuration scaffold with ADR 006 and the frozen Rapthor contract. One
+   public request now represents one image analysis with explicit scientific
+   thresholds; the versioned Rapthor adapter records own the two-branch inputs,
+   products, and compatibility profile. Documentation and strict contract
+   tests preserve that boundary.
+2. **Controlled-runner closure completed 2026-07-31; clean-host portability
+   remains explicitly limited.** The reference runner now verifies clean exact
+   Rapthor and LSMTool checkouts, imported PyBDSF/LSMTool identities, the
+   master-wheel checksum, container digest, stable scientific inputs, and
+   runner/compiler script hashes. Sanitized installed-package inventories are
+   retained in `config/baselines/phase-0-reference-environments.json`. The
+   immutable image and restricted representative inputs have no approved
+   durable remote locator, so documentation no longer claims independent-host
+   reproduction.
+3. **First research pass completed 2026-07-31; named human decision pending.**
+   Obtain scientific/domain sign-off. The reviewer packet is:
+
+   - the [domain glossary](../docs/reference/domain-glossary.md), including its
+     legacy mappings and naming conventions;
+   - the [scientific pre-review findings](../docs/reference/scientific-pre-review.md),
+     including cross-pipeline consensus and Rapthor disagreements;
+   - the [domain model](../docs/explanation/domain-model.md) and the
+     [Rapthor source-finding contract](../docs/reference/rapthor-source-finding-contract.md),
+     including catalogue, RMS, mask, empty-result, and failure semantics;
+   - the [scientific equivalence gates](#5-scientific-equivalence-gates) and
+     [dataset matrix](#6-dataset-matrix);
+   - the frozen [development](../config/datasets/phase-0-development.json),
+     [regression](../config/datasets/phase-0-regression.json), and
+     [qualification](../config/datasets/phase-0-qualification.json) manifests;
+   - the [Phase 0 baseline results](../docs/reference/phase-0-baseline-results.md)
+     and [scientific comparison method](../docs/reference/scientific-comparison.md)
+     as supporting context; and
+   - the [Phase 0 review record](../docs/reference/phase-0-review-record.md),
+     where the reviewer records their name, role or authority, date, decision,
+     and any required amendments.
+4. Apply any approved amendments to the contracts, gates, or manifests; rerun
+   the relevant contract, equivalence, documentation, and normal handoff
+   checks; then mark the domain-review checklist item complete and record the
+   closure evidence in `LOG.md`.
+5. Complete the facility review and controlled 1/10/50/100/200-node evidence
+   before calling the extreme-image gates demonstrated. This is not a Phase 1
+   start gate and may remain open after technical and scientific Phase 0
+   closure.
+
+Phase 1 may begin in parallel with steps 1 to 3 for tests and implementation
+that cannot prejudge scientific terminology or choices, such as FITS
+validation, bounded window I/O, partition metadata, and atomic product writes.
+Complete scientific sign-off before stabilizing public scientific names,
+encoding default detection or island thresholds, finalizing catalogue/RMS/mask
+semantics, or converting the corresponding strict expected failures into
+passing compatibility claims. In all cases, complete it before Phase 2
+algorithm work.
 
 - [x] Capture the current Rapthor, released PyBDSF, PyBDSF `master`, LSMTool, dependency, and
       container revisions in the
@@ -683,6 +757,11 @@ review plus controlled multi-node evidence remains required before the extreme-i
 called demonstrated.
 
 ### Phase 1: FITS, beam, WCS, and internal models
+
+Start rule: Phase 1 infrastructure and red-green-refactor work may proceed
+while Phase 0 scientific review is in progress, but its versioned schemas must
+not be declared stable until the sign-off and any required amendments in the
+Phase 0 closure order are recorded.
 
 - [ ] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
       unsupported FITS inputs and products.

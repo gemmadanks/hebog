@@ -3,33 +3,35 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 
 
 @dataclass(frozen=True, slots=True)
 class SourceFinderConfig:
-    """Configuration shared by serial and distributed executions.
+    """Pipeline-neutral scientific thresholds for one image analysis.
 
-    The initial defaults mirror the common PyBDSF threshold relationship.
-    Exact Rapthor defaults will be frozen during the baseline phase in the
-    implementation plan.
+    Thresholds are explicit because a value appropriate for one survey,
+    image product, or pipeline stage is not a universal scientific default.
+    Workflow-specific background, RMS, multiscale, and filtering choices
+    belong to compatibility configuration at the adapter boundary until their
+    scientific contracts are implemented.
     """
 
-    detection_sigma: float = 5.0
-    island_sigma: float = 3.0
-    adaptive_rms: bool = True
-    multiscale: bool = True
-    max_wavelet_scale: int = 3
-    batch_target_seconds: float = 0.5
+    detection_threshold_sigma: float
+    island_threshold_sigma: float
 
     def __post_init__(self) -> None:
-        """Validate threshold and batching invariants."""
-        if self.detection_sigma <= 0:
-            raise ValueError("detection_sigma must be positive")
-        if self.island_sigma <= 0:
-            raise ValueError("island_sigma must be positive")
-        if self.island_sigma >= self.detection_sigma:
-            raise ValueError("island_sigma must be lower than detection_sigma")
-        if self.max_wavelet_scale < 0:
-            raise ValueError("max_wavelet_scale cannot be negative")
-        if self.batch_target_seconds <= 0:
-            raise ValueError("batch_target_seconds must be positive")
+        """Validate finite, positive, ordered sigma thresholds."""
+        if not isfinite(self.detection_threshold_sigma):
+            raise ValueError("detection_threshold_sigma must be finite")
+        if self.detection_threshold_sigma <= 0:
+            raise ValueError("detection_threshold_sigma must be positive")
+        if not isfinite(self.island_threshold_sigma):
+            raise ValueError("island_threshold_sigma must be finite")
+        if self.island_threshold_sigma <= 0:
+            raise ValueError("island_threshold_sigma must be positive")
+        if self.island_threshold_sigma >= self.detection_threshold_sigma:
+            raise ValueError(
+                "island_threshold_sigma must be lower than "
+                "detection_threshold_sigma"
+            )

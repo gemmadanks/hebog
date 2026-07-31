@@ -4,8 +4,15 @@
       "expected_until_implemented": "strict-xfail",
       "identifier": "valid-request-products",
       "lane": "contract",
-      "scenario": "A valid request returns versioned catalogue, true-sky RMS, flat-noise RMS, mask, filtered sky-model, diagnostics, and timing paths without live scheduler or FITS objects.",
+      "scenario": "A valid pipeline-neutral request returns one versioned catalogue, RMS image, source-filtering mask, diagnostics, and timing record without live scheduler, workflow, or FITS objects.",
       "test_id": "test_valid_request_materialises_versioned_products"
+    },
+    {
+      "expected_until_implemented": "strict-xfail",
+      "identifier": "rapthor-adapter-products",
+      "lane": "acceptance",
+      "scenario": "A valid Rapthor adapter request composes the primary-beam-corrected and flat-noise analyses and returns both RMS images, the catalogue, optional compatibility mask, filtered intrinsic/apparent sky models, diagnostics, and timing as versioned paths.",
+      "test_id": "test_rapthor_adapter_materialises_compatibility_products"
     },
     {
       "expected_until_implemented": "strict-xfail",

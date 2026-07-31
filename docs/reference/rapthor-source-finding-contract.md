@@ -10,7 +10,9 @@ runner that will schedule Hebog. Its declared LSMTool revision is available
 locally and was used for this trace.
 
 The inventory freezes what must be tested. It does not require Hebog to copy
-PyBDSF internals or preserve incidental implementation details.
+PyBDSF internals or preserve incidental implementation details. The
+[scientific pre-review](scientific-pre-review.md) distinguishes compatibility
+observations from cross-pipeline scientific recommendations.
 
 ## Invocation boundary
 
@@ -23,8 +25,8 @@ The current task accepts:
 
 | Input | Meaning |
 | --- | --- |
-| Flat-noise image | Apparent-sky, non-primary-beam-corrected FITS image with comparatively flat noise |
-| True-sky image | Primary-beam-corrected FITS image used for intrinsic flux measurements |
+| Flat-noise image | Rapthor alias for the primary-beam-uncorrected FITS image with comparatively flat noise |
+| True-sky image | Rapthor alias for the primary-beam-corrected FITS image used for intrinsic flux measurements; it is not literal truth |
 | True-sky sky model | WSClean component list with true-sky fluxes; optional when its file is absent |
 | Apparent-sky sky model | WSClean component list with beam-attenuated fluxes; optional when its file is absent |
 | Bright true-sky sky model | Optional peeled bright components to add back before filtering |
@@ -32,12 +34,20 @@ The current task accepts:
 | Beam Measurement Sets | Observation paths used to select a representative beam attenuation |
 | Configuration | Thresholds, RMS boxes, adaptive threshold, mask-filter flag, source finder, and core count |
 
-Rapthor's current default configuration is:
+Rapthor has three relevant threshold profiles. The workflow passes strategy
+values explicitly, so the helper fallback is not the representative production
+profile:
+
+| Context | Detection threshold | Island threshold |
+| --- | ---: | ---: |
+| Normal imaging, later self-calibration, and retained rich Prefect demo | `5.0` sigma | `3.0` sigma |
+| Initial/normalization and early self-calibration cycles | `5.0` sigma | `4.0` sigma |
+| `filter_image_skymodel` helper fallback | `7.5` sigma | `5.0` sigma |
+
+The remaining traced compatibility configuration is:
 
 | Setting | Value | Contract significance |
 | --- | ---: | --- |
-| Island threshold | `5.0` sigma | Boundary membership |
-| Detection threshold | `7.5` sigma | Island peak/seed acceptance |
 | RMS box | `(150, 50)` pixels | Normal window width and step |
 | Bright-source RMS box | `(35, 7)` pixels | Adaptive width and step near bright emission |
 | Adaptive RMS threshold | `75.0` sigma | Selects the smaller RMS box |
@@ -51,8 +61,9 @@ Rapthor's current default configuration is:
 
 ## Materialised products
 
-For every successful sector, Rapthor requires all of these products before it
-continues:
+For every successful sector, Rapthor requires the catalogue, RMS, filtered
+models, and diagnostics before it continues. The filtering mask is returned
+only when the expected file exists:
 
 | Product | Current suffix | Downstream use |
 | --- | --- | --- |
@@ -61,7 +72,7 @@ continues:
 | True-sky RMS image | `.true_sky_rms.fits` | RMS statistics and true-sky dynamic range |
 | Flat-noise RMS image | `.flat_noise_rms.fits` | RMS statistics, local dynamic range, and facet diagnostics |
 | Source catalogue | `.source_catalog.fits` | Source count, photometry, astrometry, and preview selection |
-| Island mask | `<true-sky-image>.mask.fits` | Sky-model membership/grouping and optional supplementary output |
+| Island mask | `<true-sky-image>.mask.fits` | Optional legacy product used for sky-model membership/grouping and supplementary output |
 | Diagnostics | `.image_diagnostics.json` | Starts with `nsources`, then receives image-quality metrics |
 
 The filtered model image is an optional later Rapthor product reconstructed
@@ -111,11 +122,12 @@ tests:
 
 - When processing succeeds but finds no islands, LSMTool writes a dummy
   central sky-model component with negligible flux and reports zero detected
-  sources.
+  sources. This row is a serialization workaround, not a scientific source.
 - When PyBDSF raises `All pixels in the image are blanked`, Rapthor writes
   header-only sky models, an empty catalogue containing all required columns,
   copies the two input images to the expected RMS paths, and records
-  `{"nsources": 0}`.
+  `{"nsources": 0}`. Those copied pixels are placeholders and must not be
+  interpreted as RMS estimates.
 
 These behaviours are compatibility observations, not yet scientific approval
 of dummy components or copied RMS data. Hebog must test them and either
@@ -141,3 +153,14 @@ plane.
 
 The boundary is provisional until domain review, frozen examples, and failing
 contract tests confirm normal, empty, corrupt, retry, and restart behaviour.
+
+## Corrected baseline interpretation
+
+The first retained Phase 0 campaigns used the `7.5/5.0` helper fallback and
+trusted the declared LSMTool commit. They are superseded. The reviewed
+comparison anchors now use the rich-demo strategy's explicit `5.0/3.0`
+profile, mount clean Rapthor and LSMTool checkouts at their recorded commits,
+and verify the imported PyBDSF version, LSMTool module, master wheel, container
+digest, input identities, and runner scripts. Released and pinned-master
+PyBDSF produce 12 and 14 representative source rows respectively, which is a
+reference-version divergence requiring truth-based scientific assessment.

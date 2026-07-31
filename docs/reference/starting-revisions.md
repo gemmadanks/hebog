@@ -13,7 +13,7 @@ authoritative; branch names and the local image tag are descriptive only.
 | Rapthor | `b1a64674b1022476cf052fc2d06ee3b16f031ecd` | Clean Prefect/Dask comparator |
 | PyBDSF released reference | `v1.14.1` at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc` | Installed as `1.14.1` |
 | PyBDSF `master` reference | `c70103be3ae9ae9908286f144e6ce956acc0ce5c` | Built as `1.14.2.dev40+gc70103be3` |
-| LSMTool dependency pin | `3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a` | Installed as `1.8.0` |
+| LSMTool dependency pin | `3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a` | Mounted from a clean verified checkout; distribution metadata reports `1.8.0` |
 | LSMTool local reference | `4e5cf93046e309844c04382375f86e68929bd2d8` | Two unrelated untracked files retained |
 
 Rapthor's recorded `gec-468-ai-migrate-to-prefect` branch defines the consumer
@@ -42,15 +42,27 @@ Its pinned build-helper versions are in the JSON inventory. Rebuild it with
 checkout is dirty, at another commit, the local image has another digest, the
 build emits more than one wheel, or the platform artifact has another checksum.
 
+Closure review found that the reference image's preinstalled
+`lsmtool/filter_skymodel/bdsf.py` had SHA-256 `da424e1...` and matched older
+commit `4604b01`, not the declared `3adf3d6` pin. The corrected campaigns
+therefore mount a clean checkout at `3adf3d6`, verify its module SHA-256
+`eccb93f...`, and place it before the image installation on `PYTHONPATH`.
+The mismatch is retained in the machine-readable inventory so the superseded
+campaigns cannot be mistaken for the corrected evidence.
+
 ## Evidence and remaining limits
 
 The compact and representative released/master evidence documents in
 `config/baselines/` contain exact environment, configuration, dataset,
 software, and container identities. The separate representative-dataset
 inventory binds both images, both sky models, the sector vertices, and the
-Measurement Set tree without committing restricted data.
+stable Measurement Set tree without committing restricted data; mutable CASA
+`table.lock` files are excluded. The durable
+`phase-0-reference-environments.json` record retains the sanitized installed
+package lists, exact runner/compiler hashes, verified checkouts, configuration,
+and raw inventory hashes.
 
-Three reproducibility limits remain explicit rather than blocking the captured
+Reproducibility limits remain explicit rather than blocking controlled-runner
 reference evidence:
 
 - later Hebog runs must capture the digest of their own application image;
@@ -58,7 +70,12 @@ reference evidence:
   must record newly resolved parents; and
 - the original Rapthor run moved its intermediate sky-model files, so the
   controlled rerun uses the corresponding generated rich-demo source models
-  frozen by checksum.
+  frozen by checksum; and
+- the immutable container and restricted representative inputs have no
+  approved durable remote locator and are retained only on the controlled
+  local runner.
 
-These limits prohibit treating a future rebuild as byte-identical without new
-evidence. They do not weaken the immutable identity of the completed runs.
+These limits prohibit describing the campaign as reproducible on an
+independent clean host or treating a future rebuild as byte-identical without
+new evidence. They do not weaken the immutable identity of the completed
+controlled-runner runs.

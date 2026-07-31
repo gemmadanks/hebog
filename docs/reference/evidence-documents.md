@@ -88,7 +88,10 @@ require a new integer version, migration guidance, and contract tests.
 `config/baselines/` contains reviewed compact and representative benchmark
 documents for released PyBDSF and pinned master. The reference-product manifest
 binds all seven compact products, and the master-versus-release scientific
-document records exact catalogue, RMS, and mask agreement. The exploratory
+document records exact compact catalogue, RMS, and mask agreement. The
+`phase-0-reference-environments.json` record retains sanitized installed
+package inventories, raw inventory hashes, exact runner/compiler hashes,
+verified source checkouts, and the explicit `5.0/3.0` profile. The exploratory
 one-tile overhead record uses the separate strict model in
 `hebog.validation.overhead`.
 

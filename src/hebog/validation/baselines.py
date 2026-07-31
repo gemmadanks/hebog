@@ -152,6 +152,14 @@ class _RawSoftware(_RawModel):
     rapthor: _RawSoftwareIdentity
 
 
+class _CheckoutIdentity(_RawModel):
+    """Verified source checkout mounted into every reference run."""
+
+    branch: str
+    commit: str = Field(pattern=_COMMIT_PATTERN)
+    working_tree: Literal["clean"]
+
+
 class _RawRun(_RawModel):
     """Complete output contract of one isolated runner invocation."""
 
@@ -211,13 +219,17 @@ class _BaselineIndex(_RawModel):
     container_image_digest: str = Field(pattern=_CONTAINER_DIGEST_PATTERN)
     dataset_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     input_sha256: dict[str, str] = Field(default_factory=dict)
+    lsmtool_checkout: _CheckoutIdentity
     ncores: int = Field(ge=1)
+    rapthor_checkout: _CheckoutIdentity
     reference: Literal["release", "master"]
     repetitions: int = Field(ge=1)
     runs: tuple[str, ...] = Field(min_length=1)
     scientific_identity_normalization: dict[str, str] = Field(
         default_factory=dict
     )
+    tool_sha256: dict[str, str]
+    tree_hash_exclusions: tuple[str, ...] = ()
     warmups: int = Field(ge=1)
 
     @model_validator(mode="after")
@@ -236,6 +248,18 @@ class _BaselineIndex(_RawModel):
                 character not in "0123456789abcdef" for character in digest
             ):
                 raise ValueError("campaign input SHA-256 is invalid")
+        expected_tools = {
+            "campaign_runner",
+            "evidence_compiler",
+            "reference_runner",
+        }
+        if set(self.tool_sha256) != expected_tools:
+            raise ValueError("campaign tool SHA-256 set is incomplete")
+        for digest in self.tool_sha256.values():
+            if len(digest) != _SHA256_HEX_LENGTH or any(
+                character not in "0123456789abcdef" for character in digest
+            ):
+                raise ValueError("campaign tool SHA-256 is invalid")
         return self
 
 

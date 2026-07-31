@@ -990,3 +990,151 @@ applicable zeroes for these single-process reference runs.
   available.
 - Begin Phase 1 with failing FITS, WCS, beam, partition, and internal-schema
   tests while retaining released and master PyBDSF as separate comparators.
+
+## 2026-07-31 — Ordered the remaining Phase 0 closure work
+
+**Plan phase:** Phase 0 closure
+
+**Completed**
+
+- Distinguished the completed technical foundation from full Phase 0 closure.
+- Ordered the remaining work: align the public scaffold with the frozen
+  compatibility contract, harden evidence provenance, obtain named scientific
+  sign-off, apply reviewed amendments, and retain facility qualification as a
+  separate pre-demonstration gate.
+- Added a linked scientific-review packet and a sign-off form covering reviewer
+  authority, decision, amendments, and held-out qualification-data handling.
+- Clarified that Phase 1 FITS, bounded-I/O, partition, and atomic-write work may
+  start during review, while stable scientific names, thresholds, and product
+  semantics must wait for sign-off and scientific sign-off must precede Phase
+  2.
+
+**Next**
+
+- Reconcile the exported request, result, and configuration records with ADR
+  006 and the Rapthor contract.
+- Harden the retained Phase 0 baseline provenance and reproduction metadata.
+- Complete and record the scientific review using the reviewer packet.
+
+## 2026-07-31 — Reconciled the public and Rapthor contracts
+
+**Plan phase:** Phase 0 closure
+
+**Completed**
+
+- Defined the public request and result as one pipeline-neutral image analysis
+  with one catalogue, RMS image, source-filtering mask, diagnostics record,
+  timing, and schema version.
+- Made detection and island thresholds explicit and unit-qualified instead of
+  silently selecting one survey or workflow profile.
+- Removed speculative RMS, multiscale, and executor-timing options from the
+  scientific configuration and placed the traced Rapthor/LSMTool choices in a
+  versioned compatibility record.
+- Added serializable Rapthor request and result records for its
+  primary-beam-corrected and flat-noise branches, filtered sky models, optional
+  legacy mask, and diagnostics.
+- Split the frozen public behavior into a scheduler-independent one-image
+  contract and a separate Rapthor adapter acceptance behavior.
+
+**Evidence**
+
+- Focused configuration, record, manifest, contract, and acceptance tests:
+  15 passed and 11 strict expected failures behaved as specified.
+
+**Next**
+
+- Amend the provisional terminology and thresholds from the scientific
+  pre-review, including the difference between Rapthor strategy values and its
+  helper fallbacks.
+- Harden the baseline runner identities and retained evidence provenance.
+
+## 2026-07-31 — Corrected and hardened the Phase 0 reference baselines
+
+**Plan phase:** Phase 0 closure
+
+**Completed**
+
+- Found that the original baselines used Rapthor's `7.5/5.0` helper fallback
+  instead of the `5.0/3.0` thresholds passed by the rich Prefect demo and
+  normal production strategies.
+- Found that the immutable reference image's preinstalled LSMTool `bdsf.py`
+  matched older commit `4604b01`, not Rapthor's declared `3adf3d6` pin.
+- Made both thresholds mandatory runner arguments and made the runner verify
+  clean exact Rapthor and LSMTool checkouts, imported package/module identity,
+  the master-wheel checksum, input hashes, container digest, and exact
+  runner/compiler hashes.
+- Excluded mutable CASA `table.lock` files from Measurement Set scientific
+  identity and retained sanitized installed-package inventories plus raw
+  inventory hashes in a durable environment record.
+- Repeated the released and pinned-master compact and representative campaigns
+  with one warm-up and five serialized measurements, replaced the governed
+  evidence and compact fixtures, and regenerated the independent comparison.
+
+**Evidence**
+
+| Corrected matched median | PyBDSF 1.14.1 | PyBDSF master |
+| --- | ---: | ---: |
+| Compact complete | 1.166 s | 1.130 s |
+| Representative complete | 45.614 s | 42.527 s |
+| Representative primary-beam-corrected stage | 32.610 s | 30.305 s |
+| Representative primary-beam-uncorrected stage | 12.582 s | 11.939 s |
+
+- Pinned master was 6.8% faster on representative complete wall time and 4.3%
+  lower on median complete CPU time.
+- Maximum representative RSS was 1,298,513,920 bytes for release and
+  1,302,560,768 bytes for master.
+- The compact products still matched exactly and contained three source rows.
+  The representative diagnostics contained 12 source rows for release and 14
+  for master.
+- Two accidentally overlapping diagnostic attempts were stopped and discarded
+  before the final serialized campaigns; none of their products or timings
+  enter governed evidence.
+
+**Deviations and limitations**
+
+- The old `7.5/5.0` results are retained only in Git history and ignored raw
+  directories; all checked-in reviewed reference evidence is superseded by the
+  corrected profile.
+- The immutable image and restricted representative inputs remain local-only,
+  so reproduction is limited to a controlled runner until durable remote
+  artifact locations are approved.
+
+**Next**
+
+- Complete named human review of the scientific pre-review amendments.
+- Publish or approve durable controlled-data and container locators if
+  independent-host reproduction becomes a Phase 0 closure requirement.
+
+## 2026-07-31 — Completed the first scientific sign-off research pass
+
+**Plan phase:** Phase 0 closure
+
+**Completed**
+
+- Compared the provisional Hebog contract with official PyBDSF,
+  ASKAPsoft/Selavy, Aegean, SKA SDP, WSClean, CASA, and LOFAR documentation,
+  published source-finder challenges, and the pinned Rapthor implementation.
+- Amended the glossary to use primary-beam-uncorrected and
+  primary-beam-corrected image names, distinguish source candidates,
+  components, islands, and sky-model components, and require reference
+  frequency and spectral-model conventions.
+- Documented Rapthor's three threshold profiles, optional mask, dummy-source
+  workaround, copied pseudo-RMS blank path, and released/master source-count
+  divergence.
+- Replaced the fixed `98%` low-SNR compatibility gate with stratified
+  completeness/reliability curves, 95% confidence intervals, and a
+  reviewer-approved non-inferiority margin against governed truth.
+- Added the findings and explicit human decisions to the scientific reviewer
+  packet.
+
+**Decision**
+
+- The first-pass disposition is **amend before scientific approval**. This is
+  research support, not named scientific sign-off.
+
+**Next**
+
+- A qualified human reviewer must approve or amend the `5.0/3.0` normal and
+  `5.0/4.0` early-cycle profiles, canonical schema and primary-beam language,
+  empty-product migration, MFS scope, and revised gate confidence rule before
+  Phase 2 algorithms or stable scientific defaults.

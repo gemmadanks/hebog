@@ -21,20 +21,31 @@ import numpy as np
 
 Result = TypeVar("Result")
 
-_CONFIGURATION = {
-    "adaptive_rms_box": True,
-    "adaptive_threshold": 75.0,
-    "atrous_do": True,
-    "atrous_jmax": 3,
-    "filter_by_mask": True,
-    "mean_map": "zero",
-    "rms_box": [150, 50],
-    "rms_box_bright": [35, 7],
-    "rms_map": True,
-    "threshold_island_sigma": 5.0,
-    "threshold_pixel_sigma": 7.5,
-    "threshold_type": "hard",
-}
+
+def _configuration(
+    detection_threshold_sigma: float,
+    island_threshold_sigma: float,
+) -> dict[str, object]:
+    """Build the explicit scientific profile for one baseline campaign."""
+    if not (
+        detection_threshold_sigma > 0
+        and 0 < island_threshold_sigma <= detection_threshold_sigma
+    ):
+        raise ValueError("thresholds must satisfy 0 < island <= detection")
+    return {
+        "adaptive_rms_box": True,
+        "adaptive_threshold": 75.0,
+        "atrous_do": True,
+        "atrous_jmax": 3,
+        "filter_by_mask": True,
+        "mean_map": "zero",
+        "rms_box": [150, 50],
+        "rms_box_bright": [35, 7],
+        "rms_map": True,
+        "threshold_island_sigma": island_threshold_sigma,
+        "threshold_pixel_sigma": detection_threshold_sigma,
+        "threshold_type": "hard",
+    }
 
 
 def _canonical_sha256(value: object) -> str:
@@ -207,10 +218,16 @@ def _parse_args() -> argparse.Namespace:
         "--reference", choices=("release", "master"), required=True
     )
     parser.add_argument("--reference-commit", required=True)
+    parser.add_argument("--reference-version", required=True)
     parser.add_argument("--rapthor-commit", required=True)
     parser.add_argument("--lsmtool-commit", required=True)
+    parser.add_argument("--lsmtool-module-sha256", required=True)
     parser.add_argument("--container-image-digest", required=True)
     parser.add_argument("--dataset-id", required=True)
+    parser.add_argument(
+        "--detection-threshold-sigma", required=True, type=float
+    )
+    parser.add_argument("--island-threshold-sigma", required=True, type=float)
     parser.add_argument("--repetition-index", required=True, type=int)
     parser.add_argument("--warmup", action="store_true")
     parser.add_argument("--ncores", default=4, type=int)
@@ -229,11 +246,45 @@ def _validate_stages(
         )
 
 
+def _verify_runtime_identity(
+    args: argparse.Namespace,
+    lsmtool_bdsf: Any,
+    filter_image_skymodel: Callable[..., None],
+) -> tuple[str, dict[str, object]]:
+    """Verify imported code and return its version and explicit profile."""
+    rapthor_module = Path(filter_image_skymodel.__code__.co_filename).resolve()
+    if not rapthor_module.is_relative_to("/rapthor"):
+        raise RuntimeError(
+            "Rapthor was not imported from the mounted checkout: "
+            f"{rapthor_module}"
+        )
+    lsmtool_module = Path(lsmtool_bdsf.__file__).resolve()
+    if _file_sha256(lsmtool_module) != args.lsmtool_module_sha256:
+        raise RuntimeError("installed LSMTool source does not match the pin")
+    reference_version = importlib.metadata.version("bdsf")
+    if reference_version != args.reference_version:
+        raise RuntimeError(
+            "installed PyBDSF version does not match the pin: "
+            f"expected {args.reference_version}, observed {reference_version}"
+        )
+    configuration = _configuration(
+        args.detection_threshold_sigma,
+        args.island_threshold_sigma,
+    )
+    return reference_version, configuration
+
+
 def _run(args: argparse.Namespace) -> dict[str, object]:
     """Run the complete compatibility path with PyBDSF call instrumentation."""
     # These exist only inside the isolated reference container.
     from lsmtool.filter_skymodel import bdsf as lsmtool_bdsf  # noqa: PLC0415
     from rapthor.execution.image.skymodel_filter import (  # noqa: PLC0415
+        filter_image_skymodel,
+    )
+
+    reference_version, configuration = _verify_runtime_identity(
+        args,
+        lsmtool_bdsf,
         filter_image_skymodel,
     )
 
@@ -295,12 +346,12 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
             str(work_directory / "products"),
             str(vertices),
             [str(path) for path in args.beam_ms],
-            threshisl=_CONFIGURATION["threshold_island_sigma"],
-            threshpix=_CONFIGURATION["threshold_pixel_sigma"],
-            rmsbox=tuple(_CONFIGURATION["rms_box"]),
-            rmsbox_bright=tuple(_CONFIGURATION["rms_box_bright"]),
-            adaptive_thresh=_CONFIGURATION["adaptive_threshold"],
-            filter_by_mask=_CONFIGURATION["filter_by_mask"],
+            threshisl=configuration["threshold_island_sigma"],
+            threshpix=configuration["threshold_pixel_sigma"],
+            rmsbox=tuple(configuration["rms_box"]),
+            rmsbox_bright=tuple(configuration["rms_box_bright"]),
+            adaptive_thresh=configuration["adaptive_threshold"],
+            filter_by_mask=configuration["filter_by_mask"],
             ncores=args.ncores,
             source_finder="bdsf",
         )
@@ -351,8 +402,8 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         "artifacts": _artifact_manifest(output_directory),
         "captured_at": started_at.isoformat(),
         "complete": complete_metrics,
-        "configuration": _CONFIGURATION,
-        "configuration_sha256": _canonical_sha256(_CONFIGURATION),
+        "configuration": configuration,
+        "configuration_sha256": _canonical_sha256(configuration),
         "container_image_digest": args.container_image_digest,
         "dataset": {
             "flat_noise_sha256": _file_sha256(args.flat_noise_image),
@@ -378,7 +429,7 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         "software": {
             "bdsf": {
                 "commit": args.reference_commit,
-                "version": importlib.metadata.version("bdsf"),
+                "version": reference_version,
             },
             "lsmtool": {
                 "commit": args.lsmtool_commit,

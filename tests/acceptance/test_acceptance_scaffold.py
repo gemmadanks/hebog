@@ -12,6 +12,13 @@ _NOT_IMPLEMENTED = pytest.mark.xfail(
 
 @pytest.mark.acceptance
 @_NOT_IMPLEMENTED
+def test_rapthor_adapter_materialises_compatibility_products() -> None:
+    """Given a sector, then both branch and filtered products are returned."""
+    pytest.fail("Rapthor compatibility adapter implementation begins later")
+
+
+@pytest.mark.acceptance
+@_NOT_IMPLEMENTED
 def test_empty_image_returns_compatible_products() -> None:
     """Given an empty image, then valid zero-source products are returned."""
     pytest.fail("empty FITS product materialisation begins in Phase 1")

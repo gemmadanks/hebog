@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
@@ -28,6 +29,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--master-evidence", required=True, type=Path)
     parser.add_argument("--destination", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
+    parser.add_argument(
+        "--replace-existing",
+        action="store_true",
+        help="replace an existing governed set after a reviewed rerun",
+    )
     return parser.parse_args()
 
 
@@ -48,13 +54,21 @@ def _checked_evidence(path: Path) -> BenchmarkEvidence:
     return evidence
 
 
+@dataclass(frozen=True)
+class _FreezeOptions:
+    """Repository destinations and replacement policy for one freeze."""
+
+    repository_root: Path
+    destination: Path
+    replace_existing: bool
+
+
 def _freeze_set(
     *,
-    repository_root: Path,
     campaign: Path,
     evidence: BenchmarkEvidence,
     reference: str,
-    destination: Path,
+    options: _FreezeOptions,
 ) -> ReferenceProductSet:
     """Copy and bind one stable measured repetition to its evidence."""
     index = json.loads(
@@ -66,7 +80,7 @@ def _freeze_set(
         (repetition_directory / "run.json").read_text(encoding="utf-8")
     )
     raw_artifacts = cast(dict[str, dict[str, object]], raw["artifacts"])
-    product_destination = destination / reference
+    product_destination = options.destination / reference
     product_destination.mkdir(parents=True, exist_ok=True)
     artifacts = {}
     for name, identity in sorted(raw_artifacts.items()):
@@ -85,14 +99,15 @@ def _freeze_set(
         target = (product_destination / artifact).resolve()
         if not target.is_relative_to(product_destination.resolve()):
             raise ValueError(f"artifact target escapes destination: {name!r}")
-        if target.exists() and _sha256(target) != _sha256(source):
+        target_differs = target.exists() and _sha256(target) != _sha256(source)
+        if target_differs and not options.replace_existing:
             raise ValueError(f"existing frozen artifact differs: {target}")
-        if not target.exists():
+        if not target.exists() or target_differs:
             shutil.copyfile(source, target)
         observed_sha = _sha256(target)
         if observed_sha != identity["sha256"]:
             raise ValueError(f"copied artifact digest changed: {target}")
-        relative_path = target.resolve().relative_to(repository_root.resolve())
+        relative_path = target.resolve().relative_to(options.repository_root)
         artifacts[name] = ProductArtifact(
             relative_path=relative_path.as_posix(),
             bytes=target.stat().st_size,
@@ -118,17 +133,21 @@ def main() -> None:
     destination = args.destination.resolve()
     if not destination.is_relative_to(repository_root):
         raise ValueError("destination must stay inside repository root")
+    options = _FreezeOptions(
+        repository_root=repository_root,
+        destination=destination,
+        replace_existing=args.replace_existing,
+    )
     release = _checked_evidence(args.release_evidence)
     master = _checked_evidence(args.master_evidence)
     if release.dataset != master.dataset:
         raise ValueError("release and master evidence use different datasets")
     product_sets = tuple(
         _freeze_set(
-            repository_root=repository_root,
             campaign=campaign,
             evidence=evidence,
             reference=reference,
-            destination=destination,
+            options=options,
         )
         for reference, campaign, evidence in (
             ("release", args.release_campaign, release),

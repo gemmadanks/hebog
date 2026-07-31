@@ -18,9 +18,9 @@
           "sha256": "25ad6bdf94e17a5a78fc28bf425905132dfc2468fec27004991eed794917c7b7"
         },
         "diagnostics.json": {
-          "bytes": 20,
+          "bytes": 15,
           "relative_path": "tests/data/pybdsf/pybdsf-compact-reference-256/release/diagnostics.json",
-          "sha256": "9dc92c157621dc16db4fbe4c143a65eb7fcde1c864a36dd3a4612f40e5ec198b"
+          "sha256": "32228968d2f89325f36d21b883fc3e555e1278c14685fe6db8b9983109c9ce59"
         },
         "flat_noise_rms.fits": {
           "bytes": 267840,
@@ -30,12 +30,12 @@
         "source_catalog.fits": {
           "bytes": 23040,
           "relative_path": "tests/data/pybdsf/pybdsf-compact-reference-256/release/source_catalog.fits",
-          "sha256": "470b508dc880165976866c4fad4be03eaed1fa8fa6485bd8e6c955c9ed123b5d"
+          "sha256": "8cbff2afcf58fad1b6bb82ec789ff82e7431c448eef4709be01fc7789f36d13c"
         },
         "source_filter_mask.fits": {
           "bytes": 267840,
           "relative_path": "tests/data/pybdsf/pybdsf-compact-reference-256/release/source_filter_mask.fits",
-          "sha256": "8c7530d08bf4348c762a439bd0b757737a0ef676cea1222beb45eecda4bb631d"
+          "sha256": "f0a29c49e58ec006be2f1e7ea9c193fa440bd41785a49b4b427f24ab10271149"
         },
         "true_sky.txt": {
           "bytes": 265,
@@ -48,8 +48,8 @@
           "sha256": "499e080d4acaf3b7c5711c2bf82a7e36946f55f7ee4bc3371dbf17c86e5be596"
         }
       },
-      "captured_at": "2026-07-18T20:54:29.142344Z",
-      "configuration_sha256": "2148ceabc96a9207d1ad2b086ab4514c54a69f673ecebb7b061a6deddf097c1a",
+      "captured_at": "2026-07-31T10:47:04.457765Z",
+      "configuration_sha256": "8bf63e5f39159595b8ed20c4e0fe03da55bbed6a94d4ac27678aa22f41ac11f9",
       "environment_sha256": "c18cbcf07e15aba45884d1f88079ab0f038c1f42e71090895cb124c6187da8bd",
       "reference": "release",
       "related_software": [
@@ -86,9 +86,9 @@
           "sha256": "25ad6bdf94e17a5a78fc28bf425905132dfc2468fec27004991eed794917c7b7"
         },
         "diagnostics.json": {
-          "bytes": 20,
+          "bytes": 15,
           "relative_path": "tests/data/pybdsf/pybdsf-compact-reference-256/master/diagnostics.json",
-          "sha256": "9dc92c157621dc16db4fbe4c143a65eb7fcde1c864a36dd3a4612f40e5ec198b"
+          "sha256": "32228968d2f89325f36d21b883fc3e555e1278c14685fe6db8b9983109c9ce59"
         },
         "flat_noise_rms.fits": {
           "bytes": 267840,
@@ -98,12 +98,12 @@
         "source_catalog.fits": {
           "bytes": 23040,
           "relative_path": "tests/data/pybdsf/pybdsf-compact-reference-256/master/source_catalog.fits",
-          "sha256": "a688eca7709f28c579325f23348f41803e246fdfd7a28d88b794b7d9904ee790"
+          "sha256": "e5ace10d96372ac0a8a0c35afefcf5828d0dc9f009a23f5ff595a40e9c8d0889"
         },
         "source_filter_mask.fits": {
           "bytes": 267840,
           "relative_path": "tests/data/pybdsf/pybdsf-compact-reference-256/master/source_filter_mask.fits",
-          "sha256": "8c7530d08bf4348c762a439bd0b757737a0ef676cea1222beb45eecda4bb631d"
+          "sha256": "f0a29c49e58ec006be2f1e7ea9c193fa440bd41785a49b4b427f24ab10271149"
         },
         "true_sky.txt": {
           "bytes": 265,
@@ -116,8 +116,8 @@
           "sha256": "499e080d4acaf3b7c5711c2bf82a7e36946f55f7ee4bc3371dbf17c86e5be596"
         }
       },
-      "captured_at": "2026-07-18T20:54:54.357058Z",
-      "configuration_sha256": "2148ceabc96a9207d1ad2b086ab4514c54a69f673ecebb7b061a6deddf097c1a",
+      "captured_at": "2026-07-31T10:47:30.940093Z",
+      "configuration_sha256": "8bf63e5f39159595b8ed20c4e0fe03da55bbed6a94d4ac27678aa22f41ac11f9",
       "environment_sha256": "c18cbcf07e15aba45884d1f88079ab0f038c1f42e71090895cb124c6187da8bd",
       "reference": "master",
       "related_software": [

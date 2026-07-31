@@ -3,20 +3,28 @@
 Phase 0 has matched reviewed performance evidence for released PyBDSF 1.14.1
 and PyBDSF master at
 `c70103be3ae9ae9908286f144e6ce956acc0ce5c`. Every campaign uses one warm-up
-followed by five measurements in a fresh container per repetition.
+followed by five measurements in a fresh container per repetition. The
+corrected campaigns use the rich-demo strategy's explicit `5.0`-sigma
+detection and `3.0`-sigma island thresholds and mount verified clean Rapthor
+and LSMTool checkouts.
+
+The earlier `7.5/5.0` campaigns are superseded: closure review established
+that those values were helper fallbacks rather than the operational strategy,
+and that the image's preinstalled LSMTool source did not match Rapthor's
+declared pin.
 
 ## Observed matched medians
 
 | Dataset and metric | PyBDSF 1.14.1 | PyBDSF master | Master change |
 | --- | ---: | ---: | ---: |
-| Compact 256 complete | 0.715 s | 0.672 s | 6.1% faster |
-| Representative 3,000 complete | 46.654 s | 45.015 s | 3.5% faster |
-| Representative true-sky PyBDSF stage | 32.945 s | 31.860 s | 3.3% faster |
-| Representative flat-noise PyBDSF stage | 12.851 s | 12.694 s | 1.2% faster |
-| Representative complete CPU | 127.915 s | 125.352 s | 2.0% lower |
+| Compact 256 complete | 1.166 s | 1.130 s | 3.0% faster |
+| Representative 3,000 complete | 45.614 s | 42.527 s | 6.8% faster |
+| Representative primary-beam-corrected PyBDSF stage | 32.610 s | 30.305 s | 7.1% faster |
+| Representative primary-beam-uncorrected PyBDSF stage | 12.582 s | 11.939 s | 5.1% faster |
+| Representative complete CPU | 125.527 s | 120.090 s | 4.3% lower |
 
-Maximum measured representative RSS was 1,302,822,912 bytes for release and
-1,303,146,496 bytes for master. RSS is the maximum of parent sampling and
+Maximum measured representative RSS was 1,298,513,920 bytes for release and
+1,302,560,768 bytes for master. RSS is the maximum of parent sampling and
 `RUSAGE_SELF`/`RUSAGE_CHILDREN`; it is not aggregate concurrent-child memory.
 PyBDSF does not expose array-copy counters, so count and bytes are `null` with
 an explicit reason. These external single-process runs use no Dask executor;
@@ -25,6 +33,12 @@ task, transfer, and spill counts are applicable zeroes.
 The representative medians replace the earlier single Rapthor observation.
 They establish comparison anchors, not evidence that Hebog has met its future
 speed gates.
+
+Released PyBDSF produced 12 representative source rows; pinned master produced
+14 under the same profile. This is retained as a scientific divergence rather
+than resolved by choosing either version as truth. The compact high-SNR input
+still produced the same three rows, coordinates, fluxes, RMS arrays, and mask
+for both references.
 
 ## Scientific reference products
 
@@ -65,8 +79,11 @@ The complete environment-bound record is
 
 ## Reproduction workflow
 
-Set `RAPTHOR_CHECKOUT` and `PYBDSF_CHECKOUT` to the recorded local checkouts.
-Every output directory below must not already exist.
+Set `RAPTHOR_CHECKOUT`, `LSMTOOL_CHECKOUT`, and `PYBDSF_CHECKOUT` to clean
+checkouts at the recorded commits. Every output directory below must not
+already exist. The container image and restricted representative data are
+currently local controlled-runner artifacts, so this is not an
+independent-clean-host reproduction claim.
 
 Materialize the compact governed input:
 
@@ -97,9 +114,12 @@ uv run python scripts/benchmark/run_phase0_pybdsf_baseline.py \
   --container-image localhost/rapthor-dev:ci-aligned \
   --reference release \
   --rapthor-repo "$RAPTHOR_CHECKOUT" \
+  --lsmtool-repo "$LSMTOOL_CHECKOUT" \
   --flat-noise-image benchmark-results/phase-0/input/reference-256.fits \
   --true-sky-image benchmark-results/phase-0/input/reference-256.fits \
   --dataset-id pybdsf-compact-reference-256 \
+  --detection-threshold-sigma 5 \
+  --island-threshold-sigma 3 \
   --output-directory benchmark-results/phase-0/rebuilt-compact-release \
   --warmups 1 --repetitions 5 --ncores 4
 ```
@@ -116,11 +136,13 @@ After each campaign:
 
 1. Compile its raw records with
    `scripts/benchmark/compile_phase0_pybdsf_evidence.py`.
-2. Freeze compact products with
+2. Freeze the sanitized package inventories and their raw hashes with
+   `scripts/validation/freeze_reference_environments.py`.
+3. Freeze compact products with
    `scripts/validation/freeze_reference_products.py`.
-3. Persist the reference divergence report with
+4. Persist the reference divergence report with
    `scripts/validation/compare_reference_products.py`.
-4. Run `just test-equivalence` and load every evidence document through its
+5. Run `just test-equivalence` and load every evidence document through its
    typed loader.
 
 Raw campaigns stay under ignored `benchmark-results/`; only compact products,
