@@ -13,6 +13,7 @@ from hebog.adapters.rapthor import (
     RapthorSourceFindingResult,
 )
 from hebog.config import SourceFinderConfig
+from hebog.data_models import CelestialWcs, ImageMetadata, RestoringBeam
 
 
 def _source_finder_request() -> SourceFinderRequest:
@@ -69,6 +70,24 @@ def _rapthor_config() -> RapthorCompatibilityConfig:
             detection_threshold_sigma=5.0,
             island_threshold_sigma=3.0,
         )
+    )
+
+
+def _image_metadata() -> ImageMetadata:
+    """Return valid plain image metadata for mutation tests."""
+    return ImageMetadata(
+        shape_yx=(32, 48),
+        unit="Jy/beam",
+        beam=RestoringBeam(
+            major_fwhm_degrees=0.01,
+            minor_fwhm_degrees=0.008,
+            position_angle_degrees=20.0,
+        ),
+        celestial_wcs=CelestialWcs(
+            fits_header="CTYPE1 = 'RA---SIN'",
+            coordinate_frame="icrs",
+        ),
+        reference_frequency_hz=150_000_000.0,
     )
 
 
@@ -222,3 +241,55 @@ def test_rapthor_profile_rejects_invalid_compatibility_values(
     """Invalid workflow compatibility values fail before execution."""
     with pytest.raises(ValueError, match=message):
         replace(_rapthor_config(), **changes)
+
+
+def test_image_metadata_is_small_and_pickle_serializable() -> None:
+    """Workers receive physical metadata rather than live Astropy objects."""
+    metadata = _image_metadata()
+
+    assert metadata.celestial_wcs.coordinate_frame == "icrs"
+    assert pickle.loads(pickle.dumps(metadata)) == metadata
+
+
+@pytest.mark.parametrize("field", ["fits_header", "coordinate_frame"])
+def test_celestial_wcs_rejects_missing_serialized_metadata(field: str) -> None:
+    """A worker must be able to reconstruct and identify the celestial WCS."""
+    with pytest.raises(ValueError, match="must not be empty"):
+        replace(_image_metadata().celestial_wcs, **{field: ""})
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"major_fwhm_degrees": float("nan")}, "must be finite"),
+        ({"major_fwhm_degrees": 0.0}, "axes must be positive"),
+        ({"minor_fwhm_degrees": 0.0}, "axes must be positive"),
+        ({"minor_fwhm_degrees": 0.02}, "cannot exceed major"),
+    ],
+)
+def test_restoring_beam_rejects_invalid_geometry(
+    changes: dict[str, object],
+    message: str,
+) -> None:
+    """Beam records fail before they reach a scientific kernel."""
+    with pytest.raises(ValueError, match=message):
+        replace(_image_metadata().beam, **changes)
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"schema_version": 2}, "schema version"),
+        ({"shape_yx": (0, 2)}, "shape dimensions"),
+        ({"unit": ""}, "unit must not be empty"),
+        ({"reference_frequency_hz": float("nan")}, "finite and positive"),
+        ({"reference_frequency_hz": 0.0}, "finite and positive"),
+    ],
+)
+def test_image_metadata_rejects_incomplete_physical_values(
+    changes: dict[str, object],
+    message: str,
+) -> None:
+    """Versioned metadata never guesses missing scientific semantics."""
+    with pytest.raises(ValueError, match=message):
+        replace(_image_metadata(), **changes)

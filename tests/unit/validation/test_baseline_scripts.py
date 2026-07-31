@@ -21,6 +21,10 @@ def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
     None
 ):
     """A campaign cannot silently inherit the Rapthor helper defaults."""
+    pytest.importorskip(
+        "resource",
+        reason="the reference runner executes inside a POSIX container",
+    )
     namespace = _script("pybdsf_reference_run.py")
     configuration: Callable[[float, float], dict[str, object]] = namespace[
         "_configuration"

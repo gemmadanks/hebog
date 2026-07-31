@@ -12,6 +12,8 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
+        # Governed diagnostics intentionally have no trailing newline.
+        exclude: ^tests/data/pybdsf/.*/diagnostics\.json$
       - id: trailing-whitespace
       - id: check-added-large-files
       - id: check-merge-conflict
@@ -27,6 +29,8 @@ repos:
       - id: pretty-format-json
         args: ["--autofix", "--no-ensure-ascii"]
         files: "\\.(json)$"
+        # Governed PyBDSF products must retain their reviewed byte identity.
+        exclude: ^tests/data/pybdsf/.*/diagnostics\.json$
 
   # --- Conventional commits ---
   - repo: https://github.com/compilerla/conventional-pre-commit

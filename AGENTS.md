@@ -61,6 +61,10 @@ Never hard-code those paths in package code or normal tests.
   duplicate routine commits or user-visible release notes there.
 - Use one writing agent by default. Delegate only independent, bounded work.
 - Review meaningful changes against `CODE_REVIEW.md` before handoff.
+- Run `just pre-commit` after all final edits and immediately before every
+  local commit. If a hook changes files, including JSON formatting, inspect
+  the changes and rerun `just pre-commit` until it passes without modifying
+  anything; never commit the hook's known-failing state.
 - Record architecturally significant decisions with an ADR based on
   `docs/architecture/adr/template.md`.
 
@@ -126,6 +130,7 @@ just format             # Ruff formatting
 just format-check       # verify formatting without changes
 just type-check         # Pyright
 just check              # fast non-mutating handoff checks
+just pre-commit         # all hooks, including JSON formatting
 just docs-build         # strict MkDocs build
 just package-smoke-test # build and import the wheel in isolation
 just ci                 # comprehensive local CI equivalent
@@ -465,5 +470,8 @@ Before handing off a meaningful change:
    or risks changed.
 10. Run `just check`, plus `just package-smoke-test` for packaging changes.
 11. Review the final diff using `CODE_REVIEW.md` and report checks not run.
-12. Create the atomic local commit after validation and review, then inspect
+12. Run `just pre-commit` after all final edits and before staging the commit.
+    Inspect any hook-applied changes, rerun validation invalidated by those
+    changes, and rerun `just pre-commit` until it passes cleanly.
+13. Create the atomic local commit after validation and review, then inspect
     the commit and working tree. Do not push it.

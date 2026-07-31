@@ -1138,3 +1138,131 @@ applicable zeroes for these single-process reference runs.
   `5.0/4.0` early-cycle profiles, canonical schema and primary-beam language,
   empty-product migration, MFS scope, and revised gate confidence rule before
   Phase 2 algorithms or stable scientific defaults.
+
+## 2026-07-31 — Began Phase 1 with bounded FITS input
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added the pipeline-neutral `ImageSource` seam with explicit half-open global
+  bounds, small image metadata, and owned bounded window records.
+- Implemented lazy FITS primary-plane validation and section reads for 2D
+  images and conventional singleton leading axes without materialising the
+  complete plane.
+- Preserved non-finite input values while exposing an explicit validity mask,
+  required a parseable brightness unit, and rejected missing data, zero-sized
+  planes, corrupt files, vectors, and non-singleton cubes.
+- Followed red-green-refactor: the focused contract first failed because the
+  FITS source was absent, then passed after the minimum implementation.
+
+**Evidence**
+
+- Fifteen focused FITS integration cases pass.
+- The new `hebog.io` modules have 100% line and branch coverage.
+
+**Next**
+
+- Add deterministic partition manifests, clipped halos, and ownership tests.
+- Extend metadata validation to the restoring beam and celestial WCS.
+- Add retryable product chunks and versioned catalogue/result schemas.
+
+## 2026-07-31 — Added deterministic partition ownership
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added a versioned, pickle-safe partition manifest whose row-major tile cores
+  assign every output pixel to exactly one owner.
+- Added stage halo validation, image-edge clipping, deterministic tile IDs,
+  explicit global core/read bounds, and local core slices into each read
+  window.
+- Added shifted partition origins for invariance tests without changing
+  ownership coverage.
+- Moved global image bounds into the scheduler-independent domain records so
+  partition planning does not depend on FITS or another concrete store.
+- Followed red-green-refactor: the focused tests first failed because the
+  partition planner was absent, then passed with the canonical planner.
+
+**Evidence**
+
+- Unit tests prove one-tile collapse, multi-tile and shifted-origin exact
+  ownership, halo clipping, row-major ordering, serialization, global/local
+  coordinate agreement, invalid geometry, and malformed-record rejection.
+- The new partition planner and records have 100% line and branch coverage.
+
+**Next**
+
+- Extend FITS metadata to restoring-beam and celestial-WCS validation.
+- Add checksummed retryable product chunks and atomic restart semantics.
+- Define versioned catalogue and materialised-result schemas from their
+  round-trip tests.
+
+## 2026-07-31 — Added physical FITS image metadata
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Extended the bounded FITS source to require a finite ordered restoring beam,
+  a reconstructable two-axis celestial WCS, its coordinate frame, and a
+  positive reference frequency in addition to shape and brightness unit.
+- Supported reference frequency from `RESTFRQ`, `RESTFREQ`, or an explicit WCS
+  frequency axis so the contract does not depend on one imager's convention.
+- Kept beam and serialized celestial-WCS metadata as plain pickle-safe domain
+  records; Astropy WCS objects are reconstructed only at the I/O boundary.
+- Rejected missing or invalid beam geometry, celestial coordinates, and
+  frequency metadata before scientific processing.
+- Followed red-green-refactor: the focused tests first failed on the missing
+  WCS reconstruction boundary, then passed after the metadata implementation.
+
+**Evidence**
+
+- Focused tests cover WCS coordinate round-trips, beam fields, primary and WCS
+  frequency conventions, invalid physical metadata, record serialization, and
+  all previous FITS/window cases.
+- The new image metadata and extended FITS boundary have 100% line and branch
+  coverage.
+
+**Next**
+
+- Add checksummed retryable product chunks and interrupted-write recovery.
+- Define versioned catalogue and materialised-result schemas through failing
+  empty and populated round-trip tests.
+- Measure bounded FITS reads and avoidable copies across the small-image
+  crossover anchors.
+
+## 2026-07-31 — Repaired cross-platform and equivalence CI
+
+**Plan phase:** Phase 0 maintenance during Phase 1
+
+**Completed**
+
+- Limited the reference-runner configuration test to platforms that provide
+  the POSIX-only `resource` instrumentation used by its Linux container, so
+  Windows does not import an execution script that it cannot run.
+- Preserved the benchmark runner byte-for-byte because its SHA-256 is part of
+  the reviewed Phase 0 campaign provenance.
+- Restored both compact diagnostics fixtures byte-for-byte from measured
+  repetition 1 of the reviewed 5/3 release and master campaigns. The Phase 0
+  merge had updated their governed manifest to the new 15-byte artifact and
+  checksum but retained the older 20-byte pretty-printed files.
+
+**Evidence**
+
+- The test now reports an intentional platform skip when `resource` is
+  unavailable and continues to exercise the explicit 5/3 configuration on
+  supported systems.
+- The reference runner retains its governed SHA-256
+  `61d72af98fe00e44fce59ae20032d467e9fcb3b1fcf91afa2ebb126b7dafbea7`.
+- Both restored diagnostics files are 15 bytes with SHA-256
+  `32228968d2f89325f36d21b883fc3e555e1278c14685fe6db8b9983109c9ce59`,
+  exactly matching the governed product manifest and the retained reviewed
+  campaign artifacts.
+- The focused baseline-script tests and the complete equivalence lane pass.
+
+**Next**
+
+- Resume Phase 1 product-sink and retryable materialisation work after the
+  CI-fix commit is reviewed.
