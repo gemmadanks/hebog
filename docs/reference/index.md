@@ -4,6 +4,7 @@ Related project references:
 
 - [Source-finding domain glossary](domain-glossary.md)
 - [Rapthor source-finding contract](rapthor-source-finding-contract.md)
+- [Scientific pre-review findings](scientific-pre-review.md)
 - [Phase 0 starting revisions](starting-revisions.md)
 - [Phase 0 baseline results](phase-0-baseline-results.md)
 - [Validation dataset manifests](dataset-manifests.md)

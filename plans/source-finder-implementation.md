@@ -188,14 +188,18 @@ versioned.
 ## 5. Scientific equivalence gates
 
 The initial thresholds below are engineering gates and require review with an SKA imaging/domain
-expert during Phase 0. Report metrics separately for isolated compact, blended, extended, edge,
-and low-SNR sources.
+expert during Phase 0. The 2026-07-31
+[scientific pre-review](../docs/reference/scientific-pre-review.md) amended the low-SNR rule and
+terminology after comparison with several observatory pipelines and published source-finder
+challenges. Report metrics separately for isolated compact, blended, extended, edge,
+varying-noise, and low-SNR cases, and distinguish source, fitted-component, island, and
+sky-model-component populations.
 
 | Metric | Initial gate |
 | --- | ---: |
 | Rapthor retained/rejected input components | at least 99.5% agreement |
 | PyBDSF sources at SNR >= 10 recovered | at least 99% |
-| PyBDSF sources at SNR >= 5 recovered | at least 98% |
+| PyBDSF sources at SNR >= 5 recovered | compatibility curve only; no single pass fraction |
 | False-discovery rate | no more than 1 percentage point above PyBDSF |
 | Median position difference, isolated SNR >= 10 | at most 0.02 beam widths |
 | 95th-percentile position difference, isolated SNR >= 10 | at most 0.10 beam widths |
@@ -208,7 +212,10 @@ and low-SNR sources.
 
 Matching uses sky coordinates and beam-normalized distances, then resolves ambiguous blends by
 maximum total matched flux. Low-SNR differences are also reported as completeness and reliability
-curves versus injected truth; PyBDSF is not assumed to be ground truth.
+curves versus injected truth; PyBDSF is not assumed to be ground truth. Use predeclared SNR bins,
+report two-sided 95% confidence intervals, and require a reviewer-approved non-inferiority margin
+before promotion. A true source at exactly the detection threshold is not expected to have
+near-certain recovery after noise fluctuations, local-RMS estimation, blending, and masking.
 
 Serial and Dask executions of this project must match more tightly than the PyBDSF comparison.
 Unless a reduction order is explicitly nondeterministic, source membership and labels should be
@@ -631,18 +638,22 @@ Complete the remaining work in this order:
    thresholds; the versioned Rapthor adapter records own the two-branch inputs,
    products, and compatibility profile. Documentation and strict contract
    tests preserve that boundary.
-2. Harden baseline provenance before describing the technical exit gate as
-   reproducible on a clean independent host. Make the reference runner verify
-   rather than merely accept repository and installed-distribution identities;
-   bind evidence to the exact Hebog runner/compiler revision or script hashes;
-   retain the sanitized installed-package inventories or a durable locator;
-   and record retrievable immutable-container and controlled-dataset locations,
-   or narrow the reproduction claim where those artifacts are intentionally
-   retained only on a controlled runner.
-3. Obtain named scientific/domain sign-off. The reviewer packet is:
+2. **Controlled-runner closure completed 2026-07-31; clean-host portability
+   remains explicitly limited.** The reference runner now verifies clean exact
+   Rapthor and LSMTool checkouts, imported PyBDSF/LSMTool identities, the
+   master-wheel checksum, container digest, stable scientific inputs, and
+   runner/compiler script hashes. Sanitized installed-package inventories are
+   retained in `config/baselines/phase-0-reference-environments.json`. The
+   immutable image and restricted representative inputs have no approved
+   durable remote locator, so documentation no longer claims independent-host
+   reproduction.
+3. **First research pass completed 2026-07-31; named human decision pending.**
+   Obtain scientific/domain sign-off. The reviewer packet is:
 
    - the [domain glossary](../docs/reference/domain-glossary.md), including its
      legacy mappings and naming conventions;
+   - the [scientific pre-review findings](../docs/reference/scientific-pre-review.md),
+     including cross-pipeline consensus and Rapthor disagreements;
    - the [domain model](../docs/explanation/domain-model.md) and the
      [Rapthor source-finding contract](../docs/reference/rapthor-source-finding-contract.md),
      including catalogue, RMS, mask, empty-result, and failure semantics;

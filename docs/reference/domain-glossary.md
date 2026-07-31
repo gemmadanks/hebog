@@ -1,6 +1,7 @@
 # Source-finding domain glossary
 
-**Status:** provisional for Phase 0 review.
+**Status:** amended after the 2026-07-31 scientific pre-review; named human
+review remains pending.
 
 This glossary establishes Hebog's domain language and maps the current
 Rapthor/PyBDSF/LSMTool vocabulary onto it. Definitions become stable only after
@@ -12,12 +13,14 @@ example products, and scientific thresholds are reviewed.
 | Term | Definition and naming guidance |
 | --- | --- |
 | Image | A two-dimensional radio-continuum pixel array plus WCS, beam, unit, and validity metadata. Qualify the scientific state when ambiguity is possible. |
-| Apparent sky | Sky brightness attenuated by the instrument response. Rapthor's non-primary-beam-corrected image has comparatively flat noise and is the current `flat_noise_image`. |
-| True sky | Estimated intrinsic sky brightness after primary-beam correction. Use `true_sky` explicitly; never call this merely the corrected image. |
+| Primary-beam-uncorrected image | Image before primary-beam correction. Its noise is usually more nearly uniform across the field, making it the preferred detection/noise-estimation plane. Rapthor calls this `flat_noise_image`; “apparent sky” describes the physical state, not the canonical API field. |
+| Primary-beam-corrected image | Estimate after primary-beam correction, used for intrinsic-flux measurements where the correction is valid. Rapthor calls this `true_sky_image`, but the product is not literal truth. Use `primary_beam_corrected` canonically and retain `true_sky` only at the adapter boundary. |
+| Apparent sky | Sky brightness attenuated by the instrument response. It is represented by a primary-beam-uncorrected image or sky model. |
+| Intrinsic sky estimate | Estimated sky brightness with the instrument attenuation removed. Never shorten this to “truth” when discussing an observed image. |
 | Flat-noise image | The apparent-sky image used to estimate noise that is approximately uniform across the field. “Flat” describes the noise, not the sky or background. |
 | Background | Slowly varying non-source image level estimated independently of RMS. The current Rapthor path requests a zero mean map, but Hebog keeps the concept explicit. |
 | RMS | Local root-mean-square noise estimate in the image's physical unit. Use `rms`, not standard deviation, when describing this compatibility product. |
-| RMS image | A materialised image whose pixels contain local RMS estimates aligned with the input image. Qualify it as `flat_noise_rms` or `true_sky_rms`. |
+| RMS image | A materialised image whose pixels contain local RMS estimates aligned with the input image. Qualify its primary-beam state canonically; `flat_noise_rms` and `true_sky_rms` are Rapthor compatibility names. An input image copied to an RMS filename is not an RMS image. |
 | Residual image | Image remaining after subtracting a current model. It is not synonymous with a background-subtracted or normalized image. |
 | Normalized image | Internal dimensionless array `(image - background) / rms` used for signal-to-noise thresholding. Spell “normalized” only where matching an external API; Hebog prose otherwise uses British English. |
 | Invalid pixel | A masked, non-finite, blanked, or otherwise excluded sample. Invalid pixels contribute to neither background/RMS statistics nor source measurements. |
@@ -26,12 +29,12 @@ example products, and scientific thresholds are reviewed.
 
 | Term | Definition and naming guidance |
 | --- | --- |
-| Detection threshold | Minimum normalized peak needed to seed or accept an island. This maps to PyBDSF `thresh_pix`, currently 7.5 sigma; prefer `detection_threshold` in Hebog. |
-| Island threshold | Lower normalized boundary used to decide island membership. This maps to `thresh_isl`, currently 5.0 sigma; prefer `island_threshold`. |
+| Detection threshold | Minimum normalized peak needed to seed or accept an island. This maps to PyBDSF `thresh_pix`. Rapthor strategies use 5 sigma while the helper fallback is 7.5 sigma; Hebog requires an explicit `detection_threshold_sigma`. |
+| Island threshold | Lower normalized boundary used to decide island membership. This maps to `thresh_isl`. Rapthor uses 3 sigma normally, 4 sigma in early cycles, and 5 sigma only as the helper fallback; Hebog requires an explicit `island_threshold_sigma`. “Growth” and “flood” threshold are common external synonyms. |
 | Pixel | One array sample. Array indexing is `(y, x)` even when external APIs expose pixel coordinates as `(x, y)`. |
 | Island | Connected above-island-threshold pixels associated with at least one accepted detection peak. It is a segmentation object, not automatically one source. |
 | Gaussian component | One fitted Gaussian belonging to a PyBDSF source. Use the full qualifier; bare `component` is ambiguous. |
-| Source | One astrophysical detection record. In the PyBDSF source-list model, one or more fitted Gaussians may be grouped into a source, and an island may contain one or more sources. |
+| Source candidate | One catalogue-level association inferred to represent astrophysical emission. In the PyBDSF source-list model, one or more fitted Gaussians may be grouped into a source and an island may contain one or more sources. A detection is not established astrophysical truth. |
 | Catalogue row | Serialized representation of one source in the compatibility source-list catalogue. A row is data interchange, not the in-memory domain object. |
 | Compact source | Detection sufficiently unresolved or small for the reviewed compact-source measurement and comparison rules. State the size criterion when using it in a test. |
 | Blended source | Two or more physically distinct sources whose above-threshold emission overlaps and requires deblending. |
@@ -44,11 +47,13 @@ example products, and scientific thresholds are reviewed.
 | --- | --- |
 | Clean component | Component written by the deconvolver, currently WSClean, before source-finder filtering. It is not a Gaussian component fitted by the source finder. |
 | Sky-model component | One row in a makesourcedb/WSClean sky model used for prediction or calibration. Always qualify it when “component” could mean a Gaussian fit. |
+| Reference frequency | Frequency at which a component's reported flux and spectral model are defined. Use `reference_frequency_hz`; never compare channel or MFS fluxes without it. |
+| Spectral model | Explicit rule, such as spectral-index coefficients and their convention, relating component flux to frequency. It belongs to a source or component record, not to an implicit filename convention. |
 | Patch | Group of sky-model components used as a calibration direction. The current compatibility path groups surviving sky-model components by island. |
 | Source catalogue | Materialised table of measured source rows. Hebog documentation uses “catalogue”; compatibility code may retain external names such as `source_catalog`. |
 | Source-filtering mask | Image-aligned island mask used to retain and group sky-model components. Do not call it a clean mask; a clean mask controls deconvolution. |
 | Materialised product | Closed, restartable file plus plain metadata. It must not contain an open FITS handle, mutable full-image object, or scheduler client. |
-| Compatibility adapter | Boundary that maps Hebog's internal schema and terms to the filenames, fields, units, and empty behaviour required by Rapthor/LSMTool. Its final design is an open ADR-006 decision. |
+| Compatibility adapter | Boundary that maps Hebog's internal schema and terms to the filenames, fields, units, and empty behaviour required by Rapthor/LSMTool. ADR 006 fixes this as a versioned, dependency-free boundary. |
 
 ## Execution
 
@@ -85,8 +90,11 @@ example products, and scientific thresholds are reviewed.
   `clean_component`, or `sky_model_component`.
 - Do not use `source`, `island`, `Gaussian component`, `catalogue row`, and
   `sky-model component` interchangeably.
-- Keep `apparent_sky`, `true_sky`, `flat_noise`, `background`, `rms`, and
-  `residual` explicit in filenames and public fields.
+- Prefer `primary_beam_uncorrected` and `primary_beam_corrected` in the
+  scientific API. Keep `apparent_sky`, `true_sky`, and `flat_noise` only where
+  their physical meaning or compatibility mapping is explicit.
+- Give every frequency-dependent flux a unit and `reference_frequency_hz`,
+  plus the spectral-model convention when applicable.
 - Use `catalogue` in Hebog prose and internal modules. Preserve `catalog` in
   external field names and filenames when compatibility requires it.
 - Use `serial`, `local`, and `dask` for executor modes. Do not use `parallel`
@@ -102,6 +110,8 @@ example products, and scientific thresholds are reviewed.
 | --- | --- |
 | `thresh_pix` | Detection threshold |
 | `thresh_isl` | Island threshold |
+| `flat_noise_image` | Primary-beam-uncorrected detection/noise image |
+| `true_sky_image` | Primary-beam-corrected image (legacy name; not truth) |
 | `rms_box`, `rms_box_bright` | Normal and bright-source RMS window width/step |
 | `island_mask` | Source-filtering mask |
 | PyBDSF `srl` catalogue | Source catalogue compatibility view |
