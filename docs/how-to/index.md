@@ -73,6 +73,29 @@ cubes are rejected until their scientific semantics are explicitly supported.
 NaN and infinite pixels remain in the values array and are marked false in
 `valid_pixels`; kernels must exclude them from scientific calculations.
 
+Plan bounded work independently of the executor. Each tile owns one
+non-overlapping core and may read a clipped halo:
+
+```python
+from hebog.algorithms.partitioning import plan_image_partitions
+
+manifest = plan_image_partitions(
+    image_shape_yx=metadata.shape_yx,
+    tile_core_shape_yx=(2048, 2048),
+    halo_yx=(128, 128),
+)
+
+for tile in manifest.tiles:
+    tile_window = source.read_window(tile.read_bounds)
+    owned_values = tile_window.values[tile.core_slices_yx]
+    assert owned_values.shape == tile.core_bounds.shape_yx
+```
+
+Tiles are ordered by `(tile_y_index, tile_x_index)`. Increasing resources may
+change batching, but must not change these cores, their ownership, or the
+scientific result. `partition_origin_yx` may shift internal grid boundaries
+for invariance tests while still assigning every pixel to exactly one core.
+
 ## Keep changes maintainable and reusable
 
 Start a vertical slice at the public behaviour, then keep scientific kernels

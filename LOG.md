@@ -1166,3 +1166,35 @@ applicable zeroes for these single-process reference runs.
 - Add deterministic partition manifests, clipped halos, and ownership tests.
 - Extend metadata validation to the restoring beam and celestial WCS.
 - Add retryable product chunks and versioned catalogue/result schemas.
+
+## 2026-07-31 — Added deterministic partition ownership
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added a versioned, pickle-safe partition manifest whose row-major tile cores
+  assign every output pixel to exactly one owner.
+- Added stage halo validation, image-edge clipping, deterministic tile IDs,
+  explicit global core/read bounds, and local core slices into each read
+  window.
+- Added shifted partition origins for invariance tests without changing
+  ownership coverage.
+- Moved global image bounds into the scheduler-independent domain records so
+  partition planning does not depend on FITS or another concrete store.
+- Followed red-green-refactor: the focused tests first failed because the
+  partition planner was absent, then passed with the canonical planner.
+
+**Evidence**
+
+- Unit tests prove one-tile collapse, multi-tile and shifted-origin exact
+  ownership, halo clipping, row-major ordering, serialization, global/local
+  coordinate agreement, invalid geometry, and malformed-record rejection.
+- The new partition planner and records have 100% line and branch coverage.
+
+**Next**
+
+- Extend FITS metadata to restoring-beam and celestial-WCS validation.
+- Add checksummed retryable product chunks and atomic restart semantics.
+- Define versioned catalogue and materialised-result schemas from their
+  round-trip tests.
