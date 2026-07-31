@@ -1,5 +1,7 @@
+# pyright: reportAttributeAccessIssue=false
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 """Contract tests for bounded FITS image input."""
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from hebog.io import (
     ImageBounds,
     InvalidFitsImageError,
     UnsupportedFitsImageError,
+    celestial_wcs_from_metadata,
 )
 
 
@@ -23,11 +26,40 @@ def _write_image(
     data: np.ndarray,
     *,
     unit: str | None = "Jy/beam",
+    include_wcs: bool = True,
+    reference_frequency_hz: float | str | None = 150_000_000.0,
 ) -> None:
     """Write a small radio-image fixture without hiding its axis layout."""
     header = fits.Header()
     if unit is not None:
         header["BUNIT"] = unit
+    header["BMAJ"] = 0.01
+    header["BMIN"] = 0.008
+    header["BPA"] = 20.0
+    if include_wcs:
+        header["RADESYS"] = "ICRS"
+        header["CTYPE1"] = "RA---SIN"
+        header["CTYPE2"] = "DEC--SIN"
+        header["CRPIX1"] = 1.0
+        header["CRPIX2"] = 1.0
+        header["CRVAL1"] = 180.0
+        header["CRVAL2"] = -30.0
+        header["CDELT1"] = -0.001
+        header["CDELT2"] = 0.001
+        header["CUNIT1"] = "deg"
+        header["CUNIT2"] = "deg"
+        if data.ndim == 4:
+            header["CTYPE3"] = "FREQ"
+            header["CTYPE4"] = "STOKES"
+            header["CRPIX3"] = 1.0
+            header["CRPIX4"] = 1.0
+            header["CRVAL3"] = 150_000_000.0
+            header["CRVAL4"] = 1.0
+            header["CDELT3"] = 1_000_000.0
+            header["CDELT4"] = 1.0
+            header["CUNIT3"] = "Hz"
+    if reference_frequency_hz is not None:
+        header["RESTFRQ"] = reference_frequency_hz
     fits.PrimaryHDU(data=data, header=header).writeto(path)
 
 
@@ -45,6 +77,11 @@ def test_reads_only_the_requested_global_window(tmp_path: Path) -> None:
 
     assert metadata.shape_yx == (5, 6)
     assert metadata.unit == "Jy/beam"
+    assert metadata.beam.major_fwhm_degrees == 0.01
+    assert metadata.beam.minor_fwhm_degrees == 0.008
+    assert metadata.beam.position_angle_degrees == 20.0
+    assert metadata.reference_frequency_hz == 150_000_000.0
+    assert metadata.celestial_wcs.coordinate_frame == "icrs"
     assert window.bounds == bounds
     assert bounds.shape_yx == (3, 4)
     np.testing.assert_array_equal(window.values, plane[1:4, 2:6])
@@ -52,6 +89,11 @@ def test_reads_only_the_requested_global_window(tmp_path: Path) -> None:
     assert window.values.dtype == np.dtype(np.float64)
     assert not window.values.flags.writeable
     assert not window.valid_pixels.flags.writeable
+
+    celestial_wcs = celestial_wcs_from_metadata(metadata)
+    right_ascension, declination = celestial_wcs.pixel_to_world_values(0, 0)
+    assert right_ascension == pytest.approx(180.0)
+    assert declination == pytest.approx(-30.0)
 
 
 @pytest.mark.integration
@@ -216,3 +258,82 @@ def test_rejects_a_missing_or_invalid_brightness_unit(tmp_path: Path) -> None:
         FitsImageSource(blank).metadata()
     with pytest.raises(InvalidFitsImageError, match="BUNIT"):
         FitsImageSource(invalid).metadata()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("keyword", "value"),
+    [
+        ("BMAJ", None),
+        ("BMIN", None),
+        ("BPA", None),
+        ("BMAJ", 0.0),
+        ("BMIN", 0.02),
+        ("BPA", "nan"),
+    ],
+)
+def test_rejects_missing_or_invalid_restoring_beam(
+    tmp_path: Path,
+    keyword: str,
+    value: float | str | None,
+) -> None:
+    """Beam geometry is required and cannot be inferred from the image name."""
+    path = tmp_path / f"beam-{keyword}.fits"
+    _write_image(path, np.zeros((2, 2), dtype=np.float32))
+    with fits.open(path, mode="update") as hdus:
+        if value is None:
+            del hdus[0].header[keyword]
+        else:
+            hdus[0].header[keyword] = value
+
+    with pytest.raises(InvalidFitsImageError, match="restoring beam"):
+        FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
+def test_rejects_missing_celestial_wcs(tmp_path: Path) -> None:
+    """Pixel-only images cannot produce a scientifically located catalogue."""
+    path = tmp_path / "no-wcs.fits"
+    _write_image(
+        path,
+        np.zeros((2, 2), dtype=np.float32),
+        include_wcs=False,
+    )
+
+    with pytest.raises(InvalidFitsImageError, match="celestial WCS"):
+        FitsImageSource(path).metadata()
+
+
+@pytest.mark.integration
+def test_uses_a_frequency_axis_when_rest_frequency_is_absent(
+    tmp_path: Path,
+) -> None:
+    """Observatory FITS variants may carry reference frequency in WCS."""
+    path = tmp_path / "frequency-axis.fits"
+    _write_image(
+        path,
+        np.zeros((1, 1, 2, 2), dtype=np.float32),
+        reference_frequency_hz=None,
+    )
+
+    metadata = FitsImageSource(path).metadata()
+
+    assert metadata.reference_frequency_hz == 150_000_000.0
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("frequency", [None, 0.0, "nan", "not-a-number"])
+def test_rejects_missing_or_invalid_reference_frequency(
+    tmp_path: Path,
+    frequency: float | str | None,
+) -> None:
+    """Frequency-dependent measurements require an explicit positive value."""
+    path = tmp_path / "bad-frequency.fits"
+    _write_image(
+        path,
+        np.zeros((2, 2), dtype=np.float32),
+        reference_frequency_hz=frequency,
+    )
+
+    with pytest.raises(InvalidFitsImageError, match="reference frequency"):
+        FitsImageSource(path).metadata()

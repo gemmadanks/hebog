@@ -1198,3 +1198,37 @@ applicable zeroes for these single-process reference runs.
 - Add checksummed retryable product chunks and atomic restart semantics.
 - Define versioned catalogue and materialised-result schemas from their
   round-trip tests.
+
+## 2026-07-31 — Added physical FITS image metadata
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Extended the bounded FITS source to require a finite ordered restoring beam,
+  a reconstructable two-axis celestial WCS, its coordinate frame, and a
+  positive reference frequency in addition to shape and brightness unit.
+- Supported reference frequency from `RESTFRQ`, `RESTFREQ`, or an explicit WCS
+  frequency axis so the contract does not depend on one imager's convention.
+- Kept beam and serialized celestial-WCS metadata as plain pickle-safe domain
+  records; Astropy WCS objects are reconstructed only at the I/O boundary.
+- Rejected missing or invalid beam geometry, celestial coordinates, and
+  frequency metadata before scientific processing.
+- Followed red-green-refactor: the focused tests first failed on the missing
+  WCS reconstruction boundary, then passed after the metadata implementation.
+
+**Evidence**
+
+- Focused tests cover WCS coordinate round-trips, beam fields, primary and WCS
+  frequency conventions, invalid physical metadata, record serialization, and
+  all previous FITS/window cases.
+- The new image metadata and extended FITS boundary have 100% line and branch
+  coverage.
+
+**Next**
+
+- Add checksummed retryable product chunks and interrupted-write recovery.
+- Define versioned catalogue and materialised-result schemas through failing
+  empty and populated round-trip tests.
+- Measure bounded FITS reads and avoidable copies across the small-image
+  crossover anchors.

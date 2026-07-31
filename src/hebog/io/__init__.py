@@ -6,6 +6,7 @@ from hebog.io.fits import (
     FitsImageSource,
     InvalidFitsImageError,
     UnsupportedFitsImageError,
+    celestial_wcs_from_metadata,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "ImageWindow",
     "InvalidFitsImageError",
     "UnsupportedFitsImageError",
+    "celestial_wcs_from_metadata",
 ]

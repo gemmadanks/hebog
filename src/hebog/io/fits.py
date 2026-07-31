@@ -1,5 +1,7 @@
 # pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 """Bounded FITS image input for radio-continuum planes."""
 
 from __future__ import annotations
@@ -11,8 +13,15 @@ from typing import Any, Generator
 import numpy as np
 from astropy import units
 from astropy.io import fits
+from astropy.wcs import WCS
+from astropy.wcs.utils import wcs_to_celestial_frame
 
-from hebog.io.base import ImageBounds, ImageMetadata, ImageWindow
+from hebog.data_models.images import (
+    CelestialWcs,
+    ImageMetadata,
+    RestoringBeam,
+)
+from hebog.io.base import ImageBounds, ImageWindow
 
 _LOGICAL_DIMENSIONS = 2
 
@@ -23,6 +32,87 @@ class InvalidFitsImageError(ValueError):
 
 class UnsupportedFitsImageError(InvalidFitsImageError):
     """A valid FITS input uses an image layout Hebog does not yet support."""
+
+
+def _restoring_beam(header: Any, path: Path) -> RestoringBeam:
+    """Read the standard restoring-beam keywords in FITS degree units."""
+    raw_values = tuple(header.get(name) for name in ("BMAJ", "BMIN", "BPA"))
+    if any(value is None for value in raw_values):
+        raise InvalidFitsImageError(
+            f"FITS image requires BMAJ, BMIN, and BPA restoring beam: {path}"
+        )
+    try:
+        return RestoringBeam(*(float(value) for value in raw_values))
+    except (TypeError, ValueError) as error:
+        raise InvalidFitsImageError(
+            f"FITS image has an invalid restoring beam: {path}"
+        ) from error
+
+
+def _celestial_wcs(header: Any, path: Path) -> tuple[WCS, CelestialWcs]:
+    """Validate and serialize the celestial part of an image WCS."""
+    try:
+        image_wcs = WCS(header, relax=True)
+        celestial_wcs = image_wcs.celestial
+        if not celestial_wcs.has_celestial:
+            raise ValueError("no celestial axes")
+        frame = wcs_to_celestial_frame(celestial_wcs)
+        celestial_header = celestial_wcs.to_header(relax=True).tostring(
+            sep="\n",
+            endcard=False,
+            padding=False,
+        )
+    except (TypeError, ValueError) as error:
+        raise InvalidFitsImageError(
+            f"FITS image requires a valid two-axis celestial WCS: {path}"
+        ) from error
+    return image_wcs, CelestialWcs(
+        fits_header=celestial_header,
+        coordinate_frame=str(frame.name),
+    )
+
+
+def _positive_frequency_hz(raw_frequency: Any, path: Path) -> float:
+    """Validate and normalize one candidate reference frequency."""
+    try:
+        frequency_hz = float(raw_frequency)
+    except (TypeError, ValueError) as error:
+        raise InvalidFitsImageError(
+            f"FITS image requires a reference frequency: {path}"
+        ) from error
+    if not np.isfinite(frequency_hz) or frequency_hz <= 0:
+        raise InvalidFitsImageError(
+            "FITS image reference frequency must be finite and positive: "
+            f"{path}"
+        )
+    return frequency_hz
+
+
+def _header_reference_frequency_hz(
+    header: Any,
+    path: Path,
+) -> float | None:
+    """Read an optional RESTFRQ or RESTFREQ before WCS parsing."""
+    raw_frequency = header.get("RESTFRQ", header.get("RESTFREQ"))
+    if raw_frequency is None:
+        return None
+    return _positive_frequency_hz(raw_frequency, path)
+
+
+def _wcs_reference_frequency_hz(image_wcs: WCS, path: Path) -> float:
+    """Read reference frequency from the first explicit WCS frequency axis."""
+    for axis_index, physical_type in enumerate(
+        image_wcs.world_axis_physical_types
+    ):
+        if physical_type == "em.freq":
+            axis_unit = image_wcs.world_axis_units[axis_index] or "Hz"
+            raw_frequency = (
+                float(image_wcs.wcs.crval[axis_index]) * units.Unit(axis_unit)
+            ).to_value(units.Hz)
+            return _positive_frequency_hz(raw_frequency, path)
+    raise InvalidFitsImageError(
+        f"FITS image requires a reference frequency: {path}"
+    )
 
 
 def _metadata(primary_hdu: Any, path: Path) -> ImageMetadata:
@@ -59,7 +149,23 @@ def _metadata(primary_hdu: Any, path: Path) -> ImageMetadata:
         raise InvalidFitsImageError(
             f"FITS image has an invalid BUNIT {unit!r}: {path}"
         ) from error
-    return ImageMetadata(shape_yx=shape_yx, unit=unit)
+    reference_frequency_hz = _header_reference_frequency_hz(
+        primary_hdu.header,
+        path,
+    )
+    beam = _restoring_beam(primary_hdu.header, path)
+    image_wcs, celestial_wcs = _celestial_wcs(primary_hdu.header, path)
+    return ImageMetadata(
+        shape_yx=shape_yx,
+        unit=unit,
+        beam=beam,
+        celestial_wcs=celestial_wcs,
+        reference_frequency_hz=(
+            reference_frequency_hz
+            if reference_frequency_hz is not None
+            else _wcs_reference_frequency_hz(image_wcs, path)
+        ),
+    )
 
 
 @contextmanager
@@ -111,3 +217,12 @@ class FitsImageSource:
             values=values,
             valid_pixels=valid_pixels,
         )
+
+
+def celestial_wcs_from_metadata(metadata: ImageMetadata) -> WCS:
+    """Reconstruct an independent Astropy WCS from serialized metadata."""
+    header = fits.Header.fromstring(
+        metadata.celestial_wcs.fits_header,
+        sep="\n",
+    )
+    return WCS(header, relax=True).celestial

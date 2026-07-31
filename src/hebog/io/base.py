@@ -8,15 +8,8 @@ from typing import Protocol
 import numpy as np
 import numpy.typing as npt
 
+from hebog.data_models.images import ImageMetadata
 from hebog.data_models.partitioning import ImageBounds
-
-
-@dataclass(frozen=True, slots=True)
-class ImageMetadata:
-    """Small serializable facts required before reading image pixels."""
-
-    shape_yx: tuple[int, int]
-    unit: str
 
 
 @dataclass(frozen=True, slots=True)
