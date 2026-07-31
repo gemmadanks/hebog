@@ -1138,3 +1138,31 @@ applicable zeroes for these single-process reference runs.
   `5.0/4.0` early-cycle profiles, canonical schema and primary-beam language,
   empty-product migration, MFS scope, and revised gate confidence rule before
   Phase 2 algorithms or stable scientific defaults.
+
+## 2026-07-31 — Began Phase 1 with bounded FITS input
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added the pipeline-neutral `ImageSource` seam with explicit half-open global
+  bounds, small image metadata, and owned bounded window records.
+- Implemented lazy FITS primary-plane validation and section reads for 2D
+  images and conventional singleton leading axes without materialising the
+  complete plane.
+- Preserved non-finite input values while exposing an explicit validity mask,
+  required a parseable brightness unit, and rejected missing data, zero-sized
+  planes, corrupt files, vectors, and non-singleton cubes.
+- Followed red-green-refactor: the focused contract first failed because the
+  FITS source was absent, then passed after the minimum implementation.
+
+**Evidence**
+
+- Fifteen focused FITS integration cases pass.
+- The new `hebog.io` modules have 100% line and branch coverage.
+
+**Next**
+
+- Add deterministic partition manifests, clipped halos, and ownership tests.
+- Extend metadata validation to the restoring beam and celestial WCS.
+- Add retryable product chunks and versioned catalogue/result schemas.

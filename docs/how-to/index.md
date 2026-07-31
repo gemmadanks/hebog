@@ -39,6 +39,40 @@ oracle. PyBDSF products establish compatibility; they are not assumed to be
 scientific ground truth. Qualification datasets are held out from routine TDD
 and used only for milestone or release decisions.
 
+## Read a bounded FITS window
+
+Use the image-source boundary when a worker needs pixels. It validates the
+logical plane and brightness unit without materialising the complete image,
+then copies only the requested half-open global window into owned memory:
+
+```python
+from pathlib import Path
+
+from hebog.io import FitsImageSource, ImageBounds
+
+source = FitsImageSource(Path("image.fits"))
+metadata = source.metadata()
+height, width = metadata.shape_yx
+window = source.read_window(
+    ImageBounds(
+        y_start=0,
+        y_stop=min(512, height),
+        x_start=0,
+        x_stop=min(512, width),
+    )
+)
+
+assert window.values.shape == window.bounds.shape_yx
+assert window.valid_pixels.shape == window.values.shape
+assert window.bounds.y_stop <= metadata.shape_yx[0]
+```
+
+The source accepts two-dimensional data and conventional radio-image FITS
+layouts whose leading axes are singleton. Non-singleton channel or Stokes
+cubes are rejected until their scientific semantics are explicitly supported.
+NaN and infinite pixels remain in the values array and are marked false in
+`valid_pixels`; kernels must exclude them from scientific calculations.
+
 ## Keep changes maintainable and reusable
 
 Start a vertical slice at the public behaviour, then keep scientific kernels

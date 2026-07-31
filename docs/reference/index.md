@@ -43,6 +43,12 @@ Related project references:
     options:
       show_symbol_type_toc: true
 
+## Image input
+
+::: hebog.io
+    options:
+      show_symbol_type_toc: true
+
 ## Workflow adapters
 
 ::: hebog.adapters.rapthor
