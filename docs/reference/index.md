@@ -42,6 +42,12 @@ Related project references:
     options:
       show_symbol_type_toc: true
 
+## Workflow adapters
+
+::: hebog.adapters.rapthor
+    options:
+      show_symbol_type_toc: true
+
 ## Validation contracts
 
 ::: hebog.validation.contracts

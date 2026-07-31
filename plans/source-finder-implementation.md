@@ -141,6 +141,13 @@ They never contain open FITS handles, a Dask client, or a mutable full-image obj
 identify a logical image through a partition manifest or chunk-addressable store, but storage and
 partition details remain explicit boundary metadata rather than scheduler state.
 
+One pipeline-neutral request represents one scientific image analysis and
+returns one catalogue, RMS image, source-filtering mask, and diagnostics
+record. Scientific thresholds are explicit rather than inherited from a
+workflow or survey default. A workflow adapter may compose several analyses;
+the Rapthor adapter owns its primary-beam-corrected and flat-noise branches,
+filtered sky models, legacy filenames, and compatibility configuration.
+
 The public scientific API and domain records must not import Rapthor, Prefect,
 LSMTool, or a concrete scheduler. Workflow-specific configuration, filenames,
 filtering rules, and failure translation live in adapters that depend on this
@@ -618,12 +625,12 @@ not turn measured engineering gates into facility-demonstrated claims.
 
 Complete the remaining work in this order:
 
-1. Reconcile the exported request, result, and configuration scaffold with ADR
-   006 and the frozen Rapthor contract. Decide explicitly which fields and
-   defaults belong to the pipeline-neutral scientific API and which belong to
-   the versioned Rapthor adapter; then align names, documentation, and strict
-   contract tests. Do not leave a single-image or single-RMS public record that
-   silently contradicts the two-branch compatibility contract.
+1. **Completed 2026-07-31:** reconcile the exported request, result, and
+   configuration scaffold with ADR 006 and the frozen Rapthor contract. One
+   public request now represents one image analysis with explicit scientific
+   thresholds; the versioned Rapthor adapter records own the two-branch inputs,
+   products, and compatibility profile. Documentation and strict contract
+   tests preserve that boundary.
 2. Harden baseline provenance before describing the technical exit gate as
    reproducible on a clean independent host. Make the reference runner verify
    rather than merely accept repository and installed-distribution identities;

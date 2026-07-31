@@ -1015,3 +1015,35 @@ applicable zeroes for these single-process reference runs.
   006 and the Rapthor contract.
 - Harden the retained Phase 0 baseline provenance and reproduction metadata.
 - Complete and record the scientific review using the reviewer packet.
+
+## 2026-07-31 — Reconciled the public and Rapthor contracts
+
+**Plan phase:** Phase 0 closure
+
+**Completed**
+
+- Defined the public request and result as one pipeline-neutral image analysis
+  with one catalogue, RMS image, source-filtering mask, diagnostics record,
+  timing, and schema version.
+- Made detection and island thresholds explicit and unit-qualified instead of
+  silently selecting one survey or workflow profile.
+- Removed speculative RMS, multiscale, and executor-timing options from the
+  scientific configuration and placed the traced Rapthor/LSMTool choices in a
+  versioned compatibility record.
+- Added serializable Rapthor request and result records for its
+  primary-beam-corrected and flat-noise branches, filtered sky models, optional
+  legacy mask, and diagnostics.
+- Split the frozen public behavior into a scheduler-independent one-image
+  contract and a separate Rapthor adapter acceptance behavior.
+
+**Evidence**
+
+- Focused configuration, record, manifest, contract, and acceptance tests:
+  15 passed and 11 strict expected failures behaved as specified.
+
+**Next**
+
+- Amend the provisional terminology and thresholds from the scientific
+  pre-review, including the difference between Rapthor strategy values and its
+  helper fallbacks.
+- Harden the baseline runner identities and retained evidence provenance.

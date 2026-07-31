@@ -91,15 +91,24 @@ request = SourceFinderRequest(
     output_directory=Path("output"),
     run_id="example",
 )
-result = find_sources(request, SourceFinderConfig(), SerialExecutor())
+config = SourceFinderConfig(
+    detection_threshold_sigma=5.0,
+    island_threshold_sigma=3.0,
+)
+result = find_sources(request, config, SerialExecutor())
 ```
 
 The final call currently raises `NotImplementedError`; Phase 0 first freezes
 the Rapthor/PyBDSF contract and equivalence harness.
 
 Requests and results never contain open FITS handles, scheduler clients, or
-mutable full-image objects. Rapthor owns the top-level Dask graph and resource
-budget.
+mutable full-image objects. Scientific thresholds are explicit because the
+widely used 5-sigma/3-sigma profile is not a universal default. One public
+request analyses one image and returns one catalogue, RMS image, mask, and
+diagnostics record. The `hebog.adapters.rapthor` boundary composes the
+primary-beam-corrected and flat-noise branches and owns Rapthor-specific sky
+models, filenames, and compatibility options. Rapthor owns the top-level Dask
+graph and resource budget.
 
 ## Development setup
 

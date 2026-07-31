@@ -18,14 +18,11 @@ _NOT_IMPLEMENTED = pytest.mark.xfail(
 
 
 class _ExpectedResult(Protocol):
-    """Frozen product view expected from a successful public result."""
+    """Pipeline-neutral products from one scientific image analysis."""
 
     catalogue_path: Path
-    true_sky_rms_path: Path
-    flat_noise_rms_path: Path
+    rms_path: Path
     mask_path: Path
-    filtered_true_sky_path: Path
-    filtered_apparent_sky_path: Path
     diagnostics_path: Path
     schema_version: int
 
@@ -39,23 +36,32 @@ def _request(tmp_path: Path, run_id: str = "contract") -> SourceFinderRequest:
     )
 
 
+def _config(
+    *,
+    detection_threshold_sigma: float = 5.0,
+    island_threshold_sigma: float = 3.0,
+) -> SourceFinderConfig:
+    """Create an explicit scientific threshold profile."""
+    return SourceFinderConfig(
+        detection_threshold_sigma=detection_threshold_sigma,
+        island_threshold_sigma=island_threshold_sigma,
+    )
+
+
 @pytest.mark.contract
 @_NOT_IMPLEMENTED
 def test_valid_request_materialises_versioned_products(tmp_path: Path) -> None:
     """A successful result exposes every frozen product as plain metadata."""
     result = find_sources(
         _request(tmp_path),
-        SourceFinderConfig(),
+        _config(),
         SerialExecutor(),
     )
     expected = cast("_ExpectedResult", result)
 
     assert expected.catalogue_path.is_file()
-    assert expected.true_sky_rms_path.is_file()
-    assert expected.flat_noise_rms_path.is_file()
+    assert expected.rms_path.is_file()
     assert expected.mask_path.is_file()
-    assert expected.filtered_true_sky_path.is_file()
-    assert expected.filtered_apparent_sky_path.is_file()
     assert expected.diagnostics_path.is_file()
     assert expected.schema_version >= 1
 
@@ -65,10 +71,13 @@ def test_valid_request_materialises_versioned_products(tmp_path: Path) -> None:
 def test_threshold_increase_cannot_create_source(tmp_path: Path) -> None:
     """Detection membership is monotonic under increasing thresholds."""
     request = _request(tmp_path, run_id="threshold-monotonicity")
-    baseline = find_sources(request, SourceFinderConfig(), SerialExecutor())
+    baseline = find_sources(request, _config(), SerialExecutor())
     higher = find_sources(
         request,
-        SourceFinderConfig(detection_sigma=8.0, island_sigma=6.0),
+        _config(
+            detection_threshold_sigma=8.0,
+            island_threshold_sigma=6.0,
+        ),
         SerialExecutor(),
     )
 
