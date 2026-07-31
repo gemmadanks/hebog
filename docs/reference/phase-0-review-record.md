@@ -36,6 +36,47 @@ An SKA imaging/domain reviewer must confirm or amend, with their name and date:
 - the classification and coverage of the frozen regression and held-out
   qualification cases.
 
+### Reviewer packet
+
+Review these sources together because no single document contains the full
+scientific contract:
+
+1. [Domain glossary](domain-glossary.md), including the legacy mappings and
+   public/internal naming conventions.
+2. [Domain model](../explanation/domain-model.md) and
+   [Rapthor source-finding contract](rapthor-source-finding-contract.md),
+   including catalogue, RMS, mask, empty-result, and failure semantics.
+3. [Scientific equivalence gates](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#5-scientific-equivalence-gates)
+   and the associated
+   [dataset matrix](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#6-dataset-matrix).
+4. Frozen
+   [development](https://github.com/gemmadanks/hebog/blob/main/config/datasets/phase-0-development.json),
+   [regression](https://github.com/gemmadanks/hebog/blob/main/config/datasets/phase-0-regression.json),
+   and
+   [qualification](https://github.com/gemmadanks/hebog/blob/main/config/datasets/phase-0-qualification.json)
+   manifests.
+5. [Phase 0 baseline results](phase-0-baseline-results.md) and the
+   [scientific comparison method](scientific-comparison.md) as supporting
+   context rather than scientific truth.
+
+The project owner may perform this review when acting with the required SKA
+imaging/source-finding competence and authority. If the reviewer is also the
+ADR decider, record that dual role explicitly. Independent confirmation is
+still advisable before production cutover, but is not a Phase 0 prerequisite.
+
+### Scientific sign-off
+
+Append a completed record here using this form:
+
+- **Reviewer:** _name_
+- **Role or scientific authority:** _role and relevant domain responsibility_
+- **Review date:** _YYYY-MM-DD_
+- **Decision:** _approved, or approved with required amendments_
+- **Required amendments:** _none, or links to the amended contracts, gates,
+  manifests, and decision record_
+- **Qualification-data confirmation:** _confirm that held-out qualification
+  results were not used to tune the reviewed thresholds or algorithms_
+
 Until that sign-off is appended here, thresholds remain engineering gates and
 must not be described as domain-approved. This does not block reproducibility,
 I/O scaffolding, or red-green-refactor Phase 1 work that cannot prejudge a

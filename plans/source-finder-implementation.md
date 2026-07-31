@@ -607,10 +607,66 @@ removal is separately justified.
 
 ### Phase 0: freeze baselines and contracts
 
-**Technical status:** complete on 2026-07-18. The external scientific and
-facility reviews recorded below remain explicit governance follow-ups; they do
-not turn measured engineering gates into domain-approved or facility-
-demonstrated claims.
+**Technical foundation status:** complete on 2026-07-18. **Closure status:** in
+progress. The captured baselines, comparison harness, contracts, and governed
+manifests are sufficient to begin Phase 1 infrastructure work, but the closure
+sequence below must be completed before Phase 0 is recorded as fully closed.
+The external facility review remains a separate governance follow-up and does
+not turn measured engineering gates into facility-demonstrated claims.
+
+#### Phase 0 closure order
+
+Complete the remaining work in this order:
+
+1. Reconcile the exported request, result, and configuration scaffold with ADR
+   006 and the frozen Rapthor contract. Decide explicitly which fields and
+   defaults belong to the pipeline-neutral scientific API and which belong to
+   the versioned Rapthor adapter; then align names, documentation, and strict
+   contract tests. Do not leave a single-image or single-RMS public record that
+   silently contradicts the two-branch compatibility contract.
+2. Harden baseline provenance before describing the technical exit gate as
+   reproducible on a clean independent host. Make the reference runner verify
+   rather than merely accept repository and installed-distribution identities;
+   bind evidence to the exact Hebog runner/compiler revision or script hashes;
+   retain the sanitized installed-package inventories or a durable locator;
+   and record retrievable immutable-container and controlled-dataset locations,
+   or narrow the reproduction claim where those artifacts are intentionally
+   retained only on a controlled runner.
+3. Obtain named scientific/domain sign-off. The reviewer packet is:
+
+   - the [domain glossary](../docs/reference/domain-glossary.md), including its
+     legacy mappings and naming conventions;
+   - the [domain model](../docs/explanation/domain-model.md) and the
+     [Rapthor source-finding contract](../docs/reference/rapthor-source-finding-contract.md),
+     including catalogue, RMS, mask, empty-result, and failure semantics;
+   - the [scientific equivalence gates](#5-scientific-equivalence-gates) and
+     [dataset matrix](#6-dataset-matrix);
+   - the frozen [development](../config/datasets/phase-0-development.json),
+     [regression](../config/datasets/phase-0-regression.json), and
+     [qualification](../config/datasets/phase-0-qualification.json) manifests;
+   - the [Phase 0 baseline results](../docs/reference/phase-0-baseline-results.md)
+     and [scientific comparison method](../docs/reference/scientific-comparison.md)
+     as supporting context; and
+   - the [Phase 0 review record](../docs/reference/phase-0-review-record.md),
+     where the reviewer records their name, role or authority, date, decision,
+     and any required amendments.
+4. Apply any approved amendments to the contracts, gates, or manifests; rerun
+   the relevant contract, equivalence, documentation, and normal handoff
+   checks; then mark the domain-review checklist item complete and record the
+   closure evidence in `LOG.md`.
+5. Complete the facility review and controlled 1/10/50/100/200-node evidence
+   before calling the extreme-image gates demonstrated. This is not a Phase 1
+   start gate and may remain open after technical and scientific Phase 0
+   closure.
+
+Phase 1 may begin in parallel with steps 1 to 3 for tests and implementation
+that cannot prejudge scientific terminology or choices, such as FITS
+validation, bounded window I/O, partition metadata, and atomic product writes.
+Complete scientific sign-off before stabilizing public scientific names,
+encoding default detection or island thresholds, finalizing catalogue/RMS/mask
+semantics, or converting the corresponding strict expected failures into
+passing compatibility claims. In all cases, complete it before Phase 2
+algorithm work.
 
 - [x] Capture the current Rapthor, released PyBDSF, PyBDSF `master`, LSMTool, dependency, and
       container revisions in the
@@ -683,6 +739,11 @@ review plus controlled multi-node evidence remains required before the extreme-i
 called demonstrated.
 
 ### Phase 1: FITS, beam, WCS, and internal models
+
+Start rule: Phase 1 infrastructure and red-green-refactor work may proceed
+while Phase 0 scientific review is in progress, but its versioned schemas must
+not be declared stable until the sign-off and any required amendments in the
+Phase 0 closure order are recorded.
 
 - [ ] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
       unsupported FITS inputs and products.

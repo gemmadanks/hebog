@@ -990,3 +990,28 @@ applicable zeroes for these single-process reference runs.
   available.
 - Begin Phase 1 with failing FITS, WCS, beam, partition, and internal-schema
   tests while retaining released and master PyBDSF as separate comparators.
+
+## 2026-07-31 — Ordered the remaining Phase 0 closure work
+
+**Plan phase:** Phase 0 closure
+
+**Completed**
+
+- Distinguished the completed technical foundation from full Phase 0 closure.
+- Ordered the remaining work: align the public scaffold with the frozen
+  compatibility contract, harden evidence provenance, obtain named scientific
+  sign-off, apply reviewed amendments, and retain facility qualification as a
+  separate pre-demonstration gate.
+- Added a linked scientific-review packet and a sign-off form covering reviewer
+  authority, decision, amendments, and held-out qualification-data handling.
+- Clarified that Phase 1 FITS, bounded-I/O, partition, and atomic-write work may
+  start during review, while stable scientific names, thresholds, and product
+  semantics must wait for sign-off and scientific sign-off must precede Phase
+  2.
+
+**Next**
+
+- Reconcile the exported request, result, and configuration records with ADR
+  006 and the Rapthor contract.
+- Harden the retained Phase 0 baseline provenance and reproduction metadata.
+- Complete and record the scientific review using the reviewer packet.
