@@ -30,9 +30,9 @@
     "rapthor_lsmtool": {
       "installed_version": "1.8.0",
       "local_object_available": true,
-      "requirement": "lsmtool @ git+https://git.astron.nl/RD/LSMTool.git@3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a",
       "reference_image_preinstalled_module_commit": "4604b01a520ceeec8e080eb89b1eb00fe9dc15d2",
       "reference_image_preinstalled_module_sha256": "da424e1bc3ef79d6616f31db82087f0200431dcd5a2ad68d158b19da1e6b39d0",
+      "requirement": "lsmtool @ git+https://git.astron.nl/RD/LSMTool.git@3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a",
       "source_finding_module_sha256": "eccb93f128f7be0659e0bb8a433a49e80291661d38f6f4002b5c75fe50dc35d2"
     },
     "rapthor_pybdsf": {
