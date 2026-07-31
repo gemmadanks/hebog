@@ -765,10 +765,10 @@ Phase 0 closure order are recorded.
 
 - [ ] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
       unsupported FITS inputs and products.
-- [ ] Write failing tests for partition manifests, bounded window reads, halo clipping, global and
+- [x] Write failing tests for partition manifests, bounded window reads, halo clipping, global and
       tile coordinates, chunk checksums, interrupted writes, and restartable materialisation.
 - [ ] Define versioned internal catalogue and materialised result schemas from those tests.
-- [ ] Define narrow image-source and product-sink seams from concrete FITS and
+- [x] Define narrow image-source and product-sink seams from concrete FITS and
       workflow tests; do not introduce a registry or plugin system pre-emptively.
 - [ ] Define a deterministic partition manifest and ownership rule so every output pixel and source
       has exactly one owning tile.

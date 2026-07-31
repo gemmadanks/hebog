@@ -9,7 +9,8 @@ import numpy as np
 import numpy.typing as npt
 
 from hebog.data_models.images import ImageMetadata
-from hebog.data_models.partitioning import ImageBounds
+from hebog.data_models.partitioning import ImageBounds, TilePartition
+from hebog.data_models.products import ProductChunk
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,4 +31,18 @@ class ImageSource(Protocol):
 
     def read_window(self, bounds: ImageBounds) -> ImageWindow:
         """Read one bounded global window into worker-owned memory."""
+        ...
+
+
+class ProductSink(Protocol):
+    """Narrow publication seam for independently retryable product chunks."""
+
+    def write_chunk(
+        self,
+        *,
+        product_name: str,
+        tile: TilePartition,
+        values: npt.NDArray[np.generic],
+    ) -> ProductChunk:
+        """Atomically publish or reuse one tile-owned output core."""
         ...

@@ -1266,3 +1266,43 @@ applicable zeroes for these single-process reference runs.
 
 - Resume Phase 1 product-sink and retryable materialisation work after the
   CI-fix commit is reviewed.
+
+## 2026-07-31 — Added retryable intermediate product chunks
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added a versioned, pickle-safe product-chunk record containing its product
+  and tile identity, global core bounds, canonical relative path, dtype,
+  shape, byte size, and SHA-256 without embedding pixel arrays.
+- Added a narrow scheduler-independent product-sink protocol and one concrete
+  filesystem implementation; no registry, scheduler client, or workflow
+  dependency enters the scientific boundary.
+- Published two-dimensional NumPy cores through flushed same-directory partial
+  files and atomic hard links so a final path never exposes incomplete bytes
+  and concurrent attempts cannot overwrite one another.
+- Made identical retries idempotent, conflicting retries fail closed, and
+  retries after failures immediately before or after publication recoverable.
+- Validated paths, checksums, array metadata, object-dtype rejection, and
+  symlink containment before workers consume or publish products.
+- Followed red-green-refactor: focused tests first failed on the absent chunk
+  record and sink module, then passed after the minimal implementation.
+
+**Evidence**
+
+- Twenty-six focused unit and integration tests cover record serialization,
+  normal round trips, identical and conflicting retries, injected failures,
+  missing and corrupted files, invalid arrays, metadata disagreement, and
+  path-containment failures.
+- The new product record and filesystem sink have 100% line and branch
+  coverage. The portable suite passes 190 tests with 4 expected failures and
+  total branch-aware project coverage of 89.94%.
+
+**Next**
+
+- Define a versioned materialised-result manifest that records the expected
+  complete chunk set and detects missing, duplicate, or mixed-run products.
+- Define empty and populated catalogue schemas through round-trip tests.
+- Materialise compatible FITS, RMS, mask, and catalogue products atomically
+  from validated chunk manifests.

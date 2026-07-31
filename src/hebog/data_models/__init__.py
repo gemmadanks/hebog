@@ -6,6 +6,7 @@ from hebog.data_models.partitioning import (
     PartitionManifest,
     TilePartition,
 )
+from hebog.data_models.products import ProductChunk
 from hebog.data_models.source_finding import (
     SourceFinderRequest,
     SourceFinderResult,
@@ -16,6 +17,7 @@ __all__ = [
     "ImageBounds",
     "ImageMetadata",
     "PartitionManifest",
+    "ProductChunk",
     "RestoringBeam",
     "SourceFinderRequest",
     "SourceFinderResult",

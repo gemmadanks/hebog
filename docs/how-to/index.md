@@ -106,6 +106,46 @@ change batching, but must not change these cores, their ownership, or the
 scientific result. `partition_origin_yx` may shift internal grid boundaries
 for invariance tests while still assigning every pixel to exactly one core.
 
+## Publish retryable product chunks
+
+Publish large intermediate planes as independent tile-owned cores. The
+filesystem sink returns a small serializable record containing the canonical
+relative path, global core bounds, dtype, shape, byte size, and SHA-256:
+
+```python
+from pathlib import Path
+
+from hebog.io import FilesystemProductSink
+
+sink = FilesystemProductSink(Path("work/products"))
+chunks = []
+for tile in manifest.tiles:
+    tile_window = source.read_window(tile.read_bounds)
+    chunk = sink.write_chunk(
+        product_name="rms",
+        tile=tile,
+        values=tile_window.values[tile.core_slices_yx],
+    )
+    chunks.append(chunk)
+
+restored = sink.read_chunk(chunks[0])
+assert restored.shape == chunks[0].shape_yx
+```
+
+Publication uses a flushed private partial file and an atomic same-directory
+hard link. A final path is therefore never visible with partial bytes.
+Identical retries reuse the published chunk without changing it; a retry that
+produces different bytes for the same product and tile fails closed. A worker
+failure before publication leaves no final path, while a lost response after
+publication is recovered by the next identical retry.
+
+All workers using this sink must see the same caller-owned filesystem, and it
+must support atomic hard links. Private `*.partial` files are not products and
+may be removed by run-level cleanup only after no writers remain. These NumPy
+chunks are internal restart artifacts; later compatibility materialisation
+creates the versioned FITS, mask, RMS, and catalogue products consumed by
+Rapthor or another workflow.
+
 ## Keep changes maintainable and reusable
 
 Start a vertical slice at the public behaviour, then keep scientific kernels
