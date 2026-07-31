@@ -33,6 +33,46 @@ def test_rejects_inverted_thresholds() -> None:
         )
 
 
+@pytest.mark.parametrize("value", [float("nan"), float("inf")])
+def test_rejects_non_finite_detection_threshold(value: float) -> None:
+    """Detection thresholds must be real finite sigma values."""
+    with pytest.raises(ValueError, match="must be finite"):
+        SourceFinderConfig(
+            detection_threshold_sigma=value,
+            island_threshold_sigma=3.0,
+        )
+
+
+@pytest.mark.parametrize("value", [0.0, -1.0])
+def test_rejects_non_positive_detection_threshold(value: float) -> None:
+    """Detection thresholds must be strictly positive."""
+    with pytest.raises(ValueError, match="must be positive"):
+        SourceFinderConfig(
+            detection_threshold_sigma=value,
+            island_threshold_sigma=3.0,
+        )
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf")])
+def test_rejects_non_finite_island_threshold(value: float) -> None:
+    """Island thresholds must be real finite sigma values."""
+    with pytest.raises(ValueError, match="must be finite"):
+        SourceFinderConfig(
+            detection_threshold_sigma=5.0,
+            island_threshold_sigma=value,
+        )
+
+
+@pytest.mark.parametrize("value", [0.0, -1.0])
+def test_rejects_non_positive_island_threshold(value: float) -> None:
+    """Island thresholds must be strictly positive."""
+    with pytest.raises(ValueError, match="must be positive"):
+        SourceFinderConfig(
+            detection_threshold_sigma=5.0,
+            island_threshold_sigma=value,
+        )
+
+
 @given(
     island_threshold_sigma=st.floats(
         min_value=1e-6,
