@@ -12,7 +12,7 @@ Review in this order:
 2. Security, privacy, and unsafe data handling
 3. Public API and supported-version compatibility
 4. Architecture boundaries, maintainability, and extensibility
-5. Missing or misleading tests
+5. Missing or misleading tests and coverage regressions
 6. Packaging, documentation, and operational impact
 
 Do not spend review attention on formatting that Ruff or another configured
@@ -37,13 +37,25 @@ tool handles automatically.
 8. For a new executor, store, adapter, or workflow integration, confirm the
    existing public API or a narrow protocol supports it without conditionals
    spreading through unrelated scientific modules.
-9. For native code, verify the recorded profile and end-to-end gate, FFI array
+9. Confirm each changed behaviour has a focused test that would fail for the
+   intended reason if that behaviour were removed. Look for normal, boundary,
+   failure, short-circuit, and regression cases rather than line execution
+   without meaningful assertions.
+10. Run `just coverage` for production changes. Inspect branch-aware project
+    coverage, changed-file misses, and the Codecov diff/patch report when
+    available. The 80% project floor does not excuse a poorly covered patch.
+    Treat reduced project or patch coverage as a finding unless an explicit
+    human-approved exception explains the risk and follow-up.
+11. Reject coverage gaming, including weakened assertions, inappropriate
+    `pragma: no cover` markers or omit rules, tests coupled to implementation
+    details only to execute a line, and deletion of meaningful cases.
+12. For native code, verify the recorded profile and end-to-end gate, FFI array
    ownership and copy contract, interpreter release, thread budget, exception
    safety, readable serial oracle, scientific parity, safety tooling, license,
    and complete supported wheel matrix. Reject a kernel-only speedup that is
    immaterial end to end.
-10. Finish with `just check` when proportional to the change, plus the additional
-   commands required by `AGENTS.md`.
+13. Finish with `just check` when proportional to the change, plus the additional
+    commands required by `AGENTS.md`.
 
 ## Finding quality
 
@@ -67,7 +79,8 @@ Present findings first, ordered by priority. Then state:
 
 - assumptions or questions that limit confidence;
 - checks run and their results;
-- residual risks or coverage gaps.
+- project and patch coverage results for production changes; and
+- residual risks or approved coverage gaps.
 
 If there are no findings, say so explicitly and still report checks and
 remaining test or review gaps. A clean review means no actionable issue was

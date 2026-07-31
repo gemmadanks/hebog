@@ -305,9 +305,12 @@ any supported tier requires an explicitly approved and documented trade-off.
   low-level or compiled complexity behind a clear typed function, retain a
   readable serial oracle, and document why the complexity is necessary.
 - All committed code must pass Ruff, Pyright, and the relevant tests. Maintain
-  at least 80% branch-aware project coverage and do not lower meaningful
-  coverage merely to satisfy the number; new behaviour still needs focused
-  normal, edge, and failure tests.
+  at least 80% branch-aware project coverage. Do not reduce project or
+  diff/patch coverage without an explicit, documented human-approved
+  exception. The overall floor is not permission to leave changed production
+  branches untested: new or modified behaviour needs focused normal, boundary,
+  and failure tests. Never weaken assertions, add coverage exclusions, or
+  remove meaningful tests merely to improve the reported number.
 
 ## Native code
 
@@ -349,6 +352,11 @@ any supported tier requires an explicitly approved and documented trade-off.
   error behaviour, and executor semantics: add a test that fails for the
   intended reason, implement the smallest serial behaviour, refactor, then add
   executor conformance and scientific comparisons.
+- For a production behaviour change, run the new or changed focused test before
+  implementation and confirm the red result is caused by the missing behaviour,
+  not an import, fixture, or environment failure. Do not commit the red state.
+  If test-first development is genuinely impractical, record why in the plan or
+  handoff and add the behavioural test in the same coherent commit.
 - Mark tests with `integration`, `equivalence`, `acceptance`, `qualification`,
   `benchmark`, `scalability`, `slow`, and `requires_data` as applicable.
   Marker names are strict.
@@ -373,6 +381,12 @@ any supported tier requires an explicitly approved and documented trade-off.
   files.
 - Test observable behaviour, error messages, and public-boundary validation.
 - Add a regression test before fixing incorrect behaviour when practical.
+- Run `just coverage` after changing production code, validation rules, or
+  control flow. Inspect line and branch misses in every changed production
+  file and, when CI provides it, the Codecov patch report. Cover short-circuit
+  and error branches explicitly; an unchanged overall percentage does not
+  excuse uncovered changed lines. Any deliberate gap requires a documented
+  rationale and human approval.
 - Use deterministic fault injection for normal executor tests; reserve actual
   worker termination, spilling, private data, and wall-time gates for
   controlled runners.
@@ -440,14 +454,16 @@ Before handing off a meaningful change:
 
 1. Inspect the full diff and remove unrelated or generated files.
 2. Run targeted tests and the relevant linter.
-3. Run equivalence tests for scientific changes.
-4. Run reproducible before/after benchmarks for performance claims.
-5. Test serial and Dask execution for scheduler-facing changes.
-6. Build docs for public API, configuration, plan, or workflow changes.
-7. Append material progress, evidence, deviations, and next steps to `LOG.md`.
-8. Update the source-finder plan only when scope, sequencing, gates, decisions,
+3. Run `just coverage` for production changes and confirm project coverage has
+   not fallen and changed lines and branches satisfy the patch-coverage gate.
+4. Run equivalence tests for scientific changes.
+5. Run reproducible before/after benchmarks for performance claims.
+6. Test serial and Dask execution for scheduler-facing changes.
+7. Build docs for public API, configuration, plan, or workflow changes.
+8. Append material progress, evidence, deviations, and next steps to `LOG.md`.
+9. Update the source-finder plan only when scope, sequencing, gates, decisions,
    or risks changed.
-9. Run `just check`, plus `just package-smoke-test` for packaging changes.
-10. Review the final diff using `CODE_REVIEW.md` and report checks not run.
-11. Create the atomic local commit after validation and review, then inspect
+10. Run `just check`, plus `just package-smoke-test` for packaging changes.
+11. Review the final diff using `CODE_REVIEW.md` and report checks not run.
+12. Create the atomic local commit after validation and review, then inspect
     the commit and working tree. Do not push it.
