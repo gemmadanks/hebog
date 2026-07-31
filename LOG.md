@@ -1306,3 +1306,40 @@ applicable zeroes for these single-process reference runs.
 - Define empty and populated catalogue schemas through round-trip tests.
 - Materialise compatible FITS, RMS, mask, and catalogue products atomically
   from validated chunk manifests.
+
+## 2026-07-31 — Added the intermediate-storage decision gate
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Reassessed the NumPy-file/hard-link product sink before building the
+  materialised-result manifest on its private layout.
+- Made Zarr v3 the preferred intermediate-plane candidate because it already
+  provides maintained multidimensional chunk storage, Dask integration,
+  multiple storage backends, codec pipelines, and checksum codecs.
+- Kept the current sink as a behavioural prototype and serial oracle rather
+  than declaring it the production format.
+- Added an ADR and benchmark gate comparing Zarr local and
+  deployment-representative stores against the oracle and direct FITS across
+  size and execution crossovers.
+- Kept scientific ownership, WCS/beam/unit schemas, strict missing-chunk
+  handling, run provenance, conflict policy, and validated completion
+  manifests in Hebog rather than delegating them to an array format.
+- Added Arrow/Parquet as a separate candidate for internal catalogue shards;
+  workflow-compatible FITS and LSMTool products remain adapter outputs.
+
+**Evidence**
+
+- The plan links the official Zarr and Dask storage documentation and records
+  the alignment, backend atomicity, codec, checksum, concurrency, failure,
+  restart, and performance evidence required for selection.
+- The decision remains open until a reproducible prototype passes the
+  scientific, recovery, portability, and performance gates.
+
+**Next**
+
+- Write the intermediate-storage ADR as proposed and implement the smallest
+  Zarr v3 prototype behind the existing product-sink boundary.
+- Compare it with the NumPy-file oracle before defining a materialised-result
+  schema that depends on either physical layout.
