@@ -916,35 +916,62 @@ because `LocalStore` passed.
       batches of independent windows. Cover constant and negative backgrounds,
       positive affine transforms, masks, NaNs, bright outliers, zero RMS, and
       insufficient retained samples without Python loops over windows.
-- [ ] Extend analytic and property tests through coarse-grid placement and
+- [x] Extend analytic and property tests through coarse-grid placement and
       interpolation for affine backgrounds, edges, sparse adaptive cells, and
       fallback behaviour.
-- [ ] Add tile-boundary and partition-invariance tests for RMS windows, interpolation, and adaptive
+- [x] Add tile-boundary and partition-invariance tests for RMS windows, interpolation, and adaptive
       bright-source regions.
-- [ ] Place coarse-grid windows in bounded batches and apply the serial
+- [x] Place coarse-grid windows in bounded batches and apply the serial
       sigma-clipped statistics oracle to satisfy those tests.
-- [ ] Compute global coarse-grid and interpolation metadata through hierarchical reductions and
-      bounded tile summaries rather than gathering full planes.
-- [ ] Reuse buffers and calculate adaptive fine-grid cells only around bright candidates.
-- [ ] Interpolate cached coarse samples; fallback interpolation must not recompute statistics.
-- [ ] Treat masks, NaNs, edges, negative values, and insufficient samples explicitly.
-- [ ] Add Numba only where profiling shows vectorised SciPy/NumPy is insufficient.
-- [ ] If a candidate still meets the native-code decision gate, benchmark one
+- [x] Compute global coarse-grid and interpolation metadata from bounded batch
+      results, and send local bracketing summaries rather than global grids or
+      complete image planes to output tiles. Multi-level distributed reduction
+      remains part of the Phase 6/8 graph-and-scale gate if the coarse-summary
+      volume or scheduler load becomes material at 30,000 or 100,000 pixels.
+- [x] Reuse prepared coarse summaries and calculate adaptive fine-grid cells
+      only in merged local regions around explicit bright candidates.
+- [x] Interpolate cached coarse samples; fallback interpolation does not
+      recompute statistics.
+- [x] Treat masks, NaNs, edges, negative values, zero RMS, and insufficient
+      samples explicitly.
+- [x] Retain vectorised NumPy, SciPy, and Astropy without Numba: controlled
+      four-core measurements meet both component budgets, so profiling does
+      not justify another implementation path.
+- [x] Do not build a Rust or C++ prototype: no remaining kernel meets the
+      native-code decision gate after the vectorised implementation met the
+      end-to-end component and memory gates. If a candidate later meets the
+      gate, benchmark one
       minimal Rust and/or C++ prototype against the same Python/Numba contract
       before selecting a language or accepting an ADR.
-- [ ] Benchmark array dtype, window batching, and interpolation slab size.
+- [x] Benchmark window batching and interpolation slab size on the
+      representative image; retain 64-cell batches and 1,500-by-1,500 output
+      tiles for the recorded four-core curve. Keep float64 as the scientific
+      policy because equivalence is established at that precision; a lower
+      precision remains ineligible until it passes the same suite.
 
 Provisional component budget on the 3000 by 3000 reference image: no more than 4 seconds for the
 true-sky background stage and no more than 3 seconds for the flat-noise RMS product on four
 allocated CPU cores.
 
-Exit gate: the RMS scientific gates pass across the dataset matrix and the component budget is met
-without increasing peak memory above the matched PyBDSF run.
+Exit gate: the relevant analytic, partition, executor, compact-reference, and
+representative RMS matrix passes. On the controlled 3,000-by-3,000 four-core
+run, the true-sky median was 2.471 seconds against a 4-second budget and the
+flat-noise median was 2.527 seconds against a 3-second budget. Maximum sampled
+Hebog process RSS was 974,192,640 bytes, below the approximately 1.30 GB
+matched PyBDSF observations. This gate passed on 2026-08-01. Raw exploratory
+evidence remains under ignored `benchmark-results/phase-2/`; the committed
+summary and scope limitations are in the Phase 2 release-readiness record.
+Automatic bright-candidate discovery, final product persistence, and
+multi-node graph qualification remain their explicitly assigned later phases.
 
 ### Phase 3: thresholding, islands, and deblending
 
 - [ ] Write failing analytic and generated-truth tests for threshold monotonicity, connectivity,
       stable labels, close blends, edges, and empty detections.
+- [ ] Derive deterministic high-significance bright-candidate positions from
+      the cached coarse background/RMS result, then request adaptive
+      refinement without recomputing coarse statistics. Prove candidate and
+      refined-map invariance at tile edges and corners.
 - [ ] Put sources and islands across every tile-edge and tile-corner topology; prove invariance to
       tile shape, worker count, task order, retry, and partition origin.
 - [ ] Apply seed and island thresholds to normalized residuals.

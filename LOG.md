@@ -27,16 +27,16 @@ when execution changes its scope, sequence, gates, risks, or decisions.
 
 ## Current position
 
-Hebog has completed the technical Phase 0 foundation. Released PyBDSF 1.14.1
-and pinned master have matched compact and representative reviewed evidence,
-frozen products, exact runtime and input identities, and an independent
-scientific divergence report. The validation matrix, held-out qualification
-recipes, public-behaviour specifications, 100,000-square resource contract,
-and warm one-tile budgets are frozen. Scientific algorithms remain
-unimplemented. Phase 1 can proceed through TDD where it does not prejudge an
-unapproved scientific choice; named domain and facility review remain required
-before engineering thresholds are called domain-approved or large-scale gates
-are called demonstrated.
+Hebog has completed the technical Phase 0 contracts, Phase 1 bounded FITS/Zarr
+I/O, and Phase 2 deterministic background/RMS estimation. The Phase 2
+implementation passes analytic, partition, retry, serial/Dask, compact
+PyBDSF, representative scientific, four-core latency, and peak-memory gates.
+The next implementation phase is thresholding, islands, and deblending.
+Automatic bright-candidate discovery, final RMS persistence, complete
+source-finding products, Rapthor integration, and multi-node scalability
+remain explicitly unimplemented. Named domain and facility review is still
+required before engineering thresholds or defaults are called
+domain-approved, complete PyBDSF equivalence is claimed, or Rapthor cuts over.
 
 ## 2026-07-16 — Profiled the existing PyBDSF path
 
@@ -1865,3 +1865,87 @@ applicable zeroes for these single-process reference runs.
 - Define deterministic coarse-grid window centres and clipped edge geometry
   with analytic affine-background tests, then apply the window oracle in
   bounded batches before implementing interpolation.
+
+## 2026-08-01 — Completed Phase 2 background and RMS estimation
+
+**Plan phase:** Phase 2
+
+**Completed**
+
+- Applied the vectorised sigma-clipping oracle to deterministic globally
+  anchored, edge-aligned coarse windows in bounded rectangular batches.
+- Added cached sparse-cell fallback and affine-preserving SciPy interpolation,
+  with tile-local bracketing summaries rather than complete image planes.
+- Added local adaptive fine grids around explicit bright candidates. Overlap
+  merges deterministically, while distant candidates retain separate bounded
+  regions so summary memory scales with affected area rather than image area.
+- Proved serial/Dask, one-/many-tile, shifted-origin, task-order, and retry
+  invariance, and explicit behaviour for masks, NaNs, edges, negative values,
+  zero RMS, insufficient samples, and all-invalid data.
+- Added a portable frozen-input equivalence test and a versioned Phase 2
+  benchmark runner. The runner keeps client startup outside the measurement,
+  records one warm-up and five repetitions, and does not assemble a complete
+  output plane.
+- Accepted common WSClean `JY/BEAM` and `JYBEAM-1` FITS unit aliases while
+  retaining strict Astropy validation for all other input units.
+
+**Scientific evidence**
+
+- On the exact 256-by-256 frozen generated input, Hebog's RMS map differs from
+  both released PyBDSF 1.14.1 and pinned master by 1.575% at the median and
+  95th percentile, below the 2% and 5% gates.
+- On the 8,980,478 pixels outside the frozen source-filter mask in each
+  representative Rapthor image, median and 95th-percentile RMS differences
+  were 1.437% and 4.279% for true sky and 1.418% and 4.278% for flat noise.
+  Released and master reference maps were identical for these comparisons.
+- Representative Hebog RMS array SHA-256 values were
+  `61491cbca860356798844a9b75bef7f72f4d1ac2a6dd50a236b557814e142a19`
+  for true sky and
+  `c66f747eeb5aef999f282c88f7ebc357e68c1fb3c1161b9709379fc76aa2cb61`
+  for flat noise. Validation arrays remain outside Git.
+
+**Performance evidence**
+
+- Controlled 3,000-by-3,000 runs used the representative Phase 0 inputs, a
+  reused four-worker/one-thread local Dask client, 150/50 RMS geometry,
+  64-cell batches, 1,500-pixel output tiles, float64, one warm-up, and five
+  measured repetitions.
+- True-sky median wall time was 2.471 seconds (range 2.397–2.553), passing the
+  4-second budget. Flat-noise median wall time was 2.527 seconds (range
+  2.463–2.541), passing the 3-second budget.
+- Maximum sampled Hebog process RSS was 974,192,640 bytes, below the
+  approximately 1.30 GB Phase 0 PyBDSF observations. Instrumentation differs:
+  PyBDSF recorded the largest parent or child, while the in-process Hebog
+  client and workers share one process. This supports the non-regression gate,
+  not an aggregate multi-node memory claim.
+- Raw exploratory evidence remains under ignored
+  `benchmark-results/phase-2/`. The committed release-readiness record contains
+  the scope, reproduction command, compact results, and limitations.
+- The release handoff passes 387 portable unit, contract, and integration
+  tests with four strict expected failures and 92.96% branch-aware coverage.
+  All ten portable equivalence tests pass; all seven future acceptance
+  scenarios remain strict expected failures. Ruff, Pyright, strict docs,
+  pre-commit, and isolated source-distribution-to-wheel validation pass.
+
+**Decisions and deviations**
+
+- Retain NumPy, SciPy, and Astropy. The vectorised implementation meets the
+  scientific, latency, and memory gates, so Numba, Rust, and C++ do not meet
+  the project's additional-complexity decision gate.
+- Retain float64 until a lower-precision implementation passes the same
+  scientific suite. Treat batch and output-tile sizes as measured execution
+  policy, not scientific geometry.
+- Defer automatic bright-candidate discovery to the thresholding/integration
+  work and multi-level coarse-summary reduction to the distributed graph and
+  scale gate. Current tile requests receive only bounded local summaries and
+  never a complete image plane.
+
+**Next**
+
+- Begin Phase 3 with failing analytic and generated-truth tests for threshold
+  monotonicity, stable connected islands, blends, edges, and empty detections.
+- Derive automatic high-significance bright-candidate positions from the
+  coarse result without recomputing coarse statistics, then connect owned RMS
+  tiles to the Phase 1 Zarr persistence contract.
+- Obtain the named scientific review before stabilizing the compatibility
+  defaults or claiming complete PyBDSF equivalence.

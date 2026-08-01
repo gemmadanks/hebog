@@ -75,6 +75,7 @@ nav:
       - Performance and scalability contracts: reference/performance-scalability-contracts.md
       - Phase 0 review record: reference/phase-0-review-record.md
       - Phase 1 release readiness: reference/phase-1-release-readiness.md
+      - Phase 2 release readiness: reference/phase-2-release-readiness.md
   - Explanation:
       - Architecture: explanation/index.md
       - Domain model: explanation/domain-model.md
