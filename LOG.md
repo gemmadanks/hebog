@@ -2098,3 +2098,46 @@ deblending
 - Move tile label planes behind the Zarr boundary so executor results contain
   summaries rather than image cores, and implement hierarchical reduction of
   boundary equivalences before automatic bright-candidate discovery.
+
+## 2026-08-01 — Published bounded compact-detection products
+
+**Plan phase:** Phase 3, slices 3 and 5
+
+**Completed**
+
+- Added an explicit strict high-significance threshold to adaptive RMS
+  configuration and discovered one deterministic peak per reconciled bright
+  component against cached coarse background/RMS interpolation.
+- Split sparse adaptive refinement from initial coarse estimation so candidate
+  discovery reuses the exact prepared coarse cache and cannot stack duplicate
+  fine regions on retry.
+- Reduced local island summaries and boundary equivalences through a
+  deterministic pairwise tree. Executor results contain component facts and
+  boundary vectors, never normalized planes or label cores.
+- Added a scheduler-independent compact-detection stage that writes owned
+  float64 background/RMS chunks, reconciles global acceptance, recreates one
+  bounded local label core, and writes an accepted boolean mask chunk. The
+  immutable generation contains `background`, `rms`, and
+  `source-filtering-mask` products.
+- Retained the separate candidate scan and label recreation because they keep
+  the implementation and restart contract simple. Each adds one explicit
+  bounded image-tile read; a persisted diagnostic label plane is not required
+  for correctness.
+
+**Evidence**
+
+- Fifty-three focused unit, integration, and compact-reference tests pass for
+  strict candidate thresholds, cache reuse, side/corner reconciliation,
+  hierarchical reduction, one/many-tile equivalence, identical retries,
+  exact Zarr generation products, and serial/Dask conformance.
+- Ruff and Pyright pass. The existing Phase 1 Zarr contract continues to
+  reject missing, corrupt, conflicting, incomplete, and noncanonical chunks
+  and generation markers.
+- Branch-aware coverage passes 432 tests with four planned strict expected
+  failures at 93.26% total coverage; the compact-detection stage is at 91%.
+
+**Next**
+
+- Freeze analytic compact-deblending behaviour and implement the simplest
+  bounded SciPy approach that passes close-pair, saddle, edge, and partition
+  tests.

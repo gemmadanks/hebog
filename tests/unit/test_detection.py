@@ -5,7 +5,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from hebog.algorithms.detection import detect_threshold_masks
+from hebog.algorithms.detection import (
+    detect_high_significance_candidates,
+    detect_threshold_masks,
+)
 from hebog.config import SourceFinderConfig
 
 
@@ -169,6 +172,45 @@ def test_detection_outputs_are_read_only() -> None:
     assert not result.island_membership.flags.writeable
     assert not result.detection_seeds.flags.writeable
     assert not result.normalized_residual.flags.writeable
+
+
+def test_high_significance_candidates_use_one_strict_threshold() -> None:
+    """Candidate membership and seeds share the explicit strict boundary."""
+    normalized = np.array([[19.0, 20.0, 21.0]], dtype=np.float64)
+
+    result = detect_high_significance_candidates(
+        normalized,
+        np.ones(normalized.shape, dtype=np.bool_),
+        np.zeros(normalized.shape),
+        np.ones(normalized.shape),
+        threshold_sigma=20.0,
+    )
+
+    np.testing.assert_array_equal(
+        result.island_membership,
+        [[False, False, True]],
+    )
+    np.testing.assert_array_equal(
+        result.detection_seeds,
+        result.island_membership,
+    )
+
+
+@pytest.mark.parametrize("threshold", [0.0, -1.0, float("nan")])
+def test_high_significance_candidates_reject_invalid_thresholds(
+    threshold: float,
+) -> None:
+    """Automatic candidate discovery has no hidden threshold fallback."""
+    values = np.ones((2, 2))
+
+    with pytest.raises(ValueError, match="candidate threshold"):
+        detect_high_significance_candidates(
+            values,
+            np.ones(values.shape, dtype=np.bool_),
+            np.zeros(values.shape),
+            np.ones(values.shape),
+            threshold_sigma=threshold,
+        )
 
 
 @pytest.mark.parametrize(

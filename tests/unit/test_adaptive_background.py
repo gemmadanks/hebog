@@ -20,6 +20,7 @@ from hebog.stages.background import (
     estimate_background_rms_grids,
     estimate_background_rms_tile,
     prepare_background_rms_tile_request,
+    refine_background_rms_grids,
 )
 
 
@@ -70,6 +71,7 @@ def _config(*, adaptive: bool = True) -> BackgroundRmsConfig:
         adaptive=(
             AdaptiveRmsConfig(
                 grid=_grid((5, 5), (2, 2)),
+                candidate_threshold_sigma=20.0,
                 influence_radius_pixels=7.0,
                 transition_width_pixels=3.0,
             )
@@ -99,6 +101,7 @@ def _config(*, adaptive: bool = True) -> BackgroundRmsConfig:
         (
             lambda: AdaptiveRmsConfig(
                 grid=_grid((5, 5), (2, 2)),
+                candidate_threshold_sigma=20.0,
                 influence_radius_pixels=0.0,
                 transition_width_pixels=1.0,
             ),
@@ -107,10 +110,20 @@ def _config(*, adaptive: bool = True) -> BackgroundRmsConfig:
         (
             lambda: AdaptiveRmsConfig(
                 grid=_grid((5, 5), (2, 2)),
+                candidate_threshold_sigma=20.0,
                 influence_radius_pixels=4.0,
                 transition_width_pixels=5.0,
             ),
             "transition_width_pixels",
+        ),
+        (
+            lambda: AdaptiveRmsConfig(
+                grid=_grid((5, 5), (2, 2)),
+                candidate_threshold_sigma=float("nan"),
+                influence_radius_pixels=4.0,
+                transition_width_pixels=2.0,
+            ),
+            "candidate_threshold_sigma",
         ),
         (
             lambda: BackgroundRmsConfig(
@@ -345,6 +358,56 @@ def test_no_candidates_skip_adaptive_reads_and_match_coarse_only() -> None:
     assert adaptive.adaptive_estimated_cell_count == 0
     assert len(adaptive_source.read_bounds) == len(coarse_source.read_bounds)
     np.testing.assert_array_equal(adaptive.coarse.rms, coarse.coarse.rms)
+
+
+def test_adaptive_refinement_reuses_the_prepared_coarse_cache() -> None:
+    """Candidate refinement adds fine reads without repeating coarse work."""
+    image = np.tile(np.array([-1.0, 1.0]), 40 * 22).reshape(40, 44)
+    source = _ArrayImageSource(image)
+    config = _config()
+    coarse = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    coarse_read_count = len(source.read_bounds)
+
+    refined = refine_background_rms_grids(
+        source,
+        coarse,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=((20.0, 22.0),),
+    )
+
+    assert refined.coarse is coarse.coarse
+    assert len(source.read_bounds) > coarse_read_count
+    assert refined.adaptive_regions
+
+
+def test_adaptive_refinement_rejects_an_already_refined_cache() -> None:
+    """Retries cannot stack duplicate fine regions onto cached summaries."""
+    image = np.tile(np.array([-1.0, 1.0]), 40 * 22).reshape(40, 44)
+    source = _ArrayImageSource(image)
+    config = _config()
+    refined = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=((20.0, 22.0),),
+    )
+
+    with pytest.raises(ValueError, match="coarse-only"):
+        refine_background_rms_grids(
+            source,
+            refined,
+            config,
+            SerialExecutor(),
+            bright_candidate_positions_yx=((20.0, 22.0),),
+        )
 
 
 def test_large_constant_map_fallback_fails_before_unbounded_read() -> None:

@@ -55,6 +55,35 @@ def detect_threshold_masks(
     This explicit asymmetry reproduces the reviewed initial compact-detection
     contract without introducing workflow defaults into the kernel.
     """
+    normalized, scientifically_valid = normalize_residual(
+        image,
+        valid_pixels,
+        background,
+        rms,
+    )
+    island_membership = scientifically_valid & (
+        normalized >= config.island_threshold_sigma
+    )
+    detection_seeds = scientifically_valid & (
+        normalized > config.detection_threshold_sigma
+    )
+    island_membership.setflags(write=False)
+    detection_seeds.setflags(write=False)
+    return DetectionThresholdMasks(
+        normalized_residual=normalized,
+        island_membership=island_membership,
+        detection_seeds=detection_seeds,
+        valid_pixel_count=int(np.count_nonzero(scientifically_valid)),
+    )
+
+
+def normalize_residual(
+    image: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    background: npt.ArrayLike,
+    rms: npt.ArrayLike,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.bool_]]:
+    """Return immutable normalized residuals and scientific validity."""
     image_array = _as_float_plane(image, name="image")
     background_array = _as_float_plane(background, name="background")
     rms_array = _as_float_plane(rms, name="rms")
@@ -85,18 +114,33 @@ def detect_threshold_masks(
         out=normalized,
         where=scientifically_valid,
     )
-    island_membership = scientifically_valid & (
-        normalized >= config.island_threshold_sigma
-    )
-    detection_seeds = scientifically_valid & (
-        normalized > config.detection_threshold_sigma
-    )
     normalized.setflags(write=False)
-    island_membership.setflags(write=False)
-    detection_seeds.setflags(write=False)
+    scientifically_valid.setflags(write=False)
+    return normalized, scientifically_valid
+
+
+def detect_high_significance_candidates(
+    image: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    background: npt.ArrayLike,
+    rms: npt.ArrayLike,
+    *,
+    threshold_sigma: float,
+) -> DetectionThresholdMasks:
+    """Apply one strict threshold for adaptive-RMS candidate topology."""
+    if not np.isfinite(threshold_sigma) or threshold_sigma <= 0:
+        raise ValueError("candidate threshold must be finite and positive")
+    normalized, scientifically_valid = normalize_residual(
+        image,
+        valid_pixels,
+        background,
+        rms,
+    )
+    candidate_pixels = scientifically_valid & (normalized > threshold_sigma)
+    candidate_pixels.setflags(write=False)
     return DetectionThresholdMasks(
         normalized_residual=normalized,
-        island_membership=island_membership,
-        detection_seeds=detection_seeds,
+        island_membership=candidate_pixels,
+        detection_seeds=candidate_pixels,
         valid_pixel_count=int(np.count_nonzero(scientifically_valid)),
     )

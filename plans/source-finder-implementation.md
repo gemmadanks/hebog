@@ -1056,19 +1056,19 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
 
 3. **Complete automatic adaptive-RMS candidate discovery and persistence.**
 
-   - [ ] Add an explicit high-significance adaptive-candidate policy and use
+   - [x] Add an explicit high-significance adaptive-candidate policy and use
          the same threshold/connectivity primitives to scan bounded tiles
          against the cached coarse background/RMS interpolation. Select a
          candidate's global peak deterministically, resolving equal peaks by
          lexicographic `(y, x)` position.
-   - [ ] Reconcile candidates that cross tile sides or corners, request sparse
+   - [x] Reconcile candidates that cross tile sides or corners, request sparse
          adaptive refinement from the existing coarse cache, and prove that
          neither coarse statistics nor candidate regions are recomputed
          because of partition shape, task order, or retry.
-   - [ ] Compare piggybacked candidate summaries with a separate bounded scan
+   - [x] Compare piggybacked candidate summaries with a separate bounded scan
          and retain the simpler path unless complete-stage evidence justifies
          extra coupling. Record any additional image read explicitly.
-   - [ ] Publish owned background/RMS tiles through the Phase 1 Zarr generation
+   - [x] Publish owned background/RMS tiles through the Phase 1 Zarr generation
          contract and prove restart, duplicate retry, and missing-chunk
          behaviour without assembling a full plane.
 
@@ -1093,12 +1093,12 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
          four-tile corner topology. Exercise shifted partition origins, tile
          shapes, worker counts, reversed completion, deterministic retry, and
          labels whose local numeric values deliberately differ.
-   - [ ] Summarize boundary label contacts, including diagonal corner contact
+   - [x] Summarize boundary label contacts, including diagonal corner contact
          for eight-neighbour connectivity, and merge equivalences and island
          reductions hierarchically. Summary volume and graph size must scale
          with tile boundaries and island shards, not pixels or scheduler-held
          full label planes.
-   - [ ] Write accepted boolean source-filtering-mask cores as independently
+   - [x] Write accepted boolean source-filtering-mask cores as independently
          owned Zarr chunks. A diagnostic label plane is optional and must not
          become a prerequisite for reconciliation or catalogue ownership.
    - [x] Prove one-tile and many-tile membership, global summaries, stable

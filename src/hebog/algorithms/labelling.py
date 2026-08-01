@@ -42,6 +42,15 @@ class TileBoundaryLabels:
 
 
 @dataclass(frozen=True, slots=True)
+class LocalIslandTileSummary:
+    """Compact tile topology safe to return through an executor."""
+
+    partition: TilePartition
+    islands: tuple[LocalIslandSummary, ...]
+    boundary_labels: TileBoundaryLabels
+
+
+@dataclass(frozen=True, slots=True)
 class LocalIslandTile:
     """One locally labelled core plus mergeable summaries and boundaries."""
 
@@ -49,6 +58,14 @@ class LocalIslandTile:
     labels: npt.NDArray[np.int32]
     islands: tuple[LocalIslandSummary, ...]
     boundary_labels: TileBoundaryLabels
+
+    def compact_summary(self) -> LocalIslandTileSummary:
+        """Drop the image-sized label core before scheduler reconciliation."""
+        return LocalIslandTileSummary(
+            partition=self.partition,
+            islands=self.islands,
+            boundary_labels=self.boundary_labels,
+        )
 
 
 def _read_only_copy(

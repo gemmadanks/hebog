@@ -145,6 +145,30 @@ bytes returns the existing product record; a retry that would replace
 different bytes fails with `MaterializedProductConflictError`. Publication
 does not weaken the separate deployment-store concurrency qualification gate.
 
+## Phase 3 intermediate generation
+
+The compact-detection stage publishes one immutable Zarr v3 generation with
+exactly three two-dimensional products: float64 `background`, float64 `rms`,
+and boolean `source-filtering-mask`. Every canonical tile owns and writes one
+complete chunk of each product. The completion manifest is not published
+until all expected chunks validate by generation, geometry, dtype, byte
+checksum, and scientific product name.
+
+Normalized residuals and local label planes are bounded worker temporaries,
+not durable products or scheduler results. Workers return component facts and
+four boundary-label vectors only. Reconciliation reduces those summaries
+through a deterministic pairwise tree, then a second bounded tile pass
+recreates local labels and writes accepted boolean mask cores using the small
+local-to-global mapping. This explicit extra image read avoids making a
+diagnostic label plane a correctness or restart prerequisite.
+
+Automatic adaptive-RMS discovery similarly uses a separate bounded scan of
+the cached coarse interpolation. Its explicit strict high-significance
+threshold is distinct from source detection thresholds. Cross-tile candidate
+fragments reconcile before one lexicographically tie-broken global peak per
+component requests sparse fine-grid refinement. Coarse window statistics are
+reused, not recomputed.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as

@@ -151,6 +151,7 @@ def test_component_without_strict_detection_seed_is_rejected() -> None:
     reconciliation = reconcile_island_tiles(manifest, tiles, _config())
 
     assert reconciliation.islands == ()
+    assert reconciliation.reduction_round_count == 0
     assert not _mask_from_tiles(manifest, tiles, reconciliation).any()
 
 
@@ -224,4 +225,5 @@ def test_empty_detection_has_no_islands_or_mapping_values() -> None:
     reconciliation = reconcile_island_tiles(manifest, tiles, _config())
 
     assert reconciliation.islands == ()
+    assert reconciliation.reduction_round_count == 3
     assert not _mask_from_tiles(manifest, tiles, reconciliation).any()

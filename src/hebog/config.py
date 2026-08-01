@@ -87,11 +87,19 @@ class AdaptiveRmsConfig:
     """Fine-grid and deterministic blend policy around bright candidates."""
 
     grid: RmsGridConfig
+    candidate_threshold_sigma: float
     influence_radius_pixels: float
     transition_width_pixels: float
 
     def __post_init__(self) -> None:
         """Require finite positive radii and a contained transition zone."""
+        if (
+            not isfinite(self.candidate_threshold_sigma)
+            or self.candidate_threshold_sigma <= 0
+        ):
+            raise ValueError(
+                "candidate_threshold_sigma must be finite and positive"
+            )
         if (
             not isfinite(self.influence_radius_pixels)
             or self.influence_radius_pixels <= 0

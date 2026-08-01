@@ -70,6 +70,26 @@ Related project references:
     options:
       show_symbol_type_toc: true
 
+## Detection and island topology
+
+::: hebog.algorithms.detection
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.labelling
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.reconciliation
+    options:
+      show_symbol_type_toc: true
+
+## Compact-detection execution stage
+
+::: hebog.stages.detection
+    options:
+      show_symbol_type_toc: true
+
 ## Workflow adapters
 
 ::: hebog.adapters.rapthor

@@ -254,18 +254,6 @@ def estimate_background_rms_grids(
     """Estimate cached global coarse and sparse adaptive RMS summaries."""
     if min(image_shape_yx) < 1:
         raise ValueError("image shape dimensions must be positive")
-    adaptive_config = config.adaptive
-    adaptive_margin = (
-        adaptive_config.influence_radius_pixels
-        + max(adaptive_config.grid.step_yx)
-        if adaptive_config is not None
-        else 0.0
-    )
-    candidate_regions = _merge_candidate_regions(
-        bright_candidate_positions_yx,
-        image_shape_yx=image_shape_yx,
-        margin_pixels=adaptive_margin,
-    )
     use_constant_map = _use_constant_map(image_shape_yx, config)
     if (
         use_constant_map
@@ -293,11 +281,42 @@ def estimate_background_rms_grids(
     )
     coarse = prepare_rms_grid_for_interpolation(coarse_statistics)
 
+    return refine_background_rms_grids(
+        source,
+        BackgroundRmsGrids(coarse=coarse, adaptive_regions=()),
+        config,
+        executor,
+        bright_candidate_positions_yx=bright_candidate_positions_yx,
+    )
+
+
+def refine_background_rms_grids(
+    source: _WindowReadable,
+    coarse_grids: BackgroundRmsGrids,
+    config: BackgroundRmsConfig,
+    executor: Executor,
+    *,
+    bright_candidate_positions_yx: tuple[tuple[float, float], ...],
+) -> BackgroundRmsGrids:
+    """Estimate sparse adaptive cells while reusing a prepared coarse grid."""
+    if coarse_grids.adaptive_regions:
+        raise ValueError("adaptive refinement requires a coarse-only cache")
+    image_shape_yx = coarse_grids.coarse.geometry.image_shape_yx
+    adaptive_config = config.adaptive
+    adaptive_margin = (
+        adaptive_config.influence_radius_pixels
+        + max(adaptive_config.grid.step_yx)
+        if adaptive_config is not None
+        else 0.0
+    )
+    candidate_regions = _merge_candidate_regions(
+        bright_candidate_positions_yx,
+        image_shape_yx=image_shape_yx,
+        margin_pixels=adaptive_margin,
+    )
+
     if adaptive_config is None or not candidate_regions:
-        return BackgroundRmsGrids(
-            coarse=coarse,
-            adaptive_regions=(),
-        )
+        return coarse_grids
     global_adaptive_geometry = plan_rms_grid(
         image_shape_yx=image_shape_yx,
         window_shape_yx=adaptive_config.grid.window_shape_yx,
@@ -321,7 +340,7 @@ def estimate_background_rms_grids(
         for region in candidate_regions
     )
     return BackgroundRmsGrids(
-        coarse=coarse,
+        coarse=coarse_grids.coarse,
         adaptive_regions=adaptive_regions,
     )
 
@@ -382,8 +401,22 @@ def estimate_background_rms_tile(
     """Read validity and interpolate one deterministic owned output core."""
     bounds = request.partition.core_bounds
     image_window = source.read_window(bounds)
+    return interpolate_background_rms_tile(image_window, request)
+
+
+def interpolate_background_rms_tile(
+    image_window: ImageWindow,
+    request: BackgroundRmsTileRequest,
+) -> BackgroundRmsTile:
+    """Interpolate one owned core using an already-read source window."""
+    bounds = request.partition.core_bounds
     if image_window.bounds != bounds:
         raise ValueError("image source returned different tile bounds")
+    if (
+        image_window.values.shape != bounds.shape_yx
+        or image_window.valid_pixels.shape != bounds.shape_yx
+    ):
+        raise ValueError("image source returned a misaligned window")
     coarse = interpolate_prepared_rms_grid(
         request.coarse,
         bounds,

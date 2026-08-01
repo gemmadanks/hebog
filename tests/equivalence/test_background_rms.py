@@ -63,6 +63,7 @@ def _configuration() -> BackgroundRmsConfig:
                 statistics=statistics,
                 maximum_batch_cells=16,
             ),
+            candidate_threshold_sigma=75.0,
             influence_radius_pixels=75.0,
             transition_width_pixels=20.0,
         ),
