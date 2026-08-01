@@ -89,3 +89,33 @@ because those libraries do not expose complete counters; the bounded-copy
 contract is established separately by structural integration tests. These
 warm `LocalStore` observations do not qualify cold-cache behaviour,
 deployment-store atomicity, Dask transfer, or distributed scaling.
+
+`measure_phase2_background.py` measures the implemented coarse-grid and
+bounded interpolation stages with a caller-owned, reused local Dask client.
+It requires an explicit FITS input and dataset identity, uses one warm-up and
+at least five measured repetitions, and writes exploratory
+`BenchmarkEvidence`. The runner deliberately excludes client startup and does
+not assemble a complete image plane: its peak-RSS observation therefore
+matches Hebog's tile-output contract rather than a validation-only full-map
+comparison. For the frozen Rapthor geometry and four-core component gate, run
+each branch independently:
+
+```console
+uv run python scripts/benchmark/measure_phase2_background.py \
+  --input /controlled/path/sector-MFS-image-pb.fits \
+  --dataset-id rapthor-representative-3000-true-sky \
+  --stage true-sky-background --workers 4 \
+  --output benchmark-results/phase-2/true-sky-background.json
+
+uv run python scripts/benchmark/measure_phase2_background.py \
+  --input /controlled/path/sector-MFS-image.fits \
+  --dataset-id rapthor-representative-3000-flat-noise \
+  --stage flat-noise-rms --workers 4 \
+  --output benchmark-results/phase-2/flat-noise-rms.json
+```
+
+The default 64-cell statistic batches and 1500-by-1500 interpolation tiles
+are measured execution policy, not scientific geometry. The script records
+float64 because Phase 2 equivalence was established with that precision; a
+lower-precision kernel remains inadmissible until it passes the same
+scientific suite.

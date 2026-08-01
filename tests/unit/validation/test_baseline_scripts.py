@@ -9,7 +9,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import numpy as np
 import pytest
+
+from hebog.data_models.partitioning import ImageBounds
+from hebog.executors import SerialExecutor
+from hebog.io.base import ImageWindow
 
 
 def _script(name: str) -> dict[str, Any]:
@@ -115,3 +120,52 @@ def test_phase1_io_benchmark_records_bounded_one_and_many_tile_runs(
         "array_copy_bytes",
         "array_copy_count",
     }
+
+
+def test_phase2_background_benchmark_records_bounded_stage_work() -> None:
+    """The benchmark measures coarse batches and interpolation separately."""
+    namespace = _script("measure_phase2_background.py")
+    configuration: Callable[..., Any] = namespace["_configuration"]
+    run_once: Callable[..., Any] = namespace["_run_once"]
+    values = np.arange(20 * 24, dtype=np.float64).reshape(20, 24)
+
+    class ArraySource:
+        """Provide bounded windows for the benchmark contract test."""
+
+        def read_window(self, bounds: ImageBounds) -> ImageWindow:
+            return ImageWindow(
+                bounds=bounds,
+                values=values[
+                    bounds.y_start : bounds.y_stop,
+                    bounds.x_start : bounds.x_stop,
+                ],
+                valid_pixels=np.ones(bounds.shape_yx, dtype=np.bool_),
+            )
+
+    config = configuration(
+        window_size=5,
+        step_size=4,
+        maximum_batch_cells=4,
+    )
+    result = run_once(
+        source=ArraySource(),
+        image_shape_yx=values.shape,
+        config=config,
+        executor=SerialExecutor(),
+        executor_kind="serial",
+        tile_size=12,
+        repetition_index=1,
+        warmup=False,
+    )
+
+    assert result.partition_count == 4
+    assert result.coarse_cell_count == 30
+    assert result.maximum_tile_pixels == 12 * 12
+    assert tuple(stage.stage for stage in result.measurement.stages) == (
+        "coarse-rms-grid",
+        "rms-interpolation",
+    )
+    metrics = result.measurement.complete
+    assert metrics.dask_task_count == 0
+    assert metrics.transfer_bytes == 0
+    assert metrics.spill_bytes == 0
