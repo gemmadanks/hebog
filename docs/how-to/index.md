@@ -162,6 +162,35 @@ interrupted run has no marker and resumes by writing only its missing chunks.
 Consumers call `read_generation`, which validates the marker and its chunks
 again before returning them.
 
+Stream a completed product into final FITS without materialising the complete
+plane. Admit enough memory for one full-width canonical tile row:
+
+```python
+from hebog.io import write_rms_fits_product
+
+row_budget = (
+    manifest.tile_core_shape_yx[0]
+    * manifest.image_shape_yx[1]
+    * 8  # float64 bytes per value
+)
+final_rms = write_rms_fits_product(
+    Path("products/rms.fits"),
+    metadata,
+    sink.iter_completed_row_blocks(
+        "rms",
+        max_block_bytes=row_budget,
+    ),
+    dtype=np.dtype("<f8"),
+    scientific_status="valid",
+)
+```
+
+The iterator validates each referenced chunk exactly once and yields tile rows
+in FITS row order. A multi-tile row uses one C-contiguous assembly block plus
+one current decoded chunk. A one-tile image yields its already owned validated
+chunk directly and avoids an assembly copy. A budget below one canonical tile
+row fails before product bytes are emitted.
+
 Generation-bound chunks use internal storage schema version 2. Recreate any
 unpublished Phase 1 development store written with schema version 1; no
 released Hebog workflow product used that schema.

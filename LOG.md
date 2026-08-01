@@ -1652,3 +1652,35 @@ applicable zeroes for these single-process reference runs.
 
 - Stream validated completed Zarr generations into bounded final-product row
   blocks and measure one-tile and many-tile materialisation overhead.
+
+## 2026-08-01 — Streamed completed Zarr products to FITS
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added a completed-generation row iterator that reads and checksum-validates
+  every product chunk exactly once in canonical tile-row order.
+- Bounded many-tile assembly to one full-width tile row plus the current
+  decoded chunk and required the caller to provide an explicit byte budget.
+- Made one-tile materialisation yield the already owned validated chunk
+  directly, avoiding a redundant full-image assembly copy and any Dask fanout.
+- Proved the same public RMS and mask writers consume both one-tile and
+  many-tile Zarr generations and emit identical final FITS values, NaNs,
+  validity masks, units, and dtypes.
+
+**Evidence**
+
+- The row-stream contracts failed on the absent API before implementation.
+- All 67 affected Zarr, final-product, and materialisation integration tests
+  pass. Ruff and Pyright pass for every changed module and test.
+- The memory contract is structural rather than a wall-time claim: each
+  yielded block reports `nbytes` within the admitted budget, no iterator path
+  constructs an image-height output array, and a too-small budget fails
+  closed.
+
+**Next**
+
+- Run reproducible local FITS-to-Zarr-to-FITS measurements across Phase 1
+  anchors, record peak RSS and storage bytes, and use the evidence to decide
+  whether codec or initialization tuning is justified.

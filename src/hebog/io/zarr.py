@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any, cast
 
@@ -379,6 +379,20 @@ class ZarrProductSink:
         generation: ProductGenerationManifest,
     ) -> None:
         """Validate identity, geometry, and every referenced store chunk."""
+        self._require_generation_identity(generation)
+        for chunk in generation.chunks:
+            try:
+                self.read_chunk(chunk)
+            except ProductChunkError as error:
+                raise InvalidProductGenerationError(
+                    "completion manifest references an invalid product chunk"
+                ) from error
+
+    def _require_generation_identity(
+        self,
+        generation: ProductGenerationManifest,
+    ) -> None:
+        """Require a published record for this exact run and partition."""
         if generation.generation_id != self._generation_id:
             raise InvalidProductGenerationError(
                 "completion manifest has a different generation ID"
@@ -387,13 +401,6 @@ class ZarrProductSink:
             raise InvalidProductGenerationError(
                 "completion manifest has a different partition manifest"
             )
-        for chunk in generation.chunks:
-            try:
-                self.read_chunk(chunk)
-            except ProductChunkError as error:
-                raise InvalidProductGenerationError(
-                    "completion manifest references an invalid product chunk"
-                ) from error
 
     def publish_generation(
         self,
@@ -425,8 +432,8 @@ class ZarrProductSink:
             )
         return generation
 
-    def read_generation(self) -> ProductGenerationManifest:
-        """Read and fully validate the published completion manifest."""
+    def _read_published_generation(self) -> ProductGenerationManifest:
+        """Read and validate the immutable record without rereading chunks."""
         with LocalStore(self._root, read_only=True) as store:
             stored = store.get_sync(_COMPLETION_KEY)
         if stored is None:
@@ -444,5 +451,69 @@ class ZarrProductSink:
             raise InvalidProductGenerationError(
                 "published completion manifest is not canonical"
             )
+        self._require_generation_identity(generation)
+        return generation
+
+    def read_generation(self) -> ProductGenerationManifest:
+        """Read and fully validate the published completion manifest."""
+        generation = self._read_published_generation()
         self._require_generation_chunks(generation)
         return generation
+
+    def iter_completed_row_blocks(
+        self,
+        product_name: str,
+        *,
+        max_block_bytes: int,
+    ) -> Iterator[npt.NDArray[np.generic]]:
+        """Yield validated full-width tile rows for final materialisation.
+
+        Every storage chunk is read and checksum-validated exactly once. A
+        multi-tile row is assembled into one owned C-contiguous block. The
+        caller must admit enough memory for one full tile row; this is bounded
+        by image width times tile-core height rather than full image height.
+        A one-tile image returns its already-owned chunk without an assembly
+        copy.
+        """
+        if max_block_bytes < 1:
+            raise ValueError("row-block memory budget must be positive")
+        validate_product_name(product_name)
+        generation = self._read_published_generation()
+        if product_name not in generation.product_names:
+            raise InvalidProductGenerationError(
+                "published generation does not contain product "
+                f"{product_name!r}"
+            )
+        records_by_tile = {
+            chunk.tile_id: chunk
+            for chunk in generation.chunks
+            if chunk.product_name == product_name
+        }
+        tile_rows: dict[int, list[TilePartition]] = {}
+        for tile in self._manifest.tiles:
+            tile_rows.setdefault(tile.tile_y_index, []).append(tile)
+        for row_tiles in tile_rows.values():
+            first_record = records_by_tile[row_tiles[0].tile_id]
+            dtype = np.dtype(first_record.dtype)
+            row_height = row_tiles[0].core_bounds.shape_yx[0]
+            required_bytes = (
+                row_height * self._manifest.image_shape_yx[1] * dtype.itemsize
+            )
+            if required_bytes > max_block_bytes:
+                raise ValueError(
+                    "row-block memory budget is below one canonical tile row: "
+                    f"requires {required_bytes} bytes"
+                )
+            if len(row_tiles) == 1:
+                yield self.read_chunk(first_record)
+                continue
+            block = np.empty(
+                (row_height, self._manifest.image_shape_yx[1]),
+                dtype=dtype,
+            )
+            for tile in row_tiles:
+                values = self.read_chunk(records_by_tile[tile.tile_id])
+                bounds = tile.core_bounds
+                block[:, bounds.x_start : bounds.x_stop] = values
+            block.setflags(write=False)
+            yield block

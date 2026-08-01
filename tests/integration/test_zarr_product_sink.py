@@ -186,6 +186,93 @@ def test_writes_and_reads_independent_complete_chunks(tmp_path: Path) -> None:
     np.testing.assert_array_equal(plane[3:, 4:], 4.0)
 
 
+def test_streams_completed_product_as_bounded_canonical_tile_rows(
+    tmp_path: Path,
+) -> None:
+    """Final materialisation reads every validated chunk once in row order."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    maximum_block_bytes = 3 * 7 * np.dtype("<f8").itemsize
+
+    blocks = tuple(
+        sink.iter_completed_row_blocks(
+            "rms",
+            max_block_bytes=maximum_block_bytes,
+        )
+    )
+
+    assert tuple(block.shape for block in blocks) == ((3, 7), (2, 7))
+    assert all(block.nbytes <= maximum_block_bytes for block in blocks)
+    assert all(block.flags.c_contiguous for block in blocks)
+    assert all(not block.flags.writeable for block in blocks)
+    expected = np.block(
+        [
+            [np.full((3, 4), 1.0), np.full((3, 3), 2.0)],
+            [np.full((2, 4), 3.0), np.full((2, 3), 4.0)],
+        ]
+    )
+    np.testing.assert_array_equal(np.concatenate(blocks), expected)
+
+
+def test_one_tile_completed_product_streams_as_one_existing_chunk(
+    tmp_path: Path,
+) -> None:
+    """Small work avoids multi-tile assembly and produces one row block."""
+    manifest = PartitionManifest.create(
+        image_shape_yx=(2, 3),
+        tile_core_shape_yx=(8, 8),
+        halo_yx=(0, 0),
+    )
+    sink = _sink(tmp_path / "one-tile.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+
+    blocks = tuple(
+        sink.iter_completed_row_blocks(
+            "rms",
+            max_block_bytes=2 * 3 * np.dtype("<f8").itemsize,
+        )
+    )
+
+    assert len(blocks) == 1
+    np.testing.assert_array_equal(blocks[0], 1.0)
+
+
+def test_completed_row_stream_rejects_unpublished_unknown_or_too_small(
+    tmp_path: Path,
+) -> None:
+    """A row stream requires a published product and admitted row memory."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+
+    with pytest.raises(InvalidProductGenerationError, match="published"):
+        tuple(
+            sink.iter_completed_row_blocks(
+                "rms",
+                max_block_bytes=1024,
+            )
+        )
+
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    with pytest.raises(InvalidProductGenerationError, match="product"):
+        tuple(
+            sink.iter_completed_row_blocks(
+                "mask",
+                max_block_bytes=1024,
+            )
+        )
+    with pytest.raises(ValueError, match="memory budget"):
+        tuple(
+            sink.iter_completed_row_blocks(
+                "rms",
+                max_block_bytes=3 * 7 * np.dtype("<f8").itemsize - 1,
+            )
+        )
+
+
 def test_writes_an_all_fill_value_chunk_for_strict_reads(
     tmp_path: Path,
 ) -> None:

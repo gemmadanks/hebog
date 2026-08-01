@@ -11,7 +11,7 @@ import hashlib
 import json
 from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
-from typing import Any, Literal, TypeAlias, cast
+from typing import Any, Literal, cast
 from uuid import uuid4
 
 import numpy as np
@@ -119,8 +119,6 @@ _CATALOGUE_COLUMN_UNITS: dict[str, str | None] = {
         )
     },
 }
-
-FloatArray: TypeAlias = npt.NDArray[np.floating[Any]]
 
 
 class ProductMaterializationError(ValueError):
@@ -764,7 +762,7 @@ def _require_row_block(
 def _write_rms_temporary(
     path: Path,
     metadata: ImageMetadata,
-    row_blocks: Iterable[FloatArray],
+    row_blocks: Iterable[npt.NDArray[Any]],
     *,
     dtype: np.dtype[Any],
     scientific_status: Literal["valid", "unavailable"],
@@ -915,7 +913,7 @@ def _validate_image_path(
 def write_rms_fits_product(
     path: Path,
     metadata: ImageMetadata,
-    row_blocks: Iterable[FloatArray],
+    row_blocks: Iterable[npt.NDArray[Any]],
     *,
     dtype: np.dtype[Any],
     scientific_status: str,

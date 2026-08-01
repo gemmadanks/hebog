@@ -86,6 +86,11 @@ backend at every size**.
   mixed-run, wrong-owner, and inconsistent-dtype records, then validates every
   chunk before conditionally publishing canonical JSON through the Zarr Store
   API. Identical completion retries are idempotent; different bytes conflict.
+- Stream final image products from the immutable generation in canonical tile
+  rows. Validate each chunk once, assemble at most one full-width tile row,
+  and require an explicit row-memory budget. Yield the existing validated
+  chunk directly for a one-tile image so final materialisation adds no
+  assembly copy.
 
 Zarr `LocalStore` does not document the conditional-create guarantee needed to
 resolve concurrent conflicting writers atomically. Before distributed
@@ -136,6 +141,9 @@ size-based storage switch.
   corrupt completion metadata.
 - A Zarr hierarchy becomes consumable only after its run-scoped marker and all
   referenced chunks validate through `read_generation`.
+- End-to-end integration tests prove that one-tile and many-tile generations
+  stream to identical RMS and binary-mask FITS products within the admitted
+  tile-row memory budget.
 - Controlled local, Dask, deployment-store, recovery, and end-to-end evidence
   must cover every affected performance tier. A slower Zarr configuration is
   optimized or rejected; it is not hidden by switching formats.
