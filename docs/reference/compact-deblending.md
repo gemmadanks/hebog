@@ -24,6 +24,8 @@ Compact deblending uses one explicit `CompactDeblendConfig`:
 Membership outside the accepted parent island is always label zero. All
 accepted island pixels belong to exactly one region. Invalid or non-finite
 member pixels fail closed, as does an accepted island with no eligible marker.
+Masked pixels are maximum-cost watershed barriers rather than competing
+markers, so holes cannot flood or leave accepted pixels unassigned.
 
 ## Selected SciPy approach
 
@@ -62,6 +64,10 @@ dropped or reported as successfully deblended.
 
 The compact kernel's memory is bounded by one admitted batch. Its Python loops
 iterate markers, sparse basin adjacencies, or island records—not image pixels.
+All source windows in one batch share one validated FITS open. Zarr product
+windows reuse an LRU of at most four checksum-validated chunks per product,
+which avoids rereading a complete tile for every dense compact island without
+turning the cache into an image-sized gather.
 The source-filtering mask remains the parent connected-island membership;
 deblending subdivides that topology without changing which pixels are
 detected.

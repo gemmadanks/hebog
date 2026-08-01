@@ -97,6 +97,25 @@ def test_reads_only_the_requested_global_window(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
+def test_reads_multiple_bounded_windows_in_one_ordered_batch(
+    tmp_path: Path,
+) -> None:
+    """Dense compact batches can reuse one validated FITS open."""
+    plane = np.arange(30, dtype=np.float32).reshape(5, 6)
+    path = tmp_path / "image.fits"
+    _write_image(path, plane)
+    source = FitsImageSource(path)
+    bounds = (ImageBounds(0, 2, 0, 3), ImageBounds(3, 5, 4, 6))
+
+    windows = source.read_windows(bounds)
+
+    assert tuple(window.bounds for window in windows) == bounds
+    np.testing.assert_array_equal(windows[0].values, plane[0:2, 0:3])
+    np.testing.assert_array_equal(windows[1].values, plane[3:5, 4:6])
+    assert source.read_windows(()) == ()
+
+
+@pytest.mark.integration
 @pytest.mark.parametrize("unit", ["JY/BEAM", "JYBEAM-1"])
 def test_canonicalizes_wsclean_uppercase_jy_per_beam_unit(
     tmp_path: Path,

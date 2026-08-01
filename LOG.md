@@ -2180,3 +2180,94 @@ deblending
 - Add generated-truth and dual-reference detection reports, benchmark the
   complete Phase 3 path across the frozen size/density matrix, and publish the
   release-readiness record.
+
+## 2026-08-01 — Qualified Phase 3 compact detection
+
+**Plan phase:** Phase 3, slice 7 and closure
+
+**Completed**
+
+- Froze foreground-sensitive mask and connected-object gates before inspecting
+  the held-out result. Added Wilson confidence intervals and population
+  aggregation without using background-dominated pixel accuracy.
+- Added exact released/master PyBDSF comparisons on the redistributable compact
+  input and an environment-resolved controlled comparison on the exact
+  checksum-governed Rapthor image.
+- Added bounded compact-deblend orchestration that reads only admitted island
+  windows and returns summaries rather than pixel labels through executors.
+- Added one-open batched FITS reads and a four-chunk checksum-validating Zarr
+  LRU. The 512-square 64-island density probe fell from 2.014 seconds to 0.699
+  seconds, removing a complete-chunk read per island.
+- Corrected masked watershed pixels to be maximum-cost barriers instead of
+  competing negative markers. The density matrix exposed the failure before
+  closure; an analytic regression now covers multiple peaks around a hole.
+- Profiled product persistence and adopted the ADR-007 product-role codec
+  seam: numeric planes use little-endian bytes plus CRC32C without Zstandard,
+  while boolean masks retain Zstandard level 1 plus CRC32C. Internal storage
+  schema version 3 deliberately invalidates unreleased development stores.
+- Added reproducible exact-representative and generated size/density benchmark
+  runners. Small tiers use a one-tile serial plan; the 3,000-square tier uses
+  nine 1,000-square tiles on a caller-owned four-worker Dask client.
+- Published the Phase 3 release-readiness record and updated the plan. The
+  inclusive Phase 3 component budget is 3.5 seconds because it now owns
+  durable background/RMS/mask publication; the later output budget was
+  reduced by the same second, leaving the complete budget unchanged.
+
+**Scientific evidence**
+
+- Compact Hebog versus both PyBDSF references: mask precision and recall
+  0.9944, IoU 0.9888, all three objects matched, median/minimum object IoU
+  0.9928/0.9655.
+- Generated development and regression mask IoUs were 0.7778 and 0.8623; all
+  eight strong-signal objects matched with no splits or merges. The aggregate
+  95% Wilson lower bound for eight of eight recovered objects was 0.6756.
+- The held-out qualification gate passed without changing its frozen margins:
+  mask precision 0.8735, recall 0.9603, IoU 0.8430, and all four strong-signal
+  objects matched with median/minimum IoU 0.8767/0.8056. One exact-threshold
+  noise crossing remains report-only as planned.
+- On the exact Rapthor products Hebog's seven compact islands all matched both
+  references with reliability 1.0, median/minimum IoU 0.9470/0.7718, and no
+  split or merge. Five PyBDSF `atrous_do=true` objects remain explicit Phase 5
+  multiscale work. Released/master PyBDSF masks differed by 44 pixels but
+  matched all twelve objects.
+
+**Performance evidence**
+
+- Final generated medians for sparse/normal/dense workloads were
+  0.313/0.325/0.332 seconds at 256 square, 0.352/0.402/0.378 seconds at 512,
+  0.699/0.696/0.736 seconds at 1,024, and 2.848/2.963/3.489 seconds at 3,000.
+- The 3,000-square dense case contained 2,197 islands and was 23% slower than
+  the one-island sparse case; both used 28 tasks. No task-per-island or
+  quadratic density path was observed at this tier.
+- The exact Rapthor median was 3.193 seconds across five measurements after
+  warm-up (3.094–3.301 seconds), with 0.110 seconds median compact deblending,
+  44 tasks, and maximum observed process RSS of 2,779,561,984 bytes.
+- Raw typed evidence remains in ignored `benchmark-results/phase-3/`; commands
+  and scope are documented in the benchmark README and readiness record.
+
+**Validation**
+
+- `just check`: 361 passed, 139 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just coverage`: 477 passed, 28 deselected, and four expected failures with
+  93.83% branch-aware project coverage. The new compact-deblend orchestration
+  reached 93% after exercising its pipeline-neutral fallback and fail-closed
+  source/generation boundaries.
+- `just test-equivalence`: 14 passed. `just test-qualification`: one passed and
+  one controlled-data case skipped. The controlled exact Rapthor comparison
+  passed all three released/master/reference-divergence checks separately.
+- `just test-acceptance`: seven planned later-phase scenarios remained expected
+  failures. `just docs-build` completed under MkDocs strict mode.
+
+**Remaining gate**
+
+- Named human scientific review must approve the connectivity, exact threshold
+  comparisons, six-pixel minimum, provisional margins, watershed saddle
+  semantics, and compact-versus-multiscale boundary. Automated technical
+  closure is complete, but scientific sign-off is not claimed.
+
+**Next**
+
+- Obtain and record Phase 3 human scientific approval, then begin Phase 4
+  measurement, fitting, and catalogue compatibility from the stable compact
+  topology and region summaries.

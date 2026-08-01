@@ -119,3 +119,30 @@ are measured execution policy, not scientific geometry. The script records
 float64 because Phase 2 equivalence was established with that precision; a
 lower-precision kernel remains inadmissible until it passes the same
 scientific suite.
+
+`measure_phase3_detection.py` reuses one prepared Phase 2 coarse grid and
+measures the complete compact Phase 3 component: automatic adaptive discovery
+and refinement, thresholding, connected reconciliation, durable Zarr
+publication, and compact deblending. It requires one warm-up and at least five
+measurements. The exact governed Rapthor run is:
+
+```console
+uv run python scripts/benchmark/measure_phase3_detection.py \
+  --input /controlled/path/sector-MFS-image-pb.fits \
+  --dataset-id rapthor-representative-3000-phase3 \
+  --workload-class normal --executor dask --workers 4 --tile-size 1000 \
+  --output benchmark-results/phase-3/representative-3000.json
+```
+
+Generate and measure the frozen 256, 512, 1,024, and 3,000 square
+sparse/normal/dense compact ladder with:
+
+```console
+uv run python scripts/benchmark/run_phase3_matrix.py \
+  --output-directory benchmark-results/phase-3/matrix --workers 4
+```
+
+The matrix generator creates performance-only FITS inputs with deterministic
+noise and bounded Gaussian patches. These inputs measure size and density
+scaling; the governed scientific manifests and held-out qualification tests,
+not the performance generator, establish scientific correctness.

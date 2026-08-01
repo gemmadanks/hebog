@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -27,9 +29,11 @@ from hebog.data_models import ImageBounds, PartitionManifest
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.deblending import run_compact_deblend_stage
 from hebog.stages.detection import (
     DetectionStageConfig,
     DetectionStageResult,
+    run_detection_from_coarse_grids,
     run_detection_stage,
 )
 
@@ -54,6 +58,66 @@ class _ArrayImageSource:
             values=values,
             valid_pixels=np.isfinite(values),
         )
+
+    def read_windows(
+        self,
+        bounds_collection: tuple[ImageBounds, ...],
+    ) -> tuple[ImageWindow, ...]:
+        """Return ordered bounded windows through the batched source seam."""
+        return tuple(self.read_window(bounds) for bounds in bounds_collection)
+
+
+class _ReadOneImageSource:
+    """Expose only the required single-window image-source protocol."""
+
+    def __init__(self, values: npt.NDArray[np.float64]) -> None:
+        self._delegate = _ArrayImageSource(values)
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Return one bounded image window."""
+        return self._delegate.read_window(bounds)
+
+
+class _InvalidBatchImageSource(_ArrayImageSource):
+    """Inject one deterministic invalid batched-window response."""
+
+    def __init__(
+        self,
+        values: npt.NDArray[np.float64],
+        failure: Literal["bounds", "shape", "validity"],
+    ) -> None:
+        super().__init__(values)
+        self._failure = failure
+
+    def read_windows(
+        self,
+        bounds_collection: tuple[ImageBounds, ...],
+    ) -> tuple[ImageWindow, ...]:
+        """Corrupt only the first response at the selected boundary."""
+        windows = list(super().read_windows(bounds_collection))
+        first = windows[0]
+        if self._failure == "bounds":
+            windows[0] = replace(
+                first,
+                bounds=ImageBounds(
+                    first.bounds.y_start + 1,
+                    first.bounds.y_stop + 1,
+                    first.bounds.x_start,
+                    first.bounds.x_stop,
+                ),
+            )
+        elif self._failure == "shape":
+            windows[0] = replace(
+                first,
+                values=first.values[:-1],
+                valid_pixels=first.valid_pixels[:-1],
+            )
+        else:
+            windows[0] = replace(
+                first,
+                valid_pixels=np.zeros(first.values.shape, dtype=np.bool_),
+            )
+        return tuple(windows)
 
 
 def _grid(window: int, step: int) -> RmsGridConfig:
@@ -238,6 +302,25 @@ def test_one_and_many_tile_detection_publish_identical_topology(
     )
     for many, one in zip(many_deblended, one_deblended, strict=True):
         np.testing.assert_array_equal(many.region_labels, one.region_labels)
+    one_stage = run_compact_deblend_stage(
+        _ArrayImageSource(_image()),
+        one_result,
+        _deblend_config(),
+        SerialExecutor(),
+        one_sink,
+    )
+    many_stage = run_compact_deblend_stage(
+        _ArrayImageSource(_image()),
+        many_result,
+        _deblend_config(),
+        SerialExecutor(),
+        many_sink,
+    )
+    assert many_stage == one_stage
+    assert many_stage.planned_batch_count == 1
+    assert not any(
+        hasattr(island, "region_labels") for island in many_stage.islands
+    )
     assert many_result.boundary_label_count < 4 * _image().size
     assert many_result.reconciliation_round_count == 2
     assert many_result.separate_candidate_scan
@@ -246,6 +329,99 @@ def test_one_and_many_tile_detection_publish_identical_topology(
         "rms",
         "source-filtering-mask",
     )
+
+
+def test_compact_deblend_stage_supports_single_window_sources(
+    tmp_path: Path,
+) -> None:
+    """Pipeline-neutral sources need not implement the batching extension."""
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "single-window.zarr",
+        manifest,
+        SerialExecutor(),
+    )
+
+    result = run_compact_deblend_stage(
+        _ReadOneImageSource(_image()),
+        detection,
+        _deblend_config(),
+        SerialExecutor(),
+        sink,
+    )
+
+    assert tuple(island.island_id for island in result.islands) == tuple(
+        island.island_id for island in detection.islands
+    )
+
+
+@pytest.mark.parametrize(
+    ("failure", "message"),
+    [
+        ("bounds", "different island bounds"),
+        ("shape", "misaligned island window"),
+        ("validity", "mask contains an invalid pixel"),
+    ],
+)
+def test_compact_deblend_stage_rejects_invalid_batched_windows(
+    tmp_path: Path,
+    failure: Literal["bounds", "shape", "validity"],
+    message: str,
+) -> None:
+    """Batched source responses fail closed before scientific summaries."""
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / f"invalid-{failure}.zarr",
+        manifest,
+        SerialExecutor(),
+    )
+
+    with pytest.raises(ValueError, match=message):
+        run_compact_deblend_stage(
+            _InvalidBatchImageSource(_image(), failure),
+            detection,
+            _deblend_config(),
+            SerialExecutor(),
+            sink,
+        )
+
+
+def test_compact_deblend_stage_rejects_a_different_generation(
+    tmp_path: Path,
+) -> None:
+    """Compact consumers cannot mix products from different generations."""
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, _ = _run(
+        tmp_path / "source-generation.zarr",
+        manifest,
+        SerialExecutor(),
+    )
+    different_sink = ZarrProductSink(
+        tmp_path / "different-generation.zarr",
+        manifest,
+        generation_id="different",
+    )
+
+    with pytest.raises(ValueError, match="does not match"):
+        run_compact_deblend_stage(
+            _ArrayImageSource(_image()),
+            detection,
+            _deblend_config(),
+            SerialExecutor(),
+            different_sink,
+        )
 
 
 def test_identical_stage_retry_reuses_the_published_generation(
@@ -274,6 +450,76 @@ def test_identical_stage_retry_reuses_the_published_generation(
     assert second.islands == first.islands
 
 
+def test_prepared_detection_rejects_mismatched_or_refined_inputs(
+    tmp_path: Path,
+) -> None:
+    """The reusable Phase 3 boundary requires its exact coarse generation."""
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    result, _ = _run(tmp_path / "source.zarr", manifest, SerialExecutor())
+    config = DetectionStageConfig(
+        background_rms=_background_config(),
+        source_finder=_source_finder_config(),
+    )
+    wrong_manifest = plan_image_partitions(
+        image_shape_yx=(12, 14),
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    wrong_sink = ZarrProductSink(
+        tmp_path / "wrong.zarr",
+        wrong_manifest,
+        generation_id="wrong",
+    )
+
+    with pytest.raises(ValueError, match="stage partition"):
+        run_detection_from_coarse_grids(
+            _ArrayImageSource(_image()),
+            manifest,
+            result.background_rms_grids,
+            config=config,
+            executor=SerialExecutor(),
+            sink=wrong_sink,
+        )
+
+    refined_sink = ZarrProductSink(
+        tmp_path / "refined.zarr",
+        manifest,
+        generation_id="refined",
+    )
+    with pytest.raises(ValueError, match="coarse-only"):
+        run_detection_from_coarse_grids(
+            _ArrayImageSource(_image()),
+            manifest,
+            result.background_rms_grids,
+            config=config,
+            executor=SerialExecutor(),
+            sink=refined_sink,
+        )
+
+    shape_sink = ZarrProductSink(
+        tmp_path / "shape.zarr",
+        wrong_manifest,
+        generation_id="shape",
+    )
+    coarse_only = result.background_rms_grids.__class__(
+        coarse=result.background_rms_grids.coarse,
+        adaptive_regions=(),
+    )
+    with pytest.raises(ValueError, match="image shape"):
+        run_detection_from_coarse_grids(
+            _ArrayImageSource(_image()),
+            wrong_manifest,
+            coarse_only,
+            config=config,
+            executor=SerialExecutor(),
+            sink=shape_sink,
+        )
+
+
 def test_dask_and_serial_detection_products_are_identical(
     tmp_path: Path,
 ) -> None:
@@ -300,6 +546,13 @@ def test_dask_and_serial_detection_products_are_identical(
             manifest,
             DaskExecutor(client),
         )
+        dask_deblended = run_compact_deblend_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            _deblend_config(),
+            DaskExecutor(client),
+            dask_sink,
+        )
 
     assert dask.islands == serial.islands
     assert (
@@ -311,3 +564,11 @@ def test_dask_and_serial_detection_products_are_identical(
             _read_plane(dask_sink, dask, product_name),
             _read_plane(serial_sink, serial, product_name),
         )
+    serial_deblended = run_compact_deblend_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        _deblend_config(),
+        SerialExecutor(),
+        serial_sink,
+    )
+    assert dask_deblended == serial_deblended

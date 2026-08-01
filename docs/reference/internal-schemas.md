@@ -169,6 +169,14 @@ fragments reconcile before one lexicographically tie-broken global peak per
 component requests sparse fine-grid refinement. Coarse window statistics are
 reused, not recomputed.
 
+Internal storage schema version 3 keeps Zstandard level 1 for boolean masks
+but stores numeric image planes uncompressed; every chunk retains CRC32C and
+logical SHA-256 validation. This avoids measured compression cost on numeric
+intermediate planes without introducing another backend. Bounded consumers
+reuse at most four validated chunks while assembling multiple compact-island
+windows. The cache is worker-local and cannot grow with the image or island
+count.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as

@@ -9,10 +9,12 @@ import pytest
 
 from hebog.validation.comparison import (
     CatalogueSource,
+    aggregate_island_comparisons,
     compare_catalogues,
     compare_island_labels,
     compare_masks,
     compare_rms_maps,
+    wilson_score_interval,
 )
 
 
@@ -449,3 +451,65 @@ def test_rms_comparison_ignores_invalid_values_outside_valid_region() -> None:
 
     assert report.compared_pixel_count == 1
     assert report.excluded_pixel_count == 1
+
+
+def test_wilson_interval_reports_finite_population_uncertainty() -> None:
+    """Perfect recovery retains a nontrivial finite-sample lower bound."""
+    interval = wilson_score_interval(20, 20)
+
+    assert interval is not None
+    assert interval.confidence_level == 0.95
+    assert interval.lower == pytest.approx(0.8388748, rel=1e-6)
+    assert interval.upper == 1.0
+    assert wilson_score_interval(0, 0) is None
+
+
+@pytest.mark.parametrize(
+    ("successes", "total"),
+    [(-1, 2), (3, 2), (True, 2)],
+)
+def test_wilson_interval_rejects_invalid_counts(
+    successes: int,
+    total: int,
+) -> None:
+    """Confidence evidence cannot contain impossible binomial counts."""
+    with pytest.raises(ValueError, match="binomial counts"):
+        wilson_score_interval(successes, total)
+
+
+def test_island_population_report_aggregates_cases_and_intervals() -> None:
+    """Matrix evidence preserves counts, topology failures, and uncertainty."""
+    exact = compare_island_labels(
+        np.array([[1, 1, 0], [0, 0, 2]]),
+        np.array([[8, 8, 0], [0, 0, 9]]),
+    )
+    missed = compare_island_labels(
+        np.array([[1, 0, 2]]),
+        np.array([[4, 0, 0]]),
+    )
+
+    report = aggregate_island_comparisons((exact, missed))
+
+    assert report.case_count == 2
+    assert report.reference_count == 4
+    assert report.candidate_count == 3
+    assert report.matched_count == 3
+    assert report.completeness == 0.75
+    assert report.reliability == 1.0
+    assert report.completeness_confidence_interval is not None
+    assert report.reliability_confidence_interval is not None
+    assert report.minimum_matched_intersection_over_union == 1.0
+    assert report.split_count == report.merge_count == 0
+
+
+def test_empty_island_population_has_explicit_success_without_interval() -> (
+    None
+):
+    """An empty matrix does not fabricate a confidence interval."""
+    report = aggregate_island_comparisons(())
+
+    assert report.case_count == 0
+    assert report.completeness == report.reliability == 1.0
+    assert report.completeness_confidence_interval is None
+    assert report.reliability_confidence_interval is None
+    assert report.median_matched_intersection_over_union is None

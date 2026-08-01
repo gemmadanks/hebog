@@ -260,6 +260,45 @@ class PublicBehaviourManifest(_ContractModel):
         return self
 
 
+class MaskScientificGate(_ContractModel):
+    """Minimum foreground-sensitive pixel metrics for one Phase 3 lane."""
+
+    minimum_precision: float = Field(ge=0, le=1)
+    minimum_recall: float = Field(ge=0, le=1)
+    minimum_intersection_over_union: float = Field(ge=0, le=1)
+
+
+class IslandScientificGate(_ContractModel):
+    """Minimum object recovery and overlap metrics for one Phase 3 lane."""
+
+    minimum_completeness: float = Field(ge=0, le=1)
+    minimum_reliability: float = Field(ge=0, le=1)
+    minimum_median_intersection_over_union: float = Field(ge=0, le=1)
+    minimum_matched_intersection_over_union: float = Field(ge=0, le=1)
+    maximum_split_count: int = Field(ge=0)
+    maximum_merge_count: int = Field(ge=0)
+
+
+class PhaseThreeLaneGate(_ContractModel):
+    """Mask and connected-object gates for one governed dataset lane."""
+
+    mask: MaskScientificGate
+    islands: IslandScientificGate
+
+
+class PhaseThreeScientificGates(_ContractModel):
+    """Frozen foreground-sensitive Phase 3 non-inferiority margins."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-3-scientific-gates"]
+    status: Literal["frozen-provisional"]
+    confidence_level: float = Field(gt=0, lt=1)
+    low_snr_threshold_crossings: Literal["report-only"]
+    compact_reference: PhaseThreeLaneGate
+    generated_regression: PhaseThreeLaneGate
+    heldout_qualification: PhaseThreeLaneGate
+
+
 def load_performance_matrix(path: Path) -> PerformanceMatrixContract:
     """Load and validate a performance-matrix contract."""
     return PerformanceMatrixContract.model_validate_json(
@@ -277,5 +316,14 @@ def load_scalability_contract(path: Path) -> ScalabilityContract:
 def load_public_behaviours(path: Path) -> PublicBehaviourManifest:
     """Load and validate the public-behaviour manifest."""
     return PublicBehaviourManifest.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_three_scientific_gates(
+    path: Path,
+) -> PhaseThreeScientificGates:
+    """Load frozen Phase 3 foreground-sensitive scientific margins."""
+    return PhaseThreeScientificGates.model_validate_json(
         path.read_text(encoding="utf-8")
     )

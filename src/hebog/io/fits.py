@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generator
@@ -209,26 +210,41 @@ class FitsImageSource:
 
     def read_window(self, bounds: ImageBounds) -> ImageWindow:
         """Read one half-open global window into owned read-only arrays."""
+        return self.read_windows((bounds,))[0]
+
+    def read_windows(
+        self,
+        bounds_collection: Iterable[ImageBounds],
+    ) -> tuple[ImageWindow, ...]:
+        """Read bounded windows through one validated FITS open."""
+        requested_bounds = tuple(bounds_collection)
+        if not requested_bounds:
+            return ()
+        windows: list[ImageWindow] = []
         with _open_primary(self._path) as primary_hdu:
             metadata = _metadata(primary_hdu, self._path)
-            bounds.require_inside(metadata.shape_yx)
             leading_indices = (0,) * (len(primary_hdu.shape) - 2)
-            section = primary_hdu.section[
-                (
-                    *leading_indices,
-                    slice(bounds.y_start, bounds.y_stop),
-                    slice(bounds.x_start, bounds.x_stop),
+            for bounds in requested_bounds:
+                bounds.require_inside(metadata.shape_yx)
+                section = primary_hdu.section[
+                    (
+                        *leading_indices,
+                        slice(bounds.y_start, bounds.y_stop),
+                        slice(bounds.x_start, bounds.x_stop),
+                    )
+                ]
+                values = np.array(section, dtype=np.float64, copy=True)
+                valid_pixels = np.asarray(np.isfinite(values), dtype=np.bool_)
+                values.setflags(write=False)
+                valid_pixels.setflags(write=False)
+                windows.append(
+                    ImageWindow(
+                        bounds=bounds,
+                        values=values,
+                        valid_pixels=valid_pixels,
+                    )
                 )
-            ]
-            values = np.array(section, dtype=np.float64, copy=True)
-        valid_pixels = np.asarray(np.isfinite(values), dtype=np.bool_)
-        values.setflags(write=False)
-        valid_pixels.setflags(write=False)
-        return ImageWindow(
-            bounds=bounds,
-            values=values,
-            valid_pixels=valid_pixels,
-        )
+        return tuple(windows)
 
 
 def celestial_wcs_from_metadata(metadata: ImageMetadata) -> WCS:

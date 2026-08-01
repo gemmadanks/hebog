@@ -213,6 +213,21 @@ def test_masked_holes_and_equal_peak_plateau_preserve_membership() -> None:
     np.testing.assert_array_equal(result.region_labels > 0, membership)
 
 
+def test_multiple_peaks_do_not_let_a_masked_hole_flood_the_island() -> None:
+    """Non-members are high barriers, not competing watershed markers."""
+    normalized = np.full((5, 5), 3.0)
+    normalized[0, 0] = 8.0
+    normalized[4, 4] = 7.0
+    membership = np.ones(normalized.shape, dtype=np.bool_)
+    membership[2, 2] = False
+    compact = _compact_island(normalized, membership=membership)
+
+    result = deblend_compact_island(compact, _config())
+
+    np.testing.assert_array_equal(result.region_labels > 0, membership)
+    assert sum(region.pixel_count for region in result.regions) == 24
+
+
 def test_exact_peak_threshold_has_no_eligible_marker() -> None:
     """The compact marker boundary remains strict like detection seeds."""
     compact = _compact_island(np.array([[5.0, 4.0, 3.0]]))

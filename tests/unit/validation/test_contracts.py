@@ -12,6 +12,7 @@ from hebog.validation.contracts import (
     PerformanceMatrixContract,
     ScalabilityContract,
     load_performance_matrix,
+    load_phase_three_scientific_gates,
     load_public_behaviours,
     load_scalability_contract,
 )
@@ -20,6 +21,9 @@ _ROOT = Path(__file__).parents[3]
 _PERFORMANCE_PATH = _ROOT / "config/benchmarks/phase-0-performance.json"
 _SCALABILITY_PATH = _ROOT / "config/benchmarks/phase-0-scalability.json"
 _BEHAVIOURS_PATH = _ROOT / "config/contracts/phase-0-public-behaviours.json"
+_PHASE_THREE_GATES_PATH = (
+    _ROOT / "config/contracts/phase-3-scientific-gates.json"
+)
 
 
 def test_checked_in_performance_matrix_covers_curve_and_workloads() -> None:
@@ -100,3 +104,16 @@ def test_public_behaviour_manifest_matches_executable_test_ids() -> None:
     assert implemented_test_ids == {
         behaviour.test_id for behaviour in manifest.behaviours
     }
+
+
+def test_phase_three_gates_are_foreground_sensitive_and_role_specific() -> (
+    None
+):
+    """Compact, generated, and held-out lanes freeze reviewed mask margins."""
+    gates = load_phase_three_scientific_gates(_PHASE_THREE_GATES_PATH)
+
+    assert gates.confidence_level == 0.95
+    assert gates.low_snr_threshold_crossings == "report-only"
+    assert gates.compact_reference.mask.minimum_intersection_over_union > 0.9
+    assert gates.compact_reference.islands.minimum_completeness == 1.0
+    assert gates.heldout_qualification.mask.minimum_precision >= 0.8

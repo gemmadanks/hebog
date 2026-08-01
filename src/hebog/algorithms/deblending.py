@@ -78,6 +78,23 @@ class CompactDeblendResult:
     regions: tuple[DeblendedRegion, ...]
     region_labels: npt.NDArray[np.int32]
 
+    def compact_summary(self) -> CompactDeblendSummary:
+        """Drop bounded region labels before returning through an executor."""
+        return CompactDeblendSummary(
+            island_id=self.island_id,
+            status=self.status,
+            regions=self.regions,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class CompactDeblendSummary:
+    """Executor-safe compact region facts with no pixel label arrays."""
+
+    island_id: str
+    status: Literal["single-region", "deblended"]
+    regions: tuple[DeblendedRegion, ...]
+
 
 def _bounds_pixel_count(bounds: ImageBounds) -> int:
     """Return one half-open rectangle's exact pixel count."""
@@ -257,7 +274,7 @@ def _watershed_labels(
         topography = np.rint(
             distance / maximum_distance * (_TOPOGRAPHY_MAXIMUM - 1)
         ).astype(np.uint16)
-    markers[~membership] = -1
+    topography[~membership] = _TOPOGRAPHY_MAXIMUM
     raw = np.asarray(
         ndimage.watershed_ift(
             topography,

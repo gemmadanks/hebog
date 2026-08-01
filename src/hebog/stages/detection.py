@@ -265,6 +265,41 @@ def run_detection_stage(
         executor,
         bright_candidate_positions_yx=(),
     )
+    return run_detection_from_coarse_grids(
+        source,
+        manifest,
+        coarse_grids,
+        config=config,
+        executor=executor,
+        sink=sink,
+    )
+
+
+def run_detection_from_coarse_grids(  # noqa: PLR0913
+    source: _WindowReadable,
+    manifest: PartitionManifest,
+    coarse_grids: BackgroundRmsGrids,
+    *,
+    config: DetectionStageConfig,
+    executor: Executor,
+    sink: ZarrProductSink,
+) -> DetectionStageResult:
+    """Run Phase 3 from one immutable Phase 2 coarse-grid result.
+
+    This boundary lets component benchmarks and future pipeline execution
+    reuse an already-computed coarse background/RMS grid without changing the
+    automatic adaptive-candidate or final product semantics.
+    """
+    if sink.manifest != manifest:
+        raise ValueError(
+            "detection sink must use the stage partition manifest"
+        )
+    if coarse_grids.adaptive_regions:
+        raise ValueError("detection requires a coarse-only background cache")
+    if coarse_grids.coarse.geometry.image_shape_yx != manifest.image_shape_yx:
+        raise ValueError(
+            "coarse background cache must match the detection image shape"
+        )
     candidate_positions = discover_adaptive_candidates(
         source,
         manifest,
@@ -279,7 +314,6 @@ def run_detection_stage(
         executor,
         bright_candidate_positions_yx=candidate_positions,
     )
-
     for product_name, dtype in (
         ("background", np.dtype("<f8")),
         ("rms", np.dtype("<f8")),

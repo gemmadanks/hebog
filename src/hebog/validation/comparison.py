@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from statistics import NormalDist
 from typing import Any, Literal, Protocol, Self, cast
 
 import numpy as np
@@ -205,6 +206,33 @@ class IslandComparisonReport:
     merged_candidate_labels: tuple[int, ...]
     completeness: float
     reliability: float
+    median_matched_intersection_over_union: float | None
+    minimum_matched_intersection_over_union: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class BinomialConfidenceInterval:
+    """Two-sided Wilson score interval for one observed success rate."""
+
+    confidence_level: float
+    lower: float
+    upper: float
+
+
+@dataclass(frozen=True, slots=True)
+class IslandPopulationReport:
+    """Aggregate object non-inferiority metrics across a dataset matrix."""
+
+    case_count: int
+    reference_count: int
+    candidate_count: int
+    matched_count: int
+    completeness: float
+    reliability: float
+    completeness_confidence_interval: BinomialConfidenceInterval | None
+    reliability_confidence_interval: BinomialConfidenceInterval | None
+    split_count: int
+    merge_count: int
     median_matched_intersection_over_union: float | None
     minimum_matched_intersection_over_union: float | None
 
@@ -782,6 +810,98 @@ def compare_island_labels(
         median_matched_intersection_over_union=_array_median(overlap_values),
         minimum_matched_intersection_over_union=(
             float(np.min(overlap_values)) if overlap_values.size else None
+        ),
+    )
+
+
+def wilson_score_interval(
+    successes: int,
+    total: int,
+    *,
+    confidence_level: float = 0.95,
+) -> BinomialConfidenceInterval | None:
+    """Return a Wilson interval, or ``None`` for an empty population."""
+    if (
+        isinstance(successes, bool)
+        or isinstance(total, bool)
+        or successes < 0
+        or total < 0
+        or successes > total
+    ):
+        raise ValueError(
+            "binomial counts must satisfy 0 <= successes <= total"
+        )
+    if not np.isfinite(confidence_level) or not 0 < confidence_level < 1:
+        raise ValueError("confidence_level must be finite and in (0, 1)")
+    if total == 0:
+        return None
+    probability = successes / total
+    z_score = NormalDist().inv_cdf(0.5 + confidence_level / 2.0)
+    z_squared = z_score * z_score
+    denominator = 1.0 + z_squared / total
+    centre = probability + z_squared / (2.0 * total)
+    radius = z_score * np.sqrt(
+        probability * (1.0 - probability) / total
+        + z_squared / (4.0 * total * total)
+    )
+    return BinomialConfidenceInterval(
+        confidence_level=confidence_level,
+        lower=float(max(0.0, (centre - radius) / denominator)),
+        upper=float(min(1.0, (centre + radius) / denominator)),
+    )
+
+
+def aggregate_island_comparisons(
+    reports: Sequence[IslandComparisonReport],
+    *,
+    confidence_level: float = 0.95,
+) -> IslandPopulationReport:
+    """Aggregate a generated or governed island-comparison matrix."""
+    reference_count = sum(report.reference_count for report in reports)
+    candidate_count = sum(report.candidate_count for report in reports)
+    matched_count = sum(len(report.matches) for report in reports)
+    overlaps = np.asarray(
+        [
+            match.intersection_over_union
+            for report in reports
+            for match in report.matches
+        ],
+        dtype=np.float64,
+    )
+    return IslandPopulationReport(
+        case_count=len(reports),
+        reference_count=reference_count,
+        candidate_count=candidate_count,
+        matched_count=matched_count,
+        completeness=_safe_classification_fraction(
+            matched_count,
+            reference_count,
+            empty_value=1.0,
+        ),
+        reliability=_safe_classification_fraction(
+            matched_count,
+            candidate_count,
+            empty_value=1.0 if not reference_count else 0.0,
+        ),
+        completeness_confidence_interval=wilson_score_interval(
+            matched_count,
+            reference_count,
+            confidence_level=confidence_level,
+        ),
+        reliability_confidence_interval=wilson_score_interval(
+            matched_count,
+            candidate_count,
+            confidence_level=confidence_level,
+        ),
+        split_count=sum(
+            len(report.split_reference_labels) for report in reports
+        ),
+        merge_count=sum(
+            len(report.merged_candidate_labels) for report in reports
+        ),
+        median_matched_intersection_over_union=_array_median(overlaps),
+        minimum_matched_intersection_over_union=(
+            float(np.min(overlaps)) if overlaps.size else None
         ),
     )
 
