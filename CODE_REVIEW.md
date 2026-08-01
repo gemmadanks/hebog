@@ -34,27 +34,32 @@ tool handles automatically.
    effects, boolean mode proliferation, speculative extension frameworks,
    accidental duplication, and complexity not justified by scientific or
    performance evidence.
-8. For a new executor, store, adapter, or workflow integration, confirm the
+8. For substantial custom infrastructure or a newly implemented generally
+   available capability, confirm established standards, the standard library,
+   and mature maintained libraries were considered. Require a concrete reason
+   when scientific, performance, scalability, portability, security, licence,
+   or dependency-cost constraints make custom code the better choice.
+9. For a new executor, store, adapter, or workflow integration, confirm the
    existing public API or a narrow protocol supports it without conditionals
    spreading through unrelated scientific modules.
-9. Confirm each changed behaviour has a focused test that would fail for the
+10. Confirm each changed behaviour has a focused test that would fail for the
    intended reason if that behaviour were removed. Look for normal, boundary,
    failure, short-circuit, and regression cases rather than line execution
    without meaningful assertions.
-10. Run `just coverage` for production changes. Inspect branch-aware project
+11. Run `just coverage` for production changes. Inspect branch-aware project
     coverage, changed-file misses, and the Codecov diff/patch report when
     available. The 80% project floor does not excuse a poorly covered patch.
     Treat reduced project or patch coverage as a finding unless an explicit
     human-approved exception explains the risk and follow-up.
-11. Reject coverage gaming, including weakened assertions, inappropriate
+12. Reject coverage gaming, including weakened assertions, inappropriate
     `pragma: no cover` markers or omit rules, tests coupled to implementation
     details only to execute a line, and deletion of meaningful cases.
-12. For native code, verify the recorded profile and end-to-end gate, FFI array
-   ownership and copy contract, interpreter release, thread budget, exception
-   safety, readable serial oracle, scientific parity, safety tooling, license,
-   and complete supported wheel matrix. Reject a kernel-only speedup that is
-   immaterial end to end.
-13. Finish with `just check` when proportional to the change, plus the additional
+13. For native code, verify the recorded profile and end-to-end gate, FFI array
+    ownership and copy contract, interpreter release, thread budget, exception
+    safety, readable serial oracle, scientific parity, safety tooling, license,
+    and complete supported wheel matrix. Reject a kernel-only speedup that is
+    immaterial end to end.
+14. Finish with `just check` when proportional to the change, plus the additional
     commands required by `AGENTS.md`.
 
 ## Finding quality

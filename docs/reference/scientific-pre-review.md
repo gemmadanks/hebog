@@ -103,8 +103,10 @@ completeness and reliability below roughly 10 sigma.
 
 The first-pass recommendation is therefore **amend before scientific
 approval**, not reject the architecture. Phase 1 I/O, tiling, schemas, and
-test-oracle work may proceed, but Phase 2 algorithm defaults and claims must
-use the amended, human-reviewed gates.
+test-oracle work may proceed. Phase 2 TDD may also proceed against the amended
+frozen engineering gates, with the explicit risk of review-driven changes;
+scientific defaults, accepted deviations, and equivalence claims require the
+named human decision.
 
 ## Sources reviewed
 

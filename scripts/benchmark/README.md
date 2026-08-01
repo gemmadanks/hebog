@@ -61,3 +61,31 @@ campaign without rerunning it.
 local thread pool and caller-owned in-process Dask client. It does not include
 Dask client startup and labels Phase 0 planning/local results as proxies rather
 than production implementations.
+
+Intermediate-storage benchmarks should measure the selected Zarr backend with
+the same versioned evidence models: include store type, codecs, chunk geometry,
+object count, stored bytes, concurrency, and atomicity guarantees. Compare
+configuration changes against the previous reviewed Zarr curve and include
+FITS ingestion, final materialisation, Dask overhead, and Rapthor end-to-end
+latency where applicable. The exploratory backend-comparison runner was
+removed after ADR-007 selected a single backend, so rejected private storage
+code does not become a maintained benchmark dependency.
+
+`measure_phase1_io.py` exercises the implemented warm local path from a
+deterministic FITS image through aligned Zarr v3 chunks and back to final RMS
+and mask FITS products. It requires at least one warm-up and five measured
+repetitions, records each repetition with the versioned evidence model, and
+uses a platform-safe peak-RSS observation on Windows and POSIX. For example:
+
+```console
+uv run python scripts/benchmark/measure_phase1_io.py \
+  --size 1024 --tile-size 512 --zarr-concurrency 10 \
+  --output benchmark-results/phase-1/io-1024-c10.json
+```
+
+The runner records Hebog-controlled row assembly as bounded by one complete
+tile row. Allocation counts inside Astropy and Zarr are explicitly unavailable
+because those libraries do not expose complete counters; the bounded-copy
+contract is established separately by structural integration tests. These
+warm `LocalStore` observations do not qualify cold-cache behaviour,
+deployment-store atomicity, Dask transfer, or distributed scaling.

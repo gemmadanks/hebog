@@ -1266,3 +1266,569 @@ applicable zeroes for these single-process reference runs.
 
 - Resume Phase 1 product-sink and retryable materialisation work after the
   CI-fix commit is reviewed.
+
+## 2026-07-31 — Added retryable intermediate product chunks
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added a versioned, pickle-safe product-chunk record containing its product
+  and tile identity, global core bounds, canonical relative path, dtype,
+  shape, byte size, and SHA-256 without embedding pixel arrays.
+- Added a narrow scheduler-independent product-sink protocol and one concrete
+  filesystem implementation; no registry, scheduler client, or workflow
+  dependency enters the scientific boundary.
+- Published two-dimensional NumPy cores through flushed same-directory partial
+  files and atomic hard links so a final path never exposes incomplete bytes
+  and concurrent attempts cannot overwrite one another.
+- Made identical retries idempotent, conflicting retries fail closed, and
+  retries after failures immediately before or after publication recoverable.
+- Validated paths, checksums, array metadata, object-dtype rejection, and
+  symlink containment before workers consume or publish products.
+- Followed red-green-refactor: focused tests first failed on the absent chunk
+  record and sink module, then passed after the minimal implementation.
+
+**Evidence**
+
+- Twenty-six focused unit and integration tests cover record serialization,
+  normal round trips, identical and conflicting retries, injected failures,
+  missing and corrupted files, invalid arrays, metadata disagreement, and
+  path-containment failures.
+- The new product record and filesystem sink have 100% line and branch
+  coverage. The portable suite passes 190 tests with 4 expected failures and
+  total branch-aware project coverage of 89.94%.
+
+**Next**
+
+- Define a versioned materialised-result manifest that records the expected
+  complete chunk set and detects missing, duplicate, or mixed-run products.
+- Define empty and populated catalogue schemas through round-trip tests.
+- Materialise compatible FITS, RMS, mask, and catalogue products atomically
+  from validated chunk manifests.
+
+## 2026-07-31 — Added the intermediate-storage decision gate
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Reassessed the NumPy-file/hard-link product sink before building the
+  materialised-result manifest on its private layout.
+- Made Zarr v3 the preferred intermediate-plane candidate because it already
+  provides maintained multidimensional chunk storage, Dask integration,
+  multiple storage backends, codec pipelines, and checksum codecs.
+- Kept the current sink as a behavioural prototype and serial oracle rather
+  than declaring it the production format.
+- Added an ADR and benchmark gate comparing Zarr local and
+  deployment-representative stores against the oracle and direct FITS across
+  size and execution crossovers.
+- Kept scientific ownership, WCS/beam/unit schemas, strict missing-chunk
+  handling, run provenance, conflict policy, and validated completion
+  manifests in Hebog rather than delegating them to an array format.
+- Added Arrow/Parquet as a separate candidate for internal catalogue shards;
+  workflow-compatible FITS and LSMTool products remain adapter outputs.
+
+**Evidence**
+
+- The plan links the official Zarr and Dask storage documentation and records
+  the alignment, backend atomicity, codec, checksum, concurrency, failure,
+  restart, and performance evidence required for selection.
+- The decision remains open until a reproducible prototype passes the
+  scientific, recovery, portability, and performance gates.
+
+**Next**
+
+- Write the intermediate-storage ADR as proposed and implement the smallest
+  Zarr v3 prototype behind the existing product-sink boundary.
+- Compare it with the NumPy-file oracle before defining a materialised-result
+  schema that depends on either physical layout.
+
+## 2026-07-31 — Accepted the gated Zarr intermediate-store decision
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added Zarr 3.1.6 as the newest Zarr v3 line compatible with Hebog's Python
+  3.11 support floor; Zarr 3.2 requires Python 3.12.
+- Implemented a small `ZarrProductSink` behind the generic product-sink
+  protocol, with caller-side product initialization and no scheduler or open
+  store in its serializable state.
+- Added a physical-layout-neutral, versioned `ZarrProductChunk` record with
+  global core bounds, dtype, shape, and logical content SHA-256.
+- Aligned zero-origin canonical tile cores one-to-one with regular Zarr chunks
+  and explicitly configured little-endian bytes, Zstandard level 1, CRC32C,
+  fill value zero, and writing of all-fill chunks.
+- Made missing chunks fail closed on Python 3.11 by checking the configured
+  standard Zarr v3 chunk key before decoding. Added sequential idempotent retry
+  and conflict checks while reserving concurrent and generation-level
+  guarantees for the next closure step.
+- Extended versioned benchmark evidence with store layout, codec, missing/fill,
+  object-count, footprint, concurrency, and atomicity fields.
+- Added and accepted ADR-007 with a tiered decision: continue qualifying Zarr
+  for distributed planes, but retain lower-overhead NumPy/direct paths until
+  measured crossovers justify using it.
+
+**Evidence**
+
+- Twenty-two focused Zarr unit and integration tests cover serialization,
+  initialization, aligned and edge writes, NaNs, all-fill chunks, missing and
+  corrupt chunks, content disagreement, normal and conflicting retries,
+  invalid values, changed metadata/policy, and shifted-origin rejection.
+- The reproducible local probe used one warm-up and five measured repetitions
+  per store. At 1024² with 256² chunks, complete median time was 0.281 seconds
+  for the NumPy oracle and 0.491 seconds for Zarr (1.75 times the oracle); Zarr
+  stored 8,041,519 bytes versus 8,390,656 bytes.
+- At 3000² with 512² chunks, complete median time was 0.828 seconds for the
+  NumPy oracle and 1.177 seconds for Zarr (1.42 times the oracle); Zarr stored
+  69,023,524 bytes versus 72,004,608 bytes.
+- Both ignored evidence pairs load through Hebog's `BenchmarkEvidence` model.
+  Each identifies the exact uncommitted Hebog source tree and benchmark runner
+  by SHA-256 in addition to package and dependency versions.
+  These are exploratory local component results and support no distributed or
+  end-to-end speed claim.
+
+**Next**
+
+- Add the exact expected-chunk completion manifest and deterministic tests for
+  duplicate, mixed-run, interrupted, and concurrently conflicting records.
+- Compare uncompressed plus CRC32C and faster codec choices by product role.
+- Run direct-FITS, Dask, and deployment-representative store comparisons across
+  affected size anchors before selecting a default crossover or removing the
+  NumPy oracle.
+
+## 2026-07-31 — Simplified intermediate storage to Zarr only
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Amended ADR-007 to make Zarr v3 the sole intermediate image-plane backend
+  for every execution tier. FITS remains an input and final compatibility
+  format, not an alternative intermediate store.
+- Accepted the measured small/local Zarr overhead as a deliberate simplicity
+  trade-off. Future performance work will tune Zarr initialization, codecs,
+  concurrency, ingestion, and materialisation rather than maintain a
+  size-based backend switch.
+- Removed the private NumPy-file sink, its duplicate integration suite, and the
+  exploratory backend-comparison runner.
+- Consolidated `ProductChunk` and the product-chunk error hierarchy around the
+  Zarr implementation, removing the redundant Zarr-specific record and the
+  unused generic product-sink protocol.
+- Updated the implementation plan, contributor instructions, architecture and
+  performance guidance, how-to documentation, and benchmark guidance to
+  prevent an alternate intermediate backend from being reintroduced without
+  an explicit ADR amendment.
+
+**Evidence**
+
+- Followed a red-green cycle for the consolidated `ProductChunk` contract; the
+  focused unit and Zarr integration suite passes with 21 tests.
+- `just check` passes Ruff formatting and linting, Pyright, doctests, and 149
+  fast tests with four expected failures.
+- `just coverage` passes 191 unit and integration tests with four expected
+  failures and 90.29% branch-aware project coverage. The consolidated product
+  model and Zarr implementation each have 100% coverage.
+- `just docs-build` and `just package-smoke-test` pass.
+
+**Next**
+
+- Define the exact expected-chunk completion manifest and deterministic tests
+  for duplicate, mixed-run, interrupted, and concurrent-conflict records.
+- Benchmark and tune Zarr codecs, store configuration, concurrency, FITS
+  ingestion, and final materialisation across the affected size anchors.
+
+## 2026-08-01 — Adopted Zarr 3.2 and Python 3.12
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Raised Hebog's minimum Python version from 3.11 to 3.12 and removed Python
+  3.11 from the portable CI matrix. Python 3.12, 3.13, and 3.14 remain
+  supported on Linux, macOS, and Windows.
+- Updated the runtime dependency to `zarr>=3.2,<3.3`; the lockfile resolves
+  Zarr 3.2.1 and no longer contains Python 3.11-only dependency branches or
+  wheels.
+- Replaced Hebog's explicit Zarr v3 chunk-key existence checks with Zarr 3.2's
+  native `read_missing_chunks=False` configuration and translated
+  `ChunkNotFoundError` at the existing Hebog error boundary.
+- Updated ADR-007, the implementation plan, contributor instructions, setup
+  guidance, native-code packaging assessment, how-to documentation, and issue
+  template. The migration guidance directs Python 3.11 users to remain on
+  Hebog 0.2.x or upgrade Python before the next release.
+
+**Evidence**
+
+- The Zarr 3.2 dependency contract was introduced as a failing test against
+  Zarr 3.1.6, then made green with the dependency and implementation update.
+- All 15 focused Zarr integration tests pass and verify that a missing chunk is
+  reported through a native Zarr `ChunkNotFoundError` cause.
+- `just check` passes Ruff, Pyright targeting Python 3.12, doctests, and 149
+  fast tests with four expected failures.
+- `just coverage` passes 192 unit and integration tests with four expected
+  failures and 90.26% branch-aware project coverage. `hebog.io.zarr` retains
+  100% coverage.
+- An isolated Python 3.12.12 environment passes 164 unit and Zarr integration
+  tests. The strict documentation build and isolated package smoke test pass;
+  the installed wheel resolves Zarr 3.2.1.
+
+**Next**
+
+- Let the portable CI matrix confirm Python 3.12 through 3.14 on Linux, macOS,
+  and Windows after human review and push.
+- Continue with the Zarr completion-manifest and recovery slice in Phase 1.
+
+## 2026-08-01 — Published exact Zarr product generations
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Bound every `ProductChunk` to one generation and raised the internal product
+  storage schema to version 2. Unpublished development stores created with
+  schema version 1 must be recreated; no released Hebog product used it.
+- Added the versioned, canonical `ProductGenerationManifest`. It accepts only
+  the exact product-by-tile chunk set for one partition and rejects missing,
+  duplicate, conflicting, mixed-generation, unexpected, wrong-owner, and
+  inconsistent-dtype records.
+- Made `ZarrProductSink` validate every referenced chunk before conditionally
+  creating a completion marker through the Zarr Store API. An identical
+  publication retry is idempotent and a different marker cannot replace the
+  winner.
+- Kept interrupted work unpublished and resumable from its missing chunks.
+  Consumers revalidate the canonical marker and all chunks before treating a
+  generation as consumable.
+- Completed the Phase 1 `LocalStore` recovery and completion-manifest plan
+  item. Deployment-store conditional-create and concurrency guarantees remain
+  a separate qualification gate and are not inferred from local evidence.
+
+**Evidence**
+
+- Followed a red-green cycle: the new generation contracts initially failed
+  to import before the implementation existed, then all 38 focused product
+  model and Zarr integration tests passed.
+- `just coverage` passes 208 unit and integration tests with four expected
+  failures and 90.96% branch-aware project coverage. The generation model,
+  product model, and Zarr implementation each have 100% coverage.
+- `just check` passes Ruff formatting and linting, Pyright, doctests, and 159
+  fast tests with four expected failures. The strict documentation build and
+  isolated package smoke test pass.
+- No storage performance or distributed-atomicity claim is made by this
+  correctness slice.
+
+**Next**
+
+- Define the versioned internal catalogue and materialised-result schemas from
+  failing round-trip and boundary tests.
+- Benchmark deployment-representative Zarr stores and prove their atomic or
+  conditional completion semantics before distributed qualification.
+
+## 2026-08-01 — Defined internal catalogue and result schemas
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added catalogue schema version 1 with distinct `Island`,
+  `SourceCandidate`, and `GaussianComponent` identities and nested position,
+  flux, shape, and spectral records. The schema uses pipeline-neutral names
+  and keeps PyBDSF/Rapthor column names at the compatibility boundary.
+- Made ICRS coordinates, position epoch, degrees, Jy, Jy/beam, reference
+  frequency, the spectral convention, and null representation explicit. The
+  initial schema is MFS-only and rejects mixed reference frequencies.
+- Added canonical ordering, unique IDs, source-component-island referential
+  integrity, deterministic JSON, and a valid zero-row catalogue without a
+  dummy scientific source.
+- Replaced the path-only `SourceFinderResult` version 1 scaffold with result
+  schema version 2 and concrete `MaterializedProduct` records. Each product
+  carries a role, media type, content schema, byte count, SHA-256, and
+  scientific status; existing path properties remain available to consumers.
+- Allowed only RMS to be scientifically unavailable in a successful core
+  result, so an all-blank image cannot silently relabel copied input pixels as
+  an RMS estimate.
+- Updated ADR-006, the target architecture, Phase 1 checklist, domain
+  glossary, API index, and a new internal-schema reference. The schemas remain
+  provisional pending the recorded Phase 0 human scientific sign-off.
+
+**Evidence**
+
+- Followed two red-green cycles: catalogue and materialised-result tests first
+  failed to import their absent models, then all 84 focused schema and public
+  data-model tests passed.
+- `just coverage` passes 257 unit and integration tests with four expected
+  failures and 92.12% branch-aware project coverage. The new catalogue module
+  and changed source-finding result module each have 100% coverage.
+- `just check` passes Ruff formatting and linting, Pyright, doctests, and 208
+  fast tests with four expected failures. The strict documentation build and
+  isolated package smoke test pass. All five frozen equivalence tests pass.
+- This slice defines logical records and restart metadata; it makes no claim
+  that FITS compatibility materialisation or large catalogue-shard storage is
+  complete.
+
+**Next**
+
+- Add failing Astropy-backed round-trip and boundary tests for valid and empty
+  catalogue, RMS, mask, and diagnostics products, including corrupt and
+  unsupported inputs, then implement their bounded compatibility I/O.
+- Map the reviewed Rapthor/PyBDSF catalogue view separately from the internal
+  schema and keep dummy rows or placeholder RMS behaviour adapter-only.
+
+## 2026-08-01 — Materialised versioned final products
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added the strict `SourceFindingDiagnostics` schema version 1 with canonical
+  JSON and the same source, Gaussian-component, island, and RMS-status
+  consistency rules as the materialised result.
+- Added Astropy-backed internal catalogue FITS schema version 1 with separate
+  island, source, and Gaussian-component tables, explicit units, stable
+  identities, variable-length spectral coefficients, reversible nullable
+  values, and structurally complete zero-row tables.
+- Added incremental RMS and source-filtering-mask FITS writers. They consume
+  sequential full-width row blocks, preserve an explicit float32 or float64
+  RMS dtype and NaNs, encode exact boolean masks as uint8, and reject partial,
+  cast, negative, infinite, non-binary, or scientifically inconsistent data.
+- Added checksum-aware bounded product reads and `MaterializedProduct`
+  construction. Complete same-directory temporary files are validated before
+  publication; identical sequential retries are idempotent and different
+  existing bytes fail closed.
+- Removed a whole-plane validation read found during review. Streamed writers
+  retain their per-block scientific checks, publication validates structural
+  metadata, and a restart reader verifies SHA-256 once before validating only
+  requested windows.
+- Kept internal FITS names and empty-catalogue semantics independent of the
+  future Rapthor/PyBDSF compatibility mapping. Updated ADR-006, the internal
+  schema reference, and the completed Phase 1 I/O checklist items.
+
+**Evidence**
+
+- Followed the red-green-refactor cycle: the product contracts first failed
+  on the absent diagnostics and I/O APIs; review regressions then exposed
+  missing unit, record-identity, schema, and unavailable-RMS checks. The
+  resulting focused data-model and integration suite passes all 94 tests.
+- `just coverage` passes 303 tests with four expected failures and 92.75%
+  branch-aware project coverage. The changed source-finding model has 100%
+  coverage and the new materialisation module has 96% coverage.
+- `just check` passes Ruff formatting and linting, Pyright, doctests, and 213
+  fast tests with four expected failures. The strict documentation build and
+  isolated wheel/sdist smoke test pass. All five frozen equivalence tests pass.
+- No runtime, deployment-store concurrency, or Rapthor compatibility claim is
+  made by this correctness slice.
+
+**Next**
+
+- Benchmark Zarr stores, FITS ingestion, and final materialisation at affected
+  size and execution-crossover anchors; measure peak memory and avoidable
+  full-image copies before tuning.
+- Implement the reviewed Rapthor/PyBDSF catalogue and side-product mapping at
+  the compatibility boundary without changing the internal schema.
+
+## 2026-08-01 — Fixed deterministic source ownership
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Defined source ownership from one finite zero-based continuous `(y, x)`
+  reference position and the partition manifest's half-open tile cores.
+- Assigned exact internal-boundary ties to the core that begins at the
+  boundary. Halo overlap, source extent, worker count, and completion order do
+  not affect catalogue ownership.
+- Added constant-time ownership lookup for regular and shifted partition
+  origins, with explicit rejection of non-finite and out-of-image positions.
+- Updated the domain glossary, large-image domain model, and Phase 1 checklist.
+
+**Evidence**
+
+- The new contracts failed on the absent ownership API before implementation.
+- All 29 partition tests pass, including every edge and corner, shifted-grid
+  boundaries, representative subpixel positions, and invalid coordinates.
+
+**Next**
+
+- Stream validated completed Zarr generations into bounded final-product row
+  blocks and measure one-tile and many-tile materialisation overhead.
+
+## 2026-08-01 — Streamed completed Zarr products to FITS
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added a completed-generation row iterator that reads and checksum-validates
+  every product chunk exactly once in canonical tile-row order.
+- Bounded many-tile assembly to one full-width tile row plus the current
+  decoded chunk and required the caller to provide an explicit byte budget.
+- Made one-tile materialisation yield the already owned validated chunk
+  directly, avoiding a redundant full-image assembly copy and any Dask fanout.
+- Proved the same public RMS and mask writers consume both one-tile and
+  many-tile Zarr generations and emit identical final FITS values, NaNs,
+  validity masks, units, and dtypes.
+
+**Evidence**
+
+- The row-stream contracts failed on the absent API before implementation.
+- All 67 affected Zarr, final-product, and materialisation integration tests
+  pass. Ruff and Pyright pass for every changed module and test.
+- The memory contract is structural rather than a wall-time claim: each
+  yielded block reports `nbytes` within the admitted budget, no iterator path
+  constructs an image-height output array, and a too-small budget fails
+  closed.
+
+**Next**
+
+- Run reproducible local FITS-to-Zarr-to-FITS measurements across Phase 1
+  anchors, record peak RSS and storage bytes, and use the evidence to decide
+  whether codec or initialization tuning is justified.
+
+## 2026-08-01 — Added reproducible Phase 1 I/O measurements
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added a platform-portable benchmark runner for the implemented warm local
+  FITS-to-Zarr-to-final-FITS path, with deterministic analytic inputs, one
+  warm-up, at least five measurements, and versioned machine-readable evidence.
+- Recorded ingestion and materialisation timings separately, alongside peak
+  process RSS, Zarr object and byte counts, chunk geometry, codec policy,
+  internal concurrency, dependency identity, and the exact Hebog commit.
+- Made unavailable allocation counters explicit and tied the measurable memory
+  claim to the structural bounded-row contract instead of fabricating zeroes.
+- Added focused tests for both one-tile and many-tile runs and for the portable
+  current-RSS sampler, which avoids the POSIX-only `resource` module.
+
+**Evidence**
+
+- All four benchmark-entry-point tests pass, including execution of the real
+  bounded FITS/Zarr path on a small deterministic image.
+- Ruff and Pyright pass for the runner and its tests.
+- Measured anchor results are intentionally deferred until this harness is in
+  Git so every evidence record identifies the commit that produced it.
+
+**Next**
+
+- Run the committed harness across one-tile and many-tile local anchors, record
+  the exploratory results, and use them to close or refine the Phase 1 local
+  I/O gates without claiming deployment-store or distributed qualification.
+
+## 2026-08-01 — Completed Phase 1 technical and release qualification
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Ran the committed warm local FITS-to-Zarr-to-FITS harness at 256, 512,
+  1,024, and 3,000 pixels per side with one warm-up and five measured
+  repetitions, 512-by-512 chunks, and Zarr concurrency 10.
+- Recorded median complete times of 0.226, 0.249, 0.440, and 2.519 seconds.
+  Peak sampled process RSS was 138.1, 164.2, 269.1, and 578.1 MiB. Raw
+  versioned evidence remains under the ignored `benchmark-results/` tree.
+- Compared concurrency 1 and 10 at the 256 and 3,000 endpoints. The observed
+  median differences were only about 2.4% and 1.3%, so no dynamic concurrency,
+  codec, sharding, or additional-backend complexity was introduced.
+- Closed the Phase 1 local I/O, one-tile, and Hebog-controlled-copy gates.
+  Moved deployment-store atomicity, concurrency, cold/warm throughput, and
+  failure recovery to the later distributed qualification work where the real
+  store and topology are available.
+- Added a Phase 1 release-readiness record that explicitly limits the next
+  experimental release: the source-finding pipeline remains unimplemented,
+  and the current equivalence lane compares PyBDSF release with PyBDSF master,
+  not Hebog with either.
+- Refined human scientific review to approve the equivalence definition,
+  dataset fitness, defaults, terminology, and intentional deviations rather
+  than manually verifying every output. Phase 2 TDD may start against the
+  frozen provisional profile; sign-off remains mandatory before scientific
+  stability, equivalence, or Rapthor-cutover claims.
+
+**Evidence**
+
+- All recorded I/O campaigns identify Hebog commit
+  `39bd5397d84fe0150472adfb28ce7e66b2937fd2`, the deterministic input
+  checksum, dependency and environment identities, storage policy, and every
+  repetition.
+- One-tile runs use one Zarr chunk per product and no final assembly copy.
+  Many-tile final assembly is structurally bounded to one full-width tile row
+  plus the current decoded chunk; complete third-party allocation counts
+  remain explicitly unavailable.
+- The measurements are exploratory local evidence, not a PyBDSF performance
+  comparison or deployment-store, cold-cache, Dask, or scaling qualification.
+- The release handoff passes 323 portable unit/contract/integration tests with
+  four strict expected failures and 92.84% branch-aware coverage. All five
+  small equivalence checks pass; all seven future acceptance scenarios remain
+  strict expected failures assigned to their implementation phases.
+- Ruff, Pyright, all pre-commit hooks, strict Marimo and MkDocs validation, and
+  the isolated source-distribution-to-wheel smoke test pass. The configured
+  Linux/macOS/Windows CI matrix and controlled qualification/scalability lanes
+  were not run on this local host.
+
+**Next**
+
+- Begin Phase 2 with failing analytic and property tests for deterministic
+  serial background and RMS estimation, then compare implemented Hebog RMS
+  products with both frozen PyBDSF references.
+- Obtain the named scientific sign-off as early as practical to reduce rework,
+  and in all cases before stabilizing scientific defaults or compatibility
+  semantics or claiming scientific equivalence.
+
+## 2026-08-01 — Removed the pre-production compatibility guarantee
+
+**Plan phase:** Cross-cutting development policy
+
+**Decision**
+
+- Hebog does not require backward compatibility between `0.x` releases while
+  it remains under active pre-production development.
+- Agents and contributors should prefer the cleanest current design and may
+  change or remove obsolete Hebog APIs, schemas, development stores, and
+  configuration directly. Compatibility shims, deprecation periods, legacy
+  readers, migrations, and old-contract tests are not required by default.
+- User-visible breaking changes remain explicit in current documentation,
+  Conventional Commits, and release notes, and stale artifacts must fail
+  clearly rather than be silently reinterpreted.
+- Migration support becomes a requirement only when explicitly requested for
+  a particular interface. This policy does not weaken the PyBDSF/Rapthor
+  compatibility goal, scientific reproducibility, or the current supported
+  platform matrix.
+
+**Next**
+
+- Apply this policy to Phase 2 and later design decisions without carrying
+  speculative compatibility code for unreleased Hebog contracts.
+
+## 2026-08-01 — Made catalogue FITS retries deterministic on Windows
+
+**Plan phase:** Phase 1 release fix
+
+**Completed**
+
+- Reproduced the failed idempotency contract as a red test against the
+  heap-backed `PD()` spectral-coefficient column.
+- Replaced variable-length FITS heap arrays with the smallest fixed-width
+  float64 vector required by each source or Gaussian-component table. Empty
+  and shorter coefficient tuples use canonical trailing NaN padding.
+- Found and removed a second source of byte variance: Astropy's default FITS
+  checksum comments included the current wall-clock time. Catalogue HDUs now
+  use a fixed checksum provenance comment while retaining valid `CHECKSUM` and
+  `DATASUM` cards.
+- Kept raw-byte conflict detection strict instead of accepting arbitrary
+  semantically equal files. Readers now reject heap-backed coefficient columns,
+  infinity, and non-trailing padding.
+
+**Evidence**
+
+- All 44 catalogue and image-product materialisation integration tests pass,
+  including repeated catalogue publication, mixed empty/two-coefficient
+  spectra, zero-row catalogues, invalid padding, and conflicting science.
+- Thirty independently materialised copies of the mixed-spectra catalogue
+  produced one SHA-256 digest after checksum-comment normalization; the
+  regression also verifies every FITS checksum and data checksum.
+
+**Next**
+
+- Confirm the regression on the Python 3.12–3.14 Windows CI matrix; no
+  Windows-specific application code or conditional behaviour is required.

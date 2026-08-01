@@ -35,6 +35,7 @@ example products, and scientific thresholds are reviewed.
 | Island | Connected above-island-threshold pixels associated with at least one accepted detection peak. It is a segmentation object, not automatically one source. |
 | Gaussian component | One fitted Gaussian belonging to a PyBDSF source. Use the full qualifier; bare `component` is ambiguous. |
 | Source candidate | One catalogue-level association inferred to represent astrophysical emission. In the PyBDSF source-list model, one or more fitted Gaussians may be grouped into a source and an island may contain one or more sources. A detection is not established astrophysical truth. |
+| Source reference position | Finite zero-based continuous `(y, x)` pixel position used only to assign one reconciled source to a tile core. Exact internal-boundary ties belong to the core beginning at that boundary. A source may overlap other cores and halos; its reference position alone selects catalogue ownership. |
 | Catalogue row | Serialized representation of one source in the compatibility source-list catalogue. A row is data interchange, not the in-memory domain object. |
 | Compact source | Detection sufficiently unresolved or small for the reviewed compact-source measurement and comparison rules. State the size criterion when using it in a test. |
 | Blended source | Two or more physically distinct sources whose above-threshold emission overlaps and requires deblending. |
@@ -51,6 +52,7 @@ example products, and scientific thresholds are reviewed.
 | Spectral model | Explicit rule, such as spectral-index coefficients and their convention, relating component flux to frequency. It belongs to a source or component record, not to an implicit filename convention. |
 | Patch | Group of sky-model components used as a calibration direction. The current compatibility path groups surviving sky-model components by island. |
 | Source catalogue | Materialised table of measured source rows. Hebog documentation uses “catalogue”; compatibility code may retain external names such as `source_catalog`. |
+| Scientific status | Whether a materialised product contains the scientific quantity named by its role. `unavailable` is explicit metadata, not permission to relabel input or placeholder pixels as an RMS estimate. |
 | Source-filtering mask | Image-aligned island mask used to retain and group sky-model components. Do not call it a clean mask; a clean mask controls deconvolution. |
 | Materialised product | Closed, restartable file plus plain metadata. It must not contain an open FITS handle, mutable full-image object, or scheduler client. |
 | Compatibility adapter | Boundary that maps Hebog's internal schema and terms to the filenames, fields, units, and empty behaviour required by Rapthor/LSMTool. ADR 006 fixes this as a versioned, dependency-free boundary. |
@@ -70,7 +72,8 @@ example products, and scientific thresholds are reviewed.
 | Admitted worker memory | RAM budget Rapthor makes available to one Hebog worker after reserving node headroom and concurrent pipeline demand. It may be substantially less than the hundreds of GB physically installed on a production node. |
 | Serial reference | Deterministic Hebog execution used as the first oracle for local and Dask conformance. It is not the same as the PyBDSF compatibility oracle. |
 | Partition manifest | Small, deterministic record describing a logical image's shape, tile cores, stage-specific halos, global coordinates, ownership, and chunk locations. It contains no image plane or scheduler object. |
-| Tile core | Non-overlapping image region owned by one tile for output and source-assignment purposes. A small image is represented as one tile core. |
+| Product generation | One run-scoped set of intermediate Zarr product chunks. It is consumable only after an immutable completion manifest identifies exactly one validated chunk for every expected product and tile. A Zarr hierarchy without that marker is incomplete, even when its array metadata exists. |
+| Tile core | Non-overlapping image region owned by one tile for output and source-assignment purposes. A small image is represented as one tile core. Source ownership uses the source reference position and the core's half-open boundaries, never halo overlap or worker completion order. |
 | Halo | Read-only pixels surrounding a tile core that provide neighbourhood context for windows, convolution, connectivity, or fitting. Qualify the stage and pixel width; halo pixels are not duplicate output ownership. |
 | Boundary summary | Bounded metadata emitted by a tile for cross-tile reconciliation, such as mergeable statistics, connected-label equivalences, or edge-source state. It is proportional to a boundary or catalogue shard, not the full image. |
 | Reconciliation | Deterministic merge of tile summaries into global statistics, stable labels, sources, catalogues, or products, normally through hierarchical reductions. |

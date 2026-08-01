@@ -8,6 +8,7 @@ from typing import Protocol, cast
 import pytest
 
 from hebog import SourceFinderConfig, SourceFinderRequest
+from hebog.data_models import MaterializedProduct
 from hebog.executors import SerialExecutor
 from hebog.pipeline import find_sources
 
@@ -20,10 +21,18 @@ _NOT_IMPLEMENTED = pytest.mark.xfail(
 class _ExpectedResult(Protocol):
     """Pipeline-neutral products from one scientific image analysis."""
 
+    run_id: str
+    catalogue: MaterializedProduct
+    rms: MaterializedProduct
+    mask: MaterializedProduct
+    diagnostics: MaterializedProduct
     catalogue_path: Path
     rms_path: Path
     mask_path: Path
     diagnostics_path: Path
+    source_count: int
+    gaussian_component_count: int
+    island_count: int
     schema_version: int
 
 
@@ -63,7 +72,27 @@ def test_valid_request_materialises_versioned_products(tmp_path: Path) -> None:
     assert expected.rms_path.is_file()
     assert expected.mask_path.is_file()
     assert expected.diagnostics_path.is_file()
-    assert expected.schema_version >= 1
+    assert expected.run_id == "contract"
+    assert expected.schema_version == 2
+    assert (
+        expected.catalogue.product_role,
+        expected.rms.product_role,
+        expected.mask.product_role,
+        expected.diagnostics.product_role,
+    ) == (
+        "source-catalogue",
+        "rms",
+        "source-filtering-mask",
+        "diagnostics",
+    )
+    assert (
+        min(
+            expected.source_count,
+            expected.gaussian_component_count,
+            expected.island_count,
+        )
+        >= 0
+    )
 
 
 @pytest.mark.contract
@@ -88,13 +117,13 @@ def test_threshold_increase_cannot_create_source(tmp_path: Path) -> None:
 @_NOT_IMPLEMENTED
 def test_partition_choices_preserve_results() -> None:
     """Executor planning choices preserve deterministic scientific results."""
-    pytest.fail(
-        "partition manifests and multi-tile execution begin in Phase 1"
-    )
+    pytest.fail("end-to-end executor invariance begins in Phase 6")
 
 
 @pytest.mark.contract
 @_NOT_IMPLEMENTED
 def test_large_request_respects_worker_memory_budget() -> None:
     """Large work remains bounded by admitted tile and batch memory."""
-    pytest.fail("bounded partition execution begins in Phase 1")
+    pytest.fail(
+        "end-to-end distributed memory qualification begins in Phase 6"
+    )

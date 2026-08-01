@@ -3,6 +3,7 @@
 Related project references:
 
 - [Source-finding domain glossary](domain-glossary.md)
+- [Internal catalogue and result schemas](internal-schemas.md)
 - [Rapthor source-finding contract](rapthor-source-finding-contract.md)
 - [Scientific pre-review findings](scientific-pre-review.md)
 - [Phase 0 starting revisions](starting-revisions.md)
@@ -12,6 +13,7 @@ Related project references:
 - [Evidence documents](evidence-documents.md)
 - [Performance and scalability contracts](performance-scalability-contracts.md)
 - [Phase 0 review record](phase-0-review-record.md)
+- [Phase 1 release readiness](phase-1-release-readiness.md)
 
 ## Top-level package
 

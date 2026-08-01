@@ -11,7 +11,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-07-18 |
-| **Last Updated** | 2026-07-18 |
+| **Last Updated** | 2026-08-01 |
 | **Deciders** | Gemma Danks |
 | **Tags** | compatibility, schemas, Rapthor, PyBDSF, interoperability |
 
@@ -34,9 +34,11 @@ islands, measurements, masks, image planes, partitioned products, and
 materialised results. Large images also require chunk and catalogue-shard
 records that do not exist in the current PyBDSF product model.
 
-The exact Phase 1 schema fields, null representation, ordering, and migration
-tests have not yet been frozen. This decision selects the boundary and
-evolution strategy without pre-empting those evidence-driven details.
+Phase 1 has now defined the initial internal catalogue and materialised-result
+fields, null representation, ordering, relationship validation, on-disk FITS
+and JSON representations, and migration tests. They remain provisional until
+the Phase 0 human scientific sign-off; the boundary and evolution strategy in
+this ADR remain unchanged.
 
 ## Problem Statement
 
@@ -69,13 +71,39 @@ checksums, windows, or small summaries.
 
 Every materialised or externally exchanged schema has an explicit integer
 schema version. Readers validate supported versions and reject unknown or
-ambiguous fields rather than guessing. Additive changes remain compatible only
-when older readers can safely ignore them under a documented rule. A semantic
-or structural breaking change creates a new schema version, migration note,
-and contract tests. Before 1.0 these changes are permitted but never silent.
+ambiguous fields rather than guessing. During pre-production, a semantic or
+structural breaking change updates the current contract and schema version;
+stale development artifacts fail clearly and may be recreated. Hebog does not
+maintain legacy readers, migration code, or compatibility tests before 1.0
+unless the user explicitly requests them for a particular interface. Breaking
+changes remain visible in current documentation and release notes.
 The choice of dataclass, Pydantic model, FITS table representation, or another
 implementation mechanism is made per concrete Phase 1 contract; this ADR does
 not require one schema library everywhere.
+
+Catalogue schema version 1 uses strict immutable Pydantic records and
+canonical JSON. It distinguishes islands, source candidates, and fitted
+Gaussian components; uses ICRS degrees, Jy, Jy/beam, hertz, explicit position
+epoch, and an explicit spectral convention; represents unavailable values as
+`None`; and requires stable unique canonical identities. The first version is
+MFS-only and rejects mixed reference frequencies.
+
+`SourceFinderResult` schema version 2 replaces its earlier path-only scaffold.
+Each concrete materialised product now records a role, media type, content
+schema, byte count, SHA-256, and scientific status. Existing path properties
+remain available to consumers. Only RMS may be scientifically unavailable in
+a successful core result, preventing copied input pixels from being described
+as an estimate. No implemented Hebog source-finding pipeline emitted result
+schema version 1.
+
+Internal final products use Astropy-backed FITS for the catalogue, RMS, and
+mask, and canonical JSON for diagnostics. Image materialisation consumes
+bounded row blocks and preserves an explicitly selected float dtype for RMS;
+the mask is binary uint8. A complete validated file is published from a
+same-directory temporary path, and the returned `MaterializedProduct` binds
+it to a byte count and SHA-256. These encodings do not adopt PyBDSF column
+names or legacy placeholder rows; the compatibility adapter remains
+responsible for those translations.
 
 The Rapthor adapter depends inward on Hebog's public pipeline and schemas. It
 owns legacy catalogue names such as `Source_id`, `Isl_Total_flux`, and
@@ -96,8 +124,9 @@ runtime dependency.
   column and workflow terminology.
 - Good, because Rapthor compatibility can evolve and be tested without
   coupling every algorithm, executor, and alternate workflow to PyBDSF.
-- Good, because schema versions and migrations make pre-1.0 changes explicit
-  and give restartable materialised products a reliable interpretation.
+- Good, because explicit schema versions make stale pre-1.0 artifacts fail
+  clearly without obliging the project to maintain migrations or legacy
+  readers.
 - Good, because bounded chunk, shard, and partition records can support
   100,000-by-100,000 images without pretending they are single legacy files
   during intermediate stages.
@@ -105,6 +134,8 @@ runtime dependency.
   mapping and may require a final materialisation pass.
 - Bad, because Hebog must maintain its internal schema and the Rapthor adapter
   until the legacy boundary is retired.
+- Bad, because early adopters may need to update code or recreate development
+  artifacts after a breaking `0.x` change.
 - Risk: duplicating large image or catalogue data during translation could
   erase performance gains. Adapters must stream, map columns, and materialise
   from bounded chunks or shards rather than copy complete large products in
@@ -117,8 +148,13 @@ runtime dependency.
 
 - Architecture tests reject imports of Rapthor, Prefect, LSMTool, PyBDSF, and
   concrete schedulers from algorithms and domain records.
-- Phase 1 schema tests cover version validation, units, nulls, ordering,
-  empty products, unsupported versions, and deterministic serialization.
+- Phase 1 schema tests cover version validation, physical domains, nulls,
+  ordering, referential integrity, empty catalogues, product roles and status,
+  unsupported versions, and deterministic serialization.
+- Phase 1 materialisation tests cover populated and zero-row catalogues,
+  bounded RMS and mask writes and reads, explicit unavailable RMS, canonical
+  diagnostics, content identity, idempotent retries, conflicts, corrupt
+  structures, and unsupported content versions.
 - Rapthor adapter contract tests cover every consumed catalogue field and
   product, normal and empty paths, filtered-model membership/grouping, and
   diagnostics source counts.

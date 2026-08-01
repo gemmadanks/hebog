@@ -110,6 +110,92 @@ def test_shifted_partition_origin_preserves_ownership() -> None:
     assert manifest.tiles[1].core_bounds == ImageBounds(0, 3, 5, 13)
 
 
+@pytest.mark.parametrize(
+    ("position_yx", "tile_id"),
+    [
+        ((0.0, 0.0), "tile-00000-00000"),
+        ((7.999, 7.999), "tile-00000-00000"),
+        ((8.0, 8.0), "tile-00001-00001"),
+        ((16.0, 16.0), "tile-00002-00002"),
+        ((16.999, 18.999), "tile-00002-00002"),
+    ],
+)
+def test_source_reference_position_has_one_boundary_stable_owner(
+    position_yx: tuple[float, float],
+    tile_id: str,
+) -> None:
+    """Exact internal-boundary ties belong to the following core."""
+    manifest = plan_image_partitions(
+        image_shape_yx=(17, 19),
+        tile_core_shape_yx=(8, 8),
+        halo_yx=(1, 1),
+    )
+
+    assert manifest.owner_for_position_yx(position_yx).tile_id == tile_id
+
+
+def test_shifted_grid_source_ownership_uses_its_explicit_boundaries() -> None:
+    """A shifted grid applies the same half-open ownership convention."""
+    manifest = plan_image_partitions(
+        image_shape_yx=(19, 23),
+        tile_core_shape_yx=(8, 8),
+        halo_yx=(1, 1),
+        partition_origin_yx=(3, 5),
+    )
+
+    assert (
+        manifest.owner_for_position_yx((2.999, 4.999)).tile_id
+        == "tile-00000-00000"
+    )
+    assert (
+        manifest.owner_for_position_yx((3.0, 5.0)).tile_id
+        == "tile-00001-00001"
+    )
+
+
+def test_every_continuous_reference_position_lies_in_its_owned_core() -> None:
+    """Ownership remains total across representative subpixel positions."""
+    manifest = plan_image_partitions(
+        image_shape_yx=(17, 19),
+        tile_core_shape_yx=(8, 8),
+        halo_yx=(1, 1),
+        partition_origin_yx=(3, 5),
+    )
+
+    for y_pixel in range(17):
+        for x_pixel in range(19):
+            for offset in (0.0, 0.5, 0.999):
+                position_yx = (y_pixel + offset, x_pixel + offset)
+                core = manifest.owner_for_position_yx(position_yx).core_bounds
+                assert core.y_start <= position_yx[0] < core.y_stop
+                assert core.x_start <= position_yx[1] < core.x_stop
+
+
+@pytest.mark.parametrize(
+    "position_yx",
+    [
+        (-0.1, 0.0),
+        (0.0, -0.1),
+        (17.0, 0.0),
+        (0.0, 19.0),
+        (float("nan"), 0.0),
+        (0.0, float("inf")),
+    ],
+)
+def test_source_ownership_rejects_invalid_reference_positions(
+    position_yx: tuple[float, float],
+) -> None:
+    """Invalid source anchors cannot acquire an arbitrary tile owner."""
+    manifest = plan_image_partitions(
+        image_shape_yx=(17, 19),
+        tile_core_shape_yx=(8, 8),
+        halo_yx=(1, 1),
+    )
+
+    with pytest.raises(ValueError, match="source reference position"):
+        manifest.owner_for_position_yx(position_yx)
+
+
 @given(
     height=st.integers(min_value=1, max_value=40),
     width=st.integers(min_value=1, max_value=40),

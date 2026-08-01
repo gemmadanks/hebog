@@ -123,6 +123,12 @@ identifiers without gathering a full plane on the scheduler or one worker.
 The one-tile path uses the same ownership and reconciliation rules as the
 multi-node path.
 
+Each reconciled source has one finite zero-based continuous reference position
+in `(y, x)` pixel order. The partition manifest assigns it to the half-open
+core containing that position; a position exactly on an internal boundary is
+owned by the core that begins there. Emission and fitting windows may cross
+cores and halos, but they do not change catalogue ownership.
+
 The physical chunk store and final large-product materialisation format remain
 Phase 0 and Phase 1 evidence-driven decisions. FITS compatibility at the
 Rapthor boundary does not require every internal stage to rewrite a complete

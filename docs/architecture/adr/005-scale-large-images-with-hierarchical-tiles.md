@@ -95,10 +95,10 @@ headroom for concurrent pipeline work and configurable spill thresholds rather
 than treating all node RAM as exclusively available to Hebog.
 
 The executor's planner selects the lowest-overhead valid realization of these
-semantics. A small image normally remains one direct-I/O tile and may bypass
-chunk-store conversion and distributed fan-out. Partitioning, batching, and
-distribution are introduced only where size-stratified end-to-end benchmarks
-show that their benefit exceeds their setup and data-movement costs.
+semantics. A small image remains one Zarr-backed tile and bypasses distributed
+fan-out. Additional partitioning, batching, and distribution are introduced
+only where size-stratified end-to-end benchmarks show that their benefit
+exceeds their setup and data-movement costs.
 
 ## Consequences
 

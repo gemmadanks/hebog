@@ -106,6 +106,105 @@ change batching, but must not change these cores, their ownership, or the
 scientific result. `partition_origin_yx` may shift internal grid boundaries
 for invariance tests while still assigning every pixel to exactly one core.
 
+## Publish retryable product chunks
+
+Publish intermediate image planes as independent tile-owned chunks in one
+Zarr v3 group. Create each product array on the caller before workers start so
+workers never race metadata creation:
+
+```python
+from pathlib import Path
+
+import numpy as np
+
+from hebog.io import ZarrProductSink
+
+sink = ZarrProductSink(
+    Path("work/run.zarr"),
+    manifest,
+    generation_id="run-001",
+)
+sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+
+chunks = []
+for tile in manifest.tiles:
+    tile_window = source.read_window(tile.read_bounds)
+    chunk = sink.write_chunk(
+        product_name="rms",
+        tile=tile,
+        values=tile_window.values[tile.core_slices_yx],
+    )
+    chunks.append(chunk)
+
+restored = sink.read_chunk(chunks[0])
+assert restored.shape == chunks[0].shape_yx
+
+completed = sink.publish_generation(
+    product_names=("rms",),
+    chunks=chunks,
+)
+assert sink.read_generation() == completed
+```
+
+`ProductChunk` is a small serializable identity containing the generation ID,
+global core bounds, dtype, shape, and logical content SHA-256; it does not
+contain an open Zarr object or pixel payload. Identical retries reuse a
+completed chunk, while a different value for the same product and tile fails
+closed.
+
+`publish_generation` first requires exactly one record for every requested
+product and canonical tile. It rejects missing, duplicate, conflicting,
+mixed-generation, wrong-owner, and inconsistent-dtype records, then reads and
+checksums every referenced Zarr chunk. Only after those checks pass does it
+conditionally create the canonical completion marker. Identical publication
+retries are idempotent; a different marker cannot replace the winner. An
+interrupted run has no marker and resumes by writing only its missing chunks.
+Consumers call `read_generation`, which validates the marker and its chunks
+again before returning them.
+
+Stream a completed product into final FITS without materialising the complete
+plane. Admit enough memory for one full-width canonical tile row:
+
+```python
+from hebog.io import write_rms_fits_product
+
+row_budget = (
+    manifest.tile_core_shape_yx[0]
+    * manifest.image_shape_yx[1]
+    * 8  # float64 bytes per value
+)
+final_rms = write_rms_fits_product(
+    Path("products/rms.fits"),
+    metadata,
+    sink.iter_completed_row_blocks(
+        "rms",
+        max_block_bytes=row_budget,
+    ),
+    dtype=np.dtype("<f8"),
+    scientific_status="valid",
+)
+```
+
+The iterator validates each referenced chunk exactly once and yields tile rows
+in FITS row order. A multi-tile row uses one C-contiguous assembly block plus
+one current decoded chunk. A one-tile image yields its already owned validated
+chunk directly and avoids an assembly copy. A budget below one canonical tile
+row fails before product bytes are emitted.
+
+Generation-bound chunks use internal storage schema version 2. Recreate any
+unpublished Phase 1 development store written with schema version 1; no
+released Hebog workflow product used that schema.
+
+The current adapter requires a zero-origin partition whose complete cores
+align with regular storage chunks. It explicitly writes fill-valued chunks,
+uses Zarr 3.2's strict missing-chunk reads, validates CRC32C and logical
+SHA-256, and rejects sequential conflicting retries. Consumers must still wait
+for the deployment-store atomicity and performance gates in
+[ADR-007](../architecture/adr/007-use-zarr-for-intermediate-image-storage.md).
+Zarr is the only intermediate image-plane backend. Small inputs use one Zarr
+chunk and serial execution; FITS remains an input and final compatibility
+format rather than an alternative intermediate store.
+
 ## Keep changes maintainable and reusable
 
 Start a vertical slice at the public behaviour, then keep scientific kernels
