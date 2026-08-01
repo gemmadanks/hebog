@@ -86,9 +86,15 @@ class SoftwareIdentity(_EvidenceModel):
     @model_validator(mode="after")
     def validate_revision(self) -> Self:
         """Require at least one independently useful revision identifier."""
-        if self.version is None and self.commit_sha is None:
+        if (
+            self.version is None
+            and self.commit_sha is None
+            and self.source_tree_sha256 is None
+            and self.container_image_digest is None
+        ):
             raise ValueError(
-                "software identity requires version or commit_sha"
+                "software identity requires version, commit_sha, "
+                "source_tree_sha256, or container_image_digest"
             )
         return self
 

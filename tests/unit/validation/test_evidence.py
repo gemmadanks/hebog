@@ -148,12 +148,22 @@ def test_software_identity_can_record_an_uncommitted_source_tree() -> None:
     """Exploratory code is identified even before its commit exists."""
     identity = SoftwareIdentity(
         name="hebog",
-        version="0.2.0",
         source_tree_sha256="4" * 64,
         dependency_inventory_sha256="5" * 64,
     )
 
     assert identity.source_tree_sha256 == "4" * 64
+
+
+def test_software_identity_can_use_container_digest_without_commit() -> None:
+    """Container images can identify software revisions without a commit."""
+    identity = SoftwareIdentity(
+        name="hebog",
+        container_image_digest=f"sha256:{'6' * 64}",
+        dependency_inventory_sha256="5" * 64,
+    )
+
+    assert identity.container_image_digest == f"sha256:{'6' * 64}"
 
 
 def test_reviewed_benchmark_requires_warmup_and_five_measurements() -> None:
