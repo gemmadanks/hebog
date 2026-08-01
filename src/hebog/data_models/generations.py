@@ -136,5 +136,10 @@ class ProductGenerationManifest(BaseModel):
 
     @classmethod
     def from_json_bytes(cls, payload: bytes) -> Self:
-        """Validate one serialized completion record."""
-        return cls.model_validate_json(payload)
+        """Validate one canonical serialized completion record."""
+        generation = cls.model_validate_json(payload)
+        if generation.canonical_json_bytes() != payload:
+            raise ValueError(
+                "product generation manifest JSON must be canonical"
+            )
+        return generation
