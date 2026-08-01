@@ -2,6 +2,68 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0](https://github.com/gemmadanks/hebog/compare/v0.2.0...v0.3.0) (2026-08-01)
+
+
+### 🚀 Features
+
+* add bounded FITS image reads ([539f623](https://github.com/gemmadanks/hebog/commit/539f62368074f17d2fc1a3c2723213ef6bf22e1d))
+* add deterministic image partitions ([539f623](https://github.com/gemmadanks/hebog/commit/539f62368074f17d2fc1a3c2723213ef6bf22e1d))
+* add infrastructure for i/o ([#32](https://github.com/gemmadanks/hebog/issues/32)) ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* add Phase 1 FITS and partitioning foundations ([#31](https://github.com/gemmadanks/hebog/issues/31)) ([539f623](https://github.com/gemmadanks/hebog/commit/539f62368074f17d2fc1a3c2723213ef6bf22e1d))
+* add retryable product chunks ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* complete phase 0 technical closure and scientific pre-review ([#29](https://github.com/gemmadanks/hebog/issues/29)) ([d76152f](https://github.com/gemmadanks/hebog/commit/d76152fcb9519a0b90bd0a8adc172b19d60d115a))
+* define deterministic source ownership ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* define source catalogue and result schemas ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* isolate the Rapthor source-finding contract ([d76152f](https://github.com/gemmadanks/hebog/commit/d76152fcb9519a0b90bd0a8adc172b19d60d115a))
+* materialize versioned source-finding products ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* publish validated Zarr generations ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* require Python 3.12 for Zarr 3.2 ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* stream completed Zarr products ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* use Zarr as the sole storage backend ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* validate FITS beam and sky coordinates ([539f623](https://github.com/gemmadanks/hebog/commit/539f62368074f17d2fc1a3c2723213ef6bf22e1d))
+
+
+### 🐛 Bug Fixes
+
+* correct the PyBDSF reference baselines ([d76152f](https://github.com/gemmadanks/hebog/commit/d76152fcb9519a0b90bd0a8adc172b19d60d115a))
+* restore cross-platform validation ([539f623](https://github.com/gemmadanks/hebog/commit/539f62368074f17d2fc1a3c2723213ef6bf22e1d))
+
+
+### ⚡ Performance
+
+* add Phase 1 I/O measurements ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+
+
+### 📚 Documentation
+
+* add intermediate storage decision gate ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+* add the Phase 0 scientific pre-review ([d76152f](https://github.com/gemmadanks/hebog/commit/d76152fcb9519a0b90bd0a8adc172b19d60d115a))
+* enforce TDD and patch coverage ([806f886](https://github.com/gemmadanks/hebog/commit/806f8865cdde0cdb842b8a13f5da5fcffa70eac7))
+* order phase 0 closure work ([d76152f](https://github.com/gemmadanks/hebog/commit/d76152fcb9519a0b90bd0a8adc172b19d60d115a))
+* prefer established libraries over custom code ([cac66ae](https://github.com/gemmadanks/hebog/commit/cac66aecc3547e281b03e733d27d3e74abd79979))
+
+
+### 🧩 CI
+
+* bump actions/setup-python from 6 to 7 in the actions group ([#11](https://github.com/gemmadanks/hebog/issues/11)) ([71e317e](https://github.com/gemmadanks/hebog/commit/71e317e09a5ac1180904e70588aa5827ef9fb480))
+
+
+### 📦 Build
+
+* **deps:** bump astropy from 7.2.2 to 8.0.1 ([#13](https://github.com/gemmadanks/hebog/issues/13)) ([4d3e98b](https://github.com/gemmadanks/hebog/commit/4d3e98b72ce374635b7247a0cba7309c59e3a951))
+* **deps:** bump marimo from 0.23.14 to 0.23.15 ([#21](https://github.com/gemmadanks/hebog/issues/21)) ([e2573ff](https://github.com/gemmadanks/hebog/commit/e2573ff5edddb5d82fe3ec509429a67d0bfe06a7))
+* **deps:** bump pre-commit from 4.6.0 to 4.6.1 ([#18](https://github.com/gemmadanks/hebog/issues/18)) ([df79668](https://github.com/gemmadanks/hebog/commit/df7966865adf978875b2d1d224b65b18de840073))
+* **deps:** update dask[array,distributed] requirement ([#14](https://github.com/gemmadanks/hebog/issues/14)) ([30ad907](https://github.com/gemmadanks/hebog/commit/30ad90758b611b2e14e73dccadebe2a230781fc8))
+* **deps:** update uv-build requirement ([#12](https://github.com/gemmadanks/hebog/issues/12)) ([4b58eb6](https://github.com/gemmadanks/hebog/commit/4b58eb6237d91ab68ccebfb9ebf263ea374addd4))
+* **deps:** update uv-build requirement ([#28](https://github.com/gemmadanks/hebog/issues/28)) ([38dfe2d](https://github.com/gemmadanks/hebog/commit/38dfe2daf83ec4786d6a32879573b0ce9f78c937))
+
+
+### 🧪 Tests
+
+* cover source-finding validation errors ([806f886](https://github.com/gemmadanks/hebog/commit/806f8865cdde0cdb842b8a13f5da5fcffa70eac7))
+* cover source-finding validation errors ([#30](https://github.com/gemmadanks/hebog/issues/30)) ([806f886](https://github.com/gemmadanks/hebog/commit/806f8865cdde0cdb842b8a13f5da5fcffa70eac7))
+
 ## [0.2.0](https://github.com/gemmadanks/hebog/compare/v0.1.0...v0.2.0) (2026-07-19)
 
 
