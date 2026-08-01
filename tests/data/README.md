@@ -27,6 +27,9 @@ external materialised storage.
 
 `pybdsf/pybdsf-compact-reference-256/` contains the seven standardized
 Rapthor-facing products from released PyBDSF 1.14.1 and pinned PyBDSF master.
+Its `input.fits` is the exact 256-by-256 generated input bound by the dataset
+checksum in the same baseline manifest; keeping this small regression input
+allows Hebog to recompute and compare RMS products in portable CI.
 `config/baselines/phase-0-pybdsf-reference-products.json` binds every file to
 its checksum, exact configuration, dependency inventory, container digest,
 and reviewed benchmark run. Regenerate them only with
