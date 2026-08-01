@@ -384,12 +384,15 @@ def main() -> None:
         "cpu_count": os.cpu_count(),
         "dependencies": dependency_inventory,
     }
-    source_commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
+    try:
+        source_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip() or None
+    except (OSError, subprocess.CalledProcessError):
+        source_commit = None
     with TemporaryDirectory(prefix="hebog-phase1-io-") as temporary:
         work_parent = Path(temporary)
         input_path = work_parent / "input.fits"
