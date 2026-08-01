@@ -43,9 +43,7 @@ def _validate_positive_shape(
 ) -> None:
     """Require exactly two positive non-boolean integer dimensions."""
     if len(values) != 2 or any(
-        isinstance(value, bool)
-        or not isinstance(value, Integral)
-        or value < 1
+        isinstance(value, bool) or not isinstance(value, Integral) or value < 1
         for value in values
     ):
         raise ValueError(f"{name} dimensions must be positive integers")
