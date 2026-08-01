@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0](https://github.com/gemmadanks/hebog/compare/v0.3.0...v0.4.0) (2026-08-01)
+
+
+### 🚀 Features
+
+* add background and RMS statistics ([#33](https://github.com/gemmadanks/hebog/issues/33)) ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+* add robust RMS window statistics ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+* estimate bounded background grids ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+* refine RMS near bright sources ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+
+
+### 🐛 Bug Fixes
+
+* accept WSClean image units ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+
+
+### 🧹 Refactoring
+
+* simplify background RMS requests ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+
+
+### 📚 Documentation
+
+* record Phase 2 release readiness ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+
+
+### 📦 Build
+
+* **deps:** bump hypothesis from 6.156.7 to 6.163.0 ([#27](https://github.com/gemmadanks/hebog/issues/27)) ([2b6c365](https://github.com/gemmadanks/hebog/commit/2b6c3654af3798eced8c086db19f7238342563a0))
+* **deps:** bump ruff from 0.15.22 to 0.16.0 ([#23](https://github.com/gemmadanks/hebog/issues/23)) ([79d568d](https://github.com/gemmadanks/hebog/commit/79d568dc0e310d2ca0aaa9cb10bf25495cec2f80))
+
+
+### 🧪 Tests
+
+* compare source-free RMS pixels ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+* cover WSClean unit aliases ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+* qualify background RMS estimation ([d39a749](https://github.com/gemmadanks/hebog/commit/d39a749b55d0d2357c3c08c08f68300bee44661b))
+
 ## [0.3.0](https://github.com/gemmadanks/hebog/compare/v0.2.0...v0.3.0) (2026-08-01)
 
 
