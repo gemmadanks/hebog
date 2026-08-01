@@ -1949,3 +1949,54 @@ applicable zeroes for these single-process reference runs.
   tiles to the Phase 1 Zarr persistence contract.
 - Obtain the named scientific review before stabilizing the compatibility
   defaults or claiming complete PyBDSF equivalence.
+
+## 2026-08-01 — Prepared the Phase 3 delivery sequence
+
+**Plan phase:** Phase 3, thresholding, connected islands, and compact
+deblending
+
+**Reviewed**
+
+- Traced the completed Phase 2 stage, current partition/executor contracts,
+  frozen dataset matrix, comparison oracle, Phase 2 release evidence, and the
+  Rapthor `gec-468-ai-migrate-to-prefect` source-finding boundary.
+- Confirmed that the current released/master PyBDSF reference uses
+  eight-neighbour SciPy labelling, includes pixels at the island threshold,
+  requires a peak strictly above the detection threshold, and normally derives
+  a minimum island size from one third of the beam area with a six-pixel floor.
+  These remain compatibility observations subject to Hebog's independent
+  scientific review, not implementation code to copy or automatic truth.
+- Identified that the existing comparison oracle reports a mask pixel
+  confusion matrix but cannot yet expose island matches, splits, or merges;
+  overall mask accuracy would also be dominated by background pixels.
+- Identified that detection-threshold and island-threshold monotonicity need
+  separate contracts: an island mask can only shrink as its threshold rises,
+  but that shrinkage may legitimately split one connected label.
+
+**Decisions**
+
+- Reordered Phase 3 into seven independently reviewable TDD slices: freeze
+  contracts and fixtures; bounded two-threshold detection; adaptive candidate
+  discovery and RMS persistence; one-tile connected islands; hierarchical
+  reconciliation; compact deblending; and scientific/performance
+  qualification.
+- Keep detection-stage seeds and deblended regions distinct from measured
+  islands, Gaussian components, and grouped sources. Phase 3 does not populate
+  measurement fields with placeholders or claim catalogue equivalence.
+- Use mature SciPy connected-component and reduction primitives first. Assess
+  scikit-image only if a deblending comparison demonstrates enough scientific
+  or maintenance value to justify another runtime dependency.
+- Require object-level mask comparison, canonical global island identity,
+  side and diagonal corner reconciliation, Zarr-owned mask/RMS chunks, and a
+  source-density benchmark that rejects all-pairs or quadratic paths.
+- Keep Phase 0 human review off the critical path for initial analytic TDD,
+  but require it before Phase 3 scientific promotion, compatibility-default
+  stabilization, or a `0.5.x` equivalence claim.
+
+**Next**
+
+- Start Phase 3 slice 1 by adding failing tests for the independent island
+  comparison report and freezing the exact threshold/connectivity/size
+  semantics and Phase 3 development, regression, and held-out cases.
+- Add the reviewed mask and island-object non-inferiority margins to Section 5
+  before using either PyBDSF reference to tune segmentation.

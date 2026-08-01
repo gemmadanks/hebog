@@ -217,6 +217,18 @@ report two-sided 95% confidence intervals, and require a reviewer-approved non-i
 before promotion. A true source at exactly the detection threshold is not expected to have
 near-certain recovery after noise fluctuations, local-RMS estimation, blending, and masking.
 
+Before tuning Phase 3 segmentation against either PyBDSF reference, freeze
+reviewed source-filtering-mask and island-object gates. Pixel accuracy alone
+is not suitable because true-negative background pixels dominate it. Report
+mask precision, recall, and intersection over union over the valid region,
+then match islands by overlap and report unmatched islands, split and merge
+counts, and matched-island overlap. Analytic threshold and connectivity cases
+must match exactly. Generated and reference-product non-inferiority margins
+must be recorded here after the Phase 0 scientific reviewer has considered
+the dataset fitness and the normal boundary differences caused by RMS and
+threshold crossings. Until then, those mask and object metrics are reported
+evidence rather than a passed scientific-equivalence gate.
+
 Serial and Dask executions of this project must match more tightly than the PyBDSF comparison.
 Unless a reduction order is explicitly nondeterministic, source membership and labels should be
 identical and floating values should agree within documented numerical tolerances.
@@ -334,7 +346,11 @@ recorded failure examples. Important properties include:
 
 - adding a constant shifts the background without changing RMS or SNR-based membership;
 - positive scaling changes background, RMS, and flux consistently while preserving labels;
-- increasing a threshold cannot create a new detection;
+- with the RMS map and island threshold fixed, increasing the detection
+  threshold can only remove detection seeds;
+- increasing the island threshold can only remove active pixels, although it
+  may split one connected island into several labels; it must not invent a
+  new detection seed;
 - invalid or masked pixels never contribute to statistics or flux;
 - translating an isolated source changes pixel and sky coordinates consistently;
 - changing tile shape, halo size above the required minimum, task batching, worker count, or task
@@ -399,7 +415,7 @@ src/hebog/
   pipeline.py               scheduler-independent stage composition
   algorithms/
     background.py           robust coarse and adaptive RMS estimation
-    detection.py            matched filters and threshold masks
+    detection.py            normalization, detection seeds, and threshold masks
     labelling.py            components, boundaries, and island properties
     partitioning.py         deterministic tile, halo, and ownership planning
     reconciliation.py       boundary labels and hierarchical reductions
@@ -964,32 +980,194 @@ summary and scope limitations are in the Phase 2 release-readiness record.
 Automatic bright-candidate discovery, final product persistence, and
 multi-node graph qualification remain their explicitly assigned later phases.
 
-### Phase 3: thresholding, islands, and deblending
+### Phase 3: thresholding, connected islands, and compact deblending
 
-- [ ] Write failing analytic and generated-truth tests for threshold monotonicity, connectivity,
-      stable labels, close blends, edges, and empty detections.
-- [ ] Derive deterministic high-significance bright-candidate positions from
-      the cached coarse background/RMS result, then request adaptive
-      refinement without recomputing coarse statistics. Prove candidate and
-      refined-map invariance at tile edges and corners.
-- [ ] Put sources and islands across every tile-edge and tile-corner topology; prove invariance to
-      tile shape, worker count, task order, retry, and partition origin.
-- [ ] Apply seed and island thresholds to normalized residuals.
-- [ ] Label connected pixels with explicit connectivity and edge conventions.
-- [ ] Calculate island bounding boxes and properties without copying the whole image per island.
-- [ ] Implement deterministic deblending using a documented multilevel or watershed algorithm.
-- [ ] Establish stable source and island ordering independent of executor completion order.
-- [ ] Reconcile connected-component equivalences and deblending state across tile halos using
-      bounded boundary summaries and deterministic hierarchical merging.
-- [ ] Expand the initial tests into injected-source completeness, reliability, blend, and edge
-      regression cases.
+**Readiness status:** ready to start after Phase 2 completed on 2026-08-01.
+The first slice freezes the Phase 3 scientific and comparison contracts before
+production thresholding code is tuned. Phase 0 human review is not a blocker
+for analytic red-green-refactor work, but connectivity, threshold-boundary,
+minimum-island-size, deblending, and mask/object non-inferiority decisions must
+be reviewed before the Phase 3 exit gate or a scientific `0.5.x` claim.
 
-Use the same labelling and reconciliation semantics for a one-tile image and a distributed image.
-Whole-image labelling may optimize the one-tile case, but it must not become a separate scientific
-implementation or a prerequisite for correctness.
+The compatibility evidence is explicit but not automatically normative.
+Released and pinned-master PyBDSF use SciPy connected-component labelling with
+eight-neighbour connectivity, include pixels at the island threshold, require
+a peak strictly above the detection threshold, and normally derive a minimum
+island size from the beam area with a six-pixel floor. Rapthor requests hard
+thresholds and adaptive RMS discovery. Test these observed semantics against
+analytic truth and both frozen references; do not reproduce them silently or
+copy their implementation.
 
-Exit gate: compact-source detection and island membership pass the relevant scientific gates and
-show no quadratic scaling with source count.
+Phase 3 stops at detection topology: accepted connected islands, a
+source-filtering mask, deterministic detection-seed membership, and any
+reviewed deblended regions needed to initialize Phase 4. It does not invent
+photometry to populate the measured `Island` schema, fit Gaussian components,
+group final sources, or materialise a compatibility catalogue. Those remain
+Phase 4.
+`hebog.pipeline.find_sources` therefore remains explicitly unimplemented until
+the later measurement and multiscale stages can satisfy its complete result
+contract.
+
+Execute the phase in the following TDD and closure order. Keep each numbered
+slice as a coherent local commit and allow a small experimental release after
+any useful slice whose stated tests, documentation, and earlier gates pass.
+
+1. **Freeze detection and segmentation contracts before implementation.**
+
+   - [ ] Add failing analytic tests for exact threshold boundaries, positive
+         emission only, invalid or zero-RMS pixels, masks, negative
+         backgrounds, diagonal eight-neighbour contact distinguished from
+         four-neighbour behaviour,
+         minimum-size boundaries, image edges, non-square images, and empty
+         or all-invalid detections.
+   - [ ] Extend the independent comparison oracle through tests first with
+         mask intersection over union and overlap-based island matching,
+         including split, merge, unmatched, empty, and invalid-region cases.
+         Do not use background-dominated pixel accuracy as the Phase 3 gate.
+   - [ ] Add immutable Phase 3 supplements to the existing frozen manifests
+         for SNR bins, close-pair
+         separation and flux ratio, saddle depth, sub-threshold bridges,
+         source density, and every tile-edge/corner topology. Freeze the
+         held-out qualification supplement and reviewed mask/object margins
+         before using reference results to tune an algorithm; do not rewrite
+         the Phase 0 entries or inspect held-out results during TDD.
+   - [ ] Record eight-neighbour connectivity and the two threshold comparison
+         rules as fixed, documented compact-detection semantics. Do not expose
+         alternate connectivity without a concrete workflow. Make the
+         minimum/maximum island-size policy explicit in typed scientific
+         configuration. The Rapthor adapter may derive its
+         compatibility values from beam metadata, but the scientific kernel
+         must not inherit a hidden workflow default.
+
+2. **Implement bounded normalization and two-threshold detection.**
+
+   - [ ] Add a pure serial tile kernel that computes
+         `(image - background) / rms` only for finite, valid, positive-RMS
+         pixels and emits separate island-membership and detection-seed masks.
+         Invalid pixels are never members or seeds; negative emission is not
+         detected by the initial total-intensity profile.
+   - [ ] Prove positive-affine invariance and the two distinct monotonicity
+         properties in Section 7.3. An island-threshold increase may split a
+         component even though the active-pixel mask only shrinks.
+   - [ ] Fuse normalization with thresholding for each bounded tile by
+         default. Do not persist a complete normalized plane or add another
+         storage backend unless reuse measurements demonstrate a complete-path
+         benefit.
+
+3. **Complete automatic adaptive-RMS candidate discovery and persistence.**
+
+   - [ ] Add an explicit high-significance adaptive-candidate policy and use
+         the same threshold/connectivity primitives to scan bounded tiles
+         against the cached coarse background/RMS interpolation. Select a
+         candidate's global peak deterministically, resolving equal peaks by
+         lexicographic `(y, x)` position.
+   - [ ] Reconcile candidates that cross tile sides or corners, request sparse
+         adaptive refinement from the existing coarse cache, and prove that
+         neither coarse statistics nor candidate regions are recomputed
+         because of partition shape, task order, or retry.
+   - [ ] Compare piggybacked candidate summaries with a separate bounded scan
+         and retain the simpler path unless complete-stage evidence justifies
+         extra coupling. Record any additional image read explicitly.
+   - [ ] Publish owned background/RMS tiles through the Phase 1 Zarr generation
+         contract and prove restart, duplicate retry, and missing-chunk
+         behaviour without assembling a full plane.
+
+4. **Establish the one-tile connected-island oracle with SciPy.**
+
+   - [ ] Use the established `scipy.ndimage` labelling and reduction
+         primitives first. Adopt the reviewed connectivity, accept a component
+         only when its combined pixels satisfy the size policy and contain a
+         detection seed, and keep threshold inclusion rules explicit.
+   - [ ] Reduce pixel count, global bounding box, peak SNR and position,
+         lexicographically smallest member pixel, and image-edge contact in
+         vectorised or compiled library operations. Do not copy the image once
+         per island or loop over island pixels in Python.
+   - [ ] Define detection-stage records separately from measured catalogue
+         records. Assign final island identifiers and ordering from canonical
+         reconciled global properties, never local SciPy labels or executor
+         completion order.
+
+5. **Reconcile islands before deblending.**
+
+   - [ ] Put compact sources and islands across every side, diagonal, and
+         four-tile corner topology. Exercise shifted partition origins, tile
+         shapes, worker counts, reversed completion, deterministic retry, and
+         labels whose local numeric values deliberately differ.
+   - [ ] Summarize boundary label contacts, including diagonal corner contact
+         for eight-neighbour connectivity, and merge equivalences and island
+         reductions hierarchically. Summary volume and graph size must scale
+         with tile boundaries and island shards, not pixels or scheduler-held
+         full label planes.
+   - [ ] Write accepted boolean source-filtering-mask cores as independently
+         owned Zarr chunks. A diagnostic label plane is optional and must not
+         become a prerequisite for reconciliation or catalogue ownership.
+   - [ ] Prove one-tile and many-tile membership, global summaries, stable
+         identifiers, and scientific mask values are identical before
+         comparing Hebog with PyBDSF.
+
+6. **Select and implement only the deblending needed by the compact contract.**
+
+   - [ ] Define the observable output as deterministic regions or seeds for
+         later measurement, not as fitted Gaussian components or final
+         sources. Specify equal-peak, saddle, boundary, noise, and failure
+         behaviour in analytic tests first.
+   - [ ] Compare documented multilevel and watershed approaches using mature
+         SciPy primitives. Evaluate scikit-image only if its established
+         implementation materially improves scientific behaviour or reduces
+         maintained custom code enough to justify its runtime, wheel, worker
+         image, and serialization cost. Do not add it speculatively.
+   - [ ] Accept the simplest algorithm that passes close-pair separation,
+         flux-ratio, saddle-depth, edge, and partition tests. Record an ADR
+         only if the selection creates a durable dependency or compatibility
+         consequence.
+   - [ ] Batch bounded reconciled compact-island regions by pixel cost. Large
+         or extended islands must remain explicit, deterministic input for the
+         Phase 5 partitioned/multiscale path; never drop them, silently treat
+         them as successfully deblended, or materialise an unbounded island on
+         one worker.
+
+7. **Qualify the phase and record release readiness.**
+
+   - [ ] Expand generated-truth tests into SNR-stratified seed/island
+         completeness and reliability, object overlap, split/merge, blend,
+         edge, and source-density reports with confidence intervals where
+         appropriate.
+   - [ ] Compare the Hebog source-filtering mask and connected regions derived
+         from each mask with both exact PyBDSF references on the
+         redistributable compact case and with the controlled representative
+         products. Report reference divergence rather than selecting one
+         reference as truth.
+   - [ ] Add serial/Dask conformance tests after the serial semantics pass.
+         Keep executor tasks coarse and prove retry and task-order invariance.
+   - [ ] Benchmark the complete Phase 3 detection, labelling,
+         reconciliation, and compact-deblending stage at 256, 512, 1,024, and
+         3,000 pixels per side across sparse, normal, and dense compact
+         workloads. Use one warm-up and at least five repetitions, retain
+         task, summary-volume, CPU, wall-time, and peak-memory evidence, and
+         compare affected tiers with the previous Hebog curve.
+   - [ ] Publish a Phase 3 release-readiness record stating implemented
+         capability, scientific evidence, performance, portability checks,
+         limitations, and the remaining Phase 4/5 work.
+
+Use the same thresholding, labelling, reduction, and reconciliation semantics
+for a one-tile image and a distributed image. Whole-image SciPy labelling may
+optimize the one-tile case, but it must not become a second scientific
+implementation or a prerequisite for correctness. There must be no all-pairs
+island matrix, task per island, or algorithm whose worker memory grows with
+the complete image. Benchmark a log-spaced source-density ladder and
+investigate any superlinear growth; an unexplained all-pairs or quadratic path
+fails the phase even when the representative image is fast.
+
+Exit gate: analytic topology cases are exact; generated and dual-reference
+mask, seed, island, blend, edge, partition, and executor reports meet the
+reviewed Phase 3 gates; the named scientific review has approved the relevant
+semantics and margins; and the controlled four-core 3,000-by-3,000 complete
+Phase 3 stage median is no more than the 2.5-second component budget without
+regressing earlier RMS evidence. Memory, task count, boundary-summary volume,
+and the density ladder show no image-sized gather or quadratic source-count
+path. Passing this gate establishes compact detection topology only, not
+catalogue equivalence, multiscale completeness, Rapthor readiness, or the
+complete project speedup.
 
 ### Phase 4: measurement, fitting, and catalogue compatibility
 
@@ -1194,6 +1372,12 @@ count.
 | Risk | Mitigation |
 | --- | --- |
 | Low-SNR threshold crossings differ | Report completeness/reliability curves and validate Rapthor filter decisions |
+| Background-dominated mask accuracy hides island errors | Gate mask precision, recall, and intersection over union over valid pixels, then report object-level matches, splits, and merges by source class |
+| Threshold monotonicity is specified incorrectly | Test detection-seed and island-mask monotonicity separately; allow a shrinking island mask to split connected labels without calling the split a new seed |
+| Local labels or completion order leak into public identity | Derive island identity from reconciled global properties and test deliberately permuted local labels, partitions, retries, and completion order |
+| Bright-candidate discovery adds another full image pass | Reuse cached coarse statistics, compare piggybacked bounded summaries with a separate bounded scan, and retain added coupling only from complete-stage evidence |
+| Deblended regions are mistaken for measured sources | Keep Phase 3 detection records distinct from Phase 4 islands, fitted Gaussian components, and grouped sources; test schema boundaries |
+| A watershed or island is too large for one worker | Batch bounded compact regions, preserve explicit undecomposed state for extended work, and require the Phase 5/6 partitioned path before claiming large-island support |
 | Extended or blended sources diverge | Maintain dedicated fixtures and stratified metrics; do not hide them in aggregate recovery |
 | PyBDSF is not deterministic | Freeze multiple reference runs and separate same-tool scatter from replacement differences |
 | PyBDSF `master` moves during development | Pin the exact commit for every benchmark record; refresh deliberately at qualification milestones without rewriting prior results |
@@ -1229,6 +1413,15 @@ count.
 ## 14. Open decisions after Phase 0
 
 - Which domain experts approve the glossary and naming conventions before the Phase 0 exit gate?
+- Which mask precision, recall, intersection-over-union, island-overlap,
+  split, and merge non-inferiority margins approve the Phase 3 compact
+  segmentation contract?
+- Should the Rapthor compatibility profile retain PyBDSF's strict
+  detection-peak comparison and beam-derived six-pixel minimum island size,
+  or adopt reviewed alternatives while reporting the operational difference?
+- Does SciPy supply sufficient compact deblending semantics, or does a measured
+  scientific and maintenance advantage justify adding scikit-image? Final
+  Gaussian/source grouping remains a separate Phase 4 decision.
 - Should nonlinear fitting use SciPy least-squares, a small dedicated compiled kernel, or both?
 - Is an undecimated wavelet transform required, or does a beam-aware matched-filter bank satisfy the
   extended-source gate more efficiently?
