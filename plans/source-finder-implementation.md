@@ -1107,20 +1107,20 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
 
 6. **Select and implement only the deblending needed by the compact contract.**
 
-   - [ ] Define the observable output as deterministic regions or seeds for
+   - [x] Define the observable output as deterministic regions or seeds for
          later measurement, not as fitted Gaussian components or final
          sources. Specify equal-peak, saddle, boundary, noise, and failure
          behaviour in analytic tests first.
-   - [ ] Compare documented multilevel and watershed approaches using mature
+   - [x] Compare documented multilevel and watershed approaches using mature
          SciPy primitives. Evaluate scikit-image only if its established
          implementation materially improves scientific behaviour or reduces
          maintained custom code enough to justify its runtime, wheel, worker
          image, and serialization cost. Do not add it speculatively.
-   - [ ] Accept the simplest algorithm that passes close-pair separation,
+   - [x] Accept the simplest algorithm that passes close-pair separation,
          flux-ratio, saddle-depth, edge, and partition tests. Record an ADR
          only if the selection creates a durable dependency or compatibility
          consequence.
-   - [ ] Batch bounded reconciled compact-island regions by pixel cost. Large
+   - [x] Batch bounded reconciled compact-island regions by pixel cost. Large
          or extended islands must remain explicit, deterministic input for the
          Phase 5 partitioned/multiscale path; never drop them, silently treat
          them as successfully deblended, or materialise an unbounded island on

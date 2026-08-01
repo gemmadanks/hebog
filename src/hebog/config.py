@@ -198,3 +198,61 @@ class SourceFinderConfig:
                 "maximum_island_pixels must be an integer no smaller than "
                 "minimum_island_pixels"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class CompactDeblendConfig:
+    """Peak, saddle, and admitted-memory policy for compact deblending."""
+
+    minimum_peak_signal_to_noise: float
+    minimum_peak_separation_pixels: int
+    minimum_saddle_depth_sigma: float
+    maximum_compact_island_pixels: int
+    maximum_compact_bounds_pixels: int
+    maximum_batch_pixels: int
+
+    def __post_init__(self) -> None:
+        """Require explicit finite science cuts and bounded region costs."""
+        if (
+            not isfinite(self.minimum_peak_signal_to_noise)
+            or self.minimum_peak_signal_to_noise <= 0
+        ):
+            raise ValueError(
+                "minimum_peak_signal_to_noise must be finite and positive"
+            )
+        if (
+            isinstance(self.minimum_peak_separation_pixels, bool)
+            or not isinstance(self.minimum_peak_separation_pixels, Integral)
+            or self.minimum_peak_separation_pixels < 1
+        ):
+            raise ValueError(
+                "minimum_peak_separation_pixels must be a positive integer"
+            )
+        if (
+            not isfinite(self.minimum_saddle_depth_sigma)
+            or self.minimum_saddle_depth_sigma < 0
+        ):
+            raise ValueError(
+                "minimum_saddle_depth_sigma must be finite and non-negative"
+            )
+        for value, name in (
+            (
+                self.maximum_compact_island_pixels,
+                "maximum_compact_island_pixels",
+            ),
+            (
+                self.maximum_compact_bounds_pixels,
+                "maximum_compact_bounds_pixels",
+            ),
+            (self.maximum_batch_pixels, "maximum_batch_pixels"),
+        ):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, Integral)
+                or value < 1
+            ):
+                raise ValueError(f"{name} must be a positive integer")
+        if self.maximum_batch_pixels < self.maximum_compact_bounds_pixels:
+            raise ValueError(
+                "maximum_batch_pixels must admit one compact bounds region"
+            )

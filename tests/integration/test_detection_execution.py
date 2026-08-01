@@ -9,10 +9,16 @@ import numpy.typing as npt
 import pytest
 from distributed import Client
 
+from hebog.algorithms.deblending import (
+    CompactDeblendResult,
+    CompactIslandPixels,
+    deblend_compact_island,
+)
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
+    CompactDeblendConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
@@ -84,6 +90,18 @@ def _source_finder_config() -> SourceFinderConfig:
     )
 
 
+def _deblend_config() -> CompactDeblendConfig:
+    """Return bounded compact deblending policy for stage conformance."""
+    return CompactDeblendConfig(
+        minimum_peak_signal_to_noise=5.0,
+        minimum_peak_separation_pixels=1,
+        minimum_saddle_depth_sigma=2.0,
+        maximum_compact_island_pixels=64,
+        maximum_compact_bounds_pixels=128,
+        maximum_batch_pixels=256,
+    )
+
+
 def _image() -> npt.NDArray[np.float64]:
     """Return compact emission spanning a four-tile corner and one blend."""
     y, x = np.indices((24, 28))
@@ -140,6 +158,44 @@ def _read_plane(
     return values
 
 
+def _deblend_results(
+    sink: ZarrProductSink,
+    result: DetectionStageResult,
+) -> tuple[CompactDeblendResult, ...]:
+    """Deblend small stage islands from exact generated products."""
+    background = np.asarray(
+        _read_plane(sink, result, "background"),
+        dtype=np.float64,
+    )
+    rms = np.asarray(
+        _read_plane(sink, result, "rms"),
+        dtype=np.float64,
+    )
+    mask = _read_plane(sink, result, "source-filtering-mask").astype(np.bool_)
+    normalized = np.asarray((_image() - background) / rms, dtype=np.float64)
+    outputs: list[CompactDeblendResult] = []
+    for island in result.islands:
+        bounds = island.bounds
+        selection = (
+            slice(bounds.y_start, bounds.y_stop),
+            slice(bounds.x_start, bounds.x_stop),
+        )
+        outputs.append(
+            deblend_compact_island(
+                CompactIslandPixels(
+                    island=island,
+                    normalized_residual=np.asarray(
+                        normalized[selection],
+                        dtype=np.float64,
+                    ),
+                    island_membership=np.asarray(mask[selection]),
+                ),
+                _deblend_config(),
+            )
+        )
+    return tuple(outputs)
+
+
 def test_one_and_many_tile_detection_publish_identical_topology(
     tmp_path: Path,
 ) -> None:
@@ -175,6 +231,13 @@ def test_one_and_many_tile_detection_publish_identical_topology(
         _read_plane(many_sink, many_result, "source-filtering-mask"),
         _read_plane(one_sink, one_result, "source-filtering-mask"),
     )
+    one_deblended = _deblend_results(one_sink, one_result)
+    many_deblended = _deblend_results(many_sink, many_result)
+    assert tuple(item.regions for item in many_deblended) == tuple(
+        item.regions for item in one_deblended
+    )
+    for many, one in zip(many_deblended, one_deblended, strict=True):
+        np.testing.assert_array_equal(many.region_labels, one.region_labels)
     assert many_result.boundary_label_count < 4 * _image().size
     assert many_result.reconciliation_round_count == 2
     assert many_result.separate_candidate_scan

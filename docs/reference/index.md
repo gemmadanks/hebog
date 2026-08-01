@@ -15,6 +15,7 @@ Related project references:
 - [Phase 0 review record](phase-0-review-record.md)
 - [Phase 1 release readiness](phase-1-release-readiness.md)
 - [Phase 2 release readiness](phase-2-release-readiness.md)
+- [Compact deblending](compact-deblending.md)
 
 ## Top-level package
 
@@ -81,6 +82,10 @@ Related project references:
       show_symbol_type_toc: true
 
 ::: hebog.algorithms.reconciliation
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.deblending
     options:
       show_symbol_type_toc: true
 

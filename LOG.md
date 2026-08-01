@@ -2141,3 +2141,42 @@ deblending
 - Freeze analytic compact-deblending behaviour and implement the simplest
   bounded SciPy approach that passes close-pair, saddle, edge, and partition
   tests.
+
+## 2026-08-01 — Added bounded compact deblending
+
+**Plan phase:** Phase 3, slice 6
+
+**Completed**
+
+- Defined Phase 3 deblending output as deterministic sub-island regions for
+  later measurement, not sources, Gaussian components, or catalogue rows.
+- Selected an eight-connected marker-distance watershed using SciPy maximum
+  filters, connected labelling, Euclidean distance, image-forest watershed,
+  and vectorized reductions. Sparse actual-intensity saddle comparisons merge
+  weak basins below an explicit prominence cut.
+- Collapsed equal-valued peak plateaus and resolved equal peak/ownership ties
+  by lexicographic global position. Region identities follow canonical first
+  member order rather than marker or task order.
+- Added deterministic cost-bounded multi-island batches. Member-heavy or
+  spatially extended bounds remain explicit deferred records for the Phase 5
+  partitioned/multiscale path.
+- Did not add scikit-image or native code because SciPy supplies the complete
+  bounded contract. A repeated multilevel implementation would add level and
+  cross-level identity policy without improving the tested compact cases.
+
+**Evidence**
+
+- Twenty-five focused tests pass for configuration boundaries, single peaks,
+  deep and shallow saddles, close and equal peaks, sub-threshold noise,
+  plateau and mask holes, global edge coordinates, batching, explicit
+  deferrals, invalid inputs, and one/many-tile stage invariance.
+- Ruff and Pyright pass. The deblending kernel contains no Python loop over
+  image pixels and no all-pairs source or region matrix.
+- Branch-aware coverage passes 452 tests with four planned strict expected
+  failures at 93.44% total coverage; deblending is at 96%.
+
+**Next**
+
+- Add generated-truth and dual-reference detection reports, benchmark the
+  complete Phase 3 path across the frozen size/density matrix, and publish the
+  release-readiness record.
