@@ -2000,3 +2000,31 @@ deblending
   semantics and Phase 3 development, regression, and held-out cases.
 - Add the reviewed mask and island-object non-inferiority margins to Section 5
   before using either PyBDSF reference to tune segmentation.
+
+## 2026-08-01 — Started Phase 3 segmentation comparison
+
+**Plan phase:** Phase 3, slice 1
+
+**Completed**
+
+- Added intersection over union to the independent boolean-mask comparison so
+  background-dominated accuracy cannot stand in for source-mask overlap.
+- Added an overlap-based integer-label comparison that is independent of
+  numeric label identity. It reports object completeness and reliability,
+  unmatched regions, reference splits, candidate merges, and per-match
+  intersection over union after applying an optional valid-pixel mask.
+- Kept assignment memory local to connected components of the sparse overlap
+  graph rather than allocating one global all-pairs object matrix.
+
+**Evidence**
+
+- Twenty-four focused analytic comparison tests pass, including relabelled
+  identical regions, splits, merges, invalid labels, valid-region exclusion,
+  and empty segmentations.
+- The branch-aware coverage lane passes 394 tests with four planned strict
+  expected failures at 93.15% total coverage.
+
+**Next**
+
+- Freeze the remaining threshold, connectivity, island-size, and dataset
+  contracts, then implement the pure bounded two-threshold serial kernel.

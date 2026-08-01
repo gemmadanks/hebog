@@ -51,10 +51,22 @@ return counts and `None` numerical metrics.
 
 `compare_masks` accepts boolean arrays only and never broadcasts different
 shapes. Its report contains true-positive, true-negative, false-positive, and
-false-negative pixel counts plus agreement, precision, and recall. Two empty
-or all-false masks have value `1.0` for all three fractions. A missing
+false-negative pixel counts plus agreement, precision, recall, and intersection
+over union. Two empty or all-false masks have value `1.0` for all four
+fractions. A missing
 candidate-positive class has precision `0.0` when the reference contains
 positive pixels, and `1.0` otherwise.
+
+`compare_island_labels` compares two-dimensional non-negative integer label
+planes independently of their numeric label identities. Label zero is
+background. It builds the sparse positive-overlap graph, separates independent
+graph components, and assigns objects by maximizing the number of overlapping
+pairs before their total intersecting pixels. The report retains per-match
+intersection over union, completeness, reliability, unmatched labels, and
+every reference split or candidate merge visible in the overlap graph. An
+optional valid mask excludes pixels before objects and overlaps are counted.
+This object report prevents high background agreement from concealing a
+topologically wrong source-filtering mask.
 
 The compact released/master products now exercise the same oracle through the
 equivalence lane. Their immutable manifest and persisted scientific record are

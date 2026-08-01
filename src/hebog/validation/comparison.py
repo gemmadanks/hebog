@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, Protocol, Self, cast
+from typing import Any, Literal, Protocol, Self, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -21,6 +21,7 @@ from scipy.optimize import (
 _MINIMUM_DECLINATION_DEGREES = -90.0
 _MAXIMUM_DECLINATION_DEGREES = 90.0
 _FULL_CIRCLE_DEGREES = 360.0
+_IMAGE_DIMENSIONS = 2
 
 
 class _LinearSumAssignment(Protocol):
@@ -175,6 +176,37 @@ class MaskComparisonReport:
     agreement_fraction: float
     precision: float
     recall: float
+    intersection_over_union: float
+
+
+@dataclass(frozen=True, slots=True)
+class IslandLabelMatch:
+    """One overlap-based assignment between two labelled regions."""
+
+    reference_label: int
+    candidate_label: int
+    intersection_pixel_count: int
+    union_pixel_count: int
+    intersection_over_union: float
+
+
+@dataclass(frozen=True, slots=True)
+class IslandComparisonReport:
+    """Object matches, splits, merges, and overlap for labelled masks."""
+
+    compared_pixel_count: int
+    excluded_pixel_count: int
+    reference_count: int
+    candidate_count: int
+    matches: tuple[IslandLabelMatch, ...]
+    unmatched_reference_labels: tuple[int, ...]
+    unmatched_candidate_labels: tuple[int, ...]
+    split_reference_labels: tuple[int, ...]
+    merged_candidate_labels: tuple[int, ...]
+    completeness: float
+    reliability: float
+    median_matched_intersection_over_union: float | None
+    minimum_matched_intersection_over_union: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -503,6 +535,253 @@ def compare_masks(
             true_positive,
             reference_positive,
             empty_value=1.0,
+        ),
+        intersection_over_union=_safe_classification_fraction(
+            true_positive,
+            true_positive + false_positive + false_negative,
+            empty_value=1.0,
+        ),
+    )
+
+
+def _as_island_labels(
+    values: npt.NDArray[np.generic],
+) -> npt.NDArray[np.integer[Any]]:
+    """Require one two-dimensional non-negative integer label plane."""
+    if values.ndim != _IMAGE_DIMENSIONS or np.issubdtype(
+        values.dtype,
+        np.bool_,
+    ):
+        raise TypeError("island labels must be two-dimensional integers")
+    if not np.issubdtype(values.dtype, np.integer):
+        raise TypeError("island labels must be two-dimensional integers")
+    labels = cast(npt.NDArray[np.integer[Any]], values)
+    if np.any(labels < 0):
+        raise ValueError("island labels must be non-negative")
+    return labels
+
+
+def _positive_label_counts(
+    labels: npt.NDArray[np.integer[Any]],
+    valid: npt.NDArray[np.bool_],
+) -> dict[int, int]:
+    """Count each positive object label inside the selected valid region."""
+    selected = labels[valid & (labels > 0)]
+    unique, counts = np.unique(selected, return_counts=True)
+    return {
+        int(label): int(count)
+        for label, count in zip(unique, counts, strict=True)
+    }
+
+
+def _label_intersections(
+    reference: npt.NDArray[np.integer[Any]],
+    candidate: npt.NDArray[np.integer[Any]],
+    valid: npt.NDArray[np.bool_],
+) -> dict[tuple[int, int], int]:
+    """Count only positive reference/candidate overlap pairs."""
+    selected = valid & (reference > 0) & (candidate > 0)
+    if not np.any(selected):
+        return {}
+    pairs = np.column_stack((reference[selected], candidate[selected]))
+    unique_pairs, counts = np.unique(pairs, axis=0, return_counts=True)
+    return {
+        (int(pair[0]), int(pair[1])): int(count)
+        for pair, count in zip(unique_pairs, counts, strict=True)
+    }
+
+
+def _overlap_components(
+    intersections: dict[tuple[int, int], int],
+) -> tuple[tuple[tuple[int, ...], tuple[int, ...]], ...]:
+    """Partition the sparse overlap graph into independent assignments."""
+    reference_edges: dict[int, set[int]] = {}
+    candidate_edges: dict[int, set[int]] = {}
+    for reference_label, candidate_label in intersections:
+        reference_edges.setdefault(reference_label, set()).add(candidate_label)
+        candidate_edges.setdefault(candidate_label, set()).add(reference_label)
+
+    components: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
+    remaining = set(reference_edges)
+    while remaining:
+        pending_reference = [min(remaining)]
+        component_reference: set[int] = set()
+        component_candidate: set[int] = set()
+        while pending_reference:
+            reference_label = pending_reference.pop()
+            if reference_label in component_reference:
+                continue
+            component_reference.add(reference_label)
+            remaining.discard(reference_label)
+            for candidate_label in reference_edges[reference_label]:
+                if candidate_label in component_candidate:
+                    continue
+                component_candidate.add(candidate_label)
+                pending_reference.extend(candidate_edges[candidate_label])
+        components.append(
+            (
+                tuple(sorted(component_reference)),
+                tuple(sorted(component_candidate)),
+            )
+        )
+    return tuple(components)
+
+
+def _match_label_overlaps(
+    intersections: dict[tuple[int, int], int],
+    *,
+    compared_pixel_count: int,
+) -> tuple[tuple[int, int, int], ...]:
+    """Maximize overlapping matches, then their total intersection."""
+    matches: list[tuple[int, int, int]] = []
+    cardinality_weight = compared_pixel_count + 1
+    for reference_labels, candidate_labels in _overlap_components(
+        intersections
+    ):
+        scores = np.zeros(
+            (len(reference_labels), len(candidate_labels)),
+            dtype=np.int64,
+        )
+        for reference_index, reference_label in enumerate(reference_labels):
+            for candidate_index, candidate_label in enumerate(
+                candidate_labels
+            ):
+                intersection = intersections.get(
+                    (reference_label, candidate_label),
+                    0,
+                )
+                if intersection:
+                    scores[reference_index, candidate_index] = (
+                        cardinality_weight + intersection
+                    )
+        reference_indices, candidate_indices = _linear_sum_assignment(
+            np.asarray(scores, dtype=np.float64),
+            maximize=True,
+        )
+        for reference_index, candidate_index in zip(
+            reference_indices,
+            candidate_indices,
+            strict=True,
+        ):
+            intersection = intersections.get(
+                (
+                    reference_labels[int(reference_index)],
+                    candidate_labels[int(candidate_index)],
+                ),
+                0,
+            )
+            if intersection:
+                matches.append(
+                    (
+                        reference_labels[int(reference_index)],
+                        candidate_labels[int(candidate_index)],
+                        intersection,
+                    )
+                )
+    return tuple(sorted(matches))
+
+
+def compare_island_labels(
+    reference: npt.ArrayLike,
+    candidate: npt.ArrayLike,
+    *,
+    valid_mask: npt.ArrayLike | None = None,
+) -> IslandComparisonReport:
+    """Compare non-negative integer island labels by pixel overlap."""
+    reference_array, candidate_array = _as_same_shape_arrays(
+        reference,
+        candidate,
+    )
+    reference_labels = _as_island_labels(reference_array)
+    candidate_labels = _as_island_labels(candidate_array)
+    valid = _valid_region(reference_array.shape, valid_mask)
+    compared_pixel_count = int(np.count_nonzero(valid))
+    reference_counts = _positive_label_counts(reference_labels, valid)
+    candidate_counts = _positive_label_counts(candidate_labels, valid)
+    intersections = _label_intersections(
+        reference_labels,
+        candidate_labels,
+        valid,
+    )
+    assigned = _match_label_overlaps(
+        intersections,
+        compared_pixel_count=compared_pixel_count,
+    )
+    matches = tuple(
+        IslandLabelMatch(
+            reference_label=reference_label,
+            candidate_label=candidate_label,
+            intersection_pixel_count=intersection,
+            union_pixel_count=(
+                reference_counts[reference_label]
+                + candidate_counts[candidate_label]
+                - intersection
+            ),
+            intersection_over_union=(
+                intersection
+                / (
+                    reference_counts[reference_label]
+                    + candidate_counts[candidate_label]
+                    - intersection
+                )
+            ),
+        )
+        for reference_label, candidate_label, intersection in assigned
+    )
+    matched_reference = {match.reference_label for match in matches}
+    matched_candidate = {match.candidate_label for match in matches}
+    reference_degrees: dict[int, int] = {}
+    candidate_degrees: dict[int, int] = {}
+    for reference_label, candidate_label in intersections:
+        reference_degrees[reference_label] = (
+            reference_degrees.get(reference_label, 0) + 1
+        )
+        candidate_degrees[candidate_label] = (
+            candidate_degrees.get(candidate_label, 0) + 1
+        )
+    overlap_values = np.asarray(
+        [match.intersection_over_union for match in matches],
+        dtype=np.float64,
+    )
+    return IslandComparisonReport(
+        compared_pixel_count=compared_pixel_count,
+        excluded_pixel_count=reference_labels.size - compared_pixel_count,
+        reference_count=len(reference_counts),
+        candidate_count=len(candidate_counts),
+        matches=matches,
+        unmatched_reference_labels=tuple(
+            sorted(set(reference_counts) - matched_reference)
+        ),
+        unmatched_candidate_labels=tuple(
+            sorted(set(candidate_counts) - matched_candidate)
+        ),
+        split_reference_labels=tuple(
+            sorted(
+                label
+                for label, degree in reference_degrees.items()
+                if degree > 1
+            )
+        ),
+        merged_candidate_labels=tuple(
+            sorted(
+                label
+                for label, degree in candidate_degrees.items()
+                if degree > 1
+            )
+        ),
+        completeness=_safe_classification_fraction(
+            len(matches),
+            len(reference_counts),
+            empty_value=1.0,
+        ),
+        reliability=_safe_classification_fraction(
+            len(matches),
+            len(candidate_counts),
+            empty_value=1.0 if not reference_counts else 0.0,
+        ),
+        median_matched_intersection_over_union=_array_median(overlap_values),
+        minimum_matched_intersection_over_union=(
+            float(np.min(overlap_values)) if overlap_values.size else None
         ),
     )
 

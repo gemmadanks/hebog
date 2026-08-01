@@ -1020,7 +1020,7 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
          four-neighbour behaviour,
          minimum-size boundaries, image edges, non-square images, and empty
          or all-invalid detections.
-   - [ ] Extend the independent comparison oracle through tests first with
+   - [x] Extend the independent comparison oracle through tests first with
          mask intersection over union and overlap-based island matching,
          including split, merge, unmatched, empty, and invalid-region cases.
          Do not use background-dominated pixel accuracy as the Phase 3 gate.

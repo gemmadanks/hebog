@@ -10,6 +10,7 @@ import pytest
 from hebog.validation.comparison import (
     CatalogueSource,
     compare_catalogues,
+    compare_island_labels,
     compare_masks,
     compare_rms_maps,
 )
@@ -259,6 +260,7 @@ def test_mask_report_has_confusion_counts_and_valid_region() -> None:
     assert report.agreement_fraction == pytest.approx(0.6)
     assert report.precision == pytest.approx(2 / 3)
     assert report.recall == pytest.approx(2 / 3)
+    assert report.intersection_over_union == pytest.approx(0.5)
 
 
 def test_empty_masks_agree_without_division_by_zero() -> None:
@@ -270,6 +272,110 @@ def test_empty_masks_agree_without_division_by_zero() -> None:
     assert report.agreement_fraction == 1.0
     assert report.precision == 1.0
     assert report.recall == 1.0
+    assert report.intersection_over_union == 1.0
+
+
+def test_island_matching_uses_overlap_not_numeric_label_identity() -> None:
+    """Canonical regions match even when local label numbers differ."""
+    reference = np.array(
+        [
+            [1, 1, 0, 2],
+            [1, 1, 0, 2],
+        ],
+        dtype=np.int32,
+    )
+    candidate = np.array(
+        [
+            [20, 20, 0, 10],
+            [20, 20, 0, 10],
+        ],
+        dtype=np.int64,
+    )
+
+    report = compare_island_labels(reference, candidate)
+
+    assert report.reference_count == 2
+    assert report.candidate_count == 2
+    assert report.completeness == 1.0
+    assert report.reliability == 1.0
+    assert report.unmatched_reference_labels == ()
+    assert report.unmatched_candidate_labels == ()
+    assert report.split_reference_labels == ()
+    assert report.merged_candidate_labels == ()
+    assert {
+        (
+            match.reference_label,
+            match.candidate_label,
+            match.intersection_pixel_count,
+            match.intersection_over_union,
+        )
+        for match in report.matches
+    } == {(1, 20, 4, 1.0), (2, 10, 2, 1.0)}
+    assert report.median_matched_intersection_over_union == 1.0
+    assert report.minimum_matched_intersection_over_union == 1.0
+
+
+def test_island_matching_reports_splits_and_unmatched_fragments() -> None:
+    """One reference region split into two candidates stays observable."""
+    reference = np.array([[1, 1, 1, 1]], dtype=np.int16)
+    candidate = np.array([[10, 10, 11, 11]], dtype=np.int16)
+
+    report = compare_island_labels(reference, candidate)
+
+    assert report.split_reference_labels == (1,)
+    assert report.merged_candidate_labels == ()
+    assert len(report.matches) == 1
+    assert report.matches[0].intersection_over_union == pytest.approx(0.5)
+    assert report.unmatched_reference_labels == ()
+    assert len(report.unmatched_candidate_labels) == 1
+    assert report.completeness == 1.0
+    assert report.reliability == pytest.approx(0.5)
+
+
+def test_island_matching_reports_merges_and_valid_region() -> None:
+    """A candidate joining reference regions reports a merge after masking."""
+    reference = np.array([[1, 1, 0, 2, 2, 3]], dtype=np.int16)
+    candidate = np.array([[8, 8, 0, 8, 8, 9]], dtype=np.int16)
+    valid = np.array([[True, True, True, True, True, False]])
+
+    report = compare_island_labels(reference, candidate, valid_mask=valid)
+
+    assert report.compared_pixel_count == 5
+    assert report.excluded_pixel_count == 1
+    assert report.reference_count == 2
+    assert report.candidate_count == 1
+    assert report.split_reference_labels == ()
+    assert report.merged_candidate_labels == (8,)
+    assert len(report.matches) == 1
+    assert len(report.unmatched_reference_labels) == 1
+    assert report.unmatched_candidate_labels == ()
+
+
+def test_empty_island_labels_have_explicit_success_semantics() -> None:
+    """Two empty segmentations agree without invented overlap metrics."""
+    empty = np.zeros((2, 3), dtype=np.int32)
+
+    report = compare_island_labels(empty, empty)
+
+    assert report.matches == ()
+    assert report.completeness == 1.0
+    assert report.reliability == 1.0
+    assert report.median_matched_intersection_over_union is None
+    assert report.minimum_matched_intersection_over_union is None
+
+
+@pytest.mark.parametrize(
+    "labels",
+    [
+        np.ones((2, 2), dtype=np.float64),
+        np.ones((2, 2), dtype=np.bool_),
+        np.array([[0, -1]], dtype=np.int64),
+    ],
+)
+def test_island_matching_rejects_invalid_labels(labels: np.ndarray) -> None:
+    """Island labels must be non-negative integer identifiers."""
+    with pytest.raises((TypeError, ValueError), match="island labels"):
+        compare_island_labels(labels, np.zeros(labels.shape, dtype=np.int64))
 
 
 def test_rms_report_has_explicit_exclusions() -> None:
