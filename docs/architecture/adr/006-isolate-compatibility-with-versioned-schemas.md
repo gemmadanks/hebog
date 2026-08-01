@@ -35,9 +35,10 @@ materialised results. Large images also require chunk and catalogue-shard
 records that do not exist in the current PyBDSF product model.
 
 Phase 1 has now defined the initial internal catalogue and materialised-result
-fields, null representation, ordering, relationship validation, and migration
-tests. They remain provisional until the Phase 0 human scientific sign-off;
-the boundary and evolution strategy in this ADR remain unchanged.
+fields, null representation, ordering, relationship validation, on-disk FITS
+and JSON representations, and migration tests. They remain provisional until
+the Phase 0 human scientific sign-off; the boundary and evolution strategy in
+this ADR remain unchanged.
 
 ## Problem Statement
 
@@ -93,6 +94,15 @@ a successful core result, preventing copied input pixels from being described
 as an estimate. No implemented Hebog source-finding pipeline emitted result
 schema version 1.
 
+Internal final products use Astropy-backed FITS for the catalogue, RMS, and
+mask, and canonical JSON for diagnostics. Image materialisation consumes
+bounded row blocks and preserves an explicitly selected float dtype for RMS;
+the mask is binary uint8. A complete validated file is published from a
+same-directory temporary path, and the returned `MaterializedProduct` binds
+it to a byte count and SHA-256. These encodings do not adopt PyBDSF column
+names or legacy placeholder rows; the compatibility adapter remains
+responsible for those translations.
+
 The Rapthor adapter depends inward on Hebog's public pipeline and schemas. It
 owns legacy catalogue names such as `Source_id`, `Isl_Total_flux`, and
 `DC_Maj`; required suffixes; PyBDSF/LSMTool unit and null conventions;
@@ -138,6 +148,10 @@ runtime dependency.
 - Phase 1 schema tests cover version validation, physical domains, nulls,
   ordering, referential integrity, empty catalogues, product roles and status,
   unsupported versions, and deterministic serialization.
+- Phase 1 materialisation tests cover populated and zero-row catalogues,
+  bounded RMS and mask writes and reads, explicit unavailable RMS, canonical
+  diagnostics, content identity, idempotent retries, conflicts, corrupt
+  structures, and unsupported content versions.
 - Rapthor adapter contract tests cover every consumed catalogue field and
   product, normal and empty paths, filtered-model membership/grouping, and
   diagnostics source counts.

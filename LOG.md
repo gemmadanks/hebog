@@ -1574,3 +1574,55 @@ applicable zeroes for these single-process reference runs.
   unsupported inputs, then implement their bounded compatibility I/O.
 - Map the reviewed Rapthor/PyBDSF catalogue view separately from the internal
   schema and keep dummy rows or placeholder RMS behaviour adapter-only.
+
+## 2026-08-01 — Materialised versioned final products
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added the strict `SourceFindingDiagnostics` schema version 1 with canonical
+  JSON and the same source, Gaussian-component, island, and RMS-status
+  consistency rules as the materialised result.
+- Added Astropy-backed internal catalogue FITS schema version 1 with separate
+  island, source, and Gaussian-component tables, explicit units, stable
+  identities, variable-length spectral coefficients, reversible nullable
+  values, and structurally complete zero-row tables.
+- Added incremental RMS and source-filtering-mask FITS writers. They consume
+  sequential full-width row blocks, preserve an explicit float32 or float64
+  RMS dtype and NaNs, encode exact boolean masks as uint8, and reject partial,
+  cast, negative, infinite, non-binary, or scientifically inconsistent data.
+- Added checksum-aware bounded product reads and `MaterializedProduct`
+  construction. Complete same-directory temporary files are validated before
+  publication; identical sequential retries are idempotent and different
+  existing bytes fail closed.
+- Removed a whole-plane validation read found during review. Streamed writers
+  retain their per-block scientific checks, publication validates structural
+  metadata, and a restart reader verifies SHA-256 once before validating only
+  requested windows.
+- Kept internal FITS names and empty-catalogue semantics independent of the
+  future Rapthor/PyBDSF compatibility mapping. Updated ADR-006, the internal
+  schema reference, and the completed Phase 1 I/O checklist items.
+
+**Evidence**
+
+- Followed the red-green-refactor cycle: the product contracts first failed
+  on the absent diagnostics and I/O APIs; review regressions then exposed
+  missing unit, record-identity, schema, and unavailable-RMS checks. The
+  resulting focused data-model and integration suite passes all 94 tests.
+- `just coverage` passes 303 tests with four expected failures and 92.75%
+  branch-aware project coverage. The changed source-finding model has 100%
+  coverage and the new materialisation module has 96% coverage.
+- `just check` passes Ruff formatting and linting, Pyright, doctests, and 213
+  fast tests with four expected failures. The strict documentation build and
+  isolated wheel/sdist smoke test pass. All five frozen equivalence tests pass.
+- No runtime, deployment-store concurrency, or Rapthor compatibility claim is
+  made by this correctness slice.
+
+**Next**
+
+- Benchmark Zarr stores, FITS ingestion, and final materialisation at affected
+  size and execution-crossover anchors; measure peak memory and avoidable
+  full-image copies before tuning.
+- Implement the reviewed Rapthor/PyBDSF catalogue and side-product mapping at
+  the compatibility boundary without changing the internal schema.

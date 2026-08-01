@@ -22,6 +22,7 @@ from hebog.data_models.source_finding import (
     MaterializedProduct,
     SourceFinderRequest,
     SourceFinderResult,
+    SourceFindingDiagnostics,
 )
 
 __all__ = [
@@ -42,6 +43,7 @@ __all__ = [
     "SourceCatalogue",
     "SourceFinderRequest",
     "SourceFinderResult",
+    "SourceFindingDiagnostics",
     "SpectralModel",
     "TilePartition",
 ]

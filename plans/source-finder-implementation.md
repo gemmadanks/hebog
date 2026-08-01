@@ -843,7 +843,7 @@ while Phase 0 scientific review is in progress, but its versioned schemas must
 not be declared stable until the sign-off and any required amendments in the
 Phase 0 closure order are recorded.
 
-- [ ] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
+- [x] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
       unsupported FITS inputs and products.
 - [x] Write failing tests for partition manifests, bounded window reads, halo clipping, global and
       tile coordinates, chunk checksums, interrupted writes, and restartable materialisation.
@@ -863,13 +863,13 @@ Phase 0 closure order are recorded.
       evidence without adding a second intermediate backend.
 - [ ] Define a deterministic partition manifest and ownership rule so every output pixel and source
       has exactly one owning tile.
-- [ ] Read and validate required image planes through bounded windows or a chunk-addressable store;
+- [x] Read and validate required image planes through bounded windows or a chunk-addressable store;
       use memory mapping where safe without requiring a worker to map or materialise every plane.
-- [ ] Write large intermediate planes in independently retryable chunks before compatibility
+- [x] Write large intermediate planes in independently retryable chunks before compatibility
       materialisation.
 - [ ] Keep one-tile work to one serial Zarr chunk and eliminate avoidable scheduler, initialization,
       copy, codec, and materialisation overhead without changing product semantics.
-- [ ] Make FITS, mask, RMS, and catalogue round-trip tests pass without weakening assertions.
+- [x] Make FITS, mask, RMS, and catalogue round-trip tests pass without weakening assertions.
 - [ ] Measure and cap avoidable full-image copies.
 
 Exit gate: reference inputs round-trip with correct coordinates, units, shapes, and invalid pixels;

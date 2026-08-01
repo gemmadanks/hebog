@@ -27,6 +27,73 @@ ProductRole = Literal[
 ]
 
 
+def _require_population_counts(
+    *,
+    source_count: int,
+    gaussian_component_count: int,
+    island_count: int,
+) -> None:
+    """Require non-negative, internally consistent catalogue populations."""
+    counts = {
+        "source_count": source_count,
+        "gaussian_component_count": gaussian_component_count,
+        "island_count": island_count,
+    }
+    for name, count in counts.items():
+        if count < 0:
+            raise ValueError(f"{name} cannot be negative")
+    if gaussian_component_count > 0 and source_count == 0:
+        raise ValueError("Gaussian components require a source")
+    if source_count > 0 and island_count == 0:
+        raise ValueError("sources require an island")
+
+
+class SourceFindingDiagnostics(BaseModel):
+    """Versioned scientific population summary for one completed run."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    run_id: str
+    source_count: int
+    gaussian_component_count: int
+    island_count: int
+    rms_scientific_status: Literal["valid", "unavailable"]
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def _validate_diagnostics(self) -> Self:
+        """Require a named run and internally consistent populations."""
+        if not self.run_id:
+            raise ValueError("diagnostics run ID must not be empty")
+        _require_population_counts(
+            source_count=self.source_count,
+            gaussian_component_count=self.gaussian_component_count,
+            island_count=self.island_count,
+        )
+        return self
+
+    def canonical_json_bytes(self) -> bytes:
+        """Return deterministic UTF-8 JSON with one final newline."""
+        document = json.dumps(
+            self.model_dump(mode="json"),
+            allow_nan=False,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return f"{document}\n".encode()
+
+    @classmethod
+    def from_json_bytes(cls, payload: bytes) -> Self:
+        """Validate one canonical serialized diagnostics document."""
+        diagnostics = cls.model_validate_json(payload)
+        if diagnostics.canonical_json_bytes() != payload:
+            raise ValueError(
+                "source-finding diagnostics JSON must be canonical"
+            )
+        return diagnostics
+
+
 @dataclass(frozen=True, slots=True)
 class SourceFinderRequest:
     """Inputs for one independent source-finding analysis."""
@@ -112,18 +179,11 @@ class SourceFinderResult(BaseModel):
         """Validate the run, population counts, and elapsed time."""
         if not self.run_id:
             raise ValueError("source-finder result run ID must not be empty")
-        counts = {
-            "source_count": self.source_count,
-            "gaussian_component_count": self.gaussian_component_count,
-            "island_count": self.island_count,
-        }
-        for name, count in counts.items():
-            if count < 0:
-                raise ValueError(f"{name} cannot be negative")
-        if self.gaussian_component_count > 0 and self.source_count == 0:
-            raise ValueError("Gaussian components require a source")
-        if self.source_count > 0 and self.island_count == 0:
-            raise ValueError("sources require an island")
+        _require_population_counts(
+            source_count=self.source_count,
+            gaussian_component_count=self.gaussian_component_count,
+            island_count=self.island_count,
+        )
         if not isfinite(self.wall_seconds) or self.wall_seconds < 0:
             raise ValueError("wall_seconds must be finite and non-negative")
 

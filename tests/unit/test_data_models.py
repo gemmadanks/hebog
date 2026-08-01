@@ -21,6 +21,7 @@ from hebog.data_models import (
     ImageMetadata,
     MaterializedProduct,
     RestoringBeam,
+    SourceFindingDiagnostics,
 )
 
 
@@ -87,6 +88,17 @@ def _source_finder_result(
         gaussian_component_count=3,
         island_count=1,
         wall_seconds=1.5,
+    )
+
+
+def _source_finding_diagnostics() -> SourceFindingDiagnostics:
+    """Return one valid diagnostics document for boundary tests."""
+    return SourceFindingDiagnostics(
+        run_id="test-run",
+        source_count=2,
+        gaussian_component_count=3,
+        island_count=1,
+        rms_scientific_status="valid",
     )
 
 
@@ -189,6 +201,47 @@ def test_materialized_product_is_versioned_and_pickle_safe() -> None:
     assert product.schema_version == 1
     assert product.content_schema_version == 1
     assert pickle.loads(pickle.dumps(product)) == product
+
+
+def test_source_finding_diagnostics_is_canonical_and_pickle_safe() -> None:
+    """Diagnostics expose deterministic, strict restart metadata."""
+    diagnostics = _source_finding_diagnostics()
+
+    assert (
+        SourceFindingDiagnostics.from_json_bytes(
+            diagnostics.canonical_json_bytes()
+        )
+        == diagnostics
+    )
+    assert pickle.loads(pickle.dumps(diagnostics)) == diagnostics
+
+    pretty = json.dumps(diagnostics.model_dump(mode="json"), indent=2).encode()
+    with pytest.raises(ValueError, match="canonical"):
+        SourceFindingDiagnostics.from_json_bytes(pretty)
+
+
+@pytest.mark.parametrize(
+    ("updates", "message"),
+    [
+        ({"run_id": ""}, "run ID"),
+        ({"source_count": -1}, "source_count"),
+        (
+            {"source_count": 0, "gaussian_component_count": 1},
+            "components require",
+        ),
+        ({"source_count": 1, "island_count": 0}, "sources require"),
+    ],
+)
+def test_source_finding_diagnostics_rejects_inconsistent_counts(
+    updates: dict[str, object],
+    message: str,
+) -> None:
+    """Diagnostics never report impossible scientific populations."""
+    document = _source_finding_diagnostics().model_dump()
+    document.update(updates)
+
+    with pytest.raises(ValidationError, match=message):
+        SourceFindingDiagnostics.model_validate(document)
 
 
 def test_rapthor_records_expose_two_branch_compatibility_products() -> None:
