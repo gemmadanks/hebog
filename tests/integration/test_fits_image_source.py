@@ -97,6 +97,21 @@ def test_reads_only_the_requested_global_window(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("unit", ["JY/BEAM", "JYBEAM-1"])
+def test_canonicalizes_wsclean_uppercase_jy_per_beam_unit(
+    tmp_path: Path,
+    unit: str,
+) -> None:
+    """Production WSClean BUNIT spelling maps to the canonical image unit."""
+    path = tmp_path / "wsclean-image.fits"
+    _write_image(path, np.ones((2, 3), dtype=np.float32), unit=unit)
+
+    metadata = FitsImageSource(path).metadata()
+
+    assert metadata.unit == "Jy/beam"
+
+
+@pytest.mark.integration
 def test_accepts_a_two_dimensional_non_square_image(tmp_path: Path) -> None:
     """Two-dimensional FITS data keeps its y/x axes even when one is short."""
     plane = np.arange(5, dtype=np.float64).reshape(1, 5)

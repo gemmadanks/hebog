@@ -24,6 +24,10 @@ from hebog.data_models.images import (
 from hebog.io.base import ImageBounds, ImageWindow
 
 _LOGICAL_DIMENSIONS = 2
+_COMMON_IMAGE_UNIT_ALIASES = {
+    "JY/BEAM": "Jy/beam",
+    "JYBEAM-1": "Jy/beam",
+}
 
 
 class InvalidFitsImageError(ValueError):
@@ -32,6 +36,20 @@ class InvalidFitsImageError(ValueError):
 
 class UnsupportedFitsImageError(InvalidFitsImageError):
     """A valid FITS input uses an image layout Hebog does not yet support."""
+
+
+def _canonical_image_unit(unit_value: str, path: Path) -> str:
+    """Validate BUNIT and normalize common case-insensitive radio aliases."""
+    unit = unit_value.strip()
+    compact_upper = "".join(unit.split()).upper()
+    canonical = _COMMON_IMAGE_UNIT_ALIASES.get(compact_upper, unit)
+    try:
+        units.Unit(canonical)
+    except ValueError as error:
+        raise InvalidFitsImageError(
+            f"FITS image has an invalid BUNIT {unit!r}: {path}"
+        ) from error
+    return canonical
 
 
 def _restoring_beam(header: Any, path: Path) -> RestoringBeam:
@@ -142,13 +160,7 @@ def _metadata(primary_hdu: Any, path: Path) -> ImageMetadata:
         raise InvalidFitsImageError(
             f"FITS image requires a non-empty BUNIT: {path}"
         )
-    unit = unit_value.strip()
-    try:
-        units.Unit(unit)
-    except ValueError as error:
-        raise InvalidFitsImageError(
-            f"FITS image has an invalid BUNIT {unit!r}: {path}"
-        ) from error
+    unit = _canonical_image_unit(unit_value, path)
     reference_frequency_hz = _header_reference_frequency_hz(
         primary_hdu.header,
         path,
