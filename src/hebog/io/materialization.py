@@ -44,6 +44,7 @@ _IMAGE_ROLES = {"rms": "RMS", "source-filtering-mask": "MASK"}
 _IMAGE_MEDIA_TYPE = "image/fits"
 _CATALOGUE_MEDIA_TYPE = "application/fits"
 _DIAGNOSTICS_MEDIA_TYPE = "application/json"
+_CATALOGUE_CHECKSUM_COMMENT = "hebog deterministic catalogue"
 
 _ISLAND_COLUMNS = (
     "ISLAND_ID",
@@ -720,7 +721,9 @@ def write_catalogue_fits_product(
 
     def write(temporary: Path) -> None:
         with _catalogue_hdus(catalogue) as hdus:
-            hdus.writeto(temporary, checksum=True)
+            for hdu in hdus:
+                hdu.add_checksum(when=_CATALOGUE_CHECKSUM_COMMENT)
+            hdus.writeto(temporary)
 
     return _materialize(
         path,

@@ -284,6 +284,15 @@ def test_spectral_coefficients_use_deterministic_fixed_width_columns(
         assert component_format == "2D"
         assert not source_format.startswith(("P", "Q"))
         assert not component_format.startswith(("P", "Q"))
+        for hdu in hdus:
+            assert hdu.header.comments["CHECKSUM"] == (
+                "hebog deterministic catalogue"
+            )
+            assert hdu.header.comments["DATASUM"] == (
+                "hebog deterministic catalogue"
+            )
+            assert hdu.verify_checksum() == 1
+            assert hdu.verify_datasum() == 1
     assert write_catalogue_fits_product(path, catalogue) == first
 
 

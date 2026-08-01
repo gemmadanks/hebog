@@ -67,6 +67,11 @@ reader removes while rejecting infinity, interior padding, and heap-backed
 content-identical catalogue retries deterministic on Windows, Linux, and
 macOS.
 
+Every catalogue HDU carries FITS `CHECKSUM` and `DATASUM` cards with a fixed
+Hebog provenance comment. Astropy's default wall-clock checksum comment is not
+used, because it would make otherwise identical retry output differ by write
+time.
+
 `SpectralModel` distinguishes a reference-frequency-only MFS measurement from
 a log-polynomial spectral fit. For a log-polynomial, coefficient `k`
 multiplies `log(frequency / reference_frequency) ** (k + 1)` in natural-log

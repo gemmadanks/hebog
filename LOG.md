@@ -1811,6 +1811,10 @@ applicable zeroes for these single-process reference runs.
 - Replaced variable-length FITS heap arrays with the smallest fixed-width
   float64 vector required by each source or Gaussian-component table. Empty
   and shorter coefficient tuples use canonical trailing NaN padding.
+- Found and removed a second source of byte variance: Astropy's default FITS
+  checksum comments included the current wall-clock time. Catalogue HDUs now
+  use a fixed checksum provenance comment while retaining valid `CHECKSUM` and
+  `DATASUM` cards.
 - Kept raw-byte conflict detection strict instead of accepting arbitrary
   semantically equal files. Readers now reject heap-backed coefficient columns,
   infinity, and non-trailing padding.
@@ -1820,6 +1824,9 @@ applicable zeroes for these single-process reference runs.
 - All 44 catalogue and image-product materialisation integration tests pass,
   including repeated catalogue publication, mixed empty/two-coefficient
   spectra, zero-row catalogues, invalid padding, and conflicting science.
+- Thirty independently materialised copies of the mixed-spectra catalogue
+  produced one SHA-256 digest after checksum-comment normalization; the
+  regression also verifies every FITS checksum and data checksum.
 
 **Next**
 
