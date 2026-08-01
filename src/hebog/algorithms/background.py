@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isqrt
+from math import isfinite, isqrt
 from numbers import Integral
 from typing import Any, cast
 
@@ -21,6 +21,7 @@ from hebog.data_models.partitioning import ImageBounds
 
 _WINDOW_DIMENSIONS = 3
 _STATISTIC_AXES = (-2, -1)
+_MINIMUM_LINEAR_SAMPLES = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +68,7 @@ class RmsWindowBatch:
     grid_x_start: int
     grid_x_stop: int
     read_bounds: ImageBounds
+    selected_cells: tuple[bool, ...] = ()
 
     @property
     def shape_yx(self) -> tuple[int, int]:
@@ -80,6 +82,13 @@ class RmsWindowBatch:
     def cell_count(self) -> int:
         """Return the number of windows evaluated in this batch."""
         return self.shape_yx[0] * self.shape_yx[1]
+
+    @property
+    def selected_cell_count(self) -> int:
+        """Return cells requiring statistics, or every cell by default."""
+        if not self.selected_cells:
+            return self.cell_count
+        return sum(self.selected_cells)
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,6 +212,7 @@ def plan_rms_window_batches(
     grid: RmsGridGeometry,
     *,
     maximum_cells: int,
+    selected_cells: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[RmsWindowBatch, ...]:
     """Group coarse cells into bounded rectangular image-read batches."""
     if (
@@ -212,6 +222,14 @@ def plan_rms_window_batches(
     ):
         raise ValueError("maximum_cells must be a positive integer")
     cells_y, cells_x = grid.shape_yx
+    if selected_cells is None:
+        required_cells = np.ones(grid.shape_yx, dtype=np.bool_)
+        sparse = False
+    else:
+        required_cells = np.asarray(selected_cells, dtype=np.bool_)
+        if required_cells.shape != grid.shape_yx:
+            raise ValueError("selected RMS grid cells must match grid shape")
+        sparse = True
     block_y = min(cells_y, max(1, isqrt(maximum_cells)))
     block_x = min(cells_x, max(1, maximum_cells // block_y))
     window_y, window_x = grid.effective_window_shape_yx
@@ -220,6 +238,12 @@ def plan_rms_window_batches(
         grid_y_stop = min(cells_y, grid_y_start + block_y)
         for grid_x_start in range(0, cells_x, block_x):
             grid_x_stop = min(cells_x, grid_x_start + block_x)
+            block_selection = required_cells[
+                grid_y_start:grid_y_stop,
+                grid_x_start:grid_x_stop,
+            ]
+            if not np.any(block_selection):
+                continue
             y_start = grid.window_starts_y[grid_y_start]
             x_start = grid.window_starts_x[grid_x_start]
             y_stop = grid.window_starts_y[grid_y_stop - 1] + window_y
@@ -231,9 +255,44 @@ def plan_rms_window_batches(
                     grid_x_start=grid_x_start,
                     grid_x_stop=grid_x_stop,
                     read_bounds=ImageBounds(y_start, y_stop, x_start, x_stop),
+                    selected_cells=(
+                        tuple(block_selection.ravel().tolist())
+                        if sparse
+                        else ()
+                    ),
                 )
             )
     return tuple(batches)
+
+
+def select_rms_grid_cells_near_positions(
+    grid: RmsGridGeometry,
+    positions_yx: tuple[tuple[float, float], ...],
+    *,
+    radius_pixels: float,
+) -> npt.NDArray[np.bool_]:
+    """Select fine-grid samples within a radius of bright candidates."""
+    if not isfinite(radius_pixels) or radius_pixels <= 0:
+        raise ValueError("RMS selection radius must be finite and positive")
+    selected = np.zeros(grid.shape_yx, dtype=np.bool_)
+    sample_y = np.asarray(grid.sample_coordinates_y, dtype=np.float64)
+    sample_x = np.asarray(grid.sample_coordinates_x, dtype=np.float64)
+    radius_squared = radius_pixels**2
+    height, width = grid.image_shape_yx
+    for y_position, x_position in positions_yx:
+        if (
+            not isfinite(y_position)
+            or not isfinite(x_position)
+            or not 0 <= y_position < height
+            or not 0 <= x_position < width
+        ):
+            raise ValueError(
+                "bright candidate position must be finite and inside the image"
+            )
+        selected |= (sample_y[:, np.newaxis] - y_position) ** 2 + (
+            sample_x[np.newaxis, :] - x_position
+        ) ** 2 <= radius_squared
+    return cast(npt.NDArray[np.bool_], _read_only(selected))
 
 
 def _require_canonical_batch(
@@ -256,6 +315,11 @@ def _require_canonical_batch(
     )
     if batch.read_bounds != expected:
         raise ValueError("RMS window batch has non-canonical read bounds")
+    if batch.selected_cells and (
+        len(batch.selected_cells) != batch.cell_count
+        or not any(batch.selected_cells)
+    ):
+        raise ValueError("RMS window batch has an invalid cell selection")
 
 
 def estimate_rms_grid_batch(
@@ -308,10 +372,21 @@ def estimate_rms_grid_batch(
         y_offsets[:, np.newaxis],
         x_offsets[np.newaxis, :],
     ]
-    batched_shape = (batch.cell_count, *window_shape)
+    all_values = np.reshape(
+        selected_values,
+        (batch.cell_count, *window_shape),
+    )
+    all_validity = np.reshape(
+        selected_validity,
+        (batch.cell_count, *window_shape),
+    )
+    if batch.selected_cells:
+        cell_selection = np.asarray(batch.selected_cells, dtype=np.bool_)
+        all_values = all_values[cell_selection]
+        all_validity = all_validity[cell_selection]
     statistics = estimate_rms_window_statistics(
-        np.reshape(selected_values, batched_shape),
-        np.reshape(selected_validity, batched_shape),
+        all_values,
+        all_validity,
         config,
     )
     return RmsGridBatchStatistics(batch=batch, statistics=statistics)
@@ -320,6 +395,8 @@ def estimate_rms_grid_batch(
 def assemble_rms_grid_statistics(
     grid: RmsGridGeometry,
     batch_results: Any,
+    *,
+    required_cells: npt.NDArray[np.bool_] | None = None,
 ) -> RmsGridStatistics:
     """Assemble complete coarse summaries independently of completion order."""
     shape = grid.shape_yx
@@ -329,6 +406,13 @@ def assemble_rms_grid_statistics(
     valid_sample_count = np.zeros(shape, dtype=np.int64)
     retained_sample_count = np.zeros(shape, dtype=np.int64)
     visits = np.zeros(shape, dtype=np.uint8)
+    required = (
+        np.ones(shape, dtype=np.bool_)
+        if required_cells is None
+        else np.asarray(required_cells, dtype=np.bool_)
+    )
+    if required.shape != shape:
+        raise ValueError("required RMS grid cells must match grid shape")
     for result in batch_results:
         if not isinstance(result, RmsGridBatchStatistics):
             raise ValueError("coarse-grid results contain an invalid batch")
@@ -338,7 +422,7 @@ def assemble_rms_grid_statistics(
             slice(batch.grid_y_start, batch.grid_y_stop),
             slice(batch.grid_x_start, batch.grid_x_stop),
         )
-        expected_size = batch.cell_count
+        expected_size = batch.selected_cell_count
         if any(
             values.size != expected_size
             for values in (
@@ -350,28 +434,27 @@ def assemble_rms_grid_statistics(
             )
         ):
             raise ValueError("coarse-grid batch statistics are misaligned")
-        if np.any(visits[selection]):
+        block_selection = (
+            np.ones(batch.shape_yx, dtype=np.bool_)
+            if not batch.selected_cells
+            else np.reshape(batch.selected_cells, batch.shape_yx)
+        )
+        if np.any(visits[selection][block_selection]):
             raise ValueError("duplicate coarse-grid cells were returned")
-        block_shape = batch.shape_yx
-        background[selection] = np.reshape(
-            result.statistics.background,
-            block_shape,
+        local_y, local_x = np.nonzero(block_selection)
+        global_y = local_y + batch.grid_y_start
+        global_x = local_x + batch.grid_x_start
+        background[global_y, global_x] = result.statistics.background
+        rms[global_y, global_x] = result.statistics.rms
+        available[global_y, global_x] = result.statistics.available
+        valid_sample_count[global_y, global_x] = (
+            result.statistics.valid_sample_count
         )
-        rms[selection] = np.reshape(result.statistics.rms, block_shape)
-        available[selection] = np.reshape(
-            result.statistics.available,
-            block_shape,
+        retained_sample_count[global_y, global_x] = (
+            result.statistics.retained_sample_count
         )
-        valid_sample_count[selection] = np.reshape(
-            result.statistics.valid_sample_count,
-            block_shape,
-        )
-        retained_sample_count[selection] = np.reshape(
-            result.statistics.retained_sample_count,
-            block_shape,
-        )
-        visits[selection] += 1
-    if np.any(visits == 0):
+        visits[global_y, global_x] += 1
+    if np.any((visits == 0) & required):
         raise ValueError("missing coarse-grid cells prevent interpolation")
     return RmsGridStatistics(
         geometry=grid,
@@ -479,6 +562,108 @@ def _expand_singleton_grid_axes(
     return y_coordinates, x_coordinates, background, rms
 
 
+def _interpolation_axis_slice(
+    coordinates: tuple[float, ...],
+    *,
+    output_start: int,
+    output_stop: int,
+) -> slice:
+    """Select only samples bracketing one half-open output interval."""
+    sample_coordinates = np.asarray(coordinates, dtype=np.float64)
+    if sample_coordinates.size <= _MINIMUM_LINEAR_SAMPLES:
+        return slice(0, sample_coordinates.size)
+    first = max(
+        0,
+        int(np.searchsorted(sample_coordinates, output_start, side="right"))
+        - 1,
+    )
+    last = min(
+        sample_coordinates.size,
+        int(
+            np.searchsorted(
+                sample_coordinates,
+                output_stop - 1,
+                side="left",
+            )
+        )
+        + _MINIMUM_LINEAR_SAMPLES,
+    )
+    if last - first < _MINIMUM_LINEAR_SAMPLES:
+        first = max(
+            0,
+            min(
+                first,
+                sample_coordinates.size - _MINIMUM_LINEAR_SAMPLES,
+            ),
+        )
+        last = first + _MINIMUM_LINEAR_SAMPLES
+    return slice(first, last)
+
+
+def subset_rms_grid_geometry(
+    grid: RmsGridGeometry,
+    bounds: ImageBounds,
+) -> RmsGridGeometry:
+    """Return only globally anchored cells bracketing one bounded region."""
+    bounds.require_inside(grid.image_shape_yx)
+    y_selection = _interpolation_axis_slice(
+        grid.sample_coordinates_y,
+        output_start=bounds.y_start,
+        output_stop=bounds.y_stop,
+    )
+    x_selection = _interpolation_axis_slice(
+        grid.sample_coordinates_x,
+        output_start=bounds.x_start,
+        output_stop=bounds.x_stop,
+    )
+    return RmsGridGeometry(
+        image_shape_yx=grid.image_shape_yx,
+        configured_window_shape_yx=grid.configured_window_shape_yx,
+        effective_window_shape_yx=grid.effective_window_shape_yx,
+        step_yx=grid.step_yx,
+        window_starts_y=grid.window_starts_y[y_selection],
+        window_starts_x=grid.window_starts_x[x_selection],
+        sample_coordinates_y=grid.sample_coordinates_y[y_selection],
+        sample_coordinates_x=grid.sample_coordinates_x[x_selection],
+    )
+
+
+def subset_prepared_rms_grid(
+    grid: PreparedRmsGrid,
+    bounds: ImageBounds,
+) -> PreparedRmsGrid:
+    """Copy the bounded coarse summary needed to interpolate one tile."""
+    bounds.require_inside(grid.geometry.image_shape_yx)
+    y_selection = _interpolation_axis_slice(
+        grid.geometry.sample_coordinates_y,
+        output_start=bounds.y_start,
+        output_stop=bounds.y_stop,
+    )
+    x_selection = _interpolation_axis_slice(
+        grid.geometry.sample_coordinates_x,
+        output_start=bounds.x_start,
+        output_stop=bounds.x_stop,
+    )
+    geometry = subset_rms_grid_geometry(grid.geometry, bounds)
+    selection = (y_selection, x_selection)
+    return PreparedRmsGrid(
+        geometry=geometry,
+        background=cast(
+            npt.NDArray[np.float64],
+            _read_only(np.array(grid.background[selection], copy=True)),
+        ),
+        rms=cast(
+            npt.NDArray[np.float64],
+            _read_only(np.array(grid.rms[selection], copy=True)),
+        ),
+        fallback_cells=cast(
+            npt.NDArray[np.bool_],
+            _read_only(np.array(grid.fallback_cells[selection], copy=True)),
+        ),
+        scientifically_available=grid.scientifically_available,
+    )
+
+
 def interpolate_prepared_rms_grid(
     grid: PreparedRmsGrid,
     bounds: ImageBounds,
@@ -539,6 +724,73 @@ def interpolate_prepared_rms_grid(
         rms=cast(npt.NDArray[np.float64], _read_only(rms)),
         scientifically_available=grid.scientifically_available,
         fallback_cell_count=grid.fallback_cell_count,
+    )
+
+
+def blend_adaptive_background_rms(
+    coarse: BackgroundRmsTile,
+    adaptive: BackgroundRmsTile,
+    positions_yx: tuple[tuple[float, float], ...],
+    *,
+    influence_radius_pixels: float,
+    transition_width_pixels: float,
+) -> BackgroundRmsTile:
+    """Blend cached fine estimates smoothly around bright candidates."""
+    if coarse.bounds != adaptive.bounds:
+        raise ValueError("coarse and adaptive RMS tiles must share bounds")
+    if not positions_yx or not adaptive.scientifically_available:
+        return coarse
+    bounds = coarse.bounds
+    output_y = np.arange(bounds.y_start, bounds.y_stop, dtype=np.float64)
+    output_x = np.arange(bounds.x_start, bounds.x_stop, dtype=np.float64)
+    y_coordinates, x_coordinates = np.meshgrid(
+        output_y,
+        output_x,
+        indexing="ij",
+    )
+    minimum_distance = np.full(bounds.shape_yx, np.inf, dtype=np.float64)
+    for y_position, x_position in positions_yx:
+        np.minimum(
+            minimum_distance,
+            np.hypot(
+                y_coordinates - y_position,
+                x_coordinates - x_position,
+            ),
+            out=minimum_distance,
+        )
+    transition = np.clip(
+        (influence_radius_pixels - minimum_distance) / transition_width_pixels,
+        0.0,
+        1.0,
+    )
+    weight = transition * transition * (3.0 - 2.0 * transition)
+    usable_fine = np.isfinite(adaptive.background) & np.isfinite(adaptive.rms)
+    weight[~usable_fine] = 0.0
+    use_adaptive = weight > 0.0
+    background = np.array(coarse.background, copy=True)
+    rms = np.array(coarse.rms, copy=True)
+    background[use_adaptive] = (
+        1.0 - weight[use_adaptive]
+    ) * coarse.background[use_adaptive] + weight[
+        use_adaptive
+    ] * adaptive.background[use_adaptive]
+    rms[use_adaptive] = (1.0 - weight[use_adaptive]) * coarse.rms[
+        use_adaptive
+    ] + weight[use_adaptive] * adaptive.rms[use_adaptive]
+    return BackgroundRmsTile(
+        bounds=bounds,
+        background=cast(
+            npt.NDArray[np.float64],
+            _read_only(background),
+        ),
+        rms=cast(npt.NDArray[np.float64], _read_only(rms)),
+        scientifically_available=(
+            coarse.scientifically_available
+            or adaptive.scientifically_available
+        ),
+        fallback_cell_count=(
+            coarse.fallback_cell_count + adaptive.fallback_cell_count
+        ),
     )
 
 

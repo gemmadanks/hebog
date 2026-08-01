@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import replace
+from typing import TypeVar
 
 import numpy as np
 import pytest
@@ -10,6 +12,7 @@ import pytest
 from hebog.algorithms.background import (
     RmsGridBatchStatistics,
     RmsGridGeometry,
+    RmsGridStatistics,
     RmsWindowBatch,
     assemble_rms_grid_statistics,
     estimate_rms_grid_batch,
@@ -17,12 +20,16 @@ from hebog.algorithms.background import (
     plan_rms_grid,
     plan_rms_window_batches,
     prepare_rms_grid_for_interpolation,
+    subset_prepared_rms_grid,
 )
-from hebog.config import RmsWindowStatisticsConfig
+from hebog.config import RmsGridConfig, RmsWindowStatisticsConfig
 from hebog.data_models import ImageBounds
 from hebog.executors import SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.stages.background import estimate_rms_grid
+
+Input = TypeVar("Input")
+Output = TypeVar("Output")
 
 
 class _ArrayImageSource:
@@ -56,6 +63,22 @@ class _ArrayImageSource:
         )
 
 
+class _RetryExecutor:
+    """Repeat one completed batch before returning canonical results."""
+
+    def map_batches(
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+    ) -> list[Output]:
+        """Inject an identical retry but publish only its first result."""
+        inputs = list(batches)
+        results = [function(batch) for batch in inputs]
+        if inputs:
+            function(inputs[0])
+        return results
+
+
 def _statistics_config(
     *,
     minimum_samples: int = 6,
@@ -81,6 +104,27 @@ def _estimate_batch(
         grid,
         batch,
         _statistics_config(),
+    )
+
+
+def _estimate_grid(
+    source: _ArrayImageSource,
+    grid: RmsGridGeometry,
+    *,
+    maximum_batch_cells: int,
+    statistics: RmsWindowStatisticsConfig | None = None,
+) -> RmsGridStatistics:
+    """Estimate a grid through its scheduler-facing configuration boundary."""
+    return estimate_rms_grid(
+        source,
+        grid,
+        RmsGridConfig(
+            window_shape_yx=grid.configured_window_shape_yx,
+            step_yx=grid.step_yx,
+            statistics=statistics or _statistics_config(),
+            maximum_batch_cells=maximum_batch_cells,
+        ),
+        SerialExecutor(),
     )
 
 
@@ -189,11 +233,9 @@ def test_estimates_an_affine_background_from_vectorised_window_blocks() -> (
         step_yx=(3, 4),
     )
 
-    statistics = estimate_rms_grid(
+    statistics = _estimate_grid(
         source,
         grid,
-        _statistics_config(),
-        SerialExecutor(),
         maximum_batch_cells=6,
     )
 
@@ -223,11 +265,9 @@ def test_assembly_is_independent_of_batch_completion_order() -> None:
     )
     batches = plan_rms_window_batches(grid, maximum_cells=8)
     source = _ArrayImageSource(image)
-    expected = estimate_rms_grid(
+    expected = _estimate_grid(
         source,
         grid,
-        _statistics_config(),
-        SerialExecutor(),
         maximum_batch_cells=8,
     )
     batch_results = [_estimate_batch(source, grid, batch) for batch in batches]
@@ -237,6 +277,33 @@ def test_assembly_is_independent_of_batch_completion_order() -> None:
     np.testing.assert_array_equal(actual.background, expected.background)
     np.testing.assert_array_equal(actual.rms, expected.rms)
     np.testing.assert_array_equal(actual.available, expected.available)
+
+
+def test_identical_batch_retry_does_not_change_grid_results() -> None:
+    """A deterministic worker retry has no effect on scientific summaries."""
+    image = np.arange(18 * 20, dtype=np.float64).reshape(18, 20)
+    source = _ArrayImageSource(image)
+    grid = plan_rms_grid(
+        image_shape_yx=image.shape,
+        window_shape_yx=(6, 6),
+        step_yx=(3, 3),
+    )
+    config = RmsGridConfig(
+        window_shape_yx=(6, 6),
+        step_yx=(3, 3),
+        statistics=_statistics_config(),
+        maximum_batch_cells=8,
+    )
+    expected = estimate_rms_grid(source, grid, config, SerialExecutor())
+
+    actual = estimate_rms_grid(source, grid, config, _RetryExecutor())
+
+    np.testing.assert_array_equal(actual.background, expected.background)
+    np.testing.assert_array_equal(actual.rms, expected.rms)
+    np.testing.assert_array_equal(
+        actual.retained_sample_count,
+        expected.retained_sample_count,
+    )
 
 
 @pytest.mark.parametrize("mode", ["missing", "duplicate"])
@@ -270,12 +337,11 @@ def test_sparse_grid_cells_use_cached_nearest_fallback_before_interpolation(
         window_shape_yx=(4, 4),
         step_yx=(2, 2),
     )
-    statistics = estimate_rms_grid(
+    statistics = _estimate_grid(
         source,
         grid,
-        _statistics_config(minimum_samples=10),
-        SerialExecutor(),
         maximum_batch_cells=4,
+        statistics=_statistics_config(minimum_samples=10),
     )
     assert not statistics.available.all()
     prepared = prepare_rms_grid_for_interpolation(statistics)
@@ -318,11 +384,9 @@ def test_interpolation_preserves_affine_background_at_edges_and_tiles() -> (
         window_shape_yx=(5, 5),
         step_yx=(3, 4),
     )
-    statistics = estimate_rms_grid(
+    statistics = _estimate_grid(
         source,
         grid,
-        _statistics_config(),
-        SerialExecutor(),
         maximum_batch_cells=8,
     )
     prepared = prepare_rms_grid_for_interpolation(statistics)
@@ -342,6 +406,33 @@ def test_interpolation_preserves_affine_background_at_edges_and_tiles() -> (
         tile.rms[0, 0] = 0.0
 
 
+def test_local_interpolation_summary_matches_global_grid() -> None:
+    """A tile carries only bracketing cells without changing its output."""
+    y, x = np.indices((80, 90), dtype=np.float64)
+    image = 2.0 + 0.1 * y - 0.05 * x
+    grid = plan_rms_grid(
+        image_shape_yx=image.shape,
+        window_shape_yx=(9, 9),
+        step_yx=(4, 4),
+    )
+    statistics = _estimate_grid(
+        _ArrayImageSource(image),
+        grid,
+        maximum_batch_cells=16,
+    )
+    prepared = prepare_rms_grid_for_interpolation(statistics)
+    bounds = ImageBounds(30, 45, 40, 58)
+    validity = np.ones(bounds.shape_yx, dtype=np.bool_)
+
+    local = subset_prepared_rms_grid(prepared, bounds)
+    expected = interpolate_prepared_rms_grid(prepared, bounds, validity)
+    actual = interpolate_prepared_rms_grid(local, bounds, validity)
+
+    assert local.geometry.cell_count < prepared.geometry.cell_count / 4
+    np.testing.assert_array_equal(actual.background, expected.background)
+    np.testing.assert_array_equal(actual.rms, expected.rms)
+
+
 def test_all_invalid_grid_produces_explicitly_unavailable_nan_tile() -> None:
     """No fallback invents a scientific estimate when every cell is invalid."""
     image = np.full((8, 9), np.nan)
@@ -351,11 +442,9 @@ def test_all_invalid_grid_produces_explicitly_unavailable_nan_tile() -> None:
         window_shape_yx=(4, 5),
         step_yx=(2, 2),
     )
-    statistics = estimate_rms_grid(
+    statistics = _estimate_grid(
         source,
         grid,
-        _statistics_config(),
-        SerialExecutor(),
         maximum_batch_cells=4,
     )
 
@@ -380,11 +469,9 @@ def test_interpolation_rejects_misaligned_tile_validity() -> None:
         window_shape_yx=(4, 5),
         step_yx=(2, 2),
     )
-    statistics = estimate_rms_grid(
+    statistics = _estimate_grid(
         _ArrayImageSource(image),
         grid,
-        _statistics_config(),
-        SerialExecutor(),
         maximum_batch_cells=4,
     )
     prepared = prepare_rms_grid_for_interpolation(statistics)
