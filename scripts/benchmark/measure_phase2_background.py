@@ -300,7 +300,6 @@ def _run_once(  # noqa: PLR0913
                 partition,
                 grids,
                 config,
-                bright_candidate_positions_yx=(),
             )
             estimate_background_rms_tile(source, request)
 

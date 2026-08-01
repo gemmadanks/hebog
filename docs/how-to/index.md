@@ -106,6 +106,85 @@ change batching, but must not change these cores, their ownership, or the
 scientific result. `partition_origin_yx` may shift internal grid boundaries
 for invariance tests while still assigning every pixel to exactly one core.
 
+## Estimate bounded background and RMS tiles
+
+Configure scientific window geometry separately from executor batching. The
+serial executor is the deterministic reference and requires no scheduler:
+
+```python
+from hebog.config import (
+    BackgroundRmsConfig,
+    RmsGridConfig,
+    RmsWindowStatisticsConfig,
+)
+from hebog.executors import SerialExecutor
+from hebog.stages.background import (
+    estimate_background_rms_grids,
+    estimate_background_rms_tile,
+    prepare_background_rms_tile_request,
+)
+
+statistics = RmsWindowStatisticsConfig(
+    clipping_sigma=3.0,
+    maximum_iterations=10,
+    minimum_samples=6,
+)
+background_config = BackgroundRmsConfig(
+    coarse=RmsGridConfig(
+        window_shape_yx=(150, 150),
+        step_yx=(50, 50),
+        statistics=statistics,
+        maximum_batch_cells=64,
+    ),
+    adaptive=None,
+    maximum_spatial_window_fraction=0.25,
+    maximum_constant_map_pixels=1_000_000,
+)
+
+grids = estimate_background_rms_grids(
+    source,
+    metadata.shape_yx,
+    background_config,
+    SerialExecutor(),
+    bright_candidate_positions_yx=(),
+)
+
+for tile in manifest.tiles:
+    request = prepare_background_rms_tile_request(
+        tile,
+        grids,
+        background_config,
+    )
+    result = estimate_background_rms_tile(source, request)
+    assert result.bounds == tile.core_bounds
+    assert result.rms.shape == tile.core_bounds.shape_yx
+```
+
+Both returned arrays are float64 and read-only. Invalid source pixels are NaN;
+`scientifically_available` is false when no input window retained enough
+samples. Persist each owned tile directly rather than assembling a complete
+large plane.
+
+To refine noise near known bright candidates, add an `AdaptiveRmsConfig` and
+pass finite global `(y, x)` candidate positions while preparing the grids.
+Tile requests derive their local positions from that immutable grid result, so
+callers cannot accidentally omit a previously estimated region. Only merged
+local fine-grid regions are estimated.
+Automatic bright-candidate discovery and the Rapthor configuration adapter are
+not yet public Phase 2 capabilities.
+
+Use a caller-owned Dask client when coarse batches should run remotely:
+
+```python
+from hebog.executors import DaskExecutor
+
+dask_executor = DaskExecutor(existing_client)
+```
+
+Hebog never starts or closes that client. Serial and Dask results obey the
+same contract; client lifecycle and the top-level graph remain with the
+workflow.
+
 ## Publish retryable product chunks
 
 Publish intermediate image planes as independent tile-owned chunks in one

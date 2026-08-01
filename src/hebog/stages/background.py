@@ -8,7 +8,6 @@ from math import ceil, floor, isfinite, prod
 from typing import Protocol
 
 import numpy as np
-import numpy.typing as npt
 
 from hebog.algorithms.background import (
     BackgroundRmsTile,
@@ -121,14 +120,11 @@ def estimate_rms_grid(
     grid: RmsGridGeometry,
     config: RmsGridConfig,
     executor: Executor,
-    *,
-    selected_cells: npt.NDArray[np.bool_] | None = None,
 ) -> RmsGridStatistics:
     """Estimate one complete coarse grid through bounded executor batches."""
     batches = plan_rms_window_batches(
         grid,
         maximum_cells=config.maximum_batch_cells,
-        selected_cells=selected_cells,
     )
     estimate_batch = partial(
         _estimate_source_batch,
@@ -137,11 +133,7 @@ def estimate_rms_grid(
         config=config,
     )
     results = executor.map_batches(estimate_batch, batches)
-    return assemble_rms_grid_statistics(
-        grid,
-        results,
-        required_cells=selected_cells,
-    )
+    return assemble_rms_grid_statistics(grid, results)
 
 
 def _use_constant_map(
@@ -338,8 +330,6 @@ def prepare_background_rms_tile_request(
     partition: TilePartition,
     grids: BackgroundRmsGrids,
     config: BackgroundRmsConfig,
-    *,
-    bright_candidate_positions_yx: tuple[tuple[float, float], ...],
 ) -> BackgroundRmsTileRequest:
     """Build one local interpolation request without global grid payloads."""
     coarse = subset_prepared_rms_grid(grids.coarse, partition.core_bounds)
@@ -354,7 +344,6 @@ def prepare_background_rms_tile_request(
         )
     bounds = partition.core_bounds
     radius = adaptive_config.influence_radius_pixels
-    requested_positions = set(bright_candidate_positions_yx)
     summaries: list[AdaptiveRmsTileSummary] = []
     for region in grids.adaptive_regions:
         nearby_positions = tuple(
@@ -362,8 +351,7 @@ def prepare_background_rms_tile_request(
             for y_position, x_position in (
                 region.bright_candidate_positions_yx
             )
-            if (y_position, x_position) in requested_positions
-            and bounds.y_start - radius < y_position < bounds.y_stop + radius
+            if bounds.y_start - radius < y_position < bounds.y_stop + radius
             and bounds.x_start - radius < x_position < bounds.x_stop + radius
         )
         if nearby_positions:

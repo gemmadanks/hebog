@@ -93,7 +93,6 @@ def candidate_rms() -> npt.NDArray[np.float64]:
         manifest.tiles[0],
         grids,
         config,
-        bright_candidate_positions_yx=(),
     )
     return estimate_background_rms_tile(source, request).rms
 

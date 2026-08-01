@@ -111,7 +111,6 @@ def test_dask_and_serial_background_stages_are_equivalent() -> None:
                 tile,
                 serial_grids,
                 config,
-                bright_candidate_positions_yx=positions,
             )
             for tile in manifest.tiles
         )
@@ -120,7 +119,6 @@ def test_dask_and_serial_background_stages_are_equivalent() -> None:
                 tile,
                 dask_grids,
                 config,
-                bright_candidate_positions_yx=positions,
             )
             for tile in manifest.tiles
         )

@@ -5,10 +5,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from hebog.algorithms.background import (
-    plan_rms_grid,
-    select_rms_grid_cells_near_positions,
-)
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
@@ -165,29 +161,6 @@ def test_rejects_invalid_bright_candidate_positions(
         )
 
 
-def test_selects_only_fine_cells_near_bright_candidates() -> None:
-    """Fine statistics remain sparse and include cells around image edges."""
-    grid = plan_rms_grid(
-        image_shape_yx=(40, 44),
-        window_shape_yx=(5, 5),
-        step_yx=(2, 2),
-    )
-
-    selected = select_rms_grid_cells_near_positions(
-        grid,
-        ((1.0, 1.0), (20.0, 22.0)),
-        radius_pixels=6.0,
-    )
-
-    assert 0 < np.count_nonzero(selected) < grid.cell_count
-    assert selected[0, 0]
-    centre_y = np.argmin(np.abs(np.asarray(grid.sample_coordinates_y) - 20))
-    centre_x = np.argmin(np.abs(np.asarray(grid.sample_coordinates_x) - 22))
-    assert selected[centre_y, centre_x]
-    with pytest.raises(ValueError, match="read-only"):
-        selected[0, 0] = False
-
-
 def test_adaptive_refinement_raises_local_rms_only_near_candidate() -> None:
     """A noisy bright region uses fine RMS while distant pixels stay coarse."""
     y, x = np.indices((40, 44))
@@ -212,13 +185,11 @@ def test_adaptive_refinement_raises_local_rms_only_near_candidate() -> None:
         manifest.owner_for_position_yx(candidate[0]),
         grids,
         _config(),
-        bright_candidate_positions_yx=candidate,
     )
     far_request = prepare_background_rms_tile_request(
         manifest.tiles[0],
         grids,
         _config(),
-        bright_candidate_positions_yx=candidate,
     )
     centre_tile = estimate_background_rms_tile(source, centre_request)
     far_tile = estimate_background_rms_tile(source, far_request)
@@ -276,7 +247,6 @@ def _assemble_tiles(
     grids: BackgroundRmsGrids,
     config: BackgroundRmsConfig,
     tiles: tuple[TilePartition, ...],
-    positions: tuple[tuple[float, float], ...],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Assemble small analytic outputs for partition-invariance assertions."""
     shape = grids.coarse.geometry.image_shape_yx
@@ -287,7 +257,6 @@ def _assemble_tiles(
             partition,
             grids,
             config,
-            bright_candidate_positions_yx=positions,
         )
         tile = estimate_background_rms_tile(source, request)
         bounds = partition.core_bounds
@@ -332,7 +301,6 @@ def test_output_is_invariant_to_tile_shape_and_partition_origin(
         grids,
         config,
         reference_manifest.tiles,
-        positions,
     )
     manifest = plan_image_partitions(
         image_shape_yx=image.shape,
@@ -346,7 +314,6 @@ def test_output_is_invariant_to_tile_shape_and_partition_origin(
         grids,
         config,
         tuple(reversed(manifest.tiles)),
-        positions,
     )
 
     np.testing.assert_allclose(actual[0], expected[0], atol=1e-12)
