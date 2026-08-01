@@ -6,6 +6,7 @@ import hashlib
 import runpy
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -50,3 +51,67 @@ def test_directory_identity_excludes_mutable_casa_lock_files(
 
     assert path_sha256(tmp_path) == first
     assert first != hashlib.sha256(b"science").hexdigest()
+
+
+def test_phase1_io_benchmark_samples_portable_current_rss(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Loading and measuring the benchmark must not require POSIX resource."""
+    namespace = _script("measure_phase1_io.py")
+    monkeypatch.setattr(
+        namespace["psutil"],
+        "Process",
+        lambda: SimpleNamespace(memory_info=lambda: SimpleNamespace(rss=8192)),
+    )
+
+    sampler = namespace["_ResidentMemorySampler"]()
+    sampler.start()
+
+    assert sampler.stop() == 8192
+
+
+def test_phase1_io_benchmark_records_bounded_one_and_many_tile_runs(
+    tmp_path: Path,
+) -> None:
+    """The benchmark observes the real FITS/Zarr path and its memory bound."""
+    namespace = _script("measure_phase1_io.py")
+    input_path = tmp_path / "input.fits"
+    generate_input: Callable[..., None] = namespace["_generate_input"]
+    run_once: Callable[..., Any] = namespace["_run_once"]
+    generate_input(input_path, size=5)
+
+    one_tile = run_once(
+        input_path=input_path,
+        work_parent=tmp_path,
+        size=5,
+        tile_size=8,
+        repetition_index=0,
+        warmup=True,
+    )
+    many_tile = run_once(
+        input_path=input_path,
+        work_parent=tmp_path,
+        size=5,
+        tile_size=3,
+        repetition_index=1,
+        warmup=False,
+    )
+
+    assert one_tile.partition_count == 1
+    assert one_tile.maximum_row_block_bytes == 5 * 5 * 8
+    assert many_tile.partition_count == 4
+    assert many_tile.maximum_row_block_bytes == 3 * 5 * 8
+    assert many_tile.object_count > one_tile.object_count
+    assert many_tile.zarr_bytes > 0
+    assert many_tile.final_fits_bytes > 0
+    assert tuple(stage.stage for stage in many_tile.measurement.stages) == (
+        "fits-zarr-ingestion",
+        "zarr-fits-materialisation",
+    )
+    metrics = many_tile.measurement.complete
+    assert metrics.dask_task_count == 0
+    assert metrics.array_copy_count is None
+    assert {item.metric for item in metrics.unavailable_metrics} == {
+        "array_copy_bytes",
+        "array_copy_count",
+    }

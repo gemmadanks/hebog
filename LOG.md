@@ -1684,3 +1684,34 @@ applicable zeroes for these single-process reference runs.
 - Run reproducible local FITS-to-Zarr-to-FITS measurements across Phase 1
   anchors, record peak RSS and storage bytes, and use the evidence to decide
   whether codec or initialization tuning is justified.
+
+## 2026-08-01 — Added reproducible Phase 1 I/O measurements
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added a platform-portable benchmark runner for the implemented warm local
+  FITS-to-Zarr-to-final-FITS path, with deterministic analytic inputs, one
+  warm-up, at least five measurements, and versioned machine-readable evidence.
+- Recorded ingestion and materialisation timings separately, alongside peak
+  process RSS, Zarr object and byte counts, chunk geometry, codec policy,
+  internal concurrency, dependency identity, and the exact Hebog commit.
+- Made unavailable allocation counters explicit and tied the measurable memory
+  claim to the structural bounded-row contract instead of fabricating zeroes.
+- Added focused tests for both one-tile and many-tile runs and for the portable
+  current-RSS sampler, which avoids the POSIX-only `resource` module.
+
+**Evidence**
+
+- All four benchmark-entry-point tests pass, including execution of the real
+  bounded FITS/Zarr path on a small deterministic image.
+- Ruff and Pyright pass for the runner and its tests.
+- Measured anchor results are intentionally deferred until this harness is in
+  Git so every evidence record identifies the commit that produced it.
+
+**Next**
+
+- Run the committed harness across one-tile and many-tile local anchors, record
+  the exploratory results, and use them to close or refine the Phase 1 local
+  I/O gates without claiming deployment-store or distributed qualification.
