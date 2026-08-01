@@ -445,7 +445,7 @@ class ZarrProductSink:
             generation = ProductGenerationManifest.from_json_bytes(payload)
         except ValueError as error:
             raise InvalidProductGenerationError(
-                "published completion manifest is invalid"
+                f"published completion manifest is invalid: {error}"
             ) from error
         if generation.canonical_json_bytes() != payload:
             raise InvalidProductGenerationError(
