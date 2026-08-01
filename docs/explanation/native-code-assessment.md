@@ -30,7 +30,7 @@ A native extension would immediately turn Hebog's current universal Python
 wheel into platform-specific binaries. Python packaging guidance requires a
 compiled wheel for each supported interpreter, operating-system, and CPU
 combination unless a stable ABI reduces that matrix. Hebog currently tests
-Python 3.11 through 3.14 on Linux, macOS, and Windows, so build, wheel repair,
+Python 3.12 through 3.14 on Linux, macOS, and Windows, so build, wheel repair,
 installation, debugging, security, and release work would become materially
 larger.
 

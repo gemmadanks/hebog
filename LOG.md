@@ -1438,3 +1438,44 @@ applicable zeroes for these single-process reference runs.
   for duplicate, mixed-run, interrupted, and concurrent-conflict records.
 - Benchmark and tune Zarr codecs, store configuration, concurrency, FITS
   ingestion, and final materialisation across the affected size anchors.
+
+## 2026-08-01 — Adopted Zarr 3.2 and Python 3.12
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Raised Hebog's minimum Python version from 3.11 to 3.12 and removed Python
+  3.11 from the portable CI matrix. Python 3.12, 3.13, and 3.14 remain
+  supported on Linux, macOS, and Windows.
+- Updated the runtime dependency to `zarr>=3.2,<3.3`; the lockfile resolves
+  Zarr 3.2.1 and no longer contains Python 3.11-only dependency branches or
+  wheels.
+- Replaced Hebog's explicit Zarr v3 chunk-key existence checks with Zarr 3.2's
+  native `read_missing_chunks=False` configuration and translated
+  `ChunkNotFoundError` at the existing Hebog error boundary.
+- Updated ADR-007, the implementation plan, contributor instructions, setup
+  guidance, native-code packaging assessment, how-to documentation, and issue
+  template. The migration guidance directs Python 3.11 users to remain on
+  Hebog 0.2.x or upgrade Python before the next release.
+
+**Evidence**
+
+- The Zarr 3.2 dependency contract was introduced as a failing test against
+  Zarr 3.1.6, then made green with the dependency and implementation update.
+- All 15 focused Zarr integration tests pass and verify that a missing chunk is
+  reported through a native Zarr `ChunkNotFoundError` cause.
+- `just check` passes Ruff, Pyright targeting Python 3.12, doctests, and 149
+  fast tests with four expected failures.
+- `just coverage` passes 192 unit and integration tests with four expected
+  failures and 90.26% branch-aware project coverage. `hebog.io.zarr` retains
+  100% coverage.
+- An isolated Python 3.12.12 environment passes 164 unit and Zarr integration
+  tests. The strict documentation build and isolated package smoke test pass;
+  the installed wheel resolves Zarr 3.2.1.
+
+**Next**
+
+- Let the portable CI matrix confirm Python 3.12 through 3.14 on Linux, macOS,
+  and Windows after human review and push.
+- Continue with the Zarr completion-manifest and recovery slice in Phase 1.

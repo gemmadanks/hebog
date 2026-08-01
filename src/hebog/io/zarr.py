@@ -14,7 +14,7 @@ import numpy as np
 import numpy.typing as npt
 import zarr
 from zarr.codecs import BytesCodec, Crc32cCodec, ZstdCodec
-from zarr.errors import ArrayNotFoundError
+from zarr.errors import ArrayNotFoundError, ChunkNotFoundError
 from zarr.storage import LocalStore
 
 from hebog.data_models.partitioning import PartitionManifest, TilePartition
@@ -137,7 +137,10 @@ class ZarrProductSink:
                 "configuration": {"separator": "/"},
             },
             attributes=cast(Any, dict(_ARRAY_ATTRIBUTES)),
-            config={"write_empty_chunks": True},
+            config={
+                "read_missing_chunks": False,
+                "write_empty_chunks": True,
+            },
         )
 
     def _require_array_metadata(
@@ -163,7 +166,12 @@ class ZarrProductSink:
                 raise InvalidProductChunkError(
                     f"Zarr product {product_name!r} policy is invalid"
                 )
-        return zarr_array.with_config({"write_empty_chunks": True})
+        return zarr_array.with_config(
+            {
+                "read_missing_chunks": False,
+                "write_empty_chunks": True,
+            }
+        )
 
     def _open_array(self, product_name: str) -> Any:
         """Open a pre-created product without racing metadata creation."""
@@ -212,14 +220,6 @@ class ZarrProductSink:
             )
         return tile
 
-    @staticmethod
-    def _chunk_key(record: ProductChunk) -> str:
-        """Return the explicit Zarr v3 default-encoding storage key."""
-        _, tile_y_index, tile_x_index = record.tile_id.split("-")
-        return (
-            f"{record.product_name}/c/{int(tile_y_index)}/{int(tile_x_index)}"
-        )
-
     def _record(
         self,
         *,
@@ -264,19 +264,18 @@ class ZarrProductSink:
             tile=tile,
             values=normalized,
         )
-        with LocalStore(self._root, read_only=True) as store:
-            existing = store.get_sync(self._chunk_key(record))
-        if existing is not None:
-            try:
-                self.read_chunk(record)
-            except InvalidProductChunkError as error:
+        try:
+            self._read_values(array=array, tile=tile, record=record)
+        except InvalidProductChunkError as error:
+            if not isinstance(error.__cause__, ChunkNotFoundError):
                 raise ProductChunkConflictError(
                     "published Zarr product chunk contains different values"
                 ) from error
+        else:
             return record
 
         array[_selection(tile)] = normalized
-        self.read_chunk(record)
+        self._read_values(array=array, tile=tile, record=record)
         return record
 
     def read_chunk(
@@ -289,16 +288,26 @@ class ZarrProductSink:
             raise InvalidProductChunkError(
                 "Zarr product chunk is not in the canonical manifest"
             )
-        with LocalStore(self._root, read_only=True) as store:
-            encoded = store.get_sync(self._chunk_key(record))
-        if encoded is None:
-            raise InvalidProductChunkError("Zarr product chunk is missing")
         array = self._open_array(record.product_name)
+        return self._read_values(array=array, tile=tile, record=record)
+
+    @staticmethod
+    def _read_values(
+        *,
+        array: Any,
+        tile: TilePartition,
+        record: ProductChunk,
+    ) -> npt.NDArray[np.generic]:
+        """Validate one chunk selection from an already-open strict array."""
         try:
             values = np.array(
                 array[_selection(tile)],
                 copy=True,
             )
+        except ChunkNotFoundError as error:
+            raise InvalidProductChunkError(
+                "Zarr product chunk is missing"
+            ) from error
         except (OSError, ValueError) as error:
             raise InvalidProductChunkError(
                 "Zarr product chunk is corrupt"

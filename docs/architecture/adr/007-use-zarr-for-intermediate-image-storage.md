@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-07-31 |
-| **Last Updated** | 2026-07-31 |
+| **Last Updated** | 2026-08-01 |
 | **Deciders** | Gemma Danks |
 | **Tags** | storage, Zarr, Dask, scalability, recovery |
 
@@ -27,17 +27,18 @@ well as Zarr would make Hebog maintain two chunk records, two error models, two
 retry implementations, two test suites, and permanent backend-selection
 logic.
 
-[Zarr v3](https://zarr.readthedocs.io/en/v3.1.6/) is a maintained standard for
+[Zarr v3](https://zarr.readthedocs.io/en/v3.2.1/) is a maintained standard for
 chunked multidimensional arrays. It provides local and remote stores, codec
 pipelines, and Dask integration without making the scientific API depend on
 Dask. Zarr is still only storage: Hebog owns tile ownership, expected chunks,
 strict missing-chunk handling, retry conflicts, provenance, completion, and
 workflow-facing products.
 
-Hebog supports Python 3.11 through 3.14. Zarr 3.2 requires Python 3.12, while
-[Zarr 3.1.6](https://pypi.org/project/zarr/3.1.6/) supports Python 3.11. Zarr
-3.1 returns fill values for absent chunks, so Hebog must distinguish an
-intentionally written all-fill chunk from a missing chunk.
+Hebog supports Python 3.12 through 3.14 and uses Zarr 3.2. Zarr 3.2 adds the
+`read_missing_chunks=False` runtime option, which raises `ChunkNotFoundError`
+instead of returning an array's fill value for an absent chunk. This removes
+Hebog's dependency on Zarr's encoded chunk-key layout while still
+distinguishing an intentionally written all-fill chunk from a missing chunk.
 
 An exploratory local comparison used one warm-up and five measured
 repetitions. These component measurements are not reviewed performance claims:
@@ -67,8 +68,8 @@ backend at every size**.
 - `ZarrProductSink` is the one explicit storage boundary. It returns a small
   storage-object-free `ProductChunk`, and no generic sink protocol is added
   until a demonstrated second implementation requires one.
-- Pin `zarr>=3.1.6,<3.2` while Python 3.11 is supported. Reassess the bound when
-  the Python floor or Zarr compatibility changes.
+- Require Python 3.12 or newer and pin `zarr>=3.2,<3.3`. Python 3.11 users must
+  remain on Hebog 0.2.x or upgrade Python before adopting the next release.
 - Create one run-scoped v3 group and one array per intermediate plane before
   worker writes. Workers do not create metadata or own a scheduler.
 - Map zero-origin canonical tile cores one-to-one onto Zarr chunks. Shifted
@@ -77,9 +78,9 @@ backend at every size**.
 - Use explicit little-endian bytes, Zstandard level 1, CRC32C, fill value zero,
   and `write_empty_chunks=True`. Codec and concurrency settings remain
   measurable implementation choices, not scientific semantics.
-- Check the configured standard v3 chunk key before decoding on Zarr 3.1.
-  CRC32C detects encoded corruption and the record's SHA-256 checks logical
-  content.
+- Set `read_missing_chunks=False` and `write_empty_chunks=True`. Translate
+  Zarr's `ChunkNotFoundError` at the Hebog boundary. CRC32C detects encoded
+  corruption and the record's SHA-256 checks logical content.
 - Accept identical sequential retries and reject different completed values.
   A completion manifest must reject missing, duplicate, conflicting, or
   mixed-run records before publishing a generation.
@@ -101,8 +102,10 @@ closed under deterministic concurrent fault tests.
 - Good, because explicit chunk alignment permits independent bounded writes.
 - Bad, because current local probes show Zarr is 1.75 and 1.42 times slower
   than the removed prototype at the two measured anchors.
-- Bad, because Python 3.11 prevents using Zarr 3.2's strict-missing option and
-  requires a standards-based existence check.
+- Bad, because dropping Python 3.11 is a breaking compatibility change for
+  users who cannot yet upgrade their runtime.
+- Good, because native strict missing-chunk reads remove storage-key knowledge
+  and simplify compatibility with different Zarr stores and encodings.
 - Risk: compression may waste CPU on noise-like planes. Benchmark codecs by
   product role and tune Zarr rather than introducing another backend.
 - Risk: local results do not predict shared or object-store throughput at
@@ -132,5 +135,5 @@ size-based storage switch.
 | Type | Links |
 | --- | --- |
 | **ADRs** | [ADR-005](005-scale-large-images-with-hierarchical-tiles.md), [ADR-006](006-isolate-compatibility-with-versioned-schemas.md) |
-| **Documentation** | [Zarr 3.1.6 arrays](https://zarr.readthedocs.io/en/v3.1.6/user-guide/arrays/), [Zarr stores](https://zarr.readthedocs.io/en/v3.1.6/user-guide/storage/) |
+| **Documentation** | [Zarr 3.2.1 arrays](https://zarr.readthedocs.io/en/v3.2.1/user-guide/arrays/), [Zarr stores](https://zarr.readthedocs.io/en/v3.2.1/user-guide/storage/) |
 | **Plan** | [Implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md) |

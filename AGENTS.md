@@ -262,7 +262,7 @@ any supported tier requires an explicitly approved and documented trade-off.
 
 - Put production code under `src/hebog/` and use absolute `hebog` imports in
   tests and examples.
-- Python 3.11 through 3.14 is supported. Do not rely only on the version in
+- Python 3.12 through 3.14 is supported. Do not rely only on the version in
   `.python-version`.
 - Use four spaces, UTF-8, LF endings, a final newline, and type annotations for
   new or changed functions.

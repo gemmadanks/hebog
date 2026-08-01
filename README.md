@@ -112,6 +112,9 @@ graph and resource budget.
 
 ## Development setup
 
+Python 3.12 through 3.14 is supported. Python 3.11 users must remain on Hebog
+0.2.x or upgrade Python before adopting the next release.
+
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), clone the
 repository, and install all dependency groups:
 

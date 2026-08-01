@@ -143,9 +143,9 @@ different value for the same product and tile fails closed.
 
 The current adapter requires a zero-origin partition whose complete cores
 align with regular storage chunks. It explicitly writes fill-valued chunks,
-checks missing standard v3 chunk keys, validates CRC32C and logical SHA-256,
-and rejects sequential conflicting retries. Consumers must still wait for the
-Phase 1 completion-manifest and deployment-store gates in
+uses Zarr 3.2's strict missing-chunk reads, validates CRC32C and logical
+SHA-256, and rejects sequential conflicting retries. Consumers must still wait
+for the Phase 1 completion-manifest and deployment-store gates in
 [ADR-007](../architecture/adr/007-use-zarr-for-intermediate-image-storage.md).
 Zarr is the only intermediate image-plane backend. Small inputs use one Zarr
 chunk and serial execution; FITS remains an input and final compatibility

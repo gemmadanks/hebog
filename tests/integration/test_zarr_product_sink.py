@@ -17,6 +17,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 import zarr
+from zarr.errors import ChunkNotFoundError
 
 from hebog.data_models import PartitionManifest, ProductChunk
 from hebog.io import (
@@ -26,6 +27,14 @@ from hebog.io import (
 )
 
 pytestmark = pytest.mark.integration
+
+
+def test_uses_zarr_3_2_for_native_strict_missing_chunk_reads() -> None:
+    """The storage contract relies on the Zarr 3.2 strict-read API."""
+    assert tuple(int(part) for part in zarr.__version__.split(".")[:2]) == (
+        3,
+        2,
+    )
 
 
 def _manifest(
@@ -168,8 +177,12 @@ def test_read_rejects_a_missing_chunk_instead_of_returning_fill(
         ).hexdigest(),
     )
 
-    with pytest.raises(InvalidProductChunkError, match="missing"):
+    with pytest.raises(
+        InvalidProductChunkError,
+        match="missing",
+    ) as exc_info:
         sink.read_chunk(missing)
+    assert isinstance(exc_info.value.__cause__, ChunkNotFoundError)
 
 
 def test_identical_retry_is_idempotent_and_conflict_fails_closed(

@@ -446,10 +446,10 @@ accepts the measured simplicity trade-off. Exploratory local probes found Zarr
 1.75 and 1.42 times slower than the removed NumPy-file prototype at 1024² and
 3000², respectively, with modestly smaller encoded footprints. Optimize Zarr
 initialization, codecs, concurrency, ingestion, and materialisation rather than
-maintaining a second record, error model, retry path, and test suite. Keep
-`zarr>=3.1.6,<3.2` while Python 3.11 remains supported; the adapter checks the
-configured standard v3 key because the 3.2 strict-read option is unavailable
-on Python 3.11.
+maintaining a second record, error model, retry path, and test suite. Hebog
+requires Python 3.12 through 3.14 and `zarr>=3.2,<3.3`; the adapter delegates
+strict missing-chunk detection to Zarr's `read_missing_chunks=False` runtime
+configuration instead of depending on encoded storage keys.
 
 Zarr's parallel-write model is compatible with Hebog only when each worker
 writes different complete chunks, execution and storage chunks are aligned,

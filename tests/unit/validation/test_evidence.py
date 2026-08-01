@@ -284,7 +284,7 @@ def _storage_evidence(**changes: object) -> StorageEvidence:
     document = StorageEvidence(
         format_name="zarr-v3",
         library_name="zarr",
-        library_version="3.1.6",
+        library_version="3.2.1",
         backend_name="local-store",
         chunk_shape_yx=(256, 256),
         shard_shape_yx=None,
