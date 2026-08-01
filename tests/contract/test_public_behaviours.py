@@ -117,13 +117,13 @@ def test_threshold_increase_cannot_create_source(tmp_path: Path) -> None:
 @_NOT_IMPLEMENTED
 def test_partition_choices_preserve_results() -> None:
     """Executor planning choices preserve deterministic scientific results."""
-    pytest.fail(
-        "partition manifests and multi-tile execution begin in Phase 1"
-    )
+    pytest.fail("end-to-end executor invariance begins in Phase 6")
 
 
 @pytest.mark.contract
 @_NOT_IMPLEMENTED
 def test_large_request_respects_worker_memory_budget() -> None:
     """Large work remains bounded by admitted tile and batch memory."""
-    pytest.fail("bounded partition execution begins in Phase 1")
+    pytest.fail(
+        "end-to-end distributed memory qualification begins in Phase 6"
+    )

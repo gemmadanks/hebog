@@ -21,28 +21,28 @@ def test_rapthor_adapter_materialises_compatibility_products() -> None:
 @_NOT_IMPLEMENTED
 def test_empty_image_returns_compatible_products() -> None:
     """Given an empty image, then valid zero-source products are returned."""
-    pytest.fail("empty FITS product materialisation begins in Phase 1")
+    pytest.fail("end-to-end empty-image analysis begins in Phase 2")
 
 
 @pytest.mark.acceptance
 @_NOT_IMPLEMENTED
 def test_invalid_metadata_fails_before_success() -> None:
     """Given corrupt metadata, then no successful result is published."""
-    pytest.fail("FITS and metadata validation begins in Phase 1")
+    pytest.fail("pipeline-level metadata failure begins in Phase 2")
 
 
 @pytest.mark.acceptance
 @_NOT_IMPLEMENTED
 def test_retry_reuses_valid_stage_products() -> None:
     """Given valid stage products, then retry does not recompute them."""
-    pytest.fail("restartable materialisation begins in Phase 1")
+    pytest.fail("end-to-end stage reuse begins in Phase 6")
 
 
 @pytest.mark.acceptance
 @_NOT_IMPLEMENTED
 def test_worker_loss_preserves_final_products() -> None:
     """Given worker loss, then final products remain deterministic."""
-    pytest.fail("distributed chunk retry begins in Phase 1")
+    pytest.fail("distributed worker recovery begins in Phase 6")
 
 
 @pytest.mark.acceptance

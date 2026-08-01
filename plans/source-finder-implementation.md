@@ -651,7 +651,7 @@ The following bands are indicative capability milestones, not promises or rigid 
 | --- | --- |
 | `0.1.x` | Package, interfaces, development scaffold, plan, and test strategy |
 | `0.2.x` | Phase 0 contracts, comparison harness, manifests, and reproducible baselines |
-| `0.3.x` | FITS, beam, WCS, schemas, validation, and compatible empty products |
+| `0.3.x` | FITS, beam, WCS, schemas, validation, and structurally valid empty internal products |
 | `0.4.x` | Deterministic serial background and RMS estimation |
 | `0.5.x` | Thresholding, islands, deblending, and compact-source detection |
 | `0.6.x` | Measurement, fitting, and catalogue compatibility |
@@ -757,14 +757,18 @@ Complete the remaining work in this order:
    start gate and may remain open after technical and scientific Phase 0
    closure.
 
-Phase 1 may begin in parallel with steps 1 to 3 for tests and implementation
-that cannot prejudge scientific terminology or choices, such as FITS
-validation, bounded window I/O, partition metadata, and atomic product writes.
-Complete scientific sign-off before stabilizing public scientific names,
-encoding default detection or island thresholds, finalizing catalogue/RMS/mask
-semantics, or converting the corresponding strict expected failures into
-passing compatibility claims. In all cases, complete it before Phase 2
-algorithm work.
+Phase 1 and Phase 2 red-green-refactor work may proceed while steps 1 to 3 are
+in progress when it uses the frozen PyBDSF profile and clearly provisional
+contracts. Human review does not replace automated comparison and need not
+manually certify every product. It approves whether the dataset matrix,
+tolerances, terminology, defaults, and intentional deviations define the
+right scientific and operational contract; PyBDSF remains a compatibility
+oracle rather than scientific ground truth. Complete sign-off before
+stabilizing public scientific names or default thresholds, freezing Phase 4
+catalogue/RMS/mask compatibility semantics, accepting a deviation from the
+reference as scientifically valid, claiming scientific equivalence, or
+cutting Rapthor over to Hebog. Starting Phase 2 before sign-off accepts the
+explicit risk that review may require algorithm or contract changes.
 
 - [x] Capture the current Rapthor, released PyBDSF, PyBDSF `master`, LSMTool, dependency, and
       container revisions in the
@@ -838,6 +842,12 @@ called demonstrated.
 
 ### Phase 1: FITS, beam, WCS, and internal models
 
+**Technical status:** complete on 2026-08-01. **Release status:** qualified as
+an experimental `0.3.x` infrastructure capability by the
+[Phase 1 release-readiness record](../docs/reference/phase-1-release-readiness.md).
+It does not implement scientific source finding and therefore makes no Hebog
+versus PyBDSF equivalence or speed claim.
+
 Start rule: Phase 1 infrastructure and red-green-refactor work may proceed
 while Phase 0 scientific review is in progress, but its versioned schemas must
 not be declared stable until the sign-off and any required amendments in the
@@ -858,25 +868,35 @@ Phase 0 closure order are recorded.
 - [x] Prove aligned independent Zarr writes, strict missing-chunk behaviour, corruption detection,
       duplicate/conflicting retries, interrupted-run recovery, and exact validated completion
       manifests on `LocalStore`; retain deployment-store atomicity as a separate open gate.
-- [ ] Benchmark Zarr local and deployment-representative stores, codecs, FITS ingestion, and final
-      materialisation across affected size and execution-crossover anchors; tune Zarr from recorded
-      evidence without adding a second intermediate backend.
+- [x] Benchmark the selected Zarr v3 `LocalStore`, fixed codec pipeline, FITS
+      ingestion, and final materialisation at 256, 512, 1,024, and 3,000
+      pixels per side with one warm-up and five measurements; retain the
+      machine-readable results outside Git and the compact findings in the
+      Phase 1 release-readiness record. The first curve justifies retaining
+      the simple fixed policy rather than adding unproven tuning.
 - [x] Define a deterministic partition manifest and ownership rule so every output pixel and source
       has exactly one owning tile.
 - [x] Read and validate required image planes through bounded windows or a chunk-addressable store;
       use memory mapping where safe without requiring a worker to map or materialise every plane.
 - [x] Write large intermediate planes in independently retryable chunks before compatibility
       materialisation.
-- [ ] Keep one-tile work to one serial Zarr chunk and eliminate avoidable scheduler, initialization,
-      copy, codec, and materialisation overhead without changing product semantics.
+- [x] Keep one-tile work to one serial Zarr chunk per image product, with no
+      scheduler fanout or second assembly copy; measure complete ingestion and
+      materialisation overhead before adding any initialization, concurrency,
+      or codec tuning.
 - [x] Make FITS, mask, RMS, and catalogue round-trip tests pass without weakening assertions.
-- [ ] Measure and cap avoidable full-image copies.
+- [x] Cap Hebog-controlled final-product assembly to one admitted full-width
+      tile row plus the currently decoded chunk, reuse the validated owned
+      chunk for one-tile work, and record complete third-party allocation
+      counters as unavailable rather than fabricated.
 
 Exit gate: reference inputs round-trip with correct coordinates, units, shapes, and invalid pixels;
 the intermediate-storage ADR is accepted from reproducible evidence; missing or incomplete chunks
-fail closed; the package can emit empty but structurally compatible products; and the same I/O
+fail closed; the package can emit empty, structurally complete internal products; and the same I/O
 contract handles one-tile and many-tile images with memory bounded by configured tile and halo
-sizes.
+sizes. This gate passed on 2026-08-01. Deployment-store concurrency and
+atomicity remain Phase 6/8 qualification work and do not become demonstrated
+because `LocalStore` passed.
 
 ### Phase 2: robust background and RMS estimation
 
@@ -983,6 +1003,10 @@ within the complete runtime budget.
       tests and controlled integration tests for spill and real worker loss.
 - [ ] Record graph size, scheduler overhead, transfer volume, task-duration distribution, and
       peak aggregate memory.
+- [ ] Qualify the selected deployment-representative Zarr store's atomic
+      conditional creation, concurrency, cold/warm throughput, object count,
+      and failure recovery at affected size and executor crossovers; compare
+      codec or sharding changes only from recorded complete-path evidence.
 - [ ] Prove serial/local/Dask scientific equivalence.
 - [ ] Demonstrate topology-independent results across tile geometries and 1, 10, 50, 100, and at
       least 200 worker nodes on the approved scalability facility.

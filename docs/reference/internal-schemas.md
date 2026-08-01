@@ -7,9 +7,10 @@ and serialize to canonical JSON for restart metadata and cross-process
 exchange.
 
 These Phase 1 schemas are versioned but remain provisional until the Phase 0
-human scientific sign-off is recorded. A later semantic change requires a new
-schema version and migration note; it must not silently reinterpret persisted
-data.
+human scientific sign-off is recorded. That review approves the meaning and
+fitness of the schema; automated round-trip and compatibility tests remain the
+evidence for individual outputs. A later semantic change requires a new schema
+version and migration note; it must not silently reinterpret persisted data.
 
 ## Source catalogue schema version 1
 

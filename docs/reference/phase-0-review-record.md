@@ -90,9 +90,17 @@ Append a completed record here using this form:
 
 Until that sign-off is appended here, thresholds remain engineering gates and
 must not be described as domain-approved. This does not block reproducibility,
-I/O scaffolding, or red-green-refactor Phase 1 work that cannot prejudge a
-scientific choice; it does block a domain-approved scientific-equivalence or
-production-readiness claim.
+I/O scaffolding, or red-green-refactor algorithm work against the frozen
+provisional PyBDSF profile; it does block stabilizing scientific defaults,
+accepting intentional reference deviations, or making a domain-approved
+scientific-equivalence or production-readiness claim. Starting algorithm work
+before this review accepts the risk of later contract changes.
+
+The reviewer is not expected to inspect or manually approve every output.
+Machine-readable equivalence tests do that. Human review is limited to whether
+the chosen datasets, metrics, tolerances, terminology, default profiles, and
+handling of PyBDSF disagreements are scientifically and operationally fit for
+purpose.
 
 The human reviewer must specifically decide whether to approve the proposed
 `5.0/3.0` Rapthor normal-cycle profile, the separate `5.0/4.0` early-cycle

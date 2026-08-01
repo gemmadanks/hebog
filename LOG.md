@@ -1715,3 +1715,62 @@ applicable zeroes for these single-process reference runs.
 - Run the committed harness across one-tile and many-tile local anchors, record
   the exploratory results, and use them to close or refine the Phase 1 local
   I/O gates without claiming deployment-store or distributed qualification.
+
+## 2026-08-01 — Completed Phase 1 technical and release qualification
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Ran the committed warm local FITS-to-Zarr-to-FITS harness at 256, 512,
+  1,024, and 3,000 pixels per side with one warm-up and five measured
+  repetitions, 512-by-512 chunks, and Zarr concurrency 10.
+- Recorded median complete times of 0.226, 0.249, 0.440, and 2.519 seconds.
+  Peak sampled process RSS was 138.1, 164.2, 269.1, and 578.1 MiB. Raw
+  versioned evidence remains under the ignored `benchmark-results/` tree.
+- Compared concurrency 1 and 10 at the 256 and 3,000 endpoints. The observed
+  median differences were only about 2.4% and 1.3%, so no dynamic concurrency,
+  codec, sharding, or additional-backend complexity was introduced.
+- Closed the Phase 1 local I/O, one-tile, and Hebog-controlled-copy gates.
+  Moved deployment-store atomicity, concurrency, cold/warm throughput, and
+  failure recovery to the later distributed qualification work where the real
+  store and topology are available.
+- Added a Phase 1 release-readiness record that explicitly limits the next
+  experimental release: the source-finding pipeline remains unimplemented,
+  and the current equivalence lane compares PyBDSF release with PyBDSF master,
+  not Hebog with either.
+- Refined human scientific review to approve the equivalence definition,
+  dataset fitness, defaults, terminology, and intentional deviations rather
+  than manually verifying every output. Phase 2 TDD may start against the
+  frozen provisional profile; sign-off remains mandatory before scientific
+  stability, equivalence, or Rapthor-cutover claims.
+
+**Evidence**
+
+- All recorded I/O campaigns identify Hebog commit
+  `39bd5397d84fe0150472adfb28ce7e66b2937fd2`, the deterministic input
+  checksum, dependency and environment identities, storage policy, and every
+  repetition.
+- One-tile runs use one Zarr chunk per product and no final assembly copy.
+  Many-tile final assembly is structurally bounded to one full-width tile row
+  plus the current decoded chunk; complete third-party allocation counts
+  remain explicitly unavailable.
+- The measurements are exploratory local evidence, not a PyBDSF performance
+  comparison or deployment-store, cold-cache, Dask, or scaling qualification.
+- The release handoff passes 323 portable unit/contract/integration tests with
+  four strict expected failures and 92.84% branch-aware coverage. All five
+  small equivalence checks pass; all seven future acceptance scenarios remain
+  strict expected failures assigned to their implementation phases.
+- Ruff, Pyright, all pre-commit hooks, strict Marimo and MkDocs validation, and
+  the isolated source-distribution-to-wheel smoke test pass. The configured
+  Linux/macOS/Windows CI matrix and controlled qualification/scalability lanes
+  were not run on this local host.
+
+**Next**
+
+- Begin Phase 2 with failing analytic and property tests for deterministic
+  serial background and RMS estimation, then compare implemented Hebog RMS
+  products with both frozen PyBDSF references.
+- Obtain the named scientific sign-off as early as practical to reduce rework,
+  and in all cases before stabilizing scientific defaults or compatibility
+  semantics or claiming scientific equivalence.
