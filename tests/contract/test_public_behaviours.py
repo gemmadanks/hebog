@@ -54,6 +54,7 @@ def _config(
     return SourceFinderConfig(
         detection_threshold_sigma=detection_threshold_sigma,
         island_threshold_sigma=island_threshold_sigma,
+        minimum_island_pixels=6,
     )
 
 

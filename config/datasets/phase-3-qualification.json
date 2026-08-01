@@ -1,0 +1,100 @@
+{
+  "datasets": [
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.5,
+        "minor_fwhm_pixels": 3.0,
+        "position_angle_degrees": 20.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0001,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase3-heldout-qualification-2048",
+      "provenance": "Additive Phase 3 held-out supplement; configuration frozen before compact-detection tuning and results reserved for qualification.",
+      "purpose": "Held-out compact segmentation case spanning SNR, blend, boundary, edge, and moderate-density behaviour.",
+      "recipe": {
+        "background": 0.0001,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 1,
+        "noise_rms": 0.0002,
+        "seed": 2026080199,
+        "shape_yx": [
+          2048,
+          2048
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 1.8,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.001,
+            "rotation_degrees_counterclockwise_from_x": 5.0,
+            "x_pixel": 256.0,
+            "y_pixel": 256.0
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 40.0,
+            "x_pixel": 512.0,
+            "y_pixel": 1024.0
+          },
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.3,
+            "peak_flux_jy_per_beam": 0.0025,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
+            "x_pixel": 1022.5,
+            "y_pixel": 1024.0
+          },
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 120.0,
+            "x_pixel": 1025.5,
+            "y_pixel": 1024.5
+          },
+          {
+            "major_sigma_pixels": 3.0,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 95.0,
+            "x_pixel": 1536.0,
+            "y_pixel": 1536.0
+          },
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
+            "x_pixel": 2046.0,
+            "y_pixel": 1800.0
+          }
+        ]
+      },
+      "recipe_sha256": "5ed1d783e4cfe58f201d3e744482c3ff4f82ac6b289cc4849666c9d054eb9e02",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0002777777777777778,
+          0.0002777777777777778
+        ],
+        "reference_pixel_xy": [
+          1023.5,
+          1023.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          -30.0
+        ]
+      }
+    }
+  ],
+  "manifest_id": "phase-3-qualification",
+  "schema_version": 1
+}

@@ -144,6 +144,9 @@ class SourceFinderConfig:
 
     Thresholds are explicit because a value appropriate for one survey,
     image product, or pipeline stage is not a universal scientific default.
+    Island-size cuts are likewise explicit pixel counts; a compatibility
+    adapter may derive them from reviewed beam metadata before constructing
+    this scheduler-independent configuration.
     Workflow-specific background, RMS, multiscale, and filtering choices
     belong to compatibility configuration at the adapter boundary until their
     scientific contracts are implemented.
@@ -151,6 +154,8 @@ class SourceFinderConfig:
 
     detection_threshold_sigma: float
     island_threshold_sigma: float
+    minimum_island_pixels: int
+    maximum_island_pixels: int | None = None
 
     def __post_init__(self) -> None:
         """Validate finite, positive, ordered sigma thresholds."""
@@ -166,4 +171,22 @@ class SourceFinderConfig:
             raise ValueError(
                 "island_threshold_sigma must be lower than "
                 "detection_threshold_sigma"
+            )
+        if (
+            isinstance(self.minimum_island_pixels, bool)
+            or not isinstance(self.minimum_island_pixels, Integral)
+            or self.minimum_island_pixels < 1
+        ):
+            raise ValueError(
+                "minimum_island_pixels must be a positive integer"
+            )
+        maximum = self.maximum_island_pixels
+        if maximum is not None and (
+            isinstance(maximum, bool)
+            or not isinstance(maximum, Integral)
+            or maximum < self.minimum_island_pixels
+        ):
+            raise ValueError(
+                "maximum_island_pixels must be an integer no smaller than "
+                "minimum_island_pixels"
             )

@@ -134,6 +134,7 @@ def _rapthor_config() -> RapthorCompatibilityConfig:
         source_finder=SourceFinderConfig(
             detection_threshold_sigma=5.0,
             island_threshold_sigma=3.0,
+            minimum_island_pixels=6,
         )
     )
 

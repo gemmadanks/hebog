@@ -1024,14 +1024,14 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
          mask intersection over union and overlap-based island matching,
          including split, merge, unmatched, empty, and invalid-region cases.
          Do not use background-dominated pixel accuracy as the Phase 3 gate.
-   - [ ] Add immutable Phase 3 supplements to the existing frozen manifests
+   - [x] Add immutable Phase 3 supplements to the existing frozen manifests
          for SNR bins, close-pair
          separation and flux ratio, saddle depth, sub-threshold bridges,
          source density, and every tile-edge/corner topology. Freeze the
          held-out qualification supplement and reviewed mask/object margins
          before using reference results to tune an algorithm; do not rewrite
          the Phase 0 entries or inspect held-out results during TDD.
-   - [ ] Record eight-neighbour connectivity and the two threshold comparison
+   - [x] Record eight-neighbour connectivity and the two threshold comparison
          rules as fixed, documented compact-detection semantics. Do not expose
          alternate connectivity without a concrete workflow. Make the
          minimum/maximum island-size policy explicit in typed scientific
@@ -1041,15 +1041,15 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
 
 2. **Implement bounded normalization and two-threshold detection.**
 
-   - [ ] Add a pure serial tile kernel that computes
+   - [x] Add a pure serial tile kernel that computes
          `(image - background) / rms` only for finite, valid, positive-RMS
          pixels and emits separate island-membership and detection-seed masks.
          Invalid pixels are never members or seeds; negative emission is not
          detected by the initial total-intensity profile.
-   - [ ] Prove positive-affine invariance and the two distinct monotonicity
+   - [x] Prove positive-affine invariance and the two distinct monotonicity
          properties in Section 7.3. An island-threshold increase may split a
          component even though the active-pixel mask only shrinks.
-   - [ ] Fuse normalization with thresholding for each bounded tile by
+   - [x] Fuse normalization with thresholding for each bounded tile by
          default. Do not persist a complete normalized plane or add another
          storage backend unless reuse measurements demonstrate a complete-path
          benefit.

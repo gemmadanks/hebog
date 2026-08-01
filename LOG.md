@@ -2028,3 +2028,37 @@ deblending
 
 - Freeze the remaining threshold, connectivity, island-size, and dataset
   contracts, then implement the pure bounded two-threshold serial kernel.
+
+## 2026-08-01 — Added bounded two-threshold detection
+
+**Plan phase:** Phase 3, slices 1 and 2
+
+**Completed**
+
+- Added immutable Phase 3 development, regression, and held-out qualification
+  manifest supplements without changing the frozen Phase 0 entries.
+- Made the minimum island size required scientific configuration and retained
+  an explicit optional maximum. The Rapthor boundary can derive a reviewed
+  beam-dependent value later; the scientific kernel receives an integer and
+  has no workflow default.
+- Added a pure vectorised float64 tile kernel that applies inclusive island
+  membership and strict detection-seed thresholds without persisting a
+  normalized image plane. Non-finite values, masks, and non-positive RMS are
+  excluded before thresholding.
+- Fixed compact detection to eight-neighbour connectivity in the documented
+  contract rather than adding an unused connectivity option.
+
+**Evidence**
+
+- Thirty-one focused configuration and detection tests pass for exact
+  threshold boundaries, positive affine transforms, distinct monotonicity,
+  negative emission, masks, non-finite values, non-positive RMS, array
+  validation, immutable outputs, and island-size configuration.
+- The normal handoff suite passes 312 fast tests with four planned strict
+  expected failures, Ruff, and Pyright.
+
+**Next**
+
+- Implement automatic high-significance candidate discovery against cached
+  coarse background/RMS summaries, then persist owned RMS tiles through the
+  Zarr generation contract.

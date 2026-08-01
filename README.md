@@ -94,6 +94,7 @@ request = SourceFinderRequest(
 config = SourceFinderConfig(
     detection_threshold_sigma=5.0,
     island_threshold_sigma=3.0,
+    minimum_island_pixels=6,
 )
 result = find_sources(request, config, SerialExecutor())
 ```
