@@ -97,6 +97,16 @@ def candidate_rms() -> npt.NDArray[np.float64]:
     return estimate_background_rms_tile(source, request).rms
 
 
+@pytest.fixture(scope="module")
+def source_free_pixels() -> npt.NDArray[np.bool_]:
+    """Return pixels outside the frozen PyBDSF source-filter mask."""
+    raw_mask = cast(
+        Any,
+        fits.getdata(_REFERENCE_ROOT / "release" / "source_filter_mask.fits"),
+    )
+    return np.asarray(np.squeeze(np.asarray(raw_mask)) == 0, dtype=np.bool_)
+
+
 def test_compact_reference_input_checksum_is_intact() -> None:
     """The candidate input remains bound to the frozen Phase 0 dataset."""
     digest = hashlib.sha256((_REFERENCE_ROOT / "input.fits").read_bytes())
@@ -110,6 +120,7 @@ def test_compact_reference_input_checksum_is_intact() -> None:
 )
 def test_compact_rms_map_meets_pybdsf_scientific_gates(
     candidate_rms: npt.NDArray[np.float64],
+    source_free_pixels: npt.NDArray[np.bool_],
     reference: str,
     product: str,
 ) -> None:
@@ -123,7 +134,11 @@ def test_compact_rms_map_meets_pybdsf_scientific_gates(
         dtype=np.float64,
     )
 
-    report = compare_rms_maps(reference_rms, candidate_rms)
+    report = compare_rms_maps(
+        reference_rms,
+        candidate_rms,
+        valid_mask=source_free_pixels,
+    )
 
     median_difference = report.median_absolute_fractional_difference
     tail_difference = report.percentile_95_absolute_fractional_difference
