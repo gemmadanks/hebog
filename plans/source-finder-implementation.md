@@ -861,7 +861,7 @@ Phase 0 closure order are recorded.
 - [ ] Benchmark Zarr local and deployment-representative stores, codecs, FITS ingestion, and final
       materialisation across affected size and execution-crossover anchors; tune Zarr from recorded
       evidence without adding a second intermediate backend.
-- [ ] Define a deterministic partition manifest and ownership rule so every output pixel and source
+- [x] Define a deterministic partition manifest and ownership rule so every output pixel and source
       has exactly one owning tile.
 - [x] Read and validate required image planes through bounded windows or a chunk-addressable store;
       use memory mapping where safe without requiring a worker to map or materialise every plane.

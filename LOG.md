@@ -1626,3 +1626,29 @@ applicable zeroes for these single-process reference runs.
   full-image copies before tuning.
 - Implement the reviewed Rapthor/PyBDSF catalogue and side-product mapping at
   the compatibility boundary without changing the internal schema.
+
+## 2026-08-01 — Fixed deterministic source ownership
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Defined source ownership from one finite zero-based continuous `(y, x)`
+  reference position and the partition manifest's half-open tile cores.
+- Assigned exact internal-boundary ties to the core that begins at the
+  boundary. Halo overlap, source extent, worker count, and completion order do
+  not affect catalogue ownership.
+- Added constant-time ownership lookup for regular and shifted partition
+  origins, with explicit rejection of non-finite and out-of-image positions.
+- Updated the domain glossary, large-image domain model, and Phase 1 checklist.
+
+**Evidence**
+
+- The new contracts failed on the absent ownership API before implementation.
+- All 29 partition tests pass, including every edge and corner, shifted-grid
+  boundaries, representative subpixel positions, and invalid coordinates.
+
+**Next**
+
+- Stream validated completed Zarr generations into bounded final-product row
+  blocks and measure one-tile and many-tile materialisation overhead.

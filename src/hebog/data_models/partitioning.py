@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import pairwise
+from math import isfinite
 from typing import Literal, Self
 
 
@@ -124,6 +125,27 @@ def _axis_bounds(
     return tuple(pairwise(boundaries))
 
 
+def _axis_owner_index(
+    position: float,
+    *,
+    length: int,
+    core: int,
+    origin: int,
+) -> int:
+    """Resolve one valid continuous coordinate to its half-open core."""
+    first_stop = origin or core
+    if position < first_stop or first_stop >= length:
+        return 0
+    return 1 + int((position - first_stop) // core)
+
+
+def _axis_partition_count(*, length: int, core: int, origin: int) -> int:
+    """Return the number of canonical intervals without materialising them."""
+    first_stop = origin or core
+    remaining = max(0, length - first_stop)
+    return 1 + (remaining + core - 1) // core
+
+
 def _canonical_tiles(
     image_shape_yx: tuple[int, int],
     tile_core_shape_yx: tuple[int, int],
@@ -190,6 +212,47 @@ class PartitionManifest:
                 "partition manifest tiles must match canonical row-major "
                 "ownership"
             )
+
+    def owner_for_position_yx(
+        self,
+        position_yx: tuple[float, float],
+    ) -> TilePartition:
+        """Return the unique tile owning a source reference position.
+
+        Positions use zero-based continuous ``(y, x)`` pixel coordinates.
+        A position exactly on an internal boundary belongs to the core that
+        starts at that boundary. A source may overlap other cores and halos;
+        only its deterministic reference position selects catalogue ownership.
+        """
+        y_position, x_position = position_yx
+        height, width = self.image_shape_yx
+        if (
+            not isfinite(y_position)
+            or not isfinite(x_position)
+            or not 0 <= y_position < height
+            or not 0 <= x_position < width
+        ):
+            raise ValueError(
+                "source reference position must be finite and inside the image"
+            )
+        y_index = _axis_owner_index(
+            y_position,
+            length=height,
+            core=self.tile_core_shape_yx[0],
+            origin=self.partition_origin_yx[0],
+        )
+        x_index = _axis_owner_index(
+            x_position,
+            length=width,
+            core=self.tile_core_shape_yx[1],
+            origin=self.partition_origin_yx[1],
+        )
+        tiles_per_row = _axis_partition_count(
+            length=width,
+            core=self.tile_core_shape_yx[1],
+            origin=self.partition_origin_yx[1],
+        )
+        return self.tiles[y_index * tiles_per_row + x_index]
 
     @classmethod
     def create(

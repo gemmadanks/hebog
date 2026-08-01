@@ -35,6 +35,7 @@ example products, and scientific thresholds are reviewed.
 | Island | Connected above-island-threshold pixels associated with at least one accepted detection peak. It is a segmentation object, not automatically one source. |
 | Gaussian component | One fitted Gaussian belonging to a PyBDSF source. Use the full qualifier; bare `component` is ambiguous. |
 | Source candidate | One catalogue-level association inferred to represent astrophysical emission. In the PyBDSF source-list model, one or more fitted Gaussians may be grouped into a source and an island may contain one or more sources. A detection is not established astrophysical truth. |
+| Source reference position | Finite zero-based continuous `(y, x)` pixel position used only to assign one reconciled source to a tile core. Exact internal-boundary ties belong to the core beginning at that boundary. A source may overlap other cores and halos; its reference position alone selects catalogue ownership. |
 | Catalogue row | Serialized representation of one source in the compatibility source-list catalogue. A row is data interchange, not the in-memory domain object. |
 | Compact source | Detection sufficiently unresolved or small for the reviewed compact-source measurement and comparison rules. State the size criterion when using it in a test. |
 | Blended source | Two or more physically distinct sources whose above-threshold emission overlaps and requires deblending. |
@@ -72,7 +73,7 @@ example products, and scientific thresholds are reviewed.
 | Serial reference | Deterministic Hebog execution used as the first oracle for local and Dask conformance. It is not the same as the PyBDSF compatibility oracle. |
 | Partition manifest | Small, deterministic record describing a logical image's shape, tile cores, stage-specific halos, global coordinates, ownership, and chunk locations. It contains no image plane or scheduler object. |
 | Product generation | One run-scoped set of intermediate Zarr product chunks. It is consumable only after an immutable completion manifest identifies exactly one validated chunk for every expected product and tile. A Zarr hierarchy without that marker is incomplete, even when its array metadata exists. |
-| Tile core | Non-overlapping image region owned by one tile for output and source-assignment purposes. A small image is represented as one tile core. |
+| Tile core | Non-overlapping image region owned by one tile for output and source-assignment purposes. A small image is represented as one tile core. Source ownership uses the source reference position and the core's half-open boundaries, never halo overlap or worker completion order. |
 | Halo | Read-only pixels surrounding a tile core that provide neighbourhood context for windows, convolution, connectivity, or fitting. Qualify the stage and pixel width; halo pixels are not duplicate output ownership. |
 | Boundary summary | Bounded metadata emitted by a tile for cross-tile reconciliation, such as mergeable statistics, connected-label equivalences, or edge-source state. It is proportional to a boundary or catalogue shard, not the full image. |
 | Reconciliation | Deterministic merge of tile summaries into global statistics, stable labels, sources, catalogues, or products, normally through hierarchical reductions. |
