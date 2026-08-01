@@ -1,10 +1,13 @@
 """Tests for scheduler-safe request and result records."""
 
+import json
 import pickle
 from dataclasses import replace
 from pathlib import Path
+from typing import Literal
 
 import pytest
+from pydantic import ValidationError
 
 from hebog import SourceFinderRequest, SourceFinderResult
 from hebog.adapters.rapthor import (
@@ -13,7 +16,12 @@ from hebog.adapters.rapthor import (
     RapthorSourceFindingResult,
 )
 from hebog.config import SourceFinderConfig
-from hebog.data_models import CelestialWcs, ImageMetadata, RestoringBeam
+from hebog.data_models import (
+    CelestialWcs,
+    ImageMetadata,
+    MaterializedProduct,
+    RestoringBeam,
+)
 
 
 def _source_finder_request() -> SourceFinderRequest:
@@ -25,14 +33,59 @@ def _source_finder_request() -> SourceFinderRequest:
     )
 
 
-def _source_finder_result() -> SourceFinderResult:
+def _materialized_product(
+    role: Literal[
+        "source-catalogue",
+        "rms",
+        "source-filtering-mask",
+        "diagnostics",
+    ],
+    path: str,
+    *,
+    scientific_status: Literal["valid", "unavailable"] = "valid",
+) -> MaterializedProduct:
+    """Return one closed file identity without reading its contents."""
+    if role == "source-catalogue":
+        media_type = "application/fits"
+    elif role == "diagnostics":
+        media_type = "application/json"
+    else:
+        media_type = "image/fits"
+    return MaterializedProduct(
+        product_role=role,
+        path=Path(path),
+        media_type=media_type,
+        byte_count=2880,
+        content_sha256="a" * 64,
+        scientific_status=scientific_status,
+        content_schema_version=1,
+    )
+
+
+def _source_finder_result(
+    *,
+    rms_status: Literal["valid", "unavailable"] = "valid",
+) -> SourceFinderResult:
     """Return one valid pipeline-neutral result for mutation tests."""
     return SourceFinderResult(
-        catalogue_path=Path("catalogue.fits"),
-        rms_path=Path("rms.fits"),
-        mask_path=Path("mask.fits"),
-        diagnostics_path=Path("diagnostics.json"),
+        run_id="test-run",
+        catalogue=_materialized_product(
+            "source-catalogue",
+            "catalogue.fits",
+        ),
+        rms=_materialized_product(
+            "rms",
+            "rms.fits",
+            scientific_status=rms_status,
+        ),
+        mask=_materialized_product("source-filtering-mask", "mask.fits"),
+        diagnostics=_materialized_product(
+            "diagnostics",
+            "diagnostics.json",
+        ),
         source_count=2,
+        gaussian_component_count=3,
+        island_count=1,
         wall_seconds=1.5,
     )
 
@@ -102,8 +155,40 @@ def test_result_exposes_one_pipeline_neutral_product_set() -> None:
     """One scientific analysis returns one catalogue, RMS, and mask set."""
     result = _source_finder_result()
 
-    assert result.schema_version == 1
+    assert result.schema_version == 2
+    assert result.catalogue_path == Path("catalogue.fits")
+    assert result.rms_path == Path("rms.fits")
+    assert result.mask_path == Path("mask.fits")
+    assert result.diagnostics_path == Path("diagnostics.json")
+    assert (
+        SourceFinderResult.from_json_bytes(result.canonical_json_bytes())
+        == result
+    )
     assert pickle.loads(pickle.dumps(result)) == result
+
+    pretty = json.dumps(result.model_dump(mode="json"), indent=2).encode()
+    with pytest.raises(ValueError, match="canonical"):
+        SourceFinderResult.from_json_bytes(pretty)
+
+
+def test_result_can_mark_rms_science_unavailable_without_a_fake_estimate() -> (
+    None
+):
+    """All-blank input remains successful without relabelling pixels as RMS."""
+    result = _source_finder_result(rms_status="unavailable")
+
+    assert result.source_count == 2
+    assert result.rms.scientific_status == "unavailable"
+    assert result.rms_path == Path("rms.fits")
+
+
+def test_materialized_product_is_versioned_and_pickle_safe() -> None:
+    """A closed artifact carries a portable role, format, and identity."""
+    product = _materialized_product("source-catalogue", "catalogue.fits")
+
+    assert product.schema_version == 1
+    assert product.content_schema_version == 1
+    assert pickle.loads(pickle.dumps(product)) == product
 
 
 def test_rapthor_records_expose_two_branch_compatibility_products() -> None:
@@ -164,8 +249,14 @@ def test_source_finder_request_rejects_invalid_metadata(
 @pytest.mark.parametrize(
     ("changes", "message"),
     [
-        ({"schema_version": 2}, "unsupported source-finder result"),
+        ({"schema_version": 1}, "schema_version"),
+        ({"run_id": ""}, "run ID"),
         ({"source_count": -1}, "source_count cannot be negative"),
+        (
+            {"gaussian_component_count": -1},
+            "gaussian_component_count cannot be negative",
+        ),
+        ({"island_count": -1}, "island_count cannot be negative"),
         ({"wall_seconds": float("nan")}, "wall_seconds must be finite"),
         ({"wall_seconds": -1.0}, "wall_seconds must be finite"),
     ],
@@ -175,8 +266,85 @@ def test_source_finder_result_rejects_invalid_metadata(
     message: str,
 ) -> None:
     """Pipeline-neutral result metadata fails at construction time."""
-    with pytest.raises(ValueError, match=message):
-        replace(_source_finder_result(), **changes)
+    document = _source_finder_result().model_dump(mode="python")
+    document.update(changes)
+
+    with pytest.raises(ValidationError, match=message):
+        SourceFinderResult.model_validate(document)
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"schema_version": 2}, "schema_version"),
+        ({"path": Path(".")}, "file path"),
+        ({"byte_count": 0}, "byte count"),
+        ({"content_sha256": "not-a-checksum"}, "SHA-256"),
+        ({"content_schema_version": 0}, "content schema version"),
+        ({"media_type": "image/fits"}, "media type"),
+        ({"byte_count": "2880"}, "byte_count"),
+    ],
+)
+def test_materialized_product_rejects_invalid_identity_or_format(
+    changes: dict[str, object],
+    message: str,
+) -> None:
+    """Restart metadata cannot ambiguously identify an output file."""
+    document = _materialized_product(
+        "source-catalogue",
+        "catalogue.fits",
+    ).model_dump(mode="python")
+    document.update(changes)
+
+    with pytest.raises(ValidationError, match=message):
+        MaterializedProduct.model_validate(document)
+
+
+def test_result_rejects_wrong_roles_paths_statuses_and_counts() -> None:
+    """The public result exposes exactly one scientifically labelled set."""
+    valid = _source_finder_result().model_dump(mode="python")
+    cases = (
+        (
+            {"catalogue": _materialized_product("rms", "other.fits")},
+            "catalogue product role",
+        ),
+        (
+            {"rms": _materialized_product("rms", "catalogue.fits")},
+            "paths must be distinct",
+        ),
+        (
+            {
+                "catalogue": _materialized_product(
+                    "source-catalogue",
+                    "catalogue.fits",
+                    scientific_status="unavailable",
+                )
+            },
+            "only RMS may be scientifically unavailable",
+        ),
+        (
+            {
+                "source_count": 0,
+                "gaussian_component_count": 1,
+                "island_count": 1,
+            },
+            "components require a source",
+        ),
+        (
+            {
+                "source_count": 1,
+                "gaussian_component_count": 0,
+                "island_count": 0,
+            },
+            "sources require an island",
+        ),
+    )
+
+    for changes, message in cases:
+        document = dict(valid)
+        document.update(changes)
+        with pytest.raises(ValidationError, match=message):
+            SourceFinderResult.model_validate(document)
 
 
 @pytest.mark.parametrize(

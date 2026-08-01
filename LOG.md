@@ -1524,3 +1524,53 @@ applicable zeroes for these single-process reference runs.
   failing round-trip and boundary tests.
 - Benchmark deployment-representative Zarr stores and prove their atomic or
   conditional completion semantics before distributed qualification.
+
+## 2026-08-01 — Defined internal catalogue and result schemas
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Added catalogue schema version 1 with distinct `Island`,
+  `SourceCandidate`, and `GaussianComponent` identities and nested position,
+  flux, shape, and spectral records. The schema uses pipeline-neutral names
+  and keeps PyBDSF/Rapthor column names at the compatibility boundary.
+- Made ICRS coordinates, position epoch, degrees, Jy, Jy/beam, reference
+  frequency, the spectral convention, and null representation explicit. The
+  initial schema is MFS-only and rejects mixed reference frequencies.
+- Added canonical ordering, unique IDs, source-component-island referential
+  integrity, deterministic JSON, and a valid zero-row catalogue without a
+  dummy scientific source.
+- Replaced the path-only `SourceFinderResult` version 1 scaffold with result
+  schema version 2 and concrete `MaterializedProduct` records. Each product
+  carries a role, media type, content schema, byte count, SHA-256, and
+  scientific status; existing path properties remain available to consumers.
+- Allowed only RMS to be scientifically unavailable in a successful core
+  result, so an all-blank image cannot silently relabel copied input pixels as
+  an RMS estimate.
+- Updated ADR-006, the target architecture, Phase 1 checklist, domain
+  glossary, API index, and a new internal-schema reference. The schemas remain
+  provisional pending the recorded Phase 0 human scientific sign-off.
+
+**Evidence**
+
+- Followed two red-green cycles: catalogue and materialised-result tests first
+  failed to import their absent models, then all 84 focused schema and public
+  data-model tests passed.
+- `just coverage` passes 257 unit and integration tests with four expected
+  failures and 92.12% branch-aware project coverage. The new catalogue module
+  and changed source-finding result module each have 100% coverage.
+- `just check` passes Ruff formatting and linting, Pyright, doctests, and 208
+  fast tests with four expected failures. The strict documentation build and
+  isolated package smoke test pass. All five frozen equivalence tests pass.
+- This slice defines logical records and restart metadata; it makes no claim
+  that FITS compatibility materialisation or large catalogue-shard storage is
+  complete.
+
+**Next**
+
+- Add failing Astropy-backed round-trip and boundary tests for valid and empty
+  catalogue, RMS, mask, and diagnostics products, including corrupt and
+  unsupported inputs, then implement their bounded compatibility I/O.
+- Map the reviewed Rapthor/PyBDSF catalogue view separately from the internal
+  schema and keep dummy rows or placeholder RMS behaviour adapter-only.

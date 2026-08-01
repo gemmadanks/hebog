@@ -414,13 +414,15 @@ src/hebog/
   io/
     fits.py                 image, beam, WCS, masks, and memory mapping
     chunks.py               bounded window and chunk-addressable plane I/O
-    catalogue.py            versioned internal catalogue schemas
+    catalogue.py            Astropy FITS catalogue compatibility I/O
   adapters/
     rapthor.py              PyBDSF/LSMTool product and failure compatibility
   validation/
     datasets.py             governed manifests and partition-invariant truth
     comparison.py           independently tested scientific comparison reports
-  data_models/              small serializable requests and results
+  data_models/
+    catalogues.py           versioned internal catalogue schemas
+    source_finding.py       small serializable requests and results
 ```
 
 Scientific kernels operate on bounded NumPy tile arrays with explicit core,
@@ -845,7 +847,9 @@ Phase 0 closure order are recorded.
       unsupported FITS inputs and products.
 - [x] Write failing tests for partition manifests, bounded window reads, halo clipping, global and
       tile coordinates, chunk checksums, interrupted writes, and restartable materialisation.
-- [ ] Define versioned internal catalogue and materialised result schemas from those tests.
+- [x] Define versioned internal catalogue and materialised result schemas from
+      failing physical-boundary, relationship, empty, serialization, and restart-metadata tests;
+      keep their scientific status provisional until Phase 0 human sign-off.
 - [x] Define a narrow image-source seam and explicit Zarr product boundary from
       concrete FITS and workflow tests; do not introduce a generic sink protocol,
       registry, or plugin system before a demonstrated second implementation.

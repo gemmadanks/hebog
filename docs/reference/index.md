@@ -3,6 +3,7 @@
 Related project references:
 
 - [Source-finding domain glossary](domain-glossary.md)
+- [Internal catalogue and result schemas](internal-schemas.md)
 - [Rapthor source-finding contract](rapthor-source-finding-contract.md)
 - [Scientific pre-review findings](scientific-pre-review.md)
 - [Phase 0 starting revisions](starting-revisions.md)

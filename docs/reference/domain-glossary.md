@@ -51,6 +51,7 @@ example products, and scientific thresholds are reviewed.
 | Spectral model | Explicit rule, such as spectral-index coefficients and their convention, relating component flux to frequency. It belongs to a source or component record, not to an implicit filename convention. |
 | Patch | Group of sky-model components used as a calibration direction. The current compatibility path groups surviving sky-model components by island. |
 | Source catalogue | Materialised table of measured source rows. Hebog documentation uses “catalogue”; compatibility code may retain external names such as `source_catalog`. |
+| Scientific status | Whether a materialised product contains the scientific quantity named by its role. `unavailable` is explicit metadata, not permission to relabel input or placeholder pixels as an RMS estimate. |
 | Source-filtering mask | Image-aligned island mask used to retain and group sky-model components. Do not call it a clean mask; a clean mask controls deconvolution. |
 | Materialised product | Closed, restartable file plus plain metadata. It must not contain an open FITS handle, mutable full-image object, or scheduler client. |
 | Compatibility adapter | Boundary that maps Hebog's internal schema and terms to the filenames, fields, units, and empty behaviour required by Rapthor/LSMTool. ADR 006 fixes this as a versioned, dependency-free boundary. |
