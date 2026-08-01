@@ -912,12 +912,17 @@ because `LocalStore` passed.
 
 ### Phase 2: robust background and RMS estimation
 
-- [ ] Write failing analytic and property tests for constant and affine backgrounds, positive
-      scaling, masks, NaNs, edges, negative values, sparse adaptive cells, and interpolation
-      fallback.
+- [x] Establish an explicit clipping policy and a vectorised serial oracle for
+      batches of independent windows. Cover constant and negative backgrounds,
+      positive affine transforms, masks, NaNs, bright outliers, zero RMS, and
+      insufficient retained samples without Python loops over windows.
+- [ ] Extend analytic and property tests through coarse-grid placement and
+      interpolation for affine backgrounds, edges, sparse adaptive cells, and
+      fallback behaviour.
 - [ ] Add tile-boundary and partition-invariance tests for RMS windows, interpolation, and adaptive
       bright-source regions.
-- [ ] Implement batched sigma-clipped statistics on a coarse window grid to satisfy those tests.
+- [ ] Place coarse-grid windows in bounded batches and apply the serial
+      sigma-clipped statistics oracle to satisfy those tests.
 - [ ] Compute global coarse-grid and interpolation metadata through hierarchical reductions and
       bounded tile summaries rather than gathering full planes.
 - [ ] Reuse buffers and calculate adaptive fine-grid cells only around bright candidates.

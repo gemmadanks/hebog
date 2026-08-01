@@ -57,6 +57,12 @@ Related project references:
     options:
       show_symbol_type_toc: true
 
+## Background and RMS window statistics
+
+::: hebog.algorithms.background
+    options:
+      show_symbol_type_toc: true
+
 ## Workflow adapters
 
 ::: hebog.adapters.rapthor

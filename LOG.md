@@ -1832,3 +1832,36 @@ applicable zeroes for these single-process reference runs.
 
 - Confirm the regression on the Python 3.12–3.14 Windows CI matrix; no
   Windows-specific application code or conditional behaviour is required.
+
+## 2026-08-01 — Started Phase 2 window statistics
+
+**Plan phase:** Phase 2, robust background and RMS estimation
+
+**Completed**
+
+- Added an explicit immutable sigma-clipping policy for bounded RMS windows.
+- Added a pure, vectorised serial oracle that estimates background and RMS for
+  a batch of independent two-dimensional windows through Astropy's established
+  sigma-clipping implementation. The kernel creates no scheduler, performs no
+  I/O, and contains no Python loop over pixels or windows.
+- Made valid and retained sample counts explicit. Non-finite and masked pixels
+  do not contribute; sparse windows return read-only NaN estimates with an
+  explicit unavailable flag so later interpolation can apply a reviewed
+  fallback without mistaking missing data for zero noise.
+
+**Evidence**
+
+- Seventeen analytic, property, configuration, and boundary tests pass for
+  known symmetric noise, constant and negative backgrounds, bright outliers,
+  masks, NaNs, positive affine transforms, sparse windows, aligned batches,
+  and immutable result arrays.
+- The portable coverage lane passes 344 tests with four strict expected
+  failures at 93.02% branch-aware project coverage. Both new production files
+  have 100% statement and branch coverage, and all five frozen equivalence
+  checks remain green before the new kernel is integrated into a pipeline.
+
+**Next**
+
+- Define deterministic coarse-grid window centres and clipped edge geometry
+  with analytic affine-background tests, then apply the window oracle in
+  bounded batches before implementing interpolation.

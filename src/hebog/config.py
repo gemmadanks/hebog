@@ -4,6 +4,37 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isfinite
+from numbers import Integral
+
+_MINIMUM_RMS_SAMPLES = 2
+
+
+@dataclass(frozen=True, slots=True)
+class RmsWindowStatisticsConfig:
+    """Robust-statistics policy for one batch of bounded RMS windows."""
+
+    clipping_sigma: float
+    maximum_iterations: int
+    minimum_samples: int
+
+    def __post_init__(self) -> None:
+        """Require a finite clipping threshold and usable sample counts."""
+        if not isfinite(self.clipping_sigma) or self.clipping_sigma <= 0:
+            raise ValueError("clipping_sigma must be finite and positive")
+        if isinstance(self.maximum_iterations, bool) or not isinstance(
+            self.maximum_iterations,
+            Integral,
+        ):
+            raise ValueError("maximum_iterations must be an integer")
+        if self.maximum_iterations < 1:
+            raise ValueError("maximum_iterations must be positive")
+        if isinstance(self.minimum_samples, bool) or not isinstance(
+            self.minimum_samples,
+            Integral,
+        ):
+            raise ValueError("minimum_samples must be an integer")
+        if self.minimum_samples < _MINIMUM_RMS_SAMPLES:
+            raise ValueError("minimum_samples must be at least two")
 
 
 @dataclass(frozen=True, slots=True)
