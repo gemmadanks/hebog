@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import pickle
 from dataclasses import replace
 from pathlib import Path
@@ -19,10 +20,16 @@ import pytest
 import zarr
 from zarr.errors import ChunkNotFoundError
 
-from hebog.data_models import PartitionManifest, ProductChunk
+from hebog.data_models import (
+    PartitionManifest,
+    ProductChunk,
+    ProductGenerationManifest,
+)
 from hebog.io import (
     InvalidProductChunkError,
+    InvalidProductGenerationError,
     ProductChunkConflictError,
+    ProductGenerationConflictError,
     ZarrProductSink,
 )
 
@@ -50,6 +57,20 @@ def _manifest(
     )
 
 
+def _sink(
+    root: Path,
+    manifest: PartitionManifest | None = None,
+    *,
+    generation_id: str = "run-001",
+) -> ZarrProductSink:
+    """Return a sink with one explicit generation identity."""
+    return ZarrProductSink(
+        root,
+        _manifest() if manifest is None else manifest,
+        generation_id=generation_id,
+    )
+
+
 def _values_for(tile_index: int) -> npt.NDArray[np.float64]:
     """Return deterministic values with one invalid scientific pixel."""
     tile = _manifest().tiles[tile_index]
@@ -59,12 +80,34 @@ def _values_for(tile_index: int) -> npt.NDArray[np.float64]:
     return values
 
 
+def _write_product(
+    sink: ZarrProductSink,
+    manifest: PartitionManifest,
+    product_name: str,
+) -> tuple[ProductChunk, ...]:
+    """Initialize and write every canonical chunk for one product."""
+    dtype = np.dtype("u1") if product_name == "mask" else np.dtype("<f8")
+    sink.initialize_product(product_name=product_name, dtype=dtype)
+    return tuple(
+        sink.write_chunk(
+            product_name=product_name,
+            tile=tile,
+            values=np.full(
+                tile.core_bounds.shape_yx,
+                index + 1,
+                dtype=dtype,
+            ),
+        )
+        for index, tile in enumerate(manifest.tiles)
+    )
+
+
 def test_initializes_one_strict_zarr_v3_array_per_product(
     tmp_path: Path,
 ) -> None:
     """Array geometry and missing/empty policy are explicit and durable."""
     root = tmp_path / "run.zarr"
-    sink = ZarrProductSink(root, _manifest())
+    sink = _sink(root)
 
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
 
@@ -76,9 +119,13 @@ def test_initializes_one_strict_zarr_v3_array_per_product(
     assert array.dtype == np.dtype("<f8")
     assert array.attrs["hebog_missing_chunk_policy"] == "error"
     assert array.attrs["hebog_write_empty_chunks"] is True
+    assert array.attrs["hebog_generation_id"] == "run-001"
+    assert group.attrs["hebog_storage_schema_version"] == 2
     assert group.attrs["partition_schema_version"] == 1
     assert group.attrs["partition_origin_yx"] == [0, 0]
+    assert group.attrs["generation_id"] == "run-001"
     assert pickle.loads(pickle.dumps(sink)).manifest == sink.manifest
+    assert sink.generation_id == "run-001"
 
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
 
@@ -88,7 +135,7 @@ def test_initialization_rejects_conflicting_group_or_array_metadata(
 ) -> None:
     """A reused run store cannot silently acquire different geometry."""
     root = tmp_path / "run.zarr"
-    sink = ZarrProductSink(root, _manifest())
+    sink = _sink(root)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
 
     with pytest.raises(InvalidProductChunkError, match="metadata"):
@@ -97,7 +144,7 @@ def test_initialization_rejects_conflicting_group_or_array_metadata(
     group = zarr.open_group(store=root, mode="r+")
     group.attrs["image_shape_yx"] = [99, 99]
     with pytest.raises(InvalidProductChunkError, match="attribute"):
-        ZarrProductSink(root, _manifest()).initialize_product(
+        _sink(root).initialize_product(
             product_name="mask",
             dtype=np.dtype("u1"),
         )
@@ -105,7 +152,7 @@ def test_initialization_rejects_conflicting_group_or_array_metadata(
 
 def test_initialization_rejects_object_arrays(tmp_path: Path) -> None:
     """Intermediate image products never enable object deserialization."""
-    sink = ZarrProductSink(tmp_path / "run.zarr", _manifest())
+    sink = _sink(tmp_path / "run.zarr")
 
     with pytest.raises(ValueError, match="object"):
         sink.initialize_product(product_name="rms", dtype=np.dtype("O"))
@@ -115,7 +162,7 @@ def test_writes_and_reads_independent_complete_chunks(tmp_path: Path) -> None:
     """Tile owners preserve global placement, dtype, NaNs, and edge shapes."""
     root = tmp_path / "run.zarr"
     manifest = _manifest()
-    sink = ZarrProductSink(root, manifest)
+    sink = _sink(root, manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
     records = tuple(
         sink.write_chunk(
@@ -144,7 +191,7 @@ def test_writes_an_all_fill_value_chunk_for_strict_reads(
 ) -> None:
     """A valid zero chunk remains distinguishable from a missing chunk."""
     manifest = _manifest()
-    sink = ZarrProductSink(tmp_path / "run.zarr", manifest)
+    sink = _sink(tmp_path / "run.zarr", manifest)
     sink.initialize_product(product_name="mask", dtype=np.dtype("u1"))
     tile = manifest.tiles[0]
 
@@ -162,11 +209,12 @@ def test_read_rejects_a_missing_chunk_instead_of_returning_fill(
 ) -> None:
     """A hierarchy with metadata but no tile bytes fails closed."""
     manifest = _manifest()
-    sink = ZarrProductSink(tmp_path / "run.zarr", manifest)
+    sink = _sink(tmp_path / "run.zarr", manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
     missing_tile = manifest.tiles[1]
     missing_values = _values_for(1)
     missing = ProductChunk(
+        generation_id="run-001",
         product_name="rms",
         tile_id=missing_tile.tile_id,
         core_bounds=missing_tile.core_bounds,
@@ -190,7 +238,7 @@ def test_identical_retry_is_idempotent_and_conflict_fails_closed(
 ) -> None:
     """Sequential retries cannot silently replace completed science bytes."""
     manifest = _manifest()
-    sink = ZarrProductSink(tmp_path / "run.zarr", manifest)
+    sink = _sink(tmp_path / "run.zarr", manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
     tile = manifest.tiles[0]
 
@@ -219,7 +267,7 @@ def test_crc32c_rejects_corrupt_stored_bytes(tmp_path: Path) -> None:
     """The configured codec detects mutations to encoded chunk bytes."""
     root = tmp_path / "run.zarr"
     manifest = _manifest()
-    sink = ZarrProductSink(root, manifest)
+    sink = _sink(root, manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
     record = sink.write_chunk(
         product_name="rms",
@@ -244,7 +292,7 @@ def test_crc32c_rejects_corrupt_stored_bytes(tmp_path: Path) -> None:
 def test_read_rejects_record_content_disagreement(tmp_path: Path) -> None:
     """A valid Zarr chunk must still match its Hebog content identity."""
     manifest = _manifest()
-    sink = ZarrProductSink(tmp_path / "run.zarr", manifest)
+    sink = _sink(tmp_path / "run.zarr", manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
     record = sink.write_chunk(
         product_name="rms",
@@ -273,7 +321,7 @@ def test_write_rejects_values_outside_the_initialized_contract(
 ) -> None:
     """Zarr cannot silently reshape or cast a worker result."""
     manifest = _manifest()
-    sink = ZarrProductSink(tmp_path / "run.zarr", manifest)
+    sink = _sink(tmp_path / "run.zarr", manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
 
     with pytest.raises(ValueError, match=message):
@@ -290,7 +338,7 @@ def test_read_rejects_noncanonical_records_and_changed_policy(
     """Both Hebog ownership and durable array policy are validated."""
     root = tmp_path / "run.zarr"
     manifest = _manifest()
-    sink = ZarrProductSink(root, manifest)
+    sink = _sink(root, manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
     record = sink.write_chunk(
         product_name="rms",
@@ -311,6 +359,9 @@ def test_read_rejects_noncanonical_records_and_changed_policy(
         with pytest.raises(InvalidProductChunkError, match="manifest"):
             sink.read_chunk(invalid_record)
 
+    with pytest.raises(InvalidProductChunkError, match="generation ID"):
+        sink.read_chunk(replace(record, generation_id="run-002"))
+
     group = zarr.open_group(store=root, mode="r+")
     group["rms"].attrs["hebog_missing_chunk_policy"] = "fill"
     with pytest.raises(InvalidProductChunkError, match="policy"):
@@ -322,7 +373,7 @@ def test_requires_preinitialized_products_and_canonical_tiles(
 ) -> None:
     """Workers cannot race metadata creation or invent storage selections."""
     manifest = _manifest()
-    sink = ZarrProductSink(tmp_path / "run.zarr", manifest)
+    sink = _sink(tmp_path / "run.zarr", manifest)
 
     with pytest.raises(InvalidProductChunkError, match="initialized"):
         sink.write_chunk(
@@ -349,7 +400,192 @@ def test_rejects_shifted_partitions_that_do_not_align_with_zarr_chunks(
 ) -> None:
     """Direct tile writes require exactly one owner for each storage chunk."""
     with pytest.raises(ValueError, match="origin"):
-        ZarrProductSink(
+        _sink(
             tmp_path / "run.zarr",
             _manifest(partition_origin_yx=(1, 1)),
         )
+
+    with pytest.raises(ValueError, match="generation ID"):
+        _sink(tmp_path / "empty-generation.zarr", generation_id="")
+
+
+def test_publishes_and_reads_one_exact_generation_idempotently(
+    tmp_path: Path,
+) -> None:
+    """Only a validated marker makes all expected chunks consumable."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+
+    published = sink.publish_generation(
+        product_names=("rms",),
+        chunks=reversed(records),
+    )
+
+    assert published.generation_id == "run-001"
+    assert sink.read_generation() == published
+    assert (
+        sink.publish_generation(product_names=("rms",), chunks=records)
+        == published
+    )
+
+
+def test_interrupted_generation_is_not_published_and_can_resume(
+    tmp_path: Path,
+) -> None:
+    """Missing work fails closed without preventing deterministic retries."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+    records = tuple(
+        sink.write_chunk(
+            product_name="rms",
+            tile=tile,
+            values=_values_for(index),
+        )
+        for index, tile in enumerate(manifest.tiles[:-1])
+    )
+
+    with pytest.raises(InvalidProductGenerationError, match="complete"):
+        sink.publish_generation(product_names=("rms",), chunks=records)
+    with pytest.raises(InvalidProductGenerationError, match="not published"):
+        sink.read_generation()
+
+    last_index = len(manifest.tiles) - 1
+    resumed = sink.write_chunk(
+        product_name="rms",
+        tile=manifest.tiles[last_index],
+        values=_values_for(last_index),
+    )
+    published = sink.publish_generation(
+        product_names=("rms",),
+        chunks=(*records, resumed),
+    )
+    assert sink.read_generation() == published
+
+
+def test_generation_validation_rejects_store_corruption_before_publish(
+    tmp_path: Path,
+) -> None:
+    """A complete record set cannot publish corrupt underlying bytes."""
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    records = _write_product(sink, manifest, "rms")
+    chunk_path = next(
+        path
+        for path in root.rglob("*")
+        if path.is_file() and path.name != "zarr.json"
+    )
+    payload = bytearray(chunk_path.read_bytes())
+    payload[-1] ^= 1
+    chunk_path.write_bytes(payload)
+
+    with pytest.raises(InvalidProductGenerationError, match="invalid"):
+        sink.publish_generation(product_names=("rms",), chunks=records)
+    with pytest.raises(InvalidProductGenerationError, match="not published"):
+        sink.read_generation()
+
+
+def test_completion_marker_is_immutable_and_run_scoped(tmp_path: Path) -> None:
+    """A completed generation cannot be replaced or mixed with another run."""
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    rms_records = _write_product(sink, manifest, "rms")
+    first = sink.publish_generation(
+        product_names=("rms",),
+        chunks=rms_records,
+    )
+    mask_records = _write_product(sink, manifest, "mask")
+
+    with pytest.raises(ProductGenerationConflictError, match="different"):
+        sink.publish_generation(
+            product_names=("mask",),
+            chunks=mask_records,
+        )
+    assert sink.read_generation() == first
+
+    other_generation = _sink(root, manifest, generation_id="run-002")
+    with pytest.raises(InvalidProductChunkError, match="policy"):
+        other_generation.read_chunk(
+            replace(rms_records[0], generation_id="run-002")
+        )
+    with pytest.raises(InvalidProductChunkError, match="attribute"):
+        other_generation.initialize_product(
+            product_name="diagnostics",
+            dtype=np.dtype("<f8"),
+        )
+
+
+def test_read_rejects_a_corrupt_completion_marker(tmp_path: Path) -> None:
+    """Completion metadata is validated before any generation is consumed."""
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    marker = next(root.rglob("completed-generation-v1.json"))
+    marker.write_bytes(b"not-json\n")
+
+    with pytest.raises(InvalidProductGenerationError, match="invalid"):
+        sink.read_generation()
+
+
+def test_read_rejects_noncanonical_or_wrong_generation_metadata(
+    tmp_path: Path,
+) -> None:
+    """A marker must be canonical and bound to this sink's run and tiling."""
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    records = _write_product(sink, manifest, "rms")
+    published = sink.publish_generation(
+        product_names=("rms",),
+        chunks=records,
+    )
+    marker = next(root.rglob("completed-generation-v1.json"))
+    pretty = json.dumps(published.model_dump(mode="json"), indent=2)
+    marker.write_text(f"{pretty}\n", encoding="utf-8")
+
+    with pytest.raises(InvalidProductGenerationError, match="canonical"):
+        sink.read_generation()
+
+    other_records = tuple(
+        replace(record, generation_id="run-002") for record in records
+    )
+    other_generation = ProductGenerationManifest.create(
+        generation_id="run-002",
+        partition_manifest=manifest,
+        product_names=("rms",),
+        chunks=other_records,
+    )
+    marker.write_bytes(other_generation.canonical_json_bytes())
+    with pytest.raises(InvalidProductGenerationError, match="generation ID"):
+        sink.read_generation()
+
+    other_partition = PartitionManifest.create(
+        image_shape_yx=manifest.image_shape_yx,
+        tile_core_shape_yx=manifest.image_shape_yx,
+        halo_yx=(0, 0),
+    )
+    other_tile = other_partition.tiles[0]
+    other_partition_generation = ProductGenerationManifest.create(
+        generation_id="run-001",
+        partition_manifest=other_partition,
+        product_names=("rms",),
+        chunks=(
+            ProductChunk(
+                generation_id="run-001",
+                product_name="rms",
+                tile_id=other_tile.tile_id,
+                core_bounds=other_tile.core_bounds,
+                dtype="<f8",
+                shape_yx=other_tile.core_bounds.shape_yx,
+                content_sha256="a" * 64,
+            ),
+        ),
+    )
+    marker.write_bytes(other_partition_generation.canonical_json_bytes())
+    with pytest.raises(InvalidProductGenerationError, match="partition"):
+        sink.read_generation()

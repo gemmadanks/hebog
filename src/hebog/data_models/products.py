@@ -11,6 +11,7 @@ from hebog.data_models.partitioning import ImageBounds
 _PRODUCT_NAME = re.compile(r"[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*")
 _TILE_ID = re.compile(r"tile-[0-9]{5}-[0-9]{5}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
+_PRODUCT_CHUNK_SCHEMA_VERSION = 2
 
 
 def validate_product_name(product_name: str) -> None:
@@ -29,18 +30,21 @@ def validate_tile_id(tile_id: str) -> None:
 class ProductChunk:
     """Logical identity of one tile-owned chunk in a product array."""
 
+    generation_id: str
     product_name: str
     tile_id: str
     core_bounds: ImageBounds
     dtype: str
     shape_yx: tuple[int, int]
     content_sha256: str
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
 
     def __post_init__(self) -> None:
         """Reject malformed chunk identities before storage access."""
-        if self.schema_version != 1:
+        if self.schema_version != _PRODUCT_CHUNK_SCHEMA_VERSION:
             raise ValueError("unsupported product chunk schema version")
+        if not self.generation_id:
+            raise ValueError("product chunk generation ID must not be empty")
         validate_product_name(self.product_name)
         validate_tile_id(self.tile_id)
         if not self.dtype:

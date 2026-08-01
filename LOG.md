@@ -1479,3 +1479,48 @@ applicable zeroes for these single-process reference runs.
 - Let the portable CI matrix confirm Python 3.12 through 3.14 on Linux, macOS,
   and Windows after human review and push.
 - Continue with the Zarr completion-manifest and recovery slice in Phase 1.
+
+## 2026-08-01 — Published exact Zarr product generations
+
+**Plan phase:** Phase 1
+
+**Completed**
+
+- Bound every `ProductChunk` to one generation and raised the internal product
+  storage schema to version 2. Unpublished development stores created with
+  schema version 1 must be recreated; no released Hebog product used it.
+- Added the versioned, canonical `ProductGenerationManifest`. It accepts only
+  the exact product-by-tile chunk set for one partition and rejects missing,
+  duplicate, conflicting, mixed-generation, unexpected, wrong-owner, and
+  inconsistent-dtype records.
+- Made `ZarrProductSink` validate every referenced chunk before conditionally
+  creating a completion marker through the Zarr Store API. An identical
+  publication retry is idempotent and a different marker cannot replace the
+  winner.
+- Kept interrupted work unpublished and resumable from its missing chunks.
+  Consumers revalidate the canonical marker and all chunks before treating a
+  generation as consumable.
+- Completed the Phase 1 `LocalStore` recovery and completion-manifest plan
+  item. Deployment-store conditional-create and concurrency guarantees remain
+  a separate qualification gate and are not inferred from local evidence.
+
+**Evidence**
+
+- Followed a red-green cycle: the new generation contracts initially failed
+  to import before the implementation existed, then all 38 focused product
+  model and Zarr integration tests passed.
+- `just coverage` passes 208 unit and integration tests with four expected
+  failures and 90.96% branch-aware project coverage. The generation model,
+  product model, and Zarr implementation each have 100% coverage.
+- `just check` passes Ruff formatting and linting, Pyright, doctests, and 159
+  fast tests with four expected failures. The strict documentation build and
+  isolated package smoke test pass.
+- No storage performance or distributed-atomicity claim is made by this
+  correctness slice.
+
+**Next**
+
+- Define the versioned internal catalogue and materialised-result schemas from
+  failing round-trip and boundary tests.
+- Benchmark deployment-representative Zarr stores and prove their atomic or
+  conditional completion semantics before distributed qualification.

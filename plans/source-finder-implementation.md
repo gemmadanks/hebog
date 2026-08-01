@@ -488,7 +488,8 @@ The implementation must:
 5. Prove normal, missing, corrupt, duplicate, conflicting, interrupted, and
    resumed writes with deterministic fault injection. A Zarr hierarchy is not
    consumable merely because its metadata exists; only a validated completion
-   manifest publishes a generation.
+   manifest publishes a generation. This is complete for `LocalStore`; the
+   selected deployment store remains subject to the atomicity gate in item 3.
 6. Compare Zarr store and codec configurations with cold and warm storage
    across affected size anchors and both sides of each execution crossover.
    Include FITS ingestion and final materialisation. Record latency, CPU, peak
@@ -850,8 +851,9 @@ Phase 0 closure order are recorded.
       registry, or plugin system before a demonstrated second implementation.
 - [x] Write and accept the intermediate-storage ADR after a measured Zarr v3 prototype; use Zarr
       as the sole intermediate image-plane backend and remove the private NumPy-file path.
-- [ ] Prove aligned independent Zarr writes, strict missing-chunk behaviour, corruption detection,
-      duplicate/conflicting retries, interrupted-run recovery, and validated completion manifests.
+- [x] Prove aligned independent Zarr writes, strict missing-chunk behaviour, corruption detection,
+      duplicate/conflicting retries, interrupted-run recovery, and exact validated completion
+      manifests on `LocalStore`; retain deployment-store atomicity as a separate open gate.
 - [ ] Benchmark Zarr local and deployment-representative stores, codecs, FITS ingestion, and final
       materialisation across affected size and execution-crossover anchors; tune Zarr from recorded
       evidence without adding a second intermediate backend.

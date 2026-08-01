@@ -82,8 +82,10 @@ backend at every size**.
   Zarr's `ChunkNotFoundError` at the Hebog boundary. CRC32C detects encoded
   corruption and the record's SHA-256 checks logical content.
 - Accept identical sequential retries and reject different completed values.
-  A completion manifest must reject missing, duplicate, conflicting, or
-  mixed-run records before publishing a generation.
+  The versioned completion manifest rejects missing, duplicate, conflicting,
+  mixed-run, wrong-owner, and inconsistent-dtype records, then validates every
+  chunk before conditionally publishing canonical JSON through the Zarr Store
+  API. Identical completion retries are idempotent; different bytes conflict.
 
 Zarr `LocalStore` does not document the conditional-create guarantee needed to
 resolve concurrent conflicting writers atomically. Before distributed
@@ -106,6 +108,12 @@ closed under deterministic concurrent fault tests.
   users who cannot yet upgrade their runtime.
 - Good, because native strict missing-chunk reads remove storage-key knowledge
   and simplify compatibility with different Zarr stores and encodings.
+- Good, because incomplete Zarr metadata is never treated as a consumable run;
+  interrupted work remains unmarked and can resume its missing chunks.
+- Bad, because binding every chunk to a generation raises Hebog's internal
+  storage schema to version 2. Unpublished development stores created with
+  schema version 1 must be recreated; no released workflow product used that
+  schema.
 - Risk: compression may waste CPU on noise-like planes. Benchmark codecs by
   product role and tune Zarr rather than introducing another backend.
 - Risk: local results do not predict shared or object-store throughput at
@@ -119,13 +127,15 @@ size-based storage switch.
 
 ## Confirmation
 
-- Unit tests validate the versioned, pickle-safe `ProductChunk` record.
+- Unit tests validate versioned, pickle-safe `ProductChunk` and
+  `ProductGenerationManifest` records and their exact-set invariants.
 - Integration tests cover initialization, aligned and edge writes, NaNs,
   all-fill and missing chunks, CRC32C corruption, logical checksum
-  disagreement, retries, invalid geometry and dtype, changed policy, and
-  shifted-origin rejection.
-- The Phase 1 completion manifest must fail closed before any Zarr hierarchy is
-  exposed as a complete generation.
+  disagreement, retries, invalid geometry and dtype, changed policy, shifted
+  origins, interrupted-run resumption, immutable completion conflicts, and
+  corrupt completion metadata.
+- A Zarr hierarchy becomes consumable only after its run-scoped marker and all
+  referenced chunks validate through `read_generation`.
 - Controlled local, Dask, deployment-store, recovery, and end-to-end evidence
   must cover every affected performance tier. A slower Zarr configuration is
   optimized or rejected; it is not hidden by switching formats.

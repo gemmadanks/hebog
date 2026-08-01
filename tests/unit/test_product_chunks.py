@@ -13,6 +13,7 @@ from hebog.data_models import ImageBounds, ProductChunk
 def _product_chunk() -> ProductChunk:
     """Return one valid logical Zarr chunk record for mutation tests."""
     return ProductChunk(
+        generation_id="run-001",
         product_name="rms",
         tile_id="tile-00000-00001",
         core_bounds=ImageBounds(2, 4, 3, 6),
@@ -32,7 +33,8 @@ def test_product_chunk_is_pickle_serializable() -> None:
 @pytest.mark.parametrize(
     ("changes", "message"),
     [
-        ({"schema_version": 2}, "schema version"),
+        ({"schema_version": 3}, "schema version"),
+        ({"generation_id": ""}, "generation ID"),
         ({"product_name": "../rms"}, "product name"),
         ({"tile_id": "../tile"}, "tile ID"),
         ({"dtype": ""}, "dtype"),

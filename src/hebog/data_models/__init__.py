@@ -1,5 +1,6 @@
 """Small serializable scheduler-independent domain records."""
 
+from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
 from hebog.data_models.partitioning import (
     ImageBounds,
@@ -18,6 +19,7 @@ __all__ = [
     "ImageMetadata",
     "PartitionManifest",
     "ProductChunk",
+    "ProductGenerationManifest",
     "RestoringBeam",
     "SourceFinderRequest",
     "SourceFinderResult",

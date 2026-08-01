@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast
 
@@ -14,9 +15,12 @@ import numpy as np
 import numpy.typing as npt
 import zarr
 from zarr.codecs import BytesCodec, Crc32cCodec, ZstdCodec
+from zarr.core.buffer import default_buffer_prototype
+from zarr.core.sync import sync
 from zarr.errors import ArrayNotFoundError, ChunkNotFoundError
 from zarr.storage import LocalStore
 
+from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import PartitionManifest, TilePartition
 from hebog.data_models.products import (
     ProductChunk,
@@ -25,8 +29,9 @@ from hebog.data_models.products import (
 
 _IMAGE_DIMENSIONS = 2
 _ZARR_FORMAT = 3
+_COMPLETION_KEY = ".hebog/completed-generation-v1.json"
 _GROUP_ATTRIBUTES: dict[str, Any] = {
-    "hebog_storage_schema_version": 1,
+    "hebog_storage_schema_version": 2,
     "zarr_format": _ZARR_FORMAT,
 }
 _ARRAY_ATTRIBUTES: dict[str, Any] = {
@@ -46,6 +51,18 @@ class ProductChunkConflictError(ProductChunkError):
 
 class InvalidProductChunkError(ProductChunkError):
     """A Zarr product chunk is missing, corrupt, or inconsistent."""
+
+
+class ProductGenerationError(ProductChunkError):
+    """A Zarr generation cannot be safely published or consumed."""
+
+
+class InvalidProductGenerationError(ProductGenerationError):
+    """A completion manifest or one of its chunks is invalid."""
+
+
+class ProductGenerationConflictError(ProductGenerationError):
+    """A different completion manifest already publishes this generation."""
 
 
 def _content_sha256(values: npt.NDArray[np.generic]) -> str:
@@ -73,19 +90,33 @@ def _selection(tile: TilePartition) -> tuple[slice, slice]:
 class ZarrProductSink:
     """Write complete canonical tile cores into one local Zarr v3 group."""
 
-    def __init__(self, root: Path, manifest: PartitionManifest) -> None:
+    def __init__(
+        self,
+        root: Path,
+        manifest: PartitionManifest,
+        *,
+        generation_id: str,
+    ) -> None:
         """Retain plain metadata without opening or creating a store."""
         if manifest.partition_origin_yx != (0, 0):
             raise ValueError(
                 "Zarr chunk writes require a zero partition origin"
             )
+        if not generation_id:
+            raise ValueError("Zarr generation ID must not be empty")
         self._root = root.resolve()
         self._manifest = manifest
+        self._generation_id = generation_id
 
     @property
     def manifest(self) -> PartitionManifest:
         """Return the immutable partition geometry used by this sink."""
         return self._manifest
+
+    @property
+    def generation_id(self) -> str:
+        """Return the immutable run identity stored with every chunk."""
+        return self._generation_id
 
     def initialize_product(
         self,
@@ -107,6 +138,7 @@ class ZarrProductSink:
             "tile_core_shape_yx": list(self._manifest.tile_core_shape_yx),
             "partition_origin_yx": list(self._manifest.partition_origin_yx),
             "partition_schema_version": self._manifest.schema_version,
+            "generation_id": self._generation_id,
         }
         for name, expected in expected_group_attributes.items():
             existing = group.attrs.get(name)
@@ -136,7 +168,13 @@ class ZarrProductSink:
                 "name": "default",
                 "configuration": {"separator": "/"},
             },
-            attributes=cast(Any, dict(_ARRAY_ATTRIBUTES)),
+            attributes=cast(
+                Any,
+                {
+                    **_ARRAY_ATTRIBUTES,
+                    "hebog_generation_id": self._generation_id,
+                },
+            ),
             config={
                 "read_missing_chunks": False,
                 "write_empty_chunks": True,
@@ -161,7 +199,11 @@ class ZarrProductSink:
             raise InvalidProductChunkError(
                 f"Zarr product {product_name!r} metadata conflicts with sink"
             )
-        for name, expected in _ARRAY_ATTRIBUTES.items():
+        expected_attributes = {
+            **_ARRAY_ATTRIBUTES,
+            "hebog_generation_id": self._generation_id,
+        }
+        for name, expected in expected_attributes.items():
             if zarr_array.attrs.get(name) != expected:
                 raise InvalidProductChunkError(
                     f"Zarr product {product_name!r} policy is invalid"
@@ -229,6 +271,7 @@ class ZarrProductSink:
     ) -> ProductChunk:
         """Build the small logical identity returned to the scheduler."""
         return ProductChunk(
+            generation_id=self._generation_id,
             product_name=product_name,
             tile_id=tile.tile_id,
             core_bounds=tile.core_bounds,
@@ -283,6 +326,10 @@ class ZarrProductSink:
         record: ProductChunk,
     ) -> npt.NDArray[np.generic]:
         """Validate one expected chunk and return an owned read-only array."""
+        if record.generation_id != self._generation_id:
+            raise InvalidProductChunkError(
+                "Zarr product chunk has a different generation ID"
+            )
         tile = self._canonical_tile(record.tile_id)
         if tile.core_bounds != record.core_bounds:
             raise InvalidProductChunkError(
@@ -326,3 +373,76 @@ class ZarrProductSink:
             )
         values.setflags(write=False)
         return values
+
+    def _require_generation_chunks(
+        self,
+        generation: ProductGenerationManifest,
+    ) -> None:
+        """Validate identity, geometry, and every referenced store chunk."""
+        if generation.generation_id != self._generation_id:
+            raise InvalidProductGenerationError(
+                "completion manifest has a different generation ID"
+            )
+        if generation.partition_manifest != self._manifest:
+            raise InvalidProductGenerationError(
+                "completion manifest has a different partition manifest"
+            )
+        for chunk in generation.chunks:
+            try:
+                self.read_chunk(chunk)
+            except ProductChunkError as error:
+                raise InvalidProductGenerationError(
+                    "completion manifest references an invalid product chunk"
+                ) from error
+
+    def publish_generation(
+        self,
+        *,
+        product_names: Iterable[str],
+        chunks: Iterable[ProductChunk],
+    ) -> ProductGenerationManifest:
+        """Conditionally publish one exact, fully validated generation."""
+        try:
+            generation = ProductGenerationManifest.create(
+                generation_id=self._generation_id,
+                partition_manifest=self._manifest,
+                product_names=product_names,
+                chunks=chunks,
+            )
+        except ValueError as error:
+            raise InvalidProductGenerationError(
+                "product chunks do not form a complete generation"
+            ) from error
+        self._require_generation_chunks(generation)
+        payload = generation.canonical_json_bytes()
+        buffer = default_buffer_prototype().buffer.from_bytes(payload)
+        with LocalStore(self._root) as store:
+            sync(store.set_if_not_exists(_COMPLETION_KEY, buffer))
+            published = store.get_sync(_COMPLETION_KEY)
+        if published is None or published.to_bytes() != payload:
+            raise ProductGenerationConflictError(
+                "a different completion manifest is already published"
+            )
+        return generation
+
+    def read_generation(self) -> ProductGenerationManifest:
+        """Read and fully validate the published completion manifest."""
+        with LocalStore(self._root, read_only=True) as store:
+            stored = store.get_sync(_COMPLETION_KEY)
+        if stored is None:
+            raise InvalidProductGenerationError(
+                "product generation is not published"
+            )
+        payload = stored.to_bytes()
+        try:
+            generation = ProductGenerationManifest.from_json_bytes(payload)
+        except ValueError as error:
+            raise InvalidProductGenerationError(
+                "published completion manifest is invalid"
+            ) from error
+        if generation.canonical_json_bytes() != payload:
+            raise InvalidProductGenerationError(
+                "published completion manifest is not canonical"
+            )
+        self._require_generation_chunks(generation)
+        return generation

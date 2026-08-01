@@ -10,8 +10,11 @@ from hebog.io.fits import (
 )
 from hebog.io.zarr import (
     InvalidProductChunkError,
+    InvalidProductGenerationError,
     ProductChunkConflictError,
     ProductChunkError,
+    ProductGenerationConflictError,
+    ProductGenerationError,
     ZarrProductSink,
 )
 
@@ -23,8 +26,11 @@ __all__ = [
     "ImageWindow",
     "InvalidFitsImageError",
     "InvalidProductChunkError",
+    "InvalidProductGenerationError",
     "ProductChunkConflictError",
     "ProductChunkError",
+    "ProductGenerationConflictError",
+    "ProductGenerationError",
     "UnsupportedFitsImageError",
     "ZarrProductSink",
     "celestial_wcs_from_metadata",

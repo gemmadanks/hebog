@@ -119,7 +119,11 @@ import numpy as np
 
 from hebog.io import ZarrProductSink
 
-sink = ZarrProductSink(Path("work/run.zarr"), manifest)
+sink = ZarrProductSink(
+    Path("work/run.zarr"),
+    manifest,
+    generation_id="run-001",
+)
 sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
 
 chunks = []
@@ -134,18 +138,39 @@ for tile in manifest.tiles:
 
 restored = sink.read_chunk(chunks[0])
 assert restored.shape == chunks[0].shape_yx
+
+completed = sink.publish_generation(
+    product_names=("rms",),
+    chunks=chunks,
+)
+assert sink.read_generation() == completed
 ```
 
-`ProductChunk` is a small serializable identity containing global core bounds,
-dtype, shape, and logical content SHA-256; it does not contain an open Zarr
-object or pixel payload. Identical retries reuse a completed chunk, while a
-different value for the same product and tile fails closed.
+`ProductChunk` is a small serializable identity containing the generation ID,
+global core bounds, dtype, shape, and logical content SHA-256; it does not
+contain an open Zarr object or pixel payload. Identical retries reuse a
+completed chunk, while a different value for the same product and tile fails
+closed.
+
+`publish_generation` first requires exactly one record for every requested
+product and canonical tile. It rejects missing, duplicate, conflicting,
+mixed-generation, wrong-owner, and inconsistent-dtype records, then reads and
+checksums every referenced Zarr chunk. Only after those checks pass does it
+conditionally create the canonical completion marker. Identical publication
+retries are idempotent; a different marker cannot replace the winner. An
+interrupted run has no marker and resumes by writing only its missing chunks.
+Consumers call `read_generation`, which validates the marker and its chunks
+again before returning them.
+
+Generation-bound chunks use internal storage schema version 2. Recreate any
+unpublished Phase 1 development store written with schema version 1; no
+released Hebog workflow product used that schema.
 
 The current adapter requires a zero-origin partition whose complete cores
 align with regular storage chunks. It explicitly writes fill-valued chunks,
 uses Zarr 3.2's strict missing-chunk reads, validates CRC32C and logical
 SHA-256, and rejects sequential conflicting retries. Consumers must still wait
-for the Phase 1 completion-manifest and deployment-store gates in
+for the deployment-store atomicity and performance gates in
 [ADR-007](../architecture/adr/007-use-zarr-for-intermediate-image-storage.md).
 Zarr is the only intermediate image-plane backend. Small inputs use one Zarr
 chunk and serial execution; FITS remains an input and final compatibility
