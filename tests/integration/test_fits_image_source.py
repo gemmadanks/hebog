@@ -97,12 +97,14 @@ def test_reads_only_the_requested_global_window(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("unit", ["JY/BEAM", "JYBEAM-1"])
 def test_canonicalizes_wsclean_uppercase_jy_per_beam_unit(
     tmp_path: Path,
+    unit: str,
 ) -> None:
     """Production WSClean BUNIT spelling maps to the canonical image unit."""
     path = tmp_path / "wsclean-image.fits"
-    _write_image(path, np.ones((2, 3), dtype=np.float32), unit="JY/BEAM")
+    _write_image(path, np.ones((2, 3), dtype=np.float32), unit=unit)
 
     metadata = FitsImageSource(path).metadata()
 
