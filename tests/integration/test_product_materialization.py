@@ -250,6 +250,43 @@ def test_empty_catalogue_is_a_structurally_complete_fits_product(
         assert "SOURCE_ID" in hdus[2].columns.names
 
 
+def test_spectral_coefficients_use_deterministic_fixed_width_columns(
+    tmp_path: Path,
+) -> None:
+    """Catalogue retries avoid platform-dependent FITS heap serialization."""
+    original = _catalogue()
+    reference_only = SpectralModel(
+        kind="reference-frequency-only",
+        reference_frequency_hz=original.reference_frequency_hz,
+        coefficients=(),
+    )
+    source = original.sources[0].model_copy(
+        update={"spectral_model": reference_only}
+    )
+    catalogue = SourceCatalogue.create(
+        catalogue_id=original.catalogue_id,
+        coordinate_frame=original.coordinate_frame,
+        position_epoch=original.position_epoch,
+        reference_frequency_hz=original.reference_frequency_hz,
+        islands=original.islands,
+        sources=(source,),
+        gaussian_components=original.gaussian_components,
+    )
+    path = tmp_path / "fixed-spectra.fits"
+
+    first = write_catalogue_fits_product(path, catalogue)
+
+    assert read_catalogue_fits_product(path) == catalogue
+    with fits.open(path) as hdus:
+        source_format = str(hdus[2].columns["SPECTRAL_COEFFICIENTS"].format)
+        component_format = str(hdus[3].columns["SPECTRAL_COEFFICIENTS"].format)
+        assert source_format == "1D"
+        assert component_format == "2D"
+        assert not source_format.startswith(("P", "Q"))
+        assert not component_format.startswith(("P", "Q"))
+    assert write_catalogue_fits_product(path, catalogue) == first
+
+
 @pytest.mark.parametrize("payload", [b"not-fits", b""])
 def test_catalogue_reader_rejects_corrupt_files(
     tmp_path: Path,
@@ -313,6 +350,38 @@ def test_catalogue_reader_rejects_wrong_role_or_columns(
         hdus[2].header[f"TUNIT{column_number}"] = "arcsec"
     with pytest.raises(InvalidMaterializedProductError, match="units"):
         read_catalogue_fits_product(wrong_unit)
+
+    heap_backed = tmp_path / "heap-backed-spectra.fits"
+    write_catalogue_fits_product(heap_backed, _catalogue())
+    with fits.open(heap_backed, mode="update", checksum=False) as hdus:
+        coefficient_index = (
+            hdus[2].columns.names.index("SPECTRAL_COEFFICIENTS") + 1
+        )
+        hdus[2].header[f"TFORM{coefficient_index}"] = "PD()"
+    with pytest.raises(InvalidMaterializedProductError, match="fixed-width"):
+        read_catalogue_fits_product(heap_backed)
+
+
+@pytest.mark.parametrize(
+    ("coefficients", "message"),
+    [
+        ((np.nan, 0.02), "padding"),
+        ((np.inf, 0.02), "infinity"),
+    ],
+)
+def test_catalogue_reader_rejects_invalid_spectral_padding(
+    tmp_path: Path,
+    coefficients: tuple[float, float],
+    message: str,
+) -> None:
+    """Only a trailing NaN suffix may appear outside finite coefficients."""
+    path = tmp_path / "invalid-spectral-padding.fits"
+    write_catalogue_fits_product(path, _catalogue())
+    with fits.open(path, mode="update", checksum=False) as hdus:
+        hdus[2].data["SPECTRAL_COEFFICIENTS"][0] = coefficients
+
+    with pytest.raises(InvalidMaterializedProductError, match=message):
+        read_catalogue_fits_product(path)
 
 
 def test_catalogue_reader_verifies_materialized_identity(

@@ -1799,3 +1799,29 @@ applicable zeroes for these single-process reference runs.
 
 - Apply this policy to Phase 2 and later design decisions without carrying
   speculative compatibility code for unreleased Hebog contracts.
+
+## 2026-08-01 — Made catalogue FITS retries deterministic on Windows
+
+**Plan phase:** Phase 1 release fix
+
+**Completed**
+
+- Reproduced the failed idempotency contract as a red test against the
+  heap-backed `PD()` spectral-coefficient column.
+- Replaced variable-length FITS heap arrays with the smallest fixed-width
+  float64 vector required by each source or Gaussian-component table. Empty
+  and shorter coefficient tuples use canonical trailing NaN padding.
+- Kept raw-byte conflict detection strict instead of accepting arbitrary
+  semantically equal files. Readers now reject heap-backed coefficient columns,
+  infinity, and non-trailing padding.
+
+**Evidence**
+
+- All 44 catalogue and image-product materialisation integration tests pass,
+  including repeated catalogue publication, mixed empty/two-coefficient
+  spectra, zero-row catalogues, invalid padding, and conflicting science.
+
+**Next**
+
+- Confirm the regression on the Python 3.12–3.14 Windows CI matrix; no
+  Windows-specific application code or conditional behaviour is required.

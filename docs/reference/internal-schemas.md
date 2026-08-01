@@ -58,6 +58,15 @@ an unavailable float is encoded as FITS NaN and decoded back to `None`;
 required scientific values remain finite under model validation. Empty
 catalogues retain all typed columns and contain zero rows.
 
+Spectral coefficients use fixed-width float64 vectors rather than FITS
+variable-length heap columns. Each source or component table selects the
+smallest width that contains its longest coefficient tuple, with a one-element
+minimum for an empty table. Shorter tuples use trailing NaN padding, which the
+reader removes while rejecting infinity, interior padding, and heap-backed
+`P`/`Q` formats. This avoids platform-dependent heap bytes and keeps
+content-identical catalogue retries deterministic on Windows, Linux, and
+macOS.
+
 `SpectralModel` distinguishes a reference-frequency-only MFS measurement from
 a log-polynomial spectral fit. For a log-polynomial, coefficient `k`
 multiplies `log(frequency / reference_frequency) ** (k + 1)` in natural-log

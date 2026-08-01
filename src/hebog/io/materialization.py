@@ -319,6 +319,29 @@ def _shape_columns(
     ]
 
 
+def _spectral_coefficient_column(
+    spectra: Sequence[SpectralModel],
+) -> fits.Column:
+    """Build one deterministic fixed-width vector with trailing NaN padding."""
+    width = max(
+        1,
+        max((len(spectrum.coefficients) for spectrum in spectra), default=0),
+    )
+    coefficients = np.full(
+        (len(spectra), width),
+        np.nan,
+        dtype=np.float64,
+    )
+    for row_index, spectrum in enumerate(spectra):
+        value_count = len(spectrum.coefficients)
+        coefficients[row_index, :value_count] = spectrum.coefficients
+    return fits.Column(
+        name="SPECTRAL_COEFFICIENTS",
+        format=f"{width}D",
+        array=coefficients,
+    )
+
+
 def _measured_columns(
     values: Sequence[SourceCandidate | GaussianComponent],
 ) -> list[fits.Column]:
@@ -328,12 +351,6 @@ def _measured_columns(
     spectra = [value.spectral_model for value in values]
     fitted = [value.fitted_shape for value in values]
     deconvolved = [value.deconvolved_shape for value in values]
-    coefficient_array = np.empty(len(values), dtype=object)
-    for index, spectrum in enumerate(spectra):
-        coefficient_array[index] = np.asarray(
-            spectrum.coefficients,
-            dtype=np.float64,
-        )
     columns = [
         _string_column("ISLAND_ID", [value.island_id for value in values]),
         _float_column(
@@ -387,11 +404,7 @@ def _measured_columns(
             [value.reference_frequency_hz for value in spectra],
             unit="Hz",
         ),
-        fits.Column(
-            name="SPECTRAL_COEFFICIENTS",
-            format="PD()",
-            array=coefficient_array,
-        ),
+        _spectral_coefficient_column(spectra),
         *_shape_columns("FITTED", fitted),
         *_shape_columns("DECONVOLVED", deconvolved),
         _string_column(
@@ -522,11 +535,25 @@ def _shape_from_row(
     )
 
 
+def _spectral_coefficients_from_row(row: Any) -> tuple[float, ...]:
+    """Decode a fixed vector and require canonical trailing NaN padding."""
+    values = np.atleast_1d(
+        np.asarray(row["SPECTRAL_COEFFICIENTS"], dtype=np.float64)
+    )
+    if np.isinf(values).any():
+        raise ValueError("spectral coefficients cannot contain infinity")
+    padding = np.isnan(values)
+    if not padding.any():
+        return tuple(float(value) for value in values)
+    first_padding = int(np.flatnonzero(padding)[0])
+    if not padding[first_padding:].all():
+        raise ValueError("spectral coefficient padding must be trailing")
+    return tuple(float(value) for value in values[:first_padding])
+
+
 def _measured_fields(row: Any) -> dict[str, Any]:
     """Reconstruct shared measured-object fields from one table row."""
-    coefficients = tuple(
-        float(value) for value in row["SPECTRAL_COEFFICIENTS"]
-    )
+    coefficients = _spectral_coefficients_from_row(row)
     quality_flags_text = _text(row["QUALITY_FLAGS"])
     return {
         "island_id": _text(row["ISLAND_ID"]),
@@ -590,6 +617,18 @@ def _require_catalogue_structure(hdus: fits.HDUList) -> None:
                 raise InvalidMaterializedProductError(
                     "catalogue FITS structure has unexpected column units"
                 )
+    for hdu in hdus[2:]:
+        coefficient_format = str(hdu.columns["SPECTRAL_COEFFICIENTS"].format)
+        repeat = coefficient_format[:-1]
+        if (
+            not coefficient_format.endswith("D")
+            or not repeat.isdecimal()
+            or int(repeat) < 1
+        ):
+            raise InvalidMaterializedProductError(
+                "catalogue spectral coefficients must use a fixed-width "
+                "float64 column"
+            )
 
 
 def read_catalogue_fits_product(
