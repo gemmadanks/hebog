@@ -16,6 +16,7 @@ _IMAGE_DIMENSIONS = 2
 class DetectionThresholdMasks:
     """Immutable island-membership and strict detection-seed masks."""
 
+    normalized_residual: npt.NDArray[np.float64]
     island_membership: npt.NDArray[np.bool_]
     detection_seeds: npt.NDArray[np.bool_]
     valid_pixel_count: int
@@ -90,9 +91,11 @@ def detect_threshold_masks(
     detection_seeds = scientifically_valid & (
         normalized > config.detection_threshold_sigma
     )
+    normalized.setflags(write=False)
     island_membership.setflags(write=False)
     detection_seeds.setflags(write=False)
     return DetectionThresholdMasks(
+        normalized_residual=normalized,
         island_membership=island_membership,
         detection_seeds=detection_seeds,
         valid_pixel_count=int(np.count_nonzero(scientifically_valid)),

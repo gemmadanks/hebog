@@ -45,6 +45,7 @@ def test_exact_threshold_boundaries_are_explicit() -> None:
         result.detection_seeds,
         [[False, False, True]],
     )
+    np.testing.assert_array_equal(result.normalized_residual, normalized)
 
 
 def test_invalid_and_non_positive_rms_pixels_are_never_detected() -> None:
@@ -73,6 +74,9 @@ def test_invalid_and_non_positive_rms_pixels_are_never_detected() -> None:
     )
     np.testing.assert_array_equal(result.island_membership, expected)
     np.testing.assert_array_equal(result.detection_seeds, expected)
+    assert np.isnan(result.normalized_residual[0, 1:]).all()
+    assert np.isnan(result.normalized_residual[1, :3]).all()
+    assert result.normalized_residual[1, 3] == -100.0
     assert result.valid_pixel_count == 2
 
 
@@ -164,6 +168,7 @@ def test_detection_outputs_are_read_only() -> None:
 
     assert not result.island_membership.flags.writeable
     assert not result.detection_seeds.flags.writeable
+    assert not result.normalized_residual.flags.writeable
 
 
 @pytest.mark.parametrize(

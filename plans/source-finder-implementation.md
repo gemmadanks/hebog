@@ -1014,7 +1014,7 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
 
 1. **Freeze detection and segmentation contracts before implementation.**
 
-   - [ ] Add failing analytic tests for exact threshold boundaries, positive
+   - [x] Add failing analytic tests for exact threshold boundaries, positive
          emission only, invalid or zero-RMS pixels, masks, negative
          backgrounds, diagonal eight-neighbour contact distinguished from
          four-neighbour behaviour,
@@ -1074,22 +1074,22 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
 
 4. **Establish the one-tile connected-island oracle with SciPy.**
 
-   - [ ] Use the established `scipy.ndimage` labelling and reduction
+   - [x] Use the established `scipy.ndimage` labelling and reduction
          primitives first. Adopt the reviewed connectivity, accept a component
          only when its combined pixels satisfy the size policy and contain a
          detection seed, and keep threshold inclusion rules explicit.
-   - [ ] Reduce pixel count, global bounding box, peak SNR and position,
+   - [x] Reduce pixel count, global bounding box, peak SNR and position,
          lexicographically smallest member pixel, and image-edge contact in
          vectorised or compiled library operations. Do not copy the image once
          per island or loop over island pixels in Python.
-   - [ ] Define detection-stage records separately from measured catalogue
+   - [x] Define detection-stage records separately from measured catalogue
          records. Assign final island identifiers and ordering from canonical
          reconciled global properties, never local SciPy labels or executor
          completion order.
 
 5. **Reconcile islands before deblending.**
 
-   - [ ] Put compact sources and islands across every side, diagonal, and
+   - [x] Put compact sources and islands across every side, diagonal, and
          four-tile corner topology. Exercise shifted partition origins, tile
          shapes, worker counts, reversed completion, deterministic retry, and
          labels whose local numeric values deliberately differ.
@@ -1101,7 +1101,7 @@ any useful slice whose stated tests, documentation, and earlier gates pass.
    - [ ] Write accepted boolean source-filtering-mask cores as independently
          owned Zarr chunks. A diagnostic label plane is optional and must not
          become a prerequisite for reconciliation or catalogue ownership.
-   - [ ] Prove one-tile and many-tile membership, global summaries, stable
+   - [x] Prove one-tile and many-tile membership, global summaries, stable
          identifiers, and scientific mask values are identical before
          comparing Hebog with PyBDSF.
 

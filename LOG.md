@@ -2062,3 +2062,39 @@ deblending
 - Implement automatic high-significance candidate discovery against cached
   coarse background/RMS summaries, then persist owned RMS tiles through the
   Zarr generation contract.
+
+## 2026-08-01 — Added deterministic connected islands
+
+**Plan phase:** Phase 3, slices 4 and 5
+
+**Completed**
+
+- Added a SciPy-based eight-connected one-tile oracle that reduces pixel
+  count, global bounds, maximum SNR with deterministic equal-peak ties,
+  lexicographically first member, seed presence, and image-edge contact
+  without copying the image for each island.
+- Added vectorized boundary-label comparisons across tile sides, diagonal
+  offsets, and four-tile corners. A small union-find merges only label
+  equivalences and aggregates island facts before applying global seed and
+  size cuts.
+- Assigned accepted island IDs from canonical global first-pixel order rather
+  than SciPy label numbers, partition shape, or result completion order.
+- Kept detection-stage records separate from the measured catalogue `Island`
+  schema and produced compact per-tile local-to-global mappings for later Zarr
+  mask publication.
+
+**Evidence**
+
+- Six analytic island tests pass for eight-connectivity, side and four-tile
+  corner reconciliation, global minimum/maximum size cuts, strict seed
+  acceptance, empty detection, shifted origins, three tile geometries, and
+  reversed result order.
+- Branch-aware coverage passes 422 tests with four planned strict expected
+  failures at 93.29% total coverage. Detection is fully covered; local
+  labelling and reconciliation have 95% and 94% branch-aware coverage.
+
+**Next**
+
+- Move tile label planes behind the Zarr boundary so executor results contain
+  summaries rather than image cores, and implement hierarchical reduction of
+  boundary equivalences before automatic bright-candidate discovery.
