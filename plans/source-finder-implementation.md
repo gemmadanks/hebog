@@ -637,6 +637,16 @@ from Conventional Commits; its `bump-minor-pre-major` policy means features norm
 minor version before 1.0 while fixes can produce patch releases. Do not manually force a version to
 match a phase number.
 
+Hebog has no backward-compatibility guarantee during pre-production. Prefer
+the cleanest current design and remove or replace obsolete Hebog APIs,
+schemas, development stores, and configuration without compatibility shims,
+deprecation periods, legacy readers, or migration code. Keep a breaking change
+explicit in its Conventional Commit, current documentation, and release notes,
+and make stale artifacts fail clearly. Add migration support only when the
+user explicitly requests it for a particular interface. This policy does not
+relax the PyBDSF/Rapthor compatibility target or scientific reproducibility
+requirements.
+
 Execute the plan as a sequence of local, atomic Conventional Commits. Each commit must represent
 one coherent, validated, reviewable change. Its short, imperative subject should describe the
 user-visible outcome for Release Please; its body should give developers the motivation, important
@@ -679,8 +689,10 @@ Every release requires:
    curve, and regressions follow the 5% confidence rule in Section 1.
 6. Public documentation of implemented capabilities, experimental limitations, configuration,
    output schemas, and known compatibility gaps.
-7. Versioned schemas and a migration note for a breaking public API or product change. Breaking
-   changes are permitted before 1.0 but must never be silent.
+7. Current versioned schemas and documentation for the supported API and
+   product contract. Pre-`1.0` breaking changes must be explicit but do not
+   require backward compatibility, migration guidance, or a deprecation
+   period.
 8. A `LOG.md` entry containing material execution evidence and immediate next steps. Release Please
    owns `CHANGELOG.md` and the user-visible release notes.
 9. No regression against gates completed by earlier releases.
@@ -1051,7 +1063,7 @@ unless an explicitly approved throughput trade-off justifies it.
       fixtures, acceptance scenarios, Dask integration, packaging, and docs.
 - [ ] Run qualification and performance suites on controlled runners outside merge-request
       critical paths.
-- [ ] Publish configuration and output schema documentation and a migration guide.
+- [ ] Publish configuration and current output schema documentation.
 - [ ] Publish and execute a minimal non-Rapthor science-workflow example using
       the public API and serial executor whose integration code does not import
       or construct Dask, Prefect, LSMTool, or Rapthor objects.

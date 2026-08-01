@@ -1774,3 +1774,28 @@ applicable zeroes for these single-process reference runs.
 - Obtain the named scientific sign-off as early as practical to reduce rework,
   and in all cases before stabilizing scientific defaults or compatibility
   semantics or claiming scientific equivalence.
+
+## 2026-08-01 — Removed the pre-production compatibility guarantee
+
+**Plan phase:** Cross-cutting development policy
+
+**Decision**
+
+- Hebog does not require backward compatibility between `0.x` releases while
+  it remains under active pre-production development.
+- Agents and contributors should prefer the cleanest current design and may
+  change or remove obsolete Hebog APIs, schemas, development stores, and
+  configuration directly. Compatibility shims, deprecation periods, legacy
+  readers, migrations, and old-contract tests are not required by default.
+- User-visible breaking changes remain explicit in current documentation,
+  Conventional Commits, and release notes, and stale artifacts must fail
+  clearly rather than be silently reinterpreted.
+- Migration support becomes a requirement only when explicitly requested for
+  a particular interface. This policy does not weaken the PyBDSF/Rapthor
+  compatibility goal, scientific reproducibility, or the current supported
+  platform matrix.
+
+**Next**
+
+- Apply this policy to Phase 2 and later design decisions without carrying
+  speculative compatibility code for unreleased Hebog contracts.

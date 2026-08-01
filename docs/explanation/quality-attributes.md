@@ -74,9 +74,13 @@ Code should make the scientific intent obvious to a Python developer:
   science.
 
 Public APIs are deliberately small, typed, documented, and versioned.
-Breaking behaviour or schema changes require migration guidance. Public
-records remain serializable and must not expose open files, mutable full-image
-objects, or scheduler state.
+Hebog is pre-production, so `0.x` releases do not preserve backward
+compatibility. Breaking behaviour or schema changes update the current
+contract directly without compatibility shims, migration paths, or
+deprecation periods unless the user explicitly requests them for a particular
+interface. Changes remain visible in current documentation and release notes.
+Public records remain serializable and must not expose open files, mutable
+full-image objects, or scheduler state.
 
 ## Performance without opacity
 
@@ -114,8 +118,9 @@ Every code change must satisfy:
   leaking into algorithms and domain records, reject import-scope I/O and
   orchestration calls, and keep concrete schedulers out of public-core imports;
   and
-- documentation and migration notes for public behaviour, configuration, or
-  schema changes.
+- current documentation for public behaviour, configuration, or schema
+  changes, with breaking changes identified but no pre-`1.0` migration
+  guarantee.
 
 Coverage is a floor against erosion, not a completeness claim. Scientific
 oracles, property tests, partition invariance, executor conformance, and

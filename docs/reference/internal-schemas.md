@@ -10,7 +10,9 @@ These Phase 1 schemas are versioned but remain provisional until the Phase 0
 human scientific sign-off is recorded. That review approves the meaning and
 fitness of the schema; automated round-trip and compatibility tests remain the
 evidence for individual outputs. A later semantic change requires a new schema
-version and migration note; it must not silently reinterpret persisted data.
+version and updated current documentation; it must not silently reinterpret
+persisted data. Before `1.0`, stale development products may be rejected and
+recreated rather than supported through legacy readers or migration code.
 
 ## Source catalogue schema version 1
 

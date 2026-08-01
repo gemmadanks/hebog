@@ -115,6 +115,11 @@ graph and resource budget.
 Python 3.12 through 3.14 is supported. Python 3.11 users must remain on Hebog
 0.2.x or upgrade Python before adopting the next release.
 
+Hebog is still pre-production and does not guarantee backward compatibility
+between `0.x` releases. Development prioritizes the cleanest current API,
+schema, and storage design over compatibility shims or deprecation periods.
+Breaking changes remain explicit in documentation and release notes.
+
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), clone the
 repository, and install all dependency groups:
 

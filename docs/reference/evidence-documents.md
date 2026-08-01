@@ -81,7 +81,9 @@ storage. Commit only compact reviewed summaries and reproduction metadata.
 
 The Python models expose `model_json_schema()` when a runner or validation
 service needs JSON Schema. Schema changes follow ADR 006: breaking semantics
-require a new integer version, migration guidance, and contract tests.
+update the integer version and current contract tests. Before `1.0`, old
+evidence schemas do not require migration support unless the user explicitly
+requests it.
 
 ## Phase 0 records
 

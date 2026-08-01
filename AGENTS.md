@@ -60,6 +60,17 @@ Never hard-code those paths in package code or normal tests.
   numerical utility, or other generally available capability.
 - Add or update tests when behaviour changes. Update user-facing documentation
   when public APIs, setup steps, output schemas, or workflows change.
+- Hebog is pre-production and provides no backward-compatibility guarantee
+  between `0.x` releases. Prefer the cleanest current design and change or
+  remove obsolete Hebog APIs, schemas, development stores, and configuration
+  directly. Do not add compatibility shims, deprecation periods, legacy
+  readers, migration code, or old-version tests unless the user explicitly
+  requests them for a particular interface.
+- Keep breaking changes visible in the current documentation and Conventional
+  Commit/release notes, and make stale persisted artifacts fail clearly. This
+  transparency is not a promise to support or migrate the old behaviour.
+  The policy does not weaken the required PyBDSF/Rapthor compatibility target,
+  scientific reproducibility, or support for the current platform matrix.
 - Use the lightest planning level in `PLAN.md`; keep the source-finder plan
   current for project milestones and scientific or performance decisions.
 - Append material completed work and validation evidence to `LOG.md`; do not
@@ -310,8 +321,9 @@ any supported tier requires an explicitly approved and documented trade-off.
   extracting an abstraction. A few explicit lines are preferable to a clever
   generalized mechanism that hides scientific intent.
 - Keep public APIs deliberately small, typed, documented, and versioned.
-  Breaking schema or behavioural changes require migration notes; deprecations
-  need an executable test and a stated removal release.
+  Before `1.0`, tests and documentation describe only the current supported
+  contract: breaking Hebog schema or behavioural changes do not require a
+  compatibility shim, migration path, deprecation period, or removal release.
 - Optimize only from profiles or scale evidence. Isolate unavoidable
   low-level or compiled complexity behind a clear typed function, retain a
   readable serial oracle, and document why the complexity is necessary.
@@ -470,6 +482,9 @@ any supported tier requires an explicitly approved and documented trade-off.
   tokens. Use documented environment variables and ignored local config.
 - Release Please manages version bumps and release notes. Do not manually edit
   release-managed files unless the task is specifically about a release.
+- Mark user-visible pre-`1.0` breaking changes clearly in their Conventional
+  Commit and current documentation, but do not preserve the replaced Hebog
+  behaviour or write migration support by default.
 
 Before handing off a meaningful change:
 

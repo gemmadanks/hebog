@@ -71,10 +71,12 @@ checksums, windows, or small summaries.
 
 Every materialised or externally exchanged schema has an explicit integer
 schema version. Readers validate supported versions and reject unknown or
-ambiguous fields rather than guessing. Additive changes remain compatible only
-when older readers can safely ignore them under a documented rule. A semantic
-or structural breaking change creates a new schema version, migration note,
-and contract tests. Before 1.0 these changes are permitted but never silent.
+ambiguous fields rather than guessing. During pre-production, a semantic or
+structural breaking change updates the current contract and schema version;
+stale development artifacts fail clearly and may be recreated. Hebog does not
+maintain legacy readers, migration code, or compatibility tests before 1.0
+unless the user explicitly requests them for a particular interface. Breaking
+changes remain visible in current documentation and release notes.
 The choice of dataclass, Pydantic model, FITS table representation, or another
 implementation mechanism is made per concrete Phase 1 contract; this ADR does
 not require one schema library everywhere.
@@ -122,8 +124,9 @@ runtime dependency.
   column and workflow terminology.
 - Good, because Rapthor compatibility can evolve and be tested without
   coupling every algorithm, executor, and alternate workflow to PyBDSF.
-- Good, because schema versions and migrations make pre-1.0 changes explicit
-  and give restartable materialised products a reliable interpretation.
+- Good, because explicit schema versions make stale pre-1.0 artifacts fail
+  clearly without obliging the project to maintain migrations or legacy
+  readers.
 - Good, because bounded chunk, shard, and partition records can support
   100,000-by-100,000 images without pretending they are single legacy files
   during intermediate stages.
@@ -131,8 +134,8 @@ runtime dependency.
   mapping and may require a final materialisation pass.
 - Bad, because Hebog must maintain its internal schema and the Rapthor adapter
   until the legacy boundary is retired.
-- Bad, because producers constructing the public result must migrate from the
-  path-only version 1 scaffold to versioned `MaterializedProduct` records.
+- Bad, because early adopters may need to update code or recreate development
+  artifacts after a breaking `0.x` change.
 - Risk: duplicating large image or catalogue data during translation could
   erase performance gains. Adapters must stream, map columns, and materialise
   from bounded chunks or shards rather than copy complete large products in
