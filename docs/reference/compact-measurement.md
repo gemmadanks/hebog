@@ -2,9 +2,9 @@
 
 Phase 4 Step 3 adds a readable, deterministic moment oracle for every admitted
 compact island and exact deblended region. It produces owned-pixel photometry
-and a pixel-space Gaussian initializer. It does not fit a Gaussian, transform
-to sky coordinates, deconvolve the restoring beam, estimate uncertainties, or
-create a catalogue row.
+and a pixel-space Gaussian initializer. The subsequent
+[compact Gaussian fitting](compact-fitting.md) lane consumes this initializer.
+Moment records themselves are not fitted sources or catalogue rows.
 
 ## Inputs and ownership
 

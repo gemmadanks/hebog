@@ -81,6 +81,7 @@ nav:
       - Phase 4 scientific review record: reference/phase-4-review-record.md
       - Compact deblending: reference/compact-deblending.md
       - Compact moment measurement: reference/compact-measurement.md
+      - Compact Gaussian fitting: reference/compact-fitting.md
   - Explanation:
       - Architecture: explanation/index.md
       - Domain model: explanation/domain-model.md

@@ -2643,3 +2643,48 @@ deblending
 - Begin Phase 4 Step 4 by establishing a fit-all compact Gaussian reference
   initialized by these moments, then compare established SciPy and Astropy
   fitting paths against the frozen analytic and regression science cases.
+
+## 2026-08-02 — Completed Phase 4 Step 4 compact Gaussian fitting
+
+**Plan phase:** Phase 4, Step 4 — fit-all compact reference
+
+**Implemented**
+
+- Added a bounded six-parameter elliptical Gaussian fit initialized by the
+  exact owned-pixel moment oracle. SciPy TRF least squares operates on the
+  physical background-subtracted plane with RMS-weighted residuals and
+  explicit amplitude, center, axes, orientation, evaluation, and convergence
+  limits.
+- Kept every region fit within its existing coarse worker task. No per-source
+  executor tasks, private scheduler, native kernel, or selective fitting path
+  was introduced.
+- Added frozen valid, failed, and unavailable fit records. Iteration
+  exhaustion, invalid fitted parameters, insufficient pixels, invalid moments,
+  and singular formal covariance cannot fabricate usable values.
+- Separated fitted infinite-plane flux from owned-pixel flux and bilinearly
+  sampled component RMS at the fitted centroid as required by the reviewed
+  contract.
+
+**Selection and evidence**
+
+- Observed the intended missing-module TDD failure before implementing the
+  fitter and records.
+- The selected SciPy solver and an independent Astropy `Gaussian2D` TRF fit
+  recover the same governed rotated analytic Gaussian. SciPy exposes the
+  weighted residual, bounds, Jacobian, work limit, and convergence diagnostics
+  directly through a narrower production boundary.
+- Analytic tests cover sub-pixel recovery, translation and positive-scaling
+  equivariance, local-RMS interpolation, non-convergence, underdetermined
+  regions, and every configuration boundary. Serial and two-worker Dask
+  execution return equal compact records.
+- No Phase 4 qualification result was generated or inspected, no selective
+  fitting path was proposed, and no performance claim was made.
+
+**Validation**
+
+- Focused fit and serial/Dask suite: 25 passed; Ruff and Pyright passed.
+
+**Next**
+
+- Complete Phase 4 Step 5 with local Astropy WCS transformation, covariance
+  beam deconvolution, and explicit uncertainty calibration evidence.

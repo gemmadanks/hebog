@@ -21,6 +21,7 @@ from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
     CompactDeblendConfig,
+    CompactGaussianFitConfig,
     CompactMomentConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
@@ -42,6 +43,7 @@ from hebog.stages.detection import (
     run_detection_from_coarse_grids,
     run_detection_stage,
 )
+from hebog.stages.fitting import run_compact_gaussian_fit_stage
 from hebog.stages.measurement import run_compact_moment_stage
 
 pytestmark = pytest.mark.integration
@@ -211,6 +213,20 @@ def _moment_config() -> CompactMomentConfig:
     return CompactMomentConfig(
         minimum_shape_pixels=3,
         covariance_relative_tolerance=1e-12,
+    )
+
+
+def _fit_config() -> CompactGaussianFitConfig:
+    """Return a bounded fit-all compact Gaussian policy."""
+    return CompactGaussianFitConfig(
+        minimum_fit_pixels=7,
+        maximum_function_evaluations=200,
+        minimum_sigma_pixels=0.2,
+        maximum_sigma_pixels=20.0,
+        maximum_amplitude_factor=5.0,
+        center_margin_pixels=1.0,
+        convergence_tolerance=1e-8,
+        maximum_axis_ratio=20.0,
     )
 
 
@@ -716,6 +732,16 @@ def test_dask_and_serial_detection_products_are_identical(
             executor=DaskExecutor(client),
             sink=dask_sink,
         )
+        dask_fits = run_compact_gaussian_fit_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            _deblend_config(),
+            _moment_config(),
+            _fit_config(),
+            _measurement_geometry(),
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
 
     assert dask.islands == serial.islands
     assert (
@@ -761,3 +787,16 @@ def test_dask_and_serial_detection_products_are_identical(
         for field in fields(record)
         for value in (getattr(record, field.name),)
     )
+    serial_fits = run_compact_gaussian_fit_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        _deblend_config(),
+        _moment_config(),
+        _fit_config(),
+        _measurement_geometry(),
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_fits == serial_fits
+    assert dask_fits.records
+    assert all(record.region_fits for record in dask_fits.records)

@@ -8,6 +8,7 @@ from numbers import Integral
 
 _MINIMUM_RMS_SAMPLES = 2
 _MINIMUM_SHAPE_PIXELS = 3
+_MINIMUM_GAUSSIAN_FIT_PIXELS = 7
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,3 +282,63 @@ class CompactMomentConfig:
             raise ValueError(
                 "covariance_relative_tolerance must be finite and in (0, 1)"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class CompactGaussianFitConfig:
+    """Explicit bounded nonlinear policy for one compact Gaussian fit."""
+
+    minimum_fit_pixels: int
+    maximum_function_evaluations: int
+    minimum_sigma_pixels: float
+    maximum_sigma_pixels: float
+    maximum_amplitude_factor: float
+    center_margin_pixels: float
+    convergence_tolerance: float
+    maximum_axis_ratio: float
+
+    def __post_init__(self) -> None:
+        """Validate scientific parameter bounds and finite work limits."""
+        if (
+            isinstance(self.minimum_fit_pixels, bool)
+            or not isinstance(self.minimum_fit_pixels, Integral)
+            or self.minimum_fit_pixels < _MINIMUM_GAUSSIAN_FIT_PIXELS
+        ):
+            raise ValueError("minimum_fit_pixels must be an integer >= 7")
+        if (
+            isinstance(self.maximum_function_evaluations, bool)
+            or not isinstance(self.maximum_function_evaluations, Integral)
+            or self.maximum_function_evaluations < 1
+        ):
+            raise ValueError(
+                "maximum_function_evaluations must be a positive integer"
+            )
+        if (
+            not isfinite(self.minimum_sigma_pixels)
+            or not isfinite(self.maximum_sigma_pixels)
+            or self.minimum_sigma_pixels <= 0
+            or self.maximum_sigma_pixels <= self.minimum_sigma_pixels
+        ):
+            raise ValueError("sigma bounds must be finite, positive, ordered")
+        if (
+            not isfinite(self.maximum_amplitude_factor)
+            or self.maximum_amplitude_factor <= 1
+        ):
+            raise ValueError("maximum_amplitude_factor must exceed one")
+        if (
+            not isfinite(self.center_margin_pixels)
+            or self.center_margin_pixels < 0
+        ):
+            raise ValueError("center_margin_pixels must be finite and >= 0")
+        if (
+            not isfinite(self.convergence_tolerance)
+            or not 0 < self.convergence_tolerance < 1
+        ):
+            raise ValueError(
+                "convergence_tolerance must be finite and in (0, 1)"
+            )
+        if (
+            not isfinite(self.maximum_axis_ratio)
+            or self.maximum_axis_ratio <= 1
+        ):
+            raise ValueError("maximum_axis_ratio must be finite and > 1")

@@ -1218,7 +1218,10 @@ now reviewed-provisional. Step 2 was completed on 2026-08-02 with an exact,
 bounded worker-local region processor that is serial/Dask invariant and returns
 only compact records. Step 3 was completed on 2026-08-02 with a vectorized
 owned-pixel moment oracle, explicit availability outcomes, and serial/Dask
-record equivalence. Step 4's fit-all compact reference is next.
+record equivalence. Step 4 was completed on 2026-08-02 with a bounded fit-all
+SciPy reference, independent Astropy agreement, typed failure outcomes, and
+serial/Dask equality. Step 5's celestial transformation, beam deconvolution,
+and uncertainty evidence are next.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1361,29 +1364,41 @@ before maintaining a custom fitter.
 
 4. **Select and implement compact Gaussian fitting from evidence.**
 
-   - [ ] Establish a fit-all compact reference lane initialized by the moment
+   - [x] Establish a fit-all compact reference lane initialized by the moment
          oracle. Fit bounded two-dimensional elliptical Gaussian models to
          the physical residual with explicit amplitude, center, ordered-axis,
          orientation, iteration, and convergence constraints.
-   - [ ] Compare Astropy modelling and SciPy `least_squares` on analytic,
+   - [x] Compare Astropy modelling and SciPy `least_squares` on analytic,
          blend, failure, and representative compact batches. Prefer the
          smallest established implementation that passes the science suite
          and complete-stage profile. Supply a tested analytic Jacobian if it
          materially improves robustness or latency. Do not add native code
          unless the existing native-code gates are met.
-   - [ ] Define failure and non-convergence as typed outcomes with retained
+   - [x] Define failure and non-convergence as typed outcomes with retained
          moment initialization and canonical quality flags. Decide through
          the reviewed contract when a failed fit may produce a scientifically
          usable source and when it must remain unavailable.
-   - [ ] Batch fits by admitted region pixels and estimated component count,
+   - [x] Batch fits by admitted region pixels and estimated component count,
          cap work per task, and retain enough coarse tasks for occupancy.
          Never create one executor or Dask task per source or fit.
-   - [ ] Propose selective fitting only after the fit-all reference exists.
+   - [x] Propose selective fitting only after the fit-all reference exists.
          A moment-only fast path must use pre-fit information, have an
          explicit eligibility status, and match fit-all catalogue acceptance,
          shape classification, and downstream decisions within frozen
          margins across development and regression matrices. Otherwise keep
          the fit; runtime evidence alone cannot justify biased selection.
+
+   The accepted reference uses SciPy's bounded TRF `least_squares` solver on
+   RMS-weighted physical residuals. Astropy `Gaussian2D` with its TRF fitter
+   independently recovers the same analytic parameters; SciPy keeps the
+   production boundary smaller while directly exposing the residual Jacobian,
+   bounds, work limit, and diagnostics. Fits remain inside existing coarse
+   region tasks, so task count scales with admitted batches rather than
+   sources. Every eligible compact region is fitted: no selective fast path
+   is proposed because no complete-stage scientific and runtime evidence yet
+   justifies one. Formal independent-pixel covariance is retained as
+   explicitly uncalibrated evidence, and singular covariance is absent rather
+   than zero. Component RMS is bilinearly sampled at the fitted centroid.
 
 5. **Transform positions and ellipses, deconvolve the beam, and calibrate
    uncertainties.**
