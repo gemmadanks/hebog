@@ -28,15 +28,13 @@ when execution changes its scope, sequence, gates, risks, or decisions.
 ## Current position
 
 Hebog has completed the technical Phase 0 contracts, Phase 1 bounded FITS/Zarr
-I/O, and Phase 2 deterministic background/RMS estimation. The Phase 2
-implementation passes analytic, partition, retry, serial/Dask, compact
-PyBDSF, representative scientific, four-core latency, and peak-memory gates.
-The next implementation phase is thresholding, islands, and deblending.
-Automatic bright-candidate discovery, final RMS persistence, complete
-source-finding products, Rapthor integration, and multi-node scalability
-remain explicitly unimplemented. Named domain and facility review is still
-required before engineering thresholds or defaults are called
-domain-approved, complete PyBDSF equivalence is claimed, or Rapthor cuts over.
+I/O, Phase 2 deterministic background/RMS estimation, and Phase 3 compact
+detection topology. Background/RMS estimation, automatic adaptive candidates,
+connected-island reconciliation, compact deblending, and durable detection
+products pass the governed automated gates. Named scientific review remains
+the only Phase 3 exit item. Phase 4 measurement, fitting, and catalogue
+compatibility is next; multiscale recovery, complete Rapthor integration, and
+multi-node scalability remain later work.
 
 ## 2026-07-16 — Profiled the existing PyBDSF path
 
@@ -2271,3 +2269,30 @@ deblending
 - Obtain and record Phase 3 human scientific approval, then begin Phase 4
   measurement, fitting, and catalogue compatibility from the stable compact
   topology and region summaries.
+
+## 2026-08-02 — Added an executable Phase 3 Marimo demonstration
+
+**Plan phase:** Phase 3 documentation and handoff
+
+**Completed**
+
+- Replaced the placeholder notebook with a self-contained demonstration of
+  background/RMS estimation, adaptive candidate discovery, compact detection,
+  connected-island reconciliation, Zarr products, and compact deblending.
+- Used the checked-in Phase 3 development recipe as the provenance base and
+  declared a visual-only variant containing an equal compact pair across a
+  four-tile corner. The frozen scientific recipe and qualification evidence
+  remain unchanged.
+- Compared one-tile and four-tile execution in the notebook. Background, RMS,
+  source mask, island summaries, and deblended summaries are identical.
+- Added Matplotlib to the development dependency group for established
+  scientific array visualization without increasing Hebog's runtime package.
+- Updated the README to describe and launch the working demonstration.
+
+**Validation**
+
+- `just marimo-check` passes in strict mode.
+- A headless Marimo HTML export executed the complete notebook successfully.
+  The rendered result contains five connected islands, six compact regions,
+  one visibly deblended two-region island, one adaptive-RMS candidate, no
+  deferred islands, and five passing partition-invariance checks.

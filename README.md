@@ -199,11 +199,17 @@ environments.
 ## Interactive demonstrations
 
 [Marimo](https://marimo.io/) is available in the development dependency group.
-Create or edit an interactive source-finder demonstration with:
+Run or edit the Phase 3 compact source-finding demonstration with:
 
 ```shell
 uv run marimo edit notebooks/source_finder_demo.py
 ```
+
+The notebook generates a deterministic radio image, visualizes the estimated
+background and RMS, displays the accepted source mask and connected islands,
+shows compact deblending summaries, and verifies that one-tile and four-tile
+execution produce identical results. It also identifies the measurement,
+catalogue, multiscale, and Rapthor integration work that remains.
 
 Marimo notebooks are normal Python modules, so demonstrations remain
 reviewable, testable, and version controlled. Validate them with
