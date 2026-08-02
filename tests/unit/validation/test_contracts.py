@@ -199,6 +199,16 @@ def test_phase_four_measurement_contract_freezes_scientific_meanings() -> None:
     assert contract.fitting.selective_policy == (
         "fit-all-reference-before-selection"
     )
+    assert contract.eligibility.population_selection == (
+        "reference-or-injected-truth-only"
+    )
+    assert contract.eligibility.missing_candidate_value == (
+        "counts-as-unavailable-not-excluded"
+    )
+    assert contract.eligibility.position_angle_minimum_axis_ratio == 1.1
+    assert contract.eligibility.availability_reporting == (
+        "required-for-every-gated-field"
+    )
     assert set(contract.required_analytic_failure_cases) == {
         "fit-non-convergence",
         "marginal-deconvolution",
@@ -222,6 +232,11 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
     assert gates.compact_reference.minimum_completeness == 1.0
     assert gates.compact_reference.minimum_association_pair_precision == 1.0
     assert gates.compact_reference.minimum_association_pair_recall == 1.0
+    assert gates.compact_reference.minimum_fitted_shape_availability == 1.0
+    assert (
+        gates.compact_reference.minimum_position_flux_uncertainty_availability
+        == 1.0
+    )
     assert gates.compact_reference.position_and_flux_population == (
         "isolated-compact-snr-at-least-10"
     )
@@ -235,7 +250,17 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
         gates.heldout_qualification.minimum_unresolved_classification_accuracy
         >= 0.95
     )
-    assert gates.uncertainty.minimum_samples_per_stratum >= 20
+    assert gates.uncertainty.minimum_samples_per_stratum >= 200
+    assert gates.uncertainty.confidence_interval_level == 0.95
+    assert gates.uncertainty.equivalence_rule == (
+        "entire-confidence-interval-within-margins"
+    )
+    assert gates.uncertainty.coverage_interval == "wilson-score"
+    assert gates.uncertainty.mean_interval == "student-t"
+    assert gates.uncertainty.dispersion_interval == (
+        "scipy-bca-bootstrap-fixed-seed"
+    )
+    assert gates.uncertainty.bootstrap_resamples >= 10_000
 
 
 def test_phase_four_gates_reject_percentiles_tighter_than_medians() -> None:

@@ -147,7 +147,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
     assert len(qualification) == 1
     qualification_dataset = qualification[0]
     qualification_recipes = iter_dataset_recipes(qualification_dataset)
-    assert len(qualification_recipes) >= 30
+    assert len(qualification_recipes) >= 200
     assert len({recipe.seed for recipe in qualification_recipes}) == len(
         qualification_recipes
     )
@@ -167,7 +167,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         "snr-25",
         "snr-50",
     }
-    assert min(sample_counts.values()) >= 30
+    assert min(sample_counts.values()) >= 200
 
     earlier_identifiers = {
         dataset.identifier

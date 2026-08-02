@@ -71,7 +71,10 @@ indices. These declarations keep SNR, shape, blend, edge, or other governed
 populations explicit and let qualification code prove the required sample
 count before looking at scientific results. Stratum identifiers and indices
 are unique, indices are sorted and non-negative, and every index resolves to
-source truth in the shared recipe.
+source truth in the shared recipe. The Phase 4 qualification campaign freezes
+200 independent deterministic noise realizations, so even its single-source
+edge stratum reaches the reviewed minimum of 200 samples before any scientific
+output is inspected.
 
 ## Deterministic generation
 

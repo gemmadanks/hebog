@@ -256,6 +256,7 @@ def test_catalogue_report_compares_shapes_modulo_half_a_circle() -> None:
         (candidate,),
         beam_fwhm_degrees=0.1,
         maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
     )
 
     match = report.matches[0]
@@ -296,6 +297,7 @@ def test_catalogue_report_distinguishes_unresolved_from_unavailable() -> None:
         (candidate,),
         beam_fwhm_degrees=0.1,
         maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
     )
 
     assert report.unresolved_classification_count == 1
@@ -341,6 +343,7 @@ def test_catalogue_report_calibrates_candidate_reported_uncertainties() -> (
         (candidate,),
         beam_fwhm_degrees=0.1,
         maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
     )
     calibration = {
         item.metric: item for item in report.uncertainty_calibration
@@ -517,11 +520,109 @@ def test_catalogue_report_identifies_explicit_catastrophic_outliers() -> None:
         beam_fwhm_degrees=0.1,
         maximum_separation_beams=0.5,
         outlier_thresholds=thresholds,
+        position_angle_minimum_axis_ratio=1.1,
     )
 
     assert report.catastrophic_outlier_thresholds == thresholds
     assert report.catastrophic_outlier_reference_identifiers == ("reference",)
     assert report.catastrophic_outlier_fraction == 1.0
+
+
+def test_catalogue_report_uses_reference_selected_shape_eligibility() -> None:
+    """Near-circular truth keeps axis evidence but excludes meaningless PA."""
+    reference = replace(
+        _source("reference", right_ascension_degrees=10.0),
+        fitted_shape=_ellipse(0.01, 0.0095, 0.0),
+    )
+    candidate = replace(
+        _source("candidate", right_ascension_degrees=10.0),
+        fitted_shape=_ellipse(0.01, 0.0095, 90.0),
+    )
+
+    report = compare_catalogues(
+        (reference,),
+        (candidate,),
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+    )
+
+    assert report.median_absolute_fitted_axis_fractional_difference == 0.0
+    assert (
+        report.median_absolute_fitted_position_angle_difference_degrees is None
+    )
+
+
+def test_catalogue_report_counts_missing_candidate_fields_as_unavailable() -> (
+    None
+):
+    """A candidate cannot pass a gate by omitting difficult measurements."""
+    reference = replace(
+        _source("reference", right_ascension_degrees=10.0),
+        fitted_shape=_ellipse(0.01, 0.005, 20.0),
+        deconvolved_shape=_ellipse(0.008, 0.004, 20.0),
+        deconvolution_status="resolved",
+        island_identifier="parent",
+    )
+    candidate = _source("candidate", right_ascension_degrees=10.0)
+
+    report = compare_catalogues(
+        (reference,),
+        (candidate,),
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+    )
+    availability = {item.metric: item for item in report.field_availability}
+    uncertainty = {
+        item.metric: item for item in report.uncertainty_calibration
+    }
+
+    assert availability["fitted-shape"].eligible_count == 1
+    assert availability["fitted-shape"].availability_fraction == 0.0
+    assert (
+        availability["deconvolution-classification"].availability_fraction
+        == 0.0
+    )
+    assert (
+        availability["resolved-deconvolved-shape"].availability_fraction == 0.0
+    )
+    assert availability["parent-island-identity"].availability_fraction == 0.0
+    assert report.unresolved_classification_count == 1
+    assert report.unresolved_classification_accuracy == 0.0
+    assert report.association.identity_eligible_count == 1
+    assert report.association.identity_available_count == 0
+    assert uncertainty["right-ascension"].eligible_count == 1
+    assert uncertainty["right-ascension"].sample_count == 0
+    assert uncertainty["right-ascension"].availability_fraction == 0.0
+    assert uncertainty["right-ascension"].coverage_fraction is None
+    assert uncertainty["right-ascension"].mean_normalized_residual is None
+
+
+def test_missing_parent_identity_counts_as_false_negative() -> None:
+    """Missing candidate identities do not disappear from association gates."""
+    reference = tuple(
+        replace(
+            _source(f"r{index}", right_ascension_degrees=float(index)),
+            island_identifier="reference-parent",
+        )
+        for index in (1, 2)
+    )
+    candidate = tuple(
+        _source(f"c{index}", right_ascension_degrees=float(index))
+        for index in (1, 2)
+    )
+
+    report = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+    )
+
+    assert report.association.identity_availability_fraction == 0.0
+    assert report.association.false_negative_pair_count == 1
+    assert report.association.recall == 0.0
 
 
 def test_rich_catalogue_source_rejects_ambiguous_absence_or_flags() -> None:
@@ -615,6 +716,39 @@ def test_catalogue_comparison_rejects_nonpositive_match_geometry(
             (),
             beam_fwhm_degrees=beam_fwhm_degrees,
             maximum_separation_beams=maximum_separation_beams,
+        )
+
+
+def test_shape_comparison_requires_an_explicit_position_angle_population() -> (
+    None
+):
+    """Shape evidence cannot inherit a hidden circularity threshold."""
+    shaped = replace(
+        _source("source", right_ascension_degrees=1.0),
+        fitted_shape=_ellipse(0.01, 0.005, 0.0),
+    )
+
+    with pytest.raises(ValueError, match="required when comparing shapes"):
+        compare_catalogues(
+            (shaped,),
+            (),
+            beam_fwhm_degrees=1.0,
+            maximum_separation_beams=0.5,
+        )
+
+
+@pytest.mark.parametrize("minimum_axis_ratio", [1.0, np.inf])
+def test_position_angle_axis_ratio_must_define_ellipticity(
+    minimum_axis_ratio: float,
+) -> None:
+    """The position-angle population needs a finite ratio above unity."""
+    with pytest.raises(ValueError, match="finite and greater than one"):
+        compare_catalogues(
+            (),
+            (),
+            beam_fwhm_degrees=1.0,
+            maximum_separation_beams=0.5,
+            position_angle_minimum_axis_ratio=minimum_axis_ratio,
         )
 
 

@@ -383,6 +383,22 @@ class PhaseFourFittingContract(_ContractModel):
     ]
 
 
+class PhaseFourEligibilityContract(_ContractModel):
+    """Reference-selected populations and missing-value gate semantics."""
+
+    population_selection: Literal["reference-or-injected-truth-only"]
+    missing_candidate_value: Literal["counts-as-unavailable-not-excluded"]
+    fitted_shape_eligibility: Literal["reference-fitted-shape-available"]
+    deconvolved_shape_eligibility: Literal["reference-resolved-with-shape"]
+    position_angle_eligibility: Literal[
+        "eligible-reference-shape-axis-ratio-at-least-minimum"
+    ]
+    position_angle_minimum_axis_ratio: float = Field(gt=1)
+    association_eligibility: Literal["reference-parent-association-declared"]
+    uncertainty_eligibility: Literal["reference-compact-snr-at-least-10"]
+    availability_reporting: Literal["required-for-every-gated-field"]
+
+
 class PhaseFourMeasurementContract(_ContractModel):
     """Frozen-provisional Phase 4 compact measurement contract."""
 
@@ -395,6 +411,7 @@ class PhaseFourMeasurementContract(_ContractModel):
     association: PhaseFourAssociationContract
     failures: PhaseFourFailureContract
     fitting: PhaseFourFittingContract
+    eligibility: PhaseFourEligibilityContract
     required_analytic_failure_cases: tuple[
         Literal[
             "fit-non-convergence",
@@ -466,6 +483,13 @@ class PhaseFourCatalogueGate(_ContractModel):
     minimum_unresolved_classification_accuracy: float = Field(ge=0, le=1)
     minimum_association_pair_precision: float = Field(ge=0, le=1)
     minimum_association_pair_recall: float = Field(ge=0, le=1)
+    minimum_fitted_shape_availability: float = Field(ge=0, le=1)
+    minimum_deconvolution_classification_availability: float = Field(
+        ge=0, le=1
+    )
+    minimum_resolved_deconvolved_shape_availability: float = Field(ge=0, le=1)
+    minimum_association_identity_availability: float = Field(ge=0, le=1)
+    minimum_position_flux_uncertainty_availability: float = Field(ge=0, le=1)
     maximum_catastrophic_outlier_fraction: float = Field(ge=0, le=1)
 
     @model_validator(mode="after")
@@ -513,7 +537,15 @@ class PhaseFourUncertaintyGate(_ContractModel):
     maximum_absolute_mean_normalized_residual: float = Field(gt=0)
     minimum_normalized_residual_standard_deviation: float = Field(gt=0)
     maximum_normalized_residual_standard_deviation: float = Field(gt=0)
-    minimum_samples_per_stratum: int = Field(ge=1)
+    minimum_samples_per_stratum: int = Field(ge=200)
+    confidence_interval_level: float = Field(gt=0, lt=1)
+    equivalence_rule: Literal["entire-confidence-interval-within-margins"]
+    coverage_interval: Literal["wilson-score"]
+    mean_interval: Literal["student-t"]
+    dispersion_interval: Literal["scipy-bca-bootstrap-fixed-seed"]
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    insufficient_samples: Literal["report-only"]
 
     @model_validator(mode="after")
     def validate_standard_deviation_range(self) -> Self:

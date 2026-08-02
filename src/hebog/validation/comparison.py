@@ -37,6 +37,30 @@ _UncertaintyMetric = Literal[
     "deconvolved-minor-axis",
     "deconvolved-position-angle",
 ]
+_UNCERTAINTY_METRICS: tuple[_UncertaintyMetric, ...] = (
+    "right-ascension",
+    "declination",
+    "peak-flux",
+    "integrated-flux",
+    "fitted-major-axis",
+    "fitted-minor-axis",
+    "fitted-position-angle",
+    "deconvolved-major-axis",
+    "deconvolved-minor-axis",
+    "deconvolved-position-angle",
+)
+_AvailabilityMetric = Literal[
+    "fitted-shape",
+    "deconvolution-classification",
+    "resolved-deconvolved-shape",
+    "parent-island-identity",
+]
+_AVAILABILITY_METRICS: tuple[_AvailabilityMetric, ...] = (
+    "fitted-shape",
+    "deconvolution-classification",
+    "resolved-deconvolved-shape",
+    "parent-island-identity",
+)
 
 
 class _LinearSumAssignment(Protocol):
@@ -302,11 +326,23 @@ class UncertaintyCalibrationReport:
     """Bias, dispersion, and one-sigma coverage for one reported error."""
 
     metric: _UncertaintyMetric
+    eligible_count: int
     sample_count: int
+    availability_fraction: float
     within_one_sigma_count: int
-    coverage_fraction: float
-    mean_normalized_residual: float
+    coverage_fraction: float | None
+    mean_normalized_residual: float | None
     sample_standard_deviation: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogueFieldAvailabilityReport:
+    """Reference-selected availability for one gated candidate field."""
+
+    metric: _AvailabilityMetric
+    eligible_count: int
+    available_count: int
+    availability_fraction: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -314,6 +350,9 @@ class AssociationComparisonReport:
     """Pairwise parent-association confusion counts and rates."""
 
     matched_source_count: int
+    identity_eligible_count: int
+    identity_available_count: int
+    identity_availability_fraction: float | None
     compared_pair_count: int
     true_positive_pair_count: int
     false_positive_pair_count: int
@@ -356,6 +395,7 @@ class CatalogueComparisonReport:
     )
     unresolved_classification_count: int
     unresolved_classification_accuracy: float | None
+    field_availability: tuple[CatalogueFieldAvailabilityReport, ...]
     association: AssociationComparisonReport
     component_count_comparison_count: int
     component_count_agreement_fraction: float | None
@@ -595,6 +635,8 @@ def _signed_periodic_difference(
 def _shape_differences(
     reference: CatalogueEllipse | None,
     candidate: CatalogueEllipse | None,
+    *,
+    position_angle_minimum_axis_ratio: float,
 ) -> tuple[float | None, float | None, float | None]:
     """Return signed axis fractions and half-circle orientation difference."""
     if reference is None or candidate is None:
@@ -604,10 +646,15 @@ def _shape_differences(
         / reference.major_fwhm_degrees,
         (candidate.minor_fwhm_degrees - reference.minor_fwhm_degrees)
         / reference.minor_fwhm_degrees,
-        _signed_periodic_difference(
-            candidate.position_angle_degrees,
-            reference.position_angle_degrees,
-            period=_HALF_CIRCLE_DEGREES,
+        (
+            _signed_periodic_difference(
+                candidate.position_angle_degrees,
+                reference.position_angle_degrees,
+                period=_HALF_CIRCLE_DEGREES,
+            )
+            if reference.major_fwhm_degrees / reference.minor_fwhm_degrees
+            >= position_angle_minimum_axis_ratio
+            else None
         ),
     )
 
@@ -616,14 +663,14 @@ def _deconvolution_classification_agrees(
     reference: CatalogueSource,
     candidate: CatalogueSource,
 ) -> bool | None:
-    """Compare resolved/unresolved states while excluding unavailable rows."""
+    """Compare reference-eligible resolved/unresolved classifications."""
     comparable = {"resolved", "unresolved"}
-    if (
-        reference.deconvolution_status not in comparable
-        or candidate.deconvolution_status not in comparable
-    ):
+    if reference.deconvolution_status not in comparable:
         return None
-    return reference.deconvolution_status == candidate.deconvolution_status
+    return (
+        candidate.deconvolution_status in comparable
+        and reference.deconvolution_status == candidate.deconvolution_status
+    )
 
 
 def _quality_flag_jaccard(
@@ -642,6 +689,8 @@ def _quality_flag_jaccard(
 def _normalized_uncertainty_samples(
     reference: CatalogueSource,
     candidate: CatalogueSource,
+    *,
+    position_angle_minimum_axis_ratio: float,
 ) -> tuple[tuple[str, float], ...]:
     """Normalize candidate-minus-reference residuals by candidate errors."""
     samples: list[tuple[str, float]] = []
@@ -679,12 +728,14 @@ def _normalized_uncertainty_samples(
         prefix="fitted",
         reference=reference.fitted_shape,
         candidate=candidate.fitted_shape,
+        position_angle_minimum_axis_ratio=position_angle_minimum_axis_ratio,
     )
     _add_shape_uncertainty_samples(
         samples,
         prefix="deconvolved",
         reference=reference.deconvolved_shape,
         candidate=candidate.deconvolved_shape,
+        position_angle_minimum_axis_ratio=position_angle_minimum_axis_ratio,
     )
     return tuple(samples)
 
@@ -695,11 +746,12 @@ def _add_shape_uncertainty_samples(
     prefix: Literal["fitted", "deconvolved"],
     reference: CatalogueEllipse | None,
     candidate: CatalogueEllipse | None,
+    position_angle_minimum_axis_ratio: float,
 ) -> None:
     """Append normalized ellipse residuals when both shapes are available."""
     if reference is None or candidate is None:
         return
-    entries = (
+    axis_entries = (
         (
             f"{prefix}-major-axis",
             candidate.major_fwhm_degrees - reference.major_fwhm_degrees,
@@ -710,38 +762,92 @@ def _add_shape_uncertainty_samples(
             candidate.minor_fwhm_degrees - reference.minor_fwhm_degrees,
             candidate.minor_fwhm_error_degrees,
         ),
-        (
-            f"{prefix}-position-angle",
-            _signed_periodic_difference(
-                candidate.position_angle_degrees,
-                reference.position_angle_degrees,
-                period=_HALF_CIRCLE_DEGREES,
-            ),
-            candidate.position_angle_error_degrees,
-        ),
     )
     samples.extend(
         (metric, difference / uncertainty)
-        for metric, difference, uncertainty in entries
+        for metric, difference, uncertainty in axis_entries
         if uncertainty is not None
     )
+    if (
+        reference.major_fwhm_degrees / reference.minor_fwhm_degrees
+        >= position_angle_minimum_axis_ratio
+        and candidate.position_angle_error_degrees is not None
+    ):
+        samples.append(
+            (
+                f"{prefix}-position-angle",
+                _signed_periodic_difference(
+                    candidate.position_angle_degrees,
+                    reference.position_angle_degrees,
+                    period=_HALF_CIRCLE_DEGREES,
+                )
+                / candidate.position_angle_error_degrees,
+            )
+        )
+
+
+def _uncertainty_eligible_metrics(
+    source: CatalogueSource,
+    *,
+    position_angle_minimum_axis_ratio: float,
+) -> tuple[_UncertaintyMetric, ...]:
+    """Return metrics selected only from reference or injected truth."""
+    metrics: list[_UncertaintyMetric] = [
+        "right-ascension",
+        "declination",
+        "peak-flux",
+        "integrated-flux",
+    ]
+    for prefix, shape in (
+        ("fitted", source.fitted_shape),
+        ("deconvolved", source.deconvolved_shape),
+    ):
+        if shape is None:
+            continue
+        metrics.extend(
+            cast(
+                tuple[_UncertaintyMetric, _UncertaintyMetric],
+                (f"{prefix}-major-axis", f"{prefix}-minor-axis"),
+            )
+        )
+        if (
+            shape.major_fwhm_degrees / shape.minor_fwhm_degrees
+            >= position_angle_minimum_axis_ratio
+        ):
+            metrics.append(
+                cast(_UncertaintyMetric, f"{prefix}-position-angle")
+            )
+    return tuple(metrics)
 
 
 def _uncertainty_calibration_reports(
     samples: dict[str, list[float]],
+    eligible_counts: Counter[str],
 ) -> tuple[UncertaintyCalibrationReport, ...]:
-    """Aggregate normalized residuals without inventing empty metrics."""
+    """Aggregate normalized residuals against reference-selected counts."""
     reports: list[UncertaintyCalibrationReport] = []
-    for metric, metric_samples in samples.items():
+    for metric in _UNCERTAINTY_METRICS:
+        eligible_count = eligible_counts[metric]
+        if eligible_count == 0:
+            continue
+        metric_samples = samples.get(metric, [])
         values = np.asarray(metric_samples, dtype=np.float64)
         within_one_sigma = int(np.count_nonzero(np.abs(values) <= 1.0))
         reports.append(
             UncertaintyCalibrationReport(
-                metric=cast(_UncertaintyMetric, metric),
+                metric=metric,
+                eligible_count=eligible_count,
                 sample_count=len(metric_samples),
+                availability_fraction=len(metric_samples) / eligible_count,
                 within_one_sigma_count=within_one_sigma,
-                coverage_fraction=within_one_sigma / len(metric_samples),
-                mean_normalized_residual=float(np.mean(values)),
+                coverage_fraction=(
+                    within_one_sigma / len(metric_samples)
+                    if metric_samples
+                    else None
+                ),
+                mean_normalized_residual=(
+                    float(np.mean(values)) if metric_samples else None
+                ),
                 sample_standard_deviation=(
                     float(np.std(values, ddof=1))
                     if len(metric_samples) > 1
@@ -758,15 +864,22 @@ def _association_report(
     assignments: tuple[tuple[int, int, float], ...],
 ) -> AssociationComparisonReport:
     """Compare same-island relationships from linear-size count summaries."""
-    associations = [
-        (
-            reference[reference_index].island_identifier,
-            candidate[candidate_index].island_identifier,
-        )
-        for reference_index, candidate_index, _ in assignments
-        if reference[reference_index].island_identifier is not None
-        and candidate[candidate_index].island_identifier is not None
-    ]
+    associations: list[tuple[str, str | tuple[str, int]]] = []
+    available_count = 0
+    for reference_index, candidate_index, _ in assignments:
+        reference_identity = reference[reference_index].island_identifier
+        if reference_identity is None:
+            continue
+        candidate_identity = candidate[candidate_index].island_identifier
+        if candidate_identity is None:
+            candidate_key: str | tuple[str, int] = (
+                "missing-candidate-identity",
+                candidate_index,
+            )
+        else:
+            candidate_key = candidate_identity
+            available_count += 1
+        associations.append((reference_identity, candidate_key))
     compared = len(associations) * (len(associations) - 1) // 2
     reference_counts = Counter(item[0] for item in associations)
     candidate_counts = Counter(item[1] for item in associations)
@@ -787,6 +900,11 @@ def _association_report(
     union = same_both + false_positive + false_negative
     return AssociationComparisonReport(
         matched_source_count=len(associations),
+        identity_eligible_count=len(associations),
+        identity_available_count=available_count,
+        identity_availability_fraction=(
+            available_count / len(associations) if associations else None
+        ),
         compared_pair_count=compared,
         true_positive_pair_count=same_both,
         false_positive_pair_count=false_positive,
@@ -799,6 +917,64 @@ def _association_report(
         recall=same_both / recall_denominator if recall_denominator else 1.0,
         intersection_over_union=same_both / union if union else 1.0,
     )
+
+
+def _field_availability_reports(
+    eligible_counts: Counter[str],
+    available_counts: Counter[str],
+) -> tuple[CatalogueFieldAvailabilityReport, ...]:
+    """Report candidate availability for every governed catalogue field."""
+    return tuple(
+        CatalogueFieldAvailabilityReport(
+            metric=metric,
+            eligible_count=eligible_counts[metric],
+            available_count=available_counts[metric],
+            availability_fraction=(
+                available_counts[metric] / eligible_counts[metric]
+                if eligible_counts[metric]
+                else None
+            ),
+        )
+        for metric in _AVAILABILITY_METRICS
+    )
+
+
+def _record_field_availability(
+    reference: CatalogueSource,
+    candidate: CatalogueSource,
+    eligible_counts: Counter[str],
+    available_counts: Counter[str],
+) -> None:
+    """Accumulate reference-selected eligibility and candidate availability."""
+    comparable = {"resolved", "unresolved"}
+    statuses = (
+        (
+            "fitted-shape",
+            reference.fitted_shape is not None,
+            candidate.fitted_shape is not None,
+        ),
+        (
+            "deconvolution-classification",
+            reference.deconvolution_status in comparable,
+            candidate.deconvolution_status in comparable,
+        ),
+        (
+            "resolved-deconvolved-shape",
+            reference.deconvolution_status == "resolved",
+            candidate.deconvolution_status == "resolved"
+            and candidate.deconvolved_shape is not None,
+        ),
+        (
+            "parent-island-identity",
+            reference.island_identifier is not None,
+            candidate.island_identifier is not None,
+        ),
+    )
+    for metric, eligible, available in statuses:
+        if eligible:
+            eligible_counts[metric] += 1
+            if available:
+                available_counts[metric] += 1
 
 
 def _is_catastrophic_outlier(
@@ -833,13 +1009,14 @@ def _is_catastrophic_outlier(
     )
 
 
-def compare_catalogues(
+def compare_catalogues(  # noqa: PLR0913
     reference: Sequence[CatalogueSource],
     candidate: Sequence[CatalogueSource],
     *,
     beam_fwhm_degrees: float,
     maximum_separation_beams: float,
     outlier_thresholds: CatalogueOutlierThresholds | None = None,
+    position_angle_minimum_axis_ratio: float | None = None,
 ) -> CatalogueComparisonReport:
     """Match two catalogues and calculate scientific comparison metrics."""
     if not np.isfinite(beam_fwhm_degrees) or beam_fwhm_degrees <= 0:
@@ -851,6 +1028,27 @@ def compare_catalogues(
         raise ValueError(
             "maximum_separation_beams must be positive and finite"
         )
+    shape_is_present = any(
+        source.fitted_shape is not None or source.deconvolved_shape is not None
+        for source in (*reference, *candidate)
+    )
+    if position_angle_minimum_axis_ratio is None:
+        if shape_is_present:
+            raise ValueError(
+                "position_angle_minimum_axis_ratio is required when "
+                "comparing shapes"
+            )
+        position_angle_axis_ratio = np.inf
+    else:
+        if (
+            not np.isfinite(position_angle_minimum_axis_ratio)
+            or position_angle_minimum_axis_ratio <= 1.0
+        ):
+            raise ValueError(
+                "position_angle_minimum_axis_ratio must be finite and "
+                "greater than one"
+            )
+        position_angle_axis_ratio = position_angle_minimum_axis_ratio
     _validate_catalogue_identifiers(reference, catalogue_name="reference")
     _validate_catalogue_identifiers(candidate, catalogue_name="candidate")
 
@@ -862,6 +1060,9 @@ def compare_catalogues(
     )
     matches: list[CatalogueMatch] = []
     uncertainty_samples: dict[str, list[float]] = {}
+    uncertainty_eligible_counts: Counter[str] = Counter()
+    field_eligible_counts: Counter[str] = Counter()
+    field_available_counts: Counter[str] = Counter()
     matched_reference_indices: set[int] = set()
     matched_candidate_indices: set[int] = set()
     for reference_index, candidate_index, separation_beams in assignments:
@@ -872,14 +1073,29 @@ def compare_catalogues(
         fitted_shape_differences = _shape_differences(
             reference_source.fitted_shape,
             candidate_source.fitted_shape,
+            position_angle_minimum_axis_ratio=position_angle_axis_ratio,
         )
         deconvolved_shape_differences = _shape_differences(
             reference_source.deconvolved_shape,
             candidate_source.deconvolved_shape,
+            position_angle_minimum_axis_ratio=position_angle_axis_ratio,
+        )
+        _record_field_availability(
+            reference_source,
+            candidate_source,
+            field_eligible_counts,
+            field_available_counts,
+        )
+        uncertainty_eligible_counts.update(
+            _uncertainty_eligible_metrics(
+                reference_source,
+                position_angle_minimum_axis_ratio=position_angle_axis_ratio,
+            )
         )
         for metric, sample in _normalized_uncertainty_samples(
             reference_source,
             candidate_source,
+            position_angle_minimum_axis_ratio=position_angle_axis_ratio,
         ):
             uncertainty_samples.setdefault(metric, []).append(sample)
         matches.append(
@@ -1069,6 +1285,10 @@ def compare_catalogues(
             if unresolved_classifications
             else None
         ),
+        field_availability=_field_availability_reports(
+            field_eligible_counts,
+            field_available_counts,
+        ),
         association=association_report,
         component_count_comparison_count=len(component_comparisons),
         component_count_agreement_fraction=(
@@ -1085,7 +1305,8 @@ def compare_catalogues(
             [match.quality_flag_jaccard for match in matches]
         ),
         uncertainty_calibration=_uncertainty_calibration_reports(
-            uncertainty_samples
+            uncertainty_samples,
+            uncertainty_eligible_counts,
         ),
         catastrophic_outlier_thresholds=outlier_thresholds,
         catastrophic_outlier_reference_identifiers=catastrophic_outliers,

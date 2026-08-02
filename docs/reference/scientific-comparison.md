@@ -42,21 +42,33 @@ component-count agreement, exact and Jaccard quality-flag agreement, and
 summary medians and 95th percentiles. Axis summaries use the worse of the
 major/minor fractional errors for each matched row, and fitted and deconvolved
 position angles remain separate so one population cannot conceal another.
-Unavailable shapes are excluded rather than converted to zero.
+The caller supplies the reviewed minimum reference major/minor-axis ratio for
+position-angle evidence; Phase 4 uses `1.1`, below which orientation is not a
+meaningful scientific quantity. Axis evidence remains eligible. Reference or
+injected truth alone selects every governed population. A missing candidate
+shape, classification, or parent identity therefore counts as unavailable
+rather than silently removing a difficult row. The report carries explicit
+eligible, available, and availability-fraction fields for each gate; absent
+shapes are never converted to zero.
 
 Candidate-reported uncertainties are normalized against the reference value.
-Each metric reports sample count, one-sigma coverage, mean normalized residual,
-and sample standard deviation when at least two observations exist. The
-reference must therefore be governed truth when the report is used to claim
-calibration; a PyBDSF comparison alone measures compatibility, not error
-coverage truth.
+Each reference-eligible metric reports its eligible and candidate-available
+sample counts, availability fraction, one-sigma coverage, mean normalized
+residual, and sample standard deviation when at least two observations exist.
+A missing candidate uncertainty produces an availability failure and an
+explicit empty calibration result, rather than disappearing. The reference
+must therefore be governed truth when the report is used to claim calibration;
+a PyBDSF comparison alone measures compatibility, not error-coverage truth.
 
 Parent-island association is compared after row assignment. Linear-size
 contingency summaries produce pairwise true-positive, false-positive, and
 false-negative co-association counts plus precision, recall, intersection over
 union, and overall agreement without constructing an all-pairs matrix.
 Precision and recall prevent the much larger set of unrelated source pairs
-from concealing a split or merge. Component counts are compared separately.
+from concealing a split or merge. A missing candidate parent identity remains
+in the reference-selected population as a unique unavailable identity, so it
+cannot conceal a split; identity availability is also reported directly.
+Component counts are compared separately.
 `CatalogueOutlierThresholds` has no hidden
 defaults: callers must supply their frozen position, flux, and shape limits to
 obtain a catastrophic-outlier fraction and identifiers. The report retains

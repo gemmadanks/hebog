@@ -16,6 +16,17 @@
     "transform": "astropy-local-tangent-plane-jacobian",
     "uncertainty_interpretation": "one-standard-deviation"
   },
+  "eligibility": {
+    "association_eligibility": "reference-parent-association-declared",
+    "availability_reporting": "required-for-every-gated-field",
+    "deconvolved_shape_eligibility": "reference-resolved-with-shape",
+    "fitted_shape_eligibility": "reference-fitted-shape-available",
+    "missing_candidate_value": "counts-as-unavailable-not-excluded",
+    "population_selection": "reference-or-injected-truth-only",
+    "position_angle_eligibility": "eligible-reference-shape-axis-ratio-at-least-minimum",
+    "position_angle_minimum_axis_ratio": 1.1,
+    "uncertainty_eligibility": "reference-compact-snr-at-least-10"
+  },
   "failures": {
     "compatibility_unresolved_shape": "adapter-zero-axes-only",
     "invalid_measurement": "typed-unavailable-result",
