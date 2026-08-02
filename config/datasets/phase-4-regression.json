@@ -1,0 +1,221 @@
+{
+  "datasets": [
+    {
+      "beam": {
+        "major_fwhm_pixels": 5.0,
+        "minor_fwhm_pixels": 3.5,
+        "position_angle_degrees": 110.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": -0.00015,
+        "finite_fraction": 0.9986979166666666,
+        "noise_rms_jy_per_beam": 0.00025
+      },
+      "identifier": "phase4-transform-deconvolution-regression-384x512",
+      "provenance": "Additive Phase 4 regression truth frozen before WCS and beam-deconvolution implementation.",
+      "purpose": "Rotated unequal-scale WCS, varying RMS, invalid pixels, image edges, and unresolved-to-resolved deconvolution cases.",
+      "recipe": {
+        "background": -0.00015,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 2,
+        "invalid_rectangles": [
+          {
+            "x_start": 240,
+            "x_stop": 248,
+            "y_start": 100,
+            "y_stop": 132
+          }
+        ],
+        "noise_rms": 0.00025,
+        "noise_rms_fractional_gradient_xy": [
+          -0.25,
+          0.35
+        ],
+        "seed": 2026080211,
+        "shape_yx": [
+          384,
+          512
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.1233045007,
+            "minor_sigma_pixels": 1.4863131505,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 110.0,
+            "x_pixel": 64.25,
+            "y_pixel": 64.75
+          },
+          {
+            "major_sigma_pixels": 2.2,
+            "minor_sigma_pixels": 1.52,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 108.0,
+            "x_pixel": 192.5,
+            "y_pixel": 96.25
+          },
+          {
+            "major_sigma_pixels": 3.0,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.006,
+            "rotation_degrees_counterclockwise_from_x": 25.0,
+            "x_pixel": 320.1,
+            "y_pixel": 112.9
+          },
+          {
+            "major_sigma_pixels": 4.5,
+            "minor_sigma_pixels": 2.4,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 75.0,
+            "x_pixel": 448.75,
+            "y_pixel": 192.5
+          },
+          {
+            "major_sigma_pixels": 2.6,
+            "minor_sigma_pixels": 1.6,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 145.0,
+            "x_pixel": 1.25,
+            "y_pixel": 300.5
+          },
+          {
+            "major_sigma_pixels": 3.3,
+            "minor_sigma_pixels": 1.9,
+            "peak_flux_jy_per_beam": 0.008,
+            "rotation_degrees_counterclockwise_from_x": 40.0,
+            "x_pixel": 510.5,
+            "y_pixel": 360.25
+          }
+        ]
+      },
+      "recipe_sha256": "7fc8c22cd23a6d7125adffdb4404af247c9960ae1ee450d02039d9c5bcefae85",
+      "redistribution": "generated-locally",
+      "role": "regression",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00018,
+          0.00031
+        ],
+        "reference_pixel_xy": [
+          255.5,
+          191.5
+        ],
+        "reference_sky_degrees": [
+          0.02,
+          45.0
+        ],
+        "rotation_degrees_counterclockwise": 63.0
+      }
+    },
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.2,
+        "minor_fwhm_pixels": 3.0,
+        "position_angle_degrees": 35.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase4-crowded-association-regression-512",
+      "provenance": "Additive Phase 4 regression truth frozen before compact source-association implementation.",
+      "purpose": "Crowded compact groups, marginal separations, circular covariance, sub-pixel centres, and deterministic association ordering.",
+      "recipe": {
+        "background": 0.0,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 2,
+        "invalid_rectangles": [],
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.15,
+          0.1
+        ],
+        "seed": 2026080212,
+        "shape_yx": [
+          512,
+          512
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 1.7835757806,
+            "minor_sigma_pixels": 1.2739827004,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 35.0,
+            "x_pixel": 126.25,
+            "y_pixel": 128.5
+          },
+          {
+            "major_sigma_pixels": 1.7835757806,
+            "minor_sigma_pixels": 1.2739827004,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 35.0,
+            "x_pixel": 130.0,
+            "y_pixel": 128.0
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.6,
+            "peak_flux_jy_per_beam": 0.007,
+            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "x_pixel": 254.0,
+            "y_pixel": 256.0
+          },
+          {
+            "major_sigma_pixels": 2.1,
+            "minor_sigma_pixels": 1.4,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 10.0,
+            "x_pixel": 258.0,
+            "y_pixel": 255.5
+          },
+          {
+            "major_sigma_pixels": 1.8,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 0.0,
+            "x_pixel": 384.5,
+            "y_pixel": 128.25
+          },
+          {
+            "major_sigma_pixels": 3.2,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.009,
+            "rotation_degrees_counterclockwise_from_x": 140.0,
+            "x_pixel": 380.5,
+            "y_pixel": 384.75
+          },
+          {
+            "major_sigma_pixels": 2.3,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.0045,
+            "rotation_degrees_counterclockwise_from_x": 65.0,
+            "x_pixel": 384.0,
+            "y_pixel": 385.0
+          }
+        ]
+      },
+      "recipe_sha256": "15f70bc7e5d6b441323745b9ed536542f1d92403d93413f54b5f3be3d68b4736",
+      "redistribution": "generated-locally",
+      "role": "regression",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0002777777777777778,
+          0.0002777777777777778
+        ],
+        "reference_pixel_xy": [
+          255.5,
+          255.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          -30.0
+        ],
+        "rotation_degrees_counterclockwise": 0.0
+      }
+    }
+  ],
+  "manifest_id": "phase-4-regression",
+  "schema_version": 1
+}

@@ -11,10 +11,12 @@ from pydantic import ValidationError
 from hebog.validation.datasets import (
     DatasetManifest,
     DatasetRole,
+    SyntheticInvalidRectangle,
     SyntheticRecipe,
     SyntheticSource,
     generate_synthetic_image,
     generate_synthetic_window,
+    iter_dataset_recipes,
     load_dataset_manifest,
     recipe_sha256,
 )
@@ -116,6 +118,71 @@ def test_phase_three_adds_immutable_role_specific_supplements() -> None:
     assert phase_zero_identifiers.isdisjoint(phase_three_identifiers)
 
 
+def test_phase_four_adds_immutable_role_specific_supplements() -> None:
+    """Measurement data adds governed truth without rewriting prior phases."""
+    manifests = {
+        path.stem: load_dataset_manifest(path)
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4-*.json"))
+    }
+
+    assert set(manifests) == {
+        "phase-4-development",
+        "phase-4-qualification",
+        "phase-4-regression",
+    }
+    expected_roles = {
+        "phase-4-development": DatasetRole.DEVELOPMENT,
+        "phase-4-regression": DatasetRole.REGRESSION,
+        "phase-4-qualification": DatasetRole.QUALIFICATION,
+    }
+    for manifest_id, manifest in manifests.items():
+        assert {item.role for item in manifest.datasets} == {
+            expected_roles[manifest_id]
+        }
+        assert all(
+            item.recipe.generator_version == 2 for item in manifest.datasets
+        )
+
+    qualification = manifests["phase-4-qualification"].datasets
+    assert len(qualification) == 1
+    qualification_dataset = qualification[0]
+    qualification_recipes = iter_dataset_recipes(qualification_dataset)
+    assert len(qualification_recipes) >= 30
+    assert len({recipe.seed for recipe in qualification_recipes}) == len(
+        qualification_recipes
+    )
+    assert "unseen" in qualification_dataset.provenance.lower()
+    sample_counts = {
+        stratum.identifier: len(stratum.source_indices)
+        * len(qualification_recipes)
+        for stratum in qualification_dataset.validation_strata
+    }
+    assert set(sample_counts) == {
+        "blend",
+        "edge",
+        "shape-resolved",
+        "shape-unresolved",
+        "snr-10",
+        "snr-15",
+        "snr-25",
+        "snr-50",
+    }
+    assert min(sample_counts.values()) >= 30
+
+    earlier_identifiers = {
+        dataset.identifier
+        for phase in ("phase-0", "phase-3")
+        for path in sorted(_DATASET_DIRECTORY.glob(f"{phase}-*.json"))
+        for dataset in load_dataset_manifest(path).datasets
+    }
+    phase_four_identifiers = {
+        dataset.identifier
+        for manifest in manifests.values()
+        for dataset in manifest.datasets
+    }
+    assert earlier_identifiers.isdisjoint(phase_four_identifiers)
+
+
 def test_manifest_rejects_duplicate_dataset_identifiers() -> None:
     """Dataset identifiers remain unambiguous across test lanes."""
     manifest = load_dataset_manifest(MANIFEST_PATH)
@@ -207,6 +274,262 @@ def test_synthetic_windows_are_partition_invariant() -> None:
     stitched = np.block([[top_left, top_right], [bottom_left, bottom_right]])
 
     np.testing.assert_array_equal(stitched, whole)
+
+
+def test_version_two_generation_adds_partition_invariant_noise_and_masks() -> (
+    None
+):
+    """Varying RMS and invalid rectangles retain exact window semantics."""
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=2,
+        seed=2026080201,
+        shape_yx=(12, 10),
+        background=-0.5,
+        noise_rms=0.25,
+        noise_rms_fractional_gradient_xy=(0.4, -0.2),
+        invalid_rectangles=(
+            SyntheticInvalidRectangle(
+                y_start=3,
+                y_stop=6,
+                x_start=4,
+                x_stop=7,
+            ),
+        ),
+    )
+
+    whole = generate_synthetic_image(recipe)
+    left = generate_synthetic_window(
+        recipe,
+        y_start=0,
+        y_stop=12,
+        x_start=0,
+        x_stop=5,
+    )
+    right = generate_synthetic_window(
+        recipe,
+        y_start=0,
+        y_stop=12,
+        x_start=5,
+        x_stop=10,
+    )
+
+    np.testing.assert_array_equal(
+        np.isnan(np.column_stack((left, right))),
+        np.isnan(whole),
+    )
+    np.testing.assert_array_equal(
+        np.nan_to_num(np.column_stack((left, right))),
+        np.nan_to_num(whole),
+    )
+    assert np.count_nonzero(~np.isfinite(whole)) == 9
+    assert np.nanstd(whole[:, -2:]) > np.nanstd(whole[:, :2])
+    unaffected = generate_synthetic_window(
+        recipe,
+        y_start=0,
+        y_stop=2,
+        x_start=0,
+        x_stop=2,
+    )
+    assert np.all(np.isfinite(unaffected))
+
+
+def test_invalid_rectangle_requires_increasing_bounds() -> None:
+    """An empty half-open invalid region is rejected at its boundary."""
+    with pytest.raises(ValidationError, match="bounds must be increasing"):
+        SyntheticInvalidRectangle(
+            y_start=3,
+            y_stop=3,
+            x_start=1,
+            x_stop=2,
+        )
+
+
+def test_version_one_recipe_checksum_remains_stable() -> None:
+    """Adding generator v2 does not rewrite frozen earlier provenance."""
+    manifest = load_dataset_manifest(MANIFEST_PATH)
+
+    assert recipe_sha256(manifest.datasets[0].recipe) == (
+        manifest.datasets[0].recipe_sha256
+    )
+
+
+def test_dataset_realization_seeds_expand_without_changing_base_truth() -> (
+    None
+):
+    """A governed campaign varies only noise seed across exact truth."""
+    dataset = load_dataset_manifest(MANIFEST_PATH).datasets[0]
+    expanded_dataset = dataset.model_copy(
+        update={"noise_realization_seeds": (101, 102)}
+    )
+
+    recipes = tuple(iter_dataset_recipes(expanded_dataset))
+
+    assert [recipe.seed for recipe in recipes] == [
+        dataset.recipe.seed,
+        101,
+        102,
+    ]
+    assert all(
+        recipe.model_dump(exclude={"seed"})
+        == dataset.recipe.model_dump(exclude={"seed"})
+        for recipe in recipes
+    )
+
+
+@pytest.mark.parametrize(
+    ("updates", "message"),
+    [
+        (
+            {
+                "generator_version": 1,
+                "noise_rms_fractional_gradient_xy": (0.1, 0.0),
+            },
+            "version 1",
+        ),
+        (
+            {"noise_rms_fractional_gradient_xy": (np.inf, 0.0)},
+            "gradient must be finite",
+        ),
+        (
+            {"noise_rms_fractional_gradient_xy": (1.5, 0.6)},
+            "must remain positive",
+        ),
+        (
+            {
+                "invalid_rectangles": (
+                    SyntheticInvalidRectangle(
+                        y_start=10,
+                        y_stop=13,
+                        x_start=0,
+                        x_stop=2,
+                    ),
+                )
+            },
+            "inside shape_yx",
+        ),
+        (
+            {
+                "invalid_rectangles": (
+                    SyntheticInvalidRectangle(
+                        y_start=1,
+                        y_stop=4,
+                        x_start=1,
+                        x_stop=4,
+                    ),
+                    SyntheticInvalidRectangle(
+                        y_start=3,
+                        y_stop=5,
+                        x_start=3,
+                        x_stop=5,
+                    ),
+                )
+            },
+            "must not overlap",
+        ),
+    ],
+)
+def test_version_two_recipe_rejects_invalid_variation(
+    updates: dict[str, object],
+    message: str,
+) -> None:
+    """Varying noise and invalid pixels cannot violate recipe geometry."""
+    payload = _recipe().model_dump(mode="python")
+    payload.update({"generator_version": 2, **updates})
+
+    with pytest.raises(ValidationError, match=message):
+        SyntheticRecipe.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("seeds", "message"),
+    [
+        ((101, 101), "must be unique"),
+        ((0,), "must not repeat"),
+        ((2**64,), "must fit uint64"),
+    ],
+)
+def test_dataset_rejects_invalid_noise_realization_seeds(
+    seeds: tuple[int, ...],
+    message: str,
+) -> None:
+    """A governed noise campaign has distinct uint64 seeds."""
+    dataset = load_dataset_manifest(MANIFEST_PATH).datasets[0]
+    payload = dataset.model_dump(mode="json")
+    payload["noise_realization_seeds"] = seeds
+
+    with pytest.raises(ValidationError, match=message):
+        type(dataset).model_validate(payload)
+
+
+def test_version_one_dataset_rejects_rotated_wcs() -> None:
+    """Legacy generator semantics stay byte-compatible and unrotated."""
+    dataset = load_dataset_manifest(MANIFEST_PATH).datasets[0]
+    payload = dataset.model_dump(mode="json")
+    payload["wcs"]["rotation_degrees_counterclockwise"] = 15.0
+
+    with pytest.raises(ValidationError, match="cannot use rotated WCS"):
+        type(dataset).model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("strata", "message"),
+    [
+        (
+            [{"identifier": "negative", "source_indices": [-1]}],
+            "must be non-negative",
+        ),
+        (
+            [{"identifier": "duplicate", "source_indices": [0, 0]}],
+            "must be unique and sorted",
+        ),
+        (
+            [{"identifier": "outside", "source_indices": [99]}],
+            "must identify recipe truth",
+        ),
+        (
+            [
+                {"identifier": "same", "source_indices": [0]},
+                {"identifier": "same", "source_indices": [1]},
+            ],
+            "identifiers must be unique",
+        ),
+    ],
+)
+def test_dataset_rejects_invalid_source_validation_strata(
+    strata: list[dict[str, object]],
+    message: str,
+) -> None:
+    """Declared scientific strata remain valid and unambiguous."""
+    dataset = load_dataset_manifest(MANIFEST_PATH).datasets[1]
+    payload = dataset.model_dump(mode="json")
+    payload["validation_strata"] = strata
+
+    with pytest.raises(ValidationError, match=message):
+        type(dataset).model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("background_jy_per_beam", 99.0, "expected statistics"),
+        ("finite_fraction", 0.5, "finite fraction"),
+    ],
+)
+def test_dataset_rejects_inconsistent_version_two_statistics(
+    field: str,
+    value: float,
+    message: str,
+) -> None:
+    """Manifest statistics must describe the exact governed recipe."""
+    dataset = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-development.json"
+    ).datasets[1]
+    payload = dataset.model_dump(mode="json")
+    payload["expected_statistics"][field] = value
+
+    with pytest.raises(ValidationError, match=message):
+        type(dataset).model_validate(payload)
 
 
 def test_complete_generation_rejects_an_unbounded_allocation() -> None:

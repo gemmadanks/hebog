@@ -18,7 +18,7 @@ import numpy.typing as npt
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 GENERATOR_NAME = "hebog.synthetic.gaussian-noise"
-GENERATOR_VERSION = 1
+GENERATOR_VERSION = 2
 
 _UINT64_LIMIT = 2**64 - 1
 _FIRST_RANDOM_STREAM = np.uint64(0xD1B54A32D192ED03)
@@ -73,6 +73,10 @@ class WcsMetadata(_ManifestModel):
     reference_pixel_xy: tuple[float, float]
     reference_sky_degrees: tuple[float, float]
     pixel_scale_degrees_xy: tuple[float, float]
+    rotation_degrees_counterclockwise: float = Field(
+        default=0.0,
+        allow_inf_nan=False,
+    )
 
     @model_validator(mode="after")
     def validate_wcs(self) -> Self:
@@ -81,6 +85,7 @@ class WcsMetadata(_ManifestModel):
             *self.reference_pixel_xy,
             *self.reference_sky_degrees,
             *self.pixel_scale_degrees_xy,
+            self.rotation_degrees_counterclockwise,
         )
         if not all(np.isfinite(value) for value in values):
             raise ValueError("WCS values must be finite")
@@ -127,16 +132,77 @@ class SyntheticSource(_ManifestModel):
         return self
 
 
+class SyntheticInvalidRectangle(_ManifestModel):
+    """One half-open rectangular region materialised as invalid pixels."""
+
+    y_start: int = Field(ge=0)
+    y_stop: int = Field(ge=1)
+    x_start: int = Field(ge=0)
+    x_stop: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def validate_order(self) -> Self:
+        """Require a non-empty half-open rectangle."""
+        if self.y_start >= self.y_stop or self.x_start >= self.x_stop:
+            raise ValueError("invalid rectangle bounds must be increasing")
+        return self
+
+
 class SyntheticRecipe(_ManifestModel):
     """Complete inputs to one version of the synthetic image generator."""
 
     generator: Literal["hebog.synthetic.gaussian-noise"]
-    generator_version: Literal[1]
+    generator_version: Literal[1, 2]
     seed: int = Field(ge=0, le=_UINT64_LIMIT)
     shape_yx: tuple[int, int]
     background: float = Field(allow_inf_nan=False)
     noise_rms: float = Field(ge=0, allow_inf_nan=False)
     sources: tuple[SyntheticSource, ...] = ()
+    noise_rms_fractional_gradient_xy: tuple[float, float] = (0.0, 0.0)
+    invalid_rectangles: tuple[SyntheticInvalidRectangle, ...] = ()
+
+    def _validate_sources(self, *, height: int, width: int) -> None:
+        """Require every analytic source centre to be inside the plane."""
+        for source in self.sources:
+            if source.x_pixel >= width or source.y_pixel >= height:
+                raise ValueError("source centre must be inside shape_yx")
+
+    def _validate_noise_policy(self) -> None:
+        """Require finite, positive, version-compatible RMS variation."""
+        if not all(
+            np.isfinite(value)
+            for value in self.noise_rms_fractional_gradient_xy
+        ):
+            raise ValueError("noise RMS gradient must be finite")
+        if self.generator_version == 1 and (
+            self.noise_rms_fractional_gradient_xy != (0.0, 0.0)
+            or self.invalid_rectangles
+        ):
+            raise ValueError("generator version 1 cannot use version 2 fields")
+        gradient_x, gradient_y = self.noise_rms_fractional_gradient_xy
+        if 1.0 - 0.5 * (abs(gradient_x) + abs(gradient_y)) <= 0:
+            raise ValueError("noise RMS gradient must remain positive")
+
+    def _validate_invalid_rectangles(
+        self,
+        *,
+        height: int,
+        width: int,
+    ) -> None:
+        """Require non-overlapping invalid regions inside the plane."""
+        for rectangle in self.invalid_rectangles:
+            if rectangle.y_stop > height or rectangle.x_stop > width:
+                raise ValueError("invalid rectangle must be inside shape_yx")
+        for index, left in enumerate(self.invalid_rectangles):
+            for right in self.invalid_rectangles[index + 1 :]:
+                overlaps = (
+                    left.y_start < right.y_stop
+                    and right.y_start < left.y_stop
+                    and left.x_start < right.x_stop
+                    and right.x_start < left.x_stop
+                )
+                if overlaps:
+                    raise ValueError("invalid rectangles must not overlap")
 
     @model_validator(mode="after")
     def validate_geometry(self) -> Self:
@@ -144,21 +210,45 @@ class SyntheticRecipe(_ManifestModel):
         height, width = self.shape_yx
         if height <= 0 or width <= 0:
             raise ValueError("shape_yx dimensions must be positive")
-        for source in self.sources:
-            if source.x_pixel >= width or source.y_pixel >= height:
-                raise ValueError("source centre must be inside shape_yx")
+        self._validate_sources(height=height, width=width)
+        self._validate_noise_policy()
+        self._validate_invalid_rectangles(height=height, width=width)
         return self
 
 
 def recipe_sha256(recipe: SyntheticRecipe) -> str:
     """Return the canonical SHA-256 provenance digest for a recipe."""
+    document = recipe.model_dump(mode="json")
+    if recipe.generator_version == 1:
+        document.pop("noise_rms_fractional_gradient_xy")
+        document.pop("invalid_rectangles")
     canonical_json = json.dumps(
-        recipe.model_dump(mode="json"),
+        document,
         allow_nan=False,
         separators=(",", ":"),
         sort_keys=True,
     ).encode("utf-8")
     return hashlib.sha256(canonical_json).hexdigest()
+
+
+class SourceValidationStratum(_ManifestModel):
+    """One named, possibly overlapping subset of analytic source truth."""
+
+    identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    source_indices: tuple[int, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_source_indices(self) -> Self:
+        """Require canonical non-negative indices without double counting."""
+        if any(index < 0 for index in self.source_indices):
+            raise ValueError(
+                "validation stratum source indices must be non-negative"
+            )
+        if tuple(sorted(set(self.source_indices))) != self.source_indices:
+            raise ValueError(
+                "validation stratum source indices must be unique and sorted"
+            )
+        return self
 
 
 class DatasetRecord(_ManifestModel):
@@ -174,6 +264,8 @@ class DatasetRecord(_ManifestModel):
     expected_statistics: ExpectedImageStatistics
     recipe: SyntheticRecipe
     recipe_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    noise_realization_seeds: tuple[int, ...] = ()
+    validation_strata: tuple[SourceValidationStratum, ...] = ()
 
     @model_validator(mode="after")
     def validate_recipe_checksum(self) -> Self:
@@ -184,6 +276,37 @@ class DatasetRecord(_ManifestModel):
                 "recipe_sha256 does not match the canonical recipe"
             )
         if (
+            self.recipe.generator_version == 1
+            and self.wcs.rotation_degrees_counterclockwise != 0.0
+        ):
+            raise ValueError("generator version 1 cannot use rotated WCS")
+        if len(set(self.noise_realization_seeds)) != len(
+            self.noise_realization_seeds
+        ):
+            raise ValueError("noise realization seeds must be unique")
+        if self.recipe.seed in self.noise_realization_seeds:
+            raise ValueError(
+                "noise realization seeds must not repeat the base seed"
+            )
+        if any(
+            seed < 0 or seed > _UINT64_LIMIT
+            for seed in self.noise_realization_seeds
+        ):
+            raise ValueError("noise realization seeds must fit uint64")
+        stratum_identifiers = tuple(
+            stratum.identifier for stratum in self.validation_strata
+        )
+        if len(set(stratum_identifiers)) != len(stratum_identifiers):
+            raise ValueError("validation stratum identifiers must be unique")
+        if any(
+            source_index >= len(self.recipe.sources)
+            for stratum in self.validation_strata
+            for source_index in stratum.source_indices
+        ):
+            raise ValueError(
+                "validation stratum source index must identify recipe truth"
+            )
+        if (
             self.expected_statistics.background_jy_per_beam
             != self.recipe.background
             or self.expected_statistics.noise_rms_jy_per_beam
@@ -191,6 +314,22 @@ class DatasetRecord(_ManifestModel):
         ):
             raise ValueError(
                 "expected statistics must match the synthetic recipe"
+            )
+        invalid_pixels = sum(
+            (rectangle.y_stop - rectangle.y_start)
+            * (rectangle.x_stop - rectangle.x_start)
+            for rectangle in self.recipe.invalid_rectangles
+        )
+        height, width = self.recipe.shape_yx
+        expected_finite_fraction = 1.0 - invalid_pixels / (height * width)
+        if not np.isclose(
+            self.expected_statistics.finite_fraction,
+            expected_finite_fraction,
+            rtol=0.0,
+            atol=np.finfo(np.float64).eps,
+        ):
+            raise ValueError(
+                "expected finite fraction must match invalid rectangles"
             )
         return self
 
@@ -215,6 +354,19 @@ def load_dataset_manifest(path: Path) -> DatasetManifest:
     """Load and validate a dataset manifest without resolving its data."""
     document = path.read_text(encoding="utf-8")
     return DatasetManifest.model_validate_json(document)
+
+
+def iter_dataset_recipes(
+    dataset: DatasetRecord,
+) -> tuple[SyntheticRecipe, ...]:
+    """Expand one governed truth recipe across recorded noise realizations."""
+    return (
+        dataset.recipe,
+        *(
+            dataset.recipe.model_copy(update={"seed": seed})
+            for seed in dataset.noise_realization_seeds
+        ),
+    )
 
 
 def _splitmix64(values: npt.NDArray[np.uint64]) -> npt.NDArray[np.uint64]:
@@ -253,6 +405,56 @@ def _normal_noise(
     return np.sqrt(-2.0 * np.log(first_uniform)) * np.cos(
         2.0 * np.pi * second_uniform
     )
+
+
+def _noise_rms_scale(
+    recipe: SyntheticRecipe,
+    *,
+    y_start: int,
+    y_stop: int,
+    x_start: int,
+    x_stop: int,
+) -> npt.NDArray[np.float64]:
+    """Return the partition-invariant affine RMS multiplier for a window."""
+    gradient_x, gradient_y = recipe.noise_rms_fractional_gradient_xy
+    if gradient_x == 0 and gradient_y == 0:
+        return np.ones((y_stop - y_start, x_stop - x_start), dtype=np.float64)
+    height, width = recipe.shape_yx
+    x_denominator = max(width - 1, 1)
+    y_denominator = max(height - 1, 1)
+    x_normalized = (
+        np.arange(x_start, x_stop, dtype=np.float64) / x_denominator - 0.5
+    )[np.newaxis, :]
+    y_normalized = (
+        np.arange(y_start, y_stop, dtype=np.float64) / y_denominator - 0.5
+    )[:, np.newaxis]
+    return np.asarray(
+        1.0 + gradient_x * x_normalized + gradient_y * y_normalized,
+        dtype=np.float64,
+    )
+
+
+def _apply_invalid_rectangles(
+    image: npt.NDArray[np.float64],
+    recipe: SyntheticRecipe,
+    window_bounds: tuple[int, int, int, int],
+) -> None:
+    """Set intersections with governed invalid rectangles to NaN in place."""
+    y_start, y_stop, x_start, x_stop = window_bounds
+    for rectangle in recipe.invalid_rectangles:
+        intersection_y_start = max(y_start, rectangle.y_start)
+        intersection_y_stop = min(y_stop, rectangle.y_stop)
+        intersection_x_start = max(x_start, rectangle.x_start)
+        intersection_x_stop = min(x_stop, rectangle.x_stop)
+        if (
+            intersection_y_start >= intersection_y_stop
+            or intersection_x_start >= intersection_x_stop
+        ):
+            continue
+        image[
+            intersection_y_start - y_start : intersection_y_stop - y_start,
+            intersection_x_start - x_start : intersection_x_stop - x_start,
+        ] = np.nan
 
 
 def _validate_window(
@@ -294,7 +496,14 @@ def generate_synthetic_window(
         x_start=x_start,
         x_stop=x_stop,
     )
-    image = recipe.background + recipe.noise_rms * standard_noise
+    rms_scale = _noise_rms_scale(
+        recipe,
+        y_start=y_start,
+        y_stop=y_stop,
+        x_start=x_start,
+        x_stop=x_stop,
+    )
+    image = recipe.background + recipe.noise_rms * rms_scale * standard_noise
     y_grid = np.arange(y_start, y_stop, dtype=np.float64)[:, np.newaxis]
     x_grid = np.arange(x_start, x_stop, dtype=np.float64)[np.newaxis, :]
 
@@ -313,6 +522,12 @@ def generate_synthetic_window(
             + np.square(minor_offset / source.minor_sigma_pixels)
         )
         image += source.peak_flux_jy_per_beam * np.exp(exponent)
+
+    _apply_invalid_rectangles(
+        image,
+        recipe,
+        (y_start, y_stop, x_start, x_stop),
+    )
 
     return np.asarray(image, dtype=np.float64)
 

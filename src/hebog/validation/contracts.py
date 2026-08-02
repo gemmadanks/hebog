@@ -1,4 +1,4 @@
-"""Frozen Phase 0 performance, scalability, and behaviour contracts.
+"""Versioned performance, scalability, behaviour, and scientific contracts.
 
 These records describe gates and test obligations. They do not select an
 execution plan or import a scheduler, read science data, or run benchmarks.
@@ -17,6 +17,7 @@ from hebog.validation.evidence import WorkloadClass
 _MINIMUM_MATRIX_SIZE = 256
 _MAXIMUM_MATRIX_SIZE = 100_000
 _DASK_MEMORY_THRESHOLD_COUNT = 4
+_PHASE_FOUR_ANALYTIC_FAILURE_CASE_COUNT = 6
 
 
 class _ContractModel(BaseModel):
@@ -299,6 +300,260 @@ class PhaseThreeScientificGates(_ContractModel):
     heldout_qualification: PhaseThreeLaneGate
 
 
+class PhaseFourScopeContract(_ContractModel):
+    """Supported scientific image and unit scope for compact measurement."""
+
+    image_kind: Literal["mfs-stokes-i"]
+    measurement_plane: Literal["background-subtracted-primary-beam-corrected"]
+    brightness_unit: Literal["Jy/beam"]
+    frequency_semantics: Literal["reference-frequency-only"]
+    invalid_pixels: Literal["excluded-from-membership-and-measurement"]
+
+
+class PhaseFourMeasurementSemantics(_ContractModel):
+    """Frozen meanings for compact catalogue measurements."""
+
+    pixel_solid_angle: Literal[
+        "absolute-local-tangent-plane-jacobian-determinant"
+    ]
+    restoring_beam_solid_angle: Literal[
+        "pi-major-fwhm-times-minor-fwhm-over-four-ln-two"
+    ]
+    island_integrated_flux: Literal[
+        "owned-valid-pixel-sum-times-pixel-area-over-beam-area"
+    ]
+    island_local_rms: Literal["mean-rms-over-owned-valid-pixels"]
+    island_mean_brightness: Literal[
+        "mean-background-subtracted-brightness-over-owned-valid-pixels"
+    ]
+    component_peak_flux: Literal["fitted-gaussian-amplitude"]
+    component_integrated_flux: Literal[
+        "peak-times-fitted-gaussian-area-over-beam-area"
+    ]
+    component_local_rms: Literal["bilinear-rms-map-at-fitted-centroid"]
+    source_flux: Literal["associated-component-flux-for-compact-scope"]
+
+
+class PhaseFourCoordinateContract(_ContractModel):
+    """Pixel, celestial, shape, and uncertainty coordinate conventions."""
+
+    celestial_frame: Literal["icrs"]
+    pixel_origin: Literal["zero-based-pixel-centres"]
+    pixel_coordinate_order: Literal["x-y"]
+    transform: Literal["astropy-local-tangent-plane-jacobian"]
+    position_angle: Literal["east-of-north-modulo-180"]
+    uncertainty_interpretation: Literal["one-standard-deviation"]
+
+
+class PhaseFourAssociationContract(_ContractModel):
+    """Provisional compact component and source association policy."""
+
+    region_membership: Literal["worker-local-watershed-labels"]
+    compact_component_policy: Literal[
+        "one-fitted-gaussian-per-deblended-region"
+    ]
+    compact_source_policy: Literal["one-source-per-deblended-region"]
+    parent_policy: Literal["retain-reconciled-parent-island"]
+    unsupported_region_policy: Literal["explicit-later-phase-deferral"]
+    identifier_policy: Literal[
+        "canonical-global-topology-and-association-order"
+    ]
+
+
+class PhaseFourFailureContract(_ContractModel):
+    """Scientific absence and compatibility sentinel semantics."""
+
+    unresolved_deconvolution: Literal[
+        "null-shape-with-unresolved-quality-flag"
+    ]
+    compatibility_unresolved_shape: Literal["adapter-zero-axes-only"]
+    unavailable_uncertainty: Literal["null-with-quality-flag"]
+    invalid_measurement: Literal["typed-unavailable-result"]
+    omitted_deferred_region: Literal["forbidden-in-complete-result"]
+
+
+class PhaseFourFittingContract(_ContractModel):
+    """Evidence order for nonlinear and selective fitting."""
+
+    reference_policy: Literal["fit-all-admitted-compact-regions"]
+    selective_policy: Literal["fit-all-reference-before-selection"]
+    moment_policy: Literal["serial-oracle-and-fit-initializer"]
+    implementation_selection: Literal[
+        "established-library-science-and-complete-stage-evidence"
+    ]
+
+
+class PhaseFourMeasurementContract(_ContractModel):
+    """Frozen-provisional Phase 4 compact measurement contract."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-4-measurement"]
+    status: Literal["frozen-provisional", "reviewed-provisional"]
+    scope: PhaseFourScopeContract
+    measurements: PhaseFourMeasurementSemantics
+    coordinates: PhaseFourCoordinateContract
+    association: PhaseFourAssociationContract
+    failures: PhaseFourFailureContract
+    fitting: PhaseFourFittingContract
+    required_analytic_failure_cases: tuple[
+        Literal[
+            "fit-non-convergence",
+            "marginal-deconvolution",
+            "non-finite-owned-pixels",
+            "non-positive-measurement",
+            "singular-covariance",
+            "underdetermined-region",
+        ],
+        ...,
+    ] = Field(min_length=6)
+    scientific_basis: tuple[str, ...] = Field(min_length=4)
+    qualification_policy: Literal["freeze-before-result-inspection"]
+    human_scientific_review: Literal["required-before-stable-default"]
+
+    @model_validator(mode="after")
+    def validate_scientific_basis(self) -> Self:
+        """Require distinct immutable primary-source links."""
+        if (
+            len(self.required_analytic_failure_cases)
+            != _PHASE_FOUR_ANALYTIC_FAILURE_CASE_COUNT
+            or len(set(self.required_analytic_failure_cases))
+            != _PHASE_FOUR_ANALYTIC_FAILURE_CASE_COUNT
+        ):
+            raise ValueError(
+                "every Phase 4 analytic failure case must appear exactly once"
+            )
+        if len(set(self.scientific_basis)) != len(self.scientific_basis):
+            raise ValueError("scientific basis links must be unique")
+        if not all(
+            source.startswith("https://") for source in self.scientific_basis
+        ):
+            raise ValueError("scientific basis links must use HTTPS")
+        return self
+
+
+class PhaseFourCatalogueGate(_ContractModel):
+    """Catalogue non-inferiority margins for one governed dataset lane."""
+
+    detection_population: Literal["declared-compact-snr-at-least-10"]
+    position_and_flux_population: Literal["isolated-compact-snr-at-least-10"]
+    shape_population: Literal["eligible-compact-snr-at-least-10"]
+    association_population: Literal[
+        "declared-compact-associations-snr-at-least-10"
+    ]
+    outlier_population: Literal["matched-compact-snr-at-least-10"]
+    minimum_completeness: float = Field(ge=0, le=1)
+    minimum_reliability: float = Field(ge=0, le=1)
+    maximum_median_position_beams: float = Field(ge=0)
+    maximum_percentile_95_position_beams: float = Field(ge=0)
+    maximum_median_peak_flux_fractional_difference: float = Field(ge=0)
+    maximum_percentile_95_peak_flux_fractional_difference: float = Field(ge=0)
+    maximum_median_integrated_flux_fractional_difference: float = Field(ge=0)
+    maximum_percentile_95_integrated_flux_fractional_difference: float = Field(
+        ge=0
+    )
+    maximum_median_fitted_axis_fractional_difference: float = Field(ge=0)
+    maximum_percentile_95_fitted_axis_fractional_difference: float = Field(
+        ge=0
+    )
+    maximum_median_deconvolved_axis_fractional_difference: float = Field(ge=0)
+    maximum_percentile_95_deconvolved_axis_fractional_difference: float = (
+        Field(ge=0)
+    )
+    maximum_median_position_angle_difference_degrees: float = Field(ge=0)
+    maximum_percentile_95_position_angle_difference_degrees: float = Field(
+        ge=0
+    )
+    minimum_unresolved_classification_accuracy: float = Field(ge=0, le=1)
+    minimum_association_pair_precision: float = Field(ge=0, le=1)
+    minimum_association_pair_recall: float = Field(ge=0, le=1)
+    maximum_catastrophic_outlier_fraction: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_tail_margins(self) -> Self:
+        """Keep every 95th-percentile ceiling no tighter than its median."""
+        margin_pairs = (
+            (
+                self.maximum_median_position_beams,
+                self.maximum_percentile_95_position_beams,
+            ),
+            (
+                self.maximum_median_peak_flux_fractional_difference,
+                self.maximum_percentile_95_peak_flux_fractional_difference,
+            ),
+            (
+                self.maximum_median_integrated_flux_fractional_difference,
+                self.maximum_percentile_95_integrated_flux_fractional_difference,
+            ),
+            (
+                self.maximum_median_fitted_axis_fractional_difference,
+                self.maximum_percentile_95_fitted_axis_fractional_difference,
+            ),
+            (
+                self.maximum_median_deconvolved_axis_fractional_difference,
+                self.maximum_percentile_95_deconvolved_axis_fractional_difference,
+            ),
+            (
+                self.maximum_median_position_angle_difference_degrees,
+                self.maximum_percentile_95_position_angle_difference_degrees,
+            ),
+        )
+        if any(tail < median for median, tail in margin_pairs):
+            raise ValueError(
+                "95th-percentile catalogue margin cannot be tighter than "
+                "median"
+            )
+        return self
+
+
+class PhaseFourUncertaintyGate(_ContractModel):
+    """Calibration gates for reported one-standard-deviation errors."""
+
+    nominal_coverage: float = Field(gt=0, lt=1)
+    maximum_absolute_coverage_difference: float = Field(gt=0, lt=1)
+    maximum_absolute_mean_normalized_residual: float = Field(gt=0)
+    minimum_normalized_residual_standard_deviation: float = Field(gt=0)
+    maximum_normalized_residual_standard_deviation: float = Field(gt=0)
+    minimum_samples_per_stratum: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def validate_standard_deviation_range(self) -> Self:
+        """Require an increasing calibration-dispersion interval."""
+        if (
+            self.minimum_normalized_residual_standard_deviation
+            >= self.maximum_normalized_residual_standard_deviation
+        ):
+            raise ValueError(
+                "uncertainty standard-deviation bounds must be increasing"
+            )
+        return self
+
+
+class PhaseFourOutlierDefinition(_ContractModel):
+    """Observable thresholds for one catastrophic matched-row outlier."""
+
+    position_beams: float = Field(gt=0)
+    peak_flux_fractional_difference: float = Field(gt=0)
+    integrated_flux_fractional_difference: float = Field(gt=0)
+    fitted_axis_fractional_difference: float = Field(gt=0)
+    deconvolved_axis_fractional_difference: float = Field(gt=0)
+
+
+class PhaseFourScientificGates(_ContractModel):
+    """Frozen-provisional Phase 4 catalogue and uncertainty margins."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-4-scientific-gates"]
+    status: Literal["frozen-provisional", "reviewed-provisional"]
+    confidence_level: float = Field(gt=0, lt=1)
+    low_snr_threshold_crossings: Literal["report-only"]
+    shape_uncertainty: Literal["report-only"]
+    compact_reference: PhaseFourCatalogueGate
+    generated_regression: PhaseFourCatalogueGate
+    heldout_qualification: PhaseFourCatalogueGate
+    uncertainty: PhaseFourUncertaintyGate
+    catastrophic_outlier: PhaseFourOutlierDefinition
+
+
 def load_performance_matrix(path: Path) -> PerformanceMatrixContract:
     """Load and validate a performance-matrix contract."""
     return PerformanceMatrixContract.model_validate_json(
@@ -325,5 +580,23 @@ def load_phase_three_scientific_gates(
 ) -> PhaseThreeScientificGates:
     """Load frozen Phase 3 foreground-sensitive scientific margins."""
     return PhaseThreeScientificGates.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_four_measurement_contract(
+    path: Path,
+) -> PhaseFourMeasurementContract:
+    """Load frozen Phase 4 compact measurement meanings."""
+    return PhaseFourMeasurementContract.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_four_scientific_gates(
+    path: Path,
+) -> PhaseFourScientificGates:
+    """Load frozen Phase 4 catalogue and uncertainty margins."""
+    return PhaseFourScientificGates.model_validate_json(
         path.read_text(encoding="utf-8")
     )

@@ -41,6 +41,38 @@ logical recipes: tests generate bounded windows and must never allocate the
 whole plane. The qualification case is held out from routine tuning even
 though its seed is necessarily recorded for reproducibility.
 
+Phase 4 adds generator version 2 without changing any version-1 recipe or
+checksum. Version 2 can declare an affine, globally addressed RMS multiplier,
+non-overlapping half-open invalid rectangles, unequal pixel scales, and WCS
+rotation metadata. Invalid rectangles materialise as NaN and are included in
+the checked expected finite fraction. Both the RMS field and invalid pixels
+are derived from global coordinates, so window generation remains exact.
+FITS materialisation combines the signed `CDELT` scales with an explicit `PC`
+matrix, preserving the declared rotation and unequal pixel scales while
+leaving version-1 zero-rotation fixtures byte-identical. Its celestial linear
+transform is `R(theta) @ diag(scale_x, scale_y)`: the declared angle rotates
+the signed pixel-axis vectors counterclockwise in the celestial intermediate
+plane. Generator-v2 beam axes and position angle likewise describe an ellipse
+in the generator pixel plane. FITS materialisation transforms that covariance
+through the same matrix and writes the resulting celestial `BMAJ`, `BMIN`, and
+east-of-north `BPA`. This keeps beam-matched source truth physically
+consistent under rotation and unequal scales.
+
+A dataset may also record additional `noise_realization_seeds`. The base
+recipe plus these seeds define one governed Monte Carlo campaign: source
+truth, image geometry, background, RMS field, masks, beam, and WCS remain
+identical while only the deterministic noise realization changes. Use
+`iter_dataset_recipes` to expand the campaign. Seeds are unique, do not repeat
+the base seed, and remain part of manifest provenance even though the base
+recipe SHA-256 continues to identify the shared truth recipe.
+
+`validation_strata` names possibly overlapping sets of analytic source
+indices. These declarations keep SNR, shape, blend, edge, or other governed
+populations explicit and let qualification code prove the required sample
+count before looking at scientific results. Stratum identifiers and indices
+are unique, indices are sorted and non-negative, and every index resolves to
+source truth in the shared recipe.
+
 ## Deterministic generation
 
 Synthetic noise is derived from the generator version, seed, and global pixel

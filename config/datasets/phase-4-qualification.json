@@ -1,0 +1,254 @@
+{
+  "datasets": [
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.8,
+        "minor_fwhm_pixels": 3.2,
+        "position_angle_degrees": 33.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0001,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase4-unseen-measurement-qualification-512",
+      "noise_realization_seeds": [
+        2026080292,
+        2026080293,
+        2026080294,
+        2026080295,
+        2026080296,
+        2026080297,
+        2026080298,
+        2026080299,
+        2026080300,
+        2026080301,
+        2026080302,
+        2026080303,
+        2026080304,
+        2026080305,
+        2026080306,
+        2026080307,
+        2026080308,
+        2026080309,
+        2026080310,
+        2026080311,
+        2026080312,
+        2026080313,
+        2026080314,
+        2026080315,
+        2026080316,
+        2026080317,
+        2026080318,
+        2026080319,
+        2026080320
+      ],
+      "provenance": "Additive Phase 4 unseen qualification truth and noise seeds frozen before measurement or fitting results are inspected.",
+      "purpose": "Held-out compact measurement population with at least thirty independent samples in every declared SNR, shape, blend, and edge class.",
+      "recipe": {
+        "background": 0.0001,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 2,
+        "invalid_rectangles": [],
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.0,
+          0.0
+        ],
+        "seed": 2026080291,
+        "shape_yx": [
+          512,
+          512
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
+            "x_pixel": 80.25,
+            "y_pixel": 80.75
+          },
+          {
+            "major_sigma_pixels": 2.8,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
+            "x_pixel": 256.5,
+            "y_pixel": 80.25
+          },
+          {
+            "major_sigma_pixels": 3.6,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
+            "x_pixel": 431.75,
+            "y_pixel": 80.5
+          },
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
+            "x_pixel": 80.5,
+            "y_pixel": 176.25
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
+            "x_pixel": 254.0,
+            "y_pixel": 176.0
+          },
+          {
+            "major_sigma_pixels": 2.3,
+            "minor_sigma_pixels": 1.45,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 105.0,
+            "x_pixel": 258.0,
+            "y_pixel": 176.5
+          },
+          {
+            "major_sigma_pixels": 2.1,
+            "minor_sigma_pixels": 1.4,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 40.0,
+            "x_pixel": 80.75,
+            "y_pixel": 272.5
+          },
+          {
+            "major_sigma_pixels": 3.0,
+            "minor_sigma_pixels": 1.9,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 90.0,
+            "x_pixel": 256.25,
+            "y_pixel": 272.75
+          },
+          {
+            "major_sigma_pixels": 4.0,
+            "minor_sigma_pixels": 2.2,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 145.0,
+            "x_pixel": 432.5,
+            "y_pixel": 272.25
+          },
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
+            "x_pixel": 80.25,
+            "y_pixel": 368.5
+          },
+          {
+            "major_sigma_pixels": 3.4,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 60.0,
+            "x_pixel": 256.75,
+            "y_pixel": 368.25
+          },
+          {
+            "major_sigma_pixels": 3.8,
+            "minor_sigma_pixels": 2.0,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 120.0,
+            "x_pixel": 510.25,
+            "y_pixel": 460.5
+          }
+        ]
+      },
+      "recipe_sha256": "4fd6414aa59acff13f320dccbbaf17670fdb000589cf35197db136c248402196",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "validation_strata": [
+        {
+          "identifier": "snr-10",
+          "source_indices": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "identifier": "snr-15",
+          "source_indices": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "identifier": "snr-25",
+          "source_indices": [
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "identifier": "snr-50",
+          "source_indices": [
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "identifier": "shape-unresolved",
+          "source_indices": [
+            0,
+            3,
+            6,
+            9
+          ]
+        },
+        {
+          "identifier": "shape-resolved",
+          "source_indices": [
+            1,
+            2,
+            4,
+            5,
+            7,
+            8,
+            10,
+            11
+          ]
+        },
+        {
+          "identifier": "blend",
+          "source_indices": [
+            4,
+            5
+          ]
+        },
+        {
+          "identifier": "edge",
+          "source_indices": [
+            11
+          ]
+        }
+      ],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00021,
+          0.00029
+        ],
+        "reference_pixel_xy": [
+          255.5,
+          255.5
+        ],
+        "reference_sky_degrees": [
+          359.99,
+          -42.0
+        ],
+        "rotation_degrees_counterclockwise": 19.0
+      }
+    }
+  ],
+  "manifest_id": "phase-4-qualification",
+  "schema_version": 1
+}
