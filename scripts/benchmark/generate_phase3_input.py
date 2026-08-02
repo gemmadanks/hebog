@@ -130,7 +130,7 @@ def _generate_input(
     hdu.header["CRPIX2"] = 1.0
     hdu.header["CRVAL1"] = 180.0
     hdu.header["CRVAL2"] = -30.0
-    hdu.writeto(path, checksum=True)
+    hdu.writeto(path, checksum=True, overwrite=True)
 
 
 def _sha256(path: Path) -> str:
