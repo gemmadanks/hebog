@@ -1,12 +1,12 @@
 # Source-finding domain glossary
 
-**Status:** amended after the 2026-07-31 scientific pre-review; named human
-review remains pending.
+**Status:** amended after the 2026-07-31 scientific pre-review and approved for
+the documented experimental scope on 2026-08-02.
 
 This glossary establishes Hebog's domain language and maps the current
-Rapthor/PyBDSF/LSMTool vocabulary onto it. Definitions become stable only after
-the [Rapthor source-finding contract](rapthor-source-finding-contract.md),
-example products, and scientific thresholds are reviewed.
+Rapthor/PyBDSF/LSMTool vocabulary onto it. The
+[Phase 3 scientific review](phase-3-review-record.md) approved these
+definitions and naming conventions for the current experimental scope.
 
 ## Images and noise
 
@@ -31,8 +31,11 @@ example products, and scientific thresholds are reviewed.
 | --- | --- |
 | Detection threshold | Minimum normalized peak needed to seed or accept an island. This maps to PyBDSF `thresh_pix`. Rapthor strategies use 5 sigma while the helper fallback is 7.5 sigma; Hebog requires an explicit `detection_threshold_sigma`. |
 | Island threshold | Lower normalized boundary used to decide island membership. This maps to `thresh_isl`. Rapthor uses 3 sigma normally, 4 sigma in early cycles, and 5 sigma only as the helper fallback; Hebog requires an explicit `island_threshold_sigma`. “Growth” and “flood” threshold are common external synonyms. |
+| Detection seed | A valid pixel that satisfies the detection threshold and can validate an island. Adjacent seed pixels may form one seed region; a seed is not necessarily a distinct local maximum, source candidate, fitted Gaussian component, or catalogue row. |
+| Minimum island size | Smallest accepted number of connected island-member pixels. Hebog requires it explicitly in scientific configuration. The Rapthor compatibility adapter may derive it from reviewed beam metadata; scientific kernels do not inherit an implicit survey default. |
 | Pixel | One array sample. Array indexing is `(y, x)` even when external APIs expose pixel coordinates as `(x, y)`. |
 | Island | Connected above-island-threshold pixels associated with at least one accepted detection peak. It is a segmentation object, not automatically one source. |
+| Deblended region | A deterministic subdivision of overlapping emission associated with one or more detection seeds for later measurement. It remains a segmentation result until Phase 4 measurement and grouping establish a source candidate or fitted component. |
 | Gaussian component | One fitted Gaussian belonging to a PyBDSF source. Use the full qualifier; bare `component` is ambiguous. |
 | Source candidate | One catalogue-level association inferred to represent astrophysical emission. In the PyBDSF source-list model, one or more fitted Gaussians may be grouped into a source and an island may contain one or more sources. A detection is not established astrophysical truth. |
 | Source reference position | Finite zero-based continuous `(y, x)` pixel position used only to assign one reconciled source to a tile core. Exact internal-boundary ties belong to the core beginning at that boundary. A source may overlap other cores and halos; its reference position alone selects catalogue ownership. |

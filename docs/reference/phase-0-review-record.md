@@ -26,15 +26,17 @@ inventories and script hashes, and repeats one warm-up plus five compact and
 representative measurements per reference. The technical completion does not
 confer the external approvals below.
 
-## Scientific review still required
+## Scientific review completed
 
 The [2026-07-31 scientific pre-review](scientific-pre-review.md) compared the
 provisional contracts with official PyBDSF, ASKAPsoft/Selavy, Aegean, SKA SDP,
 WSClean, CASA, LOFAR, and published source-finder comparison material. Its
-disposition is **amend before scientific approval**. It is research and a
-reviewer aid, not the named sign-off required below.
+disposition was **amend before scientific approval**. Its recommended
+amendments were incorporated and approved by the named reviewer on
+2026-08-02. The pre-review remains research context rather than scientific
+authority by itself.
 
-An SKA imaging/domain reviewer must confirm or amend, with their name and date:
+The named review confirmed:
 
 - the definitions and legacy mappings in the domain glossary;
 - the public/internal naming conventions;
@@ -70,31 +72,31 @@ scientific contract:
    [scientific comparison method](scientific-comparison.md) as supporting
    context rather than scientific truth.
 
-The project owner may perform this review when acting with the required SKA
-imaging/source-finding competence and authority. If the reviewer is also the
-ADR decider, record that dual role explicitly. Independent confirmation is
-still advisable before production cutover, but is not a Phase 0 prerequisite.
+The project owner performed this review as the named reviewer and ADR decider.
+Independent domain confirmation remains advisable before production cutover,
+but is not a Phase 0 prerequisite.
 
 ### Scientific sign-off
 
-Append a completed record here using this form:
+- **Reviewer:** Gemma Danks
+- **Role or scientific authority:** Data Processing Software Engineer
+- **Review capacity:** Project owner and named ADR decider reviewing the
+  Hebog/Rapthor source-finding contract
+- **Review date:** 2026-08-02
+- **Decision:** Approved
+- **Required amendments:** No threshold or algorithm amendments. Documentation
+  was updated to make the community literature and cross-pipeline-consensus
+  principle explicit alongside the scientific pre-review amendments already
+  incorporated into the glossary, contracts, gates, and phase boundaries.
+- **Qualification-data confirmation:** The held-out qualification recipes and
+  margins were frozen before their results were inspected. Their results were
+  not used to tune the reviewed thresholds or algorithms.
 
-- **Reviewer:** _name_
-- **Role or scientific authority:** _role and relevant domain responsibility_
-- **Review date:** _YYYY-MM-DD_
-- **Decision:** _approved, or approved with required amendments_
-- **Required amendments:** _none, or links to the amended contracts, gates,
-  manifests, and decision record_
-- **Qualification-data confirmation:** _confirm that held-out qualification
-  results were not used to tune the reviewed thresholds or algorithms_
-
-Until that sign-off is appended here, thresholds remain engineering gates and
-must not be described as domain-approved. This does not block reproducibility,
-I/O scaffolding, or red-green-refactor algorithm work against the frozen
-provisional PyBDSF profile; it does block stabilizing scientific defaults,
-accepting intentional reference deviations, or making a domain-approved
-scientific-equivalence or production-readiness claim. Starting algorithm work
-before this review accepts the risk of later contract changes.
+This approval makes the reviewed compact profiles, terminology, and Phase 3
+margins domain-approved for their documented experimental `0.x` scope. It
+does not establish catalogue or multiscale equivalence, production readiness,
+or approval for later scientific defaults. Those claims retain their own
+phase-specific evidence and review gates.
 
 The reviewer is not expected to inspect or manually approve every output.
 Machine-readable equivalence tests do that. Human review is limited to whether
@@ -102,11 +104,13 @@ the chosen datasets, metrics, tolerances, terminology, default profiles, and
 handling of PyBDSF disagreements are scientifically and operationally fit for
 purpose.
 
-The human reviewer must specifically decide whether to approve the proposed
-`5.0/3.0` Rapthor normal-cycle profile, the separate `5.0/4.0` early-cycle
-profile, primary-beam terminology, source/component/island schema, empty RMS
-and dummy-component migration, MFS-only initial scope, and the revised
-low-SNR curve/confidence rule.
+The review approved the proposed `5.0/3.0` Rapthor normal-cycle profile, the
+separate `5.0/4.0` early-cycle profile, primary-beam terminology, the
+source/component/island schema, empty RMS and dummy-component migration,
+MFS-only initial scope, and the revised low-SNR curve/confidence rule. The
+Phase 3-specific connectivity, size, deblending, margin, deferral, invariance,
+and performance decisions are recorded in the
+[Phase 3 scientific review record](phase-3-review-record.md).
 
 ## Facility review still required
 

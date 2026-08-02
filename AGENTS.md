@@ -218,7 +218,14 @@ core runtime solely for tests.
 ## Scientific validation
 
 Scientific equivalence means matching the behaviour required by Rapthor, not
-bitwise equality with PyBDSF. Every algorithm milestone needs tests for:
+bitwise equality with PyBDSF. Keep scientific choices within the community
+best-practice envelope documented by peer-reviewed astronomy literature and
+source-finder challenges. Treat consensus across established observatory
+pipelines as a strong guide, not a vote that overrides governed truth, and do
+not treat any single pipeline or source finder as scientific ground truth.
+Document a deliberate departure from literature or cross-pipeline consensus,
+justify it with analytic or injected-truth evidence, and obtain renewed human
+scientific review before promotion. Every algorithm milestone needs tests for:
 
 - empty and all-NaN images;
 - negative backgrounds and invalid pixels;

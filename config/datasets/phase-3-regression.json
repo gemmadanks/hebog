@@ -1,0 +1,92 @@
+{
+  "datasets": [
+    {
+      "beam": {
+        "major_fwhm_pixels": 5.0,
+        "minor_fwhm_pixels": 3.5,
+        "position_angle_degrees": 35.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.00025
+      },
+      "identifier": "phase3-boundary-regression-512",
+      "provenance": "Additive Phase 3 regression supplement; frozen before distributed island reconciliation.",
+      "purpose": "Compact sources and blends crossing representative tile sides, diagonal corners, and the image edge.",
+      "recipe": {
+        "background": 0.0,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 1,
+        "noise_rms": 0.00025,
+        "seed": 2026080102,
+        "shape_yx": [
+          512,
+          512
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.2,
+            "minor_sigma_pixels": 1.4,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 0.0,
+            "x_pixel": 128.0,
+            "y_pixel": 64.0
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 45.0,
+            "x_pixel": 256.0,
+            "y_pixel": 256.0
+          },
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.0035,
+            "rotation_degrees_counterclockwise_from_x": 25.0,
+            "x_pixel": 382.5,
+            "y_pixel": 128.0
+          },
+          {
+            "major_sigma_pixels": 2.0,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.0025,
+            "rotation_degrees_counterclockwise_from_x": 115.0,
+            "x_pixel": 385.5,
+            "y_pixel": 128.5
+          },
+          {
+            "major_sigma_pixels": 3.0,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "x_pixel": 510.0,
+            "y_pixel": 400.0
+          }
+        ]
+      },
+      "recipe_sha256": "3267360ff52855fdc2b07fa4e5117831453cdd4966c76aca1d3be1d4aee08a29",
+      "redistribution": "generated-locally",
+      "role": "regression",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0002777777777777778,
+          0.0002777777777777778
+        ],
+        "reference_pixel_xy": [
+          255.5,
+          255.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          -30.0
+        ]
+      }
+    }
+  ],
+  "manifest_id": "phase-3-regression",
+  "schema_version": 1
+}

@@ -270,9 +270,10 @@ one current decoded chunk. A one-tile image yields its already owned validated
 chunk directly and avoids an assembly copy. A budget below one canonical tile
 row fails before product bytes are emitted.
 
-Generation-bound chunks use internal storage schema version 2. Recreate any
-unpublished Phase 1 development store written with schema version 1; no
-released Hebog workflow product used that schema.
+Generation-bound chunks use internal storage schema version 3. Recreate any
+unpublished development store written with schema version 1 or 2; no released
+Hebog workflow product used either schema. Numeric planes use CRC32C without
+compression; boolean masks use Zstandard level 1 plus CRC32C.
 
 The current adapter requires a zero-origin partition whose complete cores
 align with regular storage chunks. It explicitly writes fill-valued chunks,

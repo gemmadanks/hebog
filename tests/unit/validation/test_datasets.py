@@ -81,6 +81,41 @@ def test_phase_zero_freezes_regression_and_qualification_roles() -> None:
     assert len(set(identifiers)) == len(identifiers)
 
 
+def test_phase_three_adds_immutable_role_specific_supplements() -> None:
+    """Detection data extends rather than rewrites the Phase 0 manifests."""
+    manifests = {
+        path.stem: load_dataset_manifest(path)
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-3-*.json"))
+    }
+
+    assert set(manifests) == {
+        "phase-3-development",
+        "phase-3-qualification",
+        "phase-3-regression",
+    }
+    assert {
+        item.role for item in manifests["phase-3-development"].datasets
+    } == {DatasetRole.DEVELOPMENT}
+    assert {
+        item.role for item in manifests["phase-3-regression"].datasets
+    } == {DatasetRole.REGRESSION}
+    qualification = manifests["phase-3-qualification"].datasets
+    assert {item.role for item in qualification} == {DatasetRole.QUALIFICATION}
+    assert qualification[0].recipe.shape_yx == (2048, 2048)
+
+    phase_zero_identifiers = {
+        dataset.identifier
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-0-*.json"))
+        for dataset in load_dataset_manifest(path).datasets
+    }
+    phase_three_identifiers = {
+        dataset.identifier
+        for manifest in manifests.values()
+        for dataset in manifest.datasets
+    }
+    assert phase_zero_identifiers.isdisjoint(phase_three_identifiers)
+
+
 def test_manifest_rejects_duplicate_dataset_identifiers() -> None:
     """Dataset identifiers remain unambiguous across test lanes."""
     manifest = load_dataset_manifest(MANIFEST_PATH)

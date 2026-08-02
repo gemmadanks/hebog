@@ -63,6 +63,7 @@ def _config() -> BackgroundRmsConfig:
         coarse=_grid(9, 4),
         adaptive=AdaptiveRmsConfig(
             grid=_grid(5, 2),
+            candidate_threshold_sigma=20.0,
             influence_radius_pixels=7.0,
             transition_width_pixels=3.0,
         ),

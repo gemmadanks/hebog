@@ -75,9 +75,11 @@ backend at every size**.
 - Map zero-origin canonical tile cores one-to-one onto Zarr chunks. Shifted
   scientific partitions require canonical-output reconciliation before
   storage writes.
-- Use explicit little-endian bytes, Zstandard level 1, CRC32C, fill value zero,
-  and `write_empty_chunks=True`. Codec and concurrency settings remain
-  measurable implementation choices, not scientific semantics.
+- Use explicit little-endian bytes, CRC32C, fill value zero, and
+  `write_empty_chunks=True`. Numeric planes are uncompressed after the Phase 3
+  complete-stage profile showed material compression overhead; boolean masks
+  retain Zstandard level 1. Codec and concurrency settings remain measurable
+  implementation choices, not scientific semantics.
 - Set `read_missing_chunks=False` and `write_empty_chunks=True`. Translate
   Zarr's `ChunkNotFoundError` at the Hebog boundary. CRC32C detects encoded
   corruption and the record's SHA-256 checks logical content.
@@ -115,9 +117,9 @@ closed under deterministic concurrent fault tests.
   and simplify compatibility with different Zarr stores and encodings.
 - Good, because incomplete Zarr metadata is never treated as a consumable run;
   interrupted work remains unmarked and can resume its missing chunks.
-- Bad, because binding every chunk to a generation raises Hebog's internal
-  storage schema to version 2. Unpublished development stores created with
-  schema version 1 must be recreated; no released workflow product used that
+- Bad, because the generation and codec policy raises Hebog's internal storage
+  schema to version 3. Unpublished development stores created with schema
+  version 1 or 2 must be recreated; no released workflow product used either
   schema.
 - Risk: compression may waste CPU on noise-like planes. Benchmark codecs by
   product role and tune Zarr rather than introducing another backend.

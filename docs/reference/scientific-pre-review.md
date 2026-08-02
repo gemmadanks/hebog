@@ -1,7 +1,8 @@
 # Scientific pre-review findings
 
-**Status:** first-pass technical/scientific review completed 2026-07-31;
-named human scientific sign-off remains required.
+**Status:** first-pass technical/scientific review completed 2026-07-31; its
+recommended amendments were approved in the named
+[Phase 3 scientific review](phase-3-review-record.md) on 2026-08-02.
 
 This review compares Hebog's provisional language and gates with official
 source-finder and observatory documentation, published comparison studies, and
@@ -101,12 +102,11 @@ exactly five after noise fluctuations, masking, blending, and local-RMS error.
 Published source-finder challenges show the expected decline and trade-off in
 completeness and reliability below roughly 10 sigma.
 
-The first-pass recommendation is therefore **amend before scientific
-approval**, not reject the architecture. Phase 1 I/O, tiling, schemas, and
-test-oracle work may proceed. Phase 2 TDD may also proceed against the amended
-frozen engineering gates, with the explicit risk of review-driven changes;
-scientific defaults, accepted deviations, and equivalence claims require the
-named human decision.
+The first-pass recommendation was therefore **amend before scientific
+approval**, not reject the architecture. The 2026-08-02 named review approved
+the amended terminology, compatibility profiles, low-SNR treatment, compact
+Phase 3 margins, and explicit deferrals. Later catalogue, multiscale,
+production, and cutover claims retain their own evidence and review gates.
 
 ## Sources reviewed
 

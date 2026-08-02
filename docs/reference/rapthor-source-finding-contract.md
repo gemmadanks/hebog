@@ -1,6 +1,6 @@
 # Rapthor source-finding contract
 
-This provisional contract inventory describes the behaviour Rapthor consumes
+This reviewed contract inventory describes the behaviour Rapthor consumes
 from its current PyBDSF/LSMTool source-finding path. It was traced at Rapthor
 commit `b1a64674b1022476cf052fc2d06ee3b16f031ecd` and checked against the local
 reference revisions listed in [Phase 0 starting revisions](starting-revisions.md).
@@ -129,11 +129,12 @@ tests:
   `{"nsources": 0}`. Those copied pixels are placeholders and must not be
   interpreted as RMS estimates.
 
-These behaviours are compatibility observations, not yet scientific approval
-of dummy components or copied RMS data. Hebog must test them and either
-preserve them at the adapter boundary or replace them through an explicitly
-reviewed contract change. Missing required inputs and unexpected processing
-errors continue to fail the task rather than producing a silent empty result.
+These behaviours are compatibility observations, not scientific approval of
+dummy components or copied RMS data. The reviewed policy keeps any required
+dummy component at the adapter boundary and represents unavailable RMS data
+explicitly in the scientific core. Missing required inputs and unexpected
+processing errors continue to fail the task rather than producing a silent
+empty result.
 
 ## Execution constraints
 
@@ -151,8 +152,9 @@ Hebog must use Rapthor's existing client rather than creating a private cluster
 or nested process pool, and no worker may require a complete large image
 plane.
 
-The boundary is provisional until domain review, frozen examples, and failing
-contract tests confirm normal, empty, corrupt, retry, and restart behaviour.
+Domain review approved this boundary for the current experimental scope on
+2026-08-02. Catalogue fields and workflow behaviour remain under development
+until their later failing contract tests and phase-specific reviews pass.
 
 ## Corrected baseline interpretation
 

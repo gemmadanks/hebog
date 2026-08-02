@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections import OrderedDict
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any, cast
@@ -21,19 +22,38 @@ from zarr.errors import ArrayNotFoundError, ChunkNotFoundError
 from zarr.storage import LocalStore
 
 from hebog.data_models.generations import ProductGenerationManifest
-from hebog.data_models.partitioning import PartitionManifest, TilePartition
+from hebog.data_models.partitioning import (
+    ImageBounds,
+    PartitionManifest,
+    TilePartition,
+)
 from hebog.data_models.products import (
     ProductChunk,
     validate_product_name,
 )
 
 _IMAGE_DIMENSIONS = 2
+_WINDOW_CHUNK_CACHE_SIZE = 4
 _ZARR_FORMAT = 3
 _COMPLETION_KEY = ".hebog/completed-generation-v1.json"
 _GROUP_ATTRIBUTES: dict[str, Any] = {
-    "hebog_storage_schema_version": 2,
+    "hebog_storage_schema_version": 3,
     "zarr_format": _ZARR_FORMAT,
 }
+
+
+def _compressors(dtype: np.dtype[Any]) -> tuple[Any, ...]:
+    """Compress boolean masks but avoid wasting CPU on numeric planes."""
+    if dtype == np.dtype(np.bool_):
+        return (ZstdCodec(level=1), Crc32cCodec())
+    return (Crc32cCodec(),)
+
+
+def _compression_policy(dtype: np.dtype[Any]) -> str:
+    """Return the durable product-role codec policy name."""
+    return "zstd-1" if dtype == np.dtype(np.bool_) else "none"
+
+
 _ARRAY_ATTRIBUTES: dict[str, Any] = {
     "hebog_missing_chunk_policy": "error",
     "hebog_write_empty_chunks": True,
@@ -163,7 +183,7 @@ class ZarrProductSink:
             fill_value=0,
             filters=None,
             serializer=BytesCodec(endian="little"),
-            compressors=(ZstdCodec(level=1), Crc32cCodec()),
+            compressors=_compressors(normalized_dtype),
             chunk_key_encoding={
                 "name": "default",
                 "configuration": {"separator": "/"},
@@ -173,6 +193,9 @@ class ZarrProductSink:
                 {
                     **_ARRAY_ATTRIBUTES,
                     "hebog_generation_id": self._generation_id,
+                    "hebog_compression_policy": _compression_policy(
+                        normalized_dtype
+                    ),
                 },
             ),
             config={
@@ -202,6 +225,9 @@ class ZarrProductSink:
         expected_attributes = {
             **_ARRAY_ATTRIBUTES,
             "hebog_generation_id": self._generation_id,
+            "hebog_compression_policy": _compression_policy(
+                np.dtype(zarr_array.dtype)
+            ),
         }
         for name, expected in expected_attributes.items():
             if zarr_array.attrs.get(name) != expected:
@@ -459,6 +485,104 @@ class ZarrProductSink:
         generation = self._read_published_generation()
         self._require_generation_chunks(generation)
         return generation
+
+    def read_completed_window(
+        self,
+        product_name: str,
+        bounds: ImageBounds,
+    ) -> npt.NDArray[np.generic]:
+        """Read one checksum-validated bounded window from owned chunks."""
+        return self.read_completed_windows(product_name, (bounds,))[0]
+
+    def read_completed_windows(
+        self,
+        product_name: str,
+        bounds_collection: Iterable[ImageBounds],
+    ) -> tuple[npt.NDArray[np.generic], ...]:
+        """Read windows through a bounded cache of validated owned chunks."""
+        requested_bounds = tuple(bounds_collection)
+        if not requested_bounds:
+            return ()
+        for bounds in requested_bounds:
+            bounds.require_inside(self._manifest.image_shape_yx)
+        validate_product_name(product_name)
+        generation = self._read_published_generation()
+        if product_name not in generation.product_names:
+            raise InvalidProductGenerationError(
+                "published generation does not contain product "
+                f"{product_name!r}"
+            )
+        product_index = generation.product_names.index(product_name)
+        tile_count = len(self._manifest.tiles)
+        core_y, core_x = self._manifest.tile_core_shape_yx
+        tiles_per_row = (
+            self._manifest.image_shape_yx[1] + core_x - 1
+        ) // core_x
+        array = self._open_array(product_name)
+        cache: OrderedDict[int, npt.NDArray[np.generic]] = OrderedDict()
+        windows: list[npt.NDArray[np.generic]] = []
+        for bounds in requested_bounds:
+            tile_y_start = bounds.y_start // core_y
+            tile_y_stop = (bounds.y_stop - 1) // core_y
+            tile_x_start = bounds.x_start // core_x
+            tile_x_stop = (bounds.x_stop - 1) // core_x
+            first_tile_index = tile_y_start * tiles_per_row + tile_x_start
+            first_record = generation.chunks[
+                product_index * tile_count + first_tile_index
+            ]
+            window = np.empty(
+                bounds.shape_yx,
+                dtype=np.dtype(first_record.dtype),
+            )
+            for tile_y_index in range(tile_y_start, tile_y_stop + 1):
+                for tile_x_index in range(tile_x_start, tile_x_stop + 1):
+                    tile_index = tile_y_index * tiles_per_row + tile_x_index
+                    record = generation.chunks[
+                        product_index * tile_count + tile_index
+                    ]
+                    tile = self._manifest.tiles[tile_index]
+                    values = cache.pop(tile_index, None)
+                    if values is None:
+                        values = self._read_values(
+                            array=array,
+                            tile=tile,
+                            record=record,
+                        )
+                        if len(cache) >= _WINDOW_CHUNK_CACHE_SIZE:
+                            cache.popitem(last=False)
+                    cache[tile_index] = values
+                    overlap_y_start = max(
+                        bounds.y_start,
+                        tile.core_bounds.y_start,
+                    )
+                    overlap_y_stop = min(
+                        bounds.y_stop,
+                        tile.core_bounds.y_stop,
+                    )
+                    overlap_x_start = max(
+                        bounds.x_start,
+                        tile.core_bounds.x_start,
+                    )
+                    overlap_x_stop = min(
+                        bounds.x_stop,
+                        tile.core_bounds.x_stop,
+                    )
+                    window[
+                        overlap_y_start - bounds.y_start : overlap_y_stop
+                        - bounds.y_start,
+                        overlap_x_start - bounds.x_start : overlap_x_stop
+                        - bounds.x_start,
+                    ] = values[
+                        overlap_y_start
+                        - tile.core_bounds.y_start : overlap_y_stop
+                        - tile.core_bounds.y_start,
+                        overlap_x_start
+                        - tile.core_bounds.x_start : overlap_x_stop
+                        - tile.core_bounds.x_start,
+                    ]
+            window.setflags(write=False)
+            windows.append(window)
+        return tuple(windows)
 
     def iter_completed_row_blocks(
         self,

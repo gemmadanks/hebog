@@ -28,15 +28,14 @@ when execution changes its scope, sequence, gates, risks, or decisions.
 ## Current position
 
 Hebog has completed the technical Phase 0 contracts, Phase 1 bounded FITS/Zarr
-I/O, and Phase 2 deterministic background/RMS estimation. The Phase 2
-implementation passes analytic, partition, retry, serial/Dask, compact
-PyBDSF, representative scientific, four-core latency, and peak-memory gates.
-The next implementation phase is thresholding, islands, and deblending.
-Automatic bright-candidate discovery, final RMS persistence, complete
-source-finding products, Rapthor integration, and multi-node scalability
-remain explicitly unimplemented. Named domain and facility review is still
-required before engineering thresholds or defaults are called
-domain-approved, complete PyBDSF equivalence is claimed, or Rapthor cuts over.
+I/O, Phase 2 deterministic background/RMS estimation, and Phase 3 compact
+detection topology. Background/RMS estimation, automatic adaptive candidates,
+connected-island reconciliation, compact deblending, and durable detection
+products pass the governed automated gates. Named scientific review approved
+the compact experimental scope on 2026-08-02, completing the Phase 3 exit
+gate. Phase 4 measurement, fitting, and catalogue compatibility is next;
+multiscale recovery, complete Rapthor integration, and multi-node scalability
+remain later work.
 
 ## 2026-07-16 — Profiled the existing PyBDSF path
 
@@ -1949,3 +1948,393 @@ applicable zeroes for these single-process reference runs.
   tiles to the Phase 1 Zarr persistence contract.
 - Obtain the named scientific review before stabilizing the compatibility
   defaults or claiming complete PyBDSF equivalence.
+
+## 2026-08-01 — Prepared the Phase 3 delivery sequence
+
+**Plan phase:** Phase 3, thresholding, connected islands, and compact
+deblending
+
+**Reviewed**
+
+- Traced the completed Phase 2 stage, current partition/executor contracts,
+  frozen dataset matrix, comparison oracle, Phase 2 release evidence, and the
+  Rapthor `gec-468-ai-migrate-to-prefect` source-finding boundary.
+- Confirmed that the current released/master PyBDSF reference uses
+  eight-neighbour SciPy labelling, includes pixels at the island threshold,
+  requires a peak strictly above the detection threshold, and normally derives
+  a minimum island size from one third of the beam area with a six-pixel floor.
+  These remain compatibility observations subject to Hebog's independent
+  scientific review, not implementation code to copy or automatic truth.
+- Identified that the existing comparison oracle reports a mask pixel
+  confusion matrix but cannot yet expose island matches, splits, or merges;
+  overall mask accuracy would also be dominated by background pixels.
+- Identified that detection-threshold and island-threshold monotonicity need
+  separate contracts: an island mask can only shrink as its threshold rises,
+  but that shrinkage may legitimately split one connected label.
+
+**Decisions**
+
+- Reordered Phase 3 into seven independently reviewable TDD slices: freeze
+  contracts and fixtures; bounded two-threshold detection; adaptive candidate
+  discovery and RMS persistence; one-tile connected islands; hierarchical
+  reconciliation; compact deblending; and scientific/performance
+  qualification.
+- Keep detection-stage seeds and deblended regions distinct from measured
+  islands, Gaussian components, and grouped sources. Phase 3 does not populate
+  measurement fields with placeholders or claim catalogue equivalence.
+- Use mature SciPy connected-component and reduction primitives first. Assess
+  scikit-image only if a deblending comparison demonstrates enough scientific
+  or maintenance value to justify another runtime dependency.
+- Require object-level mask comparison, canonical global island identity,
+  side and diagonal corner reconciliation, Zarr-owned mask/RMS chunks, and a
+  source-density benchmark that rejects all-pairs or quadratic paths.
+- Keep Phase 0 human review off the critical path for initial analytic TDD,
+  but require it before Phase 3 scientific promotion, compatibility-default
+  stabilization, or a `0.5.x` equivalence claim.
+
+**Next**
+
+- Start Phase 3 slice 1 by adding failing tests for the independent island
+  comparison report and freezing the exact threshold/connectivity/size
+  semantics and Phase 3 development, regression, and held-out cases.
+- Add the reviewed mask and island-object non-inferiority margins to Section 5
+  before using either PyBDSF reference to tune segmentation.
+
+## 2026-08-01 — Started Phase 3 segmentation comparison
+
+**Plan phase:** Phase 3, slice 1
+
+**Completed**
+
+- Added intersection over union to the independent boolean-mask comparison so
+  background-dominated accuracy cannot stand in for source-mask overlap.
+- Added an overlap-based integer-label comparison that is independent of
+  numeric label identity. It reports object completeness and reliability,
+  unmatched regions, reference splits, candidate merges, and per-match
+  intersection over union after applying an optional valid-pixel mask.
+- Kept assignment memory local to connected components of the sparse overlap
+  graph rather than allocating one global all-pairs object matrix.
+
+**Evidence**
+
+- Twenty-four focused analytic comparison tests pass, including relabelled
+  identical regions, splits, merges, invalid labels, valid-region exclusion,
+  and empty segmentations.
+- The branch-aware coverage lane passes 394 tests with four planned strict
+  expected failures at 93.15% total coverage.
+
+**Next**
+
+- Freeze the remaining threshold, connectivity, island-size, and dataset
+  contracts, then implement the pure bounded two-threshold serial kernel.
+
+## 2026-08-01 — Added bounded two-threshold detection
+
+**Plan phase:** Phase 3, slices 1 and 2
+
+**Completed**
+
+- Added immutable Phase 3 development, regression, and held-out qualification
+  manifest supplements without changing the frozen Phase 0 entries.
+- Made the minimum island size required scientific configuration and retained
+  an explicit optional maximum. The Rapthor boundary can derive a reviewed
+  beam-dependent value later; the scientific kernel receives an integer and
+  has no workflow default.
+- Added a pure vectorised float64 tile kernel that applies inclusive island
+  membership and strict detection-seed thresholds without persisting a
+  normalized image plane. Non-finite values, masks, and non-positive RMS are
+  excluded before thresholding.
+- Fixed compact detection to eight-neighbour connectivity in the documented
+  contract rather than adding an unused connectivity option.
+
+**Evidence**
+
+- Thirty-one focused configuration and detection tests pass for exact
+  threshold boundaries, positive affine transforms, distinct monotonicity,
+  negative emission, masks, non-finite values, non-positive RMS, array
+  validation, immutable outputs, and island-size configuration.
+- The normal handoff suite passes 312 fast tests with four planned strict
+  expected failures, Ruff, and Pyright.
+
+**Next**
+
+- Implement automatic high-significance candidate discovery against cached
+  coarse background/RMS summaries, then persist owned RMS tiles through the
+  Zarr generation contract.
+
+## 2026-08-01 — Added deterministic connected islands
+
+**Plan phase:** Phase 3, slices 4 and 5
+
+**Completed**
+
+- Added a SciPy-based eight-connected one-tile oracle that reduces pixel
+  count, global bounds, maximum SNR with deterministic equal-peak ties,
+  lexicographically first member, seed presence, and image-edge contact
+  without copying the image for each island.
+- Added vectorized boundary-label comparisons across tile sides, diagonal
+  offsets, and four-tile corners. A small union-find merges only label
+  equivalences and aggregates island facts before applying global seed and
+  size cuts.
+- Assigned accepted island IDs from canonical global first-pixel order rather
+  than SciPy label numbers, partition shape, or result completion order.
+- Kept detection-stage records separate from the measured catalogue `Island`
+  schema and produced compact per-tile local-to-global mappings for later Zarr
+  mask publication.
+
+**Evidence**
+
+- Six analytic island tests pass for eight-connectivity, side and four-tile
+  corner reconciliation, global minimum/maximum size cuts, strict seed
+  acceptance, empty detection, shifted origins, three tile geometries, and
+  reversed result order.
+- Branch-aware coverage passes 422 tests with four planned strict expected
+  failures at 93.29% total coverage. Detection is fully covered; local
+  labelling and reconciliation have 95% and 94% branch-aware coverage.
+
+**Next**
+
+- Move tile label planes behind the Zarr boundary so executor results contain
+  summaries rather than image cores, and implement hierarchical reduction of
+  boundary equivalences before automatic bright-candidate discovery.
+
+## 2026-08-01 — Published bounded compact-detection products
+
+**Plan phase:** Phase 3, slices 3 and 5
+
+**Completed**
+
+- Added an explicit strict high-significance threshold to adaptive RMS
+  configuration and discovered one deterministic peak per reconciled bright
+  component against cached coarse background/RMS interpolation.
+- Split sparse adaptive refinement from initial coarse estimation so candidate
+  discovery reuses the exact prepared coarse cache and cannot stack duplicate
+  fine regions on retry.
+- Reduced local island summaries and boundary equivalences through a
+  deterministic pairwise tree. Executor results contain component facts and
+  boundary vectors, never normalized planes or label cores.
+- Added a scheduler-independent compact-detection stage that writes owned
+  float64 background/RMS chunks, reconciles global acceptance, recreates one
+  bounded local label core, and writes an accepted boolean mask chunk. The
+  immutable generation contains `background`, `rms`, and
+  `source-filtering-mask` products.
+- Retained the separate candidate scan and label recreation because they keep
+  the implementation and restart contract simple. Each adds one explicit
+  bounded image-tile read; a persisted diagnostic label plane is not required
+  for correctness.
+
+**Evidence**
+
+- Fifty-three focused unit, integration, and compact-reference tests pass for
+  strict candidate thresholds, cache reuse, side/corner reconciliation,
+  hierarchical reduction, one/many-tile equivalence, identical retries,
+  exact Zarr generation products, and serial/Dask conformance.
+- Ruff and Pyright pass. The existing Phase 1 Zarr contract continues to
+  reject missing, corrupt, conflicting, incomplete, and noncanonical chunks
+  and generation markers.
+- Branch-aware coverage passes 432 tests with four planned strict expected
+  failures at 93.26% total coverage; the compact-detection stage is at 91%.
+
+**Next**
+
+- Freeze analytic compact-deblending behaviour and implement the simplest
+  bounded SciPy approach that passes close-pair, saddle, edge, and partition
+  tests.
+
+## 2026-08-01 — Added bounded compact deblending
+
+**Plan phase:** Phase 3, slice 6
+
+**Completed**
+
+- Defined Phase 3 deblending output as deterministic sub-island regions for
+  later measurement, not sources, Gaussian components, or catalogue rows.
+- Selected an eight-connected marker-distance watershed using SciPy maximum
+  filters, connected labelling, Euclidean distance, image-forest watershed,
+  and vectorized reductions. Sparse actual-intensity saddle comparisons merge
+  weak basins below an explicit prominence cut.
+- Collapsed equal-valued peak plateaus and resolved equal peak/ownership ties
+  by lexicographic global position. Region identities follow canonical first
+  member order rather than marker or task order.
+- Added deterministic cost-bounded multi-island batches. Member-heavy or
+  spatially extended bounds remain explicit deferred records for the Phase 5
+  partitioned/multiscale path.
+- Did not add scikit-image or native code because SciPy supplies the complete
+  bounded contract. A repeated multilevel implementation would add level and
+  cross-level identity policy without improving the tested compact cases.
+
+**Evidence**
+
+- Twenty-five focused tests pass for configuration boundaries, single peaks,
+  deep and shallow saddles, close and equal peaks, sub-threshold noise,
+  plateau and mask holes, global edge coordinates, batching, explicit
+  deferrals, invalid inputs, and one/many-tile stage invariance.
+- Ruff and Pyright pass. The deblending kernel contains no Python loop over
+  image pixels and no all-pairs source or region matrix.
+- Branch-aware coverage passes 452 tests with four planned strict expected
+  failures at 93.44% total coverage; deblending is at 96%.
+
+**Next**
+
+- Add generated-truth and dual-reference detection reports, benchmark the
+  complete Phase 3 path across the frozen size/density matrix, and publish the
+  release-readiness record.
+
+## 2026-08-01 — Qualified Phase 3 compact detection
+
+**Plan phase:** Phase 3, slice 7 and closure
+
+**Completed**
+
+- Froze foreground-sensitive mask and connected-object gates before inspecting
+  the held-out result. Added Wilson confidence intervals and population
+  aggregation without using background-dominated pixel accuracy.
+- Added exact released/master PyBDSF comparisons on the redistributable compact
+  input and an environment-resolved controlled comparison on the exact
+  checksum-governed Rapthor image.
+- Added bounded compact-deblend orchestration that reads only admitted island
+  windows and returns summaries rather than pixel labels through executors.
+- Added one-open batched FITS reads and a four-chunk checksum-validating Zarr
+  LRU. The 512-square 64-island density probe fell from 2.014 seconds to 0.699
+  seconds, removing a complete-chunk read per island.
+- Corrected masked watershed pixels to be maximum-cost barriers instead of
+  competing negative markers. The density matrix exposed the failure before
+  closure; an analytic regression now covers multiple peaks around a hole.
+- Profiled product persistence and adopted the ADR-007 product-role codec
+  seam: numeric planes use little-endian bytes plus CRC32C without Zstandard,
+  while boolean masks retain Zstandard level 1 plus CRC32C. Internal storage
+  schema version 3 deliberately invalidates unreleased development stores.
+- Added reproducible exact-representative and generated size/density benchmark
+  runners. Small tiers use a one-tile serial plan; the 3,000-square tier uses
+  nine 1,000-square tiles on a caller-owned four-worker Dask client.
+- Published the Phase 3 release-readiness record and updated the plan. The
+  inclusive Phase 3 component budget is 3.5 seconds because it now owns
+  durable background/RMS/mask publication; the later output budget was
+  reduced by the same second, leaving the complete budget unchanged.
+
+**Scientific evidence**
+
+- Compact Hebog versus both PyBDSF references: mask precision and recall
+  0.9944, IoU 0.9888, all three objects matched, median/minimum object IoU
+  0.9928/0.9655.
+- Generated development and regression mask IoUs were 0.7778 and 0.8623; all
+  eight strong-signal objects matched with no splits or merges. The aggregate
+  95% Wilson lower bound for eight of eight recovered objects was 0.6756.
+- The held-out qualification gate passed without changing its frozen margins:
+  mask precision 0.8735, recall 0.9603, IoU 0.8430, and all four strong-signal
+  objects matched with median/minimum IoU 0.8767/0.8056. One exact-threshold
+  noise crossing remains report-only as planned.
+- On the exact Rapthor products Hebog's seven compact islands all matched both
+  references with reliability 1.0, median/minimum IoU 0.9470/0.7718, and no
+  split or merge. Five PyBDSF `atrous_do=true` objects remain explicit Phase 5
+  multiscale work. Released/master PyBDSF masks differed by 44 pixels but
+  matched all twelve objects.
+
+**Performance evidence**
+
+- Final generated medians for sparse/normal/dense workloads were
+  0.313/0.325/0.332 seconds at 256 square, 0.352/0.402/0.378 seconds at 512,
+  0.699/0.696/0.736 seconds at 1,024, and 2.848/2.963/3.489 seconds at 3,000.
+- The 3,000-square dense case contained 2,197 islands and was 23% slower than
+  the one-island sparse case; both used 28 tasks. No task-per-island or
+  quadratic density path was observed at this tier.
+- The exact Rapthor median was 3.193 seconds across five measurements after
+  warm-up (3.094–3.301 seconds), with 0.110 seconds median compact deblending,
+  44 tasks, and maximum observed process RSS of 2,779,561,984 bytes.
+- Raw typed evidence remains in ignored `benchmark-results/phase-3/`; commands
+  and scope are documented in the benchmark README and readiness record.
+
+**Validation**
+
+- `just check`: 361 passed, 139 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just coverage`: 477 passed, 28 deselected, and four expected failures with
+  93.83% branch-aware project coverage. The new compact-deblend orchestration
+  reached 93% after exercising its pipeline-neutral fallback and fail-closed
+  source/generation boundaries.
+- `just test-equivalence`: 14 passed. `just test-qualification`: one passed and
+  one controlled-data case skipped. The controlled exact Rapthor comparison
+  passed all three released/master/reference-divergence checks separately.
+- `just test-acceptance`: seven planned later-phase scenarios remained expected
+  failures. `just docs-build` completed under MkDocs strict mode.
+
+**Remaining gate**
+
+- Named human scientific review must approve the connectivity, exact threshold
+  comparisons, six-pixel minimum, provisional margins, watershed saddle
+  semantics, and compact-versus-multiscale boundary. Automated technical
+  closure is complete, but scientific sign-off is not claimed.
+
+**Next**
+
+- Obtain and record Phase 3 human scientific approval, then begin Phase 4
+  measurement, fitting, and catalogue compatibility from the stable compact
+  topology and region summaries.
+
+## 2026-08-02 — Added an executable Phase 3 Marimo demonstration
+
+**Plan phase:** Phase 3 documentation and handoff
+
+**Completed**
+
+- Replaced the placeholder notebook with a self-contained demonstration of
+  background/RMS estimation, adaptive candidate discovery, compact detection,
+  connected-island reconciliation, Zarr products, and compact deblending.
+- Used the checked-in Phase 3 development recipe as the provenance base and
+  declared a visual-only variant containing an equal compact pair across a
+  four-tile corner. The frozen scientific recipe and qualification evidence
+  remain unchanged.
+- Compared one-tile and four-tile execution in the notebook. Background, RMS,
+  source mask, island summaries, and deblended summaries are identical.
+- Added Matplotlib to the development dependency group for established
+  scientific array visualization without increasing Hebog's runtime package.
+- Updated the README to describe and launch the working demonstration.
+
+**Validation**
+
+- `just marimo-check` passes in strict mode.
+- A headless Marimo HTML export executed the complete notebook successfully.
+  The rendered result contains five connected islands, six compact regions,
+  one visibly deblended two-region island, one adaptive-RMS candidate, no
+  deferred islands, and five passing partition-invariance checks.
+
+## 2026-08-02 — Completed named Phase 3 scientific review
+
+**Plan phase:** Phase 0 scientific contract closure and Phase 3 exit gate
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer, approved the scientific
+  pre-review amendments and the documented compact Phase 3 decisions as the
+  project owner and named ADR decider.
+- Approved the community best-practice envelope documented by peer-reviewed
+  astronomy literature and source-finder challenges. Cross-pipeline consensus
+  is a strong guide, while analytic and injected governed truth remain the
+  primary scientific oracles and PyBDSF remains a compatibility oracle.
+- Approved the explicit `5.0/3.0` normal and `5.0/4.0` early Rapthor profiles,
+  primary-beam terminology, distinct domain objects, scientific empty-product
+  semantics, MFS-only initial scope, and low-SNR curve/confidence treatment.
+- Approved Phase 3 inclusive-island and strict-seed comparisons,
+  eight-neighbour connectivity, the beam-aware six-pixel floor, explicit
+  adaptive-RMS profile, compact watershed saddle rules, mask/object margins,
+  multiscale deferral, partition invariance, and the inclusive 3.5-second
+  component budget.
+- The gate contract status changed from `frozen-provisional` to
+  `reviewed-provisional`: the margins are human-reviewed for the experimental
+  compact `0.x` scope but do not establish catalogue, multiscale, Rapthor, or
+  production equivalence.
+- Independent domain confirmation remains advisable before production
+  cutover. Facility review, later scientific phases, end-to-end acceptance,
+  complete performance, and multi-node scalability gates remain open.
+
+**Validation**
+
+- The gate-status contract test failed first for the intended status mismatch,
+  then passed after the validated schema and JSON contract were updated.
+- `just test-equivalence`: 14 passed.
+- `just test-qualification`: one passed and one controlled-data case skipped.
+- `just coverage`: 477 passed, 28 deselected, and four expected failures with
+  93.83% branch-aware project coverage.
+- `just check`: 361 passed, 144 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just docs-build` passed in strict mode.

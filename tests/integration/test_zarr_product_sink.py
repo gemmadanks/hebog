@@ -1,5 +1,6 @@
 # pyright: reportAttributeAccessIssue=false
 # pyright: reportMissingTypeStubs=false
+# pyright: reportPrivateUsage=false
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
@@ -21,6 +22,7 @@ import zarr
 from zarr.errors import ChunkNotFoundError
 
 from hebog.data_models import (
+    ImageBounds,
     PartitionManifest,
     ProductChunk,
     ProductGenerationManifest,
@@ -120,7 +122,8 @@ def test_initializes_one_strict_zarr_v3_array_per_product(
     assert array.attrs["hebog_missing_chunk_policy"] == "error"
     assert array.attrs["hebog_write_empty_chunks"] is True
     assert array.attrs["hebog_generation_id"] == "run-001"
-    assert group.attrs["hebog_storage_schema_version"] == 2
+    assert array.attrs["hebog_compression_policy"] == "none"
+    assert group.attrs["hebog_storage_schema_version"] == 3
     assert group.attrs["partition_schema_version"] == 1
     assert group.attrs["partition_origin_yx"] == [0, 0]
     assert group.attrs["generation_id"] == "run-001"
@@ -128,6 +131,21 @@ def test_initializes_one_strict_zarr_v3_array_per_product(
     assert sink.generation_id == "run-001"
 
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+
+
+def test_compresses_boolean_masks_but_not_numeric_planes(
+    tmp_path: Path,
+) -> None:
+    """Product-role codec policy avoids wasting CPU on numeric planes."""
+    root = tmp_path / "run.zarr"
+    sink = _sink(root)
+    sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+    sink.initialize_product(product_name="mask", dtype=np.dtype(np.bool_))
+
+    group = zarr.open_group(store=root, mode="r")
+
+    assert group["rms"].attrs["hebog_compression_policy"] == "none"
+    assert group["mask"].attrs["hebog_compression_policy"] == "zstd-1"
 
 
 def test_initialization_rejects_conflicting_group_or_array_metadata(
@@ -214,6 +232,115 @@ def test_streams_completed_product_as_bounded_canonical_tile_rows(
         ]
     )
     np.testing.assert_array_equal(np.concatenate(blocks), expected)
+
+
+def test_reads_a_completed_window_across_four_validated_chunks(
+    tmp_path: Path,
+) -> None:
+    """Compact island consumers read only intersecting owned Zarr chunks."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+
+    window = sink.read_completed_window("rms", ImageBounds(1, 5, 2, 7))
+
+    expected = np.block(
+        [
+            [np.full((2, 2), 1.0), np.full((2, 3), 2.0)],
+            [np.full((2, 2), 3.0), np.full((2, 3), 4.0)],
+        ]
+    )
+    np.testing.assert_array_equal(window, expected)
+    assert not window.flags.writeable
+
+
+def test_completed_windows_reuse_a_bounded_validated_chunk_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dense compact-island batches do not reread one tile per island."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    original = sink._read_values
+    read_count = 0
+
+    def count_read(**kwargs: Any) -> npt.NDArray[np.generic]:
+        nonlocal read_count
+        read_count += 1
+        return original(**kwargs)
+
+    monkeypatch.setattr(sink, "_read_values", count_read)
+
+    windows = sink.read_completed_windows(
+        "rms",
+        (ImageBounds(0, 1, 0, 1), ImageBounds(1, 2, 1, 2)),
+    )
+
+    assert len(windows) == 2
+    assert read_count == 1
+
+
+def test_completed_window_cache_evicts_old_chunks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The worker-local cache never grows with the image or island count."""
+    manifest = PartitionManifest.create(
+        image_shape_yx=(9, 9),
+        tile_core_shape_yx=(3, 3),
+        halo_yx=(0, 0),
+    )
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    original = sink._read_values
+    read_count = 0
+
+    def count_read(**kwargs: Any) -> npt.NDArray[np.generic]:
+        nonlocal read_count
+        read_count += 1
+        return original(**kwargs)
+
+    monkeypatch.setattr(sink, "_read_values", count_read)
+    first_five = tuple(
+        ImageBounds(
+            tile.core_bounds.y_start,
+            tile.core_bounds.y_start + 1,
+            tile.core_bounds.x_start,
+            tile.core_bounds.x_start + 1,
+        )
+        for tile in manifest.tiles[:5]
+    )
+
+    windows = sink.read_completed_windows(
+        "rms",
+        (*first_five, first_five[0]),
+    )
+
+    assert len(windows) == 6
+    assert read_count == 6
+
+
+def test_completed_window_rejects_unpublished_or_unknown_product(
+    tmp_path: Path,
+) -> None:
+    """Bounded consumers require one matching published generation product."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    bounds = ImageBounds(0, 2, 0, 2)
+
+    assert sink.read_completed_windows("rms", ()) == ()
+
+    with pytest.raises(InvalidProductGenerationError, match="published"):
+        sink.read_completed_window("rms", bounds)
+
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    with pytest.raises(InvalidProductGenerationError, match="product"):
+        sink.read_completed_window("mask", bounds)
 
 
 def test_one_tile_completed_product_streams_as_one_existing_chunk(

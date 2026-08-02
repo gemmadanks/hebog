@@ -87,11 +87,19 @@ class AdaptiveRmsConfig:
     """Fine-grid and deterministic blend policy around bright candidates."""
 
     grid: RmsGridConfig
+    candidate_threshold_sigma: float
     influence_radius_pixels: float
     transition_width_pixels: float
 
     def __post_init__(self) -> None:
         """Require finite positive radii and a contained transition zone."""
+        if (
+            not isfinite(self.candidate_threshold_sigma)
+            or self.candidate_threshold_sigma <= 0
+        ):
+            raise ValueError(
+                "candidate_threshold_sigma must be finite and positive"
+            )
         if (
             not isfinite(self.influence_radius_pixels)
             or self.influence_radius_pixels <= 0
@@ -144,6 +152,9 @@ class SourceFinderConfig:
 
     Thresholds are explicit because a value appropriate for one survey,
     image product, or pipeline stage is not a universal scientific default.
+    Island-size cuts are likewise explicit pixel counts; a compatibility
+    adapter may derive them from reviewed beam metadata before constructing
+    this scheduler-independent configuration.
     Workflow-specific background, RMS, multiscale, and filtering choices
     belong to compatibility configuration at the adapter boundary until their
     scientific contracts are implemented.
@@ -151,6 +162,8 @@ class SourceFinderConfig:
 
     detection_threshold_sigma: float
     island_threshold_sigma: float
+    minimum_island_pixels: int
+    maximum_island_pixels: int | None = None
 
     def __post_init__(self) -> None:
         """Validate finite, positive, ordered sigma thresholds."""
@@ -166,4 +179,80 @@ class SourceFinderConfig:
             raise ValueError(
                 "island_threshold_sigma must be lower than "
                 "detection_threshold_sigma"
+            )
+        if (
+            isinstance(self.minimum_island_pixels, bool)
+            or not isinstance(self.minimum_island_pixels, Integral)
+            or self.minimum_island_pixels < 1
+        ):
+            raise ValueError(
+                "minimum_island_pixels must be a positive integer"
+            )
+        maximum = self.maximum_island_pixels
+        if maximum is not None and (
+            isinstance(maximum, bool)
+            or not isinstance(maximum, Integral)
+            or maximum < self.minimum_island_pixels
+        ):
+            raise ValueError(
+                "maximum_island_pixels must be an integer no smaller than "
+                "minimum_island_pixels"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class CompactDeblendConfig:
+    """Peak, saddle, and admitted-memory policy for compact deblending."""
+
+    minimum_peak_signal_to_noise: float
+    minimum_peak_separation_pixels: int
+    minimum_saddle_depth_sigma: float
+    maximum_compact_island_pixels: int
+    maximum_compact_bounds_pixels: int
+    maximum_batch_pixels: int
+
+    def __post_init__(self) -> None:
+        """Require explicit finite science cuts and bounded region costs."""
+        if (
+            not isfinite(self.minimum_peak_signal_to_noise)
+            or self.minimum_peak_signal_to_noise <= 0
+        ):
+            raise ValueError(
+                "minimum_peak_signal_to_noise must be finite and positive"
+            )
+        if (
+            isinstance(self.minimum_peak_separation_pixels, bool)
+            or not isinstance(self.minimum_peak_separation_pixels, Integral)
+            or self.minimum_peak_separation_pixels < 1
+        ):
+            raise ValueError(
+                "minimum_peak_separation_pixels must be a positive integer"
+            )
+        if (
+            not isfinite(self.minimum_saddle_depth_sigma)
+            or self.minimum_saddle_depth_sigma < 0
+        ):
+            raise ValueError(
+                "minimum_saddle_depth_sigma must be finite and non-negative"
+            )
+        for value, name in (
+            (
+                self.maximum_compact_island_pixels,
+                "maximum_compact_island_pixels",
+            ),
+            (
+                self.maximum_compact_bounds_pixels,
+                "maximum_compact_bounds_pixels",
+            ),
+            (self.maximum_batch_pixels, "maximum_batch_pixels"),
+        ):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, Integral)
+                or value < 1
+            ):
+                raise ValueError(f"{name} must be a positive integer")
+        if self.maximum_batch_pixels < self.maximum_compact_bounds_pixels:
+            raise ValueError(
+                "maximum_batch_pixels must admit one compact bounds region"
             )

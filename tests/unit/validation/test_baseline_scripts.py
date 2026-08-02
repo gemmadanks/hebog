@@ -15,6 +15,7 @@ import pytest
 from hebog.data_models.partitioning import ImageBounds
 from hebog.executors import SerialExecutor
 from hebog.io.base import ImageWindow
+from hebog.stages.background import estimate_background_rms_grids
 
 
 def _script(name: str) -> dict[str, Any]:
@@ -169,3 +170,94 @@ def test_phase2_background_benchmark_records_bounded_stage_work() -> None:
     assert metrics.dask_task_count == 0
     assert metrics.transfer_bytes == 0
     assert metrics.spill_bytes == 0
+
+
+def test_phase3_detection_benchmark_excludes_prepared_coarse_grid(
+    tmp_path: Path,
+) -> None:
+    """The component runner measures bounded detection and deblending."""
+    namespace = _script("measure_phase3_detection.py")
+    configuration: Callable[[], Any] = namespace["_configuration"]
+    run_once: Callable[..., Any] = namespace["_run_once"]
+    values = np.zeros((20, 24), dtype=np.float64)
+
+    class ArraySource:
+        """Provide bounded windows for the benchmark contract test."""
+
+        def read_window(self, bounds: ImageBounds) -> ImageWindow:
+            return ImageWindow(
+                bounds=bounds,
+                values=values[
+                    bounds.y_start : bounds.y_stop,
+                    bounds.x_start : bounds.x_stop,
+                ],
+                valid_pixels=np.ones(bounds.shape_yx, dtype=np.bool_),
+            )
+
+    source = ArraySource()
+    detection_config, deblend_config = configuration()
+    coarse_grids = estimate_background_rms_grids(
+        source,
+        values.shape,
+        detection_config.background_rms,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+
+    result = run_once(
+        source=source,
+        coarse_grids=coarse_grids,
+        detection_config=detection_config,
+        deblend_config=deblend_config,
+        executor=SerialExecutor(),
+        executor_kind="serial",
+        tile_size=12,
+        work_parent=tmp_path,
+        repetition_index=0,
+        warmup=False,
+    )
+
+    assert result.partition_count == 4
+    assert result.detected_island_count == 0
+    assert result.deblended_region_count == 0
+    assert tuple(stage.stage for stage in result.measurement.stages) == (
+        "compact-detection",
+        "compact-deblending",
+    )
+    assert result.measurement.complete.dask_task_count == 0
+
+
+def test_phase3_benchmark_input_is_deterministic_and_density_stratified(
+    tmp_path: Path,
+) -> None:
+    """Performance tiers use repeatable sparse, normal, and dense fields."""
+    namespace = _script("generate_phase3_input.py")
+    generate_values: Callable[..., Any] = namespace["_generate_values"]
+    generate_input: Callable[..., None] = namespace["_generate_input"]
+
+    sparse = generate_values(64, "empty-or-sparse")
+    normal = generate_values(64, "normal")
+    dense = generate_values(64, "dense-or-extended")
+    repeated = generate_values(64, "dense-or-extended")
+    generate_input(
+        tmp_path / "dense.fits",
+        size=64,
+        workload="dense-or-extended",
+    )
+
+    np.testing.assert_array_equal(dense, repeated)
+    assert not np.array_equal(sparse, normal)
+    assert not np.array_equal(normal, dense)
+    assert (tmp_path / "dense.fits").is_file()
+
+
+def test_phase3_matrix_uses_serial_small_and_dask_representative() -> None:
+    """The frozen matrix avoids scheduler overhead on bounded small work."""
+    namespace = _script("run_phase3_matrix.py")
+    execution_policy: Callable[[int], tuple[str, int]] = namespace[
+        "_execution_policy"
+    ]
+
+    assert execution_policy(256) == ("serial", 256)
+    assert execution_policy(1024) == ("serial", 1024)
+    assert execution_policy(3000) == ("dask", 1000)

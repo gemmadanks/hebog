@@ -18,10 +18,13 @@ def test_accepts_common_five_three_threshold_profile() -> None:
     config = SourceFinderConfig(
         detection_threshold_sigma=5.0,
         island_threshold_sigma=3.0,
+        minimum_island_pixels=6,
     )
 
     assert config.detection_threshold_sigma == 5.0
     assert config.island_threshold_sigma == 3.0
+    assert config.minimum_island_pixels == 6
+    assert config.maximum_island_pixels is None
 
 
 def test_rejects_inverted_thresholds() -> None:
@@ -30,6 +33,7 @@ def test_rejects_inverted_thresholds() -> None:
         SourceFinderConfig(
             detection_threshold_sigma=3.0,
             island_threshold_sigma=5.0,
+            minimum_island_pixels=6,
         )
 
 
@@ -40,6 +44,7 @@ def test_rejects_non_finite_detection_threshold(value: float) -> None:
         SourceFinderConfig(
             detection_threshold_sigma=value,
             island_threshold_sigma=3.0,
+            minimum_island_pixels=6,
         )
 
 
@@ -50,6 +55,7 @@ def test_rejects_non_positive_detection_threshold(value: float) -> None:
         SourceFinderConfig(
             detection_threshold_sigma=value,
             island_threshold_sigma=3.0,
+            minimum_island_pixels=6,
         )
 
 
@@ -60,6 +66,7 @@ def test_rejects_non_finite_island_threshold(value: float) -> None:
         SourceFinderConfig(
             detection_threshold_sigma=5.0,
             island_threshold_sigma=value,
+            minimum_island_pixels=6,
         )
 
 
@@ -70,6 +77,7 @@ def test_rejects_non_positive_island_threshold(value: float) -> None:
         SourceFinderConfig(
             detection_threshold_sigma=5.0,
             island_threshold_sigma=value,
+            minimum_island_pixels=6,
         )
 
 
@@ -97,6 +105,7 @@ def test_accepts_all_finite_ordered_positive_thresholds(
     config = SourceFinderConfig(
         detection_threshold_sigma=detection_threshold_sigma,
         island_threshold_sigma=island_threshold_sigma,
+        minimum_island_pixels=1,
     )
 
     assert config.detection_threshold_sigma > config.island_threshold_sigma > 0
@@ -125,4 +134,28 @@ def test_rejects_every_finite_unordered_positive_threshold_pair(
         SourceFinderConfig(
             detection_threshold_sigma=detection_threshold_sigma,
             island_threshold_sigma=detection_threshold_sigma + excess,
+            minimum_island_pixels=1,
+        )
+
+
+@pytest.mark.parametrize("value", [True, 0, -1, 1.5])
+def test_rejects_invalid_minimum_island_pixels(value: object) -> None:
+    """Island population cuts use explicit positive integer pixels."""
+    with pytest.raises(ValueError, match="minimum_island_pixels"):
+        SourceFinderConfig(
+            detection_threshold_sigma=5.0,
+            island_threshold_sigma=3.0,
+            minimum_island_pixels=value,  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize("value", [True, 0, 5, 6.5])
+def test_rejects_invalid_maximum_island_pixels(value: object) -> None:
+    """A finite maximum must be an integer no smaller than the minimum."""
+    with pytest.raises(ValueError, match="maximum_island_pixels"):
+        SourceFinderConfig(
+            detection_threshold_sigma=5.0,
+            island_threshold_sigma=3.0,
+            minimum_island_pixels=6,
+            maximum_island_pixels=value,  # type: ignore[arg-type]
         )
