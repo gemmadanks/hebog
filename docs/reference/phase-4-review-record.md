@@ -235,3 +235,33 @@ This approval changes both Phase 4 contract statuses to
 `reviewed-provisional` and closes Step 1. Any later material amendment must be
 recorded before qualification inspection; replace the qualification recipe
 and gates if preserving an unbiased held-out decision requires it.
+
+## Post-review implementation finding
+
+The first generated regression run found that all three declared close pairs
+in `phase-4-crowded-association-regression-512` are narrower than one restoring
+beam and each produces only one observable image maximum. The reviewed Phase 3
+deblender therefore produces four regions for seven injected Gaussian emitters.
+Changing its reviewed two-pixel marker radius or one-sigma saddle rule does not
+create information that is absent from the image.
+
+This is evidence that the provisional one-region/one-component/one-source
+policy and the generated completeness population are inconsistent, activating
+the amendment clause in Section 4. The result is not being made to pass by
+tuning thresholds, counting emitters as recovered rows, or inspecting the
+unseen qualification output. Before the qualification campaign runs, a named
+human review must decide:
+
+1. which separation/contrast population is scientifically resolvable and may
+   carry per-emitter completeness gates;
+2. whether compact regions with evidence for multiple components require a
+   reviewed joint multi-Gaussian model in Phase 4 or an explicit later-phase
+   deferral; and
+3. how truth parent/source associations are encoded rather than inferred from
+   a flat Gaussian list.
+
+Because this material amendment affects the held-out blend stratum, the unseen
+qualification recipe and its checksum must be replaced and reviewed before any
+qualification result is inspected. The original 2026-08-02 approval remains a
+valid record of the pre-implementation decision, but it does not approve this
+new association/model choice.

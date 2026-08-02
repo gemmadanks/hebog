@@ -1,3 +1,6 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownMemberType=false
 """Serial, Dask, retry, partition, and Zarr compact-detection contracts."""
 
 from __future__ import annotations
@@ -9,6 +12,7 @@ from typing import Literal
 import numpy as np
 import numpy.typing as npt
 import pytest
+from astropy.wcs import WCS
 from distributed import Client
 
 from hebog.algorithms.deblending import (
@@ -20,6 +24,7 @@ from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
+    CompactCatalogueConfig,
     CompactDeblendConfig,
     CompactGaussianFitConfig,
     CompactMomentConfig,
@@ -28,10 +33,12 @@ from hebog.config import (
     SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds, PartitionManifest
+from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
 from hebog.data_models.measurement import CompactMeasurementGeometry
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
+from hebog.stages.catalogue import run_compact_catalogue_stage
 from hebog.stages.deblending import (
     WorkerLocalRegionBatch,
     run_compact_deblend_stage,
@@ -238,6 +245,36 @@ def _measurement_geometry() -> CompactMeasurementGeometry:
     )
 
 
+def _image_metadata() -> ImageMetadata:
+    """Return flat ICRS metadata for compact catalogue conformance."""
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    wcs.wcs.cunit = ["deg", "deg"]
+    wcs.wcs.crpix = [14.0, 12.0]
+    wcs.wcs.crval = [180.0, -30.0]
+    wcs.wcs.cdelt = [-0.001, 0.001]
+    return ImageMetadata(
+        shape_yx=_image().shape,
+        unit="Jy/beam",
+        beam=RestoringBeam(0.003, 0.002, 0.0),
+        celestial_wcs=CelestialWcs(
+            fits_header=wcs.to_header().tostring(
+                sep="\n", endcard=False, padding=False
+            ),
+            coordinate_frame="icrs",
+        ),
+        reference_frequency_hz=150_000_000.0,
+    )
+
+
+def _catalogue_config() -> CompactCatalogueConfig:
+    """Return bounded catalogue and deconvolution policy."""
+    return CompactCatalogueConfig(
+        maximum_catalogue_records=100,
+        deconvolution_relative_tolerance=1e-10,
+    )
+
+
 def _image() -> npt.NDArray[np.float64]:
     """Return compact emission spanning a four-tile corner and one blend."""
     y, x = np.indices((24, 28))
@@ -401,6 +438,32 @@ def test_one_and_many_tile_detection_publish_identical_topology(
         "rms",
         "source-filtering-mask",
     )
+    catalogue_config = _catalogue_config()
+    one_catalogue_stage = run_compact_catalogue_stage(
+        _ArrayImageSource(_image()),
+        one_result,
+        deblend_config=_deblend_config(),
+        moment_config=_moment_config(),
+        fit_config=_fit_config(),
+        catalogue_config=catalogue_config,
+        geometry=_measurement_geometry(),
+        metadata=_image_metadata(),
+        executor=SerialExecutor(),
+        sink=one_sink,
+    )
+    many_catalogue_stage = run_compact_catalogue_stage(
+        _ArrayImageSource(_image()),
+        many_result,
+        deblend_config=_deblend_config(),
+        moment_config=_moment_config(),
+        fit_config=_fit_config(),
+        catalogue_config=catalogue_config,
+        geometry=_measurement_geometry(),
+        metadata=_image_metadata(),
+        executor=SerialExecutor(),
+        sink=many_sink,
+    )
+    assert many_catalogue_stage == one_catalogue_stage
 
 
 def test_compact_deblend_stage_supports_single_window_sources(
@@ -735,10 +798,22 @@ def test_dask_and_serial_detection_products_are_identical(
         dask_fits = run_compact_gaussian_fit_stage(
             _ArrayImageSource(_image()),
             dask,
-            _deblend_config(),
-            _moment_config(),
-            _fit_config(),
-            _measurement_geometry(),
+            deblend_config=_deblend_config(),
+            moment_config=_moment_config(),
+            fit_config=_fit_config(),
+            geometry=_measurement_geometry(),
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
+        dask_catalogue = run_compact_catalogue_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            deblend_config=_deblend_config(),
+            moment_config=_moment_config(),
+            fit_config=_fit_config(),
+            catalogue_config=_catalogue_config(),
+            geometry=_measurement_geometry(),
+            metadata=_image_metadata(),
             executor=DaskExecutor(client),
             sink=dask_sink,
         )
@@ -790,13 +865,27 @@ def test_dask_and_serial_detection_products_are_identical(
     serial_fits = run_compact_gaussian_fit_stage(
         _ArrayImageSource(_image()),
         serial,
-        _deblend_config(),
-        _moment_config(),
-        _fit_config(),
-        _measurement_geometry(),
+        deblend_config=_deblend_config(),
+        moment_config=_moment_config(),
+        fit_config=_fit_config(),
+        geometry=_measurement_geometry(),
         executor=SerialExecutor(),
         sink=serial_sink,
     )
     assert dask_fits == serial_fits
     assert dask_fits.records
     assert all(record.region_fits for record in dask_fits.records)
+    serial_catalogue = run_compact_catalogue_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        deblend_config=_deblend_config(),
+        moment_config=_moment_config(),
+        fit_config=_fit_config(),
+        catalogue_config=_catalogue_config(),
+        geometry=_measurement_geometry(),
+        metadata=_image_metadata(),
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_catalogue == serial_catalogue
+    assert len(dask_catalogue.records) == dask_catalogue.planned_batch_count

@@ -66,6 +66,7 @@ def test_master_and_release_reference_catalogues_are_equivalent() -> None:
         load_pybdsf_catalogue(_path(master, "source_catalog.fits")),
         beam_fwhm_degrees=_BEAM_FWHM_DEGREES,
         maximum_separation_beams=_MAXIMUM_SEPARATION_BEAMS,
+        position_angle_minimum_axis_ratio=1.1,
     )
 
     assert report.reference_count == report.candidate_count == 3
@@ -75,6 +76,9 @@ def test_master_and_release_reference_catalogues_are_equivalent() -> None:
     assert report.median_separation_beam_fwhm == 0.0
     assert report.median_absolute_peak_flux_fractional_difference == 0.0
     assert report.median_absolute_integrated_flux_fractional_difference == 0.0
+    assert report.median_absolute_fitted_axis_fractional_difference == 0.0
+    assert report.association.precision == 1.0
+    assert report.association.recall == 1.0
 
 
 @pytest.mark.equivalence

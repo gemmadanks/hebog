@@ -2721,3 +2721,69 @@ deconvolution
   covariance.
 - The frozen Monte Carlo correlated-noise calibration remains open; these
   changes do not claim calibrated uncertainty coverage.
+
+## 2026-08-02 — Implemented bounded compact catalogues and Rapthor FITS view
+
+**Plan phase:** Phase 4, Steps 6 and 7 — association, catalogue construction,
+and compatibility serialization
+
+**Implemented**
+
+- Kept parent islands, fitted Gaussian components, and source candidates as
+  separate typed records under the reviewed provisional one-region/one-source
+  compact policy. IDs derive from canonical global region identity.
+- Added one bounded catalogue shard per existing coarse executor batch,
+  deterministic pairwise shard reduction with fan-in two and logarithmic
+  depth, and an explicit final in-memory source-record cap.
+- Made complete catalogue construction fail closed on every invalid fit,
+  omission, or Phase 5 deferral. The incomplete stage still retains compact
+  records and reasons for inspection.
+- Added the exact eight-column FITS view read directly by the pinned Rapthor
+  diagnostic code. Types, units, zero-row schema, deterministic source
+  numbering, adapter-only unresolved zero sentinel, NaN unknown errors,
+  checksums, atomic publication, and conflict-safe retries are frozen.
+- Corrected the earlier reader assumption: Rapthor uses Astropy to read this
+  FITS table, then writes a minimal makesourcedb text model for LSMTool. LSMTool
+  does not read the source-list FITS product and remains outside Hebog's core
+  dependencies.
+- Updated schema/compatibility documentation, README status, and the living
+  Marimo notebook. The notebook now executes the complete no-deferral compact
+  demo through fitted/deconvolved catalogue rows and the Rapthor FITS product.
+
+**Evidence**
+
+- Focused catalogue algorithm/record tests reach 100% branch coverage; focused
+  Rapthor adapter tests reach 100% branch coverage.
+- One/many-tile and serial/two-worker Dask catalogue shards are equal. Input
+  order, source numbering, catalogue bytes, and retry behaviour are
+  deterministic.
+- The same three-row compact catalogue passes every frozen exact Phase 4 gate
+  against both released and pinned-`master` PyBDSF. Rapthor's 10-arcsec size
+  and 2-arcsec position-error diagnostic cuts retain all three rows.
+- The compact reference has 65,534 of 65,536 identical pixel-centre mask
+  decisions against each PyBDSF reference, exceeding the 99.5% downstream
+  decision gate.
+- Focused dual-reference/adapter/mask suite: 11 passed. Focused unit,
+  integration, and executor suite: 32 passed. Strict Marimo validation and a
+  complete temporary HTML execution passed.
+
+**Scientific blocker discovered**
+
+- The generated crowded regression contains three injected pairs narrower
+  than one restoring beam. Each pair has only one observable image maximum,
+  so the reviewed deblender correctly produces four regions for seven input
+  Gaussians. Lowering the saddle threshold to zero did not change this result.
+- The one-region/one-source policy therefore cannot meet the flat
+  seven-emitter completeness assertion. The test is retained as a strict
+  expected failure so an eventual scientifically reviewed solution becomes a
+  visible unexpected pass.
+- No held-out qualification result was inspected. The association/resolvability
+  policy, declared truth grouping, and blend population require amended named
+  human review, after which the unseen qualification recipe and checksum must
+  be replaced before qualification runs.
+
+**Next**
+
+- Complete the association-model amendment review, replace the untouched
+  qualification population, calibrate formal uncertainties, and run the
+  controlled Phase 4 performance matrix before declaring the phase passed.

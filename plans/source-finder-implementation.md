@@ -1223,7 +1223,14 @@ SciPy reference, independent Astropy agreement, typed failure outcomes, and
 serial/Dask equality. Step 5 now has celestial transformation, beam
 deconvolution, and explicit uncertainty-availability semantics. Formal
 position and flux errors remain uncalibrated until the frozen Monte Carlo
-qualification gate is resolved.
+qualification gate is resolved. Steps 6 and 7 now construct bounded canonical
+catalogue shards, materialise the minimal Rapthor FITS view, and pass both
+exact compact PyBDSF references. The generated close-pair regression exposed
+a scientific-contract blocker: three sub-beam pairs have only one observable
+image maximum, so the reviewed one-region/one-source rule cannot satisfy the
+declared seven-source completeness gate. The association/resolvability policy
+and unseen qualification population require an amended named review before
+qualification inspection.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1441,57 +1448,77 @@ before maintaining a custom fitter.
 
 6. **Associate records and construct deterministic bounded catalogues.**
 
-   - [ ] Build `Island`, `GaussianComponent`, and `SourceCandidate` records
+   - [x] Build `Island`, `GaussianComponent`, and `SourceCandidate` records
          independently, then apply the reviewed association policy. Derive
          canonical IDs and ordering from Phase 3 global identities and
          scientific association keys, never task completion, partition-local
          labels, or worker count.
-   - [ ] Write compact catalogue shards per coarse batch and combine counts,
+   - [x] Write compact catalogue shards per coarse batch and combine counts,
          offsets, identities, and summary metadata with a bounded tree
          reduction. Final FITS materialisation may stream ordered row groups;
          it must not gather image-sized state or an unbounded source
          population in scheduler memory.
-   - [ ] Reuse the current versioned catalogue models, Zarr generation
+   - [x] Reuse the current versioned catalogue models, Zarr generation
          boundary where durable intermediate ownership is required, and
          Astropy FITS output. Do not add Arrow/Parquet or a second private
          catalogue store without a measured requirement and an ADR amendment.
-   - [ ] Prove one-tile/many-tile, serial/executor, tile-shape, worker-count,
+   - [x] Prove one-tile/many-tile, serial/executor, tile-shape, worker-count,
          task-order, and retry invariance for IDs, associations, quality flags,
          ordering, and numeric fields.
-   - [ ] Return partial compact records and explicit deferrals only from an
+   - [x] Return partial compact records and explicit deferrals only from an
          explicitly incomplete stage API. Do not materialise a normal
          compatibility catalogue or successful `find_sources` result while
          Phase 5 regions are omitted. Keep the complete public behaviour's
          strict expected failure until compact and multiscale results merge.
 
+   One typed shard is emitted by each existing coarse task. Canonical pairwise
+   reduction has fan-in two and logarithmic depth; the convenience final
+   in-memory catalogue rejects a source population above its explicit cap.
+   This closes the compact Phase 4 fan-in path without adding Arrow, Parquet,
+   or another storage model. One/many-tile, serial/two-worker Dask, input-order,
+   and retry tests preserve identities, values, flags, and ordering. Any fit
+   omission or Phase 5 deferral prevents normal catalogue completion.
+
 7. **Materialise and validate the Rapthor compatibility view.**
 
-   - [ ] Write failing FITS contract tests through the pinned LSMTool reader
-         before implementing the adapter. Freeze the smallest loadable view:
+   - [x] Write failing FITS contract tests through the pinned Rapthor Astropy
+         reader before implementing the adapter. Rapthor, not LSMTool, reads
+         this FITS product; its diagnostic path then generates makesourcedb
+         text for LSMTool. Freeze the smallest loadable view:
          the eight directly consumed `Source_id`, `RA`, `DEC`,
          `Isl_Total_flux`, `Total_flux`, `DC_Maj`, `E_RA`, and `E_DEC` fields,
          plus only the companion columns the real reader or reviewed
          diagnostics require. Do not reproduce all incidental PyBDSF columns
          by default.
-   - [ ] Freeze exact field units, dtypes, null/sentinel translation, source
+   - [x] Freeze exact field units, dtypes, null/sentinel translation, source
          numbering, ordering, empty-table schema, metadata, and the mapping
          from the internal island/source/component records. Keep dummy sky
          model components and unavailable-RMS compatibility placeholders at
          the Rapthor adapter boundary.
-   - [ ] Materialise the compact-reference catalogue deterministically and
+   - [x] Materialise the compact-reference catalogue deterministically and
          verify it against both exact PyBDSF references. On the representative
          reference, report the known released/`master` row and grouping
          divergence by class; do not fail Phase 4 for emission that the
          reviewed Phase 5 multiscale path owns.
-   - [ ] Extend the independent adapter oracle to compare the catalogue-based
+   - [x] Extend the independent adapter oracle to compare the catalogue-based
          compact-source diagnostic selections and mask-based retained/rejected
          sky-model decisions on complete, no-deferral fixtures. Reserve actual
          Rapthor orchestration, filtered-model publication, restart, and
          end-to-end `filter_skymodel` claims for Phase 7.
-   - [ ] Update the schema and compatibility documentation and the living
+   - [x] Update the schema and compatibility documentation and the living
          Marimo notebook with compact measurements, fitted/deconvolved shapes,
          quality flags, and catalogue output. State the multiscale and
          workflow limitations visibly.
+
+   The adapter publishes exactly the eight directly consumed columns with
+   frozen FITS types and units, a zero-row schema, adapter-only unresolved zero
+   sentinel, NaN unknown errors, deterministic checksums, atomic validation,
+   and conflict-safe retries. The same three-row Hebog catalogue passes every
+   frozen exact compact gate against released and pinned-`master` PyBDSF.
+   Rapthor's catalogue diagnostic cuts retain the same three rows, and
+   pixel-centre mask decisions pass the 99.5% downstream agreement threshold.
+   Per-channel flux-normalization columns, orchestration, and filtered-model
+   publication remain outside the MFS-only Phase 4 adapter.
 
 8. **Qualify the phase and prepare the release.**
 
@@ -1511,7 +1538,7 @@ before maintaining a custom fitter.
          previous reviewed Hebog curve and both PyBDSF references;
          investigate statistically supported regressions and source-density
          superlinearity.
-   - [ ] Show that worker memory is bounded by admitted coarse batches, graph
+   - [x] Show that worker memory is bounded by admitted coarse batches, graph
          size scales with batches and stages rather than pixels or sources,
          and catalogue reduction depth is logarithmic. Preserve scale-facility
          qualification for Phase 6 while adding executable local invariants
@@ -1520,6 +1547,13 @@ before maintaining a custom fitter.
          reviewed scientific decisions, dataset roles, numerical gates,
          reference divergence, performance evidence, portability, known
          limitations, and Phase 5/7 deferrals.
+
+   Local structural evidence is complete: retained image work is bounded by
+   admitted coarse-batch pixels, task count is one per batch rather than per
+   source, final compact assembly has an explicit record cap, and shard
+   reduction has pairwise fan-in and logarithmic depth. The scientific
+   qualification and controlled benchmark bullets remain open and prevent the
+   release-readiness record from declaring Phase 4 passed.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

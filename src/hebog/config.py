@@ -342,3 +342,29 @@ class CompactGaussianFitConfig:
             or self.maximum_axis_ratio <= 1
         ):
             raise ValueError("maximum_axis_ratio must be finite and > 1")
+
+
+@dataclass(frozen=True, slots=True)
+class CompactCatalogueConfig:
+    """Bounded compact catalogue assembly and deconvolution policy."""
+
+    maximum_catalogue_records: int
+    deconvolution_relative_tolerance: float
+
+    def __post_init__(self) -> None:
+        """Require an explicit population cap and numerical tolerance."""
+        if (
+            isinstance(self.maximum_catalogue_records, bool)
+            or not isinstance(self.maximum_catalogue_records, Integral)
+            or self.maximum_catalogue_records < 1
+        ):
+            raise ValueError(
+                "maximum_catalogue_records must be a positive integer"
+            )
+        if (
+            not isfinite(self.deconvolution_relative_tolerance)
+            or not 0 < self.deconvolution_relative_tolerance < 1
+        ):
+            raise ValueError(
+                "deconvolution_relative_tolerance must be finite and in (0, 1)"
+            )

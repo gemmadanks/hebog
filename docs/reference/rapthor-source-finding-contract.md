@@ -92,9 +92,17 @@ columns:
 | `DC_Maj` | Deconvolved major axis in degrees; sources at or above 10 arcsec are excluded from compact-source checks |
 | `E_RA`, `E_DEC` | Position uncertainties in degrees; sources at or above 2 arcsec are excluded from astrometry checks |
 
-Other PyBDSF columns are diagnostic compatibility data, not yet a required
-Hebog public schema. Catalogue ordering, units, null representation, and the
-mapping from Hebog's internal records remain to be frozen by contract tests.
+The Phase 4 adapter freezes these as an exact eight-column view: zero-based
+canonical 32-bit integer source numbering; 64-bit floating values; degrees for
+position, deconvolved size, and position error; Jy for flux; FITS NaN for
+unavailable error; and zero `DC_Maj` only for a reviewed unresolved source.
+It produces a structurally complete zero-row table for an empty result.
+
+Rapthor reads this FITS table with Astropy. Its diagnostic path converts
+`Source_id`, `RA`, `DEC`, and a selected flux column to a minimal makesourcedb
+text model before LSMTool loads it; LSMTool is not the FITS reader. Later
+Rapthor flux-normalization paths consume per-channel columns outside the
+current MFS-only contract.
 
 ## Scientific flow
 

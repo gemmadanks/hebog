@@ -43,9 +43,8 @@ Hebog is not rebuilding every PyBDSF feature. It is implementing the narrower
 source-finding path used by Rapthor, while keeping that scientific capability
 usable by other workflows.
 
-The implementation is technically complete through compact-source detection
-and now includes the first Phase 4 measurement oracle. In practical terms,
-Hebog can now:
+The implementation is technically complete through the experimental compact
+catalogue path in Phase 4. In practical terms, Hebog can now:
 
 - read and partition radio images without loading a large image onto one
   machine;
@@ -55,41 +54,57 @@ Hebog can now:
 - separate nearby compact peaks within an island;
 - calculate deterministic owned-pixel peak, flux, RMS, centroid, and shape
   moments for compact islands and regions;
+- fit bounded elliptical Gaussian components and transform their positions
+  and shapes into ICRS sky coordinates;
+- deconvolve the restoring beam while keeping unresolved or unavailable
+  scientific values explicit;
+- build bounded, deterministic source/component/island catalogue records and
+  an eight-column FITS view consumed directly by Rapthor diagnostics;
 - run deterministically through either the serial or Dask executor; and
 - publish restartable intermediate products in Zarr.
 
-For the governed compact cases, the detected regions agree closely with both
-the released PyBDSF used by Rapthor and the performance-improved PyBDSF
-`master` reference. The controlled representative Phase 3 path has a median
-runtime of approximately 3.2 seconds.
+For the governed three-source compact reference, the same Hebog catalogue
+passes the frozen position, flux, fitted/deconvolved shape, classification,
+association, uncertainty-availability, and outlier gates against both the
+released PyBDSF used by Rapthor and the performance-improved PyBDSF `master`
+reference. The controlled representative Phase 3 detection path has a median
+runtime of approximately 3.2 seconds; the complete incremental Phase 4 runtime
+has not yet passed its controlled release gate.
 
-Hebog does not yet turn those regions into the final source catalogue Rapthor
-needs. The remaining work includes:
+The Phase 4 release gate is not yet closed. A generated close-pair regression
+showed that three pairs narrower than one restoring beam contain only one
+observable image maximum. The reviewed provisional rule of one source per
+deblended region therefore cannot recover all seven injected emitters. Hebog
+will not hide that conflict by changing thresholds or relabelling truth. The
+association/resolvability policy and unseen qualification population need
+human review before qualification results are inspected.
 
-- fitting Gaussian source components;
-- transforming fitted positions and shapes to sky coordinates, deconvolving
-  the beam, and calibrating uncertainties;
-- reproducing the catalogue columns and conventions expected by Rapthor and
-  LSMTool;
+The remaining work includes:
+
+- calibrating position and flux uncertainties for synthesized-beam-correlated
+  noise;
+- resolving the close-pair association policy and rerunning the replacement
+  held-out qualification matrix;
+- passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;
 - proving end-to-end catalogue and filtering equivalence and speed; and
 - qualifying out-of-core execution on production-scale multi-node clusters.
 
-A useful mental model is that Hebog can locate and outline compact objects in
-an image, including separating nearby objects, and can take preliminary
-pixel-based measurements. Those moments initialize, but do not replace, the
-Gaussian fitting and sky-coordinate work needed for the final list consumed
-by Rapthor. By planned capability, this is roughly halfway to two-thirds
-through the Rapthor-specific reimplementation; the remaining fitting,
-catalogue, multiscale, integration, and qualification work is scientifically
-significant.
+A useful mental model is that Hebog can now locate, outline, fit, and catalogue
+ordinary compact objects, and can serialize the part of that catalogue used by
+Rapthor's image diagnostics. It cannot yet make a defensible choice for every
+sub-beam blend or extended object, nor run as Rapthor's complete source-finder
+backend. By planned capability, this is roughly two-thirds to three-quarters
+through the Rapthor-specific reimplementation; multiscale recovery, workflow
+integration, and qualification remain scientifically significant.
 
 Hebog is therefore a functioning compact-source detector, but it is not yet a
 drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
-scientific review approved the compact Phase 3 scope on 2026-08-02. See the
-[Phase 3 release-readiness record](docs/reference/phase-3-release-readiness.md)
-and [scientific review record](docs/reference/phase-3-review-record.md) for the
+scientific review approved the compact Phase 3 scope and provisional Phase 4
+measurement contract on 2026-08-02. See the
+[Phase 4 scientific review record](docs/reference/phase-4-review-record.md) and
+[compact catalogue reference](docs/reference/compact-catalogue.md) for the
 evidence, decisions, and remaining limitations.
 
 ## Goals
@@ -148,10 +163,10 @@ result = find_sources(request, config, SerialExecutor())
 ```
 
 The top-level `find_sources` call currently raises `NotImplementedError`.
-Completed background, noise-estimation, compact-detection, and deblending
-capabilities are exercised through internal stage APIs while measurement,
-catalogue materialisation, and the stable end-to-end public pipeline remain
-under development.
+Completed background, noise-estimation, compact-detection, measurement,
+fitting, astrometry, and compact-catalogue capabilities are exercised through
+internal stage APIs. The stable end-to-end public pipeline and complete product
+set remain under development.
 
 Requests and results never contain open FITS handles, scheduler clients, or
 mutable full-image objects. Scientific thresholds are explicit because the
@@ -215,9 +230,10 @@ uv run marimo edit notebooks/source_finder_demo.py
 The notebook generates a deterministic radio image, visualizes the estimated
 background and RMS, displays the accepted source mask and connected islands,
 shows compact deblending summaries, and verifies that one-tile and four-tile
-execution produce identical results. It also displays the Phase 4 owned-pixel
-photometry and moment initializer while identifying the fitting, catalogue,
-multiscale, and Rapthor integration work that remains.
+execution produce identical results. It also displays Phase 4 moment, fitted,
+sky-coordinate, deconvolution, quality-flag, internal catalogue, and Rapthor
+FITS results while identifying the multiscale, qualification, and workflow
+integration work that remains.
 
 Marimo notebooks are normal Python modules, so demonstrations remain
 reviewable, testable, and version controlled. Validate them with

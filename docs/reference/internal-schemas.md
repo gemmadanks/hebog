@@ -204,17 +204,18 @@ never enter a public record or executor result.
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as
-`Source_id`, `Isl_Total_flux`, or `DC_Maj`. The Rapthor adapter will map the
-internal records to those reviewed compatibility fields. FITS readers and
-writers will use Astropy at the I/O boundary; the schema models do not contain
+`Source_id`, `Isl_Total_flux`, or `DC_Maj`. The Rapthor catalogue adapter maps
+the internal records to the eight directly consumed compatibility fields.
+Astropy remains at the FITS I/O boundary; the schema models do not contain
 Astropy tables, open HDUs, NumPy image planes, or scheduler objects.
 
-These are Hebog's internal final-product encodings, not the Rapthor/PyBDSF
-compatibility view. Internal large-catalogue shard storage remains an
-evidence-driven decision.
-If Arrow or Parquet is adopted for shards, it must preserve this logical
-schema and canonical identities rather than introduce a second scientific
-model.
+`CompactCatalogueShard` is one bounded coarse-task result. Shards combine in
+canonical pairwise levels and final in-memory construction has an explicit
+record cap. The current FITS adapter is the Rapthor/PyBDSF compatibility view;
+the richer internal FITS schema remains pipeline-neutral. Durable streaming of
+larger shard populations remains an evidence-driven extension. It must reuse
+the Zarr boundary or receive an ADR amendment rather than adding Arrow or
+Parquet speculatively.
 
 See [ADR-006](../architecture/adr/006-isolate-compatibility-with-versioned-schemas.md),
 the [domain glossary](domain-glossary.md), and the

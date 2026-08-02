@@ -21,6 +21,7 @@ Related project references:
 - [Compact moment measurement](compact-measurement.md)
 - [Compact Gaussian fitting](compact-fitting.md)
 - [Compact astrometry and beam deconvolution](compact-astrometry.md)
+- [Compact catalogue and Rapthor FITS view](compact-catalogue.md)
 
 ## Top-level package
 
@@ -136,9 +137,27 @@ Related project references:
     options:
       show_symbol_type_toc: true
 
+## Compact catalogue construction
+
+::: hebog.data_models.catalogue_construction
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.catalogue
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.catalogue
+    options:
+      show_symbol_type_toc: true
+
 ## Workflow adapters
 
 ::: hebog.adapters.rapthor
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.adapters.rapthor_catalogue
     options:
       show_symbol_type_toc: true
 

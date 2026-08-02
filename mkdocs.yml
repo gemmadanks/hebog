@@ -83,6 +83,7 @@ nav:
       - Compact moment measurement: reference/compact-measurement.md
       - Compact Gaussian fitting: reference/compact-fitting.md
       - Compact astrometry and beam deconvolution: reference/compact-astrometry.md
+      - Compact catalogue and Rapthor FITS view: reference/compact-catalogue.md
   - Explanation:
       - Architecture: explanation/index.md
       - Domain model: explanation/domain-model.md

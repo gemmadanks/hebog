@@ -16,11 +16,13 @@ def _(mo):
     mo.md(r"""
     # Hebog compact source-finding demonstration
 
-    This notebook runs the capabilities implemented through **Phase 4 Step 3**
-    on a small, deterministic synthetic radio image. It estimates background
-    and RMS noise, detects connected source islands, reconciles an island that
-    crosses tile boundaries, deblends compact peaks, and calculates exact-label
-    owned-pixel photometry and moment fit initializers.
+    This notebook runs the experimental compact-source path implemented through
+    **Phase 4** on a small, deterministic synthetic radio image. It estimates
+    background and RMS noise, detects connected source islands, reconciles an
+    island that crosses tile boundaries, deblends compact peaks, calculates
+    exact-label moments, fits Gaussian components, transforms them to sky
+    coordinates, deconvolves the beam, and builds a Rapthor-compatible
+    catalogue.
 
     The example uses Hebog's window-readable synthetic source and serial
     executor so it is quick and completely redistributable. Production inputs
@@ -35,23 +37,32 @@ def _():
     import pathlib
     import tempfile
 
+    import astropy.wcs as astropy_wcs
     import matplotlib.patches as mpl_patches
     import matplotlib.pyplot as plt
     import numpy as np
     from scipy import ndimage
 
+    import hebog.adapters.rapthor_catalogue as rapthor_catalogue_adapter
+    import hebog.algorithms.astrometry as astrometry_algorithms
+    import hebog.algorithms.catalogue as catalogue_algorithms
     import hebog.algorithms.partitioning as partitioning_algorithms
     import hebog.config as hebog_config
     import hebog.data_models as hebog_models
     import hebog.data_models.measurement as measurement_models
     import hebog.executors as hebog_executors
     import hebog.io as hebog_io
+    import hebog.stages.catalogue as catalogue_stage
     import hebog.stages.deblending as deblending_stage
     import hebog.stages.detection as detection_stage
     import hebog.stages.measurement as measurement_stage
     import hebog.validation.datasets as validation_datasets
 
     return (
+        astrometry_algorithms,
+        astropy_wcs,
+        catalogue_algorithms,
+        catalogue_stage,
         deblending_stage,
         detection_stage,
         hebog_config,
@@ -66,6 +77,7 @@ def _():
         partitioning_algorithms,
         pathlib,
         plt,
+        rapthor_catalogue_adapter,
         tempfile,
         validation_datasets,
     )
@@ -77,13 +89,14 @@ def _(mo):
     ## 1. A governed synthetic radio image
 
     The checked-in development recipe contains Gaussian noise, a negative
-    background, sources around the 3- and 5-sigma thresholds, a close unequal
-    pair, and a bright source touching the image edge. This visual variant
-    replaces the close pair with two equal compact sources seven pixels apart
-    across a four-tile corner so the reconciliation and deblending results are
-    easy to see; the frozen qualification recipe is not changed. Noise is
-    generated from global pixel coordinates, so reading the image in
-    different windows always produces exactly the same pixels.
+    background, threshold-crossing sources, blends, and an image-edge source.
+    This visual variant keeps five high-confidence interior sources and
+    replaces the close pair with two equal compact sources fifteen pixels apart
+    across a four-tile corner. That keeps every admitted region eligible for a
+    complete catalogue while making reconciliation and deblending easy to see;
+    no governed regression or qualification recipe is changed. Noise is
+    generated from global pixel coordinates, so reading the image in different
+    windows always produces exactly the same pixels.
     """)
     return
 
@@ -104,17 +117,28 @@ def _(
     _demonstration_sources = list(demonstration_dataset.recipe.sources)
     _pair_update = {
         "y_pixel": 96.0,
-        "peak_flux_jy_per_beam": 0.003,
-        "major_sigma_pixels": 2.2,
-        "minor_sigma_pixels": 1.4,
+        "peak_flux_jy_per_beam": 0.005,
+        "major_sigma_pixels": 2.5,
+        "minor_sigma_pixels": 1.7,
         "rotation_degrees_counterclockwise_from_x": 0.0,
     }
     _demonstration_sources[4] = _demonstration_sources[4].model_copy(
-        update={**_pair_update, "x_pixel": 92.5}
+        update={**_pair_update, "x_pixel": 88.5}
     )
     _demonstration_sources[5] = _demonstration_sources[5].model_copy(
-        update={**_pair_update, "x_pixel": 99.5}
+        update={**_pair_update, "x_pixel": 103.5}
     )
+    _demonstration_sources = [
+        source.model_copy(
+            update={
+                "peak_flux_jy_per_beam": max(
+                    source.peak_flux_jy_per_beam,
+                    0.002,
+                )
+            }
+        )
+        for source in _demonstration_sources[2:7]
+    ]
     demonstration_recipe = demonstration_dataset.recipe.model_copy(
         update={"sources": tuple(_demonstration_sources)}
     )
@@ -223,10 +247,12 @@ def _(mo):
 
 @app.cell
 def _(
+    astrometry_algorithms,
+    astropy_wcs,
     demonstration_dataset,
     detection_stage,
     hebog_config,
-    measurement_models,
+    hebog_models,
     np,
 ):
     rms_statistics = hebog_config.RmsWindowStatisticsConfig(
@@ -274,25 +300,77 @@ def _(
         minimum_shape_pixels=3,
         covariance_relative_tolerance=1e-12,
     )
-    _pixel_scales_degrees = demonstration_dataset.wcs.pixel_scale_degrees_xy
-    _pixel_solid_angle = abs(
-        np.deg2rad(_pixel_scales_degrees[0])
-        * np.deg2rad(_pixel_scales_degrees[1])
+    fit_configuration = hebog_config.CompactGaussianFitConfig(
+        minimum_fit_pixels=7,
+        maximum_function_evaluations=300,
+        minimum_sigma_pixels=0.2,
+        maximum_sigma_pixels=30.0,
+        maximum_amplitude_factor=5.0,
+        center_margin_pixels=1.0,
+        convergence_tolerance=1e-8,
+        maximum_axis_ratio=30.0,
     )
+    catalogue_configuration = hebog_config.CompactCatalogueConfig(
+        maximum_catalogue_records=10_000,
+        deconvolution_relative_tolerance=1e-10,
+    )
+    _pixel_scales_degrees = demonstration_dataset.wcs.pixel_scale_degrees_xy
+    _reference_x, _reference_y = demonstration_dataset.wcs.reference_pixel_xy
+    _sky_ra, _sky_dec = demonstration_dataset.wcs.reference_sky_degrees
+    _rotation = np.deg2rad(
+        demonstration_dataset.wcs.rotation_degrees_counterclockwise
+    )
+    _celestial_wcs = astropy_wcs.WCS(naxis=2)
+    _celestial_wcs.wcs.ctype = ["RA---SIN", "DEC--SIN"]
+    _celestial_wcs.wcs.cunit = ["deg", "deg"]
+    _celestial_wcs.wcs.crpix = [_reference_x + 1.0, _reference_y + 1.0]
+    _celestial_wcs.wcs.crval = [_sky_ra, _sky_dec]
+    _celestial_wcs.wcs.cd = [
+        [
+            _pixel_scales_degrees[0] * np.cos(_rotation),
+            -_pixel_scales_degrees[1] * np.sin(_rotation),
+        ],
+        [
+            _pixel_scales_degrees[0] * np.sin(_rotation),
+            _pixel_scales_degrees[1] * np.cos(_rotation),
+        ],
+    ]
     _beam = demonstration_dataset.beam
-    measurement_geometry = measurement_models.CompactMeasurementGeometry(
-        pixel_solid_angle_steradians=_pixel_solid_angle,
-        restoring_beam_solid_angle_steradians=(
-            np.pi
-            * _beam.major_fwhm_pixels
-            * _beam.minor_fwhm_pixels
-            * _pixel_solid_angle
-            / (4.0 * np.log(2.0))
+    image_metadata = hebog_models.ImageMetadata(
+        shape_yx=demonstration_dataset.recipe.shape_yx,
+        unit="Jy/beam",
+        beam=hebog_models.RestoringBeam(
+            major_fwhm_degrees=(
+                _beam.major_fwhm_pixels * abs(_pixel_scales_degrees[0])
+            ),
+            minor_fwhm_degrees=(
+                _beam.minor_fwhm_pixels * abs(_pixel_scales_degrees[1])
+            ),
+            position_angle_degrees=_beam.position_angle_degrees,
+        ),
+        celestial_wcs=hebog_models.CelestialWcs(
+            fits_header=_celestial_wcs.to_header().tostring(
+                sep="\n",
+                endcard=False,
+                padding=False,
+            ),
+            coordinate_frame="icrs",
+        ),
+        reference_frequency_hz=150_000_000.0,
+    )
+    measurement_geometry = astrometry_algorithms.compact_geometry_at_pixel(
+        image_metadata,
+        (
+            demonstration_dataset.recipe.shape_yx[1] / 2.0,
+            demonstration_dataset.recipe.shape_yx[0] / 2.0,
         ),
     )
     return (
+        catalogue_configuration,
         deblend_configuration,
         detection_configuration,
+        fit_configuration,
+        image_metadata,
         measurement_geometry,
         moment_configuration,
     )
@@ -300,6 +378,9 @@ def _(
 
 @app.cell
 def _(
+    catalogue_algorithms,
+    catalogue_configuration,
+    catalogue_stage,
     deblend_configuration,
     deblending_stage,
     demonstration_recipe,
@@ -308,6 +389,8 @@ def _(
     hebog_executors,
     hebog_io,
     image_source,
+    fit_configuration,
+    image_metadata,
     measurement_geometry,
     measurement_stage,
     moment_configuration,
@@ -354,12 +437,43 @@ def _(
             executor=executor,
             sink=sink,
         )
-        return detection, deblending, moments, sink
+        catalogue_shards = catalogue_stage.run_compact_catalogue_stage(
+            image_source,
+            detection,
+            deblend_config=deblend_configuration,
+            moment_config=moment_configuration,
+            fit_config=fit_configuration,
+            catalogue_config=catalogue_configuration,
+            geometry=measurement_geometry,
+            metadata=image_metadata,
+            executor=executor,
+            sink=sink,
+        )
+        completed_catalogue = catalogue_algorithms.complete_compact_catalogue(
+            catalogue_id="marimo-compact-demo",
+            metadata=image_metadata,
+            shards=catalogue_shards.records,
+            deferred_island_ids=tuple(
+                item.island.island_id
+                for item in catalogue_shards.deferred_islands
+            ),
+            config=catalogue_configuration,
+        )
+        return (
+            detection,
+            deblending,
+            moments,
+            catalogue_shards,
+            completed_catalogue,
+            sink,
+        )
 
     (
         one_tile_detection,
         one_tile_deblending,
         one_tile_moments,
+        one_tile_catalogue_shards,
+        one_tile_catalogue,
         one_tile_sink,
     ) = execute_detection(
         demonstration_recipe.shape_yx,
@@ -369,6 +483,8 @@ def _(
         tiled_detection,
         tiled_deblending,
         tiled_moments,
+        tiled_catalogue_shards,
+        tiled_catalogue,
         tiled_sink,
     ) = execute_detection(
         (96, 96),
@@ -379,10 +495,14 @@ def _(
         one_tile_deblending,
         one_tile_detection,
         one_tile_moments,
+        one_tile_catalogue,
+        one_tile_catalogue_shards,
         one_tile_sink,
         tiled_deblending,
         tiled_detection,
         tiled_moments,
+        tiled_catalogue,
+        tiled_catalogue_shards,
         tiled_sink,
     )
 
@@ -667,8 +787,84 @@ def _(measurement_models, mo, tiled_moments):
 
 @app.cell
 def _(
+    demonstration_workspace,
+    pathlib,
+    rapthor_catalogue_adapter,
+    tiled_catalogue,
+):
+    rapthor_catalogue_path = (
+        pathlib.Path(demonstration_workspace.name) / "source_catalog.fits"
+    )
+    rapthor_catalogue_product = (
+        rapthor_catalogue_adapter.write_rapthor_catalogue_fits(
+            rapthor_catalogue_path,
+            tiled_catalogue.catalogue,
+        )
+    )
+    rapthor_catalogue_table = (
+        rapthor_catalogue_adapter.read_rapthor_catalogue_fits(
+            rapthor_catalogue_path
+        )
+    )
+    return rapthor_catalogue_product, rapthor_catalogue_table
+
+
+@app.cell(hide_code=True)
+def _(mo, rapthor_catalogue_product, rapthor_catalogue_table, tiled_catalogue):
+    _sources = tiled_catalogue.catalogue.sources
+
+    def _deconvolved(source):
+        if source.deconvolved_shape is None:
+            return "unresolved"
+        return f"{3600 * source.deconvolved_shape.major_fwhm_degrees:.2f}"
+
+    _rows = "\n".join(
+        (
+            f"| {source.source_id} | "
+            f"{source.position.right_ascension_degrees:.5f} | "
+            f"{source.position.declination_degrees:.5f} | "
+            f"{1e3 * source.flux.peak_flux_jy_per_beam:.3f} | "
+            f"{1e3 * source.flux.integrated_flux_jy:.3f} | "
+            f"{3600 * source.fitted_shape.major_fwhm_degrees:.2f} | "
+            f"{_deconvolved(source)} | "
+            f"{', '.join(source.quality_flags)} |"
+        )
+        for source in _sources
+    )
+    _columns = ", ".join(rapthor_catalogue_table.colnames)
+    _catalogue_header = (
+        "| Source | RA (deg) | Dec (deg) | Peak (mJy/beam) | "
+        "Total (mJy) | Fitted major (arcsec) | "
+        "Deconvolved major (arcsec) | Quality flags |"
+    )
+    _catalogue_separator = (
+        "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |"
+    )
+    mo.md(f"""
+    ## 6. Fitted sky catalogue and Rapthor view
+
+    {_catalogue_header}
+    {_catalogue_separator}
+    {_rows}
+
+    The fitted pixel ellipses have been transformed through the local WCS and
+    deconvolved from the restoring beam. An unresolved result has no internal
+    physical size; the compatibility writer alone translates it to
+    `DC_Maj = 0`.
+
+    The deterministic FITS product contains **{len(rapthor_catalogue_table)}
+    rows**, **{rapthor_catalogue_product.byte_count} bytes**, and exactly the
+    columns Rapthor reads directly: `{_columns}`.
+    """)
+    return
+
+
+@app.cell
+def _(
     np,
     one_tile_background,
+    one_tile_catalogue,
+    one_tile_catalogue_shards,
     one_tile_deblending,
     one_tile_detection,
     one_tile_mask,
@@ -677,6 +873,8 @@ def _(
     source_filtering_mask,
     tiled_deblending,
     tiled_detection,
+    tiled_catalogue,
+    tiled_catalogue_shards,
     tiled_moments,
     background_plane,
     rms_plane,
@@ -698,6 +896,12 @@ def _(
             one_tile_deblending == tiled_deblending
         ),
         "Moment records are identical": one_tile_moments == tiled_moments,
+        "Catalogue shards are identical": (
+            one_tile_catalogue_shards == tiled_catalogue_shards
+        ),
+        "Completed catalogues are identical": (
+            one_tile_catalogue == tiled_catalogue
+        ),
     }
     return (partition_checks,)
 
@@ -716,7 +920,7 @@ def _(mo, partition_checks, tiled_detection):
         or "none"
     )
     mo.md(f"""
-    ## 6. Partition invariance
+    ## 7. Partition invariance
 
     | Check | Result |
     | --- | --- |
@@ -739,16 +943,18 @@ def _(mo):
     ## What this does—and does not—demonstrate
 
     Hebog can currently locate compact emission, reconcile it across tiles,
-    split admitted compact islands into deterministic regions, and calculate
-    exact-label owned-pixel photometry and moment fit initializers. It also
-    persists restartable background, RMS, and source-mask products.
+    split admitted compact islands into deterministic regions, calculate
+    exact-label moments, fit Gaussian components, transform and deconvolve
+    their sky shapes, build the internal compact catalogue, and materialize the
+    eight-column FITS view used by Rapthor diagnostics. It also persists
+    restartable background, RMS, and source-mask products.
 
-    **The notebook does not produce a source catalogue.** Nonlinear Gaussian
-    fitting, sky-coordinate and beam-deconvolved shapes, calibrated
-    uncertainties, Rapthor/LSMTool catalogue compatibility, extended or
-    multiscale recovery, and the final `filter_skymodel` decision remain later
-    work. Hebog is not yet a drop-in PyBDSF replacement or a production-ready
-    Rapthor backend.
+    Formal position and flux errors are not yet calibrated for correlated
+    synthesized-beam noise. Sub-beam blends need a reviewed association/model
+    amendment, and extended or multiscale recovery, per-channel catalogue
+    fields, the final `filter_skymodel` decision, controlled performance, and
+    production-scale qualification remain later work. Hebog is not yet a
+    drop-in PyBDSF replacement or a production-ready Rapthor backend.
     """).callout(kind="warn")
     return
 

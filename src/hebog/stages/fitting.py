@@ -78,11 +78,11 @@ class CompactGaussianFitProcessor:
 def run_compact_gaussian_fit_stage(  # noqa: PLR0913
     source: _WindowReadable,
     detection: DetectionStageResult,
+    *,
     deblend_config: CompactDeblendConfig,
     moment_config: CompactMomentConfig,
     fit_config: CompactGaussianFitConfig,
     geometry: CompactMeasurementGeometry,
-    *,
     executor: Executor,
     sink: ZarrProductSink,
 ) -> CompactRegionStageResult[CompactIslandFitResult]:
