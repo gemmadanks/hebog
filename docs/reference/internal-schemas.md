@@ -193,6 +193,14 @@ distinct from fitted-Gaussian flux. A valid result includes a pixel-space
 members omit invalid fields rather than encoding scientific absence as zero.
 These records contain no image arrays, WCS objects, or scheduler state.
 
+A valid compact fit adds frozen pixel parameters, optimizer diagnostics,
+local RMS, and optional formal covariance. `CelestialCompactGaussianFit`
+then supplies the ICRS position, fitted sky ellipse, explicit deconvolution
+state, fitted flux, and canonical quality flags. An unresolved deconvolution
+has a null shape internally; zero axes are compatibility serialization only.
+WCS objects are reconstructed transiently inside the astrometry boundary and
+never enter a public record or executor result.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as

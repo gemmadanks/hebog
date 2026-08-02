@@ -19,6 +19,8 @@ Related project references:
 - [Phase 3 scientific review record](phase-3-review-record.md)
 - [Compact deblending](compact-deblending.md)
 - [Compact moment measurement](compact-measurement.md)
+- [Compact Gaussian fitting](compact-fitting.md)
+- [Compact astrometry and beam deconvolution](compact-astrometry.md)
 
 ## Top-level package
 
@@ -109,6 +111,28 @@ Related project references:
       show_symbol_type_toc: true
 
 ::: hebog.stages.measurement
+    options:
+      show_symbol_type_toc: true
+
+## Compact fitting and astrometry
+
+::: hebog.data_models.fitting
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.fitting
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.fitting
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.data_models.astrometry
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.astrometry
     options:
       show_symbol_type_toc: true
 

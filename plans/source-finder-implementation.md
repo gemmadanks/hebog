@@ -1220,8 +1220,10 @@ only compact records. Step 3 was completed on 2026-08-02 with a vectorized
 owned-pixel moment oracle, explicit availability outcomes, and serial/Dask
 record equivalence. Step 4 was completed on 2026-08-02 with a bounded fit-all
 SciPy reference, independent Astropy agreement, typed failure outcomes, and
-serial/Dask equality. Step 5's celestial transformation, beam deconvolution,
-and uncertainty evidence are next.
+serial/Dask equality. Step 5 now has celestial transformation, beam
+deconvolution, and explicit uncertainty-availability semantics. Formal
+position and flux errors remain uncalibrated until the frozen Monte Carlo
+qualification gate is resolved.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1403,12 +1405,12 @@ before maintaining a custom fitter.
 5. **Transform positions and ellipses, deconvolve the beam, and calibrate
    uncertainties.**
 
-   - [ ] Use zero-based `(x, y)` Astropy pixel-to-world conversion and a local
+   - [x] Use zero-based `(x, y)` Astropy pixel-to-world conversion and a local
          tangent-plane WCS Jacobian to transform centers, covariance matrices,
          and errors. Test rotated axes, RA wraparound, unequal and signed
          pixel scales, non-square images, and the reviewed celestial
          position-angle convention.
-   - [ ] Deconvolve fitted and restoring-beam ellipses through covariance
+   - [x] Deconvolve fitted and restoring-beam ellipses through covariance
          matrices. Test rotations and near-singular cases against analytic
          truth and an independent implementation. Evaluate the established
          `radio_beam` package before maintaining domain-specific edge handling;
@@ -1419,10 +1421,23 @@ before maintaining a custom fitter.
          Fisher-information calculations with injected Monte Carlo truth and
          the Aegean 2.0 findings, using normalized residuals and coverage
          reports for position, peak/integrated flux, and shape.
-   - [ ] Represent underconstrained or uncalibrated errors as absent with a
+   - [x] Represent underconstrained or uncalibrated errors as absent with a
          canonical quality flag. Never use zero to mean unknown. Freeze any
          SNR floor or approximation with human review and report shape-error
          limitations explicitly.
+
+   Astropy reconstructs the celestial WCS only inside the transformation
+   boundary. A local east/north Jacobian transforms centroids, fit covariance,
+   and local pixel area while preserving rotation, unequal and signed scales,
+   projection effects, and RA wraparound. Fitted and beam ellipses are
+   deconvolved as two-by-two covariance matrices. Fully and marginally
+   unresolved results remain null internally, with the marginal state carrying
+   an additional diagnostic flag. `radio_beam` was evaluated but not added:
+   Hebog's reviewed three-state policy still requires explicit logic and direct
+   NumPy covariance subtraction keeps the boundary smaller. Formal
+   independent-pixel position and flux errors are transformed when available;
+   shape errors and singular/uncalibrated values are null with quality flags.
+   The Monte Carlo calibration bullet remains open.
 
 6. **Associate records and construct deterministic bounded catalogues.**
 

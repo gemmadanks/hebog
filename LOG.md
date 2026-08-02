@@ -2688,3 +2688,36 @@ deblending
 
 - Complete Phase 4 Step 5 with local Astropy WCS transformation, covariance
   beam deconvolution, and explicit uncertainty calibration evidence.
+
+## 2026-08-02 — Implemented Phase 4 compact astrometry and deconvolution
+
+**Plan phase:** Phase 4, Step 5 — celestial transformation and beam
+deconvolution
+
+**Implemented**
+
+- Added a scheduler-safe celestial fit record and pure transformation boundary
+  that reconstructs Astropy WCS from serialized metadata, uses zero-based
+  `(x, y)` coordinates, and derives a local east/north Jacobian.
+- Transformed fitted covariance, centroid covariance, local pixel area, and
+  position through the same local geometry. RA wraparound, signed/unequal
+  scales, rotation, and celestial east-of-north position angle remain
+  explicit.
+- Added covariance-matrix restoring-beam deconvolution with resolved,
+  unresolved, and marginal diagnostics. Scientific absence is null; only the
+  compatibility adapter may serialize an unresolved zero-axis sentinel.
+- Evaluated `radio_beam` and retained the direct NumPy implementation because
+  the reviewed three-state semantics still require local logic and the added
+  dependency would not simplify this small boundary.
+- Preserved formal independent-pixel position and flux errors with explicit
+  flags, and left uncalibrated shape or singular errors absent rather than
+  zero.
+
+**Testing and scope**
+
+- Added analytic tests for local WCS signs and rotation, RA wraparound,
+  unequal pixel scales, fitted ellipse conversion, aligned deconvolution,
+  marginal and unresolved states, local flux geometry, and absent formal
+  covariance.
+- The frozen Monte Carlo correlated-noise calibration remains open; these
+  changes do not claim calibrated uncertainty coverage.
