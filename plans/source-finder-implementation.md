@@ -690,6 +690,17 @@ A phase may produce several minor or patch releases, and one release may contain
 vertical slices from more than one phase. Prefer small releases that expose one understandable
 capability over large releases that combine unrelated scientific, execution, and schema changes.
 
+Treat `notebooks/source_finder_demo.py` as the living user-facing demonstration
+of the latest implemented vertical slice. Update it in the same coherent change
+whenever a new or materially changed scientific stage, product, executor path,
+or workflow integration can be demonstrated. Keep the notebook deterministic
+and redistributable, show observable outputs rather than only calling an API,
+and state incomplete or experimental behaviour explicitly. Notebook updates
+supplement rather than replace analytic, equivalence, acceptance, qualification,
+or performance evidence. Validate every update with strict Marimo checks and a
+successful executable export; record an explicit reason in `LOG.md` when a
+user-visible capability cannot safely or practically be included.
+
 Every release requires:
 
 1. Portable CI, packaging, documentation, lockfile validation, and wheel smoke tests to pass.
@@ -704,7 +715,9 @@ Every release requires:
    affected and adjacent size tiers and crossovers; milestone qualification refreshes the complete
    curve, and regressions follow the 5% confidence rule in Section 1.
 6. Public documentation of implemented capabilities, experimental limitations, configuration,
-   output schemas, and known compatibility gaps.
+   output schemas, and known compatibility gaps. The living Marimo demonstration
+   must reflect every capability that can be demonstrated safely and
+   redistributably in its current vertical slice.
 7. Current versioned schemas and documentation for the supported API and
    product contract. Pre-`1.0` breaking changes must be explicit but do not
    require backward compatibility, migration guidance, or a deprecation
