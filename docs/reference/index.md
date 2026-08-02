@@ -17,6 +17,8 @@ Related project references:
 - [Phase 2 release readiness](phase-2-release-readiness.md)
 - [Phase 3 release readiness](phase-3-release-readiness.md)
 - [Phase 3 scientific review record](phase-3-review-record.md)
+- [Phase 4 release readiness](phase-4-release-readiness.md)
+- [Phase 4 scientific review record](phase-4-review-record.md)
 - [Compact deblending](compact-deblending.md)
 - [Compact moment measurement](compact-measurement.md)
 - [Compact Gaussian fitting](compact-fitting.md)

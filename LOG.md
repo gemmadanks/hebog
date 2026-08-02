@@ -2787,3 +2787,31 @@ and compatibility serialization
 - Complete the association-model amendment review, replace the untouched
   qualification population, calibrate formal uncertainties, and run the
   controlled Phase 4 performance matrix before declaring the phase passed.
+
+## 2026-08-02 — Recorded the Phase 4 readiness decision
+
+**Plan phase:** Phase 4, Step 8 — qualification and release readiness
+
+**Completed**
+
+- Published a Phase 4 release-readiness record that separates the implemented
+  compact catalogue capability from the scientific and performance exit gate.
+- Recorded the exact-reference, downstream-decision, bounded-memory,
+  deterministic-execution, compatibility, portability, and deferral evidence.
+- Recommended an observable-resolvability policy: per-emitter gates for
+  independently observable maxima, explicit group truth and group-level
+  centroid/total-flux gates for unresolved injected blends, and no joint
+  multi-Gaussian fit without identifiability and reliability evidence.
+- Added an unchecked named amendment decision to the scientific review record.
+  The existing approval does not silently authorize this material change.
+- Ordered the remaining work so the contract and replacement unseen dataset
+  are reviewed before qualification inspection, and science closes before
+  performance qualification.
+
+**Gate status**
+
+- The Phase 4 readiness decision is **not ready**. No held-out qualification
+  output was inspected and no Phase 4 performance claim was made.
+- The next action requires named human approval of the proposed association
+  amendment. That decision then permits replacement of the affected governed
+  truth and completion of uncertainty, qualification, and benchmark evidence.

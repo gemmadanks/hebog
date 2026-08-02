@@ -104,8 +104,9 @@ drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
 scientific review approved the compact Phase 3 scope and provisional Phase 4
 measurement contract on 2026-08-02. See the
 [Phase 4 scientific review record](docs/reference/phase-4-review-record.md) and
-[compact catalogue reference](docs/reference/compact-catalogue.md) for the
-evidence, decisions, and remaining limitations.
+[Phase 4 release-readiness record](docs/reference/phase-4-release-readiness.md)
+for the pending amendment, ordered closure work, evidence, and remaining
+limitations.
 
 ## Goals
 

@@ -1543,7 +1543,7 @@ before maintaining a custom fitter.
          and catalogue reduction depth is logarithmic. Preserve scale-facility
          qualification for Phase 6 while adding executable local invariants
          now.
-   - [ ] Publish a Phase 4 release-readiness record with implemented scope,
+   - [x] Publish a Phase 4 release-readiness record with implemented scope,
          reviewed scientific decisions, dataset roles, numerical gates,
          reference divergence, performance evidence, portability, known
          limitations, and Phase 5/7 deferrals.
@@ -1552,8 +1552,20 @@ before maintaining a custom fitter.
    admitted coarse-batch pixels, task count is one per batch rather than per
    source, final compact assembly has an explicit record cap, and shard
    reduction has pairwise fan-in and logarithmic depth. The scientific
-   qualification and controlled benchmark bullets remain open and prevent the
-   release-readiness record from declaring Phase 4 passed.
+   qualification and controlled benchmark bullets remain open. The
+   [Phase 4 release-readiness record](../docs/reference/phase-4-release-readiness.md)
+   therefore records a **not ready** decision rather than declaring the phase
+   passed.
+
+   Complete the remaining bullets in this order: (1) named review of the
+   association/resolvability amendment; (2) replacement and pre-inspection
+   review of affected regression and qualification truth groups, recipes,
+   checksums, and gates; (3) development/regression association and
+   correlated-noise uncertainty calibration; (4) first inspection of the
+   replacement held-out qualification result; and (5) controlled performance
+   qualification. Do not benchmark a component model that the preceding
+   scientific decision may reject, or inspect held-out output before its
+   replacement contract is frozen.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

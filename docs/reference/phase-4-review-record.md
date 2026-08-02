@@ -265,3 +265,51 @@ qualification recipe and its checksum must be replaced and reviewed before any
 qualification result is inspected. The original 2026-08-02 approval remains a
 valid record of the pre-implementation decision, but it does not approve this
 new association/model choice.
+
+## Proposed association amendment for review
+
+The implementation evidence supports the following recommendation:
+
+- A truth emitter is independently resolvable only when the observed image
+  contains a distinct eligible maximum satisfying the reviewed peak,
+  separation, and saddle rules. Per-emitter completeness, position, flux, and
+  shape gates apply to this population.
+- Injected emitters that are narrower than the available resolution and form
+  one eligible maximum become one explicit truth association group. Gate the
+  group's detection, centroid, and total flux; keep its individual emitters in
+  provenance and report them rather than counting them as recoverable rows.
+- A single-maximum compact region continues to produce one Phase 4 Gaussian
+  component and source. Do not add a joint multi-Gaussian model solely because
+  the generator knows that several emitters were injected.
+- Joint multi-Gaussian fitting remains an explicit later evidence decision. It
+  may enter the accepted compact path only if a governed resolvable-blend
+  matrix shows identifiable components and improved completeness without a
+  reliability or stability regression.
+- Add explicit truth association-group IDs and group-level reference
+  quantities. Do not infer parent/source relationships from ordering or a flat
+  Gaussian list.
+
+This avoids claiming super-resolution and keeps the eligible population
+explicit, consistent with source-finding challenge practice. It also avoids
+defining PyBDSF's particular grouping as universal truth. Approval requires a
+new named decision below before any replacement qualification output is
+opened.
+
+### Amendment decision
+
+- **Reviewer:** Gemma Danks
+- **Role:** Data Processing Software Engineer
+- **Decision date:** Pending
+- **Decision:** Pending
+
+The reviewer must confirm or amend:
+
+- [ ] observed resolvability determines the per-emitter gated population;
+- [ ] unresolved injected members use explicit truth association groups and
+      group-level centroid/total-flux gates;
+- [ ] one component/source remains the Phase 4 default for a single eligible
+      maximum;
+- [ ] joint multi-Gaussian model selection is deferred pending identifiability
+      and reliability evidence; and
+- [ ] the affected regression and unseen qualification definitions will be
+      replaced and reviewed before qualification inspection.
