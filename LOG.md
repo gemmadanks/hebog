@@ -2461,3 +2461,61 @@ deblending
   both contracts to `reviewed-provisional` only after the named approval.
 - Then begin Step 2 by preserving exact deblended-region membership through a
   bounded worker-local measurement pipeline.
+
+## 2026-08-02 — Completed Phase 4 Step 1 scientific review
+
+**Plan phase:** Phase 4, Step 1 — named scientific review and amendments
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer and project owner, approved
+  the compact measurement contract and numerical gates after the review
+  amendments below were encoded and tested. Both Phase 4 contracts are now
+  `reviewed-provisional`.
+- Kept community source-finding literature and cross-pipeline practice ahead
+  of compatibility with either PyBDSF reference where those sources might
+  disagree. No disagreement requiring a further exception was identified in
+  this review.
+
+**Amendments**
+
+- Made reference or injected truth the sole selector for governed populations.
+  Missing candidate shapes, deconvolution classifications/shapes, parent
+  identities, and position/flux uncertainties now count as unavailable rather
+  than disappearing from a gate denominator.
+- Added explicit field-availability and uncertainty-availability evidence.
+  Missing candidate parent identities also remain in co-association evidence
+  as reference-selected false negatives where appropriate.
+- Limited position-angle evidence to reference ellipses with major/minor axis
+  ratio at least 1.1 while preserving their axis evidence.
+- Strengthened uncertainty calibration to at least 200 independent eligible
+  measurements per stratum. The complete 95% interval must lie inside the
+  margin, using Wilson score coverage, Student's *t* mean intervals, and a
+  fixed-seed SciPy BCa bootstrap with at least 10,000 resamples for dispersion.
+- Expanded the frozen qualification campaign from 30 to 200 deterministic
+  noise realizations before any measurement or fitting result was generated
+  or inspected.
+
+**Qualification integrity**
+
+- No Phase 4 qualification image, measurement, fit, comparison, or pass/fail
+  result was generated or inspected. The expanded campaign remains held out
+  from routine development and tuning.
+
+**Validation**
+
+- TDD red states were observed for reference-selected eligibility, missing
+  candidate availability, position-angle circularity, uncertainty sample
+  power, and qualification campaign size before implementation.
+- Focused Phase 4 validation: 99 passed.
+- `just coverage`: 523 passed, 28 deselected, and four expected failures with
+  94.54% branch-aware project coverage; the comparison module reports 97%.
+- `just test-equivalence`: 14 passed and 541 deselected.
+- `just check`: 410 passed, 144 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just docs-build` and the complete `just pre-commit` suite passed.
+
+**Next**
+
+- Begin Phase 4 Step 2 by preserving exact deblended-region membership through
+  a bounded worker-local measurement pipeline.

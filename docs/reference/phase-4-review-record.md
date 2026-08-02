@@ -1,9 +1,9 @@
 # Phase 4 scientific review record
 
-This record prepares the named human review required before Phase 4 compact
-measurement semantics become a stable experimental default. It freezes the
-proposal and the unseen qualification inputs; it does not record approval,
-inspect qualification results, or claim catalogue equivalence.
+This record captures the named human review required before Phase 4 compact
+measurement semantics become a stable experimental default. It approves the
+amended contract and unseen qualification inputs; it does not inspect
+qualification results or claim catalogue equivalence.
 
 ## Reviewer and decision
 
@@ -11,13 +11,19 @@ inspect qualification results, or claim catalogue equivalence.
 - **Role or scientific authority:** Data Processing Software Engineer
 - **Review capacity:** Project owner and named ADR decider reviewing the
   Hebog/Rapthor source-finding contract
-- **Review date:** Pending
-- **Decision:** Pending
-- **Required amendments:** Pending
+- **Review date:** 2026-08-02
+- **Decision:** Approved after the amendments below were encoded and tested
+- **Required amendments:** Select gated populations from reference or injected
+  truth; count missing candidate values as unavailable; require explicit
+  availability gates; restrict position-angle evidence to reference ellipses
+  with major/minor axis ratio at least 1.1; and require at least 200 independent
+  eligible measurements per uncertainty stratum with predeclared confidence
+  intervals and an entire-interval equivalence rule.
 - **Qualification-data confirmation:** The Phase 4 qualification recipe,
-  source population, thirty deterministic noise realizations, and proposed gates
+  source population, 200 deterministic noise realizations, and reviewed gates
   were frozen before measurement or fitting results were generated or
-  inspected. They must remain outside routine tuning.
+  inspected. No held-out scientific output was inspected during this review;
+  the campaign remains outside routine tuning.
 
 ## Evidence considered
 
@@ -44,7 +50,7 @@ scientific and implementation references are:
   capabilities, which must be evaluated before maintaining equivalent custom
   code.
 
-## Proposed decisions
+## Reviewed decisions
 
 ### 1. Scope and measurement plane
 
@@ -86,11 +92,19 @@ matrix before `BMAJ`, `BMIN`, and east-of-north `BPA` are written.
 
 Available uncertainties mean one standard deviation. Candidate-reported
 errors are calibrated against injected truth using normalized residual bias,
-sample dispersion, and nominal 68.27% coverage. Position and flux have
-provisional quantitative gates. Shape-error calibration remains report-only
-because the literature does not justify treating formal shape covariance as
-reliably calibrated by default. An unavailable error is null plus a canonical
-quality flag, never zero.
+sample dispersion, and nominal 68.27% coverage. Eligibility is selected only
+from reference or injected truth: a missing candidate error remains in the
+availability denominator and cannot make calibration appear better. Position
+and flux have reviewed-provisional quantitative gates. Shape-error calibration
+remains report-only because the literature does not justify treating formal
+shape covariance as reliably calibrated by default. An unavailable error is
+null plus a canonical quality flag, never zero.
+
+Fitted-shape, deconvolution-classification, resolved-deconvolved-shape,
+parent-identity, and position/flux-uncertainty availability are gated
+explicitly. Position-angle comparisons use only otherwise eligible reference
+ellipses whose major/minor axis ratio is at least 1.1; the axes of a
+near-circular source remain eligible even though its orientation does not.
 
 ### 4. Compact association
 
@@ -129,16 +143,15 @@ association, catalogue, and downstream-decision gates. Astropy modelling and
 SciPy `least_squares` will be compared later; this review does not select a
 fitter or add a native implementation.
 
-### 7. Proposed gates
+### 7. Reviewed gates
 
 `config/contracts/phase-4-scientific-gates.json` retains the approved Section
 5 high-SNR position and flux margins for isolated compact sources and adds
-provisional fitted/deconvolved
+reviewed-provisional fitted/deconvolved
 axis, position-angle, unresolved-classification, association, catastrophic
 outlier, and uncertainty-calibration margins. Low-SNR crossings and shape
-uncertainties remain report-only. The contract is `frozen-provisional`; it
-must not become `reviewed-provisional` until this review approves or amends
-the actual values.
+uncertainties remain report-only. The contract is `reviewed-provisional` after
+the amendments recorded here.
 
 | High-SNR compact metric | Exact compact reference | Generated regression and held-out qualification |
 | --- | ---: | ---: |
@@ -152,27 +165,35 @@ the actual values.
 | Position angle, median / 95th percentile | 2 / 5 degrees | 3 / 10 degrees |
 | Resolved/unresolved classification | 100% | at least 95% |
 | Parent-island association precision / recall | 100% / 100% | at least 99% / 99% |
+| Required candidate-field availability | 100% | at least 99% |
 | Catastrophic matched-row outliers | none | at most 0.5% |
 
 Completeness and reliability use all declared compact SNR-at-least-10 truth;
 position and flux use the existing isolated compact population; shape gates
-use eligible compact rows; association uses the declared compact association
-population; and catastrophic rates use matched compact rows. The position-angle
-limits apply independently to fitted and deconvolved ellipses, so their
-populations cannot dilute each other.
+use reference-eligible compact rows; association uses the declared compact
+association population; and catastrophic rates use matched compact rows. The
+position-angle limits apply independently to fitted and deconvolved ellipses
+with reference axis ratio at least 1.1, so near-circular shapes and the two
+ellipse populations cannot dilute meaningful orientation evidence. Missing
+candidate measurements fail their availability gate instead of changing a
+population denominator.
 
 The catastrophic definition is also explicit: more than 0.5 beam positional
 error, 50% peak or integrated-flux error, 50% fitted-axis error, or 100%
 deconvolved-axis error. Position and flux values retain the already reviewed
-Section 5 gates. The new shape, association, classification, and catastrophic
-limits are recommendations requiring specific review.
+Section 5 gates. This review approves the shape, association, classification,
+availability, and catastrophic limits as provisional Phase 4 gates.
 
-For position and flux uncertainties, each reported stratum needs at least 30
-samples. The proposed one-sigma coverage may differ from 68.27% by at most ten
-percentage points; absolute mean normalized residual must be at most 0.15 and
-normalized-residual sample standard deviation must remain between 0.8 and
-1.2. These are calibration gates, not a requirement to mimic PyBDSF's formal
-error values.
+For position and flux uncertainties, each reported stratum needs at least 200
+independent eligible measurements. At 95% confidence, the entire interval must
+lie within the reviewed margin: Wilson score for one-sigma coverage, Student's
+*t* for mean normalized residual, and a fixed-seed SciPy BCa bootstrap with at
+least 10,000 resamples for dispersion. A stratum with fewer samples is
+report-only rather than a pass. One-sigma coverage may differ from 68.27% by
+at most ten percentage points; absolute mean normalized residual must be at
+most 0.15 and normalized-residual sample standard deviation must remain
+between 0.8 and 1.2. These are calibration gates, not a requirement to mimic
+PyBDSF's formal error values.
 
 ### 8. Governed data
 
@@ -184,8 +205,8 @@ The Phase 4 manifests add:
 - equal/unequal blends and a crowded association regression;
 - rotated deconvolution cases spanning unresolved, marginal, resolved, and
   image-edge populations; and
-- one unseen 512-square qualification population with thirty deterministic
-  noise realizations, giving at least thirty samples in every declared SNR,
+- one unseen 512-square qualification population with 200 deterministic noise
+  realizations, giving at least 200 samples in every declared SNR,
   shape, blend, and edge class.
 
 Generator v2 remains window-addressable and partition-invariant. Earlier
@@ -195,23 +216,22 @@ inspected during this preparation.
 
 ## Decision checklist
 
-The reviewer should explicitly accept or amend:
+The reviewer accepted:
 
-- [ ] MFS Stokes I, Jy/beam, background-subtracted measurement scope;
-- [ ] pixel-sum island flux and fitted-Gaussian component/source flux meanings;
-- [ ] local RMS, ICRS, pixel origin/order, tangent-plane, and position-angle
+- [x] MFS Stokes I, Jy/beam, background-subtracted measurement scope;
+- [x] pixel-sum island flux and fitted-Gaussian component/source flux meanings;
+- [x] local RMS, ICRS, pixel origin/order, tangent-plane, and position-angle
       conventions;
-- [ ] provisional one-region/one-component/one-source compact association;
-- [ ] unresolved, unavailable-error, failure, and compatibility-sentinel
+- [x] provisional one-region/one-component/one-source compact association;
+- [x] unresolved, unavailable-error, failure, and compatibility-sentinel
       semantics;
-- [ ] fit-all-before-selective-fitting evidence order;
-- [ ] development/regression coverage and untouched qualification fitness;
-- [ ] every provisional numerical margin and report-only category; and
-- [ ] any departure from literature or cross-pipeline consensus.
+- [x] fit-all-before-selective-fitting evidence order;
+- [x] development/regression coverage and untouched qualification fitness;
+- [x] every reviewed-provisional numerical margin, availability requirement,
+      confidence rule, and report-only category; and
+- [x] no known departure from the cited literature or cross-pipeline consensus.
 
-Approval updates this record's decision and date, records amendments, changes
-the two Phase 4 contract statuses to `reviewed-provisional`, and closes the
-remaining Step 1 review item with focused contract tests. Rejection or a
-material amendment occurs before qualification inspection; replace the
-qualification recipe and gates if preserving an unbiased held-out decision
-requires it.
+This approval changes both Phase 4 contract statuses to
+`reviewed-provisional` and closes Step 1. Any later material amendment must be
+recorded before qualification inspection; replace the qualification recipe
+and gates if preserving an unbiased held-out decision requires it.

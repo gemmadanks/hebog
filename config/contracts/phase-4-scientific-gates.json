@@ -101,7 +101,7 @@
   "low_snr_threshold_crossings": "report-only",
   "schema_version": 1,
   "shape_uncertainty": "report-only",
-  "status": "frozen-provisional",
+  "status": "reviewed-provisional",
   "uncertainty": {
     "bootstrap_resamples": 10000,
     "bootstrap_seed": 20260802,

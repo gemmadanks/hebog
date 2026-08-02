@@ -1211,12 +1211,10 @@ Rapthor-compatible catalogue view. It does not silently measure Phase 3
 deferrals, implement multiscale emission, or claim the complete
 `filter_skymodel` workflow; those remain Phase 5 and Phase 7 work.
 
-**Execution status:** Step 1's automated contract, dataset, gate, comparison,
-and review-preparation work was completed on 2026-08-02 without generating or
-inspecting qualification results. Named human scientific review is the sole
-remaining Step 1 item and must precede acceptance of a production measurement
-policy; red tests and disposable algorithm-selection prototypes may proceed
-under the frozen-provisional contract.
+**Execution status:** Step 1 was completed on 2026-08-02 without generating or
+inspecting qualification results. Gemma Danks reviewed and approved the
+measurement policy after the gate amendments recorded below; the contracts are
+now reviewed-provisional. Step 2 is next.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1278,14 +1276,23 @@ before maintaining a custom fitter.
          Analytic noiseless cases and deterministic grouping decisions are
          exact within declared numerical tolerances; low-SNR results remain
          stratified curves, not one aggregate pass fraction.
-   - [ ] Obtain named human scientific review of the contract, datasets,
+   - [x] Obtain named human scientific review of the contract, datasets,
          proposed margins, and any departure from the literature or
          cross-pipeline consensus before treating a measurement policy as a
          stable default. Red tests and disposable algorithm-selection
          prototypes may precede review; an unreviewed prototype must not
-         become the accepted scientific implementation. Use the pending
+         become the accepted scientific implementation. Use the completed
          [Phase 4 scientific review record](../docs/reference/phase-4-review-record.md)
          to record the decision and amendments.
+   - [x] Select all gated populations from reference or injected truth, count
+         missing candidate values as unavailable, and gate fitted shape,
+         deconvolution classification/shape, parent identity, and position or
+         flux uncertainty availability explicitly. Restrict position-angle
+         evidence to reference ellipses with major/minor axis ratio at least
+         1.1. Require at least 200 independent eligible uncertainty
+         measurements per stratum and predeclare 95% interval methods with an
+         entire-interval-within-margins decision rule before qualification
+         inspection.
 
 2. **Preserve exact region membership through one bounded worker pipeline.**
 

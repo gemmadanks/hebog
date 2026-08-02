@@ -400,7 +400,7 @@ class PhaseFourEligibilityContract(_ContractModel):
 
 
 class PhaseFourMeasurementContract(_ContractModel):
-    """Frozen-provisional Phase 4 compact measurement contract."""
+    """Reviewed-provisional Phase 4 compact measurement contract."""
 
     schema_version: Literal[1]
     contract_id: Literal["phase-4-measurement"]
@@ -571,7 +571,7 @@ class PhaseFourOutlierDefinition(_ContractModel):
 
 
 class PhaseFourScientificGates(_ContractModel):
-    """Frozen-provisional Phase 4 catalogue and uncertainty margins."""
+    """Reviewed-provisional Phase 4 catalogue and uncertainty margins."""
 
     schema_version: Literal[1]
     contract_id: Literal["phase-4-scientific-gates"]
