@@ -1,6 +1,6 @@
 [project]
 name = "hebog"
-version = "0.3.0"
+version = "0.4.0"
 description = "Dask-aware radio-continuum source finding for SKA SDP pipelines"
 authors = [
     {name = "Gemma Danks", email = "gemma.danks@skao.int"},
@@ -31,7 +31,7 @@ dev = [
     "pyright>=1.1.411,<2.0.0",
     "pytest-cov>=7.1.0,<8.0.0",
     "pytest-mock>=3.15,<4",
-    "hypothesis>=6,<7",
+    "hypothesis>=6.163.0,<7",
 ]
 
 docs = [
