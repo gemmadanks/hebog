@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0](https://github.com/gemmadanks/hebog/compare/v0.4.0...v0.5.0) (2026-08-02)
+
+
+### 🚀 Features
+
+* compare connected island topology ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* complete phase 3 compact source detection ([#35](https://github.com/gemmadanks/hebog/issues/35)) ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* deblend compact islands ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* publish compact detection products ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* qualify Phase 3 compact detection ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* reconcile connected islands ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* threshold bounded source tiles ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+
+
+### 📚 Documentation
+
+* add Phase 3 source-finding demo ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* explain current implementation status ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* keep source-finding demo current ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* prepare Phase 3 delivery plan ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+* record Phase 3 scientific approval ([15a9bbf](https://github.com/gemmadanks/hebog/commit/15a9bbf1a0ab416b6d7bbbba06c62fa378f9cea8))
+
 ## [0.4.0](https://github.com/gemmadanks/hebog/compare/v0.3.0...v0.4.0) (2026-08-01)
 
 

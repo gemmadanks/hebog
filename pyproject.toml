@@ -1,6 +1,6 @@
 [project]
 name = "hebog"
-version = "0.4.0"
+version = "0.5.0"
 description = "Dask-aware radio-continuum source finding for SKA SDP pipelines"
 authors = [
     {name = "Gemma Danks", email = "gemma.danks@skao.int"},
