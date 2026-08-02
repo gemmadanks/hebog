@@ -44,6 +44,10 @@ def main() -> None:
     args = _parse_args()
     if args.workers < 1:
         raise ValueError("matrix workers must be positive")
+    if args.warmups < 0:
+        raise ValueError("matrix warmups must be non-negative")
+    if args.repetitions < 1:
+        raise ValueError("matrix repetitions must be positive")
     output = args.output_directory
     inputs = output / "inputs"
     evidence_directory = output / "evidence"
