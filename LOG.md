@@ -2398,3 +2398,66 @@ deblending
   supplements, an unseen qualification supplement, comparison-oracle tests,
   and named review of the proposed numerical margins before tuning a
   production fitter.
+
+## 2026-08-02 — Completed automated Phase 4 Step 1 preparation
+
+**Plan phase:** Phase 4, Step 1 — meanings, datasets, gates, and review
+
+**Implemented**
+
+- Added machine-validated, frozen-provisional Phase 4 contracts for compact
+  measurement scope, flux and solid-angle meanings, coordinate conventions,
+  association, unresolved and unavailable states, fitting evidence order,
+  analytic failure cases, role-specific scientific gates, uncertainty
+  calibration, and explicit catastrophic-outlier thresholds.
+- Extended the independent catalogue oracle TDD-first with fitted and
+  deconvolved ellipses, 180-degree position-angle differences, explicit
+  resolved/unresolved classification, uncertainty bias/coverage/dispersion,
+  component and quality-flag comparisons, self-describing outlier evidence,
+  and linear-memory parent-association contingency reports. Association gates
+  use co-association precision and recall so unrelated pairs cannot conceal a
+  split or merge.
+- Added synthetic generator version 2 with partition-invariant affine RMS,
+  governed invalid rectangles, rotated WCS metadata, repeated noise
+  realizations, and named validation strata while preserving every version-1
+  recipe checksum.
+- Froze three development datasets, two regression datasets, and one new
+  held-out qualification population. The qualification manifest has thirty
+  deterministic noise realizations and explicit SNR, resolved/unresolved,
+  blend, and edge strata, giving at least thirty samples in every declared
+  class.
+- Made generated FITS WCS and restoring-beam truth consistent under signed
+  unequal pixel scales and rotation. The generator-v2 beam covariance is
+  transformed into celestial `BMAJ`, `BMIN`, and east-of-north `BPA`; the
+  frozen version-1 FITS file remains byte-identical.
+- Prepared the named Phase 4 scientific review record and linked it from the
+  plan and documentation navigation. All automated Step 1 items are complete;
+  the named human decision remains open.
+
+**Qualification integrity**
+
+- No Phase 4 qualification image, measurement, fit, comparison, or pass/fail
+  result was generated or inspected. Only the source recipe, deterministic
+  noise seeds, strata, and proposed gates were frozen and schema-validated.
+
+**Validation**
+
+- TDD red states were observed for the new Phase 4 contract surface,
+  comparison surface, analytic failure-case governance, and rotated
+  WCS/restoring-beam FITS materialisation before their implementations.
+- `just coverage`: 520 passed, 28 deselected, and four expected failures with
+  94.50% branch-aware project coverage. The changed validation comparison,
+  contracts, datasets, and materialisation modules report 98%, 91%, 96%, and
+  100% coverage respectively.
+- `just test-equivalence`: 14 passed and 537 deselected.
+- `just docs-build` passed in strict mode.
+- `just check`: 404 passed, 144 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+
+**Next**
+
+- Complete the checklist in the Phase 4 scientific review record, amend the
+  frozen proposal if required before qualification inspection, and promote
+  both contracts to `reviewed-provisional` only after the named approval.
+- Then begin Step 2 by preserving exact deblended-region membership through a
+  bounded worker-local measurement pipeline.

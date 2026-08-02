@@ -1211,6 +1211,13 @@ Rapthor-compatible catalogue view. It does not silently measure Phase 3
 deferrals, implement multiscale emission, or claim the complete
 `filter_skymodel` workflow; those remain Phase 5 and Phase 7 work.
 
+**Execution status:** Step 1's automated contract, dataset, gate, comparison,
+and review-preparation work was completed on 2026-08-02 without generating or
+inspecting qualification results. Named human scientific review is the sole
+remaining Step 1 item and must precede acceptance of a production measurement
+policy; red tests and disposable algorithm-selection prototypes may proceed
+under the frozen-provisional contract.
+
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
 [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19),
@@ -1227,7 +1234,7 @@ before maintaining a custom fitter.
 
 1. **Freeze Phase 4 meanings, datasets, and gates before tuning.**
 
-   - [ ] Write a versioned Phase 4 scientific contract and a failing contract
+   - [x] Write a versioned Phase 4 scientific contract and a failing contract
          test before production measurement code. Define the measurement
          plane, valid-pixel and region ownership, MFS reference frequency,
          supported image units, pixel and beam areas, peak and integrated
@@ -1235,36 +1242,39 @@ before maintaining a custom fitter.
          confidence level, and every coordinate and position-angle
          convention. Require explicit conversion or rejection; never infer
          missing units or WCS metadata.
-   - [ ] Keep island, deblended region, fitted Gaussian component, grouped
+   - [x] Keep island, deblended region, fitted Gaussian component, grouped
          source, catalogue row, and sky-model component distinct. Freeze the
          compact association policy from analytic blends and the dual
          references instead of assuming that one region, Gaussian, or island
          always equals one source.
-   - [ ] Define internal unresolved emission as an absent deconvolved shape
+   - [x] Define internal unresolved emission as an absent deconvolved shape
          plus a canonical quality flag. If the LSMTool-compatible FITS view
          requires PyBDSF's zero-axis sentinel, translate it only in the
          adapter and test that no scientific calculation interprets zero as a
          measured physical size.
-   - [ ] Add immutable Phase 4 development and regression supplements for
+   - [x] Add immutable Phase 4 development and regression supplements for
          unresolved and resolved elliptical Gaussians over SNR, sub-pixel
          centroid, beam ellipticity, source density, and blend-separation
          ladders. Include rotated WCS, unequal pixel scales, non-square images,
          image edges, masked/NaN pixels, negative backgrounds, varying RMS,
-         fit failure, singular covariance, and marginal deconvolution.
-   - [ ] Freeze a new unseen Phase 4 qualification supplement and its generator
+         fit failure, singular covariance, and marginal deconvolution. Keep
+         numerical failure cases as governed analytic contract cases where
+         encoding them as multi-source sky truth would be misleading.
+   - [x] Freeze a new unseen Phase 4 qualification supplement and its generator
          before inspecting its results. Do not relabel the already-inspected
          Phase 3 held-out image as unseen measurement evidence. Include
          repeated noise realizations sufficient to assess bias and
          uncertainty coverage by SNR, shape, blend, and edge class.
-   - [ ] Extend the independent comparison oracle, TDD first, with fitted and
+   - [x] Extend the independent comparison oracle, TDD first, with fitted and
          deconvolved shape, position angle modulo 180 degrees, uncertainty
          calibration, island/source/component association, quality flags,
          and catastrophic-outlier reports. Preserve separate released and
          pinned-`master` PyBDSF results and report reference divergence.
-   - [ ] Retain the Section 5 position and flux gates for their declared
-         populations. Before held-out inspection, add reviewed-provisional
+   - [x] Retain the Section 5 position and flux gates for their declared
+         populations. Before held-out inspection, add frozen-provisional
          shape, deconvolution-classification, association, bias, catastrophic
          outlier, and uncertainty-coverage margins to the versioned contract.
+         Promote them to reviewed-provisional only after named review.
          Analytic noiseless cases and deterministic grouping decisions are
          exact within declared numerical tolerances; low-SNR results remain
          stratified curves, not one aggregate pass fraction.
@@ -1273,7 +1283,9 @@ before maintaining a custom fitter.
          cross-pipeline consensus before treating a measurement policy as a
          stable default. Red tests and disposable algorithm-selection
          prototypes may precede review; an unreviewed prototype must not
-         become the accepted scientific implementation.
+         become the accepted scientific implementation. Use the pending
+         [Phase 4 scientific review record](../docs/reference/phase-4-review-record.md)
+         to record the decision and amendments.
 
 2. **Preserve exact region membership through one bounded worker pipeline.**
 
