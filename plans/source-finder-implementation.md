@@ -1214,7 +1214,9 @@ deferrals, implement multiscale emission, or claim the complete
 **Execution status:** Step 1 was completed on 2026-08-02 without generating or
 inspecting qualification results. Gemma Danks reviewed and approved the
 measurement policy after the gate amendments recorded below; the contracts are
-now reviewed-provisional. Step 2 is next.
+now reviewed-provisional. Step 2 was completed on 2026-08-02 with an exact,
+bounded worker-local region processor that is serial/Dask invariant and returns
+only compact records. Step 3's moment oracle is next.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1296,22 +1298,33 @@ before maintaining a custom fitter.
 
 2. **Preserve exact region membership through one bounded worker pipeline.**
 
-   - [ ] Add a regression test demonstrating that deblended-region bounding
+   - [x] Add a regression test demonstrating that deblended-region bounding
          boxes are not membership masks and cannot recover touching or
          overlapping watershed regions. Never measure a region by treating
          every pixel in its bounding box as owned.
-   - [ ] Refactor the coarse compact batch operation so the Phase 3 deblend
+   - [x] Refactor the coarse compact batch operation so the Phase 3 deblend
          labels remain worker-local through moment calculation and fitting,
          then return only compact typed records. Reuse the existing deblend
          algorithm; do not rerun it per measurement, send its label arrays
          through the scheduler, or require a full diagnostic label plane.
-   - [ ] Read only the admitted image, background, RMS, validity, and
+   - [x] Read only the admitted image, background, RMS, validity, and
          source-filtering-mask windows for each coarse batch. Account for
          every temporary array in the existing compact island, bounds, and
          batch memory limits, and preserve explicit Phase 5 deferrals.
-   - [ ] Keep the Phase 3 stage result useful for topology inspection, but make
+   - [x] Keep the Phase 3 stage result useful for topology inspection, but make
          the Phase 4 handoff explicit enough that a summary-only caller cannot
          accidentally invent measurement membership.
+
+   `run_compact_region_stage` now invokes a typed processor inside each
+   existing coarse task with immutable physical residual, RMS, validity, and
+   exact int32 watershed labels. It selects one parent connected component
+   from a boolean mask window by the reconciled first pixel, so nested bounds
+   cannot mix islands. Only compact processor records and topology summaries
+   are gathered. Retained processor arrays are exactly 21 bytes per admitted
+   bounds pixel and the result reports the largest actual batch; source/product
+   reads remain bounded by `maximum_batch_pixels`, while normalized and SciPy
+   watershed work remain bounded by one compact island. The summary-only API
+   still returns no membership plane and all Phase 5 deferrals are preserved.
 
 3. **Implement moments as the readable serial oracle and fit initializer.**
 

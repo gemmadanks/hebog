@@ -2519,3 +2519,60 @@ deblending
 
 - Begin Phase 4 Step 2 by preserving exact deblended-region membership through
   a bounded worker-local measurement pipeline.
+
+## 2026-08-02 — Completed Phase 4 Step 2 worker-local handoff
+
+**Plan phase:** Phase 4, Step 2 — exact region membership and bounded work
+
+**Implemented**
+
+- Added `run_compact_region_stage`, which invokes a typed region processor
+  inside each existing coarse executor task. The processor receives immutable
+  physical background-subtracted residual, RMS, scientific validity, and exact
+  int32 watershed labels; only compact records and summaries return through
+  the executor.
+- Preserved the lightweight Phase 3 summary-only path. It still returns no
+  label plane, while the accepted Phase 4 processor seam supplies exact
+  membership without reconstructing it from rectangular summaries.
+- Corrected parent-island extraction for overlapping or nested bounds. One
+  eight-connected component is selected from the boolean source-filtering-mask
+  window using the reconciled canonical first pixel, and its pixel count is
+  verified before deblending.
+- Bound every input window by the existing coarse batch plan and every
+  normalized/watershed workspace by one admitted compact island. The retained
+  processor arrays use exactly 21 bytes per admitted bounds pixel; results
+  report the largest actual retained batch. Phase 5 deferrals remain explicit.
+- Updated the compact-deblending and internal-schema references and the Marimo
+  demo to state that region rectangles are planning/read bounds, not
+  membership masks.
+
+**Testing and invariants**
+
+- Observed the intended TDD red state before adding the extraction and
+  worker-local processor APIs.
+- Added analytic coverage where one region's bounding rectangle contains
+  pixels owned by another watershed region, plus a nested disconnected island
+  inside another island's bounds.
+- Added fail-closed tests for worker-array alignment, dtype, immutability,
+  scientific validity, region identity/count consistency, and admitted memory
+  accounting.
+- Proved serial/Dask record equality, compact scheduler results, explicit
+  deferrals, generation identity, and bounded processor bytes.
+
+**Validation**
+
+- Focused deblending and execution suite: 40 passed.
+- `just coverage`: 534 passed, 28 deselected, and four expected failures with
+  94.70% branch-aware project coverage. The changed deblending algorithm and
+  stage report 97% and 96% coverage respectively; project coverage increased
+  from the preceding 94.54% baseline.
+- `just test-equivalence`: 14 passed and 552 deselected.
+- `just check`: 416 passed, 146 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just marimo-check`, strict `just docs-build`, and the complete
+  `just pre-commit` suite passed.
+
+**Next**
+
+- Begin Phase 4 Step 3 with failing analytic and property tests for the compact
+  moment oracle, using exact worker-local labels from this handoff.
