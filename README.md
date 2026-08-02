@@ -39,10 +39,51 @@ decisions, and immediate next steps.
 
 ## Status
 
-Hebog currently provides the project structure, development tools, public data
-models, scheduler-independent executor interface, serial and Dask executors,
-CLI, test lanes, and implementation plan. The scientific source-finding
-algorithms are not implemented yet.
+Hebog is not rebuilding every PyBDSF feature. It is implementing the narrower
+source-finding path used by Rapthor, while keeping that scientific capability
+usable by other workflows.
+
+The implementation is technically complete through compact-source detection.
+In practical terms, Hebog can now:
+
+- read and partition radio images without loading a large image onto one
+  machine;
+- estimate the local background and image noise;
+- identify pixels likely to contain astronomical emission;
+- join those pixels into distinct connected "islands";
+- separate nearby compact peaks within an island;
+- run deterministically through either the serial or Dask executor; and
+- publish restartable intermediate products in Zarr.
+
+For the governed compact cases, the detected regions agree closely with both
+the released PyBDSF used by Rapthor and the performance-improved PyBDSF
+`master` reference. The controlled representative Phase 3 path has a median
+runtime of approximately 3.2 seconds.
+
+Hebog does not yet turn those regions into the final source catalogue Rapthor
+needs. The remaining work includes:
+
+- measuring source positions, brightnesses, sizes, and shapes;
+- fitting Gaussian source components;
+- reproducing the catalogue columns and conventions expected by Rapthor and
+  LSMTool;
+- recovering extended or multiscale emission;
+- integrating the complete path into Rapthor's `filter_skymodel` workflow;
+- proving end-to-end catalogue and filtering equivalence and speed; and
+- qualifying out-of-core execution on production-scale multi-node clusters.
+
+A useful mental model is that Hebog can locate and outline compact objects in
+an image, including separating nearby objects, but it cannot yet measure them
+or produce the final list consumed by Rapthor. By planned capability, this is
+roughly halfway to two-thirds through the Rapthor-specific reimplementation;
+the remaining catalogue, multiscale, integration, and qualification work is
+scientifically significant.
+
+Hebog is therefore a functioning compact-source detector, but it is not yet a
+drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
+scientific sign-off for Phase 3 is also still pending. See the
+[Phase 3 release-readiness record](docs/reference/phase-3-release-readiness.md)
+for the evidence, limitations, and review checklist.
 
 ## Goals
 
@@ -99,8 +140,11 @@ config = SourceFinderConfig(
 result = find_sources(request, config, SerialExecutor())
 ```
 
-The final call currently raises `NotImplementedError`; Phase 0 first freezes
-the Rapthor/PyBDSF contract and equivalence harness.
+The top-level `find_sources` call currently raises `NotImplementedError`.
+Completed background, noise-estimation, compact-detection, and deblending
+capabilities are exercised through internal stage APIs while measurement,
+catalogue materialisation, and the stable end-to-end public pipeline remain
+under development.
 
 Requests and results never contain open FITS handles, scheduler clients, or
 mutable full-image objects. Scientific thresholds are explicit because the
