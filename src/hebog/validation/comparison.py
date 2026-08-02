@@ -1,5 +1,5 @@
 # pyright: reportMissingTypeStubs=false
-"""Independent scientific comparison reports for Phase 0 validation.
+"""Independent scientific comparison reports for governed validation.
 
 Catalogue matching uses canonical degrees and janskys. It maximizes the number
 of valid matches, then total matched integrated flux, then angular proximity.
@@ -8,6 +8,7 @@ Array reports never broadcast inputs and state how many pixels were excluded.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from statistics import NormalDist
@@ -23,6 +24,19 @@ _MINIMUM_DECLINATION_DEGREES = -90.0
 _MAXIMUM_DECLINATION_DEGREES = 90.0
 _FULL_CIRCLE_DEGREES = 360.0
 _IMAGE_DIMENSIONS = 2
+_HALF_CIRCLE_DEGREES = 180.0
+_UncertaintyMetric = Literal[
+    "right-ascension",
+    "declination",
+    "peak-flux",
+    "integrated-flux",
+    "fitted-major-axis",
+    "fitted-minor-axis",
+    "fitted-position-angle",
+    "deconvolved-major-axis",
+    "deconvolved-minor-axis",
+    "deconvolved-position-angle",
+]
 
 
 class _LinearSumAssignment(Protocol):
@@ -55,6 +69,85 @@ def _conversion_scale(
         ) from None
 
 
+def _require_optional_positive(
+    values: Sequence[float | None],
+    *,
+    field_name: str,
+) -> None:
+    """Require every available uncertainty to be finite and positive."""
+    if any(
+        value is not None and (not np.isfinite(value) or value <= 0)
+        for value in values
+    ):
+        raise ValueError(f"{field_name} must be finite and positive")
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogueEllipse:
+    """One canonical comparison ellipse and optional one-sigma errors."""
+
+    major_fwhm_degrees: float
+    minor_fwhm_degrees: float
+    position_angle_degrees: float
+    major_fwhm_error_degrees: float | None = None
+    minor_fwhm_error_degrees: float | None = None
+    position_angle_error_degrees: float | None = None
+
+    def __post_init__(self) -> None:
+        """Require a positive ordered ellipse modulo 180 degrees."""
+        if (
+            not np.isfinite(self.major_fwhm_degrees)
+            or not np.isfinite(self.minor_fwhm_degrees)
+            or self.major_fwhm_degrees <= 0
+            or self.minor_fwhm_degrees <= 0
+        ):
+            raise ValueError(
+                "catalogue ellipse axes must be finite and positive"
+            )
+        if self.minor_fwhm_degrees > self.major_fwhm_degrees:
+            raise ValueError("catalogue ellipse axes must be ordered")
+        if not np.isfinite(self.position_angle_degrees):
+            raise ValueError("catalogue position angle must be finite")
+        object.__setattr__(
+            self,
+            "position_angle_degrees",
+            self.position_angle_degrees % _HALF_CIRCLE_DEGREES,
+        )
+        _require_optional_positive(
+            (
+                self.major_fwhm_error_degrees,
+                self.minor_fwhm_error_degrees,
+                self.position_angle_error_degrees,
+            ),
+            field_name="catalogue ellipse errors",
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogueOutlierThresholds:
+    """Caller-frozen thresholds defining catastrophic matched-row errors."""
+
+    position_beams: float
+    peak_flux_fractional_difference: float
+    integrated_flux_fractional_difference: float
+    fitted_axis_fractional_difference: float
+    deconvolved_axis_fractional_difference: float
+
+    def __post_init__(self) -> None:
+        """Require finite positive thresholds without hidden defaults."""
+        if any(
+            not np.isfinite(value) or value <= 0
+            for value in (
+                self.position_beams,
+                self.peak_flux_fractional_difference,
+                self.integrated_flux_fractional_difference,
+                self.fitted_axis_fractional_difference,
+                self.deconvolved_axis_fractional_difference,
+            )
+        ):
+            raise ValueError("catalogue outlier thresholds must be positive")
+
+
 @dataclass(frozen=True, slots=True)
 class CatalogueSource:
     """One source in the comparison oracle's canonical units."""
@@ -64,6 +157,53 @@ class CatalogueSource:
     declination_degrees: float
     peak_flux_jy_per_beam: float
     integrated_flux_jy: float
+    right_ascension_error_degrees: float | None = None
+    declination_error_degrees: float | None = None
+    peak_flux_error_jy_per_beam: float | None = None
+    integrated_flux_error_jy: float | None = None
+    fitted_shape: CatalogueEllipse | None = None
+    deconvolved_shape: CatalogueEllipse | None = None
+    deconvolution_status: Literal["resolved", "unresolved", "unavailable"] = (
+        "unavailable"
+    )
+    island_identifier: str | None = None
+    component_count: int | None = None
+    quality_flags: tuple[str, ...] = ()
+
+    def _validate_optional_metadata(self) -> None:
+        """Validate optional errors, associations, and quality flags."""
+        _require_optional_positive(
+            (
+                self.right_ascension_error_degrees,
+                self.declination_error_degrees,
+                self.peak_flux_error_jy_per_beam,
+                self.integrated_flux_error_jy,
+            ),
+            field_name="source errors",
+        )
+        if self.island_identifier is not None and not self.island_identifier:
+            raise ValueError("island identifier must not be empty")
+        if self.component_count is not None and self.component_count <= 0:
+            raise ValueError("component count must be positive")
+        if self.quality_flags != tuple(sorted(set(self.quality_flags))) or any(
+            not flag for flag in self.quality_flags
+        ):
+            raise ValueError("quality flags must be non-empty and canonical")
+
+    def _validate_deconvolution(self) -> None:
+        """Keep resolved, unresolved, and unavailable states unambiguous."""
+        if self.deconvolution_status == "resolved":
+            if self.deconvolved_shape is None:
+                raise ValueError("resolved deconvolution requires a shape")
+        elif self.deconvolved_shape is not None:
+            raise ValueError("only resolved deconvolution may contain a shape")
+        if (
+            self.deconvolution_status == "unresolved"
+            and "unresolved" not in self.quality_flags
+        ):
+            raise ValueError(
+                "unresolved deconvolution requires its quality flag"
+            )
 
     def __post_init__(self) -> None:
         """Validate identity, coordinates, and positive finite fluxes."""
@@ -85,6 +225,8 @@ class CatalogueSource:
             raise ValueError("declination must be within [-90, 90] degrees")
         if self.peak_flux_jy_per_beam <= 0 or self.integrated_flux_jy <= 0:
             raise ValueError("source fluxes must be positive")
+        self._validate_optional_metadata()
+        self._validate_deconvolution()
         normalized_right_ascension = (
             self.right_ascension_degrees % _FULL_CIRCLE_DEGREES
         )
@@ -143,6 +285,44 @@ class CatalogueMatch:
     separation_beam_fwhm: float
     peak_flux_fractional_difference: float
     integrated_flux_fractional_difference: float
+    fitted_major_axis_fractional_difference: float | None
+    fitted_minor_axis_fractional_difference: float | None
+    fitted_position_angle_difference_degrees: float | None
+    deconvolved_major_axis_fractional_difference: float | None
+    deconvolved_minor_axis_fractional_difference: float | None
+    deconvolved_position_angle_difference_degrees: float | None
+    unresolved_classification_agrees: bool | None
+    component_count_agrees: bool | None
+    quality_flag_jaccard: float
+    quality_flags_agree: bool
+
+
+@dataclass(frozen=True, slots=True)
+class UncertaintyCalibrationReport:
+    """Bias, dispersion, and one-sigma coverage for one reported error."""
+
+    metric: _UncertaintyMetric
+    sample_count: int
+    within_one_sigma_count: int
+    coverage_fraction: float
+    mean_normalized_residual: float
+    sample_standard_deviation: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class AssociationComparisonReport:
+    """Pairwise parent-association confusion counts and rates."""
+
+    matched_source_count: int
+    compared_pair_count: int
+    true_positive_pair_count: int
+    false_positive_pair_count: int
+    false_negative_pair_count: int
+    disagreement_pair_count: int
+    agreement_fraction: float | None
+    precision: float
+    recall: float
+    intersection_over_union: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +342,29 @@ class CatalogueComparisonReport:
     percentile_95_absolute_peak_flux_fractional_difference: float | None
     median_absolute_integrated_flux_fractional_difference: float | None
     percentile_95_absolute_integrated_flux_fractional_difference: float | None
+    median_absolute_fitted_axis_fractional_difference: float | None
+    percentile_95_absolute_fitted_axis_fractional_difference: float | None
+    median_absolute_deconvolved_axis_fractional_difference: float | None
+    percentile_95_absolute_deconvolved_axis_fractional_difference: float | None
+    median_absolute_fitted_position_angle_difference_degrees: float | None
+    percentile_95_absolute_fitted_position_angle_difference_degrees: (
+        float | None
+    )
+    median_absolute_deconvolved_position_angle_difference_degrees: float | None
+    percentile_95_absolute_deconvolved_position_angle_difference_degrees: (
+        float | None
+    )
+    unresolved_classification_count: int
+    unresolved_classification_accuracy: float | None
+    association: AssociationComparisonReport
+    component_count_comparison_count: int
+    component_count_agreement_fraction: float | None
+    quality_flag_exact_agreement_fraction: float | None
+    median_quality_flag_jaccard: float | None
+    uncertainty_calibration: tuple[UncertaintyCalibrationReport, ...]
+    catastrophic_outlier_thresholds: CatalogueOutlierThresholds | None
+    catastrophic_outlier_reference_identifiers: tuple[str, ...]
+    catastrophic_outlier_fraction: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -371,12 +574,272 @@ def _percentile_95(values: Sequence[float]) -> float | None:
     return float(np.percentile(np.asarray(values, dtype=np.float64), 95.0))
 
 
+def _maximum_absolute_available(
+    values: Sequence[float | None],
+) -> float | None:
+    """Return the largest available absolute value for one matched source."""
+    available = [abs(value) for value in values if value is not None]
+    return max(available) if available else None
+
+
+def _signed_periodic_difference(
+    candidate: float,
+    reference: float,
+    *,
+    period: float,
+) -> float:
+    """Return the shortest signed candidate-minus-reference difference."""
+    return (candidate - reference + period / 2.0) % period - period / 2.0
+
+
+def _shape_differences(
+    reference: CatalogueEllipse | None,
+    candidate: CatalogueEllipse | None,
+) -> tuple[float | None, float | None, float | None]:
+    """Return signed axis fractions and half-circle orientation difference."""
+    if reference is None or candidate is None:
+        return None, None, None
+    return (
+        (candidate.major_fwhm_degrees - reference.major_fwhm_degrees)
+        / reference.major_fwhm_degrees,
+        (candidate.minor_fwhm_degrees - reference.minor_fwhm_degrees)
+        / reference.minor_fwhm_degrees,
+        _signed_periodic_difference(
+            candidate.position_angle_degrees,
+            reference.position_angle_degrees,
+            period=_HALF_CIRCLE_DEGREES,
+        ),
+    )
+
+
+def _deconvolution_classification_agrees(
+    reference: CatalogueSource,
+    candidate: CatalogueSource,
+) -> bool | None:
+    """Compare resolved/unresolved states while excluding unavailable rows."""
+    comparable = {"resolved", "unresolved"}
+    if (
+        reference.deconvolution_status not in comparable
+        or candidate.deconvolution_status not in comparable
+    ):
+        return None
+    return reference.deconvolution_status == candidate.deconvolution_status
+
+
+def _quality_flag_jaccard(
+    reference: CatalogueSource,
+    candidate: CatalogueSource,
+) -> float:
+    """Compare canonical quality-flag sets with explicit empty agreement."""
+    reference_flags = set(reference.quality_flags)
+    candidate_flags = set(candidate.quality_flags)
+    union = reference_flags | candidate_flags
+    if not union:
+        return 1.0
+    return len(reference_flags & candidate_flags) / len(union)
+
+
+def _normalized_uncertainty_samples(
+    reference: CatalogueSource,
+    candidate: CatalogueSource,
+) -> tuple[tuple[str, float], ...]:
+    """Normalize candidate-minus-reference residuals by candidate errors."""
+    samples: list[tuple[str, float]] = []
+
+    def add(metric: str, difference: float, uncertainty: float | None) -> None:
+        if uncertainty is not None:
+            samples.append((metric, difference / uncertainty))
+
+    add(
+        "right-ascension",
+        _signed_periodic_difference(
+            candidate.right_ascension_degrees,
+            reference.right_ascension_degrees,
+            period=_FULL_CIRCLE_DEGREES,
+        ),
+        candidate.right_ascension_error_degrees,
+    )
+    add(
+        "declination",
+        candidate.declination_degrees - reference.declination_degrees,
+        candidate.declination_error_degrees,
+    )
+    add(
+        "peak-flux",
+        candidate.peak_flux_jy_per_beam - reference.peak_flux_jy_per_beam,
+        candidate.peak_flux_error_jy_per_beam,
+    )
+    add(
+        "integrated-flux",
+        candidate.integrated_flux_jy - reference.integrated_flux_jy,
+        candidate.integrated_flux_error_jy,
+    )
+    _add_shape_uncertainty_samples(
+        samples,
+        prefix="fitted",
+        reference=reference.fitted_shape,
+        candidate=candidate.fitted_shape,
+    )
+    _add_shape_uncertainty_samples(
+        samples,
+        prefix="deconvolved",
+        reference=reference.deconvolved_shape,
+        candidate=candidate.deconvolved_shape,
+    )
+    return tuple(samples)
+
+
+def _add_shape_uncertainty_samples(
+    samples: list[tuple[str, float]],
+    *,
+    prefix: Literal["fitted", "deconvolved"],
+    reference: CatalogueEllipse | None,
+    candidate: CatalogueEllipse | None,
+) -> None:
+    """Append normalized ellipse residuals when both shapes are available."""
+    if reference is None or candidate is None:
+        return
+    entries = (
+        (
+            f"{prefix}-major-axis",
+            candidate.major_fwhm_degrees - reference.major_fwhm_degrees,
+            candidate.major_fwhm_error_degrees,
+        ),
+        (
+            f"{prefix}-minor-axis",
+            candidate.minor_fwhm_degrees - reference.minor_fwhm_degrees,
+            candidate.minor_fwhm_error_degrees,
+        ),
+        (
+            f"{prefix}-position-angle",
+            _signed_periodic_difference(
+                candidate.position_angle_degrees,
+                reference.position_angle_degrees,
+                period=_HALF_CIRCLE_DEGREES,
+            ),
+            candidate.position_angle_error_degrees,
+        ),
+    )
+    samples.extend(
+        (metric, difference / uncertainty)
+        for metric, difference, uncertainty in entries
+        if uncertainty is not None
+    )
+
+
+def _uncertainty_calibration_reports(
+    samples: dict[str, list[float]],
+) -> tuple[UncertaintyCalibrationReport, ...]:
+    """Aggregate normalized residuals without inventing empty metrics."""
+    reports: list[UncertaintyCalibrationReport] = []
+    for metric, metric_samples in samples.items():
+        values = np.asarray(metric_samples, dtype=np.float64)
+        within_one_sigma = int(np.count_nonzero(np.abs(values) <= 1.0))
+        reports.append(
+            UncertaintyCalibrationReport(
+                metric=cast(_UncertaintyMetric, metric),
+                sample_count=len(metric_samples),
+                within_one_sigma_count=within_one_sigma,
+                coverage_fraction=within_one_sigma / len(metric_samples),
+                mean_normalized_residual=float(np.mean(values)),
+                sample_standard_deviation=(
+                    float(np.std(values, ddof=1))
+                    if len(metric_samples) > 1
+                    else None
+                ),
+            )
+        )
+    return tuple(reports)
+
+
+def _association_report(
+    reference: Sequence[CatalogueSource],
+    candidate: Sequence[CatalogueSource],
+    assignments: tuple[tuple[int, int, float], ...],
+) -> AssociationComparisonReport:
+    """Compare same-island relationships from linear-size count summaries."""
+    associations = [
+        (
+            reference[reference_index].island_identifier,
+            candidate[candidate_index].island_identifier,
+        )
+        for reference_index, candidate_index, _ in assignments
+        if reference[reference_index].island_identifier is not None
+        and candidate[candidate_index].island_identifier is not None
+    ]
+    compared = len(associations) * (len(associations) - 1) // 2
+    reference_counts = Counter(item[0] for item in associations)
+    candidate_counts = Counter(item[1] for item in associations)
+    joint_counts = Counter(associations)
+
+    def pair_count(counts: Sequence[int]) -> int:
+        return sum(count * (count - 1) // 2 for count in counts)
+
+    same_reference = pair_count(tuple(reference_counts.values()))
+    same_candidate = pair_count(tuple(candidate_counts.values()))
+    same_both = pair_count(tuple(joint_counts.values()))
+    false_negative = same_reference - same_both
+    false_positive = same_candidate - same_both
+    disagreements = false_negative + false_positive
+    agreement = (compared - disagreements) / compared if compared else None
+    precision_denominator = same_both + false_positive
+    recall_denominator = same_both + false_negative
+    union = same_both + false_positive + false_negative
+    return AssociationComparisonReport(
+        matched_source_count=len(associations),
+        compared_pair_count=compared,
+        true_positive_pair_count=same_both,
+        false_positive_pair_count=false_positive,
+        false_negative_pair_count=false_negative,
+        disagreement_pair_count=disagreements,
+        agreement_fraction=agreement,
+        precision=(
+            same_both / precision_denominator if precision_denominator else 1.0
+        ),
+        recall=same_both / recall_denominator if recall_denominator else 1.0,
+        intersection_over_union=same_both / union if union else 1.0,
+    )
+
+
+def _is_catastrophic_outlier(
+    match: CatalogueMatch,
+    thresholds: CatalogueOutlierThresholds,
+) -> bool:
+    """Apply one explicit matched-row catastrophic-outlier definition."""
+    fitted_axes = (
+        match.fitted_major_axis_fractional_difference,
+        match.fitted_minor_axis_fractional_difference,
+    )
+    deconvolved_axes = (
+        match.deconvolved_major_axis_fractional_difference,
+        match.deconvolved_minor_axis_fractional_difference,
+    )
+    return (
+        match.separation_beam_fwhm > thresholds.position_beams
+        or abs(match.peak_flux_fractional_difference)
+        > thresholds.peak_flux_fractional_difference
+        or abs(match.integrated_flux_fractional_difference)
+        > thresholds.integrated_flux_fractional_difference
+        or any(
+            value is not None
+            and abs(value) > thresholds.fitted_axis_fractional_difference
+            for value in fitted_axes
+        )
+        or any(
+            value is not None
+            and abs(value) > thresholds.deconvolved_axis_fractional_difference
+            for value in deconvolved_axes
+        )
+    )
+
+
 def compare_catalogues(
     reference: Sequence[CatalogueSource],
     candidate: Sequence[CatalogueSource],
     *,
     beam_fwhm_degrees: float,
     maximum_separation_beams: float,
+    outlier_thresholds: CatalogueOutlierThresholds | None = None,
 ) -> CatalogueComparisonReport:
     """Match two catalogues and calculate scientific comparison metrics."""
     if not np.isfinite(beam_fwhm_degrees) or beam_fwhm_degrees <= 0:
@@ -398,6 +861,7 @@ def compare_catalogues(
         maximum_separation_beams=maximum_separation_beams,
     )
     matches: list[CatalogueMatch] = []
+    uncertainty_samples: dict[str, list[float]] = {}
     matched_reference_indices: set[int] = set()
     matched_candidate_indices: set[int] = set()
     for reference_index, candidate_index, separation_beams in assignments:
@@ -405,6 +869,19 @@ def compare_catalogues(
         candidate_source = candidate[candidate_index]
         matched_reference_indices.add(reference_index)
         matched_candidate_indices.add(candidate_index)
+        fitted_shape_differences = _shape_differences(
+            reference_source.fitted_shape,
+            candidate_source.fitted_shape,
+        )
+        deconvolved_shape_differences = _shape_differences(
+            reference_source.deconvolved_shape,
+            candidate_source.deconvolved_shape,
+        )
+        for metric, sample in _normalized_uncertainty_samples(
+            reference_source,
+            candidate_source,
+        ):
+            uncertainty_samples.setdefault(metric, []).append(sample)
         matches.append(
             CatalogueMatch(
                 reference_identifier=reference_source.identifier,
@@ -420,6 +897,45 @@ def compare_catalogues(
                     - reference_source.integrated_flux_jy
                 )
                 / reference_source.integrated_flux_jy,
+                fitted_major_axis_fractional_difference=(
+                    fitted_shape_differences[0]
+                ),
+                fitted_minor_axis_fractional_difference=(
+                    fitted_shape_differences[1]
+                ),
+                fitted_position_angle_difference_degrees=(
+                    fitted_shape_differences[2]
+                ),
+                deconvolved_major_axis_fractional_difference=(
+                    deconvolved_shape_differences[0]
+                ),
+                deconvolved_minor_axis_fractional_difference=(
+                    deconvolved_shape_differences[1]
+                ),
+                deconvolved_position_angle_difference_degrees=(
+                    deconvolved_shape_differences[2]
+                ),
+                unresolved_classification_agrees=(
+                    _deconvolution_classification_agrees(
+                        reference_source,
+                        candidate_source,
+                    )
+                ),
+                component_count_agrees=(
+                    None
+                    if reference_source.component_count is None
+                    or candidate_source.component_count is None
+                    else reference_source.component_count
+                    == candidate_source.component_count
+                ),
+                quality_flag_jaccard=_quality_flag_jaccard(
+                    reference_source,
+                    candidate_source,
+                ),
+                quality_flags_agree=(
+                    reference_source.quality_flags
+                    == candidate_source.quality_flags
+                ),
             )
         )
 
@@ -430,6 +946,62 @@ def compare_catalogues(
     integrated_flux_differences = [
         abs(match.integrated_flux_fractional_difference) for match in matches
     ]
+    fitted_axis_differences = [
+        value
+        for match in matches
+        if (
+            value := _maximum_absolute_available(
+                (
+                    match.fitted_major_axis_fractional_difference,
+                    match.fitted_minor_axis_fractional_difference,
+                )
+            )
+        )
+        is not None
+    ]
+    deconvolved_axis_differences = [
+        value
+        for match in matches
+        if (
+            value := _maximum_absolute_available(
+                (
+                    match.deconvolved_major_axis_fractional_difference,
+                    match.deconvolved_minor_axis_fractional_difference,
+                )
+            )
+        )
+        is not None
+    ]
+    fitted_position_angle_differences = [
+        abs(match.fitted_position_angle_difference_degrees)
+        for match in matches
+        if match.fitted_position_angle_difference_degrees is not None
+    ]
+    deconvolved_position_angle_differences = [
+        abs(match.deconvolved_position_angle_difference_degrees)
+        for match in matches
+        if match.deconvolved_position_angle_difference_degrees is not None
+    ]
+    unresolved_classifications = [
+        match.unresolved_classification_agrees
+        for match in matches
+        if match.unresolved_classification_agrees is not None
+    ]
+    component_comparisons = [
+        match.component_count_agrees
+        for match in matches
+        if match.component_count_agrees is not None
+    ]
+    association_report = _association_report(reference, candidate, assignments)
+    catastrophic_outliers = (
+        tuple(
+            match.reference_identifier
+            for match in matches
+            if _is_catastrophic_outlier(match, outlier_thresholds)
+        )
+        if outlier_thresholds is not None
+        else ()
+    )
     match_count = len(matches)
     reference_count = len(reference)
     candidate_count = len(candidate)
@@ -466,6 +1038,61 @@ def compare_catalogues(
         ),
         percentile_95_absolute_integrated_flux_fractional_difference=(
             _percentile_95(integrated_flux_differences)
+        ),
+        median_absolute_fitted_axis_fractional_difference=_median(
+            fitted_axis_differences
+        ),
+        percentile_95_absolute_fitted_axis_fractional_difference=(
+            _percentile_95(fitted_axis_differences)
+        ),
+        median_absolute_deconvolved_axis_fractional_difference=_median(
+            deconvolved_axis_differences
+        ),
+        percentile_95_absolute_deconvolved_axis_fractional_difference=(
+            _percentile_95(deconvolved_axis_differences)
+        ),
+        median_absolute_fitted_position_angle_difference_degrees=_median(
+            fitted_position_angle_differences
+        ),
+        percentile_95_absolute_fitted_position_angle_difference_degrees=(
+            _percentile_95(fitted_position_angle_differences)
+        ),
+        median_absolute_deconvolved_position_angle_difference_degrees=(
+            _median(deconvolved_position_angle_differences)
+        ),
+        percentile_95_absolute_deconvolved_position_angle_difference_degrees=(
+            _percentile_95(deconvolved_position_angle_differences)
+        ),
+        unresolved_classification_count=len(unresolved_classifications),
+        unresolved_classification_accuracy=(
+            sum(unresolved_classifications) / len(unresolved_classifications)
+            if unresolved_classifications
+            else None
+        ),
+        association=association_report,
+        component_count_comparison_count=len(component_comparisons),
+        component_count_agreement_fraction=(
+            sum(component_comparisons) / len(component_comparisons)
+            if component_comparisons
+            else None
+        ),
+        quality_flag_exact_agreement_fraction=(
+            sum(match.quality_flags_agree for match in matches) / match_count
+            if match_count
+            else None
+        ),
+        median_quality_flag_jaccard=_median(
+            [match.quality_flag_jaccard for match in matches]
+        ),
+        uncertainty_calibration=_uncertainty_calibration_reports(
+            uncertainty_samples
+        ),
+        catastrophic_outlier_thresholds=outlier_thresholds,
+        catastrophic_outlier_reference_identifiers=catastrophic_outliers,
+        catastrophic_outlier_fraction=(
+            len(catastrophic_outliers) / match_count
+            if outlier_thresholds is not None and match_count
+            else None
         ),
     )
 

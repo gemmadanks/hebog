@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Literal, cast
 
 import numpy as np
 import pytest
 
 from hebog.validation.comparison import (
+    CatalogueEllipse,
+    CatalogueOutlierThresholds,
     CatalogueSource,
     aggregate_island_comparisons,
     compare_catalogues,
@@ -37,6 +40,24 @@ def _source(
             else peak_flux_jy_per_beam
         ),
         integrated_flux_jy=integrated_flux_jy,
+    )
+
+
+def _ellipse(
+    major: float,
+    minor: float,
+    position_angle: float,
+    *,
+    error: float | None = None,
+) -> CatalogueEllipse:
+    """Construct one comparison ellipse with concise error defaults."""
+    return CatalogueEllipse(
+        major_fwhm_degrees=major,
+        minor_fwhm_degrees=minor,
+        position_angle_degrees=position_angle,
+        major_fwhm_error_degrees=error,
+        minor_fwhm_error_degrees=error,
+        position_angle_error_degrees=error,
     )
 
 
@@ -207,6 +228,396 @@ def test_catalogue_report_records_unmatched_rows_and_flux_metrics() -> None:
     )
 
 
+def test_catalogue_report_compares_shapes_modulo_half_a_circle() -> None:
+    """Fitted/deconvolved axes and orientation retain physical semantics."""
+    reference = CatalogueSource(
+        identifier="reference",
+        right_ascension_degrees=10.0,
+        declination_degrees=-30.0,
+        peak_flux_jy_per_beam=1.0,
+        integrated_flux_jy=1.5,
+        fitted_shape=_ellipse(0.01, 0.005, 179.0),
+        deconvolved_shape=_ellipse(0.008, 0.004, 179.0),
+        deconvolution_status="resolved",
+    )
+    candidate = CatalogueSource(
+        identifier="candidate",
+        right_ascension_degrees=10.0,
+        declination_degrees=-30.0,
+        peak_flux_jy_per_beam=1.0,
+        integrated_flux_jy=1.5,
+        fitted_shape=_ellipse(0.011, 0.0045, 1.0),
+        deconvolved_shape=_ellipse(0.0088, 0.0036, 1.0, error=1.0),
+        deconvolution_status="resolved",
+    )
+
+    report = compare_catalogues(
+        (reference,),
+        (candidate,),
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+    )
+
+    match = report.matches[0]
+    assert match.fitted_major_axis_fractional_difference == pytest.approx(0.1)
+    assert match.fitted_minor_axis_fractional_difference == pytest.approx(-0.1)
+    assert match.fitted_position_angle_difference_degrees == pytest.approx(2.0)
+    assert match.deconvolved_major_axis_fractional_difference == pytest.approx(
+        0.1
+    )
+    assert report.median_absolute_fitted_axis_fractional_difference == (
+        pytest.approx(0.1)
+    )
+    assert report.median_absolute_fitted_position_angle_difference_degrees == (
+        pytest.approx(2.0)
+    )
+    assert (
+        report.median_absolute_deconvolved_position_angle_difference_degrees
+        == pytest.approx(2.0)
+    )
+    assert report.unresolved_classification_accuracy == 1.0
+
+
+def test_catalogue_report_distinguishes_unresolved_from_unavailable() -> None:
+    """Only explicit resolved/unresolved states enter classification gates."""
+    reference = replace(
+        _source("reference", right_ascension_degrees=10.0),
+        deconvolution_status="unresolved",
+        quality_flags=("unresolved",),
+    )
+    candidate = replace(
+        _source("candidate", right_ascension_degrees=10.0),
+        deconvolved_shape=_ellipse(0.01, 0.005, 20.0),
+        deconvolution_status="resolved",
+    )
+
+    report = compare_catalogues(
+        (reference,),
+        (candidate,),
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+    )
+
+    assert report.unresolved_classification_count == 1
+    assert report.unresolved_classification_accuracy == 0.0
+
+    unavailable = compare_catalogues(
+        (_source("r", right_ascension_degrees=10.0),),
+        (_source("c", right_ascension_degrees=10.0),),
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+    )
+    assert unavailable.unresolved_classification_count == 0
+    assert unavailable.unresolved_classification_accuracy is None
+
+
+def test_catalogue_report_calibrates_candidate_reported_uncertainties() -> (
+    None
+):
+    """Normalized residuals expose bias, dispersion, and one-sigma coverage."""
+    reference = CatalogueSource(
+        identifier="truth",
+        right_ascension_degrees=359.99,
+        declination_degrees=-30.0,
+        peak_flux_jy_per_beam=1.0,
+        integrated_flux_jy=2.0,
+        fitted_shape=_ellipse(0.01, 0.005, 179.0),
+    )
+    candidate = CatalogueSource(
+        identifier="measured",
+        right_ascension_degrees=0.0,
+        declination_degrees=-29.99,
+        peak_flux_jy_per_beam=1.1,
+        integrated_flux_jy=1.8,
+        right_ascension_error_degrees=0.01,
+        declination_error_degrees=0.02,
+        peak_flux_error_jy_per_beam=0.2,
+        integrated_flux_error_jy=0.1,
+        fitted_shape=_ellipse(0.011, 0.0045, 1.0, error=1.0),
+    )
+
+    report = compare_catalogues(
+        (reference,),
+        (candidate,),
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+    )
+    calibration = {
+        item.metric: item for item in report.uncertainty_calibration
+    }
+
+    assert calibration["right-ascension"].mean_normalized_residual == (
+        pytest.approx(1.0)
+    )
+    assert calibration["declination"].coverage_fraction == 1.0
+    assert calibration["peak-flux"].mean_normalized_residual == pytest.approx(
+        0.5
+    )
+    assert calibration["integrated-flux"].coverage_fraction == 0.0
+    assert calibration["fitted-position-angle"].mean_normalized_residual == (
+        pytest.approx(2.0)
+    )
+
+
+def test_uncertainty_report_calculates_sample_dispersion() -> None:
+    """More than one normalized residual reports sample standard deviation."""
+    references = (
+        _source("r1", right_ascension_degrees=10.0),
+        _source("r2", right_ascension_degrees=20.0),
+    )
+    candidates = (
+        replace(
+            _source("c1", right_ascension_degrees=10.01),
+            right_ascension_error_degrees=0.01,
+        ),
+        replace(
+            _source("c2", right_ascension_degrees=19.99),
+            right_ascension_error_degrees=0.01,
+        ),
+    )
+
+    report = compare_catalogues(
+        references,
+        candidates,
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+    )
+    calibration = report.uncertainty_calibration[0]
+
+    assert calibration.metric == "right-ascension"
+    assert calibration.mean_normalized_residual == pytest.approx(0.0)
+    assert calibration.sample_standard_deviation == pytest.approx(np.sqrt(2))
+
+
+def test_catalogue_report_compares_association_components_and_flags() -> None:
+    """Matched flux cannot conceal a split parent or metadata divergence."""
+    reference = (
+        replace(
+            _source("r1", right_ascension_degrees=1.0),
+            island_identifier="island-a",
+            component_count=1,
+            quality_flags=("unresolved",),
+        ),
+        replace(
+            _source("r2", right_ascension_degrees=2.0),
+            island_identifier="island-a",
+            component_count=2,
+            quality_flags=("edge", "unresolved"),
+        ),
+        replace(
+            _source("r3", right_ascension_degrees=3.0),
+            island_identifier="island-b",
+            component_count=1,
+        ),
+    )
+    candidate = (
+        replace(
+            _source("c1", right_ascension_degrees=1.0),
+            island_identifier="candidate-a",
+            component_count=1,
+            quality_flags=("unresolved",),
+        ),
+        replace(
+            _source("c2", right_ascension_degrees=2.0),
+            island_identifier="candidate-b",
+            component_count=1,
+            quality_flags=("edge",),
+        ),
+        replace(
+            _source("c3", right_ascension_degrees=3.0),
+            island_identifier="candidate-b",
+            component_count=1,
+        ),
+    )
+
+    report = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+    )
+
+    assert report.association.compared_pair_count == 3
+    assert report.association.true_positive_pair_count == 0
+    assert report.association.false_positive_pair_count == 1
+    assert report.association.false_negative_pair_count == 1
+    assert report.association.disagreement_pair_count == 2
+    assert report.association.agreement_fraction == pytest.approx(1 / 3)
+    assert report.association.precision == 0.0
+    assert report.association.recall == 0.0
+    assert report.association.intersection_over_union == 0.0
+    assert report.component_count_agreement_fraction == pytest.approx(2 / 3)
+    assert report.quality_flag_exact_agreement_fraction == pytest.approx(2 / 3)
+    assert report.median_quality_flag_jaccard == pytest.approx(1.0)
+
+
+def test_catalogue_report_recognizes_matching_parent_associations() -> None:
+    """A shared parent pair in both catalogues is a true positive."""
+    reference = tuple(
+        replace(
+            _source(f"r{index}", right_ascension_degrees=float(index)),
+            island_identifier="reference-parent",
+        )
+        for index in (1, 2)
+    )
+    candidate = tuple(
+        replace(
+            _source(f"c{index}", right_ascension_degrees=float(index)),
+            island_identifier="candidate-parent",
+        )
+        for index in (1, 2)
+    )
+
+    report = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+    )
+
+    assert report.association.true_positive_pair_count == 1
+    assert report.association.precision == 1.0
+    assert report.association.recall == 1.0
+    assert report.association.intersection_over_union == 1.0
+
+
+def test_catalogue_report_identifies_explicit_catastrophic_outliers() -> None:
+    """Outliers use caller-frozen thresholds rather than hidden constants."""
+    reference = (
+        replace(
+            _source(
+                "reference",
+                right_ascension_degrees=0.0,
+                integrated_flux_jy=1.0,
+            ),
+            fitted_shape=_ellipse(0.01, 0.005, 0.0),
+        ),
+    )
+    candidate = (
+        replace(
+            _source(
+                "candidate",
+                right_ascension_degrees=0.01,
+                integrated_flux_jy=2.0,
+            ),
+            fitted_shape=_ellipse(0.02, 0.005, 0.0),
+        ),
+    )
+
+    thresholds = CatalogueOutlierThresholds(
+        position_beams=0.5,
+        peak_flux_fractional_difference=0.5,
+        integrated_flux_fractional_difference=0.5,
+        fitted_axis_fractional_difference=0.5,
+        deconvolved_axis_fractional_difference=1.0,
+    )
+    report = compare_catalogues(
+        reference,
+        candidate,
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+        outlier_thresholds=thresholds,
+    )
+
+    assert report.catastrophic_outlier_thresholds == thresholds
+    assert report.catastrophic_outlier_reference_identifiers == ("reference",)
+    assert report.catastrophic_outlier_fraction == 1.0
+
+
+def test_rich_catalogue_source_rejects_ambiguous_absence_or_flags() -> None:
+    """Unavailable and unresolved shapes are explicit and flags canonical."""
+    with pytest.raises(ValueError, match="resolved deconvolution"):
+        replace(
+            _source("source", right_ascension_degrees=1.0),
+            deconvolution_status="resolved",
+        )
+
+    with pytest.raises(ValueError, match="quality flags"):
+        replace(
+            _source("source", right_ascension_degrees=1.0),
+            quality_flags=("unresolved", "edge"),
+        )
+
+    with pytest.raises(ValueError, match="source errors"):
+        replace(
+            _source("source", right_ascension_degrees=1.0),
+            right_ascension_error_degrees=0.0,
+        )
+
+    with pytest.raises(ValueError, match="island identifier"):
+        replace(
+            _source("source", right_ascension_degrees=1.0),
+            island_identifier="",
+        )
+
+    with pytest.raises(ValueError, match="component count"):
+        replace(
+            _source("source", right_ascension_degrees=1.0),
+            component_count=0,
+        )
+
+    with pytest.raises(ValueError, match="only resolved"):
+        replace(
+            _source("source", right_ascension_degrees=1.0),
+            deconvolved_shape=_ellipse(0.01, 0.005, 0.0),
+        )
+
+    with pytest.raises(ValueError, match="requires its quality flag"):
+        replace(
+            _source("source", right_ascension_degrees=1.0),
+            deconvolution_status="unresolved",
+        )
+
+
+@pytest.mark.parametrize(
+    "ellipse",
+    [
+        (0.0, 0.0, 0.0),
+        (0.01, 0.02, 0.0),
+        (0.01, 0.005, np.inf),
+    ],
+)
+def test_catalogue_ellipse_rejects_invalid_geometry(
+    ellipse: tuple[float, float, float],
+) -> None:
+    """Shape reports cannot normalize physically invalid ellipses."""
+    with pytest.raises(ValueError, match="catalogue"):
+        _ellipse(*ellipse)
+
+
+def test_catalogue_outlier_thresholds_must_be_explicitly_positive() -> None:
+    """A disabled or nonsensical outlier definition fails at construction."""
+    with pytest.raises(ValueError, match="outlier thresholds"):
+        CatalogueOutlierThresholds(
+            position_beams=0.0,
+            peak_flux_fractional_difference=0.5,
+            integrated_flux_fractional_difference=0.5,
+            fitted_axis_fractional_difference=0.5,
+            deconvolved_axis_fractional_difference=1.0,
+        )
+
+
+@pytest.mark.parametrize(
+    "field", ["beam_fwhm_degrees", "maximum_separation_beams"]
+)
+def test_catalogue_comparison_rejects_nonpositive_match_geometry(
+    field: str,
+) -> None:
+    """Matching never accepts a zero beam or search radius."""
+    beam_fwhm_degrees = 0.0 if field == "beam_fwhm_degrees" else 0.1
+    maximum_separation_beams = (
+        0.0 if field == "maximum_separation_beams" else 0.5
+    )
+
+    with pytest.raises(ValueError, match="positive and finite"):
+        compare_catalogues(
+            (),
+            (),
+            beam_fwhm_degrees=beam_fwhm_degrees,
+            maximum_separation_beams=maximum_separation_beams,
+        )
+
+
 def test_empty_catalogues_have_explicit_success_semantics() -> None:
     """Two empty catalogues agree without inventing numerical match metrics."""
     report = compare_catalogues(
@@ -221,6 +632,9 @@ def test_empty_catalogues_have_explicit_success_semantics() -> None:
     assert report.reliability == 1.0
     assert report.median_separation_beam_fwhm is None
     assert report.median_absolute_peak_flux_fractional_difference is None
+    assert report.association.precision == 1.0
+    assert report.association.recall == 1.0
+    assert report.association.intersection_over_union == 1.0
 
     candidate_only = compare_catalogues(
         (),
