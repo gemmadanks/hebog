@@ -1203,20 +1203,261 @@ or the complete project speedup.
 
 ### Phase 4: measurement, fitting, and catalogue compatibility
 
-- [ ] Write failing analytic tests for moments, beam deconvolution, units, WCS conversion,
-      uncertainties, selective fitting, and downstream filter decisions.
-- [ ] Calculate vectorised moments for every island and use them to initialize fits.
-- [ ] Accept moment-based measurements directly where nonlinear fitting cannot materially change
-      filtering or catalogue acceptance.
-- [ ] Batch remaining nonlinear Gaussian fits by estimated pixel/component cost.
-- [ ] Implement beam deconvolution, sky-coordinate conversion, uncertainties, and units.
-- [ ] Write the compatibility catalogue and side products required by LSMTool/Rapthor.
-- [ ] Write catalogue shards independently and merge them hierarchically with stable global source
-      identifiers; never gather image-sized intermediates on the scheduler or one worker.
-- [ ] Compare retained/rejected sky-model components end to end.
+**Readiness status:** prepared on 2026-08-02 after Phase 3 scientific and
+technical closure. Phase 4 starts from deterministic connected islands and
+compact deblended-region topology. It measures compact emission, fits and
+associates Gaussian components where justified, and produces a
+Rapthor-compatible catalogue view. It does not silently measure Phase 3
+deferrals, implement multiscale emission, or claim the complete
+`filter_skymodel` workflow; those remain Phase 5 and Phase 7 work.
 
-Exit gate: compact and blended source catalogues pass the position, flux, shape, and downstream
-filter-decision gates.
+The scientific basis for this phase is [Condon's treatment of errors in
+elliptical Gaussian fits](https://doi.org/10.1086/133871), the
+[ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19),
+the [Aegean 2.0 analysis of correlated-noise fitting and
+uncertainties](https://doi.org/10.1017/pasa.2018.3), and the documented
+[PyBDSF measurement and grouping
+stages](https://pybdsf.readthedocs.io/en/latest/process_image.html). These
+sources establish useful methods and validation questions, not an obligation
+to reproduce one implementation. Use the established
+[Astropy WCS API](https://docs.astropy.org/en/stable/wcs/wcsapi.html) for
+coordinate conversion and evaluate the bound-constrained
+[SciPy least-squares implementation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html)
+before maintaining a custom fitter.
+
+1. **Freeze Phase 4 meanings, datasets, and gates before tuning.**
+
+   - [ ] Write a versioned Phase 4 scientific contract and a failing contract
+         test before production measurement code. Define the measurement
+         plane, valid-pixel and region ownership, MFS reference frequency,
+         supported image units, pixel and beam areas, peak and integrated
+         flux, local RMS, fitted and deconvolved ellipses, uncertainty
+         confidence level, and every coordinate and position-angle
+         convention. Require explicit conversion or rejection; never infer
+         missing units or WCS metadata.
+   - [ ] Keep island, deblended region, fitted Gaussian component, grouped
+         source, catalogue row, and sky-model component distinct. Freeze the
+         compact association policy from analytic blends and the dual
+         references instead of assuming that one region, Gaussian, or island
+         always equals one source.
+   - [ ] Define internal unresolved emission as an absent deconvolved shape
+         plus a canonical quality flag. If the LSMTool-compatible FITS view
+         requires PyBDSF's zero-axis sentinel, translate it only in the
+         adapter and test that no scientific calculation interprets zero as a
+         measured physical size.
+   - [ ] Add immutable Phase 4 development and regression supplements for
+         unresolved and resolved elliptical Gaussians over SNR, sub-pixel
+         centroid, beam ellipticity, source density, and blend-separation
+         ladders. Include rotated WCS, unequal pixel scales, non-square images,
+         image edges, masked/NaN pixels, negative backgrounds, varying RMS,
+         fit failure, singular covariance, and marginal deconvolution.
+   - [ ] Freeze a new unseen Phase 4 qualification supplement and its generator
+         before inspecting its results. Do not relabel the already-inspected
+         Phase 3 held-out image as unseen measurement evidence. Include
+         repeated noise realizations sufficient to assess bias and
+         uncertainty coverage by SNR, shape, blend, and edge class.
+   - [ ] Extend the independent comparison oracle, TDD first, with fitted and
+         deconvolved shape, position angle modulo 180 degrees, uncertainty
+         calibration, island/source/component association, quality flags,
+         and catastrophic-outlier reports. Preserve separate released and
+         pinned-`master` PyBDSF results and report reference divergence.
+   - [ ] Retain the Section 5 position and flux gates for their declared
+         populations. Before held-out inspection, add reviewed-provisional
+         shape, deconvolution-classification, association, bias, catastrophic
+         outlier, and uncertainty-coverage margins to the versioned contract.
+         Analytic noiseless cases and deterministic grouping decisions are
+         exact within declared numerical tolerances; low-SNR results remain
+         stratified curves, not one aggregate pass fraction.
+   - [ ] Obtain named human scientific review of the contract, datasets,
+         proposed margins, and any departure from the literature or
+         cross-pipeline consensus before treating a measurement policy as a
+         stable default. Red tests and disposable algorithm-selection
+         prototypes may precede review; an unreviewed prototype must not
+         become the accepted scientific implementation.
+
+2. **Preserve exact region membership through one bounded worker pipeline.**
+
+   - [ ] Add a regression test demonstrating that deblended-region bounding
+         boxes are not membership masks and cannot recover touching or
+         overlapping watershed regions. Never measure a region by treating
+         every pixel in its bounding box as owned.
+   - [ ] Refactor the coarse compact batch operation so the Phase 3 deblend
+         labels remain worker-local through moment calculation and fitting,
+         then return only compact typed records. Reuse the existing deblend
+         algorithm; do not rerun it per measurement, send its label arrays
+         through the scheduler, or require a full diagnostic label plane.
+   - [ ] Read only the admitted image, background, RMS, validity, and
+         source-filtering-mask windows for each coarse batch. Account for
+         every temporary array in the existing compact island, bounds, and
+         batch memory limits, and preserve explicit Phase 5 deferrals.
+   - [ ] Keep the Phase 3 stage result useful for topology inspection, but make
+         the Phase 4 handoff explicit enough that a summary-only caller cannot
+         accidentally invent measurement membership.
+
+3. **Implement moments as the readable serial oracle and fit initializer.**
+
+   - [ ] Write failing analytic and property tests for amplitude, peak,
+         centroid, second central moments, covariance, position angle,
+         island/region flux, local RMS, translation, rotation, positive
+         scaling, mask exclusion, and deterministic reduction order.
+   - [ ] Calculate moments with vectorised NumPy/SciPy reductions over exact
+         owned pixels. Use the physical background-subtracted plane for flux
+         and the normalized plane only where the contract explicitly calls
+         for signal-to-noise; do not loop over pixels or RMS windows in Python.
+   - [ ] Convert Jy/beam pixel sums to integrated Jy using reviewed pixel and
+         restoring-beam solid angles. Keep island pixel-sum flux distinct from
+         fitted Gaussian integrated flux and test both against generated
+         truth.
+   - [ ] Return explicit statuses for non-finite, non-positive,
+         underdetermined, or numerically singular moments. Do not fabricate a
+         valid ellipse, flux, or zero-valued uncertainty from invalid input.
+
+4. **Select and implement compact Gaussian fitting from evidence.**
+
+   - [ ] Establish a fit-all compact reference lane initialized by the moment
+         oracle. Fit bounded two-dimensional elliptical Gaussian models to
+         the physical residual with explicit amplitude, center, ordered-axis,
+         orientation, iteration, and convergence constraints.
+   - [ ] Compare Astropy modelling and SciPy `least_squares` on analytic,
+         blend, failure, and representative compact batches. Prefer the
+         smallest established implementation that passes the science suite
+         and complete-stage profile. Supply a tested analytic Jacobian if it
+         materially improves robustness or latency. Do not add native code
+         unless the existing native-code gates are met.
+   - [ ] Define failure and non-convergence as typed outcomes with retained
+         moment initialization and canonical quality flags. Decide through
+         the reviewed contract when a failed fit may produce a scientifically
+         usable source and when it must remain unavailable.
+   - [ ] Batch fits by admitted region pixels and estimated component count,
+         cap work per task, and retain enough coarse tasks for occupancy.
+         Never create one executor or Dask task per source or fit.
+   - [ ] Propose selective fitting only after the fit-all reference exists.
+         A moment-only fast path must use pre-fit information, have an
+         explicit eligibility status, and match fit-all catalogue acceptance,
+         shape classification, and downstream decisions within frozen
+         margins across development and regression matrices. Otherwise keep
+         the fit; runtime evidence alone cannot justify biased selection.
+
+5. **Transform positions and ellipses, deconvolve the beam, and calibrate
+   uncertainties.**
+
+   - [ ] Use zero-based `(x, y)` Astropy pixel-to-world conversion and a local
+         tangent-plane WCS Jacobian to transform centers, covariance matrices,
+         and errors. Test rotated axes, RA wraparound, unequal and signed
+         pixel scales, non-square images, and the reviewed celestial
+         position-angle convention.
+   - [ ] Deconvolve fitted and restoring-beam ellipses through covariance
+         matrices. Test rotations and near-singular cases against analytic
+         truth and an independent implementation. Evaluate the established
+         `radio_beam` package before maintaining domain-specific edge handling;
+         add it only if the correctness and maintenance benefit justifies the
+         dependency.
+   - [ ] Treat Condon-style correlated-noise error propagation as a baseline,
+         not automatically calibrated truth. Compare candidate covariance or
+         Fisher-information calculations with injected Monte Carlo truth and
+         the Aegean 2.0 findings, using normalized residuals and coverage
+         reports for position, peak/integrated flux, and shape.
+   - [ ] Represent underconstrained or uncalibrated errors as absent with a
+         canonical quality flag. Never use zero to mean unknown. Freeze any
+         SNR floor or approximation with human review and report shape-error
+         limitations explicitly.
+
+6. **Associate records and construct deterministic bounded catalogues.**
+
+   - [ ] Build `Island`, `GaussianComponent`, and `SourceCandidate` records
+         independently, then apply the reviewed association policy. Derive
+         canonical IDs and ordering from Phase 3 global identities and
+         scientific association keys, never task completion, partition-local
+         labels, or worker count.
+   - [ ] Write compact catalogue shards per coarse batch and combine counts,
+         offsets, identities, and summary metadata with a bounded tree
+         reduction. Final FITS materialisation may stream ordered row groups;
+         it must not gather image-sized state or an unbounded source
+         population in scheduler memory.
+   - [ ] Reuse the current versioned catalogue models, Zarr generation
+         boundary where durable intermediate ownership is required, and
+         Astropy FITS output. Do not add Arrow/Parquet or a second private
+         catalogue store without a measured requirement and an ADR amendment.
+   - [ ] Prove one-tile/many-tile, serial/executor, tile-shape, worker-count,
+         task-order, and retry invariance for IDs, associations, quality flags,
+         ordering, and numeric fields.
+   - [ ] Return partial compact records and explicit deferrals only from an
+         explicitly incomplete stage API. Do not materialise a normal
+         compatibility catalogue or successful `find_sources` result while
+         Phase 5 regions are omitted. Keep the complete public behaviour's
+         strict expected failure until compact and multiscale results merge.
+
+7. **Materialise and validate the Rapthor compatibility view.**
+
+   - [ ] Write failing FITS contract tests through the pinned LSMTool reader
+         before implementing the adapter. Freeze the smallest loadable view:
+         the eight directly consumed `Source_id`, `RA`, `DEC`,
+         `Isl_Total_flux`, `Total_flux`, `DC_Maj`, `E_RA`, and `E_DEC` fields,
+         plus only the companion columns the real reader or reviewed
+         diagnostics require. Do not reproduce all incidental PyBDSF columns
+         by default.
+   - [ ] Freeze exact field units, dtypes, null/sentinel translation, source
+         numbering, ordering, empty-table schema, metadata, and the mapping
+         from the internal island/source/component records. Keep dummy sky
+         model components and unavailable-RMS compatibility placeholders at
+         the Rapthor adapter boundary.
+   - [ ] Materialise the compact-reference catalogue deterministically and
+         verify it against both exact PyBDSF references. On the representative
+         reference, report the known released/`master` row and grouping
+         divergence by class; do not fail Phase 4 for emission that the
+         reviewed Phase 5 multiscale path owns.
+   - [ ] Extend the independent adapter oracle to compare the catalogue-based
+         compact-source diagnostic selections and mask-based retained/rejected
+         sky-model decisions on complete, no-deferral fixtures. Reserve actual
+         Rapthor orchestration, filtered-model publication, restart, and
+         end-to-end `filter_skymodel` claims for Phase 7.
+   - [ ] Update the schema and compatibility documentation and the living
+         Marimo notebook with compact measurements, fitted/deconvolved shapes,
+         quality flags, and catalogue output. State the multiscale and
+         workflow limitations visibly.
+
+8. **Qualify the phase and prepare the release.**
+
+   - [ ] Run analytic/property, contract, integration, dual-reference
+         equivalence, acceptance, and held-out qualification lanes in oracle
+         order. The serial science must pass before executor conformance, and
+         both must pass before PyBDSF or downstream comparisons.
+   - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
+         and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
+         and fit-failure workloads. Record setup, bounded reads, moments,
+         fitting, transformations, catalogue construction/materialisation,
+         task count, source/component count, peak memory, and every repetition.
+   - [ ] Keep the controlled four-core 3,000-by-3,000 median within 2.0 seconds
+         for compact measurement/fitting and use no more than the shared
+         2.0-second catalogue/filter-output allocation after the Phase 3
+         budget clarification. Compare affected and adjacent tiers with the
+         previous reviewed Hebog curve and both PyBDSF references;
+         investigate statistically supported regressions and source-density
+         superlinearity.
+   - [ ] Show that worker memory is bounded by admitted coarse batches, graph
+         size scales with batches and stages rather than pixels or sources,
+         and catalogue reduction depth is logarithmic. Preserve scale-facility
+         qualification for Phase 6 while adding executable local invariants
+         now.
+   - [ ] Publish a Phase 4 release-readiness record with implemented scope,
+         reviewed scientific decisions, dataset roles, numerical gates,
+         reference divergence, performance evidence, portability, known
+         limitations, and Phase 5/7 deferrals.
+
+Exit gate: the named scientific review has approved the measurement,
+association, uncertainty, deconvolution, compatibility, and numerical gate
+contract; analytic compact cases pass; development, regression, and unseen
+qualification results pass every reviewed position, flux, fitted/deconvolved
+shape, association, uncertainty-coverage, and outlier gate; and the
+redistributable compact catalogue passes both exact PyBDSF comparisons. The
+compact no-deferral adapter scenarios satisfy the existing 99.5% downstream
+decision gate, while representative multiscale differences remain explicitly
+assigned to Phase 5. Serial and executor results are partition- and
+retry-invariant, the controlled representative incremental median is within
+the 4.0-second combined Phase 4 allocation, and memory, task count, and
+catalogue reduction evidence show no full-image, per-source-task, unbounded
+fan-in, or quadratic path. Passing Phase 4 establishes experimental compact
+catalogue compatibility, not complete PyBDSF equivalence or Rapthor cutover.
 
 ### Phase 5: multiscale and extended emission
 
@@ -1345,12 +1586,15 @@ The design budget for the representative 3,000-by-3,000 case is:
 | Detection, labelling, deblending, and durable image products | 3.5 s |
 | Compact measurement and fitting | 2.0 s |
 | Multiscale processing and merge | 6.0 s |
-| Catalogue and filter outputs | 3.0 s |
+| Catalogue and filter outputs | 2.0 s |
 | Flat-noise analysis, run concurrently | 4.0 s |
 | Dask scheduling/transfer on critical path | 2.0 s |
 
-The true-sky critical path should therefore remain near 20 seconds, with the flat-noise branch
-hidden by concurrency. The complete Rapthor gate, not this component table, decides acceptance.
+The true-sky critical path should therefore remain near 19 seconds, with the flat-noise branch
+hidden by concurrency. The catalogue/output allocation is one second lower
+than the original Phase 0 table because Phase 3's reviewed 3.5-second
+detection budget includes durable background, RMS, and mask publication. The
+complete Rapthor gate, not this component table, decides acceptance.
 Component improvements are not added arithmetically unless their end-to-end effects are measured.
 Meeting this table does not excuse a slower small-, large-, or extreme-image
 path. Optimization continues after the minimum gates pass, and reviewed
@@ -1409,6 +1653,13 @@ count.
 | Local labels or completion order leak into public identity | Derive island identity from reconciled global properties and test deliberately permuted local labels, partitions, retries, and completion order |
 | Bright-candidate discovery adds another full image pass | Reuse cached coarse statistics, compare piggybacked bounded summaries with a separate bounded scan, and retain added coupling only from complete-stage evidence |
 | Deblended regions are mistaken for measured sources | Keep Phase 3 detection records distinct from Phase 4 islands, fitted Gaussian components, and grouped sources; test schema boundaries |
+| Deblended bounding boxes are mistaken for exact region membership | Keep watershed labels worker-local through measurement or persist reviewed bounded ownership; never infer owned pixels from a summary box |
+| Selective fitting biases the catalogue | Establish a fit-all reference first and admit a moment-only path only from frozen science and downstream-decision evidence |
+| Correlated image noise makes formal fit errors overconfident | Calibrate uncertainty candidates with injected Monte Carlo truth by SNR, shape, blend, and edge class; report unavailable errors instead of zeros |
+| Beam/WCS conventions rotate or distort fitted shapes | Transform local covariance through Astropy WCS, freeze position-angle and pixel-origin conventions, and test rotated and unequal-scale axes |
+| Marginal beam deconvolution invents physical source size | Represent unresolved results explicitly, test near-singular covariance cases, and confine compatibility sentinels to the adapter |
+| Source grouping differs while aggregate flux appears correct | Gate island, Gaussian-component, source, and downstream association separately on analytic blends and both compatibility references |
+| Catalogue fan-in exhausts the scheduler or one worker | Write bounded ordered shards, merge metadata hierarchically, and stream final FITS rows without per-source tasks or unbounded gathers |
 | A watershed or island is too large for one worker | Batch bounded compact regions, preserve explicit undecomposed state for extended work, and require the Phase 5/6 partitioned path before claiming large-island support |
 | Extended or blended sources diverge | Maintain dedicated fixtures and stratified metrics; do not hide them in aggregate recovery |
 | PyBDSF is not deterministic | Freeze multiple reference runs and separate same-tool scatter from replacement differences |
@@ -1442,15 +1693,28 @@ count.
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
 | A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
 
-## 14. Open decisions after Phase 3
+## 14. Open decisions entering Phase 4
 
 The 2026-08-02 scientific review resolved the glossary authority, Phase 3
 mask/object margins, strict detection comparison, beam-aware six-pixel floor,
 and SciPy compact-deblending questions. Their approved disposition is recorded
 in the [Phase 3 scientific review record](../docs/reference/phase-3-review-record.md).
-The remaining decisions are:
+Phase 4 resolves its first four decisions through the ordered evidence gates
+above rather than making a dependency or optimization choice in advance. The
+remaining decisions are:
 
-- Should nonlinear fitting use SciPy least-squares, a small dedicated compiled kernel, or both?
+- Does SciPy `least_squares` or Astropy modelling provide the simplest robust
+  compact fit after the analytic and representative comparison? A compiled
+  kernel is not eligible unless the existing native-code profile gates later
+  pass.
+- Which reviewed uncertainty calculation is sufficiently calibrated for
+  position and flux, and which shape uncertainties must remain explicitly
+  unavailable?
+- Does the compact association evidence support one source per deblended
+  region, or require a separate multi-Gaussian grouping policy within an
+  island?
+- Can a moment-only selective path meet fit-all science and downstream gates,
+  and if so what frozen eligibility rule prevents population bias?
 - Is an undecimated wavelet transform required, or does a beam-aware matched-filter bank satisfy the
   extended-source gate more efficiently?
 - Which worker-local cache policy best complements the Zarr intermediate store:
@@ -1458,8 +1722,6 @@ The remaining decisions are:
 - Which Zarr store, codec, chunk geometry, and concurrency settings meet the
   100,000-by-100,000 I/O, restart, provenance, and final FITS-materialisation
   gates on Rapthor's deployment?
-- Should internal catalogue shards use Arrow/Parquet before the compatibility
-  adapter materialises FITS or LSMTool products?
 - What resource names and limits should Rapthor use for source-finder CPU and memory admission?
 - Which scientific tolerances require formal SKA science approval before default cutover?
 - Will domain experts review the current Given/When/Then-style pytest acceptance scenarios

@@ -2338,3 +2338,63 @@ deblending
 - `just check`: 361 passed, 144 deselected, and four expected failures; Ruff,
   formatting, and Pyright passed.
 - `just docs-build` passed in strict mode.
+
+## 2026-08-02 — Prepared the Phase 4 delivery plan
+
+**Plan phase:** Phase 4 readiness
+
+**Reviewed**
+
+- Traced the Phase 4 boundary from the implemented Phase 3 compact deblend
+  records through the internal catalogue schemas, FITS materialisation,
+  comparison oracles, and the fields consumed by Rapthor/LSMTool.
+- Checked the proposed measurement work against Condon's Gaussian-fit error
+  treatment, the ASKAP/EMU source-finding challenge, Aegean 2.0's
+  correlated-noise and uncertainty findings, documented PyBDSF processing,
+  and the established Astropy and SciPy capabilities already available to
+  Hebog.
+- Confirmed that the exact compact released and pinned-master reference
+  catalogues are suitable for a strict Phase 4 compatibility case. The
+  representative references remain a deliberate divergence case because
+  released and master produce different source populations and Phase 5 still
+  owns multiscale emission.
+
+**Decisions**
+
+- Replaced the former algorithm checklist with eight ordered TDD slices:
+  freeze meanings/data/gates; preserve exact region membership; implement
+  moment oracles; select fitting from evidence; transform/deconvolve/calibrate
+  errors; associate and shard records; materialise the compatibility view;
+  then qualify and prepare the release.
+- Identified a required handoff correction: `DeblendedRegion` bounding boxes
+  are not exact watershed memberships. Phase 4 will keep bounded label arrays
+  worker-local through measurement instead of inferring pixels from boxes,
+  rerunning deblending, or transferring label planes through the scheduler.
+- Required a fit-all compact reference before any selective moment-only fast
+  path, Monte Carlo calibration rather than uncritical trust in formal shape
+  errors, and an explicit internal unresolved state instead of PyBDSF's
+  compatibility zero sentinel.
+- Kept the scientific stage pipeline-neutral and partial results explicit.
+  A normal compatibility catalogue and successful complete `find_sources`
+  result cannot omit Phase 5 deferrals, while actual Rapthor orchestration and
+  filtered-model publication remain Phase 7 work.
+- Reused the existing catalogue models, Zarr intermediate boundary, and
+  Astropy FITS output. Arrow/Parquet is no longer an open Phase 4 dependency
+  question without measured evidence and an ADR amendment.
+- Corrected the performance table to apply the previously documented
+  one-second transfer from catalogue/output work into Phase 3 durable image
+  publication. Phase 4 now has a combined incremental representative budget
+  of four seconds: two for measurement/fitting and two for catalogue/output.
+
+**Validation**
+
+- `just check`: 361 passed, 144 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just docs-build` passed in strict mode.
+
+**Next**
+
+- Start with the versioned Phase 4 scientific contract, development/regression
+  supplements, an unseen qualification supplement, comparison-oracle tests,
+  and named review of the proposed numerical margins before tuning a
+  production fitter.
