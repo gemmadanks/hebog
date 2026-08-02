@@ -18,6 +18,7 @@ Related project references:
 - [Phase 3 release readiness](phase-3-release-readiness.md)
 - [Phase 3 scientific review record](phase-3-review-record.md)
 - [Compact deblending](compact-deblending.md)
+- [Compact moment measurement](compact-measurement.md)
 
 ## Top-level package
 
@@ -91,9 +92,23 @@ Related project references:
     options:
       show_symbol_type_toc: true
 
+::: hebog.algorithms.measurement
+    options:
+      show_symbol_type_toc: true
+
 ## Compact-detection execution stage
 
 ::: hebog.stages.detection
+    options:
+      show_symbol_type_toc: true
+
+## Compact measurement records and execution stage
+
+::: hebog.data_models.measurement
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.measurement
     options:
       show_symbol_type_toc: true
 

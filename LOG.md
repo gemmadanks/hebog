@@ -2576,3 +2576,70 @@ deblending
 
 - Begin Phase 4 Step 3 with failing analytic and property tests for the compact
   moment oracle, using exact worker-local labels from this handoff.
+
+## 2026-08-02 — Completed Phase 4 Step 3 compact moment oracle
+
+**Plan phase:** Phase 4, Step 3 — owned-pixel moments and fit initialization
+
+**Implemented**
+
+- Added a pure vectorized moment oracle for each admitted parent island and
+  exact deblended region. It reduces the physical background-subtracted
+  float64 plane in canonical pixel order and never treats a region's rectangle
+  as membership. Selected-value and coordinate workspaces remain bounded by
+  one admitted compact island; Python never loops over pixels or RMS windows.
+- Added explicit local pixel and restoring-beam solid angles. Owned-pixel
+  integrated Jy is the finite-mask brightness sum times the pixel-to-beam area
+  ratio; fitted-Gaussian infinite-area flux has a separate helper and cannot
+  be silently copied from the island value.
+- Added brightness-weighted global `(x, y)` centroids, covariance, ordered
+  Gaussian sigma axes, and pixel major-axis angle as the readable serial
+  oracle and nonlinear-fit initializer. Circular covariance uses canonical
+  angle zero; celestial east-of-north transformation remains Step 5 work.
+- Added frozen valid, shape-unavailable, and unavailable record variants.
+  Underdetermined and singular targets retain valid photometry without a fake
+  ellipse; invalid/non-finite or non-positive owned measurements expose no
+  fabricated flux, shape, or uncertainty.
+- Added a pickleable compact moment processor and stage wrapper on the Phase 4
+  Step 2 worker-local seam. Parent-island then canonical-region records are
+  returned through existing coarse serial or Dask tasks; exact arrays remain
+  worker-local and Phase 5 deferrals remain explicit.
+- Updated the API/scientific references, internal-schema description, README,
+  and living Marimo demo. The demo now displays owned-pixel photometry and
+  moment initializers and continues to distinguish them from fitted sources
+  and catalogue rows.
+
+**Testing and scientific scope**
+
+- Observed the intended TDD import failures before adding the pure algorithm
+  and stage modules.
+- Added analytic and property coverage for peak/amplitude, pixel-sum and
+  Gaussian-area flux, RMS, mean brightness, centroid, covariance, axes,
+  orientation, translation, quarter-turn rotation, positive scaling, exact
+  mask exclusion, circular orientation, and C/F memory-order invariance.
+- Added fail-closed boundary tests for array rank, shape, dtype, topology,
+  solid angles, and Gaussian parameters, plus every Step 3 governed failure:
+  non-finite, non-positive, underdetermined, and singular moments.
+- Proved equal compact records through the serial and two-worker Dask
+  executors. Focused branch-aware coverage reports 100% for the new algorithm,
+  records, and stage modules.
+- No Phase 4 qualification result was generated or inspected. No performance
+  claim was made, so controlled PyBDSF/Rapthor benchmarks were not run.
+
+**Validation**
+
+- Focused moment and serial/Dask suite: 40 passed with 100% branch coverage for
+  all new moment modules.
+- `just coverage`: 573 passed, 28 deselected, and four expected failures with
+  94.91% branch-aware project coverage, up from the preceding 94.70% baseline.
+- `just test-equivalence`: 14 passed and 591 deselected.
+- `just check`: 455 passed, 146 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- Strict `just marimo-check` and `just docs-build` passed. The updated notebook
+  also executed successfully through a temporary Marimo HTML export.
+
+**Next**
+
+- Begin Phase 4 Step 4 by establishing a fit-all compact Gaussian reference
+  initialized by these moments, then compare established SciPy and Astropy
+  fitting paths against the frozen analytic and regression science cases.

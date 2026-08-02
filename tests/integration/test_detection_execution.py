@@ -21,11 +21,13 @@ from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
     CompactDeblendConfig,
+    CompactMomentConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds, PartitionManifest
+from hebog.data_models.measurement import CompactMeasurementGeometry
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
@@ -40,6 +42,7 @@ from hebog.stages.detection import (
     run_detection_from_coarse_grids,
     run_detection_stage,
 )
+from hebog.stages.measurement import run_compact_moment_stage
 
 pytestmark = pytest.mark.integration
 
@@ -200,6 +203,22 @@ def _deblend_config() -> CompactDeblendConfig:
         maximum_compact_island_pixels=64,
         maximum_compact_bounds_pixels=128,
         maximum_batch_pixels=256,
+    )
+
+
+def _moment_config() -> CompactMomentConfig:
+    """Return explicit compact moment shape-availability policy."""
+    return CompactMomentConfig(
+        minimum_shape_pixels=3,
+        covariance_relative_tolerance=1e-12,
+    )
+
+
+def _measurement_geometry() -> CompactMeasurementGeometry:
+    """Use a deterministic local pixel-to-beam area ratio."""
+    return CompactMeasurementGeometry(
+        pixel_solid_angle_steradians=1.0,
+        restoring_beam_solid_angle_steradians=4.0,
     )
 
 
@@ -688,6 +707,15 @@ def test_dask_and_serial_detection_products_are_identical(
             executor=DaskExecutor(client),
             sink=dask_sink,
         )
+        dask_moments = run_compact_moment_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            _deblend_config(),
+            _moment_config(),
+            _measurement_geometry(),
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
 
     assert dask.islands == serial.islands
     assert (
@@ -716,3 +744,20 @@ def test_dask_and_serial_detection_products_are_identical(
         sink=serial_sink,
     )
     assert dask_regions == serial_regions
+    serial_moments = run_compact_moment_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        _deblend_config(),
+        _moment_config(),
+        _measurement_geometry(),
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_moments == serial_moments
+    assert dask_moments.records
+    assert all(
+        not isinstance(value, np.ndarray)
+        for record in dask_moments.records
+        for field in fields(record)
+        for value in (getattr(record, field.name),)
+    )

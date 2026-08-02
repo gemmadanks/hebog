@@ -1216,7 +1216,9 @@ inspecting qualification results. Gemma Danks reviewed and approved the
 measurement policy after the gate amendments recorded below; the contracts are
 now reviewed-provisional. Step 2 was completed on 2026-08-02 with an exact,
 bounded worker-local region processor that is serial/Dask invariant and returns
-only compact records. Step 3's moment oracle is next.
+only compact records. Step 3 was completed on 2026-08-02 with a vectorized
+owned-pixel moment oracle, explicit availability outcomes, and serial/Dask
+record equivalence. Step 4's fit-all compact reference is next.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1328,21 +1330,34 @@ before maintaining a custom fitter.
 
 3. **Implement moments as the readable serial oracle and fit initializer.**
 
-   - [ ] Write failing analytic and property tests for amplitude, peak,
+   - [x] Write failing analytic and property tests for amplitude, peak,
          centroid, second central moments, covariance, position angle,
          island/region flux, local RMS, translation, rotation, positive
          scaling, mask exclusion, and deterministic reduction order.
-   - [ ] Calculate moments with vectorised NumPy/SciPy reductions over exact
+   - [x] Calculate moments with vectorised NumPy/SciPy reductions over exact
          owned pixels. Use the physical background-subtracted plane for flux
          and the normalized plane only where the contract explicitly calls
          for signal-to-noise; do not loop over pixels or RMS windows in Python.
-   - [ ] Convert Jy/beam pixel sums to integrated Jy using reviewed pixel and
+   - [x] Convert Jy/beam pixel sums to integrated Jy using reviewed pixel and
          restoring-beam solid angles. Keep island pixel-sum flux distinct from
          fitted Gaussian integrated flux and test both against generated
          truth.
-   - [ ] Return explicit statuses for non-finite, non-positive,
+   - [x] Return explicit statuses for non-finite, non-positive,
          underdetermined, or numerically singular moments. Do not fabricate a
          valid ellipse, flux, or zero-valued uncertainty from invalid input.
+
+   `run_compact_moment_stage` applies the pure vectorized oracle inside the
+   Step 2 coarse worker-local processor. It reports the parent island and each
+   exact region in canonical order. Owned-pixel photometry carries an
+   explicitly named finite-mask flux; a separate Gaussian-area helper defines
+   later fitted-component flux without conflating the two. Brightness-weighted
+   global pixel centroids and covariance provide a fit initializer, with
+   pixel-space orientation counterclockwise from positive x. Typed valid,
+   shape-unavailable, and unavailable outcomes preserve usable photometry
+   without fabricating shape, flux, or uncertainty. Analytic/property tests
+   cover translation, rotation, scaling, masking, deterministic order, solid
+   angle conversion, all governed moment failures, and serial/Dask equality.
+   No qualification result was generated or inspected in this step.
 
 4. **Select and implement compact Gaussian fitting from evidence.**
 

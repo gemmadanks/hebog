@@ -43,8 +43,9 @@ Hebog is not rebuilding every PyBDSF feature. It is implementing the narrower
 source-finding path used by Rapthor, while keeping that scientific capability
 usable by other workflows.
 
-The implementation is technically complete through compact-source detection.
-In practical terms, Hebog can now:
+The implementation is technically complete through compact-source detection
+and now includes the first Phase 4 measurement oracle. In practical terms,
+Hebog can now:
 
 - read and partition radio images without loading a large image onto one
   machine;
@@ -52,6 +53,8 @@ In practical terms, Hebog can now:
 - identify pixels likely to contain astronomical emission;
 - join those pixels into distinct connected "islands";
 - separate nearby compact peaks within an island;
+- calculate deterministic owned-pixel peak, flux, RMS, centroid, and shape
+  moments for compact islands and regions;
 - run deterministically through either the serial or Dask executor; and
 - publish restartable intermediate products in Zarr.
 
@@ -63,8 +66,9 @@ runtime of approximately 3.2 seconds.
 Hebog does not yet turn those regions into the final source catalogue Rapthor
 needs. The remaining work includes:
 
-- measuring source positions, brightnesses, sizes, and shapes;
 - fitting Gaussian source components;
+- transforming fitted positions and shapes to sky coordinates, deconvolving
+  the beam, and calibrating uncertainties;
 - reproducing the catalogue columns and conventions expected by Rapthor and
   LSMTool;
 - recovering extended or multiscale emission;
@@ -73,11 +77,13 @@ needs. The remaining work includes:
 - qualifying out-of-core execution on production-scale multi-node clusters.
 
 A useful mental model is that Hebog can locate and outline compact objects in
-an image, including separating nearby objects, but it cannot yet measure them
-or produce the final list consumed by Rapthor. By planned capability, this is
-roughly halfway to two-thirds through the Rapthor-specific reimplementation;
-the remaining catalogue, multiscale, integration, and qualification work is
-scientifically significant.
+an image, including separating nearby objects, and can take preliminary
+pixel-based measurements. Those moments initialize, but do not replace, the
+Gaussian fitting and sky-coordinate work needed for the final list consumed
+by Rapthor. By planned capability, this is roughly halfway to two-thirds
+through the Rapthor-specific reimplementation; the remaining fitting,
+catalogue, multiscale, integration, and qualification work is scientifically
+significant.
 
 Hebog is therefore a functioning compact-source detector, but it is not yet a
 drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
@@ -200,7 +206,7 @@ environments.
 ## Interactive demonstrations
 
 [Marimo](https://marimo.io/) is available in the development dependency group.
-Run or edit the Phase 3 compact source-finding demonstration with:
+Run or edit the compact source-finding and moment demonstration with:
 
 ```shell
 uv run marimo edit notebooks/source_finder_demo.py
@@ -209,8 +215,9 @@ uv run marimo edit notebooks/source_finder_demo.py
 The notebook generates a deterministic radio image, visualizes the estimated
 background and RMS, displays the accepted source mask and connected islands,
 shows compact deblending summaries, and verifies that one-tile and four-tile
-execution produce identical results. It also identifies the measurement,
-catalogue, multiscale, and Rapthor integration work that remains.
+execution produce identical results. It also displays the Phase 4 owned-pixel
+photometry and moment initializer while identifying the fitting, catalogue,
+multiscale, and Rapthor integration work that remains.
 
 Marimo notebooks are normal Python modules, so demonstrations remain
 reviewable, testable, and version controlled. Validate them with

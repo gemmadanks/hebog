@@ -7,6 +7,7 @@ from math import isfinite
 from numbers import Integral
 
 _MINIMUM_RMS_SAMPLES = 2
+_MINIMUM_SHAPE_PIXELS = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -255,4 +256,28 @@ class CompactDeblendConfig:
         if self.maximum_batch_pixels < self.maximum_compact_bounds_pixels:
             raise ValueError(
                 "maximum_batch_pixels must admit one compact bounds region"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class CompactMomentConfig:
+    """Numerical availability policy for compact moment ellipses."""
+
+    minimum_shape_pixels: int
+    covariance_relative_tolerance: float
+
+    def __post_init__(self) -> None:
+        """Require enough pixels for 2-D shape and a strict tolerance."""
+        if (
+            isinstance(self.minimum_shape_pixels, bool)
+            or not isinstance(self.minimum_shape_pixels, Integral)
+            or self.minimum_shape_pixels < _MINIMUM_SHAPE_PIXELS
+        ):
+            raise ValueError("minimum_shape_pixels must be an integer >= 3")
+        if (
+            not isfinite(self.covariance_relative_tolerance)
+            or not 0 < self.covariance_relative_tolerance < 1
+        ):
+            raise ValueError(
+                "covariance_relative_tolerance must be finite and in (0, 1)"
             )

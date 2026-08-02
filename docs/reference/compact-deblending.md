@@ -104,3 +104,8 @@ batch. Input image/validity and the three Zarr windows are likewise bounded by
 `maximum_batch_pixels`; normalized residual and watershed work are bounded by
 one `maximum_compact_bounds_pixels` island at a time. The stage neither creates
 one scheduler task per region nor returns a NumPy plane to the scheduler.
+
+The first production processor on this seam is the
+[compact moment oracle](compact-measurement.md). It reduces the physical plane
+and exact labels to typed photometry and fit-initializer records inside the
+same bounded task.

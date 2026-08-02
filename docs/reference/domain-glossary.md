@@ -5,7 +5,8 @@ the documented experimental scope on 2026-08-02.
 
 This glossary establishes Hebog's domain language and maps the current
 Rapthor/PyBDSF/LSMTool vocabulary onto it. The
-[Phase 3 scientific review](phase-3-review-record.md) approved these
+[Phase 3 scientific review](phase-3-review-record.md) and
+[Phase 4 scientific review](phase-4-review-record.md) approved these
 definitions and naming conventions for the current experimental scope.
 
 ## Images and noise
@@ -36,6 +37,9 @@ definitions and naming conventions for the current experimental scope.
 | Pixel | One array sample. Array indexing is `(y, x)` even when external APIs expose pixel coordinates as `(x, y)`. |
 | Island | Connected above-island-threshold pixels associated with at least one accepted detection peak. It is a segmentation object, not automatically one source. |
 | Deblended region | A deterministic subdivision of overlapping emission associated with one or more detection seeds for later measurement. It remains a segmentation result until Phase 4 measurement and grouping establish a source candidate or fitted component. |
+| Owned-pixel photometry | Peak, mean, local RMS, and finite-mask pixel-sum flux reduced over one exact island or deblended-region membership. It is preliminary measurement evidence, not a fitted Gaussian or catalogue row. Use `owned_pixel_integrated_flux_jy` so it cannot be confused with fitted-model flux. |
+| Moment initializer | Brightness-weighted pixel centroid and covariance reduced over exact owned pixels to initialize a nonlinear fit. Its axes and pixel-space angle are not fitted or beam-deconvolved source shape. |
+| Fitted-Gaussian integrated flux | Infinite-plane integral of a fitted Gaussian component, calculated from its fitted amplitude and Gaussian area relative to the restoring beam. Never copy owned-pixel flux into this field. |
 | Gaussian component | One fitted Gaussian belonging to a PyBDSF source. Use the full qualifier; bare `component` is ambiguous. |
 | Source candidate | One catalogue-level association inferred to represent astrophysical emission. In the PyBDSF source-list model, one or more fitted Gaussians may be grouped into a source and an island may contain one or more sources. A detection is not established astrophysical truth. |
 | Source reference position | Finite zero-based continuous `(y, x)` pixel position used only to assign one reconciled source to a tile core. Exact internal-boundary ties belong to the core beginning at that boundary. A source may overlap other cores and halos; its reference position alone selects catalogue ownership. |

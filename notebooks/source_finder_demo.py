@@ -16,10 +16,11 @@ def _(mo):
     mo.md(r"""
     # Hebog compact source-finding demonstration
 
-    This notebook runs the capabilities implemented through **Phase 3** on a
-    small, deterministic synthetic radio image. It estimates the background
+    This notebook runs the capabilities implemented through **Phase 4 Step 3**
+    on a small, deterministic synthetic radio image. It estimates background
     and RMS noise, detects connected source islands, reconciles an island that
-    crosses tile boundaries, and deblends compact peaks.
+    crosses tile boundaries, deblends compact peaks, and calculates exact-label
+    owned-pixel photometry and moment fit initializers.
 
     The example uses Hebog's window-readable synthetic source and serial
     executor so it is quick and completely redistributable. Production inputs
@@ -42,10 +43,12 @@ def _():
     import hebog.algorithms.partitioning as partitioning_algorithms
     import hebog.config as hebog_config
     import hebog.data_models as hebog_models
+    import hebog.data_models.measurement as measurement_models
     import hebog.executors as hebog_executors
     import hebog.io as hebog_io
     import hebog.stages.deblending as deblending_stage
     import hebog.stages.detection as detection_stage
+    import hebog.stages.measurement as measurement_stage
     import hebog.validation.datasets as validation_datasets
 
     return (
@@ -55,6 +58,8 @@ def _():
         hebog_executors,
         hebog_io,
         hebog_models,
+        measurement_models,
+        measurement_stage,
         mpl_patches,
         ndimage,
         np,
@@ -218,8 +223,11 @@ def _(mo):
 
 @app.cell
 def _(
+    demonstration_dataset,
     detection_stage,
     hebog_config,
+    measurement_models,
+    np,
 ):
     rms_statistics = hebog_config.RmsWindowStatisticsConfig(
         clipping_sigma=3.0,
@@ -262,7 +270,32 @@ def _(
         maximum_compact_bounds_pixels=1_000_000,
         maximum_batch_pixels=4_000_000,
     )
-    return deblend_configuration, detection_configuration
+    moment_configuration = hebog_config.CompactMomentConfig(
+        minimum_shape_pixels=3,
+        covariance_relative_tolerance=1e-12,
+    )
+    _pixel_scales_degrees = demonstration_dataset.wcs.pixel_scale_degrees_xy
+    _pixel_solid_angle = abs(
+        np.deg2rad(_pixel_scales_degrees[0])
+        * np.deg2rad(_pixel_scales_degrees[1])
+    )
+    _beam = demonstration_dataset.beam
+    measurement_geometry = measurement_models.CompactMeasurementGeometry(
+        pixel_solid_angle_steradians=_pixel_solid_angle,
+        restoring_beam_solid_angle_steradians=(
+            np.pi
+            * _beam.major_fwhm_pixels
+            * _beam.minor_fwhm_pixels
+            * _pixel_solid_angle
+            / (4.0 * np.log(2.0))
+        ),
+    )
+    return (
+        deblend_configuration,
+        detection_configuration,
+        measurement_geometry,
+        moment_configuration,
+    )
 
 
 @app.cell
@@ -275,6 +308,9 @@ def _(
     hebog_executors,
     hebog_io,
     image_source,
+    measurement_geometry,
+    measurement_stage,
+    moment_configuration,
     partitioning_algorithms,
     pathlib,
     tempfile,
@@ -309,13 +345,32 @@ def _(
             executor,
             sink,
         )
-        return detection, deblending, sink
+        moments = measurement_stage.run_compact_moment_stage(
+            image_source,
+            detection,
+            deblend_configuration,
+            moment_configuration,
+            measurement_geometry,
+            executor=executor,
+            sink=sink,
+        )
+        return detection, deblending, moments, sink
 
-    one_tile_detection, one_tile_deblending, one_tile_sink = execute_detection(
+    (
+        one_tile_detection,
+        one_tile_deblending,
+        one_tile_moments,
+        one_tile_sink,
+    ) = execute_detection(
         demonstration_recipe.shape_yx,
         "one-tile",
     )
-    tiled_detection, tiled_deblending, tiled_sink = execute_detection(
+    (
+        tiled_detection,
+        tiled_deblending,
+        tiled_moments,
+        tiled_sink,
+    ) = execute_detection(
         (96, 96),
         "four-tiles",
     )
@@ -323,9 +378,11 @@ def _(
         demonstration_workspace,
         one_tile_deblending,
         one_tile_detection,
+        one_tile_moments,
         one_tile_sink,
         tiled_deblending,
         tiled_detection,
+        tiled_moments,
         tiled_sink,
     )
 
@@ -555,6 +612,59 @@ def _(mo, region_rows):
     return
 
 
+@app.cell(hide_code=True)
+def _(measurement_models, mo, tiled_moments):
+    _region_measurements = tuple(
+        record
+        for record in tiled_moments.records
+        if record.target.object_kind == "deblended-region"
+    )
+    _header = (
+        "| Region | Moment shape | Peak (mJy/beam) | "
+        "Owned-pixel flux (mJy) | Centroid (x, y) |"
+    )
+
+    def _row(record):
+        if isinstance(record, measurement_models.UnavailableMomentMeasurement):
+            _status = f"unavailable: {record.reason}"
+            return f"| {record.target.object_id} | {_status} | — | — | — |"
+        _photometry = record.photometry
+        if isinstance(record, measurement_models.ValidMomentMeasurement):
+            _shape = (
+                f"{record.initializer.major_sigma_pixels:.2f} x "
+                f"{record.initializer.minor_sigma_pixels:.2f} px at "
+                f"{record.initializer.major_axis_angle_degrees:.1f}°"
+            )
+            _centroid = (
+                f"({record.initializer.centroid_xy[0]:.2f}, "
+                f"{record.initializer.centroid_xy[1]:.2f})"
+            )
+        else:
+            _shape = f"unavailable: {record.reason}"
+            _centroid = "—"
+        return (
+            f"| {record.target.object_id} | {_shape} | "
+            f"{1e3 * _photometry.peak_brightness_jy_per_beam:.3f} | "
+            f"{1e3 * _photometry.owned_pixel_integrated_flux_jy:.3f} | "
+            f"{_centroid} |"
+        )
+
+    _rows = "\n".join(_row(record) for record in _region_measurements)
+    mo.md(f"""
+    ## 5. Exact-label moment measurements
+
+    {_header}
+    | --- | --- | ---: | ---: | --- |
+    {_rows}
+
+    These are deterministic measurements of only the pixels assigned to each
+    watershed region. The shape is a brightness-weighted pixel-space moment
+    initializer, not a fitted or beam-deconvolved source size. Owned-pixel flux
+    is likewise distinct from the infinite-area flux of a fitted Gaussian.
+    """)
+    return
+
+
 @app.cell
 def _(
     np,
@@ -562,10 +672,12 @@ def _(
     one_tile_deblending,
     one_tile_detection,
     one_tile_mask,
+    one_tile_moments,
     one_tile_rms,
     source_filtering_mask,
     tiled_deblending,
     tiled_detection,
+    tiled_moments,
     background_plane,
     rms_plane,
 ):
@@ -585,6 +697,7 @@ def _(
         "Deblended summaries are identical": (
             one_tile_deblending == tiled_deblending
         ),
+        "Moment records are identical": one_tile_moments == tiled_moments,
     }
     return (partition_checks,)
 
@@ -603,7 +716,7 @@ def _(mo, partition_checks, tiled_detection):
         or "none"
     )
     mo.md(f"""
-    ## 5. Partition invariance
+    ## 6. Partition invariance
 
     | Check | Result |
     | --- | --- |
@@ -626,11 +739,13 @@ def _(mo):
     ## What this does—and does not—demonstrate
 
     Hebog can currently locate compact emission, reconcile it across tiles,
-    and split admitted compact islands into deterministic regions. It also
+    split admitted compact islands into deterministic regions, and calculate
+    exact-label owned-pixel photometry and moment fit initializers. It also
     persists restartable background, RMS, and source-mask products.
 
-    **The notebook does not produce a source catalogue.** Source measurement,
-    Gaussian fitting, Rapthor/LSMTool catalogue compatibility, extended or
+    **The notebook does not produce a source catalogue.** Nonlinear Gaussian
+    fitting, sky-coordinate and beam-deconvolved shapes, calibrated
+    uncertainties, Rapthor/LSMTool catalogue compatibility, extended or
     multiscale recovery, and the final `filter_skymodel` decision remain later
     work. Hebog is not yet a drop-in PyBDSF replacement or a production-ready
     Rapthor backend.

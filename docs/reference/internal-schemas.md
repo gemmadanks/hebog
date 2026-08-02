@@ -186,6 +186,13 @@ compact records, deblending summaries, explicit Phase 5 deferrals, batch
 counts, admitted bounds pixels, and the largest retained processor-array byte
 count. A summary rectangle cannot be deserialized into membership.
 
+The Phase 4 moment processor returns frozen compact records, not a durable
+catalogue schema. `OwnedPixelPhotometry` keeps finite-mask pixel-sum flux
+distinct from fitted-Gaussian flux. A valid result includes a pixel-space
+`GaussianMomentInitializer`; shape-unavailable and fully unavailable union
+members omit invalid fields rather than encoding scientific absence as zero.
+These records contain no image arrays, WCS objects, or scheduler state.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as
