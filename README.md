@@ -81,9 +81,10 @@ scientifically significant.
 
 Hebog is therefore a functioning compact-source detector, but it is not yet a
 drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
-scientific sign-off for Phase 3 is also still pending. See the
+scientific review approved the compact Phase 3 scope on 2026-08-02. See the
 [Phase 3 release-readiness record](docs/reference/phase-3-release-readiness.md)
-for the evidence, limitations, and review checklist.
+and [scientific review record](docs/reference/phase-3-review-record.md) for the
+evidence, decisions, and remaining limitations.
 
 ## Goals
 

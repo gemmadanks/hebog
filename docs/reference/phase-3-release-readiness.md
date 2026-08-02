@@ -1,10 +1,9 @@
 # Phase 3 release readiness
 
 **Decision:** the Phase 3 compact-detection implementation is technically
-complete and suitable for an experimental `0.x` release after named human
-scientific review. The review has not yet happened, so this record does not
-claim final scientific sign-off, complete PyBDSF equivalence, Rapthor
-readiness, or production readiness.
+complete and scientifically approved for its experimental `0.x` scope. Gemma
+Danks completed the named human review on 2026-08-02. This record does not
+claim complete PyBDSF equivalence, Rapthor readiness, or production readiness.
 
 Phase 3 implements compact detection topology only. Photometry, Gaussian
 fitting, catalogue compatibility, multiscale recovery, and the final Rapthor
@@ -39,8 +38,8 @@ development stores must be recreated.
 The mask gates use foreground precision, recall, and intersection over union;
 background-dominated accuracy is reported but is not a gate. Object reports
 use eight-connected overlap, completeness, reliability, split/merge counts,
-and matched IoU. The provisional gate document was frozen before the held-out
-result was inspected. Low-SNR threshold crossings remain report-only.
+and matched IoU. The reviewed-provisional gate document was frozen before the
+held-out result was inspected. Low-SNR threshold crossings remain report-only.
 
 | Case | Mask precision | Mask recall | Mask IoU | Objects | Median/minimum object IoU | Result |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
@@ -106,16 +105,20 @@ tiles, Windows-safe code paths, strict Zarr completion, batched FITS/Zarr
 reads, and analytic watershed barriers. No native code or new runtime
 dependency was added.
 
-The human reviewer should inspect:
+The human review covered:
 
 - the [scientific pre-review](scientific-pre-review.md);
 - the [Rapthor source-finding contract](rapthor-source-finding-contract.md);
 - the [compact deblending rules](compact-deblending.md);
-- the frozen gate document and generated/dual-reference test reports; and
+- the reviewed-provisional gate document and generated/dual-reference test
+  reports; and
 - this record's explicit multiscale deferral and performance-gate revision.
 
-Approval should confirm connectivity, exact threshold comparisons, the
-six-pixel compact minimum, provisional mask/object margins, watershed saddle
+The review approved connectivity, exact threshold comparisons, the six-pixel
+compact minimum, reviewed-provisional mask/object margins, watershed saddle
 semantics, and the boundary between compact Phase 3 and multiscale Phase 5.
-Until that approval is recorded, the implementation is technically complete
-but the Phase 3 scientific exit gate remains pending.
+It also approved the community-best-practice principle, explicit adaptive-RMS
+profile, partition invariance, and performance-budget accounting. The full
+decision and its remaining limitations are in the
+[Phase 3 scientific review record](phase-3-review-record.md). The Phase 3 exit
+gate is complete.

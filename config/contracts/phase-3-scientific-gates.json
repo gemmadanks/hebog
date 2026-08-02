@@ -48,5 +48,5 @@
   },
   "low_snr_threshold_crossings": "report-only",
   "schema_version": 1,
-  "status": "frozen-provisional"
+  "status": "reviewed-provisional"
 }

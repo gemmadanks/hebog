@@ -77,6 +77,7 @@ nav:
       - Phase 1 release readiness: reference/phase-1-release-readiness.md
       - Phase 2 release readiness: reference/phase-2-release-readiness.md
       - Phase 3 release readiness: reference/phase-3-release-readiness.md
+      - Phase 3 scientific review record: reference/phase-3-review-record.md
       - Compact deblending: reference/compact-deblending.md
   - Explanation:
       - Architecture: explanation/index.md

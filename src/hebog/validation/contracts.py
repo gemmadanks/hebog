@@ -287,11 +287,11 @@ class PhaseThreeLaneGate(_ContractModel):
 
 
 class PhaseThreeScientificGates(_ContractModel):
-    """Frozen foreground-sensitive Phase 3 non-inferiority margins."""
+    """Reviewed foreground-sensitive Phase 3 non-inferiority margins."""
 
     schema_version: Literal[1]
     contract_id: Literal["phase-3-scientific-gates"]
-    status: Literal["frozen-provisional"]
+    status: Literal["reviewed-provisional"]
     confidence_level: float = Field(gt=0, lt=1)
     low_snr_threshold_crossings: Literal["report-only"]
     compact_reference: PhaseThreeLaneGate

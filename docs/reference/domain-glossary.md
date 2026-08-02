@@ -1,12 +1,12 @@
 # Source-finding domain glossary
 
-**Status:** amended after the 2026-07-31 scientific pre-review; named human
-review remains pending.
+**Status:** amended after the 2026-07-31 scientific pre-review and approved for
+the documented experimental scope on 2026-08-02.
 
 This glossary establishes Hebog's domain language and maps the current
-Rapthor/PyBDSF/LSMTool vocabulary onto it. Definitions become stable only after
-the [Rapthor source-finding contract](rapthor-source-finding-contract.md),
-example products, and scientific thresholds are reviewed.
+Rapthor/PyBDSF/LSMTool vocabulary onto it. The
+[Phase 3 scientific review](phase-3-review-record.md) approved these
+definitions and naming conventions for the current experimental scope.
 
 ## Images and noise
 

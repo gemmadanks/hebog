@@ -15,6 +15,8 @@ Related project references:
 - [Phase 0 review record](phase-0-review-record.md)
 - [Phase 1 release readiness](phase-1-release-readiness.md)
 - [Phase 2 release readiness](phase-2-release-readiness.md)
+- [Phase 3 release readiness](phase-3-release-readiness.md)
+- [Phase 3 scientific review record](phase-3-review-record.md)
 - [Compact deblending](compact-deblending.md)
 
 ## Top-level package

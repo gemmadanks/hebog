@@ -187,11 +187,23 @@ versioned.
 
 ## 5. Scientific equivalence gates
 
-The initial thresholds below are engineering gates and require review with an SKA imaging/domain
-expert during Phase 0. The 2026-07-31
+Scientific choices must remain within the community best-practice envelope
+documented by peer-reviewed astronomy literature and source-finder challenges.
+Consensus across established observatory pipelines is a strong guide, but it
+is not a vote that makes one convention or implementation scientific truth.
+Analytic and injected governed truth remain the primary scientific oracles;
+PyBDSF remains a compatibility oracle. A deliberate departure from literature
+or cross-pipeline consensus requires an explicit rationale, governed evidence,
+and renewed human scientific review before promotion.
+
+The initial thresholds below began as engineering gates requiring review with
+an SKA imaging/domain expert during Phase 0. The 2026-07-31
 [scientific pre-review](../docs/reference/scientific-pre-review.md) amended the low-SNR rule and
 terminology after comparison with several observatory pipelines and published source-finder
-challenges. Report metrics separately for isolated compact, blended, extended, edge,
+challenges. Gemma Danks approved those amendments and the Phase 3-specific
+decisions on 2026-08-02 in the
+[Phase 3 scientific review record](../docs/reference/phase-3-review-record.md).
+Report metrics separately for isolated compact, blended, extended, edge,
 varying-noise, and low-SNR cases, and distinguish source, fitted-component, island, and
 sky-model-component populations.
 
@@ -224,10 +236,11 @@ mask precision, recall, and intersection over union over the valid region,
 then match islands by overlap and report unmatched islands, split and merge
 counts, and matched-island overlap. Analytic threshold and connectivity cases
 must match exactly. Generated and reference-product non-inferiority margins
-must be recorded here after the Phase 0 scientific reviewer has considered
-the dataset fitness and the normal boundary differences caused by RMS and
-threshold crossings. Until then, those mask and object metrics are reported
-evidence rather than a passed scientific-equivalence gate.
+are recorded in the reviewed-provisional Phase 3 gate contract after the
+scientific reviewer considered dataset fitness and the normal boundary
+differences caused by RMS and threshold crossings. Those margins support the
+compact Phase 3 `0.x` scope; they do not establish catalogue, multiscale, or
+production equivalence.
 
 Serial and Dask executions of this project must match more tightly than the PyBDSF comparison.
 Unless a reduction order is explicitly nondeterministic, source membership and labels should be
@@ -742,12 +755,12 @@ removal is separately justified.
 
 ### Phase 0: freeze baselines and contracts
 
-**Technical foundation status:** complete on 2026-07-18. **Closure status:** in
-progress. The captured baselines, comparison harness, contracts, and governed
-manifests are sufficient to begin Phase 1 infrastructure work, but the closure
-sequence below must be completed before Phase 0 is recorded as fully closed.
-The external facility review remains a separate governance follow-up and does
-not turn measured engineering gates into facility-demonstrated claims.
+**Technical foundation status:** complete on 2026-07-18. **Scientific contract
+closure status:** complete on 2026-08-02. The captured baselines, comparison
+harness, contracts, governed manifests, and named review establish the Phase 0
+foundation. The external facility review remains a separate governance
+follow-up and does not turn measured engineering gates into
+facility-demonstrated claims.
 
 #### Phase 0 closure order
 
@@ -768,8 +781,8 @@ Complete the remaining work in this order:
    immutable image and restricted representative inputs have no approved
    durable remote locator, so documentation no longer claims independent-host
    reproduction.
-3. **First research pass completed 2026-07-31; named human decision pending.**
-   Obtain scientific/domain sign-off. The reviewer packet is:
+3. **Completed 2026-08-02:** obtain scientific/domain sign-off after the first
+   research pass completed on 2026-07-31. The reviewer packet was:
 
    - the [domain glossary](../docs/reference/domain-glossary.md), including its
      legacy mappings and naming conventions;
@@ -789,27 +802,25 @@ Complete the remaining work in this order:
    - the [Phase 0 review record](../docs/reference/phase-0-review-record.md),
      where the reviewer records their name, role or authority, date, decision,
      and any required amendments.
-4. Apply any approved amendments to the contracts, gates, or manifests; rerun
-   the relevant contract, equivalence, documentation, and normal handoff
-   checks; then mark the domain-review checklist item complete and record the
-   closure evidence in `LOG.md`.
+4. **Completed 2026-08-02:** record the scientific pre-review amendments as
+   approved, mark the Phase 3 gate contract `reviewed-provisional`, rerun the
+   relevant contract, equivalence, documentation, and normal handoff checks,
+   and record the closure evidence in `LOG.md`.
 5. Complete the facility review and controlled 1/10/50/100/200-node evidence
    before calling the extreme-image gates demonstrated. This is not a Phase 1
    start gate and may remain open after technical and scientific Phase 0
    closure.
 
-Phase 1 and Phase 2 red-green-refactor work may proceed while steps 1 to 3 are
-in progress when it uses the frozen PyBDSF profile and clearly provisional
-contracts. Human review does not replace automated comparison and need not
-manually certify every product. It approves whether the dataset matrix,
-tolerances, terminology, defaults, and intentional deviations define the
-right scientific and operational contract; PyBDSF remains a compatibility
-oracle rather than scientific ground truth. Complete sign-off before
-stabilizing public scientific names or default thresholds, freezing Phase 4
-catalogue/RMS/mask compatibility semantics, accepting a deviation from the
-reference as scientifically valid, claiming scientific equivalence, or
-cutting Rapthor over to Hebog. Starting Phase 2 before sign-off accepts the
-explicit risk that review may require algorithm or contract changes.
+Phase 1 and Phase 2 red-green-refactor work was permitted while steps 1 to 3
+were in progress when it used the frozen PyBDSF profile and clearly
+provisional contracts. Human review does not replace automated comparison and
+need not manually certify every product. It approves whether the dataset
+matrix, tolerances, terminology, defaults, and intentional deviations define
+the right scientific and operational contract; PyBDSF remains a compatibility
+oracle rather than scientific ground truth. This sign-off permits the reviewed
+compact contracts to advance; later phase-specific review and evidence remain
+required before claiming complete scientific equivalence or cutting Rapthor
+over to Hebog.
 
 - [x] Capture the current Rapthor, released PyBDSF, PyBDSF `master`, LSMTool, dependency, and
       container revisions in the
@@ -870,16 +881,16 @@ explicit risk that review may require algorithm or contract changes.
       acceptance, qualification, and benchmark lanes.
 - [x] Write at least one strict expected-failure contract or acceptance test for every frozen
       public behaviour; an unexpected pass fails until the behaviour and specification are reviewed.
-- [ ] Obtain domain review of the glossary, naming conventions, and scientific thresholds in
+- [x] Obtain domain review of the glossary, naming conventions, and scientific thresholds in
       Section 5.
 
 Technical exit gate: documented commands reproduce both baselines and the reference-divergence
 report in clean, isolated environments; comparison tests prove the harness against analytic cases;
 and the held-out qualification set is frozen. ADRs 003, 004, and 005 are accepted, and the
 provisional large-image resource and scaling gates are frozen. This technical foundation is
-complete. Domain review remains required before thresholds are called domain-approved, and facility
-review plus controlled multi-node evidence remains required before the extreme-image gates are
-called demonstrated.
+complete. Domain review was completed on 2026-08-02; facility review plus
+controlled multi-node evidence remains required before the extreme-image
+gates are called demonstrated.
 
 ### Phase 1: FITS, beam, WCS, and internal models
 
@@ -889,10 +900,9 @@ an experimental `0.3.x` infrastructure capability by the
 It does not implement scientific source finding and therefore makes no Hebog
 versus PyBDSF equivalence or speed claim.
 
-Start rule: Phase 1 infrastructure and red-green-refactor work may proceed
-while Phase 0 scientific review is in progress, but its versioned schemas must
-not be declared stable until the sign-off and any required amendments in the
-Phase 0 closure order are recorded.
+Start rule applied: Phase 1 infrastructure and red-green-refactor work was
+permitted while Phase 0 scientific review was in progress. The sign-off and
+approved amendments were recorded on 2026-08-02.
 
 - [x] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
       unsupported FITS inputs and products.
@@ -900,7 +910,8 @@ Phase 0 closure order are recorded.
       tile coordinates, chunk checksums, interrupted writes, and restartable materialisation.
 - [x] Define versioned internal catalogue and materialised result schemas from
       failing physical-boundary, relationship, empty, serialization, and restart-metadata tests;
-      keep their scientific status provisional until Phase 0 human sign-off.
+      keep their scientific status provisional until Phase 0 human sign-off,
+      completed on 2026-08-02.
 - [x] Define a narrow image-source seam and explicit Zarr product boundary from
       concrete FITS and workflow tests; do not introduce a generic sink protocol,
       registry, or plugin system before a demonstrated second implementation.
@@ -995,12 +1006,12 @@ multi-node graph qualification remain their explicitly assigned later phases.
 
 ### Phase 3: thresholding, connected islands, and compact deblending
 
-**Readiness status:** technically complete on 2026-08-01; named human
-scientific review remains required before the Phase 3 exit gate or a
-scientific release claim. The provisional gates were frozen before held-out
-inspection and all Phase 3-scope automated gates pass. The release-readiness
-record preserves the full representative multiscale divergence assigned to
-Phase 5 rather than weakening the compact contract.
+**Readiness status:** technically complete on 2026-08-01 and scientifically
+approved for the compact experimental `0.x` scope on 2026-08-02. The
+provisional gates were frozen before held-out inspection, all Phase 3-scope
+automated gates pass, and their status is now `reviewed-provisional`. The
+release-readiness record preserves the full representative multiscale
+divergence assigned to Phase 5 rather than weakening the compact contract.
 
 The compatibility evidence is explicit but not automatically normative.
 Released and pinned-master PyBDSF use SciPy connected-component labelling with
@@ -1185,10 +1196,10 @@ Memory, task count, boundary-summary volume, and the density ladder show no
 image-sized gather or quadratic source-count path. Automated technical gates
 passed on 2026-08-01: the exact representative median was 3.193 seconds and
 the generated 3,000-square sparse/normal/dense medians were 2.848, 2.963, and
-3.489 seconds. Human scientific approval remains the only Phase 3 exit-gate
-item. Passing this gate establishes compact detection topology only, not
-catalogue equivalence, multiscale completeness, Rapthor readiness, or the
-complete project speedup.
+3.489 seconds. Gemma Danks approved the scientific decisions on 2026-08-02,
+so the Phase 3 exit gate passes. This establishes compact detection topology
+only, not catalogue equivalence, multiscale completeness, Rapthor readiness,
+or the complete project speedup.
 
 ### Phase 4: measurement, fitting, and catalogue compatibility
 
@@ -1431,18 +1442,14 @@ count.
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
 | A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
 
-## 14. Open decisions after Phase 0
+## 14. Open decisions after Phase 3
 
-- Which domain experts approve the glossary and naming conventions before the Phase 0 exit gate?
-- Which mask precision, recall, intersection-over-union, island-overlap,
-  split, and merge non-inferiority margins approve the Phase 3 compact
-  segmentation contract?
-- Should the Rapthor compatibility profile retain PyBDSF's strict
-  detection-peak comparison and beam-derived six-pixel minimum island size,
-  or adopt reviewed alternatives while reporting the operational difference?
-- Does SciPy supply sufficient compact deblending semantics, or does a measured
-  scientific and maintenance advantage justify adding scikit-image? Final
-  Gaussian/source grouping remains a separate Phase 4 decision.
+The 2026-08-02 scientific review resolved the glossary authority, Phase 3
+mask/object margins, strict detection comparison, beam-aware six-pixel floor,
+and SciPy compact-deblending questions. Their approved disposition is recorded
+in the [Phase 3 scientific review record](../docs/reference/phase-3-review-record.md).
+The remaining decisions are:
+
 - Should nonlinear fitting use SciPy least-squares, a small dedicated compiled kernel, or both?
 - Is an undecimated wavelet transform required, or does a beam-aware matched-filter bank satisfy the
   extended-source gate more efficiently?

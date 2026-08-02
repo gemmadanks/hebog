@@ -112,6 +112,7 @@ def test_phase_three_gates_are_foreground_sensitive_and_role_specific() -> (
     """Compact, generated, and held-out lanes freeze reviewed mask margins."""
     gates = load_phase_three_scientific_gates(_PHASE_THREE_GATES_PATH)
 
+    assert gates.status == "reviewed-provisional"
     assert gates.confidence_level == 0.95
     assert gates.low_snr_threshold_crossings == "report-only"
     assert gates.compact_reference.mask.minimum_intersection_over_union > 0.9

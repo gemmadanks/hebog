@@ -31,10 +31,11 @@ Hebog has completed the technical Phase 0 contracts, Phase 1 bounded FITS/Zarr
 I/O, Phase 2 deterministic background/RMS estimation, and Phase 3 compact
 detection topology. Background/RMS estimation, automatic adaptive candidates,
 connected-island reconciliation, compact deblending, and durable detection
-products pass the governed automated gates. Named scientific review remains
-the only Phase 3 exit item. Phase 4 measurement, fitting, and catalogue
-compatibility is next; multiscale recovery, complete Rapthor integration, and
-multi-node scalability remain later work.
+products pass the governed automated gates. Named scientific review approved
+the compact experimental scope on 2026-08-02, completing the Phase 3 exit
+gate. Phase 4 measurement, fitting, and catalogue compatibility is next;
+multiscale recovery, complete Rapthor integration, and multi-node scalability
+remain later work.
 
 ## 2026-07-16 — Profiled the existing PyBDSF path
 
@@ -2296,3 +2297,44 @@ deblending
   The rendered result contains five connected islands, six compact regions,
   one visibly deblended two-region island, one adaptive-RMS candidate, no
   deferred islands, and five passing partition-invariance checks.
+
+## 2026-08-02 — Completed named Phase 3 scientific review
+
+**Plan phase:** Phase 0 scientific contract closure and Phase 3 exit gate
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer, approved the scientific
+  pre-review amendments and the documented compact Phase 3 decisions as the
+  project owner and named ADR decider.
+- Approved the community best-practice envelope documented by peer-reviewed
+  astronomy literature and source-finder challenges. Cross-pipeline consensus
+  is a strong guide, while analytic and injected governed truth remain the
+  primary scientific oracles and PyBDSF remains a compatibility oracle.
+- Approved the explicit `5.0/3.0` normal and `5.0/4.0` early Rapthor profiles,
+  primary-beam terminology, distinct domain objects, scientific empty-product
+  semantics, MFS-only initial scope, and low-SNR curve/confidence treatment.
+- Approved Phase 3 inclusive-island and strict-seed comparisons,
+  eight-neighbour connectivity, the beam-aware six-pixel floor, explicit
+  adaptive-RMS profile, compact watershed saddle rules, mask/object margins,
+  multiscale deferral, partition invariance, and the inclusive 3.5-second
+  component budget.
+- The gate contract status changed from `frozen-provisional` to
+  `reviewed-provisional`: the margins are human-reviewed for the experimental
+  compact `0.x` scope but do not establish catalogue, multiscale, Rapthor, or
+  production equivalence.
+- Independent domain confirmation remains advisable before production
+  cutover. Facility review, later scientific phases, end-to-end acceptance,
+  complete performance, and multi-node scalability gates remain open.
+
+**Validation**
+
+- The gate-status contract test failed first for the intended status mismatch,
+  then passed after the validated schema and JSON contract were updated.
+- `just test-equivalence`: 14 passed.
+- `just test-qualification`: one passed and one controlled-data case skipped.
+- `just coverage`: 477 passed, 28 deselected, and four expected failures with
+  93.83% branch-aware project coverage.
+- `just check`: 361 passed, 144 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just docs-build` passed in strict mode.
