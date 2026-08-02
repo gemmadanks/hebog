@@ -71,3 +71,36 @@ turning the cache into an image-sized gather.
 The source-filtering mask remains the parent connected-island membership;
 deblending subdivides that topology without changing which pixels are
 detected.
+
+A boolean source-filtering-mask window may contain another disconnected
+island whose bounds overlap or nest inside the requested island. The compact
+stage therefore relabels that bounded window with eight-connectivity and
+selects the component containing the reconciled island's canonical first
+pixel. It verifies the selected pixel count before deblending. It never treats
+the complete rectangular window as the island.
+
+## Worker-local Phase 4 handoff
+
+`run_compact_region_stage` is the only measurement handoff from these
+summaries. Inside each existing coarse executor task it reads the admitted
+source image, background, RMS, validity, and source-filtering-mask windows,
+reconstructs exact parent membership, and runs the existing compact
+watershed. A processor then receives one immutable `WorkerLocalRegionBatch`
+containing the physical background-subtracted residual, RMS, scientific
+validity, and exact int32 region labels. The processor must reduce those
+arrays to compact typed records before the task returns.
+
+`DeblendedRegion.bounds` is only a read/planning summary. Region rectangles
+can overlap and can contain pixels owned by another watershed region; they are
+not membership masks. `CompactDeblendStageResult` intentionally has no
+per-pixel membership and is useful for topology inspection only. A measurement
+implementation must use the worker-local processor seam rather than inventing
+ownership from a summary.
+
+The retained processor arrays account for 21 bytes per admitted bounds pixel:
+float64 physical residual, float64 RMS, boolean validity, and int32 region
+label. `maximum_processor_array_bytes` records the largest actual retained
+batch. Input image/validity and the three Zarr windows are likewise bounded by
+`maximum_batch_pixels`; normalized residual and watershed work are bounded by
+one `maximum_compact_bounds_pixels` island at a time. The stage neither creates
+one scheduler task per region nor returns a NumPy plane to the scheduler.

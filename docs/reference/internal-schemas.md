@@ -177,6 +177,15 @@ reuse at most four validated chunks while assembling multiple compact-island
 windows. The cache is worker-local and cannot grow with the image or island
 count.
 
+Phase 4 exact region labels remain transient worker data. A
+`WorkerLocalRegionBatch` aligns immutable float64 physical residual and RMS,
+boolean validity, and int32 region labels with reconciled island and region
+records. It is an in-task scientific-kernel input, not a durable schema or a
+scheduler result. `CompactRegionStageResult` contains only processor-produced
+compact records, deblending summaries, explicit Phase 5 deferrals, batch
+counts, admitted bounds pixels, and the largest retained processor-array byte
+count. A summary rectangle cannot be deserialized into membership.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as

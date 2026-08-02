@@ -163,6 +163,44 @@ def plan_compact_deblend_batches(
     )
 
 
+def extract_island_membership(
+    island: DetectedIsland,
+    accepted_mask: npt.ArrayLike,
+) -> npt.NDArray[np.bool_]:
+    """Select one exact connected island from its bounded boolean window.
+
+    A published source-filtering-mask window can contain disconnected islands
+    whose bounds overlap or nest. The reconciled island's canonical first
+    pixel selects its eight-connected component without requiring a durable
+    global label plane.
+    """
+    mask = np.asarray(accepted_mask)
+    if mask.ndim != _IMAGE_DIMENSIONS:
+        raise ValueError("island mask window must be two-dimensional")
+    if not np.issubdtype(mask.dtype, np.bool_):
+        raise TypeError("island mask window must be boolean")
+    if mask.shape != island.bounds.shape_yx:
+        raise ValueError("island mask window must match island bounds")
+    first_y = island.first_pixel_yx[0] - island.bounds.y_start
+    first_x = island.first_pixel_yx[1] - island.bounds.x_start
+    height, width = mask.shape
+    if not (0 <= first_y < height and 0 <= first_x < width):
+        raise ValueError("island first pixel is outside its bounds")
+    raw_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage.label(mask, structure=_EIGHT_CONNECTIVITY),
+    )
+    labels = np.asarray(raw_labels, dtype=np.int32)
+    selected_label = int(labels[first_y, first_x])
+    if selected_label == 0:
+        raise ValueError("island first pixel is absent from the mask")
+    membership = np.asarray(labels == selected_label, dtype=np.bool_)
+    if int(np.count_nonzero(membership)) != island.pixel_count:
+        raise ValueError("connected mask membership disagrees with island")
+    membership.setflags(write=False)
+    return membership
+
+
 def _validate_input(
     compact_island: CompactIslandPixels,
     config: CompactDeblendConfig,

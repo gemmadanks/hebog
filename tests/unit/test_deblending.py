@@ -11,11 +11,16 @@ from hebog.algorithms.deblending import (
     CompactIslandPixels,
     deblend_compact_batch,
     deblend_compact_island,
+    extract_island_membership,
     plan_compact_deblend_batches,
 )
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactDeblendConfig
 from hebog.data_models import ImageBounds
+from hebog.stages.deblending import (
+    WorkerLocalDeblendedIsland,
+    WorkerLocalRegionBatch,
+)
 
 
 def _config(**replacements: object) -> CompactDeblendConfig:
@@ -79,6 +84,26 @@ def _compact_island(
         island=island,
         normalized_residual=normalized,
         island_membership=selected,
+    )
+
+
+def _read_only(values: np.ndarray) -> np.ndarray:
+    """Return one immutable array for worker-local contract tests."""
+    values.setflags(write=False)
+    return values
+
+
+def _worker_local_island() -> WorkerLocalDeblendedIsland:
+    """Construct one internally consistent exact measurement handoff."""
+    compact = _compact_island(np.full((2, 2), 6.0))
+    result = deblend_compact_island(compact, _config())
+    return WorkerLocalDeblendedIsland(
+        island=compact.island,
+        regions=result.regions,
+        physical_residual=_read_only(np.full((2, 2), 0.006, dtype=np.float64)),
+        rms=_read_only(np.full((2, 2), 0.001, dtype=np.float64)),
+        valid_pixels=_read_only(np.ones((2, 2), dtype=np.bool_)),
+        region_labels=result.region_labels,
     )
 
 
@@ -226,6 +251,160 @@ def test_multiple_peaks_do_not_let_a_masked_hole_flood_the_island() -> None:
 
     np.testing.assert_array_equal(result.region_labels > 0, membership)
     assert sum(region.pixel_count for region in result.regions) == 24
+
+
+def test_region_bounds_cannot_replace_exact_watershed_membership() -> None:
+    """Overlapping summary rectangles contain pixels owned by other regions."""
+    normalized = np.full((5, 5), 3.0)
+    normalized[0, 0] = 8.0
+    normalized[4, 4] = 7.0
+
+    result = deblend_compact_island(
+        _compact_island(normalized),
+        _config(),
+    )
+
+    assert result.status == "deblended"
+    first, second = result.regions
+    assert first.bounds == ImageBounds(0, 5, 0, 5)
+    assert first.pixel_count == 22
+    assert second.bounds == ImageBounds(3, 5, 3, 5)
+    first_box = np.ones(first.bounds.shape_yx, dtype=np.bool_)
+    exact_first = result.region_labels == first.region_label
+    assert np.count_nonzero(first_box) == 25
+    assert np.count_nonzero(exact_first) == first.pixel_count
+    assert np.any(first_box & (result.region_labels == second.region_label))
+
+
+def test_extracts_one_parent_from_a_window_with_nested_islands() -> None:
+    """A boolean product window may contain a second disconnected island."""
+    accepted = np.zeros((7, 7), dtype=np.bool_)
+    accepted[[0, -1], :] = True
+    accepted[:, [0, -1]] = True
+    accepted[3, 3] = True
+    target = replace(
+        _compact_island(np.full((7, 7), 6.0)).island,
+        pixel_count=24,
+        peak_position_yx=(0, 0),
+        first_pixel_yx=(0, 0),
+    )
+
+    membership = extract_island_membership(target, accepted)
+
+    expected = np.array(accepted, copy=True)
+    expected[3, 3] = False
+    np.testing.assert_array_equal(membership, expected)
+    assert not membership.flags.writeable
+
+
+def test_island_membership_extraction_rejects_ambiguous_windows() -> None:
+    """Malformed mask windows cannot select the wrong connected component."""
+    target = _compact_island(np.full((2, 2), 6.0)).island
+    valid = np.ones((2, 2), dtype=np.bool_)
+
+    with pytest.raises(ValueError, match="two-dimensional"):
+        extract_island_membership(target, np.ones(4, dtype=np.bool_))
+    with pytest.raises(TypeError, match="boolean"):
+        extract_island_membership(target, np.ones((2, 2), dtype=np.uint8))
+    with pytest.raises(ValueError, match="match island bounds"):
+        extract_island_membership(target, np.ones((1, 2), dtype=np.bool_))
+    with pytest.raises(ValueError, match="outside its bounds"):
+        extract_island_membership(
+            replace(target, first_pixel_yx=(3, 3)),
+            valid,
+        )
+    absent = np.array(valid, copy=True)
+    absent[0, 0] = False
+    with pytest.raises(ValueError, match="absent from the mask"):
+        extract_island_membership(target, absent)
+    with pytest.raises(ValueError, match="disagrees with island"):
+        extract_island_membership(replace(target, pixel_count=3), valid)
+
+
+def test_worker_local_region_contract_rejects_misaligned_arrays() -> None:
+    """A processor never receives ambiguous shapes, dtypes, or ownership."""
+    item = _worker_local_island()
+
+    with pytest.raises(ValueError, match="match bounds"):
+        replace(
+            item,
+            physical_residual=_read_only(np.ones((1, 2), dtype=np.float64)),
+        )
+    with pytest.raises(TypeError, match="physical residual"):
+        replace(
+            item,
+            physical_residual=_read_only(np.ones((2, 2), dtype=np.float32)),
+        )
+    with pytest.raises(TypeError, match="RMS"):
+        replace(
+            item,
+            rms=_read_only(np.ones((2, 2), dtype=np.float32)),
+        )
+    with pytest.raises(TypeError, match="validity"):
+        replace(
+            item,
+            valid_pixels=_read_only(np.ones((2, 2), dtype=np.uint8)),
+        )
+    with pytest.raises(TypeError, match="labels"):
+        replace(
+            item,
+            region_labels=_read_only(np.ones((2, 2), dtype=np.int64)),
+        )
+    with pytest.raises(ValueError, match="read-only"):
+        replace(
+            item,
+            physical_residual=np.ones((2, 2), dtype=np.float64),
+        )
+
+
+def test_worker_local_region_contract_rejects_invalid_science() -> None:
+    """Invalid measurement pixels fail before a future moment or fit kernel."""
+    item = _worker_local_island()
+    invalid_validity = np.ones((2, 2), dtype=np.bool_)
+    invalid_validity[0, 0] = False
+    nonfinite = np.ones((2, 2), dtype=np.float64)
+    nonfinite[0, 0] = np.nan
+    nonpositive_rms = np.ones((2, 2), dtype=np.float64)
+    nonpositive_rms[0, 0] = 0.0
+
+    with pytest.raises(ValueError, match="invalid pixel"):
+        replace(
+            item,
+            valid_pixels=_read_only(invalid_validity),
+        )
+    with pytest.raises(ValueError, match="scientifically invalid"):
+        replace(
+            item,
+            physical_residual=_read_only(nonfinite),
+        )
+    with pytest.raises(ValueError, match="scientifically invalid"):
+        replace(
+            item,
+            rms=_read_only(nonpositive_rms),
+        )
+
+
+def test_worker_local_region_contract_binds_summaries_and_memory() -> None:
+    """Exact labels, compact summaries, and admitted bytes cannot diverge."""
+    item = _worker_local_island()
+    wrong_labels = np.full((2, 2), 2, dtype=np.int32)
+    wrong_parent = replace(item.regions[0], island_id="island-other")
+    wrong_count = replace(item.regions[0], pixel_count=3)
+
+    assert item.array_byte_count == 4 * (8 + 8 + 1 + 4)
+    batch = WorkerLocalRegionBatch(
+        islands=(item,),
+        admitted_bounds_pixel_count=4,
+    )
+    assert batch.array_byte_count == item.array_byte_count
+    with pytest.raises(ValueError, match="summaries disagree"):
+        replace(item, region_labels=_read_only(wrong_labels))
+    with pytest.raises(ValueError, match="parent identities"):
+        replace(item, regions=(wrong_parent,))
+    with pytest.raises(ValueError, match="pixel counts"):
+        replace(item, regions=(wrong_count,))
+    with pytest.raises(ValueError, match="admitted bounds"):
+        replace(batch, admitted_bounds_pixel_count=3)
 
 
 def test_exact_peak_threshold_has_no_eligible_marker() -> None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import Literal
 
@@ -29,7 +29,11 @@ from hebog.data_models import ImageBounds, PartitionManifest
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
-from hebog.stages.deblending import run_compact_deblend_stage
+from hebog.stages.deblending import (
+    WorkerLocalRegionBatch,
+    run_compact_deblend_stage,
+    run_compact_region_stage,
+)
 from hebog.stages.detection import (
     DetectionStageConfig,
     DetectionStageResult,
@@ -38,6 +42,39 @@ from hebog.stages.detection import (
 )
 
 pytestmark = pytest.mark.integration
+
+
+@dataclass(frozen=True, slots=True)
+class _RegionMembershipRecord:
+    """Compact test record proving exact labels reached a worker processor."""
+
+    region_id: str
+    pixel_count: int
+    bounds_pixel_count: int
+    residual_sum: float
+
+
+def _measure_exact_memberships(
+    batch: WorkerLocalRegionBatch,
+) -> tuple[_RegionMembershipRecord, ...]:
+    """Reduce worker-local labels to compact deterministic test records."""
+    records: list[_RegionMembershipRecord] = []
+    for item in batch.islands:
+        for region in item.regions:
+            membership = item.region_labels == region.region_label
+            records.append(
+                _RegionMembershipRecord(
+                    region_id=region.region_id,
+                    pixel_count=int(np.count_nonzero(membership)),
+                    bounds_pixel_count=(
+                        region.bounds.shape_yx[0] * region.bounds.shape_yx[1]
+                    ),
+                    residual_sum=float(
+                        np.sum(item.physical_residual[membership])
+                    ),
+                )
+            )
+    return tuple(records)
 
 
 class _ArrayImageSource:
@@ -359,6 +396,87 @@ def test_compact_deblend_stage_supports_single_window_sources(
     )
 
 
+def test_region_processor_keeps_membership_worker_local_and_bounded(
+    tmp_path: Path,
+) -> None:
+    """Only compact records, not labels or image windows, are gathered."""
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "region-processor.zarr",
+        manifest,
+        SerialExecutor(),
+    )
+
+    result = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        detection,
+        _deblend_config(),
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    assert result.records
+    assert all(
+        record.pixel_count <= record.bounds_pixel_count
+        for record in result.records
+    )
+    assert sum(record.pixel_count for record in result.records) == sum(
+        island.pixel_count for island in detection.islands
+    )
+    assert result.maximum_processor_array_bytes > 0
+    assert result.maximum_processor_array_bytes <= (
+        _deblend_config().maximum_batch_pixels * (8 + 8 + 1 + 4)
+    )
+    assert not any(
+        isinstance(value, np.ndarray)
+        for record in result.records
+        for field in fields(record)
+        for value in (getattr(record, field.name),)
+    )
+    assert result.deferred_islands == ()
+
+
+def test_region_stage_preserves_deferrals_without_reading_pixels(
+    tmp_path: Path,
+) -> None:
+    """A processor cannot make an over-limit Phase 5 island disappear."""
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "region-deferrals.zarr",
+        manifest,
+        SerialExecutor(),
+    )
+    deferred_config = replace(
+        _deblend_config(),
+        maximum_compact_island_pixels=1,
+    )
+
+    result = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        detection,
+        deferred_config,
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    assert result.records == ()
+    assert result.islands == ()
+    assert len(result.deferred_islands) == len(detection.islands)
+    assert result.planned_batch_count == 0
+    assert result.admitted_bounds_pixel_count == 0
+    assert result.maximum_processor_array_bytes == 0
+
+
 @pytest.mark.parametrize(
     ("failure", "message"),
     [
@@ -421,6 +539,15 @@ def test_compact_deblend_stage_rejects_a_different_generation(
             _deblend_config(),
             SerialExecutor(),
             different_sink,
+        )
+    with pytest.raises(ValueError, match="does not match"):
+        run_compact_region_stage(
+            _ArrayImageSource(_image()),
+            detection,
+            _deblend_config(),
+            processor=_measure_exact_memberships,
+            executor=SerialExecutor(),
+            sink=different_sink,
         )
 
 
@@ -553,6 +680,14 @@ def test_dask_and_serial_detection_products_are_identical(
             DaskExecutor(client),
             dask_sink,
         )
+        dask_regions = run_compact_region_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            _deblend_config(),
+            processor=_measure_exact_memberships,
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
 
     assert dask.islands == serial.islands
     assert (
@@ -572,3 +707,12 @@ def test_dask_and_serial_detection_products_are_identical(
         serial_sink,
     )
     assert dask_deblended == serial_deblended
+    serial_regions = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        _deblend_config(),
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_regions == serial_regions

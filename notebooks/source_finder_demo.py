@@ -542,7 +542,11 @@ def _(mo, region_rows):
     ### Compact deblending summaries
 
     The executor returns these bounded summaries—not per-pixel label arrays—to
-    keep scheduler payloads small.
+    keep scheduler payloads small. The rectangles in the plot are read and
+    planning bounds, not membership masks: rectangles may overlap or contain
+    pixels assigned to another watershed region. Phase 4 measurement uses the
+    worker-local region processor, which sees the exact labels before reducing
+    them to compact records.
 
     {_header}
     {_separator}
