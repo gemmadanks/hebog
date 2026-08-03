@@ -63,14 +63,14 @@ def test_checked_in_protocol_is_powered_and_fail_closed() -> None:
     """The final campaign design can test every declared paired endpoint."""
     contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
 
-    assert contract.status == "draft-provisional"
+    assert contract.status == "reviewed"
     assert contract.realization_count == 600
     assert contract.resampling.resampling_unit == "noise-seed-image"
     assert contract.resampling.degenerate_interval == "indeterminate-fail"
     assert contract.decision.combination_rule == (
         "intersection-union-all-coprimary"
     )
-    assert contract.decision.require_no_worse_point_estimate is True
+    assert contract.decision.require_no_worse_point_estimate is False
     assert contract.decision.require_every_absolute_gate is True
     assert contract.reference_failures.primary == "qualification-fails"
     assert contract.reference_failures.secondary == "record-and-continue"
@@ -129,6 +129,10 @@ def test_power_uses_effective_clustered_sample_size() -> None:
     assert estimate.interval_exclusion_power == pytest.approx(
         0.945,
         abs=0.002,
+    )
+    assert estimate.no_worse_point_probability == pytest.approx(0.5)
+    assert estimate.combined_decision_probability == pytest.approx(
+        estimate.interval_exclusion_power
     )
 
 

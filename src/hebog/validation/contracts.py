@@ -662,12 +662,12 @@ class PairedResamplingProtocol(_ContractModel):
 
 
 class PairedDecisionRule(_ContractModel):
-    """Fail-closed decision rule for the final Phase 4 campaign."""
+    """Reviewed fail-closed decision rule for the final Phase 4 campaign."""
 
     regression_sign: Literal["positive-means-hebog-is-worse"]
     combination_rule: Literal["intersection-union-all-coprimary"]
     power_target_applies_to: Literal["interval-exclusion"]
-    require_no_worse_point_estimate: Literal[True]
+    require_no_worse_point_estimate: Literal[False]
     require_upper_interval_within_margin: Literal[True]
     require_every_absolute_gate: Literal[True]
     require_stronger_hebog_regression_envelopes: Literal[True]

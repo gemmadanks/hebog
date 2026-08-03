@@ -238,7 +238,7 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
     """Phase 4 has explicit provisional shape and uncertainty questions."""
     gates = load_phase_four_scientific_gates(_PHASE_FOUR_GATES_PATH)
 
-    assert gates.status == "frozen-provisional"
+    assert gates.status == "reviewed-provisional"
     assert gates.confidence_level == 0.95
     assert gates.low_snr_threshold_crossings == "report-only"
     assert gates.shape_uncertainty == "report-only"
@@ -287,7 +287,7 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
     assert gates.extension_classification.method == (
         "integrated-to-peak-ratio-uncertainty"
     )
-    assert gates.extension_classification.significance_sigma == 2.0
+    assert gates.extension_classification.significance_sigma == 5.0
     assert (
         gates.extension_classification.clear_resolved_minimum_area_ratio == 3.0
     )

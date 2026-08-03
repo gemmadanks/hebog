@@ -193,7 +193,7 @@ def calculate_design_power(
                 standard_error=standard_error,
                 interval_exclusion_power=powers[0],
                 no_worse_point_probability=powers[1],
-                combined_decision_probability=powers[2],
+                combined_decision_probability=powers[0],
             )
         )
     for endpoint in contract.continuous_endpoints:
@@ -215,7 +215,7 @@ def calculate_design_power(
                 standard_error=standard_error,
                 interval_exclusion_power=powers[0],
                 no_worse_point_probability=powers[1],
-                combined_decision_probability=powers[2],
+                combined_decision_probability=powers[0],
             )
         )
     return tuple(estimates)

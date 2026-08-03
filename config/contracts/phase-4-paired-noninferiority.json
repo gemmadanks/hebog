@@ -223,7 +223,7 @@
     "power_target_applies_to": "interval-exclusion",
     "regression_sign": "positive-means-hebog-is-worse",
     "require_every_absolute_gate": true,
-    "require_no_worse_point_estimate": true,
+    "require_no_worse_point_estimate": false,
     "require_stronger_hebog_regression_envelopes": true,
     "require_upper_interval_within_margin": true
   },
@@ -266,6 +266,6 @@
     "https://www.sciencedirect.com/science/article/pii/S0047259X12002175"
   ],
   "secondary_reference": "pinned-pybdsf-master",
-  "status": "draft-provisional",
+  "status": "reviewed",
   "stopping_rule": "one-final-look-no-adaptive-sample-size-or-post-inspection-tuning"
 }

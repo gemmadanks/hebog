@@ -50,7 +50,7 @@
     "missing_uncertainty": "geometric-noiseless-reference-otherwise-unavailable",
     "point_source_population": "shape-unresolved",
     "resolved_integrated_flux_uncertainty": "report-only",
-    "significance_sigma": 2.0,
+    "significance_sigma": 5.0,
     "unresolved_integrated_flux": "peak-flux-density"
   },
   "generated_regression": {
@@ -121,7 +121,7 @@
   "noisy_source_decision": "snr-stratified-confidence-intervals-and-catastrophic-rate",
   "schema_version": 2,
   "shape_uncertainty": "report-only",
-  "status": "frozen-provisional",
+  "status": "reviewed-provisional",
   "uncertainty": {
     "bootstrap_resamples": 10000,
     "bootstrap_seed": 20260802,

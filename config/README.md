@@ -28,8 +28,8 @@ its measurement semantics separate from its numerical gates so review can
 amend thresholds without silently changing the meaning of a catalogue field.
 The Phase 4 paired non-inferiority contract separately records comparison
 directions, practical margins, clustered design assumptions, failure handling,
-and the one-look stopping rule. Its `draft-provisional` status does not permit
-a final unseen population to be generated; every planning assumption and the
-complete protocol require named review first.
+and the one-look stopping rule. Its `reviewed` status records named approval;
+the final unseen population may be frozen only through a separate governed
+manifest and must not be opened before that freeze is complete.
 These files are gates, not measured evidence; raw measurements use the evidence
 schemas and stay under the ignored `benchmark-results/` directory.

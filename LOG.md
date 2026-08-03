@@ -3803,3 +3803,43 @@ and compatibility serialization
 
 - Complete named review of the scientific policy and paired protocol before
   changing contract status or generating any final population.
+
+## 2026-08-03 — Approved the paired scientific protocol
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer, approved the five-sigma
+  high-confidence extension policy, endpoint populations and practical
+  margins, corrected absolute-departure semantics, conservative planning
+  bounds, 600-image design, whole-image paired BCa intervals,
+  intersection-union multiplicity rule, and one-look stopping rule.
+- The additional no-worse point-estimate condition was removed before final-
+  population freeze. A sign-only gate would fail about half of repeated
+  experiments under equality even when the one-sided interval excludes every
+  practically meaningful regression. Signed point estimates remain mandatory
+  report fields; all interval, absolute-science, and stronger-Hebog gates must
+  pass independently.
+- Promoted the paired protocol to `reviewed` and the five-sigma scientific
+  contract to `reviewed-provisional`. This authorizes final-population freeze,
+  not generation or result inspection.
+
+**Evidence**
+
+- Re-ran the maintained 50,000-resample planning audit against the complete
+  viewed regression pair. All 20 planning bounds remain verified. The
+  reviewed audit SHA-256 is
+  `af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`;
+  the reviewed protocol canonical SHA-256 is
+  `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
+- The weakest interval-exclusion and governed-decision power remains 92.2% at
+  600 images. The power report continues to expose the rejected sign-rule
+  probability as a diagnostic so the statistical decision remains auditable.
+- Focused scientific-contract and power-model tests: 40 passed.
+
+**Next**
+
+- Freeze the final 600-image population and all execution provenance without
+  generating images or inspecting results; then run it exactly once under the
+  reviewed protocol.

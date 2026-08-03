@@ -136,8 +136,9 @@ and unresolved-group strata. The first correction selected the ATLAS
 two-sigma integrated-to-peak uncertainty rule, point-source specificity and
 clear-source recall gates, report-only marginal classification, and peak flux
 for beam-compatible sources. The later paired regression showed that this
-threshold retained its expected false-extension tail; Phase 4 now proposes a
-five-sigma high-confidence decision pending named review. The undefined
+threshold retained its expected false-extension tail; Phase 4 now uses the
+five-sigma high-confidence decision approved by Gemma Danks on 2026-08-03.
+The undefined
 morphology-specific reliability gate was removed; overall catalogue
 reliability remains gated.
 
@@ -279,10 +280,13 @@ Phase 4 can be declared passed only after all of the following occur in order:
    2026-08-03 and are retained as known evidence. Before creating another,
    review a recovery protocol that prevents repeated-campaign optional
    stopping and freeze any new population before corrective implementation.
-   The [draft paired non-inferiority protocol](phase-4-paired-noninferiority.md)
+   The [reviewed paired non-inferiority protocol](phase-4-paired-noninferiority.md)
    and its executable power calculation are complete. The 50,000-resample
-   independent planning-assumption audit now verifies every revised bound;
-   named approval remains outstanding.
+   independent planning-assumption audit verifies every revised bound. Gemma
+   Danks approved the endpoint families, margins, 600-image design,
+   whole-image interval method, one-look rule, and five-sigma extension policy
+   on 2026-08-03. She also approved removing the statistically unstable extra
+   point-sign gate before final-population freeze.
 7. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.
@@ -293,6 +297,7 @@ The refreshed 200-image paired regression now has 200/200 successful runs for
 both Hebog and released PyBDSF. Hebog matches the reference's perfect point
 specificity, retains substantially better clear-extension, catastrophic-tail,
 and unresolved-blend results, and differs in catalogue reliability by one
-additional unmatched near-threshold candidate. This is sufficient to proceed
-to the maintained planning-assumption audit and named protocol review, but it
-is not qualification evidence and does not change the **not ready** decision.
+additional unmatched near-threshold candidate. This regression and its
+planning-assumption audit support the completed named review, but neither is
+qualification evidence. The final population still must be frozen and opened
+exactly once, so the decision remains **not ready**.
