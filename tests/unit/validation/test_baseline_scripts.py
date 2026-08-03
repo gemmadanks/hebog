@@ -29,6 +29,44 @@ def _script(name: str) -> dict[str, Any]:
     return runpy.run_path(str(root / "scripts" / "benchmark" / name))
 
 
+def _validation_script(name: str) -> dict[str, Any]:
+    """Load one validation script without invoking its CLI."""
+    root = Path(__file__).parents[3]
+    return runpy.run_path(str(root / "scripts" / "validation" / name))
+
+
+def test_paired_audit_uses_an_aggregate_reliability_ratio() -> None:
+    """Whole-image resampling recomputes the canonical ratio of sums."""
+    namespace = _validation_script("audit_phase4_paired_assumptions.py")
+    ratio_values: Callable[..., dict[str, Any]] = namespace["_ratio_values"]
+    counts = {
+        "catalogue-reliability": np.asarray(((33.0, 34.0), (33.0, 35.0)))
+    }
+
+    result = ratio_values(counts, np.asarray(((0, 1),), dtype=np.int64))
+
+    assert result["catalogue-reliability"][0] == pytest.approx(66.0 / 69.0)
+
+
+def test_paired_audit_truth_populations_remain_disjoint() -> None:
+    """Point, clear, and blend endpoints use predeclared truth sets."""
+    namespace = _validation_script("audit_phase4_paired_assumptions.py")
+    truth_sets: Callable[..., tuple[set[str], ...]] = namespace["_truth_sets"]
+    root = Path(__file__).parents[3]
+    dataset = load_dataset_manifest(
+        root / "config/datasets/phase-4-paired-regression.json"
+    ).datasets[0]
+
+    all_groups, individual, point, clear, blend = truth_sets(dataset)
+
+    assert len(all_groups) == 33
+    assert len(individual) == 32
+    assert len(point) == 8
+    assert len(clear) == 1
+    assert len(blend) == 1
+    assert point.isdisjoint(clear | blend)
+
+
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
     None
 ):

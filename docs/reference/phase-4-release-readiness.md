@@ -280,8 +280,9 @@ Phase 4 can be declared passed only after all of the following occur in order:
    review a recovery protocol that prevents repeated-campaign optional
    stopping and freeze any new population before corrective implementation.
    The [draft paired non-inferiority protocol](phase-4-paired-noninferiority.md)
-   and its executable power calculation are complete; independent planning-
-   assumption verification and named approval remain outstanding.
+   and its executable power calculation are complete. The 50,000-resample
+   independent planning-assumption audit now verifies every revised bound;
+   named approval remains outstanding.
 7. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.

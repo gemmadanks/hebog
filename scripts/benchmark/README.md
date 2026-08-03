@@ -242,3 +242,23 @@ python scripts/benchmark/compile_phase4_scientific_campaign.py \
 The compiler rejects dataset, seed, scientific-contract, or comparison-protocol
 drift. Qualification evidence remains `exploratory` until every input and
 scientific decision has received named review.
+
+Before named review, audit the draft design assumptions against the complete
+paired regression. This uses whole noise-seed images as bootstrap clusters,
+recomputes ratio, quantile, and uncertainty-calibration endpoints on every
+resample, and expresses empirical uncertainty on the same per-realization
+scale as the power calculation:
+
+```console
+python scripts/validation/audit_phase4_paired_assumptions.py \
+  --campaign benchmark-results/<campaign>-paired.json \
+  --manifest config/datasets/phase-4-paired-regression.json \
+  --dataset-id phase4-paired-power-regression-512 \
+  --protocol config/contracts/phase-4-paired-noninferiority.json \
+  --output benchmark-results/<campaign>-assumption-audit.json
+```
+
+Regression evidence may evaluate a revised draft protocol; the audit records
+both protocol hashes and makes that difference explicit. Final qualification
+must use the exact reviewed protocol hash captured by every implementation
+shard and may not use this planning exception.

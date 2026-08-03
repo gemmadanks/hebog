@@ -816,9 +816,8 @@ assumptions. It separately reports that a no-worse point estimate has only 50%
 probability under exact equality; the draft therefore makes no misleading 90%
 overall-pass claim. The proposed margins, variance assumptions, endpoint split,
 sample size, and stricter directional condition have **not** received named
-approval. The variance assumptions must first be verified on independent
-paired development/regression evidence. No final seed, truth, or result has
-been generated or inspected.
+approval. The later planning-assumption audit verifies the revised variance
+bounds; no final seed, truth, or result has been generated or inspected.
 
 ## Independent point-classification recovery — awaiting review
 
@@ -889,4 +888,51 @@ this result.
 
 The maintained endpoint and planning-assumption audit is still required
 before these values can support named review. The final population remains
+ungenerated and unopened.
+
+## Planning-assumption audit — awaiting named review
+
+The maintained audit recomputes every endpoint in 50,000 whole-image bootstrap
+resamples. It uses aggregate matched-to-candidate ratios, pooled
+predeclared-stratum uncertainty statistics, and aggregate median and
+95th-percentile unresolved-group errors. Its equivalent paired standard
+deviation avoids assigning a false cross-implementation identity to unmatched
+candidates and is directly comparable with the power model.
+
+The first audit found 11 conservative provisional bounds and nine
+underestimates. Seven of those nine occur where Hebog is substantially better
+than PyBDSF, so the near-zero-effect draft understated the observed paired
+variation. The revised draft rounds each failed bound above the observed
+dispersion and uses at most half the observed favourable effect. Coverage and
+dispersion are also corrected to be lower-is-better absolute departures; the
+earlier draft accidentally encoded an already absolute departure and then
+applied the raw ideal a second time. No practical regression margin,
+scientific gate, or implementation threshold changed.
+
+All 20 revised planning bounds now pass. The audit has SHA-256
+`0f73113c65cea6f2192538f0e9ee061db50fefd9db87f0a04aaf39c0ad1765f6`,
+and the evaluated protocol has canonical SHA-256
+`a9835face5f940652aeca82c3cf598e3cbb2abd3a87e55e681e663b412490af3`.
+The weakest interval-exclusion power remains 92.2% at 600 images.
+
+Two regression point estimates are slightly worse despite passing their
+paired practical margins: catalogue reliability by 0.0151 percentage points
+(upper bound 0.1808 versus a 0.5-point margin), and median unresolved-blend
+position by 0.00279 beam (upper bound 0.00682 versus a 0.01-beam margin).
+Their tail and companion endpoints are equal or substantially better. This is
+consistent with the draft calculation's warning that a strict directional
+rule passes only half of repeated experiments under effective equality.
+
+Named review must now decide whether to approve:
+
+1. the five-sigma high-confidence extension decision;
+2. the endpoint populations, practical margins, and corrected absolute-
+   departure semantics;
+3. the regression-supported variance bounds and 600-image final design;
+4. whole-image paired BCa resampling, intersection-union multiplicity, and the
+   one-look stopping rule; and
+5. retention, removal, or endpoint-specific application of the stricter
+   no-worse point-estimate condition.
+
+The protocol remains `draft-provisional`; the final population is still
 ungenerated and unopened.

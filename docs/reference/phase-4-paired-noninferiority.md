@@ -1,8 +1,8 @@
 # Phase 4 paired non-inferiority protocol
 
-**Status:** draft-provisional; named scientific review and independent
-assumption verification are required before a final unseen population is
-created.
+**Status:** draft-provisional; the independent planning-assumption audit is
+complete, but named scientific review is required before a final unseen
+population is created.
 
 This protocol answers a deliberately narrower question than “does Hebog equal
 PyBDSF byte for byte?” It asks whether Hebog passes the existing truth-based
@@ -96,7 +96,7 @@ uses paired discordance for binary outcomes, a cluster design effect for
 multiple sources in one image, and the standard deviation of realization-level
 paired statistics for continuous outcomes. Under the provisional assumptions,
 the weakest interval-exclusion power is 92.2%; point specificity is 94.5% and
-the catastrophic rate is 93.3%.
+the next weakest endpoint, unresolved-group completeness, is 96.6%.
 
 Run the executable calculation with:
 
@@ -113,13 +113,28 @@ equality into a 90%-probability directional result. The calculation therefore
 reports interval-only, point-direction, and combined probabilities separately
 rather than making an inflated “90% chance of overall passage” claim.
 
-The discordance, within-image correlation, and paired-standard-deviation values
-are currently provisional planning inputs, not measured facts. Before review
-can change the status to `reviewed`, a maintained same-image run on independent
-development/regression data must verify each bound. If a bound is exceeded,
-the realization count must be increased and reviewed before the final
-population is frozen. Sample size must not change after that population is
-opened.
+The initial discordance, within-image correlation, and paired-standard-
+deviation values were provisional planning inputs. The maintained audit now
+checks their combined implication directly: it resamples whole images,
+recomputes every aggregate ratio, quantile, and uncertainty endpoint, and
+converts the bootstrap standard error back to a per-realization paired
+standard deviation. This is more robust than inventing a one-to-one identity
+between false candidates for catalogue reliability and it covers nonlinear
+endpoints for which discordance and intracluster correlation are not separately
+identifiable.
+
+The first 50,000-resample audit showed that 11 bounds were conservative and
+nine were too small. The revised draft rounds every failed dispersion bound
+above the observed value and assumes no more than half of the independently
+observed favourable Hebog effect. It does not change any practical margin or
+scientific gate. The second audit verifies all 20 bounds; its SHA-256 is
+`0f73113c65cea6f2192538f0e9ee061db50fefd9db87f0a04aaf39c0ad1765f6`.
+The revised protocol's canonical SHA-256 is
+`a9835face5f940652aeca82c3cf598e3cbb2abd3a87e55e681e663b412490af3`.
+The weakest interval-exclusion power at 600 images remains 92.2%, for median
+unresolved-group position. These are now measured and conservative planning
+inputs, but they remain provisional until named review. Sample size must not
+change after the final population is opened.
 
 The governed assumption-audit population is
 `config/datasets/phase-4-paired-regression.json`, dataset
@@ -173,7 +188,8 @@ have SHA-256 values
 and `bff79e0dafd096870460bfc1f6663a84d4f6cb813ea6ab7610b2bd8bee287a96`.
 
 Catalogue reliability is the only raw co-primary point estimate in the
-opposite direction: 99.6828% for Hebog and 99.6979% for PyBDSF, a net
+detection/association family in the opposite direction: 99.6828% for Hebog
+and 99.6979% for PyBDSF, a net
 difference of one unmatched candidate across 6,600 truth groups. Its
 positive-as-worse paired estimate is 0.0151 percentage points and its
 one-sided 95% BCa upper limit is 0.1808 percentage points, below the proposed
@@ -185,6 +201,15 @@ no-worse point-estimate condition would nevertheless fail this regression
 endpoint, illustrating the already documented 50% directional-pass
 probability under effective equality. Named review must decide the condition;
 it must not be changed after final-population inspection.
+
+The aggregate median unresolved-blend position is also slightly in the
+opposite direction: 0.05455 beam for Hebog and 0.05175 beam for PyBDSF. The
+positive-as-worse point estimate is 0.00279 beam and its one-sided 95% BCa
+upper limit is 0.00682 beam, inside the proposed 0.01-beam margin. Hebog is
+materially better in the associated 95th-percentile position tail (0.104
+versus 0.395 beam) and both blend-flux endpoints. This second small directional
+difference reinforces the need to decide the strict point-estimate rule before
+the final population rather than tuning an estimator to regression noise.
 
 ## One-look governance
 

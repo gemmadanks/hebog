@@ -3755,3 +3755,51 @@ and compatibility serialization
   then present the five-sigma policy, margins, sample size, multiplicity,
   stopping rule, and stricter no-worse point-estimate condition for named
   review before generating any final population.
+
+## 2026-08-03 — Verified the paired planning assumptions
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Finding**
+
+- Added a maintained whole-image bootstrap audit that recomputes aggregate
+  rates, unresolved-group quantiles, and pooled predeclared-stratum
+  uncertainty endpoints. It reports an equivalent per-realization paired
+  standard deviation, which is identifiable for candidate-centric and
+  nonlinear endpoints where separate discordance and intracluster correlation
+  are not.
+- The first 50,000-resample audit found 11 conservative provisional bounds and
+  nine underestimates. Most underestimates accompany large favourable Hebog
+  effects; the original near-equality assumptions therefore understated
+  paired variation rather than exposing a hidden Hebog regression.
+- Corrected a draft semantic error: one-sigma coverage and normalized
+  dispersion were already absolute departures, but the contract applied their
+  raw ideals a second time.
+
+**Decision**
+
+- Rounded every underestimated dispersion bound above the observed value and
+  used no more than half the independently observed favourable effect for
+  planning. No practical margin, scientific gate, or implementation threshold
+  changed.
+- All 20 revised bounds pass. The audit SHA-256 is
+  `0f73113c65cea6f2192538f0e9ee061db50fefd9db87f0a04aaf39c0ad1765f6`;
+  the evaluated draft protocol's canonical SHA-256 is
+  `a9835face5f940652aeca82c3cf598e3cbb2abd3a87e55e681e663b412490af3`.
+  The weakest interval-exclusion power remains 92.2% at 600 images.
+- Catalogue reliability and median unresolved-blend position have small
+  adverse point estimates but one-sided upper bounds inside their margins.
+  The strict no-worse point-estimate rule therefore remains a named-review
+  decision, not a trigger for regression-tail tuning.
+
+**Validation**
+
+- Focused non-inferiority and script-boundary tests: 39 passed; the maintained
+  calculation module has 100% branch coverage.
+- The optimized sufficient-statistic audit reproduces the direct residual
+  calculation to floating-point rounding and completes 50,000 resamples.
+
+**Next**
+
+- Complete named review of the scientific policy and paired protocol before
+  changing contract status or generating any final population.

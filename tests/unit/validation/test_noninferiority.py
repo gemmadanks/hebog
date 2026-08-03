@@ -6,15 +6,20 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import numpy.typing as npt
 import pytest
 from pydantic import ValidationError
 
 from hebog.validation.contracts import (
+    PairedContinuousEndpoint,
     PairedNoninferiorityContract,
     load_paired_noninferiority_contract,
 )
 from hebog.validation.noninferiority import (
+    audit_planning_standard_deviation,
     calculate_design_power,
+    planned_paired_standard_deviation,
     require_adequate_design_power,
 )
 
@@ -78,6 +83,24 @@ def test_checked_in_protocol_is_powered_and_fail_closed() -> None:
     assert min(item.interval_exclusion_power for item in estimates) >= 0.9
 
 
+def test_departure_endpoints_do_not_apply_the_scientific_ideal_twice() -> None:
+    """An absolute departure is lower-is-better with a zero implicit ideal."""
+    contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
+    endpoints = {
+        endpoint.endpoint_id: endpoint
+        for endpoint in contract.continuous_endpoints
+    }
+
+    for endpoint_id in (
+        "uncertainty-normalized-bias",
+        "uncertainty-one-sigma-coverage",
+        "uncertainty-normalized-dispersion",
+    ):
+        endpoint = endpoints[endpoint_id]
+        assert endpoint.desirable_direction == "lower-is-better"
+        assert endpoint.ideal_value is None
+
+
 def test_power_uses_effective_clustered_sample_size() -> None:
     """Within-image correlation reduces binary endpoint information."""
     contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
@@ -107,6 +130,134 @@ def test_power_uses_effective_clustered_sample_size() -> None:
         0.945,
         abs=0.002,
     )
+
+
+def test_binary_planning_bound_is_expressed_on_the_realization_scale() -> None:
+    """Discordance and ICC combine into the auditable paired-rate scale."""
+    contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
+    endpoint = next(
+        item
+        for item in contract.binary_endpoints
+        if item.endpoint_id == "point-source-specificity"
+    )
+
+    observed = planned_paired_standard_deviation(endpoint)
+    expected = (
+        (
+            endpoint.planning_discordance_probability
+            - endpoint.planning_expected_regression**2
+        )
+        * (
+            1
+            + (endpoint.observations_per_realization - 1)
+            * endpoint.planning_intracluster_correlation
+        )
+        / endpoint.observations_per_realization
+    ) ** 0.5
+
+    assert observed == pytest.approx(expected)
+
+
+def test_assumption_audit_fails_an_underestimated_paired_dispersion() -> None:
+    """Regression evidence cannot silently exceed a planning variance."""
+    contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
+    endpoint = contract.continuous_endpoints[0]
+
+    audit = audit_planning_standard_deviation(
+        endpoint,
+        candidate_value=0.04,
+        reference_value=0.05,
+        bootstrap_regressions=np.asarray((-0.2, 0.0, 0.2)),
+        realization_count=200,
+    )
+
+    assert audit.endpoint_id == endpoint.endpoint_id
+    assert audit.positive_means_candidate_worse == pytest.approx(-0.01)
+    assert audit.observed_paired_standard_deviation > (
+        audit.planning_paired_standard_deviation
+    )
+    assert audit.planning_bound_verified is False
+
+
+@pytest.mark.parametrize(
+    ("endpoint_id", "candidate", "reference", "expected_regression"),
+    (
+        ("compact-completeness", 0.9, 0.8, -0.1),
+        ("catastrophic-outlier-fraction", 0.01, 0.02, -0.01),
+    ),
+)
+def test_assumption_audit_normalizes_binary_endpoint_direction(
+    endpoint_id: str,
+    candidate: float,
+    reference: float,
+    expected_regression: float,
+) -> None:
+    """Positive always means worse for higher- and lower-is-better rates."""
+    contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
+    endpoint = next(
+        item
+        for item in contract.binary_endpoints
+        if item.endpoint_id == endpoint_id
+    )
+
+    audit = audit_planning_standard_deviation(
+        endpoint,
+        candidate_value=candidate,
+        reference_value=reference,
+        bootstrap_regressions=np.zeros(3),
+        realization_count=200,
+    )
+
+    assert audit.positive_means_candidate_worse == pytest.approx(
+        expected_regression
+    )
+    assert audit.planning_bound_verified is True
+
+
+def test_assumption_audit_supports_a_raw_ideal_endpoint() -> None:
+    """A future raw metric compares absolute distance from its ideal."""
+    contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
+    payload = contract.continuous_endpoints[0].model_dump(mode="json")
+    payload["desirable_direction"] = "closer-to-ideal-is-better"
+    payload["ideal_value"] = 0.5
+    endpoint = PairedContinuousEndpoint.model_validate(payload)
+
+    audit = audit_planning_standard_deviation(
+        endpoint,
+        candidate_value=0.4,
+        reference_value=0.3,
+        bootstrap_regressions=np.zeros(3),
+        realization_count=200,
+    )
+
+    assert audit.positive_means_candidate_worse == pytest.approx(-0.1)
+
+
+@pytest.mark.parametrize(
+    ("realization_count", "regressions", "message"),
+    (
+        (1, np.zeros(2), "at least two realizations"),
+        (2, np.zeros(1), "at least two resamples"),
+        (2, np.zeros((2, 1)), "at least two resamples"),
+        (2, np.asarray((0.0, np.nan)), "must be finite"),
+    ),
+)
+def test_assumption_audit_rejects_invalid_empirical_samples(
+    realization_count: int,
+    regressions: npt.NDArray[np.float64],
+    message: str,
+) -> None:
+    """A malformed or undersized bootstrap cannot verify a planning bound."""
+    contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
+
+    with pytest.raises(ValueError, match=message):
+        audit_planning_standard_deviation(
+            contract.continuous_endpoints[0],
+            candidate_value=0.0,
+            reference_value=0.0,
+            bootstrap_regressions=regressions,
+            realization_count=realization_count,
+        )
 
 
 def test_power_check_names_an_underpowered_endpoint() -> None:
@@ -158,23 +309,27 @@ def test_protocol_rejects_nonpositive_paired_binary_variance() -> None:
 
 
 @pytest.mark.parametrize(
-    ("endpoint_index", "ideal_value", "expected_message"),
     (
-        (4, None, "requires an ideal value"),
-        (0, 0.0, "cannot define an ideal value"),
+        "desirable_direction",
+        "ideal_value",
+        "expected_message",
+    ),
+    (
+        ("closer-to-ideal-is-better", None, "requires an ideal value"),
+        ("lower-is-better", 0.0, "cannot define an ideal value"),
     ),
 )
 def test_protocol_binds_ideal_values_to_distance_endpoints(
-    endpoint_index: int,
+    desirable_direction: str,
     ideal_value: float | None,
     expected_message: str,
 ) -> None:
     """Only ideal-directed metrics may carry a scientific target value."""
     contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
     payload = contract.model_dump(mode="json")
-    payload["continuous_endpoints"][endpoint_index]["ideal_value"] = (
-        ideal_value
-    )
+    endpoint = payload["continuous_endpoints"][0]
+    endpoint["desirable_direction"] = desirable_direction
+    endpoint["ideal_value"] = ideal_value
 
     with pytest.raises(ValidationError, match=expected_message):
         PairedNoninferiorityContract.model_validate(payload)

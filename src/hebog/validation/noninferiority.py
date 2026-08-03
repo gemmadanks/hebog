@@ -5,9 +5,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from statistics import NormalDist
 
-from hebog.validation.contracts import PairedNoninferiorityContract
+import numpy as np
+import numpy.typing as npt
+
+from hebog.validation.contracts import (
+    PairedBinaryEndpoint,
+    PairedContinuousEndpoint,
+    PairedNoninferiorityContract,
+)
 
 _STANDARD_NORMAL = NormalDist()
+_MINIMUM_SAMPLE_COUNT = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +28,107 @@ class PairedDesignPower:
     interval_exclusion_power: float
     no_worse_point_probability: float
     combined_decision_probability: float
+
+
+@dataclass(frozen=True, slots=True)
+class PairedPlanningAssumptionAudit:
+    """Empirical regression check of one paired design variance bound."""
+
+    endpoint_id: str
+    candidate_value: float
+    reference_value: float
+    positive_means_candidate_worse: float
+    planning_paired_standard_deviation: float
+    observed_paired_standard_deviation: float
+    planning_bound_verified: bool
+
+
+PairedEndpoint = PairedBinaryEndpoint | PairedContinuousEndpoint
+
+
+def planned_paired_standard_deviation(endpoint: PairedEndpoint) -> float:
+    """Return a planning bound on the per-realization paired statistic.
+
+    Binary endpoint inputs are easier to review as discordance, cluster size,
+    and within-image correlation. This conversion expresses their combined
+    implication on the same scale as an empirical whole-image bootstrap.
+    Continuous endpoints already declare that paired standard deviation.
+    """
+    if isinstance(endpoint, PairedContinuousEndpoint):
+        return endpoint.planning_paired_standard_deviation
+    design_effect = 1 + (endpoint.observations_per_realization - 1) * (
+        endpoint.planning_intracluster_correlation
+    )
+    paired_variance = endpoint.planning_discordance_probability - (
+        endpoint.planning_expected_regression**2
+    )
+    return float(
+        (
+            paired_variance
+            * design_effect
+            / endpoint.observations_per_realization
+        )
+        ** 0.5
+    )
+
+
+def _positive_regression(
+    endpoint: PairedEndpoint,
+    *,
+    candidate_value: float,
+    reference_value: float,
+) -> float:
+    """Normalize one endpoint so positive means candidate regression."""
+    if isinstance(endpoint, PairedBinaryEndpoint):
+        if endpoint.desirable_direction == "higher-is-better":
+            return reference_value - candidate_value
+        return candidate_value - reference_value
+    if endpoint.desirable_direction == "lower-is-better":
+        return candidate_value - reference_value
+    assert endpoint.ideal_value is not None
+    return abs(candidate_value - endpoint.ideal_value) - abs(
+        reference_value - endpoint.ideal_value
+    )
+
+
+def audit_planning_standard_deviation(
+    endpoint: PairedEndpoint,
+    *,
+    candidate_value: float,
+    reference_value: float,
+    bootstrap_regressions: npt.NDArray[np.float64],
+    realization_count: int,
+) -> PairedPlanningAssumptionAudit:
+    """Compare a bootstrap-equivalent paired SD with its planning bound.
+
+    The bootstrap samples whole images and recomputes the aggregate endpoint.
+    Its standard error is multiplied by the square root of the independent
+    realization count to recover the per-realization scale used for design
+    power. This avoids inventing candidate-to-candidate identities for
+    catalogue reliability and remains valid for nonlinear aggregate metrics.
+    """
+    if realization_count < _MINIMUM_SAMPLE_COUNT:
+        raise ValueError("assumption audit requires at least two realizations")
+    regressions = np.asarray(bootstrap_regressions, dtype=np.float64)
+    if regressions.ndim != 1 or regressions.size < _MINIMUM_SAMPLE_COUNT:
+        raise ValueError("assumption audit requires at least two resamples")
+    if not np.all(np.isfinite(regressions)):
+        raise ValueError("bootstrap regressions must be finite")
+    observed = float(np.std(regressions, ddof=1) * realization_count**0.5)
+    planned = planned_paired_standard_deviation(endpoint)
+    return PairedPlanningAssumptionAudit(
+        endpoint_id=endpoint.endpoint_id,
+        candidate_value=candidate_value,
+        reference_value=reference_value,
+        positive_means_candidate_worse=_positive_regression(
+            endpoint,
+            candidate_value=candidate_value,
+            reference_value=reference_value,
+        ),
+        planning_paired_standard_deviation=planned,
+        observed_paired_standard_deviation=observed,
+        planning_bound_verified=observed <= planned,
+    )
 
 
 def _decision_probabilities(

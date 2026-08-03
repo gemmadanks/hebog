@@ -1659,11 +1659,20 @@ before maintaining a custom fitter.
          intersection-union passage, retained failures, and one final look.
          It explicitly separates interval-exclusion power from the stricter
          directional point-estimate condition.
-   - [ ] Verify every planning discordance, within-image correlation, and
-         paired-dispersion bound on independent development/regression data;
-         obtain named review of the endpoints, practical margins, 600-image
-         design, multiplicity rule, and stopping rule; then change the
-         protocol status to reviewed before freezing any final seeds or truth.
+   - [x] Verify every planning variance bound on independent
+         development/regression data. The maintained 50,000-resample audit
+         recomputes every endpoint by whole image and verifies the combined
+         paired dispersion directly; this avoids inventing false-candidate
+         identities where discordance and intracluster correlation are not
+         separately identifiable. The revised draft rounds failed bounds
+         above observed dispersion, uses at most half the observed favourable
+         effect, changes no scientific margin, and retains 92.2% minimum
+         interval-exclusion power at 600 images.
+   - [ ] Obtain named review of the endpoints, practical margins,
+         regression-supported planning inputs, 600-image design,
+         multiplicity rule, stopping rule, five-sigma extension policy, and
+         stricter no-worse point-estimate condition; then change the protocol
+         status to reviewed before freezing any final seeds or truth.
 
      The structurally representative planning population is now governed by
      `phase-4-paired-regression.json`: 200 disjoint noise seeds, 33 observable
@@ -1693,6 +1702,15 @@ before maintaining a custom fitter.
      Do not tune a new threshold to this near-SNR-5 noise tail. Complete the
      maintained planning-assumption audit and obtain named review of the
      stricter directional rule before final-population freeze.
+
+     The maintained audit is now complete. All 20 revised variance bounds
+     pass across 50,000 whole-image resamples and the weakest planned power
+     remains 92.2%. Catalogue reliability is worse by only 0.0151 percentage
+     points with a 0.1808-point upper bound inside its 0.5-point margin.
+     Median unresolved-blend position is worse by 0.00279 beam with a
+     0.00682-beam upper bound inside its 0.01-beam margin, while its tail and
+     both flux endpoints are materially better. Named review must decide the
+     strict directional rule before any final population is frozen.
 
    - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
          and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
@@ -1756,9 +1774,10 @@ before maintaining a custom fitter.
       and the
       [paired non-inferiority review guide](../docs/reference/phase-4-paired-noninferiority.md).
       The weakest provisional interval-exclusion power at 600 realizations is
-      92.2%. The planning variance assumptions have not yet been verified on
-      independent paired development/regression evidence, so the draft is not
-      approval to generate or inspect a final population.
+      92.2%. The planning variance assumptions are now verified on independent
+      paired development/regression evidence, but the draft still requires
+      named review and is not approval to generate or inspect a final
+      population.
    3. Keep every existing absolute community-science gate and every stronger
       Hebog result. In particular, do not trade away Hebog's complete group
       recovery, uncertainty availability, calibrated position and peak-flux
@@ -1796,7 +1815,8 @@ before maintaining a custom fitter.
       refreshed complete paired run confirms that no stronger Hebog error
       envelope regressed. The remaining work is the maintained planning-
       assumption audit and named review, not another scientific threshold
-      change.
+      change. The audit now passes; named review is the remaining scientific
+      prerequisite.
    5. Require the complete analytic, property, powered regression,
       serial/Dask, exact-fixture, Rapthor-decision, and coverage lanes to pass
       before named approval opens the final campaign exactly once. The final
