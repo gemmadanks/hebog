@@ -181,8 +181,9 @@ fit-centre bounds to the sampled image footprint, while retaining the normal
 context margin inside that footprint, raises the same frozen regression to
 250/250 without changing detection thresholds, uncertainty formulae, or the
 third campaign. The complete corrected 4,800-match regression and both exact
-PyBDSF catalogue comparisons pass. Named review of these two corrections is
-still required.
+PyBDSF catalogue comparisons pass. Gemma Danks approved both corrections on
+2026-08-03 before any third-campaign output was generated or inspected; both
+contracts are now reviewed-provisional.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run because the closure order puts scientific qualification first and
@@ -221,9 +222,9 @@ Phase 4 can be declared passed only after all of the following occur in order:
    and uncertainty-calibration reports.
 4. [x] The post-failure extension-classification amendment receives named
    human review after independent regression passes.
-5. [ ] The marginal-flux population clarification and image-footprint
+5. [x] The marginal-flux population clarification and image-footprint
    correction receive named review after their complete development and
-   regression lanes pass.
+   regression lanes pass. Gemma Danks approved both on 2026-08-03.
 6. [ ] The third frozen unseen held-out qualification campaign passes every
    reviewed gate without post-inspection tuning. Both earlier powered
    campaigns failed on 2026-08-03 and are retained as known evidence.

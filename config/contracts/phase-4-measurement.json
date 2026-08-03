@@ -82,5 +82,5 @@
     "invalid_pixels": "excluded-from-membership-and-measurement",
     "measurement_plane": "background-subtracted-primary-beam-corrected"
   },
-  "status": "frozen-provisional"
+  "status": "reviewed-provisional"
 }

@@ -98,12 +98,12 @@ metric and integrated flux for point and clearly resolved sources. A separate
 edge/SNR-10 regression exposed three centroids leaving the image footprint;
 constraining fit centres to sampled image bounds raised uncertainty
 availability from 247/250 to 250/250. The third 200-realization campaign was
-frozen before these corrections and remains unopened pending named review.
+frozen before these corrections. Gemma Danks approved both amendments on
+2026-08-03, and the campaign remained unopened through that approval.
 
 The remaining work includes:
 
-- completing named review of the regression-supported compact-flux and edge
-  corrections, then qualifying once on the third frozen unseen campaign;
+- qualifying once on the third frozen unseen campaign;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;

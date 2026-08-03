@@ -1664,10 +1664,10 @@ before maintaining a custom fitter.
    bottom-edge fits whose centroids left the image footprint. Constraining fit
    centres to the sampled footprint, without reducing the normal interior
    context margin, makes the same test pass 250/250. The full powered
-   regression, exact references, and normal handoff suite must pass before
-   named review. After that review, promote both contracts in a separate
-   approval commit, open the third campaign once, and proceed to controlled
-   performance only if every scientific gate passes.
+   regression, exact references, and normal handoff suite passed. Gemma Danks
+   approved both amendments on 2026-08-03 before third-campaign inspection,
+   and both contracts are reviewed-provisional. Open the third campaign once,
+   and proceed to controlled performance only if every scientific gate passes.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

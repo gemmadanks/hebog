@@ -650,7 +650,7 @@ guard prevents accidental qualification. A corrective policy must be selected
 only from analytic and development/regression evidence and receive named review
 before either contract is promoted again.
 
-## Third-campaign amendment awaiting review
+## Third-campaign amendment approval
 
 The powered development runner was extended before the third campaign was
 opened. It reproduced the catastrophic-tail issue independently: 283 of 4,800
@@ -702,7 +702,11 @@ opened, the reviewer must decide whether to approve:
    regression as the correction for the second campaign's availability
    failure.
 
-- **Reviewer:** Pending
-- **Role or scientific authority:** Pending
-- **Review date:** Pending
-- **Decision:** Pending
+- **Reviewer:** Gemma Danks
+- **Role or scientific authority:** Data Processing Software Engineer
+- **Review date:** 2026-08-03
+- **Decision:** Approved both decisions without amendment
+
+Both contracts are now **reviewed-provisional**. This approval was recorded
+before any third-campaign image, fit, catalogue, comparison, or result was
+generated or inspected.

@@ -3248,3 +3248,24 @@ and compatibility serialization
 - The third campaign remains unchanged and unopened. Both contracts remain
   `frozen-provisional`; named review is required after the complete regression
   and handoff suites pass.
+
+## 2026-08-03 — Approved the third Phase 4 amendment
+
+**Plan phase:** Phase 4 scientific closure — named review
+
+- Gemma Danks, Data Processing Software Engineer, approved both proposed
+  decisions without amendment: marginal-resolved integrated-flux catastrophic
+  rate is report-only while all other declared catastrophic comparisons stay
+  gated; and fitted centroids must remain inside the sampled image footprint.
+- Promoted the Phase 4 measurement and scientific-gate contracts from
+  `frozen-provisional` to `reviewed-provisional` only after the complete
+  development/regression, exact-reference, coverage, and handoff evidence had
+  passed.
+- No third-campaign image, fit, catalogue, comparison, or result had been
+  generated or inspected when this approval was recorded.
+
+**Next**
+
+- Commit this approval boundary, then open the third frozen campaign exactly
+  once. Proceed to controlled performance qualification only if every
+  scientific gate passes.
