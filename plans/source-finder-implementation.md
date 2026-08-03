@@ -1221,11 +1221,11 @@ owned-pixel moment oracle, explicit availability outcomes, and serial/Dask
 record equivalence. Step 4 was completed on 2026-08-02 with a bounded fit-all
 SciPy reference, independent Astropy agreement, typed failure outcomes, and
 serial/Dask equality. Step 5 now has celestial transformation, beam
-deconvolution, and explicit uncertainty-availability semantics. Formal
-position and flux errors remain uncalibrated until the frozen Monte Carlo
-qualification gate is resolved. Steps 6 and 7 now construct bounded canonical
-catalogue shards, materialise the minimal Rapthor FITS view, and pass both
-exact compact PyBDSF references. The generated close-pair regression exposed
+deconvolution, correlated-noise sandwich covariance, and explicit
+uncertainty-availability semantics. Steps 6 and 7 now construct bounded
+canonical catalogue shards, materialise the minimal Rapthor FITS view, and
+pass both exact compact PyBDSF references. The generated close-pair regression
+exposed
 a scientific-contract blocker: three sub-beam pairs have only one observable
 image maximum, so the reviewed one-region/one-source rule cannot satisfy the
 declared seven-source completeness gate. Gemma Danks approved the
@@ -1241,7 +1241,23 @@ for one 12-SNR source. Provisional unresolved-group margins and an
 SNR-stratified confidence-interval decision rule now require named numerical
 review before qualification inspection. Gemma Danks approved those numerical
 and statistical amendments on 2026-08-03; regression and calibration
-implementation now precede the first held-out run.
+implementation now precede the first held-out run. Generator-v3
+beam-correlated noise, generalized sandwich covariance, and a bounded
+residual-background context fit now pass the powered regression campaign.
+Each SNR stratum contains 1,600 eligible measurements across the same 200
+predeclared noise realizations.
+
+The first and only inspection of the powered held-out campaign was run on
+2026-08-03 after regression passed. Completeness, overall reliability,
+measurement availability, position calibration, and most flux calibration
+gates passed. The campaign nevertheless failed the reviewed classification,
+catastrophic-outlier, and four normalized-mean gates. No parameter, population,
+seed, or margin was changed after inspection. Phase 4 is scientifically
+blocked; its performance qualification is deferred because the closure order
+does not benchmark a known-ineligible scientific implementation. Preserve the
+failed campaign as governed evidence, freeze a new unseen campaign before any
+corrective implementation work, and obtain review for the unresolved-group
+reliability denominator and any revised boundary-classification policy.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1409,16 +1425,19 @@ before maintaining a custom fitter.
          the fit; runtime evidence alone cannot justify biased selection.
 
    The accepted reference uses SciPy's bounded TRF `least_squares` solver on
-   RMS-weighted physical residuals. Astropy `Gaussian2D` with its TRF fitter
+   RMS-weighted physical residuals plus a bounded local residual-background
+   offset. Astropy `Gaussian2D` with its TRF fitter
    independently recovers the same analytic parameters; SciPy keeps the
    production boundary smaller while directly exposing the residual Jacobian,
    bounds, work limit, and diagnostics. Fits remain inside existing coarse
    region tasks, so task count scales with admitted batches rather than
    sources. Every eligible compact region is fitted: no selective fast path
    is proposed because no complete-stage scientific and runtime evidence yet
-   justifies one. Formal independent-pixel covariance is retained as
-   explicitly uncalibrated evidence, and singular covariance is absent rather
-   than zero. Component RMS is bilinearly sampled at the fitted centroid.
+   justifies one. A declared Gaussian pixel-noise correlation function uses a
+   generalized OLS sandwich covariance; independent-pixel covariance is a
+   flagged fallback when no correlation model is available. Singular
+   covariance is absent rather than zero. Component RMS is bilinearly sampled
+   at the fitted centroid in the retained context coordinate frame.
 
 5. **Transform positions and ellipses, deconvolve the beam, and calibrate
    uncertainties.**
@@ -1434,7 +1453,7 @@ before maintaining a custom fitter.
          `radio_beam` package before maintaining domain-specific edge handling;
          add it only if the correctness and maintenance benefit justifies the
          dependency.
-   - [ ] Treat Condon-style correlated-noise error propagation as a baseline,
+   - [x] Treat Condon-style correlated-noise error propagation as a baseline,
          not automatically calibrated truth. Compare candidate covariance or
          Fisher-information calculations with injected Monte Carlo truth and
          the Aegean 2.0 findings, using normalized residuals and coverage
@@ -1452,10 +1471,12 @@ before maintaining a custom fitter.
    unresolved results remain null internally, with the marginal state carrying
    an additional diagnostic flag. `radio_beam` was evaluated but not added:
    Hebog's reviewed three-state policy still requires explicit logic and direct
-   NumPy covariance subtraction keeps the boundary smaller. Formal
-   independent-pixel position and flux errors are transformed when available;
-   shape errors and singular/uncalibrated values are null with quality flags.
-   The Monte Carlo calibration bullet remains open.
+   NumPy covariance subtraction keeps the boundary smaller. Correlated-noise
+   sandwich position and flux errors are transformed when available; shape
+   errors and singular/uncalibrated values are null with quality flags.
+   Powered regression calibration passes, but the first held-out campaign
+   fails four normalized-mean gates, so qualified uncertainty calibration
+   remains an open Phase 4 exit condition.
 
 6. **Associate records and construct deterministic bounded catalogues.**
 
@@ -1562,18 +1583,21 @@ before maintaining a custom fitter.
    Local structural evidence is complete: retained image work is bounded by
    admitted coarse-batch pixels, task count is one per batch rather than per
    source, final compact assembly has an explicit record cap, and shard
-   reduction has pairwise fan-in and logarithmic depth. The scientific
-   qualification and controlled benchmark bullets remain open. The
+   reduction has pairwise fan-in and logarithmic depth. The first held-out
+   scientific qualification failed, and the controlled benchmark bullets
+   remain open. The
    [Phase 4 release-readiness record](../docs/reference/phase-4-release-readiness.md)
    therefore records a **not ready** decision rather than declaring the phase
    passed.
 
-   Complete the remaining bullets in this order: (1) development/regression
-   association and correlated-noise uncertainty calibration; (2) first
-   inspection of the replacement held-out qualification result; and (3)
-   controlled performance qualification. The affected truth
-   groups, recipes, checksums, and gates are already frozen. Do not inspect
-   held-out output before regression and calibration implementation passes.
+   Development/regression association and correlated-noise uncertainty
+   calibration pass. The first powered held-out qualification run failed and
+   is now known evidence. Complete recovery in this order: (1) review the
+   failed result and freeze a new unseen campaign; (2) correct the scientific
+   model using development/regression evidence, without tuning to the known
+   campaign; (3) pass the new held-out campaign; and (4) run controlled
+   performance qualification. Do not describe the known failed campaign as
+   unseen or use it to select parameters.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

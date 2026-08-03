@@ -2892,3 +2892,101 @@ and compatibility serialization
 
 - Implement and pass the regression/calibration report before opening the
   replacement held-out qualification campaign.
+
+## 2026-08-03 — Passed powered correlated-noise regression calibration
+
+**Plan phase:** Phase 4 scientific closure — pre-qualification evidence
+
+**Implemented**
+
+- Added generator-v3 beam-shaped Gaussian-correlated noise with exact bounded
+  window and partition invariance while preserving version-1/version-2 recipe
+  checksums.
+- Replaced independent-pixel error scaling with a generalized OLS sandwich
+  covariance using the declared pixel-noise correlation function.
+- Added an eight-pixel bounded context around compact fit regions and a
+  bounded local residual-background nuisance parameter. Exact region labels
+  still own moments; context pixels affect only the nonlinear fit.
+- Implemented deterministic Student-*t*, Wilson-score, and fixed-seed SciPy
+  BCa intervals plus the reviewed entire-interval decision rule.
+
+**Regression evidence**
+
+- The original 200-sample strata had acceptable normalized-residual point
+  estimates but insufficient power for the approved 95% entire-interval rule.
+  No seed was removed or selected.
+- Expanded the regression source population across independent positions and
+  shapes while retaining all 200 predeclared noise realizations. Every SNR
+  stratum now contains 1,600 eligible measurements.
+- The powered regression passed all position, peak-flux, integrated-flux,
+  availability, normalized-bias, one-sigma-coverage, and dispersion gates in
+  233.38 seconds on the local development host.
+- Normal generated association/measurement regression remained green: two
+  cases passed in 3.43 seconds. Dataset validation remained green: 52 tests
+  passed.
+
+**Held-out boundary**
+
+- Replaced the still-unopened qualification definition with
+  `phase4-unseen-powered-correlated-measurement-qualification-512`, base seed
+  `2026085001`, and recipe SHA-256
+  `4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6`.
+- It retains the 200 predeclared realization seeds and supplies at least 1,600
+  eligible measurements in every SNR, shape, and edge stratum. The
+  unresolved-group absolute-metric stratum retains 200 samples.
+- No qualification image, fit, catalogue, report, or pass/fail result was
+  generated or inspected before the regression campaign passed.
+
+**Next**
+
+- Run the first powered held-out qualification once, persist its complete
+  machine-readable report, and do not tune against the result.
+
+## 2026-08-03 — Recorded the failed powered held-out qualification
+
+**Plan phase:** Phase 4 scientific closure — held-out qualification
+
+**Validation order**
+
+- Fixed local-RMS sampling to use the retained fit-context coordinate frame
+  before opening held-out output and added a focused regression test.
+- Re-ran the complete powered correlated-noise regression after that fix: one
+  campaign passed in 295.54 seconds across all 200 predeclared realizations.
+- Ran the powered held-out campaign once. It completed in 479.84 seconds and
+  wrote its complete machine-readable report under the ignored
+  `benchmark-results/` evidence directory before applying gate decisions.
+
+**Held-out result**
+
+- Recovered 6,586 of 6,600 observable truth groups from 6,607 candidates:
+  99.79% completeness and 99.68% overall reliability, both passing.
+- Fitted-shape and classification availability were 99.78%; resolved-shape
+  availability was 100%.
+- Resolved/unresolved classification agreement was 73.57%, below the frozen
+  95% minimum.
+- Fifty of 6,386 matched individual rows were catastrophic outliers: 0.783%,
+  above the frozen 0.5% maximum.
+- Four 95% normalized-mean intervals failed the entire-interval rule:
+  SNR-10 integrated flux (0.141 to 0.243), SNR-25 peak flux (0.061 to 0.161),
+  unresolved-shape integrated flux (0.098 to 0.197), and edge integrated flux
+  (0.113 to 0.214).
+- The run exposed an under-specified unresolved-group reliability denominator.
+  The conservative provisional calculation was 90.50%, but it assigns every
+  unmatched candidate to the unresolved population even when the candidate is
+  nearer an individually resolvable group. This is recorded as a contract
+  issue rather than silently redefined after inspection.
+
+**Decision**
+
+- Phase 4 remains **not ready**. No parameter, threshold, seed, population, or
+  margin was changed after inspection, and the failed campaign is preserved as
+  known evidence rather than reused as unseen qualification data.
+- Controlled performance qualification is deferred because the documented
+  closure order requires a scientifically eligible implementation first.
+
+**Next**
+
+- Freeze a new unseen campaign before corrective scientific work, obtain named
+  review of the reliability denominator and any boundary-classification
+  amendment, correct against development/regression evidence, then qualify on
+  the new held-out campaign before running the Phase 4 performance matrix.

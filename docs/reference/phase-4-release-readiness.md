@@ -6,10 +6,10 @@ passed. It must not be released as a completed phase, described as full
 PyBDSF equivalence, or used as Rapthor's default backend.
 
 This record deliberately distinguishes implemented capability from qualified
-capability. The frozen regression matrix exposed an inconsistency in the
-reviewed close-blend contract before the unseen qualification output was
-opened. Preserving that held-out boundary is more important than declaring a
-premature pass.
+capability. The close-blend contract was corrected and powered regression
+passes, but the first subsequently opened held-out campaign failed several
+frozen scientific gates. Preserving that result without post-inspection tuning
+is more important than declaring a premature pass.
 
 ## Implemented capability
 
@@ -90,25 +90,41 @@ it materially changes the provisional association contract. The truth schema
 must then carry explicit association-group identities rather than inferring
 them from a flat Gaussian list.
 
-## Evidence not yet eligible to run
+## First powered qualification result
 
-The replacement Phase 4 qualification recipe and explicit truth-group
-definitions are frozen under manifest schema 2. Its output has not been
-generated or inspected. Development-only regression exposed an additional
-validation issue: flat absolute tail limits treat expected low-SNR noise
-scatter as systematic error. Gemma Danks approved the replacement group
-margins and SNR-stratified noisy-source decision rule on 2026-08-03. The
-regression and calibration implementation must pass before the first
-qualification run.
+The powered replacement Phase 4 qualification recipe and explicit truth-group
+definitions were frozen under manifest schema 2 before inspection. Gemma
+Danks approved the replacement group margins and SNR-stratified noisy-source
+decision rule on 2026-08-03. The amended regression passed, after which the
+first and only held-out run was performed.
 
-Formal independent-pixel fit covariance is implemented but is explicitly
-uncalibrated for synthesized-beam-correlated noise. Position and flux
-uncertainty strata still require at least 200 eligible measurements and the
-predeclared Wilson, Student-*t*, and fixed-seed BCa confidence-interval gates.
+Generator-v3 qualification noise uses the restoring-beam Gaussian correlation
+function. Fits use bounded background context and a generalized OLS sandwich
+covariance rather than treating pixels as independent. The powered regression
+provides 1,600 eligible measurements per SNR stratum and passes the predeclared
+Wilson, Student-*t*, and fixed-seed BCa entire-interval gates. The qualification
+recipe supplied the same minimum power across SNR, shape, and edge strata.
 Shape uncertainty remains report-only.
 
+The held-out campaign did not pass. It achieved 99.79% completeness and 99.68%
+overall reliability, but resolved/unresolved classification agreement was
+73.57% against a 95% minimum and its catastrophic matched-row rate was 0.783%
+against a 0.5% maximum. Normalized-mean intervals failed for SNR-10 integrated
+flux, SNR-25 peak flux, unresolved-shape integrated flux, and edge integrated
+flux. The runner also revealed that the unresolved-group reliability
+denominator was not frozen precisely enough to separate false candidates near
+individual groups. The exact result and intervals are recorded in the
+[scientific review record](phase-4-review-record.md).
+
+No post-inspection tuning was performed. This dataset is now known evidence,
+not an unseen qualification population. A new unseen campaign and named review
+of the ambiguous denominator and boundary-classification policy must precede
+corrective implementation work.
+
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
-not been run. The 3,000-square incremental compact measurement/fitting median
+not been run because the closure order puts scientific qualification first and
+the known implementation is not release-eligible. The 3,000-square incremental
+compact measurement/fitting median
 must remain within 2.0 seconds and catalogue/materialisation within the shared
 2.0-second allocation. Evidence must include sparse, normal, dense,
 blend-heavy, and fit-failure workloads and compare affected tiers with the
@@ -138,10 +154,11 @@ Phase 4 can be declared passed only after all of the following occur in order:
    [Phase 4 scientific review record](phase-4-review-record.md).
 2. [x] The regression and untouched qualification truth schemas, recipes,
    checksums, and gates are replaced consistently before held-out inspection.
-3. [ ] Development and regression science passes, including association-group and
-   uncertainty-calibration reports.
-4. [ ] The replacement held-out qualification campaign passes every reviewed
-   gate without post-inspection tuning.
+3. [x] Development and regression science passes, including association-group
+   and uncertainty-calibration reports.
+4. [ ] A newly frozen unseen held-out qualification campaign passes every
+   reviewed gate without post-inspection tuning. The first powered campaign
+   failed on 2026-08-03 and is retained as known evidence.
 5. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.

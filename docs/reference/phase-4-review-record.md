@@ -373,3 +373,88 @@ This approval promotes the unresolved-group margins to
 `reviewed-provisional`, freezes the noisy-source decision rule, and permits
 the replacement held-out campaign to be inspected after the regression and
 calibration implementation passes.
+
+## Pre-qualification correlation and power correction
+
+Implementation of the approved calibration rule found two defects before any
+held-out result was generated:
+
+- generator version 2 produced independent pixels even though this review
+  explicitly requires synthesized-beam-correlated noise; and
+- a 200-sample stratum has little probability of placing a 95% Student-*t*
+  interval wholly inside the approved ±0.15 normalized-bias margin, even when
+  the estimator's true bias is acceptable.
+
+Generator version 3 now declares the restoring-beam-shaped Gaussian
+correlation function, preserves exact window/partition invariance, and leaves
+all version-1 and version-2 checksums unchanged. The compact fit uses a
+generalized OLS sandwich covariance for that correlation and a bounded local
+residual-background nuisance term fitted from eight context pixels beyond the
+detection-selected island bounds. Moment photometry and exact region ownership
+are unchanged.
+
+The regression population was expanded across independent positions and
+source shapes while retaining its original 200 frozen noise realizations. It
+now supplies 1,600 eligible measurements in each declared SNR stratum and
+passes every reviewed Wilson, Student-*t*, and fixed-seed BCa gate. This is a
+power correction, not seed selection or a numerical-margin change.
+
+The still-unopened qualification definition is consequently replaced by
+`phase4-unseen-powered-correlated-measurement-qualification-512`, base seed
+`2026085001`, and recipe SHA-256
+`4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6`.
+It retains the same 200 predeclared realization seeds, provides at least 1,600
+eligible samples in every SNR, shape, and edge stratum, and retains 200
+unresolved-group samples for the separately approved absolute group metrics.
+No qualification image, fit, catalogue, report, or pass/fail result was
+generated or inspected while making this correction. The reviewed methods,
+margins, minimum sample count, reviewer identity, and approval are unchanged.
+
+## First powered held-out qualification outcome
+
+The first and only inspection of the powered qualification campaign ran on
+2026-08-03, after the final powered regression passed. The dataset identity,
+200 realization seeds, checksum, source populations, interval methods, and
+gate values were unchanged between approval and inspection. The complete
+machine-readable report was written before the test decision; it remains in
+the ignored `benchmark-results/` evidence area rather than becoming generated
+source truth.
+
+The campaign recovered 6,586 of 6,600 declared observable groups from 6,607
+candidates. Completeness was 99.79% and overall reliability was 99.68%, both
+above the reviewed 99% limits. Fitted-shape and classification availability
+were 99.78%; resolved-shape availability was 100%. Position uncertainty passed
+in every declared stratum, as did most peak- and integrated-flux calibration
+comparisons.
+
+The campaign did not pass as a whole:
+
+- resolved/unresolved classification agreement was 73.57%, below 95%;
+- 50 of 6,386 matched individual rows were catastrophic outliers, or 0.783%,
+  above the 0.5% maximum;
+- the SNR-10 integrated-flux normalized mean was 0.192 with a 95% interval of
+  0.141 to 0.243;
+- the SNR-25 peak-flux normalized mean was 0.111 with a 95% interval of 0.061
+  to 0.161;
+- the unresolved-shape integrated-flux normalized mean was 0.147 with a 95%
+  interval of 0.098 to 0.197; and
+- the edge integrated-flux normalized mean was 0.164 with a 95% interval of
+  0.113 to 0.214.
+
+The reviewed entire-interval rule requires every mean interval to remain
+inside -0.15 to 0.15. The last four results therefore fail even where the
+point estimate itself is inside the margin. The initial runner also exposed
+that the denominator for unresolved-group reliability was not defined tightly
+enough before inspection: conservatively assigning every unmatched candidate
+to that population gives 90.50%, but this mixes false detections near
+individually resolvable groups into the unresolved-group denominator. That
+metric is recorded as an unresolved validation-contract issue, not silently
+reinterpreted after seeing the result.
+
+No fit bound, background context, covariance calculation, classification
+threshold, seed, population, or scientific margin was changed after this
+inspection. This campaign is now known evidence and must not be called unseen
+or used to select parameters. Phase 4 remains **not ready**. Before corrective
+implementation work, freeze a new unseen qualification campaign and obtain a
+named review of the reliability denominator and any revised treatment of
+near-boundary resolved/unresolved classification.
