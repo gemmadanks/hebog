@@ -796,3 +796,25 @@ review before that population is frozen. Non-claim profiling may proceed in
 parallel, but final Phase 4 performance qualification follows the scientific
 pass. After Phase 4 closes, bounded-memory and distributed scalability of the
 qualified compact path becomes the next active engineering focus.
+
+## Draft paired-protocol record — awaiting review
+
+The recovery protocol is now expressed as a strict version-one contract and a
+human-readable [paired non-inferiority review
+guide](phase-4-paired-noninferiority.md). It proposes 600 independent
+noise-seed images, one-sided 95% paired whole-image BCa intervals, 50,000
+fixed-seed resamples, positive-as-worse metric normalization, all-endpoint
+intersection-union passage, and an additional no-worse point-estimate
+condition. Released PyBDSF is primary; a failure by it or Hebog fails primary
+qualification, while pinned-`master` failure remains visible in a secondary
+report.
+
+The executable normal approximation gives at least 92.2% power to exclude the
+proposed practical regression margin for every endpoint under its planning
+assumptions. It separately reports that a no-worse point estimate has only 50%
+probability under exact equality; the draft therefore makes no misleading 90%
+overall-pass claim. The proposed margins, variance assumptions, endpoint split,
+sample size, and stricter directional condition have **not** received named
+approval. The variance assumptions must first be verified on independent
+paired development/regression evidence. No final seed, truth, or result has
+been generated or inspected.

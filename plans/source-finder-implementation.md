@@ -1643,6 +1643,20 @@ before maintaining a custom fitter.
    protocol drift. The final Hebog candidate shard remains deliberately
    unopened until the paired protocol and final population receive named
    review.
+
+   - [x] Draft a strict paired non-inferiority contract and executable power
+         calculation for named review. The draft proposes 600 independent
+         image realizations, whole-image paired BCa resampling, one-sided 95%
+         intervals, a no-worse point estimate, all-endpoint
+         intersection-union passage, retained failures, and one final look.
+         It explicitly separates interval-exclusion power from the stricter
+         directional point-estimate condition.
+   - [ ] Verify every planning discordance, within-image correlation, and
+         paired-dispersion bound on independent development/regression data;
+         obtain named review of the endpoints, practical margins, 600-image
+         design, multiplicity rule, and stopping rule; then change the
+         protocol status to reviewed before freezing any final seeds or truth.
+
    - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
          and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
          and fit-failure workloads. Record setup, bounded reads, moments,
@@ -1698,6 +1712,16 @@ before maintaining a custom fitter.
       Pinned `master` remains a second anchor wherever it completes; its
       runtime failure is a reference robustness failure, not permission to
       weaken Hebog.
+
+      A machine-readable draft and executable normal-approximation power
+      calculation now live in
+      [`phase-4-paired-noninferiority.json`](../config/contracts/phase-4-paired-noninferiority.json)
+      and the
+      [paired non-inferiority review guide](../docs/reference/phase-4-paired-noninferiority.md).
+      The weakest provisional interval-exclusion power at 600 realizations is
+      92.2%. The planning variance assumptions have not yet been verified on
+      independent paired development/regression evidence, so the draft is not
+      approval to generate or inspect a final population.
    3. Keep every existing absolute community-science gate and every stronger
       Hebog result. In particular, do not trade away Hebog's complete group
       recovery, uncertainty availability, calibrated position and peak-flux

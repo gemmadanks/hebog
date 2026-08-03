@@ -18,6 +18,7 @@ _MINIMUM_MATRIX_SIZE = 256
 _MAXIMUM_MATRIX_SIZE = 100_000
 _DASK_MEMORY_THRESHOLD_COUNT = 4
 _PHASE_FOUR_ANALYTIC_FAILURE_CASE_COUNT = 6
+_PAIRED_CONFIDENCE_LEVEL = 0.95
 
 
 class _ContractModel(BaseModel):
@@ -647,6 +648,174 @@ class PhaseFourScientificGates(_ContractModel):
     catastrophic_outlier: PhaseFourOutlierDefinition
 
 
+class PairedResamplingProtocol(_ContractModel):
+    """Predeclared interval construction for same-image comparisons."""
+
+    method: Literal["scipy-bca-bootstrap"]
+    resampling_unit: Literal["noise-seed-image"]
+    paired: Literal[True]
+    confidence_level: float = Field(gt=0, lt=1)
+    alternative: Literal["less"]
+    resamples: int = Field(ge=10_000)
+    seed: int = Field(ge=0)
+    degenerate_interval: Literal["indeterminate-fail"]
+
+
+class PairedDecisionRule(_ContractModel):
+    """Fail-closed decision rule for the final Phase 4 campaign."""
+
+    regression_sign: Literal["positive-means-hebog-is-worse"]
+    combination_rule: Literal["intersection-union-all-coprimary"]
+    power_target_applies_to: Literal["interval-exclusion"]
+    require_no_worse_point_estimate: Literal[True]
+    require_upper_interval_within_margin: Literal[True]
+    require_every_absolute_gate: Literal[True]
+    require_stronger_hebog_regression_envelopes: Literal[True]
+    multiplicity_adjustment: Literal[
+        "none-intersection-union-controls-type-one-error"
+    ]
+
+
+class PairedReferenceFailurePolicy(_ContractModel):
+    """Treatment of implementation failures without denominator deletion."""
+
+    primary: Literal["qualification-fails"]
+    secondary: Literal["record-and-continue"]
+    candidate: Literal["qualification-fails"]
+    failed_realization_denominator: Literal["retained"]
+
+
+class PairedBinaryEndpoint(_ContractModel):
+    """Design assumptions for a paired binary or rate endpoint."""
+
+    endpoint_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    population: str = Field(min_length=1)
+    desirable_direction: Literal["higher-is-better", "lower-is-better"]
+    practical_regression_margin: float = Field(gt=0, lt=1)
+    planning_expected_regression: float
+    observations_per_realization: int = Field(ge=1)
+    planning_discordance_probability: float = Field(gt=0, lt=1)
+    planning_intracluster_correlation: float = Field(ge=0, lt=1)
+    assumption_verification: Literal[
+        "required-on-independent-development-regression"
+    ]
+
+    @model_validator(mode="after")
+    def validate_planning_alternative(self) -> Self:
+        """Require an identifiable alternative inside the NI margin."""
+        if (
+            self.planning_expected_regression
+            >= self.practical_regression_margin
+        ):
+            raise ValueError(
+                "planning regression must be smaller than its practical margin"
+            )
+        if self.planning_discordance_probability <= (
+            self.planning_expected_regression**2
+        ):
+            raise ValueError(
+                "planning discordance must imply positive paired variance"
+            )
+        return self
+
+
+class PairedContinuousEndpoint(_ContractModel):
+    """Design assumptions for a realization-level paired statistic."""
+
+    endpoint_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    population: str = Field(min_length=1)
+    desirable_direction: Literal[
+        "lower-is-better", "closer-to-ideal-is-better"
+    ]
+    ideal_value: float | None = None
+    practical_regression_margin: float = Field(gt=0)
+    planning_expected_regression: float
+    planning_paired_standard_deviation: float = Field(gt=0)
+    assumption_verification: Literal[
+        "required-on-independent-development-regression"
+    ]
+
+    @model_validator(mode="after")
+    def validate_endpoint(self) -> Self:
+        """Bind ideal-distance metrics and an attainable alternative."""
+        if (
+            self.desirable_direction == "closer-to-ideal-is-better"
+            and self.ideal_value is None
+        ):
+            raise ValueError("ideal-directed endpoint requires an ideal value")
+        if (
+            self.desirable_direction != "closer-to-ideal-is-better"
+            and self.ideal_value is not None
+        ):
+            raise ValueError(
+                "one-direction endpoint cannot define an ideal value"
+            )
+        if (
+            self.planning_expected_regression
+            >= self.practical_regression_margin
+        ):
+            raise ValueError(
+                "planning regression must be smaller than its practical margin"
+            )
+        return self
+
+
+class PairedNoninferiorityContract(_ContractModel):
+    """Draft same-image comparison and power contract for Phase 4 closure."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-4-paired-noninferiority"]
+    status: Literal["draft-provisional", "reviewed"]
+    primary_reference: Literal["released-pybdsf-used-by-rapthor"]
+    secondary_reference: Literal["pinned-pybdsf-master"]
+    realization_count: int = Field(ge=1)
+    minimum_interval_exclusion_power: float = Field(gt=0, lt=1)
+    resampling: PairedResamplingProtocol
+    decision: PairedDecisionRule
+    reference_failures: PairedReferenceFailurePolicy
+    population_freeze: Literal[
+        "review-before-seeds-truth-generator-and-revisions-are-frozen"
+    ]
+    stopping_rule: Literal[
+        "one-final-look-no-adaptive-sample-size-or-post-inspection-tuning"
+    ]
+    infrastructure_resume: Literal["same-frozen-realizations-only"]
+    binary_endpoints: tuple[PairedBinaryEndpoint, ...] = Field(min_length=1)
+    continuous_endpoints: tuple[PairedContinuousEndpoint, ...] = Field(
+        min_length=1
+    )
+    report_only_metrics: tuple[str, ...] = Field(min_length=1)
+    planning_assumption_rule: Literal[
+        "verify-on-independent-data-before-review-and-freeze"
+    ]
+    scientific_basis: tuple[str, ...] = Field(min_length=4)
+    human_scientific_review: Literal["required-before-freeze"]
+
+    @model_validator(mode="after")
+    def validate_protocol(self) -> Self:
+        """Protect endpoint ownership, interval alignment, and sources."""
+        endpoint_ids = [
+            endpoint.endpoint_id
+            for endpoint in (
+                *self.binary_endpoints,
+                *self.continuous_endpoints,
+            )
+        ]
+        if len(set(endpoint_ids)) != len(endpoint_ids):
+            raise ValueError("paired endpoint identifiers must be unique")
+        if self.resampling.confidence_level != _PAIRED_CONFIDENCE_LEVEL:
+            raise ValueError("paired confidence level must remain 0.95")
+        if len(set(self.report_only_metrics)) != len(self.report_only_metrics):
+            raise ValueError("report-only metric identifiers must be unique")
+        if len(set(self.scientific_basis)) != len(self.scientific_basis):
+            raise ValueError("paired scientific basis links must be unique")
+        if any(
+            not link.startswith("https://") for link in self.scientific_basis
+        ):
+            raise ValueError("paired scientific basis links must use HTTPS")
+        return self
+
+
 def load_performance_matrix(path: Path) -> PerformanceMatrixContract:
     """Load and validate a performance-matrix contract."""
     return PerformanceMatrixContract.model_validate_json(
@@ -691,5 +860,14 @@ def load_phase_four_scientific_gates(
 ) -> PhaseFourScientificGates:
     """Load frozen Phase 4 catalogue and uncertainty margins."""
     return PhaseFourScientificGates.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_paired_noninferiority_contract(
+    path: Path,
+) -> PairedNoninferiorityContract:
+    """Load the Phase 4 paired non-inferiority and power contract."""
+    return PairedNoninferiorityContract.model_validate_json(
         path.read_text(encoding="utf-8")
     )

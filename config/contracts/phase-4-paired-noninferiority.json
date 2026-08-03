@@ -1,0 +1,271 @@
+{
+  "binary_endpoints": [
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "compact-completeness",
+      "observations_per_realization": 33,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "declared compact truth groups at SNR at least 10",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "catalogue-reliability",
+      "observations_per_realization": 33,
+      "planning_discordance_probability": 0.01,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "accepted candidates in the governed image footprint",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "association-pair-precision",
+      "observations_per_realization": 33,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "accepted compact association pairs at SNR at least 10",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "association-pair-recall",
+      "observations_per_realization": 33,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "declared compact association pairs at SNR at least 10",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "fitted-shape-availability",
+      "observations_per_realization": 32,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "eligible matched compact sources at SNR at least 10",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "deconvolution-classification-availability",
+      "observations_per_realization": 32,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "eligible matched compact sources at SNR at least 10",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "resolved-deconvolved-shape-availability",
+      "observations_per_realization": 1,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.0,
+      "population": "predeclared clear-resolved matched sources",
+      "practical_regression_margin": 0.01
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "association-identity-availability",
+      "observations_per_realization": 32,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "matched individually resolvable compact sources",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "position-flux-uncertainty-availability",
+      "observations_per_realization": 32,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "matched individually resolvable compact sources",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "point-source-specificity",
+      "observations_per_realization": 8,
+      "planning_discordance_probability": 0.01,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "predeclared beam-compatible point sources",
+      "practical_regression_margin": 0.005
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "clear-resolved-classification-recall",
+      "observations_per_realization": 1,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.0,
+      "population": "predeclared clear-resolved sources",
+      "practical_regression_margin": 0.01
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "lower-is-better",
+      "endpoint_id": "catastrophic-outlier-fraction",
+      "observations_per_realization": 32,
+      "planning_discordance_probability": 0.0075,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.02,
+      "population": "matched individually resolvable compact sources",
+      "practical_regression_margin": 0.0025
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "higher-is-better",
+      "endpoint_id": "unresolved-group-completeness",
+      "observations_per_realization": 1,
+      "planning_discordance_probability": 0.005,
+      "planning_expected_regression": 0.0,
+      "planning_intracluster_correlation": 0.0,
+      "population": "declared unresolved association groups",
+      "practical_regression_margin": 0.01
+    }
+  ],
+  "continuous_endpoints": [
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "lower-is-better",
+      "endpoint_id": "unresolved-group-median-position",
+      "ideal_value": null,
+      "planning_expected_regression": 0.0,
+      "planning_paired_standard_deviation": 0.08,
+      "population": "per-realization median group position error in beam units",
+      "practical_regression_margin": 0.01
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "lower-is-better",
+      "endpoint_id": "unresolved-group-position-tail",
+      "ideal_value": null,
+      "planning_expected_regression": 0.0,
+      "planning_paired_standard_deviation": 0.15,
+      "population": "per-realization 95th-percentile group position error in beam units",
+      "practical_regression_margin": 0.02
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "lower-is-better",
+      "endpoint_id": "unresolved-group-median-total-flux",
+      "ideal_value": null,
+      "planning_expected_regression": 0.0,
+      "planning_paired_standard_deviation": 0.08,
+      "population": "per-realization median group total-flux fractional error",
+      "practical_regression_margin": 0.01
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "lower-is-better",
+      "endpoint_id": "unresolved-group-total-flux-tail",
+      "ideal_value": null,
+      "planning_expected_regression": 0.0,
+      "planning_paired_standard_deviation": 0.15,
+      "population": "per-realization 95th-percentile group total-flux fractional error",
+      "practical_regression_margin": 0.02
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "closer-to-ideal-is-better",
+      "endpoint_id": "uncertainty-normalized-bias",
+      "ideal_value": 0.0,
+      "planning_expected_regression": 0.0,
+      "planning_paired_standard_deviation": 0.18,
+      "population": "maximum stratum absolute normalized-residual mean",
+      "practical_regression_margin": 0.025
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "closer-to-ideal-is-better",
+      "endpoint_id": "uncertainty-one-sigma-coverage",
+      "ideal_value": 0.6826894921370859,
+      "planning_expected_regression": 0.0,
+      "planning_paired_standard_deviation": 0.15,
+      "population": "maximum stratum absolute one-sigma coverage departure",
+      "practical_regression_margin": 0.02
+    },
+    {
+      "assumption_verification": "required-on-independent-development-regression",
+      "desirable_direction": "closer-to-ideal-is-better",
+      "endpoint_id": "uncertainty-normalized-dispersion",
+      "ideal_value": 1.0,
+      "planning_expected_regression": 0.0,
+      "planning_paired_standard_deviation": 0.3,
+      "population": "maximum stratum absolute normalized-residual standard-deviation departure",
+      "practical_regression_margin": 0.04
+    }
+  ],
+  "contract_id": "phase-4-paired-noninferiority",
+  "decision": {
+    "combination_rule": "intersection-union-all-coprimary",
+    "multiplicity_adjustment": "none-intersection-union-controls-type-one-error",
+    "power_target_applies_to": "interval-exclusion",
+    "regression_sign": "positive-means-hebog-is-worse",
+    "require_every_absolute_gate": true,
+    "require_no_worse_point_estimate": true,
+    "require_stronger_hebog_regression_envelopes": true,
+    "require_upper_interval_within_margin": true
+  },
+  "human_scientific_review": "required-before-freeze",
+  "infrastructure_resume": "same-frozen-realizations-only",
+  "minimum_interval_exclusion_power": 0.9,
+  "planning_assumption_rule": "verify-on-independent-data-before-review-and-freeze",
+  "population_freeze": "review-before-seeds-truth-generator-and-revisions-are-frozen",
+  "primary_reference": "released-pybdsf-used-by-rapthor",
+  "realization_count": 600,
+  "reference_failures": {
+    "candidate": "qualification-fails",
+    "failed_realization_denominator": "retained",
+    "primary": "qualification-fails",
+    "secondary": "record-and-continue"
+  },
+  "report_only_metrics": [
+    "low-snr-threshold-crossings",
+    "marginal-resolved-classification",
+    "marginal-resolved-integrated-flux",
+    "shape-uncertainties",
+    "non-gated-individual-source-tails",
+    "secondary-reference-endpoints-after-recorded-failure"
+  ],
+  "resampling": {
+    "alternative": "less",
+    "confidence_level": 0.95,
+    "degenerate_interval": "indeterminate-fail",
+    "method": "scipy-bca-bootstrap",
+    "paired": true,
+    "resamples": 50000,
+    "resampling_unit": "noise-seed-image",
+    "seed": 20260803
+  },
+  "schema_version": 1,
+  "scientific_basis": [
+    "https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19",
+    "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/non-inferiority-clinical-trials",
+    "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html",
+    "https://www.sciencedirect.com/science/article/pii/S0047259X12002175"
+  ],
+  "secondary_reference": "pinned-pybdsf-master",
+  "status": "draft-provisional",
+  "stopping_rule": "one-final-look-no-adaptive-sample-size-or-post-inspection-tuning"
+}

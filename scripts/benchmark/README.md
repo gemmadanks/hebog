@@ -166,6 +166,19 @@ Use the reference runner only after a comparison protocol has been frozen for
 the campaign. A typical invocation inside an immutable reference environment
 is:
 
+Before review, inspect the draft protocol and its design-stage power with:
+
+```console
+uv run python scripts/validation/calculate_phase4_paired_power.py \
+  config/contracts/phase-4-paired-noninferiority.json
+```
+
+This calculation must be repeated after its variance assumptions have been
+verified on independent paired development/regression evidence. It reports
+interval-exclusion power separately from the stricter no-worse point-estimate
+condition. Do not change the protocol status or create final qualification
+seeds from the provisional calculation alone.
+
 ```console
 python scripts/benchmark/run_phase4_pybdsf_campaign.py \
   --manifest <frozen-dataset-manifest.json> \

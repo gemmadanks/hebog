@@ -88,6 +88,10 @@ record and seed population, shared scientific contracts, paired-comparison
 protocol, exact software and execution configuration, elapsed diagnostic time,
 and every result or failure. The campaign compiler requires identical shard
 provenance and seeds and refuses to infer a missing result.
+The directions, practical margins, clustered interval method, failure policy,
+and stopping rule come from the separately reviewed
+[Phase 4 paired non-inferiority protocol](phase-4-paired-noninferiority.md),
+never from an inspected campaign result.
 
 Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive these
 rows from the independent catalogue comparison report. It deliberately shares

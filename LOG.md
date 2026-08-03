@@ -3453,3 +3453,49 @@ and compatibility serialization
 - Define the paired non-inferiority metric directions, margins, multiplicity
   policy, confidence method, and power calculation for named review. Do not
   freeze or open the final unseen population until that review is recorded.
+
+## 2026-08-03 — Drafted the paired Phase 4 closure protocol
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added a strict draft-provisional paired non-inferiority contract covering
+  metric directions, practical margins, whole-image resampling, primary and
+  secondary reference failures, all-endpoint passage, and the one-final-look
+  stopping rule.
+- Added an executable clustered normal-approximation power calculation. The
+  proposed 600-realization design gives at least 92.2% interval-exclusion
+  power under its provisional assumptions; point specificity is 94.5% and the
+  catastrophic-outlier endpoint is 93.3%.
+- Made the stricter no-worse point-estimate condition statistically explicit:
+  it has only 50% probability under exact equality, so the calculation reports
+  it and the combined decision separately rather than claiming 90% overall
+  passage.
+- Added a reviewer guide with the scientific background, proposed margins,
+  endpoint split, failure handling, stopping rule, community-source-finding
+  basis, and named decisions still required.
+- Kept the contract provisional. No final qualification seed, truth, image, or
+  result was generated or inspected. Every planning variance assumption must
+  be verified on independent paired development/regression evidence before
+  named approval and population freeze.
+
+**Validation**
+
+- TDD first recorded the missing strict contract and power calculation; all 14
+  focused contract, validation, boundary, and failure tests now pass.
+- `just coverage` passed 733 tests with four expected failures and 95.38%
+  branch-aware project coverage; the new power module has 100% coverage and
+  the expanded contract module has 94%.
+- `just test-equivalence` passed all 20 frozen non-slow scientific comparisons.
+- Ruff formatting and lint, Pyright, and the strict MkDocs build passed.
+  `just check` passed 606 tests with four expected failures, and every
+  `just pre-commit` push-stage hook passed across all files, including JSON
+  formatting, strict Marimo validation, documentation, and lock consistency.
+
+**Next**
+
+- Produce paired independent development/regression shards and verify the
+  discordance, within-image correlation, and paired-dispersion planning bounds
+  before requesting named review. Do not change production science or freeze
+  the final unseen population first.
