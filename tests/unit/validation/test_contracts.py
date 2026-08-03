@@ -170,7 +170,7 @@ def test_phase_four_measurement_contract_freezes_scientific_meanings() -> None:
         _PHASE_FOUR_MEASUREMENT_PATH
     )
 
-    assert contract.status == "reviewed-provisional"
+    assert contract.status == "frozen-provisional"
     assert contract.schema_version == 2
     assert contract.scope.image_kind == "mfs-stokes-i"
     assert contract.scope.brightness_unit == "Jy/beam"
@@ -238,7 +238,7 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
     """Phase 4 has explicit provisional shape and uncertainty questions."""
     gates = load_phase_four_scientific_gates(_PHASE_FOUR_GATES_PATH)
 
-    assert gates.status == "reviewed-provisional"
+    assert gates.status == "frozen-provisional"
     assert gates.confidence_level == 0.95
     assert gates.low_snr_threshold_crossings == "report-only"
     assert gates.shape_uncertainty == "report-only"

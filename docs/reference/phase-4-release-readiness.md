@@ -154,6 +154,12 @@ strata at 98.94% and 98.88%. The complete result is recorded in the
 [scientific review record](phase-4-review-record.md). No post-inspection tuning
 or rerun occurred.
 
+The failed extension-aware manifest is archived, and a third unseen campaign
+is frozen with 200 disjoint seeds and recipe SHA-256
+`7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
+It has not been generated or inspected. Both contracts are frozen-provisional
+until a development/regression-supported correction receives named review.
+
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run because the closure order puts scientific qualification first and
 the known implementation is not release-eligible. The 3,000-square incremental

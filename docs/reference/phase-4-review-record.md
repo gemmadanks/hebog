@@ -629,3 +629,23 @@ and the campaign was not rerun. This dataset is now viewed evidence. Phase 4
 remains **not ready**; the controlled performance matrix is ineligible under
 the reviewed closure order until a new correction passes development,
 regression, named review, and a newly frozen unseen campaign.
+
+## Third frozen campaign
+
+Before any further corrective production work, the extension-aware recipe was
+archived unchanged as
+`config/datasets/phase-4-viewed-extension-aware-qualification.json`. The third
+unseen recipe is
+`phase4-unseen-flux-availability-measurement-qualification-512`, with SHA-256
+`7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
+
+It retains the reviewed truth populations while using 200 seeds disjoint from
+both viewed campaigns, a new WCS and sky position, different signed pixel
+scales and rotation, a -0.00018 Jy/beam background, a different RMS gradient,
+and a relocated invalid-pixel region. No image, fit, catalogue, comparison, or
+result from this campaign has been generated or inspected.
+
+Both Phase 4 contracts returned to **frozen-provisional** so the executable
+guard prevents accidental qualification. A corrective policy must be selected
+only from analytic and development/regression evidence and receive named review
+before either contract is promoted again.

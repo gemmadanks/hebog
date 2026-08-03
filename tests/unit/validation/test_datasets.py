@@ -134,12 +134,16 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         "phase-4-development",
         "phase-4-qualification",
         "phase-4-regression",
+        "phase-4-viewed-extension-aware-qualification",
         "phase-4-viewed-qualification",
     }
     expected_roles = {
         "phase-4-development": DatasetRole.DEVELOPMENT,
         "phase-4-regression": DatasetRole.REGRESSION,
         "phase-4-qualification": DatasetRole.QUALIFICATION,
+        "phase-4-viewed-extension-aware-qualification": (
+            DatasetRole.QUALIFICATION
+        ),
         "phase-4-viewed-qualification": DatasetRole.QUALIFICATION,
     }
     for manifest_id, manifest in manifests.items():
@@ -183,16 +187,23 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         "snr-50",
     }
     assert min(sample_counts.values()) >= _PHASE_FOUR_POWERED_SAMPLE_COUNT
-    viewed_dataset = manifests["phase-4-viewed-qualification"].datasets[0]
-    viewed_recipes = iter_dataset_recipes(viewed_dataset)
-    assert {recipe.seed for recipe in qualification_recipes}.isdisjoint(
-        recipe.seed for recipe in viewed_recipes
+    viewed_datasets = (
+        manifests["phase-4-viewed-qualification"].datasets[0],
+        manifests["phase-4-viewed-extension-aware-qualification"].datasets[0],
     )
-    assert viewed_dataset.recipe_sha256 == (
+    qualification_seeds = {recipe.seed for recipe in qualification_recipes}
+    for viewed_dataset in viewed_datasets:
+        assert qualification_seeds.isdisjoint(
+            recipe.seed for recipe in iter_dataset_recipes(viewed_dataset)
+        )
+    assert viewed_datasets[0].recipe_sha256 == (
         "4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6"
     )
-    assert qualification_dataset.recipe_sha256 == (
+    assert viewed_datasets[1].recipe_sha256 == (
         "54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49"
+    )
+    assert qualification_dataset.recipe_sha256 == (
+        "7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b"
     )
     assert qualification_dataset.recipe.invalid_rectangles
     assert qualification_dataset.recipe.noise_rms_fractional_gradient_xy != (

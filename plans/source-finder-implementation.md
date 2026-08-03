@@ -1636,6 +1636,16 @@ before maintaining a custom fitter.
    performance qualification remains ineligible. Do not describe either known
    failed campaign as unseen or use it to select parameters.
 
+   The extension-aware manifest is now archived as viewed evidence. Before any
+   subsequent production correction, a third 200-realization campaign was
+   frozen with disjoint seeds, new celestial WCS, different signed pixel
+   scales and rotation, negative background, changed RMS gradient, relocated
+   invalid pixels, and recipe SHA-256
+   `7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
+   Both Phase 4 contracts returned to frozen-provisional; no third-campaign
+   result may be opened before a regression-supported amendment receives named
+   review.
+
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate
 contract; analytic compact cases pass; development, regression, and unseen

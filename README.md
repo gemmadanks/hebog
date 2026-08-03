@@ -91,8 +91,8 @@ known evidence and will not be tuned or rerun as unseen.
 The remaining work includes:
 
 - correcting the newly exposed compact-flux and low-SNR/edge availability
-  failures using development/regression evidence, then qualifying on a new
-  frozen unseen campaign;
+  failures using development/regression evidence, then qualifying on the
+  third frozen unseen campaign;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;

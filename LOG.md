@@ -3165,3 +3165,31 @@ and compatibility serialization
   to expose catastrophic-flux and availability behavior, select any correction
   only from development/regression evidence, and obtain named review before
   opening the next held-out campaign.
+
+## 2026-08-03 — Froze the third Phase 4 qualification campaign
+
+**Plan phase:** Phase 4 scientific closure — post-failure boundary
+
+**Held-out boundary**
+
+- Archived the failed extension-aware manifest unchanged as
+  `phase-4-viewed-extension-aware-qualification.json`, retaining recipe
+  SHA-256
+  `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
+- Froze `phase4-unseen-flux-availability-measurement-qualification-512` with
+  recipe SHA-256
+  `7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
+  Its 200 seeds are disjoint from both viewed campaigns. It changes the WCS,
+  signed pixel scales, sky position, rotation, negative background, RMS
+  gradient, and invalid-pixel location while retaining the reviewed truth
+  matrix.
+- Returned both Phase 4 contracts to `frozen-provisional`; the qualification
+  test therefore skips before recipe iteration until a new amendment receives
+  named review.
+- No third-campaign image, fit, catalogue, comparison, or result was generated
+  or inspected.
+
+**Next**
+
+- Extend the powered development/regression runner to gate catastrophic flux
+  and uncertainty availability before selecting any corrective policy.
