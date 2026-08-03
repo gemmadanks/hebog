@@ -669,8 +669,8 @@
         2026090199,
         2026090200
       ],
-      "provenance": "Third replacement Phase 4 unseen qualification truth frozen after the extension-aware campaign failed and before any subsequent scientific correction or result from this campaign was produced.",
-      "purpose": "Third unseen compact measurement population for catastrophic-flux, uncertainty-availability, extension-classification, unresolved-group, edge, invalid-pixel, and varying-noise qualification.",
+      "provenance": "Third replacement Phase 4 qualification truth frozen before corrective implementation, opened exactly once after named review on 2026-08-03, and retained as viewed failed evidence without rerun or post-inspection tuning.",
+      "purpose": "Viewed failed third compact measurement qualification population retained for provenance and never reused as unseen evidence.",
       "recipe": {
         "background": -0.00018,
         "generator": "hebog.synthetic.gaussian-noise",

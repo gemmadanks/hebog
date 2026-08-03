@@ -170,7 +170,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
     assert len({recipe.seed for recipe in qualification_recipes}) == len(
         qualification_recipes
     )
-    assert "unseen" in qualification_dataset.provenance.lower()
+    assert "viewed failed evidence" in qualification_dataset.provenance.lower()
     sample_counts = {
         stratum.identifier: len(stratum.source_indices)
         * len(qualification_recipes)

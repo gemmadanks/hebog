@@ -121,7 +121,7 @@
   "noisy_source_decision": "snr-stratified-confidence-intervals-and-catastrophic-rate",
   "schema_version": 2,
   "shape_uncertainty": "report-only",
-  "status": "reviewed-provisional",
+  "status": "frozen-provisional",
   "uncertainty": {
     "bootstrap_resamples": 10000,
     "bootstrap_seed": 20260802,

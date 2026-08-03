@@ -1,10 +1,9 @@
 # Phase 4 scientific review record
 
 This record captures the original named review of Phase 4 compact measurement
-semantics, the first held-out failure, and the subsequent literature-led
-correction. The original decisions remain approved. Gemma Danks approved the
-post-failure extension and unresolved-flux addendum on 2026-08-03 while the
-replacement unseen campaign remained unopened.
+semantics, three held-out failures, and the subsequent literature-led
+corrections. The original decisions remain approved. Gemma Danks approved each
+post-failure amendment before its replacement campaign was opened.
 
 ## Reviewer and decision
 
@@ -707,6 +706,49 @@ opened, the reviewer must decide whether to approve:
 - **Review date:** 2026-08-03
 - **Decision:** Approved both decisions without amendment
 
-Both contracts are now **reviewed-provisional**. This approval was recorded
-before any third-campaign image, fit, catalogue, comparison, or result was
-generated or inspected.
+Both contracts became **reviewed-provisional** at this boundary. This approval
+was recorded before any third-campaign image, fit, catalogue, comparison, or
+result was generated or inspected.
+
+## Third held-out result
+
+After the approval commit, the third frozen campaign was opened exactly once
+on 2026-08-03. The complete qualification lane finished in 433.55 seconds.
+Its 34,746-byte ignored evidence file has SHA-256
+`ed060b7703161ba01037939ff9a8e4b6e3d6ab527dc3b1fd45753dfb69c1165e`,
+and records the frozen dataset identifier
+`phase4-unseen-flux-availability-measurement-qualification-512` and recipe
+SHA-256
+`7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
+
+Most reviewed decisions passed:
+
+- all 6,600 truth groups were recovered from 6,621 candidates, giving 100%
+  completeness and 99.68% reliability;
+- fitted-shape availability, classification availability, clear-resolved
+  recall, and resolved-shape availability were all 100%, while point-source
+  specificity was 97.06%;
+- every uncertainty value was available, every position and peak-flux
+  calibration decision passed, and all unresolved-group gates passed; and
+- the separately declared marginal integrated-flux diagnostic recorded 1,094
+  outliers among 4,600 matched marginal sources (23.78%) without entering the
+  gated failure population, as approved before inspection.
+
+Two frozen scientific decisions failed:
+
+- 36 of 6,400 matched individual sources met at least one still-gated
+  catastrophic definition, or 0.5625% against the 0.5% maximum; and
+- the unresolved-source integrated-flux normalized residual had mean 0.1335
+  and a 95% interval of 0.0823--0.1846, whose upper bound exceeded the
+  approved absolute 0.15 margin. Its coverage interval and dispersion interval
+  passed.
+
+No parameter, gate, population, seed, or margin changed after inspection, and
+the campaign was not rerun. It is now viewed evidence. Both contracts have
+returned to **frozen-provisional** so the executable qualification guard skips
+before recipe generation. Phase 4 remains **not ready**, and the controlled
+performance matrix remains ineligible. A further held-out campaign must not be
+created merely to seek a passing draw; any recovery requires a separately
+reviewed protocol that addresses repeated-campaign optional stopping, freezes
+new truth before corrective work, and uses only independent development and
+regression evidence for implementation choices.

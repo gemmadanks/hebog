@@ -7,8 +7,8 @@ PyBDSF equivalence, or used as Rapthor's default backend.
 
 This record deliberately distinguishes implemented capability from qualified
 capability. The close-blend contract and extension policy were corrected and
-their powered regressions pass, but each subsequently opened held-out campaign
-failed frozen scientific gates. Preserving those results without
+their powered regressions pass, but all three subsequently opened held-out
+campaigns failed frozen scientific gates. Preserving those results without
 post-inspection tuning is more important than declaring a premature pass.
 
 ## Implemented capability
@@ -157,8 +157,9 @@ or rerun occurred.
 The failed extension-aware manifest is archived, and a third unseen campaign
 is frozen with 200 disjoint seeds and recipe SHA-256
 `7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
-It has not been generated or inspected. Both contracts are frozen-provisional
-until a development/regression-supported correction receives named review.
+At that point it had not been generated or inspected. Both contracts were
+frozen-provisional until a development/regression-supported correction
+received named review.
 
 That corrective regression now distinguishes scientific populations rather
 than weakening the 0.5% ceiling. In 4,800 development matches, all 283 raw
@@ -183,7 +184,23 @@ context margin inside that footprint, raises the same frozen regression to
 third campaign. The complete corrected 4,800-match regression and both exact
 PyBDSF catalogue comparisons pass. Gemma Danks approved both corrections on
 2026-08-03 before any third-campaign output was generated or inspected; both
-contracts are now reviewed-provisional.
+contracts were then reviewed-provisional.
+
+The third campaign was subsequently opened exactly once. It recovered all
+6,600 truth groups from 6,621 candidates (100% completeness and 99.68%
+reliability), with 100% fitted-shape and classification availability, 97.06%
+point-source specificity, 100% clear-resolved recall, and 100% resolved-shape
+availability. Every position and peak-flux calibration gate and every
+unresolved-group gate passed. It nevertheless failed two frozen decisions:
+36 of 6,400 matched individual sources were gated catastrophic outliers, or
+0.5625% against the 0.5% maximum, and the unresolved integrated-flux
+normalized-residual mean interval was 0.0823--0.1846, crossing the approved
+absolute 0.15 boundary. The complete 34,746-byte ignored evidence record has
+SHA-256
+`ed060b7703161ba01037939ff9a8e4b6e3d6ab527dc3b1fd45753dfb69c1165e`.
+No post-inspection tuning, rerun, population change, or gate change occurred.
+The campaign is now viewed evidence and both contracts are frozen-provisional
+again to prevent accidental reuse.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run because the closure order puts scientific qualification first and
@@ -225,9 +242,11 @@ Phase 4 can be declared passed only after all of the following occur in order:
 5. [x] The marginal-flux population clarification and image-footprint
    correction receive named review after their complete development and
    regression lanes pass. Gemma Danks approved both on 2026-08-03.
-6. [ ] The third frozen unseen held-out qualification campaign passes every
-   reviewed gate without post-inspection tuning. Both earlier powered
-   campaigns failed on 2026-08-03 and are retained as known evidence.
+6. [ ] A frozen unseen held-out qualification campaign passes every reviewed
+   gate without post-inspection tuning. All three powered campaigns failed on
+   2026-08-03 and are retained as known evidence. Before creating another,
+   review a recovery protocol that prevents repeated-campaign optional
+   stopping and freeze any new population before corrective implementation.
 7. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.

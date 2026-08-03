@@ -99,11 +99,19 @@ edge/SNR-10 regression exposed three centroids leaving the image footprint;
 constraining fit centres to sampled image bounds raised uncertainty
 availability from 247/250 to 250/250. The third 200-realization campaign was
 frozen before these corrections. Gemma Danks approved both amendments on
-2026-08-03, and the campaign remained unopened through that approval.
+2026-08-03, and the campaign remained unopened through that approval. Its one
+permitted run then passed all completeness, reliability, availability,
+classification, position, peak-flux, shape, and unresolved-group gates, but
+missed two frozen margins: catastrophic outliers were 0.5625% against a 0.5%
+maximum, and the unresolved integrated-flux normalized-bias confidence
+interval crossed the approved boundary. It is now viewed evidence and will
+not be rerun or tuned as unseen.
 
 The remaining work includes:
 
-- qualifying once on the third frozen unseen campaign;
+- agreeing a scientifically defensible recovery protocol after three held-out
+  campaign failures, then qualifying on a newly frozen population without
+  repeated-campaign optional stopping;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;

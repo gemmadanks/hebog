@@ -1213,8 +1213,10 @@ deferrals, implement multiscale emission, or claim the complete
 
 **Execution status:** Step 1 was completed on 2026-08-02 without generating or
 inspecting qualification results. Gemma Danks reviewed and approved the
-measurement policy after the gate amendments recorded below; the contracts are
-now reviewed-provisional. Step 2 was completed on 2026-08-02 with an exact,
+measurement policy after the gate amendments recorded below. Those decisions
+remain recorded, but the contracts are frozen-provisional after the third
+held-out failure so the consumed campaign cannot be rerun accidentally. Step 2
+was completed on 2026-08-02 with an exact,
 bounded worker-local region processor that is serial/Dask invariant and returns
 only compact records. Step 3 was completed on 2026-08-02 with a vectorized
 owned-pixel moment oracle, explicit availability outcomes, and serial/Dask
@@ -1276,6 +1278,23 @@ uncertainty report-only, and records the intentional peak-as-total divergence
 from raw unresolved PyBDSF output. Gemma Danks approved the amendment on
 2026-08-03; both contracts are reviewed-provisional and the campaign remained
 unopened throughout review.
+
+The third frozen campaign was opened exactly once on 2026-08-03 after Gemma
+Danks approved the marginal-flux and image-footprint corrections. It recovered
+all 6,600 truth groups, passed reliability, availability, classification,
+shape, position, peak-flux, and unresolved-group gates, but failed two frozen
+scientific decisions. Thirty-six of 6,400 matched individual sources were
+gated catastrophic outliers (0.5625% against the 0.5% maximum), and the
+unresolved integrated-flux normalized-residual mean interval was
+0.0823--0.1846, crossing the approved absolute 0.15 boundary. The 34,746-byte
+ignored evidence record has SHA-256
+`ed060b7703161ba01037939ff9a8e4b6e3d6ab527dc3b1fd45753dfb69c1165e`.
+No rerun, gate change, or post-inspection tuning occurred. The campaign is now
+viewed evidence, both contracts have returned to frozen-provisional to prevent
+accidental reuse, Phase 4 remains scientifically blocked, and controlled
+performance qualification remains ineligible. Do not create a succession of
+replacement campaigns merely to obtain a pass; require a new reviewed
+scientific recovery protocol before any further held-out campaign.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1666,8 +1685,16 @@ before maintaining a custom fitter.
    context margin, makes the same test pass 250/250. The full powered
    regression, exact references, and normal handoff suite passed. Gemma Danks
    approved both amendments on 2026-08-03 before third-campaign inspection,
-   and both contracts are reviewed-provisional. Open the third campaign once,
-   and proceed to controlled performance only if every scientific gate passes.
+   and both contracts were reviewed-provisional. The third campaign was opened
+   exactly once and failed: its gated catastrophic fraction was 0.5625% versus
+   0.5%, and the unresolved integrated-flux normalized-mean interval crossed
+   the approved margin. Preserve it as viewed evidence and do not proceed to
+   controlled performance. Both contracts are frozen-provisional again to
+   prevent accidental reruns. Before further corrective work, define and
+   review a recovery protocol that avoids repeated-campaign optional stopping;
+   any future qualification population must be frozen before that correction
+   and may be opened only after independent development/regression evidence
+   and named approval.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

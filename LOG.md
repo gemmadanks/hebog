@@ -3269,3 +3269,56 @@ and compatibility serialization
 - Commit this approval boundary, then open the third frozen campaign exactly
   once. Proceed to controlled performance qualification only if every
   scientific gate passes.
+
+## 2026-08-03 — Recorded the failed third Phase 4 qualification
+
+**Plan phase:** Phase 4 scientific closure — held-out qualification
+
+**Execution boundary**
+
+- Committed the named approval as `a121bba` before opening held-out output.
+- Ran `just test-qualification` exactly once. The complete lane finished in
+  433.55 seconds with one lightweight qualification pass, one skip, and the
+  frozen 200-realization campaign failure.
+- The 34,746-byte ignored evidence record has SHA-256
+  `ed060b7703161ba01037939ff9a8e4b6e3d6ab527dc3b1fd45753dfb69c1165e`.
+  Its dataset identifier and recipe SHA-256 match the frozen manifest:
+  `phase4-unseen-flux-availability-measurement-qualification-512` and
+  `7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
+- Preserved the preceding 35,126-byte campaign separately at
+  `benchmark-results/phase-4-second-qualification.json`, SHA-256
+  `ae1ce5b15a72d7089e14321854fe988ca6634ab3179009842810128aa8414c89`.
+
+**Passing evidence**
+
+- Recovered all 6,600 truth groups from 6,621 candidates: 100% completeness
+  and 99.68% reliability.
+- Fitted-shape and classification availability, clear-resolved recall, and
+  resolved-shape availability were 100%; point-source specificity was 97.06%.
+- All uncertainty fields were available. Every position and peak-flux
+  calibration decision and every unresolved-group gate passed.
+- The predeclared report-only marginal integrated-flux diagnostic recorded
+  1,094 of 4,600 rows (23.78%) without entering the gated failure population.
+
+**Failed evidence and decision**
+
+- Thirty-six of 6,400 matched individual sources were gated catastrophic
+  outliers: 0.5625% against the unchanged 0.5% maximum.
+- Unresolved integrated-flux normalized residual had mean 0.1335 and a 95%
+  interval of 0.0823--0.1846, crossing the approved absolute 0.15 mean margin.
+  Its coverage and dispersion intervals passed.
+- No parameter, gate, truth population, seed, or margin changed after
+  inspection, and the campaign was not rerun. It is retained as viewed failed
+  evidence.
+- Returned both contracts to `frozen-provisional` and updated the manifest
+  provenance so the executable guard prevents accidental reuse.
+- Phase 4 remains **not ready**. The controlled performance matrix was not run
+  because scientific qualification failed.
+
+**Next**
+
+- Do not generate serial replacement campaigns to seek a passing draw.
+  Establish and approve a recovery protocol that accounts for repeated-
+  campaign optional stopping, freeze any future qualification population
+  before corrective implementation, and choose corrections only from analytic
+  and independent development/regression evidence.
