@@ -49,15 +49,18 @@ and tests it against governed truth.
 
 ## Uncertainty status
 
-The fitter's nonsingular Jacobian covariance can be transformed into formal
-one-sigma position and flux errors. These values are flagged
-`formal-independent-pixel-errors`: they do not yet claim calibration for the
-correlated noise of a synthesized beam. Shape uncertainties remain null and
-carry `shape-uncertainty-unavailable`. If the fit covariance is unavailable,
-position and flux errors are also null and carry
+The fitter's nonsingular covariance can be transformed into one-sigma position
+and flux errors. A declared synthesized-beam correlation function produces
+generalized OLS sandwich errors flagged
+`correlated-noise-sandwich-errors`; an absent correlation model retains the
+`formal-independent-pixel-errors` fallback. Shape uncertainties remain null
+and carry `shape-uncertainty-unavailable`. If the fit covariance is
+unavailable, position and flux errors are also null and carry
 `position-flux-uncertainty-unavailable`; zero never means unknown.
 
-Monte Carlo calibration and its frozen confidence-interval gates remain a
-separate Phase 4 qualification decision. A normal compatibility catalogue can
-expose formal errors, but Phase 4 cannot claim calibrated uncertainties until
-that evidence passes.
+The powered correlated-noise regression passes the frozen Monte Carlo
+confidence-interval gates. The first held-out campaign does not: integrated
+flux has significant normalized bias in the SNR-10, unresolved-shape, and edge
+strata, while peak flux narrowly misses the mean interval at SNR 25. A normal
+compatibility catalogue may expose the estimates, but Phase 4 cannot yet claim
+qualified uncertainties.

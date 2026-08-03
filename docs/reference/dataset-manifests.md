@@ -71,10 +71,12 @@ indices. These declarations keep SNR, shape, blend, edge, or other governed
 populations explicit and let qualification code prove the required sample
 count before looking at scientific results. Stratum identifiers and indices
 are unique, indices are sorted and non-negative, and every index resolves to
-source truth in the shared recipe. The Phase 4 qualification campaign freezes
-200 independent deterministic noise realizations, so even its single-source
-edge stratum reaches the reviewed minimum of 200 samples before any scientific
-output is inspected.
+source truth in the shared recipe. The Phase 4 campaign uses 200 independent
+noise realizations, but its powered source population supplies at least 1,600
+eligible measurements in every SNR, shape, and edge stratum. This gives the
+reviewed entire-confidence-interval test useful power without selecting
+favourable seeds. The unresolved-group absolute-metric stratum retains 200
+independent samples.
 
 Phase 4 manifest schema 2 also records `association_truth_groups`. Every
 analytic emitter belongs to exactly one canonical group. A singleton group is
@@ -93,6 +95,15 @@ qualification dataset has a new identifier, base seed, recipe checksum, and
 explicit unresolved-blend stratum. These inputs were frozen after the named
 association amendment and before any replacement result was generated or
 inspected.
+
+Generator version 3 adds an explicit elliptical Gaussian noise-correlation
+function in image-pixel coordinates. It generates an expanded deterministic
+white-noise window, applies an L2-normalized Gaussian filter whose
+autocorrelation has the declared FWHM covariance, and crops the requested
+window. The result has the requested RMS and stitches exactly across arbitrary
+window layouts, including image edges. Phase 4 uses the restoring-beam
+covariance as this correlation function; generator versions 1 and 2 and their
+checksums remain unchanged.
 
 ## Deterministic generation
 

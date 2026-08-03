@@ -1,4 +1,7 @@
 # pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 """Independent scientific comparison reports for governed validation.
 
 Catalogue matching uses canonical degrees and janskys. It maximizes the number
@@ -19,12 +22,17 @@ import numpy.typing as npt
 from scipy.optimize import (
     linear_sum_assignment as _lsa,  # pyright: ignore[reportUnknownVariableType]
 )
+from scipy.stats import bootstrap as _bootstrap
+from scipy.stats import t as _student_t
 
 _MINIMUM_DECLINATION_DEGREES = -90.0
 _MAXIMUM_DECLINATION_DEGREES = 90.0
 _FULL_CIRCLE_DEGREES = 360.0
 _IMAGE_DIMENSIONS = 2
 _HALF_CIRCLE_DEGREES = 180.0
+_DEFAULT_UNCERTAINTY_CONFIDENCE_LEVEL = 0.95
+_DEFAULT_UNCERTAINTY_BOOTSTRAP_RESAMPLES = 10_000
+_DEFAULT_UNCERTAINTY_BOOTSTRAP_SEED = 20260802
 _UncertaintyMetric = Literal[
     "right-ascension",
     "declination",
@@ -36,6 +44,12 @@ _UncertaintyMetric = Literal[
     "deconvolved-major-axis",
     "deconvolved-minor-axis",
     "deconvolved-position-angle",
+]
+_UncertaintyDecisionFailure = Literal[
+    "insufficient-samples",
+    "coverage",
+    "mean",
+    "dispersion",
 ]
 _UNCERTAINTY_METRICS: tuple[_UncertaintyMetric, ...] = (
     "right-ascension",
@@ -49,6 +63,8 @@ _UNCERTAINTY_METRICS: tuple[_UncertaintyMetric, ...] = (
     "deconvolved-minor-axis",
     "deconvolved-position-angle",
 )
+_MINIMUM_MEAN_INTERVAL_SAMPLES = 2
+_MINIMUM_DISPERSION_INTERVAL_SAMPLES = 3
 _AvailabilityMetric = Literal[
     "fitted-shape",
     "deconvolution-classification",
@@ -322,6 +338,15 @@ class CatalogueMatch:
 
 
 @dataclass(frozen=True, slots=True)
+class NumericConfidenceInterval:
+    """Two-sided confidence interval for one real-valued statistic."""
+
+    confidence_level: float
+    lower: float
+    upper: float
+
+
+@dataclass(frozen=True, slots=True)
 class UncertaintyCalibrationReport:
     """Bias, dispersion, and one-sigma coverage for one reported error."""
 
@@ -333,6 +358,17 @@ class UncertaintyCalibrationReport:
     coverage_fraction: float | None
     mean_normalized_residual: float | None
     sample_standard_deviation: float | None
+    coverage_confidence_interval: BinomialConfidenceInterval | None
+    mean_confidence_interval: NumericConfidenceInterval | None
+    dispersion_confidence_interval: NumericConfidenceInterval | None
+
+
+@dataclass(frozen=True, slots=True)
+class UncertaintyCalibrationDecision:
+    """Reviewed entire-interval decision for one uncertainty stratum."""
+
+    status: Literal["pass", "fail", "report-only"]
+    failed_metrics: tuple[_UncertaintyDecisionFailure, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -830,29 +866,14 @@ def _uncertainty_calibration_reports(
         eligible_count = eligible_counts[metric]
         if eligible_count == 0:
             continue
-        metric_samples = samples.get(metric, [])
-        values = np.asarray(metric_samples, dtype=np.float64)
-        within_one_sigma = int(np.count_nonzero(np.abs(values) <= 1.0))
         reports.append(
-            UncertaintyCalibrationReport(
-                metric=metric,
+            uncertainty_calibration_report(
+                metric,
+                samples.get(metric, []),
                 eligible_count=eligible_count,
-                sample_count=len(metric_samples),
-                availability_fraction=len(metric_samples) / eligible_count,
-                within_one_sigma_count=within_one_sigma,
-                coverage_fraction=(
-                    within_one_sigma / len(metric_samples)
-                    if metric_samples
-                    else None
-                ),
-                mean_normalized_residual=(
-                    float(np.mean(values)) if metric_samples else None
-                ),
-                sample_standard_deviation=(
-                    float(np.std(values, ddof=1))
-                    if len(metric_samples) > 1
-                    else None
-                ),
+                confidence_level=_DEFAULT_UNCERTAINTY_CONFIDENCE_LEVEL,
+                bootstrap_resamples=(_DEFAULT_UNCERTAINTY_BOOTSTRAP_RESAMPLES),
+                bootstrap_seed=_DEFAULT_UNCERTAINTY_BOOTSTRAP_SEED,
             )
         )
     return tuple(reports)
@@ -1696,6 +1717,188 @@ def wilson_score_interval(
         confidence_level=confidence_level,
         lower=float(max(0.0, (centre - radius) / denominator)),
         upper=float(min(1.0, (centre + radius) / denominator)),
+    )
+
+
+def _student_mean_interval(
+    values: npt.NDArray[np.float64],
+    *,
+    confidence_level: float,
+) -> NumericConfidenceInterval | None:
+    """Return the two-sided Student-t interval for one sample mean."""
+    if values.size < _MINIMUM_MEAN_INTERVAL_SAMPLES:
+        return None
+    mean = float(np.mean(values))
+    standard_deviation = float(np.std(values, ddof=1))
+    if standard_deviation == 0.0:
+        return NumericConfidenceInterval(confidence_level, mean, mean)
+    critical = float(
+        _student_t.ppf(
+            0.5 + confidence_level / 2.0,
+            df=values.size - 1,
+        )
+    )
+    radius = critical * standard_deviation / np.sqrt(values.size)
+    return NumericConfidenceInterval(
+        confidence_level=confidence_level,
+        lower=float(mean - radius),
+        upper=float(mean + radius),
+    )
+
+
+def _sample_standard_deviation(
+    values: npt.NDArray[np.float64],
+) -> float:
+    """Return the sample standard deviation used by the BCa bootstrap."""
+    return float(np.std(values, ddof=1))
+
+
+def _dispersion_interval(
+    values: npt.NDArray[np.float64],
+    *,
+    confidence_level: float,
+    bootstrap_resamples: int,
+    bootstrap_seed: int,
+) -> NumericConfidenceInterval | None:
+    """Return a fixed-seed SciPy BCa interval for sample dispersion."""
+    if values.size < _MINIMUM_DISPERSION_INTERVAL_SAMPLES:
+        return None
+    standard_deviation = _sample_standard_deviation(values)
+    if standard_deviation == 0.0:
+        return NumericConfidenceInterval(confidence_level, 0.0, 0.0)
+    result = _bootstrap(
+        (values,),
+        _sample_standard_deviation,
+        confidence_level=confidence_level,
+        n_resamples=bootstrap_resamples,
+        method="BCa",
+        rng=np.random.default_rng(bootstrap_seed),
+        vectorized=False,
+    )
+    lower = float(result.confidence_interval.low)
+    upper = float(result.confidence_interval.high)
+    if not np.isfinite(lower) or not np.isfinite(upper):
+        return None
+    return NumericConfidenceInterval(
+        confidence_level=confidence_level,
+        lower=lower,
+        upper=upper,
+    )
+
+
+def uncertainty_calibration_report(  # noqa: PLR0913
+    metric: _UncertaintyMetric,
+    normalized_residuals: npt.ArrayLike,
+    *,
+    eligible_count: int,
+    confidence_level: float,
+    bootstrap_resamples: int,
+    bootstrap_seed: int,
+) -> UncertaintyCalibrationReport:
+    """Summarize one uncertainty stratum with reviewed intervals."""
+    if metric not in _UNCERTAINTY_METRICS:
+        raise ValueError("unsupported uncertainty metric")
+    values = np.asarray(normalized_residuals, dtype=np.float64)
+    if values.ndim != 1:
+        raise ValueError("normalized residuals must be one-dimensional")
+    if not np.all(np.isfinite(values)):
+        raise ValueError("normalized residuals must be finite")
+    if (
+        isinstance(eligible_count, bool)
+        or eligible_count < 0
+        or values.size > eligible_count
+    ):
+        raise ValueError("eligible count must include every residual sample")
+    if not np.isfinite(confidence_level) or not 0 < confidence_level < 1:
+        raise ValueError("confidence_level must be finite and in (0, 1)")
+    if isinstance(bootstrap_resamples, bool) or bootstrap_resamples < 1:
+        raise ValueError("bootstrap_resamples must be positive")
+    if isinstance(bootstrap_seed, bool) or bootstrap_seed < 0:
+        raise ValueError("bootstrap_seed must be non-negative")
+
+    sample_count = int(values.size)
+    within_one_sigma_count = int(np.count_nonzero(np.abs(values) <= 1.0))
+    return UncertaintyCalibrationReport(
+        metric=metric,
+        eligible_count=eligible_count,
+        sample_count=sample_count,
+        availability_fraction=(
+            sample_count / eligible_count if eligible_count else 0.0
+        ),
+        within_one_sigma_count=within_one_sigma_count,
+        coverage_fraction=(
+            within_one_sigma_count / sample_count if sample_count else None
+        ),
+        mean_normalized_residual=(
+            float(np.mean(values)) if sample_count else None
+        ),
+        sample_standard_deviation=(
+            _sample_standard_deviation(values) if sample_count > 1 else None
+        ),
+        coverage_confidence_interval=wilson_score_interval(
+            within_one_sigma_count,
+            sample_count,
+            confidence_level=confidence_level,
+        ),
+        mean_confidence_interval=_student_mean_interval(
+            values,
+            confidence_level=confidence_level,
+        ),
+        dispersion_confidence_interval=_dispersion_interval(
+            values,
+            confidence_level=confidence_level,
+            bootstrap_resamples=bootstrap_resamples,
+            bootstrap_seed=bootstrap_seed,
+        ),
+    )
+
+
+def evaluate_uncertainty_calibration(  # noqa: PLR0913
+    report: UncertaintyCalibrationReport,
+    *,
+    minimum_samples: int,
+    nominal_coverage: float,
+    maximum_absolute_coverage_difference: float,
+    maximum_absolute_mean: float,
+    minimum_standard_deviation: float,
+    maximum_standard_deviation: float,
+) -> UncertaintyCalibrationDecision:
+    """Apply the reviewed entire-confidence-interval decision rule."""
+    if minimum_samples < _MINIMUM_MEAN_INTERVAL_SAMPLES:
+        raise ValueError("minimum_samples must be at least two")
+    if report.sample_count < minimum_samples:
+        return UncertaintyCalibrationDecision(
+            status="report-only",
+            failed_metrics=("insufficient-samples",),
+        )
+    coverage = report.coverage_confidence_interval
+    mean = report.mean_confidence_interval
+    dispersion = report.dispersion_confidence_interval
+    if coverage is None or mean is None or dispersion is None:
+        raise ValueError(
+            "eligible calibration report lacks confidence intervals"
+        )
+    failures: list[_UncertaintyDecisionFailure] = []
+    if (
+        coverage.lower
+        < nominal_coverage - maximum_absolute_coverage_difference
+        or coverage.upper
+        > nominal_coverage + maximum_absolute_coverage_difference
+    ):
+        failures.append("coverage")
+    if (
+        mean.lower < -maximum_absolute_mean
+        or mean.upper > maximum_absolute_mean
+    ):
+        failures.append("mean")
+    if (
+        dispersion.lower < minimum_standard_deviation
+        or dispersion.upper > maximum_standard_deviation
+    ):
+        failures.append("dispersion")
+    return UncertaintyCalibrationDecision(
+        status="fail" if failures else "pass",
+        failed_metrics=tuple(failures),
     )
 
 

@@ -13,7 +13,12 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from hebog.validation.materialization import materialize_dataset
+from hebog.validation.datasets import load_dataset_manifest
+from hebog.validation.materialization import (
+    materialize_dataset,
+    synthetic_fits_header,
+    synthetic_image_metadata,
+)
 
 _ROOT = Path(__file__).parents[3]
 _MANIFEST = _ROOT / "config" / "datasets" / "phase-0-regression.json"
@@ -135,6 +140,32 @@ def test_materialized_fits_encodes_rotated_unequal_scale_wcs(
         atol=1e-15,
     )
     assert actual_beam[2] == pytest.approx(expected_beam[2])
+
+
+def test_synthetic_metadata_matches_the_materialized_header() -> None:
+    """In-memory qualification uses the same WCS and beam as FITS output."""
+    manifest = load_dataset_manifest(_PHASE_FOUR_MANIFEST)
+    dataset = next(
+        item
+        for item in manifest.datasets
+        if item.identifier == _ROTATED_DATASET_ID
+    )
+
+    header = synthetic_fits_header(dataset)
+    metadata = synthetic_image_metadata(dataset)
+
+    assert metadata.shape_yx == dataset.recipe.shape_yx
+    assert metadata.unit == "Jy/beam"
+    assert metadata.reference_frequency_hz == header["RESTFRQ"]
+    assert metadata.beam.major_fwhm_degrees == header["BMAJ"]
+    assert metadata.beam.minor_fwhm_degrees == header["BMIN"]
+    assert metadata.beam.position_angle_degrees == header["BPA"]
+    assert metadata.celestial_wcs is not None
+    restored = fits.Header.fromstring(
+        metadata.celestial_wcs.fits_header,
+        sep="\n",
+    )
+    assert restored["HEBOGRCP"] == dataset.recipe_sha256
 
 
 def test_materialization_preserves_an_existing_file(tmp_path: Path) -> None:

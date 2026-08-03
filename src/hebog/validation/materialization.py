@@ -6,10 +6,12 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 from astropy.io import fits
 
+from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
 from hebog.validation.datasets import (
     DatasetRecord,
     generate_synthetic_image,
@@ -97,7 +99,7 @@ def _dataset_by_id(manifest_path: Path, dataset_id: str) -> DatasetRecord:
     return matches[0]
 
 
-def _fits_header(dataset: DatasetRecord) -> fits.Header:
+def synthetic_fits_header(dataset: DatasetRecord) -> fits.Header:
     """Translate canonical manifest metadata to a four-axis FITS header."""
     header = fits.Header()
     reference_x, reference_y = dataset.wcs.reference_pixel_xy
@@ -142,6 +144,32 @@ def _fits_header(dataset: DatasetRecord) -> fits.Header:
     return header
 
 
+def synthetic_image_metadata(dataset: DatasetRecord) -> ImageMetadata:
+    """Return production metadata for one governed synthetic image."""
+    header = synthetic_fits_header(dataset)
+    return ImageMetadata(
+        shape_yx=dataset.recipe.shape_yx,
+        unit="Jy/beam",
+        beam=RestoringBeam(
+            major_fwhm_degrees=cast(float, header["BMAJ"]),
+            minor_fwhm_degrees=cast(float, header["BMIN"]),
+            position_angle_degrees=cast(float, header["BPA"]),
+        ),
+        celestial_wcs=CelestialWcs(
+            fits_header=cast(
+                str,
+                header.tostring(
+                    sep="\n",
+                    endcard=False,
+                    padding=False,
+                ),
+            ),
+            coordinate_frame="icrs",
+        ),
+        reference_frequency_hz=cast(float, header["RESTFRQ"]),
+    )
+
+
 def materialize_dataset(
     manifest_path: Path,
     dataset_id: str,
@@ -154,7 +182,7 @@ def materialize_dataset(
     image = generate_synthetic_image(dataset.recipe)
     data = np.asarray(image[np.newaxis, np.newaxis, :, :], dtype=np.float32)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    hdu = fits.PrimaryHDU(data=data, header=_fits_header(dataset))
+    hdu = fits.PrimaryHDU(data=data, header=synthetic_fits_header(dataset))
     hdu.add_checksum(when="hebog deterministic dataset recipe")
     hdu.writeto(
         output_path,

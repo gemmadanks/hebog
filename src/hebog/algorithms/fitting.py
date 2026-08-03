@@ -11,7 +11,7 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
-from scipy.ndimage import map_coordinates
+from scipy.ndimage import correlate, map_coordinates
 from scipy.optimize import least_squares
 
 from hebog.algorithms.deblending import DeblendedRegion
@@ -37,7 +37,8 @@ from hebog.data_models.measurement import (
     ValidMomentMeasurement,
 )
 
-_PARAMETER_COUNT = 6
+_PARAMETER_COUNT = 7
+_NOISE_CORRELATION_TRUNCATION_SIGMA = 4.0
 
 
 def _local_rms_at_centroid(
@@ -46,10 +47,11 @@ def _local_rms_at_centroid(
 ) -> float:
     """Bilinearly sample local RMS, extending edge-pixel values by 0.5 px."""
     x, y = centroid_xy
+    array_bounds = getattr(compact, "array_bounds", compact.island.bounds)
     local_coordinates = np.asarray(
         [
-            [y - compact.island.bounds.y_start],
-            [x - compact.island.bounds.x_start],
+            [y - array_bounds.y_start],
+            [x - array_bounds.x_start],
         ],
         dtype=np.float64,
     )
@@ -70,9 +72,15 @@ def _gaussian_values(
     y: npt.NDArray[np.float64],
 ) -> npt.NDArray[np.float64]:
     """Evaluate one rotated elliptical Gaussian without a background term."""
-    amplitude, center_x, center_y, sigma_first, sigma_second, theta = (
-        parameters
-    )
+    (
+        amplitude,
+        center_x,
+        center_y,
+        sigma_first,
+        sigma_second,
+        theta,
+        background_offset,
+    ) = parameters
     x_offset = x - center_x
     y_offset = y - center_y
     cosine = np.cos(theta)
@@ -83,7 +91,10 @@ def _gaussian_values(
         np.square(first_offset / sigma_first)
         + np.square(second_offset / sigma_second)
     )
-    return np.asarray(amplitude * np.exp(exponent), dtype=np.float64)
+    return np.asarray(
+        background_offset + amplitude * np.exp(exponent),
+        dtype=np.float64,
+    )
 
 
 def _diagnostics(
@@ -110,17 +121,90 @@ def _diagnostics(
     )
 
 
+def _noise_correlation_kernel(
+    covariance_values: tuple[float, float, float],
+) -> npt.NDArray[np.float64]:
+    """Sample the unit-peak Gaussian pixel-noise correlation function."""
+    covariance_xx, covariance_xy, covariance_yy = covariance_values
+    covariance = np.asarray(
+        [
+            [covariance_xx, covariance_xy],
+            [covariance_xy, covariance_yy],
+        ],
+        dtype=np.float64,
+    )
+    halo = int(
+        np.ceil(
+            _NOISE_CORRELATION_TRUNCATION_SIGMA
+            * np.sqrt(float(np.max(np.linalg.eigvalsh(covariance))))
+        )
+    )
+    offsets = np.arange(-halo, halo + 1, dtype=np.float64)
+    y_grid, x_grid = np.meshgrid(offsets, offsets, indexing="ij")
+    coordinates = np.stack((x_grid, y_grid), axis=-1)
+    exponent = np.einsum(
+        "...i,ij,...j->...",
+        coordinates,
+        np.linalg.inv(covariance),
+        coordinates,
+        optimize=True,
+    )
+    return np.asarray(np.exp(-0.5 * exponent), dtype=np.float64)
+
+
+def _correlated_parameter_covariance(
+    jacobian: npt.NDArray[np.float64],
+    coordinates_xy: npt.NDArray[np.float64],
+    correlation_covariance: tuple[float, float, float],
+) -> npt.NDArray[np.float64]:
+    """Return the OLS sandwich covariance under Gaussian pixel correlation."""
+    information_inverse = np.linalg.inv(jacobian.T @ jacobian)
+    x_coordinates = np.asarray(coordinates_xy[:, 0], dtype=np.int64)
+    y_coordinates = np.asarray(coordinates_xy[:, 1], dtype=np.int64)
+    x_local = x_coordinates - int(np.min(x_coordinates))
+    y_local = y_coordinates - int(np.min(y_coordinates))
+    grid_shape = (
+        int(np.max(y_local)) + 1,
+        int(np.max(x_local)) + 1,
+    )
+    kernel = _noise_correlation_kernel(correlation_covariance)
+    correlated_jacobian = np.empty_like(jacobian)
+    for parameter_index in range(_PARAMETER_COUNT):
+        grid = np.zeros(grid_shape, dtype=np.float64)
+        grid[y_local, x_local] = jacobian[:, parameter_index]
+        correlated_grid = correlate(grid, kernel, mode="constant", cval=0.0)
+        correlated_jacobian[:, parameter_index] = correlated_grid[
+            y_local,
+            x_local,
+        ]
+    meat = jacobian.T @ correlated_jacobian
+    return np.asarray(
+        information_inverse @ meat @ information_inverse,
+        dtype=np.float64,
+    )
+
+
 def _formal_uncertainty(
     jacobian: npt.NDArray[np.float64],
     parameters: npt.NDArray[np.float64],
+    coordinates_xy: npt.NDArray[np.float64],
     geometry: CompactMeasurementGeometry,
 ) -> GaussianFitUncertainty | None:
     """Return covariance, or absence for singular information."""
     information = jacobian.T @ jacobian
     if np.linalg.matrix_rank(information) != _PARAMETER_COUNT:
         return None
-    covariance = np.linalg.inv(information)
-    amplitude, _, _, sigma_first, sigma_second, _ = parameters
+    correlation = geometry.noise_correlation_covariance_pixels_squared
+    covariance = (
+        np.linalg.inv(information)
+        if correlation is None
+        else _correlated_parameter_covariance(
+            jacobian,
+            coordinates_xy,
+            correlation,
+        )
+    )
+    amplitude, _, _, sigma_first, sigma_second, _, _ = parameters
     integrated = fitted_gaussian_integrated_flux_jy(
         amplitude_jy_per_beam=float(amplitude),
         major_sigma_pixels=float(sigma_first),
@@ -134,6 +218,7 @@ def _formal_uncertainty(
             0.0,
             integrated / sigma_first,
             integrated / sigma_second,
+            0.0,
             0.0,
         ],
         dtype=np.float64,
@@ -199,20 +284,25 @@ def fit_compact_gaussian(
         or valid_moment.target.object_id != region.region_id
     ):
         raise ValueError("fit moment does not identify the requested region")
-    membership = np.asarray(compact.region_labels) == region.region_label
-    y_local, x_local = np.nonzero(membership)
+    labels = np.asarray(compact.region_labels)
+    membership = labels == region.region_label
+    fit_pixels = np.asarray(compact.valid_pixels) & (
+        membership | (labels == 0)
+    )
+    y_local, x_local = np.nonzero(fit_pixels)
+    array_bounds = getattr(compact, "array_bounds", compact.island.bounds)
     x = np.asarray(
-        x_local + compact.island.bounds.x_start,
+        x_local + array_bounds.x_start,
         dtype=np.float64,
     )
     y = np.asarray(
-        y_local + compact.island.bounds.y_start,
+        y_local + array_bounds.y_start,
         dtype=np.float64,
     )
     values = np.asarray(
-        compact.physical_residual[membership], dtype=np.float64
+        compact.physical_residual[fit_pixels], dtype=np.float64
     )
-    rms = np.asarray(compact.rms[membership], dtype=np.float64)
+    rms = np.asarray(compact.rms[fit_pixels], dtype=np.float64)
     initializer = valid_moment.initializer
     initial = np.asarray(
         [
@@ -230,6 +320,7 @@ def fit_compact_gaussian(
                 config.maximum_sigma_pixels,
             ),
             np.deg2rad(initializer.major_axis_angle_degrees),
+            0.0,
         ],
         dtype=np.float64,
     )
@@ -241,6 +332,7 @@ def fit_compact_gaussian(
             config.minimum_sigma_pixels,
             config.minimum_sigma_pixels,
             -pi,
+            -config.maximum_background_offset_sigma * float(np.median(rms)),
         ],
         dtype=np.float64,
     )
@@ -252,6 +344,7 @@ def fit_compact_gaussian(
             config.maximum_sigma_pixels,
             config.maximum_sigma_pixels,
             pi,
+            config.maximum_background_offset_sigma * float(np.median(rms)),
         ],
         dtype=np.float64,
     )
@@ -290,9 +383,15 @@ def fit_compact_gaussian(
             diagnostics=diagnostics,
             quality_flags=("fit-non-convergence",),
         )
-    amplitude, center_x, center_y, sigma_first, sigma_second, theta = (
-        parameters
-    )
+    (
+        amplitude,
+        center_x,
+        center_y,
+        sigma_first,
+        sigma_second,
+        theta,
+        _,
+    ) = parameters
     if sigma_second > sigma_first:
         sigma_first, sigma_second = sigma_second, sigma_first
         theta += 0.5 * pi
@@ -329,6 +428,7 @@ def fit_compact_gaussian(
     uncertainty = _formal_uncertainty(
         np.asarray(result.jac, dtype=np.float64),
         parameters,
+        np.column_stack((x, y)),
         geometry,
     )
     flags = tuple(
@@ -336,6 +436,18 @@ def fit_compact_gaussian(
         for flag, selected in (
             ("fit-at-bound", at_bound),
             ("uncertainty-unavailable", uncertainty is None),
+            (
+                "formal-independent-pixel-errors",
+                uncertainty is not None
+                and geometry.noise_correlation_covariance_pixels_squared
+                is None,
+            ),
+            (
+                "correlated-noise-sandwich-errors",
+                uncertainty is not None
+                and geometry.noise_correlation_covariance_pixels_squared
+                is not None,
+            ),
         )
         if selected
     )

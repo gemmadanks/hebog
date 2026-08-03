@@ -296,6 +296,8 @@ class CompactGaussianFitConfig:
     center_margin_pixels: float
     convergence_tolerance: float
     maximum_axis_ratio: float
+    maximum_background_offset_sigma: float = 3.0
+    context_margin_pixels: int = 8
 
     def __post_init__(self) -> None:
         """Validate scientific parameter bounds and finite work limits."""
@@ -342,6 +344,21 @@ class CompactGaussianFitConfig:
             or self.maximum_axis_ratio <= 1
         ):
             raise ValueError("maximum_axis_ratio must be finite and > 1")
+        if (
+            not isfinite(self.maximum_background_offset_sigma)
+            or self.maximum_background_offset_sigma <= 0
+        ):
+            raise ValueError(
+                "maximum_background_offset_sigma must be finite and positive"
+            )
+        if (
+            isinstance(self.context_margin_pixels, bool)
+            or not isinstance(self.context_margin_pixels, Integral)
+            or self.context_margin_pixels < 0
+        ):
+            raise ValueError(
+                "context_margin_pixels must be a non-negative integer"
+            )
 
 
 @dataclass(frozen=True, slots=True)

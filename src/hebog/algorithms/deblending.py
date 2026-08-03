@@ -105,8 +105,17 @@ def _bounds_pixel_count(bounds: ImageBounds) -> int:
 def plan_compact_deblend_batches(
     islands: tuple[DetectedIsland, ...],
     config: CompactDeblendConfig,
+    *,
+    context_margin_pixels: int = 0,
+    image_shape_yx: tuple[int, int] | None = None,
 ) -> CompactDeblendPlan:
     """Admit compact bounds by cost without creating a task per island."""
+    if context_margin_pixels < 0:
+        raise ValueError("context margin cannot be negative")
+    if context_margin_pixels and image_shape_yx is None:
+        raise ValueError("context margin requires the logical image shape")
+    if context_margin_pixels:
+        assert image_shape_yx is not None
     ordered = tuple(
         sorted(
             islands,
@@ -120,7 +129,15 @@ def plan_compact_deblend_batches(
     current: list[DetectedIsland] = []
     current_pixels = 0
     for island in ordered:
-        bounds_pixels = _bounds_pixel_count(island.bounds)
+        admitted_bounds = (
+            island.bounds
+            if context_margin_pixels == 0
+            else island.bounds.expanded(
+                context_margin_pixels,
+                cast(tuple[int, int], image_shape_yx),
+            )
+        )
+        bounds_pixels = _bounds_pixel_count(admitted_bounds)
         if island.pixel_count > config.maximum_compact_island_pixels:
             deferred.append(
                 DeferredDeblendIsland(

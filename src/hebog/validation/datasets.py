@@ -1,3 +1,5 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownVariableType=false
 """Versioned validation-dataset manifests and synthetic image generation.
 
 The generator is deliberately stateless at the pixel level. Generating any
@@ -16,13 +18,18 @@ from typing import Literal, Self
 import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from scipy.ndimage import correlate
 
 GENERATOR_NAME = "hebog.synthetic.gaussian-noise"
-GENERATOR_VERSION = 2
+GENERATOR_VERSION = 3
+
+_CORRELATED_NOISE_GENERATOR_VERSION = 3
 
 _UINT64_LIMIT = 2**64 - 1
 _FIRST_RANDOM_STREAM = np.uint64(0xD1B54A32D192ED03)
 _SECOND_RANDOM_STREAM = np.uint64(0x94D049BB133111EB)
+_Y_COORDINATE_STREAM = np.uint64(0x8CB92BA72F3D8DD7)
+_X_COORDINATE_STREAM = np.uint64(0xDB4F0B9175AE2165)
 _MANTISSA_SCALE = 1.0 / 2**53
 _MINIMUM_DECLINATION_DEGREES = -90.0
 _MAXIMUM_DECLINATION_DEGREES = 90.0
@@ -149,11 +156,29 @@ class SyntheticInvalidRectangle(_ManifestModel):
         return self
 
 
+class SyntheticNoiseCorrelation(_ManifestModel):
+    """Gaussian noise-correlation function in image-pixel coordinates."""
+
+    major_fwhm_pixels: float = Field(gt=0, allow_inf_nan=False)
+    minor_fwhm_pixels: float = Field(gt=0, allow_inf_nan=False)
+    position_angle_degrees: float = Field(allow_inf_nan=False)
+    truncation_sigma: float = Field(default=4.0, ge=3.0, le=8.0)
+
+    @model_validator(mode="after")
+    def validate_axis_order(self) -> Self:
+        """Require the correlation major width to contain the minor width."""
+        if self.minor_fwhm_pixels > self.major_fwhm_pixels:
+            raise ValueError(
+                "noise-correlation minor axis cannot exceed major axis"
+            )
+        return self
+
+
 class SyntheticRecipe(_ManifestModel):
     """Complete inputs to one version of the synthetic image generator."""
 
     generator: Literal["hebog.synthetic.gaussian-noise"]
-    generator_version: Literal[1, 2]
+    generator_version: Literal[1, 2, 3]
     seed: int = Field(ge=0, le=_UINT64_LIMIT)
     shape_yx: tuple[int, int]
     background: float = Field(allow_inf_nan=False)
@@ -161,6 +186,7 @@ class SyntheticRecipe(_ManifestModel):
     sources: tuple[SyntheticSource, ...] = ()
     noise_rms_fractional_gradient_xy: tuple[float, float] = (0.0, 0.0)
     invalid_rectangles: tuple[SyntheticInvalidRectangle, ...] = ()
+    noise_correlation: SyntheticNoiseCorrelation | None = None
 
     def _validate_sources(self, *, height: int, width: int) -> None:
         """Require every analytic source centre to be inside the plane."""
@@ -180,6 +206,18 @@ class SyntheticRecipe(_ManifestModel):
             or self.invalid_rectangles
         ):
             raise ValueError("generator version 1 cannot use version 2 fields")
+        if (
+            self.generator_version < _CORRELATED_NOISE_GENERATOR_VERSION
+            and self.noise_correlation is not None
+        ):
+            raise ValueError(
+                "noise correlation is available only in generator version 3"
+            )
+        if (
+            self.generator_version == _CORRELATED_NOISE_GENERATOR_VERSION
+            and self.noise_correlation is None
+        ):
+            raise ValueError("generator version 3 requires noise correlation")
         gradient_x, gradient_y = self.noise_rms_fractional_gradient_xy
         if 1.0 - 0.5 * (abs(gradient_x) + abs(gradient_y)) <= 0:
             raise ValueError("noise RMS gradient must remain positive")
@@ -223,6 +261,8 @@ def recipe_sha256(recipe: SyntheticRecipe) -> str:
     if recipe.generator_version == 1:
         document.pop("noise_rms_fractional_gradient_xy")
         document.pop("invalid_rectangles")
+    if recipe.generator_version < _CORRELATED_NOISE_GENERATOR_VERSION:
+        document.pop("noise_correlation")
     canonical_json = json.dumps(
         document,
         allow_nan=False,
@@ -548,6 +588,101 @@ def _splitmix64(values: npt.NDArray[np.uint64]) -> npt.NDArray[np.uint64]:
     return mixed ^ (mixed >> np.uint64(31))
 
 
+def _standard_normal_from_addresses(
+    addresses: npt.NDArray[np.uint64],
+    *,
+    seed: int,
+) -> npt.NDArray[np.float64]:
+    """Map deterministic integer addresses to one standard-normal stream."""
+    seed_bits = np.uint64(seed)
+    first_bits = _splitmix64(addresses ^ seed_bits ^ _FIRST_RANDOM_STREAM)
+    second_bits = _splitmix64(addresses ^ seed_bits ^ _SECOND_RANDOM_STREAM)
+    first_uniform = (first_bits >> np.uint64(11)).astype(np.float64) + 0.5
+    first_uniform *= _MANTISSA_SCALE
+    second_uniform = (second_bits >> np.uint64(11)).astype(np.float64) + 0.5
+    second_uniform *= _MANTISSA_SCALE
+    return np.sqrt(-2.0 * np.log(first_uniform)) * np.cos(
+        2.0 * np.pi * second_uniform
+    )
+
+
+def _coordinate_normal_noise(
+    recipe: SyntheticRecipe,
+    *,
+    y_start: int,
+    y_stop: int,
+    x_start: int,
+    x_stop: int,
+) -> npt.NDArray[np.float64]:
+    """Generate deterministic noise on the unbounded integer pixel lattice."""
+    y_coordinates = np.arange(y_start, y_stop, dtype=np.int64).view(np.uint64)
+    x_coordinates = np.arange(x_start, x_stop, dtype=np.int64).view(np.uint64)
+    y_addresses = _splitmix64(
+        y_coordinates[:, np.newaxis] ^ _Y_COORDINATE_STREAM
+    )
+    x_addresses = _splitmix64(
+        x_coordinates[np.newaxis, :] ^ _X_COORDINATE_STREAM
+    )
+    return _standard_normal_from_addresses(
+        y_addresses ^ x_addresses,
+        seed=recipe.seed,
+    )
+
+
+def _noise_correlation_kernel(
+    correlation: SyntheticNoiseCorrelation,
+) -> tuple[npt.NDArray[np.float64], int]:
+    """Return an L2-normalized filter whose autocorrelation is requested."""
+    fwhm_to_sigma = 1.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    filter_major_sigma = (
+        correlation.major_fwhm_pixels * fwhm_to_sigma / np.sqrt(2.0)
+    )
+    filter_minor_sigma = (
+        correlation.minor_fwhm_pixels * fwhm_to_sigma / np.sqrt(2.0)
+    )
+    halo = int(np.ceil(correlation.truncation_sigma * filter_major_sigma))
+    offsets = np.arange(-halo, halo + 1, dtype=np.float64)
+    y_grid, x_grid = np.meshgrid(offsets, offsets, indexing="ij")
+    angle = np.deg2rad(correlation.position_angle_degrees)
+    cosine = np.cos(angle)
+    sine = np.sin(angle)
+    major_offset = cosine * x_grid + sine * y_grid
+    minor_offset = -sine * x_grid + cosine * y_grid
+    kernel = np.exp(
+        -0.5
+        * (
+            np.square(major_offset / filter_major_sigma)
+            + np.square(minor_offset / filter_minor_sigma)
+        )
+    )
+    kernel /= np.sqrt(np.sum(np.square(kernel), dtype=np.float64))
+    return np.asarray(kernel, dtype=np.float64), halo
+
+
+def _correlated_normal_noise(
+    recipe: SyntheticRecipe,
+    *,
+    y_start: int,
+    y_stop: int,
+    x_start: int,
+    x_stop: int,
+) -> npt.NDArray[np.float64]:
+    """Generate normalized Gaussian-correlated noise for one exact window."""
+    correlation = recipe.noise_correlation
+    if correlation is None:
+        raise ValueError("correlated noise recipe lacks correlation metadata")
+    kernel, halo = _noise_correlation_kernel(correlation)
+    expanded = _coordinate_normal_noise(
+        recipe,
+        y_start=y_start - halo,
+        y_stop=y_stop + halo,
+        x_start=x_start - halo,
+        x_stop=x_stop + halo,
+    )
+    filtered = correlate(expanded, kernel, mode="constant", cval=0.0)
+    return np.asarray(filtered[halo:-halo, halo:-halo], dtype=np.float64)
+
+
 def _normal_noise(
     recipe: SyntheticRecipe,
     *,
@@ -561,20 +696,22 @@ def _normal_noise(
     width = x_stop - x_start
     if recipe.noise_rms == 0:
         return np.zeros((height, width), dtype=np.float64)
+    if recipe.generator_version == _CORRELATED_NOISE_GENERATOR_VERSION:
+        return _correlated_normal_noise(
+            recipe,
+            y_start=y_start,
+            y_stop=y_stop,
+            x_start=x_start,
+            x_stop=x_stop,
+        )
 
     full_width = np.uint64(recipe.shape_yx[1])
     y_indices = np.arange(y_start, y_stop, dtype=np.uint64)[:, np.newaxis]
     x_indices = np.arange(x_start, x_stop, dtype=np.uint64)[np.newaxis, :]
     addresses = y_indices * full_width + x_indices
-    seed = np.uint64(recipe.seed)
-    first_bits = _splitmix64(addresses ^ seed ^ _FIRST_RANDOM_STREAM)
-    second_bits = _splitmix64(addresses ^ seed ^ _SECOND_RANDOM_STREAM)
-    first_uniform = (first_bits >> np.uint64(11)).astype(np.float64) + 0.5
-    first_uniform *= _MANTISSA_SCALE
-    second_uniform = (second_bits >> np.uint64(11)).astype(np.float64) + 0.5
-    second_uniform *= _MANTISSA_SCALE
-    return np.sqrt(-2.0 * np.log(first_uniform)) * np.cos(
-        2.0 * np.pi * second_uniform
+    return _standard_normal_from_addresses(
+        addresses,
+        seed=recipe.seed,
     )
 
 

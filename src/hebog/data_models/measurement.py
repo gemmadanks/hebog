@@ -9,10 +9,13 @@ from typing import Literal, TypeAlias
 
 @dataclass(frozen=True, slots=True)
 class CompactMeasurementGeometry:
-    """Reviewed local solid angles needed for Jy/beam conversion."""
+    """Reviewed local solid angles and noise correlation for compact fits."""
 
     pixel_solid_angle_steradians: float
     restoring_beam_solid_angle_steradians: float
+    noise_correlation_covariance_pixels_squared: (
+        tuple[float, float, float] | None
+    ) = None
 
     def __post_init__(self) -> None:
         """Require explicit finite positive pixel and beam solid angles."""
@@ -26,6 +29,21 @@ class CompactMeasurementGeometry:
             or self.restoring_beam_solid_angle_steradians <= 0
         ):
             raise ValueError("beam solid angle must be finite and positive")
+        covariance = self.noise_correlation_covariance_pixels_squared
+        if covariance is not None:
+            covariance_xx, covariance_xy, covariance_yy = covariance
+            if not all(isfinite(value) for value in covariance):
+                raise ValueError("noise correlation covariance must be finite")
+            if (
+                covariance_xx <= 0
+                or covariance_yy <= 0
+                or covariance_xx * covariance_yy
+                - covariance_xy * covariance_xy
+                <= 0
+            ):
+                raise ValueError(
+                    "noise correlation covariance must be positive definite"
+                )
 
 
 @dataclass(frozen=True, slots=True)

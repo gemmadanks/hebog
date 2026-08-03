@@ -130,7 +130,8 @@ def _validated_arrays(
     rms = np.asarray(compact.rms)
     validity = np.asarray(compact.valid_pixels)
     labels = np.asarray(compact.region_labels)
-    expected_shape = compact.island.bounds.shape_yx
+    array_bounds = getattr(compact, "array_bounds", compact.island.bounds)
+    expected_shape = array_bounds.shape_yx
     arrays = (residual, rms, validity, labels)
     if any(array.ndim != _IMAGE_DIMENSIONS for array in arrays):
         raise ValueError("compact moment arrays must be two-dimensional")
@@ -341,8 +342,8 @@ def measure_compact_moments(
         rms=rms,
         validity=validity,
         origin_yx=(
-            compact.island.bounds.y_start,
-            compact.island.bounds.x_start,
+            getattr(compact, "array_bounds", compact.island.bounds).y_start,
+            getattr(compact, "array_bounds", compact.island.bounds).x_start,
         ),
         geometry=geometry,
         config=config,

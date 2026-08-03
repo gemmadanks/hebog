@@ -68,6 +68,7 @@ class WorkerLocalDeblendedIsland:
     """Exact bounded Phase 4 input that never crosses the executor boundary."""
 
     island: DetectedIsland
+    array_bounds: ImageBounds
     regions: tuple[DeblendedRegion, ...]
     physical_residual: npt.NDArray[np.float64]
     rms: npt.NDArray[np.float64]
@@ -82,7 +83,9 @@ class WorkerLocalDeblendedIsland:
 
     def _validate_arrays(self) -> None:
         """Require exact shapes, dtypes, and immutable worker ownership."""
-        expected_shape = self.island.bounds.shape_yx
+        if not self.array_bounds.contains(self.island.bounds):
+            raise ValueError("worker-local bounds must contain island bounds")
+        expected_shape = self.array_bounds.shape_yx
         arrays = (
             self.physical_residual,
             self.rms,
@@ -156,7 +159,7 @@ class WorkerLocalRegionBatch:
     def __post_init__(self) -> None:
         """Bind retained work to the planner's admitted bounds budget."""
         expected = sum(
-            item.island.bounds.shape_yx[0] * item.island.bounds.shape_yx[1]
+            item.array_bounds.shape_yx[0] * item.array_bounds.shape_yx[1]
             for item in self.islands
         )
         if expected != self.admitted_bounds_pixel_count:
@@ -196,6 +199,7 @@ class _BoundedIslandInputs:
     """Aligned source and product windows for one admitted island."""
 
     island: DetectedIsland
+    read_bounds: ImageBounds
     window: ImageWindow
     background: npt.NDArray[np.generic]
     rms: npt.NDArray[np.generic]
@@ -224,11 +228,18 @@ def _read_admitted_batch(
     source: _WindowReadable,
     sink: ZarrProductSink,
     config: CompactDeblendConfig,
+    context_margin_pixels: int = 0,
 ) -> tuple[_BoundedIslandInputs, ...]:
     """Read only the five bounded inputs required by compact processing."""
     if batch.estimated_pixel_count > config.maximum_batch_pixels:
         raise ValueError("compact region batch exceeds its admitted limit")
-    bounds_collection = tuple(island.bounds for island in batch.islands)
+    bounds_collection = tuple(
+        island.bounds.expanded(
+            context_margin_pixels,
+            sink.manifest.image_shape_yx,
+        )
+        for island in batch.islands
+    )
     if isinstance(source, _MultiWindowReadable):
         source_windows = source.read_windows(bounds_collection)
     else:
@@ -245,15 +256,15 @@ def _read_admitted_batch(
         bounds_collection,
     )
     inputs: list[_BoundedIslandInputs] = []
-    for island, window, background, rms, accepted_mask in zip(
+    for island, bounds, window, background, rms, accepted_mask in zip(
         batch.islands,
+        bounds_collection,
         source_windows,
         backgrounds,
         rms_planes,
         memberships,
         strict=True,
     ):
-        bounds = island.bounds
         if window.bounds != bounds:
             raise ValueError("image source returned different island bounds")
         if (
@@ -266,6 +277,7 @@ def _read_admitted_batch(
         inputs.append(
             _BoundedIslandInputs(
                 island=island,
+                read_bounds=bounds,
                 window=window,
                 background=np.asarray(background),
                 rms=np.asarray(rms),
@@ -286,17 +298,29 @@ def _deblend_inputs(
         np.asarray(inputs.background, dtype=np.float64),
         np.asarray(inputs.rms, dtype=np.float64),
     )
-    exact_membership = extract_island_membership(
-        inputs.island,
-        inputs.accepted_mask,
+    bounds = inputs.island.bounds
+    read_bounds = inputs.read_bounds
+    core_slices = (
+        slice(
+            bounds.y_start - read_bounds.y_start,
+            bounds.y_stop - read_bounds.y_start,
+        ),
+        slice(
+            bounds.x_start - read_bounds.x_start,
+            bounds.x_stop - read_bounds.x_start,
+        ),
     )
-    if np.any(exact_membership & ~validity):
+    exact_membership = extract_island_membership(
+        inputs.island, inputs.accepted_mask[core_slices]
+    )
+    core_validity = validity[core_slices]
+    if np.any(exact_membership & ~core_validity):
         raise ValueError("source-filtering mask contains an invalid pixel")
     return (
         deblend_compact_island(
             CompactIslandPixels(
                 island=inputs.island,
-                normalized_residual=normalized,
+                normalized_residual=normalized[core_slices],
                 island_membership=exact_membership,
             ),
             config,
@@ -311,6 +335,7 @@ def _prepare_worker_local_batch(
     source: _WindowReadable,
     sink: ZarrProductSink,
     config: CompactDeblendConfig,
+    context_margin_pixels: int,
 ) -> WorkerLocalRegionBatch:
     """Retain physical planes and exact labels for one processor call."""
     worker_islands: list[WorkerLocalDeblendedIsland] = []
@@ -319,9 +344,10 @@ def _prepare_worker_local_batch(
         source=source,
         sink=sink,
         config=config,
+        context_margin_pixels=context_margin_pixels,
     ):
         deblended, validity = _deblend_inputs(inputs, config)
-        bounds = inputs.island.bounds
+        bounds = inputs.read_bounds
         physical_residual = np.full(bounds.shape_yx, np.nan, dtype=np.float64)
         np.subtract(
             np.asarray(inputs.window.values, dtype=np.float64),
@@ -330,16 +356,31 @@ def _prepare_worker_local_batch(
             where=validity,
         )
         rms_array = np.asarray(inputs.rms, dtype=np.float64)
+        labels = np.zeros(bounds.shape_yx, dtype=np.int32)
+        island_bounds = inputs.island.bounds
+        core_slices = (
+            slice(
+                island_bounds.y_start - bounds.y_start,
+                island_bounds.y_stop - bounds.y_start,
+            ),
+            slice(
+                island_bounds.x_start - bounds.x_start,
+                island_bounds.x_stop - bounds.x_start,
+            ),
+        )
+        labels[core_slices] = deblended.region_labels
         physical_residual.setflags(write=False)
         rms_array.setflags(write=False)
+        labels.setflags(write=False)
         worker_islands.append(
             WorkerLocalDeblendedIsland(
                 island=inputs.island,
+                array_bounds=bounds,
                 regions=deblended.regions,
                 physical_residual=physical_residual,
                 rms=rms_array,
                 valid_pixels=validity,
-                region_labels=deblended.region_labels,
+                region_labels=labels,
             )
         )
     return WorkerLocalRegionBatch(
@@ -367,12 +408,13 @@ def _deblend_batch(
     )
 
 
-def _process_region_batch(
+def _process_region_batch(  # noqa: PLR0913
     batch: CompactDeblendBatch,
     *,
     source: _WindowReadable,
     sink: ZarrProductSink,
     config: CompactDeblendConfig,
+    context_margin_pixels: int,
     processor: Callable[[WorkerLocalRegionBatch], tuple[Record, ...]],
 ) -> _ProcessedRegionBatch[Record]:
     """Run one processor before any exact pixel arrays leave its worker."""
@@ -381,6 +423,7 @@ def _process_region_batch(
         source=source,
         sink=sink,
         config=config,
+        context_margin_pixels=context_margin_pixels,
     )
     records = processor(worker_batch)
     summaries = tuple(
@@ -450,6 +493,7 @@ def run_compact_region_stage(  # noqa: PLR0913
     processor: Callable[[WorkerLocalRegionBatch], tuple[Record, ...]],
     executor: Executor,
     sink: ZarrProductSink,
+    context_margin_pixels: int = 0,
 ) -> CompactRegionStageResult[Record]:
     """Process exact deblended membership inside existing coarse tasks.
 
@@ -463,12 +507,18 @@ def run_compact_region_stage(  # noqa: PLR0913
         or generation.generation_id != sink.generation_id
     ):
         raise ValueError("region sink does not match the detection generation")
-    plan = plan_compact_deblend_batches(detection.islands, config)
+    plan = plan_compact_deblend_batches(
+        detection.islands,
+        config,
+        context_margin_pixels=context_margin_pixels,
+        image_shape_yx=sink.manifest.image_shape_yx,
+    )
     process = partial(
         _process_region_batch,
         source=source,
         sink=sink,
         config=config,
+        context_margin_pixels=context_margin_pixels,
         processor=processor,
     )
     batch_results = executor.map_batches(process, plan.batches)

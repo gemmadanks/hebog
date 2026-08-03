@@ -15,6 +15,7 @@ from hebog.validation.datasets import (
     DatasetManifest,
     DatasetRole,
     SyntheticInvalidRectangle,
+    SyntheticNoiseCorrelation,
     SyntheticRecipe,
     SyntheticSource,
     generate_synthetic_image,
@@ -26,6 +27,7 @@ from hebog.validation.datasets import (
 
 _DATASET_DIRECTORY = Path(__file__).parents[3] / "config" / "datasets"
 MANIFEST_PATH = _DATASET_DIRECTORY / "phase-0-development.json"
+_PHASE_FOUR_POWERED_SAMPLE_COUNT = 1_600
 
 
 def _recipe(
@@ -143,13 +145,20 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
             expected_roles[manifest_id]
         }
         assert all(
-            item.recipe.generator_version == 2 for item in manifest.datasets
+            item.recipe.generator_version in {2, 3}
+            for item in manifest.datasets
         )
 
     assert {manifest.schema_version for manifest in manifests.values()} == {2}
     qualification = manifests["phase-4-qualification"].datasets
     assert len(qualification) == 1
     qualification_dataset = qualification[0]
+    assert qualification_dataset.recipe.generator_version == 3
+    assert qualification_dataset.recipe.noise_correlation is not None
+    assert (
+        qualification_dataset.recipe.noise_correlation.major_fwhm_pixels
+        == qualification_dataset.beam.major_fwhm_pixels
+    )
     qualification_recipes = iter_dataset_recipes(qualification_dataset)
     assert len(qualification_recipes) >= 200
     assert len({recipe.seed for recipe in qualification_recipes}) == len(
@@ -170,7 +179,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         "snr-25",
         "snr-50",
     }
-    assert min(sample_counts.values()) >= 200
+    assert min(sample_counts.values()) >= _PHASE_FOUR_POWERED_SAMPLE_COUNT
     assert qualification_dataset.association_truth_groups
     assert {
         group.resolution_class
@@ -363,6 +372,84 @@ def test_version_two_generation_adds_partition_invariant_noise_and_masks() -> (
         x_stop=2,
     )
     assert np.all(np.isfinite(unaffected))
+
+
+def test_version_three_generates_partition_invariant_correlated_noise() -> (
+    None
+):
+    """Beam-correlated noise is normalized and independent of window layout."""
+    recipe = SyntheticRecipe(
+        generator="hebog.synthetic.gaussian-noise",
+        generator_version=3,
+        seed=2026080301,
+        shape_yx=(512, 512),
+        background=0.0,
+        noise_rms=1.0,
+        noise_correlation=SyntheticNoiseCorrelation(
+            major_fwhm_pixels=4.0,
+            minor_fwhm_pixels=2.0,
+            position_angle_degrees=0.0,
+        ),
+    )
+
+    whole = generate_synthetic_image(recipe)
+    quarters = np.block(
+        [
+            [
+                generate_synthetic_window(
+                    recipe,
+                    y_start=y_start,
+                    y_stop=y_stop,
+                    x_start=x_start,
+                    x_stop=x_stop,
+                )
+                for x_start, x_stop in ((0, 173), (173, 512))
+            ]
+            for y_start, y_stop in ((0, 211), (211, 512))
+        ]
+    )
+
+    np.testing.assert_array_equal(quarters, whole)
+    assert np.std(whole) == pytest.approx(1.0, abs=0.03)
+    measured_x_lag_one = float(
+        np.mean(whole[:, :-1] * whole[:, 1:]) / np.var(whole)
+    )
+    major_sigma = 4.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    expected_x_lag_one = np.exp(-0.5 / np.square(major_sigma))
+    assert measured_x_lag_one == pytest.approx(expected_x_lag_one, abs=0.03)
+
+
+@pytest.mark.parametrize(
+    ("version", "correlation", "message"),
+    [
+        (3, None, "version 3 requires"),
+        (
+            2,
+            SyntheticNoiseCorrelation(
+                major_fwhm_pixels=4.0,
+                minor_fwhm_pixels=2.0,
+                position_angle_degrees=0.0,
+            ),
+            "only in generator version 3",
+        ),
+    ],
+)
+def test_correlated_noise_requires_generator_version_three(
+    version: int,
+    correlation: SyntheticNoiseCorrelation | None,
+    message: str,
+) -> None:
+    """A recipe version unambiguously determines its noise semantics."""
+    payload = _recipe().model_dump(mode="python")
+    payload.update(
+        {
+            "generator_version": version,
+            "noise_correlation": correlation,
+        }
+    )
+
+    with pytest.raises(ValidationError, match=message):
+        SyntheticRecipe.model_validate(payload)
 
 
 def test_invalid_rectangle_requires_increasing_bounds() -> None:

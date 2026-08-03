@@ -26,7 +26,7 @@ class FittedGaussianPixelParameters:
 
 @dataclass(frozen=True, slots=True)
 class GaussianFitUncertainty:
-    """Formal independent-pixel one-sigma position and flux uncertainty."""
+    """One-sigma position and flux covariance estimate for a fitted model."""
 
     amplitude_error_jy_per_beam: float
     centroid_covariance_xx_pixels_squared: float

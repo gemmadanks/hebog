@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 import pytest
@@ -31,6 +31,7 @@ class _FitInput:
     """Exact one-region input accepted by moment and fitting kernels."""
 
     island: DetectedIsland
+    array_bounds: ImageBounds
     regions: tuple[DeblendedRegion, ...]
     physical_residual: np.ndarray
     rms: np.ndarray
@@ -62,6 +63,8 @@ def _fit_config(**changes: object) -> CompactGaussianFitConfig:
         "center_margin_pixels": 1.0,
         "convergence_tolerance": 1e-10,
         "maximum_axis_ratio": 20.0,
+        "maximum_background_offset_sigma": 3.0,
+        "context_margin_pixels": 8,
     }
     values.update(changes)
     return CompactGaussianFitConfig(**values)  # type: ignore[arg-type]
@@ -127,6 +130,7 @@ def _gaussian_input(  # noqa: PLR0913
     )
     return _FitInput(
         island=island,
+        array_bounds=bounds,
         regions=(region,),
         physical_residual=np.asarray(residual, dtype=np.float64),
         rms=np.full(shape_yx, rms_value, dtype=np.float64),
@@ -138,17 +142,19 @@ def _gaussian_input(  # noqa: PLR0913
 def _fit(
     compact: _FitInput,
     config: CompactGaussianFitConfig | None = None,
+    geometry: CompactMeasurementGeometry | None = None,
 ):
+    selected_geometry = geometry or _geometry()
     measurements = measure_compact_moments(
         compact,
-        _geometry(),
+        selected_geometry,
         _moment_config(),
     )
     return fit_compact_gaussian(
         compact,
         compact.regions[0],
         measurements[1],
-        _geometry(),
+        selected_geometry,
         config or _fit_config(),
     )
 
@@ -213,6 +219,38 @@ def test_fit_is_translation_and_positive_scaling_equivariant() -> None:
     )
 
 
+def test_formal_errors_account_for_correlated_noise() -> None:
+    """A reviewed correlation model adjusts covariance, not fitted values."""
+    compact = _gaussian_input()
+    independent = _fit(compact)
+    correlated = _fit(
+        compact,
+        geometry=CompactMeasurementGeometry(
+            pixel_solid_angle_steradians=1.0,
+            restoring_beam_solid_angle_steradians=8.0,
+            noise_correlation_covariance_pixels_squared=(4.0, 0.0, 4.0),
+        ),
+    )
+
+    assert isinstance(independent, ValidCompactGaussianFit)
+    assert isinstance(correlated, ValidCompactGaussianFit)
+    assert independent.uncertainty is not None
+    assert correlated.uncertainty is not None
+    assert correlated.parameters == independent.parameters
+    assert "formal-independent-pixel-errors" in independent.quality_flags
+    assert "correlated-noise-sandwich-errors" in correlated.quality_flags
+    assert correlated.uncertainty.amplitude_error_jy_per_beam > (
+        independent.uncertainty.amplitude_error_jy_per_beam
+    )
+    assert (
+        correlated.uncertainty.centroid_covariance_xx_pixels_squared
+        > independent.uncertainty.centroid_covariance_xx_pixels_squared
+    )
+    assert correlated.uncertainty.integrated_flux_error_jy > (
+        independent.uncertainty.integrated_flux_error_jy
+    )
+
+
 def test_fit_bilinearly_samples_rms_at_the_fitted_centroid() -> None:
     """Component noise uses the contract's sub-pixel local RMS value."""
     compact = _gaussian_input(centroid_xy=(28.25, 17.5))
@@ -223,6 +261,45 @@ def test_fit_bilinearly_samples_rms_at_the_fitted_centroid() -> None:
 
     assert isinstance(result, ValidCompactGaussianFit)
     expected = 0.01 + 0.001 * 8.25 + 0.002 * 7.5
+    assert result.parameters.local_rms_jy_per_beam == pytest.approx(expected)
+
+
+def test_context_fit_samples_rms_relative_to_the_retained_array() -> None:
+    """Expanded fit context does not shift the local-RMS coordinate frame."""
+    compact = _gaussian_input(centroid_xy=(28.25, 17.5))
+    margin = 8
+    expanded_shape = (
+        compact.physical_residual.shape[0] + 2 * margin,
+        compact.physical_residual.shape[1] + 2 * margin,
+    )
+    residual = np.zeros(expanded_shape, dtype=np.float64)
+    labels = np.zeros(expanded_shape, dtype=np.int32)
+    core = (
+        slice(margin, -margin),
+        slice(margin, -margin),
+    )
+    residual[core] = compact.physical_residual
+    labels[core] = compact.region_labels
+    local_y, local_x = np.indices(expanded_shape, dtype=np.float64)
+    rms = 0.01 + 0.001 * local_x + 0.002 * local_y
+    expanded = replace(
+        compact,
+        array_bounds=ImageBounds(
+            compact.island.bounds.y_start - margin,
+            compact.island.bounds.y_stop + margin,
+            compact.island.bounds.x_start - margin,
+            compact.island.bounds.x_stop + margin,
+        ),
+        physical_residual=residual,
+        rms=np.asarray(rms, dtype=np.float64),
+        valid_pixels=np.ones(expanded_shape, dtype=np.bool_),
+        region_labels=labels,
+    )
+
+    result = _fit(expanded)
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    expected = 0.01 + 0.001 * 16.25 + 0.002 * 15.5
     assert result.parameters.local_rms_jy_per_beam == pytest.approx(expected)
 
 
@@ -302,6 +379,8 @@ def test_underdetermined_measurement_is_not_fitted() -> None:
         ({"center_margin_pixels": -1.0}, "center_margin"),
         ({"convergence_tolerance": 0.0}, "convergence"),
         ({"maximum_axis_ratio": 1.0}, "axis_ratio"),
+        ({"maximum_background_offset_sigma": 0.0}, "background_offset"),
+        ({"context_margin_pixels": -1}, "context_margin"),
     ],
 )
 def test_fit_policy_rejects_invalid_bounds(

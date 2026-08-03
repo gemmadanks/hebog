@@ -99,6 +99,7 @@ def _worker_local_island() -> WorkerLocalDeblendedIsland:
     result = deblend_compact_island(compact, _config())
     return WorkerLocalDeblendedIsland(
         island=compact.island,
+        array_bounds=compact.island.bounds,
         regions=result.regions,
         physical_residual=_read_only(np.full((2, 2), 0.006, dtype=np.float64)),
         rms=_read_only(np.full((2, 2), 0.001, dtype=np.float64)),
@@ -405,6 +406,8 @@ def test_worker_local_region_contract_binds_summaries_and_memory() -> None:
         replace(item, regions=(wrong_count,))
     with pytest.raises(ValueError, match="admitted bounds"):
         replace(batch, admitted_bounds_pixel_count=3)
+    with pytest.raises(ValueError, match="must contain island"):
+        replace(item, array_bounds=ImageBounds(0, 1, 0, 1))
 
 
 def test_exact_peak_threshold_has_no_eligible_marker() -> None:
@@ -476,6 +479,29 @@ def test_planner_rejects_duplicate_island_identities() -> None:
 
     with pytest.raises(ValueError, match="unique"):
         plan_compact_deblend_batches((island, island), _config())
+
+
+def test_planner_accounts_for_clipped_fit_context() -> None:
+    """Expanded fit pixels count against bounds and batch admission limits."""
+    edge = _compact_island(
+        np.full((2, 2), 6.0),
+        bounds_origin_yx=(0, 0),
+    ).island
+
+    plan = plan_compact_deblend_batches(
+        (edge,),
+        _config(maximum_compact_bounds_pixels=25),
+        context_margin_pixels=3,
+        image_shape_yx=(20, 20),
+    )
+
+    assert plan.batches[0].estimated_pixel_count == 25
+    with pytest.raises(ValueError, match="logical image shape"):
+        plan_compact_deblend_batches(
+            (edge,),
+            _config(),
+            context_margin_pixels=3,
+        )
 
 
 def test_valid_batch_returns_results_in_caller_order() -> None:

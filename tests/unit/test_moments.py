@@ -601,17 +601,37 @@ def test_rejects_invalid_moment_policy(
         ({"pixel_solid_angle_steradians": 0.0}, "pixel"),
         ({"pixel_solid_angle_steradians": float("inf")}, "pixel"),
         ({"restoring_beam_solid_angle_steradians": -1.0}, "beam"),
+        (
+            {
+                "noise_correlation_covariance_pixels_squared": (
+                    1.0,
+                    2.0,
+                    1.0,
+                )
+            },
+            "correlation covariance",
+        ),
+        (
+            {
+                "noise_correlation_covariance_pixels_squared": (
+                    float("inf"),
+                    0.0,
+                    1.0,
+                )
+            },
+            "correlation covariance",
+        ),
     ],
 )
 def test_rejects_invalid_measurement_geometry(
-    values: dict[str, float],
+    values: dict[str, object],
     message: str,
 ) -> None:
     """Flux conversion never infers or accepts invalid solid angles."""
-    defaults = {
+    defaults: dict[str, object] = {
         "pixel_solid_angle_steradians": 2.0,
         "restoring_beam_solid_angle_steradians": 5.0,
     }
     defaults.update(values)
     with pytest.raises(ValueError, match=message):
-        CompactMeasurementGeometry(**defaults)
+        CompactMeasurementGeometry(**defaults)  # type: ignore[arg-type]

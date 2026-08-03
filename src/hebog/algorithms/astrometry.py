@@ -94,15 +94,22 @@ def compact_geometry_at_pixel(
         dtype=np.float64,
     )
     pixel_area_square_degrees = abs(float(np.linalg.det(jacobian)))
+    pixel_solid_angle = pixel_area_square_degrees * (pi / 180.0) ** 2
+    beam_solid_angle = gaussian_beam_solid_angle_steradians(
+        major_fwhm_degrees=metadata.beam.major_fwhm_degrees,
+        minor_fwhm_degrees=metadata.beam.minor_fwhm_degrees,
+    )
+    inverse_jacobian = np.linalg.inv(jacobian)
+    pixel_noise_covariance = (
+        inverse_jacobian @ _sky_covariance(metadata.beam) @ inverse_jacobian.T
+    )
     return CompactMeasurementGeometry(
-        pixel_solid_angle_steradians=(
-            pixel_area_square_degrees * (pi / 180.0) ** 2
-        ),
-        restoring_beam_solid_angle_steradians=(
-            gaussian_beam_solid_angle_steradians(
-                major_fwhm_degrees=metadata.beam.major_fwhm_degrees,
-                minor_fwhm_degrees=metadata.beam.minor_fwhm_degrees,
-            )
+        pixel_solid_angle_steradians=pixel_solid_angle,
+        restoring_beam_solid_angle_steradians=beam_solid_angle,
+        noise_correlation_covariance_pixels_squared=(
+            float(pixel_noise_covariance[0, 0]),
+            float(pixel_noise_covariance[0, 1]),
+            float(pixel_noise_covariance[1, 1]),
         ),
     )
 
@@ -296,8 +303,6 @@ def transform_compact_gaussian_fit(
     flags.update(deconvolution.quality_flags)
     if uncertainty is None:
         flags.add("position-flux-uncertainty-unavailable")
-    else:
-        flags.add("formal-independent-pixel-errors")
     return CelestialCompactGaussianFit(
         pixel_fit=fit,
         position=_position_with_errors(transform, fit),

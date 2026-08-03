@@ -234,6 +234,7 @@ def _fit_config() -> CompactGaussianFitConfig:
         center_margin_pixels=1.0,
         convergence_tolerance=1e-8,
         maximum_axis_ratio=20.0,
+        context_margin_pixels=2,
     )
 
 

@@ -17,6 +17,8 @@ from hebog.validation.comparison import (
     compare_island_labels,
     compare_masks,
     compare_rms_maps,
+    evaluate_uncertainty_calibration,
+    uncertainty_calibration_report,
     wilson_score_interval,
 )
 
@@ -390,6 +392,101 @@ def test_uncertainty_report_calculates_sample_dispersion() -> None:
     assert calibration.metric == "right-ascension"
     assert calibration.mean_normalized_residual == pytest.approx(0.0)
     assert calibration.sample_standard_deviation == pytest.approx(np.sqrt(2))
+
+
+def test_uncertainty_calibration_uses_predeclared_confidence_methods() -> None:
+    """Calibration records deterministic intervals for all three metrics."""
+    samples = np.random.default_rng(7).normal(size=240)
+
+    report = uncertainty_calibration_report(
+        "peak-flux",
+        samples,
+        eligible_count=240,
+        confidence_level=0.95,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260802,
+    )
+    repeated = uncertainty_calibration_report(
+        "peak-flux",
+        samples,
+        eligible_count=240,
+        confidence_level=0.95,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260802,
+    )
+
+    assert report == repeated
+    assert report.coverage_confidence_interval is not None
+    assert report.mean_confidence_interval is not None
+    assert report.dispersion_confidence_interval is not None
+    assert report.mean_normalized_residual is not None
+    assert report.sample_standard_deviation is not None
+    assert (
+        report.mean_confidence_interval.lower < report.mean_normalized_residual
+    )
+    assert (
+        report.mean_confidence_interval.upper > report.mean_normalized_residual
+    )
+    assert (
+        report.dispersion_confidence_interval.lower
+        < report.sample_standard_deviation
+    )
+    assert (
+        report.dispersion_confidence_interval.upper
+        > report.sample_standard_deviation
+    )
+
+
+def test_uncertainty_calibration_gates_entire_intervals() -> None:
+    """A point estimate inside a margin cannot hide an uncertain interval."""
+    samples = np.tile(np.asarray([-1.0, 1.0]), 100)
+    report = uncertainty_calibration_report(
+        "declination",
+        samples,
+        eligible_count=200,
+        confidence_level=0.95,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260802,
+    )
+
+    decision = evaluate_uncertainty_calibration(
+        report,
+        minimum_samples=200,
+        nominal_coverage=0.6826894921370859,
+        maximum_absolute_coverage_difference=0.1,
+        maximum_absolute_mean=0.15,
+        minimum_standard_deviation=0.8,
+        maximum_standard_deviation=1.2,
+    )
+
+    assert decision.status == "fail"
+    assert decision.failed_metrics == ("coverage",)
+
+
+def test_uncertainty_calibration_is_report_only_below_sample_floor() -> None:
+    """Small strata remain visible without being mislabelled as passing."""
+    report = uncertainty_calibration_report(
+        "integrated-flux",
+        np.asarray([-0.5, 0.5]),
+        eligible_count=3,
+        confidence_level=0.95,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260802,
+    )
+
+    decision = evaluate_uncertainty_calibration(
+        report,
+        minimum_samples=200,
+        nominal_coverage=0.6826894921370859,
+        maximum_absolute_coverage_difference=0.1,
+        maximum_absolute_mean=0.15,
+        minimum_standard_deviation=0.8,
+        maximum_standard_deviation=1.2,
+    )
+
+    assert report.availability_fraction == pytest.approx(2 / 3)
+    assert decision.status == "report-only"
+    assert decision.failed_metrics == ("insufficient-samples",)
 
 
 def test_catalogue_report_compares_association_components_and_flags() -> None:

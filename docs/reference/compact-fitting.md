@@ -13,12 +13,14 @@ coarse executor task. A task may contain several islands and regions; Hebog
 does not create one Dask task per source. Retained image arrays stay subject to
 the Phase 3 coarse-batch pixel limit.
 
-The six fitted parameters are positive peak amplitude, global zero-based
-`(x, y)` centroid, two positive pixel sigma axes, and pixel-space orientation.
-The model has no background term because it fits the already
-background-subtracted physical plane. Residuals are divided by the local RMS
-plane. Moment parameters initialize the fit, and explicit configuration bounds
-limit center movement, axes, amplitude, iterations, and convergence tolerance.
+The seven fitted parameters are positive peak amplitude, global zero-based
+`(x, y)` centroid, two positive pixel sigma axes, pixel-space orientation, and
+a bounded local residual-background offset. The offset absorbs small local
+background errors without changing exact watershed ownership. Fits retain an
+eight-pixel context by default; pixels owned by another deblended region are
+excluded. Residuals are divided by the local RMS plane. Moment parameters
+initialize the fit, and explicit configuration bounds limit center movement,
+axes, amplitude, background offset, iterations, and convergence tolerance.
 
 The production implementation uses SciPy's bounded trust-region
 `least_squares` solver. An independent Astropy `Gaussian2D`/TRF fit agrees on
@@ -37,11 +39,15 @@ A valid fitted component reports:
 - bilinearly sampled local RMS at the fitted centroid; and
 - bounded optimizer diagnostics.
 
-Formal covariance from the weighted Jacobian is retained only when the
-information matrix is nonsingular and produces finite positive variances.
-These are independent-pixel errors and are explicitly flagged as formal; they
-are not treated as calibrated correlated-noise uncertainties. Shape errors
-remain absent pending the reviewed uncertainty-calibration gate.
+Position and flux covariance is retained only when the information matrix is
+nonsingular and produces finite positive variances. When the image geometry
+declares a Gaussian pixel-noise correlation function, Hebog uses a generalized
+OLS sandwich covariance and flags it `correlated-noise-sandwich-errors`;
+otherwise it retains the independent-pixel estimate with
+`formal-independent-pixel-errors`. Shape errors remain absent. The powered
+regression calibration passes, but the first held-out campaign found residual
+peak/integrated-flux bias in several strata, so Phase 4 does not yet claim
+qualified uncertainty calibration.
 
 Invalid moments and regions with fewer than seven owned pixels return a typed
 unavailable fit. Exhausted iterations and scientifically invalid fitted

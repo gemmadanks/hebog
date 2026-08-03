@@ -90,4 +90,5 @@ def run_compact_catalogue_stage(  # noqa: PLR0913
         ),
         executor=executor,
         sink=sink,
+        context_margin_pixels=fit_config.context_margin_pixels,
     )

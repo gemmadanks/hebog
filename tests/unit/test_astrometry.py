@@ -163,6 +163,12 @@ def test_local_jacobian_handles_signed_unequal_rotated_wcs_and_ra_wrap() -> (
         abs(np.linalg.det(matrix)) * (np.pi / 180.0) ** 2,
         rel=1e-6,
     )
+    correlation = geometry.noise_correlation_covariance_pixels_squared
+    assert correlation is not None
+    covariance = np.asarray(
+        [[correlation[0], correlation[1]], [correlation[1], correlation[2]]]
+    )
+    assert np.linalg.det(covariance) > 0
 
 
 def test_transform_uses_xy_centers_east_of_north_and_local_flux_area() -> None:

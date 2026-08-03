@@ -48,6 +48,29 @@ class ImageBounds:
             and other.x_stop <= self.x_stop
         )
 
+    def expanded(
+        self,
+        margin_pixels: int,
+        image_shape_yx: tuple[int, int],
+    ) -> ImageBounds:
+        """Return a uniformly expanded region clipped to the image plane."""
+        if (
+            isinstance(margin_pixels, bool)
+            or not isinstance(  # pyright: ignore[reportUnnecessaryIsInstance]
+                margin_pixels,
+                int,
+            )
+            or margin_pixels < 0
+        ):
+            raise ValueError("bounds margin must be a non-negative integer")
+        self.require_inside(image_shape_yx)
+        return ImageBounds(
+            y_start=max(0, self.y_start - margin_pixels),
+            y_stop=min(image_shape_yx[0], self.y_stop + margin_pixels),
+            x_start=max(0, self.x_start - margin_pixels),
+            x_stop=min(image_shape_yx[1], self.x_stop + margin_pixels),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class TilePartition:
