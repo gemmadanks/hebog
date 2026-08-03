@@ -1,9 +1,8 @@
 # Evidence documents
 
-Phase 0 benchmark and scientific-comparison outputs use the strict versioned
-models in `hebog.validation.evidence`. These documents preserve measurements
-and provenance without implying that an exploratory run has passed a release
-gate.
+Benchmark and scientific-validation outputs use the strict versioned models
+in `hebog.validation.evidence`. These documents preserve measurements and
+provenance without implying that an exploratory run has passed a release gate.
 
 Every document contains:
 
@@ -61,6 +60,27 @@ document embeds the complete reports for those products. Released PyBDSF and
 pinned PyBDSF `master` therefore produce separate documents even when they use
 the same dataset and candidate output.
 
+## Paired scientific-campaign evidence
+
+A scientific-campaign document compares Hebog and every reference on the same
+image realization. It declares one candidate first, names every implementation
+independently of its package name, and requires one outcome from every
+implementation for every seed. A reference failure is retained as a structured
+failure rather than dropping the seed or publishing a partial result.
+
+Successful outcomes retain one deterministic row for every matched source,
+unmatched truth source, and unmatched candidate. Rows include truth strata,
+classification and quality information, flux and position differences,
+independent catastrophic flags, the governed catastrophic decision, and all
+available normalized residuals. Successful implementations must expose the
+same truth identifiers. This makes paired non-inferiority analysis auditable
+and prevents aggregate pass/fail counts from hiding which sources changed.
+
+Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive these
+rows from the independent catalogue comparison report. It deliberately shares
+the normalized-residual calculation used by the aggregate uncertainty report,
+so per-source and campaign-level statistics cannot silently diverge.
+
 ## Writing and loading evidence
 
 Use the validated atomic writer rather than assembling JSON dictionaries:
@@ -103,6 +123,10 @@ ignored; the committed records are complete typed evidence rather than copied
 console summaries.
 
 ::: hebog.validation.evidence
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.validation.diagnostics
     options:
       show_symbol_type_toc: true
 

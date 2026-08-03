@@ -33,7 +33,7 @@ _HALF_CIRCLE_DEGREES = 180.0
 _DEFAULT_UNCERTAINTY_CONFIDENCE_LEVEL = 0.95
 _DEFAULT_UNCERTAINTY_BOOTSTRAP_RESAMPLES = 10_000
 _DEFAULT_UNCERTAINTY_BOOTSTRAP_SEED = 20260802
-_UncertaintyMetric = Literal[
+UncertaintyMetric = Literal[
     "right-ascension",
     "declination",
     "peak-flux",
@@ -51,7 +51,7 @@ _UncertaintyDecisionFailure = Literal[
     "mean",
     "dispersion",
 ]
-_UNCERTAINTY_METRICS: tuple[_UncertaintyMetric, ...] = (
+_UNCERTAINTY_METRICS: tuple[UncertaintyMetric, ...] = (
     "right-ascension",
     "declination",
     "peak-flux",
@@ -350,7 +350,7 @@ class NumericConfidenceInterval:
 class UncertaintyCalibrationReport:
     """Bias, dispersion, and one-sigma coverage for one reported error."""
 
-    metric: _UncertaintyMetric
+    metric: UncertaintyMetric
     eligible_count: int
     sample_count: int
     availability_fraction: float
@@ -722,16 +722,20 @@ def _quality_flag_jaccard(
     return len(reference_flags & candidate_flags) / len(union)
 
 
-def _normalized_uncertainty_samples(
+def normalized_uncertainty_samples(
     reference: CatalogueSource,
     candidate: CatalogueSource,
     *,
     position_angle_minimum_axis_ratio: float,
-) -> tuple[tuple[str, float], ...]:
-    """Normalize candidate-minus-reference residuals by candidate errors."""
-    samples: list[tuple[str, float]] = []
+) -> tuple[tuple[UncertaintyMetric, float], ...]:
+    """Return normalized candidate-minus-reference residuals."""
+    samples: list[tuple[UncertaintyMetric, float]] = []
 
-    def add(metric: str, difference: float, uncertainty: float | None) -> None:
+    def add(
+        metric: UncertaintyMetric,
+        difference: float,
+        uncertainty: float | None,
+    ) -> None:
         if uncertainty is not None:
             samples.append((metric, difference / uncertainty))
 
@@ -777,7 +781,7 @@ def _normalized_uncertainty_samples(
 
 
 def _add_shape_uncertainty_samples(
-    samples: list[tuple[str, float]],
+    samples: list[tuple[UncertaintyMetric, float]],
     *,
     prefix: Literal["fitted", "deconvolved"],
     reference: CatalogueEllipse | None,
@@ -800,7 +804,7 @@ def _add_shape_uncertainty_samples(
         ),
     )
     samples.extend(
-        (metric, difference / uncertainty)
+        (cast(UncertaintyMetric, metric), difference / uncertainty)
         for metric, difference, uncertainty in axis_entries
         if uncertainty is not None
     )
@@ -811,7 +815,7 @@ def _add_shape_uncertainty_samples(
     ):
         samples.append(
             (
-                f"{prefix}-position-angle",
+                cast(UncertaintyMetric, f"{prefix}-position-angle"),
                 _signed_periodic_difference(
                     candidate.position_angle_degrees,
                     reference.position_angle_degrees,
@@ -826,9 +830,9 @@ def _uncertainty_eligible_metrics(
     source: CatalogueSource,
     *,
     position_angle_minimum_axis_ratio: float,
-) -> tuple[_UncertaintyMetric, ...]:
+) -> tuple[UncertaintyMetric, ...]:
     """Return metrics selected only from reference or injected truth."""
-    metrics: list[_UncertaintyMetric] = [
+    metrics: list[UncertaintyMetric] = [
         "right-ascension",
         "declination",
         "peak-flux",
@@ -842,7 +846,7 @@ def _uncertainty_eligible_metrics(
             continue
         metrics.extend(
             cast(
-                tuple[_UncertaintyMetric, _UncertaintyMetric],
+                tuple[UncertaintyMetric, UncertaintyMetric],
                 (f"{prefix}-major-axis", f"{prefix}-minor-axis"),
             )
         )
@@ -850,9 +854,7 @@ def _uncertainty_eligible_metrics(
             shape.major_fwhm_degrees / shape.minor_fwhm_degrees
             >= position_angle_minimum_axis_ratio
         ):
-            metrics.append(
-                cast(_UncertaintyMetric, f"{prefix}-position-angle")
-            )
+            metrics.append(cast(UncertaintyMetric, f"{prefix}-position-angle"))
     return tuple(metrics)
 
 
@@ -1113,7 +1115,7 @@ def compare_catalogues(  # noqa: PLR0913
                 position_angle_minimum_axis_ratio=position_angle_axis_ratio,
             )
         )
-        for metric, sample in _normalized_uncertainty_samples(
+        for metric, sample in normalized_uncertainty_samples(
             reference_source,
             candidate_source,
             position_angle_minimum_axis_ratio=position_angle_axis_ratio,
@@ -1787,7 +1789,7 @@ def _dispersion_interval(
 
 
 def uncertainty_calibration_report(  # noqa: PLR0913
-    metric: _UncertaintyMetric,
+    metric: UncertaintyMetric,
     normalized_residuals: npt.ArrayLike,
     *,
     eligible_count: int,

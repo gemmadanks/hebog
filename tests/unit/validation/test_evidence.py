@@ -18,15 +18,22 @@ from hebog.validation.comparison import (
 from hebog.validation.datasets import DatasetRole
 from hebog.validation.evidence import (
     BenchmarkEvidence,
+    CampaignFailure,
+    CampaignImplementationIdentity,
+    CampaignRealizationDiagnostic,
+    CatastrophicMetricDiagnostic,
     DatasetIdentity,
     EvidenceStatus,
     ExecutorKind,
     Measurement,
+    NormalizedResidualDiagnostic,
     ResourceAllocation,
     RuntimeMetrics,
     ScalabilityMetrics,
+    ScientificCampaignEvidence,
     ScientificComparisonEvidence,
     SoftwareIdentity,
+    SourcePairDiagnostic,
     StageMetrics,
     StorageEvidence,
     UnavailableMetric,
@@ -399,3 +406,326 @@ def test_scientific_comparison_evidence_round_trips(tmp_path: Path) -> None:
 
     assert loaded == evidence
     assert isinstance(loaded, ScientificComparisonEvidence)
+
+
+def _matched_source(
+    candidate_identifier: str,
+    *,
+    truth_identifier: str = "truth-source-00001",
+) -> SourcePairDiagnostic:
+    """Return one fully explainable matched-source diagnostic."""
+    return SourcePairDiagnostic(
+        decision="matched",
+        truth_identifier=truth_identifier,
+        candidate_identifier=candidate_identifier,
+        truth_strata=("shape-unresolved", "snr-10"),
+        candidate_deconvolution_status="unresolved",
+        candidate_quality_flags=("edge", "unresolved"),
+        classification_agrees=True,
+        separation_beam_fwhm=0.04,
+        peak_flux_fractional_difference=0.02,
+        integrated_flux_fractional_difference=0.02,
+        maximum_absolute_fitted_axis_fractional_difference=0.03,
+        maximum_absolute_deconvolved_axis_fractional_difference=None,
+        catastrophic=CatastrophicMetricDiagnostic(
+            position=False,
+            peak_flux=False,
+            integrated_flux=False,
+            fitted_axis=False,
+            deconvolved_axis=False,
+        ),
+        gated_catastrophic=False,
+        normalized_residuals=(
+            NormalizedResidualDiagnostic(metric="peak-flux", value=0.2),
+            NormalizedResidualDiagnostic(
+                metric="right-ascension",
+                value=-0.1,
+            ),
+        ),
+    )
+
+
+def _campaign_evidence() -> ScientificCampaignEvidence:
+    """Return a paired campaign with one captured reference failure."""
+    implementations = (
+        CampaignImplementationIdentity(
+            identifier="hebog",
+            role="candidate",
+            software=_software("hebog", version="0.1.0", commit="3" * 40),
+        ),
+        CampaignImplementationIdentity(
+            identifier="pybdsf-release",
+            role="reference",
+            software=_software(
+                "pybdsf",
+                version="1.14.1",
+                commit="e" * 40,
+            ),
+        ),
+        CampaignImplementationIdentity(
+            identifier="pybdsf-master",
+            role="reference",
+            software=_software("pybdsf", commit="f" * 40),
+        ),
+    )
+    return ScientificCampaignEvidence(
+        schema_version=1,
+        evidence_type="scientific-campaign",
+        run_id="phase-4-paired-campaign-001",
+        captured_at=datetime(2026, 8, 3, 12, 30, tzinfo=UTC),
+        status=EvidenceStatus.EXPLORATORY,
+        dataset=_dataset(),
+        configuration_sha256=SHA256,
+        comparison_protocol_sha256="4" * 64,
+        implementations=implementations,
+        realizations=(
+            CampaignRealizationDiagnostic(
+                implementation_identifier="hebog",
+                seed=2026090152,
+                status="success",
+                candidate_count=1,
+                source_pairs=(_matched_source("hebog-source-00001"),),
+            ),
+            CampaignRealizationDiagnostic(
+                implementation_identifier="pybdsf-release",
+                seed=2026090152,
+                status="success",
+                candidate_count=1,
+                source_pairs=(_matched_source("release-source-00001"),),
+            ),
+            CampaignRealizationDiagnostic(
+                implementation_identifier="pybdsf-master",
+                seed=2026090152,
+                status="failure",
+                failure=CampaignFailure(
+                    stage="atrous-gaussian-fitting",
+                    exception_type="IndexError",
+                    message=(
+                        "index 2 is out of bounds for axis 0 with size 2"
+                    ),
+                    traceback_sha256="5" * 64,
+                ),
+            ),
+        ),
+    )
+
+
+def test_scientific_campaign_evidence_round_trips_failures_and_rows(
+    tmp_path: Path,
+) -> None:
+    """Paired evidence retains per-source detail and reference failures."""
+    evidence = _campaign_evidence()
+    path = tmp_path / "campaign.json"
+
+    write_evidence(path, evidence)
+    loaded = load_evidence(path)
+
+    assert loaded == evidence
+    assert isinstance(loaded, ScientificCampaignEvidence)
+    assert loaded.realizations[-1].failure is not None
+    assert loaded.realizations[0].source_pairs[0].normalized_residuals[0] == (
+        NormalizedResidualDiagnostic(metric="peak-flux", value=0.2)
+    )
+
+
+def test_campaign_requires_every_implementation_for_every_seed() -> None:
+    """A nominally paired campaign cannot silently omit a failed reference."""
+    document = _campaign_evidence().model_dump(mode="json")
+    document["realizations"] = document["realizations"][:-1]
+
+    with pytest.raises(
+        ValidationError,
+        match="every implementation exactly once",
+    ):
+        ScientificCampaignEvidence.model_validate(document)
+
+
+def test_campaign_requires_identical_paired_truth() -> None:
+    """Successful implementations must be compared on identical truth rows."""
+    document = _campaign_evidence().model_dump(mode="json")
+    document["realizations"][1]["source_pairs"][0]["truth_identifier"] = (
+        "different-truth"
+    )
+
+    with pytest.raises(ValidationError, match="identical truth identifiers"):
+        ScientificCampaignEvidence.model_validate(document)
+
+
+def test_source_pair_rejects_match_fields_for_unmatched_truth() -> None:
+    """Unmatched truth cannot retain a misleading candidate measurement."""
+    document = _matched_source("candidate").model_dump(mode="json")
+    document["decision"] = "unmatched-truth"
+    document["candidate_identifier"] = None
+
+    with pytest.raises(ValidationError, match="unmatched truth"):
+        SourcePairDiagnostic.model_validate(document)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("truth_strata", ["snr-10", "shape-unresolved"], "truth strata"),
+        (
+            "candidate_quality_flags",
+            ["unresolved", "edge"],
+            "quality flags",
+        ),
+        (
+            "normalized_residuals",
+            [
+                {"metric": "right-ascension", "value": 0.0},
+                {"metric": "peak-flux", "value": 0.0},
+            ],
+            "residual metrics",
+        ),
+        ("truth_identifier", None, "both identifiers"),
+        ("truth_strata", [], "requires truth strata"),
+        ("candidate_deconvolution_status", None, "candidate status"),
+        (
+            "separation_beam_fwhm",
+            None,
+            "position and flux metrics",
+        ),
+        ("catastrophic", None, "catastrophic decisions"),
+    ],
+)
+def test_matched_source_requires_canonical_complete_diagnostics(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    """Matched rows reject ambiguous ordering or incomplete measurements."""
+    document = _matched_source("candidate").model_dump(mode="json")
+    document[field] = value
+
+    with pytest.raises(ValidationError, match=message):
+        SourcePairDiagnostic.model_validate(document)
+
+
+def test_unmatched_candidate_rejects_truth_measurements() -> None:
+    """An extra candidate cannot be presented as a measured truth pair."""
+    document = {
+        "decision": "unmatched-candidate",
+        "truth_identifier": "truth-source-00001",
+        "candidate_identifier": "candidate-source-00001",
+        "candidate_deconvolution_status": "unresolved",
+    }
+
+    with pytest.raises(ValidationError, match="unmatched candidate"):
+        SourcePairDiagnostic.model_validate(document)
+
+
+def test_unmatched_truth_requires_scientific_strata() -> None:
+    """A missed truth source remains attributable to its governed stratum."""
+    document = {
+        "decision": "unmatched-truth",
+        "truth_identifier": "truth-source-00001",
+    }
+
+    with pytest.raises(ValidationError, match="requires strata"):
+        SourcePairDiagnostic.model_validate(document)
+
+
+def test_realization_failure_cannot_publish_partial_candidate_rows() -> None:
+    """A failed reference result is explicit rather than partially scored."""
+    document = _campaign_evidence().realizations[0].model_dump(mode="json")
+    document["status"] = "failure"
+    document["failure"] = {
+        "stage": "catalogue",
+        "exception_type": "RuntimeError",
+        "message": "failed",
+        "traceback_sha256": "6" * 64,
+    }
+
+    with pytest.raises(ValidationError, match="failed realization"):
+        CampaignRealizationDiagnostic.model_validate(document)
+
+
+def test_campaign_failure_rejects_blank_message() -> None:
+    """Captured failures retain a useful stable explanation."""
+    with pytest.raises(ValidationError, match="message must not be blank"):
+        CampaignFailure(
+            stage="catalogue",
+            exception_type="RuntimeError",
+            message="   ",
+            traceback_sha256="6" * 64,
+        )
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (
+            {
+                "failure": {
+                    "stage": "catalogue",
+                    "exception_type": "RuntimeError",
+                    "message": "failed",
+                    "traceback_sha256": "6" * 64,
+                }
+            },
+            "successful realization",
+        ),
+        ({"status": "success", "candidate_count": None}, "successful"),
+        (
+            {
+                "source_pairs": [
+                    _matched_source("candidate").model_dump(mode="json"),
+                    _matched_source("other-candidate").model_dump(mode="json"),
+                ],
+                "candidate_count": 2,
+            },
+            "truth identifiers",
+        ),
+        (
+            {
+                "source_pairs": [
+                    _matched_source("candidate").model_dump(mode="json"),
+                    _matched_source(
+                        "candidate",
+                        truth_identifier="truth-source-00002",
+                    ).model_dump(mode="json"),
+                ],
+                "candidate_count": 2,
+            },
+            "candidate identifiers",
+        ),
+        ({"candidate_count": 2}, "candidate count"),
+    ],
+)
+def test_realization_requires_complete_unambiguous_rows(
+    change: dict[str, object],
+    message: str,
+) -> None:
+    """Successful results have unique rows consistent with their count."""
+    document = _campaign_evidence().realizations[0].model_dump(mode="json")
+    document.update(change)
+
+    with pytest.raises(ValidationError, match=message):
+        CampaignRealizationDiagnostic.model_validate(document)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        ("duplicate-identifier", "identifiers must be unique"),
+        ("second-candidate", "exactly one candidate"),
+        ("reference-first", "candidate must be declared first"),
+    ],
+)
+def test_campaign_requires_unambiguous_candidate_identity(
+    mutate: str,
+    message: str,
+) -> None:
+    """Campaign roles and identifiers cannot change the paired denominator."""
+    document = _campaign_evidence().model_dump(mode="json")
+    if mutate == "duplicate-identifier":
+        document["implementations"][1]["identifier"] = "hebog"
+    elif mutate == "second-candidate":
+        document["implementations"][1]["role"] = "candidate"
+    else:
+        document["implementations"][0]["role"] = "reference"
+        document["implementations"][1]["role"] = "candidate"
+
+    with pytest.raises(ValidationError, match=message):
+        ScientificCampaignEvidence.model_validate(document)

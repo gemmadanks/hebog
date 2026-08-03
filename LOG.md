@@ -3376,3 +3376,37 @@ and compatibility serialization
 - `just pre-commit` passed every push-stage hook across all files, including
   JSON formatting, codespell, strict Marimo validation, documentation, quick
   tests, and lockfile consistency.
+
+## 2026-08-03 — Added explainable paired-campaign evidence
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added a strict versioned campaign-evidence document that requires Hebog and
+  every named reference to report an outcome for every shared image seed.
+- Added deterministic per-source diagnostics for matched sources, missed truth,
+  and extra candidates, including truth strata, raw catastrophic flags,
+  governed catastrophic decisions, quality and classification information,
+  and normalized uncertainty residuals.
+- Made a failed implementation outcome first-class evidence. This preserves
+  the pinned PyBDSF `master` failure without silently removing that seed or
+  scoring an incomplete catalogue.
+- Reused the comparison oracle's normalized-residual primitive so aggregate
+  calibration reports and paired source rows cannot drift apart.
+
+**Validation**
+
+- Focused Ruff formatting and lint, Pyright, and 101 comparison, diagnostic,
+  and evidence tests passed. The new diagnostic module has 100% branch-aware
+  coverage; the two touched validation modules have 95.64% combined coverage.
+- `just coverage` passed 672 tests with four expected failures and 94.56%
+  branch-aware project coverage before the final validator-only test additions.
+- `just docs-build`, `just check` (570 passed and four expected failures), and
+  every `just pre-commit` push-stage hook passed.
+
+**Next**
+
+- Add a maintained same-image campaign runner that emits these records for
+  Hebog, released PyBDSF, and pinned PyBDSF `master`, then define and power the
+  named paired non-inferiority analysis before changing scientific behaviour.

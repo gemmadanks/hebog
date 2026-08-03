@@ -20,6 +20,7 @@ from hebog.validation.comparison import (
     CatalogueComparisonReport,
     MaskComparisonReport,
     RmsComparisonReport,
+    UncertaintyMetric,
 )
 from hebog.validation.datasets import DatasetRole
 
@@ -398,7 +399,329 @@ class ScientificComparisonEvidence(_EvidenceDocument):
     mask: MaskComparisonReport
 
 
-EvidenceDocument: TypeAlias = BenchmarkEvidence | ScientificComparisonEvidence
+class CampaignImplementationIdentity(_EvidenceModel):
+    """One explicitly named candidate or reference campaign implementation."""
+
+    identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    role: Literal["candidate", "reference"]
+    software: SoftwareIdentity
+
+
+class CatastrophicMetricDiagnostic(_EvidenceModel):
+    """Independent catastrophic flags for every governed source metric."""
+
+    position: bool
+    peak_flux: bool
+    integrated_flux: bool
+    fitted_axis: bool
+    deconvolved_axis: bool
+
+
+class NormalizedResidualDiagnostic(_EvidenceModel):
+    """One candidate-minus-truth residual divided by its reported error."""
+
+    metric: UncertaintyMetric
+    value: float = Field(allow_inf_nan=False)
+
+
+class SourcePairDiagnostic(_EvidenceModel):
+    """One matched or unmatched truth/candidate decision with raw metrics."""
+
+    decision: Literal["matched", "unmatched-truth", "unmatched-candidate"]
+    truth_identifier: str | None = Field(default=None, min_length=1)
+    candidate_identifier: str | None = Field(default=None, min_length=1)
+    truth_strata: tuple[str, ...] = ()
+    candidate_deconvolution_status: (
+        Literal[
+            "resolved",
+            "unresolved",
+            "unavailable",
+        ]
+        | None
+    ) = None
+    candidate_quality_flags: tuple[str, ...] = ()
+    classification_agrees: bool | None = None
+    separation_beam_fwhm: float | None = Field(
+        default=None,
+        ge=0,
+        allow_inf_nan=False,
+    )
+    peak_flux_fractional_difference: float | None = Field(
+        default=None,
+        allow_inf_nan=False,
+    )
+    integrated_flux_fractional_difference: float | None = Field(
+        default=None,
+        allow_inf_nan=False,
+    )
+    maximum_absolute_fitted_axis_fractional_difference: float | None = Field(
+        default=None,
+        ge=0,
+        allow_inf_nan=False,
+    )
+    maximum_absolute_deconvolved_axis_fractional_difference: float | None = (
+        Field(
+            default=None,
+            ge=0,
+            allow_inf_nan=False,
+        )
+    )
+    catastrophic: CatastrophicMetricDiagnostic | None = None
+    gated_catastrophic: bool | None = None
+    normalized_residuals: tuple[NormalizedResidualDiagnostic, ...] = ()
+
+    def _validate_canonical_sequences(self) -> None:
+        """Require deterministic strata, flags, and residual ordering."""
+        if self.truth_strata != tuple(sorted(set(self.truth_strata))) or any(
+            not stratum.strip() for stratum in self.truth_strata
+        ):
+            raise ValueError("truth strata must be non-empty and canonical")
+        if self.candidate_quality_flags != tuple(
+            sorted(set(self.candidate_quality_flags))
+        ) or any(not flag.strip() for flag in self.candidate_quality_flags):
+            raise ValueError(
+                "candidate quality flags must be non-empty and canonical"
+            )
+        residual_metrics = [
+            residual.metric for residual in self.normalized_residuals
+        ]
+        if residual_metrics != sorted(set(residual_metrics)):
+            raise ValueError(
+                "normalized residual metrics must be unique and canonical"
+            )
+
+    def _has_match_diagnostics(self) -> bool:
+        """Return whether any truth/candidate comparison value is present."""
+        numeric_values = (
+            self.separation_beam_fwhm,
+            self.peak_flux_fractional_difference,
+            self.integrated_flux_fractional_difference,
+            self.maximum_absolute_fitted_axis_fractional_difference,
+            self.maximum_absolute_deconvolved_axis_fractional_difference,
+        )
+        return (
+            any(value is not None for value in numeric_values)
+            or self.classification_agrees is not None
+            or self.catastrophic is not None
+            or self.gated_catastrophic is not None
+            or bool(self.normalized_residuals)
+        )
+
+    def _validate_matched(self) -> None:
+        """Require all identifiers and core measurements for a match."""
+        if self.truth_identifier is None or self.candidate_identifier is None:
+            raise ValueError("matched source requires both identifiers")
+        if not self.truth_strata:
+            raise ValueError("matched source requires truth strata")
+        if self.candidate_deconvolution_status is None:
+            raise ValueError("matched source requires candidate status")
+        if any(
+            value is None
+            for value in (
+                self.separation_beam_fwhm,
+                self.peak_flux_fractional_difference,
+                self.integrated_flux_fractional_difference,
+            )
+        ):
+            raise ValueError(
+                "matched source requires position and flux metrics"
+            )
+        if self.catastrophic is None or self.gated_catastrophic is None:
+            raise ValueError("matched source requires catastrophic decisions")
+
+    def _validate_unmatched_truth(self) -> None:
+        """Forbid candidate measurements on an unmatched truth row."""
+        if (
+            self.truth_identifier is None
+            or not self.truth_strata
+            or self.candidate_identifier is not None
+            or self.candidate_deconvolution_status is not None
+            or self.candidate_quality_flags
+            or self._has_match_diagnostics()
+        ):
+            raise ValueError(
+                "unmatched truth requires strata and cannot contain "
+                "candidate measurements"
+            )
+
+    def _validate_unmatched_candidate(self) -> None:
+        """Forbid truth or match measurements on an unmatched candidate."""
+        if (
+            self.truth_identifier is not None
+            or self.candidate_identifier is None
+            or self.truth_strata
+            or self.candidate_deconvolution_status is None
+            or self._has_match_diagnostics()
+        ):
+            raise ValueError(
+                "unmatched candidate cannot contain truth or match "
+                "measurements"
+            )
+
+    @model_validator(mode="after")
+    def validate_decision(self) -> Self:
+        """Keep match decisions and their available measurements consistent."""
+        self._validate_canonical_sequences()
+        if self.decision == "matched":
+            self._validate_matched()
+        elif self.decision == "unmatched-truth":
+            self._validate_unmatched_truth()
+        else:
+            self._validate_unmatched_candidate()
+        return self
+
+
+class CampaignFailure(_EvidenceModel):
+    """Stable failure details for one implementation and realization."""
+
+    stage: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    exception_type: str = Field(pattern=r"^[A-Za-z_][A-Za-z0-9_.]*$")
+    message: str = Field(min_length=1)
+    traceback_sha256: str = Field(pattern=_SHA256_PATTERN)
+
+    @model_validator(mode="after")
+    def validate_message(self) -> Self:
+        """Reject whitespace-only exception messages."""
+        if not self.message.strip():
+            raise ValueError("failure message must not be blank")
+        return self
+
+
+class CampaignRealizationDiagnostic(_EvidenceModel):
+    """One implementation outcome for one shared campaign seed."""
+
+    implementation_identifier: str = Field(
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    )
+    seed: int = Field(ge=0)
+    status: Literal["success", "failure"]
+    candidate_count: int | None = Field(default=None, ge=0)
+    source_pairs: tuple[SourcePairDiagnostic, ...] = ()
+    failure: CampaignFailure | None = None
+
+    @model_validator(mode="after")
+    def validate_outcome(self) -> Self:
+        """Separate complete scored results from explicit failed runs."""
+        if self.status == "failure":
+            if (
+                self.failure is None
+                or self.candidate_count is not None
+                or self.source_pairs
+            ):
+                raise ValueError(
+                    "failed realization requires one failure and no "
+                    "partial rows"
+                )
+            return self
+        if self.failure is not None or self.candidate_count is None:
+            raise ValueError(
+                "successful realization requires a candidate count and no "
+                "failure"
+            )
+
+        truth_identifiers = [
+            pair.truth_identifier
+            for pair in self.source_pairs
+            if pair.truth_identifier is not None
+        ]
+        candidate_identifiers = [
+            pair.candidate_identifier
+            for pair in self.source_pairs
+            if pair.candidate_identifier is not None
+        ]
+        if len(set(truth_identifiers)) != len(truth_identifiers):
+            raise ValueError(
+                "truth identifiers must be unique per realization"
+            )
+        if len(set(candidate_identifiers)) != len(candidate_identifiers):
+            raise ValueError(
+                "candidate identifiers must be unique per realization"
+            )
+        if len(candidate_identifiers) != self.candidate_count:
+            raise ValueError(
+                "candidate count must equal represented candidate rows"
+            )
+        return self
+
+
+class ScientificCampaignEvidence(_EvidenceDocument):
+    """Paired same-image scientific diagnostics across implementations."""
+
+    evidence_type: Literal["scientific-campaign"]
+    comparison_protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    implementations: tuple[CampaignImplementationIdentity, ...] = Field(
+        min_length=2
+    )
+    realizations: tuple[CampaignRealizationDiagnostic, ...] = Field(
+        min_length=1
+    )
+
+    @model_validator(mode="after")
+    def validate_pairing(self) -> Self:
+        """Require same-seed coverage and identical truth populations."""
+        implementation_identifiers = [
+            implementation.identifier
+            for implementation in self.implementations
+        ]
+        if len(set(implementation_identifiers)) != len(
+            implementation_identifiers
+        ):
+            raise ValueError(
+                "campaign implementation identifiers must be unique"
+            )
+        if (
+            sum(
+                implementation.role == "candidate"
+                for implementation in self.implementations
+            )
+            != 1
+        ):
+            raise ValueError("campaign requires exactly one candidate")
+        if self.implementations[0].role != "candidate":
+            raise ValueError("campaign candidate must be declared first")
+
+        seeds = sorted({realization.seed for realization in self.realizations})
+        expected_keys = [
+            (seed, identifier)
+            for seed in seeds
+            for identifier in implementation_identifiers
+        ]
+        actual_keys = [
+            (realization.seed, realization.implementation_identifier)
+            for realization in self.realizations
+        ]
+        if actual_keys != expected_keys:
+            raise ValueError(
+                "every seed must contain every implementation exactly once"
+            )
+
+        for seed in seeds:
+            successful_truth: list[set[str]] = []
+            for realization in self.realizations:
+                if realization.seed != seed or realization.status != "success":
+                    continue
+                successful_truth.append(
+                    {
+                        pair.truth_identifier
+                        for pair in realization.source_pairs
+                        if pair.truth_identifier is not None
+                    }
+                )
+            if successful_truth and any(
+                truth != successful_truth[0] for truth in successful_truth[1:]
+            ):
+                raise ValueError(
+                    "successful paired runs require identical truth "
+                    "identifiers"
+                )
+        return self
+
+
+EvidenceDocument: TypeAlias = (
+    BenchmarkEvidence
+    | ScientificComparisonEvidence
+    | ScientificCampaignEvidence
+)
 
 _EVIDENCE_ADAPTER: TypeAdapter[EvidenceDocument] = TypeAdapter(
     EvidenceDocument
