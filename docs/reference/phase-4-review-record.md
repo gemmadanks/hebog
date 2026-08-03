@@ -1,9 +1,10 @@
 # Phase 4 scientific review record
 
-This record captures the named human review required before Phase 4 compact
-measurement semantics become a stable experimental default. It approves the
-amended contract and unseen qualification inputs; it does not inspect
-qualification results or claim catalogue equivalence.
+This record captures the original named review of Phase 4 compact measurement
+semantics, the first held-out failure, and the subsequent literature-led
+correction. The original decisions remain approved. The post-failure extension
+and unresolved-flux addendum is frozen but still requires a second named review
+before the replacement unseen campaign may be opened.
 
 ## Reviewer and decision
 
@@ -42,6 +43,12 @@ scientific and implementation references are:
   Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19),
   which motivates SNR-stratified completeness, reliability, position, flux,
   blend, and catastrophic-outlier reporting;
+- [Franzen et al. (2015), ATLAS
+  DR3](https://doi.org/10.1093/mnras/stv1866), for its uncertainty-aware log
+  integrated-to-peak ratio classification of resolved sources;
+- [Moss et al. (2007)](https://doi.org/10.1111/j.1365-2966.2007.11842.x), for
+  its low-SNR fitted-width envelope and use of peak flux for unresolved
+  sources;
 - the documented [PyBDSF processing
   stages](https://pybdsf.readthedocs.io/en/latest/process_image.html), used as
   compatibility evidence rather than scientific truth;
@@ -69,9 +76,11 @@ cubes, and channel sets fail explicitly rather than inheriting defaults.
   `pi * major FWHM * minor FWHM / (4 * ln(2))` in the same angular units.
 - Island local RMS is the mean RMS-map value over those owned valid pixels;
   island mean brightness is the corresponding mean physical residual.
-- A successfully fitted component's peak flux is its Gaussian amplitude and
-  its integrated flux is peak multiplied by fitted Gaussian area divided by
-  restoring-beam area.
+- A successfully fitted component's peak flux is its Gaussian amplitude. The
+  retained free-fit integral is peak multiplied by fitted Gaussian area
+  divided by restoring-beam area. Under the post-failure addendum, the
+  catalogue reports that integral only for significant extension and reports
+  peak as total flux for an unresolved source.
 - Component/source local RMS is bilinearly evaluated at the fitted centroid.
   The provisional compact one-to-one association makes source flux equal to
   its associated component flux; this does not define later multi-component
@@ -96,9 +105,10 @@ sample dispersion, and nominal 68.27% coverage. Eligibility is selected only
 from reference or injected truth: a missing candidate error remains in the
 availability denominator and cannot make calibration appear better. Position
 and flux have reviewed-provisional quantitative gates. Shape-error calibration
-remains report-only because the literature does not justify treating formal
-shape covariance as reliably calibrated by default. An unavailable error is
-null plus a canonical quality flag, never zero.
+and resolved free-fit integrated-flux uncertainty remain report-only because
+the regression and literature do not justify treating them as reliably
+calibrated by default. An unavailable error is null plus a canonical quality
+flag, never zero.
 
 Fitted-shape, deconvolution-classification, resolved-deconvolved-shape,
 parent-identity, and position/flux-uncertainty availability are gated
@@ -146,12 +156,12 @@ fitter or add a native implementation.
 ### 7. Reviewed gates
 
 `config/contracts/phase-4-scientific-gates.json` retains the approved Section
-5 high-SNR position and flux margins for isolated compact sources and adds
-reviewed-provisional fitted/deconvolved
-axis, position-angle, unresolved-classification, association, catastrophic
+5 high-SNR position and flux margins for isolated compact sources and the
+reviewed fitted/deconvolved axis, position-angle, association, catastrophic
 outlier, and uncertainty-calibration margins. Low-SNR crossings and shape
-uncertainties remain report-only. The contract is `reviewed-provisional` after
-the amendments recorded here.
+uncertainties remain report-only. The post-failure classification and
+unresolved-flux addendum returns the complete contract to
+`frozen-provisional` until the second named review below.
 
 | High-SNR compact metric | Exact compact reference | Generated regression and held-out qualification |
 | --- | ---: | ---: |
@@ -163,7 +173,8 @@ the amendments recorded here.
 | Fitted axes, median / 95th percentile | 5% / 10% | 5% / 10% |
 | Deconvolved axes, median / 95th percentile | 10% / 20% | 10% / 20% |
 | Position angle, median / 95th percentile | 2 / 5 degrees | 3 / 10 degrees |
-| Resolved/unresolved classification | 100% | at least 95% |
+| Point-source specificity | 100% | at least 95% |
+| Clearly resolved classification recall | 100% | at least 95% |
 | Parent-island association precision / recall | 100% / 100% | at least 99% / 99% |
 | Required candidate-field availability | 100% | at least 99% |
 | Catastrophic matched-row outliers | none | at most 0.5% |
@@ -504,21 +515,76 @@ The frozen-provisional amendment therefore requires:
 The inspected campaign was copied byte-for-byte to
 `config/datasets/phase-4-viewed-qualification.json`. Its recipe checksum
 remains `4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6`
-and its known-failure executable record remains an expected qualification
-failure.
+and its complete known-failure evidence remains recorded in this review and in
+the ignored machine-readable result.
 
 Before production code was changed, the second unseen campaign was frozen as
 `phase4-unseen-extension-aware-measurement-qualification-512`, with recipe
 checksum `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
-It has 200 seeds disjoint from the viewed campaign, a different celestial WCS,
-negative background, spatially varying RMS, an invalid-pixel region, correlated
-beam-shaped noise, eight point sources, eight clearly resolved sources,
-sixteen marginal resolved sources, eight edge sources, and one unresolved
-association group. Every gated classification and uncertainty stratum retains
-at least 1,600 eligible samples; the group retains 200. No image, catalogue,
-comparison, or result from this campaign has been generated or inspected.
+Its frozen recipe has 200 seeds disjoint from the viewed campaign, a different
+celestial WCS, negative background, spatially varying RMS, an invalid-pixel
+region, correlated beam-shaped noise, eight edge sources, and one two-emitter
+unresolved association group. Every uncertainty stratum contains at least
+1,600 measurements and the group retains 200 independent realizations.
+
+After regression defined the analytic clear-extension boundary, but still
+before any qualification output, the truth-only classification partition was
+frozen as eight point sources, one clearly resolved source, and 23 marginal
+sources. These strata contain 1,600 point, 200 clear, and 4,600 report-only
+marginal measurements. No image, catalogue, comparison, or result from this
+campaign has been generated or inspected.
+
+## Independent regression after the correction
+
+The implementation keeps the free seven-parameter fit as diagnostic evidence,
+then applies the frozen two-sigma rule at the pixel-to-celestial catalogue
+boundary. An insignificant source gets a null deconvolved shape,
+`extension-not-significant`, and peak-as-total flux. A noisy fit without flux
+uncertainty has an unavailable extension classification instead of silently
+falling back to geometry. The significance is explicit configuration rather
+than a hidden threshold.
+
+The 200-realization development/regression campaign was run without accessing
+the replacement qualification data. It led to two pre-qualification findings:
+
+- moderate injected extension is not consistently measurable, so only truth
+  with fitted-to-beam area ratio at least 3 and SNR at least 25 is in the clear
+  classification gate; all other resolved truth remains report-only; and
+- the free-fit integrated-flux uncertainty is not calibrated for resolved and
+  marginal populations. It remains available as diagnostic evidence but is a
+  gate only for the peak-as-total unresolved population.
+
+These definitions use analytic truth and regression evidence, not held-out
+results. With them frozen, the complete powered regression passed in 355.29
+seconds. Exact compact comparisons also pass against released and pinned
+`master` PyBDSF after applying the declared unresolved-source catalogue policy.
+The raw PyBDSF fixture remains unchanged and records one intentional
+divergence: an unresolved free-fit total about 39% below peak.
+
+## Pending named addendum review
+
+The replacement campaign must remain unopened until a named reviewer records a
+decision on every item below:
+
+- [ ] approve the ATLAS one-sided two-sigma log integrated-to-peak rule;
+- [ ] approve point specificity and clear-extension recall as separate 95%
+      gates;
+- [ ] approve clear-extension truth as area ratio at least 3 and SNR at least
+      25, with marginal extension report-only;
+- [ ] approve peak and peak error as total flux and total-flux error for an
+      unresolved source;
+- [ ] approve resolved/marginal integrated-flux uncertainty as report-only;
+- [ ] approve catalogue reliability as a global metric, without the
+      unobservable morphology-specific false-candidate denominator; and
+- [ ] acknowledge the intentional unresolved-flux divergence from raw PyBDSF
+      and require Rapthor downstream review before backend activation.
+
+- **Reviewer:** pending
+- **Role or scientific authority:** pending
+- **Review date:** pending
+- **Decision:** pending
 
 This amendment is **frozen-provisional pending named human review**. Corrective
-implementation and development/regression validation may proceed, but the new
+implementation and independent regression are complete, but the new
 qualification output must remain unopened until the reviewer approves or
-amends the policy and the independent regression suite passes.
+amends this policy.

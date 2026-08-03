@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 from astropy.wcs import WCS
@@ -294,6 +296,105 @@ def test_missing_formal_covariance_produces_null_errors_and_flag() -> None:
     assert result.flux.peak_flux_error_jy_per_beam is None
     assert result.flux.integrated_flux_error_jy is None
     assert "position-flux-uncertainty-unavailable" in result.quality_flags
+
+
+def test_extension_requires_two_sigma_flux_ratio_significance() -> None:
+    """Noisy positive deconvolution is not evidence of physical extension."""
+    uncertain = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.01,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.02,
+    )
+
+    result = transform_compact_gaussian_fit(
+        _fit(uncertainty=uncertain),
+        _metadata(),
+        extension_significance_sigma=2.0,
+    )
+
+    assert result.deconvolution_status == "unresolved"
+    assert result.deconvolved_shape is None
+    assert "extension-not-significant" in result.quality_flags
+    assert result.flux.integrated_flux_jy == (
+        result.flux.peak_flux_jy_per_beam
+    )
+    assert result.flux.integrated_flux_error_jy == (
+        result.flux.peak_flux_error_jy_per_beam
+    )
+
+
+def test_geometrically_unresolved_fit_remains_unresolved() -> None:
+    """The significance rule preserves an already beam-compatible shape."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.0001,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.0002,
+    )
+
+    result = transform_compact_gaussian_fit(
+        _fit(
+            major_sigma_pixels=1.0,
+            minor_sigma_pixels=0.8,
+            uncertainty=uncertainty,
+        ),
+        _metadata(),
+    )
+
+    assert result.deconvolution_status == "unresolved"
+    assert result.quality_flags.count("unresolved") == 1
+    assert "extension-not-significant" not in result.quality_flags
+    assert result.flux.integrated_flux_jy == result.flux.peak_flux_jy_per_beam
+
+
+def test_significant_extension_retains_fitted_total_flux_and_shape() -> None:
+    """A clear integrated-to-peak excess retains resolved measurements."""
+    precise = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.00005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.0001,
+    )
+
+    result = transform_compact_gaussian_fit(
+        _fit(uncertainty=precise),
+        _metadata(),
+        extension_significance_sigma=2.0,
+    )
+
+    assert result.deconvolution_status == "resolved"
+    assert result.deconvolved_shape is not None
+    assert result.flux.integrated_flux_jy > result.flux.peak_flux_jy_per_beam
+
+
+def test_missing_candidate_uncertainty_makes_classification_unavailable() -> (
+    None
+):
+    """A noisy candidate without flux errors cannot claim extension."""
+    fit = replace(_fit(), quality_flags=("uncertainty-unavailable",))
+
+    result = transform_compact_gaussian_fit(fit, _metadata())
+
+    assert result.deconvolution_status == "unavailable"
+    assert result.deconvolved_shape is None
+    assert "deconvolution-uncertainty-unavailable" in result.quality_flags
+
+
+@pytest.mark.parametrize("value", [0.0, -1.0, float("nan"), float("inf")])
+def test_transform_rejects_invalid_extension_significance(
+    value: float,
+) -> None:
+    """The catalogue boundary uses an explicit positive finite sigma rule."""
+    with pytest.raises(ValueError, match="extension_significance_sigma"):
+        transform_compact_gaussian_fit(
+            _fit(),
+            _metadata(),
+            extension_significance_sigma=value,
+        )
 
 
 @pytest.mark.parametrize("value", [0.0, -1.0, float("nan"), 1.0])

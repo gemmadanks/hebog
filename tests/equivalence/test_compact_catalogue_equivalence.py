@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -140,6 +141,22 @@ def _comparison_sources(
             quality_flags=source.quality_flags,
         )
         for source in catalogue.sources
+    )
+
+
+def _canonicalize_unresolved_reference_flux(
+    sources: tuple[CatalogueSource, ...],
+) -> tuple[CatalogueSource, ...]:
+    """Map PyBDSF's free-area point-source flux to reviewed semantics."""
+    return tuple(
+        replace(
+            source,
+            integrated_flux_jy=source.peak_flux_jy_per_beam,
+            integrated_flux_error_jy=source.peak_flux_error_jy_per_beam,
+        )
+        if source.deconvolution_status == "unresolved"
+        else source
+        for source in sources
     )
 
 
@@ -299,7 +316,7 @@ def compact_catalogue(
     )
     moment = CompactMomentConfig(3, 1e-12)
     fit = CompactGaussianFitConfig(7, 300, 0.2, 30.0, 5.0, 1.0, 1e-8, 30.0)
-    catalogue_config = CompactCatalogueConfig(10_000, 1e-10)
+    catalogue_config = CompactCatalogueConfig(10_000, 1e-10, 2.0)
     geometry = compact_geometry_at_pixel(
         metadata,
         (metadata.shape_yx[1] / 2.0, metadata.shape_yx[0] / 2.0),
@@ -335,8 +352,10 @@ def test_compact_catalogue_meets_both_exact_reference_gates(
 ) -> None:
     """The same complete compact catalogue is compared with both anchors."""
     report = compare_catalogues(
-        load_pybdsf_catalogue(
-            _REFERENCE_ROOT / reference / "source_catalog.fits"
+        _canonicalize_unresolved_reference_flux(
+            load_pybdsf_catalogue(
+                _REFERENCE_ROOT / reference / "source_catalog.fits"
+            )
         ),
         _comparison_sources(compact_catalogue),
         beam_fwhm_degrees=_BEAM_FWHM_DEGREES,
@@ -362,6 +381,23 @@ def test_compact_catalogue_meets_both_exact_reference_gates(
     assert report.reference_count == report.candidate_count == 3
     _require_catalogue_gates(report, _GATES.compact_reference)
     assert report.component_count_agreement_fraction == 1.0
+
+
+def test_pybdsf_unresolved_flux_divergence_is_explicitly_canonicalized() -> (
+    None
+):
+    """Keep raw compatibility evidence distinct from preferred point flux."""
+    raw = load_pybdsf_catalogue(
+        _REFERENCE_ROOT / "release" / "source_catalog.fits"
+    )
+    canonical = _canonicalize_unresolved_reference_flux(raw)
+
+    assert raw[2].deconvolution_status == "unresolved"
+    assert raw[2].integrated_flux_jy != pytest.approx(
+        raw[2].peak_flux_jy_per_beam
+    )
+    assert canonical[2].integrated_flux_jy == raw[2].peak_flux_jy_per_beam
+    assert canonical[1] == raw[1]
 
 
 def _rapthor_astrometry_selection(

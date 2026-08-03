@@ -200,6 +200,48 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         0.0,
     )
     assert qualification_dataset.association_truth_groups
+    classification: dict[str, set[int]] = {
+        stratum.identifier: set(stratum.source_indices)
+        for stratum in qualification_dataset.classification_strata
+    }
+    assert set(classification) == {
+        "shape-clear-resolved",
+        "shape-marginal-resolved",
+        "shape-unresolved",
+    }
+    assert not any(
+        left & right
+        for index, left in enumerate(classification.values())
+        for right in tuple(classification.values())[index + 1 :]
+    )
+    assert set().union(*classification.values()) == {
+        group.source_indices[0]
+        for group in qualification_dataset.association_truth_groups
+        if group.resolution_class == "individually-resolvable"
+    }
+    beam_sigma_product = (
+        qualification_dataset.beam.major_fwhm_pixels
+        * qualification_dataset.beam.minor_fwhm_pixels
+        / (8.0 * np.log(2.0))
+    )
+    classified_indices: set[int] = set()
+    for source_indices in classification.values():
+        classified_indices.update(source_indices)
+    expected_clear: set[int] = set()
+    for source_index in classified_indices:
+        source = qualification_dataset.recipe.sources[source_index]
+        area_ratio = (
+            source.major_sigma_pixels
+            * source.minor_sigma_pixels
+            / beam_sigma_product
+        )
+        signal_to_noise = (
+            source.peak_flux_jy_per_beam
+            / qualification_dataset.recipe.noise_rms
+        )
+        if area_ratio >= 3.0 and signal_to_noise >= 25.0:
+            expected_clear.add(source_index)
+    assert classification["shape-clear-resolved"] == expected_clear
     assert {
         group.resolution_class
         for group in qualification_dataset.association_truth_groups
@@ -643,6 +685,21 @@ def test_dataset_rejects_invalid_source_validation_strata(
     payload["validation_strata"] = strata
 
     with pytest.raises(ValidationError, match=message):
+        type(dataset).model_validate(payload)
+
+
+def test_dataset_rejects_overlapping_classification_strata() -> None:
+    """One truth source cannot have two extension classifications."""
+    dataset = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-regression.json"
+    ).datasets[0]
+    payload = dataset.model_dump(mode="json")
+    payload["classification_strata"] = [
+        {"identifier": "shape-unresolved", "source_indices": [0]},
+        {"identifier": "shape-clear-resolved", "source_indices": [0]},
+    ]
+
+    with pytest.raises(ValidationError, match="must not overlap"):
         type(dataset).model_validate(payload)
 
 

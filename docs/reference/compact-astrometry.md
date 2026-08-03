@@ -35,6 +35,23 @@ covariance and classifies the eigenvalues:
 - a marginal one-axis result is conservatively unresolved and carries both
   `marginal-deconvolution` and `unresolved` quality flags.
 
+For a noisy fit, positive geometric deconvolution is necessary but not
+sufficient evidence of physical extension. Hebog applies the one-sided ATLAS
+DR3 test: `ln(S_integrated / S_peak)` must exceed two times the quadrature
+relative uncertainty of the two fluxes. A geometrically resolved fit that does
+not pass is reported as unresolved with `extension-not-significant`. If the fit
+declares its flux uncertainty unavailable, the extension classification is
+also unavailable. Exact analytic fits without an uncertainty-unavailable flag
+retain their geometric result so noiseless contract cases remain exact.
+
+The classification threshold is explicit runtime configuration. The frozen
+Phase 4 contract separately gates point-source specificity and recall for
+clearly resolved truth. "Clearly resolved" is selected from injected truth
+before fitting: fitted-to-beam area ratio at least 3 and signal-to-noise ratio
+at least 25. Less decisive injected extension is a predeclared marginal,
+report-only population rather than being retrospectively relabelled after a
+fit.
+
 An unresolved internal shape is null. The zero-major-axis value expected by
 the PyBDSF/Rapthor compatibility view is introduced only by that adapter and
 never re-enters a scientific calculation.
@@ -58,9 +75,13 @@ and carry `shape-uncertainty-unavailable`. If the fit covariance is
 unavailable, position and flux errors are also null and carry
 `position-flux-uncertainty-unavailable`; zero never means unknown.
 
-The powered correlated-noise regression passes the frozen Monte Carlo
-confidence-interval gates. The first held-out campaign does not: integrated
-flux has significant normalized bias in the SNR-10, unresolved-shape, and edge
-strata, while peak flux narrowly misses the mean interval at SNR 25. A normal
-compatibility catalogue may expose the estimates, but Phase 4 cannot yet claim
-qualified uncertainties.
+For an unresolved source, the catalogue reports peak flux density as its best
+integrated-flux estimate and uses the peak-flux uncertainty. This avoids the
+well-known upward width/area noise bias in low-SNR free Gaussian fits. For a
+resolved source, the infinite-plane fitted-Gaussian integral remains the
+catalogue value, but its propagated uncertainty is report-only in Phase 4.
+
+The amended powered correlated-noise regression passes the frozen position,
+peak-flux, unresolved-flux, point-specificity, and clear-extension gates. The
+replacement held-out campaign remains unopened pending named scientific
+review; no qualification claim is made from regression evidence.

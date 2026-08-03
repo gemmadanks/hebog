@@ -57,7 +57,8 @@ catalogue path in Phase 4. In practical terms, Hebog can now:
 - fit bounded elliptical Gaussian components and transform their positions
   and shapes into ICRS sky coordinates;
 - deconvolve the restoring beam while keeping unresolved or unavailable
-  scientific values explicit;
+  scientific values explicit, and classify extension with a two-sigma
+  uncertainty test;
 - build bounded, deterministic source/component/island catalogue records and
   an eight-column FITS view consumed directly by Rapthor diagnostics;
 - run deterministically through either the serial or Dask executor; and
@@ -76,15 +77,18 @@ amended to judge sub-beam blends as observable groups, and a powered
 correlated-noise regression now passes. The first subsequently opened held-out
 campaign nevertheless failed frozen classification, catastrophic-outlier, and
 flux-bias gates. In particular, resolved/unresolved classification agreement
-was 73.57% against a 95% minimum. Hebog will preserve this result rather than
-tune thresholds, seeds, populations, or margins against known held-out data.
+was 73.57% against a 95% minimum. Hebog preserved this result rather than
+tuning thresholds, seeds, populations, or margins against known held-out data.
+A literature-led correction now passes the independent powered regression:
+point sources use peak flux as total flux, extension must be significant, and
+clearly resolved and marginal truth are evaluated separately. A new
+200-realization campaign was frozen before the correction and remains unopened
+pending named human review.
 
 The remaining work includes:
 
-- freezing a new unseen qualification campaign and reviewing the
-  unresolved-group reliability denominator and boundary-classification policy;
-- resolving the held-out classification, outlier, and flux-bias failures from
-  development/regression evidence, then qualifying once on the new campaign;
+- reviewing the frozen extension/flux amendment, then qualifying exactly once
+  on the already-frozen unseen campaign;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;
@@ -103,7 +107,8 @@ Hebog is therefore a functioning compact-source detector, but it is not yet a
 drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
 scientific review approved the compact Phase 3 scope and provisional Phase 4
 measurement contract, followed by the observable-group and noisy-source
-amendments. See the
+amendments. The post-failure extension/flux addendum remains pending named
+review. See the
 [Phase 4 scientific review record](docs/reference/phase-4-review-record.md) and
 [Phase 4 release-readiness record](docs/reference/phase-4-release-readiness.md)
 for the held-out findings, ordered recovery work, evidence, and remaining

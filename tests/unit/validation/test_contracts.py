@@ -170,7 +170,8 @@ def test_phase_four_measurement_contract_freezes_scientific_meanings() -> None:
         _PHASE_FOUR_MEASUREMENT_PATH
     )
 
-    assert contract.status == "reviewed-provisional"
+    assert contract.status == "frozen-provisional"
+    assert contract.schema_version == 2
     assert contract.scope.image_kind == "mfs-stokes-i"
     assert contract.scope.brightness_unit == "Jy/beam"
     assert contract.measurements.island_integrated_flux.startswith(
@@ -181,6 +182,9 @@ def test_phase_four_measurement_contract_freezes_scientific_meanings() -> None:
     )
     assert contract.measurements.restoring_beam_solid_angle.startswith(
         "pi-major-fwhm"
+    )
+    assert contract.measurements.component_integrated_flux.startswith(
+        "peak-for-unresolved"
     )
     assert contract.coordinates.pixel_origin == "zero-based-pixel-centres"
     assert contract.coordinates.position_angle == "east-of-north-modulo-180"
@@ -284,6 +288,17 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
         "integrated-to-peak-ratio-uncertainty"
     )
     assert gates.extension_classification.significance_sigma == 2.0
+    assert (
+        gates.extension_classification.clear_resolved_minimum_area_ratio == 3.0
+    )
+    assert (
+        gates.extension_classification.clear_resolved_minimum_signal_to_noise
+        == 25.0
+    )
+    assert (
+        gates.extension_classification.resolved_integrated_flux_uncertainty
+        == "report-only"
+    )
     assert (
         gates.extension_classification.marginal_resolved_population.endswith(
             "report-only"

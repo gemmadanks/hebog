@@ -31,7 +31,13 @@ class GaussianDeconvolution:
     status: Literal["resolved", "unresolved", "unavailable"]
     shape: GaussianShape | None
     quality_flags: tuple[
-        Literal["resolved", "unresolved", "marginal-deconvolution"],
+        Literal[
+            "deconvolution-uncertainty-unavailable",
+            "extension-not-significant",
+            "marginal-deconvolution",
+            "resolved",
+            "unresolved",
+        ],
         ...,
     ]
 

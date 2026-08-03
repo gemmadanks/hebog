@@ -367,9 +367,10 @@ class CompactCatalogueConfig:
 
     maximum_catalogue_records: int
     deconvolution_relative_tolerance: float
+    extension_significance_sigma: float
 
     def __post_init__(self) -> None:
-        """Require an explicit population cap and numerical tolerance."""
+        """Require an explicit population cap and numerical policies."""
         if (
             isinstance(self.maximum_catalogue_records, bool)
             or not isinstance(self.maximum_catalogue_records, Integral)
@@ -384,4 +385,11 @@ class CompactCatalogueConfig:
         ):
             raise ValueError(
                 "deconvolution_relative_tolerance must be finite and in (0, 1)"
+            )
+        if (
+            not isfinite(self.extension_significance_sigma)
+            or self.extension_significance_sigma <= 0
+        ):
+            raise ValueError(
+                "extension_significance_sigma must be finite and positive"
             )

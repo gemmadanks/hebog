@@ -57,6 +57,9 @@ class CompactCatalogueProcessor:
                 deconvolution_relative_tolerance=(
                     self.catalogue_config.deconvolution_relative_tolerance
                 ),
+                extension_significance_sigma=(
+                    self.catalogue_config.extension_significance_sigma
+                ),
             ),
         )
 

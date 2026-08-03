@@ -6,6 +6,47 @@
         "minor_fwhm_pixels": 3.5,
         "position_angle_degrees": 110.0
       },
+      "classification_strata": [
+        {
+          "identifier": "shape-unresolved",
+          "source_indices": [
+            0,
+            6,
+            10,
+            13,
+            17,
+            18,
+            22
+          ]
+        },
+        {
+          "identifier": "shape-clear-resolved",
+          "source_indices": [
+            3
+          ]
+        },
+        {
+          "identifier": "shape-marginal-resolved",
+          "source_indices": [
+            1,
+            2,
+            4,
+            5,
+            7,
+            8,
+            9,
+            11,
+            12,
+            14,
+            15,
+            16,
+            19,
+            20,
+            21,
+            23
+          ]
+        }
+      ],
       "expected_statistics": {
         "background_jy_per_beam": -0.00015,
         "finite_fraction": 0.9986979166666666,

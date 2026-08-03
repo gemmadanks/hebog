@@ -273,6 +273,7 @@ def _catalogue_config() -> CompactCatalogueConfig:
     return CompactCatalogueConfig(
         maximum_catalogue_records=100,
         deconvolution_relative_tolerance=1e-10,
+        extension_significance_sigma=2.0,
     )
 
 

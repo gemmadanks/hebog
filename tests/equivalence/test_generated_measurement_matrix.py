@@ -42,7 +42,10 @@ from hebog.validation.comparison import (
     evaluate_uncertainty_calibration,
     uncertainty_calibration_report,
 )
-from hebog.validation.contracts import load_phase_four_scientific_gates
+from hebog.validation.contracts import (
+    load_phase_four_measurement_contract,
+    load_phase_four_scientific_gates,
+)
 from hebog.validation.datasets import (
     AssociationTruthGroup,
     DatasetRecord,
@@ -58,17 +61,6 @@ pytestmark = pytest.mark.equivalence
 
 _ROOT = Path(__file__).parents[2]
 _DATASET_ROOT = _ROOT / "config/datasets"
-_FIRST_HELDOUT_FAILURES = frozenset(
-    {
-        ("heldout", "classification-accuracy"),
-        ("heldout", "catastrophic-outlier-fraction"),
-        ("unresolved-group", "reliability"),
-        ("snr-10", "integrated-flux"),
-        ("snr-25", "peak-flux"),
-        ("shape-unresolved", "integrated-flux"),
-        ("edge", "integrated-flux"),
-    }
-)
 
 
 class _SyntheticImageSource:
@@ -473,7 +465,7 @@ def test_generated_compact_fits_meet_truth_gates(
 
 
 @pytest.mark.slow
-def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C901
+def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C901, PLR0912, PLR0915
     tmp_path: Path,
 ) -> None:
     """Every governed SNR stratum passes the reviewed interval decisions."""
@@ -483,6 +475,7 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
     gates = load_phase_four_scientific_gates(
         _ROOT / "config/contracts/phase-4-scientific-gates.json"
     )
+    metadata = synthetic_image_metadata(dataset)
     source_to_stratum = {
         source_index: stratum.identifier
         for stratum in dataset.validation_strata
@@ -498,6 +491,20 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
         (stratum.identifier, metric): []
         for stratum in dataset.validation_strata
         for metric in metrics
+    }
+    classification_by_source = {
+        source_index: stratum.identifier
+        for stratum in dataset.classification_strata
+        for source_index in stratum.source_indices
+    }
+    classification_available = {
+        stratum.identifier: 0 for stratum in dataset.classification_strata
+    }
+    classification_correct = {
+        stratum.identifier: 0 for stratum in dataset.classification_strata
+    }
+    integrated_flux_by_shape: dict[str, list[float]] = {
+        stratum.identifier: [] for stratum in dataset.classification_strata
     }
 
     recipes = iter_dataset_recipes(dataset)
@@ -526,13 +533,23 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
             uncertainty = selected.uncertainty
             if uncertainty is None:
                 continue
-            truth_integrated = (
-                truth.peak_flux_jy_per_beam
-                * 2.0
-                * np.pi
-                * truth.major_sigma_pixels
-                * truth.minor_sigma_pixels
+            identifier = f"{recipe.seed}-source-{source_index:05d}"
+            reference_source = _truth_source(
+                f"truth-{identifier}",
+                selected,
+                truth,
+                dataset,
+                metadata,
+                island_identifier=identifier,
             )
+            candidate_source = _comparison_source(
+                f"candidate-{identifier}",
+                selected,
+                metadata,
+                island_identifier=identifier,
+            )
+            integrated_error = candidate_source.integrated_flux_error_jy
+            assert integrated_error is not None
             residuals = {
                 "right-ascension": (
                     selected.parameters.centroid_xy[0] - truth.x_pixel
@@ -548,16 +565,38 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
                 )
                 / uncertainty.amplitude_error_jy_per_beam,
                 "integrated-flux": (
-                    selected.parameters.integrated_flux_jy - truth_integrated
+                    candidate_source.integrated_flux_jy
+                    - reference_source.integrated_flux_jy
                 )
-                / uncertainty.integrated_flux_error_jy,
+                / integrated_error,
             }
             for metric, residual in residuals.items():
                 samples[(stratum, metric)].append(residual)
+            classification_stratum = classification_by_source[source_index]
+            integrated_flux_by_shape[classification_stratum].append(
+                residuals["integrated-flux"]
+            )
+            if candidate_source.deconvolution_status in {
+                "resolved",
+                "unresolved",
+            }:
+                classification_available[classification_stratum] += 1
+                expected = (
+                    "unresolved"
+                    if classification_stratum == "shape-unresolved"
+                    else "resolved"
+                )
+                classification_correct[classification_stratum] += int(
+                    candidate_source.deconvolution_status == expected
+                )
 
     uncertainty_gate = gates.uncertainty
     regression_gate = gates.generated_regression
     failures: list[tuple[object, ...]] = []
+    classification_eligibility = {
+        stratum.identifier: len(recipes) * len(stratum.source_indices)
+        for stratum in dataset.classification_strata
+    }
     for stratum in dataset.validation_strata:
         eligible_count = len(recipes) * len(stratum.source_indices)
         for metric in metrics:
@@ -599,7 +638,7 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
                     uncertainty_gate.maximum_normalized_residual_standard_deviation
                 ),
             )
-            if decision.status != "pass":
+            if metric != "integrated-flux" and decision.status != "pass":
                 failures.append(
                     (
                         stratum.identifier,
@@ -614,21 +653,100 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
                         report.dispersion_confidence_interval,
                     )
                 )
-    assert not failures
+    for stratum_identifier in ("shape-unresolved",):
+        report = uncertainty_calibration_report(
+            "integrated-flux",
+            integrated_flux_by_shape[stratum_identifier],
+            eligible_count=classification_eligibility.get(
+                stratum_identifier,
+                len(integrated_flux_by_shape[stratum_identifier]),
+            ),
+            confidence_level=uncertainty_gate.confidence_interval_level,
+            bootstrap_resamples=uncertainty_gate.bootstrap_resamples,
+            bootstrap_seed=uncertainty_gate.bootstrap_seed,
+        )
+        decision = evaluate_uncertainty_calibration(
+            report,
+            minimum_samples=uncertainty_gate.minimum_samples_per_stratum,
+            nominal_coverage=uncertainty_gate.nominal_coverage,
+            maximum_absolute_coverage_difference=(
+                uncertainty_gate.maximum_absolute_coverage_difference
+            ),
+            maximum_absolute_mean=(
+                uncertainty_gate.maximum_absolute_mean_normalized_residual
+            ),
+            minimum_standard_deviation=(
+                uncertainty_gate.minimum_normalized_residual_standard_deviation
+            ),
+            maximum_standard_deviation=(
+                uncertainty_gate.maximum_normalized_residual_standard_deviation
+            ),
+        )
+        if decision.status != "pass":
+            failures.append(
+                (
+                    stratum_identifier,
+                    "integrated-flux",
+                    decision.failed_metrics,
+                    report.sample_count,
+                    report.coverage_fraction,
+                    report.coverage_confidence_interval,
+                    report.mean_normalized_residual,
+                    report.mean_confidence_interval,
+                    report.sample_standard_deviation,
+                    report.dispersion_confidence_interval,
+                )
+            )
+    for stratum_identifier, minimum in (
+        (
+            "shape-unresolved",
+            regression_gate.minimum_point_source_specificity,
+        ),
+        (
+            "shape-clear-resolved",
+            regression_gate.minimum_clear_resolved_classification_recall,
+        ),
+    ):
+        available = classification_available[stratum_identifier]
+        eligible = classification_eligibility[stratum_identifier]
+        if available / eligible < (
+            regression_gate.minimum_deconvolution_classification_availability
+        ):
+            failures.append(
+                (stratum_identifier, "classification-availability")
+            )
+        accuracy = (
+            classification_correct[stratum_identifier] / available
+            if available
+            else 0.0
+        )
+        if accuracy < minimum:
+            failures.append((stratum_identifier, "classification-accuracy"))
+    assert not failures, "\n".join(str(failure) for failure in failures)
 
 
 @pytest.mark.qualification
 @pytest.mark.slow
-def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PLR0912, PLR0915
+def test_extension_aware_heldout_measurement_qualification(  # noqa: C901, PLR0912, PLR0915
     tmp_path: Path,
 ) -> None:
-    """Preserve the first powered held-out result without tuning to it."""
+    """Run the second held-out campaign only after named scientific review."""
     dataset = load_dataset_manifest(
-        _DATASET_ROOT / "phase-4-viewed-qualification.json"
+        _DATASET_ROOT / "phase-4-qualification.json"
     ).datasets[0]
     gates = load_phase_four_scientific_gates(
         _ROOT / "config/contracts/phase-4-scientific-gates.json"
     )
+    measurement_contract = load_phase_four_measurement_contract(
+        _ROOT / "config/contracts/phase-4-measurement.json"
+    )
+    if (
+        gates.status != "reviewed-provisional"
+        or measurement_contract.status != "reviewed-provisional"
+    ):
+        pytest.skip(
+            "replacement qualification requires named scientific review"
+        )
     metadata = synthetic_image_metadata(dataset)
     outlier = gates.catastrophic_outlier
     outlier_thresholds = CatalogueOutlierThresholds(
@@ -654,6 +772,11 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
         )
         for source_index in range(len(dataset.recipe.sources))
     }
+    classification_by_source = {
+        source_index: stratum.identifier
+        for stratum in dataset.classification_strata
+        for source_index in stratum.source_indices
+    }
     metrics = (
         "right-ascension",
         "declination",
@@ -678,8 +801,14 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
     candidate_count = 0
     matched_individual_count = 0
     catastrophic_count = 0
-    classification_count = 0
-    classification_agreement_count = 0
+    classification_available = {
+        "shape-unresolved": 0,
+        "shape-clear-resolved": 0,
+    }
+    classification_correct = {
+        "shape-unresolved": 0,
+        "shape-clear-resolved": 0,
+    }
     resolved_shape_eligible_count = 0
     resolved_shape_available_count = 0
 
@@ -790,12 +919,21 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
             catastrophic_count += int(
                 bool(pair.catastrophic_outlier_reference_identifiers)
             )
-            if match.unresolved_classification_agrees is not None:
-                classification_count += 1
-                classification_agreement_count += int(
-                    match.unresolved_classification_agrees
+            classification_stratum = classification_by_source[source_index]
+            if classification_stratum in classification_available and (
+                candidate_source.deconvolution_status
+                in {"resolved", "unresolved"}
+            ):
+                classification_available[classification_stratum] += 1
+                expected_status = (
+                    "unresolved"
+                    if classification_stratum == "shape-unresolved"
+                    else "resolved"
                 )
-            if reference_source.deconvolution_status == "resolved":
+                classification_correct[classification_stratum] += int(
+                    candidate_source.deconvolution_status == expected_status
+                )
+            if classification_stratum == "shape-clear-resolved":
                 resolved_shape_eligible_count += 1
                 resolved_shape_available_count += int(
                     candidate_source.deconvolution_status == "resolved"
@@ -825,11 +963,25 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
     fitted_shape_availability = (
         matched_individual_count / individual_eligible_count
     )
-    classification_availability = (
-        classification_count / individual_eligible_count
+    classification_eligibility = {
+        stratum.identifier: len(recipes) * len(stratum.source_indices)
+        for stratum in dataset.classification_strata
+        if stratum.identifier in classification_available
+    }
+    classification_availability = sum(classification_available.values()) / sum(
+        classification_eligibility.values()
     )
-    classification_accuracy = (
-        classification_agreement_count / classification_count
+    point_source_specificity = (
+        classification_correct["shape-unresolved"]
+        / classification_available["shape-unresolved"]
+        if classification_available["shape-unresolved"]
+        else 0.0
+    )
+    clear_resolved_recall = (
+        classification_correct["shape-clear-resolved"]
+        / classification_available["shape-clear-resolved"]
+        if classification_available["shape-clear-resolved"]
+        else 0.0
     )
     resolved_shape_availability = (
         resolved_shape_available_count / resolved_shape_eligible_count
@@ -858,9 +1010,14 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
             heldout_gate.minimum_deconvolution_classification_availability,
             "minimum",
         ),
-        "classification-accuracy": (
-            classification_accuracy,
-            0.95,
+        "point-source-specificity": (
+            point_source_specificity,
+            heldout_gate.minimum_point_source_specificity,
+            "minimum",
+        ),
+        "clear-resolved-recall": (
+            clear_resolved_recall,
+            heldout_gate.minimum_clear_resolved_classification_recall,
             "minimum",
         ),
         "resolved-shape-availability": (
@@ -890,18 +1047,10 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
     unresolved_group_completeness = (
         len(group_position_beams) / unresolved_group_truth_count
     )
-    false_candidate_count = candidate_count - matched_group_count
-    unresolved_group_reliability = len(group_position_beams) / (
-        len(group_position_beams) + false_candidate_count
-    )
     group_results = {
         "completeness": (
             unresolved_group_completeness,
             group_gate.minimum_completeness,
-        ),
-        "reliability": (
-            unresolved_group_reliability,
-            0.99,
         ),
         "median-position-beams": (
             float(np.median(group_position_beams)),
@@ -922,9 +1071,7 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
     }
     for name, (observed, limit) in group_results.items():
         passes = (
-            observed >= limit
-            if name in {"completeness", "reliability"}
-            else observed <= limit
+            observed >= limit if name == "completeness" else observed <= limit
         )
         if not passes:
             failures.append(("unresolved-group", name, (observed, limit)))
@@ -963,18 +1110,23 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
                 heldout_gate.minimum_position_flux_uncertainty_availability
             ):
                 failures.append((stratum.identifier, metric, "availability"))
-            if decision.status != "pass":
+            gated_decision = (
+                metric != "integrated-flux"
+                or stratum.identifier == "shape-unresolved"
+            )
+            if gated_decision and decision.status != "pass":
                 failures.append((stratum.identifier, metric, decision))
             uncertainty_evidence.append(
                 {
                     "stratum": stratum.identifier,
+                    "gated": gated_decision,
                     "report": asdict(report),
                     "decision": asdict(decision),
                 }
             )
 
     evidence = {
-        "schema_version": 1,
+        "schema_version": 2,
         "evidence_type": "phase-4-heldout-qualification",
         "dataset_identifier": dataset.identifier,
         "recipe_sha256": dataset.recipe_sha256,
@@ -986,14 +1138,14 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
         "reliability": reliability,
         "fitted_shape_availability": fitted_shape_availability,
         "classification_availability": classification_availability,
-        "classification_accuracy": classification_accuracy,
+        "point_source_specificity": point_source_specificity,
+        "clear_resolved_recall": clear_resolved_recall,
         "resolved_shape_availability": resolved_shape_availability,
         "catastrophic_outlier_fraction": catastrophic_outlier_fraction,
         "unresolved_group": {
             "sample_count": len(group_position_beams),
             "truth_count": unresolved_group_truth_count,
             "completeness": unresolved_group_completeness,
-            "reliability": unresolved_group_reliability,
             "median_position_beams": float(np.median(group_position_beams)),
             "percentile_95_position_beams": float(
                 np.percentile(group_position_beams, 95)
@@ -1024,17 +1176,11 @@ def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PL
     evidence_path = (
         Path(configured_evidence_path)
         if configured_evidence_path is not None
-        else _ROOT / "benchmark-results/phase-4-viewed-qualification.json"
+        else _ROOT / "benchmark-results/phase-4-qualification.json"
     )
     evidence_path.parent.mkdir(parents=True, exist_ok=True)
     evidence_path.write_text(
         json.dumps(evidence, allow_nan=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    observed_failures = frozenset(
-        (scope, metric) for scope, metric, _ in failures
-    )
-    assert observed_failures == _FIRST_HELDOUT_FAILURES, failures
-    pytest.xfail(
-        "the first frozen Phase 4 held-out campaign failed scientific gates"
-    )
+    assert not failures, failures

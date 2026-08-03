@@ -35,7 +35,8 @@ A valid fitted component reports:
 
 - fitted peak brightness in Jy/beam;
 - global pixel centroid, ordered sigma axes, and orientation;
-- infinite-plane fitted-Gaussian integrated flux in Jy;
+- an infinite-plane fitted-Gaussian integral used for resolved-source
+  measurement and extension testing;
 - bilinearly sampled local RMS at the fitted centroid; and
 - bounded optimizer diagnostics.
 
@@ -45,9 +46,18 @@ declares a Gaussian pixel-noise correlation function, Hebog uses a generalized
 OLS sandwich covariance and flags it `correlated-noise-sandwich-errors`;
 otherwise it retains the independent-pixel estimate with
 `formal-independent-pixel-errors`. Shape errors remain absent. The powered
-regression calibration passes, but the first held-out campaign found residual
-peak/integrated-flux bias in several strata, so Phase 4 does not yet claim
-qualified uncertainty calibration.
+regression found that free-fit integrated-flux uncertainty is not calibrated
+for resolved or marginal sources, so that uncertainty remains report-only.
+Position, peak flux, and the peak-as-total unresolved policy pass their
+applicable regression gates.
+
+The fitter itself remains an unconstrained seven-parameter scientific
+reference. Extension classification is a catalogue transformation after the
+fit: the ATLAS log integrated-to-peak ratio must exceed its configured
+two-sigma uncertainty. If it does not, the source remains unresolved and its
+catalogue integrated flux and error use the fitted peak and peak error. This
+small policy boundary preserves the fitted shape for diagnostics without
+adding a second optimizer or hiding low-SNR fitted-width inflation.
 
 Invalid moments and regions with fewer than seven owned pixels return a typed
 unavailable fit. Exhausted iterations and scientifically invalid fitted

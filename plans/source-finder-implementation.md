@@ -1269,8 +1269,12 @@ with 200 disjoint seeds, distinct WCS, negative background, varying RMS,
 invalid pixels, correlated noise, and predeclared point/clear/marginal shape
 strata is frozen at recipe SHA-256
 `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
-Corrective TDD and regression may proceed; named human review and a passing
-independent regression remain mandatory before this campaign is opened.
+Corrective TDD is complete and the independent powered regression passes. It
+predeclares clear extension as fitted-to-beam truth area ratio at least 3 and
+SNR at least 25, keeps moderate extension and resolved/marginal integrated-flux
+uncertainty report-only, and records the intentional peak-as-total divergence
+from raw unresolved PyBDSF output. Named human review remains mandatory before
+this campaign is opened.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1482,14 +1486,19 @@ before maintaining a custom fitter.
    projection effects, and RA wraparound. Fitted and beam ellipses are
    deconvolved as two-by-two covariance matrices. Fully and marginally
    unresolved results remain null internally, with the marginal state carrying
-   an additional diagnostic flag. `radio_beam` was evaluated but not added:
+   an additional diagnostic flag. For noisy fits, positive deconvolution must
+   also pass the frozen ATLAS two-sigma integrated-to-peak uncertainty rule;
+   point-source specificity and clear-extension recall are gated separately.
+   `radio_beam` was evaluated but not added:
    Hebog's reviewed three-state policy still requires explicit logic and direct
    NumPy covariance subtraction keeps the boundary smaller. Correlated-noise
    sandwich position and flux errors are transformed when available; shape
-   errors and singular/uncalibrated values are null with quality flags.
-   Powered regression calibration passes, but the first held-out campaign
-   fails four normalized-mean gates, so qualified uncertainty calibration
-   remains an open Phase 4 exit condition.
+   errors and singular/uncalibrated values are null with quality flags. The
+   corrected powered regression passes for position, peak flux, unresolved
+   peak-as-total flux, point specificity, and clearly resolved recall. Moderate
+   extension classification and resolved/marginal integrated-flux uncertainty
+   remain report-only. The replacement held-out campaign remains unopened, so
+   qualified uncertainty calibration remains an open Phase 4 exit condition.
 
 6. **Associate records and construct deterministic bounded catalogues.**
 
@@ -1558,8 +1567,13 @@ before maintaining a custom fitter.
    The adapter publishes exactly the eight directly consumed columns with
    frozen FITS types and units, a zero-row schema, adapter-only unresolved zero
    sentinel, NaN unknown errors, deterministic checksums, atomic validation,
-   and conflict-safe retries. The same three-row Hebog catalogue passes every
-   frozen exact compact gate against released and pinned-`master` PyBDSF.
+   and conflict-safe retries. Unresolved `Total_flux` uses peak flux; a
+   significantly resolved row uses the free fitted-Gaussian integral. After
+   applying this declared community-policy view, the same three-row Hebog
+   catalogue passes every frozen exact compact gate against released and
+   pinned-`master` PyBDSF. Raw reference bytes remain unchanged and a focused
+   test records the one unresolved PyBDSF row whose total is about 39% below
+   its peak.
    Rapthor's catalogue diagnostic cuts retain the same three rows, and
    pixel-centre mask decisions pass the 99.5% downstream agreement threshold.
    Per-channel flux-normalization columns, orchestration, and filtered-model
@@ -1603,14 +1617,15 @@ before maintaining a custom fitter.
    therefore records a **not ready** decision rather than declaring the phase
    passed.
 
-   Development/regression association and correlated-noise uncertainty
-   calibration pass. The first powered held-out qualification run failed and
-   is now known evidence. Complete recovery in this order: (1) review the
-   failed result and freeze a new unseen campaign; (2) correct the scientific
-   model using development/regression evidence, without tuning to the known
-   campaign; (3) pass the new held-out campaign; and (4) run controlled
-   performance qualification. Do not describe the known failed campaign as
-   unseen or use it to select parameters.
+   Development/regression association and corrected correlated-noise
+   measurement calibration pass. The first powered held-out qualification run
+   failed and is now known evidence. Recovery steps (1) archive that result and
+   freeze a new unseen campaign and (2) correct the scientific model using only
+   development/regression evidence are complete. Continue in this order:
+   (3) obtain named review of the frozen extension/flux addendum; (4) pass the
+   new held-out campaign exactly once; and (5) run controlled performance
+   qualification. Do not describe the known failed campaign as unseen or use
+   it to select parameters.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

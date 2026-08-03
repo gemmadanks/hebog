@@ -50,6 +50,12 @@ Unavailable uncertainties and unavailable or unresolved shapes are `None`.
 NaN and legacy zero sentinels are not null values. A fitted Gaussian always
 has a fitted shape; a source-level fitted shape may be unavailable.
 
+For a compact Gaussian, the fitted pixel record retains the free-model
+infinite-plane integral. The celestial component/source record reports peak as
+integrated flux when extension is not significant, and the free-model integral
+only when extension passes the configured uncertainty test. This is a current
+catalogue semantic, not a change to the meaning of the retained fit parameter.
+
 The version-one internal catalogue FITS encoding contains exactly three
 binary-table extensions: `ISLANDS`, `SOURCES`, and
 `GAUSSIAN_COMPONENTS`. Column names are Hebog domain names with explicit FITS
@@ -198,6 +204,10 @@ local RMS, and optional formal covariance. `CelestialCompactGaussianFit`
 then supplies the ICRS position, fitted sky ellipse, explicit deconvolution
 state, fitted flux, and canonical quality flags. An unresolved deconvolution
 has a null shape internally; zero axes are compatibility serialization only.
+`extension-not-significant` distinguishes a noisy geometric deconvolution that
+failed the significance test, and
+`deconvolution-uncertainty-unavailable` distinguishes a fit that could not be
+classified because its flux uncertainty was unavailable.
 WCS objects are reconstructed transiently inside the astrometry boundary and
 never enter a public record or executor result.
 

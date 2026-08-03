@@ -45,7 +45,7 @@
   },
   "human_scientific_review": "required-before-stable-default",
   "measurements": {
-    "component_integrated_flux": "peak-times-fitted-gaussian-area-over-beam-area",
+    "component_integrated_flux": "peak-for-unresolved-otherwise-peak-times-fitted-gaussian-area-over-beam-area",
     "component_local_rms": "bilinear-rms-map-at-fitted-centroid",
     "component_peak_flux": "fitted-gaussian-amplitude",
     "island_integrated_flux": "owned-valid-pixel-sum-times-pixel-area-over-beam-area",
@@ -64,10 +64,12 @@
     "singular-covariance",
     "underdetermined-region"
   ],
-  "schema_version": 1,
+  "schema_version": 2,
   "scientific_basis": [
     "https://doi.org/10.1086/133871",
     "https://doi.org/10.1017/pasa.2018.3",
+    "https://doi.org/10.1093/mnras/stv1866",
+    "https://doi.org/10.1111/j.1365-2966.2007.11842.x",
     "https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19",
     "https://pybdsf.readthedocs.io/en/latest/process_image.html",
     "https://docs.astropy.org/en/stable/wcs/wcsapi.html",
@@ -80,5 +82,5 @@
     "invalid_pixels": "excluded-from-membership-and-measurement",
     "measurement_plane": "background-subtracted-primary-beam-corrected"
   },
-  "status": "reviewed-provisional"
+  "status": "frozen-provisional"
 }

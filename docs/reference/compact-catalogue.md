@@ -38,7 +38,7 @@ Rapthor diagnostic path:
 | `RA` | 64-bit float | deg | ICRS right ascension |
 | `DEC` | 64-bit float | deg | ICRS declination |
 | `Isl_Total_flux` | 64-bit float | Jy | parent island pixel-sum flux |
-| `Total_flux` | 64-bit float | Jy | fitted source flux |
+| `Total_flux` | 64-bit float | Jy | unresolved peak flux or resolved fitted source flux |
 | `DC_Maj` | 64-bit float | deg | deconvolved major FWHM |
 | `E_RA` | 64-bit float | deg | optional formal RA error |
 | `E_DEC` | 64-bit float | deg | optional formal Dec error |
@@ -55,13 +55,26 @@ become FITS NaN values and read back as masked Astropy values; they are never
 serialized as zero. The empty catalogue retains all eight columns and zero
 rows.
 
+The internal and Rapthor-compatible `Total_flux` follows the reviewed
+radio-catalogue policy: an unresolved source uses its peak flux density as the
+best total-flux estimate; a significantly resolved source uses peak multiplied
+by fitted Gaussian area divided by restoring-beam area. The raw governed
+PyBDSF fixture contains an unresolved row whose free-fit total is about 39%
+below its peak. Hebog deliberately does not reproduce that physically
+implausible low-SNR result. Equivalence tests preserve the raw reference bytes,
+record the divergence, and canonicalize only the unresolved catalogue view for
+the community-policy comparison. Rapthor's use of `Total_flux` outside its
+current diagnostic selection must be reviewed before Hebog becomes its
+default backend.
+
 The writer uses a same-directory temporary file, validates the closed FITS
 product before publication, adds deterministic FITS checksums, reuses an
 identical destination on retry, and rejects conflicting existing bytes.
 
 ## Evidence and limitations
 
-The same three-row Hebog compact catalogue passes the complete frozen Phase 4
+After applying the documented unresolved-source compatibility policy, the same
+three-row Hebog compact catalogue passes the complete frozen Phase 4
 position, flux, fitted/deconvolved shape, classification, uncertainty
 availability, association, and catastrophic-outlier gates against both the
 released and pinned-`master` PyBDSF products. Rapthor's 10-arcsec deconvolved
@@ -69,12 +82,15 @@ major-axis and 2-arcsec position-error diagnostic cuts retain the same three
 rows. Pixel-centre mask decisions on this no-deferral reference agree with both
 PyBDSF masks above the 99.5% downstream threshold.
 
-The close-pair regression has also exposed a necessary contract amendment:
+The close-pair regression exposed a necessary contract amendment:
 three sub-beam pairs contain only one observable image maximum, so a frozen
 one-region/one-source policy cannot claim seven-source completeness. That
-population is not being silently tuned or relabelled. It requires a reviewed
-decision on resolvability and multi-component fitting, followed by a replacement
-unseen qualification dataset before Phase 4 can pass its release gate.
+population is not being silently tuned or relabelled and now uses explicit
+observable truth groups. Joint multi-component selection is deferred until it
+has identifiability evidence. A later held-out campaign failed extension
+classification and flux calibration; the literature-led correction passes
+independent regression, but its replacement unseen campaign remains unopened
+pending named review.
 
 Per-channel catalogue columns used by later Rapthor flux normalization,
 multiscale/extended emission, complete sky-model filtering, and orchestration

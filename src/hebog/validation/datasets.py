@@ -367,6 +367,7 @@ class DatasetRecord(_ManifestModel):
     recipe_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     noise_realization_seeds: tuple[int, ...] = ()
     validation_strata: tuple[SourceValidationStratum, ...] = ()
+    classification_strata: tuple[SourceValidationStratum, ...] = ()
     association_truth_groups: tuple[AssociationTruthGroup, ...] = ()
     association_group_strata: tuple[
         AssociationGroupValidationStratum, ...
@@ -398,19 +399,7 @@ class DatasetRecord(_ManifestModel):
             for seed in self.noise_realization_seeds
         ):
             raise ValueError("noise realization seeds must fit uint64")
-        stratum_identifiers = tuple(
-            stratum.identifier for stratum in self.validation_strata
-        )
-        if len(set(stratum_identifiers)) != len(stratum_identifiers):
-            raise ValueError("validation stratum identifiers must be unique")
-        if any(
-            source_index >= len(self.recipe.sources)
-            for stratum in self.validation_strata
-            for source_index in stratum.source_indices
-        ):
-            raise ValueError(
-                "validation stratum source index must identify recipe truth"
-            )
+        self._validate_source_strata()
         self._validate_association_truth()
         if (
             self.expected_statistics.background_jy_per_beam
@@ -438,6 +427,31 @@ class DatasetRecord(_ManifestModel):
                 "expected finite fraction must match invalid rectangles"
             )
         return self
+
+    def _validate_source_strata(self) -> None:
+        """Require unique strata that refer only to declared source truth."""
+        all_strata: tuple[SourceValidationStratum, ...] = ()
+        for strata, label in (
+            (self.validation_strata, "validation"),
+            (self.classification_strata, "classification"),
+        ):
+            identifiers = tuple(stratum.identifier for stratum in strata)
+            if len(set(identifiers)) != len(identifiers):
+                raise ValueError(f"{label} stratum identifiers must be unique")
+            all_strata += strata
+        classification_indices = tuple(
+            source_index
+            for stratum in self.classification_strata
+            for source_index in stratum.source_indices
+        )
+        if len(set(classification_indices)) != len(classification_indices):
+            raise ValueError("classification strata must not overlap")
+        if any(
+            source_index >= len(self.recipe.sources)
+            for stratum in all_strata
+            for source_index in stratum.source_indices
+        ):
+            raise ValueError("source stratum index must identify recipe truth")
 
     def _validate_association_truth(self) -> None:
         """Bind explicit observable groups and strata to analytic sources."""

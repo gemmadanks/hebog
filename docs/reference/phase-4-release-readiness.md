@@ -22,7 +22,8 @@ is more important than declaring a premature pass.
 - fitted positions, covariance, ellipses, and flux geometry are transformed
   through an Astropy ICRS WCS boundary;
 - restoring-beam covariance is deconvolved into explicit resolved,
-  unresolved, and marginal states;
+  unresolved, and marginal states, then noisy extension is classified with an
+  explicit two-sigma flux-ratio uncertainty test;
 - islands, Gaussian components, and source candidates remain distinct typed
   records with canonical global identities;
 - one catalogue shard is produced per admitted coarse task, pairwise reduction
@@ -44,7 +45,8 @@ conflict-safe retries. Serial and two-worker Dask runs produce the same
 catalogue shards, and one-tile/many-tile execution preserves identities and
 numeric values.
 
-The governed three-source compact catalogue passes every frozen exact Phase 4
+After applying the documented peak-as-total unresolved catalogue policy, the
+governed three-source compact catalogue passes every frozen exact Phase 4
 position, flux, fitted/deconvolved shape, classification, association,
 availability, and catastrophic-outlier gate against both references:
 
@@ -52,12 +54,18 @@ availability, and catastrophic-outlier gate against both references:
 - pinned performance-improved PyBDSF `master` at the reviewed Phase 0
   revision.
 
+The raw PyBDSF products remain immutable. They record one intentional policy
+divergence: an unresolved reference row has a free-fit total about 39% below
+its peak. Hebog reports peak as total for that row, as recommended by the
+radio-catalogue literature; the comparison canonicalizes only that scientific
+view and tests the raw divergence separately.
+
 Rapthor's catalogue diagnostic cuts retain the same three rows. Pixel-centre
 mask decisions agree for 65,534 of 65,536 pixels against each reference,
 exceeding the existing 99.5% downstream-decision gate. These results apply to
 the compact no-deferral fixture; multiscale emission remains Phase 5 work.
 
-## Scientific gate that remains open
+## Resolved association amendment
 
 The regression case `phase-4-crowded-association-regression-512` injects seven
 Gaussian emitters. Three pairs are narrower than one restoring beam and each
@@ -85,10 +93,9 @@ The recommended amendment is:
 This recommendation follows the information present in the image and the
 project's community-practice principle: report completeness and reliability
 for declared, scientifically eligible populations, and do not infer
-super-resolution from injected truth. It requires named human approval because
-it materially changes the provisional association contract. The truth schema
-must then carry explicit association-group identities rather than inferring
-them from a flat Gaussian list.
+super-resolution from injected truth. Gemma Danks approved this association
+amendment on 2026-08-03, and the truth schema now carries explicit group
+identities rather than inferring them from a flat Gaussian list.
 
 ## First powered qualification result
 
@@ -129,9 +136,14 @@ and unresolved-group strata. Literature review selected the ATLAS two-sigma
 integrated-to-peak uncertainty rule, point-source specificity and clear-source
 recall gates, report-only marginal classification, and peak flux for
 beam-compatible sources. The undefined morphology-specific reliability gate
-was removed; overall catalogue reliability remains gated. These amendments
-remain frozen-provisional pending named human review, and the new campaign has
-not been generated or inspected.
+was removed; overall catalogue reliability remains gated.
+
+The correction is implemented through TDD and the powered independent
+regression now passes. Regression also established, before qualification, that
+the clear-extension gate must be restricted to truth area ratio at least 3 and
+SNR at least 25, and that resolved/marginal integrated-flux uncertainty remains
+report-only. These definitions are frozen-provisional pending named human
+review. The new campaign has not been generated or inspected.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run because the closure order puts scientific qualification first and

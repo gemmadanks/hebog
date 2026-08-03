@@ -328,7 +328,7 @@ class PhaseFourMeasurementSemantics(_ContractModel):
     ]
     component_peak_flux: Literal["fitted-gaussian-amplitude"]
     component_integrated_flux: Literal[
-        "peak-times-fitted-gaussian-area-over-beam-area"
+        "peak-for-unresolved-otherwise-peak-times-fitted-gaussian-area-over-beam-area"
     ]
     component_local_rms: Literal["bilinear-rms-map-at-fitted-centroid"]
     source_flux: Literal["associated-component-flux-for-compact-scope"]
@@ -405,9 +405,9 @@ class PhaseFourEligibilityContract(_ContractModel):
 
 
 class PhaseFourMeasurementContract(_ContractModel):
-    """Reviewed-provisional Phase 4 compact measurement contract."""
+    """Versioned Phase 4 compact measurement contract."""
 
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     contract_id: Literal["phase-4-measurement"]
     status: Literal["frozen-provisional", "reviewed-provisional"]
     scope: PhaseFourScopeContract
@@ -611,19 +611,22 @@ class PhaseFourExtensionClassification(_ContractModel):
 
     method: Literal["integrated-to-peak-ratio-uncertainty"]
     significance_sigma: float = Field(ge=2.0, le=5.0)
+    clear_resolved_minimum_area_ratio: float = Field(ge=2.0)
+    clear_resolved_minimum_signal_to_noise: float = Field(ge=10.0)
     point_source_population: Literal["shape-unresolved"]
     clear_resolved_population: Literal["shape-clear-resolved"]
     marginal_resolved_population: Literal[
         "shape-marginal-resolved-report-only"
     ]
     unresolved_integrated_flux: Literal["peak-flux-density"]
+    resolved_integrated_flux_uncertainty: Literal["report-only"]
     missing_uncertainty: Literal[
         "geometric-noiseless-reference-otherwise-unavailable"
     ]
 
 
 class PhaseFourScientificGates(_ContractModel):
-    """Reviewed-provisional Phase 4 catalogue and uncertainty margins."""
+    """Versioned Phase 4 catalogue and uncertainty margins."""
 
     schema_version: Literal[2]
     contract_id: Literal["phase-4-scientific-gates"]

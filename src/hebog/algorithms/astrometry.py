@@ -246,15 +246,64 @@ def _position_with_errors(
     )
 
 
+def _extension_classification(
+    geometric: GaussianDeconvolution,
+    fit: ValidCompactGaussianFit,
+    *,
+    integrated_flux_jy: float,
+    integrated_flux_error_jy: float | None,
+    significance_sigma: float,
+) -> GaussianDeconvolution:
+    """Apply the ATLAS log flux-ratio significance rule to deconvolution."""
+    if geometric.status != "resolved":
+        return geometric
+    uncertainty = fit.uncertainty
+    if uncertainty is None:
+        if "uncertainty-unavailable" not in fit.quality_flags:
+            return geometric
+        return GaussianDeconvolution(
+            status="unavailable",
+            shape=None,
+            quality_flags=("deconvolution-uncertainty-unavailable",),
+        )
+    if integrated_flux_error_jy is None:
+        raise ValueError("available fit uncertainty requires integrated error")
+    parameters = fit.parameters
+    flux_ratio = integrated_flux_jy / parameters.amplitude_jy_per_beam
+    log_ratio_uncertainty = sqrt(
+        (integrated_flux_error_jy / integrated_flux_jy) ** 2
+        + (
+            uncertainty.amplitude_error_jy_per_beam
+            / parameters.amplitude_jy_per_beam
+        )
+        ** 2
+    )
+    if log(flux_ratio) > significance_sigma * log_ratio_uncertainty:
+        return geometric
+    return GaussianDeconvolution(
+        status="unresolved",
+        shape=None,
+        quality_flags=("extension-not-significant", "unresolved"),
+    )
+
+
 def transform_compact_gaussian_fit(
     fit: ValidCompactGaussianFit,
     metadata: ImageMetadata,
     *,
     deconvolution_relative_tolerance: float = 1e-10,
+    extension_significance_sigma: float = 2.0,
 ) -> CelestialCompactGaussianFit:
     """Transform a valid pixel fit into reviewed ICRS catalogue quantities."""
     if metadata.unit != "Jy/beam":
         raise ValueError("compact measurement requires image unit Jy/beam")
+    if (
+        not isfinite(extension_significance_sigma)
+        or extension_significance_sigma <= 0
+    ):
+        raise ValueError(
+            "extension_significance_sigma must be finite and positive"
+        )
     parameters = fit.parameters
     transform = local_tangent_plane_transform(metadata, parameters.centroid_xy)
     jacobian = np.asarray(transform.jacobian_degrees_per_pixel)
@@ -268,7 +317,7 @@ def transform_compact_gaussian_fit(
         @ jacobian.T
     )
     fitted_shape = _shape_from_sky_covariance(fitted_covariance)
-    deconvolution = deconvolve_gaussian_shapes(
+    geometric_deconvolution = deconvolve_gaussian_shapes(
         fitted_shape,
         metadata.beam,
         relative_tolerance=deconvolution_relative_tolerance,
@@ -281,6 +330,30 @@ def transform_compact_gaussian_fit(
         minor_sigma_pixels=parameters.minor_sigma_pixels,
         geometry=geometry,
     )
+    integrated_flux_error = (
+        uncertainty.integrated_flux_error_jy
+        * integrated_flux
+        / parameters.integrated_flux_jy
+        if uncertainty is not None
+        else None
+    )
+    deconvolution = _extension_classification(
+        geometric_deconvolution,
+        fit,
+        integrated_flux_jy=integrated_flux,
+        integrated_flux_error_jy=integrated_flux_error,
+        significance_sigma=extension_significance_sigma,
+    )
+    if deconvolution.status == "unresolved":
+        reported_integrated_flux = parameters.amplitude_jy_per_beam
+        reported_integrated_flux_error = (
+            uncertainty.amplitude_error_jy_per_beam
+            if uncertainty is not None
+            else None
+        )
+    else:
+        reported_integrated_flux = integrated_flux
+        reported_integrated_flux_error = integrated_flux_error
     flux = FluxMeasurement(
         peak_flux_jy_per_beam=parameters.amplitude_jy_per_beam,
         peak_flux_error_jy_per_beam=(
@@ -288,14 +361,8 @@ def transform_compact_gaussian_fit(
             if uncertainty is not None
             else None
         ),
-        integrated_flux_jy=integrated_flux,
-        integrated_flux_error_jy=(
-            uncertainty.integrated_flux_error_jy
-            * integrated_flux
-            / parameters.integrated_flux_jy
-            if uncertainty is not None
-            else None
-        ),
+        integrated_flux_jy=reported_integrated_flux,
+        integrated_flux_error_jy=reported_integrated_flux_error,
         local_rms_jy_per_beam=parameters.local_rms_jy_per_beam,
     )
     flags = set(fit.quality_flags)

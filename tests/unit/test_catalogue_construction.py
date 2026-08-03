@@ -147,6 +147,7 @@ def _config(maximum_records: int = 100) -> CompactCatalogueConfig:
     return CompactCatalogueConfig(
         maximum_catalogue_records=maximum_records,
         deconvolution_relative_tolerance=1e-10,
+        extension_significance_sigma=2.0,
     )
 
 
@@ -367,17 +368,20 @@ def test_in_memory_catalogue_assembly_has_an_explicit_record_cap() -> None:
 
 
 @pytest.mark.parametrize(
-    ("maximum_records", "tolerance", "message"),
+    ("maximum_records", "tolerance", "significance", "message"),
     [
-        (0, 1e-10, "maximum_catalogue_records"),
-        (True, 1e-10, "maximum_catalogue_records"),
-        (10, 0.0, "deconvolution_relative_tolerance"),
-        (10, 1.0, "deconvolution_relative_tolerance"),
+        (0, 1e-10, 2.0, "maximum_catalogue_records"),
+        (True, 1e-10, 2.0, "maximum_catalogue_records"),
+        (10, 0.0, 2.0, "deconvolution_relative_tolerance"),
+        (10, 1.0, 2.0, "deconvolution_relative_tolerance"),
+        (10, 1e-10, 0.0, "extension_significance_sigma"),
+        (10, 1e-10, float("nan"), "extension_significance_sigma"),
     ],
 )
 def test_catalogue_policy_rejects_invalid_bounds(
     maximum_records: int,
     tolerance: float,
+    significance: float,
     message: str,
 ) -> None:
     """Catalogue memory and deconvolution policies are explicit."""
@@ -385,4 +389,5 @@ def test_catalogue_policy_rejects_invalid_bounds(
         CompactCatalogueConfig(
             maximum_catalogue_records=maximum_records,
             deconvolution_relative_tolerance=tolerance,
+            extension_significance_sigma=significance,
         )

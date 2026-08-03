@@ -3031,3 +3031,63 @@ and compatibility serialization
 - Implement the two-sigma rule and unresolved flux policy through TDD, pass
   independent development/regression and compatibility lanes, obtain named
   human review, then open the replacement qualification exactly once.
+
+## 2026-08-03 — Corrected extension classification without opening held-out data
+
+**Plan phase:** Phase 4 scientific closure — post-failure correction
+
+**Implemented**
+
+- Added an explicit ATLAS-style one-sided two-sigma log integrated-to-peak
+  uncertainty test after geometric beam deconvolution. Insignificant extension
+  is unresolved with a canonical flag; a noisy fit without usable flux
+  uncertainty has unavailable classification.
+- Changed the compact catalogue policy to report peak and peak error as total
+  flux and total-flux error for an unresolved source. Significantly resolved
+  sources retain the free fitted-Gaussian integral.
+- Added explicit point, clear-resolved, and marginal-resolved classification
+  strata to the governed regression and replacement qualification manifests.
+  Clear truth requires fitted-to-beam area ratio at least 3 and SNR at least
+  25; marginal extension is report-only.
+- Kept resolved and marginal free-fit integrated-flux uncertainty report-only
+  after regression showed it was not calibrated. Position, peak flux, and
+  unresolved peak-as-total uncertainty remain gated.
+- Versioned the amended measurement contract as schema 2 and retained
+  `frozen-provisional` status so the held-out runner cannot execute before
+  named review.
+
+**Compatibility decision**
+
+- The raw released and `master` PyBDSF products remain immutable. One governed
+  unresolved PyBDSF row has a free-fit total about 39% below its peak. The exact
+  comparison now applies the declared peak-as-total unresolved catalogue view
+  while a focused test preserves and reports the raw divergence.
+- This is intentional community-policy non-equivalence, not an accidental
+  tolerance. Review Rapthor's downstream use of `Total_flux` before enabling
+  Hebog as its default backend.
+
+**Regression and validation evidence**
+
+- The complete powered correlated-noise regression passed all applicable
+  position, peak-flux, unresolved integrated-flux, point-specificity, and
+  clear-extension gates in 355.29 seconds across the 200 predeclared
+  development/regression realizations.
+- Exact compact comparisons against released and pinned-`master` PyBDSF plus
+  the explicit raw-divergence test passed: four tests in the final 4.42-second
+  rerun.
+- `just check` passed Ruff formatting/lint, Pyright, doctests, and 537 fast
+  tests; the integration lane passed 127 tests; the acceptance lane retained
+  its seven expected failures; strict documentation and Marimo checks passed.
+- Branch-aware coverage passed at 94.92%: 663 tests passed. The changed
+  scientific/configuration/stage modules report 96–100% coverage; the changed
+  validation-contract and dataset modules report 92% and 96%, respectively.
+- The replacement qualification test was invoked only to verify its guard and
+  skipped at `frozen-provisional` before recipe iteration or output creation.
+  The replacement recipe checksum remains
+  `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
+
+**Next**
+
+- Obtain named review of every extension/flux addendum decision in the Phase 4
+  scientific review record. Only then promote the contracts to
+  `reviewed-provisional` and open the replacement qualification campaign once.
