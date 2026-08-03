@@ -3322,3 +3322,57 @@ and compatibility serialization
   campaign optional stopping, freeze any future qualification population
   before corrective implementation, and choose corrections only from analytic
   and independent development/regression evidence.
+
+## 2026-08-03 — Audited PyBDSF and approved the Phase 4 recovery direction
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Reference audit**
+
+- Ran released PyBDSF 1.14.1 on the viewed third campaign with the exact
+  Rapthor/LSMTool configuration. The ignored machine-readable comparison is
+  `benchmark-results/phase-4-pybdsf-release-qualification-comparison.json`,
+  SHA-256
+  `298b91312749953ef6b356fbc863343f693a0378aa0aa46815c60bb229640eb0`.
+- Released PyBDSF recovered 6,599 of 6,600 groups from 6,615 candidates. Its
+  canonical unresolved-source view achieved 99.75% point-source specificity
+  and 12 gated catastrophic rows among 6,399 matches (0.1875%), both better
+  than Hebog's third-campaign 97.06% and 0.5625%.
+- Released PyBDSF did not pass the full campaign. It failed 16 gated
+  normalized-uncertainty decisions plus the unresolved-group
+  95th-percentile position and total-flux gates. Hebog passed those decisions,
+  recovered every group, and retained materially better unresolved-group
+  tails.
+- Pinned PyBDSF `master` at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c` failed deterministically on
+  frozen seed `2026090152`. The Rapthor-required atrous Gaussian-fitting path
+  interpolates past a two-pixel island and raises `IndexError`; released
+  PyBDSF and Hebog complete the same input.
+- The reference runner's 300.39-second duration is diagnostic, not a speed
+  comparison with the differently scoped Hebog qualification lane.
+
+**Decision**
+
+- Gemma Danks approved preserving every absolute community-science gate and
+  Hebog's stronger recovery, uncertainty, unresolved-group, deterministic,
+  and bounded-execution results while correcting point classification and
+  catastrophic tails until Hebog is equal to or better than released PyBDSF.
+- The authoritative plan now requires a permanent per-source dual-reference
+  diagnostic, a named and powered paired-comparison protocol, one final frozen
+  unseen campaign, TDD using only analytic and independently seeded
+  development/regression evidence, and a no-worse PyBDSF point estimate plus
+  paired non-inferiority evidence for every gated metric.
+- Non-claim profiling may proceed during scientific recovery. Phase 4 closes
+  only after the final scientific and matched incremental performance gates
+  pass; bounded-memory and distributed scalability of the qualified compact
+  path then becomes the next active engineering focus.
+
+**Validation**
+
+- `just docs-build` passed with the existing informational Material for MkDocs
+  notice and ADR navigation inventory.
+- `just check` passed: Ruff formatting and lint, Pyright, 538 tests, and four
+  expected failures.
+- `just pre-commit` passed every push-stage hook across all files, including
+  JSON formatting, codespell, strict Marimo validation, documentation, quick
+  tests, and lockfile consistency.

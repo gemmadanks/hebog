@@ -752,3 +752,47 @@ created merely to seek a passing draw; any recovery requires a separately
 reviewed protocol that addresses repeated-campaign optional stopping, freezes
 new truth before corrective work, and uses only independent development and
 regression evidence for implementation choices.
+
+## Same-campaign PyBDSF audit and recovery direction
+
+The viewed third campaign was subsequently run through released PyBDSF 1.14.1
+with the exact Rapthor/LSMTool source-finding configuration: hard 5-sigma pixel
+and 3-sigma island thresholds, adaptive RMS boxes, an RMS map, and the atrous
+path with three scales. Hebog was not rerun. The complete ignored comparison
+record has SHA-256
+`298b91312749953ef6b356fbc863343f693a0378aa0aa46815c60bb229640eb0`.
+
+Under the reviewed peak-as-total view for unresolved sources, released PyBDSF
+recovered 6,599 of 6,600 groups from 6,615 candidates. It achieved 99.75%
+point-source specificity and 12 gated catastrophic rows among 6,399 matched
+individual sources, or 0.1875%. It therefore outperformed Hebog's 97.06%
+specificity and 0.5625% catastrophic rate on the two remaining areas of
+concern.
+
+Released PyBDSF did not pass the campaign as a whole. It failed 16 gated
+normalized-uncertainty decisions and the unresolved-group 95th-percentile
+position and total-flux limits. For example, its unresolved point-source
+peak-flux normalized residual had mean -0.761 with 54.44% one-sigma coverage;
+Hebog's corresponding mean was 0.050 with 68.38% coverage and passed. Hebog
+also recovered every group and produced materially better unresolved-group
+tails. These are required strengths to preserve, not margins available to
+trade for classification.
+
+Pinned performance-improved PyBDSF `master` at
+`c70103be3ae9ae9908286f144e6ce956acc0ce5c` could not complete the same
+campaign. Frozen seed `2026090152` raises an out-of-bounds `IndexError` in the
+atrous Gaussian-fitting fallback, while released PyBDSF and Hebog complete the
+same input. A master exception is therefore a recorded robustness failure and
+does not remove that realization or weaken Hebog's success requirement.
+
+Gemma Danks approved the recovery direction on 2026-08-03: retain the existing
+absolute community-science gates and Hebog's stronger results; correct the
+point-classification and catastrophic-tail weaknesses using TDD on analytic
+and independent development/regression evidence; then require a final paired
+same-image qualification to show Hebog equal to or better than released
+PyBDSF before closing Phase 4. The practical-equivalence margins, power
+calculation, final unseen population, and stopping rule still require named
+review before that population is frozen. Non-claim profiling may proceed in
+parallel, but final Phase 4 performance qualification follows the scientific
+pass. After Phase 4 closes, bounded-memory and distributed scalability of the
+qualified compact path becomes the next active engineering focus.

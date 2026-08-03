@@ -202,9 +202,38 @@ No post-inspection tuning, rerun, population change, or gate change occurred.
 The campaign is now viewed evidence and both contracts are frozen-provisional
 again to prevent accidental reuse.
 
+## Dual-reference audit and approved recovery direction
+
+Released PyBDSF 1.14.1 was run on the identical third campaign with Rapthor's
+exact source-finding configuration. Its canonical unresolved-source view
+recovered 6,599 of 6,600 groups, achieved 99.75% point-source specificity, and
+had a 0.1875% gated catastrophic rate. Those two latter results are better
+than Hebog's current 97.06% and 0.5625% and establish concrete weaknesses to
+correct.
+
+PyBDSF did not pass the complete truth-based campaign: it failed 16
+normalized-uncertainty decisions and two unresolved-group tail gates where
+Hebog passed. Pinned performance-improved PyBDSF `master` at
+`c70103be3ae9ae9908286f144e6ce956acc0ce5c` cannot complete frozen seed
+`2026090152`; its atrous Gaussian-fitting fallback raises an out-of-bounds
+`IndexError`, while released PyBDSF and Hebog complete that input. The audit
+therefore does not justify replacing the reviewed scientific gates with raw
+PyBDSF reproduction.
+
+The approved recovery direction is to retain all absolute gates and Hebog's
+stronger recovery, uncertainty-calibration, unresolved-group, deterministic,
+and bounded-execution results while using TDD on independent evidence to fix
+point classification and catastrophic tails. One final predeclared campaign
+must use paired same-image statistics and show Hebog no worse than released
+PyBDSF, as well as passing every absolute gate, before Phase 4 can close.
+Pinned master remains a comparison wherever it completes, and every exception
+is counted as a reference robustness failure rather than silently excluded.
+
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
-not been run because the closure order puts scientific qualification first and
-the known implementation is not release-eligible. The 3,000-square incremental
+not been run. Non-claim characterization and profiling may now proceed in
+parallel with the reviewed scientific recovery, but the final controlled
+matrix and any speed claim remain ineligible until the corrected science
+passes qualification. The 3,000-square incremental
 compact measurement/fitting median
 must remain within 2.0 seconds and catalogue/materialisation within the shared
 2.0-second allocation. Evidence must include sparse, normal, dense,

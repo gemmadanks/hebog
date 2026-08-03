@@ -1296,6 +1296,27 @@ performance qualification remains ineligible. Do not create a succession of
 replacement campaigns merely to obtain a pass; require a new reviewed
 scientific recovery protocol before any further held-out campaign.
 
+A same-campaign reference audit on 2026-08-03 established the recovery
+direction without rerunning Hebog. Released PyBDSF 1.14.1, using Rapthor's
+exact source-finding options on the third campaign, recovered 6,599 of 6,600
+groups with 99.75% point-source specificity and a 0.1875% canonical
+catastrophic rate. It passed those headline gates but failed 16 normalized-
+uncertainty decisions and both unresolved-group 95th-percentile gates. The
+complete comparison has SHA-256
+`298b91312749953ef6b356fbc863343f693a0378aa0aa46815c60bb229640eb0`.
+Pinned performance-improved PyBDSF `master` at
+`c70103be3ae9ae9908286f144e6ce956acc0ce5c` cannot complete the same campaign:
+with Rapthor's required atrous path it raises an out-of-bounds `IndexError` on
+frozen seed `2026090152`, while released PyBDSF and Hebog complete that input.
+The campaign therefore combines compatibility questions with stronger
+truth-based requirements that PyBDSF itself does not meet. Gemma Danks has
+approved the direction to preserve Hebog's better scientific results, correct
+the remaining point-classification and catastrophic-tail weaknesses until
+Hebog is equal to or better than released PyBDSF, close Phase 4, and then make
+scalability the next active engineering focus. Numerical paired-comparison
+margins and the final campaign power remain subject to named review before
+the next qualification population is frozen.
+
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
 [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19),
@@ -1607,11 +1628,21 @@ before maintaining a custom fitter.
          equivalence, acceptance, and held-out qualification lanes in oracle
          order. The serial science must pass before executor conformance, and
          both must pass before PyBDSF or downstream comparisons.
+   - [ ] Add a permanent same-image dual-reference campaign runner and a
+         versioned per-source diagnostic record. Preserve the reference
+         version, image seed, truth and candidate identities, match decision,
+         extension classification, quality flags, every catastrophic metric,
+         and every normalized residual so a failed aggregate can be explained
+         without rerunning or tuning against viewed qualification data.
    - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
          and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
          and fit-failure workloads. Record setup, bounded reads, moments,
          fitting, transformations, catalogue construction/materialisation,
          task count, source/component count, peak memory, and every repetition.
+         Non-claim characterization and profiling may proceed while the
+         scientific correction is developed, but the final controlled matrix
+         and any speed claim require the corrected science and final
+         qualification to pass.
    - [ ] Keep the controlled four-core 3,000-by-3,000 median within 2.0 seconds
          for compact measurement/fitting and use no more than the shared
          2.0-second catalogue/filter-output allocation after the Phase 3
@@ -1639,62 +1670,55 @@ before maintaining a custom fitter.
    therefore records a **not ready** decision rather than declaring the phase
    passed.
 
-   Development/regression association and corrected correlated-noise
-   measurement calibration pass. The first powered held-out qualification run
-   failed and is now known evidence. Recovery steps (1) archive that result and
-   freeze a new unseen campaign and (2) correct the scientific model using only
-   development/regression evidence are complete. Continue in this order:
-   Step (3), named review of the frozen extension/flux addendum, was completed
-   by Gemma Danks on 2026-08-03. Step (4) then failed: the single extension-aware
-   held-out run passed completeness, reliability, classification, gated
-   calibration, and unresolved-group margins, but failed the 0.5%
-   catastrophic-outlier ceiling at 17.67% and the 99% uncertainty-availability
-   floor for SNR-10 and edge sources. Preserve this as viewed evidence, freeze
-   another unseen campaign before corrective production work, and use only
-   development/regression evidence to select a correction. Controlled
-   performance qualification remains ineligible. Do not describe either known
-   failed campaign as unseen or use it to select parameters.
+   **Current recovery and closure order:**
 
-   The extension-aware manifest is now archived as viewed evidence. Before any
-   subsequent production correction, a third 200-realization campaign was
-   frozen with disjoint seeds, new celestial WCS, different signed pixel
-   scales and rotation, negative background, changed RMS gradient, relocated
-   invalid pixels, and recipe SHA-256
-   `7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
-   Both Phase 4 contracts returned to frozen-provisional; no third-campaign
-   result may be opened before a regression-supported amendment receives named
-   review.
-
-   The corrective development evidence is now explicit. Adding the frozen
-   catastrophic definitions to the 200-realization regression produced 283
-   raw outliers among 4,800 matched rows: all were predeclared marginal-
-   resolved truth, with 274 integrated-flux-only, one fitted-axis, and eight
-   deconvolved-axis failures. Point and clearly resolved truth had none. Keep
-   the 0.5% ceiling and every numerical threshold; report only marginal-
-   resolved integrated-flux catastrophes, while gating all other metrics for
-   marginal truth and all metrics for point and clear-resolved truth. This
-   implements rather than broadens the existing report-only marginal policy
-   and follows the population separation used by peer-reviewed source-finding
-   challenges.
-
-   A new frozen development recipe covers five isolated SNR-10-to-15 point
-   sources truncated by all four image sides over 50 realizations. It first
-   reproduced the availability failure at 247/250 and identified three valid
-   bottom-edge fits whose centroids left the image footprint. Constraining fit
-   centres to the sampled footprint, without reducing the normal interior
-   context margin, makes the same test pass 250/250. The full powered
-   regression, exact references, and normal handoff suite passed. Gemma Danks
-   approved both amendments on 2026-08-03 before third-campaign inspection,
-   and both contracts were reviewed-provisional. The third campaign was opened
-   exactly once and failed: its gated catastrophic fraction was 0.5625% versus
-   0.5%, and the unresolved integrated-flux normalized-mean interval crossed
-   the approved margin. Preserve it as viewed evidence and do not proceed to
-   controlled performance. Both contracts are frozen-provisional again to
-   prevent accidental reruns. Before further corrective work, define and
-   review a recovery protocol that avoids repeated-campaign optional stopping;
-   any future qualification population must be frozen before that correction
-   and may be opened only after independent development/regression evidence
-   and named approval.
+   1. Preserve all three failed Hebog campaigns as viewed diagnostic evidence;
+      never promote, rerun, or tune against them. Preserve the released
+      PyBDSF same-campaign result, the pinned-master runtime failure, exact
+      versions, and Rapthor configuration alongside the reproducible runner.
+   2. Before changing production science, define and obtain named review of a
+      paired comparison protocol and its power calculation, then freeze one
+      final unseen population, generator version, seeds, truth, PyBDSF
+      revisions, practical-equivalence margins, and stopping rule. Run Hebog
+      and each reference on the identical images. Predeclare the desirable
+      direction or ideal value for every metric; compare absolute departure
+      from the ideal for bias, coverage, and dispersion rather than treating a
+      numerically larger value as better. Require Hebog's point estimate to be
+      at least as good as released PyBDSF and require the one-sided paired 95%
+      interval to exclude a reviewed practically meaningful regression.
+      Pinned `master` remains a second anchor wherever it completes; its
+      runtime failure is a reference robustness failure, not permission to
+      weaken Hebog.
+   3. Keep every existing absolute community-science gate and every stronger
+      Hebog result. In particular, do not trade away Hebog's complete group
+      recovery, uncertainty availability, calibrated position and peak-flux
+      errors, unresolved-group tails, clear-resolved recall, serial/Dask
+      invariance, or bounded execution to improve another score. Establish
+      regression envelopes from independent development evidence for these
+      strengths. A trade-off requires explicit named review and a
+      community-supported scientific justification; metrics may not silently
+      compensate for one another.
+   4. Use TDD on analytic and independently seeded development/regression
+      cases to explain and correct the remaining weakness. First make the
+      diagnostic schema expose each catastrophic row and its failed metrics.
+      Then add red tests around beam-compatible point sources near the
+      extension boundary across SNR, WCS, edge, background, and noise-gradient
+      strata. Investigate fit bias, local RMS, covariance, deconvolution, and
+      extension significance as one coupled measurement path. Select the
+      smallest community-supported correction from those cases only; do not
+      choose a threshold or formula from any viewed qualification result.
+   5. Require the complete analytic, property, powered regression,
+      serial/Dask, exact-fixture, Rapthor-decision, and coverage lanes to pass
+      before named approval opens the final campaign exactly once. The final
+      result must pass all absolute gates, retain the stronger Hebog
+      regression envelopes, and be statistically non-inferior with a no-worse
+      point estimate against released PyBDSF. A reference exception is a
+      recorded failure, not a missing value silently removed from a
+      denominator.
+   6. After scientific qualification passes, refresh the controlled Phase 4
+      performance matrix with matched environments and close the phase only
+      when both the scientific and incremental performance exit gates pass.
+      Diagnostic timings from qualification runners are not speed evidence.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate
@@ -1710,6 +1734,13 @@ the 4.0-second combined Phase 4 allocation, and memory, task count, and
 catalogue reduction evidence show no full-image, per-source-task, unbounded
 fan-in, or quadratic path. Passing Phase 4 establishes experimental compact
 catalogue compatibility, not complete PyBDSF equivalence or Rapthor cutover.
+
+**Post-Phase 4 sequencing:** once this exit gate passes, make the Phase 6
+bounded-memory and distributed-execution foundation for the qualified compact
+path the next active engineering focus. Phase 5 multiscale science remains
+required for complete Rapthor functionality, and every later multiscale stage
+must adopt the same tile, halo, task-graph, memory, and executor contracts; the
+scalability-first handoff does not waive that scientific scope.
 
 ### Phase 5: multiscale and extended emission
 
