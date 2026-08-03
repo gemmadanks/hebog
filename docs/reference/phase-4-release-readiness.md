@@ -142,8 +142,8 @@ The correction is implemented through TDD and the powered independent
 regression now passes. Regression also established, before qualification, that
 the clear-extension gate must be restricted to truth area ratio at least 3 and
 SNR at least 25, and that resolved/marginal integrated-flux uncertainty remains
-report-only. These definitions are frozen-provisional pending named human
-review. The new campaign has not been generated or inspected.
+report-only. Gemma Danks approved these definitions on 2026-08-03. The new
+campaign had not been generated or inspected at the time of approval.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run because the closure order puts scientific qualification first and
@@ -180,7 +180,7 @@ Phase 4 can be declared passed only after all of the following occur in order:
    checksums, and gates are replaced consistently before held-out inspection.
 3. [x] Development and regression science passes, including association-group
    and uncertainty-calibration reports.
-4. [ ] The post-failure extension-classification amendment receives named
+4. [x] The post-failure extension-classification amendment receives named
    human review after independent regression passes.
 5. [ ] The newly frozen unseen held-out qualification campaign passes every
    reviewed gate without post-inspection tuning. The first powered campaign

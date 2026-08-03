@@ -1273,8 +1273,9 @@ Corrective TDD is complete and the independent powered regression passes. It
 predeclares clear extension as fitted-to-beam truth area ratio at least 3 and
 SNR at least 25, keeps moderate extension and resolved/marginal integrated-flux
 uncertainty report-only, and records the intentional peak-as-total divergence
-from raw unresolved PyBDSF output. Named human review remains mandatory before
-this campaign is opened.
+from raw unresolved PyBDSF output. Gemma Danks approved the amendment on
+2026-08-03; both contracts are reviewed-provisional and the campaign remained
+unopened throughout review.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1622,8 +1623,9 @@ before maintaining a custom fitter.
    failed and is now known evidence. Recovery steps (1) archive that result and
    freeze a new unseen campaign and (2) correct the scientific model using only
    development/regression evidence are complete. Continue in this order:
-   (3) obtain named review of the frozen extension/flux addendum; (4) pass the
-   new held-out campaign exactly once; and (5) run controlled performance
+   Step (3), named review of the frozen extension/flux addendum, was completed
+   by Gemma Danks on 2026-08-03. Continue in this order: (4) pass the new
+   held-out campaign exactly once; and (5) run controlled performance
    qualification. Do not describe the known failed campaign as unseen or use
    it to select parameters.
 

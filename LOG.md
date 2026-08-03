@@ -3091,3 +3091,25 @@ and compatibility serialization
 - Obtain named review of every extension/flux addendum decision in the Phase 4
   scientific review record. Only then promote the contracts to
   `reviewed-provisional` and open the replacement qualification campaign once.
+
+## 2026-08-03 — Approved the Phase 4 extension and flux addendum
+
+**Plan phase:** Phase 4 scientific closure — named review
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer and project owner, approved
+  the complete post-failure extension-classification and unresolved-flux
+  addendum without amendment.
+- The approval covers the ATLAS two-sigma rule, separate point/clear gates,
+  the area-ratio-3 and SNR-25 clear population, report-only marginal extension
+  and resolved/marginal total-flux uncertainty, peak-as-total unresolved flux,
+  global-only reliability, and the documented raw PyBDSF divergence.
+- Promoted both Phase 4 contracts from `frozen-provisional` to
+  `reviewed-provisional`. The replacement qualification campaign remained
+  unopened throughout review.
+
+**Next**
+
+- Validate and commit this review record, then run the frozen replacement
+  qualification campaign exactly once without post-inspection tuning.

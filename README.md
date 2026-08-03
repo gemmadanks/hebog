@@ -82,13 +82,12 @@ tuning thresholds, seeds, populations, or margins against known held-out data.
 A literature-led correction now passes the independent powered regression:
 point sources use peak flux as total flux, extension must be significant, and
 clearly resolved and marginal truth are evaluated separately. A new
-200-realization campaign was frozen before the correction and remains unopened
-pending named human review.
+200-realization campaign was frozen before the correction and remained
+unopened through named human approval.
 
 The remaining work includes:
 
-- reviewing the frozen extension/flux amendment, then qualifying exactly once
-  on the already-frozen unseen campaign;
+- qualifying exactly once on the already-frozen unseen campaign;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;
@@ -107,8 +106,8 @@ Hebog is therefore a functioning compact-source detector, but it is not yet a
 drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
 scientific review approved the compact Phase 3 scope and provisional Phase 4
 measurement contract, followed by the observable-group and noisy-source
-amendments. The post-failure extension/flux addendum remains pending named
-review. See the
+amendments. The post-failure extension/flux addendum was approved on
+2026-08-03. See the
 [Phase 4 scientific review record](docs/reference/phase-4-review-record.md) and
 [Phase 4 release-readiness record](docs/reference/phase-4-release-readiness.md)
 for the held-out findings, ordered recovery work, evidence, and remaining

@@ -2,9 +2,9 @@
 
 This record captures the original named review of Phase 4 compact measurement
 semantics, the first held-out failure, and the subsequent literature-led
-correction. The original decisions remain approved. The post-failure extension
-and unresolved-flux addendum is frozen but still requires a second named review
-before the replacement unseen campaign may be opened.
+correction. The original decisions remain approved. Gemma Danks approved the
+post-failure extension and unresolved-flux addendum on 2026-08-03 while the
+replacement unseen campaign remained unopened.
 
 ## Reviewer and decision
 
@@ -561,30 +561,30 @@ seconds. Exact compact comparisons also pass against released and pinned
 The raw PyBDSF fixture remains unchanged and records one intentional
 divergence: an unresolved free-fit total about 39% below peak.
 
-## Pending named addendum review
+## Named addendum review
 
-The replacement campaign must remain unopened until a named reviewer records a
-decision on every item below:
+Gemma Danks reviewed and approved every item below while the replacement
+campaign remained unopened:
 
-- [ ] approve the ATLAS one-sided two-sigma log integrated-to-peak rule;
-- [ ] approve point specificity and clear-extension recall as separate 95%
+- [x] approve the ATLAS one-sided two-sigma log integrated-to-peak rule;
+- [x] approve point specificity and clear-extension recall as separate 95%
       gates;
-- [ ] approve clear-extension truth as area ratio at least 3 and SNR at least
+- [x] approve clear-extension truth as area ratio at least 3 and SNR at least
       25, with marginal extension report-only;
-- [ ] approve peak and peak error as total flux and total-flux error for an
+- [x] approve peak and peak error as total flux and total-flux error for an
       unresolved source;
-- [ ] approve resolved/marginal integrated-flux uncertainty as report-only;
-- [ ] approve catalogue reliability as a global metric, without the
+- [x] approve resolved/marginal integrated-flux uncertainty as report-only;
+- [x] approve catalogue reliability as a global metric, without the
       unobservable morphology-specific false-candidate denominator; and
-- [ ] acknowledge the intentional unresolved-flux divergence from raw PyBDSF
+- [x] acknowledge the intentional unresolved-flux divergence from raw PyBDSF
       and require Rapthor downstream review before backend activation.
 
-- **Reviewer:** pending
-- **Role or scientific authority:** pending
-- **Review date:** pending
-- **Decision:** pending
+- **Reviewer:** Gemma Danks
+- **Role or scientific authority:** Data Processing Software Engineer and
+  project owner
+- **Review date:** 2026-08-03
+- **Decision:** Approved without amendment
 
-This amendment is **frozen-provisional pending named human review**. Corrective
-implementation and independent regression are complete, but the new
-qualification output must remain unopened until the reviewer approves or
-amends this policy.
+Both Phase 4 contracts are now **reviewed-provisional**. Corrective
+implementation and independent regression were complete before this approval;
+the replacement qualification output remained unopened throughout the review.
