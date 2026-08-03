@@ -3716,3 +3716,42 @@ and compatibility serialization
 - Run branch-aware coverage, documentation, notebook, and pre-commit checks;
   then refresh the complete 200-image paired regression with both corrections
   before accepting planning assumptions or seeking named approval.
+
+## 2026-08-03 — Refreshed the paired regression after both corrections
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Evidence**
+
+- Ran Hebog commit `49855eba45294278dd2fe709583a093445cf5eba`
+  over all 200 governed regression images. All 200 completed successfully,
+  including the four former fit-ineligible deblend cases. The candidate shard
+  has SHA-256
+  `32aacb78733d28cac086ae10596a1d2d1f5e7671d0cc6844c33a0ac87297fa0a`.
+- Reused the immutable released-PyBDSF 1.14.1 shard with SHA-256
+  `adeea227878ecb0b412a196a1adf09fdd212fca15fa9b3f187059e1c33f470b0`
+  and compiled a new pair with SHA-256
+  `bff79e0dafd096870460bfc1f6663a84d4f6cb813ea6ab7610b2bd8bee287a96`.
+- Both implementations recovered all 6,600 truth groups. Hebog reached 100%
+  point specificity and clear-resolved recall; PyBDSF reached 100% and 57.5%.
+  Hebog retained the lower governed catastrophic fraction (0.531% versus
+  1.547%) and better mean unresolved-blend position and total-flux errors
+  (0.056 beam and 5.36% versus 0.089 beam and 14.98%).
+
+**Finding**
+
+- Hebog had 21 unmatched candidates and PyBDSF had 20, so reliability was
+  99.6828% versus 99.6979%. The paired positive-as-worse estimate is 0.0151
+  percentage points and its one-sided 95% BCa upper limit is 0.1808 points,
+  below the proposed 0.5-point margin.
+- All 21 Hebog unmatched rows are unresolved near-threshold detections with
+  fitted peak SNR 4.34--6.11. A new post-fit cut would tune to one random
+  regression-tail candidate and risk real-source completeness. No scientific
+  threshold was changed.
+
+**Next**
+
+- Implement and run the maintained endpoint and planning-assumption audit,
+  then present the five-sigma policy, margins, sample size, multiplicity,
+  stopping rule, and stricter no-worse point-estimate condition for named
+  review before generating any final population.

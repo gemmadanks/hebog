@@ -1682,6 +1682,18 @@ before maintaining a custom fitter.
      it after the corrective TDD work before verifying empirical power
      assumptions.
 
+     The post-correction refresh is now complete: both implementations
+     completed all 200 images and recovered every group. Hebog matches
+     PyBDSF's 100% point specificity, retains 100% clear-resolved recall
+     against 57.5%, reduces governed catastrophic rows from 1.547% to 0.531%,
+     and retains better unresolved-blend position and flux errors. Catalogue
+     reliability differs by one unmatched candidate across 6,600 groups
+     (99.6828% against 99.6979%); its one-sided 95% paired upper regression
+     bound is 0.1808 percentage points, inside the proposed 0.5-point margin.
+     Do not tune a new threshold to this near-SNR-5 noise tail. Complete the
+     maintained planning-assumption audit and obtain named review of the
+     stricter directional rule before final-population freeze.
+
    - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
          and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
          and fit-failure workloads. Record setup, bounded reads, moments,
@@ -1781,8 +1793,10 @@ before maintaining a custom fitter.
       and 200 clear regression cases, point values ended below 3.39 sigma and
       clear values began above 17.92 sigma. Named review must approve this
       conservative compatibility policy before final population freeze; the
-      refreshed complete paired run must still prove that no stronger Hebog
-      error envelope regressed.
+      refreshed complete paired run confirms that no stronger Hebog error
+      envelope regressed. The remaining work is the maintained planning-
+      assumption audit and named review, not another scientific threshold
+      change.
    5. Require the complete analytic, property, powered regression,
       serial/Dask, exact-fixture, Rapthor-decision, and coverage lanes to pass
       before named approval opens the final campaign exactly once. The final

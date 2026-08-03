@@ -859,3 +859,34 @@ The reviewer must decide whether to approve:
 This regression evidence cannot qualify Hebog. The complete paired audit must
 be refreshed after the implementation change, its planning assumptions must
 be reviewed, and a final population must remain ungenerated until approval.
+
+## Refreshed paired regression — awaiting assumption audit and review
+
+The post-correction Hebog shard is bound to commit
+`49855eba45294278dd2fe709583a093445cf5eba` and completed all 200 governed
+regression images. Its SHA-256 is
+`32aacb78733d28cac086ae10596a1d2d1f5e7671d0cc6844c33a0ac87297fa0a`.
+The unchanged released-PyBDSF shard has SHA-256
+`adeea227878ecb0b412a196a1adf09fdd212fca15fa9b3f187059e1c33f470b0`;
+the compiled pair has SHA-256
+`bff79e0dafd096870460bfc1f6663a84d4f6cb813ea6ab7610b2bd8bee287a96`.
+
+Both implementations recovered every truth group. Hebog now matches
+PyBDSF's 100% point specificity, retains 100% clear-resolved recall against
+57.5%, and improves the governed catastrophic fraction from PyBDSF's 1.547%
+to 0.531%. Mean unresolved-blend position and total-flux errors are 0.056 beam
+and 5.36% for Hebog versus 0.089 beam and 14.98% for PyBDSF. These results show
+that both corrections preserved the predeclared stronger Hebog outcomes.
+
+Hebog produced 21 unmatched candidates and PyBDSF produced 20, giving
+catalogue reliabilities of 99.6828% and 99.6979%. The paired difference is one
+candidate across 6,600 truth groups; the one-sided 95% BCa upper bound on
+Hebog regression is 0.1808 percentage points, inside the proposed 0.5-point
+margin. All 21 Hebog rows are unresolved near-threshold detections with fitted
+peak SNR 4.34--6.11. A new post-fit cut would be regression-tail tuning and
+could harm real-source completeness, so no algorithm change is proposed from
+this result.
+
+The maintained endpoint and planning-assumption audit is still required
+before these values can support named review. The final population remains
+ungenerated and unopened.

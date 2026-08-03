@@ -160,6 +160,32 @@ independent worst-margin tests pass, but this policy is not approved and the
 pre-change campaign cannot establish its paired endpoint or variance. Named
 review and a refreshed complete run remain mandatory.
 
+The refreshed post-correction execution is now complete. Both Hebog and
+released PyBDSF completed all 200 images and recovered every truth group.
+Hebog reached 100% point specificity and 100% clear-resolved recall; released
+PyBDSF reached 100% and 57.5%, respectively. Hebog retained a lower governed
+catastrophic fraction (0.531% against 1.547%) and lower mean unresolved-blend
+position and total-flux errors (0.056 beam and 5.36% against 0.089 beam and
+14.98%). The candidate, unchanged released-reference, and compiled evidence
+have SHA-256 values
+`32aacb78733d28cac086ae10596a1d2d1f5e7671d0cc6844c33a0ac87297fa0a`,
+`adeea227878ecb0b412a196a1adf09fdd212fca15fa9b3f187059e1c33f470b0`,
+and `bff79e0dafd096870460bfc1f6663a84d4f6cb813ea6ab7610b2bd8bee287a96`.
+
+Catalogue reliability is the only raw co-primary point estimate in the
+opposite direction: 99.6828% for Hebog and 99.6979% for PyBDSF, a net
+difference of one unmatched candidate across 6,600 truth groups. Its
+positive-as-worse paired estimate is 0.0151 percentage points and its
+one-sided 95% BCa upper limit is 0.1808 percentage points, below the proposed
+0.5-point practical margin. Every Hebog unmatched candidate is an unresolved
+near-threshold noise detection with fitted peak SNR 4.34--6.11; there is no
+separate high-SNR or resolved false-candidate population. This evidence does
+not justify a post-fit SNR cut or a detection-threshold change. The strict
+no-worse point-estimate condition would nevertheless fail this regression
+endpoint, illustrating the already documented 50% directional-pass
+probability under effective equality. Named review must decide the condition;
+it must not be changed after final-population inspection.
+
 ## One-look governance
 
 After named approval, freeze the generator version, exactly 600 seeds, truth,

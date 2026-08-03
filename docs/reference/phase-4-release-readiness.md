@@ -287,3 +287,11 @@ Phase 4 can be declared passed only after all of the following occur in order:
    superlinearity.
 8. [ ] The final evidence and this decision are reviewed and changed from
    **not ready** to **passed**.
+
+The refreshed 200-image paired regression now has 200/200 successful runs for
+both Hebog and released PyBDSF. Hebog matches the reference's perfect point
+specificity, retains substantially better clear-extension, catastrophic-tail,
+and unresolved-blend results, and differs in catalogue reliability by one
+additional unmatched near-threshold candidate. This is sufficient to proceed
+to the maintained planning-assumption audit and named protocol review, but it
+is not qualification evidence and does not change the **not ready** decision.
