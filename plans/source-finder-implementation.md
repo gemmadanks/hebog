@@ -1628,12 +1628,21 @@ before maintaining a custom fitter.
          equivalence, acceptance, and held-out qualification lanes in oracle
          order. The serial science must pass before executor conformance, and
          both must pass before PyBDSF or downstream comparisons.
-   - [ ] Add a permanent same-image dual-reference campaign runner and a
+   - [x] Add a permanent same-image dual-reference campaign runner and a
          versioned per-source diagnostic record. Preserve the reference
          version, image seed, truth and candidate identities, match decision,
          extension classification, quality flags, every catastrophic metric,
          and every normalized residual so a failed aggregate can be explained
          without rerunning or tuning against viewed qualification data.
+
+   The maintained runner is invoked independently in the immutable released
+   and pinned-`master` PyBDSF environments. It writes mergeable implementation
+   shards, continues past a recorded reference exception, refuses to overwrite
+   evidence, and preserves association-group as well as individual-source
+   decisions. The candidate-first compiler rejects dataset, seed, contract, or
+   protocol drift. The final Hebog candidate shard remains deliberately
+   unopened until the paired protocol and final population receive named
+   review.
    - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
          and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
          and fit-failure workloads. Record setup, bounded reads, moments,

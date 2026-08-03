@@ -3410,3 +3410,46 @@ and compatibility serialization
 - Add a maintained same-image campaign runner that emits these records for
   Hebog, released PyBDSF, and pinned PyBDSF `master`, then define and power the
   named paired non-inferiority analysis before changing scientific behaviour.
+
+## 2026-08-03 — Added the maintained dual-reference campaign runner
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added one isolated PyBDSF campaign runner for both the released and pinned
+  `master` environments. It freezes Rapthor's exact options, regenerates the
+  same governed float64 images, binds the complete seed/truth/strata record,
+  and records exact software, container, dependency, and execution-policy
+  identities.
+- Added mergeable per-implementation evidence and a candidate-first compiler
+  that rejects dataset, seed, scientific-contract, or comparison-protocol
+  drift.
+- Preserved every observable association group as well as individual source
+  diagnostics. Unresolved-group flux retains the raw fitted total while the
+  Rapthor-facing unresolved individual view remains peak-as-total.
+- Made source-finding and comparison exceptions explicit per-seed failures,
+  with complete tracebacks in the external run log and stable digests in the
+  evidence. Runners refuse to overwrite an existing result.
+- Hardened the established PyBDSF FITS reader so zero and NaN error sentinels
+  become explicit unavailable values rather than invalid uncertainties.
+
+**Validation**
+
+- TDD first recorded the missing association model, campaign module, reference
+  runner, and sentinel handling. Focused Ruff, Pyright, and 117 campaign,
+  evidence, reader, runner, diagnostic, and comparison tests passed.
+- `just coverage` passed 719 tests with four expected failures and 95.28%
+  branch-aware project coverage. The new campaign module has 100% branch
+  coverage and the expanded evidence model has 96%.
+- `just docs-build` passed with only the existing informational Material for
+  MkDocs notice and ADR navigation inventory.
+- `just check` passed 592 tests with four expected failures;
+  `just test-equivalence` passed all 20 frozen non-slow equivalence cases; and
+  every `just pre-commit` push-stage hook passed.
+
+**Next**
+
+- Define the paired non-inferiority metric directions, margins, multiplicity
+  policy, confidence method, and power calculation for named review. Do not
+  freeze or open the final unseen population until that review is recorded.

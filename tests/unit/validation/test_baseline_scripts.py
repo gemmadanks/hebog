@@ -16,6 +16,11 @@ from hebog.data_models.partitioning import ImageBounds
 from hebog.executors import SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.stages.background import estimate_background_rms_grids
+from hebog.validation.comparison import CatalogueOutlierThresholds
+from hebog.validation.datasets import (
+    iter_dataset_recipes,
+    load_dataset_manifest,
+)
 
 
 def _script(name: str) -> dict[str, Any]:
@@ -41,6 +46,87 @@ def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
     assert configuration(5.0, 3.0)["threshold_island_sigma"] == 3.0
     with pytest.raises(ValueError, match="0 < island <= detection"):
         configuration(3.0, 5.0)
+
+
+def test_phase_four_reference_runner_freezes_exact_rapthor_profile() -> None:
+    """The campaign runner cannot inherit changing PyBDSF defaults."""
+    namespace = _script("run_phase4_pybdsf_campaign.py")
+    configuration: Callable[[int], dict[str, object]] = namespace[
+        "_pybdsf_configuration"
+    ]
+
+    assert configuration(4) == {
+        "adaptive_rms_box": True,
+        "adaptive_thresh": 75.0,
+        "atrous_do": True,
+        "atrous_jmax": 3,
+        "mean_map": "zero",
+        "ncores": 4,
+        "rms_box": [150, 50],
+        "rms_box_bright": [35, 7],
+        "rms_map": True,
+        "thresh": "hard",
+        "thresh_isl": 3.0,
+        "thresh_pix": 5.0,
+    }
+
+
+def test_phase_four_reference_runner_records_failures() -> None:
+    """A PyBDSF exception remains a result rather than a dropped seed."""
+    namespace = _script("run_phase4_pybdsf_campaign.py")
+    capture: Callable[..., Any] = namespace["_failure_from_exception"]
+
+    failure = capture(
+        ValueError("fitting failed"),
+        stage="pybdsf-source-finding",
+        traceback_text="Traceback: fitting failed",
+    )
+
+    assert failure.stage == "pybdsf-source-finding"
+    assert failure.exception_type == "ValueError"
+    assert len(failure.traceback_sha256) == 64
+
+
+def test_phase_four_reference_runner_keeps_failed_seed(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An implementation crash returns a failure row and an auditable log."""
+    namespace = _script("run_phase4_pybdsf_campaign.py")
+    run_realization: Callable[..., Any] = namespace["_run_realization"]
+    root = Path(__file__).parents[3]
+    dataset = load_dataset_manifest(
+        root / "config/datasets/phase-4-regression.json"
+    ).datasets[0]
+    recipe = iter_dataset_recipes(dataset)[0]
+
+    def fail_process_image(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise IndexError("two-pixel atrous island")
+
+    result = run_realization(
+        SimpleNamespace(process_image=fail_process_image),
+        recipe,
+        dataset,
+        tmp_path,
+        namespace["_pybdsf_configuration"](4),
+        implementation_identifier="pybdsf-master",
+        outlier_thresholds=CatalogueOutlierThresholds(
+            position_beams=0.5,
+            peak_flux_fractional_difference=0.5,
+            integrated_flux_fractional_difference=0.5,
+            fitted_axis_fractional_difference=0.5,
+            deconvolved_axis_fractional_difference=1.0,
+        ),
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+    )
+
+    assert result.status == "failure"
+    assert result.seed == recipe.seed
+    assert result.failure is not None
+    assert result.failure.exception_type == "IndexError"
+    assert "two-pixel atrous island" in capsys.readouterr().err
 
 
 def test_directory_identity_excludes_mutable_casa_lock_files(

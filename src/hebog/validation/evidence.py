@@ -404,6 +404,7 @@ class CampaignImplementationIdentity(_EvidenceModel):
 
     identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     role: Literal["candidate", "reference"]
+    execution_configuration_sha256: str = Field(pattern=_SHA256_PATTERN)
     software: SoftwareIdentity
 
 
@@ -571,6 +572,81 @@ class SourcePairDiagnostic(_EvidenceModel):
         return self
 
 
+class AssociationPairDiagnostic(_EvidenceModel):
+    """One observable truth-group/candidate association decision."""
+
+    decision: Literal[
+        "matched",
+        "unmatched-truth-group",
+        "unmatched-candidate",
+    ]
+    truth_group_identifier: str | None = Field(default=None, min_length=1)
+    candidate_identifier: str | None = Field(default=None, min_length=1)
+    resolution_class: (
+        Literal["individually-resolvable", "unresolved-blend"] | None
+    ) = None
+    truth_strata: tuple[str, ...] = ()
+    separation_beam_fwhm: float | None = Field(
+        default=None,
+        ge=0,
+        allow_inf_nan=False,
+    )
+    integrated_flux_fractional_difference: float | None = Field(
+        default=None,
+        allow_inf_nan=False,
+    )
+
+    def _validate_canonical_strata(self) -> None:
+        """Require deterministic, non-empty truth strata when present."""
+        if self.truth_strata != tuple(sorted(set(self.truth_strata))) or any(
+            not stratum.strip() for stratum in self.truth_strata
+        ):
+            raise ValueError("association truth strata must be canonical")
+
+    @model_validator(mode="after")
+    def validate_decision(self) -> Self:
+        """Keep group and candidate fields consistent with the decision."""
+        self._validate_canonical_strata()
+        has_measurements = (
+            self.separation_beam_fwhm is not None
+            or self.integrated_flux_fractional_difference is not None
+        )
+        if self.decision == "matched":
+            if (
+                self.truth_group_identifier is None
+                or self.candidate_identifier is None
+                or self.resolution_class is None
+                or not self.truth_strata
+                or self.separation_beam_fwhm is None
+                or self.integrated_flux_fractional_difference is None
+            ):
+                raise ValueError(
+                    "matched association requires complete group measurements"
+                )
+        elif self.decision == "unmatched-truth-group":
+            if (
+                self.truth_group_identifier is None
+                or self.candidate_identifier is not None
+                or self.resolution_class is None
+                or not self.truth_strata
+                or has_measurements
+            ):
+                raise ValueError(
+                    "unmatched truth group requires only truth metadata"
+                )
+        elif (
+            self.truth_group_identifier is not None
+            or self.candidate_identifier is None
+            or self.resolution_class is not None
+            or self.truth_strata
+            or has_measurements
+        ):
+            raise ValueError(
+                "unmatched candidate cannot contain truth-group measurements"
+            )
+        return self
+
+
 class CampaignFailure(_EvidenceModel):
     """Stable failure details for one implementation and realization."""
 
@@ -596,8 +672,86 @@ class CampaignRealizationDiagnostic(_EvidenceModel):
     seed: int = Field(ge=0)
     status: Literal["success", "failure"]
     candidate_count: int | None = Field(default=None, ge=0)
+    association_pairs: tuple[AssociationPairDiagnostic, ...] = ()
     source_pairs: tuple[SourcePairDiagnostic, ...] = ()
     failure: CampaignFailure | None = None
+
+    @staticmethod
+    def _require_unique(identifiers: list[str], description: str) -> None:
+        """Reject repeated identities within one realization."""
+        if len(set(identifiers)) != len(identifiers):
+            raise ValueError(f"{description} must be unique per realization")
+
+    def _source_identifiers(self) -> tuple[list[str], list[str]]:
+        """Return and validate source-level truth and candidate identities."""
+        truth = [
+            pair.truth_identifier
+            for pair in self.source_pairs
+            if pair.truth_identifier is not None
+        ]
+        candidate = [
+            pair.candidate_identifier
+            for pair in self.source_pairs
+            if pair.candidate_identifier is not None
+        ]
+        self._require_unique(truth, "truth identifiers")
+        self._require_unique(candidate, "candidate identifiers")
+        return truth, candidate
+
+    def _association_identifiers(self) -> tuple[list[str], list[str]]:
+        """Return and validate group-level truth and candidate identities."""
+        truth = [
+            pair.truth_group_identifier
+            for pair in self.association_pairs
+            if pair.truth_group_identifier is not None
+        ]
+        candidate = [
+            pair.candidate_identifier
+            for pair in self.association_pairs
+            if pair.candidate_identifier is not None
+        ]
+        self._require_unique(truth, "truth-group identifiers")
+        self._require_unique(
+            candidate,
+            "association candidate identifiers",
+        )
+        return truth, candidate
+
+    def _validate_success_rows(self) -> None:
+        """Require complete, consistent candidate and association rows."""
+        _, source_candidates = self._source_identifiers()
+        _, association_candidates = self._association_identifiers()
+        represented_candidates = (
+            association_candidates
+            if self.association_pairs
+            else source_candidates
+        )
+        if len(represented_candidates) != self.candidate_count:
+            raise ValueError(
+                "candidate count must equal represented candidate rows"
+            )
+        if self.association_pairs and not set(source_candidates).issubset(
+            association_candidates
+        ):
+            raise ValueError(
+                "source-pair candidates must occur in association decisions"
+            )
+        association_matches = {
+            (pair.truth_group_identifier, pair.candidate_identifier)
+            for pair in self.association_pairs
+            if pair.decision == "matched"
+        }
+        source_matches = {
+            (pair.truth_identifier, pair.candidate_identifier)
+            for pair in self.source_pairs
+            if pair.decision == "matched"
+        }
+        if self.association_pairs and not source_matches.issubset(
+            association_matches
+        ):
+            raise ValueError(
+                "source matches must agree with association decisions"
+            )
 
     @model_validator(mode="after")
     def validate_outcome(self) -> Self:
@@ -606,6 +760,7 @@ class CampaignRealizationDiagnostic(_EvidenceModel):
             if (
                 self.failure is None
                 or self.candidate_count is not None
+                or self.association_pairs
                 or self.source_pairs
             ):
                 raise ValueError(
@@ -618,28 +773,66 @@ class CampaignRealizationDiagnostic(_EvidenceModel):
                 "successful realization requires a candidate count and no "
                 "failure"
             )
+        self._validate_success_rows()
+        return self
 
-        truth_identifiers = [
-            pair.truth_identifier
-            for pair in self.source_pairs
-            if pair.truth_identifier is not None
-        ]
-        candidate_identifiers = [
-            pair.candidate_identifier
-            for pair in self.source_pairs
-            if pair.candidate_identifier is not None
-        ]
-        if len(set(truth_identifiers)) != len(truth_identifiers):
+
+class CampaignImplementationEvidence(_EvidenceDocument):
+    """One isolated implementation shard from a same-image campaign."""
+
+    evidence_type: Literal["scientific-campaign-implementation"]
+    comparison_protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    implementation: CampaignImplementationIdentity
+    wall_seconds: float = Field(ge=0, allow_inf_nan=False)
+    realizations: tuple[CampaignRealizationDiagnostic, ...] = Field(
+        min_length=1
+    )
+
+    @model_validator(mode="after")
+    def validate_implementation_results(self) -> Self:
+        """Require ordered unique seeds for this implementation."""
+        if any(
+            realization.implementation_identifier
+            != self.implementation.identifier
+            for realization in self.realizations
+        ):
             raise ValueError(
-                "truth identifiers must be unique per realization"
+                "implementation shard contains a different implementation"
             )
-        if len(set(candidate_identifiers)) != len(candidate_identifiers):
+        seeds = [realization.seed for realization in self.realizations]
+        if seeds != sorted(set(seeds)):
             raise ValueError(
-                "candidate identifiers must be unique per realization"
+                "implementation realization seeds must be unique and sorted"
             )
-        if len(candidate_identifiers) != self.candidate_count:
+        successful_truth = [
+            {
+                pair.truth_identifier
+                for pair in realization.source_pairs
+                if pair.truth_identifier is not None
+            }
+            for realization in self.realizations
+            if realization.status == "success"
+        ]
+        successful_groups = [
+            {
+                pair.truth_group_identifier
+                for pair in realization.association_pairs
+                if pair.truth_group_identifier is not None
+            }
+            for realization in self.realizations
+            if realization.status == "success"
+        ]
+        if successful_truth and any(
+            truth != successful_truth[0] for truth in successful_truth[1:]
+        ):
             raise ValueError(
-                "candidate count must equal represented candidate rows"
+                "implementation shard truth identifiers differ by seed"
+            )
+        if successful_groups and any(
+            groups != successful_groups[0] for groups in successful_groups[1:]
+        ):
+            raise ValueError(
+                "implementation shard truth-group identifiers differ by seed"
             )
         return self
 
@@ -697,6 +890,7 @@ class ScientificCampaignEvidence(_EvidenceDocument):
 
         for seed in seeds:
             successful_truth: list[set[str]] = []
+            successful_groups: list[set[str]] = []
             for realization in self.realizations:
                 if realization.seed != seed or realization.status != "success":
                     continue
@@ -707,11 +901,26 @@ class ScientificCampaignEvidence(_EvidenceDocument):
                         if pair.truth_identifier is not None
                     }
                 )
+                successful_groups.append(
+                    {
+                        pair.truth_group_identifier
+                        for pair in realization.association_pairs
+                        if pair.truth_group_identifier is not None
+                    }
+                )
             if successful_truth and any(
                 truth != successful_truth[0] for truth in successful_truth[1:]
             ):
                 raise ValueError(
                     "successful paired runs require identical truth "
+                    "identifiers"
+                )
+            if successful_groups and any(
+                groups != successful_groups[0]
+                for groups in successful_groups[1:]
+            ):
+                raise ValueError(
+                    "successful paired runs require identical truth-group "
                     "identifiers"
                 )
         return self
@@ -720,6 +929,7 @@ class ScientificCampaignEvidence(_EvidenceDocument):
 EvidenceDocument: TypeAlias = (
     BenchmarkEvidence
     | ScientificComparisonEvidence
+    | CampaignImplementationEvidence
     | ScientificCampaignEvidence
 )
 
@@ -753,6 +963,6 @@ def write_evidence(path: Path, document: EvidenceDocument) -> None:
 
 
 def load_evidence(path: Path) -> EvidenceDocument:
-    """Load and validate one benchmark or comparison evidence document."""
+    """Load and validate one benchmark or scientific evidence document."""
     payload = path.read_text(encoding="utf-8")
     return _EVIDENCE_ADAPTER.validate_json(payload)

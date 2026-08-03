@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
+from hebog.validation.campaigns import compile_scientific_campaign
 from hebog.validation.comparison import (
     CatalogueSource,
     compare_catalogues,
@@ -17,8 +18,10 @@ from hebog.validation.comparison import (
 )
 from hebog.validation.datasets import DatasetRole
 from hebog.validation.evidence import (
+    AssociationPairDiagnostic,
     BenchmarkEvidence,
     CampaignFailure,
+    CampaignImplementationEvidence,
     CampaignImplementationIdentity,
     CampaignRealizationDiagnostic,
     CatastrophicMetricDiagnostic,
@@ -451,11 +454,13 @@ def _campaign_evidence() -> ScientificCampaignEvidence:
         CampaignImplementationIdentity(
             identifier="hebog",
             role="candidate",
+            execution_configuration_sha256="7" * 64,
             software=_software("hebog", version="0.1.0", commit="3" * 40),
         ),
         CampaignImplementationIdentity(
             identifier="pybdsf-release",
             role="reference",
+            execution_configuration_sha256="8" * 64,
             software=_software(
                 "pybdsf",
                 version="1.14.1",
@@ -465,6 +470,7 @@ def _campaign_evidence() -> ScientificCampaignEvidence:
         CampaignImplementationIdentity(
             identifier="pybdsf-master",
             role="reference",
+            execution_configuration_sha256="9" * 64,
             software=_software("pybdsf", commit="f" * 40),
         ),
     )
@@ -484,6 +490,17 @@ def _campaign_evidence() -> ScientificCampaignEvidence:
                 seed=2026090152,
                 status="success",
                 candidate_count=1,
+                association_pairs=(
+                    AssociationPairDiagnostic(
+                        decision="matched",
+                        truth_group_identifier="truth-source-00001",
+                        candidate_identifier="hebog-source-00001",
+                        resolution_class="individually-resolvable",
+                        truth_strata=("compact",),
+                        separation_beam_fwhm=0.04,
+                        integrated_flux_fractional_difference=0.02,
+                    ),
+                ),
                 source_pairs=(_matched_source("hebog-source-00001"),),
             ),
             CampaignRealizationDiagnostic(
@@ -491,6 +508,17 @@ def _campaign_evidence() -> ScientificCampaignEvidence:
                 seed=2026090152,
                 status="success",
                 candidate_count=1,
+                association_pairs=(
+                    AssociationPairDiagnostic(
+                        decision="matched",
+                        truth_group_identifier="truth-source-00001",
+                        candidate_identifier="release-source-00001",
+                        resolution_class="individually-resolvable",
+                        truth_strata=("compact",),
+                        separation_beam_fwhm=0.04,
+                        integrated_flux_fractional_difference=0.02,
+                    ),
+                ),
                 source_pairs=(_matched_source("release-source-00001"),),
             ),
             CampaignRealizationDiagnostic(
@@ -506,6 +534,32 @@ def _campaign_evidence() -> ScientificCampaignEvidence:
                     traceback_sha256="5" * 64,
                 ),
             ),
+        ),
+    )
+
+
+def _implementation_evidence(
+    campaign: ScientificCampaignEvidence,
+    implementation_index: int,
+) -> CampaignImplementationEvidence:
+    """Return one isolated shard from complete paired test evidence."""
+    implementation = campaign.implementations[implementation_index]
+    return CampaignImplementationEvidence(
+        schema_version=1,
+        evidence_type="scientific-campaign-implementation",
+        run_id=f"{campaign.run_id}-{implementation.identifier}",
+        captured_at=campaign.captured_at,
+        status=campaign.status,
+        dataset=campaign.dataset,
+        configuration_sha256=campaign.configuration_sha256,
+        comparison_protocol_sha256=campaign.comparison_protocol_sha256,
+        implementation=implementation,
+        wall_seconds=12.5,
+        realizations=tuple(
+            realization
+            for realization in campaign.realizations
+            if realization.implementation_identifier
+            == implementation.identifier
         ),
     )
 
@@ -528,6 +582,212 @@ def test_scientific_campaign_evidence_round_trips_failures_and_rows(
     )
 
 
+def test_campaign_implementation_evidence_round_trips(
+    tmp_path: Path,
+) -> None:
+    """An isolated reference environment emits one strict mergeable shard."""
+    evidence = _implementation_evidence(_campaign_evidence(), 1)
+    path = tmp_path / "release.json"
+
+    write_evidence(path, evidence)
+    loaded = load_evidence(path)
+
+    assert loaded == evidence
+    assert isinstance(loaded, CampaignImplementationEvidence)
+
+
+def test_association_pair_requires_complete_group_measurements() -> None:
+    """A matched unresolved group retains both governed paired metrics."""
+    with pytest.raises(ValidationError, match="group measurements"):
+        AssociationPairDiagnostic(
+            decision="matched",
+            truth_group_identifier="blend-00001",
+            candidate_identifier="candidate-00001",
+            resolution_class="unresolved-blend",
+            truth_strata=("unresolved-blend",),
+            separation_beam_fwhm=0.1,
+        )
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (
+            {"truth_strata": ["unresolved-blend", "compact"]},
+            "strata must be canonical",
+        ),
+        (
+            {
+                "decision": "unmatched-truth-group",
+                "candidate_identifier": "candidate-00001",
+                "separation_beam_fwhm": None,
+                "integrated_flux_fractional_difference": None,
+            },
+            "requires only truth metadata",
+        ),
+        (
+            {
+                "decision": "unmatched-candidate",
+                "separation_beam_fwhm": None,
+                "integrated_flux_fractional_difference": None,
+            },
+            "unmatched candidate",
+        ),
+    ],
+)
+def test_association_pair_rejects_inconsistent_decisions(
+    change: dict[str, object],
+    message: str,
+) -> None:
+    """Association rows cannot hide or mislabel truth-group measurements."""
+    document = (
+        _campaign_evidence()
+        .realizations[0]
+        .association_pairs[0]
+        .model_dump(mode="json")
+    )
+    document.update(change)
+
+    with pytest.raises(ValidationError, match=message):
+        AssociationPairDiagnostic.model_validate(document)
+
+
+def test_campaign_compiler_pairs_isolated_failures_and_successes() -> None:
+    """The compiler keeps a failed reference in the paired denominator."""
+    campaign = _campaign_evidence()
+    shards = tuple(
+        _implementation_evidence(campaign, index) for index in range(3)
+    )
+
+    compiled = compile_scientific_campaign(
+        run_id="phase-4-compiled-campaign",
+        shards=shards,
+    )
+
+    assert compiled.implementations == campaign.implementations
+    assert compiled.realizations[-1].status == "failure"
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("too-few", "at least two"),
+        ("reference-first", "candidate implementation shard must be first"),
+        ("provenance", "provenance differs"),
+        ("seeds", "seeds differ"),
+    ],
+)
+def test_campaign_compiler_rejects_unpaired_shards(
+    mutation: str,
+    message: str,
+) -> None:
+    """Compilation fails closed on incomplete or drifting input."""
+    campaign = _campaign_evidence()
+    shards = [_implementation_evidence(campaign, index) for index in range(3)]
+    if mutation == "too-few":
+        shards = shards[:1]
+    elif mutation == "reference-first":
+        shards = shards[1:]
+    elif mutation == "provenance":
+        shards[1] = shards[1].model_copy(
+            update={"configuration_sha256": "0" * 64}
+        )
+    else:
+        changed = shards[1].realizations[0].model_copy(update={"seed": 1})
+        shards[1] = shards[1].model_copy(update={"realizations": (changed,)})
+
+    with pytest.raises(ValueError, match=message):
+        compile_scientific_campaign(
+            run_id="phase-4-invalid-campaign",
+            shards=shards,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("implementation", "different implementation"),
+        ("seed-order", "seeds must be unique and sorted"),
+        ("truth", "truth identifiers differ by seed"),
+        ("truth-group", "truth-group identifiers differ by seed"),
+    ],
+)
+def test_implementation_shard_rejects_internal_drift(
+    mutation: str,
+    message: str,
+) -> None:
+    """An isolated shard cannot change identity or truth between seeds."""
+    shard = _implementation_evidence(_campaign_evidence(), 0)
+    first = shard.realizations[0].model_dump(mode="json")
+    second = shard.realizations[0].model_dump(mode="json")
+    second["seed"] += 1
+    if mutation == "implementation":
+        first["implementation_identifier"] = "different"
+        document = shard.model_dump(mode="json")
+        document["realizations"] = [first]
+    elif mutation == "seed-order":
+        second["seed"] -= 2
+        document = shard.model_dump(mode="json")
+        document["realizations"] = [first, second]
+    elif mutation == "truth":
+        second["source_pairs"][0]["truth_identifier"] = "different-truth"
+        second["association_pairs"][0]["truth_group_identifier"] = (
+            "different-truth"
+        )
+        document = shard.model_dump(mode="json")
+        document["realizations"] = [first, second]
+    else:
+        first["source_pairs"] = []
+        second["source_pairs"] = []
+        second["association_pairs"][0]["truth_group_identifier"] = (
+            "different-group"
+        )
+        document = shard.model_dump(mode="json")
+        document["realizations"] = [first, second]
+
+    with pytest.raises(ValidationError, match=message):
+        CampaignImplementationEvidence.model_validate(document)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("candidate", "occur in association"),
+        ("match", "agree with association"),
+    ],
+)
+def test_realization_requires_source_and_association_consistency(
+    mutation: str,
+    message: str,
+) -> None:
+    """Individual diagnostics remain bound to their group-level match."""
+    document = _campaign_evidence().realizations[0].model_dump(mode="json")
+    if mutation == "candidate":
+        document["source_pairs"][0]["candidate_identifier"] = "unrepresented"
+    else:
+        document["source_pairs"][0]["truth_identifier"] = "different-truth"
+
+    with pytest.raises(ValidationError, match=message):
+        CampaignRealizationDiagnostic.model_validate(document)
+
+
+def test_campaign_requires_identical_paired_truth_groups() -> None:
+    """Group non-inferiority cannot compare different truth populations."""
+    document = _campaign_evidence().model_dump(mode="json")
+    for realization in document["realizations"]:
+        if realization["status"] == "success":
+            realization["source_pairs"] = []
+    document["realizations"][1]["association_pairs"][0][
+        "truth_group_identifier"
+    ] = "different-group"
+
+    with pytest.raises(
+        ValidationError,
+        match="identical truth-group identifiers",
+    ):
+        ScientificCampaignEvidence.model_validate(document)
+
+
 def test_campaign_requires_every_implementation_for_every_seed() -> None:
     """A nominally paired campaign cannot silently omit a failed reference."""
     document = _campaign_evidence().model_dump(mode="json")
@@ -546,6 +806,9 @@ def test_campaign_requires_identical_paired_truth() -> None:
     document["realizations"][1]["source_pairs"][0]["truth_identifier"] = (
         "different-truth"
     )
+    document["realizations"][1]["association_pairs"][0][
+        "truth_group_identifier"
+    ] = "different-truth"
 
     with pytest.raises(ValidationError, match="identical truth identifiers"):
         ScientificCampaignEvidence.model_validate(document)

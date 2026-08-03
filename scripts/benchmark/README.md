@@ -146,3 +146,62 @@ The matrix generator creates performance-only FITS inputs with deterministic
 noise and bounded Gaussian patches. These inputs measure size and density
 scaling; the governed scientific manifests and held-out qualification tests,
 not the performance generator, establish scientific correctness.
+
+## Phase 4 paired scientific campaigns
+
+`run_phase4_pybdsf_campaign.py` is the maintained same-image reference runner.
+Run it once in the isolated released-PyBDSF environment and once in the pinned
+`master` environment. It regenerates every image from the complete governed
+dataset record as float64, applies Rapthor's exact PyBDSF profile, and emits a
+strict `CampaignImplementationEvidence` shard. The full dataset-record digest
+binds the base recipe, every seed, WCS, beam, truth association, and stratum.
+
+The runner catches a failure for one seed, writes its implementation stage,
+exception, message, and traceback digest, prints the complete traceback to the
+captured run log, and continues. It never drops the seed or publishes partial
+source rows. Existing evidence is not overwritten. Its wall time is diagnostic
+provenance only and must not be used for a performance claim.
+
+Use the reference runner only after a comparison protocol has been frozen for
+the campaign. A typical invocation inside an immutable reference environment
+is:
+
+```console
+python scripts/benchmark/run_phase4_pybdsf_campaign.py \
+  --manifest <frozen-dataset-manifest.json> \
+  --dataset-id <frozen-dataset-id> \
+  --scientific-gates config/contracts/phase-4-scientific-gates.json \
+  --scientific-contract config/contracts/phase-4-measurement.json \
+  --scientific-contract config/contracts/phase-4-scientific-gates.json \
+  --comparison-protocol <reviewed-paired-protocol.json> \
+  --implementation-id pybdsf-release \
+  --expected-version 1.14.1 \
+  --pybdsf-commit 1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc \
+  --container-image-digest sha256:<64-hex-digest> \
+  --run-id <campaign>-pybdsf-release \
+  --output benchmark-results/<campaign>-pybdsf-release.json
+```
+
+Repeat with implementation `pybdsf-master`, version
+`1.14.2.dev40+gc70103be3`, and commit
+`c70103be3ae9ae9908286f144e6ce956acc0ce5c`. Use the same manifest,
+scientific contracts, paired protocol, four-core allocation, and immutable
+base-image policy for both. The dependency-inventory digest and the
+implementation-specific execution-configuration digest distinguish the two
+isolated shards.
+
+After the final Hebog campaign harness has emitted its candidate shard, compile
+the candidate-first triplet without rerunning any implementation:
+
+```console
+python scripts/benchmark/compile_phase4_scientific_campaign.py \
+  --run-id <campaign>-paired \
+  --output benchmark-results/<campaign>-paired.json \
+  benchmark-results/<campaign>-hebog.json \
+  benchmark-results/<campaign>-pybdsf-release.json \
+  benchmark-results/<campaign>-pybdsf-master.json
+```
+
+The compiler rejects dataset, seed, scientific-contract, or comparison-protocol
+drift. Qualification evidence remains `exploratory` until every input and
+scientific decision has received named review.

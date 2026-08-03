@@ -76,6 +76,19 @@ available normalized residuals. Successful implementations must expose the
 same truth identifiers. This makes paired non-inferiority analysis auditable
 and prevents aggregate pass/fail counts from hiding which sources changed.
 
+Association rows separately preserve every observable truth group, including
+unresolved blends, with its match decision, group strata, separation, and
+integrated-flux difference. Group metrics use the raw fitted total; individual
+unresolved catalogue rows use Rapthor's documented peak-as-total compatibility
+view. This distinction keeps unresolved-group gates scientifically unchanged.
+
+Each isolated environment first writes a
+`CampaignImplementationEvidence` shard. A shard binds the complete dataset
+record and seed population, shared scientific contracts, paired-comparison
+protocol, exact software and execution configuration, elapsed diagnostic time,
+and every result or failure. The campaign compiler requires identical shard
+provenance and seeds and refuses to infer a missing result.
+
 Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive these
 rows from the independent catalogue comparison report. It deliberately shares
 the normalized-residual calculation used by the aggregate uncertainty report,
