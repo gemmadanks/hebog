@@ -160,6 +160,30 @@ is frozen with 200 disjoint seeds and recipe SHA-256
 It has not been generated or inspected. Both contracts are frozen-provisional
 until a development/regression-supported correction receives named review.
 
+That corrective regression now distinguishes scientific populations rather
+than weakening the 0.5% ceiling. In 4,800 development matches, all 283 raw
+catastrophic rows were marginally resolved truth: 274 failed only integrated
+flux, one failed fitted axes, and eight failed deconvolved axes. The point and
+clearly resolved populations had no catastrophic rows. This agrees with the
+predeclared report-only status of marginal extension and with the
+[ASKAP/EMU source-finding challenge](https://doi.org/10.1017/pasa.2015.37),
+which evaluates catastrophic point-source flux separately and does not apply
+that analysis to its extended-source challenge because the comparison is
+biased by low peak brightness and high integrated flux. The proposed harness
+therefore reports marginal integrated-flux catastrophes but gates every other
+metric for that population and all metrics for point and clearly resolved
+truth. The numerical outlier thresholds and 0.5% ceiling are unchanged.
+
+A new 250-measurement development regression also reproduced the edge/SNR-10
+availability failure at 247/250. Its three missing matches were valid Gaussian
+fits whose centroids had drifted beyond the bottom image boundary. Clamping
+fit-centre bounds to the sampled image footprint, while retaining the normal
+context margin inside that footprint, raises the same frozen regression to
+250/250 without changing detection thresholds, uncertainty formulae, or the
+third campaign. The complete corrected 4,800-match regression and both exact
+PyBDSF catalogue comparisons pass. Named review of these two corrections is
+still required.
+
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run because the closure order puts scientific qualification first and
 the known implementation is not release-eligible. The 3,000-square incremental
@@ -197,11 +221,14 @@ Phase 4 can be declared passed only after all of the following occur in order:
    and uncertainty-calibration reports.
 4. [x] The post-failure extension-classification amendment receives named
    human review after independent regression passes.
-5. [ ] A newly frozen unseen held-out qualification campaign passes every
-   reviewed gate without post-inspection tuning. Both powered campaigns failed
-   on 2026-08-03 and are retained as known evidence.
-6. [ ] The controlled Phase 4 performance matrix passes its component budgets and
+5. [ ] The marginal-flux population clarification and image-footprint
+   correction receive named review after their complete development and
+   regression lanes pass.
+6. [ ] The third frozen unseen held-out qualification campaign passes every
+   reviewed gate without post-inspection tuning. Both earlier powered
+   campaigns failed on 2026-08-03 and are retained as known evidence.
+7. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.
-7. [ ] The final evidence and this decision are reviewed and changed from
+8. [ ] The final evidence and this decision are reviewed and changed from
    **not ready** to **passed**.

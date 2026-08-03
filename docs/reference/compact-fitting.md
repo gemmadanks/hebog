@@ -52,12 +52,16 @@ Position, peak flux, and the peak-as-total unresolved policy pass their
 applicable regression gates.
 
 The fitter itself remains an unconstrained seven-parameter scientific
-reference. Extension classification is a catalogue transformation after the
-fit: the ATLAS log integrated-to-peak ratio must exceed its configured
-two-sigma uncertainty. If it does not, the source remains unresolved and its
-catalogue integrated flux and error use the fitted peak and peak error. This
-small policy boundary preserves the fitted shape for diagnostics without
-adding a second optimizer or hiding low-SNR fitted-width inflation.
+reference. Its centroid bounds may extend beyond the detected region into the
+retained fit context, but never beyond the physical footprint of the sampled
+image window. This prevents a truncated edge profile from converging to an
+apparently valid catalogue position outside the image. Extension
+classification is a catalogue transformation after the fit: the ATLAS log
+integrated-to-peak ratio must exceed its configured two-sigma uncertainty. If
+it does not, the source remains unresolved and its catalogue integrated flux
+and error use the fitted peak and peak error. This small policy boundary
+preserves the fitted shape for diagnostics without adding a second optimizer
+or hiding low-SNR fitted-width inflation.
 
 Invalid moments and regions with fewer than seven owned pixels return a typed
 unavailable fit. Exhausted iterations and scientifically invalid fitted

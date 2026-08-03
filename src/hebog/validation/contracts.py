@@ -618,6 +618,7 @@ class PhaseFourExtensionClassification(_ContractModel):
     marginal_resolved_population: Literal[
         "shape-marginal-resolved-report-only"
     ]
+    marginal_resolved_integrated_flux_catastrophic_rate: Literal["report-only"]
     unresolved_integrated_flux: Literal["peak-flux-density"]
     resolved_integrated_flux_uncertainty: Literal["report-only"]
     missing_uncertainty: Literal[

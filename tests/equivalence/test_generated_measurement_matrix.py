@@ -36,6 +36,7 @@ from hebog.stages.detection import DetectionStageConfig, run_detection_stage
 from hebog.stages.fitting import run_compact_gaussian_fit_stage
 from hebog.validation.comparison import (
     CatalogueEllipse,
+    CatalogueMatch,
     CatalogueOutlierThresholds,
     CatalogueSource,
     compare_catalogues,
@@ -43,6 +44,7 @@ from hebog.validation.comparison import (
     uncertainty_calibration_report,
 )
 from hebog.validation.contracts import (
+    PhaseFourOutlierDefinition,
     load_phase_four_measurement_contract,
     load_phase_four_scientific_gates,
 )
@@ -61,6 +63,66 @@ pytestmark = pytest.mark.equivalence
 
 _ROOT = Path(__file__).parents[2]
 _DATASET_ROOT = _ROOT / "config/datasets"
+
+
+def _catastrophic_metric_flags(
+    match: CatalogueMatch,
+    thresholds: PhaseFourOutlierDefinition,
+) -> dict[str, bool]:
+    """Expose every governed catastrophic comparison independently."""
+    fitted_axis_values = tuple(
+        abs(value)
+        for value in (
+            match.fitted_major_axis_fractional_difference,
+            match.fitted_minor_axis_fractional_difference,
+        )
+        if value is not None
+    )
+    deconvolved_axis_values = tuple(
+        abs(value)
+        for value in (
+            match.deconvolved_major_axis_fractional_difference,
+            match.deconvolved_minor_axis_fractional_difference,
+        )
+        if value is not None
+    )
+    return {
+        "position": match.separation_beam_fwhm > thresholds.position_beams,
+        "peak-flux": (
+            abs(match.peak_flux_fractional_difference)
+            > thresholds.peak_flux_fractional_difference
+        ),
+        "integrated-flux": (
+            abs(match.integrated_flux_fractional_difference)
+            > thresholds.integrated_flux_fractional_difference
+        ),
+        "fitted-axis": (
+            bool(fitted_axis_values)
+            and max(fitted_axis_values)
+            > thresholds.fitted_axis_fractional_difference
+        ),
+        "deconvolved-axis": (
+            bool(deconvolved_axis_values)
+            and max(deconvolved_axis_values)
+            > thresholds.deconvolved_axis_fractional_difference
+        ),
+    }
+
+
+def _is_gated_catastrophic(
+    metric_flags: dict[str, bool],
+    *,
+    classification_stratum: str,
+) -> bool:
+    """Exclude only marginal-extension integrated flux from the gate."""
+    return any(
+        failed
+        for metric, failed in metric_flags.items()
+        if not (
+            classification_stratum == "shape-marginal-resolved"
+            and metric == "integrated-flux"
+        )
+    )
 
 
 class _SyntheticImageSource:
@@ -506,6 +568,36 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
     integrated_flux_by_shape: dict[str, list[float]] = {
         stratum.identifier: [] for stratum in dataset.classification_strata
     }
+    catastrophic_by_shape = {
+        stratum.identifier: 0 for stratum in dataset.classification_strata
+    }
+    matched_by_shape = {
+        stratum.identifier: 0 for stratum in dataset.classification_strata
+    }
+    catastrophic_metric_counts = {
+        "position": 0,
+        "peak-flux": 0,
+        "integrated-flux": 0,
+        "fitted-axis": 0,
+        "deconvolved-axis": 0,
+    }
+    marginal_integrated_flux_catastrophic_count = 0
+    outlier = gates.catastrophic_outlier
+    outlier_thresholds = CatalogueOutlierThresholds(
+        position_beams=outlier.position_beams,
+        peak_flux_fractional_difference=(
+            outlier.peak_flux_fractional_difference
+        ),
+        integrated_flux_fractional_difference=(
+            outlier.integrated_flux_fractional_difference
+        ),
+        fitted_axis_fractional_difference=(
+            outlier.fitted_axis_fractional_difference
+        ),
+        deconvolved_axis_fractional_difference=(
+            outlier.deconvolved_axis_fractional_difference
+        ),
+    )
 
     recipes = iter_dataset_recipes(dataset)
     for recipe in recipes:
@@ -548,6 +640,16 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
                 metadata,
                 island_identifier=identifier,
             )
+            comparison = compare_catalogues(
+                (reference_source,),
+                (candidate_source,),
+                beam_fwhm_degrees=metadata.beam.major_fwhm_degrees,
+                maximum_separation_beams=0.5,
+                outlier_thresholds=outlier_thresholds,
+                position_angle_minimum_axis_ratio=1.1,
+            )
+            assert len(comparison.matches) == 1
+            match = comparison.matches[0]
             integrated_error = candidate_source.integrated_flux_error_jy
             assert integrated_error is not None
             residuals = {
@@ -573,6 +675,20 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
             for metric, residual in residuals.items():
                 samples[(stratum, metric)].append(residual)
             classification_stratum = classification_by_source[source_index]
+            metric_flags = _catastrophic_metric_flags(match, outlier)
+            matched_by_shape[classification_stratum] += 1
+            catastrophic_by_shape[classification_stratum] += int(
+                _is_gated_catastrophic(
+                    metric_flags,
+                    classification_stratum=classification_stratum,
+                )
+            )
+            for metric, failed in metric_flags.items():
+                catastrophic_metric_counts[metric] += int(failed)
+            marginal_integrated_flux_catastrophic_count += int(
+                classification_stratum == "shape-marginal-resolved"
+                and metric_flags["integrated-flux"]
+            )
             integrated_flux_by_shape[classification_stratum].append(
                 residuals["integrated-flux"]
             )
@@ -722,7 +838,78 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
         )
         if accuracy < minimum:
             failures.append((stratum_identifier, "classification-accuracy"))
+    catastrophic_count = sum(catastrophic_by_shape.values())
+    matched_count = sum(matched_by_shape.values())
+    if catastrophic_count / matched_count > (
+        regression_gate.maximum_catastrophic_outlier_fraction
+    ):
+        failures.append(
+            (
+                "all-shapes",
+                "catastrophic-outlier-fraction",
+                catastrophic_count,
+                matched_count,
+                catastrophic_by_shape,
+                catastrophic_metric_counts,
+                marginal_integrated_flux_catastrophic_count,
+            )
+        )
     assert not failures, "\n".join(str(failure) for failure in failures)
+
+
+@pytest.mark.slow
+def test_edge_source_uncertainty_availability_passes_regression(
+    tmp_path: Path,
+) -> None:
+    """Every image side contributes to the powered availability decision."""
+    dataset = load_dataset_manifest(
+        _DATASET_ROOT / "phase-4-regression.json"
+    ).datasets[2]
+    gates = load_phase_four_scientific_gates(
+        _ROOT / "config/contracts/phase-4-scientific-gates.json"
+    )
+    recipes = iter_dataset_recipes(dataset)
+    available_count = 0
+    matched_by_source = [0] * len(dataset.recipe.sources)
+    available_by_source = [0] * len(dataset.recipe.sources)
+    missing_seeds_by_source: list[list[int]] = [
+        [] for _ in dataset.recipe.sources
+    ]
+
+    for recipe in recipes:
+        unmatched = list(
+            _fits(dataset, tmp_path / str(recipe.seed), recipe=recipe)
+        )
+        for source_index, truth in enumerate(recipe.sources):
+            if not unmatched:
+                missing_seeds_by_source[source_index].append(recipe.seed)
+                continue
+            selected = min(
+                unmatched,
+                key=lambda fit: np.hypot(
+                    fit.parameters.centroid_xy[0] - truth.x_pixel,
+                    fit.parameters.centroid_xy[1] - truth.y_pixel,
+                ),
+            )
+            separation = np.hypot(
+                selected.parameters.centroid_xy[0] - truth.x_pixel,
+                selected.parameters.centroid_xy[1] - truth.y_pixel,
+            )
+            if separation > 0.5 * dataset.beam.major_fwhm_pixels:
+                missing_seeds_by_source[source_index].append(recipe.seed)
+                continue
+            unmatched.remove(selected)
+            matched_by_source[source_index] += 1
+            available_count += int(selected.uncertainty is not None)
+            available_by_source[source_index] += int(
+                selected.uncertainty is not None
+            )
+
+    eligible_count = len(recipes) * len(dataset.recipe.sources)
+    assert eligible_count >= gates.uncertainty.minimum_samples_per_stratum
+    assert available_count / eligible_count >= (
+        gates.generated_regression.minimum_position_flux_uncertainty_availability
+    ), (matched_by_source, available_by_source, missing_seeds_by_source)
 
 
 @pytest.mark.qualification
@@ -801,6 +988,8 @@ def test_compact_flux_heldout_measurement_qualification(  # noqa: C901, PLR0912,
     candidate_count = 0
     matched_individual_count = 0
     catastrophic_count = 0
+    marginal_matched_individual_count = 0
+    marginal_integrated_flux_catastrophic_count = 0
     classification_available = {
         "shape-unresolved": 0,
         "shape-clear-resolved": 0,
@@ -916,10 +1105,19 @@ def test_compact_flux_heldout_measurement_qualification(  # noqa: C901, PLR0912,
                 absolute_metrics["deconvolved-axis"].append(
                     max(deconvolved_axis_values)
                 )
-            catastrophic_count += int(
-                bool(pair.catastrophic_outlier_reference_identifiers)
-            )
             classification_stratum = classification_by_source[source_index]
+            metric_flags = _catastrophic_metric_flags(match, outlier)
+            catastrophic_count += int(
+                _is_gated_catastrophic(
+                    metric_flags,
+                    classification_stratum=classification_stratum,
+                )
+            )
+            if classification_stratum == "shape-marginal-resolved":
+                marginal_matched_individual_count += 1
+                marginal_integrated_flux_catastrophic_count += int(
+                    metric_flags["integrated-flux"]
+                )
             if classification_stratum in classification_available and (
                 candidate_source.deconvolution_status
                 in {"resolved", "unresolved"}
@@ -1142,6 +1340,22 @@ def test_compact_flux_heldout_measurement_qualification(  # noqa: C901, PLR0912,
         "clear_resolved_recall": clear_resolved_recall,
         "resolved_shape_availability": resolved_shape_availability,
         "catastrophic_outlier_fraction": catastrophic_outlier_fraction,
+        "catastrophic_outlier_population": (
+            "matched-compact-snr-at-least-10-with-marginal-integrated-flux-"
+            "report-only"
+        ),
+        "marginal_integrated_flux_catastrophic_report_only": {
+            "sample_count": marginal_matched_individual_count,
+            "catastrophic_count": (
+                marginal_integrated_flux_catastrophic_count
+            ),
+            "fraction": (
+                marginal_integrated_flux_catastrophic_count
+                / marginal_matched_individual_count
+                if marginal_matched_individual_count
+                else None
+            ),
+        },
         "unresolved_group": {
             "sample_count": len(group_position_beams),
             "truth_count": unresolved_group_truth_count,

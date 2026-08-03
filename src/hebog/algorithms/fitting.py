@@ -327,8 +327,14 @@ def fit_compact_gaussian(
     lower = np.asarray(
         [
             np.finfo(np.float64).tiny,
-            region.bounds.x_start - 0.5 - config.center_margin_pixels,
-            region.bounds.y_start - 0.5 - config.center_margin_pixels,
+            max(
+                region.bounds.x_start - 0.5 - config.center_margin_pixels,
+                array_bounds.x_start - 0.5,
+            ),
+            max(
+                region.bounds.y_start - 0.5 - config.center_margin_pixels,
+                array_bounds.y_start - 0.5,
+            ),
             config.minimum_sigma_pixels,
             config.minimum_sigma_pixels,
             -pi,
@@ -339,8 +345,14 @@ def fit_compact_gaussian(
     upper = np.asarray(
         [
             max(values) * config.maximum_amplitude_factor,
-            region.bounds.x_stop - 0.5 + config.center_margin_pixels,
-            region.bounds.y_stop - 0.5 + config.center_margin_pixels,
+            min(
+                region.bounds.x_stop - 0.5 + config.center_margin_pixels,
+                array_bounds.x_stop - 0.5,
+            ),
+            min(
+                region.bounds.y_stop - 0.5 + config.center_margin_pixels,
+                array_bounds.y_stop - 0.5,
+            ),
             config.maximum_sigma_pixels,
             config.maximum_sigma_pixels,
             pi,

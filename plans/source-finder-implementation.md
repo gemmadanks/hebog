@@ -1646,6 +1646,29 @@ before maintaining a custom fitter.
    result may be opened before a regression-supported amendment receives named
    review.
 
+   The corrective development evidence is now explicit. Adding the frozen
+   catastrophic definitions to the 200-realization regression produced 283
+   raw outliers among 4,800 matched rows: all were predeclared marginal-
+   resolved truth, with 274 integrated-flux-only, one fitted-axis, and eight
+   deconvolved-axis failures. Point and clearly resolved truth had none. Keep
+   the 0.5% ceiling and every numerical threshold; report only marginal-
+   resolved integrated-flux catastrophes, while gating all other metrics for
+   marginal truth and all metrics for point and clear-resolved truth. This
+   implements rather than broadens the existing report-only marginal policy
+   and follows the population separation used by peer-reviewed source-finding
+   challenges.
+
+   A new frozen development recipe covers five isolated SNR-10-to-15 point
+   sources truncated by all four image sides over 50 realizations. It first
+   reproduced the availability failure at 247/250 and identified three valid
+   bottom-edge fits whose centroids left the image footprint. Constraining fit
+   centres to the sampled footprint, without reducing the normal interior
+   context margin, makes the same test pass 250/250. The full powered
+   regression, exact references, and normal handoff suite must pass before
+   named review. After that review, promote both contracts in a separate
+   approval commit, open the third campaign once, and proceed to controlled
+   performance only if every scientific gate passes.
+
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate
 contract; analytic compact cases pass; development, regression, and unseen

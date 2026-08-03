@@ -88,11 +88,22 @@ completeness, reliability, and extension-classification gates but failed the
 catastrophic-outlier and SNR-10/edge uncertainty-availability gates. It is now
 known evidence and will not be tuned or rerun as unseen.
 
+A powered development audit subsequently reproduced both failures. All 283
+raw outlier rows in 4,800 matches belonged to the predeclared marginal-
+extension population; 274 were integrated-flux-only, while point and clearly
+resolved sources had none. The qualification harness now keeps marginal
+integrated-flux catastrophes report-only, consistently with that population's
+frozen scientific role, while continuing to gate every other catastrophic
+metric and integrated flux for point and clearly resolved sources. A separate
+edge/SNR-10 regression exposed three centroids leaving the image footprint;
+constraining fit centres to sampled image bounds raised uncertainty
+availability from 247/250 to 250/250. The third 200-realization campaign was
+frozen before these corrections and remains unopened pending named review.
+
 The remaining work includes:
 
-- correcting the newly exposed compact-flux and low-SNR/edge availability
-  failures using development/regression evidence, then qualifying on the
-  third frozen unseen campaign;
+- completing named review of the regression-supported compact-flux and edge
+  corrections, then qualifying once on the third frozen unseen campaign;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;

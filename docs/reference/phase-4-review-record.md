@@ -649,3 +649,60 @@ Both Phase 4 contracts returned to **frozen-provisional** so the executable
 guard prevents accidental qualification. A corrective policy must be selected
 only from analytic and development/regression evidence and receive named review
 before either contract is promoted again.
+
+## Third-campaign amendment awaiting review
+
+The powered development runner was extended before the third campaign was
+opened. It reproduced the catastrophic-tail issue independently: 283 of 4,800
+matched rows met at least one raw catastrophic definition. Every one belonged
+to `shape-marginal-resolved`; 274 were integrated-flux-only, one was a fitted-
+axis outlier, and eight were deconvolved-axis outliers. Point and clearly
+resolved truth had zero catastrophic rows.
+
+The recommended interpretation is deliberately narrower than removing the
+catastrophic gate. The 0.5% ceiling and all five numerical outlier definitions
+remain unchanged. Position, peak flux, fitted axes, and deconvolved axes remain
+gated for every matched compact source. Integrated flux remains gated for
+point and clearly resolved truth. Only the marginal-resolved integrated-flux
+catastrophic rate is report-only, matching the already frozen report-only role
+of marginal extension and resolved/marginal free-fit integrated-flux
+calibration.
+
+This is consistent with the peer-reviewed evidence used for the earlier
+decision. [ATLAS DR3](https://doi.org/10.1093/mnras/stv1866) classifies
+extension through integrated-to-peak significance and substitutes peak flux
+for sources classified as point-like. The
+[ASKAP/EMU source-finding challenge](https://doi.org/10.1017/pasa.2015.37)
+evaluates catastrophic flux on its point-source challenge and explicitly does
+not apply the same comparison to the extended-source challenge because low
+peak brightness and high integrated flux bias that analysis. Hebog remains
+stricter by retaining integrated-flux gating for clearly resolved sources.
+
+A separate frozen development recipe then exercised five isolated
+SNR-10-to-15 point sources truncated by all four image sides over 50 noise
+realizations. It failed before implementation at 247/250. The three missing
+matches were bottom-edge fits whose valid optimizer solution placed the
+centroid outside the sampled image footprint. The smallest correction clamps
+centroid bounds to that footprint while preserving the configured context
+margin within it. The identical regression then passed 250/250; no detection,
+classification, uncertainty, or qualification threshold changed.
+
+The corrected 200-realization, 4,800-match regression passed in 343.68
+seconds, and the remaining generated-truth and exact compact-catalogue
+equivalence cases passed against both PyBDSF anchors. The qualification guard
+still skips before recipe generation while the contracts await review.
+
+The third campaign's recipe, seeds, truth, WCS, background, invalid pixels,
+and gates have not changed and no result has been generated. Before it may be
+opened, the reviewer must decide whether to approve:
+
+1. marginal-resolved integrated-flux catastrophic rate as report-only while
+   retaining every other catastrophic gate described above; and
+2. the physical image-footprint constraint and its powered edge-availability
+   regression as the correction for the second campaign's availability
+   failure.
+
+- **Reviewer:** Pending
+- **Role or scientific authority:** Pending
+- **Review date:** Pending
+- **Decision:** Pending

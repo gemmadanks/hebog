@@ -50,7 +50,9 @@ clearly resolved truth. "Clearly resolved" is selected from injected truth
 before fitting: fitted-to-beam area ratio at least 3 and signal-to-noise ratio
 at least 25. Less decisive injected extension is a predeclared marginal,
 report-only population rather than being retrospectively relabelled after a
-fit.
+fit. Its integrated-flux catastrophic rate is therefore also report-only;
+position, peak flux, and fitted/deconvolved shape catastrophes remain gated,
+as does integrated flux for point and clearly resolved truth.
 
 An unresolved internal shape is null. The zero-major-axis value expected by
 the PyBDSF/Rapthor compatibility view is introduced only by that adapter and

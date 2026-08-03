@@ -710,6 +710,179 @@
         ],
         "rotation_degrees_counterclockwise": 0.0
       }
+    },
+    {
+      "beam": {
+        "major_fwhm_pixels": 5.0,
+        "minor_fwhm_pixels": 3.5,
+        "position_angle_degrees": 110.0
+      },
+      "classification_strata": [
+        {
+          "identifier": "shape-unresolved",
+          "source_indices": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.00012,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.00025
+      },
+      "identifier": "phase4-edge-availability-regression-256",
+      "noise_realization_seeds": [
+        2026083002,
+        2026083003,
+        2026083004,
+        2026083005,
+        2026083006,
+        2026083007,
+        2026083008,
+        2026083009,
+        2026083010,
+        2026083011,
+        2026083012,
+        2026083013,
+        2026083014,
+        2026083015,
+        2026083016,
+        2026083017,
+        2026083018,
+        2026083019,
+        2026083020,
+        2026083021,
+        2026083022,
+        2026083023,
+        2026083024,
+        2026083025,
+        2026083026,
+        2026083027,
+        2026083028,
+        2026083029,
+        2026083030,
+        2026083031,
+        2026083032,
+        2026083033,
+        2026083034,
+        2026083035,
+        2026083036,
+        2026083037,
+        2026083038,
+        2026083039,
+        2026083040,
+        2026083041,
+        2026083042,
+        2026083043,
+        2026083044,
+        2026083045,
+        2026083046,
+        2026083047,
+        2026083048,
+        2026083049,
+        2026083050
+      ],
+      "provenance": "Additive development regression frozen after the second held-out result and before any third campaign was opened.",
+      "purpose": "Powered uncertainty-availability regression for isolated SNR-10-to-15 point sources truncated independently by every image edge.",
+      "recipe": {
+        "background": -0.00012,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [],
+        "noise_correlation": {
+          "major_fwhm_pixels": 5.0,
+          "minor_fwhm_pixels": 3.5,
+          "position_angle_degrees": 110.0,
+          "truncation_sigma": 4.0
+        },
+        "noise_rms": 0.00025,
+        "noise_rms_fractional_gradient_xy": [
+          -0.12,
+          0.18
+        ],
+        "seed": 2026083001,
+        "shape_yx": [
+          256,
+          256
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.1233045007,
+            "minor_sigma_pixels": 1.4863131505,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 110.0,
+            "x_pixel": 1.5,
+            "y_pixel": 45.0
+          },
+          {
+            "major_sigma_pixels": 2.1233045007,
+            "minor_sigma_pixels": 1.4863131505,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 110.0,
+            "x_pixel": 64.0,
+            "y_pixel": 1.5
+          },
+          {
+            "major_sigma_pixels": 2.1233045007,
+            "minor_sigma_pixels": 1.4863131505,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 110.0,
+            "x_pixel": 254.0,
+            "y_pixel": 96.0
+          },
+          {
+            "major_sigma_pixels": 2.1233045007,
+            "minor_sigma_pixels": 1.4863131505,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 110.0,
+            "x_pixel": 160.0,
+            "y_pixel": 254.0
+          },
+          {
+            "major_sigma_pixels": 2.1233045007,
+            "minor_sigma_pixels": 1.4863131505,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 110.0,
+            "x_pixel": 220.0,
+            "y_pixel": 1.5
+          }
+        ]
+      },
+      "recipe_sha256": "15b5d5807abee379567bb51913600046b05d896935c1e4f7889c0be5a9f194fd",
+      "redistribution": "generated-locally",
+      "role": "regression",
+      "validation_strata": [
+        {
+          "identifier": "edge-snr-10-to-15",
+          "source_indices": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00024,
+          0.00027
+        ],
+        "reference_pixel_xy": [
+          127.5,
+          127.5
+        ],
+        "reference_sky_degrees": [
+          155.0,
+          -12.0
+        ],
+        "rotation_degrees_counterclockwise": 27.0
+      }
     }
   ],
   "manifest_id": "phase-4-regression",

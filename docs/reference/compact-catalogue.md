@@ -89,8 +89,13 @@ population is not being silently tuned or relabelled and now uses explicit
 observable truth groups. Joint multi-component selection is deferred until it
 has identifiability evidence. A later held-out campaign failed extension
 classification and flux calibration; the literature-led correction passes
-independent regression, but its replacement unseen campaign remains unopened
-pending named review.
+independent regression. Its second held-out campaign then exposed a mismatch
+between the already report-only marginal-extension population and the
+all-metrics catastrophic harness, plus edge fits that could leave the image
+footprint. Development regression now reports marginal integrated-flux
+catastrophes separately while retaining every other outlier gate, and the
+fitter keeps centroids within sampled image bounds. The third unseen campaign
+remains unopened pending named review.
 
 Per-channel catalogue columns used by later Rapthor flux normalization,
 multiscale/extended emission, complete sky-model filtering, and orchestration

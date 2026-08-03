@@ -187,6 +187,21 @@ def test_scipy_fit_recovers_noiseless_subpixel_gaussian() -> None:
     )
 
 
+def test_fit_centroid_cannot_leave_the_sampled_image_footprint() -> None:
+    """A truncated external profile must stop at the physical image edge."""
+    compact = _gaussian_input(
+        centroid_xy=(160.0, 256.5),
+        shape_yx=(8, 21),
+        origin_yx=(248, 150),
+    )
+
+    result = _fit(compact)
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.parameters.centroid_xy[1] <= 255.5
+    assert result.diagnostics.parameters_at_bound
+
+
 def test_fit_is_translation_and_positive_scaling_equivariant() -> None:
     """Global origin and brightness units do not change fitted shape."""
     first = _fit(

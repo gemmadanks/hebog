@@ -3193,3 +3193,58 @@ and compatibility serialization
 
 - Extend the powered development/regression runner to gate catastrophic flux
   and uncertainty availability before selecting any corrective policy.
+
+## 2026-08-03 — Reproduced both Phase 4 failures in development
+
+**Plan phase:** Phase 4 scientific closure — third-campaign amendment
+
+**Catastrophic-tail diagnosis**
+
+- Extended the existing 200-realization development runner with the exact
+  frozen catastrophic definitions. The intended red test failed with 283 of
+  4,800 matched rows above at least one threshold.
+- All 283 rows were predeclared `shape-marginal-resolved` truth. The metric
+  counts were 274 integrated-flux, one fitted-axis, eight deconvolved-axis,
+  and zero position or peak-flux failures. Point and clearly resolved truth
+  had zero catastrophic rows.
+- Peer-reviewed population practice supports keeping ambiguous marginal flux
+  separate: ATLAS DR3 uses integrated-to-peak significance and peak-as-total
+  for point-like sources, while the ASKAP/EMU challenge does not apply its
+  catastrophic point-source flux analysis to the extended challenge because
+  that comparison is biased. The proposed amendment keeps the 0.5% ceiling
+  and all numerical thresholds, reports only marginal integrated-flux
+  catastrophes, and continues to gate every other metric plus integrated flux
+  for point and clearly resolved truth.
+
+**Edge-availability diagnosis**
+
+- Added a generated regression recipe with five isolated SNR-10-to-15 point
+  sources truncated independently by all four image sides, 50 deterministic
+  realizations, and recipe SHA-256
+  `15b5d5807abee379567bb51913600046b05d896935c1e4f7889c0be5a9f194fd`.
+- Its intended red test reproduced the gate miss at 247/250. All three missing
+  matches were for the higher-noise bottom edge; deterministic seed inspection
+  showed valid Gaussian fits whose centroids had moved beyond the sampled
+  image footprint.
+- Clamped fit-centre bounds to the physical sampled footprint while preserving
+  the configured context margin inside it. The focused unit lane passed 19
+  tests and the identical powered edge regression then passed 250/250.
+
+**Validation**
+
+- The corrected 200-realization, 4,800-match uncertainty/classification/
+  catastrophic regression passed in 343.68 seconds.
+- Six remaining generated-truth and exact compact-catalogue equivalence tests
+  passed against both PyBDSF anchors. The third-campaign guard skipped before
+  recipe iteration because both contracts remain `frozen-provisional`.
+- `just check` passed with 538 tests and four expected failures; Ruff, Pyright,
+  and the strict documentation build also passed.
+- The branch-aware coverage lane passed 665 tests with four expected failures
+  at 94.92% project coverage; the changed fitting bounds are exercised by the
+  focused edge invariant and powered regression.
+
+**Held-out boundary**
+
+- The third campaign remains unchanged and unopened. Both contracts remain
+  `frozen-provisional`; named review is required after the complete regression
+  and handoff suites pass.

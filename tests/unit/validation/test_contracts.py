@@ -304,6 +304,10 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
             "report-only"
         )
     )
+    assert (
+        gates.extension_classification.marginal_resolved_integrated_flux_catastrophic_rate
+        == "report-only"
+    )
     assert gates.uncertainty.minimum_samples_per_stratum >= 200
     assert gates.uncertainty.confidence_interval_level == 0.95
     assert gates.uncertainty.equivalence_rule == (

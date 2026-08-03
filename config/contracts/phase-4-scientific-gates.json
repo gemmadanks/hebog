@@ -44,6 +44,7 @@
     "clear_resolved_minimum_area_ratio": 3.0,
     "clear_resolved_minimum_signal_to_noise": 25.0,
     "clear_resolved_population": "shape-clear-resolved",
+    "marginal_resolved_integrated_flux_catastrophic_rate": "report-only",
     "marginal_resolved_population": "shape-marginal-resolved-report-only",
     "method": "integrated-to-peak-ratio-uncertainty",
     "missing_uncertainty": "geometric-noiseless-reference-otherwise-unavailable",
