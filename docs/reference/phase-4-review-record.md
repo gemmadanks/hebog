@@ -318,3 +318,53 @@ This approval closes the post-review association decision only. The
 replacement truth-group schema, regression and qualification manifests, and
 their checksums must still be frozen and reviewed before the first replacement
 held-out result is inspected.
+
+## Replacement contract prepared after approval
+
+Manifest schema 2 now encodes the approved model. The crowded regression has
+four explicit observable groups for seven injected emitters. Its three
+unresolved groups pass development-only provisional centroid and total-flux
+margins:
+
+| Unresolved-group metric | Median limit | 95th-percentile limit |
+| --- | ---: | ---: |
+| Centroid separation | 0.10 beam | 0.20 beam |
+| Total integrated-flux difference | 10% | 20% |
+
+The replacement held-out dataset is
+`phase4-unseen-grouped-measurement-qualification-512`, with base seed
+`2026083001` and recipe SHA-256
+`fe4ba6cd64a83e9c274d9eb83a3427b6f0361d0491e8683431ac5be2ccac6e8e`.
+It retains 200 independent noise realizations, assigns every emitter to one
+explicit truth group, removes unresolved members from individual source
+strata, and adds one unresolved-group stratum. No replacement image, fit,
+catalogue, comparison, or pass/fail result has been generated or inspected.
+
+The first amended regression run also exposed a separate issue hidden by the
+earlier association failure. One isolated 12-SNR source has 7.4% peak-flux and
+20.6% integrated-flux error in its single deterministic noise realization,
+missing the existing flat 5% and 10% tail limits. Selecting a favorable seed
+or excluding the source after inspection would be invalid. Ordinary noise
+scatter should instead be judged through predeclared SNR-stratified bias,
+coverage, normalized-residual dispersion, and catastrophic-outlier statistics.
+Absolute low-SNR tails should remain reported curves; analytic/noiseless and
+exact-reference cases retain their strict absolute gates.
+
+### Replacement numerical review required
+
+Before held-out inspection, the reviewer must confirm or amend:
+
+- [ ] 0.10/0.20 beam median/tail unresolved-group centroid margins;
+- [ ] 10%/20% median/tail unresolved-group total-flux margins;
+- [ ] generated noisy-source qualification uses predeclared SNR-stratified
+      confidence intervals for bias and uncertainty calibration rather than a
+      flat per-realization absolute tail gate;
+- [ ] absolute noisy-source tails remain report-only curves while the existing
+      catastrophic-outlier rate remains a gate; and
+- [ ] analytic/noiseless and exact compact-reference absolute gates remain
+      unchanged.
+
+- **Reviewer:** Gemma Danks
+- **Role:** Data Processing Software Engineer
+- **Decision date:** Pending
+- **Decision:** Pending

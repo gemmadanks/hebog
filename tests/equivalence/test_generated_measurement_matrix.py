@@ -25,7 +25,9 @@ from hebog.executors import SerialExecutor
 from hebog.io import ImageWindow, ZarrProductSink
 from hebog.stages.detection import DetectionStageConfig, run_detection_stage
 from hebog.stages.fitting import run_compact_gaussian_fit_stage
+from hebog.validation.contracts import load_phase_four_scientific_gates
 from hebog.validation.datasets import (
+    AssociationTruthGroup,
     DatasetRecord,
     SyntheticRecipe,
     generate_synthetic_window,
@@ -36,13 +38,6 @@ pytestmark = pytest.mark.equivalence
 
 _ROOT = Path(__file__).parents[2]
 _DATASET_ROOT = _ROOT / "config/datasets"
-_ASSOCIATION_AMENDMENT_REQUIRED = pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "sub-beam pairs have one observable maximum; association and truth "
-        "eligibility require amended human review"
-    ),
-)
 
 
 class _SyntheticImageSource:
@@ -175,61 +170,97 @@ def _fits(
     )
 
 
-@pytest.mark.parametrize("manifest_name", ["phase-4-regression.json"])
-@_ASSOCIATION_AMENDMENT_REQUIRED
+@pytest.mark.parametrize(
+    "dataset_index",
+    [
+        pytest.param(
+            0,
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason=(
+                    "flat absolute tails are incompatible with ordinary "
+                    "SNR-12 noise scatter; the reviewed validation statistic "
+                    "requires amendment before held-out inspection"
+                ),
+            ),
+        ),
+        1,
+    ],
+)
 def test_generated_compact_fits_meet_truth_gates(
-    manifest_name: str,
+    dataset_index: int,
     tmp_path: Path,
 ) -> None:
     """High-SNR generated sources retain position, flux, and fitted shape."""
-    datasets = load_dataset_manifest(_DATASET_ROOT / manifest_name).datasets
+    datasets = load_dataset_manifest(
+        _DATASET_ROOT / "phase-4-regression.json"
+    ).datasets
     position_beams: list[float] = []
+    unresolved_group_position_beams: list[float] = []
     peak_fractional: list[float] = []
     integrated_fractional: list[float] = []
+    unresolved_group_integrated_fractional: list[float] = []
     fitted_axis_fractional: list[float] = []
     position_angle_degrees: list[float] = []
-    for dataset in datasets:
+    for dataset in (datasets[dataset_index],):
         fits = _fits(dataset, tmp_path / dataset.identifier)
-        eligible = tuple(
-            source
-            for source in dataset.recipe.sources
+        groups = dataset.association_truth_groups or tuple(
+            AssociationTruthGroup(
+                identifier=f"source-{index + 1:05d}",
+                source_indices=(index,),
+                resolution_class="individually-resolvable",
+                reference_position_xy=(source.x_pixel, source.y_pixel),
+                reference_integrated_brightness_jy_pixels_per_beam=(
+                    source.peak_flux_jy_per_beam
+                    * 2.0
+                    * np.pi
+                    * source.major_sigma_pixels
+                    * source.minor_sigma_pixels
+                ),
+            )
+            for index, source in enumerate(dataset.recipe.sources)
             if source.peak_flux_jy_per_beam / dataset.recipe.noise_rms >= 10.0
         )
-        assert len(fits) == len(eligible)
+        assert len(fits) == len(groups)
         unmatched = list(fits)
-        for truth in eligible:
+        for group in groups:
             selected = min(
                 unmatched,
                 key=lambda fit: np.hypot(
-                    fit.parameters.centroid_xy[0] - truth.x_pixel,
-                    fit.parameters.centroid_xy[1] - truth.y_pixel,
+                    fit.parameters.centroid_xy[0]
+                    - group.reference_position_xy[0],
+                    fit.parameters.centroid_xy[1]
+                    - group.reference_position_xy[1],
                 ),
             )
             unmatched.remove(selected)
             separation = np.hypot(
-                selected.parameters.centroid_xy[0] - truth.x_pixel,
-                selected.parameters.centroid_xy[1] - truth.y_pixel,
+                selected.parameters.centroid_xy[0]
+                - group.reference_position_xy[0],
+                selected.parameters.centroid_xy[1]
+                - group.reference_position_xy[1],
             )
-            position_beams.append(
-                float(separation / dataset.beam.major_fwhm_pixels)
+            normalized_separation = float(
+                separation / dataset.beam.major_fwhm_pixels
             )
+            integrated_difference = abs(
+                selected.parameters.integrated_flux_jy
+                / group.reference_integrated_brightness_jy_pixels_per_beam
+                - 1.0
+            )
+            if group.resolution_class == "unresolved-blend":
+                unresolved_group_position_beams.append(normalized_separation)
+                unresolved_group_integrated_fractional.append(
+                    integrated_difference
+                )
+                continue
+            position_beams.append(normalized_separation)
+            integrated_fractional.append(integrated_difference)
+            truth = dataset.recipe.sources[group.source_indices[0]]
             peak_fractional.append(
                 abs(
                     selected.parameters.amplitude_jy_per_beam
                     / truth.peak_flux_jy_per_beam
-                    - 1.0
-                )
-            )
-            truth_integrated = (
-                truth.peak_flux_jy_per_beam
-                * 2.0
-                * np.pi
-                * truth.major_sigma_pixels
-                * truth.minor_sigma_pixels
-            )
-            integrated_fractional.append(
-                abs(
-                    selected.parameters.integrated_flux_jy / truth_integrated
                     - 1.0
                 )
             )
@@ -264,5 +295,24 @@ def test_generated_compact_fits_meet_truth_gates(
         (position_angle_degrees, 3.0, 10.0),
     )
     for values, median_limit, tail_limit in gates:
+        if not values:
+            continue
         assert np.median(values) <= median_limit
         assert np.percentile(values, 95) <= tail_limit
+
+    if unresolved_group_position_beams:
+        group_gate = load_phase_four_scientific_gates(
+            _ROOT / "config/contracts/phase-4-scientific-gates.json"
+        ).unresolved_group
+        assert np.median(unresolved_group_position_beams) <= (
+            group_gate.maximum_median_position_beams
+        )
+        assert np.percentile(unresolved_group_position_beams, 95) <= (
+            group_gate.maximum_percentile_95_position_beams
+        )
+        assert np.median(unresolved_group_integrated_fractional) <= (
+            group_gate.maximum_median_integrated_flux_fractional_difference
+        )
+        assert np.percentile(unresolved_group_integrated_fractional, 95) <= (
+            group_gate.maximum_percentile_95_integrated_flux_fractional_difference
+        )

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 from pydantic import ValidationError
 
 from hebog.validation.datasets import (
+    AssociationTruthGroup,
     DatasetManifest,
     DatasetRole,
     SyntheticInvalidRectangle,
@@ -143,6 +146,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
             item.recipe.generator_version == 2 for item in manifest.datasets
         )
 
+    assert {manifest.schema_version for manifest in manifests.values()} == {2}
     qualification = manifests["phase-4-qualification"].datasets
     assert len(qualification) == 1
     qualification_dataset = qualification[0]
@@ -158,7 +162,6 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         for stratum in qualification_dataset.validation_strata
     }
     assert set(sample_counts) == {
-        "blend",
         "edge",
         "shape-resolved",
         "shape-unresolved",
@@ -168,6 +171,22 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         "snr-50",
     }
     assert min(sample_counts.values()) >= 200
+    assert qualification_dataset.association_truth_groups
+    assert {
+        group.resolution_class
+        for group in qualification_dataset.association_truth_groups
+    } == {"individually-resolvable", "unresolved-blend"}
+    assert {
+        stratum.identifier
+        for stratum in qualification_dataset.association_group_strata
+    } == {"unresolved-blend"}
+    assert (
+        min(
+            len(stratum.group_identifiers) * len(qualification_recipes)
+            for stratum in qualification_dataset.association_group_strata
+        )
+        >= 200
+    )
 
     earlier_identifiers = {
         dataset.identifier
@@ -198,6 +217,18 @@ def test_manifest_rejects_duplicate_dataset_identifiers() -> None:
                 ],
             }
         )
+
+
+def test_truth_groups_require_manifest_schema_two() -> None:
+    """Legacy manifests cannot silently acquire new association semantics."""
+    manifest = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-regression.json"
+    )
+    payload = manifest.model_dump(mode="json")
+    payload["schema_version"] = 1
+
+    with pytest.raises(ValidationError, match="require manifest schema 2"):
+        DatasetManifest.model_validate(payload)
 
 
 def test_manifest_rejects_a_recipe_checksum_mismatch() -> None:
@@ -507,6 +538,173 @@ def test_dataset_rejects_invalid_source_validation_strata(
 
     with pytest.raises(ValidationError, match=message):
         type(dataset).model_validate(payload)
+
+
+def test_association_truth_group_freezes_derived_group_quantities() -> None:
+    """Explicit group truth is bound to its analytic emitter membership."""
+    dataset = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-regression.json"
+    ).datasets[1]
+    group = dataset.association_truth_groups[0]
+
+    assert group.identifier == "blend-00001"
+    assert group.source_indices == (0, 1)
+    assert group.resolution_class == "unresolved-blend"
+    assert group.reference_position_xy == pytest.approx(
+        (127.85714285714285, 128.28571428571428)
+    )
+    assert group.reference_integrated_brightness_jy_pixels_per_beam == (
+        pytest.approx(0.09993854112450593)
+    )
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    [
+        (
+            {"source_indices": [-1, 0]},
+            "source indices must be non-negative",
+        ),
+        (
+            {"source_indices": [0]},
+            "unresolved blend must contain at least two sources",
+        ),
+        (
+            {"source_indices": [1, 0]},
+            "source indices must be unique and sorted",
+        ),
+        (
+            {"reference_position_xy": [0.0, 0.0]},
+            "reference position does not match",
+        ),
+        (
+            {"reference_position_xy": [float("inf"), 0.0]},
+            "reference position must be finite",
+        ),
+        (
+            {"reference_integrated_brightness_jy_pixels_per_beam": 1.0},
+            "reference integrated brightness does not match",
+        ),
+    ],
+)
+def test_dataset_rejects_inconsistent_association_truth(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    """Truth groups cannot drift from their governed analytic emitters."""
+    dataset = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-regression.json"
+    ).datasets[1]
+    payload = dataset.model_dump(mode="json")
+    payload["association_truth_groups"][0].update(update)
+
+    with pytest.raises(ValidationError, match=message):
+        type(dataset).model_validate(payload)
+
+
+def test_dataset_rejects_overlapping_or_incomplete_truth_groups() -> None:
+    """Every emitter belongs to exactly one explicit association group."""
+    dataset = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-regression.json"
+    ).datasets[1]
+    payload = dataset.model_dump(mode="json")
+    duplicate = payload["association_truth_groups"][0].copy()
+    duplicate["identifier"] = "overlap"
+    payload["association_truth_groups"].append(duplicate)
+
+    with pytest.raises(ValidationError, match="partition recipe sources"):
+        type(dataset).model_validate(payload)
+
+
+def _remove_truth_but_keep_stratum(payload: dict[str, Any]) -> None:
+    payload["association_group_strata"] = [
+        {
+            "identifier": "missing",
+            "group_identifiers": ["blend-00001"],
+        }
+    ]
+    payload["association_truth_groups"] = []
+
+
+def _duplicate_truth_group_identifier(payload: dict[str, Any]) -> None:
+    duplicate = {
+        **payload["association_truth_groups"][0],
+        "source_indices": [2, 3],
+    }
+    payload["association_truth_groups"].append(duplicate)
+
+
+def _duplicate_group_stratum_identifier(payload: dict[str, Any]) -> None:
+    payload["association_group_strata"].append(
+        payload["association_group_strata"][0]
+    )
+
+
+def _use_unknown_group_identifier(payload: dict[str, Any]) -> None:
+    payload["association_group_strata"][0]["group_identifiers"] = [
+        "unknown-group"
+    ]
+
+
+def _use_noncanonical_group_identifiers(payload: dict[str, Any]) -> None:
+    payload["association_group_strata"][0]["group_identifiers"] = [
+        "blend-00002",
+        "blend-00001",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (
+            _remove_truth_but_keep_stratum,
+            "require association truth groups",
+        ),
+        (
+            _duplicate_truth_group_identifier,
+            "identifiers must be unique",
+        ),
+        (
+            _duplicate_group_stratum_identifier,
+            "stratum identifiers must be unique",
+        ),
+        (
+            _use_unknown_group_identifier,
+            "must identify governed truth",
+        ),
+        (
+            _use_noncanonical_group_identifiers,
+            "group identifiers must be unique and sorted",
+        ),
+    ],
+)
+def test_dataset_rejects_invalid_association_group_governance(
+    mutation: Callable[[dict[str, Any]], None],
+    message: str,
+) -> None:
+    """Group identifiers and strata remain complete and unambiguous."""
+    dataset = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-regression.json"
+    ).datasets[1]
+    payload = dataset.model_dump(mode="json")
+    mutation(payload)
+
+    with pytest.raises(ValidationError, match=message):
+        type(dataset).model_validate(payload)
+
+
+def test_association_group_record_rejects_invalid_resolution_cardinality() -> (
+    None
+):
+    """Resolvable emitters use singleton groups, not ambiguous containers."""
+    with pytest.raises(ValidationError, match="individually resolvable"):
+        AssociationTruthGroup(
+            identifier="invalid-group",
+            source_indices=(0, 1),
+            resolution_class="individually-resolvable",
+            reference_position_xy=(1.0, 1.0),
+            reference_integrated_brightness_jy_pixels_per_beam=1.0,
+        )
 
 
 @pytest.mark.parametrize(

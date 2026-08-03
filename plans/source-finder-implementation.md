@@ -1233,6 +1233,14 @@ observable-resolvability and explicit truth-group amendment on 2026-08-03.
 The affected regression and unseen qualification definitions now require
 replacement and review before qualification inspection.
 
+Manifest schema 2 and the replacement definitions were prepared on
+2026-08-03 without generating or inspecting replacement held-out output. The
+approved observable groups pass the crowded regression. That run exposed a
+second contract issue: flat absolute tail gates fail ordinary noise scatter
+for one 12-SNR source. Provisional unresolved-group margins and an
+SNR-stratified confidence-interval decision rule now require named numerical
+review before qualification inspection.
+
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
 [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19),
@@ -1558,14 +1566,13 @@ before maintaining a custom fitter.
    therefore records a **not ready** decision rather than declaring the phase
    passed.
 
-   Complete the remaining bullets in this order: (1) replacement and pre-inspection
-   review of affected regression and qualification truth groups, recipes,
-   checksums, and gates; (2) development/regression association and
-   correlated-noise uncertainty calibration; (3) first inspection of the
-   replacement held-out qualification result; and (4) controlled performance
-   qualification. Do not benchmark a component model that the preceding
-   scientific decision may reject, or inspect held-out output before its
-   replacement contract is frozen.
+   Complete the remaining bullets in this order: (1) pre-inspection numerical
+   review of the replacement group margins and noisy-source decision rule;
+   (2) development/regression association and correlated-noise uncertainty
+   calibration; (3) first inspection of the replacement held-out qualification
+   result; and (4) controlled performance qualification. The affected truth
+   groups, recipes, checksums, and gates are already frozen. Do not inspect
+   held-out output before the remaining numerical review is complete.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

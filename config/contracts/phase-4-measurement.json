@@ -3,8 +3,11 @@
     "compact_component_policy": "one-fitted-gaussian-per-deblended-region",
     "compact_source_policy": "one-source-per-deblended-region",
     "identifier_policy": "canonical-global-topology-and-association-order",
+    "joint_model_policy": "deferred-until-identifiability-and-reliability-evidence",
     "parent_policy": "retain-reconciled-parent-island",
     "region_membership": "worker-local-watershed-labels",
+    "truth_resolvability_policy": "distinct-eligible-observed-maximum",
+    "unresolved_truth_policy": "explicit-group-centroid-and-total-flux",
     "unsupported_region_policy": "explicit-later-phase-deferral"
   },
   "contract_id": "phase-4-measurement",

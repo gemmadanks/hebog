@@ -117,5 +117,15 @@
     "minimum_normalized_residual_standard_deviation": 0.8,
     "minimum_samples_per_stratum": 200,
     "nominal_coverage": 0.6826894921370859
+  },
+  "unresolved_group": {
+    "maximum_median_integrated_flux_fractional_difference": 0.1,
+    "maximum_median_position_beams": 0.1,
+    "maximum_percentile_95_integrated_flux_fractional_difference": 0.2,
+    "maximum_percentile_95_position_beams": 0.2,
+    "minimum_completeness": 0.99,
+    "minimum_reliability": 0.99,
+    "population": "declared-unresolved-association-groups",
+    "status": "frozen-provisional"
   }
 }

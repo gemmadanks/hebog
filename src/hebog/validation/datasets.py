@@ -27,6 +27,7 @@ _MANTISSA_SCALE = 1.0 / 2**53
 _MINIMUM_DECLINATION_DEGREES = -90.0
 _MAXIMUM_DECLINATION_DEGREES = 90.0
 _DEFAULT_MAXIMUM_IN_MEMORY_PIXELS = 4096 * 4096
+_MINIMUM_UNRESOLVED_GROUP_SOURCES = 2
 
 
 class DatasetRole(str, Enum):
@@ -251,6 +252,66 @@ class SourceValidationStratum(_ManifestModel):
         return self
 
 
+class AssociationTruthGroup(_ManifestModel):
+    """One explicitly identified observable association in injected truth."""
+
+    identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    source_indices: tuple[int, ...] = Field(min_length=1)
+    resolution_class: Literal["individually-resolvable", "unresolved-blend"]
+    reference_position_xy: tuple[float, float]
+    reference_integrated_brightness_jy_pixels_per_beam: float = Field(
+        gt=0,
+        allow_inf_nan=False,
+    )
+
+    @model_validator(mode="after")
+    def validate_group(self) -> Self:
+        """Require canonical membership and resolution cardinality."""
+        if tuple(sorted(set(self.source_indices))) != self.source_indices:
+            raise ValueError(
+                "truth-group source indices must be unique and sorted"
+            )
+        if any(index < 0 for index in self.source_indices):
+            raise ValueError("truth-group source indices must be non-negative")
+        if not all(np.isfinite(value) for value in self.reference_position_xy):
+            raise ValueError("truth-group reference position must be finite")
+        if (
+            self.resolution_class == "individually-resolvable"
+            and len(self.source_indices) != 1
+        ):
+            raise ValueError(
+                "individually resolvable truth group must contain one source"
+            )
+        if (
+            self.resolution_class == "unresolved-blend"
+            and len(self.source_indices) < _MINIMUM_UNRESOLVED_GROUP_SOURCES
+        ):
+            raise ValueError(
+                "unresolved blend must contain at least two sources"
+            )
+        return self
+
+
+class AssociationGroupValidationStratum(_ManifestModel):
+    """One named subset of explicit truth associations."""
+
+    identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    group_identifiers: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_group_identifiers(self) -> Self:
+        """Require canonical unique group identities."""
+        if (
+            tuple(sorted(set(self.group_identifiers)))
+            != self.group_identifiers
+        ):
+            raise ValueError(
+                "validation stratum group identifiers must be unique and "
+                "sorted"
+            )
+        return self
+
+
 class DatasetRecord(_ManifestModel):
     """One governed validation dataset and its generation provenance."""
 
@@ -266,6 +327,10 @@ class DatasetRecord(_ManifestModel):
     recipe_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     noise_realization_seeds: tuple[int, ...] = ()
     validation_strata: tuple[SourceValidationStratum, ...] = ()
+    association_truth_groups: tuple[AssociationTruthGroup, ...] = ()
+    association_group_strata: tuple[
+        AssociationGroupValidationStratum, ...
+    ] = ()
 
     @model_validator(mode="after")
     def validate_recipe_checksum(self) -> Self:
@@ -306,6 +371,7 @@ class DatasetRecord(_ManifestModel):
             raise ValueError(
                 "validation stratum source index must identify recipe truth"
             )
+        self._validate_association_truth()
         if (
             self.expected_statistics.background_jy_per_beam
             != self.recipe.background
@@ -333,11 +399,110 @@ class DatasetRecord(_ManifestModel):
             )
         return self
 
+    def _validate_association_truth(self) -> None:
+        """Bind explicit observable groups and strata to analytic sources."""
+        if not self.association_truth_groups:
+            if self.association_group_strata:
+                raise ValueError(
+                    "association group strata require association truth groups"
+                )
+            return
+        identifiers = tuple(
+            group.identifier for group in self.association_truth_groups
+        )
+        if len(set(identifiers)) != len(identifiers):
+            raise ValueError(
+                "association truth-group identifiers must be unique"
+            )
+        memberships = tuple(
+            index
+            for group in self.association_truth_groups
+            for index in group.source_indices
+        )
+        if sorted(memberships) != list(range(len(self.recipe.sources))):
+            raise ValueError(
+                "association truth groups must partition recipe sources"
+            )
+        for group in self.association_truth_groups:
+            self._validate_association_group_quantities(group)
+        stratum_identifiers = tuple(
+            stratum.identifier for stratum in self.association_group_strata
+        )
+        if len(set(stratum_identifiers)) != len(stratum_identifiers):
+            raise ValueError(
+                "association group stratum identifiers must be unique"
+            )
+        known_identifiers = set(identifiers)
+        if any(
+            identifier not in known_identifiers
+            for stratum in self.association_group_strata
+            for identifier in stratum.group_identifiers
+        ):
+            raise ValueError(
+                "association group stratum must identify governed truth"
+            )
+
+    def _validate_association_group_quantities(
+        self,
+        group: AssociationTruthGroup,
+    ) -> None:
+        """Require stored group position and brightness to match emitters."""
+        sources = tuple(
+            self.recipe.sources[index] for index in group.source_indices
+        )
+        brightnesses = np.asarray(
+            [
+                source.peak_flux_jy_per_beam
+                * 2.0
+                * np.pi
+                * source.major_sigma_pixels
+                * source.minor_sigma_pixels
+                for source in sources
+            ],
+            dtype=np.float64,
+        )
+        total = float(np.sum(brightnesses))
+        reference_position = (
+            float(
+                np.dot(
+                    brightnesses,
+                    [source.x_pixel for source in sources],
+                )
+                / total
+            ),
+            float(
+                np.dot(
+                    brightnesses,
+                    [source.y_pixel for source in sources],
+                )
+                / total
+            ),
+        )
+        if not np.allclose(
+            group.reference_position_xy,
+            reference_position,
+            rtol=1e-12,
+            atol=1e-12,
+        ):
+            raise ValueError(
+                "truth-group reference position does not match source truth"
+            )
+        if not np.isclose(
+            group.reference_integrated_brightness_jy_pixels_per_beam,
+            total,
+            rtol=1e-12,
+            atol=0.0,
+        ):
+            raise ValueError(
+                "truth-group reference integrated brightness does not match "
+                "source truth"
+            )
+
 
 class DatasetManifest(_ManifestModel):
     """Versioned collection of uniquely identified validation datasets."""
 
-    schema_version: Literal[1]
+    schema_version: Literal[1, 2]
     manifest_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     datasets: tuple[DatasetRecord, ...]
 
@@ -347,6 +512,12 @@ class DatasetManifest(_ManifestModel):
         identifiers = [dataset.identifier for dataset in self.datasets]
         if len(set(identifiers)) != len(identifiers):
             raise ValueError("dataset identifiers must be unique")
+        if self.schema_version == 1 and any(
+            dataset.association_truth_groups for dataset in self.datasets
+        ):
+            raise ValueError(
+                "association truth groups require manifest schema 2"
+            )
         return self
 
 

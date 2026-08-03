@@ -1,6 +1,149 @@
 {
   "datasets": [
     {
+      "association_group_strata": [
+        {
+          "group_identifiers": [
+            "blend-00001"
+          ],
+          "identifier": "unresolved-blend"
+        }
+      ],
+      "association_truth_groups": [
+        {
+          "identifier": "source-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.03478675888129861,
+          "reference_position_xy": [
+            80.25,
+            80.75
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            0
+          ]
+        },
+        {
+          "identifier": "source-00002",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.05981592412434966,
+          "reference_position_xy": [
+            256.5,
+            80.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            1
+          ]
+        },
+        {
+          "identifier": "source-00003",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.08143008158104745,
+          "reference_position_xy": [
+            431.75000000000006,
+            80.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            2
+          ]
+        },
+        {
+          "identifier": "source-00004",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.05218013832194792,
+          "reference_position_xy": [
+            80.5,
+            176.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            3
+          ]
+        },
+        {
+          "identifier": "blend-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.13354910370410208,
+          "reference_position_xy": [
+            255.88285109386027,
+            176.23535638673252
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            4,
+            5
+          ]
+        },
+        {
+          "identifier": "source-00007",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.09236282401553991,
+          "reference_position_xy": [
+            80.75,
+            272.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            6
+          ]
+        },
+        {
+          "identifier": "source-00008",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.17907078125461823,
+          "reference_position_xy": [
+            256.25,
+            272.75
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            7
+          ]
+        },
+        {
+          "identifier": "source-00009",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.27646015351590186,
+          "reference_position_xy": [
+            432.5,
+            272.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            8
+          ]
+        },
+        {
+          "identifier": "source-00010",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.1739337944064931,
+          "reference_position_xy": [
+            80.25,
+            368.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            9
+          ]
+        },
+        {
+          "identifier": "source-00011",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.3845309407993907,
+          "reference_position_xy": [
+            256.75,
+            368.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            10
+          ]
+        },
+        {
+          "identifier": "source-00012",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.47752208334564855,
+          "reference_position_xy": [
+            510.25,
+            460.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            11
+          ]
+        }
+      ],
       "beam": {
         "major_fwhm_pixels": 4.8,
         "minor_fwhm_pixels": 3.2,
@@ -11,7 +154,7 @@
         "finite_fraction": 1.0,
         "noise_rms_jy_per_beam": 0.0002
       },
-      "identifier": "phase4-unseen-measurement-qualification-512",
+      "identifier": "phase4-unseen-grouped-measurement-qualification-512",
       "noise_realization_seeds": [
         2026080292,
         2026080293,
@@ -213,8 +356,8 @@
         2026080489,
         2026080490
       ],
-      "provenance": "Additive Phase 4 unseen qualification truth and noise seeds frozen before measurement or fitting results are inspected.",
-      "purpose": "Held-out compact measurement population with at least two hundred independent samples in every declared SNR, shape, blend, and edge class.",
+      "provenance": "Replacement Phase 4 unseen qualification truth, explicit association groups, and noise seeds frozen after named amendment review and before any replacement result is inspected.",
+      "purpose": "Held-out compact measurement population with at least two hundred independent samples in every declared SNR, shape, unresolved-group, and edge class.",
       "recipe": {
         "background": 0.0001,
         "generator": "hebog.synthetic.gaussian-noise",
@@ -225,7 +368,7 @@
           0.0,
           0.0
         ],
-        "seed": 2026080291,
+        "seed": 2026083001,
         "shape_yx": [
           512,
           512
@@ -329,7 +472,7 @@
           }
         ]
       },
-      "recipe_sha256": "4fd6414aa59acff13f320dccbbaf17670fdb000589cf35197db136c248402196",
+      "recipe_sha256": "fe4ba6cd64a83e9c274d9eb83a3427b6f0361d0491e8683431ac5be2ccac6e8e",
       "redistribution": "generated-locally",
       "role": "qualification",
       "validation_strata": [
@@ -344,9 +487,7 @@
         {
           "identifier": "snr-15",
           "source_indices": [
-            3,
-            4,
-            5
+            3
           ]
         },
         {
@@ -379,19 +520,10 @@
           "source_indices": [
             1,
             2,
-            4,
-            5,
             7,
             8,
             10,
             11
-          ]
-        },
-        {
-          "identifier": "blend",
-          "source_indices": [
-            4,
-            5
           ]
         },
         {
@@ -420,5 +552,5 @@
     }
   ],
   "manifest_id": "phase-4-qualification",
-  "schema_version": 1
+  "schema_version": 2
 }

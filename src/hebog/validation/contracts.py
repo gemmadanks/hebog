@@ -358,6 +358,11 @@ class PhaseFourAssociationContract(_ContractModel):
     identifier_policy: Literal[
         "canonical-global-topology-and-association-order"
     ]
+    truth_resolvability_policy: Literal["distinct-eligible-observed-maximum"]
+    unresolved_truth_policy: Literal["explicit-group-centroid-and-total-flux"]
+    joint_model_policy: Literal[
+        "deferred-until-identifiability-and-reliability-evidence"
+    ]
 
 
 class PhaseFourFailureContract(_ContractModel):
@@ -560,6 +565,36 @@ class PhaseFourUncertaintyGate(_ContractModel):
         return self
 
 
+class PhaseFourUnresolvedGroupGate(_ContractModel):
+    """Frozen-provisional margins for one observable unresolved group."""
+
+    status: Literal["frozen-provisional", "reviewed-provisional"]
+    population: Literal["declared-unresolved-association-groups"]
+    minimum_completeness: float = Field(ge=0, le=1)
+    minimum_reliability: float = Field(ge=0, le=1)
+    maximum_median_position_beams: float = Field(ge=0)
+    maximum_percentile_95_position_beams: float = Field(ge=0)
+    maximum_median_integrated_flux_fractional_difference: float = Field(ge=0)
+    maximum_percentile_95_integrated_flux_fractional_difference: float = Field(
+        ge=0
+    )
+
+    @model_validator(mode="after")
+    def validate_tail_margins(self) -> Self:
+        """Require group tail ceilings to include their median ceilings."""
+        if (
+            self.maximum_percentile_95_position_beams
+            < self.maximum_median_position_beams
+            or self.maximum_percentile_95_integrated_flux_fractional_difference
+            < self.maximum_median_integrated_flux_fractional_difference
+        ):
+            raise ValueError(
+                "95th-percentile unresolved-group margin cannot be tighter "
+                "than median"
+            )
+        return self
+
+
 class PhaseFourOutlierDefinition(_ContractModel):
     """Observable thresholds for one catastrophic matched-row outlier."""
 
@@ -582,6 +617,7 @@ class PhaseFourScientificGates(_ContractModel):
     compact_reference: PhaseFourCatalogueGate
     generated_regression: PhaseFourCatalogueGate
     heldout_qualification: PhaseFourCatalogueGate
+    unresolved_group: PhaseFourUnresolvedGroupGate
     uncertainty: PhaseFourUncertaintyGate
     catastrophic_outlier: PhaseFourOutlierDefinition
 

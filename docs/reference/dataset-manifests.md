@@ -76,6 +76,24 @@ source truth in the shared recipe. The Phase 4 qualification campaign freezes
 edge stratum reaches the reviewed minimum of 200 samples before any scientific
 output is inspected.
 
+Phase 4 manifest schema 2 also records `association_truth_groups`. Every
+analytic emitter belongs to exactly one canonical group. A singleton group is
+`individually-resolvable`; two or more emitters that produce one eligible
+observed maximum are an `unresolved-blend`. Each group freezes its identifier,
+member indices, resolution class, integrated-brightness-weighted `(x, y)`
+centroid, and summed analytic Gaussian brightness. Validation recomputes the
+centroid and total from emitter truth and rejects overlaps, omissions, stale
+quantities, or ambiguous group strata.
+
+`association_group_strata` names group-level qualification populations
+separately from per-emitter `validation_strata`. This prevents unresolved
+members from entering individual completeness, position, flux, or shape
+denominators while retaining them in provenance. The replacement Phase 4
+qualification dataset has a new identifier, base seed, recipe checksum, and
+explicit unresolved-blend stratum. These inputs were frozen after the named
+association amendment and before any replacement result was generated or
+inspected.
+
 ## Deterministic generation
 
 Synthetic noise is derived from the generator version, seed, and global pixel

@@ -108,6 +108,69 @@
       }
     },
     {
+      "association_group_strata": [
+        {
+          "group_identifiers": [
+            "blend-00001",
+            "blend-00002",
+            "blend-00003"
+          ],
+          "identifier": "unresolved-blend"
+        }
+      ],
+      "association_truth_groups": [
+        {
+          "identifier": "blend-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.09993854112450593,
+          "reference_position_xy": [
+            127.85714285714285,
+            128.28571428571428
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            0,
+            1
+          ]
+        },
+        {
+          "identifier": "blend-00002",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.24981944781346033,
+          "reference_position_xy": [
+            255.1830985915493,
+            255.85211267605635
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            2,
+            3
+          ]
+        },
+        {
+          "identifier": "source-00005",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10178760197630932,
+          "reference_position_xy": [
+            384.5,
+            128.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            4
+          ]
+        },
+        {
+          "identifier": "blend-00003",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.40517120453347555,
+          "reference_position_xy": [
+            381.34263782274945,
+            384.8101884159107
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            5,
+            6
+          ]
+        }
+      ],
       "beam": {
         "major_fwhm_pixels": 4.2,
         "minor_fwhm_pixels": 3.0,
@@ -217,5 +280,5 @@
     }
   ],
   "manifest_id": "phase-4-regression",
-  "schema_version": 1
+  "schema_version": 2
 }

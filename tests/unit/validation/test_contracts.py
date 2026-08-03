@@ -190,6 +190,15 @@ def test_phase_four_measurement_contract_freezes_scientific_meanings() -> None:
     assert contract.association.compact_source_policy == (
         "one-source-per-deblended-region"
     )
+    assert contract.association.truth_resolvability_policy == (
+        "distinct-eligible-observed-maximum"
+    )
+    assert contract.association.unresolved_truth_policy == (
+        "explicit-group-centroid-and-total-flux"
+    )
+    assert contract.association.joint_model_policy == (
+        "deferred-until-identifiability-and-reliability-evidence"
+    )
     assert contract.failures.unresolved_deconvolution == (
         "null-shape-with-unresolved-quality-flag"
     )
@@ -229,6 +238,20 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
     assert gates.confidence_level == 0.95
     assert gates.low_snr_threshold_crossings == "report-only"
     assert gates.shape_uncertainty == "report-only"
+    assert gates.unresolved_group.status == "frozen-provisional"
+    assert gates.unresolved_group.population == (
+        "declared-unresolved-association-groups"
+    )
+    assert gates.unresolved_group.maximum_median_position_beams == 0.1
+    assert gates.unresolved_group.maximum_percentile_95_position_beams == 0.2
+    assert (
+        gates.unresolved_group.maximum_median_integrated_flux_fractional_difference
+        == 0.1
+    )
+    assert (
+        gates.unresolved_group.maximum_percentile_95_integrated_flux_fractional_difference
+        == 0.2
+    )
     assert gates.compact_reference.minimum_completeness == 1.0
     assert gates.compact_reference.minimum_association_pair_precision == 1.0
     assert gates.compact_reference.minimum_association_pair_recall == 1.0
@@ -275,6 +298,16 @@ def test_phase_four_gates_reject_percentiles_tighter_than_medians() -> None:
     ] = 0.1
 
     with pytest.raises(ValidationError, match="95th-percentile"):
+        PhaseFourScientificGates.model_validate(payload)
+
+
+def test_phase_four_group_gates_reject_a_tighter_tail() -> None:
+    """Unresolved-group tail gates cannot be tighter than their medians."""
+    gates = load_phase_four_scientific_gates(_PHASE_FOUR_GATES_PATH)
+    payload = gates.model_dump(mode="json")
+    payload["unresolved_group"]["maximum_median_position_beams"] = 0.3
+
+    with pytest.raises(ValidationError, match="unresolved-group margin"):
         PhaseFourScientificGates.model_validate(payload)
 
 

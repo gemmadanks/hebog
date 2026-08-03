@@ -2837,3 +2837,39 @@ and compatibility serialization
 
 - Add the explicit truth-group schema and replace the affected governed
   manifests and checksums before running regression or qualification.
+
+## 2026-08-03 — Froze replacement Phase 4 truth groups
+
+**Plan phase:** Phase 4 scientific closure — pre-qualification contract
+
+**Implemented**
+
+- Added manifest schema 2 with explicit association-group identifiers,
+  resolution class, canonical source membership, analytic group centroid and
+  integrated brightness, and separately governed group strata.
+- Replaced the affected development/regression truth and the untouched held-out
+  qualification definition. The held-out dataset now has identifier
+  `phase4-unseen-grouped-measurement-qualification-512`, base seed
+  `2026083001`, and recipe SHA-256
+  `fe4ba6cd64a83e9c274d9eb83a3427b6f0361d0491e8683431ac5be2ccac6e8e`.
+- Removed unresolved injected members from individual qualification strata and
+  added a 200-sample unresolved-group stratum.
+- Added frozen-provisional unresolved-group centroid and total-flux gates and
+  tests that reject incomplete, overlapping, stale, or ambiguous truth.
+
+**Regression evidence**
+
+- The crowded regression now passes: four observable groups are recovered from
+  seven emitters. Its unresolved groups are within provisional 0.10/0.20-beam
+  centroid and 10%/20% total-flux median/tail limits.
+- The run exposed an independent validation-contract problem previously hidden
+  by the association failure. A legitimate 12-SNR noise draw misses the flat
+  absolute tail gate. It remains a strict expected failure; the seed and
+  assertion were not weakened.
+- No replacement qualification image or scientific output was generated or
+  inspected.
+
+**Next**
+
+- Obtain named review of the provisional group margins and the recommended
+  SNR-stratified confidence-interval rule before qualification inspection.

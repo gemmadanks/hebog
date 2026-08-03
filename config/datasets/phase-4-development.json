@@ -168,6 +168,55 @@
       }
     },
     {
+      "association_group_strata": [
+        {
+          "group_identifiers": [
+            "blend-00001",
+            "blend-00002"
+          ],
+          "identifier": "unresolved-blend"
+        }
+      ],
+      "association_truth_groups": [
+        {
+          "identifier": "blend-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.13045034580785633,
+          "reference_position_xy": [
+            80.00000000000001,
+            80.0
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            0,
+            1
+          ]
+        },
+        {
+          "identifier": "blend-00002",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.18189821464284903,
+          "reference_position_xy": [
+            159.38860103626942,
+            160.12694300518135
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            2,
+            3
+          ]
+        },
+        {
+          "identifier": "source-00005",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.24127431579569614,
+          "reference_position_xy": [
+            240.25,
+            238.75
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            4
+          ]
+        }
+      ],
       "beam": {
         "major_fwhm_pixels": 4.5,
         "minor_fwhm_pixels": 3.2,
@@ -261,5 +310,5 @@
     }
   ],
   "manifest_id": "phase-4-development",
-  "schema_version": 1
+  "schema_version": 2
 }
