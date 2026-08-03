@@ -3553,11 +3553,12 @@ and compatibility serialization
   individually resolvable sources, eight beam-compatible point sources, one
   clearly resolved source, and one unresolved blend per image.
 - Used a distinct WCS, background, noise gradient, invalid region, and a
-  mirrored source layout with a 47-degree beam/source rotation. The design
-  preserves the relevant SNR and shape populations while remaining
-  statistically independent of every previously used noise realization.
+  180-degree mirrored source layout that preserves the governed blend-to-beam
+  geometry. The design preserves the relevant SNR and shape populations while
+  remaining statistically independent of every previously used noise
+  realization.
 - Bound the generator-v3 recipe to SHA-256
-  `9516a9e89a58a6ab27b9f84db6c8c7b4a4e005c2456ee007109694225a368f98`.
+  `2669ad5c7e0883e50b6c82a8d1c66d92a8890df9d8fc7b64a645d6bdf52dedca`.
   The manifest is explicitly regression evidence for planning and TDD; it can
   never qualify Hebog or be relabelled as unseen.
 
@@ -3572,3 +3573,43 @@ and compatibility serialization
 - Commit the governed population, run Hebog and released PyBDSF on the same
   200 images, compile the paired evidence, and estimate every provisional
   discordance, within-image correlation, and paired-dispersion bound.
+
+## 2026-08-03 — Corrected the paired blend geometry before tuning
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Finding**
+
+- The first candidate/reference execution revealed that the initial manifest
+  rotated the beam and source ellipses by 47 degrees but only mirrored the
+  close-pair separation. That changed the blend relative to its beam, so it no
+  longer represented the declared unresolved truth group. Its approximately
+  50% Hebog group-flux error was therefore invalid planning evidence, not an
+  algorithm result that may be used for tuning or qualification.
+- The invalidated exploratory shards have SHA-256
+  `2477409ea0a399d4b3dc080f097887ed9a57f5e3957a8b88ff1eb45e7bcc43bb`
+  for Hebog, `9e65e6aafe2529419a0a1cf926aac04905124178c7b81a07ea190e87f0852c2a`
+  for released PyBDSF, and
+  `1db13cf00527831b3e8db22a9b56816acbcc2812a26aa27a9da6348a2104d084`
+  for the compiled pair. They remain diagnostic provenance only.
+
+**Correction**
+
+- Restored the original beam/source orientation while retaining the
+  180-degree positional mirror, distinct WCS/background/noise field, and all
+  independent seeds. A new red-green test proves the beam-projected close-pair
+  separation matches the governed viewed reference geometry.
+- Recomputed the recipe identity as
+  `2669ad5c7e0883e50b6c82a8d1c66d92a8890df9d8fc7b64a645d6bdf52dedca`.
+  This correction occurred before any production-science change or final
+  qualification freeze.
+- The invalidated run also found reproducible Hebog fit omissions on seeds
+  `2026100009` and `2026100165`, while released PyBDSF completed both. Those
+  seeds remain valid independently seeded TDD cases, but their frequency and
+  paired metrics must be remeasured on the corrected manifest.
+
+**Next**
+
+- Commit the corrected governance boundary, archive the invalidated ignored
+  evidence under explicit names, and rerun both implementations before any
+  planning-assumption conclusion.

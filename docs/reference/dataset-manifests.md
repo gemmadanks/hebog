@@ -84,7 +84,8 @@ disjoint from every earlier Phase 4 population. It preserves the proposed
 final campaign's 33 observable groups, 32 individually resolvable sources,
 eight beam-compatible point sources, one clearly resolved source, and one
 unresolved blend per realization, while using a distinct WCS, background,
-noise gradient, invalid region, and mirrored/rotated layout. This makes the
+noise gradient, invalid region, and a 180-degree mirrored layout that preserves
+the governed blend-to-beam geometry. This makes the
 paired variance audit structurally relevant without consuming or pretending
 to be unseen evidence.
 

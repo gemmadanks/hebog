@@ -411,7 +411,7 @@
       "beam": {
         "major_fwhm_pixels": 4.8,
         "minor_fwhm_pixels": 3.2,
-        "position_angle_degrees": 80.0
+        "position_angle_degrees": 33.0
       },
       "classification_strata": [
         {
@@ -669,7 +669,7 @@
         2026100199,
         2026100200
       ],
-      "provenance": "Viewable recovery-regression population defined on 2026-08-03 before the final qualification freeze. It uses 200 seeds disjoint from every earlier Phase 4 population, a distinct WCS and noise field, and a 180-degree mirrored source layout with a 47-degree beam/source rotation from the viewed third campaign. It preserves the predeclared 33-group, 32-individual, 8-point, 1-clear, and 1-unresolved-blend structure for planning evidence only and is never unseen qualification evidence.",
+      "provenance": "Viewable recovery-regression population corrected on 2026-08-03 before any final qualification freeze or production tuning. It uses 200 seeds disjoint from every earlier Phase 4 population, a distinct WCS and noise field, and a 180-degree mirrored source and invalid-region layout that preserves the governed blend-to-beam geometry of the viewed third campaign. It retains the predeclared 33-group, 32-individual, 8-point, 1-clear, and 1-unresolved-blend structure for planning evidence only and is never unseen qualification evidence.",
       "purpose": "Viewable independent same-image recovery regression for paired-protocol planning-assumption verification and corrective TDD; it cannot qualify Hebog.",
       "recipe": {
         "background": -0.00022,
@@ -686,7 +686,7 @@
         "noise_correlation": {
           "major_fwhm_pixels": 4.8,
           "minor_fwhm_pixels": 3.2,
-          "position_angle_degrees": 80.0,
+          "position_angle_degrees": 33.0,
           "truncation_sigma": 4
         },
         "noise_rms": 0.0002,
@@ -704,7 +704,7 @@
             "major_sigma_pixels": 2.0383723207,
             "minor_sigma_pixels": 1.3580651027,
             "peak_flux_jy_per_beam": 0.002,
-            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
             "x_pixel": 430.75,
             "y_pixel": 430.25
           },
@@ -712,7 +712,7 @@
             "major_sigma_pixels": 2.8,
             "minor_sigma_pixels": 1.7,
             "peak_flux_jy_per_beam": 0.002,
-            "rotation_degrees_counterclockwise_from_x": 117.0,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
             "x_pixel": 254.5,
             "y_pixel": 430.75
           },
@@ -720,7 +720,7 @@
             "major_sigma_pixels": 3.6,
             "minor_sigma_pixels": 1.8,
             "peak_flux_jy_per_beam": 0.002,
-            "rotation_degrees_counterclockwise_from_x": 172.0,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
             "x_pixel": 79.25,
             "y_pixel": 430.5
           },
@@ -728,7 +728,7 @@
             "major_sigma_pixels": 2.0383723207,
             "minor_sigma_pixels": 1.3580651027,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
             "x_pixel": 430.5,
             "y_pixel": 334.75
           },
@@ -736,7 +736,7 @@
             "major_sigma_pixels": 2.5,
             "minor_sigma_pixels": 1.5,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 62.0,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
             "x_pixel": 257.0,
             "y_pixel": 335.0
           },
@@ -744,7 +744,7 @@
             "major_sigma_pixels": 2.3,
             "minor_sigma_pixels": 1.45,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 152.0,
+            "rotation_degrees_counterclockwise_from_x": 105.0,
             "x_pixel": 253.0,
             "y_pixel": 334.5
           },
@@ -752,7 +752,7 @@
             "major_sigma_pixels": 2.1,
             "minor_sigma_pixels": 1.4,
             "peak_flux_jy_per_beam": 0.005,
-            "rotation_degrees_counterclockwise_from_x": 87.0,
+            "rotation_degrees_counterclockwise_from_x": 40.0,
             "x_pixel": 430.25,
             "y_pixel": 238.5
           },
@@ -760,7 +760,7 @@
             "major_sigma_pixels": 3,
             "minor_sigma_pixels": 1.9,
             "peak_flux_jy_per_beam": 0.005,
-            "rotation_degrees_counterclockwise_from_x": 137.0,
+            "rotation_degrees_counterclockwise_from_x": 90.0,
             "x_pixel": 254.75,
             "y_pixel": 238.25
           },
@@ -768,7 +768,7 @@
             "major_sigma_pixels": 4,
             "minor_sigma_pixels": 2.2,
             "peak_flux_jy_per_beam": 0.005,
-            "rotation_degrees_counterclockwise_from_x": 12.0,
+            "rotation_degrees_counterclockwise_from_x": 145.0,
             "x_pixel": 78.5,
             "y_pixel": 238.75
           },
@@ -776,7 +776,7 @@
             "major_sigma_pixels": 2.0383723207,
             "minor_sigma_pixels": 1.3580651027,
             "peak_flux_jy_per_beam": 0.01,
-            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
             "x_pixel": 430.75,
             "y_pixel": 142.5
           },
@@ -784,7 +784,7 @@
             "major_sigma_pixels": 3.4,
             "minor_sigma_pixels": 1.8,
             "peak_flux_jy_per_beam": 0.01,
-            "rotation_degrees_counterclockwise_from_x": 107.0,
+            "rotation_degrees_counterclockwise_from_x": 60.0,
             "x_pixel": 254.25,
             "y_pixel": 142.75
           },
@@ -792,7 +792,7 @@
             "major_sigma_pixels": 3.8,
             "minor_sigma_pixels": 2,
             "peak_flux_jy_per_beam": 0.01,
-            "rotation_degrees_counterclockwise_from_x": 167.0,
+            "rotation_degrees_counterclockwise_from_x": 120.0,
             "x_pixel": 0.75,
             "y_pixel": 50.5
           },
@@ -800,7 +800,7 @@
             "major_sigma_pixels": 2.0383723207,
             "minor_sigma_pixels": 1.3580651027,
             "peak_flux_jy_per_beam": 0.002,
-            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
             "x_pixel": 509.5,
             "y_pixel": 476.0
           },
@@ -808,7 +808,7 @@
             "major_sigma_pixels": 2.0383723207,
             "minor_sigma_pixels": 1.3580651027,
             "peak_flux_jy_per_beam": 0.002,
-            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
             "x_pixel": 371.0,
             "y_pixel": 509.5
           },
@@ -816,7 +816,7 @@
             "major_sigma_pixels": 2.0383723207,
             "minor_sigma_pixels": 1.3580651027,
             "peak_flux_jy_per_beam": 0.002,
-            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
             "x_pixel": 171.0,
             "y_pixel": 509.5
           },
@@ -824,7 +824,7 @@
             "major_sigma_pixels": 2.0383723207,
             "minor_sigma_pixels": 1.3580651027,
             "peak_flux_jy_per_beam": 0.002,
-            "rotation_degrees_counterclockwise_from_x": 80.0,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
             "x_pixel": 509.5,
             "y_pixel": 276.0
           },
@@ -832,7 +832,7 @@
             "major_sigma_pixels": 2.8,
             "minor_sigma_pixels": 1.7,
             "peak_flux_jy_per_beam": 0.002,
-            "rotation_degrees_counterclockwise_from_x": 117.0,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
             "x_pixel": 1.0,
             "y_pixel": 376.0
           },
@@ -840,7 +840,7 @@
             "major_sigma_pixels": 3.6,
             "minor_sigma_pixels": 1.8,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 172.0,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
             "x_pixel": 1.0,
             "y_pixel": 176.0
           },
@@ -848,7 +848,7 @@
             "major_sigma_pixels": 2.5,
             "minor_sigma_pixels": 1.5,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 62.0,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
             "x_pixel": 271.0,
             "y_pixel": 1.0
           },
@@ -856,7 +856,7 @@
             "major_sigma_pixels": 3,
             "minor_sigma_pixels": 1.9,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 137.0,
+            "rotation_degrees_counterclockwise_from_x": 90.0,
             "x_pixel": 471.0,
             "y_pixel": 476.0
           },
@@ -864,7 +864,7 @@
             "major_sigma_pixels": 2.8,
             "minor_sigma_pixels": 1.7,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 117.0,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
             "x_pixel": 371.0,
             "y_pixel": 476.0
           },
@@ -872,7 +872,7 @@
             "major_sigma_pixels": 3.6,
             "minor_sigma_pixels": 1.8,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 172.0,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
             "x_pixel": 271.0,
             "y_pixel": 476.0
           },
@@ -880,7 +880,7 @@
             "major_sigma_pixels": 2.5,
             "minor_sigma_pixels": 1.5,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 62.0,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
             "x_pixel": 171.0,
             "y_pixel": 476.0
           },
@@ -888,7 +888,7 @@
             "major_sigma_pixels": 3,
             "minor_sigma_pixels": 1.9,
             "peak_flux_jy_per_beam": 0.003,
-            "rotation_degrees_counterclockwise_from_x": 137.0,
+            "rotation_degrees_counterclockwise_from_x": 90.0,
             "x_pixel": 71.0,
             "y_pixel": 476.0
           },
@@ -896,7 +896,7 @@
             "major_sigma_pixels": 2.8,
             "minor_sigma_pixels": 1.7,
             "peak_flux_jy_per_beam": 0.005,
-            "rotation_degrees_counterclockwise_from_x": 117.0,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
             "x_pixel": 471.0,
             "y_pixel": 376.0
           },
@@ -904,7 +904,7 @@
             "major_sigma_pixels": 3.6,
             "minor_sigma_pixels": 1.8,
             "peak_flux_jy_per_beam": 0.005,
-            "rotation_degrees_counterclockwise_from_x": 172.0,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
             "x_pixel": 371.0,
             "y_pixel": 376.0
           },
@@ -912,7 +912,7 @@
             "major_sigma_pixels": 2.5,
             "minor_sigma_pixels": 1.5,
             "peak_flux_jy_per_beam": 0.005,
-            "rotation_degrees_counterclockwise_from_x": 62.0,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
             "x_pixel": 271.0,
             "y_pixel": 376.0
           },
@@ -920,7 +920,7 @@
             "major_sigma_pixels": 3,
             "minor_sigma_pixels": 1.9,
             "peak_flux_jy_per_beam": 0.005,
-            "rotation_degrees_counterclockwise_from_x": 137.0,
+            "rotation_degrees_counterclockwise_from_x": 90.0,
             "x_pixel": 171.0,
             "y_pixel": 376.0
           },
@@ -928,7 +928,7 @@
             "major_sigma_pixels": 2.8,
             "minor_sigma_pixels": 1.7,
             "peak_flux_jy_per_beam": 0.005,
-            "rotation_degrees_counterclockwise_from_x": 117.0,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
             "x_pixel": 71.0,
             "y_pixel": 376.0
           },
@@ -936,7 +936,7 @@
             "major_sigma_pixels": 3.6,
             "minor_sigma_pixels": 1.8,
             "peak_flux_jy_per_beam": 0.01,
-            "rotation_degrees_counterclockwise_from_x": 172.0,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
             "x_pixel": 471.0,
             "y_pixel": 276.0
           },
@@ -944,7 +944,7 @@
             "major_sigma_pixels": 2.5,
             "minor_sigma_pixels": 1.5,
             "peak_flux_jy_per_beam": 0.01,
-            "rotation_degrees_counterclockwise_from_x": 62.0,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
             "x_pixel": 371.0,
             "y_pixel": 276.0
           },
@@ -952,7 +952,7 @@
             "major_sigma_pixels": 3,
             "minor_sigma_pixels": 1.9,
             "peak_flux_jy_per_beam": 0.01,
-            "rotation_degrees_counterclockwise_from_x": 137.0,
+            "rotation_degrees_counterclockwise_from_x": 90.0,
             "x_pixel": 271.0,
             "y_pixel": 276.0
           },
@@ -960,7 +960,7 @@
             "major_sigma_pixels": 2.8,
             "minor_sigma_pixels": 1.7,
             "peak_flux_jy_per_beam": 0.01,
-            "rotation_degrees_counterclockwise_from_x": 117.0,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
             "x_pixel": 171.0,
             "y_pixel": 276.0
           },
@@ -968,13 +968,13 @@
             "major_sigma_pixels": 3.6,
             "minor_sigma_pixels": 1.8,
             "peak_flux_jy_per_beam": 0.01,
-            "rotation_degrees_counterclockwise_from_x": 172.0,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
             "x_pixel": 71.0,
             "y_pixel": 276.0
           }
         ]
       },
-      "recipe_sha256": "9516a9e89a58a6ab27b9f84db6c8c7b4a4e005c2456ee007109694225a368f98",
+      "recipe_sha256": "2669ad5c7e0883e50b6c82a8d1c66d92a8890df9d8fc7b64a645d6bdf52dedca",
       "redistribution": "generated-locally",
       "role": "regression",
       "validation_strata": [

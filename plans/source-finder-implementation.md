@@ -1664,9 +1664,10 @@ before maintaining a custom fitter.
      `phase-4-paired-regression.json`: 200 disjoint noise seeds, 33 observable
      groups, 32 individually resolvable sources, eight point sources, one
      clearly resolved source, and one unresolved blend per image. Its distinct
-     WCS, noise field, invalid region, and mirrored/rotated layout are viewable
-     regression evidence only. Candidate/reference execution and empirical
-     assumption verification remain open.
+     WCS, noise field, invalid region, and 180-degree mirrored layout preserve
+     the governed blend-to-beam geometry. They are viewable regression
+     evidence only. Candidate/reference execution and empirical assumption
+     verification remain open.
 
    - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
          and 3,000 pixels per side across sparse, normal, dense, blend-heavy,

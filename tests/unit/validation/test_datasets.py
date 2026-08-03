@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from hebog.validation.datasets import (
     AssociationTruthGroup,
     DatasetManifest,
+    DatasetRecord,
     DatasetRole,
     SyntheticInvalidRectangle,
     SyntheticNoiseCorrelation,
@@ -305,7 +306,7 @@ def test_phase_four_paired_regression_is_independent_and_representative() -> (
     assert len(recipes) == 200
     assert not ({recipe.seed for recipe in recipes} & other_seeds)
     assert paired.recipe_sha256 == (
-        "9516a9e89a58a6ab27b9f84db6c8c7b4a4e005c2456ee007109694225a368f98"
+        "2669ad5c7e0883e50b6c82a8d1c66d92a8890df9d8fc7b64a645d6bdf52dedca"
     )
     assert len(paired.recipe.sources) == 34
     assert len(paired.association_truth_groups) == 33
@@ -327,6 +328,39 @@ def test_phase_four_paired_regression_is_independent_and_representative() -> (
     }
     assert "planning" in paired.purpose.lower()
     assert "viewable" in paired.provenance.lower()
+
+
+def test_paired_regression_preserves_unresolved_blend_geometry() -> None:
+    """Mirroring cannot change a governed blend relative to its beam."""
+    paired = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-paired-regression.json"
+    ).datasets[0]
+    viewed = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-qualification.json"
+    ).datasets[0]
+
+    def beam_projected_separation(dataset: DatasetRecord) -> tuple[float, ...]:
+        group = next(
+            item
+            for item in dataset.association_truth_groups
+            if item.resolution_class == "unresolved-blend"
+        )
+        first, second = (
+            dataset.recipe.sources[index] for index in group.source_indices
+        )
+        difference = np.asarray(
+            [second.x_pixel - first.x_pixel, second.y_pixel - first.y_pixel]
+        )
+        angle = np.deg2rad(dataset.beam.position_angle_degrees)
+        major = np.asarray([np.cos(angle), np.sin(angle)])
+        minor = np.asarray([-np.sin(angle), np.cos(angle)])
+        return tuple(
+            sorted(abs(float(difference @ axis)) for axis in (major, minor))
+        )
+
+    assert beam_projected_separation(paired) == pytest.approx(
+        beam_projected_separation(viewed)
+    )
 
 
 def test_manifest_rejects_duplicate_dataset_identifiers() -> None:
