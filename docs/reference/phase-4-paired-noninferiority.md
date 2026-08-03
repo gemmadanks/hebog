@@ -130,6 +130,27 @@ the proposed endpoint structure. It may be inspected, used to revise planning
 assumptions, and used for corrective TDD; it can never qualify Hebog or be
 relabelled as the final unseen population.
 
+The first corrected-geometry execution produced exploratory candidate,
+released-reference, and compiled evidence with SHA-256 values
+`f58fec61ab4d29670acf6e49117e30045a90fdc0bce2c5de77f5c96e021544b9`,
+`adeea227878ecb0b412a196a1adf09fdd212fca15fa9b3f187059e1c33f470b0`,
+and `91056642e990f164292af598ac4d9b2bf6f334edfef84aaee44c5cf4301efaf2`.
+Released PyBDSF completed all 200 realizations; Hebog completed 196. On their
+196 joint successes, both recovered every declared truth group. Hebog had
+96.75% point-source specificity against PyBDSF's 100%, but a lower governed
+catastrophic fraction (0.733% against 1.562%), perfect clear-resolved recall
+against 57.14%, and lower mean unresolved-blend position and total-flux errors
+(0.056 beam and 5.42% against 0.082 beam and 14.17%). Catalogue reliability
+was 99.69% against 99.76%.
+
+The four Hebog failures were the same structural deblending defect: a
+prominent five-pixel child was passed to a seven-parameter fit. The
+independent cases are now permanent TDD regressions, and the deblender merges
+such a basin without discarding parent pixels. Because production behaviour
+has changed, the exploratory estimates do not verify the planning assumptions;
+the complete paired run must be refreshed after the point-classification
+correction as well.
+
 ## One-look governance
 
 After named approval, freeze the generator version, exactly 600 seeds, truth,

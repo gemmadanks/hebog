@@ -17,7 +17,12 @@ Compact deblending uses one explicit `CompactDeblendConfig`:
   lexicographically first global `(y, x)` pixel;
 - a weaker basin remains separate when its peak minus the shared saddle is at
   least `minimum_saddle_depth_sigma`; an exactly equal boundary therefore
-  survives; and
+  survives;
+- after prominence merging, a basin smaller than
+  `minimum_region_pixels` joins its neighbour across the highest shared
+  saddle. Phase 4 sets this to the seven owned pixels required by the
+  seven-parameter Gaussian, so deblending cannot manufacture a child that is
+  structurally impossible to fit; and
 - final region identifiers and labels follow the first global member pixel,
   not SciPy marker labels, worker order, or partition shape.
 
@@ -42,6 +47,11 @@ tie/marker propagation can assign nearly the complete one-dimensional bridge
 to one marker, placing the measured basin boundary above the physical saddle.
 The marker-distance ridge gives stable compact ownership while the subsequent
 intensity saddle retains the scientific split decision.
+
+The minimum-area merge is deterministic and conservative: it preserves every
+parent-island pixel and changes only the ownership boundary between adjacent
+basins. It does not silently drop a weak child or treat a failed fit as a
+successful source.
 
 A repeated multilevel superlevel-set implementation would be closer to some
 legacy source-finder descriptions, but it requires maintained level selection,

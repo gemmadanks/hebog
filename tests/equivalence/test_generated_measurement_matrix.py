@@ -186,7 +186,7 @@ def _detection_config() -> DetectionStageConfig:
         source_finder=SourceFinderConfig(
             detection_threshold_sigma=5.0,
             island_threshold_sigma=3.0,
-            minimum_island_pixels=6,
+            minimum_island_pixels=7,
         ),
     )
 
@@ -247,6 +247,7 @@ def _fits(
             minimum_peak_signal_to_noise=5.0,
             minimum_peak_separation_pixels=2,
             minimum_saddle_depth_sigma=1.0,
+            minimum_region_pixels=7,
             maximum_compact_island_pixels=100_000,
             maximum_compact_bounds_pixels=250_000,
             maximum_batch_pixels=500_000,

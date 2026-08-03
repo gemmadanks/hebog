@@ -70,6 +70,13 @@ diagnostics. Unknown values are never encoded as zero. A normal catalogue may
 only be built when every admitted compact region has a valid fit and there are
 no Phase 5 deferrals.
 
+The Phase 4 configuration aligns the detection and deblending minima with
+this seven-pixel fit requirement. If a prominent watershed peak initially
+owns fewer pixels, its basin is merged across its strongest shared saddle
+before measurement. This preserves all parent-island pixels and prevents a
+small noise-supported child from making an otherwise valid compact catalogue
+incomplete.
+
 ## Determinism and scope
 
 The fit result is a frozen scheduler-safe record. Canonical region order is

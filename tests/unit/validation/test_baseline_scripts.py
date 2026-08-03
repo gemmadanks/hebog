@@ -160,6 +160,7 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
             "maximum_compact_island_pixels": 100000,
             "minimum_peak_separation_pixels": 2,
             "minimum_peak_signal_to_noise": 5.0,
+            "minimum_region_pixels": 7,
             "minimum_saddle_depth_sigma": 1.0,
         },
         "executor": "serial",
@@ -188,7 +189,7 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
         "source_finder": {
             "detection_threshold_sigma": 5.0,
             "island_threshold_sigma": 3.0,
-            "minimum_island_pixels": 6,
+            "minimum_island_pixels": 7,
         },
         "tile_core_shape_yx": [128, 128],
     }

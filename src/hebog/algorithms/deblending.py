@@ -489,6 +489,65 @@ def _merge_shallow_regions(
     return canonical[merged]
 
 
+def _canonicalize_labels(
+    labels: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int32]:
+    """Renumber present regions by their first row-major pixel."""
+    present = np.unique(labels[labels > 0])
+    height, width = labels.shape
+    local_y, local_x = np.indices((height, width), dtype=np.int64)
+    local_linear = local_y * width + local_x
+    first_linear = np.asarray(
+        ndimage.minimum(local_linear, labels, index=present),
+        dtype=np.int64,
+    )
+    ordered = present[np.argsort(first_linear)]
+    lookup = np.zeros(int(np.max(present, initial=0)) + 1, dtype=np.int32)
+    lookup[ordered] = np.arange(1, ordered.size + 1, dtype=np.int32)
+    return lookup[labels]
+
+
+def _merge_undersized_regions(
+    labels: npt.NDArray[np.int32],
+    normalized: npt.NDArray[np.float64],
+    *,
+    minimum_region_pixels: int,
+) -> npt.NDArray[np.int32]:
+    """Join fit-ineligible basins across their strongest shared saddle."""
+    merged = np.array(labels, dtype=np.int32, copy=True)
+    while True:
+        present, counts = np.unique(
+            merged[merged > 0],
+            return_counts=True,
+        )
+        if present.size <= 1:
+            break
+        undersized = [
+            (int(count), int(label))
+            for label, count in zip(present, counts, strict=True)
+            if count < minimum_region_pixels
+        ]
+        if not undersized:
+            break
+        _, selected = min(undersized)
+        contacts = [
+            (saddle, second if first == selected else first)
+            for first, second, saddle in _boundary_saddles(
+                merged,
+                normalized,
+            )
+            if selected in (first, second)
+        ]
+        if not contacts:
+            raise ValueError("undersized deblend region has no adjacent basin")
+        _, neighbour = min(
+            contacts,
+            key=lambda item: (-item[0], item[1]),
+        )
+        merged[merged == selected] = neighbour
+    return _canonicalize_labels(merged)
+
+
 def _summarize_regions(
     island: DetectedIsland,
     labels: npt.NDArray[np.int32],
@@ -569,6 +628,11 @@ def deblend_compact_island(
         bounds,
         peaks,
         config,
+    )
+    labels = _merge_undersized_regions(
+        labels,
+        normalized,
+        minimum_region_pixels=config.minimum_region_pixels,
     )
     labels = np.asarray(labels, dtype=np.int32)
     labels.setflags(write=False)

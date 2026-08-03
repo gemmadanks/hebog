@@ -209,6 +209,7 @@ def _deblend_config() -> CompactDeblendConfig:
         minimum_peak_signal_to_noise=5.0,
         minimum_peak_separation_pixels=1,
         minimum_saddle_depth_sigma=2.0,
+        minimum_region_pixels=7,
         maximum_compact_island_pixels=64,
         maximum_compact_bounds_pixels=128,
         maximum_batch_pixels=256,

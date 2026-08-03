@@ -29,6 +29,7 @@ def _config(**replacements: object) -> CompactDeblendConfig:
         "minimum_peak_signal_to_noise": 5.0,
         "minimum_peak_separation_pixels": 1,
         "minimum_saddle_depth_sigma": 2.0,
+        "minimum_region_pixels": 1,
         "maximum_compact_island_pixels": 64,
         "maximum_compact_bounds_pixels": 128,
         "maximum_batch_pixels": 256,
@@ -114,6 +115,7 @@ def _worker_local_island() -> WorkerLocalDeblendedIsland:
         ({"minimum_peak_signal_to_noise": 0.0}, "peak_signal"),
         ({"minimum_peak_separation_pixels": True}, "peak_separation"),
         ({"minimum_saddle_depth_sigma": -1.0}, "saddle_depth"),
+        ({"minimum_region_pixels": 0}, "region_pixels"),
         ({"maximum_compact_island_pixels": 0}, "island_pixels"),
         ({"maximum_compact_bounds_pixels": 0}, "bounds_pixels"),
         ({"maximum_batch_pixels": 0}, "batch_pixels"),
@@ -180,6 +182,25 @@ def test_deep_saddle_splits_close_pairs_across_flux_ratios(
     )
     assert sum(region.pixel_count for region in result.regions) == 8
     assert set(np.unique(result.region_labels)) == {1, 2}
+
+
+def test_undersized_watershed_child_merges_before_fitting() -> None:
+    """A promoted peak cannot create a region too small for its fit model."""
+    compact = _compact_island(
+        np.array([[6.0, 5.0, 4.0, 3.0, 3.0, 4.0, 5.0, 8.0]])
+    )
+
+    result = deblend_compact_island(
+        compact,
+        _config(minimum_region_pixels=5),
+    )
+
+    assert result.status == "single-region"
+    assert result.regions[0].pixel_count == compact.island.pixel_count
+    np.testing.assert_array_equal(
+        result.region_labels > 0,
+        compact.island_membership,
+    )
 
 
 def test_shallow_saddle_merges_the_weaker_watershed_basin() -> None:

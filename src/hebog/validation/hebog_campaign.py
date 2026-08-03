@@ -92,11 +92,11 @@ def _configs() -> tuple[
             maximum_spatial_window_fraction=0.25,
             maximum_constant_map_pixels=1_000_000,
         ),
-        source_finder=SourceFinderConfig(5.0, 3.0, 6),
+        source_finder=SourceFinderConfig(5.0, 3.0, 7),
     )
     return (
         detection,
-        CompactDeblendConfig(5.0, 2, 1.0, 100_000, 250_000, 500_000),
+        CompactDeblendConfig(5.0, 2, 1.0, 7, 100_000, 250_000, 500_000),
         CompactMomentConfig(3, 1e-12),
         CompactGaussianFitConfig(
             7,
@@ -155,6 +155,7 @@ def hebog_campaign_configuration() -> dict[str, object]:
             "minimum_peak_signal_to_noise": (
                 deblend.minimum_peak_signal_to_noise
             ),
+            "minimum_region_pixels": deblend.minimum_region_pixels,
             "minimum_saddle_depth_sigma": deblend.minimum_saddle_depth_sigma,
         },
         "executor": "serial",

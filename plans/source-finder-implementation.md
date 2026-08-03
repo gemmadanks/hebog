@@ -1666,8 +1666,16 @@ before maintaining a custom fitter.
      clearly resolved source, and one unresolved blend per image. Its distinct
      WCS, noise field, invalid region, and 180-degree mirrored layout preserve
      the governed blend-to-beam geometry. They are viewable regression
-     evidence only. Candidate/reference execution and empirical assumption
-     verification remain open.
+     evidence only. The corrected candidate/reference execution is complete:
+     released PyBDSF completed all 200 images, while the pre-correction Hebog
+     candidate completed 196. On jointly successful images both recovered
+     every truth group; Hebog retained lower catastrophic, blend-position,
+     and blend-flux errors and stronger clear-extension recovery, but had
+     96.75% point specificity against PyBDSF's 100%. The four Hebog failures
+     all came from the same five-pixel watershed child of the declared
+     unresolved blend. This evidence is diagnostic and planning-only; rerun
+     it after the corrective TDD work before verifying empirical power
+     assumptions.
 
    - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
          and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
@@ -1752,6 +1760,20 @@ before maintaining a custom fitter.
       extension significance as one coupled measurement path. Select the
       smallest community-supported correction from those cases only; do not
       choose a threshold or formula from any viewed qualification result.
+
+      The first bounded correction now prevents an otherwise fit-capable
+      parent island from producing an unfit child: after prominence merging,
+      any watershed basin below the configured seven-pixel fit minimum joins
+      its neighbour across the strongest shared saddle. Detection uses the
+      same minimum. Analytic tests and all four independently seeded failure
+      cases pass without dropping parent pixels. The remaining active science
+      correction is point-source extension classification; the independent
+      regression shows false resolved decisions at 2.02--3.38 times the
+      current flux-ratio uncertainty, while the current two-sigma ATLAS rule
+      deliberately permits a 2.3% one-sided false-extension rate. Select and
+      review a more conservative community-supported rule while proving that
+      clear-extension recall and Hebog's stronger error envelopes remain
+      intact.
    5. Require the complete analytic, property, powered regression,
       serial/Dask, exact-fixture, Rapthor-decision, and coverage lanes to pass
       before named approval opens the final campaign exactly once. The final

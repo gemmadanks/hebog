@@ -209,6 +209,7 @@ class CompactDeblendConfig:
     minimum_peak_signal_to_noise: float
     minimum_peak_separation_pixels: int
     minimum_saddle_depth_sigma: float
+    minimum_region_pixels: int
     maximum_compact_island_pixels: int
     maximum_compact_bounds_pixels: int
     maximum_batch_pixels: int
@@ -236,6 +237,14 @@ class CompactDeblendConfig:
         ):
             raise ValueError(
                 "minimum_saddle_depth_sigma must be finite and non-negative"
+            )
+        if (
+            isinstance(self.minimum_region_pixels, bool)
+            or not isinstance(self.minimum_region_pixels, Integral)
+            or self.minimum_region_pixels < 1
+        ):
+            raise ValueError(
+                "minimum_region_pixels must be a positive integer"
             )
         for value, name in (
             (

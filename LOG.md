@@ -3613,3 +3613,57 @@ and compatibility serialization
 - Commit the corrected governance boundary, archive the invalidated ignored
   evidence under explicit names, and rerun both implementations before any
   planning-assumption conclusion.
+
+## 2026-08-03 — Diagnosed the corrected paired regression and fixed fit-ineligible deblending
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Evidence**
+
+- Ran Hebog and released PyBDSF 1.14.1 over the corrected 200-image paired
+  regression. The candidate, reference, and compiled ignored evidence have
+  SHA-256 values
+  `f58fec61ab4d29670acf6e49117e30045a90fdc0bce2c5de77f5c96e021544b9`,
+  `adeea227878ecb0b412a196a1adf09fdd212fca15fa9b3f187059e1c33f470b0`,
+  and `91056642e990f164292af598ac4d9b2bf6f334edfef84aaee44c5cf4301efaf2`.
+- Released PyBDSF completed all 200 realizations and Hebog completed 196. On
+  the 196 joint successes, both had complete group recovery. Hebog's point
+  specificity was 96.75% against PyBDSF's 100%, and catalogue reliability was
+  99.69% against 99.76%.
+- Hebog retained its stronger results: 0.733% governed catastrophic rows
+  against 1.562%, 100% clear-resolved recall against 57.14%, and mean
+  unresolved-group errors of 0.056 beam and 5.42% total flux against PyBDSF's
+  0.082 beam and 14.17%.
+- All four Hebog exceptions were the same `underdetermined-region` outcome:
+  the unresolved blend was split into a valid main basin and a five-pixel
+  child, which cannot identify a seven-parameter Gaussian. The earlier
+  corrected seed `2026100009` completed, confirming its first-run failure was
+  caused by the invalid campaign geometry.
+
+**Correction**
+
+- Added an explicit minimum deblended-region area and deterministic merging
+  across the strongest shared saddle. The Phase 4 configuration aligns
+  detection and deblending at the fitter's seven-owned-pixel minimum, so an
+  admitted compact child is structurally fit-capable without discarding any
+  parent-island pixel.
+- Added an analytic red-green basin test and permanent equivalence regressions
+  for seeds `2026100024`, `2026100064`, `2026100165`, and `2026100180`.
+  All four now produce complete candidate catalogues.
+- Replayed every false point-extension decision on independent regression
+  data. Their fitted flux-ratio significances span 2.02--3.38; this isolates
+  the remaining difference to the current two-sigma classification policy,
+  not deconvolution availability or the campaign geometry.
+
+**Validation**
+
+- The focused deblend, runner-contract, and four-seed equivalence suite passes
+  all 49 tests.
+
+**Next**
+
+- Use analytic and independent regression tests to select a conservative,
+  community-supported extension decision that is no worse than released
+  PyBDSF while preserving Hebog's clear-extension, catastrophic-tail,
+  uncertainty, and unresolved-group strengths. Then refresh the complete
+  paired evidence before accepting any planning-variance estimate.

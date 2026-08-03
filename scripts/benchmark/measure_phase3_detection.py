@@ -216,6 +216,7 @@ def _configuration() -> tuple[DetectionStageConfig, CompactDeblendConfig]:
         minimum_peak_signal_to_noise=5.0,
         minimum_peak_separation_pixels=2,
         minimum_saddle_depth_sigma=1.0,
+        minimum_region_pixels=1,
         maximum_compact_island_pixels=250_000,
         maximum_compact_bounds_pixels=1_000_000,
         maximum_batch_pixels=4_000_000,
