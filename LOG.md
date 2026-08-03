@@ -2815,3 +2815,25 @@ and compatibility serialization
 - The next action requires named human approval of the proposed association
   amendment. That decision then permits replacement of the affected governed
   truth and completion of uncertainty, qualification, and benchmark evidence.
+
+## 2026-08-03 — Approved the Phase 4 association amendment
+
+**Plan phase:** Phase 4 scientific closure
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer and project owner, approved
+  the recommended observable-resolvability policy on 2026-08-03.
+- Per-emitter gates apply only to independently observable eligible maxima.
+  Sub-beam injected members forming one maximum use explicit truth association
+  groups with group-level centroid and total-flux gates.
+- One component/source remains the Phase 4 default for a single eligible
+  maximum. Joint multi-Gaussian model selection is deferred until governed
+  identifiability and reliability evidence justifies it.
+- The affected regression and untouched qualification definitions must be
+  replaced and reviewed before any replacement held-out result is inspected.
+
+**Next**
+
+- Add the explicit truth-group schema and replace the affected governed
+  manifests and checksums before running regression or qualification.

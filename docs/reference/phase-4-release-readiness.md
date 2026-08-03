@@ -130,16 +130,16 @@ qualification remain Phases 5–7.
 
 Phase 4 can be declared passed only after all of the following occur in order:
 
-1. Gemma Danks completes the named amendment review in the
+1. [x] Gemma Danks completed the named amendment review on 2026-08-03 in the
    [Phase 4 scientific review record](phase-4-review-record.md).
-2. The regression and untouched qualification truth schemas, recipes,
+2. [ ] The regression and untouched qualification truth schemas, recipes,
    checksums, and gates are replaced consistently before held-out inspection.
-3. Development and regression science passes, including association-group and
+3. [ ] Development and regression science passes, including association-group and
    uncertainty-calibration reports.
-4. The replacement held-out qualification campaign passes every reviewed
+4. [ ] The replacement held-out qualification campaign passes every reviewed
    gate without post-inspection tuning.
-5. The controlled Phase 4 performance matrix passes its component budgets and
+5. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.
-6. The final evidence and this decision are reviewed and changed from
+6. [ ] The final evidence and this decision are reviewed and changed from
    **not ready** to **passed**.

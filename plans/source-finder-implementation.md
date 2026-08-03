@@ -1228,9 +1228,10 @@ catalogue shards, materialise the minimal Rapthor FITS view, and pass both
 exact compact PyBDSF references. The generated close-pair regression exposed
 a scientific-contract blocker: three sub-beam pairs have only one observable
 image maximum, so the reviewed one-region/one-source rule cannot satisfy the
-declared seven-source completeness gate. The association/resolvability policy
-and unseen qualification population require an amended named review before
-qualification inspection.
+declared seven-source completeness gate. Gemma Danks approved the
+observable-resolvability and explicit truth-group amendment on 2026-08-03.
+The affected regression and unseen qualification definitions now require
+replacement and review before qualification inspection.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1557,12 +1558,11 @@ before maintaining a custom fitter.
    therefore records a **not ready** decision rather than declaring the phase
    passed.
 
-   Complete the remaining bullets in this order: (1) named review of the
-   association/resolvability amendment; (2) replacement and pre-inspection
+   Complete the remaining bullets in this order: (1) replacement and pre-inspection
    review of affected regression and qualification truth groups, recipes,
-   checksums, and gates; (3) development/regression association and
-   correlated-noise uncertainty calibration; (4) first inspection of the
-   replacement held-out qualification result; and (5) controlled performance
+   checksums, and gates; (2) development/regression association and
+   correlated-noise uncertainty calibration; (3) first inspection of the
+   replacement held-out qualification result; and (4) controlled performance
    qualification. Do not benchmark a component model that the preceding
    scientific decision may reject, or inspect held-out output before its
    replacement contract is frozen.

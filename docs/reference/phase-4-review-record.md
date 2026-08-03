@@ -299,17 +299,22 @@ opened.
 
 - **Reviewer:** Gemma Danks
 - **Role:** Data Processing Software Engineer
-- **Decision date:** Pending
-- **Decision:** Pending
+- **Decision date:** 2026-08-03
+- **Decision:** Approved as recommended
 
 The reviewer must confirm or amend:
 
-- [ ] observed resolvability determines the per-emitter gated population;
-- [ ] unresolved injected members use explicit truth association groups and
+- [x] observed resolvability determines the per-emitter gated population;
+- [x] unresolved injected members use explicit truth association groups and
       group-level centroid/total-flux gates;
-- [ ] one component/source remains the Phase 4 default for a single eligible
+- [x] one component/source remains the Phase 4 default for a single eligible
       maximum;
-- [ ] joint multi-Gaussian model selection is deferred pending identifiability
+- [x] joint multi-Gaussian model selection is deferred pending identifiability
       and reliability evidence; and
-- [ ] the affected regression and unseen qualification definitions will be
+- [x] the affected regression and unseen qualification definitions will be
       replaced and reviewed before qualification inspection.
+
+This approval closes the post-review association decision only. The
+replacement truth-group schema, regression and qualification manifests, and
+their checksums must still be frozen and reviewed before the first replacement
+held-out result is inspected.
