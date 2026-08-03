@@ -1636,13 +1636,16 @@ before maintaining a custom fitter.
          without rerunning or tuning against viewed qualification data.
 
    The maintained runner is invoked independently in the immutable released
-   and pinned-`master` PyBDSF environments. It writes mergeable implementation
-   shards, continues past a recorded reference exception, refuses to overwrite
-   evidence, and preserves association-group as well as individual-source
-   decisions. The candidate-first compiler rejects dataset, seed, contract, or
-   protocol drift. The final Hebog candidate shard remains deliberately
-   unopened until the paired protocol and final population receive named
-   review.
+   and pinned-`master` PyBDSF environments, with a matching candidate runner
+   exercising Hebog's complete bounded serial compact path. The runners write
+   mergeable implementation shards, continue past a recorded exception,
+   refuse to overwrite evidence, and preserve association-group as well as
+   individual-source decisions. Their shared runtime module prevents
+   provenance and failure semantics from drifting. The candidate-first
+   compiler rejects dataset, seed, contract, or protocol drift. The final
+   qualification candidate shard remains deliberately unopened until the
+   paired protocol and final population receive named review; regression
+   shards may be used to verify the draft planning assumptions.
 
    - [x] Draft a strict paired non-inferiority contract and executable power
          calculation for named review. The draft proposes 600 independent

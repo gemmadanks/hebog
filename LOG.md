@@ -3499,3 +3499,45 @@ and compatibility serialization
   discordance, within-image correlation, and paired-dispersion planning bounds
   before requesting named review. Do not change production science or freeze
   the final unseen population first.
+
+## 2026-08-03 — Added the maintained Hebog campaign runner
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added a candidate runner that exercises Hebog's complete bounded serial
+  detection, deblending, fitting, transformation, and catalogue path for every
+  governed regression or qualification realization.
+- Froze every candidate scientific threshold, bounded-work limit, 128-pixel
+  tile size, float64 input policy, and serial executor in the implementation
+  configuration digest.
+- Added shared campaign-runtime helpers for contract, dataset, dependency, and
+  failure identities, and migrated the PyBDSF runner to them so candidate and
+  reference provenance cannot drift.
+- Allowed both isolated runners to use governed regression data for the
+  planning-assumption audit while retaining named review as a prerequisite for
+  final qualification use.
+- Kept every candidate or reference exception as a complete failed-seed record
+  with no partial catalogue and no denominator deletion.
+
+**Validation**
+
+- TDD first recorded the missing candidate configuration and failure path.
+  Nineteen focused unit and integration tests pass, including a real complete
+  Hebog run on a generated development image.
+- The shared campaign-runtime module has 100% branch-aware focused coverage.
+- `just coverage` passed 741 tests with four expected failures and 95.52%
+  branch-aware project coverage; the shared campaign-runtime module has 100%
+  coverage.
+- `just test-equivalence` passed all 20 frozen non-slow scientific comparisons.
+  Ruff formatting and lint, strict Pyright, and the strict documentation build
+  passed. `just check` passed 613 tests with four expected failures, and every
+  `just pre-commit` push-stage hook passed across all files.
+
+**Next**
+
+- Add a structurally representative independent recovery-regression dataset,
+  generate paired Hebog and released-PyBDSF shards, and measure the protocol's
+  planning variance bounds. Do not use any viewed qualification output for
+  that audit.

@@ -129,6 +129,113 @@ def test_phase_four_reference_runner_keeps_failed_seed(
     assert "two-pixel atrous island" in capsys.readouterr().err
 
 
+def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
+    """The candidate shard cannot inherit changing library defaults."""
+    namespace = _script("run_phase4_hebog_campaign.py")
+    configuration: Callable[[], dict[str, object]] = namespace[
+        "_hebog_configuration"
+    ]
+
+    assert configuration() == {
+        "adaptive_rms": {
+            "candidate_threshold_sigma": 75.0,
+            "influence_radius_pixels": 75.0,
+            "step_yx": [7, 7],
+            "transition_width_pixels": 20.0,
+            "window_shape_yx": [35, 35],
+        },
+        "catalogue": {
+            "deconvolution_relative_tolerance": 1e-10,
+            "extension_significance_sigma": 2.0,
+            "maximum_catalogue_records": 10000,
+        },
+        "coarse_rms": {
+            "maximum_batch_cells": 32,
+            "step_yx": [50, 50],
+            "window_shape_yx": [150, 150],
+        },
+        "deblending": {
+            "maximum_batch_pixels": 500000,
+            "maximum_compact_bounds_pixels": 250000,
+            "maximum_compact_island_pixels": 100000,
+            "minimum_peak_separation_pixels": 2,
+            "minimum_peak_signal_to_noise": 5.0,
+            "minimum_saddle_depth_sigma": 1.0,
+        },
+        "executor": "serial",
+        "fitting": {
+            "center_margin_pixels": 1.0,
+            "context_margin_pixels": 8,
+            "convergence_tolerance": 1e-8,
+            "maximum_amplitude_factor": 5.0,
+            "maximum_axis_ratio": 30.0,
+            "maximum_background_offset_sigma": 3.0,
+            "maximum_function_evaluations": 300,
+            "maximum_sigma_pixels": 30.0,
+            "minimum_fit_pixels": 7,
+            "minimum_sigma_pixels": 0.2,
+        },
+        "image_dtype": "float64",
+        "moment": {
+            "covariance_relative_tolerance": 1e-12,
+            "minimum_shape_pixels": 3,
+        },
+        "rms_statistics": {
+            "clipping_sigma": 3.0,
+            "maximum_iterations": 10,
+            "minimum_samples": 6,
+        },
+        "source_finder": {
+            "detection_threshold_sigma": 5.0,
+            "island_threshold_sigma": 3.0,
+            "minimum_island_pixels": 6,
+        },
+        "tile_core_shape_yx": [128, 128],
+    }
+
+
+def test_phase_four_hebog_runner_keeps_failed_seed(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A candidate exception remains a result rather than a dropped seed."""
+    namespace = _script("run_phase4_hebog_campaign.py")
+    run_realization: Callable[..., Any] = namespace["_run_realization"]
+    root = Path(__file__).parents[3]
+    dataset = load_dataset_manifest(
+        root / "config/datasets/phase-4-regression.json"
+    ).datasets[0]
+    recipe = iter_dataset_recipes(dataset)[0]
+
+    def fail_candidate(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise RuntimeError("candidate fit failed")
+
+    result = run_realization(
+        recipe,
+        dataset,
+        tmp_path,
+        implementation_identifier="hebog",
+        outlier_thresholds=CatalogueOutlierThresholds(
+            position_beams=0.5,
+            peak_flux_fractional_difference=0.5,
+            integrated_flux_fractional_difference=0.5,
+            fitted_axis_fractional_difference=0.5,
+            deconvolved_axis_fractional_difference=1.0,
+        ),
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+        process_recipe=fail_candidate,
+    )
+
+    assert result.status == "failure"
+    assert result.seed == recipe.seed
+    assert result.failure is not None
+    assert result.failure.stage == "hebog-source-finding"
+    assert result.failure.exception_type == "RuntimeError"
+    assert "candidate fit failed" in capsys.readouterr().err
+
+
 def test_directory_identity_excludes_mutable_casa_lock_files(
     tmp_path: Path,
 ) -> None:

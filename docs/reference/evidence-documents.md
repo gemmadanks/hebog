@@ -92,6 +92,11 @@ The directions, practical margins, clustered interval method, failure policy,
 and stopping rule come from the separately reviewed
 [Phase 4 paired non-inferiority protocol](phase-4-paired-noninferiority.md),
 never from an inspected campaign result.
+The maintained Hebog runner exercises the complete bounded serial compact path
+and converts its pipeline-neutral catalogue directly to comparison rows. The
+two PyBDSF environments use the matching reference runner. This keeps candidate
+and reference execution isolated while sharing provenance hashing, failure
+capture, truth diagnostics, and compilation rules.
 
 Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive these
 rows from the independent catalogue comparison report. It deliberately shares

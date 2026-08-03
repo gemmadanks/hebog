@@ -149,11 +149,14 @@ not the performance generator, establish scientific correctness.
 
 ## Phase 4 paired scientific campaigns
 
-`run_phase4_pybdsf_campaign.py` is the maintained same-image reference runner.
-Run it once in the isolated released-PyBDSF environment and once in the pinned
-`master` environment. It regenerates every image from the complete governed
-dataset record as float64, applies Rapthor's exact PyBDSF profile, and emits a
-strict `CampaignImplementationEvidence` shard. The full dataset-record digest
+`run_phase4_hebog_campaign.py` is the maintained candidate runner and
+`run_phase4_pybdsf_campaign.py` is the matching reference runner. Run the
+reference once in the isolated released-PyBDSF environment and once in the
+pinned `master` environment. All runners regenerate every image from the
+complete governed dataset record as float64 and emit a strict
+`CampaignImplementationEvidence` shard. The reference applies Rapthor's exact
+PyBDSF profile; the candidate freezes every Hebog threshold, bounded-work
+limit, tile size, and serial execution policy. The full dataset-record digest
 binds the base recipe, every seed, WCS, beam, truth association, and stratum.
 
 The runner catches a failure for one seed, writes its implementation stage,
@@ -161,10 +164,6 @@ exception, message, and traceback digest, prints the complete traceback to the
 captured run log, and continues. It never drops the seed or publishes partial
 source rows. Existing evidence is not overwritten. Its wall time is diagnostic
 provenance only and must not be used for a performance claim.
-
-Use the reference runner only after a comparison protocol has been frozen for
-the campaign. A typical invocation inside an immutable reference environment
-is:
 
 Before review, inspect the draft protocol and its design-stage power with:
 
@@ -178,6 +177,31 @@ verified on independent paired development/regression evidence. It reports
 interval-exclusion power separately from the stricter no-worse point-estimate
 condition. Do not change the protocol status or create final qualification
 seeds from the provisional calculation alone.
+
+Generate a regression candidate shard from a clean reviewed Hebog revision
+with:
+
+```console
+python scripts/benchmark/run_phase4_hebog_campaign.py \
+  --manifest <governed-dataset-manifest.json> \
+  --dataset-id <governed-dataset-id> \
+  --scientific-gates config/contracts/phase-4-scientific-gates.json \
+  --scientific-contract config/contracts/phase-4-measurement.json \
+  --scientific-contract config/contracts/phase-4-scientific-gates.json \
+  --comparison-protocol config/contracts/phase-4-paired-noninferiority.json \
+  --expected-version <installed-hebog-version> \
+  --hebog-commit <40-hex-reviewed-commit> \
+  --run-id <campaign>-hebog \
+  --output benchmark-results/<campaign>-hebog.json
+```
+
+Use `--source-tree-sha256` when the run intentionally includes reviewed local
+changes not represented by the commit, and `--container-image-digest` on a
+controlled container runner. Both candidate and reference runners accept
+regression data for planning-assumption verification. Qualification use
+requires the reviewed protocol and frozen final population.
+
+A typical invocation inside an immutable reference environment is:
 
 ```console
 python scripts/benchmark/run_phase4_pybdsf_campaign.py \

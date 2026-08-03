@@ -1,0 +1,226 @@
+"""Run Hebog over a governed Phase 4 regression or qualification campaign."""
+
+from __future__ import annotations
+
+import argparse
+import importlib.metadata
+import json
+import sys
+import time
+import traceback
+from datetime import UTC, datetime
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from hebog.validation.campaign_runtime import (
+    campaign_dataset_identity,
+    canonical_sha256,
+    contract_set_sha256,
+    dataset_by_identifier,
+    dependency_inventory_sha256,
+    failure_from_exception,
+    json_document,
+    phase_four_outlier_thresholds,
+)
+from hebog.validation.campaigns import diagnose_phase_four_realization
+from hebog.validation.comparison import CatalogueOutlierThresholds
+from hebog.validation.datasets import (
+    DatasetRecord,
+    DatasetRole,
+    SyntheticRecipe,
+    iter_dataset_recipes,
+)
+from hebog.validation.evidence import (
+    CampaignImplementationEvidence,
+    CampaignImplementationIdentity,
+    CampaignRealizationDiagnostic,
+    EvidenceStatus,
+    SoftwareIdentity,
+    write_evidence,
+)
+from hebog.validation.hebog_campaign import (
+    RecipeProcessor,
+    hebog_campaign_configuration,
+    process_hebog_recipe,
+)
+
+_hebog_configuration = hebog_campaign_configuration
+_process_recipe = process_hebog_recipe
+
+
+def _run_realization(  # noqa: PLR0913
+    recipe: SyntheticRecipe,
+    dataset: DatasetRecord,
+    directory: Path,
+    *,
+    implementation_identifier: str,
+    outlier_thresholds: CatalogueOutlierThresholds,
+    maximum_separation_beams: float,
+    position_angle_minimum_axis_ratio: float,
+    process_recipe: RecipeProcessor = _process_recipe,
+) -> CampaignRealizationDiagnostic:
+    """Run and diagnose one seed while retaining implementation failures."""
+    try:
+        candidate = process_recipe(recipe, dataset, directory)
+    except Exception as error:
+        traceback_text = traceback.format_exc()
+        print(traceback_text, end="", file=sys.stderr, flush=True)
+        return CampaignRealizationDiagnostic(
+            implementation_identifier=implementation_identifier,
+            seed=recipe.seed,
+            status="failure",
+            failure=failure_from_exception(
+                error,
+                stage="hebog-source-finding",
+                traceback_text=traceback_text,
+            ),
+        )
+    try:
+        return diagnose_phase_four_realization(
+            dataset,
+            recipe,
+            candidate,
+            implementation_identifier=implementation_identifier,
+            outlier_thresholds=outlier_thresholds,
+            maximum_separation_beams=maximum_separation_beams,
+            position_angle_minimum_axis_ratio=(
+                position_angle_minimum_axis_ratio
+            ),
+        )
+    except Exception as error:
+        traceback_text = traceback.format_exc()
+        print(traceback_text, end="", file=sys.stderr, flush=True)
+        return CampaignRealizationDiagnostic(
+            implementation_identifier=implementation_identifier,
+            seed=recipe.seed,
+            status="failure",
+            failure=failure_from_exception(
+                error,
+                stage="campaign-comparison",
+                traceback_text=traceback_text,
+            ),
+        )
+
+
+def _parse_args() -> argparse.Namespace:
+    """Parse one isolated candidate campaign request."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--manifest", required=True, type=Path)
+    parser.add_argument("--dataset-id", required=True)
+    parser.add_argument("--scientific-gates", required=True, type=Path)
+    parser.add_argument(
+        "--scientific-contract",
+        action="append",
+        required=True,
+        type=Path,
+    )
+    parser.add_argument("--comparison-protocol", required=True, type=Path)
+    parser.add_argument("--implementation-id", default="hebog")
+    parser.add_argument("--expected-version", required=True)
+    parser.add_argument("--hebog-commit", required=True)
+    parser.add_argument("--source-tree-sha256")
+    parser.add_argument("--container-image-digest")
+    parser.add_argument("--run-id", required=True)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--maximum-separation-beams", default=0.5, type=float)
+    parser.add_argument(
+        "--position-angle-minimum-axis-ratio",
+        default=1.1,
+        type=float,
+    )
+    return parser.parse_args()
+
+
+def _run(args: argparse.Namespace) -> CampaignImplementationEvidence:
+    """Run every governed seed and return one strict candidate shard."""
+    observed_version = importlib.metadata.version("hebog")
+    if observed_version != args.expected_version:
+        raise RuntimeError(
+            "installed Hebog version does not match the requested candidate: "
+            f"expected {args.expected_version}, observed {observed_version}"
+        )
+    dataset = dataset_by_identifier(args.manifest, args.dataset_id)
+    if dataset.role not in {DatasetRole.REGRESSION, DatasetRole.QUALIFICATION}:
+        raise ValueError(
+            "Phase 4 candidate campaigns require regression or "
+            "qualification data"
+        )
+    configuration = _hebog_configuration()
+    outlier_thresholds = phase_four_outlier_thresholds(args.scientific_gates)
+    started = time.perf_counter()
+    realizations: list[CampaignRealizationDiagnostic] = []
+    recipes = tuple(
+        sorted(iter_dataset_recipes(dataset), key=lambda recipe: recipe.seed)
+    )
+    with TemporaryDirectory(prefix="hebog-phase4-candidate-") as temporary:
+        root = Path(temporary)
+        for index, recipe in enumerate(recipes):
+            directory = root / f"seed-{recipe.seed}"
+            directory.mkdir()
+            realizations.append(
+                _run_realization(
+                    recipe,
+                    dataset,
+                    directory,
+                    implementation_identifier=args.implementation_id,
+                    outlier_thresholds=outlier_thresholds,
+                    maximum_separation_beams=args.maximum_separation_beams,
+                    position_angle_minimum_axis_ratio=(
+                        args.position_angle_minimum_axis_ratio
+                    ),
+                )
+            )
+            print(
+                json.dumps(
+                    {
+                        "completed": index + 1,
+                        "elapsed_seconds": time.perf_counter() - started,
+                        "total": len(recipes),
+                    },
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+    return CampaignImplementationEvidence(
+        schema_version=1,
+        evidence_type="scientific-campaign-implementation",
+        run_id=args.run_id,
+        captured_at=datetime.now(UTC),
+        status=EvidenceStatus.EXPLORATORY,
+        dataset=campaign_dataset_identity(dataset),
+        configuration_sha256=contract_set_sha256(args.scientific_contract),
+        comparison_protocol_sha256=canonical_sha256(
+            json_document(args.comparison_protocol)
+        ),
+        implementation=CampaignImplementationIdentity(
+            identifier=args.implementation_id,
+            role="candidate",
+            execution_configuration_sha256=canonical_sha256(configuration),
+            software=SoftwareIdentity(
+                name="hebog",
+                version=observed_version,
+                commit_sha=args.hebog_commit,
+                source_tree_sha256=args.source_tree_sha256,
+                container_image_digest=args.container_image_digest,
+                dependency_inventory_sha256=dependency_inventory_sha256(),
+            ),
+        ),
+        wall_seconds=time.perf_counter() - started,
+        realizations=tuple(realizations),
+    )
+
+
+def main() -> None:
+    """Run Hebog and atomically write its candidate evidence shard."""
+    args = _parse_args()
+    if args.output.exists():
+        raise FileExistsError(
+            f"refusing to overwrite campaign evidence: {args.output}"
+        )
+    evidence = _run(args)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    write_evidence(args.output, evidence)
+
+
+if __name__ == "__main__":
+    main()

@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib.metadata
 import json
 import sys
@@ -19,29 +18,46 @@ from typing import Any, cast
 import numpy as np
 from astropy.io import fits
 
+from hebog.validation.campaign_runtime import (
+    campaign_dataset_identity as _dataset_identity,
+)
+from hebog.validation.campaign_runtime import (
+    canonical_sha256 as _canonical_sha256,
+)
+from hebog.validation.campaign_runtime import (
+    contract_set_sha256 as _contract_set_sha256,
+)
+from hebog.validation.campaign_runtime import (
+    dataset_by_identifier as _dataset_by_identifier,
+)
+from hebog.validation.campaign_runtime import (
+    dependency_inventory_sha256 as _dependency_inventory_sha256,
+)
+from hebog.validation.campaign_runtime import (
+    failure_from_exception as _failure_from_exception,
+)
+from hebog.validation.campaign_runtime import json_document as _json_document
+from hebog.validation.campaign_runtime import (
+    phase_four_outlier_thresholds as _outlier_thresholds,
+)
 from hebog.validation.campaigns import diagnose_phase_four_realization
 from hebog.validation.comparison import (
     CatalogueOutlierThresholds,
     CatalogueSource,
 )
-from hebog.validation.contracts import load_phase_four_scientific_gates
 from hebog.validation.datasets import (
     DatasetRecord,
     DatasetRole,
     SyntheticRecipe,
     generate_synthetic_image,
     iter_dataset_recipes,
-    load_dataset_manifest,
 )
 from hebog.validation.evidence import (
-    CampaignFailure,
     CampaignImplementationEvidence,
     CampaignImplementationIdentity,
     CampaignRealizationDiagnostic,
-    DatasetIdentity,
     EvidenceStatus,
     SoftwareIdentity,
-    WorkloadClass,
     write_evidence,
 )
 from hebog.validation.materialization import synthetic_fits_header
@@ -77,49 +93,6 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _canonical_sha256(value: object) -> str:
-    """Hash one JSON-compatible value without presentation whitespace."""
-    payload = json.dumps(
-        value,
-        allow_nan=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _json_document(path: Path) -> object:
-    """Load one scientific contract as JSON for canonical hashing."""
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _contract_set_sha256(paths: list[Path]) -> str:
-    """Bind the ordered shared scientific contracts used by every shard."""
-    if not paths:
-        raise ValueError("at least one scientific contract is required")
-    return _canonical_sha256([_json_document(path) for path in paths])
-
-
-def _dependency_inventory_sha256() -> str:
-    """Hash the complete installed distribution inventory."""
-    inventory = sorted(
-        (
-            {
-                "name": distribution.metadata["Name"]
-                .lower()
-                .replace(
-                    "_",
-                    "-",
-                ),
-                "version": distribution.version,
-            }
-            for distribution in importlib.metadata.distributions()
-        ),
-        key=lambda item: item["name"],
-    )
-    return _canonical_sha256(inventory)
-
-
 def _pybdsf_configuration(ncores: int) -> dict[str, object]:
     """Return the exact released Rapthor/LSMTool PyBDSF profile."""
     if ncores < 1:
@@ -138,50 +111,6 @@ def _pybdsf_configuration(ncores: int) -> dict[str, object]:
         "thresh_isl": 3.0,
         "thresh_pix": 5.0,
     }
-
-
-def _failure_from_exception(
-    error: Exception,
-    *,
-    stage: str,
-    traceback_text: str,
-) -> CampaignFailure:
-    """Convert an implementation exception to stable paired evidence."""
-    message = str(error).strip() or repr(error)
-    return CampaignFailure(
-        stage=stage,
-        exception_type=type(error).__name__,
-        message=message,
-        traceback_sha256=hashlib.sha256(
-            traceback_text.encode("utf-8")
-        ).hexdigest(),
-    )
-
-
-def _dataset_by_identifier(path: Path, identifier: str) -> DatasetRecord:
-    """Resolve one exact governed dataset."""
-    matches = tuple(
-        dataset
-        for dataset in load_dataset_manifest(path).datasets
-        if dataset.identifier == identifier
-    )
-    if len(matches) != 1:
-        raise ValueError(
-            f"expected one dataset named {identifier!r}, found {len(matches)}"
-        )
-    return matches[0]
-
-
-def _dataset_identity(dataset: DatasetRecord) -> DatasetIdentity:
-    """Bind the complete recipe, seed population, truth, WCS, and strata."""
-    content_sha256 = _canonical_sha256(dataset.model_dump(mode="json"))
-    return DatasetIdentity(
-        identifier=dataset.identifier,
-        role=dataset.role,
-        content_sha256=content_sha256,
-        shape_yx=dataset.recipe.shape_yx,
-        workload_class=WorkloadClass.NORMAL,
-    )
 
 
 def _write_input(
@@ -296,27 +225,6 @@ def _run_realization(  # noqa: PLR0913
         )
 
 
-def _outlier_thresholds(path: Path) -> CatalogueOutlierThresholds:
-    """Load the unchanged community-science catastrophic thresholds."""
-    gates = load_phase_four_scientific_gates(path)
-    outlier = gates.catastrophic_outlier
-    return CatalogueOutlierThresholds(
-        position_beams=outlier.position_beams,
-        peak_flux_fractional_difference=(
-            outlier.peak_flux_fractional_difference
-        ),
-        integrated_flux_fractional_difference=(
-            outlier.integrated_flux_fractional_difference
-        ),
-        fitted_axis_fractional_difference=(
-            outlier.fitted_axis_fractional_difference
-        ),
-        deconvolved_axis_fractional_difference=(
-            outlier.deconvolved_axis_fractional_difference
-        ),
-    )
-
-
 def _run(
     args: argparse.Namespace, bdsf_module: Any
 ) -> CampaignImplementationEvidence:
@@ -328,9 +236,10 @@ def _run(
             f"expected {args.expected_version}, observed {observed_version}"
         )
     dataset = _dataset_by_identifier(args.manifest, args.dataset_id)
-    if dataset.role is not DatasetRole.QUALIFICATION:
+    if dataset.role not in {DatasetRole.REGRESSION, DatasetRole.QUALIFICATION}:
         raise ValueError(
-            "Phase 4 reference campaigns require qualification data"
+            "Phase 4 reference campaigns require regression or "
+            "qualification data"
         )
     configuration = _pybdsf_configuration(args.ncores)
     outlier_thresholds = _outlier_thresholds(args.scientific_gates)
