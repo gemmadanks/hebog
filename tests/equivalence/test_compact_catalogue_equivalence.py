@@ -317,7 +317,7 @@ def compact_catalogue(
     )
     moment = CompactMomentConfig(3, 1e-12)
     fit = CompactGaussianFitConfig(7, 300, 0.2, 30.0, 5.0, 1.0, 1e-8, 30.0)
-    catalogue_config = CompactCatalogueConfig(10_000, 1e-10, 2.0)
+    catalogue_config = CompactCatalogueConfig(10_000, 1e-10, 5.0)
     geometry = compact_geometry_at_pixel(
         metadata,
         (metadata.shape_yx[1] / 2.0, metadata.shape_yx[0] / 2.0),

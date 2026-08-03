@@ -3667,3 +3667,52 @@ and compatibility serialization
   PyBDSF while preserving Hebog's clear-extension, catastrophic-tail,
   uncertainty, and unresolved-group strengths. Then refresh the complete
   paired evidence before accepting any planning-variance estimate.
+
+## 2026-08-03 — Required high-confidence compact-source extension
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Finding**
+
+- Replayed the standardized ATLAS log integrated-to-peak statistic for all
+  1,600 predeclared point sources and 200 predeclared clear extensions in the
+  independent paired regression. Point truth ranged from -2.08 to 3.38 sigma;
+  clear truth ranged from 17.92 to 23.83 sigma.
+- The former two-sigma rule has the documented 2.3% one-sided
+  false-extension probability and classified 51 of 1,568 point sources as
+  resolved on the jointly successful pre-correction images. Released PyBDSF
+  classified all of them as unresolved. This conflicts with the paired
+  no-worse decision even though it passes the weaker absolute 95% specificity
+  floor.
+
+**Correction**
+
+- Retained the community-used standardized statistic and changed the proposed
+  Phase 4 catalogue threshold to five sigma. This is a deliberately
+  conservative compatibility policy: a false resolved decision assigns a
+  physical size and uses a noise-biased free-fit integral, while independent
+  regression leaves more than 12 sigma between the largest point value and
+  the smallest clear value.
+- Added an analytic TDD case between two and five sigma plus permanent
+  independently seeded tests for the largest observed point value and the
+  smallest clear value. The threshold remains explicit configuration, so
+  alternative workflows can make a reviewed policy choice.
+- Recorded the proposal and evidence in the scientific references and plan.
+  Named scientific review is still required; no final qualification
+  population has been generated or opened.
+
+**Validation**
+
+- `just check`: 618 passed and four expected failures.
+- `just test-equivalence`: 26 passed.
+- `just test-acceptance`: seven expected failures and no unexpected failure.
+- `just test-integration`: 128 passed.
+- `just coverage`: 96% branch-aware project coverage; the changed campaign
+  configuration remains fully covered and the catalogue path is exercised by
+  focused analytic and integration tests.
+
+**Next**
+
+- Run branch-aware coverage, documentation, notebook, and pre-commit checks;
+  then refresh the complete 200-image paired regression with both corrections
+  before accepting planning assumptions or seeking named approval.

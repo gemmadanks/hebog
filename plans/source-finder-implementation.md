@@ -1528,8 +1528,13 @@ before maintaining a custom fitter.
    deconvolved as two-by-two covariance matrices. Fully and marginally
    unresolved results remain null internally, with the marginal state carrying
    an additional diagnostic flag. For noisy fits, positive deconvolution must
-   also pass the frozen ATLAS two-sigma integrated-to-peak uncertainty rule;
-   point-source specificity and clear-extension recall are gated separately.
+   also pass the standardized ATLAS integrated-to-peak uncertainty statistic.
+   The recovery policy now requires five sigma: the earlier two-sigma rule's
+   documented false-extension tail was incompatible with the stricter paired
+   no-worse decision, while independent regression left a wide 3.38-to-17.92
+   sigma separation between point and clearly resolved populations.
+   Point-source specificity and clear-extension recall remain gated
+   separately.
    `radio_beam` was evaluated but not added:
    Hebog's reviewed three-state policy still requires explicit logic and direct
    NumPy covariance subtraction keeps the boundary smaller. Correlated-noise
@@ -1768,12 +1773,16 @@ before maintaining a custom fitter.
       same minimum. Analytic tests and all four independently seeded failure
       cases pass without dropping parent pixels. The remaining active science
       correction is point-source extension classification; the independent
-      regression shows false resolved decisions at 2.02--3.38 times the
-      current flux-ratio uncertainty, while the current two-sigma ATLAS rule
-      deliberately permits a 2.3% one-sided false-extension rate. Select and
-      review a more conservative community-supported rule while proving that
-      clear-extension recall and Hebog's stronger error envelopes remain
-      intact.
+      regression showed false resolved decisions at 2.02--3.38 times the
+      flux-ratio uncertainty, while the earlier two-sigma ATLAS rule
+      deliberately permits a 2.3% one-sided false-extension rate. A
+      five-sigma high-confidence decision is now implemented and protected by
+      analytic plus independent worst-margin tests. Across all 1,600 point
+      and 200 clear regression cases, point values ended below 3.39 sigma and
+      clear values began above 17.92 sigma. Named review must approve this
+      conservative compatibility policy before final population freeze; the
+      refreshed complete paired run must still prove that no stronger Hebog
+      error envelope regressed.
    5. Require the complete analytic, property, powered regression,
       serial/Dask, exact-fixture, Rapthor-decision, and coverage lanes to pass
       before named approval opens the final campaign exactly once. The final

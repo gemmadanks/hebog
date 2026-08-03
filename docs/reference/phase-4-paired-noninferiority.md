@@ -151,6 +151,15 @@ has changed, the exploratory estimates do not verify the planning assumptions;
 the complete paired run must be refreshed after the point-classification
 correction as well.
 
+The source-level margin audit then measured the standardized ATLAS extension
+statistic for all 1,600 point and 200 clear regression cases. Point truth ended
+at 3.38 sigma and clear truth began at 17.92 sigma. Phase 4 now proposes a
+five-sigma high-confidence catalogue decision, replacing the earlier
+two-sigma boundary while retaining the same statistic. The analytic and
+independent worst-margin tests pass, but this policy is not approved and the
+pre-change campaign cannot establish its paired endpoint or variance. Named
+review and a refreshed complete run remain mandatory.
+
 ## One-look governance
 
 After named approval, freeze the generator version, exactly 600 seeds, truth,
@@ -189,5 +198,8 @@ Named review must decide whether:
   assumptions are verified;
 - the stricter no-worse point-estimate condition should remain in addition to
   conventional non-inferiority; and
+- the five-sigma high-confidence extension decision is scientifically
+  proportionate given the wide independent point/clear margin and the cost of
+  assigning a false physical size; and
 - the co-primary and report-only endpoint split protects all material Hebog
   strengths without turning exploratory metrics into hidden gates.

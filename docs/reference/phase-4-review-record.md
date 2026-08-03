@@ -533,13 +533,13 @@ sources. These strata contain 1,600 point, 200 clear, and 4,600 report-only
 marginal measurements. No image, catalogue, comparison, or result from this
 campaign has been generated or inspected.
 
-## Independent regression after the correction
+## Independent regression after the first correction
 
-The implementation keeps the free seven-parameter fit as diagnostic evidence,
-then applies the frozen two-sigma rule at the pixel-to-celestial catalogue
-boundary. An insignificant source gets a null deconvolved shape,
+The first correction kept the free seven-parameter fit as diagnostic evidence,
+then applied the frozen two-sigma rule at the pixel-to-celestial catalogue
+boundary. An insignificant source got a null deconvolved shape,
 `extension-not-significant`, and peak-as-total flux. A noisy fit without flux
-uncertainty has an unavailable extension classification instead of silently
+uncertainty had an unavailable extension classification instead of silently
 falling back to geometry. The significance is explicit configuration rather
 than a hidden threshold.
 
@@ -560,10 +560,11 @@ seconds. Exact compact comparisons also pass against released and pinned
 The raw PyBDSF fixture remains unchanged and records one intentional
 divergence: an unresolved free-fit total about 39% below peak.
 
-## Named addendum review
+## Named addendum review of the first correction
 
 Gemma Danks reviewed and approved every item below while the replacement
-campaign remained unopened:
+campaign remained unopened. The later paired regression superseded only the
+approved two-sigma threshold; all other decisions remain current:
 
 - [x] approve the ATLAS one-sided two-sigma log integrated-to-peak rule;
 - [x] approve point specificity and clear-extension recall as separate 95%
@@ -818,3 +819,43 @@ sample size, and stricter directional condition have **not** received named
 approval. The variance assumptions must first be verified on independent
 paired development/regression evidence. No final seed, truth, or result has
 been generated or inspected.
+
+## Independent point-classification recovery — awaiting review
+
+The corrected-geometry paired regression provided a truth-only margin audit
+before any final population was frozen. Across 1,600 predeclared
+beam-compatible point sources, the standardized ATLAS log
+integrated-to-peak statistic ranged from -2.08 to 3.38. Across the 200
+predeclared clear extensions, the same statistic ranged from 17.92 to 23.83.
+At the earlier two-sigma boundary Hebog classified 51 of 1,568 point sources
+as resolved on the jointly successful images (96.75% specificity), while
+released PyBDSF classified all of them as unresolved. ATLAS itself documents
+a 2.3% one-sided false-extension probability for that two-sigma decision, so
+this was a foreseeable policy tail rather than evidence that the injected
+point truth was invalid.
+
+The recovery implementation retains the ATLAS statistic but requires five
+sigma for the catalogue-level resolved claim. Five sigma is deliberately
+conservative: the final paired contract requires a no-worse point estimate,
+false extension creates a physical size and switches from peak-as-total to a
+noise-biased free-fit integral, and the independent clear population retains
+more than 12 sigma of observed margin above the decision. Marginal extension
+remains report-only, so it cannot be traded against the co-primary point and
+clear populations.
+
+The reviewer must decide whether to approve:
+
+1. five sigma as the high-confidence catalogue extension threshold for Phase
+   4 and the Rapthor compatibility product; and
+2. retention of the ATLAS standardized statistic, peak-as-total unresolved
+   policy, separate point/clear gates, and report-only marginal population
+   without changing any absolute scientific margin.
+
+- **Reviewer:** pending
+- **Role or scientific authority:** pending
+- **Review date:** pending
+- **Decision:** Pending named review
+
+This regression evidence cannot qualify Hebog. The complete paired audit must
+be refreshed after the implementation change, its planning assumptions must
+be reviewed, and a final population must remain ungenerated until approval.

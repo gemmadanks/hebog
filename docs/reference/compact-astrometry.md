@@ -36,12 +36,18 @@ covariance and classifies the eigenvalues:
   `marginal-deconvolution` and `unresolved` quality flags.
 
 For a noisy fit, positive geometric deconvolution is necessary but not
-sufficient evidence of physical extension. Hebog applies the one-sided ATLAS
-DR3 test: `ln(S_integrated / S_peak)` must exceed two times the quadrature
-relative uncertainty of the two fluxes. A geometrically resolved fit that does
-not pass is reported as unresolved with `extension-not-significant`. If the fit
-declares its flux uncertainty unavailable, the extension classification is
-also unavailable. Exact analytic fits without an uncertainty-unavailable flag
+sufficient evidence of physical extension. Hebog uses the standardized
+one-sided [ATLAS DR3](https://doi.org/10.1093/mnras/stv1866) statistic:
+`ln(S_integrated / S_peak)` divided by the quadrature relative uncertainty of
+the two fluxes. ATLAS used a two-sigma decision and explicitly reported a 2.3%
+point-source false-extension probability. Phase 4 uses a conservative
+five-sigma threshold because a false resolved shape is a material catalogue
+error and the paired closure contract
+requires Hebog to be no worse than released PyBDSF, not merely to pass the 95%
+absolute specificity floor. A geometrically resolved fit that does not pass is
+reported as unresolved with `extension-not-significant`. If the fit declares
+its flux uncertainty unavailable, the extension classification is also
+unavailable. Exact analytic fits without an uncertainty-unavailable flag
 retain their geometric result so noiseless contract cases remain exact.
 
 The classification threshold is explicit runtime configuration. The frozen
@@ -83,7 +89,10 @@ well-known upward width/area noise bias in low-SNR free Gaussian fits. For a
 resolved source, the infinite-plane fitted-Gaussian integral remains the
 catalogue value, but its propagated uncertainty is report-only in Phase 4.
 
-The amended powered correlated-noise regression passes the frozen position,
-peak-flux, unresolved-flux, point-specificity, and clear-extension gates. The
-replacement held-out campaign remains unopened pending named scientific
-review; no qualification claim is made from regression evidence.
+The independent paired-regression margin audit covers 1,600 predeclared point
+sources and 200 predeclared clear extensions. Point-source values span
+-2.08--3.38 sigma, while every clear extension spans 17.92--23.83 sigma. The
+five-sigma decision therefore classified every point and clear source
+correctly without choosing a boundary close to either population. This is
+regression evidence, not final qualification; the paired protocol and final
+population still require named review.

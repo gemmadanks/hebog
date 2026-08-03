@@ -146,7 +146,7 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
         },
         "catalogue": {
             "deconvolution_relative_tolerance": 1e-10,
-            "extension_significance_sigma": 2.0,
+            "extension_significance_sigma": 5.0,
             "maximum_catalogue_records": 10000,
         },
         "coarse_rms": {

@@ -195,7 +195,7 @@ def build_compact_catalogue_shard(
     metadata: ImageMetadata,
     *,
     deconvolution_relative_tolerance: float,
-    extension_significance_sigma: float = 2.0,
+    extension_significance_sigma: float = 5.0,
 ) -> CompactCatalogueShard:
     """Transform one coarse batch into a canonical scheduler-safe shard."""
     islands: list[Island] = []

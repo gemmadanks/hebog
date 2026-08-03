@@ -108,7 +108,7 @@ def _configs() -> tuple[
             1e-8,
             30.0,
         ),
-        CompactCatalogueConfig(10_000, 1e-10, 2.0),
+        CompactCatalogueConfig(10_000, 1e-10, 5.0),
     )
 
 

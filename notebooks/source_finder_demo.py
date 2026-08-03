@@ -314,7 +314,7 @@ def _(
     catalogue_configuration = hebog_config.CompactCatalogueConfig(
         maximum_catalogue_records=10_000,
         deconvolution_relative_tolerance=1e-10,
-        extension_significance_sigma=2.0,
+        extension_significance_sigma=5.0,
     )
     _pixel_scales_degrees = demonstration_dataset.wcs.pixel_scale_degrees_xy
     _reference_x, _reference_y = demonstration_dataset.wcs.reference_pixel_xy

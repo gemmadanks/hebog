@@ -292,7 +292,7 @@ def transform_compact_gaussian_fit(
     metadata: ImageMetadata,
     *,
     deconvolution_relative_tolerance: float = 1e-10,
-    extension_significance_sigma: float = 2.0,
+    extension_significance_sigma: float = 5.0,
 ) -> CelestialCompactGaussianFit:
     """Transform a valid pixel fit into reviewed ICRS catalogue quantities."""
     if metadata.unit != "Jy/beam":

@@ -325,6 +325,26 @@ def test_extension_requires_two_sigma_flux_ratio_significance() -> None:
     )
 
 
+def test_default_extension_policy_requires_five_sigma() -> None:
+    """Catalogue extension is a high-confidence morphology decision."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.0025,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.005,
+    )
+
+    result = transform_compact_gaussian_fit(
+        _fit(uncertainty=uncertainty),
+        _metadata(),
+    )
+
+    assert result.deconvolution_status == "unresolved"
+    assert result.deconvolved_shape is None
+    assert "extension-not-significant" in result.quality_flags
+
+
 def test_geometrically_unresolved_fit_remains_unresolved() -> None:
     """The significance rule preserves an already beam-compatible shape."""
     uncertainty = GaussianFitUncertainty(

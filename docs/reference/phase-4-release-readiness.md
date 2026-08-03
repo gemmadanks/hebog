@@ -23,7 +23,7 @@ post-inspection tuning is more important than declaring a premature pass.
   through an Astropy ICRS WCS boundary;
 - restoring-beam covariance is deconvolved into explicit resolved,
   unresolved, and marginal states, then noisy extension is classified with an
-  explicit two-sigma flux-ratio uncertainty test;
+  explicit high-confidence flux-ratio uncertainty test;
 - islands, Gaussian components, and source candidates remain distinct typed
   records with canonical global identities;
 - one catalogue shard is produced per admitted coarse task, pairwise reduction
@@ -132,11 +132,14 @@ The viewed recipe is now archived unchanged. Before corrective production
 code, a second campaign was frozen with 200 disjoint seeds, distinct WCS,
 negative background, varying RMS, invalid pixels, correlated noise, and
 predeclared point-source, clearly resolved, marginal-resolution, edge, SNR,
-and unresolved-group strata. Literature review selected the ATLAS two-sigma
-integrated-to-peak uncertainty rule, point-source specificity and clear-source
-recall gates, report-only marginal classification, and peak flux for
-beam-compatible sources. The undefined morphology-specific reliability gate
-was removed; overall catalogue reliability remains gated.
+and unresolved-group strata. The first correction selected the ATLAS
+two-sigma integrated-to-peak uncertainty rule, point-source specificity and
+clear-source recall gates, report-only marginal classification, and peak flux
+for beam-compatible sources. The later paired regression showed that this
+threshold retained its expected false-extension tail; Phase 4 now proposes a
+five-sigma high-confidence decision pending named review. The undefined
+morphology-specific reliability gate was removed; overall catalogue
+reliability remains gated.
 
 The correction is implemented through TDD and the powered independent
 regression now passes. Regression also established, before qualification, that
