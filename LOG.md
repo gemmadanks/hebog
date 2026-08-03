@@ -3844,3 +3844,50 @@ and compatibility serialization
 - Freeze the final 600-image population and all execution provenance without
   generating images or inspecting results; then run it exactly once under the
   reviewed protocol.
+
+## 2026-08-03 — Froze the final Phase 4 population
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Decision**
+
+- Froze `phase4-final-paired-qualification-512` with generator version 3 and
+  exactly 600 seeds disjoint from every prior Phase 4 population. No image or
+  result was generated or inspected.
+- Used a distinct WCS, background, invalid region, and correlated-noise
+  gradient. A 90-degree source-layout and beam rotation preserves the governed
+  blend-to-beam geometry and the reviewed 33-group endpoint structure rather
+  than introducing a scientifically different workload after the power audit.
+- The population is subject to the reviewed one-look rule. Before opening it,
+  record the exact clean Hebog revision, both immutable PyBDSF environments,
+  dependency inventories, and unique output paths. A scientific failure does
+  not authorize a replacement population.
+- Both campaign runners now reject qualification before recipe iteration
+  unless the measurement contract, scientific gates, and paired protocol all
+  carry their reviewed statuses. Regression planning runs remain available.
+
+**Evidence**
+
+- Recipe SHA-256:
+  `15f8f607463f2db4cf4c0eb72255a998784e2d83d3a0d7ebc45eb733f6fbc7db`.
+- Complete campaign dataset-record SHA-256:
+  `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`.
+- Reviewed scientific-contract-set SHA-256:
+  `562b648d98eb1d28d65341cfe99c8dba4bd36b8d928d132e6ab6f05bf8d96d79`.
+- Reviewed paired-protocol SHA-256:
+  `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
+- Manifest and campaign-guard tests validate the schema, exact checksums, 600
+  unique seeds, cross-manifest seed disjointness, endpoint counts, and rotated
+  blend geometry.
+- `just coverage`: 764 passed with four expected failures and 95.54%
+  branch-aware project coverage. The changed campaign-runtime module reaches
+  100% branch coverage in its focused 11-test suite.
+- `just check`, strict documentation build, and all pre-commit hooks pass.
+
+**Next**
+
+- Extend the source diagnostic schema with the position-angle differences
+  required by the existing gates and implement the immutable final evaluator
+  for every paired interval, absolute gate, and stronger-Hebog envelope.
+- After that evaluator is tested and frozen, freeze the remaining execution
+  identities and run the final population exactly once without tuning.

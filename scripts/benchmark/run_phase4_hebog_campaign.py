@@ -21,6 +21,7 @@ from hebog.validation.campaign_runtime import (
     failure_from_exception,
     json_document,
     phase_four_outlier_thresholds,
+    require_reviewed_qualification_inputs,
 )
 from hebog.validation.campaigns import diagnose_phase_four_realization
 from hebog.validation.comparison import CatalogueOutlierThresholds
@@ -145,6 +146,12 @@ def _run(args: argparse.Namespace) -> CampaignImplementationEvidence:
             "Phase 4 candidate campaigns require regression or "
             "qualification data"
         )
+    require_reviewed_qualification_inputs(
+        dataset,
+        scientific_contracts=args.scientific_contract,
+        scientific_gates=args.scientific_gates,
+        comparison_protocol=args.comparison_protocol,
+    )
     configuration = _hebog_configuration()
     outlier_thresholds = phase_four_outlier_thresholds(args.scientific_gates)
     started = time.perf_counter()

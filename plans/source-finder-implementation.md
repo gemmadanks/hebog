@@ -1677,6 +1677,31 @@ before maintaining a custom fitter.
          2026-08-03 and approved removal of the extra sign gate. Point
          estimates remain mandatory report fields; every one-sided upper
          bound, absolute gate, and stronger-Hebog envelope must pass.
+   - [x] Freeze the final population without generating or inspecting it.
+         `phase-4-final-qualification.json` contains exactly 600 disjoint
+         seeds and a distinct WCS, background, invalid region, correlated-
+         noise gradient, and rotated layout. The rotation preserves the
+         governed blend-to-beam geometry and all 33 truth-group, 32
+         individually resolvable, eight point, one clear, and one unresolved-
+         blend endpoint populations. Recipe SHA-256 is
+         `15f8f607463f2db4cf4c0eb72255a998784e2d83d3a0d7ebc45eb733f6fbc7db`;
+         complete campaign dataset SHA-256 is
+         `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`.
+   - [ ] Implement and freeze the final one-look decision evaluator before
+         opening the population. Extend the per-source diagnostic record with
+         the fitted and deconvolved position-angle differences required by the
+         existing absolute gates. The evaluator must recompute every endpoint,
+         apply the reviewed paired one-sided 95% SciPy BCa upper limits,
+         require every absolute science gate and stronger-Hebog envelope,
+         retain failed realizations in the denominator, and emit one immutable
+         machine-readable decision. Test the interval, degenerate, missing-
+         field, implementation-failure, and gate-failure paths on analytic or
+         viewed regression evidence only.
+   - [ ] Record the exact clean Hebog revision, both immutable PyBDSF
+         execution environments, dependency inventories, and output paths;
+         then open the frozen population exactly once. Infrastructure retries
+         may resume only its recorded seeds. Compile without denominator
+         deletion and apply the reviewed intersection-union decision once.
 
      The structurally representative planning population is now governed by
      `phase-4-paired-regression.json`: 200 disjoint noise seeds, 33 observable
@@ -1759,11 +1784,12 @@ before maintaining a custom fitter.
       never promote, rerun, or tune against them. Preserve the released
       PyBDSF same-campaign result, the pinned-master runtime failure, exact
       versions, and Rapthor configuration alongside the reproducible runner.
-   2. Define and obtain named review of a
-      paired comparison protocol and its power calculation, then freeze one
-      final unseen population, generator version, seeds, truth, PyBDSF
-      revisions, practical-equivalence margins, and stopping rule. Run Hebog
-      and each reference on the identical images. Predeclare the desirable
+   2. The paired comparison protocol, power calculation, and one final unseen
+      population are now reviewed and frozen. The freeze records the generator
+      version, 600 seeds, truth, WCS and beam strata, practical-equivalence
+      margins, analysis rule, and stopping rule. Record the exact Hebog and
+      PyBDSF execution identities before running each implementation on the
+      identical images. Predeclare the desirable
       direction or ideal value for every metric; compare absolute departure
       from the ideal for bias, coverage, and dispersion rather than treating a
       numerically larger value as better. Report Hebog's signed point estimate
@@ -1781,8 +1807,10 @@ before maintaining a custom fitter.
       The weakest interval-exclusion power at 600 realizations is 92.2%. The
       planning variance assumptions are verified on independent paired
       development/regression evidence. Gemma Danks approved the protocol and
-      five-sigma policy on 2026-08-03, permitting final-population freeze but
-      not inspection before that freeze is complete.
+      five-sigma policy on 2026-08-03. The final population is now frozen,
+      ungenerated, and unopened. Complete and freeze the decision evaluator,
+      then record every execution identity before the single permitted
+      opening.
    3. Keep every existing absolute community-science gate and every stronger
       Hebog result. In particular, do not trade away Hebog's complete group
       recovery, uncertainty availability, calibrated position and peak-flux
@@ -1823,7 +1851,7 @@ before maintaining a custom fitter.
       permitted after final-population freeze.
    5. Require the complete analytic, property, powered regression,
       serial/Dask, exact-fixture, Rapthor-decision, and coverage lanes to pass
-      before named approval opens the final campaign exactly once. The final
+      before the reviewed final campaign is opened exactly once. The final
       result must pass all absolute gates, retain the stronger Hebog
       regression envelopes, and be statistically non-inferior against released
       PyBDSF. Signed point estimates are reported but are not separate gates. A

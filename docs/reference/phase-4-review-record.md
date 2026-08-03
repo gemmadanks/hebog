@@ -981,3 +981,41 @@ and five-sigma scientific-gate contract are both `reviewed-provisional`. This
 named decision permits the final 600-image population to be frozen, but not
 opened, before its generator, truth, seeds, WCS/beam strata, exact
 implementation revisions, analysis code, and stopping rule are recorded.
+
+## Final population freeze
+
+After the named decision, the final one-look population was frozen in
+`config/datasets/phase-4-final-qualification.json` without generating any
+image or inspecting any result. It contains exactly 600 seeds disjoint from
+every earlier Phase 4 population. Its distinct WCS, background, invalid
+region, and correlated-noise gradient reduce dependence on the viewed
+populations. A 90-degree source-layout and beam rotation preserves the
+governed unresolved-blend geometry and the reviewed endpoint counts.
+
+- **Dataset identifier:** `phase4-final-paired-qualification-512`
+- **Generator:** `hebog.synthetic.gaussian-noise`, version 3
+- **Recipe SHA-256:**
+  `15f8f607463f2db4cf4c0eb72255a998784e2d83d3a0d7ebc45eb733f6fbc7db`
+- **Complete dataset-record SHA-256:**
+  `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`
+- **Scientific-contract-set SHA-256:**
+  `562b648d98eb1d28d65341cfe99c8dba4bd36b8d928d132e6ab6f05bf8d96d79`
+- **Paired-protocol SHA-256:**
+  `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`
+- **State at freeze:** ungenerated and unopened
+
+Before opening the population, the operator must record the exact clean Hebog
+revision, immutable released and pinned-`master` PyBDSF environments,
+dependency inventories, and unique output paths. The one permitted opening
+must use the maintained runners and compiler; a scientific failure cannot be
+replaced by another population. Both maintained runners fail before recipe
+iteration unless the measurement contract, scientific gates, and paired
+protocol carry their reviewed statuses.
+
+The population remains unopened because one pre-run implementation step is
+still required: the maintained final evaluator must apply every paired BCa
+interval, absolute gate, and stronger-Hebog envelope in one immutable decision.
+The current per-source campaign record must first retain fitted and
+deconvolved position-angle differences so that all existing absolute shape
+gates are evaluable. This work may use analytic and viewed regression evidence
+only and must be frozen before any final image is generated.

@@ -16,11 +16,16 @@ from hebog.validation.campaign_runtime import (
     dependency_inventory_sha256,
     failure_from_exception,
     phase_four_outlier_thresholds,
+    require_reviewed_qualification_inputs,
 )
 from hebog.validation.datasets import load_dataset_manifest
 
 _ROOT = Path(__file__).parents[3]
 _MANIFEST = _ROOT / "config/datasets/phase-4-regression.json"
+_FINAL_MANIFEST = _ROOT / "config/datasets/phase-4-final-qualification.json"
+_MEASUREMENT = _ROOT / "config/contracts/phase-4-measurement.json"
+_GATES = _ROOT / "config/contracts/phase-4-scientific-gates.json"
+_PROTOCOL = _ROOT / "config/contracts/phase-4-paired-noninferiority.json"
 
 
 def test_canonical_hash_ignores_json_presentation() -> None:
@@ -80,3 +85,100 @@ def test_scientific_thresholds_and_dependencies_are_available() -> None:
     assert thresholds.position_beams == 0.5
     assert len(dependency_inventory_sha256()) == 64
     assert load_dataset_manifest(_MANIFEST).datasets
+
+
+def test_qualification_requires_every_reviewed_scientific_input() -> None:
+    """An unopened population cannot run against provisional governance."""
+    dataset = load_dataset_manifest(_FINAL_MANIFEST).datasets[0]
+
+    require_reviewed_qualification_inputs(
+        dataset,
+        scientific_contracts=[_MEASUREMENT, _GATES],
+        scientific_gates=_GATES,
+        comparison_protocol=_PROTOCOL,
+    )
+
+    with pytest.raises(ValueError, match="measurement and gate contracts"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_GATES],
+            scientific_gates=_GATES,
+            comparison_protocol=_PROTOCOL,
+        )
+
+
+def test_regression_runs_do_not_require_reviewed_qualification_inputs() -> (
+    None
+):
+    """Viewable planning evidence remains usable before named review."""
+    dataset = load_dataset_manifest(_MANIFEST).datasets[0]
+
+    require_reviewed_qualification_inputs(
+        dataset,
+        scientific_contracts=[],
+        scientific_gates=Path("not-read-for-regression.json"),
+        comparison_protocol=Path("not-read-for-regression.json"),
+    )
+
+
+def test_qualification_rejects_a_provisional_protocol(
+    tmp_path: Path,
+) -> None:
+    """Protocol status fails closed before recipe iteration."""
+    protocol = json.loads(_PROTOCOL.read_text(encoding="utf-8"))
+    protocol["status"] = "draft-provisional"
+    provisional = tmp_path / "protocol.json"
+    provisional.write_text(json.dumps(protocol), encoding="utf-8")
+    dataset = load_dataset_manifest(_FINAL_MANIFEST).datasets[0]
+
+    with pytest.raises(ValueError, match="paired protocol must be reviewed"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, _GATES],
+            scientific_gates=_GATES,
+            comparison_protocol=provisional,
+        )
+
+
+@pytest.mark.parametrize("source", (_MEASUREMENT, _GATES))
+def test_qualification_rejects_a_provisional_scientific_contract(
+    source: Path,
+    tmp_path: Path,
+) -> None:
+    """Both scientific contracts must have named review before opening."""
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    payload["status"] = "frozen-provisional"
+    provisional = tmp_path / source.name
+    provisional.write_text(json.dumps(payload), encoding="utf-8")
+    contracts = [
+        provisional if path == source else path
+        for path in (_MEASUREMENT, _GATES)
+    ]
+    dataset = load_dataset_manifest(_FINAL_MANIFEST).datasets[0]
+
+    with pytest.raises(ValueError, match="scientific contracts"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=contracts,
+            scientific_gates=(provisional if source == _GATES else _GATES),
+            comparison_protocol=_PROTOCOL,
+        )
+
+
+def test_qualification_binds_the_executed_gate_document(
+    tmp_path: Path,
+) -> None:
+    """Threshold extraction must use the gate included in provenance."""
+    payload = json.loads(_GATES.read_text(encoding="utf-8"))
+    payload["catastrophic_outlier"]["position_beams"] = 0.75
+    different_gates = tmp_path / "gates.json"
+    different_gates.write_text(json.dumps(payload), encoding="utf-8")
+    dataset = load_dataset_manifest(_FINAL_MANIFEST).datasets[0]
+
+    with pytest.raises(ValueError, match="executed gate contract"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, _GATES],
+            scientific_gates=different_gates,
+            comparison_protocol=_PROTOCOL,
+        )

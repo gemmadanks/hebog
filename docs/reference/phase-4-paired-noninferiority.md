@@ -1,11 +1,8 @@
 # Phase 4 paired non-inferiority protocol
 
 **Status:** reviewed on 2026-08-03 by Gemma Danks, Data Processing Software
-Engineer. The final unseen population may now be frozen, but must remain
-unopened until every governed input is recorded.
-**Status:** reviewed on 2026-08-03 by Gemma Danks, Data Processing Software
-Engineer. The final unseen population may now be frozen, but must remain
-unopened until every governed input is recorded.
+Engineer. The final unseen population is frozen and remains ungenerated and
+unopened until every execution identity is recorded.
 
 This protocol answers a deliberately narrower question than “does Hebog equal
 PyBDSF byte for byte?” It asks whether Hebog passes the existing truth-based
@@ -16,7 +13,8 @@ PyBDSF `master` remains a secondary robustness and compatibility anchor.
 The machine-readable source is
 `config/contracts/phase-4-paired-noninferiority.json`.
 It is the approved analysis contract. It does not contain the final campaign
-seeds or truth; those belong in a separately frozen dataset manifest.
+seeds or truth; those are frozen separately in
+`config/datasets/phase-4-final-qualification.json`.
 The unchanged Phase 4 measurement-semantics contract and the five-sigma
 scientific-gate contract are both `reviewed-provisional` under the same named
 decision.
@@ -245,12 +243,12 @@ estimator to regression noise.
 
 ## One-look governance
 
-After the completed named approval, freeze the generator version, exactly 600
-seeds, truth,
-After the completed named approval, freeze the generator version, exactly 600
-seeds, truth,
-WCS and beam strata, scientific contracts, both exact PyBDSF revisions,
-container identities, margins, analysis code, and stopping rule. Then:
+After the completed named approval, the final manifest froze the generator
+version, exactly 600 seeds, truth, WCS, beam, and endpoint strata. The reviewed
+contracts freeze the margins, analysis rule, and stopping rule. Before opening
+the population, implement and freeze the maintained evaluator for every paired
+and absolute gate, then record the exact Hebog and PyBDSF revisions, container
+or source-tree identities, and dependency inventories. Then:
 
 1. run Hebog and both references on the same immutable images;
 2. compile the isolated shards without deleting failures;
@@ -262,7 +260,17 @@ An infrastructure interruption may resume only the same frozen realizations.
 A scientific failure remains evidence; it does not trigger another unseen
 campaign.
 
-## Basis and reviewed decisions
+The frozen dataset identifier is `phase4-final-paired-qualification-512`.
+Its recipe SHA-256 is
+`15f8f607463f2db4cf4c0eb72255a998784e2d83d3a0d7ebc45eb733f6fbc7db`
+and the complete dataset-record SHA-256 used by the campaign evidence is
+`07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`.
+The manifest records that no image or result had been generated or inspected
+at freeze time. Its 600 seeds are disjoint from every previous Phase 4
+population. A 90-degree layout and beam rotation preserve the governed
+blend-to-beam geometry while a distinct WCS, background, invalid region, and
+noise gradient reduce dependence on viewed populations.
+
 ## Basis and reviewed decisions
 
 The endpoint families follow the completeness, reliability, astrometry,

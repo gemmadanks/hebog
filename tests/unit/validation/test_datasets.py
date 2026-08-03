@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
+from hebog.validation.campaign_runtime import campaign_dataset_identity
 from hebog.validation.datasets import (
     AssociationTruthGroup,
     DatasetManifest,
@@ -133,6 +134,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
 
     assert set(manifests) == {
         "phase-4-development",
+        "phase-4-final-qualification",
         "phase-4-paired-regression",
         "phase-4-qualification",
         "phase-4-regression",
@@ -141,6 +143,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
     }
     expected_roles = {
         "phase-4-development": DatasetRole.DEVELOPMENT,
+        "phase-4-final-qualification": DatasetRole.QUALIFICATION,
         "phase-4-paired-regression": DatasetRole.REGRESSION,
         "phase-4-regression": DatasetRole.REGRESSION,
         "phase-4-qualification": DatasetRole.QUALIFICATION,
@@ -330,13 +333,67 @@ def test_phase_four_paired_regression_is_independent_and_representative() -> (
     assert "viewable" in paired.provenance.lower()
 
 
+def test_phase_four_final_qualification_is_frozen_and_unseen() -> None:
+    """The final one-look population is powered, disjoint, and unopened."""
+    manifest_path = _DATASET_DIRECTORY / "phase-4-final-qualification.json"
+    final = load_dataset_manifest(manifest_path).datasets[0]
+    recipes = iter_dataset_recipes(final)
+    other_seeds = {
+        recipe.seed
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4-*.json"))
+        if path != manifest_path
+        for dataset in load_dataset_manifest(path).datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+
+    assert final.role is DatasetRole.QUALIFICATION
+    assert len(recipes) == 600
+    assert not ({recipe.seed for recipe in recipes} & other_seeds)
+    assert final.recipe_sha256 == (
+        "15f8f607463f2db4cf4c0eb72255a998784e2d83d3a0d7ebc45eb733f6fbc7db"
+    )
+    assert campaign_dataset_identity(final).content_sha256 == (
+        "07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb"
+    )
+    assert final.recipe.generator_version == 3
+    assert final.recipe.noise_correlation is not None
+    assert final.recipe.noise_correlation.major_fwhm_pixels == (
+        final.beam.major_fwhm_pixels
+    )
+    assert len(final.recipe.sources) == 34
+    assert len(final.association_truth_groups) == 33
+    assert (
+        sum(
+            group.resolution_class == "unresolved-blend"
+            for group in final.association_truth_groups
+        )
+        == 1
+    )
+    assert "one-look" in final.purpose.lower()
+    assert "ungenerated" in final.provenance.lower()
+    assert "unopened" in final.provenance.lower()
+
+    classification = {
+        stratum.identifier: len(stratum.source_indices)
+        for stratum in final.classification_strata
+    }
+    assert classification == {
+        "shape-clear-resolved": 1,
+        "shape-marginal-resolved": 23,
+        "shape-unresolved": 8,
+    }
+
+
 def test_paired_regression_preserves_unresolved_blend_geometry() -> None:
-    """Mirroring cannot change a governed blend relative to its beam."""
+    """Rotating final-like populations preserves blend-to-beam geometry."""
     paired = load_dataset_manifest(
         _DATASET_DIRECTORY / "phase-4-paired-regression.json"
     ).datasets[0]
     viewed = load_dataset_manifest(
         _DATASET_DIRECTORY / "phase-4-qualification.json"
+    ).datasets[0]
+    final = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-final-qualification.json"
     ).datasets[0]
 
     def beam_projected_separation(dataset: DatasetRecord) -> tuple[float, ...]:
@@ -360,6 +417,9 @@ def test_paired_regression_preserves_unresolved_blend_geometry() -> None:
 
     assert beam_projected_separation(paired) == pytest.approx(
         beam_projected_separation(viewed)
+    )
+    assert beam_projected_separation(final) == pytest.approx(
+        beam_projected_separation(paired)
     )
 
 

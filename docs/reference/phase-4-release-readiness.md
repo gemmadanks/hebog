@@ -277,9 +277,9 @@ Phase 4 can be declared passed only after all of the following occur in order:
    regression lanes pass. Gemma Danks approved both on 2026-08-03.
 6. [ ] A frozen unseen held-out qualification campaign passes every reviewed
    gate without post-inspection tuning. All three powered campaigns failed on
-   2026-08-03 and are retained as known evidence. Before creating another,
-   review a recovery protocol that prevents repeated-campaign optional
-   stopping and freeze any new population before corrective implementation.
+   2026-08-03 and are retained as known evidence. Before another population
+   could be frozen, the recovery protocol had to prevent repeated-campaign
+   optional stopping and pass its independent planning audit and named review.
    The [reviewed paired non-inferiority protocol](phase-4-paired-noninferiority.md)
    and its executable power calculation are complete. The 50,000-resample
    independent planning-assumption audit verifies every revised bound. Gemma
@@ -287,6 +287,13 @@ Phase 4 can be declared passed only after all of the following occur in order:
    whole-image interval method, one-look rule, and five-sigma extension policy
    on 2026-08-03. She also approved removing the statistically unstable extra
    point-sign gate before final-population freeze.
+   The final population is now frozen, ungenerated, and unopened as
+   `phase4-final-paired-qualification-512`, with complete dataset-record
+   SHA-256
+   `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`.
+   The maintained one-look evaluator still needs the position-angle diagnostic
+   fields and complete paired/absolute-gate decision path. Freeze and test it,
+   then record exact execution environments before the single run.
 7. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.
@@ -299,5 +306,7 @@ specificity, retains substantially better clear-extension, catastrophic-tail,
 and unresolved-blend results, and differs in catalogue reliability by one
 additional unmatched near-threshold candidate. This regression and its
 planning-assumption audit support the completed named review, but neither is
-qualification evidence. The final population still must be frozen and opened
-exactly once, so the decision remains **not ready**.
+qualification evidence. The reviewed final 600-image population is now frozen,
+ungenerated, and unopened. Its exact execution environments must be recorded
+and its final decision evaluator completed before it is opened exactly once,
+so the decision remains **not ready**.

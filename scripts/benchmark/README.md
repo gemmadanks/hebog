@@ -165,18 +165,17 @@ captured run log, and continues. It never drops the seed or publishes partial
 source rows. Existing evidence is not overwritten. Its wall time is diagnostic
 provenance only and must not be used for a performance claim.
 
-Before review, inspect the draft protocol and its design-stage power with:
+Inspect the reviewed protocol and its design-stage power with:
 
 ```console
 uv run python scripts/validation/calculate_phase4_paired_power.py \
   config/contracts/phase-4-paired-noninferiority.json
 ```
 
-This calculation must be repeated after its variance assumptions have been
-verified on independent paired development/regression evidence. It reports
-interval-exclusion power separately from the stricter no-worse point-estimate
-condition. Do not change the protocol status or create final qualification
-seeds from the provisional calculation alone.
+The checked-in calculation uses planning assumptions verified on independent
+paired development/regression evidence. It reports interval-exclusion power
+and the rejected point-sign probability separately. The final decision uses
+the interval plus every absolute and stronger-Hebog gate, not the point sign.
 
 Generate a regression candidate shard from a clean reviewed Hebog revision
 with:
@@ -200,6 +199,19 @@ changes not represented by the commit, and `--container-image-digest` on a
 controlled container runner. Both candidate and reference runners accept
 regression data for planning-assumption verification. Qualification use
 requires the reviewed protocol and frozen final population.
+
+The final population is frozen in
+`config/datasets/phase-4-final-qualification.json` as dataset
+`phase4-final-paired-qualification-512`. Before running it, replace the example
+paths and revisions below with the exact reviewed identities, capture every
+container or source-tree digest, and verify that no output shard already
+exists. Opening the final population without those identities violates the
+one-look protocol. Both runners also fail before recipe iteration if either
+scientific contract or the paired protocol lacks its reviewed status.
+Do not open the final population until the maintained one-look evaluator
+covers every paired interval, absolute gate, and stronger-Hebog envelope and
+the source diagnostic schema retains the position-angle fields required by the
+shape gates.
 
 A typical invocation inside an immutable reference environment is:
 

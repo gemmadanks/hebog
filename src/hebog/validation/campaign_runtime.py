@@ -6,10 +6,19 @@ import hashlib
 import importlib.metadata
 import json
 from pathlib import Path
+from typing import cast
 
 from hebog.validation.comparison import CatalogueOutlierThresholds
-from hebog.validation.contracts import load_phase_four_scientific_gates
-from hebog.validation.datasets import DatasetRecord, load_dataset_manifest
+from hebog.validation.contracts import (
+    load_paired_noninferiority_contract,
+    load_phase_four_measurement_contract,
+    load_phase_four_scientific_gates,
+)
+from hebog.validation.datasets import (
+    DatasetRecord,
+    DatasetRole,
+    load_dataset_manifest,
+)
 from hebog.validation.evidence import (
     CampaignFailure,
     DatasetIdentity,
@@ -99,6 +108,53 @@ def campaign_dataset_identity(dataset: DatasetRecord) -> DatasetIdentity:
         shape_yx=dataset.recipe.shape_yx,
         workload_class=WorkloadClass.NORMAL,
     )
+
+
+def require_reviewed_qualification_inputs(
+    dataset: DatasetRecord,
+    *,
+    scientific_contracts: list[Path],
+    scientific_gates: Path,
+    comparison_protocol: Path,
+) -> None:
+    """Fail before qualification unless every scientific input is reviewed."""
+    if dataset.role is not DatasetRole.QUALIFICATION:
+        return
+    documents: dict[str, Path] = {}
+    for path in scientific_contracts:
+        document = cast(dict[str, object], json_document(path))
+        documents[str(document["contract_id"])] = path
+    required = {
+        "phase-4-measurement",
+        "phase-4-scientific-gates",
+    }
+    if set(documents) != required or len(scientific_contracts) != len(
+        required
+    ):
+        raise ValueError(
+            "qualification requires exactly the Phase 4 measurement and "
+            "gate contracts"
+        )
+    measurement = load_phase_four_measurement_contract(
+        documents["phase-4-measurement"]
+    )
+    gates = load_phase_four_scientific_gates(
+        documents["phase-4-scientific-gates"]
+    )
+    if canonical_sha256(json_document(scientific_gates)) != canonical_sha256(
+        json_document(documents["phase-4-scientific-gates"])
+    ):
+        raise ValueError(
+            "executed gate contract must match the provenance contract set"
+        )
+    if (
+        measurement.status != "reviewed-provisional"
+        or gates.status != "reviewed-provisional"
+    ):
+        raise ValueError("Phase 4 scientific contracts must be reviewed")
+    protocol = load_paired_noninferiority_contract(comparison_protocol)
+    if protocol.status != "reviewed":
+        raise ValueError("paired protocol must be reviewed for qualification")
 
 
 def phase_four_outlier_thresholds(path: Path) -> CatalogueOutlierThresholds:

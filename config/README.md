@@ -31,5 +31,8 @@ directions, practical margins, clustered design assumptions, failure handling,
 and the one-look stopping rule. Its `reviewed` status records named approval;
 the final unseen population may be frozen only through a separate governed
 manifest and must not be opened before that freeze is complete.
+`datasets/phase-4-final-qualification.json` is that frozen, ungenerated,
+600-image one-look population. Its complete dataset-record digest, not only
+its recipe digest, is the identity carried into each campaign shard.
 These files are gates, not measured evidence; raw measurements use the evidence
 schemas and stay under the ignored `benchmark-results/` directory.

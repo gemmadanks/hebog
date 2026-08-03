@@ -40,6 +40,9 @@ from hebog.validation.campaign_runtime import json_document as _json_document
 from hebog.validation.campaign_runtime import (
     phase_four_outlier_thresholds as _outlier_thresholds,
 )
+from hebog.validation.campaign_runtime import (
+    require_reviewed_qualification_inputs as _require_reviewed_inputs,
+)
 from hebog.validation.campaigns import diagnose_phase_four_realization
 from hebog.validation.comparison import (
     CatalogueOutlierThresholds,
@@ -241,6 +244,12 @@ def _run(
             "Phase 4 reference campaigns require regression or "
             "qualification data"
         )
+    _require_reviewed_inputs(
+        dataset,
+        scientific_contracts=args.scientific_contract,
+        scientific_gates=args.scientific_gates,
+        comparison_protocol=args.comparison_protocol,
+    )
     configuration = _pybdsf_configuration(args.ncores)
     outlier_thresholds = _outlier_thresholds(args.scientific_gates)
     started = time.perf_counter()
