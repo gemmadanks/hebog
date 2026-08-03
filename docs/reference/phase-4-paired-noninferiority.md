@@ -121,6 +121,15 @@ the realization count must be increased and reviewed before the final
 population is frozen. Sample size must not change after that population is
 opened.
 
+The governed assumption-audit population is
+`config/datasets/phase-4-paired-regression.json`, dataset
+`phase4-paired-power-regression-512`, recipe SHA-256
+`9516a9e89a58a6ab27b9f84db6c8c7b4a4e005c2456ee007109694225a368f98`.
+It contains 200 independently seeded, viewable regression realizations with
+the proposed endpoint structure. It may be inspected, used to revise planning
+assumptions, and used for corrective TDD; it can never qualify Hebog or be
+relabelled as the final unseen population.
+
 ## One-look governance
 
 After named approval, freeze the generator version, exactly 600 seeds, truth,

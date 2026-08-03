@@ -3541,3 +3541,34 @@ and compatibility serialization
   generate paired Hebog and released-PyBDSF shards, and measure the protocol's
   planning variance bounds. Do not use any viewed qualification output for
   that audit.
+
+## 2026-08-03 — Governed the paired planning population
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added a viewable recovery-regression population with the exact proposed
+  endpoint structure: 200 disjoint noise seeds, 33 observable groups, 32
+  individually resolvable sources, eight beam-compatible point sources, one
+  clearly resolved source, and one unresolved blend per image.
+- Used a distinct WCS, background, noise gradient, invalid region, and a
+  mirrored source layout with a 47-degree beam/source rotation. The design
+  preserves the relevant SNR and shape populations while remaining
+  statistically independent of every previously used noise realization.
+- Bound the generator-v3 recipe to SHA-256
+  `9516a9e89a58a6ab27b9f84db6c8c7b4a4e005c2456ee007109694225a368f98`.
+  The manifest is explicitly regression evidence for planning and TDD; it can
+  never qualify Hebog or be relabelled as unseen.
+
+**Validation**
+
+- TDD first recorded two failures for the missing governed manifest. The
+  focused role, independence, structure, and checksum tests now pass.
+- The repository JSON formatting hook accepts the new manifest.
+
+**Next**
+
+- Commit the governed population, run Hebog and released PyBDSF on the same
+  200 images, compile the paired evidence, and estimate every provisional
+  discordance, within-image correlation, and paired-dispersion bound.

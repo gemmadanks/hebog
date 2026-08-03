@@ -132,6 +132,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
 
     assert set(manifests) == {
         "phase-4-development",
+        "phase-4-paired-regression",
         "phase-4-qualification",
         "phase-4-regression",
         "phase-4-viewed-extension-aware-qualification",
@@ -139,6 +140,7 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
     }
     expected_roles = {
         "phase-4-development": DatasetRole.DEVELOPMENT,
+        "phase-4-paired-regression": DatasetRole.REGRESSION,
         "phase-4-regression": DatasetRole.REGRESSION,
         "phase-4-qualification": DatasetRole.QUALIFICATION,
         "phase-4-viewed-extension-aware-qualification": (
@@ -281,6 +283,50 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         for dataset in manifest.datasets
     }
     assert earlier_identifiers.isdisjoint(phase_four_identifiers)
+
+
+def test_phase_four_paired_regression_is_independent_and_representative() -> (
+    None
+):
+    """Planning evidence has final-like structure but cannot qualify Hebog."""
+    paired = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4-paired-regression.json"
+    ).datasets[0]
+    recipes = iter_dataset_recipes(paired)
+    other_seeds = {
+        recipe.seed
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4-*.json"))
+        if path.name != "phase-4-paired-regression.json"
+        for dataset in load_dataset_manifest(path).datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+
+    assert paired.role is DatasetRole.REGRESSION
+    assert len(recipes) == 200
+    assert not ({recipe.seed for recipe in recipes} & other_seeds)
+    assert paired.recipe_sha256 == (
+        "9516a9e89a58a6ab27b9f84db6c8c7b4a4e005c2456ee007109694225a368f98"
+    )
+    assert len(paired.recipe.sources) == 34
+    assert len(paired.association_truth_groups) == 33
+    assert (
+        sum(
+            group.resolution_class == "unresolved-blend"
+            for group in paired.association_truth_groups
+        )
+        == 1
+    )
+    classification = {
+        stratum.identifier: len(stratum.source_indices)
+        for stratum in paired.classification_strata
+    }
+    assert classification == {
+        "shape-clear-resolved": 1,
+        "shape-marginal-resolved": 23,
+        "shape-unresolved": 8,
+    }
+    assert "planning" in paired.purpose.lower()
+    assert "viewable" in paired.provenance.lower()
 
 
 def test_manifest_rejects_duplicate_dataset_identifiers() -> None:

@@ -183,8 +183,8 @@ with:
 
 ```console
 python scripts/benchmark/run_phase4_hebog_campaign.py \
-  --manifest <governed-dataset-manifest.json> \
-  --dataset-id <governed-dataset-id> \
+  --manifest config/datasets/phase-4-paired-regression.json \
+  --dataset-id phase4-paired-power-regression-512 \
   --scientific-gates config/contracts/phase-4-scientific-gates.json \
   --scientific-contract config/contracts/phase-4-measurement.json \
   --scientific-contract config/contracts/phase-4-scientific-gates.json \
