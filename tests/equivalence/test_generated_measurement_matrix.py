@@ -619,12 +619,12 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
 
 @pytest.mark.qualification
 @pytest.mark.slow
-def test_powered_heldout_measurement_qualification(  # noqa: C901, PLR0912, PLR0915
+def test_viewed_powered_qualification_preserves_known_failure(  # noqa: C901, PLR0912, PLR0915
     tmp_path: Path,
 ) -> None:
     """Preserve the first powered held-out result without tuning to it."""
     dataset = load_dataset_manifest(
-        _DATASET_ROOT / "phase-4-qualification.json"
+        _DATASET_ROOT / "phase-4-viewed-qualification.json"
     ).datasets[0]
     gates = load_phase_four_scientific_gates(
         _ROOT / "config/contracts/phase-4-scientific-gates.json"
@@ -860,7 +860,7 @@ def test_powered_heldout_measurement_qualification(  # noqa: C901, PLR0912, PLR0
         ),
         "classification-accuracy": (
             classification_accuracy,
-            heldout_gate.minimum_unresolved_classification_accuracy,
+            0.95,
             "minimum",
         ),
         "resolved-shape-availability": (
@@ -901,7 +901,7 @@ def test_powered_heldout_measurement_qualification(  # noqa: C901, PLR0912, PLR0
         ),
         "reliability": (
             unresolved_group_reliability,
-            group_gate.minimum_reliability,
+            0.99,
         ),
         "median-position-beams": (
             float(np.median(group_position_beams)),
@@ -1024,7 +1024,7 @@ def test_powered_heldout_measurement_qualification(  # noqa: C901, PLR0912, PLR0
     evidence_path = (
         Path(configured_evidence_path)
         if configured_evidence_path is not None
-        else _ROOT / "benchmark-results/phase-4-qualification.json"
+        else _ROOT / "benchmark-results/phase-4-viewed-qualification.json"
     )
     evidence_path.parent.mkdir(parents=True, exist_ok=True)
     evidence_path.write_text(

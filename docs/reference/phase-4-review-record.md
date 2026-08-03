@@ -458,3 +458,67 @@ or used to select parameters. Phase 4 remains **not ready**. Before corrective
 implementation work, freeze a new unseen qualification campaign and obtain a
 named review of the reliability denominator and any revised treatment of
 near-boundary resolved/unresolved classification.
+
+## Literature-led correction and second frozen campaign
+
+Research after the failed campaign found that the previous classification
+contract was not consistent with established radio-catalogue practice. It
+treated any positive fitted-minus-beam covariance as physical extension. At a
+true point-source boundary, symmetric measurement noise therefore labels a
+large fraction of realizations as resolved. Requiring 95% binary agreement for
+all injected resolved sources also confounds clear extension with sources
+whose extension is not statistically measurable at their SNR.
+
+The replacement policy follows
+[Franzen et al. (2015), ATLAS DR3](https://doi.org/10.1093/mnras/stv1866):
+classify a source as extended only when `ln(S_integrated / S_peak)` exceeds
+twice the quadrature relative uncertainty of those fluxes. The paper reports
+a 2.3% point-source false-positive probability for this one-sided 2-sigma
+rule. [Moss et al. (2007)](https://doi.org/10.1111/j.1365-2966.2007.11842.x)
+independently documents the low-SNR width/total-flux failure and uses peak flux
+as the best flux estimate for sources inside its unresolved envelope.
+[Condon (1997)](https://doi.org/10.1086/133871) supports applying a-priori size
+constraints to reduce amplitude errors, while
+[Aegean 2.0](https://doi.org/10.1017/pasa.2018.3) demonstrates that reducing
+free parameters lowers fitting uncertainty. The ASKAP/EMU challenge retains
+the global definitions of completeness and reliability: recovered real
+sources divided by input real sources, and real measured sources divided by
+all measured sources, respectively.
+
+The frozen-provisional amendment therefore requires:
+
+- at least 95% point-source specificity for the `shape-unresolved` truth
+  stratum;
+- at least 95% resolved recovery only for the predeclared
+  `shape-clear-resolved` stratum;
+- report-only SNR-dependent classification for
+  `shape-marginal-resolved`, without retrospectively moving sources between
+  strata;
+- peak flux as integrated flux for a beam-compatible source;
+- the existing global reliability gate; and
+- no unresolved-group reliability gate. A morphology-specific false-positive
+  denominator cannot be observed without arbitrarily assigning unrelated
+  false candidates to a truth morphology. Unresolved groups retain
+  completeness, centroid, and total-flux gates.
+
+The inspected campaign was copied byte-for-byte to
+`config/datasets/phase-4-viewed-qualification.json`. Its recipe checksum
+remains `4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6`
+and its known-failure executable record remains an expected qualification
+failure.
+
+Before production code was changed, the second unseen campaign was frozen as
+`phase4-unseen-extension-aware-measurement-qualification-512`, with recipe
+checksum `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
+It has 200 seeds disjoint from the viewed campaign, a different celestial WCS,
+negative background, spatially varying RMS, an invalid-pixel region, correlated
+beam-shaped noise, eight point sources, eight clearly resolved sources,
+sixteen marginal resolved sources, eight edge sources, and one unresolved
+association group. Every gated classification and uncertainty stratum retains
+at least 1,600 eligible samples; the group retains 200. No image, catalogue,
+comparison, or result from this campaign has been generated or inspected.
+
+This amendment is **frozen-provisional pending named human review**. Corrective
+implementation and development/regression validation may proceed, but the new
+qualification output must remain unopened until the reviewer approves or
+amends the policy and the independent regression suite passes.

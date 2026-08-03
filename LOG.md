@@ -2990,3 +2990,44 @@ and compatibility serialization
   review of the reliability denominator and any boundary-classification
   amendment, correct against development/regression evidence, then qualify on
   the new held-out campaign before running the Phase 4 performance matrix.
+
+## 2026-08-03 — Froze the extension-aware replacement qualification
+
+**Plan phase:** Phase 4 scientific closure — post-failure correction
+
+**Research decision**
+
+- Peer-reviewed radio-catalogue practice does not classify every positive
+  fitted-minus-beam size as resolved. ATLAS DR3 uses a one-sided two-sigma
+  integrated-to-peak flux-ratio uncertainty test, with a stated 2.3%
+  point-source false-positive probability. Deep GMRT catalogue work likewise
+  treats low-SNR fitted-width inflation as noise and uses peak flux for
+  unresolved sources. Condon and Aegean support reducing free fit parameters
+  when source shape is known.
+- Froze a provisional contract that gates point-source specificity and clearly
+  resolved recall separately, reports marginal-extension classification by
+  SNR, and retains reliability only at the globally observable catalogue
+  level. The unresolved-group gate retains completeness, centroid, and total
+  flux; its unobservable morphology-specific reliability denominator was
+  removed.
+
+**Held-out boundary**
+
+- Archived the inspected recipe unchanged as
+  `phase-4-viewed-qualification.json`, checksum
+  `4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6`.
+- Froze `phase4-unseen-extension-aware-measurement-qualification-512`, recipe
+  checksum
+  `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`,
+  before production correction. Its 200 seeds are disjoint from the viewed
+  campaign and it adds a distinct WCS, negative background, varying RMS,
+  invalid pixels, and predeclared point, clear-resolved, marginal-resolved,
+  edge, SNR, and unresolved-group strata.
+- No image, fit, catalogue, comparison, or result from the new campaign was
+  generated or inspected.
+
+**Next**
+
+- Implement the two-sigma rule and unresolved flux policy through TDD, pass
+  independent development/regression and compatibility lanes, obtain named
+  human review, then open the replacement qualification exactly once.

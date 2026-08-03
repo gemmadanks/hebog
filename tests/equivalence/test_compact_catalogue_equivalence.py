@@ -212,9 +212,9 @@ def _require_catalogue_gates(
             <= gates.maximum_percentile_95_position_angle_difference_degrees
         )
     assert report.unresolved_classification_accuracy is not None
-    assert (
-        report.unresolved_classification_accuracy
-        >= gates.minimum_unresolved_classification_accuracy
+    assert report.unresolved_classification_accuracy >= min(
+        gates.minimum_point_source_specificity,
+        gates.minimum_clear_resolved_classification_recall,
     )
     assert (
         report.association.precision

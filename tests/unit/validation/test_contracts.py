@@ -234,7 +234,7 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
     """Phase 4 has explicit provisional shape and uncertainty questions."""
     gates = load_phase_four_scientific_gates(_PHASE_FOUR_GATES_PATH)
 
-    assert gates.status == "reviewed-provisional"
+    assert gates.status == "frozen-provisional"
     assert gates.confidence_level == 0.95
     assert gates.low_snr_threshold_crossings == "report-only"
     assert gates.shape_uncertainty == "report-only"
@@ -275,9 +275,19 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
     assert (
         gates.generated_regression.maximum_catastrophic_outlier_fraction < 0.01
     )
+    assert gates.heldout_qualification.minimum_point_source_specificity >= 0.95
     assert (
-        gates.heldout_qualification.minimum_unresolved_classification_accuracy
+        gates.heldout_qualification.minimum_clear_resolved_classification_recall
         >= 0.95
+    )
+    assert gates.extension_classification.method == (
+        "integrated-to-peak-ratio-uncertainty"
+    )
+    assert gates.extension_classification.significance_sigma == 2.0
+    assert (
+        gates.extension_classification.marginal_resolved_population.endswith(
+            "report-only"
+        )
     )
     assert gates.uncertainty.minimum_samples_per_stratum >= 200
     assert gates.uncertainty.confidence_interval_level == 0.95

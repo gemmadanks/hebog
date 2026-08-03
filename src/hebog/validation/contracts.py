@@ -486,7 +486,8 @@ class PhaseFourCatalogueGate(_ContractModel):
     maximum_percentile_95_position_angle_difference_degrees: float = Field(
         ge=0
     )
-    minimum_unresolved_classification_accuracy: float = Field(ge=0, le=1)
+    minimum_point_source_specificity: float = Field(ge=0, le=1)
+    minimum_clear_resolved_classification_recall: float = Field(ge=0, le=1)
     minimum_association_pair_precision: float = Field(ge=0, le=1)
     minimum_association_pair_recall: float = Field(ge=0, le=1)
     minimum_fitted_shape_availability: float = Field(ge=0, le=1)
@@ -572,7 +573,6 @@ class PhaseFourUnresolvedGroupGate(_ContractModel):
     status: Literal["frozen-provisional", "reviewed-provisional"]
     population: Literal["declared-unresolved-association-groups"]
     minimum_completeness: float = Field(ge=0, le=1)
-    minimum_reliability: float = Field(ge=0, le=1)
     maximum_median_position_beams: float = Field(ge=0)
     maximum_percentile_95_position_beams: float = Field(ge=0)
     maximum_median_integrated_flux_fractional_difference: float = Field(ge=0)
@@ -606,10 +606,26 @@ class PhaseFourOutlierDefinition(_ContractModel):
     deconvolved_axis_fractional_difference: float = Field(gt=0)
 
 
+class PhaseFourExtensionClassification(_ContractModel):
+    """Frozen uncertainty-aware point/extended classification policy."""
+
+    method: Literal["integrated-to-peak-ratio-uncertainty"]
+    significance_sigma: float = Field(ge=2.0, le=5.0)
+    point_source_population: Literal["shape-unresolved"]
+    clear_resolved_population: Literal["shape-clear-resolved"]
+    marginal_resolved_population: Literal[
+        "shape-marginal-resolved-report-only"
+    ]
+    unresolved_integrated_flux: Literal["peak-flux-density"]
+    missing_uncertainty: Literal[
+        "geometric-noiseless-reference-otherwise-unavailable"
+    ]
+
+
 class PhaseFourScientificGates(_ContractModel):
     """Reviewed-provisional Phase 4 catalogue and uncertainty margins."""
 
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     contract_id: Literal["phase-4-scientific-gates"]
     status: Literal["frozen-provisional", "reviewed-provisional"]
     confidence_level: float = Field(gt=0, lt=1)
@@ -621,6 +637,7 @@ class PhaseFourScientificGates(_ContractModel):
     compact_reference: PhaseFourCatalogueGate
     generated_regression: PhaseFourCatalogueGate
     heldout_qualification: PhaseFourCatalogueGate
+    extension_classification: PhaseFourExtensionClassification
     unresolved_group: PhaseFourUnresolvedGroupGate
     uncertainty: PhaseFourUncertaintyGate
     catastrophic_outlier: PhaseFourOutlierDefinition

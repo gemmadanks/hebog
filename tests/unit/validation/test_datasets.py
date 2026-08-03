@@ -134,11 +134,13 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         "phase-4-development",
         "phase-4-qualification",
         "phase-4-regression",
+        "phase-4-viewed-qualification",
     }
     expected_roles = {
         "phase-4-development": DatasetRole.DEVELOPMENT,
         "phase-4-regression": DatasetRole.REGRESSION,
         "phase-4-qualification": DatasetRole.QUALIFICATION,
+        "phase-4-viewed-qualification": DatasetRole.QUALIFICATION,
     }
     for manifest_id, manifest in manifests.items():
         assert {item.role for item in manifest.datasets} == {
@@ -172,7 +174,8 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
     }
     assert set(sample_counts) == {
         "edge",
-        "shape-resolved",
+        "shape-clear-resolved",
+        "shape-marginal-resolved",
         "shape-unresolved",
         "snr-10",
         "snr-15",
@@ -180,6 +183,22 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         "snr-50",
     }
     assert min(sample_counts.values()) >= _PHASE_FOUR_POWERED_SAMPLE_COUNT
+    viewed_dataset = manifests["phase-4-viewed-qualification"].datasets[0]
+    viewed_recipes = iter_dataset_recipes(viewed_dataset)
+    assert {recipe.seed for recipe in qualification_recipes}.isdisjoint(
+        recipe.seed for recipe in viewed_recipes
+    )
+    assert viewed_dataset.recipe_sha256 == (
+        "4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6"
+    )
+    assert qualification_dataset.recipe_sha256 == (
+        "54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49"
+    )
+    assert qualification_dataset.recipe.invalid_rectangles
+    assert qualification_dataset.recipe.noise_rms_fractional_gradient_xy != (
+        0.0,
+        0.0,
+    )
     assert qualification_dataset.association_truth_groups
     assert {
         group.resolution_class

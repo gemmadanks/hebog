@@ -118,8 +118,20 @@ individual groups. The exact result and intervals are recorded in the
 
 No post-inspection tuning was performed. This dataset is now known evidence,
 not an unseen qualification population. A new unseen campaign and named review
-of the ambiguous denominator and boundary-classification policy must precede
-corrective implementation work.
+of the ambiguous denominator and boundary-classification policy were required
+before corrective implementation work.
+
+The viewed recipe is now archived unchanged. Before corrective production
+code, a second campaign was frozen with 200 disjoint seeds, distinct WCS,
+negative background, varying RMS, invalid pixels, correlated noise, and
+predeclared point-source, clearly resolved, marginal-resolution, edge, SNR,
+and unresolved-group strata. Literature review selected the ATLAS two-sigma
+integrated-to-peak uncertainty rule, point-source specificity and clear-source
+recall gates, report-only marginal classification, and peak flux for
+beam-compatible sources. The undefined morphology-specific reliability gate
+was removed; overall catalogue reliability remains gated. These amendments
+remain frozen-provisional pending named human review, and the new campaign has
+not been generated or inspected.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run because the closure order puts scientific qualification first and
@@ -150,17 +162,19 @@ qualification remain Phases 5–7.
 
 Phase 4 can be declared passed only after all of the following occur in order:
 
-1. [x] Gemma Danks completed the named amendment review on 2026-08-03 in the
+1. [x] Gemma Danks completed the earlier named amendment review on 2026-08-03 in the
    [Phase 4 scientific review record](phase-4-review-record.md).
 2. [x] The regression and untouched qualification truth schemas, recipes,
    checksums, and gates are replaced consistently before held-out inspection.
 3. [x] Development and regression science passes, including association-group
    and uncertainty-calibration reports.
-4. [ ] A newly frozen unseen held-out qualification campaign passes every
+4. [ ] The post-failure extension-classification amendment receives named
+   human review after independent regression passes.
+5. [ ] The newly frozen unseen held-out qualification campaign passes every
    reviewed gate without post-inspection tuning. The first powered campaign
    failed on 2026-08-03 and is retained as known evidence.
-5. [ ] The controlled Phase 4 performance matrix passes its component budgets and
+6. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.
-6. [ ] The final evidence and this decision are reviewed and changed from
+7. [ ] The final evidence and this decision are reviewed and changed from
    **not ready** to **passed**.

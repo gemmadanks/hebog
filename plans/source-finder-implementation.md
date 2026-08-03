@@ -1259,6 +1259,19 @@ failed campaign as governed evidence, freeze a new unseen campaign before any
 corrective implementation work, and obtain review for the unresolved-group
 reliability denominator and any revised boundary-classification policy.
 
+Literature review on 2026-08-03 selected a frozen-provisional correction before
+production changes: use the ATLAS two-sigma integrated-to-peak uncertainty
+test, gate point-source specificity and clearly resolved recovery separately,
+report marginal-extension classification by SNR, use peak flux for
+beam-compatible sources, and retain reliability only as a global catalogue
+metric. The viewed campaign is archived unchanged. A second unseen campaign
+with 200 disjoint seeds, distinct WCS, negative background, varying RMS,
+invalid pixels, correlated noise, and predeclared point/clear/marginal shape
+strata is frozen at recipe SHA-256
+`54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
+Corrective TDD and regression may proceed; named human review and a passing
+independent regression remain mandatory before this campaign is opened.
+
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
 [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19),
