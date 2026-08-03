@@ -83,11 +83,16 @@ A literature-led correction now passes the independent powered regression:
 point sources use peak flux as total flux, extension must be significant, and
 clearly resolved and marginal truth are evaluated separately. A new
 200-realization campaign was frozen before the correction and remained
-unopened through named human approval.
+unopened through named human approval. Its single subsequent run passed
+completeness, reliability, and extension-classification gates but failed the
+catastrophic-outlier and SNR-10/edge uncertainty-availability gates. It is now
+known evidence and will not be tuned or rerun as unseen.
 
 The remaining work includes:
 
-- qualifying exactly once on the already-frozen unseen campaign;
+- correcting the newly exposed compact-flux and low-SNR/edge availability
+  failures using development/regression evidence, then qualifying on a new
+  frozen unseen campaign;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;

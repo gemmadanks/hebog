@@ -588,3 +588,44 @@ campaign remained unopened:
 Both Phase 4 contracts are now **reviewed-provisional**. Corrective
 implementation and independent regression were complete before this approval;
 the replacement qualification output remained unopened throughout the review.
+
+## Extension-aware held-out result
+
+After the approval commit, the replacement campaign was opened exactly once on
+2026-08-03. The 200-realization run completed in 477.85 seconds and wrote its
+complete machine-readable evidence to the ignored `benchmark-results/` area.
+The result SHA-256 is
+`ae1ce5b15a72d7089e14321854fe988ca6634ab3179009842810128aa8414c89`.
+
+Several reviewed gates passed:
+
+- 6,583 of 6,600 truth groups were recovered from 6,612 candidates, giving
+  99.74% completeness and 99.56% reliability;
+- fitted-shape and governed classification availability were 99.72% and
+  99.22%;
+- point-source specificity was 96.34%, clear-extension recall was 100%, and
+  resolved-shape availability was 100%;
+- every gated normalized-residual calibration decision passed; and
+- the unresolved group's completeness, centroid, and total-flux summaries all
+  passed their reviewed margins.
+
+The campaign nevertheless failed as a whole:
+
+- 1,128 of 6,382 matched individual rows were catastrophic outliers, or
+  17.67%, against the 0.5% maximum. The report-only integrated-flux absolute
+  curve had median 4.80% and 95th percentile 115.42%;
+- SNR-10 uncertainty availability was 1,583 of 1,600, or 98.94%, below 99%,
+  for position, peak flux, and integrated flux; and
+- edge uncertainty availability was 1,582 of 1,600, or 98.88%, below 99%, for
+  the same fields.
+
+Resolved and marginal free-fit integrated-flux calibration remained
+report-only as approved and failed its interval decisions across the SNR and
+extended-shape strata. That result is retained as diagnostic evidence and was
+not added to the gated failure set after inspection.
+
+No parameter, threshold, truth population, seed, margin, or gate was changed,
+and the campaign was not rerun. This dataset is now viewed evidence. Phase 4
+remains **not ready**; the controlled performance matrix is ineligible under
+the reviewed closure order until a new correction passes development,
+regression, named review, and a newly frozen unseen campaign.

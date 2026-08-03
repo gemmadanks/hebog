@@ -3113,3 +3113,55 @@ and compatibility serialization
 
 - Validate and commit this review record, then run the frozen replacement
   qualification campaign exactly once without post-inspection tuning.
+
+## 2026-08-03 — Recorded the failed extension-aware qualification
+
+**Plan phase:** Phase 4 scientific closure — held-out qualification
+
+**Execution boundary**
+
+- Committed the named approval as `bf5a725` before opening held-out output.
+- Ran the reviewed replacement campaign exactly once. It completed in 477.85
+  seconds across all 200 frozen realizations and wrote a 35,126-byte ignored
+  evidence record with SHA-256
+  `ae1ce5b15a72d7089e14321854fe988ca6634ab3179009842810128aa8414c89`.
+- The dataset identifier and recipe SHA-256 match the frozen manifest:
+  `phase4-unseen-extension-aware-measurement-qualification-512` and
+  `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
+
+**Passing evidence**
+
+- Recovered 6,583 of 6,600 truth groups from 6,612 candidates: 99.74%
+  completeness and 99.56% reliability.
+- Fitted-shape availability was 99.72%, governed classification availability
+  99.22%, point-source specificity 96.34%, clear-extension recall 100%, and
+  resolved-shape availability 100%.
+- Every gated normalized-residual calibration decision passed. The unresolved
+  group's 100% completeness, centroid, and total-flux summaries also passed.
+
+**Failed evidence**
+
+- 1,128 of 6,382 matched individual rows were catastrophic outliers: 17.67%
+  against the frozen 0.5% maximum. Report-only integrated-flux absolute error
+  had median 4.80% and 95th percentile 115.42%.
+- SNR-10 uncertainty availability was 98.94% (1,583 of 1,600) and edge
+  availability was 98.88% (1,582 of 1,600), both below the 99% floor for
+  position, peak flux, and integrated flux.
+- Report-only resolved/marginal integrated-flux calibration failed across the
+  SNR and extended-shape strata, as retained diagnostic evidence rather than a
+  post-inspection gate.
+
+**Decision**
+
+- Phase 4 remains **not ready**. No parameter, threshold, population, seed,
+  margin, or gate was changed, and the campaign was not rerun.
+- The controlled performance matrix was not run because the documented closure
+  order requires scientific qualification first.
+
+**Next**
+
+- Preserve this campaign as viewed evidence and require a new frozen unseen
+  campaign before corrective production changes. Extend the powered regression
+  to expose catastrophic-flux and availability behavior, select any correction
+  only from development/regression evidence, and obtain named review before
+  opening the next held-out campaign.

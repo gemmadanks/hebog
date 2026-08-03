@@ -1498,8 +1498,10 @@ before maintaining a custom fitter.
    corrected powered regression passes for position, peak flux, unresolved
    peak-as-total flux, point specificity, and clearly resolved recall. Moderate
    extension classification and resolved/marginal integrated-flux uncertainty
-   remain report-only. The replacement held-out campaign remains unopened, so
-   qualified uncertainty calibration remains an open Phase 4 exit condition.
+   remain report-only. The replacement held-out campaign was opened once after
+   named approval and failed catastrophic-flux and low-SNR/edge availability
+   gates, so qualified uncertainty calibration remains an open Phase 4 exit
+   condition.
 
 6. **Associate records and construct deterministic bounded catalogues.**
 
@@ -1624,10 +1626,15 @@ before maintaining a custom fitter.
    freeze a new unseen campaign and (2) correct the scientific model using only
    development/regression evidence are complete. Continue in this order:
    Step (3), named review of the frozen extension/flux addendum, was completed
-   by Gemma Danks on 2026-08-03. Continue in this order: (4) pass the new
-   held-out campaign exactly once; and (5) run controlled performance
-   qualification. Do not describe the known failed campaign as unseen or use
-   it to select parameters.
+   by Gemma Danks on 2026-08-03. Step (4) then failed: the single extension-aware
+   held-out run passed completeness, reliability, classification, gated
+   calibration, and unresolved-group margins, but failed the 0.5%
+   catastrophic-outlier ceiling at 17.67% and the 99% uncertainty-availability
+   floor for SNR-10 and edge sources. Preserve this as viewed evidence, freeze
+   another unseen campaign before corrective production work, and use only
+   development/regression evidence to select a correction. Controlled
+   performance qualification remains ineligible. Do not describe either known
+   failed campaign as unseen or use it to select parameters.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

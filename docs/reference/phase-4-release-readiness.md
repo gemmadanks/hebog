@@ -6,10 +6,10 @@ passed. It must not be released as a completed phase, described as full
 PyBDSF equivalence, or used as Rapthor's default backend.
 
 This record deliberately distinguishes implemented capability from qualified
-capability. The close-blend contract was corrected and powered regression
-passes, but the first subsequently opened held-out campaign failed several
-frozen scientific gates. Preserving that result without post-inspection tuning
-is more important than declaring a premature pass.
+capability. The close-blend contract and extension policy were corrected and
+their powered regressions pass, but each subsequently opened held-out campaign
+failed frozen scientific gates. Preserving those results without
+post-inspection tuning is more important than declaring a premature pass.
 
 ## Implemented capability
 
@@ -145,6 +145,15 @@ SNR at least 25, and that resolved/marginal integrated-flux uncertainty remains
 report-only. Gemma Danks approved these definitions on 2026-08-03. The new
 campaign had not been generated or inspected at the time of approval.
 
+The campaign was subsequently opened exactly once. It passed completeness,
+reliability, extension classification, resolved-shape availability, every
+gated normalized-residual calibration decision, and the unresolved-group
+gates. It failed the frozen catastrophic-outlier gate at 17.67% versus 0.5%
+and missed the 99% uncertainty-availability floor in the SNR-10 and edge
+strata at 98.94% and 98.88%. The complete result is recorded in the
+[scientific review record](phase-4-review-record.md). No post-inspection tuning
+or rerun occurred.
+
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run because the closure order puts scientific qualification first and
 the known implementation is not release-eligible. The 3,000-square incremental
@@ -182,9 +191,9 @@ Phase 4 can be declared passed only after all of the following occur in order:
    and uncertainty-calibration reports.
 4. [x] The post-failure extension-classification amendment receives named
    human review after independent regression passes.
-5. [ ] The newly frozen unseen held-out qualification campaign passes every
-   reviewed gate without post-inspection tuning. The first powered campaign
-   failed on 2026-08-03 and is retained as known evidence.
+5. [ ] A newly frozen unseen held-out qualification campaign passes every
+   reviewed gate without post-inspection tuning. Both powered campaigns failed
+   on 2026-08-03 and are retained as known evidence.
 6. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.
