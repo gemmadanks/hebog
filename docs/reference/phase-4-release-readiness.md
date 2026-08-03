@@ -96,9 +96,10 @@ The replacement Phase 4 qualification recipe and explicit truth-group
 definitions are frozen under manifest schema 2. Its output has not been
 generated or inspected. Development-only regression exposed an additional
 validation issue: flat absolute tail limits treat expected low-SNR noise
-scatter as systematic error. The replacement group margins and
-SNR-stratified noisy-source decision rule need named numerical review before
-any qualification run.
+scatter as systematic error. Gemma Danks approved the replacement group
+margins and SNR-stratified noisy-source decision rule on 2026-08-03. The
+regression and calibration implementation must pass before the first
+qualification run.
 
 Formal independent-pixel fit covariance is implemented but is explicitly
 uncalibrated for synthesized-beam-correlated noise. Position and flux
@@ -135,7 +136,7 @@ Phase 4 can be declared passed only after all of the following occur in order:
 
 1. [x] Gemma Danks completed the named amendment review on 2026-08-03 in the
    [Phase 4 scientific review record](phase-4-review-record.md).
-2. [ ] The regression and untouched qualification truth schemas, recipes,
+2. [x] The regression and untouched qualification truth schemas, recipes,
    checksums, and gates are replaced consistently before held-out inspection.
 3. [ ] Development and regression science passes, including association-group and
    uncertainty-calibration reports.

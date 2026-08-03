@@ -2873,3 +2873,22 @@ and compatibility serialization
 
 - Obtain named review of the provisional group margins and the recommended
   SNR-stratified confidence-interval rule before qualification inspection.
+
+## 2026-08-03 — Approved Phase 4 grouped and noisy-source gates
+
+**Plan phase:** Phase 4 scientific closure — numerical review
+
+**Decision**
+
+- Gemma Danks approved the 0.10/0.20-beam unresolved-group centroid limits and
+  10%/20% total-flux limits on 2026-08-03.
+- Generated noisy-source qualification will use SNR-stratified confidence
+  intervals for bias and uncertainty calibration plus the existing
+  catastrophic-outlier rate. Absolute noisy-source tails remain report-only.
+- Strict analytic/noiseless and exact compact-reference absolute gates remain
+  unchanged.
+
+**Next**
+
+- Implement and pass the regression/calibration report before opening the
+  replacement held-out qualification campaign.

@@ -1239,7 +1239,9 @@ approved observable groups pass the crowded regression. That run exposed a
 second contract issue: flat absolute tail gates fail ordinary noise scatter
 for one 12-SNR source. Provisional unresolved-group margins and an
 SNR-stratified confidence-interval decision rule now require named numerical
-review before qualification inspection.
+review before qualification inspection. Gemma Danks approved those numerical
+and statistical amendments on 2026-08-03; regression and calibration
+implementation now precede the first held-out run.
 
 The scientific basis for this phase is [Condon's treatment of errors in
 elliptical Gaussian fits](https://doi.org/10.1086/133871), the
@@ -1566,13 +1568,12 @@ before maintaining a custom fitter.
    therefore records a **not ready** decision rather than declaring the phase
    passed.
 
-   Complete the remaining bullets in this order: (1) pre-inspection numerical
-   review of the replacement group margins and noisy-source decision rule;
-   (2) development/regression association and correlated-noise uncertainty
-   calibration; (3) first inspection of the replacement held-out qualification
-   result; and (4) controlled performance qualification. The affected truth
+   Complete the remaining bullets in this order: (1) development/regression
+   association and correlated-noise uncertainty calibration; (2) first
+   inspection of the replacement held-out qualification result; and (3)
+   controlled performance qualification. The affected truth
    groups, recipes, checksums, and gates are already frozen. Do not inspect
-   held-out output before the remaining numerical review is complete.
+   held-out output before regression and calibration implementation passes.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

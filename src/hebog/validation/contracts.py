@@ -463,6 +463,7 @@ class PhaseFourCatalogueGate(_ContractModel):
         "declared-compact-associations-snr-at-least-10"
     ]
     outlier_population: Literal["matched-compact-snr-at-least-10"]
+    absolute_tail_policy: Literal["gate", "report-only"]
     minimum_completeness: float = Field(ge=0, le=1)
     minimum_reliability: float = Field(ge=0, le=1)
     maximum_median_position_beams: float = Field(ge=0)
@@ -614,6 +615,9 @@ class PhaseFourScientificGates(_ContractModel):
     confidence_level: float = Field(gt=0, lt=1)
     low_snr_threshold_crossings: Literal["report-only"]
     shape_uncertainty: Literal["report-only"]
+    noisy_source_decision: Literal[
+        "snr-stratified-confidence-intervals-and-catastrophic-rate"
+    ]
     compact_reference: PhaseFourCatalogueGate
     generated_regression: PhaseFourCatalogueGate
     heldout_qualification: PhaseFourCatalogueGate

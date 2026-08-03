@@ -354,17 +354,22 @@ exact-reference cases retain their strict absolute gates.
 
 Before held-out inspection, the reviewer must confirm or amend:
 
-- [ ] 0.10/0.20 beam median/tail unresolved-group centroid margins;
-- [ ] 10%/20% median/tail unresolved-group total-flux margins;
-- [ ] generated noisy-source qualification uses predeclared SNR-stratified
+- [x] 0.10/0.20 beam median/tail unresolved-group centroid margins;
+- [x] 10%/20% median/tail unresolved-group total-flux margins;
+- [x] generated noisy-source qualification uses predeclared SNR-stratified
       confidence intervals for bias and uncertainty calibration rather than a
       flat per-realization absolute tail gate;
-- [ ] absolute noisy-source tails remain report-only curves while the existing
+- [x] absolute noisy-source tails remain report-only curves while the existing
       catastrophic-outlier rate remains a gate; and
-- [ ] analytic/noiseless and exact compact-reference absolute gates remain
+- [x] analytic/noiseless and exact compact-reference absolute gates remain
       unchanged.
 
 - **Reviewer:** Gemma Danks
 - **Role:** Data Processing Software Engineer
-- **Decision date:** Pending
-- **Decision:** Pending
+- **Decision date:** 2026-08-03
+- **Decision:** Approved as recommended
+
+This approval promotes the unresolved-group margins to
+`reviewed-provisional`, freezes the noisy-source decision rule, and permits
+the replacement held-out campaign to be inspected after the regression and
+calibration implementation passes.

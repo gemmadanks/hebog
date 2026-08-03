@@ -238,7 +238,13 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
     assert gates.confidence_level == 0.95
     assert gates.low_snr_threshold_crossings == "report-only"
     assert gates.shape_uncertainty == "report-only"
-    assert gates.unresolved_group.status == "frozen-provisional"
+    assert gates.noisy_source_decision == (
+        "snr-stratified-confidence-intervals-and-catastrophic-rate"
+    )
+    assert gates.compact_reference.absolute_tail_policy == "gate"
+    assert gates.generated_regression.absolute_tail_policy == "report-only"
+    assert gates.heldout_qualification.absolute_tail_policy == "report-only"
+    assert gates.unresolved_group.status == "reviewed-provisional"
     assert gates.unresolved_group.population == (
         "declared-unresolved-association-groups"
     )
