@@ -3821,9 +3821,10 @@ and compatibility serialization
   practically meaningful regression. Signed point estimates remain mandatory
   report fields; all interval, absolute-science, and stronger-Hebog gates must
   pass independently.
-- Promoted the paired protocol to `reviewed` and the five-sigma scientific
-  contract to `reviewed-provisional`. This authorizes final-population freeze,
-  not generation or result inspection.
+- Promoted the paired protocol to `reviewed` and restored both the unchanged
+  measurement-semantics contract and the five-sigma scientific-gate contract
+  to `reviewed-provisional`. This authorizes final-population freeze, not
+  generation or result inspection.
 
 **Evidence**
 

@@ -3,6 +3,9 @@
 **Status:** reviewed on 2026-08-03 by Gemma Danks, Data Processing Software
 Engineer. The final unseen population may now be frozen, but must remain
 unopened until every governed input is recorded.
+**Status:** reviewed on 2026-08-03 by Gemma Danks, Data Processing Software
+Engineer. The final unseen population may now be frozen, but must remain
+unopened until every governed input is recorded.
 
 This protocol answers a deliberately narrower question than “does Hebog equal
 PyBDSF byte for byte?” It asks whether Hebog passes the existing truth-based
@@ -14,6 +17,9 @@ The machine-readable source is
 `config/contracts/phase-4-paired-noninferiority.json`.
 It is the approved analysis contract. It does not contain the final campaign
 seeds or truth; those belong in a separately frozen dataset manifest.
+The unchanged Phase 4 measurement-semantics contract and the five-sigma
+scientific-gate contract are both `reviewed-provisional` under the same named
+decision.
 
 ## Why the comparison is paired
 
@@ -43,6 +49,12 @@ by a more favourable method.
 
 ## Passing rule
 
+Every co-primary endpoint's one-sided upper confidence limit must be within
+its predeclared practical regression margin. The signed point estimate is
+reported for transparency, but its sign is not a separate gate: under exact
+equality a sign gate fails half of repeated experiments and would reject
+scientifically negligible random differences even when the interval excludes
+the non-inferiority margin.
 Every co-primary endpoint's one-sided upper confidence limit must be within
 its predeclared practical regression margin. The signed point estimate is
 reported for transparency, but its sign is not a separate gate: under exact
@@ -86,7 +98,9 @@ deconvolution-classification, association-identity, and uncertainty
 availability each use a 0.5-percentage-point margin. Clear-resolved
 deconvolved-shape availability uses 1 percentage point because there is one
 such source per realization. The intersection-union rule still forbids a
+such source per realization. The intersection-union rule still forbids a
 trade of one metric for another; these margins bound sampling uncertainty
+rather than authorize a scientifically meaningful regression.
 rather than authorize a scientifically meaningful regression.
 
 ## Power and its limitation
@@ -111,6 +125,11 @@ calculation also reports point-direction probabilities so the rejected stricter
 rule remains auditable, but the reviewed decision is based on the interval,
 the absolute gates, and the independently frozen envelopes protecting Hebog's
 stronger results.
+The 90% target applies to exclusion of the non-inferiority margin. The power
+calculation also reports point-direction probabilities so the rejected stricter
+rule remains auditable, but the reviewed decision is based on the interval,
+the absolute gates, and the independently frozen envelopes protecting Hebog's
+stronger results.
 
 The initial discordance, within-image correlation, and paired-standard-
 deviation values were provisional planning inputs. The maintained audit now
@@ -130,7 +149,13 @@ scientific gate. The second audit verifies all 20 bounds; its SHA-256 is
 `af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`.
 The reviewed protocol's canonical SHA-256 is
 `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
+`af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`.
+The reviewed protocol's canonical SHA-256 is
+`1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
 The weakest interval-exclusion power at 600 images remains 92.2%, for median
+unresolved-group position. Named review accepted these measured,
+conservative planning inputs. Sample size must not change after the final
+population is opened.
 unresolved-group position. Named review accepted these measured,
 conservative planning inputs. Sample size must not change after the final
 population is opened.
@@ -168,8 +193,12 @@ correction as well.
 The source-level margin audit then measured the standardized ATLAS extension
 statistic for all 1,600 point and 200 clear regression cases. Point truth ended
 at 3.38 sigma and clear truth began at 17.92 sigma. Phase 4 now uses a
+at 3.38 sigma and clear truth began at 17.92 sigma. Phase 4 now uses a
 five-sigma high-confidence catalogue decision, replacing the earlier
 two-sigma boundary while retaining the same statistic. The analytic and
+independent worst-margin tests pass, and named review approved this policy.
+The pre-change campaign cannot establish its paired endpoint or variance, so
+the refreshed complete run below remains the governing regression evidence.
 independent worst-margin tests pass, and named review approved this policy.
 The pre-change campaign cannot establish its paired endpoint or variance, so
 the refreshed complete run below remains the governing regression evidence.
@@ -200,6 +229,8 @@ no-worse point-estimate condition would nevertheless fail this regression
 endpoint, illustrating the already documented 50% directional-pass
 probability under effective equality. Named review therefore removed that
 condition before final-population freeze.
+probability under effective equality. Named review therefore removed that
+condition before final-population freeze.
 
 The aggregate median unresolved-blend position is also slightly in the
 opposite direction: 0.05455 beam for Hebog and 0.05175 beam for PyBDSF. The
@@ -209,9 +240,13 @@ materially better in the associated 95th-percentile position tail (0.104
 versus 0.395 beam) and both blend-flux endpoints. This second small directional
 difference supports the reviewed interval-based decision and avoids tuning an
 estimator to regression noise.
+difference supports the reviewed interval-based decision and avoids tuning an
+estimator to regression noise.
 
 ## One-look governance
 
+After the completed named approval, freeze the generator version, exactly 600
+seeds, truth,
 After the completed named approval, freeze the generator version, exactly 600
 seeds, truth,
 WCS and beam strata, scientific contracts, both exact PyBDSF revisions,
@@ -228,6 +263,7 @@ A scientific failure remains evidence; it does not trigger another unseen
 campaign.
 
 ## Basis and reviewed decisions
+## Basis and reviewed decisions
 
 The endpoint families follow the completeness, reliability, astrometry,
 photometry, blend, and failure-mode questions emphasized by the
@@ -243,6 +279,8 @@ by preserving dependence within each image.
 
 Gemma Danks, Data Processing Software Engineer, approved the following on
 2026-08-03 before any final population was generated or inspected:
+Gemma Danks, Data Processing Software Engineer, approved the following on
+2026-08-03 before any final population was generated or inspected:
 
 - every proposed margin is scientifically negligible for Rapthor and broader
   radio-continuum catalogues;
@@ -250,11 +288,16 @@ Gemma Danks, Data Processing Software Engineer, approved the following on
   assumptions are verified;
 - the extra no-worse point-estimate condition is removed; signed point
   estimates remain mandatory report fields;
+- the extra no-worse point-estimate condition is removed; signed point
+  estimates remain mandatory report fields;
 - the five-sigma high-confidence extension decision is scientifically
   proportionate given the wide independent point/clear margin and the cost of
   assigning a false physical size; and
 - the co-primary and report-only endpoint split protects all material Hebog
   strengths without turning exploratory metrics into hidden gates.
+
+The full named decision and supporting evidence are recorded in the
+[Phase 4 scientific review record](phase-4-review-record.md).
 
 The full named decision and supporting evidence are recorded in the
 [Phase 4 scientific review record](phase-4-review-record.md).

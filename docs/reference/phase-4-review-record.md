@@ -795,17 +795,26 @@ PyBDSF before closing Phase 4. The practical-equivalence margins, power
 calculation, final unseen population, and stopping rule required named review
 before that population could be frozen. That review is recorded below.
 Non-claim profiling may proceed in
+calculation, final unseen population, and stopping rule required named review
+before that population could be frozen. That review is recorded below.
+Non-claim profiling may proceed in
 parallel, but final Phase 4 performance qualification follows the scientific
 pass. After Phase 4 closes, bounded-memory and distributed scalability of the
 qualified compact path becomes the next active engineering focus.
 
 ## Paired-protocol preparation
+## Paired-protocol preparation
 
 The recovery protocol is now expressed as a strict version-one contract and a
 human-readable [paired non-inferiority review
 guide](phase-4-paired-noninferiority.md). It proposed 600 independent
+guide](phase-4-paired-noninferiority.md). It proposed 600 independent
 noise-seed images, one-sided 95% paired whole-image BCa intervals, 50,000
 fixed-seed resamples, positive-as-worse metric normalization, all-endpoint
+intersection-union passage, and an initially proposed additional no-worse
+point-estimate condition. Released PyBDSF is primary; a failure by it or Hebog
+fails primary qualification, while pinned-`master` failure remains visible in
+a secondary report.
 intersection-union passage, and an initially proposed additional no-worse
 point-estimate condition. Released PyBDSF is primary; a failure by it or Hebog
 fails primary qualification, while pinned-`master` failure remains visible in
@@ -819,7 +828,12 @@ overall-pass claim. The later planning-assumption audit verifies the revised
 variance bounds. Named review below accepts the design but removes the extra
 directional gate; no final seed, truth, or result had been generated or
 inspected at the time of that decision.
+overall-pass claim. The later planning-assumption audit verifies the revised
+variance bounds. Named review below accepts the design but removes the extra
+directional gate; no final seed, truth, or result had been generated or
+inspected at the time of that decision.
 
+## Independent point-classification recovery
 ## Independent point-classification recovery
 
 The corrected-geometry paired regression provided a truth-only margin audit
@@ -837,11 +851,13 @@ point truth was invalid.
 The recovery implementation retains the ATLAS statistic but requires five
 sigma for the catalogue-level resolved claim. Five sigma is deliberately
 conservative: false extension creates a physical size and switches from peak-as-total to a
+conservative: false extension creates a physical size and switches from peak-as-total to a
 noise-biased free-fit integral, and the independent clear population retains
 more than 12 sigma of observed margin above the decision. Marginal extension
 remains report-only, so it cannot be traded against the co-primary point and
 clear populations.
 
+The reviewer approved:
 The reviewer approved:
 
 1. five sigma as the high-confidence catalogue extension threshold for Phase
@@ -854,11 +870,19 @@ The reviewer approved:
 - **Role or scientific authority:** Data Processing Software Engineer
 - **Review date:** 2026-08-03
 - **Decision:** Approved both recommendations
+- **Reviewer:** Gemma Danks
+- **Role or scientific authority:** Data Processing Software Engineer
+- **Review date:** 2026-08-03
+- **Decision:** Approved both recommendations
 
 This regression evidence cannot qualify Hebog. The complete paired audit was
 therefore refreshed after the implementation change, and its planning
 assumptions were reviewed before final-population freeze.
+This regression evidence cannot qualify Hebog. The complete paired audit was
+therefore refreshed after the implementation change, and its planning
+assumptions were reviewed before final-population freeze.
 
+## Refreshed paired regression
 ## Refreshed paired regression
 
 The post-correction Hebog shard is bound to commit
@@ -889,7 +913,11 @@ this result.
 The maintained endpoint and planning-assumption audit below was required
 before these values could support named review. At that point the final
 population remained ungenerated and unopened.
+The maintained endpoint and planning-assumption audit below was required
+before these values could support named review. At that point the final
+population remained ungenerated and unopened.
 
+## Planning-assumption audit and named decision
 ## Planning-assumption audit and named decision
 
 The maintained audit recomputes every endpoint in 50,000 whole-image bootstrap
@@ -913,6 +941,9 @@ All 20 revised planning bounds now pass. The audit has SHA-256
 `af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`,
 and the reviewed protocol has canonical SHA-256
 `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
+`af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`,
+and the reviewed protocol has canonical SHA-256
+`1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
 The weakest interval-exclusion power remains 92.2% at 600 images.
 
 Two regression point estimates are slightly worse despite passing their
@@ -923,6 +954,8 @@ Their tail and companion endpoints are equal or substantially better. This is
 consistent with the draft calculation's warning that a strict directional
 rule passes only half of repeated experiments under effective equality.
 
+Gemma Danks, Data Processing Software Engineer, reviewed and approved the
+following on 2026-08-03:
 Gemma Danks, Data Processing Software Engineer, reviewed and approved the
 following on 2026-08-03:
 
@@ -937,9 +970,14 @@ following on 2026-08-03:
    passage requires every one-sided upper bound to lie inside its margin,
    every absolute gate to pass, and every stronger-Hebog regression envelope
    to pass.
+5. removal of the stricter no-worse point-estimate condition from every
+   endpoint. Signed point estimates remain mandatory report fields, while
+   passage requires every one-sided upper bound to lie inside its margin,
+   every absolute gate to pass, and every stronger-Hebog regression envelope
+   to pass.
 
-The protocol is now `reviewed` and the five-sigma scientific contract is
-`reviewed-provisional`. This named decision permits the final 600-image
-population to be frozen, but not opened, before its generator, truth, seeds,
-WCS/beam strata, exact implementation revisions, analysis code, and stopping
-rule are recorded.
+The protocol is now `reviewed`; the unchanged measurement-semantics contract
+and five-sigma scientific-gate contract are both `reviewed-provisional`. This
+named decision permits the final 600-image population to be frozen, but not
+opened, before its generator, truth, seeds, WCS/beam strata, exact
+implementation revisions, analysis code, and stopping rule are recorded.

@@ -170,7 +170,7 @@ def test_phase_four_measurement_contract_freezes_scientific_meanings() -> None:
         _PHASE_FOUR_MEASUREMENT_PATH
     )
 
-    assert contract.status == "frozen-provisional"
+    assert contract.status == "reviewed-provisional"
     assert contract.schema_version == 2
     assert contract.scope.image_kind == "mfs-stokes-i"
     assert contract.scope.brightness_unit == "Jy/beam"
