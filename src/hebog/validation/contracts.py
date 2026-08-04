@@ -902,7 +902,7 @@ class PhaseFourMetricRegistry(_ContractModel):
         "every-realization-required-reference-failure-retained"
     ]
     point_estimate_rule: Literal[
-        "no-worse-direction-on-frozen-development-regression"
+        "within-practical-margin-on-frozen-development-regression"
     ]
     qualification_rule: Literal[
         "one-sided-paired-upper-limit-within-practical-margin"

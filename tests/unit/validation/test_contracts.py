@@ -335,7 +335,7 @@ def test_phase_four_recovery_registry_forbids_metric_compensation() -> None:
         "every-metric-passes-no-compensation-or-weighted-score"
     )
     assert registry.point_estimate_rule == (
-        "no-worse-direction-on-frozen-development-regression"
+        "within-practical-margin-on-frozen-development-regression"
     )
     assert len(registry.metrics) == 35
     assert all(
@@ -347,7 +347,14 @@ def test_phase_four_recovery_registry_forbids_metric_compensation() -> None:
         metric.metric_id
         for metric in registry.metrics
         if metric.absolute_role == "report-only"
-    } >= {
+    } == {
+        "median-deconvolved-axis",
+        "median-deconvolved-position-angle",
+        "median-fitted-axis",
+        "median-fitted-position-angle",
+        "median-integrated-flux",
+        "median-peak-flux",
+        "median-position",
         "percentile-95-position",
         "percentile-95-peak-flux",
         "percentile-95-integrated-flux",

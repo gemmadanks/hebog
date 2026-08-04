@@ -23,8 +23,10 @@ from hebog.validation.comparison import (
 )
 from hebog.validation.contracts import (
     PairedNoninferiorityContract,
+    PhaseFourMetricRegistry,
     PhaseFourScientificGates,
     load_paired_noninferiority_contract,
+    load_phase_four_metric_registry,
     load_phase_four_scientific_gates,
 )
 from hebog.validation.datasets import (
@@ -46,6 +48,7 @@ from hebog.validation.evidence import (
     PhaseFourGateDecision,
     PhaseFourImplementationOutcome,
     PhaseFourQualificationDecision,
+    PhaseFourRecoveryDecision,
     ScientificCampaignEvidence,
     SoftwareIdentity,
     SourcePairDiagnostic,
@@ -60,9 +63,19 @@ from hebog.validation.phase_four_decision import (
     paired_bca_upper_limits,
     paired_endpoint_decisions,
 )
+from hebog.validation.phase_four_recovery import (
+    evaluate_phase_four_recovery,
+)
 
 _ROOT = Path(__file__).parents[3]
 _SHA256 = "a" * 64
+
+
+def _metric_registry() -> PhaseFourMetricRegistry:
+    """Load the frozen Phase 4R no-compensation registry."""
+    return load_phase_four_metric_registry(
+        _ROOT / "config/contracts/phase-4r-metric-registry.json"
+    )
 
 
 def _protocol() -> PairedNoninferiorityContract:
@@ -835,3 +848,217 @@ def test_one_look_evaluator_rejects_provenance_drift() -> None:
             gates,
             scientific_contract_set_sha256="3" * 64,
         )
+
+
+def _stub_phase4r_intervals(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Replace expensive bootstrap work with its exact point statistic."""
+
+    def interval_stub(
+        statistic: EndpointStatistic,
+        *,
+        realization_count: int,
+        resampling: object,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        del resampling
+        point = statistic(np.arange(realization_count, dtype=np.int64))
+        return point, np.zeros_like(point)
+
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_recovery.paired_bca_upper_limits",
+        interval_stub,
+    )
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_decision.uncertainty_calibration_report",
+        _passing_uncertainty_report,
+    )
+
+
+def test_phase4r_evaluator_compares_every_metric_and_stratum(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Both references receive independent overall and stratum decisions."""
+    campaign, dataset, protocol, gates, configuration = (
+        _synthetic_campaign_inputs()
+    )
+    _stub_phase4r_intervals(monkeypatch)
+
+    decision = evaluate_phase_four_recovery(
+        campaign,
+        dataset,
+        _metric_registry(),
+        protocol,
+        gates,
+        stage="qualification",
+        scientific_contract_set_sha256=configuration,
+        captured_at=datetime(2026, 8, 4, tzinfo=UTC),
+    )
+    path = tmp_path / "phase4r-decision.json"
+    write_evidence(path, decision)
+
+    assert decision.passed is True
+    assert isinstance(load_evidence(path), PhaseFourRecoveryDecision)
+    assert {
+        item.reference_identifier for item in decision.metric_decisions
+    } == {
+        "pybdsf-master",
+        "pybdsf-release",
+    }
+    assert {
+        (item.metric_id, item.stratum) for item in decision.metric_decisions
+    } >= {
+        ("implementation-completion", "overall"),
+        ("median-position", "overall"),
+        ("median-position", "edge"),
+        ("point-source-specificity", "shape-unresolved"),
+    }
+    assert all(item.status == "pass" for item in decision.metric_decisions)
+
+
+@pytest.mark.parametrize(
+    ("separation", "expected_status"),
+    ((0.011, "pass"), (0.02, "fail")),
+)
+def test_phase4r_development_point_rule_uses_the_registered_margin(
+    monkeypatch: pytest.MonkeyPatch,
+    separation: float,
+    expected_status: str,
+) -> None:
+    """Tiny finite-sample signs pass, while one weak metric cannot hide."""
+    campaign, original_dataset, protocol, gates, configuration = (
+        _synthetic_campaign_inputs()
+    )
+    dataset = original_dataset.model_copy(
+        update={"role": DatasetRole.DEVELOPMENT}
+    )
+    realizations = tuple(
+        realization.model_copy(
+            update={
+                "source_pairs": tuple(
+                    pair.model_copy(
+                        update={"separation_beam_fwhm": separation}
+                    )
+                    if realization.implementation_identifier == "hebog"
+                    and pair.decision == "matched"
+                    else pair
+                    for pair in realization.source_pairs
+                )
+            }
+        )
+        for realization in campaign.realizations
+    )
+    development = campaign.model_copy(
+        update={
+            "dataset": campaign_dataset_identity(dataset),
+            "realizations": realizations,
+        }
+    )
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_decision.uncertainty_calibration_report",
+        _passing_uncertainty_report,
+    )
+
+    decision = evaluate_phase_four_recovery(
+        development,
+        dataset,
+        _metric_registry(),
+        protocol,
+        gates,
+        stage="development",
+        scientific_contract_set_sha256=configuration,
+    )
+    position = next(
+        item
+        for item in decision.metric_decisions
+        if item.metric_id == "median-position"
+        and item.stratum == "overall"
+        and item.reference_identifier == "pybdsf-release"
+    )
+    unaffected = next(
+        item
+        for item in decision.metric_decisions
+        if item.metric_id == "median-peak-flux"
+        and item.stratum == "overall"
+        and item.reference_identifier == "pybdsf-release"
+    )
+
+    assert position.positive_regression == pytest.approx(separation - 0.01)
+    assert position.status == expected_status
+    assert unaffected.status == "pass"
+    assert decision.passed is (expected_status == "pass")
+
+
+def test_phase4r_noisy_absolute_scatter_is_reported_not_gated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Noise-limited absolute medians remain visible without double gating."""
+    campaign, original_dataset, protocol, gates, configuration = (
+        _synthetic_campaign_inputs()
+    )
+    dataset = original_dataset.model_copy(
+        update={"role": DatasetRole.DEVELOPMENT}
+    )
+    realizations = tuple(
+        realization.model_copy(
+            update={
+                "source_pairs": tuple(
+                    pair.model_copy(update={"separation_beam_fwhm": 0.03})
+                    if pair.decision == "matched"
+                    else pair
+                    for pair in realization.source_pairs
+                )
+            }
+        )
+        for realization in campaign.realizations
+    )
+    development = campaign.model_copy(
+        update={
+            "dataset": campaign_dataset_identity(dataset),
+            "realizations": realizations,
+        }
+    )
+    sample_limited_gates = gates.model_copy(
+        update={
+            "uncertainty": gates.uncertainty.model_copy(
+                update={"minimum_samples_per_stratum": 10_000}
+            )
+        }
+    )
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_decision.uncertainty_calibration_report",
+        _passing_uncertainty_report,
+    )
+
+    decision = evaluate_phase_four_recovery(
+        development,
+        dataset,
+        _metric_registry(),
+        protocol,
+        sample_limited_gates,
+        stage="development",
+        scientific_contract_set_sha256=configuration,
+    )
+    absolute_position = next(
+        item
+        for item in decision.absolute_gates
+        if item.gate_id == "median-position"
+    )
+
+    assert absolute_position.value == pytest.approx(0.03)
+    assert absolute_position.status == "fail"
+    assert absolute_position.role == "report-only"
+    assert all(
+        item.role == "report-only"
+        for item in decision.absolute_gates
+        if item.gate_id.endswith(
+            (
+                "-uncertainty-bias",
+                "-uncertainty-coverage",
+                "-uncertainty-dispersion",
+            )
+        )
+    )
+    assert not any(
+        reason.startswith("absolute-gate-")
+        for reason in decision.failure_reasons
+    )

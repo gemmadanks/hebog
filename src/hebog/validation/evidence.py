@@ -1184,12 +1184,189 @@ class PhaseFourQualificationDecision(_EvidenceDocument):
         return self
 
 
+def _expected_recovery_point_status(
+    values: tuple[float | None, float | None, float | None],
+    margin: float,
+) -> Literal["pass", "fail", "indeterminate"]:
+    """Derive a recovery point status from complete or absent values."""
+    if all(value is None for value in values):
+        return "indeterminate"
+    if any(value is None for value in values):
+        raise ValueError("recovery metric point values must be complete")
+    regression = values[2]
+    assert regression is not None
+    return "pass" if regression <= margin else "fail"
+
+
+def _expected_recovery_interval_status(
+    upper: float | None,
+    margin: float,
+) -> Literal["pass", "fail", "indeterminate"]:
+    """Derive an interval status from a finite limit or its absence."""
+    if upper is None:
+        return "indeterminate"
+    return "pass" if upper <= margin else "fail"
+
+
+def _combined_recovery_status(
+    point: Literal["pass", "fail", "indeterminate"],
+    interval: Literal["pass", "fail", "indeterminate"],
+) -> Literal["pass", "fail", "indeterminate"]:
+    """Combine conjunctive point and interval decisions."""
+    if "fail" in {point, interval}:
+        return "fail"
+    if "indeterminate" in {point, interval}:
+        return "indeterminate"
+    return "pass"
+
+
+class PhaseFourRecoveryMetricDecision(_EvidenceModel):
+    """One independent Phase 4R metric comparison against one reference."""
+
+    metric_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    stratum: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    reference_identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    candidate_value: float | None = Field(default=None, allow_inf_nan=False)
+    reference_value: float | None = Field(default=None, allow_inf_nan=False)
+    positive_regression: float | None = Field(
+        default=None,
+        allow_inf_nan=False,
+    )
+    practical_regression_margin: float = Field(ge=0, allow_inf_nan=False)
+    point_status: Literal["pass", "fail", "indeterminate"]
+    upper_confidence_limit: float | None = Field(
+        default=None,
+        allow_inf_nan=False,
+    )
+    interval_status: Literal["pass", "fail", "indeterminate", "not-evaluated"]
+    status: Literal["pass", "fail", "indeterminate"]
+    reason: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def validate_metric_decision(self) -> Self:
+        """Bind point, interval, and aggregate statuses to their values."""
+        point_values = (
+            self.candidate_value,
+            self.reference_value,
+            self.positive_regression,
+        )
+        expected_point = _expected_recovery_point_status(
+            point_values,
+            self.practical_regression_margin,
+        )
+        if self.point_status != expected_point:
+            raise ValueError("metric point status disagrees with values")
+
+        if self.interval_status == "not-evaluated":
+            if self.upper_confidence_limit is not None:
+                raise ValueError(
+                    "unevaluated metric interval cannot contain a limit"
+                )
+            expected_status = self.point_status
+        else:
+            expected_interval = _expected_recovery_interval_status(
+                self.upper_confidence_limit,
+                self.practical_regression_margin,
+            )
+            if self.interval_status != expected_interval:
+                raise ValueError(
+                    "metric interval status disagrees with its limit"
+                )
+            expected_status = _combined_recovery_status(
+                self.point_status,
+                expected_interval,
+            )
+        if self.status != expected_status:
+            raise ValueError("metric aggregate status disagrees with evidence")
+        if (self.status == "indeterminate") != (self.reason is not None):
+            raise ValueError(
+                "only indeterminate metrics require an explanatory reason"
+            )
+        return self
+
+
+class PhaseFourRecoveryDecision(_EvidenceDocument):
+    """Immutable no-compensation Phase 4R campaign decision."""
+
+    evidence_type: Literal["phase-4r-decision"]
+    decision_stage: Literal["development", "regression", "qualification"]
+    source_campaign_run_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    source_campaign_sha256: str = Field(pattern=_SHA256_PATTERN)
+    comparison_protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    scientific_gates_sha256: str = Field(pattern=_SHA256_PATTERN)
+    metric_registry_sha256: str = Field(pattern=_SHA256_PATTERN)
+    candidate_identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    reference_identifiers: tuple[str, ...] = Field(min_length=2)
+    implementation_outcomes: tuple[PhaseFourImplementationOutcome, ...] = (
+        Field(min_length=3)
+    )
+    metric_decisions: tuple[PhaseFourRecoveryMetricDecision, ...] = Field(
+        min_length=1
+    )
+    absolute_gates: tuple[PhaseFourGateDecision, ...] = Field(min_length=1)
+    stronger_hebog_envelopes: tuple[PhaseFourEnvelopeDecision, ...] = Field(
+        min_length=1
+    )
+    passed: bool
+    failure_reasons: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_recovery_decision(self) -> Self:
+        """Require a conjunctive decision with canonical unique identities."""
+        if self.reference_identifiers != tuple(
+            sorted(set(self.reference_identifiers))
+        ):
+            raise ValueError(
+                "recovery reference identifiers must be canonical"
+            )
+        keys = [
+            (item.metric_id, item.stratum, item.reference_identifier)
+            for item in self.metric_decisions
+        ]
+        if len(set(keys)) != len(keys):
+            raise ValueError("recovery metric decision keys must be unique")
+        if {
+            item.reference_identifier for item in self.metric_decisions
+        } != set(self.reference_identifiers):
+            raise ValueError(
+                "recovery decisions must cover every declared reference"
+            )
+        if self.failure_reasons != tuple(sorted(set(self.failure_reasons))):
+            raise ValueError("recovery failure reasons must be canonical")
+        constituent_pass = (
+            all(item.status == "pass" for item in self.metric_decisions)
+            and all(
+                item.status == "pass"
+                for item in self.absolute_gates
+                if item.role == "gate"
+            )
+            and all(
+                item.status == "pass" for item in self.stronger_hebog_envelopes
+            )
+            and not any(
+                item.failed_seeds and item.policy == "qualification-fails"
+                for item in self.implementation_outcomes
+            )
+        )
+        if self.passed != constituent_pass:
+            raise ValueError(
+                "recovery decision disagrees with its constituents"
+            )
+        if self.passed == bool(self.failure_reasons):
+            raise ValueError(
+                "passing recovery cannot have reasons and failure requires "
+                "them"
+            )
+        return self
+
+
 EvidenceDocument: TypeAlias = (
     BenchmarkEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence
     | PhaseFourQualificationDecision
+    | PhaseFourRecoveryDecision
 )
 
 _EVIDENCE_ADAPTER: TypeAdapter[EvidenceDocument] = TypeAdapter(

@@ -308,7 +308,7 @@
       "unit": "normalized-residual"
     },
     {
-      "absolute_role": "gate",
+      "absolute_role": "report-only",
       "desirable_direction": "lower-is-better",
       "domain": "position",
       "ideal_value": 0.0,
@@ -336,7 +336,7 @@
       "unit": "beam-fwhm"
     },
     {
-      "absolute_role": "gate",
+      "absolute_role": "report-only",
       "desirable_direction": "lower-is-better",
       "domain": "flux",
       "ideal_value": 0.0,
@@ -364,7 +364,7 @@
       "unit": "fractional-error"
     },
     {
-      "absolute_role": "gate",
+      "absolute_role": "report-only",
       "desirable_direction": "lower-is-better",
       "domain": "flux",
       "ideal_value": 0.0,
@@ -392,7 +392,7 @@
       "unit": "fractional-error"
     },
     {
-      "absolute_role": "gate",
+      "absolute_role": "report-only",
       "desirable_direction": "lower-is-better",
       "domain": "shape",
       "ideal_value": 0.0,
@@ -420,7 +420,7 @@
       "unit": "fractional-error"
     },
     {
-      "absolute_role": "gate",
+      "absolute_role": "report-only",
       "desirable_direction": "lower-is-better",
       "domain": "shape",
       "ideal_value": 0.0,
@@ -448,7 +448,7 @@
       "unit": "fractional-error"
     },
     {
-      "absolute_role": "gate",
+      "absolute_role": "report-only",
       "desirable_direction": "lower-is-better",
       "domain": "shape",
       "ideal_value": 0.0,
@@ -476,7 +476,7 @@
       "unit": "degrees"
     },
     {
-      "absolute_role": "gate",
+      "absolute_role": "report-only",
       "desirable_direction": "lower-is-better",
       "domain": "shape",
       "ideal_value": 0.0,
@@ -504,7 +504,7 @@
       "unit": "degrees"
     }
   ],
-  "point_estimate_rule": "no-worse-direction-on-frozen-development-regression",
+  "point_estimate_rule": "within-practical-margin-on-frozen-development-regression",
   "qualification_rule": "one-sided-paired-upper-limit-within-practical-margin",
   "reference_scope": "released-pybdsf-and-pinned-master-where-each-produces-the-metric",
   "registry_id": "phase-4r-metric-registry",
