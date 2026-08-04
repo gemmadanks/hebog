@@ -88,6 +88,24 @@ flux. This bounded aperture is used only for association and blend-total
 comparisons; fitted component flux and Rapthor's unresolved peak-as-total
 catalogue convention are unchanged.
 
+Phase 4R also selects position independently from morphology and photometry.
+The selected owned-region model continues to define peak, integrated flux,
+shape, and extension. A second free elliptical likelihood uses all finite
+bounded context belonging to the source or background while excluding pixels
+owned by competitors. This avoids shifting the reported position toward only
+the threshold-selected side of a low-SNR or edge source. The public default
+continues to use the selected model's centroid; the governed campaign opts in
+with `position_estimator="bounded-context-free"`.
+
+If the context likelihood itself reaches an image boundary, Hebog does not
+publish the clipped coordinate as an ordinary fit. It inverts the analytic
+first two moments of a one-sided truncated normal using the independently
+measured intensity centroid and covariance. The record identifies this rare
+case as `bounded-context-truncated-moment`; its covariance remains the local
+context-likelihood curvature and the separate quality flag keeps that
+approximation auditable. Failure of either estimator leaves the selected
+model centroid in force rather than inventing a coordinate.
+
 Centroid bounds may extend beyond the detected region but never beyond the
 sampled image. Extension classification is repeated at the catalogue boundary
 using the reviewed ATLAS log integrated-to-peak statistic. If it does not pass,

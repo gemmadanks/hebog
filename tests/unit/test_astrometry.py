@@ -24,6 +24,7 @@ from hebog.data_models.fitting import (
     FittedGaussianPixelParameters,
     GaussianFitDiagnostics,
     GaussianFitUncertainty,
+    GaussianPositionEstimate,
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
@@ -77,13 +78,14 @@ def _metadata(
     )
 
 
-def _fit(
+def _fit(  # noqa: PLR0913
     *,
     centroid_xy: tuple[float, float] = (49.0, 39.0),
     major_sigma_pixels: float = 2.2,
     minor_sigma_pixels: float = 1.4,
     angle_degrees: float = 0.0,
     uncertainty: GaussianFitUncertainty | None = None,
+    position_estimate: GaussianPositionEstimate | None = None,
 ) -> ValidCompactGaussianFit:
     """Return a valid pixel fit with optional formal position/flux errors."""
     target = MomentTarget(
@@ -133,7 +135,37 @@ def _fit(
             parameters_at_bound=False,
         ),
         quality_flags=(),
+        position_estimate=position_estimate,
     )
+
+
+def test_explicit_position_estimator_owns_position_and_covariance() -> None:
+    """Position-only context evidence does not alter flux or morphology."""
+    estimate = GaussianPositionEstimate(
+        centroid_xy=(50.0, 40.0),
+        covariance_xx_pixels_squared=0.01,
+        covariance_xy_pixels_squared=0.0,
+        covariance_yy_pixels_squared=0.04,
+    )
+
+    result = transform_compact_gaussian_fit(
+        _fit(position_estimate=estimate),
+        _metadata(),
+    )
+    expected = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
+
+    assert result.position.right_ascension_degrees == pytest.approx(
+        expected.position.right_ascension_degrees
+    )
+    assert result.position.declination_degrees == pytest.approx(
+        expected.position.declination_degrees
+    )
+    assert result.position.right_ascension_error_degrees == pytest.approx(
+        0.0001 / np.cos(np.deg2rad(result.position.declination_degrees)),
+        rel=1e-5,
+    )
+    assert result.position.declination_error_degrees == pytest.approx(0.0002)
+    assert result.flux.peak_flux_jy_per_beam == 0.01
 
 
 def test_local_jacobian_handles_signed_unequal_rotated_wcs_and_ra_wrap() -> (

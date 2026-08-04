@@ -216,22 +216,19 @@ def _position_with_errors(
     fit: ValidCompactGaussianFit,
 ) -> SkyPosition:
     """Transform available centroid covariance to RA/Dec one-sigma errors."""
-    uncertainty = fit.uncertainty
-    if uncertainty is None:
-        return transform.position
-    pixel_covariance = np.asarray(
-        [
-            [
-                uncertainty.centroid_covariance_xx_pixels_squared,
-                uncertainty.centroid_covariance_xy_pixels_squared,
-            ],
-            [
-                uncertainty.centroid_covariance_xy_pixels_squared,
-                uncertainty.centroid_covariance_yy_pixels_squared,
-            ],
-        ],
-        dtype=np.float64,
-    )
+    position_estimate = fit.position_estimate
+    if position_estimate is not None:
+        xx = position_estimate.covariance_xx_pixels_squared
+        xy = position_estimate.covariance_xy_pixels_squared
+        yy = position_estimate.covariance_yy_pixels_squared
+    else:
+        uncertainty = fit.uncertainty
+        if uncertainty is None:
+            return transform.position
+        xx = uncertainty.centroid_covariance_xx_pixels_squared
+        xy = uncertainty.centroid_covariance_xy_pixels_squared
+        yy = uncertainty.centroid_covariance_yy_pixels_squared
+    pixel_covariance = np.asarray([[xx, xy], [xy, yy]], dtype=np.float64)
     jacobian = np.asarray(transform.jacobian_degrees_per_pixel)
     tangent_covariance = jacobian @ pixel_covariance @ jacobian.T
     declination = transform.position.declination_degrees
@@ -315,7 +312,12 @@ def transform_compact_gaussian_fit(
             "extension_significance_sigma must be finite and positive"
         )
     parameters = fit.parameters
-    transform = local_tangent_plane_transform(metadata, parameters.centroid_xy)
+    position_xy = (
+        fit.position_estimate.centroid_xy
+        if fit.position_estimate is not None
+        else parameters.centroid_xy
+    )
+    transform = local_tangent_plane_transform(metadata, position_xy)
     jacobian = np.asarray(transform.jacobian_degrees_per_pixel)
     fitted_covariance = (
         jacobian
@@ -332,7 +334,7 @@ def transform_compact_gaussian_fit(
         metadata.beam,
         relative_tolerance=deconvolution_relative_tolerance,
     )
-    geometry = compact_geometry_at_pixel(metadata, parameters.centroid_xy)
+    geometry = compact_geometry_at_pixel(metadata, position_xy)
     uncertainty = fit.uncertainty
     integrated_flux = fitted_gaussian_integrated_flux_jy(
         amplitude_jy_per_beam=parameters.amplitude_jy_per_beam,

@@ -112,6 +112,7 @@ def _configs() -> tuple[
             pixel_support="owned-region",
             point_estimator="correlated-gls",
             model_selection="beam-or-free",
+            position_estimator="bounded-context-free",
         ),
         CompactCatalogueConfig(10_000, 1e-10, 5.0),
     )
@@ -189,6 +190,7 @@ def hebog_campaign_configuration() -> dict[str, object]:
             "model_selection": fit.model_selection,
             "pixel_support": fit.pixel_support,
             "point_estimator": fit.point_estimator,
+            "position_estimator": fit.position_estimator,
         },
         "image_dtype": "float64",
         "moment": {

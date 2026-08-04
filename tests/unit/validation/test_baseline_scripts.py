@@ -253,6 +253,7 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
             "extension_significance_sigma": 5.0,
             "pixel_support": "owned-region",
             "point_estimator": "correlated-gls",
+            "position_estimator": "bounded-context-free",
         },
         "image_dtype": "float64",
         "moment": {

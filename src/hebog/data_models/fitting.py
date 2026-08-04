@@ -67,6 +67,41 @@ class RestoringBeamAperturePhotometry:
 
 
 @dataclass(frozen=True, slots=True)
+class GaussianPositionEstimate:
+    """Centroid and covariance from an explicit position-only estimator."""
+
+    centroid_xy: tuple[float, float]
+    covariance_xx_pixels_squared: float
+    covariance_xy_pixels_squared: float
+    covariance_yy_pixels_squared: float
+    estimator: Literal[
+        "bounded-context-free",
+        "bounded-context-truncated-moment",
+    ] = "bounded-context-free"
+
+    def __post_init__(self) -> None:
+        """Require a finite centroid and positive-definite covariance."""
+        values = (
+            *self.centroid_xy,
+            self.covariance_xx_pixels_squared,
+            self.covariance_xy_pixels_squared,
+            self.covariance_yy_pixels_squared,
+        )
+        if not all(isfinite(value) for value in values):
+            raise ValueError("position estimate must be finite")
+        if (
+            self.covariance_xx_pixels_squared <= 0
+            or self.covariance_yy_pixels_squared <= 0
+            or self.covariance_xx_pixels_squared
+            * self.covariance_yy_pixels_squared
+            <= self.covariance_xy_pixels_squared**2
+        ):
+            raise ValueError(
+                "position estimate covariance must be positive definite"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class GaussianFitDiagnostics:
     """Bounded optimizer work and weighted-residual evidence."""
 
@@ -129,6 +164,7 @@ class ValidCompactGaussianFit:
     uncertainty: GaussianFitUncertainty | None
     diagnostics: GaussianFitDiagnostics
     quality_flags: tuple[str, ...]
+    position_estimate: GaussianPositionEstimate | None = None
     restoring_beam_aperture: RestoringBeamAperturePhotometry | None = None
     status: Literal["valid"] = "valid"
 

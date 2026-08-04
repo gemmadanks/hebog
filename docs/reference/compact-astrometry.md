@@ -10,7 +10,9 @@ semantics.
 
 Hebog reconstructs an Astropy celestial WCS from the serializable image
 metadata and uses zero-based continuous `(x, y)` pixel coordinates. A centred
-finite difference at the fitted centroid produces a local two-by-two Jacobian
+finite difference at the explicit position estimate, or the selected fitted
+centroid when no separate estimator is configured, produces a local
+two-by-two Jacobian
 from pixel offsets to east/north tangent-plane offsets in degrees. That same
 Jacobian transforms:
 
@@ -74,8 +76,10 @@ and tests it against governed truth.
 
 ## Uncertainty status
 
-The fitter's nonsingular covariance can be transformed into one-sigma position
-and flux errors. A declared synthesized-beam correlation function produces
+The position estimator's nonsingular covariance can be transformed into
+one-sigma position errors; flux errors continue to use the selected
+morphology/photometry fit covariance. A declared synthesized-beam correlation
+function produces
 generalized OLS sandwich errors flagged
 `correlated-noise-sandwich-errors`; an absent correlation model retains the
 `formal-independent-pixel-errors` fallback. Shape uncertainties remain null

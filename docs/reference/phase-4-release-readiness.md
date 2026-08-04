@@ -319,6 +319,15 @@ absolute gate and be statistically non-inferior to both references on every
 declared overall and governed-stratum metric; improvements cannot compensate
 for a regression elsewhere.
 
+For Phase 4R, “absolute gate” follows the metric registry's noisy-campaign
+role. Raw position, flux, axis, and angle medians/tails remain fully reported
+and are independently non-inferiority-gated against both PyBDSF references,
+but exact/noiseless tolerances are not reapplied to irreducible stochastic
+scatter. Completeness, reliability, availability, classification,
+catastrophic, unresolved-group, and powered uncertainty-calibration results
+remain absolute gates. Exact compact fixtures retain the original strict
+accuracy tolerances.
+
 ## Required closure order
 
 The historical Phase 4 decision cannot be changed to passed. The following

@@ -244,6 +244,22 @@ estimator to regression noise.
 
 ## One-look governance
 
+Phase 4R applies this interval machinery independently to every registered
+metric and applicable stratum against both exact references. Development and
+regression point regressions may vary within the predeclared practical
+resolution; qualification additionally requires each one-sided paired upper
+bound inside that same margin. No weighted aggregate can compensate for a
+weak metric.
+
+The Phase 4R registry also distinguishes exact/noiseless accuracy gates from
+generated noisy-population scatter. Position, flux, axis, and angle absolute
+error distributions remain mandatory and dual-reference-gated, but are
+report-only as absolute noisy-campaign thresholds. Absolute generated-data
+gates remain on robustness, catalogue recovery, classification, catastrophic
+failures, unresolved groups, and adequately powered normalized-residual
+calibration. A sample-size-limited interval cannot be promoted from
+report-only by the registry.
+
 After the completed named approval, the final manifest froze the generator
 version, exactly 600 seeds, truth, WCS, beam, and endpoint strata. The reviewed
 contracts freeze the margins, analysis rule, and stopping rule. The maintained

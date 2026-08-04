@@ -1264,3 +1264,40 @@ direction or equal on 20. The remaining unresolved-group position median is
 tail differs by 0.054 degree inside the registered 1-degree resolution. These
 finite-sample signs must be evaluated by the direction-aware practical-margin
 rule rather than treated as meaningful scientific regressions.
+
+## Phase 4R metric-governance amendment
+
+The complete Phase 4R evaluator exposed two ambiguities before the second
+confirmation population was opened. First, requiring an exact favourable
+sign for every finite development point estimate would reject equivalent
+implementations about half the time. The registered development/regression
+point rule now requires every metric independently to remain inside its
+already approved practical resolution; qualification still requires the
+paired one-sided 95% upper bound inside that margin. There is no averaging or
+compensation across metrics.
+
+Second, the earlier Phase 4 evaluator applied 0.02-beam and 2% exact-reference
+thresholds to raw absolute-error medians from a noisy population containing
+SNR-10 sources. Noise alone gives an unbiased estimator a non-zero absolute
+error distribution, so this double-gated sampling scatter rather than bias or
+scientific equivalence. In Phase 4R, noisy position, flux, axis, and angle
+medians and tails remain mandatory report fields and independent
+dual-reference gates. Absolute generated-data gates remain on catalogue and
+measurement availability, completeness/reliability, classification,
+catastrophic failures, unresolved groups, and powered normalized-residual
+bias, coverage, and dispersion. The strict 0.02-beam/2% requirements remain
+unchanged for analytic noiseless and exact compact-reference fixtures.
+
+Gemma Danks, Data Processing Software Engineer, approved these governance
+corrections as recommended on 2026-08-04, before the frozen second
+confirmation population was opened.
+
+The evaluator maps every legacy absolute decision back to the registry and
+refuses an unregistered gate, preserves sample-limited report-only intervals,
+and evaluates 35 metrics overall and in every applicable governed stratum
+against released and pinned-`master` PyBDSF separately. On the 40 viewed
+iteration-two development realizations, the final position candidate passed
+all 450 such comparisons. The only remaining red development findings are two
+powered edge normalized-bias confidence intervals; their central estimates
+remain inside the absolute bias range and must be confirmed on independent
+regression and, ultimately, the powered qualification population.

@@ -4370,3 +4370,47 @@ and compatibility serialization
 
 - Complete the direction-aware Phase 4R evaluator, freeze the exact candidate
   commit, and run the second confirmation population once.
+
+## 2026-08-04 — Completed Phase 4R no-compensation governance
+
+**Plan phase:** Phase 4R, Steps 1 and 4 — metric evaluation prerequisite
+
+**Completed**
+
+- Added a strict Phase 4R decision schema and command-line evaluator covering
+  all 35 registered metrics, both exact PyBDSF references, and every
+  applicable overall and governed-stratum population independently.
+- Made implementation completion, conditional missingness, point decisions,
+  one-sided paired BCa intervals, absolute gates, and stronger-Hebog envelopes
+  explicit machine-readable constituents. No metric can compensate for a
+  failed metric elsewhere.
+- Replaced an unstable exact-sign development rule with the already approved
+  per-metric practical-resolution rule. Qualification retains the one-sided
+  paired upper-limit requirement.
+- Corrected the noisy-campaign absolute-role mapping. Noise-limited position,
+  flux, shape, and angle error distributions remain mandatory reports and
+  dual-reference gates; strict absolute accuracy remains in analytic/noiseless
+  and exact-product tests. Sample-limited uncertainty intervals cannot be
+  promoted into gates.
+
+**Evidence**
+
+- Focused evaluator, contract, fitting, astrometry, evidence, and runner tests
+  pass 190 cases; Ruff and Pyright pass the changed Python surface.
+- The 40-realization viewed development dry run produced 450 independent
+  Hebog/reference decisions with no metric failure after the separate
+  bounded-context position correction. Hebog completed every realization.
+- The raw Hebog median position/peak errors are 0.02866 beam and 0.02682,
+  better than released PyBDSF at 0.02909/0.03391 and pinned `master` at
+  0.02909/0.03391. Those noise-limited medians miss the legacy
+  exact-reference 0.02 limits and are retained as report-only observations.
+- Two development edge normalized-bias intervals remain red despite central
+  estimates inside the allowed range. The confirmation and powered
+  qualification populations must decide whether these are sampling variation
+  or a persistent calibration issue.
+
+**Next**
+
+- Validate and commit the independent bounded-context position estimator,
+  rerun the complete development evidence at exact frozen revisions, then
+  open the already frozen second confirmation population exactly once.

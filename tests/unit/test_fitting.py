@@ -12,6 +12,7 @@ from dataclasses import dataclass, replace
 import numpy as np
 import pytest
 from astropy.modeling import fitting, models
+from scipy.special import ndtr
 
 from hebog.algorithms import fitting as fitting_algorithm
 from hebog.algorithms.deblending import DeblendedRegion
@@ -21,6 +22,7 @@ from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
 from hebog.data_models.fitting import (
     FailedCompactGaussianFit,
+    GaussianPositionEstimate,
     RestoringBeamAperturePhotometry,
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
@@ -438,7 +440,87 @@ def test_default_model_selection_preserves_the_free_fit_oracle() -> None:
 
     assert isinstance(result, ValidCompactGaussianFit)
     assert result.diagnostics.model_identity == "free-elliptical"
+    assert result.position_estimate is None
+
+
+def test_bounded_context_position_is_separate_from_owned_morphology() -> None:
+    """The explicit campaign policy publishes an independent centroid."""
+    result = _fit(
+        _gaussian_input(amplitude=0.5, sigma_axes=(1.9, 1.2)),
+        config=_fit_config(position_estimator="bounded-context-free"),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.position_estimate is not None
+    assert result.position_estimate.estimator == "bounded-context-free"
+    assert "bounded-context-position" in result.quality_flags
     assert "beam-constrained-fit" not in result.quality_flags
+
+
+def test_truncated_normal_moments_recover_edge_centroid() -> None:
+    """The analytic fallback inverts a known one-sided normal truncation."""
+    location = 254.0
+    sigma = 2.5
+    upper = 255.5
+    standardized = (upper - location) / sigma
+    density = np.exp(-0.5 * standardized**2) / np.sqrt(2.0 * np.pi)
+    ratio = density / ndtr(standardized)
+    observed_mean = location - sigma * ratio
+    observed_variance = sigma**2 * (1.0 - standardized * ratio - ratio**2)
+
+    recovered = fitting_algorithm._upper_truncated_normal_location(
+        observed_mean,
+        observed_variance,
+        upper,
+        30.0,
+    )
+
+    assert recovered == pytest.approx(location, abs=1e-6)
+
+
+@pytest.mark.parametrize(
+    ("observed_mean", "observed_variance"),
+    ((1.0, 0.0), (2.0, 1.0)),
+)
+def test_truncated_normal_moments_reject_invalid_observations(
+    observed_mean: float,
+    observed_variance: float,
+) -> None:
+    """Moment inversion fails closed for degenerate or out-of-bound input."""
+    assert (
+        fitting_algorithm._upper_truncated_normal_location(
+            observed_mean,
+            observed_variance,
+            1.5,
+            30.0,
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"centroid_xy": (float("nan"), 1.0)},
+        {"covariance_xx_pixels_squared": 0.0},
+        {"covariance_xy_pixels_squared": 2.0},
+    ],
+)
+def test_position_estimate_rejects_invalid_evidence(
+    changes: dict[str, object],
+) -> None:
+    """Position-only evidence requires finite positive covariance."""
+    values: dict[str, object] = {
+        "centroid_xy": (1.0, 2.0),
+        "covariance_xx_pixels_squared": 1.0,
+        "covariance_xy_pixels_squared": 0.0,
+        "covariance_yy_pixels_squared": 1.0,
+    }
+    values.update(changes)
+
+    with pytest.raises(ValueError, match="position estimate"):
+        GaussianPositionEstimate(**values)  # type: ignore[arg-type]
 
 
 def test_fit_is_translation_and_positive_scaling_equivariant() -> None:
@@ -775,6 +857,7 @@ def test_aperture_photometry_rejects_invalid_evidence(
         ({"background_model": "unknown"}, "background_model"),
         ({"point_estimator": "unknown"}, "point_estimator"),
         ({"model_selection": "unknown"}, "model_selection"),
+        ({"position_estimator": "unknown"}, "position_estimator"),
         ({"maximum_gls_pixels": 6}, "maximum_gls_pixels"),
         (
             {"association_aperture_radius_sigma": 0.0},

@@ -319,6 +319,9 @@ class CompactGaussianFitConfig:
     )
     maximum_gls_pixels: int = 512
     model_selection: Literal["free-only", "beam-or-free"] = "free-only"
+    position_estimator: Literal["selected-model", "bounded-context-free"] = (
+        "selected-model"
+    )
     association_aperture_radius_sigma: float = 3.0
 
     def __post_init__(self) -> None:
@@ -396,6 +399,11 @@ class CompactGaussianFitConfig:
             raise ValueError("point_estimator is not a supported policy")
         if self.model_selection not in {"free-only", "beam-or-free"}:
             raise ValueError("model_selection is not a supported policy")
+        if self.position_estimator not in {
+            "selected-model",
+            "bounded-context-free",
+        }:
+            raise ValueError("position_estimator is not a supported policy")
         if (
             not isfinite(self.association_aperture_radius_sigma)
             or self.association_aperture_radius_sigma <= 0
