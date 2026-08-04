@@ -66,6 +66,20 @@ Scientific equivalence is required; bitwise equality is not. The replacement mus
 sources that affect filtering, catalogue meaning, units, coordinates, masks, RMS products, and
 failure semantics within agreed tolerances.
 
+Scientific comparison is conjunctive rather than compensatory. Hebog must
+meet the reviewed absolute community-science gates and be no worse than both
+the released and pinned-`master` PyBDSF references on every declared,
+direction-aware comparable metric and governed population. Better flux
+accuracy cannot compensate for worse astrometry or a heavier catastrophic
+tail. For bias, coverage, and dispersion, "better" means closer to the
+predeclared ideal rather than numerically larger. This objective applies to
+aggregate and governed-stratum behaviour, not to every individual noisy
+source realization, where random ordering has no stable scientific meaning.
+Use paired one-sided confidence intervals to distinguish a real regression
+from sampling noise, retain signed point estimates, and describe a point
+estimate in the worse direction as inconclusive rather than as an
+improvement unless the interval establishes otherwise.
+
 ## 2. Evidence motivating the project
 
 Exploratory profiling performed on 2026-07-16 used a representative 3000 by 3000 Rapthor image and
@@ -1945,12 +1959,202 @@ catalogue reduction evidence show no full-image, per-source-task, unbounded
 fan-in, or quadratic path. Passing Phase 4 establishes experimental compact
 catalogue compatibility, not complete PyBDSF equivalence or Rapthor cutover.
 
-**Post-Phase 4 sequencing:** once this exit gate passes, make the Phase 6
-bounded-memory and distributed-execution foundation for the qualified compact
-path the next active engineering focus. Phase 5 multiscale science remains
-required for complete Rapthor functionality, and every later multiscale stage
-must adopt the same tile, halo, task-graph, memory, and executor contracts; the
-scalability-first handoff does not waive that scientific scope.
+The final one-look campaign did not satisfy this exit gate. Its result is a
+terminal failed Phase 4 decision, not a population that may be rerun or
+rescored. Corrective work therefore belongs to the separately governed Phase
+4R milestone below.
+
+### Phase 4R: compact-measurement scientific recovery
+
+**Status:** planned after diagnosis of the terminal Phase 4 qualification
+failure on 2026-08-04. The final campaign remains immutable, viewed evidence
+and may be used only to identify failure modes and report the historical
+decision. It must not select an algorithm, threshold, model, seed, margin, or
+new qualification truth.
+
+The failure is narrower than the aggregate decision first suggested:
+
+- Hebog's 98 gated catastrophic source rows all failed the fitted-axis
+  definition; 96 were image-edge sources and 94 were in the SNR-10 stratum.
+  Twenty-five carried the undifferentiated `fit-at-bound` flag. A direct
+  reproduction of seed `2026110493`, source 16, shows the free fit pinning its
+  centroid to the image boundary and inflating the major sigma from the
+  injected 2.04 pixels to 6.62 pixels. The other low-SNR edge failures show
+  that truncated-profile identifiability is broader than exact bound contact.
+- Position error is a separate efficiency weakness. Hebog's median was
+  0.02736 beam against 0.02512 for released PyBDSF and 0.02511 for pinned
+  `master`; the gap appears across every SNR stratum and is largest for
+  low-SNR, unresolved, and edge sources. Position uncertainty bias, coverage,
+  and dispersion still pass, so current evidence points to estimator variance
+  rather than a WCS convention or systematic astrometric offset.
+- Hebog missed the absolute median peak-flux, fitted-axis, and deconvolved-axis
+  limits by small amounts while remaining materially more accurate than both
+  PyBDSF references on those medians. These are genuine absolute-science
+  weaknesses to improve without trading away Hebog's advantage.
+- Report-only tails expose additional work that a no-regression objective must
+  not hide: Hebog's 95th-percentile integrated-flux error was 1.108 against
+  0.541 and 0.536 for the two references, and its fitted-axis tail was 0.2007
+  against 0.1833 for released PyBDSF. The largest integrated-flux errors are
+  free-shape extrapolations for truncated edge sources.
+- The paired evaluator has an independent composability defect. One unmatched
+  Hebog source made the uncertainty summary raise, and one shared input builder
+  then marked all 20 primary and all 20 secondary endpoints indeterminate.
+  That fail-closed result is faithful to the reviewed implementation, but one
+  unavailable endpoint must not erase otherwise calculable completeness,
+  reliability, shape, group, or catastrophic comparisons.
+
+The production fitter currently gives every eligible compact source the same
+seven-parameter amplitude, position, two-axis, angle, and background model.
+It obtains the point estimate from RMS-weighted residuals and uses the
+correlated-noise model only afterwards in a sandwich covariance. It also
+publishes a converged bound-contact fit as scientifically valid. This is a
+plausible common mechanism for the low-information position variance and the
+edge shape/flux ridge, but it remains a hypothesis to test through the
+predeclared ablations below. Condon's Gaussian-fit analysis supports a priori
+size constraints for lower amplitude error, and Aegean 2.0 demonstrates
+correlated-noise and forced fitting as established radio-source practice.
+The ASKAP/EMU and SKA source-finding challenges support keeping completeness,
+reliability, position, flux, size, and catastrophic-tail outcomes separate.
+
+1. **Repair the evidence contract before changing the science.**
+
+   - [ ] Add a versioned metric registry that declares each scientific and
+         robustness metric's population, stratum, unit, desired direction or
+         ideal, absolute gate, paired statistic, and practical resolution.
+         Include gated and report-only medians and tails for completeness,
+         reliability, association, availability, classification, position,
+         peak and integrated flux, fitted/deconvolved axes and angles,
+         normalized uncertainty calibration, catastrophic rate, and
+         implementation completion. No metric may compensate for another.
+   - [ ] Define "no worse" as direction-aware non-inferiority of the expected
+         aggregate metric against both exact PyBDSF references for every
+         eligible overall and governed SNR, shape, edge/corner, WCS, and blend
+         population. Use zero margin where numerical identity is expected and
+         a named, scientifically negligible margin where sampling and metric
+         resolution make zero inappropriate. Require no-worse regression point
+         estimates as a development release check and one-sided paired
+         intervals inside every margin as the qualification decision. Never
+         claim that every individual noisy source must be closer to truth.
+   - [ ] Refactor paired inputs and decisions endpoint by endpoint, TDD first.
+         A missing source contributes to the declared completeness,
+         association, and availability denominators. Conditional uncertainty
+         calibration uses only its explicitly eligible retained values with a
+         visible retained/expected count and minimum sample; it cannot make a
+         binary or group endpoint indeterminate. Only the affected endpoint is
+         indeterminate when its own minimum information is unavailable.
+   - [ ] Verify endpoint isolation, missingness, ideal-value direction,
+         dual-reference failure policy, and multiplicity with analytic and
+         already-viewed regression fixtures. Do not rescore or replace the
+         final Phase 4 decision after repairing the evaluator.
+
+2. **Turn the observed failures into independent red tests.**
+
+   - [ ] Record parameter-specific bound contact, distance to every bound,
+         visible fitted-model/beam footprint fraction,
+         Jacobian/information condition, model identity, fallback reason, and
+         retained-pixel geometry. The current single `parameters_at_bound`
+         boolean cannot distinguish a harmless periodic-angle representation
+         from an unidentifiable centroid or shape.
+   - [ ] Add noiseless analytic tests for beam-shaped and extended Gaussians
+         truncated at each edge and corner, with sub-pixel centers and rotated
+         elliptical beams. A centroid/axis ridge pinned to a physical bound
+         must not be published as an ordinary valid free-shape result.
+   - [ ] Add independently seeded development and regression matrices over
+         SNR, unresolved/marginal/clear shape, visible fraction, all edge and
+         corner topologies, background/RMS gradients, correlated-noise
+         orientation and scale, WCS rotation, and nearby-source context. Keep
+         seeds disjoint from every viewed qualification population. Freeze
+         regression seeds before production fitting changes; select among
+         ablations with development data and use the regression set as a
+         confirmation boundary rather than another tuning loop.
+   - [ ] Add efficiency tests against analytic expectations and both PyBDSF
+         references for position, peak flux, integrated flux, fitted shape,
+         and deconvolution. Include tail and per-source-family reports so a
+         good median cannot hide a small catastrophic mode.
+
+3. **Select the smallest community-supported fitting correction from
+   ablations.**
+
+   - [ ] Implement an internal beam-constrained Gaussian candidate for
+         unresolved or low-information sources, while retaining the existing
+         free elliptical candidate for demonstrably resolved emission. Select
+         between them with a predeclared data-only extension/identifiability
+         rule; never use truth class or a viewed-campaign source identity at
+         runtime.
+   - [ ] Treat centroid, scale, amplitude, or background bound contact and an
+         ill-conditioned free model as a failed model-selection attempt.
+         Retry the constrained model and return explicit unavailability if no
+         scientifically valid candidate remains. Do not turn clipping into a
+         successful measurement merely to preserve availability.
+   - [ ] Factorially compare fixed versus fitted local background, owned
+         source support versus bounded background context, and the existing
+         diagonal point estimator versus a bounded correlated-noise
+         generalized least-squares or whitening candidate. Test the
+         constrained model first; add whitening complexity only if the broad
+         position/peak efficiency gap remains and complete-path profiling
+         supports it.
+   - [ ] Keep the implementation in vectorized NumPy/SciPy, with transformed
+         or scaled parameters where they improve conditioning. Retain a
+         readable serial oracle, bounded per-region memory, coarse batching,
+         deterministic results, and no source-sized Dask task proliferation.
+         Do not introduce native code without meeting the existing profile
+         and maintenance gates.
+
+4. **Qualify the correction on development and regression evidence.**
+
+   - [ ] Run the complete analytic, property, serial/Dask, partition, retry,
+         exact-product, Rapthor-adapter, and coverage lanes after every
+         candidate. Preserve the current completeness, reliability,
+         uncertainty calibration, unresolved-group, clear-extension,
+         determinism, and bounded-memory envelopes.
+   - [ ] Freeze the selected candidate before comparing every registered
+         metric against both references overall and by governed stratum. The
+         regression qualifies it only when all absolute gates pass, no point
+         estimate is in the worse direction, every paired upper bound is
+         within its reviewed margin, and no material tail or source family
+         remains unexplained. Archive a failed regression and return to
+         generic analytic/development evidence; do not tune directly to its
+         rows, optimize a weighted score, or average away a weak metric.
+   - [ ] Profile each scientifically passing candidate on compact sparse,
+         normal, dense, edge-heavy, and fit-failure workloads. Reject a
+         correction that violates the Phase 4 component budget or creates an
+         unapproved adjacent-tier regression; prefer the simplest candidate
+         when scientific and performance evidence is indistinguishable.
+
+5. **Govern one new Phase 4R qualification and performance closeout.**
+
+   - [ ] After implementation and metric definitions are frozen, obtain named
+         scientific review of the model-selection rule, metric registry,
+         practical margins, missingness semantics, regression evidence,
+         power, and one-look stopping rule. Only then freeze one new Phase 4R
+         population with seeds, truth, edge/corner balance, WCS, beam,
+         background, and correlated-noise fields disjoint from all earlier
+         campaigns.
+   - [ ] Record immutable Hebog and dual-PyBDSF environments, execute all
+         three implementations on identical images, retain every realization,
+         and evaluate each metric independently. A PyBDSF exception is a
+         reference robustness failure, not permission for Hebog to fail or
+         for a realization to disappear.
+   - [ ] Require every absolute gate and every dual-reference direction-aware
+         paired decision to pass. Preserve the final Phase 4 failure alongside
+         the Phase 4R result; the new milestone does not retroactively turn
+         that historical decision into a pass.
+   - [ ] Only after scientific passage, run the controlled Phase 4 performance
+         matrix and close compact measurement when the 4.0-second combined
+         allocation, adjacent-tier, density, memory, and graph-shape gates all
+         pass.
+
+Exit gate: every registered absolute metric passes. For every comparable
+metric produced by each reference, Hebog is statistically non-inferior for
+every separately evaluated overall and governed-stratum population, with no
+worse-direction development/regression point estimate or unexplained tail.
+Implementation completion is itself a robustness metric and Hebog must
+complete every realization. Stronger Hebog envelopes remain intact; and the
+new one-look Phase 4R campaign, complete controlled performance matrix,
+serial/Dask invariance, bounded-memory, and task-graph checks pass. Only then
+may scalability become the next active engineering focus. Phase 5
+multiscale science remains required for complete Rapthor functionality, and
+all later multiscale work must adopt the same execution contracts.
 
 ### Phase 5: multiscale and extended emission
 

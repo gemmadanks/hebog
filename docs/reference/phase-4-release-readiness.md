@@ -260,9 +260,70 @@ complete public `find_sources`, Rapthor orchestration and sky-model
 publication, end-to-end filtering equivalence, and production-scale
 qualification remain Phases 5–7.
 
+## Root-cause analysis and follow-on disposition
+
+The terminal campaign is more useful when its absolute failures and its
+dual-reference regressions are kept distinct. Hebog's median peak-flux,
+fitted-axis, and deconvolved-axis errors missed their absolute community
+limits, but were still lower than both PyBDSF references. The demonstrated
+dual-reference weaknesses are position efficiency and parts of the shape and
+integrated-flux tails:
+
+| Diagnostic | Hebog | PyBDSF 1.14.1 | PyBDSF `master` |
+| --- | ---: | ---: | ---: |
+| Median position error (beam) | 0.02736 | 0.02512 | 0.02511 |
+| 95th-percentile position error (beam) | 0.09345 | 0.08917 | 0.08966 |
+| Median absolute peak-flux error | 0.02942 | 0.05057 | 0.05032 |
+| Median absolute integrated-flux error | 0.03996 | 0.06188 | 0.06146 |
+| 95th-percentile integrated-flux error | 1.10770 | 0.54118 | 0.53634 |
+| Median fitted-axis error | 0.05029 | 0.07316 | 0.07361 |
+| 95th-percentile fitted-axis error | 0.20069 | 0.18331 | 0.20082 |
+| Gated catastrophic fraction | 0.5104% | 0.2084% | 0.1615% |
+
+All 98 Hebog catastrophic rows are fitted-axis outliers; 96 are edge sources
+and 94 are SNR-10 sources. Twenty-five report bound contact. A direct
+reproduction of seed `2026110493`, source 16, reaches the upper image-centre
+bound and inflates its major sigma from the injected 2.04 pixels to 6.62
+pixels. This confirms that publishing a converged boundary-pinned free fit is
+one failure mode. Most outliers do not land exactly on a numerical bound, so
+the broader diagnosis is weak identifiability of a seven-parameter free
+ellipse and background for truncated, low-SNR profiles. The largest
+integrated-flux tails are the corresponding free-shape extrapolations.
+
+Position error is broader: Hebog is worse in about 61% of common source pairs
+and in every SNR stratum, with the largest gap for unresolved, low-SNR, and
+edge sources. Its normalized position biases, coverage, and dispersion pass,
+which argues against a coordinate-convention error and instead motivates an
+estimator-efficiency investigation. The current point fit weights pixels by
+local RMS but uses the beam-correlated noise model only after optimization for
+the sandwich covariance. It also fits source shape and a background offset
+for every source. Beam-constrained fitting, background/support selection, and
+bounded correlated-noise generalized least squares are therefore hypotheses
+to test on independent data, not conclusions selected from this campaign.
+
+The paired indeterminacy is an evaluator defect rather than a scientific root
+cause. One unavailable source causes uncertainty-summary construction to
+raise before any endpoint is evaluated, so all otherwise independent endpoint
+families fail together. A follow-on evaluator must preserve missing sources
+in completeness and availability denominators while calculating each other
+endpoint independently; the historical decision remains unchanged.
+
+The authoritative plan now defines a separate
+[Phase 4R compact-measurement recovery milestone](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#phase-4r-compact-measurement-scientific-recovery).
+It requires TDD on analytic and independently seeded development/regression
+data, a direction-aware registry covering gated and report-only metrics, a
+nested beam-constrained/free fit selected by data-only identifiability and
+extension evidence, and one separately reviewed qualification only after the
+implementation and decision protocol are frozen. Hebog must pass every
+absolute gate and be statistically non-inferior to both references on every
+declared overall and governed-stratum metric; improvements cannot compensate
+for a regression elsewhere.
+
 ## Required closure order
 
-Phase 4 can be declared passed only after all of the following occur in order:
+The historical Phase 4 decision cannot be changed to passed. The following
+list records its incomplete closure, while new corrective work follows Phase
+4R:
 
 1. [x] Gemma Danks completed the earlier named amendment review on 2026-08-03 in the
    [Phase 4 scientific review record](phase-4-review-record.md).

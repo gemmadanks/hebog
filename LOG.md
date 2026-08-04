@@ -4078,3 +4078,63 @@ and compatibility serialization
   further correction requires a separately reviewed follow-on milestone using
   analytic and independent development/regression evidence; the final
   population may be used only for reporting and diagnosis.
+
+## 2026-08-04 — Diagnosed the final Phase 4 gate failures
+
+**Plan phase:** Phase 4 terminal review and Phase 4R preparation
+
+**Findings**
+
+- Kept the final 600-image population and decision immutable and used their
+  retained source diagnostics only to explain the historical failure.
+- All 98 Hebog gated catastrophic rows are fitted-axis outliers; 96 are edge
+  sources and 94 are SNR-10 sources. Twenty-five carry `fit-at-bound`.
+  Reproducing seed `2026110493`, source 16, showed the free centroid pinned to
+  the image boundary and the major sigma inflated from the injected 2.04
+  pixels to 6.62 pixels. The remaining non-bound edge outliers show a broader
+  truncated-profile identifiability problem rather than a single clipping
+  defect.
+- Separated the position weakness from the shape tail. Hebog's median position
+  error is 0.02736 beam against 0.02512 and 0.02511 for released and master
+  PyBDSF, and Hebog has the larger error in about 61% of common source pairs.
+  The gap appears in every SNR stratum while normalized astrometric bias,
+  coverage, and dispersion pass, pointing to estimator efficiency rather than
+  a WCS convention error.
+- Confirmed that the peak-flux, fitted-axis, and deconvolved-axis medians miss
+  absolute community gates while remaining better than both references.
+  Hebog is genuinely worse on catastrophic fraction, position median/tail,
+  95th-percentile integrated-flux error, and the fitted-axis tail against at
+  least one reference. These outcomes must be fixed without trading away
+  Hebog's stronger completeness, flux medians, deconvolution, uncertainty,
+  blend, deterministic, or bounded-execution results.
+- Traced the paired indeterminacy to shared input construction: one unmatched
+  source makes the uncertainty summary raise before any endpoint statistic is
+  formed, causing all 20 primary and 20 secondary endpoints to fail together.
+  This evaluator composability defect did not cause the five independent
+  absolute-gate failures.
+- Reviewed Condon's elliptical-Gaussian error treatment, Aegean 2.0's
+  correlated-noise and priorized-fitting approach, PyBDSF's fit/flag path, and
+  radio source-finding challenge recommendations. The evidence supports
+  testing a data-selected beam-constrained/free nested model and explicit
+  identifiability checks before adding a more complex correlated-noise point
+  estimator.
+
+**Plan change**
+
+- Added a separately governed Phase 4R milestone. It first repairs endpoint
+  isolation and creates a direction-aware registry for every gated and
+  report-only metric, then adds independent edge/corner and efficiency red
+  tests, performs predeclared fit-model/background/support/noise ablations,
+  and requires no-compensation dual-reference non-inferiority on every metric
+  and governed stratum.
+- The milestone permits one new qualification only after the implementation,
+  metric directions, practical margins, power, and stopping rule receive
+  named review and are frozen. It does not rerun, rescore, replace, or convert
+  the terminal Phase 4 result.
+
+**Next**
+
+- Obtain named review of the Phase 4 terminal disposition and Phase 4R
+  protocol. If approved, begin with TDD for endpoint isolation and
+  parameter-specific fit diagnostics before changing scientific fitting
+  behaviour.

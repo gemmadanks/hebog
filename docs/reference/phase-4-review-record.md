@@ -1103,3 +1103,52 @@ Human review of this final evidence is pending. Review must acknowledge the
 immutable failure and decide whether to close Phase 4 as not passed or create
 a separately governed follow-on scientific milestone; it cannot convert this
 decision to a pass.
+
+## Post-result diagnostic first pass
+
+This diagnostic uses the final population only to explain the terminal
+decision. It is not an algorithm-selection or threshold-tuning dataset.
+
+- All 98 gated Hebog catastrophic rows are fitted-axis failures; 96 occur at
+  an image edge and 94 are SNR-10 sources. Twenty-five have the current
+  undifferentiated `fit-at-bound` flag. Reproducing seed `2026110493`, source
+  16, shows its fitted centre pinned to the upper image boundary and its major
+  sigma inflated from the injected 2.04 pixels to 6.62 pixels. This confirms
+  one boundary-ridge failure while the other 73 non-bound rows show that a
+  simple `fit-at-bound` rejection is not sufficient.
+- Hebog's position error is worse than both references in about 61% of common
+  source pairs. Its median and 95th percentile are worse across the aggregate
+  population and the median gap occurs in every SNR stratum, especially for
+  unresolved, edge, and low-SNR sources. The passed normalized position-bias,
+  coverage, and dispersion gates make a WCS convention error unlikely; the
+  working hypothesis is excess variance from fitting a free shape and
+  background under correlated noise.
+- Peak-flux and fitted/deconvolved-axis medians fail their absolute gates but
+  remain better than both references. They require improvement against the
+  community standard without sacrificing that existing advantage.
+- Hebog is worse on the 95th-percentile integrated-flux error and slightly
+  worse than released PyBDSF on the fitted-axis tail. The largest rows are
+  truncated edge sources whose free fitted area extrapolates well beyond the
+  observed source footprint.
+- The evaluator's joint indeterminacy is independent of these science
+  failures. `uncertainty_arrays` raises for one missing source before the
+  shared paired statistic is built, so the evaluator cannot retain otherwise
+  valid binary, group, and catastrophic endpoints. A follow-on evaluator must
+  isolate endpoint missingness while leaving this decision unchanged.
+
+The recommended disposition is to acknowledge Phase 4 as terminally not
+passed and authorize the separately governed
+[Phase 4R recovery milestone](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#phase-4r-compact-measurement-scientific-recovery).
+Its implementation choice must come from analytic and independently seeded
+development/regression evidence. The first candidates are a data-selected
+beam-constrained/free nested fit, parameter-specific validity and
+identifiability checks, and then—only if needed—a bounded correlated-noise
+generalized least-squares point estimator. This follows Condon's use of a
+priori size constraints to reduce amplitude errors and Aegean 2.0's treatment
+of correlated noise and forced fitting, while retaining the independent
+position, flux, size, completeness/reliability, and catastrophic measures
+recommended by radio source-finding challenges.
+
+This recommendation is pending named human review. Approval would authorize
+the Phase 4R development protocol, not a rescore, rerun, or replacement of the
+terminal Phase 4 campaign.
