@@ -967,8 +967,80 @@ def test_phase4r_qualification_failure_skips_interval_resampling(
         item.point_status == "indeterminate"
         and item.interval_status == "indeterminate"
         and item.status == "indeterminate"
-        and item.reason == "candidate or reference realization failed"
+        and item.reason == "candidate realization failed"
         for item in decision.metric_decisions
+    )
+
+
+def test_phase4r_reference_failure_is_retained_and_scored_conditionally(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A reference failure remains visible without erasing retained values."""
+    campaign, original_dataset, protocol, gates, configuration = (
+        _synthetic_campaign_inputs()
+    )
+    dataset = original_dataset.model_copy(
+        update={"role": DatasetRole.REGRESSION}
+    )
+    realizations = list(campaign.realizations)
+    reference_index = next(
+        index
+        for index, realization in enumerate(realizations)
+        if realization.implementation_identifier == "pybdsf-master"
+    )
+    failed_seed = realizations[reference_index].seed
+    realizations[reference_index] = CampaignRealizationDiagnostic(
+        implementation_identifier="pybdsf-master",
+        seed=failed_seed,
+        status="failure",
+        failure=CampaignFailure(
+            stage="source-finding",
+            exception_type="RuntimeError",
+            message="synthetic reference failure",
+            traceback_sha256="2" * 64,
+        ),
+    )
+    failed_campaign = campaign.model_copy(
+        update={
+            "dataset": campaign_dataset_identity(dataset),
+            "realizations": tuple(realizations),
+        }
+    )
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_decision.uncertainty_calibration_report",
+        _passing_uncertainty_report,
+    )
+
+    decision = evaluate_phase_four_recovery(
+        failed_campaign,
+        dataset,
+        _metric_registry(),
+        protocol,
+        gates,
+        stage="regression",
+        scientific_contract_set_sha256=configuration,
+    )
+    outcome = next(
+        item
+        for item in decision.implementation_outcomes
+        if item.implementation_identifier == "pybdsf-master"
+    )
+    completion = next(
+        item
+        for item in decision.metric_decisions
+        if item.reference_identifier == "pybdsf-master"
+        and item.metric_id == "implementation-completion"
+    )
+
+    assert outcome.policy == "record-and-continue"
+    assert outcome.failed_seeds == (failed_seed,)
+    assert completion.candidate_value == 1.0
+    assert completion.reference_value == pytest.approx(2.0 / 3.0)
+    assert completion.status == "pass"
+    assert any(
+        item.status != "indeterminate"
+        for item in decision.metric_decisions
+        if item.reference_identifier == "pybdsf-master"
     )
 
 

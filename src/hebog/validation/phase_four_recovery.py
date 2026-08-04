@@ -634,10 +634,7 @@ def _metric_decisions(
     """Evaluate every eligible metric independently against one reference."""
     truth = _truth_index(context.dataset)
     expanded = _metric_keys(context.registry, truth)
-    if any(
-        realization.status != "success"
-        for realization in (*candidate, *reference)
-    ):
+    if any(realization.status != "success" for realization in candidate):
         incomplete_interval_status: Literal[
             "indeterminate", "not-evaluated"
         ] = (
@@ -656,7 +653,7 @@ def _metric_decisions(
                 point_status="indeterminate",
                 interval_status=incomplete_interval_status,
                 status="indeterminate",
-                reason="candidate or reference realization failed",
+                reason="candidate realization failed",
             )
             for metric, stratum, _ in expanded
         )
