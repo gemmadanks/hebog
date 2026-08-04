@@ -603,6 +603,16 @@ def test_rejects_invalid_moment_policy(
         ({"restoring_beam_solid_angle_steradians": -1.0}, "beam"),
         (
             {
+                "restoring_beam_covariance_pixels_squared": (
+                    1.0,
+                    2.0,
+                    1.0,
+                )
+            },
+            "restoring beam covariance",
+        ),
+        (
+            {
                 "noise_correlation_covariance_pixels_squared": (
                     1.0,
                     2.0,

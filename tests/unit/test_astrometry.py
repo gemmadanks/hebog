@@ -166,7 +166,10 @@ def test_local_jacobian_handles_signed_unequal_rotated_wcs_and_ra_wrap() -> (
         rel=1e-6,
     )
     correlation = geometry.noise_correlation_covariance_pixels_squared
+    restoring_beam = geometry.restoring_beam_covariance_pixels_squared
     assert correlation is not None
+    assert restoring_beam is not None
+    assert restoring_beam == pytest.approx(correlation)
     covariance = np.asarray(
         [[correlation[0], correlation[1]], [correlation[1], correlation[2]]]
     )

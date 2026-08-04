@@ -45,6 +45,24 @@ class GaussianFitDiagnostics:
     degrees_of_freedom: int
     reduced_chi_squared: float | None
     parameters_at_bound: bool
+    model_identity: Literal["free-elliptical", "beam-constrained"] = (
+        "free-elliptical"
+    )
+    bound_parameters: tuple[str, ...] = ()
+    relative_bound_distances: tuple[tuple[str, float], ...] = ()
+    minimum_relative_bound_distance: float | None = None
+    information_condition_number: float | None = None
+    visible_model_fraction: float | None = None
+    retained_pixel_count: int = 0
+    retained_bounds_yx: tuple[int, int, int, int] | None = None
+    fallback_reason: (
+        Literal[
+            "free-model-bound-contact",
+            "free-model-ill-conditioned",
+            "free-model-not-significantly-extended",
+        ]
+        | None
+    ) = None
 
 
 @dataclass(frozen=True, slots=True)

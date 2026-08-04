@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from math import isfinite, pi
 from typing import cast
 
@@ -39,6 +40,28 @@ from hebog.data_models.measurement import (
 
 _PARAMETER_COUNT = 7
 _NOISE_CORRELATION_TRUNCATION_SIGMA = 4.0
+_FREE_PARAMETER_NAMES = (
+    "amplitude",
+    "centroid-x",
+    "centroid-y",
+    "sigma-first",
+    "sigma-second",
+    "position-angle",
+    "background",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _FitEvidence:
+    """Arrays needed to diagnose one bounded optimizer result."""
+
+    parameters: npt.NDArray[np.float64]
+    lower_bounds: npt.NDArray[np.float64]
+    upper_bounds: npt.NDArray[np.float64]
+    jacobian: npt.NDArray[np.float64]
+    x: npt.NDArray[np.float64]
+    y: npt.NDArray[np.float64]
+    weighted_residual: npt.NDArray[np.float64]
 
 
 def _local_rms_at_centroid(
@@ -101,12 +124,55 @@ def _diagnostics(
     *,
     converged: bool,
     function_evaluations: int,
-    weighted_residual: npt.NDArray[np.float64],
-    parameters_at_bound: bool,
+    evidence: _FitEvidence,
 ) -> GaussianFitDiagnostics:
     """Build deterministic optimizer diagnostics from final residuals."""
+    parameters = evidence.parameters
+    lower_bounds = evidence.lower_bounds
+    upper_bounds = evidence.upper_bounds
+    jacobian = evidence.jacobian
+    x = evidence.x
+    y = evidence.y
+    weighted_residual = evidence.weighted_residual
     chi_squared = float(np.sum(np.square(weighted_residual), dtype=np.float64))
     degrees_of_freedom = weighted_residual.size - _PARAMETER_COUNT
+    bound_widths = upper_bounds - lower_bounds
+    relative_bound_distances = (
+        np.minimum(
+            parameters - lower_bounds,
+            upper_bounds - parameters,
+        )
+        / bound_widths
+    )
+    at_bound = np.isclose(
+        parameters,
+        lower_bounds,
+        rtol=0.0,
+        atol=1e-10,
+    ) | np.isclose(
+        parameters,
+        upper_bounds,
+        rtol=0.0,
+        atol=1e-10,
+    )
+    column_norms = np.linalg.norm(jacobian, axis=0)
+    information_condition = (
+        float(
+            np.linalg.cond(
+                (jacobian / column_norms).T @ (jacobian / column_norms)
+            )
+        )
+        if np.all(column_norms > 0)
+        else float("inf")
+    )
+    amplitude, _, _, sigma_first, sigma_second, _, background = parameters
+    sampled_model_sum = float(
+        np.sum(
+            _gaussian_values(parameters, x, y) - background,
+            dtype=np.float64,
+        )
+    )
+    total_model_sum = float(amplitude * 2.0 * pi * sigma_first * sigma_second)
     return GaussianFitDiagnostics(
         converged=converged,
         function_evaluations=function_evaluations,
@@ -117,7 +183,38 @@ def _diagnostics(
             if degrees_of_freedom > 0
             else None
         ),
-        parameters_at_bound=parameters_at_bound,
+        parameters_at_bound=bool(np.any(at_bound)),
+        bound_parameters=tuple(
+            name
+            for name, selected in zip(
+                _FREE_PARAMETER_NAMES, at_bound, strict=True
+            )
+            if selected
+        ),
+        relative_bound_distances=tuple(
+            (name, float(max(0.0, distance)))
+            for name, distance in zip(
+                _FREE_PARAMETER_NAMES,
+                relative_bound_distances,
+                strict=True,
+            )
+        ),
+        minimum_relative_bound_distance=float(
+            np.min(relative_bound_distances)
+        ),
+        information_condition_number=(
+            information_condition if isfinite(information_condition) else None
+        ),
+        visible_model_fraction=float(
+            np.clip(sampled_model_sum / total_model_sum, 0.0, 1.0)
+        ),
+        retained_pixel_count=weighted_residual.size,
+        retained_bounds_yx=(
+            int(np.min(y)),
+            int(np.max(y)) + 1,
+            int(np.min(x)),
+            int(np.max(x)) + 1,
+        ),
     )
 
 
@@ -378,15 +475,18 @@ def fit_compact_gaussian(
         max_nfev=config.maximum_function_evaluations,
     )
     parameters = np.asarray(result.x, dtype=np.float64)
-    at_bound = bool(
-        np.any(np.isclose(parameters, lower, rtol=0.0, atol=1e-10))
-        or np.any(np.isclose(parameters, upper, rtol=0.0, atol=1e-10))
-    )
     diagnostics = _diagnostics(
         converged=bool(result.success),
         function_evaluations=int(result.nfev),
-        weighted_residual=weighted_residual(parameters),
-        parameters_at_bound=at_bound,
+        evidence=_FitEvidence(
+            parameters=parameters,
+            lower_bounds=lower,
+            upper_bounds=upper,
+            jacobian=np.asarray(result.jac, dtype=np.float64),
+            x=x,
+            y=y,
+            weighted_residual=weighted_residual(parameters),
+        ),
     )
     if not result.success:
         return FailedCompactGaussianFit(
@@ -446,7 +546,7 @@ def fit_compact_gaussian(
     flags = tuple(
         flag
         for flag, selected in (
-            ("fit-at-bound", at_bound),
+            ("fit-at-bound", diagnostics.parameters_at_bound),
             ("uncertainty-unavailable", uncertainty is None),
             (
                 "formal-independent-pixel-errors",

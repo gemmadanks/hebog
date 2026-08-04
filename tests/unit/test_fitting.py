@@ -188,7 +188,7 @@ def test_scipy_fit_recovers_noiseless_subpixel_gaussian() -> None:
 
 
 def test_fit_centroid_cannot_leave_the_sampled_image_footprint() -> None:
-    """A truncated external profile must stop at the physical image edge."""
+    """A truncated external profile records the specific boundary ridge."""
     compact = _gaussian_input(
         centroid_xy=(160.0, 256.5),
         shape_yx=(8, 21),
@@ -200,6 +200,30 @@ def test_fit_centroid_cannot_leave_the_sampled_image_footprint() -> None:
     assert isinstance(result, ValidCompactGaussianFit)
     assert result.parameters.centroid_xy[1] <= 255.5
     assert result.diagnostics.parameters_at_bound
+    assert result.diagnostics.model_identity == "free-elliptical"
+    assert "centroid-y" in result.diagnostics.bound_parameters
+    assert result.diagnostics.minimum_relative_bound_distance == pytest.approx(
+        0.0, abs=1e-8
+    )
+    bound_distances = dict(result.diagnostics.relative_bound_distances)
+    assert set(bound_distances) == {
+        "amplitude",
+        "background",
+        "centroid-x",
+        "centroid-y",
+        "position-angle",
+        "sigma-first",
+        "sigma-second",
+    }
+    assert bound_distances["centroid-y"] == pytest.approx(0.0, abs=1e-8)
+    assert result.diagnostics.information_condition_number is not None
+    assert np.isfinite(result.diagnostics.information_condition_number)
+    assert result.diagnostics.visible_model_fraction is not None
+    assert 0.0 < result.diagnostics.visible_model_fraction < 1.0
+    assert result.diagnostics.retained_pixel_count == (
+        compact.physical_residual.size
+    )
+    assert result.diagnostics.retained_bounds_yx == (248, 256, 150, 171)
 
 
 def test_fit_is_translation_and_positive_scaling_equivariant() -> None:

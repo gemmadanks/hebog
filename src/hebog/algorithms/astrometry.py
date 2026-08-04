@@ -103,14 +103,16 @@ def compact_geometry_at_pixel(
     pixel_noise_covariance = (
         inverse_jacobian @ _sky_covariance(metadata.beam) @ inverse_jacobian.T
     )
+    covariance_values = (
+        float(pixel_noise_covariance[0, 0]),
+        float(pixel_noise_covariance[0, 1]),
+        float(pixel_noise_covariance[1, 1]),
+    )
     return CompactMeasurementGeometry(
         pixel_solid_angle_steradians=pixel_solid_angle,
         restoring_beam_solid_angle_steradians=beam_solid_angle,
-        noise_correlation_covariance_pixels_squared=(
-            float(pixel_noise_covariance[0, 0]),
-            float(pixel_noise_covariance[0, 1]),
-            float(pixel_noise_covariance[1, 1]),
-        ),
+        restoring_beam_covariance_pixels_squared=covariance_values,
+        noise_correlation_covariance_pixels_squared=covariance_values,
     )
 
 

@@ -4183,3 +4183,35 @@ and compatibility serialization
 
 - Add parameter-specific fit diagnostics and freeze independent edge/corner
   regression cases before changing the fitter.
+
+## 2026-08-04 — Froze Phase 4R diagnostic inputs
+
+**Plan phase:** Phase 4R, Step 2 — independent failure evidence
+
+**Completed**
+
+- Added parameter-specific fit diagnostics: selected model, exact bound
+  parameters, normalized distance to every bound, scaled information-matrix
+  condition, visible fitted-model fraction, retained pixel count and bounds,
+  and a typed fallback-reason slot.
+- Added an explicit restoring-beam covariance to compact measurement geometry
+  and kept it distinct from the noise-correlation covariance even where the
+  current governed image model gives them equal values.
+- Froze a 20-realization development matrix and a 100-realization
+  confirmation-only regression matrix before changing fit selection. The
+  matrices use disjoint seeds and transformed source placement, beam/noise
+  orientation, WCS, and RMS gradients while covering every governed SNR and
+  shape stratum, edges/corners, invalid pixels, and an unresolved blend.
+
+**Evidence**
+
+- The parameter-specific boundary test failed first because the diagnostics
+  exposed only one undifferentiated boolean. The restoring-beam geometry test
+  likewise failed before the explicit covariance was added.
+- The focused fitting, astrometry, moment, and dataset suites pass 137 tests.
+
+**Next**
+
+- Add noiseless edge/corner validity tests and implement the independently
+  selected beam-constrained/free nested fit without consulting the terminal
+  Phase 4 population.

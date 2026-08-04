@@ -1160,3 +1160,13 @@ Phase 4R protocol. It does not authorize a rescore, rerun, replacement
 campaign, or future qualification opening before the exact model-selection
 rule, metric registry, margins, power, regression evidence, and stopping rule
 receive the later named review required by the plan.
+
+Phase 4R development and confirmation inputs were then frozen before any fit
+selection behavior changed. `phase-4r-development.json` contains 20 viewable
+ablations and `phase-4r-regression.json` contains 100 confirmation-only
+realizations. Their seed ranges are disjoint from one another and every prior
+Phase 4 population. The regression geometry rotates and relocates the source,
+beam, correlated-noise, and WCS configuration rather than repeating the
+development pixels. Both cover SNR 10, 15, 25, and 50; unresolved, marginal,
+and clear shapes; edges and corners; an unresolved blend; RMS gradients; an
+invalid patch; and correlated noise.

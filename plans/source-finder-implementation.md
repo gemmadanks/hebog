@@ -2050,7 +2050,7 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
 
 2. **Turn the observed failures into independent red tests.**
 
-   - [ ] Record parameter-specific bound contact, distance to every bound,
+   - [x] Record parameter-specific bound contact, distance to every bound,
          visible fitted-model/beam footprint fraction,
          Jacobian/information condition, model identity, fallback reason, and
          retained-pixel geometry. The current single `parameters_at_bound`
@@ -2060,7 +2060,7 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
          truncated at each edge and corner, with sub-pixel centers and rotated
          elliptical beams. A centroid/axis ridge pinned to a physical bound
          must not be published as an ordinary valid free-shape result.
-   - [ ] Add independently seeded development and regression matrices over
+   - [x] Add independently seeded development and regression matrices over
          SNR, unresolved/marginal/clear shape, visible fraction, all edge and
          corner topologies, background/RMS gradients, correlated-noise
          orientation and scale, WCS rotation, and nearby-source context. Keep

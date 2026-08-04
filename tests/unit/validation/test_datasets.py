@@ -333,6 +333,69 @@ def test_phase_four_paired_regression_is_independent_and_representative() -> (
     assert "viewable" in paired.provenance.lower()
 
 
+def test_phase_four_recovery_matrices_are_frozen_and_disjoint() -> None:
+    """Ablation and confirmation evidence predates fitting behavior changes."""
+    development = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4r-development.json"
+    ).datasets[0]
+    regression = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4r-regression.json"
+    ).datasets[0]
+    earlier_seeds = {
+        recipe.seed
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4-*.json"))
+        for dataset in load_dataset_manifest(path).datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+    development_seeds = {
+        recipe.seed for recipe in iter_dataset_recipes(development)
+    }
+    regression_seeds = {
+        recipe.seed for recipe in iter_dataset_recipes(regression)
+    }
+
+    assert development.role is DatasetRole.DEVELOPMENT
+    assert regression.role is DatasetRole.REGRESSION
+    assert len(development_seeds) == 20
+    assert len(regression_seeds) == 100
+    assert not development_seeds & regression_seeds
+    assert not (development_seeds | regression_seeds) & earlier_seeds
+    assert development.recipe_sha256 == (
+        "3e644ca21006c4e487fbd52c6b04ec05a30f750cf03d86140259e3ac2728642a"
+    )
+    assert regression.recipe_sha256 == (
+        "e75f53e5e6eff5b8199563c5530d0e963089cb90e014a9a5c47b39b2d2881deb"
+    )
+    assert development.recipe.sources != regression.recipe.sources
+    assert development.beam.position_angle_degrees != (
+        regression.beam.position_angle_degrees
+    )
+    assert development.wcs.rotation_degrees_counterclockwise != (
+        regression.wcs.rotation_degrees_counterclockwise
+    )
+    for dataset in (development, regression):
+        strata = {item.identifier for item in dataset.validation_strata}
+        assert strata == {
+            "edge",
+            "shape-clear-resolved",
+            "shape-marginal-resolved",
+            "shape-unresolved",
+            "snr-10",
+            "snr-15",
+            "snr-25",
+            "snr-50",
+        }
+        assert len(dataset.recipe.sources) == 14
+        assert len(dataset.association_truth_groups) == 13
+        assert (
+            sum(
+                group.resolution_class == "unresolved-blend"
+                for group in dataset.association_truth_groups
+            )
+            == 1
+        )
+
+
 def test_phase_four_final_qualification_is_frozen_and_unseen() -> None:
     """The final one-look population is powered, disjoint, and unopened."""
     manifest_path = _DATASET_DIRECTORY / "phase-4-final-qualification.json"

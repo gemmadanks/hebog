@@ -13,6 +13,9 @@ class CompactMeasurementGeometry:
 
     pixel_solid_angle_steradians: float
     restoring_beam_solid_angle_steradians: float
+    restoring_beam_covariance_pixels_squared: (
+        tuple[float, float, float] | None
+    ) = None
     noise_correlation_covariance_pixels_squared: (
         tuple[float, float, float] | None
     ) = None
@@ -29,11 +32,22 @@ class CompactMeasurementGeometry:
             or self.restoring_beam_solid_angle_steradians <= 0
         ):
             raise ValueError("beam solid angle must be finite and positive")
-        covariance = self.noise_correlation_covariance_pixels_squared
-        if covariance is not None:
+        covariances = (
+            (
+                "restoring beam covariance",
+                self.restoring_beam_covariance_pixels_squared,
+            ),
+            (
+                "noise correlation covariance",
+                self.noise_correlation_covariance_pixels_squared,
+            ),
+        )
+        for name, covariance in covariances:
+            if covariance is None:
+                continue
             covariance_xx, covariance_xy, covariance_yy = covariance
             if not all(isfinite(value) for value in covariance):
-                raise ValueError("noise correlation covariance must be finite")
+                raise ValueError(f"{name} must be finite")
             if (
                 covariance_xx <= 0
                 or covariance_yy <= 0
@@ -41,9 +55,7 @@ class CompactMeasurementGeometry:
                 - covariance_xy * covariance_xy
                 <= 0
             ):
-                raise ValueError(
-                    "noise correlation covariance must be positive definite"
-                )
+                raise ValueError(f"{name} must be positive definite")
 
 
 @dataclass(frozen=True, slots=True)
