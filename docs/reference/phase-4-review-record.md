@@ -1420,3 +1420,44 @@ are byte-for-byte unchanged. The registry file SHA-256 is
 `f1bcbbb6d1d216bdc5271c45a1e64789b1c8928a98bd4927f7e707d0318dd0b5`,
 and the ordered measurement/gates/registry contract-set SHA-256 is
 `d27dace66ca86fb0abf30b6e5ab37215b6007d1fd3a58606c51b58a003c6d063`.
+
+## Phase 4R qualification attempt one
+
+The unchanged candidate at exact commit `f28bda9` opened the reviewed
+population once. It completed 599 of 600 realizations. Seed `2026170473`
+failed with `IncompleteCompactCatalogueError` because one compact fit was
+omitted; candidate evidence SHA-256 is
+`c9bb55ab4a446f5cf6b25185cfdc8f87cc0e56cdca8f185dae53d0fe9f20f761`.
+This is an availability failure under the frozen rule that Hebog must
+complete every image. The result was not scored, the failed row was not
+dropped, and none of the 599 partial aggregate metrics were inspected.
+
+Failure-only diagnostics show a generic edge condition rather than a
+campaign-infrastructure exception. The free elliptical fit and the smaller
+restoring-beam fit both converged at the image-centroid bound. The smaller
+fit retained finite, well-conditioned amplitude and shape evidence, but the
+existing moment-centred retry required that whole fit to be identifiable and
+therefore did not run. The catalogue correctly failed closed instead of
+publishing the at-bound model.
+
+The failed qualification remains immutable and cannot be rerun, rescored, or
+used for a corrected candidate. Recovery iteration three instead freezes 200
+new viewable development seeds and 200 new confirmation-only seeds in
+`phase-4r-development-4.json` and `phase-4r-regression-3.json`. Their manifest
+SHA-256 values are
+`118224a11229cb230f43be3c00d40e6d70c53536ad0830941a343e7af3edcf14`
+and `f84f9405a55e9c124502a88855fffcfe18c4f6fcd3beb4cda2f9c0d1ec88c7d6`;
+their canonical recipe SHA-256 values are
+`f07f450e266367c50614b9e67caf7131a0c75bb7bd7798c497d9170471f7bead`
+and `3879a7a1890ab4791bb6508d904779dbca00051bb4d9012882964875a0e7655c`.
+
+The bounded correction is deliberately narrower than accepting a failed fit.
+It permits the existing moment-centred retry to use a converged smaller model
+as an initializer only when centroid coordinates are its sole physical bound
+contact and its remaining numerical evidence is finite and conditioned. The
+retry must itself pass the existing numerical and identifiability rules; an
+at-bound result still cannot enter the catalogue. A passing independent
+regression is necessary but not sufficient for another qualification. A new
+named review must authorize a separately frozen, disjoint replacement
+population; qualification attempt one remains failed regardless of any later
+outcome.

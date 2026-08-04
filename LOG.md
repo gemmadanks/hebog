@@ -4587,3 +4587,45 @@ and compatibility serialization
 
 - Run complete validation and pre-commit, commit this prerequisite, verify the
   qualification output path is still absent, and restart the sole execution.
+
+## 2026-08-04 — Preserved failed Phase 4R qualification attempt one
+
+**Plan phase:** Phase 4R, Step 5 — qualification outcome and recovery boundary
+
+**Completed**
+
+- Ran the exact candidate at commit `f28bda9` over the sole frozen
+  600-realization qualification population. It completed 599 images and
+  retained one typed `IncompleteCompactCatalogueError` on seed `2026170473`;
+  the attempt therefore failed the non-negotiable implementation-availability
+  gate before aggregate scoring.
+- Inspected only failure status and fitting diagnostics. Both nested models
+  converged at an image-centroid bound; the smaller model retained finite,
+  well-conditioned non-centroid evidence, but the existing moment-centred
+  retry refused the whole at-bound initializer. No partial aggregate metric
+  was inspected, no row was omitted, and the failed campaign was not rescored.
+- Added a red generic noisy-edge test and froze 200 new development plus 200
+  new confirmation-only seeds before evaluating a correction. Both new
+  populations are disjoint from every earlier Phase 4R population.
+- Recorded that another qualification is not automatic. A passing unchanged-
+  candidate regression must be followed by new named review and a separately
+  frozen, disjoint replacement population.
+
+**Evidence**
+
+- Failed candidate evidence SHA-256:
+  `c9bb55ab4a446f5cf6b25185cfdc8f87cc0e56cdca8f185dae53d0fe9f20f761`.
+- Development manifest/recipe SHA-256 values:
+  `118224a11229cb230f43be3c00d40e6d70c53536ad0830941a343e7af3edcf14`
+  and `f07f450e266367c50614b9e67caf7131a0c75bb7bd7798c497d9170471f7bead`.
+- Regression manifest/recipe SHA-256 values:
+  `f84f9405a55e9c124502a88855fffcfe18c4f6fcd3beb4cda2f9c0d1ec88c7d6`
+  and `3879a7a1890ab4791bb6508d904779dbca00051bb4d9012882964875a0e7655c`.
+- The fitting, catalogue-construction, and dataset-contract subset passes 134
+  tests after the red test demonstrated the original omission.
+
+**Next**
+
+- Implement the smallest bounded retry correction, run the complete viewable
+  development matrix and scientific/quality lanes, freeze that candidate,
+  then open the new confirmation population exactly once.

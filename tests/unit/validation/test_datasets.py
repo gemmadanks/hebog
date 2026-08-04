@@ -490,6 +490,49 @@ def test_phase4r_qualification_is_powered_frozen_and_disjoint() -> None:
     )
 
 
+def test_edge_retry_recovery_populations_are_frozen_and_disjoint() -> None:
+    """Post-qualification recovery has new development and regression seeds."""
+    paths = (
+        "phase-4r-development.json",
+        "phase-4r-regression.json",
+        "phase-4r-development-2.json",
+        "phase-4r-regression-2.json",
+        "phase-4r-development-3.json",
+        "phase-4r-qualification.json",
+        "phase-4r-development-4.json",
+        "phase-4r-regression-3.json",
+    )
+    datasets = tuple(
+        load_dataset_manifest(_DATASET_DIRECTORY / path).datasets[0]
+        for path in paths
+    )
+    seed_sets = tuple(
+        {recipe.seed for recipe in iter_dataset_recipes(dataset)}
+        for dataset in datasets
+    )
+
+    assert all(
+        not left & right
+        for index, left in enumerate(seed_sets)
+        for right in seed_sets[index + 1 :]
+    )
+    assert [len(seeds) for seeds in seed_sets[-2:]] == [200, 200]
+    assert datasets[-2].role is DatasetRole.DEVELOPMENT
+    assert datasets[-1].role is DatasetRole.REGRESSION
+    assert "before evaluating the bounded edge-retry correction" in (
+        datasets[-2].provenance
+    )
+    assert "before evaluating the bounded edge-retry correction" in (
+        datasets[-1].provenance
+    )
+    assert datasets[-2].recipe_sha256 == (
+        "f07f450e266367c50614b9e67caf7131a0c75bb7bd7798c497d9170471f7bead"
+    )
+    assert datasets[-1].recipe_sha256 == (
+        "3879a7a1890ab4791bb6508d904779dbca00051bb4d9012882964875a0e7655c"
+    )
+
+
 def test_phase_four_final_qualification_is_frozen_and_unseen() -> None:
     """The final one-look population is powered, disjoint, and unopened."""
     manifest_path = _DATASET_DIRECTORY / "phase-4-final-qualification.json"

@@ -2262,6 +2262,31 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    unchanged. No qualification image or result was opened by the failed
    preflight.
 
+   Qualification attempt one at exact candidate commit `f28bda9` is now a
+   failed, immutable availability result. Hebog completed 599 of 600 images;
+   seed `2026170473` retained one `IncompleteCompactCatalogueError` after both
+   its free and restoring-beam fits reached the image-centroid bound. The
+   candidate shard SHA-256 is
+   `c9bb55ab4a446f5cf6b25185cfdc8f87cc0e56cdca8f185dae53d0fe9f20f761`.
+   No aggregate metric was inspected or scored, no realization may be
+   omitted, and this population cannot qualify a corrected candidate.
+
+   Recovery iteration three returns to a generic analytic noisy-edge test and
+   two new populations frozen before candidate evaluation:
+   `phase-4r-development-4.json` and `phase-4r-regression-3.json`, with 200
+   disjoint seeds each. The correction may reuse the existing moment-centred
+   retry only when the smaller model converged with finite, conditioned
+   amplitude and shape evidence and its sole physical bound contact is a
+   centroid coordinate. It must not publish an at-bound model, convert an
+   omission into fabricated catalogue data, or change a metric, margin, or
+   threshold. The complete analytic and scientific lanes must pass on
+   development, followed by exactly one unchanged-candidate regression. If
+   that regression passes, a replacement qualification requires a new named
+   human review and a newly frozen population with disjoint seeds and field
+   geometry. The failed one-look result remains terminal for its candidate;
+   a replacement is a separately authorized recovery decision, never a
+   rerun or rescore.
+
 Exit gate: every registered absolute gate passes. For every comparable
 metric produced by each reference, Hebog is statistically non-inferior for
 every separately evaluated overall and governed-stratum population, with no
