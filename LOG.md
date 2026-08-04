@@ -3962,3 +3962,47 @@ and compatibility serialization
   and retain fail-closed handling for every other undefined result. If
   approved, update the protocol, evaluator, tests, hashes, and review record
   before recording execution identities or opening final data.
+
+## 2026-08-04 — Approved exact finite point-mass intervals
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer, approved the predeclared
+  finite point-mass recommendation before any final image was generated or
+  inspected.
+- An otherwise undefined BCa interval is now exactly `[point, point]` only
+  when every bootstrap statistic is finite and exactly equal to the finite
+  observed point estimate. The check has no numerical tolerance.
+- A near point mass, non-finite distribution, incomplete distribution, or
+  every other undefined BCa result remains indeterminate and fails closed.
+  No endpoint, margin, sample size, resampling seed, or science gate changed.
+- The amended reviewed protocol's canonical SHA-256 is
+  `eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`;
+  it supersedes the pre-amendment protocol for final execution.
+- The final 600-image population remains ungenerated and unopened.
+
+**Evidence**
+
+- TDD covers ordinary finite BCa bounds, exact finite point masses, near point
+  masses, non-finite distributions, incomplete distributions, and endpoint-
+  decision propagation. The focused protocol and evaluator suite passes 38
+  tests.
+- Reapplying the amended decision calculation to the same already-viewed
+  200-image post-correction regression campaign returns 20 passes, no
+  failures, and no indeterminate endpoints. The eight exact-equality endpoints
+  each have `[0, 0]`.
+- `just check` passes: Ruff formatting and lint, Pyright, 653 fast tests, and
+  four expected contract failures.
+- `just coverage` passes with 781 tests, four expected contract failures, and
+  94.82% branch-aware project coverage. The final-decision module is at 85%.
+- The frozen PyBDSF equivalence lane passes 26 tests, and the strict MkDocs
+  build passes.
+
+**Next**
+
+- Record the exact clean Hebog revision, immutable released and pinned
+  PyBDSF environments, dependency inventories, and unique output paths. Then
+  open the frozen final population exactly once under the amended reviewed
+  protocol.

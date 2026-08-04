@@ -66,7 +66,9 @@ def test_checked_in_protocol_is_powered_and_fail_closed() -> None:
     assert contract.status == "reviewed"
     assert contract.realization_count == 600
     assert contract.resampling.resampling_unit == "noise-seed-image"
-    assert contract.resampling.degenerate_interval == "indeterminate-fail"
+    assert contract.resampling.degenerate_interval == (
+        "finite-point-mass-exact-otherwise-indeterminate-fail"
+    )
     assert contract.decision.combination_rule == (
         "intersection-union-all-coprimary"
     )

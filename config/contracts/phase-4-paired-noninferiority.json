@@ -251,7 +251,7 @@
   "resampling": {
     "alternative": "less",
     "confidence_level": 0.95,
-    "degenerate_interval": "indeterminate-fail",
+    "degenerate_interval": "finite-point-mass-exact-otherwise-indeterminate-fail",
     "method": "scipy-bca-bootstrap",
     "paired": true,
     "resamples": 50000,

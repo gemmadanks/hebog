@@ -939,7 +939,7 @@ scientific gate, or implementation threshold changed.
 
 All 20 revised planning bounds now pass. The audit has SHA-256
 `af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`,
-and the reviewed protocol has canonical SHA-256
+and the pre-amendment reviewed protocol had canonical SHA-256
 `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
 `af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`,
 and the reviewed protocol has canonical SHA-256
@@ -1000,8 +1000,10 @@ governed unresolved-blend geometry and the reviewed endpoint counts.
   `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`
 - **Scientific-contract-set SHA-256:**
   `562b648d98eb1d28d65341cfe99c8dba4bd36b8d928d132e6ab6f05bf8d96d79`
-- **Paired-protocol SHA-256:**
+- **Paired-protocol SHA-256 at population freeze:**
   `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`
+- **Current amended paired-protocol SHA-256:**
+  `eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`
 - **State at freeze:** ungenerated and unopened
 
 Before opening the population, the operator must record the exact clean Hebog
@@ -1025,12 +1027,21 @@ The evaluator dry run on already-viewed post-correction regression evidence
 returned 12 finite passing BCa endpoints and eight indeterminate exact-equality
 endpoints. This is the documented SciPy BCa point-mass behaviour, not a Hebog
 or PyBDSF scientific regression: all resamples have the same zero paired
-difference, so BCa acceleration is undefined and SciPy returns `NaN`. The
-reviewed protocol currently says every degenerate interval is
-`indeterminate-fail`. Before recording final execution identities or opening
-the population, named review must decide whether to retain that rule, knowing
-that exact equality cannot qualify, or approve the predeclared recommendation
-to use `[point, point]` only for a finite point-mass distribution while every
-other undefined result still fails closed. No choice may be made after final
-results are inspected. SciPy's documented behaviour is linked from the paired
-protocol guide.
+difference, so BCa acceleration is undefined and SciPy returns `NaN`.
+
+Gemma Danks, Data Processing Software Engineer, reviewed this exposed case on
+2026-08-04 before any final image was generated or inspected. She approved the
+predeclared recommendation to use `[point, point]` only when the complete
+finite bootstrap distribution is exactly equal to the finite observed point
+estimate. There is no numerical tolerance. A near point mass, a non-finite
+distribution, or every other undefined BCa result remains indeterminate and
+fails closed. This replaces the blanket `indeterminate-fail` field with
+`finite-point-mass-exact-otherwise-indeterminate-fail`; it does not change an
+endpoint, margin, resampling seed, sample size, or scientific gate. The
+amended reviewed protocol's canonical SHA-256 is
+`eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`.
+SciPy's documented behaviour is linked from the paired protocol guide.
+Repeating the decision calculation on the same already-viewed 200-image
+campaign returned 20 passes, no failures, and no indeterminate endpoints. The
+eight exact-equality endpoints each had the exact interval `[0, 0]`. The final
+600-image population remained ungenerated and unopened.

@@ -210,7 +210,14 @@ def paired_bca_upper_limits(
     realization_count: int,
     resampling: PairedResamplingProtocol,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """Return point estimates and one-sided SciPy BCa upper limits."""
+    """Return reviewed one-sided BCa bounds, including exact point masses.
+
+    SciPy's BCa interval is undefined when every bootstrap statistic is
+    identical. The reviewed protocol defines an exact interval only when the
+    complete finite bootstrap distribution is exactly equal to the finite
+    observed point estimate. All other non-finite bounds remain non-finite so
+    the decision layer fails closed.
+    """
     if realization_count < _MINIMUM_BOOTSTRAP_REALIZATIONS:
         raise ValueError("paired BCa intervals require at least two images")
     indices = np.arange(realization_count, dtype=np.int64)
@@ -234,6 +241,25 @@ def paired_bca_upper_limits(
         result.confidence_interval.high,
         dtype=np.float64,
     )
+    bootstrap_distribution = np.asarray(
+        result.bootstrap_distribution,
+        dtype=np.float64,
+    )
+    expected_shape = (*point_estimates.shape, resampling.resamples)
+    if bootstrap_distribution.shape == expected_shape:
+        finite_point_mass = np.isfinite(point_estimates) & np.all(
+            np.isfinite(bootstrap_distribution)
+            & (
+                bootstrap_distribution
+                == np.expand_dims(point_estimates, axis=-1)
+            ),
+            axis=-1,
+        )
+        upper_limits = np.where(
+            ~np.isfinite(upper_limits) & finite_point_mass,
+            point_estimates,
+            upper_limits,
+        )
     return point_estimates, upper_limits
 
 

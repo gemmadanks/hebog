@@ -1,9 +1,9 @@
 # Phase 4 paired non-inferiority protocol
 
-**Status:** reviewed on 2026-08-03 by Gemma Danks, Data Processing Software
-Engineer. The final unseen population is frozen and remains ungenerated and
-unopened until the newly exposed finite point-mass rule receives named review
-and every execution identity is recorded.
+**Status:** reviewed on 2026-08-03 and amended after named review on 2026-08-04
+by Gemma Danks, Data Processing Software Engineer. The final unseen population
+is frozen and remains ungenerated and unopened until every execution identity
+is recorded.
 
 This protocol answers a deliberately narrower question than “does Hebog equal
 PyBDSF byte for byte?” It asks whether Hebog passes the existing truth-based
@@ -42,9 +42,12 @@ worse:
   ideal minus PyBDSF's absolute distance from the same ideal.
 
 The final analysis uses a paired, one-sided, 95% SciPy BCa cluster-bootstrap
-interval with 50,000 fixed-seed resamples. A degenerate or undefined interval
-is indeterminate and fails closed; it is not replaced after seeing the result
-by a more favourable method.
+interval with 50,000 fixed-seed resamples. When the complete finite bootstrap
+distribution is exactly equal to its finite observed point estimate, the
+predeclared interval is the exact zero-width interval `[point, point]`. There
+is no numerical tolerance. Every other degenerate, non-finite, or undefined
+interval is indeterminate and fails closed; no method is selected after seeing
+the result.
 
 ## Passing rule
 
@@ -147,10 +150,7 @@ observed favourable Hebog effect. It does not change any practical margin or
 scientific gate. The second audit verifies all 20 bounds; its SHA-256 is
 `af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`.
 The reviewed protocol's canonical SHA-256 is
-`1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
-`af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`.
-The reviewed protocol's canonical SHA-256 is
-`1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
+`eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`.
 The weakest interval-exclusion power at 600 images remains 92.2%, for median
 unresolved-group position. Named review accepted these measured,
 conservative planning inputs. Sample size must not change after the final
@@ -252,24 +252,28 @@ including the position-angle fields that were previously absent from campaign
 rows. It writes one strict machine-readable decision and refuses to overwrite
 an existing result.
 
-Its dry run on already-viewed post-correction regression evidence also exposed
-an important pre-opening decision. Twelve paired endpoints have finite passing
-BCa bounds, while eight exact-equality endpoints have an all-identical
+Its dry run on already-viewed post-correction regression evidence exposed an
+important pre-opening decision. Twelve paired endpoints had finite passing BCa
+bounds, while eight exact-equality endpoints had an all-identical
 bootstrap distribution: compact completeness, association recall, fitted-
 shape availability, deconvolution-classification availability, association-
 identity availability, position/flux-uncertainty availability, point-source
 specificity, and unresolved-group completeness. Their signed regression is
-exactly zero. SciPy documents that BCa bounds may be `NaN` in this case. The
-currently reviewed `indeterminate-fail` policy therefore behaves as specified,
-but it would make exact demonstrated equality incapable of passing.
-No final image has been generated or inspected. Named review must now decide,
-before that happens, whether a finite point-mass bootstrap distribution should
-use its exact interval `[point, point]` while every other undefined result
-continues to fail closed. See the official
-[SciPy bootstrap documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html).
+exactly zero. SciPy documents that BCa bounds may be `NaN` in this case.
 
-After that decision is resolved, record the exact Hebog and PyBDSF revisions,
-container or source-tree identities, and dependency inventories. Then:
+Before any final image was generated or inspected, Gemma Danks, Data
+Processing Software Engineer, approved the exact finite point-mass rule on
+2026-08-04. The evaluator now substitutes `[point, point]` only when every
+finite bootstrap statistic is exactly equal to the finite observed point
+estimate. A near point mass, a non-finite distribution, or any other undefined
+BCa result remains indeterminate and fails closed. See the official
+[SciPy bootstrap documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html).
+The amended evaluator's repeat on that same viewed campaign returned 20
+passes, no failures, and no indeterminate endpoints; the eight exact-equality
+endpoints each had the exact interval `[0, 0]`.
+
+Next, record the exact Hebog and PyBDSF revisions, container or source-tree
+identities, and dependency inventories. Then:
 
 1. run Hebog and both references on the same immutable images;
 2. compile the isolated shards without deleting failures;

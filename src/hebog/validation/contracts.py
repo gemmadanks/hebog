@@ -658,7 +658,9 @@ class PairedResamplingProtocol(_ContractModel):
     alternative: Literal["less"]
     resamples: int = Field(ge=10_000)
     seed: int = Field(ge=0)
-    degenerate_interval: Literal["indeterminate-fail"]
+    degenerate_interval: Literal[
+        "finite-point-mass-exact-otherwise-indeterminate-fail"
+    ]
 
 
 class PairedDecisionRule(_ContractModel):

@@ -123,9 +123,12 @@ It then emits one strict `phase-4-qualification-decision` document containing:
   `record-and-continue` policy.
 
 Individual-source 95th-percentile tails retain their contractually declared
-`report-only` role; unresolved-group tails remain gates. A missing required
-field or non-finite BCa result is recorded as `indeterminate` and fails closed.
-The signed endpoint estimate remains visible but is not itself a gate.
+`report-only` role; unresolved-group tails remain gates. An otherwise
+undefined BCa result uses `[point, point]` only when its complete finite
+bootstrap distribution is exactly equal to the finite observed point estimate.
+A missing required field or every other non-finite result is recorded as
+`indeterminate` and fails closed. The signed endpoint estimate remains visible
+but is not itself a gate.
 
 Run the evaluator only after all isolated final shards have been compiled:
 

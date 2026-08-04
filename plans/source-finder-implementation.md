@@ -1708,24 +1708,26 @@ before maintaining a custom fitter.
          gate failures, report-only tails, implementation failures, provenance
          drift, and the complete decision orchestration without opening the
          final population.
-   - [ ] Obtain named pre-opening review of the finite point-mass bootstrap
+   - [x] Obtain named pre-opening review of the finite point-mass bootstrap
          case exposed by the completed evaluator. On the already-viewed,
          post-correction regression campaign, 12 endpoints have finite passing
          BCa upper limits and eight exact-equality endpoints have a degenerate
          bootstrap distribution. SciPy consequently returns `NaN`, and the
-         currently reviewed `indeterminate-fail` rule correctly makes those
-         eight endpoints indeterminate. This means a final campaign with exact
-         Hebog/PyBDSF equality on any co-primary endpoint cannot qualify even
-         though it demonstrates no regression. Before opening final data,
-         review the recommendation to define a finite point-mass distribution
-         as the exact interval `[point, point]` and retain fail-closed handling
-         for every other non-finite or undefined BCa result. If approved,
-         amend the machine-readable protocol, evaluator, tests, hashes, and
-         review record before recording execution identities. Do not select a
-         fallback after final results are seen. SciPy explicitly documents
-         that BCa bounds may be `NaN` for an all-identical bootstrap
-         distribution and recommends preselecting another analysis for that
-         case.
+         original `indeterminate-fail` rule correctly made those eight
+         endpoints indeterminate. This meant a final campaign with exact
+         Hebog/PyBDSF equality on any co-primary endpoint could not qualify
+         even though it demonstrated no regression. Gemma Danks, Data
+         Processing Software Engineer, approved the recommendation on
+         2026-08-04 before any final image was generated or inspected. The
+         reviewed evaluator now uses `[point, point]` only when the complete
+         finite bootstrap distribution is exactly equal to its finite observed
+         point estimate, with no tolerance. Every other non-finite or undefined
+         result remains indeterminate and fails closed. The amended protocol's
+         canonical SHA-256 is
+         `eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`.
+         Reapplying it to the same viewed 200-image campaign returns 20 passes,
+         no failures, and no indeterminate endpoints; the eight exact-equality
+         endpoints each have `[0, 0]`. The final population remains unopened.
    - [ ] Record the exact clean Hebog revision, both immutable PyBDSF
          execution environments, dependency inventories, and output paths;
          then open the frozen population exactly once. Infrastructure retries

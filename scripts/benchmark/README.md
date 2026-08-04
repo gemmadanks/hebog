@@ -210,9 +210,11 @@ one-look protocol. Both runners also fail before recipe iteration if either
 scientific contract or the paired protocol lacks its reviewed status.
 The maintained one-look evaluator now covers every paired interval, absolute
 gate, and campaign-measurable stronger-Hebog envelope, and source diagnostics
-retain the position-angle fields required by the shape gates. Do not open the
-final population until the remaining named review of exact finite point-mass
-bootstrap intervals is resolved and the reviewed protocol hash is final.
+retain the position-angle fields required by the shape gates. The approved
+exact finite point-mass rule is bound by reviewed protocol SHA-256
+`eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`.
+Do not open the final population until the exact execution identities and
+dependency inventories below are recorded.
 
 A typical invocation inside an immutable reference environment is:
 

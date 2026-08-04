@@ -95,8 +95,55 @@ def test_paired_bca_interval_returns_a_finite_one_sided_upper_limit() -> None:
     assert upper[0] >= point[0]
 
 
-def test_paired_bca_interval_retains_a_degenerate_result() -> None:
-    """An undefined BCa bound remains non-finite so callers fail closed."""
+def test_paired_bca_interval_uses_an_exact_finite_point_mass() -> None:
+    """Exact equality has the reviewed zero-width confidence interval."""
+    values = np.zeros(6, dtype=np.float64)
+
+    _, upper = paired_bca_upper_limits(
+        _mean_statistic(values),
+        realization_count=len(values),
+        resampling=_protocol().resampling,
+    )
+
+    assert upper[0] == 0.0
+
+
+@pytest.mark.parametrize(
+    ("exceptional_value", "complete_distribution"),
+    ((1e-15, True), (np.nan, True), (0.0, False)),
+    ids=(
+        "near-point-mass",
+        "non-finite-distribution",
+        "incomplete-distribution",
+    ),
+)
+def test_paired_bca_interval_rejects_a_nonexact_distribution(
+    monkeypatch: pytest.MonkeyPatch,
+    exceptional_value: float,
+    complete_distribution: bool,
+) -> None:
+    """An undefined nonexact BCa bound continues to fail closed."""
+
+    def fake_bootstrap(*args: object, **kwargs: object) -> SimpleNamespace:
+        del args, kwargs
+        resamples = _protocol().resampling.resamples
+        distribution = np.zeros(
+            resamples if complete_distribution else resamples - 1,
+            dtype=np.float64,
+        )
+        distribution[-1] = exceptional_value
+        return SimpleNamespace(
+            confidence_interval=SimpleNamespace(
+                low=np.asarray([np.nan]),
+                high=np.asarray([np.nan]),
+            ),
+            bootstrap_distribution=distribution[np.newaxis, :],
+        )
+
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_decision.bootstrap",
+        fake_bootstrap,
+    )
     values = np.zeros(6, dtype=np.float64)
 
     _, upper = paired_bca_upper_limits(
@@ -604,8 +651,8 @@ def test_candidate_failure_is_retained_and_fails_closed() -> None:
     assert decision.absolute_gates == ()
 
 
-def test_degenerate_endpoint_keeps_its_signed_point_estimate() -> None:
-    """A failed-closed BCa result still reports the observed exact equality."""
+def test_exact_equal_endpoint_passes_with_its_point_interval() -> None:
+    """Exact equality passes when zero lies inside the practical margin."""
     campaign, dataset, protocol, _, _ = _synthetic_campaign_inputs()
     candidate = tuple(
         item
@@ -626,11 +673,11 @@ def test_degenerate_endpoint_keeps_its_signed_point_estimate() -> None:
     )
     completeness = decisions[0]
 
-    assert completeness.status == "indeterminate"
+    assert completeness.status == "pass"
     assert completeness.candidate_value == 1.0
     assert completeness.reference_value == 1.0
     assert completeness.positive_regression == 0.0
-    assert completeness.upper_confidence_limit is None
+    assert completeness.upper_confidence_limit == 0.0
 
 
 def test_one_look_evaluator_rejects_provenance_drift() -> None:
