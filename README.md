@@ -56,9 +56,9 @@ catalogue path in Phase 4. In practical terms, Hebog can now:
   moments for compact islands and regions;
 - fit bounded elliptical Gaussian components and transform their positions
   and shapes into ICRS sky coordinates;
-- deconvolve the restoring beam while keeping unresolved or unavailable
-  scientific values explicit, and classify extension with a two-sigma
-  uncertainty test;
+- deconvolve the restoring beam while keeping fully resolved,
+  major-axis-only, unresolved, and unavailable values explicit, and require
+  five-sigma evidence for noisy extension and each reported intrinsic axis;
 - build bounded, deterministic source/component/island catalogue records and
   an eight-column FITS view consumed directly by Rapthor diagnostics;
 - run deterministically through either the serial or Dask executor; and
@@ -91,10 +91,28 @@ Phase 4R is therefore complete as a terminal non-passing milestone; its
 performance matrix was not eligible to run, and no Phase 4 release or speed
 claim is made.
 
+Phase 4S has since repaired the future evaluator without changing that result.
+Governed classification strata can no longer be widened by same-named legacy
+validation strata, power can be checked against the actual manifest group
+counts, and joint power is reported separately from marginal endpoint power.
+The review also found that all 18 SNR-15 catastrophic rows came from one
+marginal source family whose weak deconvolved minor axis was being treated as
+a precise ellipse. Hebog now propagates fit-shape covariance, reports only
+scientifically significant intrinsic axes, preserves a major-only `DC_Maj`
+for Rapthor when appropriate, and obtains a truncation retry's centroid and
+covariance from the same likelihood fit. Analytic, integration, serial/Dask,
+dual-reference regression, and full correlated-noise calibration checks pass.
+
+These corrections make the compact scientific API stable enough to begin
+Phase 5 development. They do not turn Phase 4R into a pass or authorize a
+production cutover. A newly reviewed, manifest-powered Phase 4S qualification,
+external radio-astronomy review, complete performance matrix, and production
+scalability evidence remain required before Hebog replaces PyBDSF by default.
+
 The remaining work includes:
 
-- designing a separately governed scientific recovery after the terminal
-  Phase 4R result, using only new development and regression evidence;
+- freezing and running one separately governed Phase 4S qualification with
+  manifest-bound populations and familywise power;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;

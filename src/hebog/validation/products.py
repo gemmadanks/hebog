@@ -247,9 +247,16 @@ def load_pybdsf_catalogue(path: Path) -> tuple[CatalogueSource, ...]:
                 if float(row["DC_Maj"]) > 0 and float(row["DC_Min"]) > 0
                 else None
             ),
+            deconvolved_major_fwhm_degrees=(
+                float(row["DC_Maj"])
+                if float(row["DC_Maj"]) > 0 and not float(row["DC_Min"]) > 0
+                else None
+            ),
             deconvolution_status=(
                 "resolved"
                 if float(row["DC_Maj"]) > 0 and float(row["DC_Min"]) > 0
+                else "major-axis-only"
+                if float(row["DC_Maj"]) > 0
                 else "unresolved"
             ),
             island_identifier=str(row["Isl_id"]),
@@ -257,6 +264,8 @@ def load_pybdsf_catalogue(path: Path) -> tuple[CatalogueSource, ...]:
             quality_flags=(
                 ()
                 if float(row["DC_Maj"]) > 0 and float(row["DC_Min"]) > 0
+                else ("major-axis-only",)
+                if float(row["DC_Maj"]) > 0
                 else ("unresolved",)
             ),
         )

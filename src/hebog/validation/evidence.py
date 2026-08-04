@@ -435,6 +435,7 @@ class SourcePairDiagnostic(_EvidenceModel):
     candidate_deconvolution_status: (
         Literal[
             "resolved",
+            "major-axis-only",
             "unresolved",
             "unavailable",
         ]

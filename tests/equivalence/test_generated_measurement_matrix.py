@@ -329,6 +329,9 @@ def _comparison_source(
         integrated_flux_error_jy=(transformed.flux.integrated_flux_error_jy),
         fitted_shape=_ellipse(transformed.fitted_shape),
         deconvolved_shape=_ellipse(transformed.deconvolved_shape),
+        deconvolved_major_fwhm_degrees=(
+            transformed.deconvolved_major_fwhm_degrees
+        ),
         deconvolution_status=transformed.deconvolution_status,
         island_identifier=island_identifier,
         component_count=1,
@@ -695,6 +698,7 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
             )
             if candidate_source.deconvolution_status in {
                 "resolved",
+                "major-axis-only",
                 "unresolved",
             }:
                 classification_available[classification_stratum] += 1
@@ -703,8 +707,14 @@ def test_correlated_noise_uncertainties_pass_regression_calibration(  # noqa: C9
                     if classification_stratum == "shape-unresolved"
                     else "resolved"
                 )
+                observed = (
+                    "resolved"
+                    if candidate_source.deconvolution_status
+                    in {"resolved", "major-axis-only"}
+                    else candidate_source.deconvolution_status
+                )
                 classification_correct[classification_stratum] += int(
-                    candidate_source.deconvolution_status == expected
+                    observed == expected
                 )
 
     uncertainty_gate = gates.uncertainty
@@ -1121,7 +1131,7 @@ def test_compact_flux_heldout_measurement_qualification(  # noqa: C901, PLR0912,
                 )
             if classification_stratum in classification_available and (
                 candidate_source.deconvolution_status
-                in {"resolved", "unresolved"}
+                in {"resolved", "major-axis-only", "unresolved"}
             ):
                 classification_available[classification_stratum] += 1
                 expected_status = (
@@ -1129,8 +1139,14 @@ def test_compact_flux_heldout_measurement_qualification(  # noqa: C901, PLR0912,
                     if classification_stratum == "shape-unresolved"
                     else "resolved"
                 )
+                observed_status = (
+                    "resolved"
+                    if candidate_source.deconvolution_status
+                    in {"resolved", "major-axis-only"}
+                    else candidate_source.deconvolution_status
+                )
                 classification_correct[classification_stratum] += int(
-                    candidate_source.deconvolution_status == expected_status
+                    observed_status == expected_status
                 )
             if classification_stratum == "shape-clear-resolved":
                 resolved_shape_eligible_count += 1

@@ -129,9 +129,14 @@ def _comparison_sources(
             integrated_flux_error_jy=(source.flux.integrated_flux_error_jy),
             fitted_shape=_shape(source.fitted_shape),
             deconvolved_shape=_shape(source.deconvolved_shape),
+            deconvolved_major_fwhm_degrees=(
+                source.deconvolved_major_fwhm_degrees
+            ),
             deconvolution_status=(
                 "resolved"
                 if source.deconvolved_shape is not None
+                else "major-axis-only"
+                if source.deconvolved_major_fwhm_degrees is not None
                 else "unresolved"
                 if "unresolved" in source.quality_flags
                 else "unavailable"

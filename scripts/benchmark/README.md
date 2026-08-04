@@ -177,8 +177,24 @@ uv run python scripts/validation/calculate_phase4_paired_power.py \
 
 The checked-in calculation uses planning assumptions verified on independent
 paired development/regression evidence. It reports interval-exclusion power
-and the rejected point-sign probability separately. The final decision uses
-the interval plus every absolute and stronger-Hebog gate, not the point sign.
+and the rejected point-sign probability separately, plus a conservative
+familywise lower bound. For any future qualification, also supply the frozen
+dataset so endpoint populations and realization count are checked rather than
+trusted from the contract:
+
+```console
+uv run python scripts/validation/calculate_phase4_paired_power.py \
+  config/contracts/<phase-4s-protocol>.json \
+  --dataset-manifest config/datasets/<phase-4s-qualification>.json \
+  --dataset-id <frozen-dataset-id>
+```
+
+Every binary endpoint in that protocol must declare its manifest population
+unit. A count mismatch fails before power is reported. The historical Phase 4
+protocol predates those declarations and remains reproducible only as a
+marginal design calculation; it is not eligible to freeze another campaign.
+The final decision uses the interval plus every absolute and stronger-Hebog
+gate, not the point sign.
 
 Generate a regression candidate shard from a clean reviewed Hebog revision
 with:

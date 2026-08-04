@@ -18,6 +18,9 @@ _ROOT = Path(__file__).parents[2]
 _PAIRED_REGRESSION = _ROOT / "config/datasets/phase-4-paired-regression.json"
 _PHASE4R_DEVELOPMENT = _ROOT / "config/datasets/phase-4r-development.json"
 _PHASE4R_DEVELOPMENT_2 = _ROOT / "config/datasets/phase-4r-development-2.json"
+_PHASE4R_REPLACEMENT = (
+    _ROOT / "config/datasets/phase-4r-qualification-replacement.json"
+)
 _SCIENTIFIC_GATES = _ROOT / "config/contracts/phase-4-scientific-gates.json"
 _UNDERSIZED_BLEND_CHILD_SEEDS = (
     2026100024,
@@ -58,6 +61,48 @@ def test_phase4r_low_snr_extended_edge_fit_is_not_catastrophic(
     assert pair.candidate_quality_flags is not None
     assert "correlated-noise-gls-errors" in pair.candidate_quality_flags
     assert "beam-constrained-fit" not in pair.candidate_quality_flags
+
+
+def test_viewed_marginal_minor_failure_is_censored_not_catastrophic(
+    tmp_path: Path,
+) -> None:
+    """The Phase 4R minor-axis failure becomes an explicit one-axis result."""
+    dataset = load_dataset_manifest(_PHASE4R_REPLACEMENT).datasets[0]
+    recipe = next(
+        recipe
+        for recipe in iter_dataset_recipes(dataset)
+        if recipe.seed == 2026200085
+    )
+    candidates = process_hebog_recipe(
+        recipe,
+        dataset,
+        tmp_path / "viewed-marginal-minor-regression",
+    )
+    diagnostic = diagnose_phase_four_realization(
+        dataset,
+        recipe,
+        candidates,
+        implementation_identifier="hebog",
+        outlier_thresholds=phase_four_outlier_thresholds(_SCIENTIFIC_GATES),
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+    )
+
+    pair = next(
+        item
+        for item in diagnostic.source_pairs
+        if item.truth_identifier == "source-00005"
+    )
+
+    assert pair.candidate_deconvolution_status in {
+        "major-axis-only",
+        "unresolved",
+    }
+    assert pair.gated_catastrophic is False
+    assert {
+        "major-axis-not-significant",
+        "minor-axis-not-significant",
+    }.intersection(pair.candidate_quality_flags)
 
 
 def test_phase4r_edge_retry_preserves_the_valid_association(
@@ -153,16 +198,16 @@ def test_unresolved_blend_does_not_leave_an_unfit_watershed_child(
 
 @pytest.mark.equivalence
 @pytest.mark.parametrize(
-    ("seed", "truth_identifier", "expected_status"),
+    ("seed", "truth_identifier", "expected_extension"),
     (
-        (2026100200, "source-00013", "unresolved"),
-        (2026100155, "source-00009", "resolved"),
+        (2026100200, "source-00013", False),
+        (2026100155, "source-00009", True),
     ),
 )
 def test_high_confidence_extension_policy_separates_point_and_clear_truth(
     seed: int,
     truth_identifier: str,
-    expected_status: str,
+    expected_extension: bool,
     tmp_path: Path,
 ) -> None:
     """The independent worst-margin examples remain correctly classified."""
@@ -193,4 +238,10 @@ def test_high_confidence_extension_policy_separates_point_and_clear_truth(
         if pair.truth_identifier == truth_identifier
     )
 
-    assert pair.candidate_deconvolution_status == expected_status
+    if expected_extension:
+        assert pair.candidate_deconvolution_status in {
+            "resolved",
+            "major-axis-only",
+        }
+    else:
+        assert pair.candidate_deconvolution_status == "unresolved"

@@ -315,6 +315,8 @@ def _shape_values(
 def _shape_columns(
     prefix: str,
     values: Sequence[GaussianShape | None],
+    *,
+    major_only_values: Sequence[float | None] | None = None,
 ) -> list[fits.Column]:
     """Build the six canonical columns for optional Gaussian ellipses."""
     fields = (
@@ -325,14 +327,26 @@ def _shape_columns(
         ("MINOR_ERROR", "minor_fwhm_error_degrees", "deg"),
         ("POSITION_ANGLE_ERROR", "position_angle_error_degrees", "deg"),
     )
-    return [
-        _float_column(
-            f"{prefix}_{suffix}",
-            _shape_values(values, attribute),
-            unit=unit,
+    columns: list[fits.Column] = []
+    for suffix, attribute, unit in fields:
+        column_values = _shape_values(values, attribute)
+        if suffix == "MAJOR" and major_only_values is not None:
+            column_values = [
+                major_only if shape is None else shape.major_fwhm_degrees
+                for shape, major_only in zip(
+                    values,
+                    major_only_values,
+                    strict=True,
+                )
+            ]
+        columns.append(
+            _float_column(
+                f"{prefix}_{suffix}",
+                column_values,
+                unit=unit,
+            )
         )
-        for suffix, attribute, unit in fields
-    ]
+    return columns
 
 
 def _spectral_coefficient_column(
@@ -422,7 +436,13 @@ def _measured_columns(
         ),
         _spectral_coefficient_column(spectra),
         *_shape_columns("FITTED", fitted),
-        *_shape_columns("DECONVOLVED", deconvolved),
+        *_shape_columns(
+            "DECONVOLVED",
+            deconvolved,
+            major_only_values=[
+                value.deconvolved_major_fwhm_degrees for value in values
+            ],
+        ),
         _string_column(
             "QUALITY_FLAGS",
             [",".join(value.quality_flags) for value in values],
@@ -579,6 +599,19 @@ def _measured_fields(row: Any) -> dict[str, Any]:
     """Reconstruct shared measured-object fields from one table row."""
     coefficients = _spectral_coefficients_from_row(row)
     quality_flags_text = _text(row["QUALITY_FLAGS"])
+    deconvolved_major = _optional_float(row["DECONVOLVED_MAJOR"])
+    deconvolved_minor = _optional_float(row["DECONVOLVED_MINOR"])
+    deconvolved_angle = _optional_float(row["DECONVOLVED_POSITION_ANGLE"])
+    major_only = (
+        deconvolved_major
+        if deconvolved_major is not None
+        and deconvolved_minor is None
+        and deconvolved_angle is None
+        else None
+    )
+    deconvolved_shape = (
+        None if major_only is not None else _shape_from_row(row, "DECONVOLVED")
+    )
     return {
         "island_id": _text(row["ISLAND_ID"]),
         "position": SkyPosition(
@@ -610,7 +643,8 @@ def _measured_fields(row: Any) -> dict[str, Any]:
             reference_frequency_hz=float(row["REFERENCE_FREQUENCY"]),
             coefficients=coefficients,
         ),
-        "deconvolved_shape": _shape_from_row(row, "DECONVOLVED"),
+        "deconvolved_shape": deconvolved_shape,
+        "deconvolved_major_fwhm_degrees": major_only,
         "quality_flags": (
             tuple(quality_flags_text.split(",")) if quality_flags_text else ()
         ),

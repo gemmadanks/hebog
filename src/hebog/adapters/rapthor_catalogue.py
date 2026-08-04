@@ -76,10 +76,12 @@ def _optional(values: list[float | None]) -> np.ndarray:
 
 
 def _deconvolved_major(source: SourceCandidate) -> float:
-    """Translate only reviewed unresolved shapes to PyBDSF's zero sentinel."""
+    """Translate reviewed full, one-axis, and unresolved states."""
     shape = source.deconvolved_shape
     if shape is not None:
         return float(shape.major_fwhm_degrees)
+    if source.deconvolved_major_fwhm_degrees is not None:
+        return float(source.deconvolved_major_fwhm_degrees)
     return 0.0 if "unresolved" in source.quality_flags else float("nan")
 
 

@@ -2401,12 +2401,13 @@ all later multiscale work must adopt the same execution contracts.
 
 ### Phase 4S: compact-science stabilization and Phase 5 start gate
 
-Status: approved for implementation on 2026-08-04 after review of all Phase 4
-and Phase 4R evidence. Phase 4R remains an immutable failed qualification. This
-milestone must not regenerate, rescore, reinterpret, or retrospectively pass
-that campaign. It repairs defects and ambiguities found by the review, then
-uses new development and regression evidence before one independently frozen
-qualification.
+Status: compact stabilization and the Phase 5 development start gate completed
+on 2026-08-04; the independently frozen Phase 4S qualification, external
+science review, and performance/scalability exit evidence remain pending.
+Phase 4R remains an immutable failed qualification. This milestone must not
+regenerate, rescore, reinterpret, or retrospectively pass that campaign. It
+repairs defects and ambiguities found by the review, then uses new development
+and regression evidence before one independently frozen qualification.
 
 The review found that Hebog's compact-source implementation is broadly sound:
 it completed all 600 replacement images, passed 446 of 450 dual-reference
@@ -2438,10 +2439,11 @@ or justify reproducing a known defect. All stronger reviewed Hebog envelopes
 remain in force.
 
 1. **Repair evidence construction and release-decision semantics using TDD.**
-   - Make one canonical stratum collection authoritative for any identifier;
-     reject contradictory duplicate definitions at a public boundary instead
-     of silently taking their union. Preserve all historical evidence bytes and
-     decisions unchanged.
+   - Make one canonical stratum collection authoritative for any identifier.
+     A governed disjoint classification definition replaces a same-named
+     legacy validation definition, and evidence consumers must use that
+     canonical view instead of silently taking their union. Preserve all
+     historical evidence bytes and decisions unchanged.
    - Derive the number of independent image, association, individual-source,
      and point-source groups from the frozen manifest. Reject a qualification
      power declaration whose assumed population does not match those counts.
@@ -2518,6 +2520,46 @@ remain in force.
      investigate any material regression.
    - Run the complete controlled performance matrix only after science is
      fixed. Performance evidence cannot rescue a scientific failure.
+
+Phase 5 start-gate evidence recorded on 2026-08-04:
+
+- Canonical classification strata now prevent the clear/marginal overlap in
+  newly compiled evidence. Manifest population audits expose the replacement
+  campaign's actual 13 association groups, 12 individual sources, and four
+  point sources; its corrected point-specificity power is about 76.9%, not
+  94.5%. Power tooling separately reports a dependence-robust familywise lower
+  bound. Historical evidence and decisions were not changed.
+- Free fits retain the major/minor-sigma/angle covariance needed to test each
+  intrinsic eigenvalue. The public scientific states are fully resolved,
+  major-axis-only, unresolved, and unavailable. The five-sigma policy censors
+  weak axes before catalogue publication, internal FITS preserves a
+  major-only value without a false ellipse, and Rapthor receives that value as
+  `DC_Maj`. Campaign configuration identity freezes both the extension and
+  per-axis significance thresholds; missing noisy-fit shape covariance fails
+  closed as unavailable.
+- All 18 viewed SNR-15 deconvolved-axis failures from the repeated marginal
+  source family were rerun only as regression diagnostics. Applying the
+  existing five-sigma extension confidence level independently to each axis
+  censors every weak result and none remains catastrophic; this does not
+  rescore Phase 4R.
+- A truncation correction now initializes a widened context-likelihood retry,
+  whose own centroid and covariance are published together. Lower/upper edge
+  reflection tests cover this path. The 20 worst viewed SNR-10 declination
+  residuals were unchanged because they already used a consistent free-context
+  estimator. Their point estimate was inside the absolute gate, so the narrow
+  confidence crossing is assigned to the larger, more varied and
+  manifest-powered future population rather than post-outcome tuning.
+- Analytic deconvolution spans continuous intrinsic sizes and multiple sky
+  angles. Existing generated regression spans SNR, WCS rotation, every image
+  edge/corner, non-square geometry, gradients, invalid pixels, blends, and
+  correlated noise. The complete governed correlated-noise calibration
+  regression passes. A real residual/noise injection remains unavailable and
+  is an explicit final-qualification prerequisite when controlled data can be
+  approved.
+- Unit, integration, non-slow equivalence, focused Phase 4R equivalence,
+  serial/Dask, FITS/Rapthor, Ruff, and Pyright checks pass. The named
+  development review is recorded in the Phase 4 scientific review record;
+  external radio-astronomy review is still required before qualification.
 
 Phase 5 start gate: multiscale implementation may begin when steps 1--4 have
 passing focused, project, equivalence, serial/executor, and documentation

@@ -424,13 +424,14 @@ def _parameter_covariance(
     )
 
 
-def _formal_uncertainty(
+def _formal_uncertainty(  # noqa: PLR0913
     optimizer_parameters: npt.NDArray[np.float64],
     full_parameters: npt.NDArray[np.float64],
     covariance: npt.NDArray[np.float64] | None,
     geometry: CompactMeasurementGeometry,
     *,
     model_identity: _ModelIdentity,
+    axes_swapped: bool,
 ) -> GaussianFitUncertainty | None:
     """Return position/flux errors for one free or beam-constrained model."""
     if covariance is None:
@@ -457,6 +458,30 @@ def _formal_uncertainty(
     )
     if any(not isfinite(value) or value <= 0 for value in variances):
         return None
+    shape_parameter_covariance = None
+    if model_identity != "beam-constrained":
+        shape_indices = np.asarray((3, 4, 5), dtype=np.int64)
+        shape_covariance = np.asarray(
+            covariance[np.ix_(shape_indices, shape_indices)],
+            dtype=np.float64,
+        )
+        if axes_swapped:
+            ordering = np.asarray((1, 0, 2), dtype=np.int64)
+            shape_covariance = shape_covariance[np.ix_(ordering, ordering)]
+        if (
+            np.all(np.isfinite(shape_covariance))
+            and np.all(np.diag(shape_covariance) > 0)
+            and float(np.min(np.linalg.eigvalsh(shape_covariance)))
+            >= -np.finfo(np.float64).eps
+        ):
+            shape_parameter_covariance = (
+                float(shape_covariance[0, 0]),
+                float(shape_covariance[0, 1]),
+                float(shape_covariance[0, 2]),
+                float(shape_covariance[1, 1]),
+                float(shape_covariance[1, 2]),
+                float(shape_covariance[2, 2]),
+            )
     return GaussianFitUncertainty(
         amplitude_error_jy_per_beam=float(np.sqrt(variances[0])),
         centroid_covariance_xx_pixels_squared=variances[1],
@@ -466,6 +491,7 @@ def _formal_uncertainty(
         amplitude_integrated_flux_covariance_jy_squared_per_beam=(
             amplitude_integrated_covariance
         ),
+        shape_parameter_covariance=shape_parameter_covariance,
     )
 
 
@@ -1035,8 +1061,50 @@ def _context_position_estimate(  # noqa: PLR0913
         upper,
         config,
     )
-    used_truncated_moment = centroid is not None
-    if centroid is None:
+    estimator: Literal[
+        "bounded-context-free",
+        "bounded-context-truncation-refit",
+    ] = "bounded-context-free"
+    if centroid is not None:
+        retry_initial = np.asarray(initial, dtype=np.float64).copy()
+        retry_lower = np.asarray(lower, dtype=np.float64).copy()
+        retry_upper = np.asarray(upper, dtype=np.float64).copy()
+        retry_initial[1:3] = centroid
+        margin = max(config.center_margin_pixels, 0.5)
+        retry_lower[1:3] = np.minimum(
+            retry_lower[1:3] - margin,
+            np.asarray(centroid, dtype=np.float64) - margin,
+        )
+        retry_upper[1:3] = np.maximum(
+            retry_upper[1:3] + margin,
+            np.asarray(centroid, dtype=np.float64) + margin,
+        )
+        retry = _fit_candidate(
+            samples,
+            _free_model_spec(
+                identity="free-elliptical",
+                initial=retry_initial,
+                lower=retry_lower,
+                upper=retry_upper,
+                fixed_background=fixed_background,
+            ),
+            fallback_reason=None,
+        )
+        if (
+            not retry.success
+            or retry.covariance is None
+            or not _numerically_valid(retry, config)
+            or not _identifiable(retry, config)
+        ):
+            return None
+        candidate = retry
+        covariance = retry.covariance
+        centroid = (
+            float(retry.full_parameters[1]),
+            float(retry.full_parameters[2]),
+        )
+        estimator = "bounded-context-truncation-refit"
+    else:
         if not _numerically_valid(candidate, config) or not _identifiable(
             candidate,
             config,
@@ -1052,11 +1120,7 @@ def _context_position_estimate(  # noqa: PLR0913
             covariance_xx_pixels_squared=float(covariance[1, 1]),
             covariance_xy_pixels_squared=float(covariance[1, 2]),
             covariance_yy_pixels_squared=float(covariance[2, 2]),
-            estimator=(
-                "bounded-context-truncated-moment"
-                if used_truncated_moment
-                else "bounded-context-free"
-            ),
+            estimator=estimator,
         )
     except ValueError:
         return None
@@ -1192,7 +1256,8 @@ def _valid_fit_result(
         theta,
         _,
     ) = candidate.full_parameters
-    if sigma_second > sigma_first:
+    axes_swapped = sigma_second > sigma_first
+    if axes_swapped:
         sigma_first, sigma_second = sigma_second, sigma_first
         theta += 0.5 * pi
     fitted_parameters = FittedGaussianPixelParameters(
@@ -1218,6 +1283,7 @@ def _valid_fit_result(
         candidate.covariance,
         geometry,
         model_identity=candidate.diagnostics.model_identity,
+        axes_swapped=axes_swapped,
     )
     flags = tuple(
         flag

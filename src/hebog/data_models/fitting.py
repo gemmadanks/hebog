@@ -37,6 +37,10 @@ class GaussianFitUncertainty:
     amplitude_integrated_flux_covariance_jy_squared_per_beam: float | None = (
         None
     )
+    shape_parameter_covariance: (
+        tuple[float, float, float, float, float, float] | None
+    ) = None
+    """Upper triangle for ordered major/minor sigma and angle in radians."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,7 +80,7 @@ class GaussianPositionEstimate:
     covariance_yy_pixels_squared: float
     estimator: Literal[
         "bounded-context-free",
-        "bounded-context-truncated-moment",
+        "bounded-context-truncation-refit",
     ] = "bounded-context-free"
 
     def __post_init__(self) -> None:

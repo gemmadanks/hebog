@@ -22,9 +22,9 @@ declaring a premature pass.
   with typed non-convergence and invalid-result outcomes;
 - fitted positions, covariance, ellipses, and flux geometry are transformed
   through an Astropy ICRS WCS boundary;
-- restoring-beam covariance is deconvolved into explicit resolved,
-  unresolved, and marginal states, then noisy extension is classified with an
-  explicit high-confidence flux-ratio uncertainty test;
+- restoring-beam covariance is deconvolved into explicit fully resolved,
+  major-axis-only, unresolved, and unavailable states, then noisy extension is
+  classified with an explicit high-confidence uncertainty test;
 - islands, Gaussian components, and source candidates remain distinct typed
   records with canonical global identities;
 - one catalogue shard is produced per admitted coarse task, pairwise reduction
@@ -233,6 +233,60 @@ must use paired same-image statistics and show Hebog no worse than released
 PyBDSF, as well as passing every absolute gate, before Phase 4 can close.
 Pinned master remains a comparison wherever it completes, and every exception
 is counted as a reference robustness failure rather than silently excluded.
+
+## Phase 4S stabilization and Phase 5 development readiness
+
+Review of the terminal Phase 4R evidence found two evaluator defects and two
+scientific-semantics risks. Same-named validation and classification strata
+were unioned even when their memberships differed. The paired power contract
+also retained the earlier 33-group, 32-individual-source, and eight-point-source
+assumptions while the replacement manifest contained 13, 12, and four. With
+the actual four point sources, the historical point-specificity design power
+is about 76.9%, not the reported 94.5%. The historical decision remains false
+and its bytes remain immutable; this audit does not rescore it.
+
+Future evidence now uses one canonical source-stratum definition, with the
+governed disjoint classification population taking precedence over a
+same-named legacy validation population. The power tooling can bind every
+binary endpoint and the realization count to a frozen manifest. It also
+reports a dependence-robust union-bound lower bound for the probability that
+all declared endpoints pass, rather than presenting the weakest marginal
+endpoint power as joint campaign power. A future qualification contract must
+declare those population units explicitly and fail closed on any mismatch.
+
+All 18 SNR-15 catastrophic rows in the replacement result came from one
+marginally resolved source family. Each was a deconvolved-axis failure, and the
+representative seed's unstable minor-axis relative error exceeded 100% while
+its fitted axes and deconvolved major remained within 17%. Production fits now
+retain covariance for major sigma, minor sigma, and position angle. Hebog
+propagates it through WCS transformation and beam subtraction and requires
+five-sigma evidence for each reported intrinsic axis. A significant major with
+an insignificant minor is a typed major-axis-only result; an insignificant
+major is unresolved. In temporary regression reruns, all 18 viewed failures
+are censored and none remains catastrophic. These reruns are regression
+diagnostics only and do not alter the frozen qualification result.
+
+The edge review also found that a truncation-corrected centroid could inherit
+covariance from the first bounded fit. A bound-contact correction now only
+initializes a widened likelihood retry; its final centroid and covariance come
+from that same retry. If the retry is not identifiable, Hebog keeps the
+selected fit instead of combining estimators. The 20 worst viewed SNR-10
+declination residuals were unchanged because they already used a consistent
+free-context estimator. Their governed point estimate was inside the absolute
+gate and only its upper confidence limit crossed. That is treated as a power
+and population-design issue for the next campaign, not as permission to tune
+an estimator to viewed outcomes.
+
+The compact Phase 5 development start gate is now met: analytic rotation and
+continuous-size deconvolution tests pass; lower/upper edge-reflection tests
+bind estimator covariance; exact viewed failures are retained as regressions;
+internal FITS and the Rapthor `DC_Maj` view round-trip a major-only result;
+serial/Dask and non-slow equivalence lanes pass; and the complete governed
+correlated-noise calibration regression passes. Phase 5 may therefore develop
+against the stabilized compact API. This is not the Phase 4S release gate. A
+new manifest-powered one-look qualification, external radio-astronomy review,
+both exact PyBDSF comparisons, and the controlled performance/scalability
+matrix still gate a production claim and default Rapthor cutover.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run. The final scientific qualification failed, so the controlled

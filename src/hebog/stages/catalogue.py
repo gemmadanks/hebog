@@ -60,6 +60,9 @@ class CompactCatalogueProcessor:
                 extension_significance_sigma=(
                     self.catalogue_config.extension_significance_sigma
                 ),
+                deconvolution_axis_significance_sigma=(
+                    self.catalogue_config.deconvolution_axis_significance_sigma
+                ),
             ),
         )
 

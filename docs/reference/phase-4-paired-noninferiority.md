@@ -5,6 +5,16 @@ by Gemma Danks, Data Processing Software Engineer. The final unseen population
 is frozen and remains ungenerated and unopened until every execution identity
 is recorded.
 
+**Phase 4S erratum:** this is a historical Phase 4/4R protocol and must not be
+used to freeze another qualification. The replacement population had 13
+association groups, 12 individual sources, and four point sources per image,
+while this contract retained the earlier 33, 32, and eight assumptions. At the
+actual point-source count, marginal point-specificity power is about 76.9%.
+Future protocols must declare manifest population units, pass the executable
+population audit, and report familywise decision power separately from
+marginal endpoint power. The terminal Phase 4R decision remains false and is
+not rescored by this correction.
+
 This protocol answers a deliberately narrower question than “does Hebog equal
 PyBDSF byte for byte?” It asks whether Hebog passes the existing truth-based
 science gates, retains its demonstrated strengths, and is no worse than the
@@ -57,12 +67,6 @@ reported for transparency, but its sign is not a separate gate: under exact
 equality a sign gate fails half of repeated experiments and would reject
 scientifically negligible random differences even when the interval excludes
 the non-inferiority margin.
-Every co-primary endpoint's one-sided upper confidence limit must be within
-its predeclared practical regression margin. The signed point estimate is
-reported for transparency, but its sign is not a separate gate: under exact
-equality a sign gate fails half of repeated experiments and would reject
-scientifically negligible random differences even when the interval excludes
-the non-inferiority margin.
 
 All existing absolute science gates and the independently frozen regression
 envelopes protecting Hebog's stronger results must also pass. Metrics cannot
@@ -100,12 +104,10 @@ deconvolution-classification, association-identity, and uncertainty
 availability each use a 0.5-percentage-point margin. Clear-resolved
 deconvolved-shape availability uses 1 percentage point because there is one
 such source per realization. The intersection-union rule still forbids a
-such source per realization. The intersection-union rule still forbids a
 trade of one metric for another; these margins bound sampling uncertainty
 rather than authorize a scientifically meaningful regression.
-rather than authorize a scientifically meaningful regression.
 
-## Power and its limitation
+## Historical power calculation and its limitation
 
 The proposed final design has 600 independent noise realizations, three times
 the population used by each viewed campaign. A normal design approximation
@@ -115,6 +117,12 @@ paired statistics for continuous outcomes. Under the provisional assumptions,
 the weakest interval-exclusion power is 92.2%; point specificity is 94.5% and
 the next weakest endpoint, unresolved-group completeness, is 96.6%.
 
+Those values describe marginal endpoints under the declared counts. They do
+not describe the actual replacement population, and 92.2% is not the
+probability that every co-primary endpoint passes. Phase 4S derives counts from
+a supplied frozen manifest and reports a dependence-robust union-bound lower
+bound for the joint decision.
+
 Run the executable calculation with:
 
 ```console
@@ -122,11 +130,6 @@ uv run python scripts/validation/calculate_phase4_paired_power.py \
   config/contracts/phase-4-paired-noninferiority.json
 ```
 
-The 90% target applies to exclusion of the non-inferiority margin. The power
-calculation also reports point-direction probabilities so the rejected stricter
-rule remains auditable, but the reviewed decision is based on the interval,
-the absolute gates, and the independently frozen envelopes protecting Hebog's
-stronger results.
 The 90% target applies to exclusion of the non-inferiority margin. The power
 calculation also reports point-direction probabilities so the rejected stricter
 rule remains auditable, but the reviewed decision is based on the interval,
@@ -152,9 +155,6 @@ scientific gate. The second audit verifies all 20 bounds; its SHA-256 is
 The reviewed protocol's canonical SHA-256 is
 `eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`.
 The weakest interval-exclusion power at 600 images remains 92.2%, for median
-unresolved-group position. Named review accepted these measured,
-conservative planning inputs. Sample size must not change after the final
-population is opened.
 unresolved-group position. Named review accepted these measured,
 conservative planning inputs. Sample size must not change after the final
 population is opened.
@@ -192,12 +192,8 @@ correction as well.
 The source-level margin audit then measured the standardized ATLAS extension
 statistic for all 1,600 point and 200 clear regression cases. Point truth ended
 at 3.38 sigma and clear truth began at 17.92 sigma. Phase 4 now uses a
-at 3.38 sigma and clear truth began at 17.92 sigma. Phase 4 now uses a
 five-sigma high-confidence catalogue decision, replacing the earlier
 two-sigma boundary while retaining the same statistic. The analytic and
-independent worst-margin tests pass, and named review approved this policy.
-The pre-change campaign cannot establish its paired endpoint or variance, so
-the refreshed complete run below remains the governing regression evidence.
 independent worst-margin tests pass, and named review approved this policy.
 The pre-change campaign cannot establish its paired endpoint or variance, so
 the refreshed complete run below remains the governing regression evidence.
@@ -228,8 +224,6 @@ no-worse point-estimate condition would nevertheless fail this regression
 endpoint, illustrating the already documented 50% directional-pass
 probability under effective equality. Named review therefore removed that
 condition before final-population freeze.
-probability under effective equality. Named review therefore removed that
-condition before final-population freeze.
 
 The aggregate median unresolved-blend position is also slightly in the
 opposite direction: 0.05455 beam for Hebog and 0.05175 beam for PyBDSF. The
@@ -237,8 +231,6 @@ positive-as-worse point estimate is 0.00279 beam and its one-sided 95% BCa
 upper limit is 0.00682 beam, inside the proposed 0.01-beam margin. Hebog is
 materially better in the associated 95th-percentile position tail (0.104
 versus 0.395 beam) and both blend-flux endpoints. This second small directional
-difference supports the reviewed interval-based decision and avoids tuning an
-estimator to regression noise.
 difference supports the reviewed interval-based decision and avoids tuning an
 estimator to regression noise.
 

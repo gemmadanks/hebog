@@ -354,6 +354,7 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
             "window_shape_yx": [35, 35],
         },
         "catalogue": {
+            "deconvolution_axis_significance_sigma": 5.0,
             "deconvolution_relative_tolerance": 1e-10,
             "extension_significance_sigma": 5.0,
             "maximum_catalogue_records": 10000,

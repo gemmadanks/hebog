@@ -131,6 +131,7 @@ def phase_four_truth_source(
         if deconvolution.shape is not None
         else None
     )
+    deconvolved_major = deconvolution.major_axis_fwhm_degrees
     geometry = compact_geometry_at_pixel(metadata, centroid_xy)
     free_integrated_flux = fitted_gaussian_integrated_flux_jy(
         amplitude_jy_per_beam=source.peak_flux_jy_per_beam,
@@ -150,11 +151,14 @@ def phase_four_truth_source(
         ),
         fitted_shape=fitted,
         deconvolved_shape=deconvolved,
+        deconvolved_major_fwhm_degrees=deconvolved_major,
         deconvolution_status=deconvolution.status,
         island_identifier=identifier,
         component_count=1,
         quality_flags=(
-            ("unresolved",) if deconvolution.status == "unresolved" else ()
+            deconvolution.quality_flags
+            if deconvolution.status in {"major-axis-only", "unresolved"}
+            else ()
         ),
     )
 

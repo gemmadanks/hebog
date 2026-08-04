@@ -506,6 +506,57 @@ def test_bounded_context_position_is_separate_from_owned_morphology() -> None:
     assert "beam-constrained-fit" not in result.quality_flags
 
 
+@pytest.mark.parametrize(
+    ("centroid_xy", "origin_yx", "edge_column"),
+    (
+        ((254.0, 252.0), (244, 244), -1),
+        ((1.0, 252.0), (244, 0), 0),
+    ),
+)
+def test_truncated_context_position_refits_centroid_and_covariance(
+    centroid_xy: tuple[float, float],
+    origin_yx: tuple[int, int],
+    edge_column: int,
+) -> None:
+    """An edge correction publishes covariance from its own likelihood fit."""
+    compact = _gaussian_input(
+        amplitude=0.1,
+        centroid_xy=centroid_xy,
+        sigma_axes=(3.8, 2.4),
+        angle_degrees=20.0,
+        shape_yx=(12, 12),
+        origin_yx=origin_yx,
+        rms_value=0.05,
+    )
+    residual = compact.physical_residual.copy()
+    residual[8:11, edge_column] += 0.05
+
+    result = _fit(
+        replace(compact, physical_residual=residual),
+        config=_fit_config(position_estimator="bounded-context-free"),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.position_estimate is not None
+    assert result.position_estimate.estimator == (
+        "bounded-context-truncation-refit"
+    )
+    covariance = np.asarray(
+        (
+            (
+                result.position_estimate.covariance_xx_pixels_squared,
+                result.position_estimate.covariance_xy_pixels_squared,
+            ),
+            (
+                result.position_estimate.covariance_xy_pixels_squared,
+                result.position_estimate.covariance_yy_pixels_squared,
+            ),
+        )
+    )
+    assert np.all(np.linalg.eigvalsh(covariance) > 0)
+
+
 def test_truncated_normal_moments_recover_edge_centroid() -> None:
     """The analytic fallback inverts a known one-sided normal truncation."""
     location = 254.0
@@ -620,6 +671,8 @@ def test_formal_errors_account_for_correlated_noise() -> None:
     assert isinstance(correlated, ValidCompactGaussianFit)
     assert independent.uncertainty is not None
     assert correlated.uncertainty is not None
+    assert independent.uncertainty.shape_parameter_covariance is not None
+    assert correlated.uncertainty.shape_parameter_covariance is not None
     assert correlated.parameters == independent.parameters
     assert "formal-independent-pixel-errors" in independent.quality_flags
     assert "correlated-noise-sandwich-errors" in correlated.quality_flags

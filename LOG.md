@@ -4774,3 +4774,57 @@ and compatibility serialization
 - Obtain human acknowledgment of the terminal result. Any further scientific
   recovery requires a newly governed milestone using only new development and
   regression evidence; Phase 4R does not authorize another qualification.
+
+## 2026-08-04 — Stabilized compact science for Phase 5 development
+
+**Plan phase:** Phase 4S — compact-science stabilization and Phase 5 start gate
+
+**Completed**
+
+- Preserved the terminal Phase 4R evidence and added a separate stabilization
+  milestone with distinct Phase 5 development and final release gates.
+- Made governed classification strata authoritative over same-named legacy
+  validation strata. New campaign diagnostics no longer place a source in
+  both clear- and marginal-resolution populations.
+- Added manifest-derived endpoint population audits and dependence-robust
+  familywise power reporting. The audit records that the replacement contained
+  13 association groups, 12 individually resolvable sources, and four point
+  sources per image rather than the historical contract's 33, 32, and eight.
+- Propagated free-fit shape covariance through WCS and beam deconvolution.
+  Added fully resolved, major-axis-only, unresolved, and unavailable states;
+  the existing five-sigma extension confidence level is applied independently
+  to each axis, and its value is included in campaign configuration identity.
+- Preserved a significant major-only axis through internal FITS and Rapthor's
+  `DC_Maj` without publishing an unidentifiable minor axis or position angle.
+- Replaced the bound-contact centroid/covariance mismatch with a widened
+  context-likelihood retry whose point estimate and covariance come from the
+  same estimator.
+
+**Evidence**
+
+- The corrected replacement population audit reduces estimated marginal
+  point-specificity power from about 94.5% to 76.9%; future qualification must
+  fail closed unless declared group counts match the manifest.
+- The representative viewed SNR-15 seed `2026200085` is no longer
+  catastrophic. Temporary regression reruns of all 18 previously failing
+  members show zero remaining catastrophic rows under the five-sigma axis
+  policy. These are viewed regression diagnostics and do not alter Phase 4R.
+- The 20 worst viewed SNR-10 declination residuals are numerically unchanged:
+  they already used a consistent free-context estimator. The old point
+  estimate remains inside its absolute gate; the future larger and more varied
+  campaign owns the confidence crossing.
+- The final unit lane passed 748 tests, integration passed 130, and non-slow
+  equivalence passed 26. The portable coverage lane passed 878 tests with
+  94.06% branch-aware project coverage. Focused Phase 4R equivalence and the
+  complete governed correlated-noise calibration regression passed; the latter
+  took 348.65 seconds. Ruff, Pyright, the fast handoff gate, and the strict
+  documentation build also passed. Contract and acceptance placeholders remain
+  explicitly expected failures rather than silently passing scenarios.
+
+**Next**
+
+- Begin Phase 5 multiscale development against the stabilized compact API.
+- Before compact qualification or Rapthor cutover, obtain external
+  radio-astronomy review, freeze one manifest-powered and jointly powered
+  unseen population, run both exact PyBDSF references, and pass the controlled
+  performance/scalability matrix.

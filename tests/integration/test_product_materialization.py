@@ -229,6 +229,41 @@ def test_catalogue_fits_round_trip_preserves_internal_schema(
         )
 
 
+def test_catalogue_fits_round_trip_preserves_major_only_deconvolution(
+    tmp_path: Path,
+) -> None:
+    """The internal product stores major while censoring minor and PA."""
+    original = _catalogue()
+    source_payload = original.sources[0].model_dump(mode="python")
+    source_payload.update(
+        {
+            "deconvolved_shape": None,
+            "deconvolved_major_fwhm_degrees": 0.0017,
+            "quality_flags": ("major-axis-only",),
+        }
+    )
+    source = SourceCandidate.model_validate(source_payload)
+    catalogue = SourceCatalogue.create(
+        catalogue_id=original.catalogue_id,
+        coordinate_frame=original.coordinate_frame,
+        position_epoch=original.position_epoch,
+        reference_frequency_hz=original.reference_frequency_hz,
+        islands=original.islands,
+        sources=(source,),
+        gaussian_components=(),
+    )
+    path = tmp_path / "major-only-catalogue.fits"
+
+    write_catalogue_fits_product(path, catalogue)
+
+    assert read_catalogue_fits_product(path) == catalogue
+    with fits.open(path) as hdus:
+        row = hdus[2].data[0]
+        assert row["DECONVOLVED_MAJOR"] == pytest.approx(0.0017)
+        assert np.isnan(row["DECONVOLVED_MINOR"])
+        assert np.isnan(row["DECONVOLVED_POSITION_ANGLE"])
+
+
 def test_empty_catalogue_is_a_structurally_complete_fits_product(
     tmp_path: Path,
 ) -> None:

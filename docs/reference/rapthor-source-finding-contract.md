@@ -97,6 +97,10 @@ canonical 32-bit integer source numbering; 64-bit floating values; degrees for
 position, deconvolved size, and position error; Jy for flux; FITS NaN for
 unavailable error; and zero `DC_Maj` only for a reviewed unresolved source.
 It produces a structurally complete zero-row table for an empty result.
+An internally major-axis-only source publishes its positive, significant major
+FWHM in `DC_Maj`; the absent minor axis and position angle are not part of this
+eight-column Rapthor view. An unavailable deconvolution remains NaN rather
+than being converted to the unresolved zero sentinel.
 
 Rapthor reads this FITS table with Astropy. Its diagnostic path converts
 `Source_id`, `RA`, `DEC`, and a selected flux column to a minimal makesourcedb

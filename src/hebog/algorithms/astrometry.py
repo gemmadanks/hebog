@@ -34,6 +34,7 @@ from hebog.data_models.measurement import CompactMeasurementGeometry
 
 _FINITE_DIFFERENCE_STEP_PIXELS = 1e-3
 _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
+_SHAPE_AXIS_PARAMETER_COUNT = 2
 
 
 def _celestial_wcs(metadata: ImageMetadata) -> WCS:
@@ -199,10 +200,12 @@ def deconvolve_gaussian_shapes(
             quality_flags=("unresolved",),
         )
     if float(np.min(eigenvalues)) <= tolerance:
+        major_fwhm = float(sqrt(float(np.max(eigenvalues))) * _FWHM_PER_SIGMA)
         return GaussianDeconvolution(
-            status="unresolved",
+            status="major-axis-only",
             shape=None,
-            quality_flags=("marginal-deconvolution", "unresolved"),
+            quality_flags=("major-axis-only", "marginal-deconvolution"),
+            major_axis_fwhm_degrees=major_fwhm,
         )
     return GaussianDeconvolution(
         status="resolved",
@@ -254,7 +257,7 @@ def _extension_classification(
     significance_sigma: float,
 ) -> GaussianDeconvolution:
     """Apply the ATLAS log flux-ratio significance rule to deconvolution."""
-    if geometric.status != "resolved":
+    if geometric.status in {"unresolved", "unavailable"}:
         return geometric
     uncertainty = fit.uncertainty
     if uncertainty is None:
@@ -294,12 +297,147 @@ def _extension_classification(
     )
 
 
+def _shape_parameter_covariance(
+    values: tuple[float, float, float, float, float, float],
+) -> npt.NDArray[np.float64]:
+    """Expand the stored upper triangle for major/minor sigma and angle."""
+    (
+        major_variance,
+        axis_covariance,
+        major_angle,
+        minor_variance,
+        minor_angle,
+        angle_variance,
+    ) = values
+    return np.asarray(
+        (
+            (major_variance, axis_covariance, major_angle),
+            (axis_covariance, minor_variance, minor_angle),
+            (major_angle, minor_angle, angle_variance),
+        ),
+        dtype=np.float64,
+    )
+
+
+def _intrinsic_eigenvalues(
+    parameters: npt.NDArray[np.float64],
+    jacobian: npt.NDArray[np.float64],
+    beam: RestoringBeam,
+) -> npt.NDArray[np.float64]:
+    """Return ordered intrinsic sky variances for pixel-shape parameters."""
+    pixel_covariance = _pixel_covariance(
+        float(parameters[0]),
+        float(parameters[1]),
+        float(np.rad2deg(parameters[2])),
+    )
+    intrinsic = jacobian @ pixel_covariance @ jacobian.T - _sky_covariance(
+        beam
+    )
+    return np.asarray(np.linalg.eigvalsh(intrinsic), dtype=np.float64)
+
+
+def _axis_significance_classification(  # noqa: PLR0913
+    deconvolution: GaussianDeconvolution,
+    fit: ValidCompactGaussianFit,
+    jacobian: npt.NDArray[np.float64],
+    beam: RestoringBeam,
+    *,
+    significance_sigma: float,
+    relative_tolerance: float,
+) -> GaussianDeconvolution:
+    """Censor axes not separated significantly from the restoring beam."""
+    if deconvolution.status in {"unresolved", "unavailable"}:
+        return deconvolution
+    uncertainty = fit.uncertainty
+    if uncertainty is None:
+        return deconvolution
+    if uncertainty.shape_parameter_covariance is None:
+        return GaussianDeconvolution(
+            status="unavailable",
+            shape=None,
+            quality_flags=("deconvolution-uncertainty-unavailable",),
+        )
+    covariance = _shape_parameter_covariance(
+        uncertainty.shape_parameter_covariance
+    )
+    parameters = np.asarray(
+        (
+            fit.parameters.major_sigma_pixels,
+            fit.parameters.minor_sigma_pixels,
+            np.deg2rad(fit.parameters.major_axis_angle_degrees),
+        ),
+        dtype=np.float64,
+    )
+    eigenvalues = _intrinsic_eigenvalues(parameters, jacobian, beam)
+    gradient = np.empty((2, 3), dtype=np.float64)
+    for parameter_index in range(3):
+        standard_deviation = sqrt(
+            max(0.0, float(covariance[parameter_index, parameter_index]))
+        )
+        step = max(
+            abs(float(parameters[parameter_index])) * 1e-6,
+            standard_deviation * 1e-4,
+            1e-8,
+        )
+        lower = parameters.copy()
+        upper = parameters.copy()
+        lower[parameter_index] -= step
+        upper[parameter_index] += step
+        if (
+            parameter_index < _SHAPE_AXIS_PARAMETER_COUNT
+            and lower[parameter_index] <= 0
+        ):
+            lower[parameter_index] = parameters[parameter_index]
+            denominator = step
+        else:
+            denominator = 2.0 * step
+        gradient[:, parameter_index] = (
+            _intrinsic_eigenvalues(upper, jacobian, beam)
+            - _intrinsic_eigenvalues(lower, jacobian, beam)
+        ) / denominator
+    eigenvalue_variances = np.einsum(
+        "ij,jk,ik->i",
+        gradient,
+        covariance,
+        gradient,
+        optimize=True,
+    )
+    eigenvalue_errors = np.sqrt(np.maximum(0.0, eigenvalue_variances))
+    beam_scale = float(np.max(np.linalg.eigvalsh(_sky_covariance(beam))))
+    tolerance = relative_tolerance * beam_scale
+
+    def significant(index: int) -> bool:
+        value = float(eigenvalues[index])
+        error = float(eigenvalue_errors[index])
+        return value > tolerance and (
+            error == 0.0 or value > significance_sigma * error
+        )
+
+    if not significant(1):
+        return GaussianDeconvolution(
+            status="unresolved",
+            shape=None,
+            quality_flags=("major-axis-not-significant", "unresolved"),
+        )
+    if not significant(0):
+        return GaussianDeconvolution(
+            status="major-axis-only",
+            shape=None,
+            quality_flags=("major-axis-only", "minor-axis-not-significant"),
+            major_axis_fwhm_degrees=(
+                float(sqrt(float(eigenvalues[1])) * _FWHM_PER_SIGMA)
+            ),
+        )
+    return deconvolution
+
+
 def transform_compact_gaussian_fit(
     fit: ValidCompactGaussianFit,
     metadata: ImageMetadata,
     *,
     deconvolution_relative_tolerance: float = 1e-10,
     extension_significance_sigma: float = 5.0,
+    deconvolution_axis_significance_sigma: float = 5.0,
 ) -> CelestialCompactGaussianFit:
     """Transform a valid pixel fit into reviewed ICRS catalogue quantities."""
     if metadata.unit != "Jy/beam":
@@ -310,6 +448,13 @@ def transform_compact_gaussian_fit(
     ):
         raise ValueError(
             "extension_significance_sigma must be finite and positive"
+        )
+    if (
+        not isfinite(deconvolution_axis_significance_sigma)
+        or deconvolution_axis_significance_sigma <= 0
+    ):
+        raise ValueError(
+            "deconvolution_axis_significance_sigma must be finite and positive"
         )
     parameters = fit.parameters
     position_xy = (
@@ -356,6 +501,14 @@ def transform_compact_gaussian_fit(
         integrated_flux_error_jy=integrated_flux_error,
         significance_sigma=extension_significance_sigma,
     )
+    deconvolution = _axis_significance_classification(
+        deconvolution,
+        fit,
+        jacobian,
+        metadata.beam,
+        significance_sigma=deconvolution_axis_significance_sigma,
+        relative_tolerance=deconvolution_relative_tolerance,
+    )
     if deconvolution.status == "unresolved":
         reported_integrated_flux = parameters.amplitude_jy_per_beam
         reported_integrated_flux_error = (
@@ -389,5 +542,6 @@ def transform_compact_gaussian_fit(
         fitted_shape=fitted_shape,
         deconvolution_status=deconvolution.status,
         deconvolved_shape=deconvolution.shape,
+        deconvolved_major_fwhm_degrees=(deconvolution.major_axis_fwhm_degrees),
         quality_flags=tuple(sorted(flags)),
     )

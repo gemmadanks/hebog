@@ -754,7 +754,7 @@ def test_rich_catalogue_source_rejects_ambiguous_absence_or_flags() -> None:
             component_count=0,
         )
 
-    with pytest.raises(ValueError, match="only resolved"):
+    with pytest.raises(ValueError, match="only identifiable"):
         replace(
             _source("source", right_ascension_degrees=1.0),
             deconvolved_shape=_ellipse(0.01, 0.005, 0.0),
@@ -765,6 +765,37 @@ def test_rich_catalogue_source_rejects_ambiguous_absence_or_flags() -> None:
             _source("source", right_ascension_degrees=1.0),
             deconvolution_status="unresolved",
         )
+
+
+def test_major_only_deconvolution_compares_only_identifiable_axis() -> None:
+    """A censored minor axis cannot create a catastrophic minor residual."""
+    reference = replace(
+        _source("reference", right_ascension_degrees=10.0),
+        deconvolved_shape=_ellipse(0.008, 0.002, 20.0),
+        deconvolution_status="resolved",
+    )
+    candidate = replace(
+        _source("candidate", right_ascension_degrees=10.0),
+        deconvolved_major_fwhm_degrees=0.0088,
+        deconvolution_status="major-axis-only",
+        quality_flags=("major-axis-only",),
+    )
+
+    report = compare_catalogues(
+        (reference,),
+        (candidate,),
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+    )
+
+    match = report.matches[0]
+    assert match.deconvolved_major_axis_fractional_difference == (
+        pytest.approx(0.1)
+    )
+    assert match.deconvolved_minor_axis_fractional_difference is None
+    assert match.deconvolved_position_angle_difference_degrees is None
+    assert match.unresolved_classification_agrees is True
 
 
 @pytest.mark.parametrize(

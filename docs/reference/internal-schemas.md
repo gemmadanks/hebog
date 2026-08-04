@@ -47,8 +47,11 @@ canonical quality-flag names. Units are part of field names:
 | Reference frequency | Hz |
 
 Unavailable uncertainties and unavailable or unresolved shapes are `None`.
-NaN and legacy zero sentinels are not null values. A fitted Gaussian always
-has a fitted shape; a source-level fitted shape may be unavailable.
+A major-axis-only deconvolution stores one positive
+`deconvolved_major_fwhm_degrees` value, leaves the ellipse null, and carries a
+`major-axis-only` quality flag; it never invents a minor axis or position
+angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
+always has a fitted shape; a source-level fitted shape may be unavailable.
 
 For a compact Gaussian, the fitted pixel record retains the free-model
 infinite-plane integral. The celestial component/source record reports peak as
@@ -63,6 +66,12 @@ units, not PyBDSF compatibility names. At this serialization boundary only,
 an unavailable float is encoded as FITS NaN and decoded back to `None`;
 required scientific values remain finite under model validation. Empty
 catalogues retain all typed columns and contain zero rows.
+
+For a major-axis-only result, `DECONVOLVED_MAJOR` contains the positive axis
+while `DECONVOLVED_MINOR` and `DECONVOLVED_POSITION_ANGLE` are NaN. The reader
+reconstructs the explicit one-axis state from those columns and the canonical
+quality flag. This uses the existing version-two columns and does not treat a
+partial ellipse as a valid `GaussianShape`.
 
 Spectral coefficients use fixed-width float64 vectors rather than FITS
 variable-length heap columns. Each source or component table selects the

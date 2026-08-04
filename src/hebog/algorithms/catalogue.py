@@ -150,6 +150,7 @@ def _associated_records(
     *,
     deconvolution_relative_tolerance: float,
     extension_significance_sigma: float,
+    deconvolution_axis_significance_sigma: float,
 ) -> tuple[SourceCandidate, GaussianComponent]:
     """Apply the reviewed one-source/one-Gaussian compact association."""
     transformed = transform_compact_gaussian_fit(
@@ -157,6 +158,9 @@ def _associated_records(
         metadata,
         deconvolution_relative_tolerance=deconvolution_relative_tolerance,
         extension_significance_sigma=extension_significance_sigma,
+        deconvolution_axis_significance_sigma=(
+            deconvolution_axis_significance_sigma
+        ),
     )
     region_id = fit.moment.target.object_id
     source_id = f"source-{region_id}"
@@ -174,6 +178,9 @@ def _associated_records(
         spectral_model=spectrum,
         fitted_shape=transformed.fitted_shape,
         deconvolved_shape=transformed.deconvolved_shape,
+        deconvolved_major_fwhm_degrees=(
+            transformed.deconvolved_major_fwhm_degrees
+        ),
         quality_flags=transformed.quality_flags,
         restoring_beam_aperture_integrated_flux_jy=(
             fit.restoring_beam_aperture.integrated_flux_jy
@@ -190,6 +197,9 @@ def _associated_records(
         spectral_model=spectrum,
         fitted_shape=transformed.fitted_shape,
         deconvolved_shape=transformed.deconvolved_shape,
+        deconvolved_major_fwhm_degrees=(
+            transformed.deconvolved_major_fwhm_degrees
+        ),
         quality_flags=transformed.quality_flags,
     )
     return source, component
@@ -201,6 +211,7 @@ def build_compact_catalogue_shard(
     *,
     deconvolution_relative_tolerance: float,
     extension_significance_sigma: float = 5.0,
+    deconvolution_axis_significance_sigma: float = 5.0,
 ) -> CompactCatalogueShard:
     """Transform one coarse batch into a canonical scheduler-safe shard."""
     islands: list[Island] = []
@@ -229,6 +240,9 @@ def build_compact_catalogue_shard(
                     deconvolution_relative_tolerance
                 ),
                 extension_significance_sigma=extension_significance_sigma,
+                deconvolution_axis_significance_sigma=(
+                    deconvolution_axis_significance_sigma
+                ),
             )
             sources.append(source)
             components.append(component)

@@ -1596,3 +1596,52 @@ No metric, margin, gate, source row, or population was changed after opening
 it. Phase 4R closes without scientific passage. The controlled performance
 matrix was not run because the plan permits it only after scientific passage;
 no Phase 4 performance or release claim is authorized.
+
+## Phase 4S development review and Phase 5 start decision
+
+**Review date:** 2026-08-04
+
+**Reviewer:** Gemma Danks
+
+**Role:** Data Processing Software Engineer
+**Scope:** authorize evidence-contract repair and compact scientific
+stabilization for Phase 5 development; not an external radio-astronomy review
+or final qualification approval.
+
+The post-Phase 4R review approved preserving every historical decision while
+correcting future evidence construction. Classification strata are the
+authoritative disjoint extension populations when a legacy validation stratum
+has the same identifier. Future paired binary endpoints must declare a
+manifest population unit, their per-realization count and realization count
+must equal the frozen manifest, and joint/familywise decision power must be
+reported separately from marginal endpoint power. Applying that audit to the
+viewed replacement explains why it was not a sufficiently powered final
+answer: it contained 13 observable groups, 12 individually resolvable sources,
+and four point sources per image rather than the contract's assumed 33, 32,
+and eight. Correcting the point count reduces its estimated marginal power
+from about 94.5% to 76.9%.
+
+The review also approved explicit fully resolved, major-axis-only, unresolved,
+and unavailable deconvolution states. The high-confidence five-sigma extension
+decision remains unchanged and now applies independently to propagated
+intrinsic-axis evidence. Relative deconvolved-axis error is meaningful only
+for an identifiable axis; a censored minor axis and position angle do not
+become artificial zeros or catastrophic residuals. Rapthor can still consume
+the significant deconvolved major axis through `DC_Maj`.
+
+Finally, a centroid corrected after bound contact may no longer retain
+covariance from the pre-correction fit. The correction initializes a widened
+bounded-context likelihood retry, and the published centroid and covariance
+both come from that retry. The 20 worst viewed SNR-10 declination residuals did
+not use the mismatched path and remain numerically unchanged. Their absolute
+point estimate was inside its gate; the next campaign must resolve the narrow
+confidence crossing through adequate, manifest-bound power and broader edge
+populations rather than post-outcome estimator tuning.
+
+The implementation and focused evidence support beginning Phase 5 development
+against this compact API. They do not pass Phase 4R, complete Phase 4S, or
+authorize a release claim. Before production cutover, an external
+radio-astronomy reviewer must approve the new population, marginal-resolution
+semantics, co-primary families, multiplicity/power rule, and one-look freeze;
+then the new qualification, both exact PyBDSF comparisons, and controlled
+performance/scalability gates must pass.

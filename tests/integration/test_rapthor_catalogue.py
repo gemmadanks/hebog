@@ -193,6 +193,38 @@ def test_rapthor_mapping_uses_canonical_numbering_and_adapter_sentinels(
     assert np.isnan(raw["E_DEC"][1])
 
 
+def test_rapthor_mapping_preserves_identifiable_major_only_axis(
+    tmp_path: Path,
+) -> None:
+    """Rapthor receives DC_Maj without requiring an invented minor axis."""
+    original = _catalogue()
+    source = original.sources[0]
+    payload = source.model_dump(mode="python")
+    payload.update(
+        {
+            "deconvolved_shape": None,
+            "deconvolved_major_fwhm_degrees": 0.0017,
+            "quality_flags": ("major-axis-only",),
+        }
+    )
+    major_only = SourceCandidate.model_validate(payload)
+    catalogue = SourceCatalogue.create(
+        catalogue_id=original.catalogue_id,
+        coordinate_frame=original.coordinate_frame,
+        position_epoch=original.position_epoch,
+        reference_frequency_hz=original.reference_frequency_hz,
+        islands=original.islands,
+        sources=(major_only,),
+        gaussian_components=(),
+    )
+
+    path = tmp_path / "major-only.fits"
+    write_rapthor_catalogue_fits(path, catalogue)
+    table = read_rapthor_catalogue_fits(path)
+
+    assert table["DC_Maj"][0] == pytest.approx(0.0017)
+
+
 def test_empty_rapthor_view_retains_exact_schema(tmp_path: Path) -> None:
     """Zero detections need no dummy scientific source row."""
     path = tmp_path / "empty.fits"

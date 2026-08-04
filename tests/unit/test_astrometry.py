@@ -284,8 +284,44 @@ def test_covariance_beam_deconvolution_matches_aligned_analytic_truth() -> (
     assert deconvolved.shape.position_angle_degrees == pytest.approx(30.0)
 
 
+@pytest.mark.parametrize("position_angle_degrees", (0.0, 37.0, 89.0, 143.0))
+@pytest.mark.parametrize(
+    "intrinsic_axes",
+    ((0.3, 0.2), (1.5, 0.4), (4.0, 3.0)),
+)
+def test_deconvolution_is_rotation_invariant_across_resolution_scales(
+    position_angle_degrees: float,
+    intrinsic_axes: tuple[float, float],
+) -> None:
+    """Aligned beam removal recovers continuous sizes and sky angles."""
+    beam = RestoringBeam(3.0, 2.0, position_angle_degrees)
+    intrinsic_major, intrinsic_minor = intrinsic_axes
+    fitted = GaussianShape(
+        major_fwhm_degrees=np.hypot(beam.major_fwhm_degrees, intrinsic_major),
+        minor_fwhm_degrees=np.hypot(beam.minor_fwhm_degrees, intrinsic_minor),
+        position_angle_degrees=position_angle_degrees,
+        major_fwhm_error_degrees=None,
+        minor_fwhm_error_degrees=None,
+        position_angle_error_degrees=None,
+    )
+
+    result = deconvolve_gaussian_shapes(
+        fitted,
+        beam,
+        relative_tolerance=1e-10,
+    )
+
+    assert result.status == "resolved"
+    assert result.shape is not None
+    assert result.shape.major_fwhm_degrees == pytest.approx(intrinsic_major)
+    assert result.shape.minor_fwhm_degrees == pytest.approx(intrinsic_minor)
+    assert result.shape.position_angle_degrees == pytest.approx(
+        position_angle_degrees
+    )
+
+
 def test_deconvolution_distinguishes_unresolved_and_marginal() -> None:
-    """No positive physical covariance is not represented by zero axes."""
+    """One positive physical axis remains identifiable without an ellipse."""
     beam = RestoringBeam(3.0, 2.0, 0.0)
     unresolved_shape = GaussianShape(
         major_fwhm_degrees=2.9,
@@ -314,12 +350,48 @@ def test_deconvolution_distinguishes_unresolved_and_marginal() -> None:
     assert unresolved.status == "unresolved"
     assert unresolved.shape is None
     assert unresolved.quality_flags == ("unresolved",)
-    assert marginal.status == "unresolved"
+    assert marginal.status == "major-axis-only"
     assert marginal.shape is None
-    assert marginal.quality_flags == (
-        "marginal-deconvolution",
-        "unresolved",
+    assert marginal.major_axis_fwhm_degrees == pytest.approx(
+        np.sqrt(3.5**2 - 3.0**2)
     )
+    assert marginal.quality_flags == (
+        "major-axis-only",
+        "marginal-deconvolution",
+    )
+
+
+def test_axis_uncertainty_censors_only_unidentified_minor_axis() -> None:
+    """A significant major axis does not publish a noisy minor ellipse."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.00005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.0001,
+        shape_parameter_covariance=(
+            0.05**2,
+            0.0,
+            0.0,
+            0.5**2,
+            0.0,
+            np.deg2rad(0.5) ** 2,
+        ),
+    )
+
+    result = transform_compact_gaussian_fit(
+        _fit(uncertainty=uncertainty),
+        _metadata(),
+        extension_significance_sigma=2.0,
+        deconvolution_axis_significance_sigma=2.0,
+    )
+
+    assert result.deconvolution_status == "major-axis-only"
+    assert result.deconvolved_shape is None
+    assert result.deconvolved_major_fwhm_degrees is not None
+    assert result.deconvolved_major_fwhm_degrees > 0
+    assert "major-axis-only" in result.quality_flags
+    assert "minor-axis-not-significant" in result.quality_flags
 
 
 def test_missing_formal_covariance_produces_null_errors_and_flag() -> None:
@@ -389,6 +461,14 @@ def test_extension_ratio_uses_amplitude_integral_covariance() -> None:
         centroid_covariance_yy_pixels_squared=0.04,
         integrated_flux_error_jy=0.005,
         amplitude_integrated_flux_covariance_jy_squared_per_beam=1.25e-5,
+        shape_parameter_covariance=(
+            0.01**2,
+            0.0,
+            0.0,
+            0.01**2,
+            0.0,
+            np.deg2rad(0.1) ** 2,
+        ),
     )
 
     result = transform_compact_gaussian_fit(
@@ -434,6 +514,14 @@ def test_significant_extension_retains_fitted_total_flux_and_shape() -> None:
         centroid_covariance_xy_pixels_squared=0.0,
         centroid_covariance_yy_pixels_squared=0.04,
         integrated_flux_error_jy=0.0001,
+        shape_parameter_covariance=(
+            0.01**2,
+            0.0,
+            0.0,
+            0.01**2,
+            0.0,
+            np.deg2rad(0.1) ** 2,
+        ),
     )
 
     result = transform_compact_gaussian_fit(
@@ -445,6 +533,28 @@ def test_significant_extension_retains_fitted_total_flux_and_shape() -> None:
     assert result.deconvolution_status == "resolved"
     assert result.deconvolved_shape is not None
     assert result.flux.integrated_flux_jy > result.flux.peak_flux_jy_per_beam
+
+
+def test_missing_shape_covariance_makes_deconvolution_unavailable() -> None:
+    """Flux evidence alone cannot make an intrinsic ellipse identifiable."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.00005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.0001,
+    )
+
+    result = transform_compact_gaussian_fit(
+        _fit(uncertainty=uncertainty),
+        _metadata(),
+        extension_significance_sigma=2.0,
+    )
+
+    assert result.deconvolution_status == "unavailable"
+    assert result.deconvolved_shape is None
+    assert result.deconvolved_major_fwhm_degrees is None
+    assert "deconvolution-uncertainty-unavailable" in result.quality_flags
 
 
 def test_missing_candidate_uncertainty_makes_classification_unavailable() -> (

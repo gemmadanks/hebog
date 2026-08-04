@@ -34,8 +34,8 @@ covariance and classifies the eigenvalues:
 
 - two positive intrinsic axes produce a resolved deconvolved ellipse;
 - no significant positive intrinsic axis is unresolved; and
-- a marginal one-axis result is conservatively unresolved and carries both
-  `marginal-deconvolution` and `unresolved` quality flags.
+- one significant intrinsic axis produces a `major-axis-only` result with no
+  minor axis or position angle.
 
 For a noisy fit, positive geometric deconvolution is necessary but not
 sufficient evidence of physical extension. Hebog uses the standardized
@@ -52,6 +52,19 @@ its flux uncertainty unavailable, the extension classification is also
 unavailable. Exact analytic fits without an uncertainty-unavailable flag
 retain their geometric result so noiseless contract cases remain exact.
 
+For a free noisy fit, Hebog also retains the covariance of major sigma, minor
+sigma, and position angle. A finite-difference delta method propagates that
+covariance through the local WCS and restoring-beam subtraction. Each
+deconvolved eigenvalue must independently exceed zero at the same five-sigma
+confidence level. A significant major eigenvalue with an insignificant minor
+one is reported as `major-axis-only`; neither a minor size nor a position angle
+is published. If even the major eigenvalue is insignificant, the source is
+unresolved. If a noisy fit has flux uncertainty but no usable shape covariance,
+its deconvolution is unavailable rather than a falsely precise geometric
+ellipse. This axis test prevents unstable relative errors near zero from being
+mistaken for precise physical sizes while retaining the `DC_Maj` value that
+Rapthor actually consumes whenever it is identifiable.
+
 The classification threshold is explicit runtime configuration. The frozen
 Phase 4 contract separately gates point-source specificity and recall for
 clearly resolved truth. "Clearly resolved" is selected from injected truth
@@ -62,9 +75,10 @@ fit. Its integrated-flux catastrophic rate is therefore also report-only;
 position, peak flux, and fitted/deconvolved shape catastrophes remain gated,
 as does integrated flux for point and clearly resolved truth.
 
-An unresolved internal shape is null. The zero-major-axis value expected by
-the PyBDSF/Rapthor compatibility view is introduced only by that adapter and
-never re-enters a scientific calculation.
+An unresolved internal shape is null. A major-axis-only result stores one
+positive major FWHM separately from the absent ellipse. The zero-major-axis
+value expected by the PyBDSF/Rapthor compatibility view is introduced only for
+an explicitly unresolved source and never re-enters a scientific calculation.
 
 The established `radio_beam` package was evaluated for this boundary. Its
 deconvolution utility implements the same small covariance problem but also
@@ -86,6 +100,14 @@ generalized OLS sandwich errors flagged
 and carry `shape-uncertainty-unavailable`. If the fit covariance is
 unavailable, position and flux errors are also null and carry
 `position-flux-uncertainty-unavailable`; zero never means unknown.
+
+The bounded-context position path may use a truncated-moment inversion to
+initialize a retry when the first likelihood fit reaches an image edge. The
+published position and covariance then both come from that widened,
+bounded-context likelihood retry. If the retry is not identifiable, Hebog
+falls back to the selected fit rather than attaching the first fit's covariance
+to a different corrected centroid. Already-identifiable edge fits remain
+unchanged; the correction is not applied merely to force a calibration result.
 
 For an unresolved source, the catalogue reports peak flux density as its best
 integrated-flux estimate and uses the peak-flux uncertainty. This avoids the

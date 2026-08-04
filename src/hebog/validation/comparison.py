@@ -203,9 +203,13 @@ class CatalogueSource:
     integrated_flux_error_jy: float | None = None
     fitted_shape: CatalogueEllipse | None = None
     deconvolved_shape: CatalogueEllipse | None = None
-    deconvolution_status: Literal["resolved", "unresolved", "unavailable"] = (
-        "unavailable"
-    )
+    deconvolved_major_fwhm_degrees: float | None = None
+    deconvolution_status: Literal[
+        "resolved",
+        "major-axis-only",
+        "unresolved",
+        "unavailable",
+    ] = "unavailable"
     island_identifier: str | None = None
     component_count: int | None = None
     quality_flags: tuple[str, ...] = ()
@@ -232,12 +236,35 @@ class CatalogueSource:
             raise ValueError("quality flags must be non-empty and canonical")
 
     def _validate_deconvolution(self) -> None:
-        """Keep resolved, unresolved, and unavailable states unambiguous."""
+        """Keep full, one-axis, unresolved, and unavailable states clear."""
         if self.deconvolution_status == "resolved":
-            if self.deconvolved_shape is None:
+            if (
+                self.deconvolved_shape is None
+                or self.deconvolved_major_fwhm_degrees is not None
+            ):
                 raise ValueError("resolved deconvolution requires a shape")
-        elif self.deconvolved_shape is not None:
-            raise ValueError("only resolved deconvolution may contain a shape")
+        elif self.deconvolution_status == "major-axis-only":
+            major = self.deconvolved_major_fwhm_degrees
+            if (
+                self.deconvolved_shape is not None
+                or major is None
+                or not np.isfinite(major)
+                or major <= 0
+            ):
+                raise ValueError(
+                    "major-axis-only deconvolution requires one positive axis"
+                )
+            if "major-axis-only" not in self.quality_flags:
+                raise ValueError(
+                    "major-axis-only deconvolution requires its quality flag"
+                )
+        elif (
+            self.deconvolved_shape is not None
+            or self.deconvolved_major_fwhm_degrees is not None
+        ):
+            raise ValueError(
+                "only identifiable deconvolution may contain an axis"
+            )
         if (
             self.deconvolution_status == "unresolved"
             and "unresolved" not in self.quality_flags
@@ -703,18 +730,50 @@ def _shape_differences(
     )
 
 
+def _deconvolved_shape_differences(
+    reference: CatalogueSource,
+    candidate: CatalogueSource,
+    *,
+    position_angle_minimum_axis_ratio: float,
+) -> tuple[float | None, float | None, float | None]:
+    """Compare every identifiable deconvolved axis without inventing one."""
+    reference_major = (
+        reference.deconvolved_shape.major_fwhm_degrees
+        if reference.deconvolved_shape is not None
+        else reference.deconvolved_major_fwhm_degrees
+    )
+    candidate_major = (
+        candidate.deconvolved_shape.major_fwhm_degrees
+        if candidate.deconvolved_shape is not None
+        else candidate.deconvolved_major_fwhm_degrees
+    )
+    major_difference = (
+        (candidate_major - reference_major) / reference_major
+        if reference_major is not None and candidate_major is not None
+        else None
+    )
+    full_differences = _shape_differences(
+        reference.deconvolved_shape,
+        candidate.deconvolved_shape,
+        position_angle_minimum_axis_ratio=position_angle_minimum_axis_ratio,
+    )
+    return major_difference, full_differences[1], full_differences[2]
+
+
 def _deconvolution_classification_agrees(
     reference: CatalogueSource,
     candidate: CatalogueSource,
 ) -> bool | None:
     """Compare reference-eligible resolved/unresolved classifications."""
-    comparable = {"resolved", "unresolved"}
-    if reference.deconvolution_status not in comparable:
+    resolved = {"resolved", "major-axis-only"}
+    comparable = {*resolved, "unresolved"}
+    reference_status = reference.deconvolution_status
+    candidate_status = candidate.deconvolution_status
+    if reference_status not in comparable:
         return None
-    return (
-        candidate.deconvolution_status in comparable
-        and reference.deconvolution_status == candidate.deconvolution_status
-    )
+    if candidate_status not in comparable:
+        return False
+    return (reference_status in resolved) == (candidate_status in resolved)
 
 
 def _quality_flag_jaccard(
@@ -977,7 +1036,7 @@ def _record_field_availability(
     available_counts: Counter[str],
 ) -> None:
     """Accumulate reference-selected eligibility and candidate availability."""
-    comparable = {"resolved", "unresolved"}
+    comparable = {"resolved", "major-axis-only", "unresolved"}
     statuses = (
         (
             "fitted-shape",
@@ -1106,9 +1165,9 @@ def compare_catalogues(  # noqa: PLR0913
             candidate_source.fitted_shape,
             position_angle_minimum_axis_ratio=position_angle_axis_ratio,
         )
-        deconvolved_shape_differences = _shape_differences(
-            reference_source.deconvolved_shape,
-            candidate_source.deconvolved_shape,
+        deconvolved_shape_differences = _deconvolved_shape_differences(
+            reference_source,
+            candidate_source,
             position_angle_minimum_axis_ratio=position_angle_axis_ratio,
         )
         _record_field_availability(
