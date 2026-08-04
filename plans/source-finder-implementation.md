@@ -1727,12 +1727,41 @@ before maintaining a custom fitter.
          `eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`.
          Reapplying it to the same viewed 200-image campaign returns 20 passes,
          no failures, and no indeterminate endpoints; the eight exact-equality
-         endpoints each have `[0, 0]`. The final population remains unopened.
-   - [ ] Record the exact clean Hebog revision, both immutable PyBDSF
+         endpoints each have `[0, 0]`. The final population remained unopened
+         through this amendment.
+   - [x] Record the exact clean Hebog revision, both immutable PyBDSF
          execution environments, dependency inventories, and output paths;
          then open the frozen population exactly once. Infrastructure retries
          may resume only its recorded seeds. Compile without denominator
          deletion and apply the reviewed intersection-union decision once.
+         The preflight record fixed Hebog at
+         `92f5e4cc233b716987a4f65b75c5f1585d977de1`, released PyBDSF 1.14.1
+         at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`, and pinned PyBDSF
+         `master` at `c70103be3ae9ae9908286f144e6ce956acc0ce5c`. All three
+         implementations completed all 600 images, and the compiler retained
+         all 1,800 realization records. The evaluator initially stopped before
+         scoring because its provenance guard omitted the governed base recipe
+         from the 600-realization count. TDD commit `b4b3930` corrected only
+         that infrastructure guard and exact seed-coverage check; the same
+         immutable campaign, contracts, margins, and unused output path were
+         then resumed under the predeclared infrastructure-retry rule.
+
+         The resulting one-look decision did not pass. Hebog passed 109 of 114
+         absolute gates, but missed catastrophic-outlier fraction (0.5104%
+         versus 0.5%), median position (0.02736 versus 0.02 beam), median peak
+         flux (0.02942 versus 0.02 fractional error), median fitted axis
+         (0.05029 versus 0.05), and median deconvolved axis (0.10340 versus
+         0.1). One unmatched Hebog truth source also made the evaluator's
+         complete-match uncertainty input unavailable; because the frozen
+         vectorized calculation fails closed as one endpoint family, all 20
+         primary and all 20 secondary paired endpoints are indeterminate.
+         This does not erase the five independent absolute-gate failures.
+         Released PyBDSF failed 53 absolute gates and pinned master failed 55
+         on the same truth campaign, so Hebog remains substantially stronger
+         overall, but it is slightly worse than both references on median
+         position and worse on catastrophic fraction. The decision and every
+         source shard are retained as viewed evidence; no threshold, result,
+         population, or contract may be changed in response.
 
      The structurally representative planning population is now governed by
      `phase-4-paired-regression.json`: 200 disjoint noise seeds, 33 observable
@@ -1802,19 +1831,20 @@ before maintaining a custom fitter.
    Local structural evidence is complete: retained image work is bounded by
    admitted coarse-batch pixels, task count is one per batch rather than per
    source, final compact assembly has an explicit record cap, and shard
-   reduction has pairwise fan-in and logarithmic depth. The first held-out
-   scientific qualification failed, and the controlled benchmark bullets
-   remain open. The
+   reduction has pairwise fan-in and logarithmic depth. The final reviewed
+   one-look scientific qualification also failed, so the controlled benchmark
+   bullets remain open and are ineligible as Phase 4 release evidence. The
    [Phase 4 release-readiness record](../docs/reference/phase-4-release-readiness.md)
    therefore records a **not ready** decision rather than declaring the phase
    passed.
 
    **Current recovery and closure order:**
 
-   1. Preserve all three failed Hebog campaigns as viewed diagnostic evidence;
-      never promote, rerun, or tune against them. Preserve the released
-      PyBDSF same-campaign result, the pinned-master runtime failure, exact
-      versions, and Rapthor configuration alongside the reproducible runner.
+   1. Preserve all three earlier failed Hebog campaigns and the final failed
+      one-look campaign as viewed evidence; never promote, rerun, replace, or
+      tune against them. Preserve every same-campaign PyBDSF result, exact
+      version, environment, and Rapthor configuration alongside the
+      reproducible runners.
    2. The paired comparison protocol, power calculation, and one final unseen
       population are now reviewed and frozen. The freeze records the generator
       version, 600 seeds, truth, WCS and beam strata, practical-equivalence
@@ -1838,10 +1868,10 @@ before maintaining a custom fitter.
       The weakest interval-exclusion power at 600 realizations is 92.2%. The
       planning variance assumptions are verified on independent paired
       development/regression evidence. Gemma Danks approved the protocol and
-      five-sigma policy on 2026-08-03. The final population is now frozen,
-      ungenerated, and unopened. Complete and freeze the decision evaluator,
-      then record every execution identity before the single permitted
-      opening.
+      five-sigma policy on 2026-08-03. The final population was frozen and
+      opened exactly once on 2026-08-04 after its decision evaluator and every
+      execution identity were recorded. Its immutable one-look decision is a
+      failure and cannot be replaced by another population.
    3. Keep every existing absolute community-science gate and every stronger
       Hebog result. In particular, do not trade away Hebog's complete group
       recovery, uncertainty availability, calibrated position and peak-flux
@@ -1888,11 +1918,17 @@ before maintaining a custom fitter.
       PyBDSF. Signed point estimates are reported but are not separate gates. A
       reference exception is a
       recorded failure, not a missing value silently removed from a
-      denominator.
+      denominator. The 2026-08-04 final result did not meet this requirement;
+      preserve it as the terminal Phase 4 qualification outcome.
    6. After scientific qualification passes, refresh the controlled Phase 4
       performance matrix with matched environments and close the phase only
       when both the scientific and incremental performance exit gates pass.
       Diagnostic timings from qualification runners are not speed evidence.
+      Because the final scientific qualification failed, this performance
+      matrix is not eligible and Phase 4 cannot be declared passed under the
+      reviewed plan. Any further scientific development belongs in a newly
+      reviewed follow-on milestone; it must use analytic and independent
+      development/regression evidence rather than tuning to this final result.
 
 Exit gate: the named scientific review has approved the measurement,
 association, uncertainty, deconvolution, compatibility, and numerical gate

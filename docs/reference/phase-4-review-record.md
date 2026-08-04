@@ -1044,4 +1044,62 @@ SciPy's documented behaviour is linked from the paired protocol guide.
 Repeating the decision calculation on the same already-viewed 200-image
 campaign returned 20 passes, no failures, and no indeterminate endpoints. The
 eight exact-equality endpoints each had the exact interval `[0, 0]`. The final
-600-image population remained ungenerated and unopened.
+600-image population remained ungenerated and unopened through this review.
+
+## Final one-look qualification result
+
+The final population was opened exactly once on 2026-08-04 after a preflight
+record fixed the candidate, both references, dependency inventories, reviewed
+contracts, and unused output paths. The candidate was Hebog 0.5.0 at
+`92f5e4cc233b716987a4f65b75c5f1585d977de1`; the primary reference was
+released PyBDSF 1.14.1 at
+`1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`; and the secondary reference was
+pinned PyBDSF `master` at
+`c70103be3ae9ae9908286f144e6ce956acc0ce5c`. All three completed all 600
+realizations. The compiled campaign contains all 1,800 records and has
+SHA-256 `4b5d213a46524498aca465cb03aff87de26dee20f291fe6fbffa0ecab8736f0f`.
+
+The first evaluator invocation stopped before computing or exposing any
+scientific endpoint. Its provenance guard counted only the 599 additional
+noise seeds and omitted the governed base recipe. Under the predeclared
+infrastructure-resume rule, TDD commit `b4b3930` made the provenance and
+coverage checks use the maintained recipe iterator. No campaign record,
+population, margin, threshold, protocol, implementation result, or output path
+changed. The same compiled evidence was then resumed once, producing the
+immutable 70-KiB decision with SHA-256
+`aca365b4cbfbb220dfa6fc03e7e1ce56c8316d2f4590e803d180553a2e501ce1`.
+
+The decision is **fail**:
+
+- all three implementations completed every realization without a retained
+  implementation failure;
+- Hebog passed 109 of 114 absolute gates and failed five: catastrophic-outlier
+  fraction was 0.005104 against a 0.005 maximum, median position was 0.02736
+  against 0.02 beam, median peak-flux error was 0.02942 against 0.02, median
+  fitted-axis error was 0.05029 against 0.05, and median deconvolved-axis error
+  was 0.10340 against 0.1;
+- one source in seed `2026110310` was unmatched by Hebog. The frozen
+  uncertainty endpoint construction requires every eligible source match, and
+  its vectorized endpoint-family error handling therefore reported all 20
+  primary and all 20 secondary paired endpoints as indeterminate;
+- the catastrophic-tail stronger-Hebog envelope failed; the other four named
+  envelopes passed; and
+- released PyBDSF failed 53 absolute gates and pinned master failed 55 on the
+  same truth population, compared with Hebog's five. Hebog is substantially
+  stronger overall, but it remains slightly worse than both references on
+  median position and worse on catastrophic fraction.
+
+The paired indeterminacy is an evaluator limitation exposed by the final
+population, but it does not alter the independent five-gate absolute failure.
+Under the reviewed one-look and no-post-inspection-tuning rules, this campaign
+cannot be rerun, replaced, or rescored under an amended scientific decision.
+The controlled Phase 4 performance matrix is consequently ineligible, and
+Phase 4 remains **not ready**. Any follow-on correction requires a newly
+reviewed milestone based on analytic and independent development/regression
+evidence; this viewed population may be used only to report and explain the
+terminal result.
+
+Human review of this final evidence is pending. Review must acknowledge the
+immutable failure and decide whether to close Phase 4 as not passed or create
+a separately governed follow-on scientific milestone; it cannot convert this
+decision to a pass.

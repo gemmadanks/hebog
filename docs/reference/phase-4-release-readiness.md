@@ -7,9 +7,10 @@ PyBDSF equivalence, or used as Rapthor's default backend.
 
 This record deliberately distinguishes implemented capability from qualified
 capability. The close-blend contract and extension policy were corrected and
-their powered regressions pass, but all three subsequently opened held-out
-campaigns failed frozen scientific gates. Preserving those results without
-post-inspection tuning is more important than declaring a premature pass.
+their powered regressions pass, but the three earlier held-out campaigns and
+the final reviewed one-look campaign failed frozen scientific gates.
+Preserving those results without post-inspection tuning is more important than
+declaring a premature pass.
 
 ## Implemented capability
 
@@ -234,10 +235,9 @@ Pinned master remains a comparison wherever it completes, and every exception
 is counted as a reference robustness failure rather than silently excluded.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
-not been run. Non-claim characterization and profiling may now proceed in
-parallel with the reviewed scientific recovery, but the final controlled
-matrix and any speed claim remain ineligible until the corrected science
-passes qualification. The 3,000-square incremental
+not been run. The final scientific qualification failed, so the controlled
+matrix and any Phase 4 speed claim are ineligible. Non-claim characterization
+and profiling may proceed only as future engineering evidence. The 3,000-square incremental
 compact measurement/fitting median
 must remain within 2.0 seconds and catalogue/materialisation within the shared
 2.0-second allocation. Evidence must include sparse, normal, dense,
@@ -287,26 +287,33 @@ Phase 4 can be declared passed only after all of the following occur in order:
    whole-image interval method, one-look rule, and five-sigma extension policy
    on 2026-08-03. She also approved removing the statistically unstable extra
    point-sign gate before final-population freeze.
-   The final population is now frozen, ungenerated, and unopened as
-   `phase4-final-paired-qualification-512`, with complete dataset-record
-   SHA-256
-   `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`.
-   The maintained one-look evaluator still needs the position-angle diagnostic
-   fields and complete paired/absolute-gate decision path. Freeze and test it,
-   then record exact execution environments before the single run.
+   The final population `phase4-final-paired-qualification-512` was opened
+   exactly once on 2026-08-04 after its complete dataset-record SHA-256
+   `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`,
+   evaluator, and three execution environments were recorded. All 1,800
+   candidate/reference realization records completed and were retained. The
+   immutable decision did not pass: 109 of 114 Hebog absolute gates passed,
+   but catastrophic fraction, median position, median peak flux, median
+   fitted axis, and median deconvolved axis failed their frozen thresholds.
+   One missed Hebog source also made the complete-match uncertainty input
+   unavailable, so the frozen fail-closed joint calculation reported all 20
+   primary and 20 secondary paired endpoints as indeterminate. No result,
+   threshold, contract, or population was changed after inspection.
 7. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.
-8. [ ] The final evidence and this decision are reviewed and changed from
-   **not ready** to **passed**.
+8. [ ] The final evidence receives named human review and its failed terminal
+   disposition is acknowledged. The record cannot be changed to **passed**.
 
-The refreshed 200-image paired regression now has 200/200 successful runs for
+The refreshed 200-image paired regression has 200/200 successful runs for
 both Hebog and released PyBDSF. Hebog matches the reference's perfect point
 specificity, retains substantially better clear-extension, catastrophic-tail,
 and unresolved-blend results, and differs in catalogue reliability by one
 additional unmatched near-threshold candidate. This regression and its
-planning-assumption audit support the completed named review, but neither is
-qualification evidence. The reviewed final 600-image population is now frozen,
-ungenerated, and unopened. Its exact execution environments must be recorded
-and its final decision evaluator completed before it is opened exactly once,
-so the decision remains **not ready**.
+planning-assumption audit supported the completed named review, but neither is
+qualification evidence. The final 600-image result is now viewed terminal
+evidence. Released PyBDSF failed 53 absolute gates and pinned master failed 55
+on the same truth campaign, compared with Hebog's five, but Hebog was still
+slightly worse than both on median position and worse on catastrophic
+fraction. The reviewed Phase 4 gate is therefore unmet and the decision
+remains **not ready**.

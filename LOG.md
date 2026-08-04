@@ -4006,3 +4006,75 @@ and compatibility serialization
   PyBDSF environments, dependency inventories, and unique output paths. Then
   open the frozen final population exactly once under the amended reviewed
   protocol.
+
+## 2026-08-04 — Ran the final Phase 4 one-look qualification
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Recorded the final preflight before opening any population output. It fixed
+  Hebog 0.5.0 at `92f5e4cc233b716987a4f65b75c5f1585d977de1`, released
+  PyBDSF 1.14.1 at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`, pinned
+  PyBDSF `master` at `c70103be3ae9ae9908286f144e6ce956acc0ce5c`, their
+  complete dependency inventories, immutable container digests, reviewed
+  contract hashes, and unused output paths.
+- Opened the reviewed 600-image population exactly once. Hebog, released
+  PyBDSF, and pinned master each completed all 600 realizations. The compiler
+  retained all 1,800 records without denominator deletion.
+- Resumed the evaluator only after an infrastructure-only stop before any
+  endpoint calculation. The provenance guard counted 599 additional noise
+  seeds but omitted the governed base recipe. A red regression test exposed
+  both the count and exact seed-coverage error; commit `b4b3930` changed those
+  checks to use the maintained dataset recipe iterator. The campaign,
+  protocol, gates, margins, implementations, and unused decision path were
+  unchanged, satisfying the recorded infrastructure-resume rule.
+- Applied the one-look decision once to the same compiled campaign. The result
+  is an immutable scientific failure, so the controlled Phase 4 performance
+  matrix was not run.
+
+**Evidence**
+
+- Preflight SHA-256:
+  `48bdf6fb2784aaa13188c566809b8f425685868948fc97c29eac122debe72f0c`.
+- Hebog shard: 600 successes, SHA-256
+  `9fd4fbca5a59f1ac3cbfd485f228f1835391d1de9a6a20e79ffd92b52c6654ea`.
+- Released-PyBDSF shard: 600 successes, SHA-256
+  `69eb45466b6d2cdfa929d6199369d3f558a02e18d15cc207377279516a72486f`.
+- Pinned-master shard: 600 successes, SHA-256
+  `483bae3ba2319c3b5afa26dc29ff4b25d56702d0e7670b67f5c5404454cceddb`.
+- Compiled 1,800-record campaign SHA-256:
+  `4b5d213a46524498aca465cb03aff87de26dee20f291fe6fbffa0ecab8736f0f`.
+- Final decision SHA-256:
+  `aca365b4cbfbb220dfa6fc03e7e1ce56c8316d2f4590e803d180553a2e501ce1`.
+- Hebog passed 109 of 114 absolute gates. It failed catastrophic-outlier
+  fraction (0.005104 versus 0.005), median position (0.02736 versus 0.02
+  beam), median peak-flux error (0.02942 versus 0.02), median fitted-axis error
+  (0.05029 versus 0.05), and median deconvolved-axis error (0.10340 versus
+  0.1).
+- One Hebog source in seed `2026110310` was unmatched. The frozen
+  complete-match uncertainty construction raised before the joint paired
+  statistic could be formed, so all 20 primary and 20 secondary endpoint
+  intervals are indeterminate. This fail-closed limitation does not remove
+  the five independent absolute-gate failures.
+- Released PyBDSF failed 53 absolute gates and pinned master failed 55 on the
+  same truth population. Hebog remains substantially stronger overall, but it
+  is slightly worse than both references on median position and worse on
+  catastrophic fraction.
+- The evaluator unit file passes 14 tests. `just check` passes 653 tests with
+  four expected contract failures; `just coverage` passes 781 tests with four
+  expected failures and 94.82% branch-aware project coverage; the frozen
+  PyBDSF equivalence lane passes 26 tests; and the strict documentation build
+  passes. The acceptance scaffold retains its seven expected failures.
+
+**Decision**
+
+- Preserve the final population, all shards, and the decision as viewed
+  terminal evidence. Do not rerun, replace, tune, or rescore it under amended
+  scientific rules.
+- Phase 4 remains **not ready** and cannot be declared passed under its
+  reviewed exit gate. Its controlled performance matrix is ineligible.
+- Final human review must acknowledge the failed one-look decision. Any
+  further correction requires a separately reviewed follow-on milestone using
+  analytic and independent development/regression evidence; the final
+  population may be used only for reporting and diagnosis.
