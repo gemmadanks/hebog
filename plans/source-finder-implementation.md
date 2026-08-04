@@ -1971,6 +1971,9 @@ rescored. Corrective work therefore belongs to the separately governed Phase
 final campaign remains immutable, viewed evidence and may be used only to
 identify failure modes and report the historical decision. It must not select
 an algorithm, threshold, model, seed, margin, or new qualification truth.
+Recovery remains open: qualification attempt one and confirmation three are
+preserved failures, and a replacement qualification is blocked on the named
+review described in Step 5.
 
 The failure is narrower than the aggregate decision first suggested:
 
@@ -2230,7 +2233,7 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
          population with seeds, truth, edge/corner balance, WCS, beam,
          background, and correlated-noise fields disjoint from all earlier
          campaigns.
-   - [ ] Record immutable Hebog and dual-PyBDSF environments, execute all
+   - [x] Record immutable Hebog and dual-PyBDSF environments, execute all
          three implementations on identical images, retain every realization,
          and evaluate each metric independently. A PyBDSF exception is a
          reference robustness failure, not permission for Hebog to fail or
@@ -2270,6 +2273,16 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    `c9bb55ab4a446f5cf6b25185cfdc8f87cc0e56cdca8f185dae53d0fe9f20f761`.
    No aggregate metric was inspected or scored, no realization may be
    omitted, and this population cannot qualify a corrected candidate.
+   Both exact PyBDSF references completed all 600 images. Released and pinned
+   `master` evidence SHA-256 values are
+   `20741c868caabede59eb131ceb1e9a42f77e2f2b76c4ba62b39f4edb23aa1c68`
+   and `714c6e8ca37972339468d42b6557872b3c912a53393e3007e1b71b92b77c5dcd`;
+   compiled evidence SHA-256 is
+   `506bf236b3341b0d2e2b3e4c5a656b9d04b8df33610574782ae7451da79468c2`.
+   The fail-closed decision retains 450 indeterminate metric comparisons and
+   one indeterminate absolute gate rather than resampling incomplete paired
+   evidence; its SHA-256 is
+   `8967e510be531defb38806e656ecf987419bc1806e32652ed87c6e358568daf7`.
 
    Recovery iteration three returns to a generic analytic noisy-edge test and
    two new populations frozen before candidate evaluation:
@@ -2286,6 +2299,42 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    geometry. The failed one-look result remains terminal for its candidate;
    a replacement is a separately authorized recovery decision, never a
    rerun or rescore.
+
+   The first bounded retry candidate at `63d890f` completed all 200 viewable
+   development images. It passed 448 of 450 comparative decisions; three of
+   five recovered edge fits entered the fitted-axis tail, leaving the
+   clear-resolved and SNR-10 95th percentiles 0.0033--0.0039 beyond the
+   registered margin against released PyBDSF. A generic correlated-GLS test
+   then selected the already documented one-sided truncated-moment correction
+   for the retry centroid. Candidate `1065182` completed the same population
+   and passed all 450 comparisons. Its overall development flag remains false
+   only for the pre-existing, sample-limited uncertainty intervals; no
+   uncertainty estimator or gate changed in this availability correction.
+
+   The unchanged `1065182` candidate and both references then completed every
+   image in the frozen 200-realization confirmation. That confirmation remains
+   failed: 447 of 450 comparisons pass, while catastrophic fraction crosses
+   the point margin in SNR-15 against both references and marginal shape
+   against released PyBDSF. Only identity-free aggregates were inspected.
+   Hebog has ten catastrophic rows (eight SNR-15 deconvolved-axis and two
+   SNR-10 fitted-axis), released PyBDSF has four SNR-10 rows, and pinned
+   `master` has fourteen SNR-10 rows. Across the independent development and
+   confirmation populations, Hebog is better overall at 22/4,800 versus
+   24/4,800 and 43/4,798, and the combined SNR/morphology rates remain inside
+   every registered practical margin. This supports preserving `1065182`
+   unchanged rather than selecting another correction from a complementary
+   finite-sample crossing.
+
+   A replacement qualification is therefore blocked on a new named human
+   review. The recommended decision is to preserve both failed outcomes,
+   authorize unchanged `1065182` for one replacement 600-image qualification,
+   and freeze a new seed range plus vertically transformed source,
+   association, invalid-region, beam/noise, WCS, background, and gradient
+   fields only after that approval. The replacement keeps all 35 metrics,
+   margins, absolute gates, paired upper-bound rules, and
+   implementation-completion semantics unchanged. If approval is withheld,
+   Phase 4R remains open and the candidate must not see another qualification
+   population.
 
 Exit gate: every registered absolute gate passes. For every comparable
 metric produced by each reference, Hebog is statistically non-inferior for

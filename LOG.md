@@ -4629,3 +4629,66 @@ and compatibility serialization
 - Implement the smallest bounded retry correction, run the complete viewable
   development matrix and scientific/quality lanes, freeze that candidate,
   then open the new confirmation population exactly once.
+
+## 2026-08-04 — Recovered edge availability and preserved confirmation three
+
+**Plan phase:** Phase 4R, Steps 4–5 — recovery iteration three
+
+**Completed**
+
+- Implemented a fail-closed edge retry that accepts a converged beam template
+  only when centroid coordinates are its sole physical bound contact; the
+  resulting free-shape retry must still pass every existing numerical and
+  identifiability check.
+- Used the viewable development population to replace its inward-biased raw
+  moment centroid with the existing analytic one-sided truncated-moment
+  correction. The first candidate passed 448/450 comparisons; the selected
+  candidate at `1065182` completed all 200 images and passed all 450.
+- Opened the 200-image confirmation exactly once after committing the selected
+  candidate. Hebog and both exact PyBDSF references completed every image.
+  The decision passes 447/450 comparisons but remains failed on catastrophic
+  fraction in SNR-15 against both references and marginal shape against
+  released PyBDSF. No confirmation row identity was inspected.
+- Preserved the complementary aggregate result rather than tuning again:
+  Hebog has eight SNR-15 deconvolved-axis and two SNR-10 fitted-axis
+  catastrophic rows; released PyBDSF has four SNR-10 rows and pinned `master`
+  has fourteen. Across development plus confirmation the counts are 22/4,800,
+  24/4,800, and 43/4,798 respectively, with every combined practical margin
+  satisfied.
+- Completed both exact qualification reference legs. Released PyBDSF and
+  pinned `master` completed all 600 images, including Hebog's failed seed.
+  Materialized the immutable failed decision without inspecting survivor-only
+  aggregates: all 450 comparisons and the absolute-science gate are
+  indeterminate because required paired evidence is incomplete.
+- Added a generic fail-closed evaluator prerequisite so incomplete paired
+  campaigns retain every governed decision but skip BCa resampling that
+  cannot change the failed outcome.
+
+**Evidence**
+
+- Development candidate/released/master/compiled/decision SHA-256 values:
+  `92467213582240ec64f0d0fdddca034648ac2f6a93580863147df28fccf38f8a`,
+  `e26cd974ce282eb5986f91ddbee33c5a82f0e863592c98a49fdcb7c575fdbcd4`,
+  `3103b99318e9f7e540c38de503cc6b81171b0bd0240236b2e389a6cc6a51583d`,
+  `38e59fe2f3fd7c570581aa4f2114bbea72a058fd43a8720e86a6098754ebeb3e`,
+  and `8d57fa987bd28435dc5ca24a82ffaa988c322ee96ce1b9886fb9cef5f6ccf12d`.
+- Confirmation candidate/released/master/compiled/decision SHA-256 values:
+  `dcd7a95640f80dd60e1c8ec70eaa01d31d36fa8b36fe7abeefcbed250c49aa87`,
+  `3b62abc5d9b3d1cb44bc9b7bf04527d609402cde53ecb571d288656d0c182686`,
+  `f5a458c93f4b32d217afd251a0541f39b5abeb96843b6ad12c71c7e50deb0d65`,
+  `742d97c4f00b6d17816e479e4b073ea1f86119db97f320014a233ad1d44ce961`,
+  and `2f667110ffcc436e08332a6a0fe3e535e1415fe24d54881d042d04b1401c3e55`.
+- Qualification released/master/compiled/decision SHA-256 values:
+  `20741c868caabede59eb131ceb1e9a42f77e2f2b76c4ba62b39f4edb23aa1c68`,
+  `714c6e8ca37972339468d42b6557872b3c912a53393e3007e1b71b92b77c5dcd`,
+  `506bf236b3341b0d2e2b3e4c5a656b9d04b8df33610574782ae7451da79468c2`,
+  and `8967e510be531defb38806e656ecf987419bc1806e32652ed87c6e358568daf7`.
+- Branch-aware project coverage is 94.05%; 26 equivalence tests, 128
+  integration tests, 58 fitting tests, the acceptance lane, strict docs, and
+  the complete pre-commit suite pass.
+
+**Next**
+
+- Obtain named review of the recommendation to keep candidate `1065182`
+  unchanged and authorize one separately frozen 600-image replacement
+  qualification. Do not freeze or run that population before approval.

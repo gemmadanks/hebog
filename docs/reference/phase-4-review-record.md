@@ -1432,6 +1432,18 @@ This is an availability failure under the frozen rule that Hebog must
 complete every image. The result was not scored, the failed row was not
 dropped, and none of the 599 partial aggregate metrics were inspected.
 
+Both exact reference implementations completed all 600 images, including the
+failed Hebog seed. Released PyBDSF and pinned `master` evidence SHA-256 values
+are `20741c868caabede59eb131ceb1e9a42f77e2f2b76c4ba62b39f4edb23aa1c68`
+and `714c6e8ca37972339468d42b6557872b3c912a53393e3007e1b71b92b77c5dcd`;
+the compiled campaign SHA-256 is
+`506bf236b3341b0d2e2b3e4c5a656b9d04b8df33610574782ae7451da79468c2`.
+The immutable evaluator decision is false: all 450 candidate/reference metric
+decisions and the absolute-science gate are indeterminate because paired
+evidence is incomplete. It does not bootstrap or report survivor-only point
+estimates. Decision evidence SHA-256 is
+`8967e510be531defb38806e656ecf987419bc1806e32652ed87c6e358568daf7`.
+
 Failure-only diagnostics show a generic edge condition rather than a
 campaign-infrastructure exception. The free elliptical fit and the smaller
 restoring-beam fit both converged at the image-centroid bound. The smaller
@@ -1461,3 +1473,59 @@ regression is necessary but not sufficient for another qualification. A new
 named review must authorize a separately frozen, disjoint replacement
 population; qualification attempt one remains failed regardless of any later
 outcome.
+
+## Phase 4R edge-retry development and confirmation
+
+Candidate `63d890f` applied the smallest availability correction: a beam
+candidate whose only physical ridge is a centroid coordinate may initialize
+the existing moment-centred free-shape retry. It completed all 200 new
+development images but passed 448 of 450 comparative decisions. Three of its
+five recovered edge fits entered the fitted-axis tail, leaving the
+clear-resolved and SNR-10 95th-percentile errors 0.0033--0.0039 outside the
+0.01 practical margin against released PyBDSF.
+
+The viewable development result selected an existing analytic correction,
+not an empirical offset: invert the one-sided truncated-normal moments for a
+centroid whose context likelihood reaches an image edge, then use that
+corrected centroid for the bounded retry. A generic correlated-GLS test fails
+without this rule and shows that it moves the retry centroid toward the known
+analytic location. Candidate `1065182` completed all 200 development images
+and passed all 450 comparisons against both references. Candidate,
+released-reference, master-reference, compiled, and decision SHA-256 values
+are `92467213582240ec64f0d0fdddca034648ac2f6a93580863147df28fccf38f8a`,
+`e26cd974ce282eb5986f91ddbee33c5a82f0e863592c98a49fdcb7c575fdbcd4`,
+`3103b99318e9f7e540c38de503cc6b81171b0bd0240236b2e389a6cc6a51583d`,
+`38e59fe2f3fd7c570581aa4f2114bbea72a058fd43a8720e86a6098754ebeb3e`,
+and `8d57fa987bd28435dc5ca24a82ffaa988c322ee96ce1b9886fb9cef5f6ccf12d`.
+The overall development flag remains false only because sample-limited
+uncertainty intervals cross existing absolute calibration bounds; those
+findings predate this availability-only change and remain explicit.
+
+The exact candidate and both references then completed all 200 frozen
+confirmation images. Its decision passes 447 of 450 comparisons. The failed
+endpoint is catastrophic fraction in SNR-15 against both references and in
+marginal shape against released PyBDSF. No source identity or confirmation
+row was opened. Aggregate diagnostics show ten Hebog catastrophic rows:
+eight SNR-15 deconvolved-axis and two SNR-10 fitted-axis cases. Released
+PyBDSF has four SNR-10 cases; pinned `master` has fourteen SNR-10 cases.
+Candidate, released-reference, master-reference, compiled, and decision
+SHA-256 values are
+`dcd7a95640f80dd60e1c8ec70eaa01d31d36fa8b36fe7abeefcbed250c49aa87`,
+`3b62abc5d9b3d1cb44bc9b7bf04527d609402cde53ecb571d288656d0c182686`,
+`f5a458c93f4b32d217afd251a0541f39b5abeb96843b6ad12c71c7e50deb0d65`,
+`742d97c4f00b6d17816e479e4b073ea1f86119db97f320014a233ad1d44ce961`,
+and `2f667110ffcc436e08332a6a0fe3e535e1415fe24d54881d042d04b1401c3e55`.
+
+Across the independent development and confirmation populations, Hebog has
+22 catastrophic rows among 4,800 matches, released PyBDSF has 24/4,800, and
+pinned `master` has 43/4,798. Their combined SNR and morphology rates remain
+inside every practical margin. The complementary finite-sample crossing does
+not support changing an estimator that is better overall and already passes
+all viewable comparisons. It also does not make the failed confirmation pass.
+
+A replacement qualification needs a new named decision. The recommendation
+is to preserve qualification attempt one and confirmation three as failures,
+leave candidate `1065182` and all metrics, margins, gates, and paired rules
+unchanged, and authorize exactly one new 600-image population with disjoint
+seeds and vertically transformed geometry. Until a human reviewer approves
+that decision, no replacement qualification manifest may be frozen or run.
