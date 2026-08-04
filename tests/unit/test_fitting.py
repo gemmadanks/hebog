@@ -443,11 +443,21 @@ def test_centroid_retry_survives_edge_bound_contact_in_both_models() -> None:
     )
     residual = compact.physical_residual.copy()
     residual[8:11, -1] += 0.15
+    geometry = _beam_geometry()
+    geometry = replace(
+        geometry,
+        noise_correlation_covariance_pixels_squared=(
+            geometry.restoring_beam_covariance_pixels_squared
+        ),
+    )
 
     result = _fit(
         replace(compact, physical_residual=residual),
-        config=_fit_config(model_selection="beam-or-free"),
-        geometry=_beam_geometry(),
+        config=_fit_config(
+            model_selection="beam-or-free",
+            point_estimator="correlated-gls",
+        ),
+        geometry=geometry,
     )
 
     assert isinstance(result, ValidCompactGaussianFit)
@@ -460,6 +470,7 @@ def test_centroid_retry_survives_edge_bound_contact_in_both_models() -> None:
         "forced-centroid-x",
         "forced-centroid-y",
     }
+    assert result.diagnostics.point_estimator == "correlated-gls"
     assert "centroid-constrained-fit" in result.quality_flags
     assert "fit-at-bound" not in result.quality_flags
 
