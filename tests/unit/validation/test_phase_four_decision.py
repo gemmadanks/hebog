@@ -915,6 +915,63 @@ def test_phase4r_evaluator_compares_every_metric_and_stratum(
     assert all(item.status == "pass" for item in decision.metric_decisions)
 
 
+def test_phase4r_qualification_failure_skips_interval_resampling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Incomplete paired evidence fails closed before costly resampling."""
+    campaign, dataset, protocol, gates, configuration = (
+        _synthetic_campaign_inputs()
+    )
+    realizations = list(campaign.realizations)
+    candidate_index = next(
+        index
+        for index, realization in enumerate(realizations)
+        if realization.implementation_identifier == "hebog"
+    )
+    realizations[candidate_index] = CampaignRealizationDiagnostic(
+        implementation_identifier="hebog",
+        seed=realizations[candidate_index].seed,
+        status="failure",
+        failure=CampaignFailure(
+            stage="source-finding",
+            exception_type="RuntimeError",
+            message="synthetic failure",
+            traceback_sha256="2" * 64,
+        ),
+    )
+    failed_campaign = campaign.model_copy(
+        update={"realizations": tuple(realizations)}
+    )
+
+    def unexpected_interval(*_: object, **__: object) -> object:
+        raise AssertionError("incomplete campaign entered interval resampling")
+
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_recovery.paired_bca_upper_limits",
+        unexpected_interval,
+    )
+
+    decision = evaluate_phase_four_recovery(
+        failed_campaign,
+        dataset,
+        _metric_registry(),
+        protocol,
+        gates,
+        stage="qualification",
+        scientific_contract_set_sha256=configuration,
+    )
+
+    assert decision.passed is False
+    assert decision.metric_decisions
+    assert all(
+        item.point_status == "indeterminate"
+        and item.interval_status == "indeterminate"
+        and item.status == "indeterminate"
+        and item.reason == "candidate or reference realization failed"
+        for item in decision.metric_decisions
+    )
+
+
 @pytest.mark.parametrize(
     ("separation", "expected_status"),
     ((0.011, "pass"), (0.02, "fail")),

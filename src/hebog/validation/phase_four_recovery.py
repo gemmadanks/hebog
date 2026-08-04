@@ -634,6 +634,32 @@ def _metric_decisions(
     """Evaluate every eligible metric independently against one reference."""
     truth = _truth_index(context.dataset)
     expanded = _metric_keys(context.registry, truth)
+    if any(
+        realization.status != "success"
+        for realization in (*candidate, *reference)
+    ):
+        incomplete_interval_status: Literal[
+            "indeterminate", "not-evaluated"
+        ] = (
+            "indeterminate"
+            if context.stage == "qualification"
+            else "not-evaluated"
+        )
+        return tuple(
+            PhaseFourRecoveryMetricDecision(
+                metric_id=metric.metric_id,
+                stratum=stratum,
+                reference_identifier=reference_identifier,
+                practical_regression_margin=(
+                    metric.primary_practical_regression_margin
+                ),
+                point_status="indeterminate",
+                interval_status=incomplete_interval_status,
+                status="indeterminate",
+                reason="candidate or reference realization failed",
+            )
+            for metric, stratum, _ in expanded
+        )
     candidate_populations = _populations(candidate, expanded, truth)
     reference_populations = _populations(reference, expanded, truth)
     indices = np.arange(len(candidate), dtype=np.int64)
