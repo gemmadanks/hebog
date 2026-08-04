@@ -169,6 +169,75 @@ def test_phase4r_qualification_freeze_changes_every_field_family(
     )
 
 
+def test_phase4r_replacement_freeze_reflects_vertical_field(
+    tmp_path: Path,
+) -> None:
+    """The approved replacement changes vertical geometry and identity."""
+    root = Path(__file__).parents[3]
+    template_path = root / "config/datasets/phase-4r-qualification.json"
+    template = load_dataset_manifest(template_path).datasets[0]
+    namespace = _validation_script("freeze_phase4r_iteration.py")
+    arguments = SimpleNamespace(
+        template=template_path,
+        output=tmp_path / "qualification-replacement.json",
+        manifest_id="phase-4r-qualification-replacement",
+        identifier="phase4r-qualification-replacement-256",
+        role="qualification",
+        first_seed=2026200001,
+        realizations=600,
+        provenance=(
+            "Frozen after replacement review and before one-look execution."
+        ),
+        reflect_x=False,
+        reflect_y=True,
+        reference_sky_degrees=(126.5, -30.8),
+        pixel_scale_degrees_xy=(-0.00029, 0.00022),
+        wcs_rotation_degrees=71.0,
+        background=-0.00019,
+    )
+
+    document = namespace["_derived_document"](arguments)
+    manifest = DatasetManifest.model_validate(document)
+    frozen = manifest.datasets[0]
+    height = frozen.recipe.shape_yx[0]
+
+    assert manifest.manifest_id == "phase-4r-qualification-replacement"
+    assert frozen.recipe.sources[0].x_pixel == pytest.approx(
+        template.recipe.sources[0].x_pixel
+    )
+    assert frozen.recipe.sources[0].y_pixel == pytest.approx(
+        height - 1 - template.recipe.sources[0].y_pixel
+    )
+    assert frozen.recipe.sources[
+        0
+    ].rotation_degrees_counterclockwise_from_x == pytest.approx(
+        (
+            180.0
+            - template.recipe.sources[
+                0
+            ].rotation_degrees_counterclockwise_from_x
+        )
+        % 180.0
+    )
+    assert frozen.beam.position_angle_degrees == pytest.approx(123.0)
+    assert frozen.recipe.noise_correlation is not None
+    assert frozen.recipe.noise_correlation.position_angle_degrees == (
+        pytest.approx(123.0)
+    )
+    assert frozen.recipe.noise_rms_fractional_gradient_xy == pytest.approx(
+        (0.1, -0.14)
+    )
+    assert frozen.recipe.invalid_rectangles[0].y_start == 148
+    assert frozen.recipe.invalid_rectangles[0].y_stop == 156
+    assert frozen.association_truth_groups[0].reference_position_xy[1] == (
+        pytest.approx(
+            height
+            - 1
+            - template.association_truth_groups[0].reference_position_xy[1]
+        )
+    )
+
+
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
     None
 ):

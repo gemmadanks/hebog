@@ -533,6 +533,37 @@ def test_edge_retry_recovery_populations_are_frozen_and_disjoint() -> None:
     )
 
 
+def test_phase4r_replacement_qualification_is_frozen_and_disjoint() -> None:
+    """The approved replacement has a unique identity and unseen seeds."""
+    manifest_path = (
+        _DATASET_DIRECTORY / "phase-4r-qualification-replacement.json"
+    )
+    replacement = load_dataset_manifest(manifest_path).datasets[0]
+    replacement_seeds = {
+        recipe.seed for recipe in iter_dataset_recipes(replacement)
+    }
+    prior_seeds = {
+        recipe.seed
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4*.json"))
+        if path != manifest_path
+        for dataset in load_dataset_manifest(path).datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+
+    assert replacement.role is DatasetRole.QUALIFICATION
+    assert len(replacement_seeds) == 600
+    assert not replacement_seeds & prior_seeds
+    assert "after Gemma Danks's named replacement review" in (
+        replacement.provenance
+    )
+    assert replacement.recipe_sha256 == (
+        "e104ec6d703bfa876ebdfd1bad3b39c0b0dba341afa6c57fbf32e3605c32d3d0"
+    )
+    assert campaign_dataset_identity(replacement).content_sha256 == (
+        "1e566660eed6a995c55f399a5f1579c70b2ffe34cbb81cd2ad6dc67eaa07dee8"
+    )
+
+
 def test_phase_four_final_qualification_is_frozen_and_unseen() -> None:
     """The final one-look population is powered, disjoint, and unopened."""
     manifest_path = _DATASET_DIRECTORY / "phase-4-final-qualification.json"

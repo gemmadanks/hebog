@@ -2337,6 +2337,19 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    not authorize another candidate, another replacement, or retrospective
    rescoring.
 
+   The approved population was then frozen as
+   `phase-4r-qualification-replacement.json`, still before any candidate or
+   reference output existed. It contains seeds `2026200001`--`2026200600`, a
+   vertical reflection of the prior qualification geometry, beam/noise PA 123
+   degrees, a new sky field, WCS scale/rotation, and background. Manifest,
+   canonical recipe, and dataset-content SHA-256 values are
+   `11c68f2d390416b0345048a825ed8da35e3a389b9118571b72b10d9108107df3`,
+   `e104ec6d703bfa876ebdfd1bad3b39c0b0dba341afa6c57fbf32e3605c32d3d0`,
+   and `1e566660eed6a995c55f399a5f1579c70b2ffe34cbb81cd2ad6dc67eaa07dee8`.
+   Executable contracts prove its identity, size, seed disjointness, and
+   vertical source, association, invalid-region, beam/noise, and gradient
+   transformation. The freeze path still refuses overwrite.
+
 Exit gate: every registered absolute gate passes. For every comparable
 metric produced by each reference, Hebog is statistically non-inferior for
 every separately evaluated overall and governed-stratum population, with no

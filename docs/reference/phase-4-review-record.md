@@ -1538,3 +1538,17 @@ attempt one and confirmation three remain failed; no source row, metric,
 margin, absolute gate, paired upper-bound rule, or completion requirement may
 change. The approval does not extend to a different candidate, a second
 replacement, or retrospective rescoring.
+
+The replacement was subsequently frozen, before any implementation output
+existed, as `config/datasets/phase-4r-qualification-replacement.json`. Its 600
+seeds span `2026200001`--`2026200600` and are disjoint from every earlier
+Phase 4/4R population. Relative to qualification attempt one, source and
+association positions, the invalid rectangle, gradient, and beam/correlated-
+noise orientation are vertically reflected. The sky reference, unequal pixel
+scales, WCS rotation, and negative background are new. Manifest, canonical
+recipe, and dataset-content SHA-256 values are
+`11c68f2d390416b0345048a825ed8da35e3a389b9118571b72b10d9108107df3`,
+`e104ec6d703bfa876ebdfd1bad3b39c0b0dba341afa6c57fbf32e3605c32d3d0`,
+and `1e566660eed6a995c55f399a5f1579c70b2ffe34cbb81cd2ad6dc67eaa07dee8`.
+No candidate or reference outcome existed when these identities were
+recorded.

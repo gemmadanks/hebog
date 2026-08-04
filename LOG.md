@@ -4708,8 +4708,22 @@ and compatibility serialization
   completion semantics remain unchanged.
 - Recorded the decision before the replacement manifest, seeds, or outcomes
   existed.
+- Froze `phase-4r-qualification-replacement.json` with 600 disjoint seeds and
+  the approved vertical source, association, invalid-region, beam/noise, and
+  gradient transformation plus new sky, WCS, and background fields. No
+  implementation output existed when it was frozen.
+
+**Evidence**
+
+- Manifest, canonical recipe, and dataset-content SHA-256 values:
+  `11c68f2d390416b0345048a825ed8da35e3a389b9118571b72b10d9108107df3`,
+  `e104ec6d703bfa876ebdfd1bad3b39c0b0dba341afa6c57fbf32e3605c32d3d0`,
+  and `1e566660eed6a995c55f399a5f1579c70b2ffe34cbb81cd2ad6dc67eaa07dee8`.
+- Focused freezer and frozen-dataset contracts pass, including exact
+  600-realization cardinality and disjointness from every earlier Phase 4/4R
+  seed.
 
 **Next**
 
-- Freeze and contract-test the replacement manifest, then commit it before
-  executing Hebog or either exact PyBDSF reference.
+- Commit the frozen replacement before executing Hebog or either exact PyBDSF
+  reference.

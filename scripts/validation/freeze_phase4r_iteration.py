@@ -20,6 +20,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--template", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--manifest-id")
     parser.add_argument("--identifier", required=True)
     parser.add_argument(
         "--role",
@@ -29,7 +30,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--first-seed", required=True, type=int)
     parser.add_argument("--realizations", required=True, type=int)
     parser.add_argument("--provenance", required=True)
-    parser.add_argument("--reflect-x", action="store_true")
+    reflection = parser.add_mutually_exclusive_group()
+    reflection.add_argument("--reflect-x", action="store_true")
+    reflection.add_argument("--reflect-y", action="store_true")
     parser.add_argument(
         "--reference-sky-degrees",
         nargs=2,
@@ -81,14 +84,54 @@ def _reflect_x(record: dict[str, object]) -> None:
         position[0] = width - 1 - position[0]
 
 
+def _reflect_y(record: dict[str, object]) -> None:
+    """Mirror vertical truth while preserving every source covariance."""
+    recipe = cast(dict[str, object], record["recipe"])
+    height, _ = cast(list[int], recipe["shape_yx"])
+    sources = cast(list[dict[str, object]], recipe["sources"])
+    for source in sources:
+        source["y_pixel"] = height - 1 - float(source["y_pixel"])
+        source["rotation_degrees_counterclockwise_from_x"] = (
+            180.0 - float(source["rotation_degrees_counterclockwise_from_x"])
+        ) % 180.0
+    gradient_x, gradient_y = cast(
+        list[float], recipe["noise_rms_fractional_gradient_xy"]
+    )
+    recipe["noise_rms_fractional_gradient_xy"] = [
+        gradient_x,
+        -gradient_y,
+    ]
+    rectangles = cast(list[dict[str, object]], recipe["invalid_rectangles"])
+    for rectangle in rectangles:
+        old_start = int(rectangle["y_start"])
+        old_stop = int(rectangle["y_stop"])
+        rectangle["y_start"] = height - old_stop
+        rectangle["y_stop"] = height - old_start
+    beam = cast(dict[str, object], record["beam"])
+    reflected_angle = (180.0 - float(beam["position_angle_degrees"])) % 180.0
+    beam["position_angle_degrees"] = reflected_angle
+    noise_correlation = cast(dict[str, object], recipe["noise_correlation"])
+    noise_correlation["position_angle_degrees"] = reflected_angle
+    groups = cast(list[dict[str, object]], record["association_truth_groups"])
+    for group in groups:
+        position = cast(list[float], group["reference_position_xy"])
+        position[1] = height - 1 - position[1]
+
+
 def _qualification_overrides(
     record: dict[str, object], arguments: argparse.Namespace
 ) -> None:
     """Apply reviewed qualification-only sky and noise-field choices."""
     if arguments.role != "qualification":
         return
-    if not arguments.reflect_x:
-        raise ValueError("qualification requires a disjoint pixel reflection")
+    reflections = sum(
+        bool(getattr(arguments, name, False))
+        for name in ("reflect_x", "reflect_y")
+    )
+    if reflections != 1:
+        raise ValueError(
+            "qualification requires one disjoint pixel reflection"
+        )
     required = {
         "reference_sky_degrees": arguments.reference_sky_degrees,
         "pixel_scale_degrees_xy": arguments.pixel_scale_degrees_xy,
@@ -124,7 +167,9 @@ def _derived_document(arguments: argparse.Namespace) -> dict[str, object]:
         raise ValueError("template must contain exactly one dataset")
     document = deepcopy(payload)
     if arguments.role == "qualification":
-        document["manifest_id"] = "phase-4r-qualification"
+        document["manifest_id"] = getattr(arguments, "manifest_id", None) or (
+            "phase-4r-qualification"
+        )
     record = cast(list[dict[str, object]], document["datasets"])[0]
     recipe = cast(dict[str, object], record["recipe"])
     recipe["seed"] = arguments.first_seed
@@ -145,8 +190,10 @@ def _derived_document(arguments: argparse.Namespace) -> dict[str, object]:
             arguments.first_seed + arguments.realizations,
         )
     )
-    if arguments.reflect_x:
+    if getattr(arguments, "reflect_x", False):
         _reflect_x(record)
+    elif getattr(arguments, "reflect_y", False):
+        _reflect_y(record)
     _qualification_overrides(record, arguments)
     record["recipe_sha256"] = recipe_sha256(
         SyntheticRecipe.model_validate(recipe)
