@@ -4294,3 +4294,40 @@ and compatibility serialization
 
 - Complete the full scientific and quality lanes, commit the frozen
   candidate, and run the confirmation-only regression exactly once.
+
+## 2026-08-04 — Archived failed Phase 4R confirmation attempt one
+
+**Plan phase:** Phase 4R, Step 4 — regression confirmation
+
+**Completed**
+
+- Froze the selected candidate at exact local commit `27edde3` and ran the
+  100-realization confirmation matrix exactly once. Hebog completed 98
+  realizations; two retained a typed one-fit omission. Both exact PyBDSF
+  references completed all 100 identical images.
+- Compiled all three immutable shards under
+  `benchmark-results/phase-4r/regression-compiled.json`. The failed Hebog
+  attempt remains evidence and is ineligible for replacement, rescoring, or a
+  partial-row aggregate pass.
+- Did not inspect either failed realization's pixels, truth, or intermediates.
+  An independent analytic test instead exposed the generic model-selection
+  class: a failed smaller beam model could currently discard a valid,
+  identifiable free fit.
+- Added a reproducible freezing utility and froze recovery iteration two before
+  another production change: 40 viewable development seeds beginning at
+  `2026140001` and 100 confirmation-only seeds beginning at `2026150001`.
+  These sets are mutually disjoint and disjoint from both earlier Phase 4R
+  matrices.
+
+**Evidence**
+
+- `regression-hebog.json` records 98 successes and two
+  `IncompleteCompactCatalogueError` failures; each PyBDSF shard records 100
+  successes and zero failures.
+
+**Next**
+
+- Commit the new frozen inputs, then implement the independently red
+  valid-free/failed-alternative selection test and evaluate the corrected
+  candidate only on the new development matrix before opening its new
+  confirmation population.

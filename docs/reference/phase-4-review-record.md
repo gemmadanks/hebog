@@ -1213,3 +1213,22 @@ as a confirmation endpoint; it was not removed with an
 implementation-specific threshold. The selected estimator materially
 improved normalized-residual bias and dispersion over both PyBDSF references
 on this small diagnostic set.
+
+## Phase 4R confirmation attempt one
+
+The candidate was frozen as exact local commit `27edde3` before the
+confirmation-only population was opened. Hebog completed 98 of 100
+realizations. Seeds `2026130024` and `2026130095` each retained the same typed
+`IncompleteCompactCatalogueError`: one fit omission made the compact catalogue
+incomplete. Released PyBDSF 1.14.1 and pinned PyBDSF `master` at `c70103be3`
+completed all 100 identical images. The Hebog attempt therefore failed the
+availability gate before aggregate accuracy could qualify it.
+
+This record identifies the failed realizations for immutable provenance only.
+Their pixels, truth rows, and internal intermediate products were not opened
+for diagnosis or tuning. A generic analytic model-selection test independently
+showed that a failed smaller beam candidate could discard an otherwise valid
+and identifiable free fit. Recovery iteration two returned to analytic and
+new development evidence. Its 40 development and 100 confirmation-only seeds
+were frozen, with disjoint seed ranges, before another production fitting
+change.

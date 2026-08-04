@@ -2137,6 +2137,18 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
          unapproved adjacent-tier regression; prefer the simplest candidate
          when scientific and performance evidence is indistinguishable.
 
+   Confirmation attempt one is permanently failed. Exact commit `27edde3`
+   completed 98 of 100 frozen regression realizations; two retained typed fit
+   omissions, while released and pinned-`master` PyBDSF completed all 100.
+   The attempt remains under `benchmark-results/phase-4r/` and is not eligible
+   for rescoring. Without opening either failed realization's pixels or truth,
+   an independent analytic test exposed a generic selection error: failure of
+   the smaller beam model could discard an otherwise valid and identifiable
+   free fit. Before changing production selection again, recovery iteration
+   two froze 40 viewable seeds in `phase-4r-development-2.json` and 100
+   confirmation-only seeds in `phase-4r-regression-2.json`; all are disjoint
+   from every earlier Phase 4R seed.
+
 5. **Govern one new Phase 4R qualification and performance closeout.**
 
    - [ ] After implementation and metric definitions are frozen, obtain named

@@ -396,6 +396,47 @@ def test_phase_four_recovery_matrices_are_frozen_and_disjoint() -> None:
         )
 
 
+def test_second_recovery_iteration_is_frozen_before_scientific_changes() -> (
+    None
+):
+    """Recovery iteration two has new viewable and confirmation-only noise."""
+    paths = (
+        "phase-4r-development.json",
+        "phase-4r-regression.json",
+        "phase-4r-development-2.json",
+        "phase-4r-regression-2.json",
+    )
+    datasets = tuple(
+        load_dataset_manifest(_DATASET_DIRECTORY / path).datasets[0]
+        for path in paths
+    )
+    seed_sets = tuple(
+        {recipe.seed for recipe in iter_dataset_recipes(dataset)}
+        for dataset in datasets
+    )
+
+    assert [len(seeds) for seeds in seed_sets] == [20, 100, 40, 100]
+    assert all(
+        not left & right
+        for index, left in enumerate(seed_sets)
+        for right in seed_sets[index + 1 :]
+    )
+    assert datasets[2].role is DatasetRole.DEVELOPMENT
+    assert datasets[3].role is DatasetRole.REGRESSION
+    assert "before recovery-iteration production changes" in (
+        datasets[2].provenance
+    )
+    assert "before recovery-iteration production changes" in (
+        datasets[3].provenance
+    )
+    assert datasets[2].recipe_sha256 == (
+        "c0e5e60f687a6c591e82b425eae3cd1fee8c697fcca7f023da62ce9ed72562e2"
+    )
+    assert datasets[3].recipe_sha256 == (
+        "fb837bd85cce0968e590ac669307cacd7e1911bc24ebac163ee653c4081036e6"
+    )
+
+
 def test_phase_four_final_qualification_is_frozen_and_unseen() -> None:
     """The final one-look population is powered, disjoint, and unopened."""
     manifest_path = _DATASET_DIRECTORY / "phase-4-final-qualification.json"
