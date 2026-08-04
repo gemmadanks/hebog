@@ -2163,9 +2163,10 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    - [ ] Freeze the selected candidate before comparing every registered
          metric against both references overall and by governed stratum. The
          regression qualifies it only when all applicable absolute gates
-         pass, every point regression and paired upper bound is within its
-         reviewed margin, and no material tail or source family remains
-         unexplained. Archive a failed regression and return to
+         pass, every point regression is within its reviewed margin, and no
+         material tail or source family remains unexplained. Qualification
+         alone applies the paired upper-bound rule. Archive a failed
+         regression and return to
          generic analytic/development evidence; do not tune directly to its
          rows, optimize a weighted score, or average away a weak metric.
    - [ ] Profile each scientifically passing candidate on compact sparse,

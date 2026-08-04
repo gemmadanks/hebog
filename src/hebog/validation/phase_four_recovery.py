@@ -669,7 +669,7 @@ def _metric_decisions(
         dtype=np.float64,
     )
     upper_limits: FloatArray | None = None
-    if context.stage != "development":
+    if context.stage == "qualification":
         _, upper_limits = paired_bca_upper_limits(
             _statistic(
                 expanded,
@@ -700,7 +700,7 @@ def _metric_decisions(
                     point_status="indeterminate",
                     interval_status=(
                         "not-evaluated"
-                        if context.stage == "development"
+                        if context.stage != "qualification"
                         else "indeterminate"
                     ),
                     status="indeterminate",

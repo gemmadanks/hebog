@@ -988,6 +988,49 @@ def test_phase4r_development_point_rule_uses_the_registered_margin(
     assert decision.passed is (expected_status == "pass")
 
 
+def test_phase4r_regression_uses_point_rule_without_qualification_interval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression confirms point margins without running the one-look rule."""
+    campaign, original_dataset, protocol, gates, configuration = (
+        _synthetic_campaign_inputs()
+    )
+    dataset = original_dataset.model_copy(
+        update={"role": DatasetRole.REGRESSION}
+    )
+    regression = campaign.model_copy(
+        update={"dataset": campaign_dataset_identity(dataset)}
+    )
+
+    def unexpected_interval(*_: object, **__: object) -> object:
+        raise AssertionError("qualification interval ran during regression")
+
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_recovery.paired_bca_upper_limits",
+        unexpected_interval,
+    )
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_decision.uncertainty_calibration_report",
+        _passing_uncertainty_report,
+    )
+
+    decision = evaluate_phase_four_recovery(
+        regression,
+        dataset,
+        _metric_registry(),
+        protocol,
+        gates,
+        stage="regression",
+        scientific_contract_set_sha256=configuration,
+    )
+
+    assert all(
+        item.interval_status == "not-evaluated"
+        and item.upper_confidence_limit is None
+        for item in decision.metric_decisions
+    )
+
+
 def test_phase4r_noisy_absolute_scatter_is_reported_not_gated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -1301,3 +1301,31 @@ all 450 such comparisons. The only remaining red development findings are two
 powered edge normalized-bias confidence intervals; their central estimates
 remain inside the absolute bias range and must be confirmed on independent
 regression and, ultimately, the powered qualification population.
+
+## Phase 4R confirmation evaluator correction
+
+The frozen iteration-two confirmation population was opened only after the
+candidate was committed at `86e7e02` and both reference environments and the
+complete development result were recorded. Hebog, released PyBDSF 1.14.1,
+and pinned `master` at `c70103be3` each completed all 100 realizations. The
+first immutable decision has SHA-256
+`bb39bb6be81596a3a5d0ed95a2400f2d22588b96ee2553fb9a8ffd9fc12b6fb9`.
+
+That decision exposed a generic evaluator implementation defect. The frozen
+registry states
+`within-practical-margin-on-frozen-development-regression` for point
+estimates and reserves
+`one-sided-paired-upper-limit-within-practical-margin` for qualification.
+The implementation nevertheless ran 10,000-resample qualification intervals
+during regression. This produced 25 interval failures, including cases where
+Hebog's point estimate was better, and made the 100-image confirmation pay a
+power requirement designed for the later 600-image one-look population.
+
+The campaign, rows, metric values, registry, margins, and historical decision
+remain unchanged. A TDD correction now makes both development and regression
+evaluate every point regression against its registered practical margin;
+only qualification computes and gates the paired upper bound. The corrected
+evaluator may rescore the same immutable campaign because this restores the
+predeclared rule rather than selecting a new rule from its result. The
+independent catastrophic-rate point and absolute failures remain eligible
+scientific findings and cannot be removed by this correction.

@@ -4414,3 +4414,44 @@ and compatibility serialization
 - Validate and commit the independent bounded-context position estimator,
   rerun the complete development evidence at exact frozen revisions, then
   open the already frozen second confirmation population exactly once.
+
+## 2026-08-04 — Corrected the Phase 4R regression decision stage
+
+**Plan phase:** Phase 4R, Step 4 — confirmation evaluation
+
+**Completed**
+
+- Froze the scientific candidate at exact local commit `86e7e02` and reran
+  the 40-image development matrix in Hebog, released PyBDSF 1.14.1, and
+  pinned PyBDSF `master` environments. Every implementation completed every
+  realization and all 450 comparative point decisions passed.
+- Opened the pre-frozen 100-image confirmation population exactly once. All
+  three implementations again completed all realizations; no intermediate
+  scientific row was inspected before the complete campaign was compiled.
+- Preserved the first decision, which exposed that regression incorrectly ran
+  the qualification-only BCa interval rule. Added a failing stage-contract
+  test and corrected regression to use the registry's declared point-margin
+  rule without changing any campaign row, metric, margin, or contract.
+
+**Evidence**
+
+- Exact development Hebog/reference/compiled/decision evidence SHA-256 values
+  are `e28323507deba8aa645fbffd45b756aada65866dc2868de87ada1989cca7cdd8`,
+  `2b6c09af60442b5551557056c00790b67781cf24aa4ffad65916b37e097fd173`,
+  `9f66def0a1aff76b489cb79f9ecc4b43d08daa3651e9979f6170418d7d7eddcf`,
+  `65a1a0effe6712a82fd9c8a61ae33b293bd64fc2bb6a87e809267ccd8b106b24`,
+  and `a19cef631b05752492f657e8d18d330286d9b85c43361cc5b1f6cd13fa5daf73`.
+- Confirmation Hebog/released/master/compiled evidence SHA-256 values are
+  `bf11f54793a46a18b4f5e66564ca47f205ef377dec7d0012a6d887e573f89024`,
+  `a55b3a69880d6a4199f68ece577b327cc78f9259ed4999231ec16ee9777b0878`,
+  `2a2e880914b5b2c7c4affd9ecfabef374308fe76a9277b3b11c506d700b8da80`,
+  and `6d2ed5f8c3695582ed8d922bef3c29b67cc064b92b6c8b1becf0dcd2a1568b86`.
+  The preserved pre-correction decision SHA-256 is
+  `bb39bb6be81596a3a5d0ed95a2400f2d22588b96ee2553fb9a8ffd9fc12b6fb9`.
+- The focused evaluator suite passes 21 tests; Ruff and Pyright pass.
+
+**Next**
+
+- Commit the generic stage-rule correction, rescore the same immutable
+  confirmation evidence, and address only genuine point/absolute failures
+  through independent analytic and development evidence.
