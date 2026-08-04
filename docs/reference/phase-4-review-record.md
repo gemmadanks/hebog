@@ -1149,6 +1149,14 @@ of correlated noise and forced fitting, while retaining the independent
 position, flux, size, completeness/reliability, and catastrophic measures
 recommended by radio source-finding challenges.
 
-This recommendation is pending named human review. Approval would authorize
-the Phase 4R development protocol, not a rescore, rerun, or replacement of the
-terminal Phase 4 campaign.
+## Phase 4R development authorization
+
+Gemma Danks, Data Processing Software Engineer, approved the recommended
+terminal disposition and Phase 4R development direction on 2026-08-04. Phase
+4 remains not passed and its final campaign remains immutable. The approval
+authorizes analytic and independent development/regression work, the
+endpoint-isolation repair, fit-model ablations, and preparation of a new
+Phase 4R protocol. It does not authorize a rescore, rerun, replacement
+campaign, or future qualification opening before the exact model-selection
+rule, metric registry, margins, power, regression evidence, and stopping rule
+receive the later named review required by the plan.

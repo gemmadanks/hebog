@@ -12,10 +12,12 @@ from pydantic import ValidationError
 
 from hebog.validation.contracts import (
     PerformanceMatrixContract,
+    PhaseFourMetricRegistry,
     PhaseFourScientificGates,
     ScalabilityContract,
     load_performance_matrix,
     load_phase_four_measurement_contract,
+    load_phase_four_metric_registry,
     load_phase_four_scientific_gates,
     load_phase_three_scientific_gates,
     load_public_behaviours,
@@ -34,6 +36,9 @@ _PHASE_FOUR_MEASUREMENT_PATH = (
 )
 _PHASE_FOUR_GATES_PATH = (
     _ROOT / "config/contracts/phase-4-scientific-gates.json"
+)
+_PHASE_FOUR_METRICS_PATH = (
+    _ROOT / "config/contracts/phase-4r-metric-registry.json"
 )
 
 
@@ -319,6 +324,98 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
         "scipy-bca-bootstrap-fixed-seed"
     )
     assert gates.uncertainty.bootstrap_resamples >= 10_000
+
+
+def test_phase_four_recovery_registry_forbids_metric_compensation() -> None:
+    """Every absolute and tail metric is independently comparison-gated."""
+    registry = load_phase_four_metric_registry(_PHASE_FOUR_METRICS_PATH)
+
+    assert registry.status == "approved-development"
+    assert registry.comparison_rule == (
+        "every-metric-passes-no-compensation-or-weighted-score"
+    )
+    assert registry.point_estimate_rule == (
+        "no-worse-direction-on-frozen-development-regression"
+    )
+    assert len(registry.metrics) == 35
+    assert all(
+        metric.primary_practical_regression_margin
+        == metric.secondary_practical_regression_margin
+        for metric in registry.metrics
+    )
+    assert {
+        metric.metric_id
+        for metric in registry.metrics
+        if metric.absolute_role == "report-only"
+    } >= {
+        "percentile-95-position",
+        "percentile-95-peak-flux",
+        "percentile-95-integrated-flux",
+        "percentile-95-fitted-axis",
+        "percentile-95-deconvolved-axis",
+        "percentile-95-fitted-position-angle",
+        "percentile-95-deconvolved-position-angle",
+    }
+    completion = next(
+        metric
+        for metric in registry.metrics
+        if metric.metric_id == "implementation-completion"
+    )
+    assert completion.primary_practical_regression_margin == 0.0
+
+
+def test_phase_four_recovery_registry_rejects_duplicate_metrics() -> None:
+    """A metric cannot be counted twice in the conjunctive decision."""
+    registry = load_phase_four_metric_registry(_PHASE_FOUR_METRICS_PATH)
+    payload = registry.model_dump(mode="json")
+    payload["metrics"].append(payload["metrics"][0])
+
+    with pytest.raises(ValidationError, match="metric identifiers"):
+        PhaseFourMetricRegistry.model_validate(payload)
+
+
+def test_phase_four_recovery_registry_binds_direction_to_ideal() -> None:
+    """Rate and error directions cannot silently reverse comparison signs."""
+    registry = load_phase_four_metric_registry(_PHASE_FOUR_METRICS_PATH)
+    payload = registry.model_dump(mode="json")
+    payload["metrics"][0]["ideal_value"] = 0.0
+
+    with pytest.raises(ValidationError, match="metric ideal"):
+        PhaseFourMetricRegistry.model_validate(payload)
+
+
+def test_phase_four_recovery_registry_uses_one_dual_reference_margin() -> None:
+    """A looser secondary-reference comparison cannot be hidden in config."""
+    registry = load_phase_four_metric_registry(_PHASE_FOUR_METRICS_PATH)
+    payload = registry.model_dump(mode="json")
+    payload["metrics"][0]["secondary_practical_regression_margin"] = 0.1
+
+    with pytest.raises(ValidationError, match="both PyBDSF references"):
+        PhaseFourMetricRegistry.model_validate(payload)
+
+
+def test_phase_four_recovery_registry_requires_canonical_strata() -> None:
+    """Duplicate or reordered strata cannot change report ownership."""
+    registry = load_phase_four_metric_registry(_PHASE_FOUR_METRICS_PATH)
+    payload = registry.model_dump(mode="json")
+    payload["governed_strata"] = list(reversed(payload["governed_strata"]))
+
+    with pytest.raises(ValidationError, match="strata must be canonical"):
+        PhaseFourMetricRegistry.model_validate(payload)
+
+
+def test_phase_four_recovery_registry_requires_completion() -> None:
+    """Scientific accuracy cannot compensate for an implementation failure."""
+    registry = load_phase_four_metric_registry(_PHASE_FOUR_METRICS_PATH)
+    payload = registry.model_dump(mode="json")
+    payload["metrics"] = [
+        metric
+        for metric in payload["metrics"]
+        if metric["metric_id"] != "implementation-completion"
+    ]
+
+    with pytest.raises(ValidationError, match="include completion"):
+        PhaseFourMetricRegistry.model_validate(payload)
 
 
 def test_phase_four_gates_reject_percentiles_tighter_than_medians() -> None:

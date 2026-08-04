@@ -4138,3 +4138,48 @@ and compatibility serialization
   protocol. If approved, begin with TDD for endpoint isolation and
   parameter-specific fit diagnostics before changing scientific fitting
   behaviour.
+
+## 2026-08-04 — Authorized Phase 4R and isolated missing endpoints
+
+**Plan phase:** Phase 4R, Step 1 — evidence contract
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer, approved the terminal Phase
+  4 disposition and recommended Phase 4R development direction. The approval
+  does not reopen or rescore the final campaign and does not pre-approve a
+  future qualification population or its exact numerical protocol.
+
+**Completed**
+
+- Changed paired uncertainty summaries to retain conditional sufficient
+  statistics for available metric values. Missing matches and residuals remain
+  visible in completeness and uncertainty-availability endpoints instead of
+  erasing unrelated calibration evidence.
+- Changed unresolved-group error summaries to retain `NaN` only for the
+  unavailable group value while the separate group-completeness endpoint
+  records the miss. Retained group position and flux errors remain
+  independently calculable.
+- Added TDD cases proving that one missing individual source or unresolved
+  group no longer makes all 20 paired decisions indeterminate. The affected
+  availability/completeness decision fails while unrelated binary, group, and
+  uncertainty decisions remain determinate.
+- Added a strict, versioned Phase 4R registry for 35 independently governed
+  completion, catalogue, association, classification, error, uncertainty,
+  and tail metrics. It freezes each population, unit, direction, ideal,
+  absolute role, stratum rule, and equal provisional resolution against both
+  PyBDSF references; no metric can compensate for another.
+- Did not apply the repaired evaluator to the final Phase 4 campaign; its
+  immutable failed decision remains the only qualification result for that
+  population.
+
+**Evidence**
+
+- Focused red tests failed under the all-or-nothing input construction, then
+  passed after the conditional summaries were implemented.
+- The focused Phase 4 contract and decision suites pass 35 tests.
+
+**Next**
+
+- Add parameter-specific fit diagnostics and freeze independent edge/corner
+  regression cases before changing the fitter.

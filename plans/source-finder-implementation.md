@@ -1966,11 +1966,11 @@ rescored. Corrective work therefore belongs to the separately governed Phase
 
 ### Phase 4R: compact-measurement scientific recovery
 
-**Status:** planned after diagnosis of the terminal Phase 4 qualification
-failure on 2026-08-04. The final campaign remains immutable, viewed evidence
-and may be used only to identify failure modes and report the historical
-decision. It must not select an algorithm, threshold, model, seed, margin, or
-new qualification truth.
+**Status:** authorized by Gemma Danks, Data Processing Software Engineer, on
+2026-08-04 after diagnosis of the terminal Phase 4 qualification failure. The
+final campaign remains immutable, viewed evidence and may be used only to
+identify failure modes and report the historical decision. It must not select
+an algorithm, threshold, model, seed, margin, or new qualification truth.
 
 The failure is narrower than the aggregate decision first suggested:
 
@@ -2018,7 +2018,7 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
 
 1. **Repair the evidence contract before changing the science.**
 
-   - [ ] Add a versioned metric registry that declares each scientific and
+   - [x] Add a versioned metric registry that declares each scientific and
          robustness metric's population, stratum, unit, desired direction or
          ideal, absolute gate, paired statistic, and practical resolution.
          Include gated and report-only medians and tails for completeness,
@@ -2035,14 +2035,15 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
          estimates as a development release check and one-sided paired
          intervals inside every margin as the qualification decision. Never
          claim that every individual noisy source must be closer to truth.
-   - [ ] Refactor paired inputs and decisions endpoint by endpoint, TDD first.
+   - [x] Refactor paired inputs and decisions endpoint by endpoint, TDD first.
          A missing source contributes to the declared completeness,
          association, and availability denominators. Conditional uncertainty
          calibration uses only its explicitly eligible retained values with a
          visible retained/expected count and minimum sample; it cannot make a
          binary or group endpoint indeterminate. Only the affected endpoint is
          indeterminate when its own minimum information is unavailable.
-   - [ ] Verify endpoint isolation, missingness, ideal-value direction,
+   - [x] Verify endpoint isolation and missingness with analytic campaign
+         fixtures. Continue to verify ideal-value direction,
          dual-reference failure policy, and multiplicity with analytic and
          already-viewed regression fixtures. Do not rescore or replace the
          final Phase 4 decision after repairing the evaluator.

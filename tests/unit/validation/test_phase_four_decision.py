@@ -687,6 +687,142 @@ def test_exact_equal_endpoint_passes_with_its_point_interval() -> None:
     assert completeness.upper_confidence_limit == 0.0
 
 
+def test_missing_source_only_affects_eligible_endpoint_populations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One missing source must not erase otherwise calculable endpoints."""
+    campaign, dataset, protocol, _, _ = _synthetic_campaign_inputs()
+    realizations = list(campaign.realizations)
+    candidate = realizations[0]
+    sources = list(candidate.source_pairs)
+    missing = sources[0]
+    assert missing.truth_identifier is not None
+    sources[0] = SourcePairDiagnostic(
+        decision="unmatched-truth",
+        truth_identifier=missing.truth_identifier,
+        truth_strata=missing.truth_strata,
+    )
+    realizations[0] = candidate.model_copy(
+        update={"source_pairs": tuple(sources)}
+    )
+    incomplete = campaign.model_copy(
+        update={"realizations": tuple(realizations)}
+    )
+    candidate_rows = tuple(
+        item
+        for item in incomplete.realizations
+        if item.implementation_identifier == "hebog"
+    )
+    reference_rows = tuple(
+        item
+        for item in incomplete.realizations
+        if item.implementation_identifier == "pybdsf-release"
+    )
+
+    def interval_stub(
+        statistic: EndpointStatistic,
+        *,
+        realization_count: int,
+        resampling: object,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        del resampling
+        point = statistic(np.arange(realization_count, dtype=np.int64))
+        return point, point
+
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_decision.paired_bca_upper_limits",
+        interval_stub,
+    )
+
+    decisions = paired_endpoint_decisions(
+        candidate_rows,
+        reference_rows,
+        dataset,
+        protocol,
+    )
+    by_identifier = {item.endpoint_id: item for item in decisions}
+
+    assert len(decisions) == 20
+    assert all(item.status != "indeterminate" for item in decisions)
+    assert by_identifier["compact-completeness"].status == "pass"
+    assert by_identifier["association-identity-availability"].status == (
+        "fail"
+    )
+    assert by_identifier["uncertainty-normalized-bias"].status == "pass"
+
+
+def test_missing_group_preserves_conditional_group_error_endpoints(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Group availability and retained error metrics remain independent."""
+    campaign, dataset, protocol, _, _ = _synthetic_campaign_inputs()
+    realizations = list(campaign.realizations)
+    candidate = realizations[0]
+    associations = list(candidate.association_pairs)
+    blend_index = next(
+        index
+        for index, item in enumerate(associations)
+        if item.resolution_class == "unresolved-blend"
+    )
+    missing = associations[blend_index]
+    assert missing.truth_group_identifier is not None
+    assert missing.resolution_class is not None
+    assert candidate.candidate_count is not None
+    associations[blend_index] = AssociationPairDiagnostic(
+        decision="unmatched-truth-group",
+        truth_group_identifier=missing.truth_group_identifier,
+        resolution_class=missing.resolution_class,
+        truth_strata=missing.truth_strata,
+    )
+    realizations[0] = candidate.model_copy(
+        update={
+            "candidate_count": candidate.candidate_count - 1,
+            "association_pairs": tuple(associations),
+        }
+    )
+    incomplete = campaign.model_copy(
+        update={"realizations": tuple(realizations)}
+    )
+    candidate_rows = tuple(
+        item
+        for item in incomplete.realizations
+        if item.implementation_identifier == "hebog"
+    )
+    reference_rows = tuple(
+        item
+        for item in incomplete.realizations
+        if item.implementation_identifier == "pybdsf-release"
+    )
+
+    def interval_stub(
+        statistic: EndpointStatistic,
+        *,
+        realization_count: int,
+        resampling: object,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        del resampling
+        point = statistic(np.arange(realization_count, dtype=np.int64))
+        return point, point
+
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_decision.paired_bca_upper_limits",
+        interval_stub,
+    )
+
+    decisions = paired_endpoint_decisions(
+        candidate_rows,
+        reference_rows,
+        dataset,
+        protocol,
+    )
+    by_identifier = {item.endpoint_id: item for item in decisions}
+
+    assert all(item.status != "indeterminate" for item in decisions)
+    assert by_identifier["unresolved-group-completeness"].status == "fail"
+    assert by_identifier["unresolved-group-median-position"].status == "pass"
+    assert by_identifier["unresolved-group-position-tail"].status == "pass"
+
+
 def test_one_look_evaluator_rejects_provenance_drift() -> None:
     """A campaign cannot be rescored under a different scientific contract."""
     campaign, dataset, protocol, gates, _ = _synthetic_campaign_inputs()

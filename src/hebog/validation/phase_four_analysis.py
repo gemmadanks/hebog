@@ -6,6 +6,7 @@ population and sign conventions cannot drift between design and decision.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 from typing import TypeAlias
 
@@ -235,7 +236,12 @@ def blend_arrays(
     realizations: Sequence[CampaignRealizationDiagnostic],
     dataset: DatasetRecord,
 ) -> dict[str, FloatArray]:
-    """Return complete per-image unresolved-group error arrays."""
+    """Return conditional per-image unresolved-group error arrays.
+
+    An unmatched group is represented by ``NaN`` here and by a failure in the
+    separate unresolved-group completeness endpoint. Retained error metrics
+    therefore remain calculable without hiding the missing group.
+    """
     blend_ids = tuple(
         item.identifier
         for item in dataset.association_truth_groups
@@ -259,11 +265,13 @@ def blend_arrays(
                 or item.separation_beam_fwhm is None
                 or item.integrated_flux_fractional_difference is None
             ):
-                raise ValueError(
-                    "unresolved-group endpoint requires every group match"
+                position_row.append(np.nan)
+                flux_row.append(np.nan)
+            else:
+                position_row.append(abs(item.separation_beam_fwhm))
+                flux_row.append(
+                    abs(item.integrated_flux_fractional_difference)
                 )
-            position_row.append(abs(item.separation_beam_fwhm))
-            flux_row.append(abs(item.integrated_flux_fractional_difference))
         position.append(position_row)
         flux.append(flux_row)
     return {
@@ -276,7 +284,12 @@ def uncertainty_arrays(
     realizations: Sequence[CampaignRealizationDiagnostic],
     dataset: DatasetRecord,
 ) -> UncertaintyArrays:
-    """Return per-image sum, sum-square, count, and coverage summaries."""
+    """Return conditional per-image uncertainty sufficient statistics.
+
+    Missing matches and unavailable residuals remain represented by the
+    separate completeness and uncertainty-availability endpoints. They do not
+    erase calibration evidence from the explicitly retained population.
+    """
     individual_by_source_index = {
         item.source_indices[0]: item.identifier
         for item in dataset.association_truth_groups
@@ -300,53 +313,43 @@ def uncertainty_arrays(
         for stratum, identifiers in strata.items()
         for metric in sorted(POSITION_FLUX_METRICS)
     }
-    collected: dict[tuple[str, str], list[list[float]]] = {
-        (stratum, metric): []
-        for (stratum, metric), identifiers in identifiers_by_key.items()
-        if identifiers
-    }
-    for realization in realizations:
+    keys = sorted(
+        key for key, identifiers in identifiers_by_key.items() if identifiers
+    )
+    summaries = np.zeros(
+        (len(realizations), len(keys), 4),
+        dtype=np.float64,
+    )
+    for realization_index, realization in enumerate(realizations):
         by_truth = {
             item.truth_identifier: item
             for item in realization.source_pairs
             if item.truth_identifier is not None
         }
-        for key, identifiers in identifiers_by_key.items():
-            if key not in collected:
-                continue
+        for key_index, key in enumerate(keys):
+            identifiers = identifiers_by_key[key]
             values: list[float] = []
             metric = key[1]
             for identifier in identifiers:
                 item = by_truth.get(identifier)
                 if item is None or item.decision != "matched":
-                    raise ValueError(
-                        "uncertainty endpoint requires every source match"
-                    )
+                    continue
                 residuals = {
                     residual.metric: residual.value
                     for residual in item.normalized_residuals
                 }
-                if not POSITION_FLUX_METRICS.issubset(residuals):
-                    raise ValueError(
-                        "uncertainty endpoint requires all position/flux "
-                        "errors"
-                    )
-                values.append(residuals[metric])
-            collected[key].append(values)
-    keys = sorted(collected)
-    summaries = np.empty(
-        (len(realizations), len(keys), 4),
-        dtype=np.float64,
-    )
-    for key_index, key in enumerate(keys):
-        sample_array = np.asarray(collected[key], dtype=np.float64)
-        summaries[:, key_index, 0] = np.sum(sample_array, axis=1)
-        summaries[:, key_index, 1] = np.sum(sample_array**2, axis=1)
-        summaries[:, key_index, 2] = sample_array.shape[1]
-        summaries[:, key_index, 3] = np.sum(
-            np.abs(sample_array) <= 1.0,
-            axis=1,
-        )
+                value = residuals.get(metric)
+                if value is not None:
+                    values.append(value)
+            sample_array = np.asarray(values, dtype=np.float64)
+            summaries[realization_index, key_index, 0] = np.sum(sample_array)
+            summaries[realization_index, key_index, 1] = np.sum(
+                sample_array**2
+            )
+            summaries[realization_index, key_index, 2] = sample_array.size
+            summaries[realization_index, key_index, 3] = np.sum(
+                np.abs(sample_array) <= 1.0
+            )
     return summaries
 
 
@@ -370,15 +373,21 @@ def group_values(
     arrays: dict[str, FloatArray],
     indices: IntArray,
 ) -> dict[str, FloatArray]:
-    """Calculate aggregate median and 95th-percentile blend errors."""
+    """Calculate conditional aggregate blend errors over retained matches."""
     position = arrays["position"][indices].reshape(indices.shape[0], -1)
     flux = arrays["total-flux"][indices].reshape(indices.shape[0], -1)
-    return {
-        "unresolved-group-median-position": np.median(position, axis=1),
-        "unresolved-group-position-tail": np.quantile(position, 0.95, axis=1),
-        "unresolved-group-median-total-flux": np.median(flux, axis=1),
-        "unresolved-group-total-flux-tail": np.quantile(flux, 0.95, axis=1),
-    }
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return {
+            "unresolved-group-median-position": np.nanmedian(position, axis=1),
+            "unresolved-group-position-tail": np.nanquantile(
+                position, 0.95, axis=1
+            ),
+            "unresolved-group-median-total-flux": np.nanmedian(flux, axis=1),
+            "unresolved-group-total-flux-tail": np.nanquantile(
+                flux, 0.95, axis=1
+            ),
+        }
 
 
 def uncertainty_values(

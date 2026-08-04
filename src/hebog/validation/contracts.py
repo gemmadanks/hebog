@@ -818,6 +818,114 @@ class PairedNoninferiorityContract(_ContractModel):
         return self
 
 
+class PhaseFourMetricDefinition(_ContractModel):
+    """One direction-aware Phase 4R scientific comparison metric."""
+
+    metric_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    domain: Literal[
+        "robustness",
+        "catalogue",
+        "association",
+        "classification",
+        "position",
+        "flux",
+        "shape",
+        "uncertainty",
+    ]
+    population: str = Field(min_length=1)
+    statistic: Literal[
+        "completion-rate",
+        "rate",
+        "median-absolute-error",
+        "percentile-95-absolute-error",
+        "maximum-absolute-bias",
+        "maximum-absolute-coverage-departure",
+        "maximum-absolute-dispersion-departure",
+    ]
+    unit: Literal[
+        "fraction",
+        "beam-fwhm",
+        "fractional-error",
+        "degrees",
+        "normalized-residual",
+    ]
+    desirable_direction: Literal["higher-is-better", "lower-is-better"]
+    ideal_value: float = Field(allow_inf_nan=False)
+    absolute_role: Literal["gate", "report-only", "none"]
+    stratification: Literal[
+        "overall-only", "overall-and-applicable-governed-strata"
+    ]
+    primary_practical_regression_margin: float = Field(
+        ge=0,
+        allow_inf_nan=False,
+    )
+    secondary_practical_regression_margin: float = Field(
+        ge=0,
+        allow_inf_nan=False,
+    )
+    missingness: Literal["availability-gated-and-retained-values-conditional"]
+
+    @model_validator(mode="after")
+    def validate_direction_and_ideal(self) -> Self:
+        """Bind rates and errors to their scientifically desirable ideal."""
+        expected_ideal = (
+            1.0 if self.desirable_direction == "higher-is-better" else 0.0
+        )
+        if self.ideal_value != expected_ideal:
+            raise ValueError(
+                "metric ideal must be one for higher-is-better and zero "
+                "for lower-is-better"
+            )
+        if (
+            self.primary_practical_regression_margin
+            != self.secondary_practical_regression_margin
+        ):
+            raise ValueError(
+                "both PyBDSF references must use the same practical margin"
+            )
+        return self
+
+
+class PhaseFourMetricRegistry(_ContractModel):
+    """Development-approved no-compensation metric registry for Phase 4R."""
+
+    schema_version: Literal[1]
+    registry_id: Literal["phase-4r-metric-registry"]
+    status: Literal["approved-development", "reviewed-qualification"]
+    comparison_rule: Literal[
+        "every-metric-passes-no-compensation-or-weighted-score"
+    ]
+    reference_scope: Literal[
+        "released-pybdsf-and-pinned-master-where-each-produces-the-metric"
+    ]
+    candidate_completion: Literal[
+        "every-realization-required-reference-failure-retained"
+    ]
+    point_estimate_rule: Literal[
+        "no-worse-direction-on-frozen-development-regression"
+    ]
+    qualification_rule: Literal[
+        "one-sided-paired-upper-limit-within-practical-margin"
+    ]
+    governed_strata: tuple[str, ...] = Field(min_length=1)
+    metrics: tuple[PhaseFourMetricDefinition, ...] = Field(min_length=1)
+    human_scientific_review: Literal[
+        "development-approved-qualification-review-still-required"
+    ]
+
+    @model_validator(mode="after")
+    def validate_registry(self) -> Self:
+        """Require canonical strata and one definition per metric."""
+        if self.governed_strata != tuple(sorted(set(self.governed_strata))):
+            raise ValueError("governed metric strata must be canonical")
+        metric_ids = [metric.metric_id for metric in self.metrics]
+        if len(set(metric_ids)) != len(metric_ids):
+            raise ValueError("metric identifiers must be unique")
+        if "implementation-completion" not in metric_ids:
+            raise ValueError("metric registry must include completion")
+        return self
+
+
 def load_performance_matrix(path: Path) -> PerformanceMatrixContract:
     """Load and validate a performance-matrix contract."""
     return PerformanceMatrixContract.model_validate_json(
@@ -871,5 +979,12 @@ def load_paired_noninferiority_contract(
 ) -> PairedNoninferiorityContract:
     """Load the Phase 4 paired non-inferiority and power contract."""
     return PairedNoninferiorityContract.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_four_metric_registry(path: Path) -> PhaseFourMetricRegistry:
+    """Load the Phase 4R direction-aware no-compensation metric registry."""
+    return PhaseFourMetricRegistry.model_validate_json(
         path.read_text(encoding="utf-8")
     )
