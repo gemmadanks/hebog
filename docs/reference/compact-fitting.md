@@ -1,9 +1,9 @@
 # Compact Gaussian fitting
 
-Phase 4 fits one bounded elliptical Gaussian to every eligible compact
-deblended region. The fit-all lane is the scientific reference: Hebog does not
-skip apparently easy regions or substitute moment parameters for fitted
-parameters.
+Phase 4 fits every eligible compact deblended region. Phase 4R evaluates a
+nested free-elliptical and restoring-beam-constrained model rather than making
+every source pay the variance of a free shape. Hebog does not skip apparently
+easy regions or substitute moment parameters for fitted parameters.
 
 ## Numerical model
 
@@ -13,14 +13,24 @@ coarse executor task. A task may contain several islands and regions; Hebog
 does not create one Dask task per source. Retained image arrays stay subject to
 the Phase 3 coarse-batch pixel limit.
 
-The seven fitted parameters are positive peak amplitude, global zero-based
-`(x, y)` centroid, two positive pixel sigma axes, pixel-space orientation, and
-a bounded local residual-background offset. The offset absorbs small local
-background errors without changing exact watershed ownership. Fits retain an
-eight-pixel context by default; pixels owned by another deblended region are
-excluded. Residuals are divided by the local RMS plane. Moment parameters
-initialize the fit, and explicit configuration bounds limit center movement,
-axes, amplitude, background offset, iterations, and convergence tolerance.
+The full model has positive peak amplitude, global zero-based `(x, y)`
+centroid, two positive pixel sigma axes, pixel-space orientation, and an
+optional bounded local residual-background offset. The smaller model fixes
+the axes and orientation to the restoring beam. The Rapthor campaign uses the
+already background-subtracted residual, fixes the remaining offset to zero,
+and fits exact deblended-region membership; the alternate offset and bounded
+context policies remain explicit development ablations. Moment parameters
+initialize both fits, and configuration bounds limit centre movement, axes,
+amplitude, background offset, iterations, and convergence tolerance.
+
+When the image declares a correlated-noise covariance, the Phase 4R point
+estimator uses exact generalized least squares for regions of at most 512
+retained pixels. It factorizes only that bounded correlation matrix and
+whitens residuals before SciPy sees them. Larger regions, or images without a
+correlation model, take an explicit diagonal-weighted fallback; the reason is
+retained in diagnostics. This cap prevents an accidental quadratic-memory or
+cubic-work path for a large island. The component still runs inside its coarse
+batch task, so no per-source Dask graph is introduced.
 
 The production implementation uses SciPy's bounded trust-region
 `least_squares` solver. An independent Astropy `Gaussian2D`/TRF fit agrees on
@@ -40,31 +50,39 @@ A valid fitted component reports:
 - bilinearly sampled local RMS at the fitted centroid; and
 - bounded optimizer diagnostics.
 
-Position and flux covariance is retained only when the information matrix is
-nonsingular and produces finite positive variances. When the image geometry
-declares a Gaussian pixel-noise correlation function, Hebog uses a generalized
-OLS sandwich covariance and flags it `correlated-noise-sandwich-errors`;
-otherwise it retains the independent-pixel estimate with
+Position and flux covariance is retained only when the selected information
+matrix is nonsingular and produces finite positive variances. A whitened fit
+uses its generalized-least-squares information and is flagged
+`correlated-noise-gls-errors`. A diagonal point fit with declared correlation
+uses the generalized OLS sandwich covariance and is flagged
+`correlated-noise-sandwich-errors`; an absent correlation retains
 `formal-independent-pixel-errors`. Shape errors remain absent. The powered
 regression found that free-fit integrated-flux uncertainty is not calibrated
 for resolved or marginal sources, so that uncertainty remains report-only.
 Position, peak flux, and the peak-as-total unresolved policy pass their
 applicable regression gates.
 
-The fitter itself remains an unconstrained seven-parameter scientific
-reference. Its centroid bounds may extend beyond the detected region into the
-retained fit context, but never beyond the physical footprint of the sampled
-image window. This prevents a truncated edge profile from converging to an
-apparently valid catalogue position outside the image. Extension
-classification is a catalogue transformation after the fit: the ATLAS log
-integrated-to-peak statistic must exceed its configured significance
-threshold. Phase 4 uses five sigma after an independent paired regression
-showed that the earlier two-sigma rule retained the expected false-extension
-tail while released PyBDSF did not. If the candidate does not pass, the source
-remains unresolved and its catalogue integrated flux and error use the fitted
-peak and peak error. This small policy boundary preserves the fitted shape for
-diagnostics without adding a second optimizer or hiding low-SNR fitted-width
-inflation.
+The established public default remains the single free-elliptical fit used by
+the Phase 4 serial oracle. Phase 4R explicitly opts into the reviewed
+`beam-or-free` policy; model selection therefore cannot silently change an
+existing caller's catalogue. Under that policy, the free candidate must be
+finite, away from every physical parameter bound, and sufficiently well
+conditioned. A five-sigma log-area test selects clear extension directly.
+Otherwise the nested candidates use BIC with the number of independent
+samples appropriate to their residual model. A free candidate that pins a
+physical bound or is ill conditioned is rejected; Hebog retries a free shape
+at the stable beam-template centroid and finally uses the beam model or
+reports failure. The selected and rejected model identities, exact bound
+parameters, bound distances, condition number, visible footprint, retained
+geometry, and fallback reason remain auditable.
+
+Centroid bounds may extend beyond the detected region but never beyond the
+sampled image. Extension classification is repeated at the catalogue boundary
+using the reviewed ATLAS log integrated-to-peak statistic. If it does not pass,
+the source remains unresolved and catalogue integrated flux and error use the
+fitted peak and peak error. The raw fitted total remains available to governed
+unresolved-association diagnostics before that individual-row
+canonicalization.
 
 Invalid moments and regions with fewer than seven owned pixels return a typed
 unavailable fit. Exhausted iterations and scientifically invalid fitted

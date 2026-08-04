@@ -272,14 +272,22 @@ def _extension_classification(
         raise ValueError("available fit uncertainty requires integrated error")
     parameters = fit.parameters
     flux_ratio = integrated_flux_jy / parameters.amplitude_jy_per_beam
-    log_ratio_uncertainty = sqrt(
-        (integrated_flux_error_jy / integrated_flux_jy) ** 2
-        + (
-            uncertainty.amplitude_error_jy_per_beam
-            / parameters.amplitude_jy_per_beam
-        )
-        ** 2
+    log_ratio_variance = (
+        integrated_flux_error_jy / integrated_flux_jy
+    ) ** 2 + (
+        uncertainty.amplitude_error_jy_per_beam
+        / parameters.amplitude_jy_per_beam
+    ) ** 2
+    amplitude_integrated_covariance = (
+        uncertainty.amplitude_integrated_flux_covariance_jy_squared_per_beam
     )
+    if amplitude_integrated_covariance is not None:
+        log_ratio_variance -= (
+            2.0
+            * amplitude_integrated_covariance
+            / (parameters.amplitude_jy_per_beam * integrated_flux_jy)
+        )
+    log_ratio_uncertainty = sqrt(max(0.0, log_ratio_variance))
     if log(flux_ratio) > significance_sigma * log_ratio_uncertainty:
         return geometric
     return GaussianDeconvolution(

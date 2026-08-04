@@ -16,6 +16,7 @@ from hebog.validation.hebog_campaign import process_hebog_recipe
 
 _ROOT = Path(__file__).parents[2]
 _PAIRED_REGRESSION = _ROOT / "config/datasets/phase-4-paired-regression.json"
+_PHASE4R_DEVELOPMENT = _ROOT / "config/datasets/phase-4r-development.json"
 _SCIENTIFIC_GATES = _ROOT / "config/contracts/phase-4-scientific-gates.json"
 _UNDERSIZED_BLEND_CHILD_SEEDS = (
     2026100024,
@@ -23,6 +24,39 @@ _UNDERSIZED_BLEND_CHILD_SEEDS = (
     2026100165,
     2026100180,
 )
+
+
+def test_phase4r_low_snr_extended_edge_fit_is_not_catastrophic(
+    tmp_path: Path,
+) -> None:
+    """Correlated fitting must not force a clear edge source to beam size."""
+    dataset = load_dataset_manifest(_PHASE4R_DEVELOPMENT).datasets[0]
+    recipe = next(
+        recipe
+        for recipe in iter_dataset_recipes(dataset)
+        if recipe.seed == 2026120002
+    )
+    candidates = process_hebog_recipe(recipe, dataset, tmp_path / "edge")
+    diagnostic = diagnose_phase_four_realization(
+        dataset,
+        recipe,
+        candidates,
+        implementation_identifier="hebog",
+        outlier_thresholds=phase_four_outlier_thresholds(_SCIENTIFIC_GATES),
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+    )
+
+    pair = next(
+        item
+        for item in diagnostic.source_pairs
+        if item.truth_identifier == "source-00003"
+    )
+
+    assert not pair.gated_catastrophic
+    assert pair.candidate_quality_flags is not None
+    assert "correlated-noise-gls-errors" in pair.candidate_quality_flags
+    assert "beam-constrained-fit" not in pair.candidate_quality_flags
 
 
 @pytest.mark.equivalence

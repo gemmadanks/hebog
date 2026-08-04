@@ -265,9 +265,18 @@ def _association_diagnostics(
     dict[str, str],
 ]:
     """Match all observable truth groups and retain every decision."""
+    association_candidate = tuple(
+        replace(
+            source,
+            integrated_flux_jy=source.association_integrated_flux_jy,
+        )
+        if source.association_integrated_flux_jy is not None
+        else source
+        for source in candidate
+    )
     report = compare_catalogues(
         truth,
-        candidate,
+        association_candidate,
         beam_fwhm_degrees=policy.beam_fwhm_degrees,
         maximum_separation_beams=policy.maximum_separation_beams,
         position_angle_minimum_axis_ratio=(
@@ -308,7 +317,7 @@ def _association_diagnostics(
             )
         )
     candidate_by_identifier = {
-        source.identifier: source for source in candidate
+        source.identifier: source for source in association_candidate
     }
     rows.extend(
         AssociationPairDiagnostic(

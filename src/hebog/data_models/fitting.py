@@ -33,6 +33,9 @@ class GaussianFitUncertainty:
     centroid_covariance_xy_pixels_squared: float
     centroid_covariance_yy_pixels_squared: float
     integrated_flux_error_jy: float
+    amplitude_integrated_flux_covariance_jy_squared_per_beam: float | None = (
+        None
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,9 +48,11 @@ class GaussianFitDiagnostics:
     degrees_of_freedom: int
     reduced_chi_squared: float | None
     parameters_at_bound: bool
-    model_identity: Literal["free-elliptical", "beam-constrained"] = (
-        "free-elliptical"
-    )
+    model_identity: Literal[
+        "free-elliptical",
+        "beam-constrained",
+        "centroid-constrained-elliptical",
+    ] = "free-elliptical"
     bound_parameters: tuple[str, ...] = ()
     relative_bound_distances: tuple[tuple[str, float], ...] = ()
     minimum_relative_bound_distance: float | None = None
@@ -60,9 +65,31 @@ class GaussianFitDiagnostics:
             "free-model-bound-contact",
             "free-model-ill-conditioned",
             "free-model-not-significantly-extended",
+            "free-model-non-convergence",
+            "free-model-invalid-result",
         ]
         | None
     ) = None
+    point_estimator: Literal["diagonal-weighted", "correlated-gls"] = (
+        "diagonal-weighted"
+    )
+    point_estimator_fallback_reason: (
+        Literal[
+            "correlation-model-unavailable",
+            "correlation-factorization-failed",
+            "retained-region-exceeds-gls-limit",
+        ]
+        | None
+    ) = None
+    rejected_model_identity: (
+        Literal[
+            "free-elliptical",
+            "beam-constrained",
+            "centroid-constrained-elliptical",
+        ]
+        | None
+    ) = None
+    rejected_model_bound_parameters: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

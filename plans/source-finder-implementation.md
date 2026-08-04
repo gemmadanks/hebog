@@ -2056,7 +2056,7 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
          retained-pixel geometry. The current single `parameters_at_bound`
          boolean cannot distinguish a harmless periodic-angle representation
          from an unidentifiable centroid or shape.
-   - [ ] Add noiseless analytic tests for beam-shaped and extended Gaussians
+   - [x] Add noiseless analytic tests for beam-shaped and extended Gaussians
          truncated at each edge and corner, with sub-pixel centers and rotated
          elliptical beams. A centroid/axis ridge pinned to a physical bound
          must not be published as an ordinary valid free-shape result.
@@ -2068,7 +2068,7 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
          regression seeds before production fitting changes; select among
          ablations with development data and use the regression set as a
          confirmation boundary rather than another tuning loop.
-   - [ ] Add efficiency tests against analytic expectations and both PyBDSF
+   - [x] Add efficiency tests against analytic expectations and both PyBDSF
          references for position, peak flux, integrated flux, fitted shape,
          and deconvolution. Include tail and per-source-family reports so a
          good median cannot hide a small catastrophic mode.
@@ -2076,34 +2076,49 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
 3. **Select the smallest community-supported fitting correction from
    ablations.**
 
-   - [ ] Implement an internal beam-constrained Gaussian candidate for
+   - [x] Implement an internal beam-constrained Gaussian candidate for
          unresolved or low-information sources, while retaining the existing
          free elliptical candidate for demonstrably resolved emission. Select
          between them with a predeclared data-only extension/identifiability
          rule; never use truth class or a viewed-campaign source identity at
          runtime.
-   - [ ] Treat centroid, scale, amplitude, or background bound contact and an
+   - [x] Treat centroid, scale, amplitude, or background bound contact and an
          ill-conditioned free model as a failed model-selection attempt.
          Retry the constrained model and return explicit unavailability if no
          scientifically valid candidate remains. Do not turn clipping into a
          successful measurement merely to preserve availability.
-   - [ ] Factorially compare fixed versus fitted local background, owned
+   - [x] Factorially compare fixed versus fitted local background, owned
          source support versus bounded background context, and the existing
          diagonal point estimator versus a bounded correlated-noise
          generalized least-squares or whitening candidate. Test the
          constrained model first; add whitening complexity only if the broad
          position/peak efficiency gap remains and complete-path profiling
          supports it.
-   - [ ] Keep the implementation in vectorized NumPy/SciPy, with transformed
+   - [x] Keep the implementation in vectorized NumPy/SciPy, with transformed
          or scaled parameters where they improve conditioning. Retain a
          readable serial oracle, bounded per-region memory, coarse batching,
          deterministic results, and no source-sized Dask task proliferation.
          Do not introduce native code without meeting the existing profile
          and maintenance gates.
 
+   Development selected fixed-zero residual background, owned-region support,
+   and bounded correlated-noise GLS for at most 512 retained pixels. Larger
+   regions take an explicit diagonal/sandwich fallback. The nested rule uses a
+   five-sigma log-area test, BIC scaled consistently with the point estimator,
+   and a beam-centroid/free-shape retry for bound-contact or ill-conditioned
+   free fits. It is an explicit `beam-or-free` campaign policy; the public
+   default remains the Phase 4 `free-only` serial oracle, so model selection
+   cannot silently alter existing scientific products. On the 20-realization
+   development matrix this removed all four
+   catastrophic rows and improved Hebog's position, peak, integrated-flux,
+   fitted-axis, and deconvolved-axis medians and 95th percentiles relative to
+   both references. The unresolved-blend median also improved; its 95th
+   percentile is worse than both references by 0.0172, inside the predeclared
+   0.02 practical margin, and remains an explicit confirmation endpoint.
+
 4. **Qualify the correction on development and regression evidence.**
 
-   - [ ] Run the complete analytic, property, serial/Dask, partition, retry,
+   - [x] Run the complete analytic, property, serial/Dask, partition, retry,
          exact-product, Rapthor-adapter, and coverage lanes after every
          candidate. Preserve the current completeness, reliability,
          uncertainty calibration, unresolved-group, clear-extension,

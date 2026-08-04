@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import isfinite
 from numbers import Integral
+from typing import Literal
 
 _MINIMUM_RMS_SAMPLES = 2
 _MINIMUM_SHAPE_PIXELS = 3
@@ -307,6 +308,17 @@ class CompactGaussianFitConfig:
     maximum_axis_ratio: float
     maximum_background_offset_sigma: float = 3.0
     context_margin_pixels: int = 8
+    extension_significance_sigma: float = 5.0
+    maximum_information_condition_number: float = 1e8
+    background_model: Literal["fitted-offset", "fixed-zero"] = "fitted-offset"
+    pixel_support: Literal["bounded-context", "owned-region"] = (
+        "bounded-context"
+    )
+    point_estimator: Literal["diagonal-weighted", "correlated-gls"] = (
+        "diagonal-weighted"
+    )
+    maximum_gls_pixels: int = 512
+    model_selection: Literal["free-only", "beam-or-free"] = "free-only"
 
     def __post_init__(self) -> None:
         """Validate scientific parameter bounds and finite work limits."""
@@ -367,6 +379,42 @@ class CompactGaussianFitConfig:
         ):
             raise ValueError(
                 "context_margin_pixels must be a non-negative integer"
+            )
+        self._validate_selection_policy()
+
+    def _validate_selection_policy(self) -> None:
+        """Validate extension evidence and identifiability thresholds."""
+        if self.background_model not in {"fitted-offset", "fixed-zero"}:
+            raise ValueError("background_model is not a supported policy")
+        if self.pixel_support not in {"bounded-context", "owned-region"}:
+            raise ValueError("pixel_support is not a supported policy")
+        if self.point_estimator not in {
+            "diagonal-weighted",
+            "correlated-gls",
+        }:
+            raise ValueError("point_estimator is not a supported policy")
+        if self.model_selection not in {"free-only", "beam-or-free"}:
+            raise ValueError("model_selection is not a supported policy")
+        if (
+            isinstance(self.maximum_gls_pixels, bool)
+            or not isinstance(self.maximum_gls_pixels, Integral)
+            or self.maximum_gls_pixels < _MINIMUM_GAUSSIAN_FIT_PIXELS
+        ):
+            raise ValueError("maximum_gls_pixels must be an integer >= 7")
+        if (
+            not isfinite(self.extension_significance_sigma)
+            or self.extension_significance_sigma <= 0
+        ):
+            raise ValueError(
+                "extension_significance_sigma must be finite and positive"
+            )
+        if (
+            not isfinite(self.maximum_information_condition_number)
+            or self.maximum_information_condition_number <= 1
+        ):
+            raise ValueError(
+                "maximum_information_condition_number must be finite and "
+                "greater than one"
             )
 
 

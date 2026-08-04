@@ -24,6 +24,7 @@ from hebog.config import (
 )
 from hebog.data_models import ImageBounds
 from hebog.data_models.catalogues import GaussianShape, SourceCatalogue
+from hebog.data_models.images import ImageMetadata
 from hebog.executors import SerialExecutor
 from hebog.io import ImageWindow, ZarrProductSink
 from hebog.stages.catalogue import run_compact_catalogue_stage
@@ -107,6 +108,10 @@ def _configs() -> tuple[
             1.0,
             1e-8,
             30.0,
+            background_model="fixed-zero",
+            pixel_support="owned-region",
+            point_estimator="correlated-gls",
+            model_selection="beam-or-free",
         ),
         CompactCatalogueConfig(10_000, 1e-10, 5.0),
     )
@@ -160,6 +165,7 @@ def hebog_campaign_configuration() -> dict[str, object]:
         },
         "executor": "serial",
         "fitting": {
+            "background_model": fit.background_model,
             "center_margin_pixels": fit.center_margin_pixels,
             "context_margin_pixels": fit.context_margin_pixels,
             "convergence_tolerance": fit.convergence_tolerance,
@@ -169,9 +175,17 @@ def hebog_campaign_configuration() -> dict[str, object]:
                 fit.maximum_background_offset_sigma
             ),
             "maximum_function_evaluations": fit.maximum_function_evaluations,
+            "maximum_information_condition_number": (
+                fit.maximum_information_condition_number
+            ),
             "maximum_sigma_pixels": fit.maximum_sigma_pixels,
             "minimum_fit_pixels": fit.minimum_fit_pixels,
             "minimum_sigma_pixels": fit.minimum_sigma_pixels,
+            "extension_significance_sigma": (fit.extension_significance_sigma),
+            "maximum_gls_pixels": fit.maximum_gls_pixels,
+            "model_selection": fit.model_selection,
+            "pixel_support": fit.pixel_support,
+            "point_estimator": fit.point_estimator,
         },
         "image_dtype": "float64",
         "moment": {
@@ -216,6 +230,7 @@ def _shape(shape: GaussianShape | None) -> CatalogueEllipse | None:
 
 def _comparison_sources(
     catalogue: SourceCatalogue,
+    metadata: ImageMetadata,
 ) -> tuple[CatalogueSource, ...]:
     """Translate the internal catalogue without adapter round trips."""
     component_counts = {
@@ -232,6 +247,17 @@ def _comparison_sources(
             declination_degrees=source.position.declination_degrees,
             peak_flux_jy_per_beam=source.flux.peak_flux_jy_per_beam,
             integrated_flux_jy=source.flux.integrated_flux_jy,
+            association_integrated_flux_jy=(
+                source.flux.peak_flux_jy_per_beam
+                * source.fitted_shape.major_fwhm_degrees
+                * source.fitted_shape.minor_fwhm_degrees
+                / (
+                    metadata.beam.major_fwhm_degrees
+                    * metadata.beam.minor_fwhm_degrees
+                )
+                if source.fitted_shape is not None
+                else None
+            ),
             right_ascension_error_degrees=(
                 source.position.right_ascension_error_degrees
             ),
@@ -311,4 +337,4 @@ def process_hebog_recipe(
         ),
         config=catalogue_config,
     )
-    return _comparison_sources(completed.catalogue)
+    return _comparison_sources(completed.catalogue, metadata)

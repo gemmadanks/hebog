@@ -4215,3 +4215,82 @@ and compatibility serialization
 - Add noiseless edge/corner validity tests and implement the independently
   selected beam-constrained/free nested fit without consulting the terminal
   Phase 4 population.
+
+## 2026-08-04 — Selected the Phase 4R compact fitting candidate
+
+**Plan phase:** Phase 4R, Steps 2–3 — analytic failures and fitting ablations
+
+**Completed**
+
+- Added noiseless beam-shaped edge/corner and clear-extension tests plus a
+  frozen development regression for the low-SNR extended edge failure.
+- Implemented nested free-elliptical and restoring-beam-constrained SciPy
+  fits. Physical bound contact and ill conditioning reject the free candidate;
+  a beam-centroid/free-shape retry preserves measurable edge extension.
+- Retained selected and rejected model identities, exact bound parameters,
+  condition, footprint, point-estimator identity, fallback reason, and
+  retained geometry in scheduler-safe diagnostics.
+- Corrected amplitude/integrated-flux covariance propagation so the shared
+  fitted amplitude is not counted twice in the extension statistic.
+- Completed the predeclared background, pixel-support, and point-estimator
+  factorial. Selected a fixed-zero residual background, owned-region support,
+  and exact correlated-noise GLS capped at 512 pixels. Larger regions take an
+  explicit diagonal/sandwich fallback rather than dense unbounded work.
+- Preserved raw fitted total for unresolved-group diagnostics before applying
+  peak-as-total to individual unresolved catalogue rows. Rejected an
+  island-pixel-sum group ablation because threshold truncation failed the
+  existing median-flux gate.
+
+**Evidence**
+
+- The selected 20-realization candidate completed every image, matched all 240
+  individual sources, and produced zero catastrophic rows. It beat both exact
+  PyBDSF references on overall position, peak, integrated-flux, fitted-axis,
+  and deconvolved-axis medians and 95th percentiles.
+- Hebog's unresolved-blend median was 0.04663 versus 0.05247 for both
+  references. Its 0.13150 tail was 0.01718 worse than the references and
+  remains inside the predeclared 0.02 practical margin.
+- One final-seed 5-sigma noise candidate gave 99.62% development reliability,
+  0.38% below the references and inside the predeclared 0.5% resolution.
+- Focused fitting, astrometry, campaign, product-reader, runner, and recovery
+  tests pass 85 cases; the fitting and Phase 4R recovery subset passes 46.
+
+**Next**
+
+- Freeze the implementation revision, run the 100-realization confirmation
+  once, and evaluate every registered metric and applicable stratum against
+  both references before requesting the later named qualification review.
+
+## 2026-08-04 — Preserved the exact Phase 4 fitting oracle
+
+**Plan phase:** Phase 4R, Step 4 — candidate freeze and validation
+
+**Completed**
+
+- Made compact model selection an explicit scientific policy. Ordinary
+  callers retain the Phase 4 `free-only` estimator; the governed Phase 4R
+  campaign pins `beam-or-free` alongside its fixed background, owned support,
+  and bounded correlated-GLS choices.
+- Added a regression test for the default and restored the exact compact
+  catalogue equivalence gate that exposed the previously implicit behavior
+  change.
+- Repeated the frozen 20-realization development candidate under the explicit
+  configuration identity. Every realization diagnostic is exactly equal to
+  the selected evidence, with no failures; only the execution-configuration
+  digest changed to include the newly explicit policy.
+
+**Evidence**
+
+- The focused fitting, runner-configuration, and exact compact-catalogue
+  suites pass 61 tests.
+- `just check` passes Ruff, Pyright, doctests, and 688 fast tests;
+  `just test-equivalence` passes 26 tests; `just test-integration` passes 128
+  tests; and branch-aware project coverage is 95%. The strict documentation
+  build and the complete push-stage pre-commit suite also pass. The acceptance
+  lane retains its seven planned expected failures and has no unexpected
+  failure.
+
+**Next**
+
+- Complete the full scientific and quality lanes, commit the frozen
+  candidate, and run the confirmation-only regression exactly once.

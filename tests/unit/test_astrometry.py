@@ -348,6 +348,27 @@ def test_default_extension_policy_requires_five_sigma() -> None:
     assert "extension-not-significant" in result.quality_flags
 
 
+def test_extension_ratio_uses_amplitude_integral_covariance() -> None:
+    """Shared amplitude uncertainty is not counted twice in an area ratio."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.0025,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.005,
+        amplitude_integrated_flux_covariance_jy_squared_per_beam=1.25e-5,
+    )
+
+    result = transform_compact_gaussian_fit(
+        _fit(uncertainty=uncertainty),
+        _metadata(),
+    )
+
+    assert result.deconvolution_status == "resolved"
+    assert result.deconvolved_shape is not None
+    assert "extension-not-significant" not in result.quality_flags
+
+
 def test_geometrically_unresolved_fit_remains_unresolved() -> None:
     """The significance rule preserves an already beam-compatible shape."""
     uncertainty = GaussianFitUncertainty(

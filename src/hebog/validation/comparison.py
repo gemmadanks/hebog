@@ -209,6 +209,7 @@ class CatalogueSource:
     island_identifier: str | None = None
     component_count: int | None = None
     quality_flags: tuple[str, ...] = ()
+    association_integrated_flux_jy: float | None = None
 
     def _validate_optional_metadata(self) -> None:
         """Validate optional errors, associations, and quality flags."""
@@ -265,6 +266,13 @@ class CatalogueSource:
             raise ValueError("declination must be within [-90, 90] degrees")
         if self.peak_flux_jy_per_beam <= 0 or self.integrated_flux_jy <= 0:
             raise ValueError("source fluxes must be positive")
+        association_flux = self.association_integrated_flux_jy
+        if association_flux is not None and (
+            not np.isfinite(association_flux) or association_flux <= 0
+        ):
+            raise ValueError(
+                "association integrated flux must be finite and positive"
+            )
         self._validate_optional_metadata()
         self._validate_deconvolution()
         normalized_right_ascension = (

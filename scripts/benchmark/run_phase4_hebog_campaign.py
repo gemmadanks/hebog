@@ -1,4 +1,4 @@
-"""Run Hebog over a governed Phase 4 regression or qualification campaign."""
+"""Run Hebog over a governed Phase 4 scientific campaign."""
 
 from __future__ import annotations
 
@@ -27,7 +27,6 @@ from hebog.validation.campaigns import diagnose_phase_four_realization
 from hebog.validation.comparison import CatalogueOutlierThresholds
 from hebog.validation.datasets import (
     DatasetRecord,
-    DatasetRole,
     SyntheticRecipe,
     iter_dataset_recipes,
 )
@@ -141,11 +140,6 @@ def _run(args: argparse.Namespace) -> CampaignImplementationEvidence:
             f"expected {args.expected_version}, observed {observed_version}"
         )
     dataset = dataset_by_identifier(args.manifest, args.dataset_id)
-    if dataset.role not in {DatasetRole.REGRESSION, DatasetRole.QUALIFICATION}:
-        raise ValueError(
-            "Phase 4 candidate campaigns require regression or "
-            "qualification data"
-        )
     require_reviewed_qualification_inputs(
         dataset,
         scientific_contracts=args.scientific_contract,

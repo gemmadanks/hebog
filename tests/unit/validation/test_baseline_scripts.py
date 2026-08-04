@@ -235,6 +235,7 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
         },
         "executor": "serial",
         "fitting": {
+            "background_model": "fixed-zero",
             "center_margin_pixels": 1.0,
             "context_margin_pixels": 8,
             "convergence_tolerance": 1e-8,
@@ -242,9 +243,15 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
             "maximum_axis_ratio": 30.0,
             "maximum_background_offset_sigma": 3.0,
             "maximum_function_evaluations": 300,
+            "maximum_information_condition_number": 100000000.0,
+            "maximum_gls_pixels": 512,
             "maximum_sigma_pixels": 30.0,
+            "model_selection": "beam-or-free",
             "minimum_fit_pixels": 7,
             "minimum_sigma_pixels": 0.2,
+            "extension_significance_sigma": 5.0,
+            "pixel_support": "owned-region",
+            "point_estimator": "correlated-gls",
         },
         "image_dtype": "float64",
         "moment": {

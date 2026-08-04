@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 from astropy.io import fits
@@ -30,7 +31,9 @@ def test_pybdsf_reader_treats_nonpositive_errors_as_unavailable(
         source.writeto(output)
 
     row = load_pybdsf_catalogue(output)[0]
+    table = cast(Any, fits.getdata(output, ext=1))
 
     assert row.right_ascension_error_degrees is None
     assert row.fitted_shape is not None
     assert row.fitted_shape.major_fwhm_error_degrees is None
+    assert row.association_integrated_flux_jy == float(table["Total_flux"][0])

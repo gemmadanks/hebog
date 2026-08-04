@@ -46,6 +46,28 @@ def _geometry() -> CompactMeasurementGeometry:
     )
 
 
+def _beam_geometry() -> CompactMeasurementGeometry:
+    """Return a self-consistent elliptical restoring beam in pixel space."""
+    major_sigma = 1.6
+    minor_sigma = 8.0 / (2.0 * np.pi * major_sigma)
+    angle = np.deg2rad(20.0)
+    major = np.asarray([np.cos(angle), np.sin(angle)])
+    minor = np.asarray([-np.sin(angle), np.cos(angle)])
+    covariance = major_sigma**2 * np.outer(
+        major, major
+    ) + minor_sigma**2 * np.outer(minor, minor)
+    covariance_values = (
+        float(covariance[0, 0]),
+        float(covariance[0, 1]),
+        float(covariance[1, 1]),
+    )
+    return CompactMeasurementGeometry(
+        pixel_solid_angle_steradians=1.0,
+        restoring_beam_solid_angle_steradians=8.0,
+        restoring_beam_covariance_pixels_squared=covariance_values,
+    )
+
+
 def _moment_config() -> CompactMomentConfig:
     return CompactMomentConfig(
         minimum_shape_pixels=3,
@@ -226,6 +248,138 @@ def test_fit_centroid_cannot_leave_the_sampled_image_footprint() -> None:
     assert result.diagnostics.retained_bounds_yx == (248, 256, 150, 171)
 
 
+@pytest.mark.parametrize(
+    "centroid_xy",
+    (
+        (0.75, 8.0),
+        (17.25, 8.0),
+        (8.0, 0.75),
+        (8.0, 15.25),
+        (0.75, 0.75),
+        (17.25, 0.75),
+        (0.75, 15.25),
+        (17.25, 15.25),
+    ),
+)
+def test_beam_shaped_edge_and_corner_sources_use_constrained_fit(
+    centroid_xy: tuple[float, float],
+) -> None:
+    """Low-information truncation cannot create a free-shape edge ridge."""
+    geometry = _beam_geometry()
+    covariance = geometry.restoring_beam_covariance_pixels_squared
+    assert covariance is not None
+    matrix = np.asarray(
+        [[covariance[0], covariance[1]], [covariance[1], covariance[2]]]
+    )
+    eigenvalues = np.linalg.eigvalsh(matrix)
+    axes = tuple(np.sqrt(eigenvalues[::-1]))
+    compact = _gaussian_input(
+        amplitude=0.5,
+        centroid_xy=centroid_xy,
+        sigma_axes=axes,
+        angle_degrees=20.0,
+        shape_yx=(17, 19),
+        origin_yx=(0, 0),
+    )
+
+    result = _fit(
+        compact,
+        config=_fit_config(model_selection="beam-or-free"),
+        geometry=geometry,
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == "beam-constrained"
+    assert result.diagnostics.fallback_reason == (
+        "free-model-not-significantly-extended"
+    )
+    assert result.parameters.centroid_xy == pytest.approx(
+        centroid_xy, abs=1e-6
+    )
+    assert result.parameters.major_sigma_pixels == pytest.approx(axes[0])
+    assert result.parameters.minor_sigma_pixels == pytest.approx(axes[1])
+    assert not result.diagnostics.parameters_at_bound
+    assert "beam-constrained-fit" in result.quality_flags
+
+
+def test_clear_extended_source_retains_free_elliptical_fit() -> None:
+    """A high-information extension remains free rather than beam-forced."""
+    compact = _gaussian_input(amplitude=5.0, sigma_axes=(3.8, 2.4))
+
+    result = _fit(
+        compact,
+        config=_fit_config(model_selection="beam-or-free"),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == "free-elliptical"
+    assert result.diagnostics.fallback_reason is None
+    assert result.parameters.major_sigma_pixels == pytest.approx(3.8)
+    assert result.parameters.minor_sigma_pixels == pytest.approx(2.4)
+
+
+def test_fixed_background_is_an_explicit_smaller_model() -> None:
+    """Residual maps may omit a redundant fitted local offset parameter."""
+    compact = _gaussian_input(amplitude=5.0, sigma_axes=(3.8, 2.4))
+
+    result = _fit(
+        compact,
+        config=_fit_config(
+            background_model="fixed-zero",
+            model_selection="beam-or-free",
+        ),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == "free-elliptical"
+    assert "background" not in dict(
+        result.diagnostics.relative_bound_distances
+    )
+    assert result.diagnostics.degrees_of_freedom == (
+        compact.physical_residual.size - 6
+    )
+
+
+def test_bound_contact_is_not_published_as_an_ordinary_free_fit() -> None:
+    """A physical-bound ridge must fall back or fail explicitly."""
+    compact = _gaussian_input(
+        centroid_xy=(160.0, 256.5),
+        shape_yx=(8, 21),
+        origin_yx=(248, 150),
+    )
+
+    result = _fit(
+        compact,
+        config=_fit_config(model_selection="beam-or-free"),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == (
+        "centroid-constrained-elliptical"
+    )
+    assert result.diagnostics.fallback_reason == "free-model-bound-contact"
+    assert result.diagnostics.rejected_model_identity == "free-elliptical"
+    assert "centroid-y" in result.diagnostics.rejected_model_bound_parameters
+    assert "centroid-constrained-fit" in result.quality_flags
+    assert "fit-at-bound" not in result.quality_flags
+
+
+def test_default_model_selection_preserves_the_free_fit_oracle() -> None:
+    """Ordinary callers retain the established free-elliptical estimator."""
+    assert _fit_config().model_selection == "free-only"
+    result = _fit(
+        _gaussian_input(amplitude=0.5, sigma_axes=(1.9, 1.2)),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == "free-elliptical"
+    assert "beam-constrained-fit" not in result.quality_flags
+
+
 def test_fit_is_translation_and_positive_scaling_equivariant() -> None:
     """Global origin and brightness units do not change fitted shape."""
     first = _fit(
@@ -290,6 +444,68 @@ def test_formal_errors_account_for_correlated_noise() -> None:
     )
 
 
+def test_correlated_gls_changes_point_estimate_and_formal_error_policy() -> (
+    None
+):
+    """Small-region GLS whitens both residuals and the fitted Jacobian."""
+    compact = _gaussian_input()
+    y, x = np.indices(compact.physical_residual.shape, dtype=np.float64)
+    noisy = replace(
+        compact,
+        physical_residual=(
+            compact.physical_residual
+            + 0.005 * (1.0 + np.sin(0.25 * x + 0.4 * y))
+        ),
+    )
+    geometry = CompactMeasurementGeometry(
+        pixel_solid_angle_steradians=1.0,
+        restoring_beam_solid_angle_steradians=8.0,
+        noise_correlation_covariance_pixels_squared=(4.0, 0.5, 2.0),
+    )
+
+    diagonal = _fit(noisy, geometry=geometry)
+    generalized = _fit(
+        noisy,
+        config=_fit_config(point_estimator="correlated-gls"),
+        geometry=geometry,
+    )
+
+    assert isinstance(diagonal, ValidCompactGaussianFit)
+    assert isinstance(generalized, ValidCompactGaussianFit)
+    assert generalized.parameters.centroid_xy != pytest.approx(
+        diagonal.parameters.centroid_xy,
+        abs=1e-8,
+    )
+    assert generalized.diagnostics.point_estimator == "correlated-gls"
+    assert "correlated-noise-gls-errors" in generalized.quality_flags
+    assert "correlated-noise-sandwich-errors" not in generalized.quality_flags
+
+
+def test_correlated_gls_falls_back_before_dense_work_exceeds_bound() -> None:
+    """Large retained regions keep an explicit bounded diagonal fallback."""
+    geometry = CompactMeasurementGeometry(
+        pixel_solid_angle_steradians=1.0,
+        restoring_beam_solid_angle_steradians=8.0,
+        noise_correlation_covariance_pixels_squared=(4.0, 0.0, 2.0),
+    )
+
+    result = _fit(
+        _gaussian_input(),
+        config=_fit_config(
+            point_estimator="correlated-gls",
+            maximum_gls_pixels=100,
+        ),
+        geometry=geometry,
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.point_estimator == "diagonal-weighted"
+    assert result.diagnostics.point_estimator_fallback_reason == (
+        "retained-region-exceeds-gls-limit"
+    )
+    assert "correlated-gls-fallback" in result.quality_flags
+
+
 def test_fit_bilinearly_samples_rms_at_the_fitted_centroid() -> None:
     """Component noise uses the contract's sub-pixel local RMS value."""
     compact = _gaussian_input(centroid_xy=(28.25, 17.5))
@@ -340,6 +556,47 @@ def test_context_fit_samples_rms_relative_to_the_retained_array() -> None:
     assert isinstance(result, ValidCompactGaussianFit)
     expected = 0.01 + 0.001 * 16.25 + 0.002 * 15.5
     assert result.parameters.local_rms_jy_per_beam == pytest.approx(expected)
+
+
+def test_owned_region_support_excludes_unlabelled_context() -> None:
+    """The owned-support ablation must not fit neighbouring background."""
+    compact = _gaussian_input(centroid_xy=(28.25, 17.5))
+    margin = 4
+    shape = (
+        compact.physical_residual.shape[0] + 2 * margin,
+        compact.physical_residual.shape[1] + 2 * margin,
+    )
+    residual = np.full(shape, 100.0, dtype=np.float64)
+    labels = np.zeros(shape, dtype=np.int32)
+    core = (slice(margin, -margin), slice(margin, -margin))
+    residual[core] = compact.physical_residual
+    labels[core] = compact.region_labels
+    expanded = replace(
+        compact,
+        array_bounds=ImageBounds(
+            compact.array_bounds.y_start - margin,
+            compact.array_bounds.y_stop + margin,
+            compact.array_bounds.x_start - margin,
+            compact.array_bounds.x_stop + margin,
+        ),
+        physical_residual=residual,
+        rms=np.full(shape, 0.05, dtype=np.float64),
+        valid_pixels=np.ones(shape, dtype=np.bool_),
+        region_labels=labels,
+    )
+
+    result = _fit(
+        expanded,
+        _fit_config(pixel_support="owned-region"),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.parameters.centroid_xy == pytest.approx(
+        (28.25, 17.5), abs=1e-6
+    )
+    assert result.diagnostics.retained_pixel_count == int(
+        np.count_nonzero(expanded.region_labels == 1)
+    )
 
 
 def test_scipy_selection_agrees_with_independent_astropy_model() -> None:
@@ -420,6 +677,16 @@ def test_underdetermined_measurement_is_not_fitted() -> None:
         ({"maximum_axis_ratio": 1.0}, "axis_ratio"),
         ({"maximum_background_offset_sigma": 0.0}, "background_offset"),
         ({"context_margin_pixels": -1}, "context_margin"),
+        ({"extension_significance_sigma": 0.0}, "extension_significance"),
+        (
+            {"maximum_information_condition_number": 1.0},
+            "information_condition",
+        ),
+        ({"pixel_support": "unknown"}, "pixel_support"),
+        ({"background_model": "unknown"}, "background_model"),
+        ({"point_estimator": "unknown"}, "point_estimator"),
+        ({"model_selection": "unknown"}, "model_selection"),
+        ({"maximum_gls_pixels": 6}, "maximum_gls_pixels"),
     ],
 )
 def test_fit_policy_rejects_invalid_bounds(

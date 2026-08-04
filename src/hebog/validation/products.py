@@ -233,6 +233,7 @@ def load_pybdsf_catalogue(path: Path) -> tuple[CatalogueSource, ...]:
             declination_degrees=float(row["DEC"]),
             peak_flux_jy_per_beam=float(row["Peak_flux"]),
             integrated_flux_jy=float(row["Total_flux"]),
+            association_integrated_flux_jy=float(row["Total_flux"]),
             right_ascension_error_degrees=optional_positive(row, "E_RA"),
             declination_error_degrees=optional_positive(row, "E_DEC"),
             peak_flux_error_jy_per_beam=optional_positive(

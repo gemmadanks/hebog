@@ -1170,3 +1170,46 @@ beam, correlated-noise, and WCS configuration rather than repeating the
 development pixels. Both cover SNR 10, 15, 25, and 50; unresolved, marginal,
 and clear shapes; edges and corners; an unresolved blend; RMS gradients; an
 invalid patch; and correlated noise.
+
+## Phase 4R fitting development result
+
+Only the 20-realization development matrix was used to select the fitting
+candidate. The frozen 100-realization regression matrix remained unopened.
+The factorial comparison selected:
+
+- a fixed-zero offset because the governed input is already a
+  background-subtracted residual;
+- exact owned-region support, which improved position, flux, and shape medians
+  over bounded context while retaining the context policy as an explicit
+  ablation;
+- a nested restoring-beam/free-elliptical fit, with physical bound contact and
+  ill conditioning treated as rejected-model evidence; this is frozen as the
+  explicit Phase 4R `beam-or-free` policy while the library default remains
+  the Phase 4 `free-only` oracle;
+- a beam-centroid/free-shape retry for a rejected free edge fit; and
+- exact bounded correlated-noise GLS for at most 512 retained pixels, with an
+  explicit diagonal/sandwich fallback above the cap.
+
+The selected candidate completed all 20 realizations and all 240 individual
+source matches without a catastrophic row. Its overall median/95th-percentile
+absolute errors were 0.02477/0.10539 beam for position, 0.03334/0.13972 for
+peak flux, 0.03541/0.28075 for integrated flux, 0.02710/0.13956 for fitted
+axes, and 0.09779/0.33918 for deconvolved axes. Every one of those values is
+better than released and pinned-`master` PyBDSF on the identical images.
+
+The unresolved-blend median total-flux error was 0.04663, also better than
+both references at 0.05247. Its 95th percentile was 0.13150 versus 0.11432,
+a 0.01718 development difference inside the predeclared 0.02 practical
+margin. An island-pixel-sum ablation was rejected: despite being a useful
+separate catalogue field, threshold truncation increased the group median to
+0.11425 and failed the existing 0.10 absolute limit. Association diagnostics
+therefore continue to use the fitted total before individual unresolved rows
+are canonicalized to peak-as-total.
+
+Hebog produced one 5-sigma noise candidate in the final development seed,
+giving 99.62% reliability versus 100% for both references. The 0.38%
+difference is within the predeclared 0.5% practical resolution and is retained
+as a confirmation endpoint; it was not removed with an
+implementation-specific threshold. The selected estimator materially
+improved normalized-residual bias and dispersion over both PyBDSF references
+on this small diagnostic set.

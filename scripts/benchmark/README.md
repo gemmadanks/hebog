@@ -154,7 +154,10 @@ not the performance generator, establish scientific correctness.
 reference once in the isolated released-PyBDSF environment and once in the
 pinned `master` environment. All runners regenerate every image from the
 complete governed dataset record as float64 and emit a strict
-`CampaignImplementationEvidence` shard. The reference applies Rapthor's exact
+`CampaignImplementationEvidence` shard. Development datasets may be used for
+viewable ablations, regression datasets for confirmation, and qualification
+datasets only after their reviewed one-look protocol permits opening. The
+reference applies Rapthor's exact
 PyBDSF profile; the candidate freezes every Hebog threshold, bounded-work
 limit, tile size, and serial execution policy. The full dataset-record digest
 binds the base recipe, every seed, WCS, beam, truth association, and stratum.

@@ -50,7 +50,6 @@ from hebog.validation.comparison import (
 )
 from hebog.validation.datasets import (
     DatasetRecord,
-    DatasetRole,
     SyntheticRecipe,
     generate_synthetic_image,
     iter_dataset_recipes,
@@ -239,11 +238,6 @@ def _run(
             f"expected {args.expected_version}, observed {observed_version}"
         )
     dataset = _dataset_by_identifier(args.manifest, args.dataset_id)
-    if dataset.role not in {DatasetRole.REGRESSION, DatasetRole.QUALIFICATION}:
-        raise ValueError(
-            "Phase 4 reference campaigns require regression or "
-            "qualification data"
-        )
     _require_reviewed_inputs(
         dataset,
         scientific_contracts=args.scientific_contract,
