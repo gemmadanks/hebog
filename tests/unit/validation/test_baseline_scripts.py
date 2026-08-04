@@ -19,6 +19,8 @@ from hebog.io.base import ImageWindow
 from hebog.stages.background import estimate_background_rms_grids
 from hebog.validation.comparison import CatalogueOutlierThresholds
 from hebog.validation.datasets import (
+    DatasetManifest,
+    DatasetRole,
     iter_dataset_recipes,
     load_dataset_manifest,
 )
@@ -97,6 +99,74 @@ def test_final_evaluator_refuses_to_overwrite_a_decision(
 
     with pytest.raises(FileExistsError, match="refusing to overwrite"):
         namespace["main"]()
+
+
+def test_phase4r_qualification_freeze_changes_every_field_family(
+    tmp_path: Path,
+) -> None:
+    """The one-look population is more than a new contiguous seed range."""
+    root = Path(__file__).parents[3]
+    template_path = root / "config/datasets/phase-4r-regression-2.json"
+    template = load_dataset_manifest(template_path).datasets[0]
+    namespace = _validation_script("freeze_phase4r_iteration.py")
+    arguments = SimpleNamespace(
+        template=template_path,
+        output=tmp_path / "qualification.json",
+        identifier="phase4r-qualification-256",
+        role="qualification",
+        first_seed=2026170001,
+        realizations=600,
+        provenance="Frozen after named review and before one-look execution.",
+        reflect_x=True,
+        reference_sky_degrees=(318.2, -58.4),
+        pixel_scale_degrees_xy=(-0.00025, 0.00026),
+        wcs_rotation_degrees=44.0,
+        background=-0.00011,
+    )
+
+    document = namespace["_derived_document"](arguments)
+    manifest = DatasetManifest.model_validate(document)
+    frozen = manifest.datasets[0]
+    recipes = iter_dataset_recipes(frozen)
+
+    assert manifest.manifest_id == "phase-4r-qualification"
+    assert frozen.role is DatasetRole.QUALIFICATION
+    assert len(recipes) == 600
+    assert frozen.recipe.sources[0].x_pixel == pytest.approx(
+        frozen.recipe.shape_yx[1] - 1 - template.recipe.sources[0].x_pixel
+    )
+    assert frozen.recipe.sources[
+        0
+    ].rotation_degrees_counterclockwise_from_x == (
+        pytest.approx(
+            (
+                180.0
+                - template.recipe.sources[
+                    0
+                ].rotation_degrees_counterclockwise_from_x
+            )
+            % 180.0
+        )
+    )
+    assert frozen.beam.position_angle_degrees == pytest.approx(57.0)
+    assert frozen.recipe.noise_correlation is not None
+    assert frozen.recipe.noise_correlation.position_angle_degrees == (
+        pytest.approx(57.0)
+    )
+    assert frozen.recipe.noise_rms_fractional_gradient_xy == pytest.approx(
+        (0.1, 0.14)
+    )
+    assert frozen.recipe.invalid_rectangles[0].x_start == 103
+    assert frozen.recipe.invalid_rectangles[0].x_stop == 111
+    assert frozen.wcs.reference_sky_degrees == pytest.approx((318.2, -58.4))
+    assert frozen.wcs.pixel_scale_degrees_xy == pytest.approx(
+        (-0.00025, 0.00026)
+    )
+    assert frozen.wcs.rotation_degrees_counterclockwise == pytest.approx(44.0)
+    assert frozen.recipe.background == pytest.approx(-0.00011)
+    assert frozen.expected_statistics.background_jy_per_beam == pytest.approx(
+        -0.00011
+    )
 
 
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (

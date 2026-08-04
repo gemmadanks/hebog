@@ -2223,7 +2223,7 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
 
 5. **Govern one new Phase 4R qualification and performance closeout.**
 
-   - [ ] After implementation and metric definitions are frozen, obtain named
+   - [x] After implementation and metric definitions are frozen, obtain named
          scientific review of the model-selection rule, metric registry,
          practical margins, missingness semantics, regression evidence,
          power, and one-look stopping rule. Only then freeze one new Phase 4R
@@ -2243,6 +2243,16 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
          matrix and close compact measurement when the 4.0-second combined
          allocation, adjacent-tier, density, memory, and graph-shape gates all
          pass.
+
+   Named review was recorded at `4688081` before the qualification population
+   existed. The sole population is now frozen as
+   `phase-4r-qualification.json`: 600 new noise seeds, horizontally reflected
+   source/association/invalid-region geometry, beam and correlated-noise PA
+   57 degrees, a new sky field and WCS scale/rotation, and a new negative
+   background. Its manifest and recipe SHA-256 values are
+   `93f2d9f876b9b3f58df09ad64796e39ed404980a14f7c4542f0ae2b3120c42e4`
+   and `82870d14dbe163c1d1ca79d0b163bc69c406ed2288da3cf489ebdb03989de5fc`.
+   No qualification output existed when these identities were recorded.
 
 Exit gate: every registered absolute gate passes. For every comparable
 metric produced by each reference, Hebog is statistically non-inferior for

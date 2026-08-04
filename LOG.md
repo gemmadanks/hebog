@@ -4527,3 +4527,32 @@ and compatibility serialization
 
 - Commit the named review before creating any qualification population, then
   freeze and execute the single 600-realization Phase 4R qualification.
+
+## 2026-08-04 — Froze the sole Phase 4R qualification population
+
+**Plan phase:** Phase 4R, Step 5 — one-look qualification freeze
+
+**Completed**
+
+- Extended the existing refusing-overwrite Phase 4R freeze tool with an
+  explicit qualification mode and reviewed field overrides.
+- Added a red/green contract proving that qualification horizontally reflects
+  source, association, and invalid-region coordinates while consistently
+  reflecting source, beam, and correlated-noise covariances and setting the
+  reviewed disjoint WCS and background.
+- Froze 600 new realizations only after named review commit `4688081`. Added a
+  repository contract proving that no seed appears in any earlier Phase 4 or
+  Phase 4R manifest.
+
+**Evidence**
+
+- Qualification manifest SHA-256:
+  `93f2d9f876b9b3f58df09ad64796e39ed404980a14f7c4542f0ae2b3120c42e4`.
+- Canonical qualification recipe SHA-256:
+  `82870d14dbe163c1d1ca79d0b163bc69c406ed2288da3cf489ebdb03989de5fc`.
+- No candidate or reference qualification output existed at freeze time.
+
+**Next**
+
+- Validate and commit the immutable population before opening it, then execute
+  the unchanged candidate and both exact PyBDSF references exactly once.

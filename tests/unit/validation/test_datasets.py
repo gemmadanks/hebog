@@ -466,6 +466,30 @@ def test_tail_recovery_development_is_frozen_and_disjoint() -> None:
     )
 
 
+def test_phase4r_qualification_is_powered_frozen_and_disjoint() -> None:
+    """The reviewed one-look population cannot reuse any prior noise seed."""
+    manifest_path = _DATASET_DIRECTORY / "phase-4r-qualification.json"
+    qualification = load_dataset_manifest(manifest_path).datasets[0]
+    qualification_seeds = {
+        recipe.seed for recipe in iter_dataset_recipes(qualification)
+    }
+    prior_seeds = {
+        recipe.seed
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4*.json"))
+        if path != manifest_path
+        for dataset in load_dataset_manifest(path).datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+
+    assert qualification.role is DatasetRole.QUALIFICATION
+    assert len(qualification_seeds) == 600
+    assert not qualification_seeds & prior_seeds
+    assert "after named scientific review" in qualification.provenance
+    assert qualification.recipe_sha256 == (
+        "82870d14dbe163c1d1ca79d0b163bc69c406ed2288da3cf489ebdb03989de5fc"
+    )
+
+
 def test_phase_four_final_qualification_is_frozen_and_unseen() -> None:
     """The final one-look population is powered, disjoint, and unopened."""
     manifest_path = _DATASET_DIRECTORY / "phase-4-final-qualification.json"

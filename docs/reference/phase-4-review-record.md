@@ -1393,3 +1393,16 @@ one-look Phase 4R qualification. This named exception was approved on
 It does not rescore confirmation, relax any absolute threshold or practical
 margin, or permit another qualification attempt. Every registered
 qualification gate remains binding.
+
+The reviewed qualification population was subsequently frozen, still before
+any outcome existed, in `config/datasets/phase-4r-qualification.json`.
+It contains 600 new noise realizations and changes the source positions,
+association positions, invalid rectangle, beam/noise orientation, sky field,
+WCS scales and rotation, background, and RMS-gradient orientation while
+preserving the reviewed SNR and morphology populations. The manifest SHA-256
+is `93f2d9f876b9b3f58df09ad64796e39ed404980a14f7c4542f0ae2b3120c42e4`;
+the canonical recipe SHA-256 is
+`82870d14dbe163c1d1ca79d0b163bc69c406ed2288da3cf489ebdb03989de5fc`.
+The freeze path refuses overwrite, validates the complete schema, and has an
+executable contract proving that qualification changes every predeclared
+field family rather than only changing seed numbers.
