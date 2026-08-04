@@ -2187,6 +2187,19 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    confirmation-only seeds in `phase-4r-regression-2.json`; all are disjoint
    from every earlier Phase 4R seed.
 
+   Confirmation attempt two at exact commit `86e7e02` completed all 100
+   realizations in Hebog and both references. After restoring the registry's
+   predeclared regression point rule, 444 of 450 comparative decisions pass.
+   The six failures are the catastrophic-outlier fraction against both
+   references overall and in the governed marginal-shape and SNR-15 strata.
+   Aggregate diagnostics assign eight of ten Hebog outliers solely to
+   deconvolved axes and two solely to fitted axes; no held-out row or image
+   was opened. The failed confirmation is archived. A new 200-realization,
+   viewable, disjoint tail-development matrix is frozen in
+   `phase-4r-development-3.json` before any further production fitting
+   change. Use it with analytic tests to remove the rare shape mode without
+   weakening the already superior median and 95th-percentile shape results.
+
 5. **Govern one new Phase 4R qualification and performance closeout.**
 
    - [ ] After implementation and metric definitions are frozen, obtain named

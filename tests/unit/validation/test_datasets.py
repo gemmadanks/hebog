@@ -437,6 +437,35 @@ def test_second_recovery_iteration_is_frozen_before_scientific_changes() -> (
     )
 
 
+def test_tail_recovery_development_is_frozen_and_disjoint() -> None:
+    """Post-confirmation tail work uses a larger, independently seeded set."""
+    paths = (
+        "phase-4r-development.json",
+        "phase-4r-regression.json",
+        "phase-4r-development-2.json",
+        "phase-4r-regression-2.json",
+        "phase-4r-development-3.json",
+    )
+    datasets = tuple(
+        load_dataset_manifest(_DATASET_DIRECTORY / path).datasets[0]
+        for path in paths
+    )
+    seed_sets = tuple(
+        {recipe.seed for recipe in iter_dataset_recipes(dataset)}
+        for dataset in datasets
+    )
+
+    assert len(seed_sets[-1]) == 200
+    assert all(not seed_sets[-1] & earlier for earlier in seed_sets[:-1])
+    assert datasets[-1].role is DatasetRole.DEVELOPMENT
+    assert "before post-confirmation production changes" in (
+        datasets[-1].provenance
+    )
+    assert datasets[-1].recipe_sha256 == (
+        "d34919b359ec865601150faa8455d52ae02632a6d6a72431e1b69172d765d91a"
+    )
+
+
 def test_phase_four_final_qualification_is_frozen_and_unseen() -> None:
     """The final one-look population is powered, disjoint, and unopened."""
     manifest_path = _DATASET_DIRECTORY / "phase-4-final-qualification.json"

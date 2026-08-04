@@ -1329,3 +1329,24 @@ evaluator may rescore the same immutable campaign because this restores the
 predeclared rule rather than selecting a new rule from its result. The
 independent catastrophic-rate point and absolute failures remain eligible
 scientific findings and cannot be removed by this correction.
+
+The corrected decision has SHA-256
+`86763b8d25b693066afc9d9b00e2fbd5ca2f084ad8560183711456c90fadb975`.
+It passes 444 of 450 dual-reference comparisons. The six failures are one
+independent endpoint: catastrophic-outlier fraction overall and in the
+governed marginal-shape and SNR-15 strata against each reference. Hebog has
+10 catastrophic rows among 1,200 eligible matches, compared with two for
+released PyBDSF and five for pinned `master`. Aggregate, identity-free
+diagnostics attribute eight Hebog rows only to deconvolved-axis error and two
+only to fitted-axis error. All other position, flux, fitted/deconvolved shape,
+classification, association, completeness, and reliability point metrics
+remain inside their margins; Hebog's fitted/deconvolved shape medians and
+95th percentiles remain better than both references.
+
+This result is a failed confirmation, not a tuning set. It is archived, and
+no source identifier, row, truth value, or image from it will be used to
+select a correction. The next development boundary is the independently
+seeded, viewable 200-realization manifest
+`config/datasets/phase-4r-development-3.json`, frozen with file SHA-256
+`06ad23df2a747ea33136c4e226a1400c231ac76ea1422adb40979e01dbfd884a`
+before any post-confirmation fitting change.

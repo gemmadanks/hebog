@@ -4455,3 +4455,38 @@ and compatibility serialization
 - Commit the generic stage-rule correction, rescore the same immutable
   confirmation evidence, and address only genuine point/absolute failures
   through independent analytic and development evidence.
+
+## 2026-08-04 — Archived failed confirmation and froze tail development
+
+**Plan phase:** Phase 4R, Step 4 — rare shape-tail recovery
+
+**Completed**
+
+- Rescored the unchanged iteration-two confirmation campaign after the
+  committed stage-rule correction. The corrected result passes 444 of 450
+  comparative decisions and fails the catastrophic fraction against both
+  references overall, for marginal shapes, and at SNR 15.
+- Diagnosed only aggregate, identity-free evidence. Ten of 1,200 eligible
+  Hebog matches are catastrophic, versus two for released PyBDSF and five for
+  pinned `master`; eight Hebog failures are deconvolved-axis-only and two are
+  fitted-axis-only. Hebog remains better on the corresponding medians and
+  95th percentiles.
+- Added a red disjointness test, then froze a 200-realization viewable tail
+  development matrix before any further production fitting change. The new
+  matrix is disjoint from all earlier Phase 4R seeds and retains the same
+  reviewed SNR, morphology, edge, WCS, beam, and correlated-noise design.
+
+**Evidence**
+
+- Corrected confirmation decision SHA-256:
+  `86763b8d25b693066afc9d9b00e2fbd5ca2f084ad8560183711456c90fadb975`.
+- Frozen development manifest/recipe SHA-256 values:
+  `06ad23df2a747ea33136c4e226a1400c231ac76ea1422adb40979e01dbfd884a`
+  and `d34919b359ec865601150faa8455d52ae02632a6d6a72431e1b69172d765d91a`.
+- The focused frozen-manifest contract passes.
+
+**Next**
+
+- Run the exact candidate and both references on the new viewable matrix,
+  reproduce the rare shape tail independently, and add analytic red tests for
+  the generic failure before selecting the smallest correction.
