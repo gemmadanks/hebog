@@ -47,6 +47,9 @@ A valid fitted component reports:
 - global pixel centroid, ordered sigma axes, and orientation;
 - an infinite-plane fitted-Gaussian integral used for resolved-source
   measurement and extension testing;
+- a mask-aware three-sigma restoring-beam aperture flux for compact-source
+  association, kept distinct from both the Gaussian integral and owned-pixel
+  photometry;
 - bilinearly sampled local RMS at the fitted centroid; and
 - bounded optimizer diagnostics.
 
@@ -71,10 +74,19 @@ conditioned. A five-sigma log-area test selects clear extension directly.
 Otherwise the nested candidates use BIC with the number of independent
 samples appropriate to their residual model. A free candidate that pins a
 physical bound or is ill conditioned is rejected; Hebog retries a free shape
-at the stable beam-template centroid and finally uses the beam model or
-reports failure. The selected and rejected model identities, exact bound
-parameters, bound distances, condition number, visible footprint, retained
-geometry, and fallback reason remain auditable.
+at the independently measured intensity-weighted moment centroid and finally
+uses the beam model or reports failure. The selected and rejected model
+identities, exact bound parameters, bound distances, condition number, visible
+footprint, retained geometry, and fallback reason remain auditable.
+
+The association aperture is an explicit configurable radius, currently three
+restoring-beam sigmas. Its flux is a direct sum of finite background-subtracted
+pixels within that ellipse. The normalization integrates the pixelized beam
+over exactly the same valid, non-competing support, so image edges and invalid
+pixels reduce a recorded visible-beam fraction rather than silently losing
+flux. This bounded aperture is used only for association and blend-total
+comparisons; fitted component flux and Rapthor's unresolved peak-as-total
+catalogue convention are unchanged.
 
 Centroid bounds may extend beyond the detected region but never beyond the
 sampled image. Extension classification is repeated at the catalogue boundary

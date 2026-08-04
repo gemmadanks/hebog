@@ -165,6 +165,9 @@ def hebog_campaign_configuration() -> dict[str, object]:
         },
         "executor": "serial",
         "fitting": {
+            "association_aperture_radius_sigma": (
+                fit.association_aperture_radius_sigma
+            ),
             "background_model": fit.background_model,
             "center_margin_pixels": fit.center_margin_pixels,
             "context_margin_pixels": fit.context_margin_pixels,
@@ -248,15 +251,20 @@ def _comparison_sources(
             peak_flux_jy_per_beam=source.flux.peak_flux_jy_per_beam,
             integrated_flux_jy=source.flux.integrated_flux_jy,
             association_integrated_flux_jy=(
-                source.flux.peak_flux_jy_per_beam
-                * source.fitted_shape.major_fwhm_degrees
-                * source.fitted_shape.minor_fwhm_degrees
-                / (
-                    metadata.beam.major_fwhm_degrees
-                    * metadata.beam.minor_fwhm_degrees
+                source.restoring_beam_aperture_integrated_flux_jy
+                if source.restoring_beam_aperture_integrated_flux_jy
+                is not None
+                else (
+                    source.flux.peak_flux_jy_per_beam
+                    * source.fitted_shape.major_fwhm_degrees
+                    * source.fitted_shape.minor_fwhm_degrees
+                    / (
+                        metadata.beam.major_fwhm_degrees
+                        * metadata.beam.minor_fwhm_degrees
+                    )
+                    if source.fitted_shape is not None
+                    else None
                 )
-                if source.fitted_shape is not None
-                else None
             ),
             right_ascension_error_degrees=(
                 source.position.right_ascension_error_degrees

@@ -14,7 +14,7 @@ version and updated current documentation; it must not silently reinterpret
 persisted data. Before `1.0`, stale development products may be rejected and
 recreated rather than supported through legacy readers or migration code.
 
-## Source catalogue schema version 1
+## Source catalogue schema version 2
 
 `SourceCatalogue` represents one MFS catalogue. Catalogue metadata explicitly
 records:
@@ -56,7 +56,7 @@ integrated flux when extension is not significant, and the free-model integral
 only when extension passes the configured uncertainty test. This is a current
 catalogue semantic, not a change to the meaning of the retained fit parameter.
 
-The version-one internal catalogue FITS encoding contains exactly three
+The version-two internal catalogue FITS encoding contains exactly three
 binary-table extensions: `ISLANDS`, `SOURCES`, and
 `GAUSSIAN_COMPONENTS`. Column names are Hebog domain names with explicit FITS
 units, not PyBDSF compatibility names. At this serialization boundary only,
@@ -81,7 +81,7 @@ time.
 `SpectralModel` distinguishes a reference-frequency-only MFS measurement from
 a log-polynomial spectral fit. For a log-polynomial, coefficient `k`
 multiplies `log(frequency / reference_frequency) ** (k + 1)` in natural-log
-flux space. Catalogue version 1 requires every source and fitted component to
+flux space. Catalogue version 2 requires every source and fitted component to
 use the catalogue's one reference frequency. Per-channel association and
 mixed-frequency catalogues remain outside the initial MFS contract.
 
@@ -200,7 +200,10 @@ members omit invalid fields rather than encoding scientific absence as zero.
 These records contain no image arrays, WCS objects, or scheduler state.
 
 A valid compact fit adds frozen pixel parameters, optimizer diagnostics,
-local RMS, and optional formal covariance. `CelestialCompactGaussianFit`
+local RMS, optional formal covariance, and optional mask-aware
+`RestoringBeamAperturePhotometry`. The aperture record retains its configured
+sigma radius, integrated flux, visible pixelized-beam fraction, and pixel
+count; it contains no image array. `CelestialCompactGaussianFit`
 then supplies the ICRS position, fitted sky ellipse, explicit deconvolution
 state, fitted flux, and canonical quality flags. An unresolved deconvolution
 has a null shape internally; zero axes are compatibility serialization only.
@@ -210,6 +213,12 @@ failed the significance test, and
 classified because its flux uncertainty was unavailable.
 WCS objects are reconstructed transiently inside the astrometry boundary and
 never enter a public record or executor result.
+
+Catalogue schema version 2 adds
+`SourceCandidate.restoring_beam_aperture_integrated_flux_jy` to expose that
+association measurement when it is available. `GaussianComponent.flux`
+continues to describe the selected Gaussian model, and materialized Rapthor
+catalogue columns retain their reviewed peak/integrated component semantics.
 
 ## Compatibility
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from math import isfinite, pi
+from math import ceil, floor, isfinite, pi, sqrt
 from typing import Literal, TypeAlias, cast
 
 import numpy as np
@@ -29,6 +29,7 @@ from hebog.data_models.fitting import (
     FittedGaussianPixelParameters,
     GaussianFitDiagnostics,
     GaussianFitUncertainty,
+    RestoringBeamAperturePhotometry,
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
@@ -153,6 +154,17 @@ class _FitCandidate:
     jacobian: npt.NDArray[np.float64]
     covariance: npt.NDArray[np.float64] | None
     diagnostics: GaussianFitDiagnostics
+
+
+@dataclass(frozen=True, slots=True)
+class _FitPublicationContext:
+    """Inputs shared while publishing one selected fit candidate."""
+
+    compact: CompactMomentInput
+    region: DeblendedRegion
+    moment: ValidMomentMeasurement
+    geometry: CompactMeasurementGeometry
+    config: CompactGaussianFitConfig
 
 
 def _local_rms_at_centroid(
@@ -329,6 +341,10 @@ def _noise_correlation_kernel(
         ],
         dtype=np.float64,
     )
+    inverse_covariance = np.asarray(
+        np.linalg.inv(covariance),
+        dtype=np.float64,
+    )
     halo = int(
         np.ceil(
             _NOISE_CORRELATION_TRUNCATION_SIGMA
@@ -341,7 +357,7 @@ def _noise_correlation_kernel(
     exponent = np.einsum(
         "...i,ij,...j->...",
         coordinates,
-        np.linalg.inv(covariance),
+        inverse_covariance,
         coordinates,
         optimize=True,
     )
@@ -794,8 +810,8 @@ def _centroid_constrained_retry(  # noqa: PLR0913
     forced_initial = np.asarray(
         [
             constrained_parameters[0],
-            constrained_parameters[1],
-            constrained_parameters[2],
+            initial[1],
+            initial[2],
             initial[3],
             initial[4],
             initial[5],
@@ -805,8 +821,8 @@ def _centroid_constrained_retry(  # noqa: PLR0913
     )
     forced_lower = np.asarray(lower, dtype=np.float64).copy()
     forced_upper = np.asarray(upper, dtype=np.float64).copy()
-    forced_lower[1:3] = constrained_parameters[1:3] - forced_center_tolerance
-    forced_upper[1:3] = constrained_parameters[1:3] + forced_center_tolerance
+    forced_lower[1:3] = initial[1:3] - forced_center_tolerance
+    forced_upper[1:3] = initial[1:3] + forced_center_tolerance
     free_indices = np.arange(6 if fixed_background else 7, dtype=np.int64)
 
     def expand(
@@ -874,12 +890,12 @@ def _unavailable_fit(
 
 
 def _valid_fit_result(
-    compact: CompactMomentInput,
-    moment: ValidMomentMeasurement,
+    context: _FitPublicationContext,
     candidate: _FitCandidate,
-    geometry: CompactMeasurementGeometry,
 ) -> ValidCompactGaussianFit:
     """Publish one scientifically selected nested-model candidate."""
+    compact = context.compact
+    geometry = context.geometry
     (
         amplitude,
         center_x,
@@ -962,22 +978,149 @@ def _valid_fit_result(
         if selected
     )
     return ValidCompactGaussianFit(
-        moment=moment,
+        moment=context.moment,
         parameters=fitted_parameters,
         uncertainty=uncertainty,
         diagnostics=candidate.diagnostics,
         quality_flags=flags,
+        restoring_beam_aperture=_restoring_beam_aperture_photometry(
+            compact,
+            context.region,
+            candidate,
+            geometry,
+            radius_sigma=context.config.association_aperture_radius_sigma,
+        ),
+    )
+
+
+def _restoring_beam_aperture_photometry(
+    compact: CompactMomentInput,
+    region: DeblendedRegion,
+    candidate: _FitCandidate,
+    geometry: CompactMeasurementGeometry,
+    *,
+    radius_sigma: float,
+) -> RestoringBeamAperturePhotometry | None:
+    """Measure one bounded three-sigma aperture with mask correction."""
+    covariance_values = geometry.restoring_beam_covariance_pixels_squared
+    if covariance_values is None:
+        return None
+    covariance_xx, covariance_xy, covariance_yy = covariance_values
+    covariance = np.asarray(
+        [
+            [covariance_xx, covariance_xy],
+            [covariance_xy, covariance_yy],
+        ],
+        dtype=np.float64,
+    )
+    inverse_covariance = np.asarray(
+        np.linalg.inv(covariance),
+        dtype=np.float64,
+    )
+    array_bounds = getattr(compact, "array_bounds", compact.island.bounds)
+    local_y, local_x = np.indices(
+        compact.physical_residual.shape,
+        dtype=np.float64,
+    )
+    center_x = float(candidate.full_parameters[1])
+    center_y = float(candidate.full_parameters[2])
+    offsets = np.stack(
+        (
+            local_x + array_bounds.x_start - center_x,
+            local_y + array_bounds.y_start - center_y,
+        ),
+        axis=-1,
+    )
+    squared_radius = np.einsum(
+        "...i,ij,...j->...",
+        offsets,
+        inverse_covariance,
+        offsets,
+        optimize=True,
+    )
+    labels = np.asarray(compact.region_labels)
+    selected = (
+        np.asarray(compact.valid_pixels)
+        & ((labels == 0) | (labels == region.region_label))
+        & (squared_radius <= radius_sigma * radius_sigma)
+    )
+    retained_pixel_count = int(np.count_nonzero(selected))
+    if retained_pixel_count == 0:
+        return None
+    visible_beam_weight = float(
+        np.sum(np.exp(-0.5 * squared_radius[selected]), dtype=np.float64)
+    )
+    full_beam_weight = _discrete_aperture_beam_weight(
+        center_xy=(center_x, center_y),
+        covariance=covariance,
+        inverse_covariance=inverse_covariance,
+        radius_sigma=radius_sigma,
+    )
+    visible_beam_fraction = float(visible_beam_weight / full_beam_weight)
+    integrated_flux = float(
+        np.sum(
+            np.asarray(compact.physical_residual)[selected],
+            dtype=np.float64,
+        )
+        / visible_beam_weight
+    )
+    if (
+        not isfinite(visible_beam_fraction)
+        or visible_beam_fraction <= 0
+        or not isfinite(integrated_flux)
+        or integrated_flux <= 0
+    ):
+        return None
+    return RestoringBeamAperturePhotometry(
+        radius_sigma=radius_sigma,
+        integrated_flux_jy=integrated_flux,
+        visible_beam_fraction=visible_beam_fraction,
+        retained_pixel_count=retained_pixel_count,
+    )
+
+
+def _discrete_aperture_beam_weight(
+    *,
+    center_xy: tuple[float, float],
+    covariance: npt.NDArray[np.float64],
+    inverse_covariance: npt.NDArray[np.float64],
+    radius_sigma: float,
+) -> float:
+    """Integrate the same finite aperture over the complete pixel lattice."""
+    center_x, center_y = center_xy
+    extent_x = radius_sigma * sqrt(float(covariance[0, 0]))
+    extent_y = radius_sigma * sqrt(float(covariance[1, 1]))
+    aperture_x = np.arange(
+        floor(center_x - extent_x),
+        ceil(center_x + extent_x) + 1,
+        dtype=np.float64,
+    )
+    aperture_y = np.arange(
+        floor(center_y - extent_y),
+        ceil(center_y + extent_y) + 1,
+        dtype=np.float64,
+    )
+    grid_x, grid_y = np.meshgrid(aperture_x, aperture_y)
+    offsets = np.stack((grid_x - center_x, grid_y - center_y), axis=-1)
+    squared_radius = np.einsum(
+        "...i,ij,...j->...",
+        offsets,
+        inverse_covariance,
+        offsets,
+        optimize=True,
+    )
+    selected = squared_radius <= radius_sigma * radius_sigma
+    return float(
+        np.sum(np.exp(-0.5 * squared_radius[selected]), dtype=np.float64)
     )
 
 
 def _free_compatibility_result(
-    compact: CompactMomentInput,
-    moment: ValidMomentMeasurement,
+    context: _FitPublicationContext,
     candidate: _FitCandidate,
-    geometry: CompactMeasurementGeometry,
-    config: CompactGaussianFitConfig,
 ) -> CompactGaussianFitResult:
     """Publish legacy free fitting when explicit beam shape is unavailable."""
+    moment = context.moment
     if not candidate.success:
         return FailedCompactGaussianFit(
             moment=moment,
@@ -985,24 +1128,22 @@ def _free_compatibility_result(
             diagnostics=candidate.diagnostics,
             quality_flags=("fit-non-convergence",),
         )
-    if not _numerically_valid(candidate, config):
+    if not _numerically_valid(candidate, context.config):
         return FailedCompactGaussianFit(
             moment=moment,
             reason="fit-invalid-result",
             diagnostics=candidate.diagnostics,
             quality_flags=("fit-invalid-result",),
         )
-    return _valid_fit_result(compact, moment, candidate, geometry)
+    return _valid_fit_result(context, candidate)
 
 
 def _selected_fit_result(
-    compact: CompactMomentInput,
-    moment: ValidMomentMeasurement,
+    context: _FitPublicationContext,
     candidate: _FitCandidate,
-    geometry: CompactMeasurementGeometry,
-    config: CompactGaussianFitConfig,
 ) -> CompactGaussianFitResult:
     """Publish or explicitly fail one scientifically selected candidate."""
+    moment = context.moment
     fallback_reason = candidate.diagnostics.fallback_reason
     flags = (fallback_reason,) if fallback_reason is not None else ()
     if not candidate.success:
@@ -1012,8 +1153,8 @@ def _selected_fit_result(
             diagnostics=candidate.diagnostics,
             quality_flags=("fit-non-convergence", *flags),
         )
-    if not _numerically_valid(candidate, config) or not _identifiable(
-        candidate, config
+    if not _numerically_valid(candidate, context.config) or not _identifiable(
+        candidate, context.config
     ):
         return FailedCompactGaussianFit(
             moment=moment,
@@ -1021,7 +1162,7 @@ def _selected_fit_result(
             diagnostics=candidate.diagnostics,
             quality_flags=("fit-invalid-result", *flags),
         )
-    return _valid_fit_result(compact, moment, candidate, geometry)
+    return _valid_fit_result(context, candidate)
 
 
 def fit_compact_gaussian(
@@ -1041,6 +1182,13 @@ def fit_compact_gaussian(
         or valid_moment.target.object_id != region.region_id
     ):
         raise ValueError("fit moment does not identify the requested region")
+    publication = _FitPublicationContext(
+        compact=compact,
+        region=region,
+        moment=valid_moment,
+        geometry=geometry,
+        config=config,
+    )
     labels = np.asarray(compact.region_labels)
     membership = labels == region.region_label
     support = (
@@ -1164,21 +1312,15 @@ def fit_compact_gaussian(
     beam_covariance = geometry.restoring_beam_covariance_pixels_squared
     if config.model_selection == "free-only" or beam_covariance is None:
         return _free_compatibility_result(
-            compact,
-            valid_moment,
+            publication,
             free,
-            geometry,
-            config,
         )
 
     fallback_reason = _free_fallback_reason(free, beam_covariance, config)
     if fallback_reason is None:
         return _selected_fit_result(
-            compact,
-            valid_moment,
+            publication,
             free,
-            geometry,
-            config,
         )
 
     beam_major, beam_minor, beam_theta = _beam_shape(beam_covariance)
@@ -1231,29 +1373,22 @@ def fit_compact_gaussian(
         upper=upper,
         fixed_background=fixed_background,
     )
-    if forced is not None:
-        return _selected_fit_result(
-            compact,
-            valid_moment,
-            forced,
-            geometry,
-            config,
-        )
-    if (
-        fallback_reason == "free-model-not-significantly-extended"
-        and _free_preferred_by_bic(free, constrained, samples)
-    ):
-        return _selected_fit_result(
-            compact,
-            valid_moment,
-            _with_rejected_model(free, constrained),
-            geometry,
-            config,
-        )
-    return _selected_fit_result(
-        compact,
-        valid_moment,
-        _with_rejected_model(constrained, free),
-        geometry,
-        config,
+    constrained_failed = (
+        not constrained.success
+        or not _numerically_valid(constrained, config)
+        or not _identifiable(constrained, config)
     )
+    retain_free = fallback_reason == (
+        "free-model-not-significantly-extended"
+    ) and (
+        constrained_failed
+        or _free_preferred_by_bic(free, constrained, samples)
+    )
+    selected = (
+        forced
+        if forced is not None
+        else _with_rejected_model(free, constrained)
+        if retain_free
+        else _with_rejected_model(constrained, free)
+    )
+    return _selected_fit_result(publication, selected)

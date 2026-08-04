@@ -175,6 +175,11 @@ def _associated_records(
         fitted_shape=transformed.fitted_shape,
         deconvolved_shape=transformed.deconvolved_shape,
         quality_flags=transformed.quality_flags,
+        restoring_beam_aperture_integrated_flux_jy=(
+            fit.restoring_beam_aperture.integrated_flux_jy
+            if fit.restoring_beam_aperture is not None
+            else None
+        ),
     )
     component = GaussianComponent(
         gaussian_component_id=gaussian_component_id,

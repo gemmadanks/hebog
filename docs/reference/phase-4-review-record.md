@@ -1232,3 +1232,35 @@ and identifiable free fit. Recovery iteration two returned to analytic and
 new development evidence. Its 40 development and 100 confirmation-only seeds
 were frozen, with disjoint seed ranges, before another production fitting
 change.
+
+## Phase 4R recovery iteration two development result
+
+The second iteration used only the 40 viewable realizations frozen before its
+production changes. The 100 confirmation-only seeds remained unopened. A
+generic selection correction now preserves an identifiable free fit when its
+smaller beam alternative fails. For a physical-bound fallback, the retry fixes
+its centroid to the independent intensity-weighted moment rather than the
+truncated beam fit. Hebog then completed and matched every declared compact
+group in all 40 images, with 100% reliability, fitted, classification,
+association, and uncertainty availability, point specificity,
+clear-extension recall, and zero catastrophic rows.
+
+The earlier Gaussian-only unresolved-blend total retained a 0.14821 tail,
+worse than the 0.11301 dual-reference result by more than the registered 0.02
+resolution. Literature-supported threshold-only volume correction did not
+resolve that tail and was rejected. A fixed three-sigma restoring-beam
+aperture, normalized by the pixelized beam fraction visible through the exact
+image, validity, and competing-region masks, produced 0.04788 median and
+0.10243 tail errors. Both improve on the two PyBDSF references at
+0.04830/0.11301. Gaussian component flux and the Rapthor-facing unresolved
+peak-as-total convention remain unchanged; the aperture is explicit
+association photometry.
+
+Across the 21 existing overall paired endpoints, Hebog is in the desirable
+direction or equal on 20. The remaining unresolved-group position median is
+0.02828 beam versus 0.02786, a 0.00042-beam difference inside the registered
+0.01 practical resolution; Hebog's corresponding tail is better. Across the
+14 overall distribution metrics Hebog is better on 13; its deconvolved-angle
+tail differs by 0.054 degree inside the registered 1-degree resolution. These
+finite-sample signs must be evaluated by the direction-aware practical-margin
+rule rather than treated as meaningful scientific regressions.

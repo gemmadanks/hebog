@@ -2105,8 +2105,9 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    and bounded correlated-noise GLS for at most 512 retained pixels. Larger
    regions take an explicit diagonal/sandwich fallback. The nested rule uses a
    five-sigma log-area test, BIC scaled consistently with the point estimator,
-   and a beam-centroid/free-shape retry for bound-contact or ill-conditioned
-   free fits. It is an explicit `beam-or-free` campaign policy; the public
+   and an intensity-weighted-centroid/free-shape retry for bound-contact or
+   ill-conditioned free fits. It is an explicit `beam-or-free` campaign
+   policy; the public
    default remains the Phase 4 `free-only` serial oracle, so model selection
    cannot silently alter existing scientific products. On the 20-realization
    development matrix this removed all four
@@ -2115,6 +2116,20 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    both references. The unresolved-blend median also improved; its 95th
    percentile is worse than both references by 0.0172, inside the predeclared
    0.02 practical margin, and remains an explicit confirmation endpoint.
+
+   Recovery iteration two repaired the generic availability defect and kept
+   every one of 40 new development realizations complete. A boundary retry now
+   fixes its centroid to the independent intensity-weighted moment rather than
+   the already biased truncated beam fit. This restored the sole missed edge
+   association without changing the retained GLS component estimator. A
+   bounded, mask-aware three-sigma restoring-beam aperture was also added as
+   explicit association photometry. Unlike the rejected threshold-only island
+   sum, it normalizes against the pixelized beam visible through image,
+   validity, and competing-region masks. On the 40 viewable blends it improved
+   median/95th-percentile total-flux error from 0.05755/0.14821 to
+   0.04788/0.10243, versus 0.04830/0.11301 for both PyBDSF references. The
+   retained component-level position, peak, flux, shape, and uncertainty
+   metrics remain unchanged apart from the repaired edge row.
 
 4. **Qualify the correction on development and regression evidence.**
 

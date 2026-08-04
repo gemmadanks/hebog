@@ -319,6 +319,7 @@ class CompactGaussianFitConfig:
     )
     maximum_gls_pixels: int = 512
     model_selection: Literal["free-only", "beam-or-free"] = "free-only"
+    association_aperture_radius_sigma: float = 3.0
 
     def __post_init__(self) -> None:
         """Validate scientific parameter bounds and finite work limits."""
@@ -395,6 +396,13 @@ class CompactGaussianFitConfig:
             raise ValueError("point_estimator is not a supported policy")
         if self.model_selection not in {"free-only", "beam-or-free"}:
             raise ValueError("model_selection is not a supported policy")
+        if (
+            not isfinite(self.association_aperture_radius_sigma)
+            or self.association_aperture_radius_sigma <= 0
+        ):
+            raise ValueError(
+                "association_aperture_radius_sigma must be finite and positive"
+            )
         if (
             isinstance(self.maximum_gls_pixels, bool)
             or not isinstance(self.maximum_gls_pixels, Integral)

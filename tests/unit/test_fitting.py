@@ -1,4 +1,5 @@
 # pyright: reportMissingTypeStubs=false
+# pyright: reportPrivateUsage=false
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
@@ -12,6 +13,7 @@ import numpy as np
 import pytest
 from astropy.modeling import fitting, models
 
+from hebog.algorithms import fitting as fitting_algorithm
 from hebog.algorithms.deblending import DeblendedRegion
 from hebog.algorithms.fitting import fit_compact_gaussian
 from hebog.algorithms.measurement import measure_compact_moments
@@ -19,6 +21,7 @@ from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
 from hebog.data_models.fitting import (
     FailedCompactGaussianFit,
+    RestoringBeamAperturePhotometry,
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
@@ -300,6 +303,16 @@ def test_beam_shaped_edge_and_corner_sources_use_constrained_fit(
     assert result.parameters.minor_sigma_pixels == pytest.approx(axes[1])
     assert not result.diagnostics.parameters_at_bound
     assert "beam-constrained-fit" in result.quality_flags
+    assert isinstance(
+        result.restoring_beam_aperture,
+        RestoringBeamAperturePhotometry,
+    )
+    assert result.restoring_beam_aperture.radius_sigma == 3.0
+    assert result.restoring_beam_aperture.integrated_flux_jy == pytest.approx(
+        0.5,
+        rel=1e-6,
+    )
+    assert 0.0 < result.restoring_beam_aperture.visible_beam_fraction <= 1.0
 
 
 def test_clear_extended_source_retains_free_elliptical_fit() -> None:
@@ -317,6 +330,54 @@ def test_clear_extended_source_retains_free_elliptical_fit() -> None:
     assert result.diagnostics.fallback_reason is None
     assert result.parameters.major_sigma_pixels == pytest.approx(3.8)
     assert result.parameters.minor_sigma_pixels == pytest.approx(2.4)
+
+
+def test_valid_free_fit_survives_failed_smaller_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed alternative cannot turn a valid measurement into omission."""
+    geometry = _beam_geometry()
+    covariance = geometry.restoring_beam_covariance_pixels_squared
+    assert covariance is not None
+    matrix = np.asarray(
+        [[covariance[0], covariance[1]], [covariance[1], covariance[2]]]
+    )
+    axes = tuple(np.sqrt(np.linalg.eigvalsh(matrix)[::-1]))
+    compact = _gaussian_input(
+        amplitude=0.5,
+        sigma_axes=axes,
+        angle_degrees=20.0,
+    )
+    original = fitting_algorithm._fit_candidate
+    calls = 0
+
+    def fail_smaller_model(*args: object, **kwargs: object):
+        nonlocal calls
+        candidate = original(*args, **kwargs)  # type: ignore[arg-type]
+        calls += 1
+        if calls == 2:
+            return replace(
+                candidate,
+                success=False,
+                diagnostics=replace(candidate.diagnostics, converged=False),
+            )
+        return candidate
+
+    monkeypatch.setattr(
+        fitting_algorithm,
+        "_fit_candidate",
+        fail_smaller_model,
+    )
+
+    result = _fit(
+        compact,
+        config=_fit_config(model_selection="beam-or-free"),
+        geometry=geometry,
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == "free-elliptical"
+    assert result.diagnostics.rejected_model_identity == "beam-constrained"
 
 
 def test_fixed_background_is_an_explicit_smaller_model() -> None:
@@ -667,6 +728,34 @@ def test_underdetermined_measurement_is_not_fitted() -> None:
 @pytest.mark.parametrize(
     ("changes", "message"),
     [
+        ({"radius_sigma": float("nan")}, "radius"),
+        ({"integrated_flux_jy": 0.0}, "flux"),
+        ({"integrated_flux_jy": float("inf")}, "flux"),
+        ({"visible_beam_fraction": 0.0}, "fraction"),
+        ({"visible_beam_fraction": 1.01}, "fraction"),
+        ({"retained_pixel_count": 0}, "pixel count"),
+    ],
+)
+def test_aperture_photometry_rejects_invalid_evidence(
+    changes: dict[str, object],
+    message: str,
+) -> None:
+    """Published aperture evidence remains finite and physically bounded."""
+    values: dict[str, object] = {
+        "radius_sigma": 3.0,
+        "integrated_flux_jy": 0.5,
+        "visible_beam_fraction": 0.8,
+        "retained_pixel_count": 20,
+    }
+    values.update(changes)
+
+    with pytest.raises(ValueError, match=message):
+        RestoringBeamAperturePhotometry(**values)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
         ({"minimum_fit_pixels": 6}, "minimum_fit_pixels"),
         ({"maximum_function_evaluations": 0}, "function_evaluations"),
         ({"minimum_sigma_pixels": 0.0}, "sigma"),
@@ -687,6 +776,10 @@ def test_underdetermined_measurement_is_not_fitted() -> None:
         ({"point_estimator": "unknown"}, "point_estimator"),
         ({"model_selection": "unknown"}, "model_selection"),
         ({"maximum_gls_pixels": 6}, "maximum_gls_pixels"),
+        (
+            {"association_aperture_radius_sigma": 0.0},
+            "association_aperture_radius_sigma",
+        ),
     ],
 )
 def test_fit_policy_rejects_invalid_bounds(

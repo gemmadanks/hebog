@@ -142,6 +142,7 @@ def _catalogue(*, catalogue_id: str = "catalogue-run-001") -> SourceCatalogue:
         fitted_shape=None,
         deconvolved_shape=None,
         quality_flags=("deblended", "edge-truncated"),
+        restoring_beam_aperture_integrated_flux_jy=0.011,
     )
     component = GaussianComponent(
         gaussian_component_id="gaussian-component-00001",
@@ -200,7 +201,7 @@ def test_catalogue_fits_round_trip_preserves_internal_schema(
 
     assert product.product_role == "source-catalogue"
     assert product.media_type == "application/fits"
-    assert product.content_schema_version == 1
+    assert product.content_schema_version == 2
     assert product.scientific_status == "valid"
     assert product.byte_count == path.stat().st_size
     assert (
@@ -217,6 +218,7 @@ def test_catalogue_fits_round_trip_preserves_internal_schema(
         )
         assert hdus[2].columns["RIGHT_ASCENSION"].unit == "deg"
         assert hdus[2].columns["PEAK_FLUX"].unit == "Jy/beam"
+        assert hdus[2].columns["RESTORING_BEAM_APERTURE_FLUX"].unit == "Jy"
         assert "Source_id" not in hdus[2].columns.names
 
     assert write_catalogue_fits_product(path, catalogue) == product
@@ -316,7 +318,7 @@ def test_catalogue_reader_rejects_unknown_schema_and_structure(
     path = tmp_path / "catalogue.fits"
     write_catalogue_fits_product(path, _catalogue())
     with fits.open(path, mode="update", checksum=False) as hdus:
-        hdus[0].header["HBGSCHE"] = 2
+        hdus[0].header["HBGSCHE"] = 3
 
     with pytest.raises(UnsupportedMaterializedProductError, match="schema"):
         read_catalogue_fits_product(path)

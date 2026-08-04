@@ -4331,3 +4331,42 @@ and compatibility serialization
   valid-free/failed-alternative selection test and evaluate the corrected
   candidate only on the new development matrix before opening its new
   confirmation population.
+
+## 2026-08-04 — Recovered Phase 4R development availability and blend flux
+
+**Plan phase:** Phase 4R, Steps 3–4 — recovery iteration two development
+
+**Completed**
+
+- Preserved a valid identifiable free fit when the smaller beam alternative
+  fails, removing the generic omission class found after confirmation attempt
+  one.
+- Changed a physical-bound retry to use the independent intensity-weighted
+  moment centroid. The previously missed viewable edge source moved from
+  0.559 to 0.314 beam from truth without widening the association rule.
+- Added bounded three-sigma restoring-beam aperture photometry with discrete
+  beam normalization over exact valid, image-visible, non-competing support.
+  Kept it distinct from fitted-Gaussian, owned-pixel, and Rapthor catalogue
+  flux semantics.
+- Rejected a BLOBCAT-style threshold-volume correction because its blend tail
+  remained 0.14741, and rejected direct thresholded pixel sums because their
+  0.19168 tail was worse. No empirical flux scale was introduced.
+
+**Evidence**
+
+- The focused fitting, catalogue-schema, campaign-runner, and Phase 4R
+  regression suites pass 120 tests.
+- The 40-realization viewable candidate completed and matched every governed
+  group, with perfect availability and zero catastrophic rows. Its
+  unresolved-blend median/tail flux errors are 0.04788/0.10243 versus
+  0.04830/0.11301 for both PyBDSF references.
+- Hebog is better or equal on 20 of 21 overall paired endpoints and 13 of 14
+  overall distribution metrics. The two opposite finite-sample signs are
+  0.00042 beam for group-position median and 0.054 degree for
+  deconvolved-angle tail, far inside their predeclared 0.01-beam and 1-degree
+  resolutions.
+
+**Next**
+
+- Complete the direction-aware Phase 4R evaluator, freeze the exact candidate
+  commit, and run the second confirmation population once.
