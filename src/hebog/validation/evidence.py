@@ -467,6 +467,14 @@ class SourcePairDiagnostic(_EvidenceModel):
             allow_inf_nan=False,
         )
     )
+    fitted_position_angle_difference_degrees: float | None = Field(
+        default=None,
+        allow_inf_nan=False,
+    )
+    deconvolved_position_angle_difference_degrees: float | None = Field(
+        default=None,
+        allow_inf_nan=False,
+    )
     catastrophic: CatastrophicMetricDiagnostic | None = None
     gated_catastrophic: bool | None = None
     normalized_residuals: tuple[NormalizedResidualDiagnostic, ...] = ()
@@ -499,6 +507,8 @@ class SourcePairDiagnostic(_EvidenceModel):
             self.integrated_flux_fractional_difference,
             self.maximum_absolute_fitted_axis_fractional_difference,
             self.maximum_absolute_deconvolved_axis_fractional_difference,
+            self.fitted_position_angle_difference_degrees,
+            self.deconvolved_position_angle_difference_degrees,
         )
         return (
             any(value is not None for value in numeric_values)
@@ -926,11 +936,260 @@ class ScientificCampaignEvidence(_EvidenceDocument):
         return self
 
 
+class PhaseFourEndpointDecision(_EvidenceModel):
+    """One reviewed paired non-inferiority endpoint decision."""
+
+    endpoint_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    candidate_value: float | None = Field(default=None, allow_inf_nan=False)
+    reference_value: float | None = Field(default=None, allow_inf_nan=False)
+    positive_regression: float | None = Field(
+        default=None, allow_inf_nan=False
+    )
+    practical_regression_margin: float = Field(gt=0, allow_inf_nan=False)
+    upper_confidence_limit: float | None = Field(
+        default=None,
+        allow_inf_nan=False,
+    )
+    confidence_level: float = Field(gt=0, lt=1, allow_inf_nan=False)
+    resamples: int = Field(ge=10_000)
+    status: Literal["pass", "fail", "indeterminate"]
+    reason: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def validate_decision(self) -> Self:
+        """Keep complete intervals distinct from failed-closed results."""
+        values = (
+            self.candidate_value,
+            self.reference_value,
+            self.positive_regression,
+            self.upper_confidence_limit,
+        )
+        if self.status == "indeterminate":
+            if self.reason is None:
+                raise ValueError("indeterminate endpoint requires a reason")
+            point_values = values[:3]
+            if self.upper_confidence_limit is not None or (
+                any(value is None for value in point_values)
+                and any(value is not None for value in point_values)
+            ):
+                raise ValueError(
+                    "indeterminate endpoint requires a complete point "
+                    "estimate or no point estimate and no interval"
+                )
+            return self
+        if any(value is None for value in values) or self.reason is not None:
+            raise ValueError(
+                "determinate endpoint requires complete values and no reason"
+            )
+        upper = self.upper_confidence_limit
+        assert upper is not None
+        if self.status == "pass" and not (
+            upper <= self.practical_regression_margin
+        ):
+            raise ValueError("passing endpoint exceeds its practical margin")
+        if self.status == "fail" and not (
+            upper > self.practical_regression_margin
+        ):
+            raise ValueError("failed endpoint remains within its margin")
+        return self
+
+
+def _gate_thresholds_are_valid(
+    comparator: Literal["minimum", "maximum", "interval"],
+    minimum: float | None,
+    maximum: float | None,
+) -> bool:
+    """Return whether a gate defines exactly the required thresholds."""
+    if comparator == "minimum":
+        return minimum is not None and maximum is None
+    if comparator == "maximum":
+        return maximum is not None and minimum is None
+    return minimum is not None and maximum is not None
+
+
+class PhaseFourGateDecision(_EvidenceModel):
+    """One absolute science-gate result on the Hebog population."""
+
+    gate_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    value: float | None = Field(default=None, allow_inf_nan=False)
+    comparator: Literal["minimum", "maximum", "interval"]
+    minimum: float | None = Field(default=None, allow_inf_nan=False)
+    maximum: float | None = Field(default=None, allow_inf_nan=False)
+    interval_lower: float | None = Field(default=None, allow_inf_nan=False)
+    interval_upper: float | None = Field(default=None, allow_inf_nan=False)
+    eligible_count: int = Field(ge=0)
+    role: Literal["gate", "report-only"] = "gate"
+    status: Literal["pass", "fail", "indeterminate"]
+    reason: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def validate_gate(self) -> Self:
+        """Require the threshold shape implied by the comparator."""
+        if not _gate_thresholds_are_valid(
+            self.comparator,
+            self.minimum,
+            self.maximum,
+        ):
+            raise ValueError("gate comparator and thresholds disagree")
+        if self.status == "indeterminate":
+            if (
+                self.interval_lower is not None
+                or self.interval_upper is not None
+                or self.reason is None
+            ):
+                raise ValueError(
+                    "indeterminate gate cannot contain observed bounds and "
+                    "requires an explanatory reason"
+                )
+            return self
+        if self.value is None or self.reason is not None:
+            raise ValueError("determinate gate requires a value and no reason")
+        if self.comparator == "interval":
+            if self.interval_lower is None or self.interval_upper is None:
+                raise ValueError("interval gate requires both observed bounds")
+            assert self.minimum is not None
+            assert self.maximum is not None
+            passed = (
+                self.interval_lower >= self.minimum
+                and self.interval_upper <= self.maximum
+            )
+        else:
+            if (
+                self.interval_lower is not None
+                or self.interval_upper is not None
+            ):
+                raise ValueError("scalar gate cannot contain interval bounds")
+            passed = (self.minimum is None or self.value >= self.minimum) and (
+                self.maximum is None or self.value <= self.maximum
+            )
+        if (self.status == "pass") != passed:
+            raise ValueError("gate status disagrees with its threshold")
+        return self
+
+
+class PhaseFourEnvelopeDecision(_EvidenceModel):
+    """One named regression envelope protecting a stronger Hebog result."""
+
+    envelope_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    absolute_gate_ids: tuple[str, ...] = Field(min_length=1)
+    status: Literal["pass", "fail", "indeterminate"]
+
+    @model_validator(mode="after")
+    def validate_gate_ids(self) -> Self:
+        """Require a canonical, non-empty set of constituent gates."""
+        if self.absolute_gate_ids != tuple(
+            sorted(set(self.absolute_gate_ids))
+        ):
+            raise ValueError("envelope gate identifiers must be canonical")
+        return self
+
+
+class PhaseFourImplementationOutcome(_EvidenceModel):
+    """Failure summary for one implementation in the frozen campaign."""
+
+    implementation_identifier: str = Field(
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    )
+    policy: Literal["qualification-fails", "record-and-continue"]
+    failed_seeds: tuple[int, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_seeds(self) -> Self:
+        """Keep failure seeds non-negative, unique, and deterministic."""
+        if self.failed_seeds != tuple(sorted(set(self.failed_seeds))) or any(
+            seed < 0 for seed in self.failed_seeds
+        ):
+            raise ValueError("failed seeds must be canonical and non-negative")
+        return self
+
+
+class PhaseFourQualificationDecision(_EvidenceDocument):
+    """Immutable one-look decision for the frozen Phase 4 campaign."""
+
+    evidence_type: Literal["phase-4-qualification-decision"]
+    source_campaign_run_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    source_campaign_sha256: str = Field(pattern=_SHA256_PATTERN)
+    comparison_protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    scientific_gates_sha256: str = Field(pattern=_SHA256_PATTERN)
+    candidate_identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    primary_reference_identifier: str = Field(
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    )
+    secondary_reference_identifier: str | None = Field(
+        default=None,
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    )
+    implementation_outcomes: tuple[PhaseFourImplementationOutcome, ...] = (
+        Field(min_length=2)
+    )
+    paired_endpoints: tuple[PhaseFourEndpointDecision, ...] = ()
+    secondary_paired_endpoints: tuple[PhaseFourEndpointDecision, ...] = ()
+    absolute_gates: tuple[PhaseFourGateDecision, ...] = ()
+    stronger_hebog_envelopes: tuple[PhaseFourEnvelopeDecision, ...] = ()
+    passed: bool
+    failure_reasons: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_one_look(self) -> Self:
+        """Make the aggregate decision follow every constituent result."""
+        named_sequences = (
+            (
+                "implementation",
+                [
+                    item.implementation_identifier
+                    for item in self.implementation_outcomes
+                ],
+            ),
+            ("endpoint", [item.endpoint_id for item in self.paired_endpoints]),
+            (
+                "secondary endpoint",
+                [item.endpoint_id for item in self.secondary_paired_endpoints],
+            ),
+            ("gate", [item.gate_id for item in self.absolute_gates]),
+            (
+                "envelope",
+                [item.envelope_id for item in self.stronger_hebog_envelopes],
+            ),
+        )
+        for description, identifiers in named_sequences:
+            if len(set(identifiers)) != len(identifiers):
+                raise ValueError(f"{description} identifiers must be unique")
+        if self.failure_reasons != tuple(sorted(set(self.failure_reasons))):
+            raise ValueError("failure reasons must be canonical")
+        constituent_pass = (
+            bool(self.paired_endpoints)
+            and bool(self.absolute_gates)
+            and bool(self.stronger_hebog_envelopes)
+            and all(item.status == "pass" for item in self.paired_endpoints)
+            and all(
+                item.status == "pass"
+                for item in self.absolute_gates
+                if item.role == "gate"
+            )
+            and all(
+                item.status == "pass" for item in self.stronger_hebog_envelopes
+            )
+            and not any(
+                item.failed_seeds and item.policy == "qualification-fails"
+                for item in self.implementation_outcomes
+            )
+        )
+        if self.passed != constituent_pass:
+            raise ValueError("overall decision disagrees with constituents")
+        if self.passed == bool(self.failure_reasons):
+            raise ValueError(
+                "passing decisions cannot have failure reasons and failed "
+                "decisions require them"
+            )
+        return self
+
+
 EvidenceDocument: TypeAlias = (
     BenchmarkEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence
+    | PhaseFourQualificationDecision
 )
 
 _EVIDENCE_ADAPTER: TypeAdapter[EvidenceDocument] = TypeAdapter(

@@ -208,10 +208,11 @@ container or source-tree digest, and verify that no output shard already
 exists. Opening the final population without those identities violates the
 one-look protocol. Both runners also fail before recipe iteration if either
 scientific contract or the paired protocol lacks its reviewed status.
-Do not open the final population until the maintained one-look evaluator
-covers every paired interval, absolute gate, and stronger-Hebog envelope and
-the source diagnostic schema retains the position-angle fields required by the
-shape gates.
+The maintained one-look evaluator now covers every paired interval, absolute
+gate, and campaign-measurable stronger-Hebog envelope, and source diagnostics
+retain the position-angle fields required by the shape gates. Do not open the
+final population until the remaining named review of exact finite point-mass
+bootstrap intervals is resolved and the reviewed protocol hash is final.
 
 A typical invocation inside an immutable reference environment is:
 
@@ -254,6 +255,26 @@ python scripts/benchmark/compile_phase4_scientific_campaign.py \
 The compiler rejects dataset, seed, scientific-contract, or comparison-protocol
 drift. Qualification evidence remains `exploratory` until every input and
 scientific decision has received named review.
+
+After compiling all three implementation shards, create the one permitted
+decision with:
+
+```console
+python scripts/validation/evaluate_phase4_qualification.py \
+  --campaign benchmark-results/<campaign>-paired.json \
+  --manifest config/datasets/phase-4-final-qualification.json \
+  --dataset-id phase4-final-paired-qualification-512 \
+  --scientific-contract config/contracts/phase-4-measurement.json \
+  --scientific-contract config/contracts/phase-4-scientific-gates.json \
+  --scientific-gates config/contracts/phase-4-scientific-gates.json \
+  --comparison-protocol \
+    config/contracts/phase-4-paired-noninferiority.json \
+  --output benchmark-results/<campaign>-decision.json
+```
+
+The evaluator refuses to overwrite an existing decision. A secondary
+PyBDSF-master failure is retained under `record-and-continue`; a Hebog or
+released-PyBDSF failure fails primary qualification without deleting the seed.
 
 Before named review, audit the draft design assumptions against the complete
 paired regression. This uses whole noise-seed images as bootstrap clusters,

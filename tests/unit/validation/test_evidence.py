@@ -430,6 +430,8 @@ def _matched_source(
         integrated_flux_fractional_difference=0.02,
         maximum_absolute_fitted_axis_fractional_difference=0.03,
         maximum_absolute_deconvolved_axis_fractional_difference=None,
+        fitted_position_angle_difference_degrees=2.0,
+        deconvolved_position_angle_difference_degrees=None,
         catastrophic=CatastrophicMetricDiagnostic(
             position=False,
             peak_flux=False,

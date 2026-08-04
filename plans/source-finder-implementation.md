@@ -1687,7 +1687,7 @@ before maintaining a custom fitter.
          `15f8f607463f2db4cf4c0eb72255a998784e2d83d3a0d7ebc45eb733f6fbc7db`;
          complete campaign dataset SHA-256 is
          `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`.
-   - [ ] Implement and freeze the final one-look decision evaluator before
+   - [x] Implement and freeze the final one-look decision evaluator before
          opening the population. Extend the per-source diagnostic record with
          the fitted and deconvolved position-angle differences required by the
          existing absolute gates. The evaluator must recompute every endpoint,
@@ -1697,6 +1697,35 @@ before maintaining a custom fitter.
          machine-readable decision. Test the interval, degenerate, missing-
          field, implementation-failure, and gate-failure paths on analytic or
          viewed regression evidence only.
+         `phase_four_decision.py` now shares every aggregate statistic with
+         the planning audit, uses one vectorized whole-image SciPy BCa call for
+         the 20 endpoints, preserves primary and secondary failure policy,
+         distinguishes true gates from report-only individual-source tails,
+         evaluates the entire-interval uncertainty rules, and emits a strict
+         `phase-4-qualification-decision` evidence document. The maintained
+         CLI refuses to overwrite an earlier decision. Analytic tests cover
+         finite and degenerate intervals, missing position angles, absolute
+         gate failures, report-only tails, implementation failures, provenance
+         drift, and the complete decision orchestration without opening the
+         final population.
+   - [ ] Obtain named pre-opening review of the finite point-mass bootstrap
+         case exposed by the completed evaluator. On the already-viewed,
+         post-correction regression campaign, 12 endpoints have finite passing
+         BCa upper limits and eight exact-equality endpoints have a degenerate
+         bootstrap distribution. SciPy consequently returns `NaN`, and the
+         currently reviewed `indeterminate-fail` rule correctly makes those
+         eight endpoints indeterminate. This means a final campaign with exact
+         Hebog/PyBDSF equality on any co-primary endpoint cannot qualify even
+         though it demonstrates no regression. Before opening final data,
+         review the recommendation to define a finite point-mass distribution
+         as the exact interval `[point, point]` and retain fail-closed handling
+         for every other non-finite or undefined BCa result. If approved,
+         amend the machine-readable protocol, evaluator, tests, hashes, and
+         review record before recording execution identities. Do not select a
+         fallback after final results are seen. SciPy explicitly documents
+         that BCa bounds may be `NaN` for an all-identical bootstrap
+         distribution and recommends preselecting another analysis for that
+         case.
    - [ ] Record the exact clean Hebog revision, both immutable PyBDSF
          execution environments, dependency inventories, and output paths;
          then open the frozen population exactly once. Infrastructure retries

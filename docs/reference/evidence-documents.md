@@ -71,10 +71,12 @@ failure rather than dropping the seed or publishing a partial result.
 Successful outcomes retain one deterministic row for every matched source,
 unmatched truth source, and unmatched candidate. Rows include truth strata,
 classification and quality information, flux and position differences,
-independent catastrophic flags, the governed catastrophic decision, and all
-available normalized residuals. Successful implementations must expose the
-same truth identifiers. This makes paired non-inferiority analysis auditable
-and prevents aggregate pass/fail counts from hiding which sources changed.
+fitted and deconvolved position-angle differences where reference truth is
+eligible, independent catastrophic flags, the governed catastrophic decision,
+and all available normalized residuals. Successful implementations must
+expose the same truth identifiers. This makes paired non-inferiority analysis
+auditable and prevents aggregate pass/fail counts from hiding which sources
+changed.
 
 Association rows separately preserve every observable truth group, including
 unresolved blends, with its match decision, group strata, separation, and
@@ -102,6 +104,48 @@ Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive these
 rows from the independent catalogue comparison report. It deliberately shares
 the normalized-residual calculation used by the aggregate uncertainty report,
 so per-source and campaign-level statistics cannot silently diverge.
+
+## Phase 4 one-look decision evidence
+
+The final evaluator consumes a compiled campaign, the exact frozen dataset,
+the ordered scientific-contract set, the scientific gates, and the reviewed
+paired protocol. It verifies every checksum and seed before scoring anything.
+It then emits one strict `phase-4-qualification-decision` document containing:
+
+- every signed Hebog-versus-released-PyBDSF endpoint estimate and one-sided
+  95% SciPy BCa upper limit;
+- a report-only secondary comparison with pinned PyBDSF `master` wherever that
+  implementation completed;
+- every absolute held-out catalogue, shape, association, unresolved-group,
+  catastrophic, and entire-interval uncertainty result;
+- the named conjunctions protecting Hebog's stronger scientific results; and
+- every failed seed under its reviewed `qualification-fails` or
+  `record-and-continue` policy.
+
+Individual-source 95th-percentile tails retain their contractually declared
+`report-only` role; unresolved-group tails remain gates. A missing required
+field or non-finite BCa result is recorded as `indeterminate` and fails closed.
+The signed endpoint estimate remains visible but is not itself a gate.
+
+Run the evaluator only after all isolated final shards have been compiled:
+
+```console
+python scripts/validation/evaluate_phase4_qualification.py \
+  --campaign benchmark-results/<campaign>-compiled.json \
+  --manifest config/datasets/phase-4-final-qualification.json \
+  --dataset-id phase4-final-paired-qualification-512 \
+  --scientific-contract config/contracts/phase-4-measurement.json \
+  --scientific-contract config/contracts/phase-4-scientific-gates.json \
+  --scientific-gates config/contracts/phase-4-scientific-gates.json \
+  --comparison-protocol \
+    config/contracts/phase-4-paired-noninferiority.json \
+  --output benchmark-results/<campaign>-decision.json
+```
+
+The command refuses to replace an existing output. Its `exploratory` evidence
+status means the machine decision still requires the normal human evidence
+review before it is promoted as a release conclusion; it does not permit a
+second look or a replacement population.
 
 ## Writing and loading evidence
 

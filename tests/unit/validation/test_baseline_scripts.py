@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import runpy
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
@@ -21,6 +22,7 @@ from hebog.validation.datasets import (
     iter_dataset_recipes,
     load_dataset_manifest,
 )
+from hebog.validation.phase_four_analysis import ratio_values, truth_sets
 
 
 def _script(name: str) -> dict[str, Any]:
@@ -37,8 +39,6 @@ def _validation_script(name: str) -> dict[str, Any]:
 
 def test_paired_audit_uses_an_aggregate_reliability_ratio() -> None:
     """Whole-image resampling recomputes the canonical ratio of sums."""
-    namespace = _validation_script("audit_phase4_paired_assumptions.py")
-    ratio_values: Callable[..., dict[str, Any]] = namespace["_ratio_values"]
     counts = {
         "catalogue-reliability": np.asarray(((33.0, 34.0), (33.0, 35.0)))
     }
@@ -50,8 +50,6 @@ def test_paired_audit_uses_an_aggregate_reliability_ratio() -> None:
 
 def test_paired_audit_truth_populations_remain_disjoint() -> None:
     """Point, clear, and blend endpoints use predeclared truth sets."""
-    namespace = _validation_script("audit_phase4_paired_assumptions.py")
-    truth_sets: Callable[..., tuple[set[str], ...]] = namespace["_truth_sets"]
     root = Path(__file__).parents[3]
     dataset = load_dataset_manifest(
         root / "config/datasets/phase-4-paired-regression.json"
@@ -65,6 +63,40 @@ def test_paired_audit_truth_populations_remain_disjoint() -> None:
     assert len(clear) == 1
     assert len(blend) == 1
     assert point.isdisjoint(clear | blend)
+
+
+def test_final_evaluator_refuses_to_overwrite_a_decision(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The one-look entry point cannot replace an existing result."""
+    output = tmp_path / "decision.json"
+    output.write_text("already evaluated\n", encoding="utf-8")
+    namespace = _validation_script("evaluate_phase4_qualification.py")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evaluate_phase4_qualification.py",
+            "--campaign",
+            "campaign.json",
+            "--manifest",
+            "manifest.json",
+            "--dataset-id",
+            "final",
+            "--scientific-contract",
+            "measurement.json",
+            "--scientific-gates",
+            "gates.json",
+            "--comparison-protocol",
+            "protocol.json",
+            "--output",
+            str(output),
+        ],
+    )
+
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        namespace["main"]()
 
 
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (

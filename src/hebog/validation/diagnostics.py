@@ -264,6 +264,12 @@ def source_pair_diagnostics(  # noqa: PLR0913
                         )
                     )
                 ),
+                fitted_position_angle_difference_degrees=(
+                    match.fitted_position_angle_difference_degrees
+                ),
+                deconvolved_position_angle_difference_degrees=(
+                    match.deconvolved_position_angle_difference_degrees
+                ),
                 catastrophic=catastrophic,
                 gated_catastrophic=_gated_catastrophic(
                     catastrophic,

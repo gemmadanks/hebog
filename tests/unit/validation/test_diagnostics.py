@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from hebog.validation.comparison import (
+    CatalogueEllipse,
     CatalogueOutlierThresholds,
     CatalogueSource,
     compare_catalogues,
@@ -105,6 +106,54 @@ def test_source_diagnostics_expose_all_pair_decisions() -> None:
     assert missing_truth.truth_identifier == "truth-2"
     assert extra_candidate.decision == "unmatched-candidate"
     assert extra_candidate.candidate_identifier == "candidate-extra"
+
+
+def test_source_diagnostics_retain_position_angle_differences() -> None:
+    """Final absolute gates retain both fitted and deconvolved angles."""
+    truth = CatalogueSource(
+        identifier="truth",
+        right_ascension_degrees=10.0,
+        declination_degrees=-30.0,
+        peak_flux_jy_per_beam=1.0,
+        integrated_flux_jy=1.5,
+        fitted_shape=CatalogueEllipse(0.01, 0.005, 179.0),
+        deconvolved_shape=CatalogueEllipse(0.008, 0.004, 179.0),
+        deconvolution_status="resolved",
+    )
+    candidate = CatalogueSource(
+        identifier="candidate",
+        right_ascension_degrees=10.0,
+        declination_degrees=-30.0,
+        peak_flux_jy_per_beam=1.0,
+        integrated_flux_jy=1.5,
+        fitted_shape=CatalogueEllipse(0.011, 0.0045, 1.0),
+        deconvolved_shape=CatalogueEllipse(0.0088, 0.0036, 1.0),
+        deconvolution_status="resolved",
+    )
+    report = compare_catalogues(
+        (truth,),
+        (candidate,),
+        beam_fwhm_degrees=0.1,
+        maximum_separation_beams=0.5,
+        outlier_thresholds=_thresholds(),
+        position_angle_minimum_axis_ratio=1.1,
+    )
+
+    diagnostic = source_pair_diagnostics(
+        (truth,),
+        (candidate,),
+        report,
+        truth_strata_by_identifier={"truth": ("shape-clear-resolved",)},
+        ungated_catastrophic_metrics_by_truth_identifier={},
+        position_angle_minimum_axis_ratio=1.1,
+    )[0]
+
+    assert diagnostic.fitted_position_angle_difference_degrees == (
+        pytest.approx(2.0)
+    )
+    assert diagnostic.deconvolved_position_angle_difference_degrees == (
+        pytest.approx(2.0)
+    )
 
 
 def test_source_diagnostics_require_explicit_catastrophic_thresholds() -> None:

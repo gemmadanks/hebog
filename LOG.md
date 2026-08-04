@@ -3891,3 +3891,74 @@ and compatibility serialization
   for every paired interval, absolute gate, and stronger-Hebog envelope.
 - After that evaluator is tested and frozen, freeze the remaining execution
   identities and run the final population exactly once without tuning.
+
+## 2026-08-04 — Implemented the Phase 4 one-look evaluator prerequisite
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Extended immutable source-pair diagnostics with the fitted and deconvolved
+  position-angle differences already required by the reviewed absolute shape
+  gates. Old evidence remains readable, while the final evaluator fails closed
+  when a required eligible population has no retained angle measurement.
+- Moved all 20 aggregate paired endpoint calculations into one shared package
+  module used by both the planning audit and final evaluator. This prevents
+  population, ratio, quantile, uncertainty, or regression-sign drift between
+  design and final decision.
+- Implemented the vectorized whole-image paired one-sided 95% SciPy BCa
+  evaluator with the reviewed 50,000 resamples and fixed seed. It preserves
+  the signed point estimate, treats non-finite bounds as indeterminate, and
+  does not apply the rejected point-sign gate.
+- Implemented every held-out absolute catalogue, shape, association,
+  catastrophic, unresolved-group, and entire-confidence-interval uncertainty
+  decision. Individual-source 95th-percentile tails remain report-only under
+  their contract; unresolved-group tails remain gates.
+- Added named conjunctions for the campaign-measurable stronger Hebog science
+  envelopes: complete group recovery, uncertainty availability/calibration,
+  unresolved-group errors, clear-resolved recall, and catastrophic tail.
+  Serial/Dask invariance and bounded execution remain exact-revision pre-run
+  checks rather than being misrepresented as catalogue measurements.
+- Added a strict `phase-4-qualification-decision` evidence schema and a
+  maintained CLI. It verifies frozen dataset, scientific-contract, protocol,
+  implementation, and seed identities; retains primary and secondary failure
+  policy; reports secondary endpoints where pinned master completes; and
+  refuses to overwrite an earlier decision.
+- Kept the final 600-image population ungenerated and unopened.
+
+**Evidence**
+
+- Analytic tests exercise finite and degenerate BCa results, missing
+  position-angle inputs, absolute-gate failures, report-only tails, required
+  implementation failures, provenance drift, strict evidence round trips, and
+  complete primary/secondary/absolute/envelope orchestration.
+- The shared planning-audit population and ratio tests continue to pass after
+  the extraction, and focused Ruff and Pyright checks pass.
+- A dry run on the already-viewed complete post-correction regression campaign
+  produced 12 finite passing endpoint intervals and eight indeterminate
+  exact-equality endpoints. No endpoint failed its practical margin.
+- `just check` passes: formatting, Ruff, Pyright, 650 fast tests, and four
+  expected contract failures.
+- `just coverage` passes with 778 tests, four expected contract failures, and
+  94.86% branch-aware project coverage. The new diagnostic path reaches 100%,
+  shared Phase 4 analysis 93%, and final decision module 86%.
+- The strict MkDocs build passes.
+- The frozen PyBDSF equivalence lane passes: 26 tests.
+- All pre-commit hooks pass, including JSON canonical formatting, Ruff,
+  codespell, and lockfile validation.
+
+**Deviation requiring review**
+
+- The dry run exposed a pre-existing protocol problem before final opening:
+  SciPy BCa returns `NaN` for an all-identical bootstrap distribution. The
+  reviewed `indeterminate-fail` rule therefore prevents an endpoint with exact
+  Hebog/PyBDSF equality from qualifying. This is documented SciPy behaviour,
+  not a scientific regression.
+
+**Next**
+
+- Obtain named pre-opening review of the recommendation to use the exact
+  `[point, point]` interval only for a finite point-mass bootstrap distribution
+  and retain fail-closed handling for every other undefined result. If
+  approved, update the protocol, evaluator, tests, hashes, and review record
+  before recording execution identities or opening final data.

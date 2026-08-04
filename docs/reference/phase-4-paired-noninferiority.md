@@ -2,7 +2,8 @@
 
 **Status:** reviewed on 2026-08-03 by Gemma Danks, Data Processing Software
 Engineer. The final unseen population is frozen and remains ungenerated and
-unopened until every execution identity is recorded.
+unopened until the newly exposed finite point-mass rule receives named review
+and every execution identity is recorded.
 
 This protocol answers a deliberately narrower question than “does Hebog equal
 PyBDSF byte for byte?” It asks whether Hebog passes the existing truth-based
@@ -245,10 +246,30 @@ estimator to regression noise.
 
 After the completed named approval, the final manifest froze the generator
 version, exactly 600 seeds, truth, WCS, beam, and endpoint strata. The reviewed
-contracts freeze the margins, analysis rule, and stopping rule. Before opening
-the population, implement and freeze the maintained evaluator for every paired
-and absolute gate, then record the exact Hebog and PyBDSF revisions, container
-or source-tree identities, and dependency inventories. Then:
+contracts freeze the margins, analysis rule, and stopping rule. The maintained
+evaluator is now implemented and tested for every paired and absolute gate,
+including the position-angle fields that were previously absent from campaign
+rows. It writes one strict machine-readable decision and refuses to overwrite
+an existing result.
+
+Its dry run on already-viewed post-correction regression evidence also exposed
+an important pre-opening decision. Twelve paired endpoints have finite passing
+BCa bounds, while eight exact-equality endpoints have an all-identical
+bootstrap distribution: compact completeness, association recall, fitted-
+shape availability, deconvolution-classification availability, association-
+identity availability, position/flux-uncertainty availability, point-source
+specificity, and unresolved-group completeness. Their signed regression is
+exactly zero. SciPy documents that BCa bounds may be `NaN` in this case. The
+currently reviewed `indeterminate-fail` policy therefore behaves as specified,
+but it would make exact demonstrated equality incapable of passing.
+No final image has been generated or inspected. Named review must now decide,
+before that happens, whether a finite point-mass bootstrap distribution should
+use its exact interval `[point, point]` while every other undefined result
+continues to fail closed. See the official
+[SciPy bootstrap documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html).
+
+After that decision is resolved, record the exact Hebog and PyBDSF revisions,
+container or source-tree identities, and dependency inventories. Then:
 
 1. run Hebog and both references on the same immutable images;
 2. compile the isolated shards without deleting failures;

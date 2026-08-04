@@ -1012,10 +1012,25 @@ replaced by another population. Both maintained runners fail before recipe
 iteration unless the measurement contract, scientific gates, and paired
 protocol carry their reviewed statuses.
 
-The population remains unopened because one pre-run implementation step is
-still required: the maintained final evaluator must apply every paired BCa
-interval, absolute gate, and stronger-Hebog envelope in one immutable decision.
-The current per-source campaign record must first retain fitted and
-deconvolved position-angle differences so that all existing absolute shape
-gates are evaluable. This work may use analytic and viewed regression evidence
-only and must be frozen before any final image is generated.
+The maintained final evaluator and its immutable decision schema are now
+implemented. Per-source campaign rows retain fitted and deconvolved
+position-angle differences; the evaluator applies all 20 paired endpoints,
+every gated absolute metric, the contractually report-only individual-source
+tails, uncertainty intervals, implementation-failure policies, and the named
+stronger-Hebog scientific envelopes. Its CLI verifies the frozen provenance
+and refuses to overwrite an existing decision. No final image was generated
+or inspected during this work.
+
+The evaluator dry run on already-viewed post-correction regression evidence
+returned 12 finite passing BCa endpoints and eight indeterminate exact-equality
+endpoints. This is the documented SciPy BCa point-mass behaviour, not a Hebog
+or PyBDSF scientific regression: all resamples have the same zero paired
+difference, so BCa acceleration is undefined and SciPy returns `NaN`. The
+reviewed protocol currently says every degenerate interval is
+`indeterminate-fail`. Before recording final execution identities or opening
+the population, named review must decide whether to retain that rule, knowing
+that exact equality cannot qualify, or approve the predeclared recommendation
+to use `[point, point]` only for a finite point-mass distribution while every
+other undefined result still fails closed. No choice may be made after final
+results are inspected. SciPy's documented behaviour is linked from the paired
+protocol guide.
