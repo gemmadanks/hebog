@@ -442,7 +442,7 @@ def test_centroid_retry_survives_edge_bound_contact_in_both_models() -> None:
         rms_value=0.05,
     )
     residual = compact.physical_residual.copy()
-    residual[8:11, -1] += 0.15
+    residual[8:11, -1] += 0.05
     geometry = _beam_geometry()
     geometry = replace(
         geometry,
@@ -473,6 +473,9 @@ def test_centroid_retry_survives_edge_bound_contact_in_both_models() -> None:
     assert result.diagnostics.point_estimator == "correlated-gls"
     assert "centroid-constrained-fit" in result.quality_flags
     assert "fit-at-bound" not in result.quality_flags
+    assert abs(result.parameters.centroid_xy[0] - 254.0) < (
+        abs(result.moment.initializer.centroid_xy[0] - 254.0) - 0.1
+    )
 
 
 def test_default_model_selection_preserves_the_free_fit_oracle() -> None:

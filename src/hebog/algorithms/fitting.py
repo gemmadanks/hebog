@@ -1068,6 +1068,7 @@ def _centroid_constrained_retry(  # noqa: PLR0913
     free: _FitCandidate,
     constrained: _FitCandidate,
     fallback_reason: _FallbackReason,
+    retry_centroid_xy: tuple[float, float] | None,
     initial: npt.NDArray[np.float64],
     lower: npt.NDArray[np.float64],
     upper: npt.NDArray[np.float64],
@@ -1084,11 +1085,16 @@ def _centroid_constrained_retry(  # noqa: PLR0913
         return None
     constrained_parameters = constrained.full_parameters
     forced_center_tolerance = 1e-7
+    retry_center = np.asarray(
+        retry_centroid_xy if retry_centroid_xy is not None else initial[1:3],
+        dtype=np.float64,
+    )
+    center_x, center_y = retry_center
     forced_initial = np.asarray(
         [
             constrained_parameters[0],
-            initial[1],
-            initial[2],
+            center_x,
+            center_y,
             initial[3],
             initial[4],
             initial[5],
@@ -1098,8 +1104,8 @@ def _centroid_constrained_retry(  # noqa: PLR0913
     )
     forced_lower = np.asarray(lower, dtype=np.float64).copy()
     forced_upper = np.asarray(upper, dtype=np.float64).copy()
-    forced_lower[1:3] = initial[1:3] - forced_center_tolerance
-    forced_upper[1:3] = initial[1:3] + forced_center_tolerance
+    forced_lower[1:3] = retry_center - forced_center_tolerance
+    forced_upper[1:3] = retry_center + forced_center_tolerance
     free_indices = np.arange(6 if fixed_background else 7, dtype=np.int64)
 
     def expand(
@@ -1636,6 +1642,13 @@ def fit_compact_gaussian(
         free=free,
         constrained=constrained,
         fallback_reason=fallback_reason,
+        retry_centroid_xy=_truncated_moment_centroid(
+            valid_moment,
+            free,
+            lower,
+            upper,
+            config,
+        ),
         initial=initial,
         lower=lower,
         upper=upper,
