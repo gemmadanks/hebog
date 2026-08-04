@@ -4490,3 +4490,40 @@ and compatibility serialization
 - Run the exact candidate and both references on the new viewable matrix,
   reproduce the rare shape tail independently, and add analytic red tests for
   the generic failure before selecting the smallest correction.
+
+## 2026-08-04 — Authorized one powered Phase 4R qualification
+
+**Plan phase:** Phase 4R, Steps 4 and 5 — tail decision and named review
+
+**Completed**
+
+- Ran the unchanged candidate and both exact references on all 200 frozen
+  tail-development realizations. Every implementation completed every image.
+- Confirmed that Hebog is better on the independently reproduced catastrophic
+  tail: 9/2,400 eligible matches versus 19/2,400 for released PyBDSF and
+  30/2,400 for pinned `master`. The complete evaluator passes all 450
+  dual-reference decisions and the absolute catastrophic gate.
+- Reviewed the remaining uncertainty results against Condon, Aegean 2.0,
+  correlated-noise bias analysis, general maximum-likelihood photometric bias,
+  and the ASKAP/EMU challenge. The observed low-SNR effects are expected, the
+  normalized-residual dispersions are near unity, and a new correction chosen
+  only after the confirmation crossing is not scientifically justified.
+- Recorded Gemma Danks's named approval to preserve the failed confirmation
+  and advance the unchanged candidate to exactly one powered qualification.
+  No metric, margin, source row, or qualification rule changes.
+
+**Evidence**
+
+- Candidate/released/master/compiled/decision SHA-256 values are
+  `3749e52eb9bcb1d3ba101724646cc43c0c6ae911710530df71effc01368aa9fd`,
+  `a2ed5f9fbba545c8406303366b4d588eb2d4bc56d0ba2768dd9f36ffe8937053`,
+  `6f4bf40983477f2dbb803e5f2a35e5ffd059f4d6eea7ed5f0ef152dd20a47ee2`,
+  `46a8994448556a852cc9d5e631123f08f64ad24bb1925d4aa2140862ba5dc9ac`,
+  and `7f19261a689c97f284801ebd81f30f4bb51e6cd68b7eb9130b0f6c54a3d946f9`.
+- All 450 comparative point decisions pass; the absolute catastrophic rate is
+  0.00375 against its unchanged 0.005 maximum.
+
+**Next**
+
+- Commit the named review before creating any qualification population, then
+  freeze and execute the single 600-realization Phase 4R qualification.

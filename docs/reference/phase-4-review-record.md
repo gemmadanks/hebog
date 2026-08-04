@@ -1350,3 +1350,46 @@ seeded, viewable 200-realization manifest
 `config/datasets/phase-4r-development-3.json`, frozen with file SHA-256
 `06ad23df2a747ea33136c4e226a1400c231ac76ea1422adb40979e01dbfd884a`
 before any post-confirmation fitting change.
+
+## Phase 4R tail evidence and qualification authorization
+
+The unchanged candidate completed all 200 images in that independently
+frozen development population. Released PyBDSF and pinned `master` also
+completed every image. Hebog produced nine catastrophic matches among 2,400
+eligible rows, compared with 19 and 30 respectively. Across the iteration-two
+and tail-development populations, the corresponding counts are 9/2,880,
+23/2,880, and 36/2,880. Hebog passed all 450 independently evaluated
+dual-reference point decisions and its absolute catastrophic gate. Candidate,
+released-reference, master-reference, compiled, and decision SHA-256 values
+are `3749e52eb9bcb1d3ba101724646cc43c0c6ae911710530df71effc01368aa9fd`,
+`a2ed5f9fbba545c8406303366b4d588eb2d4bc56d0ba2768dd9f36ffe8937053`,
+`6f4bf40983477f2dbb803e5f2a35e5ffd059f4d6eea7ed5f0ef152dd20a47ee2`,
+`46a8994448556a852cc9d5e631123f08f64ad24bb1925d4aa2140862ba5dc9ac`,
+and `7f19261a689c97f284801ebd81f30f4bb51e6cd68b7eb9130b0f6c54a3d946f9`.
+
+This is evidence that the confirmation crossing was stochastic, not that its
+failed decision should be overwritten. The current estimator remains
+scientifically preferable to a correction selected only to remove a rare
+sample tail. Condon describes low-SNR amplitude overestimation from fitting a
+peak toward the local noise gradient and supports a priori size constraints
+when the size is genuinely known
+([Condon 1997](https://ui.adsabs.harvard.edu/abs/1997PASP..109..166C)).
+Aegean 2.0 treats the inverse noise covariance, simulated normalized-residual
+calibration, and prioritized fitting as the relevant radio-source practices
+([Hancock et al. 2018](https://arxiv.org/abs/1801.05548)). Correlated-noise
+parameter biases are second order in inverse SNR
+([Refregier & Brown 1998](https://arxiv.org/abs/astro-ph/9803279)), while
+general maximum-likelihood photometry likewise shows larger positive flux
+bias as more source parameters are fitted
+([Portillo et al. 2020](https://arxiv.org/abs/1902.02374)). The ASKAP/EMU
+challenge reinforces evaluating low-SNR flux bias and catastrophic tails
+explicitly rather than hiding them in an aggregate score
+([Hopkins et al. 2015](https://doi.org/10.1017/pasa.2015.37)).
+
+Gemma Danks, Data Processing Software Engineer, approves preserving the
+failed confirmation and advancing the unchanged candidate to one powered,
+one-look Phase 4R qualification. This named exception was approved on
+2026-08-04 before qualification seeds or outcomes were created or inspected.
+It does not rescore confirmation, relax any absolute threshold or practical
+margin, or permit another qualification attempt. Every registered
+qualification gate remains binding.

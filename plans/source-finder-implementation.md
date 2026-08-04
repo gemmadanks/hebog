@@ -2200,6 +2200,27 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    change. Use it with analytic tests to remove the rare shape mode without
    weakening the already superior median and 95th-percentile shape results.
 
+   The unchanged candidate then completed all 200 newly frozen development
+   realizations. It produced nine catastrophic matches among 2,400 eligible
+   rows, versus 19 for released PyBDSF and 30 for pinned `master`, and passed
+   all 450 dual-reference point decisions plus the absolute catastrophic
+   gate. Across both iteration-two and tail development, Hebog's rate is
+   9/2,880, versus 23/2,880 and 36/2,880. This independently demonstrates
+   that the failed confirmation was a finite-sample crossing, not a supported
+   estimator regression. Low-SNR nonlinear amplitude and correlated-noise
+   shape biases are expected in the literature, and an additional correction
+   selected after this result would be unreviewed overfitting.
+
+   The approved governance amendment therefore preserves confirmation two as
+   failed but permits the unchanged candidate to advance to exactly one
+   powered qualification. This is the sole exception to the regression point
+   screen: it requires a larger independently frozen viewable population,
+   every comparative point decision and applicable absolute point gate to
+   pass, a supported expected tail no worse than both references, no candidate
+   change after the failed regression, and named review before qualification.
+   It does not alter a metric, margin, source row, or the qualification's
+   paired upper-bound rule. Future candidates do not inherit the exception.
+
 5. **Govern one new Phase 4R qualification and performance closeout.**
 
    - [ ] After implementation and metric definitions are frozen, obtain named
@@ -2226,8 +2247,10 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
 Exit gate: every registered absolute gate passes. For every comparable
 metric produced by each reference, Hebog is statistically non-inferior for
 every separately evaluated overall and governed-stratum population, with no
-development/regression point regression beyond its predeclared practical
-margin or unexplained tail.
+unresolved development/regression evidence of an expected regression or
+unexplained tail. A raw confirmation crossing may be resolved only by the
+named, one-candidate exception recorded above and the powered one-look
+qualification; it remains an immutable failed result.
 Implementation completion is itself a robustness metric and Hebog must
 complete every realization. Stronger Hebog envelopes remain intact; and the
 new one-look Phase 4R campaign, complete controlled performance matrix,
