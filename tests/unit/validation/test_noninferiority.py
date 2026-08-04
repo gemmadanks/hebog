@@ -16,15 +16,52 @@ from hebog.validation.contracts import (
     PairedNoninferiorityContract,
     load_paired_noninferiority_contract,
 )
+from hebog.validation.datasets import load_dataset_manifest
 from hebog.validation.noninferiority import (
+    audit_design_population,
     audit_planning_standard_deviation,
     calculate_design_power,
+    familywise_power_lower_bound,
     planned_paired_standard_deviation,
     require_adequate_design_power,
 )
 
 _ROOT = Path(__file__).parents[3]
 _CONTRACT_PATH = _ROOT / "config/contracts/phase-4-paired-noninferiority.json"
+_REPLACEMENT_PATH = (
+    _ROOT / "config/datasets/phase-4r-qualification-replacement.json"
+)
+
+_POPULATION_UNITS = {
+    "compact-completeness": "association-truth-groups",
+    "catalogue-reliability": "association-truth-groups",
+    "association-pair-precision": "association-truth-groups",
+    "association-pair-recall": "association-truth-groups",
+    "fitted-shape-availability": "individually-resolvable-sources",
+    "deconvolution-classification-availability": (
+        "individually-resolvable-sources"
+    ),
+    "resolved-deconvolved-shape-availability": "clear-resolved-sources",
+    "association-identity-availability": "individually-resolvable-sources",
+    "position-flux-uncertainty-availability": (
+        "individually-resolvable-sources"
+    ),
+    "point-source-specificity": "point-sources",
+    "clear-resolved-classification-recall": "clear-resolved-sources",
+    "catastrophic-outlier-fraction": "individually-resolvable-sources",
+    "unresolved-group-completeness": "unresolved-association-groups",
+}
+
+
+def _contract_with_population_units() -> PairedNoninferiorityContract:
+    """Return the historical protocol with explicit population meanings."""
+    contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
+    payload = contract.model_dump(mode="json")
+    for endpoint in payload["binary_endpoints"]:
+        endpoint["population_unit"] = _POPULATION_UNITS[
+            endpoint["endpoint_id"]
+        ]
+    return PairedNoninferiorityContract.model_validate(payload)
 
 
 def _change_confidence_level(payload: dict[str, Any]) -> None:
@@ -136,6 +173,72 @@ def test_power_uses_effective_clustered_sample_size() -> None:
     assert estimate.combined_decision_probability == pytest.approx(
         estimate.interval_exclusion_power
     )
+
+
+def test_population_audit_uses_frozen_manifest_counts() -> None:
+    """Power cannot assume more groups than the qualification contains."""
+    contract = _contract_with_population_units()
+    dataset = load_dataset_manifest(_REPLACEMENT_PATH).datasets[0]
+
+    audits = {
+        item.endpoint_id: item
+        for item in audit_design_population(contract, dataset)
+    }
+
+    assert audits["compact-completeness"].observed_count == 13
+    assert audits["compact-completeness"].declared_count == 33
+    assert audits["compact-completeness"].matched is False
+    assert audits["point-source-specificity"].observed_count == 4
+    assert audits["point-source-specificity"].declared_count == 8
+    assert audits["point-source-specificity"].matched is False
+
+
+def test_manifest_matched_point_population_exposes_underpowered_design() -> (
+    None
+):
+    """Corrected group counts reveal the replacement design's power gap."""
+    contract = _contract_with_population_units()
+    dataset = load_dataset_manifest(_REPLACEMENT_PATH).datasets[0]
+    payload = contract.model_dump(mode="json")
+    observed = {
+        item.endpoint_id: item.observed_count
+        for item in audit_design_population(contract, dataset)
+    }
+    for endpoint in payload["binary_endpoints"]:
+        endpoint["observations_per_realization"] = observed[
+            endpoint["endpoint_id"]
+        ]
+    corrected = PairedNoninferiorityContract.model_validate(payload)
+
+    point_power = next(
+        item
+        for item in calculate_design_power(corrected)
+        if item.endpoint_id == "point-source-specificity"
+    )
+
+    assert point_power.interval_exclusion_power == pytest.approx(
+        0.7686,
+        abs=0.002,
+    )
+    with pytest.raises(ValueError, match="point-source-specificity"):
+        require_adequate_design_power(corrected, dataset=dataset)
+
+
+def test_familywise_power_uses_a_conservative_union_bound() -> None:
+    """Marginal endpoint power is not mislabeled as joint campaign power."""
+    contract = load_paired_noninferiority_contract(_CONTRACT_PATH)
+    estimates = calculate_design_power(contract)[:3]
+
+    joint = familywise_power_lower_bound(estimates)
+
+    assert joint == pytest.approx(
+        max(
+            0.0,
+            1.0
+            - sum(1.0 - item.interval_exclusion_power for item in estimates),
+        )
+    )
+    assert joint < min(item.interval_exclusion_power for item in estimates)
 
 
 def test_binary_planning_bound_is_expressed_on_the_realization_scale() -> None:

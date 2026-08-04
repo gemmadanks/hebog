@@ -244,10 +244,7 @@ def _source_strata(
                 group.resolution_class,
                 *(
                     stratum.identifier
-                    for stratum in (
-                        *dataset.validation_strata,
-                        *dataset.classification_strata,
-                    )
+                    for stratum in dataset.canonical_source_strata()
                     if source_index in stratum.source_indices
                 ),
             }

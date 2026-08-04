@@ -698,6 +698,16 @@ class PairedBinaryEndpoint(_ContractModel):
     observations_per_realization: int = Field(ge=1)
     planning_discordance_probability: float = Field(gt=0, lt=1)
     planning_intracluster_correlation: float = Field(ge=0, lt=1)
+    population_unit: (
+        Literal[
+            "association-truth-groups",
+            "individually-resolvable-sources",
+            "point-sources",
+            "clear-resolved-sources",
+            "unresolved-association-groups",
+        ]
+        | None
+    ) = None
     assumption_verification: Literal[
         "required-on-independent-development-regression"
     ]

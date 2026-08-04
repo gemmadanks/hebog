@@ -1085,6 +1085,24 @@ def test_dataset_rejects_overlapping_classification_strata() -> None:
         type(dataset).model_validate(payload)
 
 
+def test_canonical_source_strata_prefer_governed_classification() -> None:
+    """A classification cannot be widened by an older validation stratum."""
+    dataset = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-4r-qualification-replacement.json"
+    ).datasets[0]
+
+    strata = {
+        item.identifier: item.source_indices
+        for item in dataset.canonical_source_strata()
+    }
+
+    assert strata["shape-clear-resolved"] == (8, 11)
+    assert strata["shape-marginal-resolved"] == (1, 2, 4, 5, 7, 10)
+    assert strata["shape-unresolved"] == (0, 3, 6, 9)
+    assert strata["edge"] == (1, 2, 3, 5, 6, 10, 11)
+    assert strata["snr-10"] == (0, 1, 2)
+
+
 def test_association_truth_group_freezes_derived_group_quantities() -> None:
     """Explicit group truth is bound to its analytic emitter membership."""
     dataset = load_dataset_manifest(

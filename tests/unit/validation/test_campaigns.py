@@ -8,6 +8,7 @@ from pathlib import Path
 
 from hebog.validation.campaigns import (
     _association_truth_source,
+    _source_strata,
     diagnose_phase_four_realization,
     phase_four_truth_source,
 )
@@ -103,3 +104,20 @@ def test_association_uses_fitted_total_before_canonicalization() -> None:
         if item.resolution_class == "unresolved-blend"
     )
     assert blend.integrated_flux_fractional_difference == 0.0
+
+
+def test_source_diagnostics_do_not_union_conflicting_shape_strata() -> None:
+    """One source receives only its governed extension classification."""
+    dataset = load_dataset_manifest(
+        _ROOT / "config/datasets/phase-4r-qualification-replacement.json"
+    ).datasets[0]
+    group = next(
+        item
+        for item in dataset.association_truth_groups
+        if item.source_indices == (5,)
+    )
+
+    strata = _source_strata(dataset, group)
+
+    assert "shape-marginal-resolved" in strata
+    assert "shape-clear-resolved" not in strata

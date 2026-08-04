@@ -453,6 +453,27 @@ class DatasetRecord(_ManifestModel):
         ):
             raise ValueError("source stratum index must identify recipe truth")
 
+    def canonical_source_strata(self) -> tuple[SourceValidationStratum, ...]:
+        """Return one authoritative definition for every source stratum.
+
+        Classification strata are governed disjoint populations. They replace
+        an older validation stratum with the same identifier instead of being
+        unioned with it. Distinct validation strata such as SNR and edge
+        populations remain available as independent diagnostic dimensions.
+        """
+        classification_identifiers = {
+            stratum.identifier for stratum in self.classification_strata
+        }
+        canonical = (
+            *(
+                stratum
+                for stratum in self.validation_strata
+                if stratum.identifier not in classification_identifiers
+            ),
+            *self.classification_strata,
+        )
+        return tuple(sorted(canonical, key=lambda item: item.identifier))
+
     def _validate_association_truth(self) -> None:
         """Bind explicit observable groups and strata to analytic sources."""
         if not self.association_truth_groups:

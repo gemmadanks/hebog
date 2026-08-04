@@ -160,10 +160,7 @@ def _truth_index(dataset: DatasetRecord) -> _TruthIndex:
         ) from error
     source_strata: dict[str, set[str]] = {}
     group_strata: dict[str, set[str]] = {}
-    for stratum in (
-        *dataset.validation_strata,
-        *dataset.classification_strata,
-    ):
+    for stratum in dataset.canonical_source_strata():
         source_strata.setdefault(stratum.identifier, set()).update(
             individual_by_index[index]
             for index in stratum.source_indices

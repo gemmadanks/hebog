@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from statistics import NormalDist
 
@@ -13,6 +14,7 @@ from hebog.validation.contracts import (
     PairedContinuousEndpoint,
     PairedNoninferiorityContract,
 )
+from hebog.validation.datasets import DatasetRecord, iter_dataset_recipes
 
 _STANDARD_NORMAL = NormalDist()
 _MINIMUM_SAMPLE_COUNT = 2
@@ -43,7 +45,96 @@ class PairedPlanningAssumptionAudit:
     planning_bound_verified: bool
 
 
+@dataclass(frozen=True, slots=True)
+class PairedPopulationAudit:
+    """Manifest comparison for one declared binary-endpoint population."""
+
+    endpoint_id: str
+    population_unit: str
+    declared_count: int
+    observed_count: int
+    matched: bool
+
+
 PairedEndpoint = PairedBinaryEndpoint | PairedContinuousEndpoint
+
+
+def _classification_count(dataset: DatasetRecord, identifier: str) -> int:
+    """Return a governed classification population size."""
+    try:
+        stratum = next(
+            item
+            for item in dataset.classification_strata
+            if item.identifier == identifier
+        )
+    except StopIteration as error:
+        raise ValueError(
+            f"dataset lacks required classification stratum: {identifier}"
+        ) from error
+    individual_indices = {
+        group.source_indices[0]
+        for group in dataset.association_truth_groups
+        if group.resolution_class == "individually-resolvable"
+    }
+    return len(set(stratum.source_indices).intersection(individual_indices))
+
+
+def _population_count(dataset: DatasetRecord, population_unit: str) -> int:
+    """Derive an endpoint population from frozen analytic truth."""
+    if population_unit == "association-truth-groups":
+        return len(dataset.association_truth_groups)
+    if population_unit == "individually-resolvable-sources":
+        return sum(
+            group.resolution_class == "individually-resolvable"
+            for group in dataset.association_truth_groups
+        )
+    if population_unit == "point-sources":
+        return _classification_count(dataset, "shape-unresolved")
+    if population_unit == "clear-resolved-sources":
+        return _classification_count(dataset, "shape-clear-resolved")
+    if population_unit == "unresolved-association-groups":
+        return sum(
+            group.resolution_class == "unresolved-blend"
+            for group in dataset.association_truth_groups
+        )
+    raise ValueError(f"unsupported paired population unit: {population_unit}")
+
+
+def audit_design_population(
+    contract: PairedNoninferiorityContract,
+    dataset: DatasetRecord,
+) -> tuple[PairedPopulationAudit, ...]:
+    """Compare every binary design count with its frozen manifest truth."""
+    audits: list[PairedPopulationAudit] = []
+    for endpoint in contract.binary_endpoints:
+        if endpoint.population_unit is None:
+            raise ValueError(
+                "paired endpoint lacks a manifest population unit: "
+                f"{endpoint.endpoint_id}"
+            )
+        observed = _population_count(dataset, endpoint.population_unit)
+        audits.append(
+            PairedPopulationAudit(
+                endpoint_id=endpoint.endpoint_id,
+                population_unit=endpoint.population_unit,
+                declared_count=endpoint.observations_per_realization,
+                observed_count=observed,
+                matched=endpoint.observations_per_realization == observed,
+            )
+        )
+    return tuple(audits)
+
+
+def familywise_power_lower_bound(
+    estimates: Sequence[PairedDesignPower],
+) -> float:
+    """Return the dependence-robust union-bound power for all endpoints."""
+    if not estimates:
+        raise ValueError("familywise power requires at least one endpoint")
+    return max(
+        0.0,
+        1.0 - sum(1.0 - item.interval_exclusion_power for item in estimates),
+    )
 
 
 def planned_paired_standard_deviation(endpoint: PairedEndpoint) -> float:
@@ -223,8 +314,30 @@ def calculate_design_power(
 
 def require_adequate_design_power(
     contract: PairedNoninferiorityContract,
+    *,
+    dataset: DatasetRecord | None = None,
 ) -> tuple[PairedDesignPower, ...]:
     """Return estimates only when every endpoint reaches the power target."""
+    if dataset is not None:
+        realization_count = len(iter_dataset_recipes(dataset))
+        if contract.realization_count != realization_count:
+            raise ValueError(
+                "paired realization count does not match frozen manifest: "
+                f"declared {contract.realization_count}, observed "
+                f"{realization_count}"
+            )
+        mismatched = [
+            item
+            for item in audit_design_population(contract, dataset)
+            if not item.matched
+        ]
+        if mismatched:
+            details = ", ".join(
+                f"{item.endpoint_id} declared {item.declared_count} but "
+                f"manifest has {item.observed_count}"
+                for item in mismatched
+            )
+            raise ValueError(f"paired population mismatch: {details}")
     estimates = calculate_design_power(contract)
     underpowered = [
         item.endpoint_id
