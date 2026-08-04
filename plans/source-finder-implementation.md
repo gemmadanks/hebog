@@ -2399,6 +2399,145 @@ may scalability become the next active engineering focus. Phase 5
 multiscale science remains required for complete Rapthor functionality, and
 all later multiscale work must adopt the same execution contracts.
 
+### Phase 4S: compact-science stabilization and Phase 5 start gate
+
+Status: approved for implementation on 2026-08-04 after review of all Phase 4
+and Phase 4R evidence. Phase 4R remains an immutable failed qualification. This
+milestone must not regenerate, rescore, reinterpret, or retrospectively pass
+that campaign. It repairs defects and ambiguities found by the review, then
+uses new development and regression evidence before one independently frozen
+qualification.
+
+The review found that Hebog's compact-source implementation is broadly sound:
+it completed all 600 replacement images, passed 446 of 450 dual-reference
+comparisons and 106 of 107 binding absolute gates, and had a lower point error
+than either reference for most comparisons. The remaining failures are not a
+reason to relax scientific standards. They expose three concrete issues that
+must be fixed before qualification:
+
+1. classification and validation strata with the same identifier are combined
+   even when they have different memberships, so nominally distinct shape
+   populations can overlap;
+2. the registered power model assumes more independent groups and point-source
+   groups than the frozen manifest actually contains and reports the weakest
+   marginal endpoint power rather than power for the release decision;
+3. marginal deconvolution and edge-position uncertainty can report more
+   precision than their estimators support. The SNR-15 catastrophic tail is
+   concentrated in a single marginally resolved source family, especially its
+   unstable deconvolved minor axis, while the SNR-10 declination-bias result is
+   dominated by one truncated edge family whose corrected point estimate
+   inherits covariance from a different estimator.
+
+The objective is scientific stabilization, not numerical agreement for its own
+sake. Analytic truth and community practice documented in radio-source-finding
+challenges and peer-reviewed literature remain primary. Released PyBDSF is the
+primary compatibility reference because it defines current Rapthor behaviour;
+the pinned performance-improved PyBDSF `master` reference is an independently
+reported robustness reference. Neither reference may override analytic truth
+or justify reproducing a known defect. All stronger reviewed Hebog envelopes
+remain in force.
+
+1. **Repair evidence construction and release-decision semantics using TDD.**
+   - Make one canonical stratum collection authoritative for any identifier;
+     reject contradictory duplicate definitions at a public boundary instead
+     of silently taking their union. Preserve all historical evidence bytes and
+     decisions unchanged.
+   - Derive the number of independent image, association, individual-source,
+     and point-source groups from the frozen manifest. Reject a qualification
+     power declaration whose assumed population does not match those counts.
+   - Register a small, scientifically independent set of co-primary families:
+     completion and robustness; completeness and reliability; association and
+     group recovery; position and flux accuracy; Rapthor-facing retained versus
+     rejected decisions using `DC_Maj`, `E_RA`, and `E_DEC`; calibrated
+     uncertainty; and catastrophic failure only for identifiable quantities in
+     populations where that quantity is scientifically estimable.
+   - Keep every position, flux, fitted/deconvolved shape, angle, SNR, and
+     governed-stratum curve in the machine-readable report. Treat these as
+     diagnostic or hierarchically interpreted outcomes unless they are named
+     co-primary before the campaign is frozen. A diagnostic regression still
+     blocks release when it reveals an unexplained defect; it does not become
+     one of hundreds of interchangeable pass/fail votes.
+   - Compute power for every co-primary family and for their joint release
+     decision under the registered multiplicity rule. Require at least 90%
+     power for each release-blocking family and the reviewed joint target;
+     marginal endpoint power alone is not sufficient.
+
+2. **Make marginal deconvolution scientifically honest.**
+   - Represent fully resolved, major-axis-only, unresolved, and unavailable
+     deconvolution states explicitly. Do not publish a weakly constrained minor
+     axis or position angle as a precise ellipse.
+   - Base axis availability on a reviewed, uncertainty-aware or beam-normalized
+     resolution rule rather than tuning a threshold to Phase 4R outcomes.
+     Rapthor may consume a scientifically identifiable deconvolved major axis
+     without requiring an identifiable minor axis.
+   - Compare a deconvolved axis with relative error only when truth and estimate
+     are both identifiable. Near zero, at a resolution boundary, or under
+     one-axis censoring, use beam-normalized absolute error, classification
+     accuracy, and downstream Rapthor decisions. Preserve fitted-shape metrics
+     for every successful fit.
+   - Add analytic tests on both sides of each resolution boundary, at several
+     SNRs and beam/source position angles, before promoting generated failures
+     to regression fixtures.
+
+3. **Make edge astrometry and uncertainty use the same estimator.**
+   - A centroid corrected for truncation must not inherit covariance from the
+     uncorrected bounded fit. Derive uncertainty for the corrected estimator or
+     report it unavailable with an explicit reason.
+   - Add analytic left, right, top, bottom, and corner cases under rotated WCS,
+     including symmetry tests and coverage/normalized-residual tests. Verify
+     the same result through serial and executor paths.
+
+4. **Broaden development and regression evidence before freezing again.**
+   - Generate continuous source sizes around the resolution boundary rather
+     than relying on a few repeated templates. Cross source and beam position
+     angle, SNR, pixel scale, WCS rotation, all edge/corner topologies,
+     background gradient, correlated noise, blends, invalid regions, and
+     non-square images.
+   - Use disjoint development and regression seeds and record generator
+     version, configuration, role, and checksums. Add a real residual/noise
+     injection case when redistributable or controlled-host data is available;
+     its absence must be recorded rather than replaced with synthetic evidence.
+   - Run Hebog, released PyBDSF, and pinned `master` on the same successful
+     realizations. Report reference failures as typed robustness outcomes and
+     never discard a row merely because one implementation failed.
+   - Diagnose every material Hebog-worse tail. Fix an implementation defect,
+     justify a truth-supported difference, or leave the milestone non-passing;
+     do not compensate one scientific population with another.
+
+5. **Review, freeze once, and qualify.**
+   - Obtain a radio-astronomy review of the co-primary families,
+     resolution/censoring semantics, uncertainty method, population generator,
+     multiplicity rule, and power before qualification outputs are inspected.
+   - Freeze one unseen qualification population and its canonical recipe,
+     thresholds, references, success/failure policies, estimands, power, and
+     one-look stopping rule. The generation path must refuse overwrite.
+   - Require all co-primary absolute truth and Rapthor-facing gates, the joint
+     power contract, serial/executor invariance, and completion robustness to
+     pass. Require non-inferiority to released PyBDSF for its comparable
+     co-primary outcomes; report the `master` comparison separately and
+     investigate any material regression.
+   - Run the complete controlled performance matrix only after science is
+     fixed. Performance evidence cannot rescue a scientific failure.
+
+Phase 5 start gate: multiscale implementation may begin when steps 1--4 have
+passing focused, project, equivalence, serial/executor, and documentation
+checks; the compact public semantics and evaluator are reviewed and frozen;
+and no known compact estimator defect or unexplained material tail remains.
+This gate intentionally separates permission to develop Phase 5 from the final
+Phase 4S release/cutover decision. The single unseen qualification, external
+science review, and controlled performance/scalability evidence may continue
+in parallel, but Hebog must not claim compact-source qualification, remove the
+PyBDSF fallback, or make Hebog the default Rapthor path until the complete
+Phase 4S qualification gate passes.
+
+Exit gate: the Phase 5 start gate is met; one independently frozen and jointly
+powered qualification passes every co-primary truth, Rapthor-facing,
+robustness, and released-PyBDSF non-inferiority outcome; the pinned `master`
+comparison has no unexplained material regression; all diagnostic tails are
+explained or fixed; the complete performance, bounded-memory, and task-graph
+gates pass; and the science review is recorded. Historical Phase 4 and Phase
+4R decisions remain failed and immutable.
+
 ### Phase 5: multiscale and extended emission
 
 - [ ] Add failing analytic and generated-truth tests for diffuse, filamentary, mixed,
