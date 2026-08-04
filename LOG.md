@@ -4692,3 +4692,24 @@ and compatibility serialization
 - Obtain named review of the recommendation to keep candidate `1065182`
   unchanged and authorize one separately frozen 600-image replacement
   qualification. Do not freeze or run that population before approval.
+
+## 2026-08-04 — Authorized one Phase 4R replacement qualification
+
+**Plan phase:** Phase 4R, Step 5 — replacement qualification governance
+
+**Completed**
+
+- Gemma Danks, Data Processing Software Engineer, approved preserving failed
+  qualification attempt one and failed confirmation three while advancing
+  unchanged candidate `1065182` to exactly one replacement qualification.
+- Bound the authorization to one separately frozen 600-image population with
+  disjoint seeds and vertically transformed field geometry. All 35 metrics,
+  margins, absolute gates, paired upper-bound rules, and implementation-
+  completion semantics remain unchanged.
+- Recorded the decision before the replacement manifest, seeds, or outcomes
+  existed.
+
+**Next**
+
+- Freeze and contract-test the replacement manifest, then commit it before
+  executing Hebog or either exact PyBDSF reference.

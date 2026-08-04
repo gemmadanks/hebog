@@ -1529,3 +1529,12 @@ leave candidate `1065182` and all metrics, margins, gates, and paired rules
 unchanged, and authorize exactly one new 600-image population with disjoint
 seeds and vertically transformed geometry. Until a human reviewer approves
 that decision, no replacement qualification manifest may be frozen or run.
+
+Gemma Danks, Data Processing Software Engineer, approved that exact decision
+on 2026-08-04, before the replacement manifest, seed range, or any outcome
+existed. The approval permits exact candidate `1065182` to enter one and only
+one separately frozen 600-image replacement qualification. Qualification
+attempt one and confirmation three remain failed; no source row, metric,
+margin, absolute gate, paired upper-bound rule, or completion requirement may
+change. The approval does not extend to a different candidate, a second
+replacement, or retrospective rescoring.

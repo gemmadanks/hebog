@@ -1972,8 +1972,9 @@ final campaign remains immutable, viewed evidence and may be used only to
 identify failure modes and report the historical decision. It must not select
 an algorithm, threshold, model, seed, margin, or new qualification truth.
 Recovery remains open: qualification attempt one and confirmation three are
-preserved failures, and a replacement qualification is blocked on the named
-review described in Step 5.
+preserved failures. Gemma Danks approved the Step 5 replacement qualification
+decision on 2026-08-04; its new manifest may now be frozen under that exact
+scope.
 
 The failure is narrower than the aggregate decision first suggested:
 
@@ -2325,16 +2326,16 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    unchanged rather than selecting another correction from a complementary
    finite-sample crossing.
 
-   A replacement qualification is therefore blocked on a new named human
-   review. The recommended decision is to preserve both failed outcomes,
-   authorize unchanged `1065182` for one replacement 600-image qualification,
-   and freeze a new seed range plus vertically transformed source,
-   association, invalid-region, beam/noise, WCS, background, and gradient
-   fields only after that approval. The replacement keeps all 35 metrics,
-   margins, absolute gates, paired upper-bound rules, and
-   implementation-completion semantics unchanged. If approval is withheld,
-   Phase 4R remains open and the candidate must not see another qualification
-   population.
+   Gemma Danks, Data Processing Software Engineer, approved the replacement
+   qualification decision on 2026-08-04, before its manifest, seeds, or
+   outcomes existed. Both failed outcomes remain immutable. Exact candidate
+   `1065182` may enter exactly one replacement 600-image qualification with a
+   new seed range and vertically transformed source, association,
+   invalid-region, beam/noise, WCS, background, and gradient fields. All 35
+   metrics, margins, absolute gates, paired upper-bound rules, and
+   implementation-completion semantics remain unchanged. This approval does
+   not authorize another candidate, another replacement, or retrospective
+   rescoring.
 
 Exit gate: every registered absolute gate passes. For every comparable
 metric produced by each reference, Hebog is statistically non-inferior for
