@@ -11,7 +11,7 @@
     "snr-25",
     "snr-50"
   ],
-  "human_scientific_review": "development-approved-qualification-review-still-required",
+  "human_scientific_review": "qualification-reviewed",
   "metrics": [
     {
       "absolute_role": "none",
@@ -509,5 +509,5 @@
   "reference_scope": "released-pybdsf-and-pinned-master-where-each-produces-the-metric",
   "registry_id": "phase-4r-metric-registry",
   "schema_version": 1,
-  "status": "approved-development"
+  "status": "reviewed-qualification"
 }

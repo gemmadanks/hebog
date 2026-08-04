@@ -12,6 +12,7 @@ from hebog.validation.comparison import CatalogueOutlierThresholds
 from hebog.validation.contracts import (
     load_paired_noninferiority_contract,
     load_phase_four_measurement_contract,
+    load_phase_four_metric_registry,
     load_phase_four_scientific_gates,
 )
 from hebog.validation.datasets import (
@@ -110,6 +111,40 @@ def campaign_dataset_identity(dataset: DatasetRecord) -> DatasetIdentity:
     )
 
 
+def _qualification_contract_paths(
+    scientific_contracts: list[Path],
+    *,
+    phase_four_recovery: bool,
+) -> dict[str, Path]:
+    """Resolve and require the exact scientific provenance documents."""
+    documents: dict[str, Path] = {}
+    for path in scientific_contracts:
+        document = cast(dict[str, object], json_document(path))
+        identifier = document.get("contract_id", document.get("registry_id"))
+        if not isinstance(identifier, str):
+            raise ValueError("scientific input lacks a contract identifier")
+        documents[identifier] = path
+    required = {
+        "phase-4-measurement",
+        "phase-4-scientific-gates",
+    }
+    if phase_four_recovery:
+        required.add("phase-4r-metric-registry")
+    if set(documents) != required or len(scientific_contracts) != len(
+        required
+    ):
+        required_description = (
+            "measurement, gate, and metric registry contracts"
+            if phase_four_recovery
+            else "measurement and gate contracts"
+        )
+        raise ValueError(
+            "qualification requires exactly the Phase 4 "
+            + required_description
+        )
+    return documents
+
+
 def require_reviewed_qualification_inputs(
     dataset: DatasetRecord,
     *,
@@ -120,21 +155,11 @@ def require_reviewed_qualification_inputs(
     """Fail before qualification unless every scientific input is reviewed."""
     if dataset.role is not DatasetRole.QUALIFICATION:
         return
-    documents: dict[str, Path] = {}
-    for path in scientific_contracts:
-        document = cast(dict[str, object], json_document(path))
-        documents[str(document["contract_id"])] = path
-    required = {
-        "phase-4-measurement",
-        "phase-4-scientific-gates",
-    }
-    if set(documents) != required or len(scientific_contracts) != len(
-        required
-    ):
-        raise ValueError(
-            "qualification requires exactly the Phase 4 measurement and "
-            "gate contracts"
-        )
+    phase_four_recovery = dataset.identifier.startswith("phase4r-")
+    documents = _qualification_contract_paths(
+        scientific_contracts,
+        phase_four_recovery=phase_four_recovery,
+    )
     measurement = load_phase_four_measurement_contract(
         documents["phase-4-measurement"]
     )
@@ -152,6 +177,14 @@ def require_reviewed_qualification_inputs(
         or gates.status != "reviewed-provisional"
     ):
         raise ValueError("Phase 4 scientific contracts must be reviewed")
+    if phase_four_recovery:
+        registry = load_phase_four_metric_registry(
+            documents["phase-4r-metric-registry"]
+        )
+        if registry.status != "reviewed-qualification":
+            raise ValueError(
+                "Phase 4R metric registry must be reviewed for qualification"
+            )
     protocol = load_paired_noninferiority_contract(comparison_protocol)
     if protocol.status != "reviewed":
         raise ValueError("paired protocol must be reviewed for qualification")

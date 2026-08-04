@@ -1406,3 +1406,17 @@ the canonical recipe SHA-256 is
 The freeze path refuses overwrite, validates the complete schema, and has an
 executable contract proving that qualification changes every predeclared
 field family rather than only changing seed numbers.
+
+The first runner invocation stopped during input review, before recipe
+iteration, because the older Phase 4 preflight assumed every scientific input
+had a `contract_id`; the Phase 4R registry intentionally has a `registry_id`.
+It wrote no evidence and exposed no qualification outcome. The repaired
+preflight now requires exactly measurement, gates, and metric registry for a
+Phase 4R qualification, validates the registry's named-review state, and
+rejects the earlier development-only state. The registry now records
+`reviewed-qualification` and `qualification-reviewed`; its 35 metric
+definitions, strata, directions, absolute roles, margins, and stopping rule
+are byte-for-byte unchanged. The registry file SHA-256 is
+`f1bcbbb6d1d216bdc5271c45a1e64789b1c8928a98bd4927f7e707d0318dd0b5`,
+and the ordered measurement/gates/registry contract-set SHA-256 is
+`d27dace66ca86fb0abf30b6e5ab37215b6007d1fd3a58606c51b58a003c6d063`.

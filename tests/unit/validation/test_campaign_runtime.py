@@ -25,6 +25,7 @@ _MANIFEST = _ROOT / "config/datasets/phase-4-regression.json"
 _FINAL_MANIFEST = _ROOT / "config/datasets/phase-4-final-qualification.json"
 _MEASUREMENT = _ROOT / "config/contracts/phase-4-measurement.json"
 _GATES = _ROOT / "config/contracts/phase-4-scientific-gates.json"
+_REGISTRY = _ROOT / "config/contracts/phase-4r-metric-registry.json"
 _PROTOCOL = _ROOT / "config/contracts/phase-4-paired-noninferiority.json"
 
 
@@ -102,6 +103,52 @@ def test_qualification_requires_every_reviewed_scientific_input() -> None:
         require_reviewed_qualification_inputs(
             dataset,
             scientific_contracts=[_GATES],
+            scientific_gates=_GATES,
+            comparison_protocol=_PROTOCOL,
+        )
+
+
+def test_phase4r_qualification_requires_the_reviewed_metric_registry() -> None:
+    """Phase 4R cannot open without its named-review metric contract."""
+    dataset = load_dataset_manifest(
+        _ROOT / "config/datasets/phase-4r-qualification.json"
+    ).datasets[0]
+
+    require_reviewed_qualification_inputs(
+        dataset,
+        scientific_contracts=[_MEASUREMENT, _GATES, _REGISTRY],
+        scientific_gates=_GATES,
+        comparison_protocol=_PROTOCOL,
+    )
+
+    with pytest.raises(ValueError, match="metric registry"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, _GATES],
+            scientific_gates=_GATES,
+            comparison_protocol=_PROTOCOL,
+        )
+
+
+def test_phase4r_qualification_rejects_development_only_registry(
+    tmp_path: Path,
+) -> None:
+    """Development approval cannot silently authorize held-out execution."""
+    payload = json.loads(_REGISTRY.read_text(encoding="utf-8"))
+    payload["status"] = "approved-development"
+    payload["human_scientific_review"] = (
+        "development-approved-qualification-review-still-required"
+    )
+    registry = tmp_path / "metric-registry.json"
+    registry.write_text(json.dumps(payload), encoding="utf-8")
+    dataset = load_dataset_manifest(
+        _ROOT / "config/datasets/phase-4r-qualification.json"
+    ).datasets[0]
+
+    with pytest.raises(ValueError, match="registry must be reviewed"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, _GATES, registry],
             scientific_gates=_GATES,
             comparison_protocol=_PROTOCOL,
         )

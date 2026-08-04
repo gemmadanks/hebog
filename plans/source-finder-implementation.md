@@ -2253,6 +2253,14 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    `93f2d9f876b9b3f58df09ad64796e39ed404980a14f7c4542f0ae2b3120c42e4`
    and `82870d14dbe163c1d1ca79d0b163bc69c406ed2288da3cf489ebdb03989de5fc`.
    No qualification output existed when these identities were recorded.
+   The first execution request then failed in preflight before recipe
+   iteration because the legacy Phase 4 guard did not recognize a registry
+   document. A TDD prerequisite now accepts the registry identifier, requires
+   it for Phase 4R qualification, and rejects development-only approval. The
+   named review is represented directly by registry status
+   `reviewed-qualification`; all 35 metric definitions and margins are
+   unchanged. No qualification image or result was opened by the failed
+   preflight.
 
 Exit gate: every registered absolute gate passes. For every comparable
 metric produced by each reference, Hebog is statistically non-inferior for

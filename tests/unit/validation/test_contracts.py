@@ -330,7 +330,8 @@ def test_phase_four_recovery_registry_forbids_metric_compensation() -> None:
     """Every absolute and tail metric is independently comparison-gated."""
     registry = load_phase_four_metric_registry(_PHASE_FOUR_METRICS_PATH)
 
-    assert registry.status == "approved-development"
+    assert registry.status == "reviewed-qualification"
+    assert registry.human_scientific_review == "qualification-reviewed"
     assert registry.comparison_rule == (
         "every-metric-passes-no-compensation-or-weighted-score"
     )

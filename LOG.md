@@ -4556,3 +4556,34 @@ and compatibility serialization
 
 - Validate and commit the immutable population before opening it, then execute
   the unchanged candidate and both exact PyBDSF references exactly once.
+
+## 2026-08-04 — Repaired Phase 4R qualification preflight
+
+**Plan phase:** Phase 4R, Step 5 — qualification prerequisite
+
+**Completed**
+
+- Attempted to start the one-look candidate run. The qualification guard
+  failed before recipe iteration because it indexed the Phase 4R registry as
+  a legacy `contract_id`. No image, evidence row, or output file was created.
+- Added red tests, taught preflight to recognize a `registry_id`, and require
+  exactly the reviewed Phase 4R registry in addition to the measurement and
+  gate contracts. A development-only registry now fails closed.
+- Promoted only the registry's review metadata to
+  `reviewed-qualification`/`qualification-reviewed`, reflecting the named
+  approval already recorded at `4688081`. Metric definitions and margins did
+  not change.
+
+**Evidence**
+
+- Focused runtime/contract suite passes 34 tests before the additional
+  development-only rejection case; Ruff and Pyright pass.
+- Reviewed registry file SHA-256:
+  `f1bcbbb6d1d216bdc5271c45a1e64789b1c8928a98bd4927f7e707d0318dd0b5`.
+- Ordered qualification contract-set SHA-256:
+  `d27dace66ca86fb0abf30b6e5ab37215b6007d1fd3a58606c51b58a003c6d063`.
+
+**Next**
+
+- Run complete validation and pre-commit, commit this prerequisite, verify the
+  qualification output path is still absent, and restart the sole execution.

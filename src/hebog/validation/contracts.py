@@ -910,12 +910,20 @@ class PhaseFourMetricRegistry(_ContractModel):
     governed_strata: tuple[str, ...] = Field(min_length=1)
     metrics: tuple[PhaseFourMetricDefinition, ...] = Field(min_length=1)
     human_scientific_review: Literal[
-        "development-approved-qualification-review-still-required"
+        "development-approved-qualification-review-still-required",
+        "qualification-reviewed",
     ]
 
     @model_validator(mode="after")
     def validate_registry(self) -> Self:
         """Require canonical strata and one definition per metric."""
+        expected_review = (
+            "qualification-reviewed"
+            if self.status == "reviewed-qualification"
+            else "development-approved-qualification-review-still-required"
+        )
+        if self.human_scientific_review != expected_review:
+            raise ValueError("metric registry status and review must agree")
         if self.governed_strata != tuple(sorted(set(self.governed_strata))):
             raise ValueError("governed metric strata must be canonical")
         metric_ids = [metric.metric_id for metric in self.metrics]
