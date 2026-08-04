@@ -1552,3 +1552,47 @@ recipe, and dataset-content SHA-256 values are
 and `1e566660eed6a995c55f399a5f1579c70b2ffe34cbb81cd2ad6dc67eaa07dee8`.
 No candidate or reference outcome existed when these identities were
 recorded.
+
+## Phase 4R replacement qualification decision
+
+Exact candidate `1065182` completed all 600 replacement realizations, as did
+released PyBDSF 1.14.1. Pinned PyBDSF `master` completed 599. On seed
+`2026200549`, its source-finding/catalogue boundary rejected a non-positive
+source flux; the typed `ValueError` remains in the immutable reference shard.
+Under the frozen `record-and-continue` policy, the reference failure is visible
+in implementation completion and the other metrics retain their explicitly
+conditional populations. Hebog passes completion against both references.
+
+The replacement qualification decision is false. It passes 446 of 450
+independent dual-reference metric/stratum comparisons and 106 of 107 absolute
+gates. The four comparative failures are all catastrophic-outlier fraction:
+
+- SNR 15 against pinned `master`: Hebog 0.01, reference 0.000556, regression
+  0.009444, and upper confidence bound 0.013887 against a 0.0025 margin;
+- overall against released PyBDSF: Hebog 0.003333, reference 0.001528, point
+  regression 0.001805, and upper bound 0.003194 against a 0.0025 margin;
+- marginally resolved against released PyBDSF: Hebog 0.006667, reference
+  0.003058, regression 0.003609, and upper bound 0.006387; and
+- SNR 15 against released PyBDSF: Hebog 0.01, reference 0.0, regression 0.01,
+  and upper bound 0.014444.
+
+The failed absolute gate is SNR-10 declination uncertainty bias. Its point
+estimate of 0.113723 is within the reviewed `[-0.15, 0.15]` interval, but its
+95% interval `0.067437`--`0.160010` crosses the upper limit. Consequently the
+uncertainty-availability-and-calibration stronger envelope also fails. Six
+raw-error report-only limits fail and remain visible, but they do not affect
+the decision.
+
+Candidate, released-reference, master-reference, compiled-campaign, and
+decision SHA-256 values are
+`4b04976ab979a1d4850023994da99f7e0e4b791cc8d8d06e60b33f85eb8c7739`,
+`f1499e78f79a0435230dbca5564c93e028ba12aa94449d889ecd4066b9debb37`,
+`0e9af355ef9b3ecacbe80eab8c75b22be0eb10ac94f659ad31b7b4cb34ec1a96`,
+`3387df580c187b7345a2cafbaa18c343e6fbbceb74386e04188753cf25c96ef4`,
+and `e18c7ed66a2aa9b6f83908bf8e90d13413c9ff7d54f737321f839f9cece9b125`.
+
+This was the only authorized replacement and is now viewed terminal evidence.
+No metric, margin, gate, source row, or population was changed after opening
+it. Phase 4R closes without scientific passage. The controlled performance
+matrix was not run because the plan permits it only after scientific passage;
+no Phase 4 performance or release claim is authorized.

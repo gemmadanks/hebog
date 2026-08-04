@@ -328,6 +328,27 @@ catastrophic, unresolved-group, and powered uncertainty-calibration results
 remain absolute gates. Exact compact fixtures retain the original strict
 accuracy tolerances.
 
+## Phase 4R terminal result
+
+Phase 4R is technically complete but did not achieve scientific passage. Its
+only approved replacement qualification used 600 disjoint, vertically
+transformed realizations and exact candidate `1065182`. Hebog and released
+PyBDSF completed all 600; pinned PyBDSF `master` completed 599 and retained one
+non-positive-flux catalogue failure under its `record-and-continue` policy.
+
+Hebog passed 446/450 dual-reference metric/stratum decisions and 106/107
+absolute gates. Four catastrophic-outlier comparisons failed: SNR 15 against
+both references, marginally resolved against released PyBDSF, and the overall
+released-reference confidence bound. The SNR-10 declination-uncertainty-bias
+95% interval also crossed its absolute upper limit. The full reviewed outcome
+and evidence hashes are recorded in the
+[Phase 4 scientific review record](phase-4-review-record.md).
+
+This one-look result is terminal and cannot be rescored or replaced within
+Phase 4R. The controlled performance matrix remained ineligible and was not
+run. Phase 4 therefore remains **not ready**, with no compact-equivalence,
+speed, or Rapthor-cutover claim.
+
 ## Required closure order
 
 The historical Phase 4 decision cannot be changed to passed. The following

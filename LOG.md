@@ -4727,3 +4727,50 @@ and compatibility serialization
 
 - Commit the frozen replacement before executing Hebog or either exact PyBDSF
   reference.
+
+## 2026-08-04 — Closed Phase 4R without scientific passage
+
+**Plan phase:** Phase 4R, Step 5 — replacement qualification decision
+
+**Completed**
+
+- Opened the sole approved replacement once with exact scientific candidate
+  `1065182` and both pinned PyBDSF environments. Hebog and released PyBDSF
+  completed 600/600; pinned `master` completed 599/600 and retained seed
+  `2026200549` as a typed non-positive-source-flux reference failure.
+- Corrected the generic evaluator to honor the frozen policy distinction:
+  Hebog failures fail qualification before resampling, while reference
+  failures remain visible in implementation completion and other metrics use
+  their explicitly conditional retained values. A TDD regression test covers
+  the boundary.
+- Ran the full 50,000-resample, one-sided paired BCa decision. It passed 446
+  of 450 dual-reference metric/stratum comparisons and 106 of 107 absolute
+  gates, but the conjunctive decision is false.
+- Preserved four catastrophic-outlier failures: SNR 15 against both
+  references, marginal shape against released PyBDSF, and the overall
+  released-reference confidence bound. Preserved the failed absolute SNR-10
+  declination-uncertainty-bias interval and resulting uncertainty envelope.
+- Closed Phase 4R as a terminal non-passing milestone. Did not run the
+  controlled performance matrix because scientific passage is its explicit
+  prerequisite. No Phase 4 release, equivalence, or speed claim is made.
+
+**Evidence**
+
+- Candidate/released/master/compiled/decision SHA-256 values:
+  `4b04976ab979a1d4850023994da99f7e0e4b791cc8d8d06e60b33f85eb8c7739`,
+  `f1499e78f79a0435230dbca5564c93e028ba12aa94449d889ecd4066b9debb37`,
+  `0e9af355ef9b3ecacbe80eab8c75b22be0eb10ac94f659ad31b7b4cb34ec1a96`,
+  `3387df580c187b7345a2cafbaa18c343e6fbbceb74386e04188753cf25c96ef4`,
+  and `e18c7ed66a2aa9b6f83908bf8e90d13413c9ff7d54f737321f839f9cece9b125`.
+- Overall catastrophic rate is 0.003333 for Hebog and 0.001528 for released
+  PyBDSF. The 0.001805 point regression is inside the 0.0025 margin, but its
+  upper confidence bound is 0.003194. At SNR 15 Hebog is 0.01 versus 0.0 and
+  0.000556 for released and pinned `master`.
+- The SNR-10 declination uncertainty-bias point is 0.113723, while its 95%
+  interval `0.067437`--`0.160010` crosses the reviewed `[-0.15, 0.15]` gate.
+
+**Next**
+
+- Obtain human acknowledgment of the terminal result. Any further scientific
+  recovery requires a newly governed milestone using only new development and
+  regression evidence; Phase 4R does not authorize another qualification.

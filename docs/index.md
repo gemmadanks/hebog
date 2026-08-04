@@ -29,10 +29,20 @@ scientific partition ownership.
 
 ## Current status
 
-The technical Phase 0 contracts, released/master PyBDSF baselines, immutable
-reference products, comparison oracle, validation manifests, and warm overhead
-budgets are complete. Scientific source-finding algorithms are not implemented
-yet; Phase 1 starts with failing FITS, WCS, beam, partition, and schema tests.
+The technical implementation is complete through the experimental compact
+catalogue path: FITS/WCS ingestion, bounded partitioning, adaptive background
+and RMS estimation, detection, deblending, Gaussian measurement, sky/beam
+transforms, catalogue construction, serial/Dask execution, and Zarr products
+are implemented and tested.
+
+Compact scientific qualification has not passed. The terminal Phase 4R
+replacement campaign completed 600/600 Hebog images and passed 446/450
+dual-reference comparisons plus 106/107 absolute gates, but failed
+catastrophic-outlier comparisons and one SNR-10 declination-uncertainty-bias
+gate. The result is preserved without post-inspection tuning. The Phase 4
+performance matrix was therefore not eligible to run, and Hebog is not yet a
+qualified Rapthor replacement. Multiscale and extended-emission work remains
+Phase 5 scope.
 
 Start with the [quick start](tutorials/index.md), read the
 [architecture](explanation/index.md) and

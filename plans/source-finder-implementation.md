@@ -1966,15 +1966,14 @@ rescored. Corrective work therefore belongs to the separately governed Phase
 
 ### Phase 4R: compact-measurement scientific recovery
 
-**Status:** authorized by Gemma Danks, Data Processing Software Engineer, on
-2026-08-04 after diagnosis of the terminal Phase 4 qualification failure. The
-final campaign remains immutable, viewed evidence and may be used only to
-identify failure modes and report the historical decision. It must not select
-an algorithm, threshold, model, seed, margin, or new qualification truth.
-Recovery remains open: qualification attempt one and confirmation three are
-preserved failures. Gemma Danks approved the Step 5 replacement qualification
-decision on 2026-08-04; its new manifest may now be frozen under that exact
-scope.
+**Status:** complete without scientific passage. Gemma Danks, Data Processing
+Software Engineer, authorized recovery on 2026-08-04 after diagnosis of the
+terminal Phase 4 qualification failure and later authorized exactly one
+replacement qualification. The replacement decision is now terminal and
+failed; no further Phase 4R qualification is authorized. Every viewed campaign
+remains immutable and may be used only to identify failure modes and report
+the historical decision, never to select an algorithm, threshold, model,
+seed, margin, or new qualification truth.
 
 The failure is narrower than the aggregate decision first suggested:
 
@@ -2243,10 +2242,14 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
          paired decision to pass. Preserve the final Phase 4 failure alongside
          the Phase 4R result; the new milestone does not retroactively turn
          that historical decision into a pass.
+         The terminal replacement passed 106/107 absolute gates and 446/450
+         dual-reference metric/stratum decisions, so this requirement remains
+         unmet.
    - [ ] Only after scientific passage, run the controlled Phase 4 performance
          matrix and close compact measurement when the 4.0-second combined
          allocation, adjacent-tier, density, memory, and graph-shape gates all
-         pass.
+         pass. This matrix is ineligible after the terminal scientific
+         failure and was not run.
 
    Named review was recorded at `4688081` before the qualification population
    existed. The sole population is now frozen as
@@ -2349,6 +2352,37 @@ reliability, position, flux, size, and catastrophic-tail outcomes separate.
    Executable contracts prove its identity, size, seed disjointness, and
    vertical source, association, invalid-region, beam/noise, and gradient
    transformation. The freeze path still refuses overwrite.
+
+   Exact candidate `1065182` and released PyBDSF completed all 600 replacement
+   images. Pinned PyBDSF `master` completed 599; seed `2026200549` produced a
+   catalogue with a non-positive source flux and remains a typed reference
+   robustness failure. The frozen `record-and-continue` policy retains that
+   row: Hebog passes implementation completion against both references, while
+   the other `master` metrics use their explicitly conditional retained
+   values.
+
+   The immutable decision is false. Of 450 independent dual-reference
+   comparisons, 446 pass. Catastrophic-outlier fraction fails at SNR 15
+   against both references, for marginally resolved sources against released
+   PyBDSF, and on the overall released-PyBDSF confidence bound. The candidate
+   overall catastrophic rate is 0.003333 versus 0.001528; its point regression
+   of 0.001805 is inside the 0.0025 margin, but the one-sided upper bound is
+   0.003194. At SNR 15 the candidate rate is 0.01 versus 0.0 and 0.000556.
+   The sole failed absolute gate is SNR-10 declination uncertainty bias: its
+   point estimate 0.11372 lies inside the reviewed `[-0.15, 0.15]` interval,
+   but its 95% interval `0.06744`--`0.16001` crosses the upper bound. This also
+   fails the uncertainty-availability-and-calibration envelope. Six raw-error
+   report-only limits fail but do not contribute to the decision.
+
+   Candidate, released-reference, master-reference, compiled-campaign, and
+   decision SHA-256 values are
+   `4b04976ab979a1d4850023994da99f7e0e4b791cc8d8d06e60b33f85eb8c7739`,
+   `f1499e78f79a0435230dbca5564c93e028ba12aa94449d889ecd4066b9debb37`,
+   `0e9af355ef9b3ecacbe80eab8c75b22be0eb10ac94f659ad31b7b4cb34ec1a96`,
+   `3387df580c187b7345a2cafbaa18c343e6fbbceb74386e04188753cf25c96ef4`,
+   and `e18c7ed66a2aa9b6f83908bf8e90d13413c9ff7d54f737321f839f9cece9b125`.
+   Phase 4R is therefore closed as a terminal non-passing milestone. No
+   performance claim or Phase 4 release is permitted from this result.
 
 Exit gate: every registered absolute gate passes. For every comparable
 metric produced by each reference, Hebog is statistically non-inferior for

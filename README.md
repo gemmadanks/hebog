@@ -72,46 +72,29 @@ reference. The controlled representative Phase 3 detection path has a median
 runtime of approximately 3.2 seconds; the complete incremental Phase 4 runtime
 has not yet passed its controlled release gate.
 
-The Phase 4 release gate is not yet closed. The close-pair contract has been
-amended to judge sub-beam blends as observable groups, and a powered
-correlated-noise regression now passes. The first subsequently opened held-out
-campaign nevertheless failed frozen classification, catastrophic-outlier, and
-flux-bias gates. In particular, resolved/unresolved classification agreement
-was 73.57% against a 95% minimum. Hebog preserved this result rather than
-tuning thresholds, seeds, populations, or margins against known held-out data.
-A literature-led correction now passes the independent powered regression:
-point sources use peak flux as total flux, extension must be significant, and
-clearly resolved and marginal truth are evaluated separately. A new
-200-realization campaign was frozen before the correction and remained
-unopened through named human approval. Its single subsequent run passed
-completeness, reliability, and extension-classification gates but failed the
-catastrophic-outlier and SNR-10/edge uncertainty-availability gates. It is now
-known evidence and will not be tuned or rerun as unseen.
+The Phase 4 release gate remains unmet. Phase 4R repaired the evidence
+evaluator, introduced data-only beam/free model selection, correlated-noise
+fitting, analytic truncated-edge centroid correction, and a no-compensation
+registry of 35 scientific and robustness metrics. The final candidate
+completed all 600 images in its separately reviewed replacement
+qualification; released PyBDSF also completed all 600, while pinned `master`
+retained one invalid negative-flux catalogue failure.
 
-A powered development audit subsequently reproduced both failures. All 283
-raw outlier rows in 4,800 matches belonged to the predeclared marginal-
-extension population; 274 were integrated-flux-only, while point and clearly
-resolved sources had none. The qualification harness now keeps marginal
-integrated-flux catastrophes report-only, consistently with that population's
-frozen scientific role, while continuing to gate every other catastrophic
-metric and integrated flux for point and clearly resolved sources. A separate
-edge/SNR-10 regression exposed three centroids leaving the image footprint;
-constraining fit centres to sampled image bounds raised uncertainty
-availability from 247/250 to 250/250. The third 200-realization campaign was
-frozen before these corrections. Gemma Danks approved both amendments on
-2026-08-03, and the campaign remained unopened through that approval. Its one
-permitted run then passed all completeness, reliability, availability,
-classification, position, peak-flux, shape, and unresolved-group gates, but
-missed two frozen margins: catastrophic outliers were 0.5625% against a 0.5%
-maximum, and the unresolved integrated-flux normalized-bias confidence
-interval crossed the approved boundary. It is now viewed evidence and will
-not be rerun or tuned as unseen.
+The immutable decision passed 446/450 dual-reference comparisons and 106/107
+absolute gates, but it is still a failure. Hebog's catastrophic-outlier rate
+was worse at SNR 15 against both references, worse for marginally resolved
+sources against released PyBDSF, and its overall released-reference confidence
+bound crossed the practical margin. The SNR-10 declination-uncertainty-bias
+interval also narrowly crossed its absolute upper bound. These results are
+preserved without changing a threshold, metric, source row, or population.
+Phase 4R is therefore complete as a terminal non-passing milestone; its
+performance matrix was not eligible to run, and no Phase 4 release or speed
+claim is made.
 
 The remaining work includes:
 
-- agreeing a scientifically defensible recovery protocol after three held-out
-  campaign failures, then qualifying on a newly frozen population without
-  repeated-campaign optional stopping;
+- designing a separately governed scientific recovery after the terminal
+  Phase 4R result, using only new development and regression evidence;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;
