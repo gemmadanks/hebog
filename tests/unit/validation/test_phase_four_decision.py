@@ -27,7 +27,11 @@ from hebog.validation.contracts import (
     load_paired_noninferiority_contract,
     load_phase_four_scientific_gates,
 )
-from hebog.validation.datasets import DatasetRecord, DatasetRole
+from hebog.validation.datasets import (
+    DatasetRecord,
+    DatasetRole,
+    iter_dataset_recipes,
+)
 from hebog.validation.evidence import (
     AssociationPairDiagnostic,
     CampaignFailure,
@@ -470,8 +474,8 @@ def _synthetic_campaign_inputs() -> tuple[
     dataset = dataset_by_identifier(
         _ROOT / "config/datasets/phase-4-final-qualification.json",
         "phase4-final-paired-qualification-512",
-    ).model_copy(update={"noise_realization_seeds": (2026080401, 2026080402)})
-    protocol = _protocol().model_copy(update={"realization_count": 2})
+    ).model_copy(update={"noise_realization_seeds": (2026110002, 2026110003)})
+    protocol = _protocol().model_copy(update={"realization_count": 3})
     loaded_gates = load_phase_four_scientific_gates(
         _ROOT / "config/contracts/phase-4-scientific-gates.json"
     )
@@ -503,9 +507,12 @@ def _synthetic_campaign_inputs() -> tuple[
             software=_software("pybdsf"),
         ),
     )
+    realization_seeds = tuple(
+        recipe.seed for recipe in iter_dataset_recipes(dataset)
+    )
     realizations = tuple(
         _successful_realization(implementation.identifier, seed, dataset)
-        for seed in dataset.noise_realization_seeds
+        for seed in realization_seeds
         for implementation in implementations
     )
     campaign = ScientificCampaignEvidence(
@@ -619,7 +626,7 @@ def test_candidate_failure_is_retained_and_fails_closed() -> None:
     realizations = list(campaign.realizations)
     realizations[0] = CampaignRealizationDiagnostic(
         implementation_identifier="hebog",
-        seed=dataset.noise_realization_seeds[0],
+        seed=dataset.recipe.seed,
         status="failure",
         failure=CampaignFailure(
             stage="source-finding",
@@ -643,7 +650,7 @@ def test_candidate_failure_is_retained_and_fails_closed() -> None:
 
     assert decision.passed is False
     assert decision.implementation_outcomes[0].failed_seeds == (
-        dataset.noise_realization_seeds[0],
+        dataset.recipe.seed,
     )
     assert all(
         item.status == "indeterminate" for item in decision.paired_endpoints

@@ -26,7 +26,11 @@ from hebog.validation.contracts import (
     PhaseFourCatalogueGate,
     PhaseFourScientificGates,
 )
-from hebog.validation.datasets import DatasetRecord, DatasetRole
+from hebog.validation.datasets import (
+    DatasetRecord,
+    DatasetRole,
+    iter_dataset_recipes,
+)
 from hebog.validation.evidence import (
     CampaignRealizationDiagnostic,
     EvidenceStatus,
@@ -952,7 +956,7 @@ def _validate_qualification_provenance(  # noqa: PLR0913
         raise ValueError("one-look evaluator requires qualification data")
     if campaign.dataset != campaign_dataset_identity(dataset):
         raise ValueError("campaign evidence and governed dataset differ")
-    if len(dataset.noise_realization_seeds) != protocol.realization_count:
+    if len(iter_dataset_recipes(dataset)) != protocol.realization_count:
         raise ValueError(
             "frozen dataset and protocol realization counts differ"
         )
@@ -1016,7 +1020,9 @@ def evaluate_phase_four_qualification(  # noqa: PLR0913
         secondary_reference_identifier,
         role="reference",
     )
-    expected_seeds = dataset.noise_realization_seeds
+    expected_seeds = tuple(
+        recipe.seed for recipe in iter_dataset_recipes(dataset)
+    )
     for identifier, realizations in (
         (candidate_identifier, candidate),
         (primary_reference_identifier, primary),
