@@ -430,6 +430,40 @@ def test_bound_contact_is_not_published_as_an_ordinary_free_fit() -> None:
     assert "fit-at-bound" not in result.quality_flags
 
 
+def test_centroid_retry_survives_edge_bound_contact_in_both_models() -> None:
+    """A noisy image edge cannot prevent the existing stable-centroid retry."""
+    compact = _gaussian_input(
+        amplitude=0.1,
+        centroid_xy=(254.0, 252.0),
+        sigma_axes=(3.8, 2.4),
+        angle_degrees=20.0,
+        shape_yx=(12, 12),
+        origin_yx=(244, 244),
+        rms_value=0.05,
+    )
+    residual = compact.physical_residual.copy()
+    residual[8:11, -1] += 0.15
+
+    result = _fit(
+        replace(compact, physical_residual=residual),
+        config=_fit_config(model_selection="beam-or-free"),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == (
+        "centroid-constrained-elliptical"
+    )
+    assert result.diagnostics.fallback_reason == "free-model-bound-contact"
+    assert result.diagnostics.rejected_model_identity == "free-elliptical"
+    assert set(result.diagnostics.bound_parameters) == {
+        "forced-centroid-x",
+        "forced-centroid-y",
+    }
+    assert "centroid-constrained-fit" in result.quality_flags
+    assert "fit-at-bound" not in result.quality_flags
+
+
 def test_default_model_selection_preserves_the_free_fit_oracle() -> None:
     """Ordinary callers retain the established free-elliptical estimator."""
     assert _fit_config().model_selection == "free-only"

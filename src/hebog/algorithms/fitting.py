@@ -716,6 +716,24 @@ def _has_physical_bound_contact(candidate: _FitCandidate) -> bool:
     return bool(set(candidate.diagnostics.bound_parameters) - ignored)
 
 
+def _stable_centroid_retry_template(
+    candidate: _FitCandidate,
+    config: CompactGaussianFitConfig,
+) -> bool:
+    """Accept a converged template whose only ridge is its free centroid."""
+    if not candidate.success or not _numerically_valid(candidate, config):
+        return False
+    physical_bounds = set(candidate.diagnostics.bound_parameters) - {
+        "position-angle"
+    }
+    condition = candidate.diagnostics.information_condition_number
+    return (
+        physical_bounds <= {"centroid-x", "centroid-y"}
+        and condition is not None
+        and condition <= config.maximum_information_condition_number
+    )
+
+
 def _with_rejected_model(
     selected: _FitCandidate,
     rejected: _FitCandidate,
@@ -1062,11 +1080,7 @@ def _centroid_constrained_retry(  # noqa: PLR0913
     }:
         return None
     config = samples.config
-    if (
-        not constrained.success
-        or not _numerically_valid(constrained, config)
-        or not _identifiable(constrained, config)
-    ):
+    if not _stable_centroid_retry_template(constrained, config):
         return None
     constrained_parameters = constrained.full_parameters
     forced_center_tolerance = 1e-7
@@ -1120,7 +1134,10 @@ def _centroid_constrained_retry(  # noqa: PLR0913
     )
     if forced_reason is None or (
         forced_reason == "free-model-not-significantly-extended"
-        and _free_preferred_by_bic(forced, constrained, samples)
+        and (
+            not _identifiable(constrained, config)
+            or _free_preferred_by_bic(forced, constrained, samples)
+        )
     ):
         return _with_rejected_model(forced, free)
     return None
