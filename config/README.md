@@ -20,9 +20,10 @@ manifests. The qualification seed is recorded for reproducibility but its
 results must not be inspected during routine algorithm tuning. Do not add a
 role merely to make a dataset available in more than one test lane.
 
-`benchmarks/` contains the complete size/density matrix, crossover rule,
-one-tile overhead budgets, and the provisional 100,000-square resource and
-scaling gates. `contracts/` contains the public-behaviour ownership manifest
+`benchmarks/` contains the complete size/density matrices, crossover rules,
+one-tile overhead budgets, the Phase 4 incremental compact-catalogue component
+budgets, and the provisional 100,000-square resource and scaling gates.
+`contracts/` contains the public-behaviour ownership manifest
 and versioned phase-specific scientific meanings and margins. Phase 4 keeps
 its measurement semantics separate from its numerical gates so review can
 amend thresholds without silently changing the meaning of a catalogue field.

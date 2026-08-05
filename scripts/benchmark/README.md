@@ -147,6 +147,28 @@ noise and bounded Gaussian patches. These inputs measure size and density
 scaling; the governed scientific manifests and held-out qualification tests,
 not the performance generator, establish scientific correctness.
 
+`run_phase4_matrix.py` measures the incremental Phase 4 compact-catalogue
+component after a Phase 3 detection result has been prepared. The frozen
+protocol in `config/benchmarks/phase-4-performance.json` covers 256, 512,
+1,024, and 3,000 pixels across sparse, normal, dense, blend-heavy, and
+deliberately unfit fields. It times measurement/fitting, bounded catalogue
+reduction, and Rapthor FITS materialisation separately, with one warm-up and
+five measured repetitions:
+
+```console
+uv run python scripts/benchmark/run_phase4_matrix.py \
+  --output-directory benchmark-results/phase-4/matrix
+```
+
+The 3,000-square component gate uses a reused four-worker Dask client and
+1,000-square tiles. Small tiers use the serial reference to avoid scheduler
+overhead. Deliberately unfit islands must be recorded as omissions and close
+without publishing a partial catalogue. Phase 3 preparation time is retained
+as context but excluded from the incremental Phase 4 budgets. This matrix
+establishes Hebog's component curve; existing PyBDSF figures cover Rapthor's
+complete filter step and therefore cannot support a matched speedup claim for
+this narrower boundary.
+
 ## Phase 4 paired scientific campaigns
 
 `run_phase4_hebog_campaign.py` is the maintained candidate runner and

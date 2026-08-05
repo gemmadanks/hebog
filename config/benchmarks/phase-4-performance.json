@@ -1,0 +1,36 @@
+{
+  "benchmark_id": "phase-4-incremental-compact",
+  "budgets": {
+    "catalogue_output_seconds": 2.0,
+    "measurement_fitting_seconds": 2.0,
+    "representative_size_pixels": 3000
+  },
+  "maximum_serial_size_pixels": 1024,
+  "profiles": [
+    "sparse",
+    "normal",
+    "dense",
+    "blend-heavy",
+    "fit-failure"
+  ],
+  "repetitions": 5,
+  "representative_tile_size_pixels": 1000,
+  "schema_version": 1,
+  "sizes_pixels": [
+    256,
+    512,
+    1024,
+    3000
+  ],
+  "status": "frozen",
+  "threads_per_worker": 1,
+  "warmups": 1,
+  "workers": 4,
+  "workload_classes": {
+    "blend-heavy": "dense-or-extended",
+    "dense": "dense-or-extended",
+    "fit-failure": "dense-or-extended",
+    "normal": "normal",
+    "sparse": "empty-or-sparse"
+  }
+}

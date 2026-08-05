@@ -890,3 +890,68 @@ def test_phase3_matrix_uses_serial_small_and_dask_representative() -> None:
     assert execution_policy(256) == ("serial", 256)
     assert execution_policy(1024) == ("serial", 1024)
     assert execution_policy(3000) == ("dask", 1000)
+
+
+def test_phase4_benchmark_input_is_deterministic_and_profiled() -> None:
+    """The incremental matrix has five distinct repeatable workloads."""
+    namespace = _script("generate_phase4_input.py")
+    generate_values: Callable[..., Any] = namespace["_generate_values"]
+
+    profiles = (
+        "sparse",
+        "normal",
+        "dense",
+        "blend-heavy",
+        "fit-failure",
+    )
+    values = {profile: generate_values(64, profile) for profile in profiles}
+
+    np.testing.assert_array_equal(
+        values["blend-heavy"],
+        generate_values(64, "blend-heavy"),
+    )
+    assert all(array.shape == (64, 64) for array in values.values())
+    assert all(array.dtype == np.float64 for array in values.values())
+    assert len({array.tobytes() for array in values.values()}) == len(profiles)
+
+
+def test_phase4_matrix_protocol_and_execution_policy_are_frozen() -> None:
+    """The closure runner covers every reviewed size/profile cell."""
+    namespace = _script("run_phase4_matrix.py")
+    load_protocol: Callable[[Path], Any] = namespace["_load_protocol"]
+    execution_policy: Callable[[int, Any], tuple[str, int]] = namespace[
+        "_execution_policy"
+    ]
+    protocol = load_protocol(
+        Path("config/benchmarks/phase-4-performance.json")
+    )
+
+    assert protocol.sizes == (256, 512, 1024, 3000)
+    assert protocol.profiles == (
+        "sparse",
+        "normal",
+        "dense",
+        "blend-heavy",
+        "fit-failure",
+    )
+    assert protocol.warmups == 1
+    assert protocol.repetitions == 5
+    assert protocol.workers == 4
+    assert execution_policy(1024, protocol) == ("serial", 1024)
+    assert execution_policy(3000, protocol) == ("dask", 1000)
+
+
+def test_phase4_benchmark_reports_incremental_stage_boundaries() -> None:
+    """Measurement and output allocations remain separately reviewable."""
+    namespace = _script("measure_phase4_catalogue.py")
+    stage_names: Callable[[bool], tuple[str, ...]] = namespace["_stage_names"]
+
+    assert stage_names(True) == (
+        "compact-measurement-fitting",
+        "catalogue-reduction",
+        "rapthor-catalogue-materialization",
+    )
+    assert stage_names(False) == (
+        "compact-measurement-fitting",
+        "catalogue-reduction",
+    )
