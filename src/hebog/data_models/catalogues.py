@@ -236,6 +236,7 @@ class _MeasuredCatalogueObject(_CatalogueModel):
     flux: FluxMeasurement
     spectral_model: SpectralModel
     deconvolved_shape: GaussianShape | None
+    deconvolved_major_fwhm_degrees: float | None = None
     quality_flags: tuple[str, ...]
 
     @field_validator("quality_flags")
@@ -253,8 +254,25 @@ class _MeasuredCatalogueObject(_CatalogueModel):
 
     @model_validator(mode="after")
     def _validate_island_id(self) -> Self:
-        """Require a stable island association."""
+        """Require a stable island association and honest deconvolution."""
         _require_domain_identifier(self.island_id, field_name="island ID")
+        major_only = self.deconvolved_major_fwhm_degrees
+        if major_only is not None and (
+            not isfinite(major_only) or major_only <= 0
+        ):
+            raise ValueError(
+                "deconvolved major-only axis must be finite and positive"
+            )
+        if self.deconvolved_shape is not None and major_only is not None:
+            raise ValueError(
+                "deconvolution cannot contain both an ellipse and major-only "
+                "axis"
+            )
+        flagged_major_only = "major-axis-only" in self.quality_flags
+        if flagged_major_only != (major_only is not None):
+            raise ValueError(
+                "major-axis-only deconvolution requires matching axis and flag"
+            )
         return self
 
 
@@ -263,11 +281,19 @@ class SourceCandidate(_MeasuredCatalogueObject):
 
     source_id: str
     fitted_shape: GaussianShape | None
+    association_aperture_integrated_flux_jy: float | None = None
 
     @model_validator(mode="after")
     def _validate_source_id(self) -> Self:
-        """Require a stable pipeline-neutral source identity."""
+        """Require stable identity and valid optional aperture photometry."""
         _require_domain_identifier(self.source_id, field_name="source ID")
+        aperture_flux = self.association_aperture_integrated_flux_jy
+        if aperture_flux is not None and (
+            not isfinite(aperture_flux) or aperture_flux <= 0
+        ):
+            raise ValueError(
+                "association aperture flux must be finite and positive"
+            )
         return self
 
 
@@ -299,7 +325,7 @@ class SourceCatalogue(_CatalogueModel):
     islands: tuple[Island, ...]
     sources: tuple[SourceCandidate, ...]
     gaussian_components: tuple[GaussianComponent, ...]
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
 
     @model_validator(mode="after")
     def _validate_catalogue(self) -> Self:

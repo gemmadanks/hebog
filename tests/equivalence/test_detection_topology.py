@@ -198,6 +198,9 @@ def test_compact_mask_and_objects_meet_both_reference_gates(
     assert mask_report.true_positive_count == 177
     assert mask_report.false_positive_count == 1
     assert mask_report.false_negative_count == 1
+    # Sampling every pixel center as a sky-model position is an independent
+    # retained/rejected decision population for LSMTool's mask selection.
+    assert mask_report.agreement_fraction >= 0.995
     assert island_report.reference_count == island_report.candidate_count == 3
     assert len(compact_candidate.result.islands) == 3
     assert compact_candidate.result.adaptive_candidate_positions_yx == (

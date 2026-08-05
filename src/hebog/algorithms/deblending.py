@@ -105,8 +105,17 @@ def _bounds_pixel_count(bounds: ImageBounds) -> int:
 def plan_compact_deblend_batches(
     islands: tuple[DetectedIsland, ...],
     config: CompactDeblendConfig,
+    *,
+    context_margin_pixels: int = 0,
+    image_shape_yx: tuple[int, int] | None = None,
 ) -> CompactDeblendPlan:
     """Admit compact bounds by cost without creating a task per island."""
+    if context_margin_pixels < 0:
+        raise ValueError("context margin cannot be negative")
+    if context_margin_pixels and image_shape_yx is None:
+        raise ValueError("context margin requires the logical image shape")
+    if context_margin_pixels:
+        assert image_shape_yx is not None
     ordered = tuple(
         sorted(
             islands,
@@ -120,7 +129,15 @@ def plan_compact_deblend_batches(
     current: list[DetectedIsland] = []
     current_pixels = 0
     for island in ordered:
-        bounds_pixels = _bounds_pixel_count(island.bounds)
+        admitted_bounds = (
+            island.bounds
+            if context_margin_pixels == 0
+            else island.bounds.expanded(
+                context_margin_pixels,
+                cast(tuple[int, int], image_shape_yx),
+            )
+        )
+        bounds_pixels = _bounds_pixel_count(admitted_bounds)
         if island.pixel_count > config.maximum_compact_island_pixels:
             deferred.append(
                 DeferredDeblendIsland(
@@ -138,7 +155,7 @@ def plan_compact_deblend_batches(
             )
             continue
         if current and (
-            current_pixels + bounds_pixels > config.maximum_batch_pixels
+            current_pixels + bounds_pixels > config.target_batch_pixels
         ):
             batches.append(
                 CompactDeblendBatch(
@@ -161,6 +178,44 @@ def plan_compact_deblend_batches(
         batches=tuple(batches),
         deferred_islands=tuple(deferred),
     )
+
+
+def extract_island_membership(
+    island: DetectedIsland,
+    accepted_mask: npt.ArrayLike,
+) -> npt.NDArray[np.bool_]:
+    """Select one exact connected island from its bounded boolean window.
+
+    A published source-filtering-mask window can contain disconnected islands
+    whose bounds overlap or nest. The reconciled island's canonical first
+    pixel selects its eight-connected component without requiring a durable
+    global label plane.
+    """
+    mask = np.asarray(accepted_mask)
+    if mask.ndim != _IMAGE_DIMENSIONS:
+        raise ValueError("island mask window must be two-dimensional")
+    if not np.issubdtype(mask.dtype, np.bool_):
+        raise TypeError("island mask window must be boolean")
+    if mask.shape != island.bounds.shape_yx:
+        raise ValueError("island mask window must match island bounds")
+    first_y = island.first_pixel_yx[0] - island.bounds.y_start
+    first_x = island.first_pixel_yx[1] - island.bounds.x_start
+    height, width = mask.shape
+    if not (0 <= first_y < height and 0 <= first_x < width):
+        raise ValueError("island first pixel is outside its bounds")
+    raw_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage.label(mask, structure=_EIGHT_CONNECTIVITY),
+    )
+    labels = np.asarray(raw_labels, dtype=np.int32)
+    selected_label = int(labels[first_y, first_x])
+    if selected_label == 0:
+        raise ValueError("island first pixel is absent from the mask")
+    membership = np.asarray(labels == selected_label, dtype=np.bool_)
+    if int(np.count_nonzero(membership)) != island.pixel_count:
+        raise ValueError("connected mask membership disagrees with island")
+    membership.setflags(write=False)
+    return membership
 
 
 def _validate_input(
@@ -434,6 +489,65 @@ def _merge_shallow_regions(
     return canonical[merged]
 
 
+def _canonicalize_labels(
+    labels: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int32]:
+    """Renumber present regions by their first row-major pixel."""
+    present = np.unique(labels[labels > 0])
+    height, width = labels.shape
+    local_y, local_x = np.indices((height, width), dtype=np.int64)
+    local_linear = local_y * width + local_x
+    first_linear = np.asarray(
+        ndimage.minimum(local_linear, labels, index=present),
+        dtype=np.int64,
+    )
+    ordered = present[np.argsort(first_linear)]
+    lookup = np.zeros(int(np.max(present, initial=0)) + 1, dtype=np.int32)
+    lookup[ordered] = np.arange(1, ordered.size + 1, dtype=np.int32)
+    return lookup[labels]
+
+
+def _merge_undersized_regions(
+    labels: npt.NDArray[np.int32],
+    normalized: npt.NDArray[np.float64],
+    *,
+    minimum_region_pixels: int,
+) -> npt.NDArray[np.int32]:
+    """Join fit-ineligible basins across their strongest shared saddle."""
+    merged = np.array(labels, dtype=np.int32, copy=True)
+    while True:
+        present, counts = np.unique(
+            merged[merged > 0],
+            return_counts=True,
+        )
+        if present.size <= 1:
+            break
+        undersized = [
+            (int(count), int(label))
+            for label, count in zip(present, counts, strict=True)
+            if count < minimum_region_pixels
+        ]
+        if not undersized:
+            break
+        _, selected = min(undersized)
+        contacts = [
+            (saddle, second if first == selected else first)
+            for first, second, saddle in _boundary_saddles(
+                merged,
+                normalized,
+            )
+            if selected in (first, second)
+        ]
+        if not contacts:
+            raise ValueError("undersized deblend region has no adjacent basin")
+        _, neighbour = min(
+            contacts,
+            key=lambda item: (-item[0], item[1]),
+        )
+        merged[merged == selected] = neighbour
+    return _canonicalize_labels(merged)
+
+
 def _summarize_regions(
     island: DetectedIsland,
     labels: npt.NDArray[np.int32],
@@ -514,6 +628,11 @@ def deblend_compact_island(
         bounds,
         peaks,
         config,
+    )
+    labels = _merge_undersized_regions(
+        labels,
+        normalized,
+        minimum_region_pixels=config.minimum_region_pixels,
     )
     labels = np.asarray(labels, dtype=np.int32)
     labels.setflags(write=False)

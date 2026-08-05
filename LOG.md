@@ -2338,3 +2338,3021 @@ deblending
 - `just check`: 361 passed, 144 deselected, and four expected failures; Ruff,
   formatting, and Pyright passed.
 - `just docs-build` passed in strict mode.
+
+## 2026-08-02 — Prepared the Phase 4 delivery plan
+
+**Plan phase:** Phase 4 readiness
+
+**Reviewed**
+
+- Traced the Phase 4 boundary from the implemented Phase 3 compact deblend
+  records through the internal catalogue schemas, FITS materialisation,
+  comparison oracles, and the fields consumed by Rapthor/LSMTool.
+- Checked the proposed measurement work against Condon's Gaussian-fit error
+  treatment, the ASKAP/EMU source-finding challenge, Aegean 2.0's
+  correlated-noise and uncertainty findings, documented PyBDSF processing,
+  and the established Astropy and SciPy capabilities already available to
+  Hebog.
+- Confirmed that the exact compact released and pinned-master reference
+  catalogues are suitable for a strict Phase 4 compatibility case. The
+  representative references remain a deliberate divergence case because
+  released and master produce different source populations and Phase 5 still
+  owns multiscale emission.
+
+**Decisions**
+
+- Replaced the former algorithm checklist with eight ordered TDD slices:
+  freeze meanings/data/gates; preserve exact region membership; implement
+  moment oracles; select fitting from evidence; transform/deconvolve/calibrate
+  errors; associate and shard records; materialise the compatibility view;
+  then qualify and prepare the release.
+- Identified a required handoff correction: `DeblendedRegion` bounding boxes
+  are not exact watershed memberships. Phase 4 will keep bounded label arrays
+  worker-local through measurement instead of inferring pixels from boxes,
+  rerunning deblending, or transferring label planes through the scheduler.
+- Required a fit-all compact reference before any selective moment-only fast
+  path, Monte Carlo calibration rather than uncritical trust in formal shape
+  errors, and an explicit internal unresolved state instead of PyBDSF's
+  compatibility zero sentinel.
+- Kept the scientific stage pipeline-neutral and partial results explicit.
+  A normal compatibility catalogue and successful complete `find_sources`
+  result cannot omit Phase 5 deferrals, while actual Rapthor orchestration and
+  filtered-model publication remain Phase 7 work.
+- Reused the existing catalogue models, Zarr intermediate boundary, and
+  Astropy FITS output. Arrow/Parquet is no longer an open Phase 4 dependency
+  question without measured evidence and an ADR amendment.
+- Corrected the performance table to apply the previously documented
+  one-second transfer from catalogue/output work into Phase 3 durable image
+  publication. Phase 4 now has a combined incremental representative budget
+  of four seconds: two for measurement/fitting and two for catalogue/output.
+
+**Validation**
+
+- `just check`: 361 passed, 144 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just docs-build` passed in strict mode.
+
+**Next**
+
+- Start with the versioned Phase 4 scientific contract, development/regression
+  supplements, an unseen qualification supplement, comparison-oracle tests,
+  and named review of the proposed numerical margins before tuning a
+  production fitter.
+
+## 2026-08-02 — Completed automated Phase 4 Step 1 preparation
+
+**Plan phase:** Phase 4, Step 1 — meanings, datasets, gates, and review
+
+**Implemented**
+
+- Added machine-validated, frozen-provisional Phase 4 contracts for compact
+  measurement scope, flux and solid-angle meanings, coordinate conventions,
+  association, unresolved and unavailable states, fitting evidence order,
+  analytic failure cases, role-specific scientific gates, uncertainty
+  calibration, and explicit catastrophic-outlier thresholds.
+- Extended the independent catalogue oracle TDD-first with fitted and
+  deconvolved ellipses, 180-degree position-angle differences, explicit
+  resolved/unresolved classification, uncertainty bias/coverage/dispersion,
+  component and quality-flag comparisons, self-describing outlier evidence,
+  and linear-memory parent-association contingency reports. Association gates
+  use co-association precision and recall so unrelated pairs cannot conceal a
+  split or merge.
+- Added synthetic generator version 2 with partition-invariant affine RMS,
+  governed invalid rectangles, rotated WCS metadata, repeated noise
+  realizations, and named validation strata while preserving every version-1
+  recipe checksum.
+- Froze three development datasets, two regression datasets, and one new
+  held-out qualification population. The qualification manifest has thirty
+  deterministic noise realizations and explicit SNR, resolved/unresolved,
+  blend, and edge strata, giving at least thirty samples in every declared
+  class.
+- Made generated FITS WCS and restoring-beam truth consistent under signed
+  unequal pixel scales and rotation. The generator-v2 beam covariance is
+  transformed into celestial `BMAJ`, `BMIN`, and east-of-north `BPA`; the
+  frozen version-1 FITS file remains byte-identical.
+- Prepared the named Phase 4 scientific review record and linked it from the
+  plan and documentation navigation. All automated Step 1 items are complete;
+  the named human decision remains open.
+
+**Qualification integrity**
+
+- No Phase 4 qualification image, measurement, fit, comparison, or pass/fail
+  result was generated or inspected. Only the source recipe, deterministic
+  noise seeds, strata, and proposed gates were frozen and schema-validated.
+
+**Validation**
+
+- TDD red states were observed for the new Phase 4 contract surface,
+  comparison surface, analytic failure-case governance, and rotated
+  WCS/restoring-beam FITS materialisation before their implementations.
+- `just coverage`: 520 passed, 28 deselected, and four expected failures with
+  94.50% branch-aware project coverage. The changed validation comparison,
+  contracts, datasets, and materialisation modules report 98%, 91%, 96%, and
+  100% coverage respectively.
+- `just test-equivalence`: 14 passed and 537 deselected.
+- `just docs-build` passed in strict mode.
+- `just check`: 404 passed, 144 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+
+**Next**
+
+- Complete the checklist in the Phase 4 scientific review record, amend the
+  frozen proposal if required before qualification inspection, and promote
+  both contracts to `reviewed-provisional` only after the named approval.
+- Then begin Step 2 by preserving exact deblended-region membership through a
+  bounded worker-local measurement pipeline.
+
+## 2026-08-02 — Completed Phase 4 Step 1 scientific review
+
+**Plan phase:** Phase 4, Step 1 — named scientific review and amendments
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer and project owner, approved
+  the compact measurement contract and numerical gates after the review
+  amendments below were encoded and tested. Both Phase 4 contracts are now
+  `reviewed-provisional`.
+- Kept community source-finding literature and cross-pipeline practice ahead
+  of compatibility with either PyBDSF reference where those sources might
+  disagree. No disagreement requiring a further exception was identified in
+  this review.
+
+**Amendments**
+
+- Made reference or injected truth the sole selector for governed populations.
+  Missing candidate shapes, deconvolution classifications/shapes, parent
+  identities, and position/flux uncertainties now count as unavailable rather
+  than disappearing from a gate denominator.
+- Added explicit field-availability and uncertainty-availability evidence.
+  Missing candidate parent identities also remain in co-association evidence
+  as reference-selected false negatives where appropriate.
+- Limited position-angle evidence to reference ellipses with major/minor axis
+  ratio at least 1.1 while preserving their axis evidence.
+- Strengthened uncertainty calibration to at least 200 independent eligible
+  measurements per stratum. The complete 95% interval must lie inside the
+  margin, using Wilson score coverage, Student's *t* mean intervals, and a
+  fixed-seed SciPy BCa bootstrap with at least 10,000 resamples for dispersion.
+- Expanded the frozen qualification campaign from 30 to 200 deterministic
+  noise realizations before any measurement or fitting result was generated
+  or inspected.
+
+**Qualification integrity**
+
+- No Phase 4 qualification image, measurement, fit, comparison, or pass/fail
+  result was generated or inspected. The expanded campaign remains held out
+  from routine development and tuning.
+
+**Validation**
+
+- TDD red states were observed for reference-selected eligibility, missing
+  candidate availability, position-angle circularity, uncertainty sample
+  power, and qualification campaign size before implementation.
+- Focused Phase 4 validation: 99 passed.
+- `just coverage`: 523 passed, 28 deselected, and four expected failures with
+  94.54% branch-aware project coverage; the comparison module reports 97%.
+- `just test-equivalence`: 14 passed and 541 deselected.
+- `just check`: 410 passed, 144 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just docs-build` and the complete `just pre-commit` suite passed.
+
+**Next**
+
+- Begin Phase 4 Step 2 by preserving exact deblended-region membership through
+  a bounded worker-local measurement pipeline.
+
+## 2026-08-02 — Completed Phase 4 Step 2 worker-local handoff
+
+**Plan phase:** Phase 4, Step 2 — exact region membership and bounded work
+
+**Implemented**
+
+- Added `run_compact_region_stage`, which invokes a typed region processor
+  inside each existing coarse executor task. The processor receives immutable
+  physical background-subtracted residual, RMS, scientific validity, and exact
+  int32 watershed labels; only compact records and summaries return through
+  the executor.
+- Preserved the lightweight Phase 3 summary-only path. It still returns no
+  label plane, while the accepted Phase 4 processor seam supplies exact
+  membership without reconstructing it from rectangular summaries.
+- Corrected parent-island extraction for overlapping or nested bounds. One
+  eight-connected component is selected from the boolean source-filtering-mask
+  window using the reconciled canonical first pixel, and its pixel count is
+  verified before deblending.
+- Bound every input window by the existing coarse batch plan and every
+  normalized/watershed workspace by one admitted compact island. The retained
+  processor arrays use exactly 21 bytes per admitted bounds pixel; results
+  report the largest actual retained batch. Phase 5 deferrals remain explicit.
+- Updated the compact-deblending and internal-schema references and the Marimo
+  demo to state that region rectangles are planning/read bounds, not
+  membership masks.
+
+**Testing and invariants**
+
+- Observed the intended TDD red state before adding the extraction and
+  worker-local processor APIs.
+- Added analytic coverage where one region's bounding rectangle contains
+  pixels owned by another watershed region, plus a nested disconnected island
+  inside another island's bounds.
+- Added fail-closed tests for worker-array alignment, dtype, immutability,
+  scientific validity, region identity/count consistency, and admitted memory
+  accounting.
+- Proved serial/Dask record equality, compact scheduler results, explicit
+  deferrals, generation identity, and bounded processor bytes.
+
+**Validation**
+
+- Focused deblending and execution suite: 40 passed.
+- `just coverage`: 534 passed, 28 deselected, and four expected failures with
+  94.70% branch-aware project coverage. The changed deblending algorithm and
+  stage report 97% and 96% coverage respectively; project coverage increased
+  from the preceding 94.54% baseline.
+- `just test-equivalence`: 14 passed and 552 deselected.
+- `just check`: 416 passed, 146 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- `just marimo-check`, strict `just docs-build`, and the complete
+  `just pre-commit` suite passed.
+
+**Next**
+
+- Begin Phase 4 Step 3 with failing analytic and property tests for the compact
+  moment oracle, using exact worker-local labels from this handoff.
+
+## 2026-08-02 — Completed Phase 4 Step 3 compact moment oracle
+
+**Plan phase:** Phase 4, Step 3 — owned-pixel moments and fit initialization
+
+**Implemented**
+
+- Added a pure vectorized moment oracle for each admitted parent island and
+  exact deblended region. It reduces the physical background-subtracted
+  float64 plane in canonical pixel order and never treats a region's rectangle
+  as membership. Selected-value and coordinate workspaces remain bounded by
+  one admitted compact island; Python never loops over pixels or RMS windows.
+- Added explicit local pixel and restoring-beam solid angles. Owned-pixel
+  integrated Jy is the finite-mask brightness sum times the pixel-to-beam area
+  ratio; fitted-Gaussian infinite-area flux has a separate helper and cannot
+  be silently copied from the island value.
+- Added brightness-weighted global `(x, y)` centroids, covariance, ordered
+  Gaussian sigma axes, and pixel major-axis angle as the readable serial
+  oracle and nonlinear-fit initializer. Circular covariance uses canonical
+  angle zero; celestial east-of-north transformation remains Step 5 work.
+- Added frozen valid, shape-unavailable, and unavailable record variants.
+  Underdetermined and singular targets retain valid photometry without a fake
+  ellipse; invalid/non-finite or non-positive owned measurements expose no
+  fabricated flux, shape, or uncertainty.
+- Added a pickleable compact moment processor and stage wrapper on the Phase 4
+  Step 2 worker-local seam. Parent-island then canonical-region records are
+  returned through existing coarse serial or Dask tasks; exact arrays remain
+  worker-local and Phase 5 deferrals remain explicit.
+- Updated the API/scientific references, internal-schema description, README,
+  and living Marimo demo. The demo now displays owned-pixel photometry and
+  moment initializers and continues to distinguish them from fitted sources
+  and catalogue rows.
+
+**Testing and scientific scope**
+
+- Observed the intended TDD import failures before adding the pure algorithm
+  and stage modules.
+- Added analytic and property coverage for peak/amplitude, pixel-sum and
+  Gaussian-area flux, RMS, mean brightness, centroid, covariance, axes,
+  orientation, translation, quarter-turn rotation, positive scaling, exact
+  mask exclusion, circular orientation, and C/F memory-order invariance.
+- Added fail-closed boundary tests for array rank, shape, dtype, topology,
+  solid angles, and Gaussian parameters, plus every Step 3 governed failure:
+  non-finite, non-positive, underdetermined, and singular moments.
+- Proved equal compact records through the serial and two-worker Dask
+  executors. Focused branch-aware coverage reports 100% for the new algorithm,
+  records, and stage modules.
+- No Phase 4 qualification result was generated or inspected. No performance
+  claim was made, so controlled PyBDSF/Rapthor benchmarks were not run.
+
+**Validation**
+
+- Focused moment and serial/Dask suite: 40 passed with 100% branch coverage for
+  all new moment modules.
+- `just coverage`: 573 passed, 28 deselected, and four expected failures with
+  94.91% branch-aware project coverage, up from the preceding 94.70% baseline.
+- `just test-equivalence`: 14 passed and 591 deselected.
+- `just check`: 455 passed, 146 deselected, and four expected failures; Ruff,
+  formatting, and Pyright passed.
+- Strict `just marimo-check` and `just docs-build` passed. The updated notebook
+  also executed successfully through a temporary Marimo HTML export.
+
+**Next**
+
+- Begin Phase 4 Step 4 by establishing a fit-all compact Gaussian reference
+  initialized by these moments, then compare established SciPy and Astropy
+  fitting paths against the frozen analytic and regression science cases.
+
+## 2026-08-02 — Completed Phase 4 Step 4 compact Gaussian fitting
+
+**Plan phase:** Phase 4, Step 4 — fit-all compact reference
+
+**Implemented**
+
+- Added a bounded six-parameter elliptical Gaussian fit initialized by the
+  exact owned-pixel moment oracle. SciPy TRF least squares operates on the
+  physical background-subtracted plane with RMS-weighted residuals and
+  explicit amplitude, center, axes, orientation, evaluation, and convergence
+  limits.
+- Kept every region fit within its existing coarse worker task. No per-source
+  executor tasks, private scheduler, native kernel, or selective fitting path
+  was introduced.
+- Added frozen valid, failed, and unavailable fit records. Iteration
+  exhaustion, invalid fitted parameters, insufficient pixels, invalid moments,
+  and singular formal covariance cannot fabricate usable values.
+- Separated fitted infinite-plane flux from owned-pixel flux and bilinearly
+  sampled component RMS at the fitted centroid as required by the reviewed
+  contract.
+
+**Selection and evidence**
+
+- Observed the intended missing-module TDD failure before implementing the
+  fitter and records.
+- The selected SciPy solver and an independent Astropy `Gaussian2D` TRF fit
+  recover the same governed rotated analytic Gaussian. SciPy exposes the
+  weighted residual, bounds, Jacobian, work limit, and convergence diagnostics
+  directly through a narrower production boundary.
+- Analytic tests cover sub-pixel recovery, translation and positive-scaling
+  equivariance, local-RMS interpolation, non-convergence, underdetermined
+  regions, and every configuration boundary. Serial and two-worker Dask
+  execution return equal compact records.
+- No Phase 4 qualification result was generated or inspected, no selective
+  fitting path was proposed, and no performance claim was made.
+
+**Validation**
+
+- Focused fit and serial/Dask suite: 25 passed; Ruff and Pyright passed.
+
+**Next**
+
+- Complete Phase 4 Step 5 with local Astropy WCS transformation, covariance
+  beam deconvolution, and explicit uncertainty calibration evidence.
+
+## 2026-08-02 — Implemented Phase 4 compact astrometry and deconvolution
+
+**Plan phase:** Phase 4, Step 5 — celestial transformation and beam
+deconvolution
+
+**Implemented**
+
+- Added a scheduler-safe celestial fit record and pure transformation boundary
+  that reconstructs Astropy WCS from serialized metadata, uses zero-based
+  `(x, y)` coordinates, and derives a local east/north Jacobian.
+- Transformed fitted covariance, centroid covariance, local pixel area, and
+  position through the same local geometry. RA wraparound, signed/unequal
+  scales, rotation, and celestial east-of-north position angle remain
+  explicit.
+- Added covariance-matrix restoring-beam deconvolution with resolved,
+  unresolved, and marginal diagnostics. Scientific absence is null; only the
+  compatibility adapter may serialize an unresolved zero-axis sentinel.
+- Evaluated `radio_beam` and retained the direct NumPy implementation because
+  the reviewed three-state semantics still require local logic and the added
+  dependency would not simplify this small boundary.
+- Preserved formal independent-pixel position and flux errors with explicit
+  flags, and left uncalibrated shape or singular errors absent rather than
+  zero.
+
+**Testing and scope**
+
+- Added analytic tests for local WCS signs and rotation, RA wraparound,
+  unequal pixel scales, fitted ellipse conversion, aligned deconvolution,
+  marginal and unresolved states, local flux geometry, and absent formal
+  covariance.
+- The frozen Monte Carlo correlated-noise calibration remains open; these
+  changes do not claim calibrated uncertainty coverage.
+
+## 2026-08-02 — Implemented bounded compact catalogues and Rapthor FITS view
+
+**Plan phase:** Phase 4, Steps 6 and 7 — association, catalogue construction,
+and compatibility serialization
+
+**Implemented**
+
+- Kept parent islands, fitted Gaussian components, and source candidates as
+  separate typed records under the reviewed provisional one-region/one-source
+  compact policy. IDs derive from canonical global region identity.
+- Added one bounded catalogue shard per existing coarse executor batch,
+  deterministic pairwise shard reduction with fan-in two and logarithmic
+  depth, and an explicit final in-memory source-record cap.
+- Made complete catalogue construction fail closed on every invalid fit,
+  omission, or Phase 5 deferral. The incomplete stage still retains compact
+  records and reasons for inspection.
+- Added the exact eight-column FITS view read directly by the pinned Rapthor
+  diagnostic code. Types, units, zero-row schema, deterministic source
+  numbering, adapter-only unresolved zero sentinel, NaN unknown errors,
+  checksums, atomic publication, and conflict-safe retries are frozen.
+- Corrected the earlier reader assumption: Rapthor uses Astropy to read this
+  FITS table, then writes a minimal makesourcedb text model for LSMTool. LSMTool
+  does not read the source-list FITS product and remains outside Hebog's core
+  dependencies.
+- Updated schema/compatibility documentation, README status, and the living
+  Marimo notebook. The notebook now executes the complete no-deferral compact
+  demo through fitted/deconvolved catalogue rows and the Rapthor FITS product.
+
+**Evidence**
+
+- Focused catalogue algorithm/record tests reach 100% branch coverage; focused
+  Rapthor adapter tests reach 100% branch coverage.
+- One/many-tile and serial/two-worker Dask catalogue shards are equal. Input
+  order, source numbering, catalogue bytes, and retry behaviour are
+  deterministic.
+- The same three-row compact catalogue passes every frozen exact Phase 4 gate
+  against both released and pinned-`master` PyBDSF. Rapthor's 10-arcsec size
+  and 2-arcsec position-error diagnostic cuts retain all three rows.
+- The compact reference has 65,534 of 65,536 identical pixel-centre mask
+  decisions against each PyBDSF reference, exceeding the 99.5% downstream
+  decision gate.
+- Focused dual-reference/adapter/mask suite: 11 passed. Focused unit,
+  integration, and executor suite: 32 passed. Strict Marimo validation and a
+  complete temporary HTML execution passed.
+
+**Scientific blocker discovered**
+
+- The generated crowded regression contains three injected pairs narrower
+  than one restoring beam. Each pair has only one observable image maximum,
+  so the reviewed deblender correctly produces four regions for seven input
+  Gaussians. Lowering the saddle threshold to zero did not change this result.
+- The one-region/one-source policy therefore cannot meet the flat
+  seven-emitter completeness assertion. The test is retained as a strict
+  expected failure so an eventual scientifically reviewed solution becomes a
+  visible unexpected pass.
+- No held-out qualification result was inspected. The association/resolvability
+  policy, declared truth grouping, and blend population require amended named
+  human review, after which the unseen qualification recipe and checksum must
+  be replaced before qualification runs.
+
+**Next**
+
+- Complete the association-model amendment review, replace the untouched
+  qualification population, calibrate formal uncertainties, and run the
+  controlled Phase 4 performance matrix before declaring the phase passed.
+
+## 2026-08-02 — Recorded the Phase 4 readiness decision
+
+**Plan phase:** Phase 4, Step 8 — qualification and release readiness
+
+**Completed**
+
+- Published a Phase 4 release-readiness record that separates the implemented
+  compact catalogue capability from the scientific and performance exit gate.
+- Recorded the exact-reference, downstream-decision, bounded-memory,
+  deterministic-execution, compatibility, portability, and deferral evidence.
+- Recommended an observable-resolvability policy: per-emitter gates for
+  independently observable maxima, explicit group truth and group-level
+  centroid/total-flux gates for unresolved injected blends, and no joint
+  multi-Gaussian fit without identifiability and reliability evidence.
+- Added an unchecked named amendment decision to the scientific review record.
+  The existing approval does not silently authorize this material change.
+- Ordered the remaining work so the contract and replacement unseen dataset
+  are reviewed before qualification inspection, and science closes before
+  performance qualification.
+
+**Gate status**
+
+- The Phase 4 readiness decision is **not ready**. No held-out qualification
+  output was inspected and no Phase 4 performance claim was made.
+- The next action requires named human approval of the proposed association
+  amendment. That decision then permits replacement of the affected governed
+  truth and completion of uncertainty, qualification, and benchmark evidence.
+
+## 2026-08-03 — Approved the Phase 4 association amendment
+
+**Plan phase:** Phase 4 scientific closure
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer and project owner, approved
+  the recommended observable-resolvability policy on 2026-08-03.
+- Per-emitter gates apply only to independently observable eligible maxima.
+  Sub-beam injected members forming one maximum use explicit truth association
+  groups with group-level centroid and total-flux gates.
+- One component/source remains the Phase 4 default for a single eligible
+  maximum. Joint multi-Gaussian model selection is deferred until governed
+  identifiability and reliability evidence justifies it.
+- The affected regression and untouched qualification definitions must be
+  replaced and reviewed before any replacement held-out result is inspected.
+
+**Next**
+
+- Add the explicit truth-group schema and replace the affected governed
+  manifests and checksums before running regression or qualification.
+
+## 2026-08-03 — Froze replacement Phase 4 truth groups
+
+**Plan phase:** Phase 4 scientific closure — pre-qualification contract
+
+**Implemented**
+
+- Added manifest schema 2 with explicit association-group identifiers,
+  resolution class, canonical source membership, analytic group centroid and
+  integrated brightness, and separately governed group strata.
+- Replaced the affected development/regression truth and the untouched held-out
+  qualification definition. The held-out dataset now has identifier
+  `phase4-unseen-grouped-measurement-qualification-512`, base seed
+  `2026083001`, and recipe SHA-256
+  `fe4ba6cd64a83e9c274d9eb83a3427b6f0361d0491e8683431ac5be2ccac6e8e`.
+- Removed unresolved injected members from individual qualification strata and
+  added a 200-sample unresolved-group stratum.
+- Added frozen-provisional unresolved-group centroid and total-flux gates and
+  tests that reject incomplete, overlapping, stale, or ambiguous truth.
+
+**Regression evidence**
+
+- The crowded regression now passes: four observable groups are recovered from
+  seven emitters. Its unresolved groups are within provisional 0.10/0.20-beam
+  centroid and 10%/20% total-flux median/tail limits.
+- The run exposed an independent validation-contract problem previously hidden
+  by the association failure. A legitimate 12-SNR noise draw misses the flat
+  absolute tail gate. It remains a strict expected failure; the seed and
+  assertion were not weakened.
+- No replacement qualification image or scientific output was generated or
+  inspected.
+
+**Next**
+
+- Obtain named review of the provisional group margins and the recommended
+  SNR-stratified confidence-interval rule before qualification inspection.
+
+## 2026-08-03 — Approved Phase 4 grouped and noisy-source gates
+
+**Plan phase:** Phase 4 scientific closure — numerical review
+
+**Decision**
+
+- Gemma Danks approved the 0.10/0.20-beam unresolved-group centroid limits and
+  10%/20% total-flux limits on 2026-08-03.
+- Generated noisy-source qualification will use SNR-stratified confidence
+  intervals for bias and uncertainty calibration plus the existing
+  catastrophic-outlier rate. Absolute noisy-source tails remain report-only.
+- Strict analytic/noiseless and exact compact-reference absolute gates remain
+  unchanged.
+
+**Next**
+
+- Implement and pass the regression/calibration report before opening the
+  replacement held-out qualification campaign.
+
+## 2026-08-03 — Passed powered correlated-noise regression calibration
+
+**Plan phase:** Phase 4 scientific closure — pre-qualification evidence
+
+**Implemented**
+
+- Added generator-v3 beam-shaped Gaussian-correlated noise with exact bounded
+  window and partition invariance while preserving version-1/version-2 recipe
+  checksums.
+- Replaced independent-pixel error scaling with a generalized OLS sandwich
+  covariance using the declared pixel-noise correlation function.
+- Added an eight-pixel bounded context around compact fit regions and a
+  bounded local residual-background nuisance parameter. Exact region labels
+  still own moments; context pixels affect only the nonlinear fit.
+- Implemented deterministic Student-*t*, Wilson-score, and fixed-seed SciPy
+  BCa intervals plus the reviewed entire-interval decision rule.
+
+**Regression evidence**
+
+- The original 200-sample strata had acceptable normalized-residual point
+  estimates but insufficient power for the approved 95% entire-interval rule.
+  No seed was removed or selected.
+- Expanded the regression source population across independent positions and
+  shapes while retaining all 200 predeclared noise realizations. Every SNR
+  stratum now contains 1,600 eligible measurements.
+- The powered regression passed all position, peak-flux, integrated-flux,
+  availability, normalized-bias, one-sigma-coverage, and dispersion gates in
+  233.38 seconds on the local development host.
+- Normal generated association/measurement regression remained green: two
+  cases passed in 3.43 seconds. Dataset validation remained green: 52 tests
+  passed.
+
+**Held-out boundary**
+
+- Replaced the still-unopened qualification definition with
+  `phase4-unseen-powered-correlated-measurement-qualification-512`, base seed
+  `2026085001`, and recipe SHA-256
+  `4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6`.
+- It retains the 200 predeclared realization seeds and supplies at least 1,600
+  eligible measurements in every SNR, shape, and edge stratum. The
+  unresolved-group absolute-metric stratum retains 200 samples.
+- No qualification image, fit, catalogue, report, or pass/fail result was
+  generated or inspected before the regression campaign passed.
+
+**Next**
+
+- Run the first powered held-out qualification once, persist its complete
+  machine-readable report, and do not tune against the result.
+
+## 2026-08-03 — Recorded the failed powered held-out qualification
+
+**Plan phase:** Phase 4 scientific closure — held-out qualification
+
+**Validation order**
+
+- Fixed local-RMS sampling to use the retained fit-context coordinate frame
+  before opening held-out output and added a focused regression test.
+- Re-ran the complete powered correlated-noise regression after that fix: one
+  campaign passed in 295.54 seconds across all 200 predeclared realizations.
+- Ran the powered held-out campaign once. It completed in 479.84 seconds and
+  wrote its complete machine-readable report under the ignored
+  `benchmark-results/` evidence directory before applying gate decisions.
+
+**Held-out result**
+
+- Recovered 6,586 of 6,600 observable truth groups from 6,607 candidates:
+  99.79% completeness and 99.68% overall reliability, both passing.
+- Fitted-shape and classification availability were 99.78%; resolved-shape
+  availability was 100%.
+- Resolved/unresolved classification agreement was 73.57%, below the frozen
+  95% minimum.
+- Fifty of 6,386 matched individual rows were catastrophic outliers: 0.783%,
+  above the frozen 0.5% maximum.
+- Four 95% normalized-mean intervals failed the entire-interval rule:
+  SNR-10 integrated flux (0.141 to 0.243), SNR-25 peak flux (0.061 to 0.161),
+  unresolved-shape integrated flux (0.098 to 0.197), and edge integrated flux
+  (0.113 to 0.214).
+- The run exposed an under-specified unresolved-group reliability denominator.
+  The conservative provisional calculation was 90.50%, but it assigns every
+  unmatched candidate to the unresolved population even when the candidate is
+  nearer an individually resolvable group. This is recorded as a contract
+  issue rather than silently redefined after inspection.
+
+**Decision**
+
+- Phase 4 remains **not ready**. No parameter, threshold, seed, population, or
+  margin was changed after inspection, and the failed campaign is preserved as
+  known evidence rather than reused as unseen qualification data.
+- Controlled performance qualification is deferred because the documented
+  closure order requires a scientifically eligible implementation first.
+
+**Next**
+
+- Freeze a new unseen campaign before corrective scientific work, obtain named
+  review of the reliability denominator and any boundary-classification
+  amendment, correct against development/regression evidence, then qualify on
+  the new held-out campaign before running the Phase 4 performance matrix.
+
+## 2026-08-03 — Froze the extension-aware replacement qualification
+
+**Plan phase:** Phase 4 scientific closure — post-failure correction
+
+**Research decision**
+
+- Peer-reviewed radio-catalogue practice does not classify every positive
+  fitted-minus-beam size as resolved. ATLAS DR3 uses a one-sided two-sigma
+  integrated-to-peak flux-ratio uncertainty test, with a stated 2.3%
+  point-source false-positive probability. Deep GMRT catalogue work likewise
+  treats low-SNR fitted-width inflation as noise and uses peak flux for
+  unresolved sources. Condon and Aegean support reducing free fit parameters
+  when source shape is known.
+- Froze a provisional contract that gates point-source specificity and clearly
+  resolved recall separately, reports marginal-extension classification by
+  SNR, and retains reliability only at the globally observable catalogue
+  level. The unresolved-group gate retains completeness, centroid, and total
+  flux; its unobservable morphology-specific reliability denominator was
+  removed.
+
+**Held-out boundary**
+
+- Archived the inspected recipe unchanged as
+  `phase-4-viewed-qualification.json`, checksum
+  `4b0104eddb7569bb68058783f836c9e701c0a4362b7d75ce50968b96ca25b3e6`.
+- Froze `phase4-unseen-extension-aware-measurement-qualification-512`, recipe
+  checksum
+  `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`,
+  before production correction. Its 200 seeds are disjoint from the viewed
+  campaign and it adds a distinct WCS, negative background, varying RMS,
+  invalid pixels, and predeclared point, clear-resolved, marginal-resolved,
+  edge, SNR, and unresolved-group strata.
+- No image, fit, catalogue, comparison, or result from the new campaign was
+  generated or inspected.
+
+**Next**
+
+- Implement the two-sigma rule and unresolved flux policy through TDD, pass
+  independent development/regression and compatibility lanes, obtain named
+  human review, then open the replacement qualification exactly once.
+
+## 2026-08-03 — Corrected extension classification without opening held-out data
+
+**Plan phase:** Phase 4 scientific closure — post-failure correction
+
+**Implemented**
+
+- Added an explicit ATLAS-style one-sided two-sigma log integrated-to-peak
+  uncertainty test after geometric beam deconvolution. Insignificant extension
+  is unresolved with a canonical flag; a noisy fit without usable flux
+  uncertainty has unavailable classification.
+- Changed the compact catalogue policy to report peak and peak error as total
+  flux and total-flux error for an unresolved source. Significantly resolved
+  sources retain the free fitted-Gaussian integral.
+- Added explicit point, clear-resolved, and marginal-resolved classification
+  strata to the governed regression and replacement qualification manifests.
+  Clear truth requires fitted-to-beam area ratio at least 3 and SNR at least
+  25; marginal extension is report-only.
+- Kept resolved and marginal free-fit integrated-flux uncertainty report-only
+  after regression showed it was not calibrated. Position, peak flux, and
+  unresolved peak-as-total uncertainty remain gated.
+- Versioned the amended measurement contract as schema 2 and retained
+  `frozen-provisional` status so the held-out runner cannot execute before
+  named review.
+
+**Compatibility decision**
+
+- The raw released and `master` PyBDSF products remain immutable. One governed
+  unresolved PyBDSF row has a free-fit total about 39% below its peak. The exact
+  comparison now applies the declared peak-as-total unresolved catalogue view
+  while a focused test preserves and reports the raw divergence.
+- This is intentional community-policy non-equivalence, not an accidental
+  tolerance. Review Rapthor's downstream use of `Total_flux` before enabling
+  Hebog as its default backend.
+
+**Regression and validation evidence**
+
+- The complete powered correlated-noise regression passed all applicable
+  position, peak-flux, unresolved integrated-flux, point-specificity, and
+  clear-extension gates in 355.29 seconds across the 200 predeclared
+  development/regression realizations.
+- Exact compact comparisons against released and pinned-`master` PyBDSF plus
+  the explicit raw-divergence test passed: four tests in the final 4.42-second
+  rerun.
+- `just check` passed Ruff formatting/lint, Pyright, doctests, and 537 fast
+  tests; the integration lane passed 127 tests; the acceptance lane retained
+  its seven expected failures; strict documentation and Marimo checks passed.
+- Branch-aware coverage passed at 94.92%: 663 tests passed. The changed
+  scientific/configuration/stage modules report 96–100% coverage; the changed
+  validation-contract and dataset modules report 92% and 96%, respectively.
+- The replacement qualification test was invoked only to verify its guard and
+  skipped at `frozen-provisional` before recipe iteration or output creation.
+  The replacement recipe checksum remains
+  `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
+
+**Next**
+
+- Obtain named review of every extension/flux addendum decision in the Phase 4
+  scientific review record. Only then promote the contracts to
+  `reviewed-provisional` and open the replacement qualification campaign once.
+
+## 2026-08-03 — Approved the Phase 4 extension and flux addendum
+
+**Plan phase:** Phase 4 scientific closure — named review
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer and project owner, approved
+  the complete post-failure extension-classification and unresolved-flux
+  addendum without amendment.
+- The approval covers the ATLAS two-sigma rule, separate point/clear gates,
+  the area-ratio-3 and SNR-25 clear population, report-only marginal extension
+  and resolved/marginal total-flux uncertainty, peak-as-total unresolved flux,
+  global-only reliability, and the documented raw PyBDSF divergence.
+- Promoted both Phase 4 contracts from `frozen-provisional` to
+  `reviewed-provisional`. The replacement qualification campaign remained
+  unopened throughout review.
+
+**Next**
+
+- Validate and commit this review record, then run the frozen replacement
+  qualification campaign exactly once without post-inspection tuning.
+
+## 2026-08-03 — Recorded the failed extension-aware qualification
+
+**Plan phase:** Phase 4 scientific closure — held-out qualification
+
+**Execution boundary**
+
+- Committed the named approval as `bf5a725` before opening held-out output.
+- Ran the reviewed replacement campaign exactly once. It completed in 477.85
+  seconds across all 200 frozen realizations and wrote a 35,126-byte ignored
+  evidence record with SHA-256
+  `ae1ce5b15a72d7089e14321854fe988ca6634ab3179009842810128aa8414c89`.
+- The dataset identifier and recipe SHA-256 match the frozen manifest:
+  `phase4-unseen-extension-aware-measurement-qualification-512` and
+  `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
+
+**Passing evidence**
+
+- Recovered 6,583 of 6,600 truth groups from 6,612 candidates: 99.74%
+  completeness and 99.56% reliability.
+- Fitted-shape availability was 99.72%, governed classification availability
+  99.22%, point-source specificity 96.34%, clear-extension recall 100%, and
+  resolved-shape availability 100%.
+- Every gated normalized-residual calibration decision passed. The unresolved
+  group's 100% completeness, centroid, and total-flux summaries also passed.
+
+**Failed evidence**
+
+- 1,128 of 6,382 matched individual rows were catastrophic outliers: 17.67%
+  against the frozen 0.5% maximum. Report-only integrated-flux absolute error
+  had median 4.80% and 95th percentile 115.42%.
+- SNR-10 uncertainty availability was 98.94% (1,583 of 1,600) and edge
+  availability was 98.88% (1,582 of 1,600), both below the 99% floor for
+  position, peak flux, and integrated flux.
+- Report-only resolved/marginal integrated-flux calibration failed across the
+  SNR and extended-shape strata, as retained diagnostic evidence rather than a
+  post-inspection gate.
+
+**Decision**
+
+- Phase 4 remains **not ready**. No parameter, threshold, population, seed,
+  margin, or gate was changed, and the campaign was not rerun.
+- The controlled performance matrix was not run because the documented closure
+  order requires scientific qualification first.
+
+**Next**
+
+- Preserve this campaign as viewed evidence and require a new frozen unseen
+  campaign before corrective production changes. Extend the powered regression
+  to expose catastrophic-flux and availability behavior, select any correction
+  only from development/regression evidence, and obtain named review before
+  opening the next held-out campaign.
+
+## 2026-08-03 — Froze the third Phase 4 qualification campaign
+
+**Plan phase:** Phase 4 scientific closure — post-failure boundary
+
+**Held-out boundary**
+
+- Archived the failed extension-aware manifest unchanged as
+  `phase-4-viewed-extension-aware-qualification.json`, retaining recipe
+  SHA-256
+  `54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
+- Froze `phase4-unseen-flux-availability-measurement-qualification-512` with
+  recipe SHA-256
+  `7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
+  Its 200 seeds are disjoint from both viewed campaigns. It changes the WCS,
+  signed pixel scales, sky position, rotation, negative background, RMS
+  gradient, and invalid-pixel location while retaining the reviewed truth
+  matrix.
+- Returned both Phase 4 contracts to `frozen-provisional`; the qualification
+  test therefore skips before recipe iteration until a new amendment receives
+  named review.
+- No third-campaign image, fit, catalogue, comparison, or result was generated
+  or inspected.
+
+**Next**
+
+- Extend the powered development/regression runner to gate catastrophic flux
+  and uncertainty availability before selecting any corrective policy.
+
+## 2026-08-03 — Reproduced both Phase 4 failures in development
+
+**Plan phase:** Phase 4 scientific closure — third-campaign amendment
+
+**Catastrophic-tail diagnosis**
+
+- Extended the existing 200-realization development runner with the exact
+  frozen catastrophic definitions. The intended red test failed with 283 of
+  4,800 matched rows above at least one threshold.
+- All 283 rows were predeclared `shape-marginal-resolved` truth. The metric
+  counts were 274 integrated-flux, one fitted-axis, eight deconvolved-axis,
+  and zero position or peak-flux failures. Point and clearly resolved truth
+  had zero catastrophic rows.
+- Peer-reviewed population practice supports keeping ambiguous marginal flux
+  separate: ATLAS DR3 uses integrated-to-peak significance and peak-as-total
+  for point-like sources, while the ASKAP/EMU challenge does not apply its
+  catastrophic point-source flux analysis to the extended challenge because
+  that comparison is biased. The proposed amendment keeps the 0.5% ceiling
+  and all numerical thresholds, reports only marginal integrated-flux
+  catastrophes, and continues to gate every other metric plus integrated flux
+  for point and clearly resolved truth.
+
+**Edge-availability diagnosis**
+
+- Added a generated regression recipe with five isolated SNR-10-to-15 point
+  sources truncated independently by all four image sides, 50 deterministic
+  realizations, and recipe SHA-256
+  `15b5d5807abee379567bb51913600046b05d896935c1e4f7889c0be5a9f194fd`.
+- Its intended red test reproduced the gate miss at 247/250. All three missing
+  matches were for the higher-noise bottom edge; deterministic seed inspection
+  showed valid Gaussian fits whose centroids had moved beyond the sampled
+  image footprint.
+- Clamped fit-centre bounds to the physical sampled footprint while preserving
+  the configured context margin inside it. The focused unit lane passed 19
+  tests and the identical powered edge regression then passed 250/250.
+
+**Validation**
+
+- The corrected 200-realization, 4,800-match uncertainty/classification/
+  catastrophic regression passed in 343.68 seconds.
+- Six remaining generated-truth and exact compact-catalogue equivalence tests
+  passed against both PyBDSF anchors. The third-campaign guard skipped before
+  recipe iteration because both contracts remain `frozen-provisional`.
+- `just check` passed with 538 tests and four expected failures; Ruff, Pyright,
+  and the strict documentation build also passed.
+- The branch-aware coverage lane passed 665 tests with four expected failures
+  at 94.92% project coverage; the changed fitting bounds are exercised by the
+  focused edge invariant and powered regression.
+
+**Held-out boundary**
+
+- The third campaign remains unchanged and unopened. Both contracts remain
+  `frozen-provisional`; named review is required after the complete regression
+  and handoff suites pass.
+
+## 2026-08-03 — Approved the third Phase 4 amendment
+
+**Plan phase:** Phase 4 scientific closure — named review
+
+- Gemma Danks, Data Processing Software Engineer, approved both proposed
+  decisions without amendment: marginal-resolved integrated-flux catastrophic
+  rate is report-only while all other declared catastrophic comparisons stay
+  gated; and fitted centroids must remain inside the sampled image footprint.
+- Promoted the Phase 4 measurement and scientific-gate contracts from
+  `frozen-provisional` to `reviewed-provisional` only after the complete
+  development/regression, exact-reference, coverage, and handoff evidence had
+  passed.
+- No third-campaign image, fit, catalogue, comparison, or result had been
+  generated or inspected when this approval was recorded.
+
+**Next**
+
+- Commit this approval boundary, then open the third frozen campaign exactly
+  once. Proceed to controlled performance qualification only if every
+  scientific gate passes.
+
+## 2026-08-03 — Recorded the failed third Phase 4 qualification
+
+**Plan phase:** Phase 4 scientific closure — held-out qualification
+
+**Execution boundary**
+
+- Committed the named approval as `a121bba` before opening held-out output.
+- Ran `just test-qualification` exactly once. The complete lane finished in
+  433.55 seconds with one lightweight qualification pass, one skip, and the
+  frozen 200-realization campaign failure.
+- The 34,746-byte ignored evidence record has SHA-256
+  `ed060b7703161ba01037939ff9a8e4b6e3d6ab527dc3b1fd45753dfb69c1165e`.
+  Its dataset identifier and recipe SHA-256 match the frozen manifest:
+  `phase4-unseen-flux-availability-measurement-qualification-512` and
+  `7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b`.
+- Preserved the preceding 35,126-byte campaign separately at
+  `benchmark-results/phase-4-second-qualification.json`, SHA-256
+  `ae1ce5b15a72d7089e14321854fe988ca6634ab3179009842810128aa8414c89`.
+
+**Passing evidence**
+
+- Recovered all 6,600 truth groups from 6,621 candidates: 100% completeness
+  and 99.68% reliability.
+- Fitted-shape and classification availability, clear-resolved recall, and
+  resolved-shape availability were 100%; point-source specificity was 97.06%.
+- All uncertainty fields were available. Every position and peak-flux
+  calibration decision and every unresolved-group gate passed.
+- The predeclared report-only marginal integrated-flux diagnostic recorded
+  1,094 of 4,600 rows (23.78%) without entering the gated failure population.
+
+**Failed evidence and decision**
+
+- Thirty-six of 6,400 matched individual sources were gated catastrophic
+  outliers: 0.5625% against the unchanged 0.5% maximum.
+- Unresolved integrated-flux normalized residual had mean 0.1335 and a 95%
+  interval of 0.0823--0.1846, crossing the approved absolute 0.15 mean margin.
+  Its coverage and dispersion intervals passed.
+- No parameter, gate, truth population, seed, or margin changed after
+  inspection, and the campaign was not rerun. It is retained as viewed failed
+  evidence.
+- Returned both contracts to `frozen-provisional` and updated the manifest
+  provenance so the executable guard prevents accidental reuse.
+- Phase 4 remains **not ready**. The controlled performance matrix was not run
+  because scientific qualification failed.
+
+**Next**
+
+- Do not generate serial replacement campaigns to seek a passing draw.
+  Establish and approve a recovery protocol that accounts for repeated-
+  campaign optional stopping, freeze any future qualification population
+  before corrective implementation, and choose corrections only from analytic
+  and independent development/regression evidence.
+
+## 2026-08-03 — Audited PyBDSF and approved the Phase 4 recovery direction
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Reference audit**
+
+- Ran released PyBDSF 1.14.1 on the viewed third campaign with the exact
+  Rapthor/LSMTool configuration. The ignored machine-readable comparison is
+  `benchmark-results/phase-4-pybdsf-release-qualification-comparison.json`,
+  SHA-256
+  `298b91312749953ef6b356fbc863343f693a0378aa0aa46815c60bb229640eb0`.
+- Released PyBDSF recovered 6,599 of 6,600 groups from 6,615 candidates. Its
+  canonical unresolved-source view achieved 99.75% point-source specificity
+  and 12 gated catastrophic rows among 6,399 matches (0.1875%), both better
+  than Hebog's third-campaign 97.06% and 0.5625%.
+- Released PyBDSF did not pass the full campaign. It failed 16 gated
+  normalized-uncertainty decisions plus the unresolved-group
+  95th-percentile position and total-flux gates. Hebog passed those decisions,
+  recovered every group, and retained materially better unresolved-group
+  tails.
+- Pinned PyBDSF `master` at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c` failed deterministically on
+  frozen seed `2026090152`. The Rapthor-required atrous Gaussian-fitting path
+  interpolates past a two-pixel island and raises `IndexError`; released
+  PyBDSF and Hebog complete the same input.
+- The reference runner's 300.39-second duration is diagnostic, not a speed
+  comparison with the differently scoped Hebog qualification lane.
+
+**Decision**
+
+- Gemma Danks approved preserving every absolute community-science gate and
+  Hebog's stronger recovery, uncertainty, unresolved-group, deterministic,
+  and bounded-execution results while correcting point classification and
+  catastrophic tails until Hebog is equal to or better than released PyBDSF.
+- The authoritative plan now requires a permanent per-source dual-reference
+  diagnostic, a named and powered paired-comparison protocol, one final frozen
+  unseen campaign, TDD using only analytic and independently seeded
+  development/regression evidence, and a no-worse PyBDSF point estimate plus
+  paired non-inferiority evidence for every gated metric.
+- Non-claim profiling may proceed during scientific recovery. Phase 4 closes
+  only after the final scientific and matched incremental performance gates
+  pass; bounded-memory and distributed scalability of the qualified compact
+  path then becomes the next active engineering focus.
+
+**Validation**
+
+- `just docs-build` passed with the existing informational Material for MkDocs
+  notice and ADR navigation inventory.
+- `just check` passed: Ruff formatting and lint, Pyright, 538 tests, and four
+  expected failures.
+- `just pre-commit` passed every push-stage hook across all files, including
+  JSON formatting, codespell, strict Marimo validation, documentation, quick
+  tests, and lockfile consistency.
+
+## 2026-08-03 — Added explainable paired-campaign evidence
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added a strict versioned campaign-evidence document that requires Hebog and
+  every named reference to report an outcome for every shared image seed.
+- Added deterministic per-source diagnostics for matched sources, missed truth,
+  and extra candidates, including truth strata, raw catastrophic flags,
+  governed catastrophic decisions, quality and classification information,
+  and normalized uncertainty residuals.
+- Made a failed implementation outcome first-class evidence. This preserves
+  the pinned PyBDSF `master` failure without silently removing that seed or
+  scoring an incomplete catalogue.
+- Reused the comparison oracle's normalized-residual primitive so aggregate
+  calibration reports and paired source rows cannot drift apart.
+
+**Validation**
+
+- Focused Ruff formatting and lint, Pyright, and 101 comparison, diagnostic,
+  and evidence tests passed. The new diagnostic module has 100% branch-aware
+  coverage; the two touched validation modules have 95.64% combined coverage.
+- `just coverage` passed 672 tests with four expected failures and 94.56%
+  branch-aware project coverage before the final validator-only test additions.
+- `just docs-build`, `just check` (570 passed and four expected failures), and
+  every `just pre-commit` push-stage hook passed.
+
+**Next**
+
+- Add a maintained same-image campaign runner that emits these records for
+  Hebog, released PyBDSF, and pinned PyBDSF `master`, then define and power the
+  named paired non-inferiority analysis before changing scientific behaviour.
+
+## 2026-08-03 — Added the maintained dual-reference campaign runner
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added one isolated PyBDSF campaign runner for both the released and pinned
+  `master` environments. It freezes Rapthor's exact options, regenerates the
+  same governed float64 images, binds the complete seed/truth/strata record,
+  and records exact software, container, dependency, and execution-policy
+  identities.
+- Added mergeable per-implementation evidence and a candidate-first compiler
+  that rejects dataset, seed, scientific-contract, or comparison-protocol
+  drift.
+- Preserved every observable association group as well as individual source
+  diagnostics. Unresolved-group flux retains the raw fitted total while the
+  Rapthor-facing unresolved individual view remains peak-as-total.
+- Made source-finding and comparison exceptions explicit per-seed failures,
+  with complete tracebacks in the external run log and stable digests in the
+  evidence. Runners refuse to overwrite an existing result.
+- Hardened the established PyBDSF FITS reader so zero and NaN error sentinels
+  become explicit unavailable values rather than invalid uncertainties.
+
+**Validation**
+
+- TDD first recorded the missing association model, campaign module, reference
+  runner, and sentinel handling. Focused Ruff, Pyright, and 117 campaign,
+  evidence, reader, runner, diagnostic, and comparison tests passed.
+- `just coverage` passed 719 tests with four expected failures and 95.28%
+  branch-aware project coverage. The new campaign module has 100% branch
+  coverage and the expanded evidence model has 96%.
+- `just docs-build` passed with only the existing informational Material for
+  MkDocs notice and ADR navigation inventory.
+- `just check` passed 592 tests with four expected failures;
+  `just test-equivalence` passed all 20 frozen non-slow equivalence cases; and
+  every `just pre-commit` push-stage hook passed.
+
+**Next**
+
+- Define the paired non-inferiority metric directions, margins, multiplicity
+  policy, confidence method, and power calculation for named review. Do not
+  freeze or open the final unseen population until that review is recorded.
+
+## 2026-08-03 — Drafted the paired Phase 4 closure protocol
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added a strict draft-provisional paired non-inferiority contract covering
+  metric directions, practical margins, whole-image resampling, primary and
+  secondary reference failures, all-endpoint passage, and the one-final-look
+  stopping rule.
+- Added an executable clustered normal-approximation power calculation. The
+  proposed 600-realization design gives at least 92.2% interval-exclusion
+  power under its provisional assumptions; point specificity is 94.5% and the
+  catastrophic-outlier endpoint is 93.3%.
+- Made the stricter no-worse point-estimate condition statistically explicit:
+  it has only 50% probability under exact equality, so the calculation reports
+  it and the combined decision separately rather than claiming 90% overall
+  passage.
+- Added a reviewer guide with the scientific background, proposed margins,
+  endpoint split, failure handling, stopping rule, community-source-finding
+  basis, and named decisions still required.
+- Kept the contract provisional. No final qualification seed, truth, image, or
+  result was generated or inspected. Every planning variance assumption must
+  be verified on independent paired development/regression evidence before
+  named approval and population freeze.
+
+**Validation**
+
+- TDD first recorded the missing strict contract and power calculation; all 14
+  focused contract, validation, boundary, and failure tests now pass.
+- `just coverage` passed 733 tests with four expected failures and 95.38%
+  branch-aware project coverage; the new power module has 100% coverage and
+  the expanded contract module has 94%.
+- `just test-equivalence` passed all 20 frozen non-slow scientific comparisons.
+- Ruff formatting and lint, Pyright, and the strict MkDocs build passed.
+  `just check` passed 606 tests with four expected failures, and every
+  `just pre-commit` push-stage hook passed across all files, including JSON
+  formatting, strict Marimo validation, documentation, and lock consistency.
+
+**Next**
+
+- Produce paired independent development/regression shards and verify the
+  discordance, within-image correlation, and paired-dispersion planning bounds
+  before requesting named review. Do not change production science or freeze
+  the final unseen population first.
+
+## 2026-08-03 — Added the maintained Hebog campaign runner
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added a candidate runner that exercises Hebog's complete bounded serial
+  detection, deblending, fitting, transformation, and catalogue path for every
+  governed regression or qualification realization.
+- Froze every candidate scientific threshold, bounded-work limit, 128-pixel
+  tile size, float64 input policy, and serial executor in the implementation
+  configuration digest.
+- Added shared campaign-runtime helpers for contract, dataset, dependency, and
+  failure identities, and migrated the PyBDSF runner to them so candidate and
+  reference provenance cannot drift.
+- Allowed both isolated runners to use governed regression data for the
+  planning-assumption audit while retaining named review as a prerequisite for
+  final qualification use.
+- Kept every candidate or reference exception as a complete failed-seed record
+  with no partial catalogue and no denominator deletion.
+
+**Validation**
+
+- TDD first recorded the missing candidate configuration and failure path.
+  Nineteen focused unit and integration tests pass, including a real complete
+  Hebog run on a generated development image.
+- The shared campaign-runtime module has 100% branch-aware focused coverage.
+- `just coverage` passed 741 tests with four expected failures and 95.52%
+  branch-aware project coverage; the shared campaign-runtime module has 100%
+  coverage.
+- `just test-equivalence` passed all 20 frozen non-slow scientific comparisons.
+  Ruff formatting and lint, strict Pyright, and the strict documentation build
+  passed. `just check` passed 613 tests with four expected failures, and every
+  `just pre-commit` push-stage hook passed across all files.
+
+**Next**
+
+- Add a structurally representative independent recovery-regression dataset,
+  generate paired Hebog and released-PyBDSF shards, and measure the protocol's
+  planning variance bounds. Do not use any viewed qualification output for
+  that audit.
+
+## 2026-08-03 — Governed the paired planning population
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Added a viewable recovery-regression population with the exact proposed
+  endpoint structure: 200 disjoint noise seeds, 33 observable groups, 32
+  individually resolvable sources, eight beam-compatible point sources, one
+  clearly resolved source, and one unresolved blend per image.
+- Used a distinct WCS, background, noise gradient, invalid region, and a
+  180-degree mirrored source layout that preserves the governed blend-to-beam
+  geometry. The design preserves the relevant SNR and shape populations while
+  remaining statistically independent of every previously used noise
+  realization.
+- Bound the generator-v3 recipe to SHA-256
+  `2669ad5c7e0883e50b6c82a8d1c66d92a8890df9d8fc7b64a645d6bdf52dedca`.
+  The manifest is explicitly regression evidence for planning and TDD; it can
+  never qualify Hebog or be relabelled as unseen.
+
+**Validation**
+
+- TDD first recorded two failures for the missing governed manifest. The
+  focused role, independence, structure, and checksum tests now pass.
+- The repository JSON formatting hook accepts the new manifest.
+
+**Next**
+
+- Commit the governed population, run Hebog and released PyBDSF on the same
+  200 images, compile the paired evidence, and estimate every provisional
+  discordance, within-image correlation, and paired-dispersion bound.
+
+## 2026-08-03 — Corrected the paired blend geometry before tuning
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Finding**
+
+- The first candidate/reference execution revealed that the initial manifest
+  rotated the beam and source ellipses by 47 degrees but only mirrored the
+  close-pair separation. That changed the blend relative to its beam, so it no
+  longer represented the declared unresolved truth group. Its approximately
+  50% Hebog group-flux error was therefore invalid planning evidence, not an
+  algorithm result that may be used for tuning or qualification.
+- The invalidated exploratory shards have SHA-256
+  `2477409ea0a399d4b3dc080f097887ed9a57f5e3957a8b88ff1eb45e7bcc43bb`
+  for Hebog, `9e65e6aafe2529419a0a1cf926aac04905124178c7b81a07ea190e87f0852c2a`
+  for released PyBDSF, and
+  `1db13cf00527831b3e8db22a9b56816acbcc2812a26aa27a9da6348a2104d084`
+  for the compiled pair. They remain diagnostic provenance only.
+
+**Correction**
+
+- Restored the original beam/source orientation while retaining the
+  180-degree positional mirror, distinct WCS/background/noise field, and all
+  independent seeds. A new red-green test proves the beam-projected close-pair
+  separation matches the governed viewed reference geometry.
+- Recomputed the recipe identity as
+  `2669ad5c7e0883e50b6c82a8d1c66d92a8890df9d8fc7b64a645d6bdf52dedca`.
+  This correction occurred before any production-science change or final
+  qualification freeze.
+- The invalidated run also found reproducible Hebog fit omissions on seeds
+  `2026100009` and `2026100165`, while released PyBDSF completed both. Those
+  seeds remain valid independently seeded TDD cases, but their frequency and
+  paired metrics must be remeasured on the corrected manifest.
+
+**Next**
+
+- Commit the corrected governance boundary, archive the invalidated ignored
+  evidence under explicit names, and rerun both implementations before any
+  planning-assumption conclusion.
+
+## 2026-08-03 — Diagnosed the corrected paired regression and fixed fit-ineligible deblending
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Evidence**
+
+- Ran Hebog and released PyBDSF 1.14.1 over the corrected 200-image paired
+  regression. The candidate, reference, and compiled ignored evidence have
+  SHA-256 values
+  `f58fec61ab4d29670acf6e49117e30045a90fdc0bce2c5de77f5c96e021544b9`,
+  `adeea227878ecb0b412a196a1adf09fdd212fca15fa9b3f187059e1c33f470b0`,
+  and `91056642e990f164292af598ac4d9b2bf6f334edfef84aaee44c5cf4301efaf2`.
+- Released PyBDSF completed all 200 realizations and Hebog completed 196. On
+  the 196 joint successes, both had complete group recovery. Hebog's point
+  specificity was 96.75% against PyBDSF's 100%, and catalogue reliability was
+  99.69% against 99.76%.
+- Hebog retained its stronger results: 0.733% governed catastrophic rows
+  against 1.562%, 100% clear-resolved recall against 57.14%, and mean
+  unresolved-group errors of 0.056 beam and 5.42% total flux against PyBDSF's
+  0.082 beam and 14.17%.
+- All four Hebog exceptions were the same `underdetermined-region` outcome:
+  the unresolved blend was split into a valid main basin and a five-pixel
+  child, which cannot identify a seven-parameter Gaussian. The earlier
+  corrected seed `2026100009` completed, confirming its first-run failure was
+  caused by the invalid campaign geometry.
+
+**Correction**
+
+- Added an explicit minimum deblended-region area and deterministic merging
+  across the strongest shared saddle. The Phase 4 configuration aligns
+  detection and deblending at the fitter's seven-owned-pixel minimum, so an
+  admitted compact child is structurally fit-capable without discarding any
+  parent-island pixel.
+- Added an analytic red-green basin test and permanent equivalence regressions
+  for seeds `2026100024`, `2026100064`, `2026100165`, and `2026100180`.
+  All four now produce complete candidate catalogues.
+- Replayed every false point-extension decision on independent regression
+  data. Their fitted flux-ratio significances span 2.02--3.38; this isolates
+  the remaining difference to the current two-sigma classification policy,
+  not deconvolution availability or the campaign geometry.
+
+**Validation**
+
+- The focused deblend, runner-contract, and four-seed equivalence suite passes
+  all 49 tests.
+
+**Next**
+
+- Use analytic and independent regression tests to select a conservative,
+  community-supported extension decision that is no worse than released
+  PyBDSF while preserving Hebog's clear-extension, catastrophic-tail,
+  uncertainty, and unresolved-group strengths. Then refresh the complete
+  paired evidence before accepting any planning-variance estimate.
+
+## 2026-08-03 — Required high-confidence compact-source extension
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Finding**
+
+- Replayed the standardized ATLAS log integrated-to-peak statistic for all
+  1,600 predeclared point sources and 200 predeclared clear extensions in the
+  independent paired regression. Point truth ranged from -2.08 to 3.38 sigma;
+  clear truth ranged from 17.92 to 23.83 sigma.
+- The former two-sigma rule has the documented 2.3% one-sided
+  false-extension probability and classified 51 of 1,568 point sources as
+  resolved on the jointly successful pre-correction images. Released PyBDSF
+  classified all of them as unresolved. This conflicts with the paired
+  no-worse decision even though it passes the weaker absolute 95% specificity
+  floor.
+
+**Correction**
+
+- Retained the community-used standardized statistic and changed the proposed
+  Phase 4 catalogue threshold to five sigma. This is a deliberately
+  conservative compatibility policy: a false resolved decision assigns a
+  physical size and uses a noise-biased free-fit integral, while independent
+  regression leaves more than 12 sigma between the largest point value and
+  the smallest clear value.
+- Added an analytic TDD case between two and five sigma plus permanent
+  independently seeded tests for the largest observed point value and the
+  smallest clear value. The threshold remains explicit configuration, so
+  alternative workflows can make a reviewed policy choice.
+- Recorded the proposal and evidence in the scientific references and plan.
+  Named scientific review is still required; no final qualification
+  population has been generated or opened.
+
+**Validation**
+
+- `just check`: 618 passed and four expected failures.
+- `just test-equivalence`: 26 passed.
+- `just test-acceptance`: seven expected failures and no unexpected failure.
+- `just test-integration`: 128 passed.
+- `just coverage`: 96% branch-aware project coverage; the changed campaign
+  configuration remains fully covered and the catalogue path is exercised by
+  focused analytic and integration tests.
+
+**Next**
+
+- Run branch-aware coverage, documentation, notebook, and pre-commit checks;
+  then refresh the complete 200-image paired regression with both corrections
+  before accepting planning assumptions or seeking named approval.
+
+## 2026-08-03 — Refreshed the paired regression after both corrections
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Evidence**
+
+- Ran Hebog commit `49855eba45294278dd2fe709583a093445cf5eba`
+  over all 200 governed regression images. All 200 completed successfully,
+  including the four former fit-ineligible deblend cases. The candidate shard
+  has SHA-256
+  `32aacb78733d28cac086ae10596a1d2d1f5e7671d0cc6844c33a0ac87297fa0a`.
+- Reused the immutable released-PyBDSF 1.14.1 shard with SHA-256
+  `adeea227878ecb0b412a196a1adf09fdd212fca15fa9b3f187059e1c33f470b0`
+  and compiled a new pair with SHA-256
+  `bff79e0dafd096870460bfc1f6663a84d4f6cb813ea6ab7610b2bd8bee287a96`.
+- Both implementations recovered all 6,600 truth groups. Hebog reached 100%
+  point specificity and clear-resolved recall; PyBDSF reached 100% and 57.5%.
+  Hebog retained the lower governed catastrophic fraction (0.531% versus
+  1.547%) and better mean unresolved-blend position and total-flux errors
+  (0.056 beam and 5.36% versus 0.089 beam and 14.98%).
+
+**Finding**
+
+- Hebog had 21 unmatched candidates and PyBDSF had 20, so reliability was
+  99.6828% versus 99.6979%. The paired positive-as-worse estimate is 0.0151
+  percentage points and its one-sided 95% BCa upper limit is 0.1808 points,
+  below the proposed 0.5-point margin.
+- All 21 Hebog unmatched rows are unresolved near-threshold detections with
+  fitted peak SNR 4.34--6.11. A new post-fit cut would tune to one random
+  regression-tail candidate and risk real-source completeness. No scientific
+  threshold was changed.
+
+**Next**
+
+- Implement and run the maintained endpoint and planning-assumption audit,
+  then present the five-sigma policy, margins, sample size, multiplicity,
+  stopping rule, and stricter no-worse point-estimate condition for named
+  review before generating any final population.
+
+## 2026-08-03 — Verified the paired planning assumptions
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Finding**
+
+- Added a maintained whole-image bootstrap audit that recomputes aggregate
+  rates, unresolved-group quantiles, and pooled predeclared-stratum
+  uncertainty endpoints. It reports an equivalent per-realization paired
+  standard deviation, which is identifiable for candidate-centric and
+  nonlinear endpoints where separate discordance and intracluster correlation
+  are not.
+- The first 50,000-resample audit found 11 conservative provisional bounds and
+  nine underestimates. Most underestimates accompany large favourable Hebog
+  effects; the original near-equality assumptions therefore understated
+  paired variation rather than exposing a hidden Hebog regression.
+- Corrected a draft semantic error: one-sigma coverage and normalized
+  dispersion were already absolute departures, but the contract applied their
+  raw ideals a second time.
+
+**Decision**
+
+- Rounded every underestimated dispersion bound above the observed value and
+  used no more than half the independently observed favourable effect for
+  planning. No practical margin, scientific gate, or implementation threshold
+  changed.
+- All 20 revised bounds pass. The audit SHA-256 is
+  `0f73113c65cea6f2192538f0e9ee061db50fefd9db87f0a04aaf39c0ad1765f6`;
+  the evaluated draft protocol's canonical SHA-256 is
+  `a9835face5f940652aeca82c3cf598e3cbb2abd3a87e55e681e663b412490af3`.
+  The weakest interval-exclusion power remains 92.2% at 600 images.
+- Catalogue reliability and median unresolved-blend position have small
+  adverse point estimates but one-sided upper bounds inside their margins.
+  The strict no-worse point-estimate rule therefore remains a named-review
+  decision, not a trigger for regression-tail tuning.
+
+**Validation**
+
+- Focused non-inferiority and script-boundary tests: 39 passed; the maintained
+  calculation module has 100% branch coverage.
+- The optimized sufficient-statistic audit reproduces the direct residual
+  calculation to floating-point rounding and completes 50,000 resamples.
+
+**Next**
+
+- Complete named review of the scientific policy and paired protocol before
+  changing contract status or generating any final population.
+
+## 2026-08-03 — Approved the paired scientific protocol
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer, approved the five-sigma
+  high-confidence extension policy, endpoint populations and practical
+  margins, corrected absolute-departure semantics, conservative planning
+  bounds, 600-image design, whole-image paired BCa intervals,
+  intersection-union multiplicity rule, and one-look stopping rule.
+- The additional no-worse point-estimate condition was removed before final-
+  population freeze. A sign-only gate would fail about half of repeated
+  experiments under equality even when the one-sided interval excludes every
+  practically meaningful regression. Signed point estimates remain mandatory
+  report fields; all interval, absolute-science, and stronger-Hebog gates must
+  pass independently.
+- Promoted the paired protocol to `reviewed` and restored both the unchanged
+  measurement-semantics contract and the five-sigma scientific-gate contract
+  to `reviewed-provisional`. This authorizes final-population freeze, not
+  generation or result inspection.
+
+**Evidence**
+
+- Re-ran the maintained 50,000-resample planning audit against the complete
+  viewed regression pair. All 20 planning bounds remain verified. The
+  reviewed audit SHA-256 is
+  `af7c6cdfdf55629b77a6960292f523f73f583ec8e09bb407233cda26845ea9b1`;
+  the reviewed protocol canonical SHA-256 is
+  `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
+- The weakest interval-exclusion and governed-decision power remains 92.2% at
+  600 images. The power report continues to expose the rejected sign-rule
+  probability as a diagnostic so the statistical decision remains auditable.
+- Focused scientific-contract and power-model tests: 40 passed.
+
+**Next**
+
+- Freeze the final 600-image population and all execution provenance without
+  generating images or inspecting results; then run it exactly once under the
+  reviewed protocol.
+
+## 2026-08-03 — Froze the final Phase 4 population
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Decision**
+
+- Froze `phase4-final-paired-qualification-512` with generator version 3 and
+  exactly 600 seeds disjoint from every prior Phase 4 population. No image or
+  result was generated or inspected.
+- Used a distinct WCS, background, invalid region, and correlated-noise
+  gradient. A 90-degree source-layout and beam rotation preserves the governed
+  blend-to-beam geometry and the reviewed 33-group endpoint structure rather
+  than introducing a scientifically different workload after the power audit.
+- The population is subject to the reviewed one-look rule. Before opening it,
+  record the exact clean Hebog revision, both immutable PyBDSF environments,
+  dependency inventories, and unique output paths. A scientific failure does
+  not authorize a replacement population.
+- Both campaign runners now reject qualification before recipe iteration
+  unless the measurement contract, scientific gates, and paired protocol all
+  carry their reviewed statuses. Regression planning runs remain available.
+
+**Evidence**
+
+- Recipe SHA-256:
+  `15f8f607463f2db4cf4c0eb72255a998784e2d83d3a0d7ebc45eb733f6fbc7db`.
+- Complete campaign dataset-record SHA-256:
+  `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`.
+- Reviewed scientific-contract-set SHA-256:
+  `562b648d98eb1d28d65341cfe99c8dba4bd36b8d928d132e6ab6f05bf8d96d79`.
+- Reviewed paired-protocol SHA-256:
+  `1702076858c024d9080601625ae8a7819c9b170f26086e688ca4d3b45d5b022a`.
+- Manifest and campaign-guard tests validate the schema, exact checksums, 600
+  unique seeds, cross-manifest seed disjointness, endpoint counts, and rotated
+  blend geometry.
+- `just coverage`: 764 passed with four expected failures and 95.54%
+  branch-aware project coverage. The changed campaign-runtime module reaches
+  100% branch coverage in its focused 11-test suite.
+- `just check`, strict documentation build, and all pre-commit hooks pass.
+
+**Next**
+
+- Extend the source diagnostic schema with the position-angle differences
+  required by the existing gates and implement the immutable final evaluator
+  for every paired interval, absolute gate, and stronger-Hebog envelope.
+- After that evaluator is tested and frozen, freeze the remaining execution
+  identities and run the final population exactly once without tuning.
+
+## 2026-08-04 — Implemented the Phase 4 one-look evaluator prerequisite
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Extended immutable source-pair diagnostics with the fitted and deconvolved
+  position-angle differences already required by the reviewed absolute shape
+  gates. Old evidence remains readable, while the final evaluator fails closed
+  when a required eligible population has no retained angle measurement.
+- Moved all 20 aggregate paired endpoint calculations into one shared package
+  module used by both the planning audit and final evaluator. This prevents
+  population, ratio, quantile, uncertainty, or regression-sign drift between
+  design and final decision.
+- Implemented the vectorized whole-image paired one-sided 95% SciPy BCa
+  evaluator with the reviewed 50,000 resamples and fixed seed. It preserves
+  the signed point estimate, treats non-finite bounds as indeterminate, and
+  does not apply the rejected point-sign gate.
+- Implemented every held-out absolute catalogue, shape, association,
+  catastrophic, unresolved-group, and entire-confidence-interval uncertainty
+  decision. Individual-source 95th-percentile tails remain report-only under
+  their contract; unresolved-group tails remain gates.
+- Added named conjunctions for the campaign-measurable stronger Hebog science
+  envelopes: complete group recovery, uncertainty availability/calibration,
+  unresolved-group errors, clear-resolved recall, and catastrophic tail.
+  Serial/Dask invariance and bounded execution remain exact-revision pre-run
+  checks rather than being misrepresented as catalogue measurements.
+- Added a strict `phase-4-qualification-decision` evidence schema and a
+  maintained CLI. It verifies frozen dataset, scientific-contract, protocol,
+  implementation, and seed identities; retains primary and secondary failure
+  policy; reports secondary endpoints where pinned master completes; and
+  refuses to overwrite an earlier decision.
+- Kept the final 600-image population ungenerated and unopened.
+
+**Evidence**
+
+- Analytic tests exercise finite and degenerate BCa results, missing
+  position-angle inputs, absolute-gate failures, report-only tails, required
+  implementation failures, provenance drift, strict evidence round trips, and
+  complete primary/secondary/absolute/envelope orchestration.
+- The shared planning-audit population and ratio tests continue to pass after
+  the extraction, and focused Ruff and Pyright checks pass.
+- A dry run on the already-viewed complete post-correction regression campaign
+  produced 12 finite passing endpoint intervals and eight indeterminate
+  exact-equality endpoints. No endpoint failed its practical margin.
+- `just check` passes: formatting, Ruff, Pyright, 650 fast tests, and four
+  expected contract failures.
+- `just coverage` passes with 778 tests, four expected contract failures, and
+  94.86% branch-aware project coverage. The new diagnostic path reaches 100%,
+  shared Phase 4 analysis 93%, and final decision module 86%.
+- The strict MkDocs build passes.
+- The frozen PyBDSF equivalence lane passes: 26 tests.
+- All pre-commit hooks pass, including JSON canonical formatting, Ruff,
+  codespell, and lockfile validation.
+
+**Deviation requiring review**
+
+- The dry run exposed a pre-existing protocol problem before final opening:
+  SciPy BCa returns `NaN` for an all-identical bootstrap distribution. The
+  reviewed `indeterminate-fail` rule therefore prevents an endpoint with exact
+  Hebog/PyBDSF equality from qualifying. This is documented SciPy behaviour,
+  not a scientific regression.
+
+**Next**
+
+- Obtain named pre-opening review of the recommendation to use the exact
+  `[point, point]` interval only for a finite point-mass bootstrap distribution
+  and retain fail-closed handling for every other undefined result. If
+  approved, update the protocol, evaluator, tests, hashes, and review record
+  before recording execution identities or opening final data.
+
+## 2026-08-04 — Approved exact finite point-mass intervals
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer, approved the predeclared
+  finite point-mass recommendation before any final image was generated or
+  inspected.
+- An otherwise undefined BCa interval is now exactly `[point, point]` only
+  when every bootstrap statistic is finite and exactly equal to the finite
+  observed point estimate. The check has no numerical tolerance.
+- A near point mass, non-finite distribution, incomplete distribution, or
+  every other undefined BCa result remains indeterminate and fails closed.
+  No endpoint, margin, sample size, resampling seed, or science gate changed.
+- The amended reviewed protocol's canonical SHA-256 is
+  `eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`;
+  it supersedes the pre-amendment protocol for final execution.
+- The final 600-image population remains ungenerated and unopened.
+
+**Evidence**
+
+- TDD covers ordinary finite BCa bounds, exact finite point masses, near point
+  masses, non-finite distributions, incomplete distributions, and endpoint-
+  decision propagation. The focused protocol and evaluator suite passes 38
+  tests.
+- Reapplying the amended decision calculation to the same already-viewed
+  200-image post-correction regression campaign returns 20 passes, no
+  failures, and no indeterminate endpoints. The eight exact-equality endpoints
+  each have `[0, 0]`.
+- `just check` passes: Ruff formatting and lint, Pyright, 653 fast tests, and
+  four expected contract failures.
+- `just coverage` passes with 781 tests, four expected contract failures, and
+  94.82% branch-aware project coverage. The final-decision module is at 85%.
+- The frozen PyBDSF equivalence lane passes 26 tests, and the strict MkDocs
+  build passes.
+
+**Next**
+
+- Record the exact clean Hebog revision, immutable released and pinned
+  PyBDSF environments, dependency inventories, and unique output paths. Then
+  open the frozen final population exactly once under the amended reviewed
+  protocol.
+
+## 2026-08-04 — Ran the final Phase 4 one-look qualification
+
+**Plan phase:** Phase 4 scientific recovery and closure
+
+**Completed**
+
+- Recorded the final preflight before opening any population output. It fixed
+  Hebog 0.5.0 at `92f5e4cc233b716987a4f65b75c5f1585d977de1`, released
+  PyBDSF 1.14.1 at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`, pinned
+  PyBDSF `master` at `c70103be3ae9ae9908286f144e6ce956acc0ce5c`, their
+  complete dependency inventories, immutable container digests, reviewed
+  contract hashes, and unused output paths.
+- Opened the reviewed 600-image population exactly once. Hebog, released
+  PyBDSF, and pinned master each completed all 600 realizations. The compiler
+  retained all 1,800 records without denominator deletion.
+- Resumed the evaluator only after an infrastructure-only stop before any
+  endpoint calculation. The provenance guard counted 599 additional noise
+  seeds but omitted the governed base recipe. A red regression test exposed
+  both the count and exact seed-coverage error; commit `b4b3930` changed those
+  checks to use the maintained dataset recipe iterator. The campaign,
+  protocol, gates, margins, implementations, and unused decision path were
+  unchanged, satisfying the recorded infrastructure-resume rule.
+- Applied the one-look decision once to the same compiled campaign. The result
+  is an immutable scientific failure, so the controlled Phase 4 performance
+  matrix was not run.
+
+**Evidence**
+
+- Preflight SHA-256:
+  `48bdf6fb2784aaa13188c566809b8f425685868948fc97c29eac122debe72f0c`.
+- Hebog shard: 600 successes, SHA-256
+  `9fd4fbca5a59f1ac3cbfd485f228f1835391d1de9a6a20e79ffd92b52c6654ea`.
+- Released-PyBDSF shard: 600 successes, SHA-256
+  `69eb45466b6d2cdfa929d6199369d3f558a02e18d15cc207377279516a72486f`.
+- Pinned-master shard: 600 successes, SHA-256
+  `483bae3ba2319c3b5afa26dc29ff4b25d56702d0e7670b67f5c5404454cceddb`.
+- Compiled 1,800-record campaign SHA-256:
+  `4b5d213a46524498aca465cb03aff87de26dee20f291fe6fbffa0ecab8736f0f`.
+- Final decision SHA-256:
+  `aca365b4cbfbb220dfa6fc03e7e1ce56c8316d2f4590e803d180553a2e501ce1`.
+- Hebog passed 109 of 114 absolute gates. It failed catastrophic-outlier
+  fraction (0.005104 versus 0.005), median position (0.02736 versus 0.02
+  beam), median peak-flux error (0.02942 versus 0.02), median fitted-axis error
+  (0.05029 versus 0.05), and median deconvolved-axis error (0.10340 versus
+  0.1).
+- One Hebog source in seed `2026110310` was unmatched. The frozen
+  complete-match uncertainty construction raised before the joint paired
+  statistic could be formed, so all 20 primary and 20 secondary endpoint
+  intervals are indeterminate. This fail-closed limitation does not remove
+  the five independent absolute-gate failures.
+- Released PyBDSF failed 53 absolute gates and pinned master failed 55 on the
+  same truth population. Hebog remains substantially stronger overall, but it
+  is slightly worse than both references on median position and worse on
+  catastrophic fraction.
+- The evaluator unit file passes 14 tests. `just check` passes 653 tests with
+  four expected contract failures; `just coverage` passes 781 tests with four
+  expected failures and 94.82% branch-aware project coverage; the frozen
+  PyBDSF equivalence lane passes 26 tests; and the strict documentation build
+  passes. The acceptance scaffold retains its seven expected failures.
+
+**Decision**
+
+- Preserve the final population, all shards, and the decision as viewed
+  terminal evidence. Do not rerun, replace, tune, or rescore it under amended
+  scientific rules.
+- Phase 4 remains **not ready** and cannot be declared passed under its
+  reviewed exit gate. Its controlled performance matrix is ineligible.
+- Final human review must acknowledge the failed one-look decision. Any
+  further correction requires a separately reviewed follow-on milestone using
+  analytic and independent development/regression evidence; the final
+  population may be used only for reporting and diagnosis.
+
+## 2026-08-04 — Diagnosed the final Phase 4 gate failures
+
+**Plan phase:** Phase 4 terminal review and Phase 4R preparation
+
+**Findings**
+
+- Kept the final 600-image population and decision immutable and used their
+  retained source diagnostics only to explain the historical failure.
+- All 98 Hebog gated catastrophic rows are fitted-axis outliers; 96 are edge
+  sources and 94 are SNR-10 sources. Twenty-five carry `fit-at-bound`.
+  Reproducing seed `2026110493`, source 16, showed the free centroid pinned to
+  the image boundary and the major sigma inflated from the injected 2.04
+  pixels to 6.62 pixels. The remaining non-bound edge outliers show a broader
+  truncated-profile identifiability problem rather than a single clipping
+  defect.
+- Separated the position weakness from the shape tail. Hebog's median position
+  error is 0.02736 beam against 0.02512 and 0.02511 for released and master
+  PyBDSF, and Hebog has the larger error in about 61% of common source pairs.
+  The gap appears in every SNR stratum while normalized astrometric bias,
+  coverage, and dispersion pass, pointing to estimator efficiency rather than
+  a WCS convention error.
+- Confirmed that the peak-flux, fitted-axis, and deconvolved-axis medians miss
+  absolute community gates while remaining better than both references.
+  Hebog is genuinely worse on catastrophic fraction, position median/tail,
+  95th-percentile integrated-flux error, and the fitted-axis tail against at
+  least one reference. These outcomes must be fixed without trading away
+  Hebog's stronger completeness, flux medians, deconvolution, uncertainty,
+  blend, deterministic, or bounded-execution results.
+- Traced the paired indeterminacy to shared input construction: one unmatched
+  source makes the uncertainty summary raise before any endpoint statistic is
+  formed, causing all 20 primary and 20 secondary endpoints to fail together.
+  This evaluator composability defect did not cause the five independent
+  absolute-gate failures.
+- Reviewed Condon's elliptical-Gaussian error treatment, Aegean 2.0's
+  correlated-noise and priorized-fitting approach, PyBDSF's fit/flag path, and
+  radio source-finding challenge recommendations. The evidence supports
+  testing a data-selected beam-constrained/free nested model and explicit
+  identifiability checks before adding a more complex correlated-noise point
+  estimator.
+
+**Plan change**
+
+- Added a separately governed Phase 4R milestone. It first repairs endpoint
+  isolation and creates a direction-aware registry for every gated and
+  report-only metric, then adds independent edge/corner and efficiency red
+  tests, performs predeclared fit-model/background/support/noise ablations,
+  and requires no-compensation dual-reference non-inferiority on every metric
+  and governed stratum.
+- The milestone permits one new qualification only after the implementation,
+  metric directions, practical margins, power, and stopping rule receive
+  named review and are frozen. It does not rerun, rescore, replace, or convert
+  the terminal Phase 4 result.
+
+**Next**
+
+- Obtain named review of the Phase 4 terminal disposition and Phase 4R
+  protocol. If approved, begin with TDD for endpoint isolation and
+  parameter-specific fit diagnostics before changing scientific fitting
+  behaviour.
+
+## 2026-08-04 — Authorized Phase 4R and isolated missing endpoints
+
+**Plan phase:** Phase 4R, Step 1 — evidence contract
+
+**Decision**
+
+- Gemma Danks, Data Processing Software Engineer, approved the terminal Phase
+  4 disposition and recommended Phase 4R development direction. The approval
+  does not reopen or rescore the final campaign and does not pre-approve a
+  future qualification population or its exact numerical protocol.
+
+**Completed**
+
+- Changed paired uncertainty summaries to retain conditional sufficient
+  statistics for available metric values. Missing matches and residuals remain
+  visible in completeness and uncertainty-availability endpoints instead of
+  erasing unrelated calibration evidence.
+- Changed unresolved-group error summaries to retain `NaN` only for the
+  unavailable group value while the separate group-completeness endpoint
+  records the miss. Retained group position and flux errors remain
+  independently calculable.
+- Added TDD cases proving that one missing individual source or unresolved
+  group no longer makes all 20 paired decisions indeterminate. The affected
+  availability/completeness decision fails while unrelated binary, group, and
+  uncertainty decisions remain determinate.
+- Added a strict, versioned Phase 4R registry for 35 independently governed
+  completion, catalogue, association, classification, error, uncertainty,
+  and tail metrics. It freezes each population, unit, direction, ideal,
+  absolute role, stratum rule, and equal provisional resolution against both
+  PyBDSF references; no metric can compensate for another.
+- Did not apply the repaired evaluator to the final Phase 4 campaign; its
+  immutable failed decision remains the only qualification result for that
+  population.
+
+**Evidence**
+
+- Focused red tests failed under the all-or-nothing input construction, then
+  passed after the conditional summaries were implemented.
+- The focused Phase 4 contract and decision suites pass 35 tests.
+
+**Next**
+
+- Add parameter-specific fit diagnostics and freeze independent edge/corner
+  regression cases before changing the fitter.
+
+## 2026-08-04 — Froze Phase 4R diagnostic inputs
+
+**Plan phase:** Phase 4R, Step 2 — independent failure evidence
+
+**Completed**
+
+- Added parameter-specific fit diagnostics: selected model, exact bound
+  parameters, normalized distance to every bound, scaled information-matrix
+  condition, visible fitted-model fraction, retained pixel count and bounds,
+  and a typed fallback-reason slot.
+- Added an explicit restoring-beam covariance to compact measurement geometry
+  and kept it distinct from the noise-correlation covariance even where the
+  current governed image model gives them equal values.
+- Froze a 20-realization development matrix and a 100-realization
+  confirmation-only regression matrix before changing fit selection. The
+  matrices use disjoint seeds and transformed source placement, beam/noise
+  orientation, WCS, and RMS gradients while covering every governed SNR and
+  shape stratum, edges/corners, invalid pixels, and an unresolved blend.
+
+**Evidence**
+
+- The parameter-specific boundary test failed first because the diagnostics
+  exposed only one undifferentiated boolean. The restoring-beam geometry test
+  likewise failed before the explicit covariance was added.
+- The focused fitting, astrometry, moment, and dataset suites pass 137 tests.
+
+**Next**
+
+- Add noiseless edge/corner validity tests and implement the independently
+  selected beam-constrained/free nested fit without consulting the terminal
+  Phase 4 population.
+
+## 2026-08-04 — Selected the Phase 4R compact fitting candidate
+
+**Plan phase:** Phase 4R, Steps 2–3 — analytic failures and fitting ablations
+
+**Completed**
+
+- Added noiseless beam-shaped edge/corner and clear-extension tests plus a
+  frozen development regression for the low-SNR extended edge failure.
+- Implemented nested free-elliptical and restoring-beam-constrained SciPy
+  fits. Physical bound contact and ill conditioning reject the free candidate;
+  a beam-centroid/free-shape retry preserves measurable edge extension.
+- Retained selected and rejected model identities, exact bound parameters,
+  condition, footprint, point-estimator identity, fallback reason, and
+  retained geometry in scheduler-safe diagnostics.
+- Corrected amplitude/integrated-flux covariance propagation so the shared
+  fitted amplitude is not counted twice in the extension statistic.
+- Completed the predeclared background, pixel-support, and point-estimator
+  factorial. Selected a fixed-zero residual background, owned-region support,
+  and exact correlated-noise GLS capped at 512 pixels. Larger regions take an
+  explicit diagonal/sandwich fallback rather than dense unbounded work.
+- Preserved raw fitted total for unresolved-group diagnostics before applying
+  peak-as-total to individual unresolved catalogue rows. Rejected an
+  island-pixel-sum group ablation because threshold truncation failed the
+  existing median-flux gate.
+
+**Evidence**
+
+- The selected 20-realization candidate completed every image, matched all 240
+  individual sources, and produced zero catastrophic rows. It beat both exact
+  PyBDSF references on overall position, peak, integrated-flux, fitted-axis,
+  and deconvolved-axis medians and 95th percentiles.
+- Hebog's unresolved-blend median was 0.04663 versus 0.05247 for both
+  references. Its 0.13150 tail was 0.01718 worse than the references and
+  remains inside the predeclared 0.02 practical margin.
+- One final-seed 5-sigma noise candidate gave 99.62% development reliability,
+  0.38% below the references and inside the predeclared 0.5% resolution.
+- Focused fitting, astrometry, campaign, product-reader, runner, and recovery
+  tests pass 85 cases; the fitting and Phase 4R recovery subset passes 46.
+
+**Next**
+
+- Freeze the implementation revision, run the 100-realization confirmation
+  once, and evaluate every registered metric and applicable stratum against
+  both references before requesting the later named qualification review.
+
+## 2026-08-04 — Preserved the exact Phase 4 fitting oracle
+
+**Plan phase:** Phase 4R, Step 4 — candidate freeze and validation
+
+**Completed**
+
+- Made compact model selection an explicit scientific policy. Ordinary
+  callers retain the Phase 4 `free-only` estimator; the governed Phase 4R
+  campaign pins `beam-or-free` alongside its fixed background, owned support,
+  and bounded correlated-GLS choices.
+- Added a regression test for the default and restored the exact compact
+  catalogue equivalence gate that exposed the previously implicit behavior
+  change.
+- Repeated the frozen 20-realization development candidate under the explicit
+  configuration identity. Every realization diagnostic is exactly equal to
+  the selected evidence, with no failures; only the execution-configuration
+  digest changed to include the newly explicit policy.
+
+**Evidence**
+
+- The focused fitting, runner-configuration, and exact compact-catalogue
+  suites pass 61 tests.
+- `just check` passes Ruff, Pyright, doctests, and 688 fast tests;
+  `just test-equivalence` passes 26 tests; `just test-integration` passes 128
+  tests; and branch-aware project coverage is 95%. The strict documentation
+  build and the complete push-stage pre-commit suite also pass. The acceptance
+  lane retains its seven planned expected failures and has no unexpected
+  failure.
+
+**Next**
+
+- Complete the full scientific and quality lanes, commit the frozen
+  candidate, and run the confirmation-only regression exactly once.
+
+## 2026-08-04 — Archived failed Phase 4R confirmation attempt one
+
+**Plan phase:** Phase 4R, Step 4 — regression confirmation
+
+**Completed**
+
+- Froze the selected candidate at exact local commit `27edde3` and ran the
+  100-realization confirmation matrix exactly once. Hebog completed 98
+  realizations; two retained a typed one-fit omission. Both exact PyBDSF
+  references completed all 100 identical images.
+- Compiled all three immutable shards under
+  `benchmark-results/phase-4r/regression-compiled.json`. The failed Hebog
+  attempt remains evidence and is ineligible for replacement, rescoring, or a
+  partial-row aggregate pass.
+- Did not inspect either failed realization's pixels, truth, or intermediates.
+  An independent analytic test instead exposed the generic model-selection
+  class: a failed smaller beam model could currently discard a valid,
+  identifiable free fit.
+- Added a reproducible freezing utility and froze recovery iteration two before
+  another production change: 40 viewable development seeds beginning at
+  `2026140001` and 100 confirmation-only seeds beginning at `2026150001`.
+  These sets are mutually disjoint and disjoint from both earlier Phase 4R
+  matrices.
+
+**Evidence**
+
+- `regression-hebog.json` records 98 successes and two
+  `IncompleteCompactCatalogueError` failures; each PyBDSF shard records 100
+  successes and zero failures.
+
+**Next**
+
+- Commit the new frozen inputs, then implement the independently red
+  valid-free/failed-alternative selection test and evaluate the corrected
+  candidate only on the new development matrix before opening its new
+  confirmation population.
+
+## 2026-08-04 — Recovered Phase 4R development availability and blend flux
+
+**Plan phase:** Phase 4R, Steps 3–4 — recovery iteration two development
+
+**Completed**
+
+- Preserved a valid identifiable free fit when the smaller beam alternative
+  fails, removing the generic omission class found after confirmation attempt
+  one.
+- Changed a physical-bound retry to use the independent intensity-weighted
+  moment centroid. The previously missed viewable edge source moved from
+  0.559 to 0.314 beam from truth without widening the association rule.
+- Added bounded three-sigma restoring-beam aperture photometry with discrete
+  beam normalization over exact valid, image-visible, non-competing support.
+  Kept it distinct from fitted-Gaussian, owned-pixel, and Rapthor catalogue
+  flux semantics.
+- Rejected a BLOBCAT-style threshold-volume correction because its blend tail
+  remained 0.14741, and rejected direct thresholded pixel sums because their
+  0.19168 tail was worse. No empirical flux scale was introduced.
+
+**Evidence**
+
+- The focused fitting, catalogue-schema, campaign-runner, and Phase 4R
+  regression suites pass 120 tests.
+- The 40-realization viewable candidate completed and matched every governed
+  group, with perfect availability and zero catastrophic rows. Its
+  unresolved-blend median/tail flux errors are 0.04788/0.10243 versus
+  0.04830/0.11301 for both PyBDSF references.
+- Hebog is better or equal on 20 of 21 overall paired endpoints and 13 of 14
+  overall distribution metrics. The two opposite finite-sample signs are
+  0.00042 beam for group-position median and 0.054 degree for
+  deconvolved-angle tail, far inside their predeclared 0.01-beam and 1-degree
+  resolutions.
+
+**Next**
+
+- Complete the direction-aware Phase 4R evaluator, freeze the exact candidate
+  commit, and run the second confirmation population once.
+
+## 2026-08-04 — Completed Phase 4R no-compensation governance
+
+**Plan phase:** Phase 4R, Steps 1 and 4 — metric evaluation prerequisite
+
+**Completed**
+
+- Added a strict Phase 4R decision schema and command-line evaluator covering
+  all 35 registered metrics, both exact PyBDSF references, and every
+  applicable overall and governed-stratum population independently.
+- Made implementation completion, conditional missingness, point decisions,
+  one-sided paired BCa intervals, absolute gates, and stronger-Hebog envelopes
+  explicit machine-readable constituents. No metric can compensate for a
+  failed metric elsewhere.
+- Replaced an unstable exact-sign development rule with the already approved
+  per-metric practical-resolution rule. Qualification retains the one-sided
+  paired upper-limit requirement.
+- Corrected the noisy-campaign absolute-role mapping. Noise-limited position,
+  flux, shape, and angle error distributions remain mandatory reports and
+  dual-reference gates; strict absolute accuracy remains in analytic/noiseless
+  and exact-product tests. Sample-limited uncertainty intervals cannot be
+  promoted into gates.
+
+**Evidence**
+
+- Focused evaluator, contract, fitting, astrometry, evidence, and runner tests
+  pass 190 cases; Ruff and Pyright pass the changed Python surface.
+- The 40-realization viewed development dry run produced 450 independent
+  Hebog/reference decisions with no metric failure after the separate
+  bounded-context position correction. Hebog completed every realization.
+- The raw Hebog median position/peak errors are 0.02866 beam and 0.02682,
+  better than released PyBDSF at 0.02909/0.03391 and pinned `master` at
+  0.02909/0.03391. Those noise-limited medians miss the legacy
+  exact-reference 0.02 limits and are retained as report-only observations.
+- Two development edge normalized-bias intervals remain red despite central
+  estimates inside the allowed range. The confirmation and powered
+  qualification populations must decide whether these are sampling variation
+  or a persistent calibration issue.
+
+**Next**
+
+- Validate and commit the independent bounded-context position estimator,
+  rerun the complete development evidence at exact frozen revisions, then
+  open the already frozen second confirmation population exactly once.
+
+## 2026-08-04 — Corrected the Phase 4R regression decision stage
+
+**Plan phase:** Phase 4R, Step 4 — confirmation evaluation
+
+**Completed**
+
+- Froze the scientific candidate at exact local commit `86e7e02` and reran
+  the 40-image development matrix in Hebog, released PyBDSF 1.14.1, and
+  pinned PyBDSF `master` environments. Every implementation completed every
+  realization and all 450 comparative point decisions passed.
+- Opened the pre-frozen 100-image confirmation population exactly once. All
+  three implementations again completed all realizations; no intermediate
+  scientific row was inspected before the complete campaign was compiled.
+- Preserved the first decision, which exposed that regression incorrectly ran
+  the qualification-only BCa interval rule. Added a failing stage-contract
+  test and corrected regression to use the registry's declared point-margin
+  rule without changing any campaign row, metric, margin, or contract.
+
+**Evidence**
+
+- Exact development Hebog/reference/compiled/decision evidence SHA-256 values
+  are `e28323507deba8aa645fbffd45b756aada65866dc2868de87ada1989cca7cdd8`,
+  `2b6c09af60442b5551557056c00790b67781cf24aa4ffad65916b37e097fd173`,
+  `9f66def0a1aff76b489cb79f9ecc4b43d08daa3651e9979f6170418d7d7eddcf`,
+  `65a1a0effe6712a82fd9c8a61ae33b293bd64fc2bb6a87e809267ccd8b106b24`,
+  and `a19cef631b05752492f657e8d18d330286d9b85c43361cc5b1f6cd13fa5daf73`.
+- Confirmation Hebog/released/master/compiled evidence SHA-256 values are
+  `bf11f54793a46a18b4f5e66564ca47f205ef377dec7d0012a6d887e573f89024`,
+  `a55b3a69880d6a4199f68ece577b327cc78f9259ed4999231ec16ee9777b0878`,
+  `2a2e880914b5b2c7c4affd9ecfabef374308fe76a9277b3b11c506d700b8da80`,
+  and `6d2ed5f8c3695582ed8d922bef3c29b67cc064b92b6c8b1becf0dcd2a1568b86`.
+  The preserved pre-correction decision SHA-256 is
+  `bb39bb6be81596a3a5d0ed95a2400f2d22588b96ee2553fb9a8ffd9fc12b6fb9`.
+- The focused evaluator suite passes 21 tests; Ruff and Pyright pass.
+
+**Next**
+
+- Commit the generic stage-rule correction, rescore the same immutable
+  confirmation evidence, and address only genuine point/absolute failures
+  through independent analytic and development evidence.
+
+## 2026-08-04 — Archived failed confirmation and froze tail development
+
+**Plan phase:** Phase 4R, Step 4 — rare shape-tail recovery
+
+**Completed**
+
+- Rescored the unchanged iteration-two confirmation campaign after the
+  committed stage-rule correction. The corrected result passes 444 of 450
+  comparative decisions and fails the catastrophic fraction against both
+  references overall, for marginal shapes, and at SNR 15.
+- Diagnosed only aggregate, identity-free evidence. Ten of 1,200 eligible
+  Hebog matches are catastrophic, versus two for released PyBDSF and five for
+  pinned `master`; eight Hebog failures are deconvolved-axis-only and two are
+  fitted-axis-only. Hebog remains better on the corresponding medians and
+  95th percentiles.
+- Added a red disjointness test, then froze a 200-realization viewable tail
+  development matrix before any further production fitting change. The new
+  matrix is disjoint from all earlier Phase 4R seeds and retains the same
+  reviewed SNR, morphology, edge, WCS, beam, and correlated-noise design.
+
+**Evidence**
+
+- Corrected confirmation decision SHA-256:
+  `86763b8d25b693066afc9d9b00e2fbd5ca2f084ad8560183711456c90fadb975`.
+- Frozen development manifest/recipe SHA-256 values:
+  `06ad23df2a747ea33136c4e226a1400c231ac76ea1422adb40979e01dbfd884a`
+  and `d34919b359ec865601150faa8455d52ae02632a6d6a72431e1b69172d765d91a`.
+- The focused frozen-manifest contract passes.
+
+**Next**
+
+- Run the exact candidate and both references on the new viewable matrix,
+  reproduce the rare shape tail independently, and add analytic red tests for
+  the generic failure before selecting the smallest correction.
+
+## 2026-08-04 — Authorized one powered Phase 4R qualification
+
+**Plan phase:** Phase 4R, Steps 4 and 5 — tail decision and named review
+
+**Completed**
+
+- Ran the unchanged candidate and both exact references on all 200 frozen
+  tail-development realizations. Every implementation completed every image.
+- Confirmed that Hebog is better on the independently reproduced catastrophic
+  tail: 9/2,400 eligible matches versus 19/2,400 for released PyBDSF and
+  30/2,400 for pinned `master`. The complete evaluator passes all 450
+  dual-reference decisions and the absolute catastrophic gate.
+- Reviewed the remaining uncertainty results against Condon, Aegean 2.0,
+  correlated-noise bias analysis, general maximum-likelihood photometric bias,
+  and the ASKAP/EMU challenge. The observed low-SNR effects are expected, the
+  normalized-residual dispersions are near unity, and a new correction chosen
+  only after the confirmation crossing is not scientifically justified.
+- Recorded Gemma Danks's named approval to preserve the failed confirmation
+  and advance the unchanged candidate to exactly one powered qualification.
+  No metric, margin, source row, or qualification rule changes.
+
+**Evidence**
+
+- Candidate/released/master/compiled/decision SHA-256 values are
+  `3749e52eb9bcb1d3ba101724646cc43c0c6ae911710530df71effc01368aa9fd`,
+  `a2ed5f9fbba545c8406303366b4d588eb2d4bc56d0ba2768dd9f36ffe8937053`,
+  `6f4bf40983477f2dbb803e5f2a35e5ffd059f4d6eea7ed5f0ef152dd20a47ee2`,
+  `46a8994448556a852cc9d5e631123f08f64ad24bb1925d4aa2140862ba5dc9ac`,
+  and `7f19261a689c97f284801ebd81f30f4bb51e6cd68b7eb9130b0f6c54a3d946f9`.
+- All 450 comparative point decisions pass; the absolute catastrophic rate is
+  0.00375 against its unchanged 0.005 maximum.
+
+**Next**
+
+- Commit the named review before creating any qualification population, then
+  freeze and execute the single 600-realization Phase 4R qualification.
+
+## 2026-08-04 — Froze the sole Phase 4R qualification population
+
+**Plan phase:** Phase 4R, Step 5 — one-look qualification freeze
+
+**Completed**
+
+- Extended the existing refusing-overwrite Phase 4R freeze tool with an
+  explicit qualification mode and reviewed field overrides.
+- Added a red/green contract proving that qualification horizontally reflects
+  source, association, and invalid-region coordinates while consistently
+  reflecting source, beam, and correlated-noise covariances and setting the
+  reviewed disjoint WCS and background.
+- Froze 600 new realizations only after named review commit `4688081`. Added a
+  repository contract proving that no seed appears in any earlier Phase 4 or
+  Phase 4R manifest.
+
+**Evidence**
+
+- Qualification manifest SHA-256:
+  `93f2d9f876b9b3f58df09ad64796e39ed404980a14f7c4542f0ae2b3120c42e4`.
+- Canonical qualification recipe SHA-256:
+  `82870d14dbe163c1d1ca79d0b163bc69c406ed2288da3cf489ebdb03989de5fc`.
+- No candidate or reference qualification output existed at freeze time.
+
+**Next**
+
+- Validate and commit the immutable population before opening it, then execute
+  the unchanged candidate and both exact PyBDSF references exactly once.
+
+## 2026-08-04 — Repaired Phase 4R qualification preflight
+
+**Plan phase:** Phase 4R, Step 5 — qualification prerequisite
+
+**Completed**
+
+- Attempted to start the one-look candidate run. The qualification guard
+  failed before recipe iteration because it indexed the Phase 4R registry as
+  a legacy `contract_id`. No image, evidence row, or output file was created.
+- Added red tests, taught preflight to recognize a `registry_id`, and require
+  exactly the reviewed Phase 4R registry in addition to the measurement and
+  gate contracts. A development-only registry now fails closed.
+- Promoted only the registry's review metadata to
+  `reviewed-qualification`/`qualification-reviewed`, reflecting the named
+  approval already recorded at `4688081`. Metric definitions and margins did
+  not change.
+
+**Evidence**
+
+- Focused runtime/contract suite passes 34 tests before the additional
+  development-only rejection case; Ruff and Pyright pass.
+- Reviewed registry file SHA-256:
+  `f1bcbbb6d1d216bdc5271c45a1e64789b1c8928a98bd4927f7e707d0318dd0b5`.
+- Ordered qualification contract-set SHA-256:
+  `d27dace66ca86fb0abf30b6e5ab37215b6007d1fd3a58606c51b58a003c6d063`.
+
+**Next**
+
+- Run complete validation and pre-commit, commit this prerequisite, verify the
+  qualification output path is still absent, and restart the sole execution.
+
+## 2026-08-04 — Preserved failed Phase 4R qualification attempt one
+
+**Plan phase:** Phase 4R, Step 5 — qualification outcome and recovery boundary
+
+**Completed**
+
+- Ran the exact candidate at commit `f28bda9` over the sole frozen
+  600-realization qualification population. It completed 599 images and
+  retained one typed `IncompleteCompactCatalogueError` on seed `2026170473`;
+  the attempt therefore failed the non-negotiable implementation-availability
+  gate before aggregate scoring.
+- Inspected only failure status and fitting diagnostics. Both nested models
+  converged at an image-centroid bound; the smaller model retained finite,
+  well-conditioned non-centroid evidence, but the existing moment-centred
+  retry refused the whole at-bound initializer. No partial aggregate metric
+  was inspected, no row was omitted, and the failed campaign was not rescored.
+- Added a red generic noisy-edge test and froze 200 new development plus 200
+  new confirmation-only seeds before evaluating a correction. Both new
+  populations are disjoint from every earlier Phase 4R population.
+- Recorded that another qualification is not automatic. A passing unchanged-
+  candidate regression must be followed by new named review and a separately
+  frozen, disjoint replacement population.
+
+**Evidence**
+
+- Failed candidate evidence SHA-256:
+  `c9bb55ab4a446f5cf6b25185cfdc8f87cc0e56cdca8f185dae53d0fe9f20f761`.
+- Development manifest/recipe SHA-256 values:
+  `118224a11229cb230f43be3c00d40e6d70c53536ad0830941a343e7af3edcf14`
+  and `f07f450e266367c50614b9e67caf7131a0c75bb7bd7798c497d9170471f7bead`.
+- Regression manifest/recipe SHA-256 values:
+  `f84f9405a55e9c124502a88855fffcfe18c4f6fcd3beb4cda2f9c0d1ec88c7d6`
+  and `3879a7a1890ab4791bb6508d904779dbca00051bb4d9012882964875a0e7655c`.
+- The fitting, catalogue-construction, and dataset-contract subset passes 134
+  tests after the red test demonstrated the original omission.
+
+**Next**
+
+- Implement the smallest bounded retry correction, run the complete viewable
+  development matrix and scientific/quality lanes, freeze that candidate,
+  then open the new confirmation population exactly once.
+
+## 2026-08-04 — Recovered edge availability and preserved confirmation three
+
+**Plan phase:** Phase 4R, Steps 4–5 — recovery iteration three
+
+**Completed**
+
+- Implemented a fail-closed edge retry that accepts a converged beam template
+  only when centroid coordinates are its sole physical bound contact; the
+  resulting free-shape retry must still pass every existing numerical and
+  identifiability check.
+- Used the viewable development population to replace its inward-biased raw
+  moment centroid with the existing analytic one-sided truncated-moment
+  correction. The first candidate passed 448/450 comparisons; the selected
+  candidate at `1065182` completed all 200 images and passed all 450.
+- Opened the 200-image confirmation exactly once after committing the selected
+  candidate. Hebog and both exact PyBDSF references completed every image.
+  The decision passes 447/450 comparisons but remains failed on catastrophic
+  fraction in SNR-15 against both references and marginal shape against
+  released PyBDSF. No confirmation row identity was inspected.
+- Preserved the complementary aggregate result rather than tuning again:
+  Hebog has eight SNR-15 deconvolved-axis and two SNR-10 fitted-axis
+  catastrophic rows; released PyBDSF has four SNR-10 rows and pinned `master`
+  has fourteen. Across development plus confirmation the counts are 22/4,800,
+  24/4,800, and 43/4,798 respectively, with every combined practical margin
+  satisfied.
+- Completed both exact qualification reference legs. Released PyBDSF and
+  pinned `master` completed all 600 images, including Hebog's failed seed.
+  Materialized the immutable failed decision without inspecting survivor-only
+  aggregates: all 450 comparisons and the absolute-science gate are
+  indeterminate because required paired evidence is incomplete.
+- Added a generic fail-closed evaluator prerequisite so incomplete paired
+  campaigns retain every governed decision but skip BCa resampling that
+  cannot change the failed outcome.
+
+**Evidence**
+
+- Development candidate/released/master/compiled/decision SHA-256 values:
+  `92467213582240ec64f0d0fdddca034648ac2f6a93580863147df28fccf38f8a`,
+  `e26cd974ce282eb5986f91ddbee33c5a82f0e863592c98a49fdcb7c575fdbcd4`,
+  `3103b99318e9f7e540c38de503cc6b81171b0bd0240236b2e389a6cc6a51583d`,
+  `38e59fe2f3fd7c570581aa4f2114bbea72a058fd43a8720e86a6098754ebeb3e`,
+  and `8d57fa987bd28435dc5ca24a82ffaa988c322ee96ce1b9886fb9cef5f6ccf12d`.
+- Confirmation candidate/released/master/compiled/decision SHA-256 values:
+  `dcd7a95640f80dd60e1c8ec70eaa01d31d36fa8b36fe7abeefcbed250c49aa87`,
+  `3b62abc5d9b3d1cb44bc9b7bf04527d609402cde53ecb571d288656d0c182686`,
+  `f5a458c93f4b32d217afd251a0541f39b5abeb96843b6ad12c71c7e50deb0d65`,
+  `742d97c4f00b6d17816e479e4b073ea1f86119db97f320014a233ad1d44ce961`,
+  and `2f667110ffcc436e08332a6a0fe3e535e1415fe24d54881d042d04b1401c3e55`.
+- Qualification released/master/compiled/decision SHA-256 values:
+  `20741c868caabede59eb131ceb1e9a42f77e2f2b76c4ba62b39f4edb23aa1c68`,
+  `714c6e8ca37972339468d42b6557872b3c912a53393e3007e1b71b92b77c5dcd`,
+  `506bf236b3341b0d2e2b3e4c5a656b9d04b8df33610574782ae7451da79468c2`,
+  and `8967e510be531defb38806e656ecf987419bc1806e32652ed87c6e358568daf7`.
+- Branch-aware project coverage is 94.05%; 26 equivalence tests, 128
+  integration tests, 58 fitting tests, the acceptance lane, strict docs, and
+  the complete pre-commit suite pass.
+
+**Next**
+
+- Obtain named review of the recommendation to keep candidate `1065182`
+  unchanged and authorize one separately frozen 600-image replacement
+  qualification. Do not freeze or run that population before approval.
+
+## 2026-08-04 — Authorized one Phase 4R replacement qualification
+
+**Plan phase:** Phase 4R, Step 5 — replacement qualification governance
+
+**Completed**
+
+- Gemma Danks, Data Processing Software Engineer, approved preserving failed
+  qualification attempt one and failed confirmation three while advancing
+  unchanged candidate `1065182` to exactly one replacement qualification.
+- Bound the authorization to one separately frozen 600-image population with
+  disjoint seeds and vertically transformed field geometry. All 35 metrics,
+  margins, absolute gates, paired upper-bound rules, and implementation-
+  completion semantics remain unchanged.
+- Recorded the decision before the replacement manifest, seeds, or outcomes
+  existed.
+- Froze `phase-4r-qualification-replacement.json` with 600 disjoint seeds and
+  the approved vertical source, association, invalid-region, beam/noise, and
+  gradient transformation plus new sky, WCS, and background fields. No
+  implementation output existed when it was frozen.
+
+**Evidence**
+
+- Manifest, canonical recipe, and dataset-content SHA-256 values:
+  `11c68f2d390416b0345048a825ed8da35e3a389b9118571b72b10d9108107df3`,
+  `e104ec6d703bfa876ebdfd1bad3b39c0b0dba341afa6c57fbf32e3605c32d3d0`,
+  and `1e566660eed6a995c55f399a5f1579c70b2ffe34cbb81cd2ad6dc67eaa07dee8`.
+- Focused freezer and frozen-dataset contracts pass, including exact
+  600-realization cardinality and disjointness from every earlier Phase 4/4R
+  seed.
+
+**Next**
+
+- Commit the frozen replacement before executing Hebog or either exact PyBDSF
+  reference.
+
+## 2026-08-04 — Closed Phase 4R without scientific passage
+
+**Plan phase:** Phase 4R, Step 5 — replacement qualification decision
+
+**Completed**
+
+- Opened the sole approved replacement once with exact scientific candidate
+  `1065182` and both pinned PyBDSF environments. Hebog and released PyBDSF
+  completed 600/600; pinned `master` completed 599/600 and retained seed
+  `2026200549` as a typed non-positive-source-flux reference failure.
+- Corrected the generic evaluator to honor the frozen policy distinction:
+  Hebog failures fail qualification before resampling, while reference
+  failures remain visible in implementation completion and other metrics use
+  their explicitly conditional retained values. A TDD regression test covers
+  the boundary.
+- Ran the full 50,000-resample, one-sided paired BCa decision. It passed 446
+  of 450 dual-reference metric/stratum comparisons and 106 of 107 absolute
+  gates, but the conjunctive decision is false.
+- Preserved four catastrophic-outlier failures: SNR 15 against both
+  references, marginal shape against released PyBDSF, and the overall
+  released-reference confidence bound. Preserved the failed absolute SNR-10
+  declination-uncertainty-bias interval and resulting uncertainty envelope.
+- Closed Phase 4R as a terminal non-passing milestone. Did not run the
+  controlled performance matrix because scientific passage is its explicit
+  prerequisite. No Phase 4 release, equivalence, or speed claim is made.
+
+**Evidence**
+
+- Candidate/released/master/compiled/decision SHA-256 values:
+  `4b04976ab979a1d4850023994da99f7e0e4b791cc8d8d06e60b33f85eb8c7739`,
+  `f1499e78f79a0435230dbca5564c93e028ba12aa94449d889ecd4066b9debb37`,
+  `0e9af355ef9b3ecacbe80eab8c75b22be0eb10ac94f659ad31b7b4cb34ec1a96`,
+  `3387df580c187b7345a2cafbaa18c343e6fbbceb74386e04188753cf25c96ef4`,
+  and `e18c7ed66a2aa9b6f83908bf8e90d13413c9ff7d54f737321f839f9cece9b125`.
+- Overall catastrophic rate is 0.003333 for Hebog and 0.001528 for released
+  PyBDSF. The 0.001805 point regression is inside the 0.0025 margin, but its
+  upper confidence bound is 0.003194. At SNR 15 Hebog is 0.01 versus 0.0 and
+  0.000556 for released and pinned `master`.
+- The SNR-10 declination uncertainty-bias point is 0.113723, while its 95%
+  interval `0.067437`--`0.160010` crosses the reviewed `[-0.15, 0.15]` gate.
+
+**Next**
+
+- Obtain human acknowledgment of the terminal result. Any further scientific
+  recovery requires a newly governed milestone using only new development and
+  regression evidence; Phase 4R does not authorize another qualification.
+
+## 2026-08-04 — Stabilized compact science for Phase 5 development
+
+**Plan phase:** Phase 4S — compact-science stabilization and Phase 5 start gate
+
+**Completed**
+
+- Preserved the terminal Phase 4R evidence and added a separate stabilization
+  milestone with distinct Phase 5 development and final release gates.
+- Made governed classification strata authoritative over same-named legacy
+  validation strata. New campaign diagnostics no longer place a source in
+  both clear- and marginal-resolution populations.
+- Added manifest-derived endpoint population audits and dependence-robust
+  familywise power reporting. The audit records that the replacement contained
+  13 association groups, 12 individually resolvable sources, and four point
+  sources per image rather than the historical contract's 33, 32, and eight.
+- Propagated free-fit shape covariance through WCS and beam deconvolution.
+  Added fully resolved, major-axis-only, unresolved, and unavailable states;
+  the existing five-sigma extension confidence level is applied independently
+  to each axis, and its value is included in campaign configuration identity.
+- Preserved a significant major-only axis through internal FITS and Rapthor's
+  `DC_Maj` without publishing an unidentifiable minor axis or position angle.
+- Replaced the bound-contact centroid/covariance mismatch with a widened
+  context-likelihood retry whose point estimate and covariance come from the
+  same estimator.
+
+**Evidence**
+
+- The corrected replacement population audit reduces estimated marginal
+  point-specificity power from about 94.5% to 76.9%; future qualification must
+  fail closed unless declared group counts match the manifest.
+- The representative viewed SNR-15 seed `2026200085` is no longer
+  catastrophic. Temporary regression reruns of all 18 previously failing
+  members show zero remaining catastrophic rows under the five-sigma axis
+  policy. These are viewed regression diagnostics and do not alter Phase 4R.
+- The 20 worst viewed SNR-10 declination residuals are numerically unchanged:
+  they already used a consistent free-context estimator. The old point
+  estimate remains inside its absolute gate; the future larger and more varied
+  campaign owns the confidence crossing.
+- The final unit lane passed 748 tests, integration passed 130, and non-slow
+  equivalence passed 26. The portable coverage lane passed 878 tests with
+  94.06% branch-aware project coverage. Focused Phase 4R equivalence and the
+  complete governed correlated-noise calibration regression passed; the latter
+  took 348.65 seconds. Ruff, Pyright, the fast handoff gate, and the strict
+  documentation build also passed. Contract and acceptance placeholders remain
+  explicitly expected failures rather than silently passing scenarios.
+
+**Next**
+
+- Begin Phase 5 multiscale development against the stabilized compact API.
+- Before compact qualification or Rapthor cutover, obtain external
+  radio-astronomy review, freeze one manifest-powered and jointly powered
+  unseen population, run both exact PyBDSF references, and pass the controlled
+  performance/scalability matrix.
+
+## 2026-08-05 — Made Phase 4S qualification the next blocking milestone
+
+**Plan phase:** Phase 4S — qualification-first checkpoint
+
+**Decision**
+
+- The project owner requested one more unseen compact qualification before
+  adding multiscale behaviour, prioritizing confidence in the scientific
+  baseline over starting substantive Phase 5 implementation immediately.
+- Phase 5 preparation may continue through analytic tests, interfaces,
+  filter-bank research, bounded-memory design, and independent development
+  data. Changes to compact science or Rapthor-facing behaviour remain frozen
+  until the Phase 4S one-look decision is known.
+- The qualification must be pre-opening reviewed, manifest-powered,
+  disjoint from all earlier populations, and executed exactly once against
+  Hebog, released PyBDSF, and pinned `master`. Historical Phase 4 and Phase 4R
+  evidence remains immutable.
+
+**Next**
+
+- Audit the current tooling against the Phase 4S co-primary-family, joint-power,
+  population, and one-look requirements.
+- Prepare the new contracts, generator population, reference identities, and
+  project-owner-authorized expert review without generating qualification
+  output.
+
+## 2026-08-05 — Completed the Phase 4S expert pre-opening science review
+
+**Plan phase:** Phase 4S — qualification-first checkpoint
+
+**Decision**
+
+- At the project owner's explicit request, Codex performed the pre-opening
+  radio-astronomy review. The result is recorded as an AI-conducted expert
+  literature and evidence synthesis, not independent human or institutional
+  sign-off. The owner waived external human review as a blocker for this
+  compact qualification; independent human review remains recommended before
+  production cutover.
+- Retained the 5-sigma/3-sigma detection thresholds, 0.5-beam matching rule,
+  five-sigma conservative extension policy, covariance-aware axis censoring,
+  and existing 20 co-primary compatibility endpoints. Detailed metric/stratum
+  results remain diagnostic and an unexplained material defect still blocks
+  release, but the 450 correlated Phase 4R comparisons are not repeated as
+  equal pass/fail votes.
+- Increased the new qualification to 800 paired whole-image realizations. The
+  historical 600-image design's conservative 20-endpoint joint-power lower
+  bound was about 82.7%; at 800 it is about 94.3%, above a new binding 90%
+  joint target while every marginal endpoint remains above 90%.
+- Limited the checkpoint claim to compact, single-scale Rapthor-used
+  behaviour. No controlled real residual/noise injection is available, so its
+  absence remains explicit and cannot be replaced by a synthetic claim.
+
+**Next**
+
+- Implement executable joint-power and Phase 4S qualification-input checks
+  using TDD.
+- Freeze and commit the new 800-realization manifest, comparison protocol,
+  reviewed identities, and refusal-to-overwrite paths before generating any
+  qualification image or implementation output.
+
+## 2026-08-05 — Froze the unopened Phase 4S compact qualification
+
+**Plan phase:** Phase 4S — qualification-first checkpoint
+
+**Completed**
+
+- Added TDD coverage that prevents Phase 4S from opening under the historical
+  protocol, without explicit manifest population units, with mismatched
+  population counts, or below either its marginal or joint power target.
+- Froze a reproducible 800-realization, 512-by-512 compact population with 33
+  observable groups, 32 individual sources, eight point sources, 16 marginal
+  sources, eight clear sources, four SNR tiers, eight edge/corner topologies,
+  continuous source sizes and angles, correlated noise, WCS rotation,
+  non-square pixels, a gradient, negative background, invalid pixels, and one
+  unresolved blend.
+- Froze the existing 20 paired compatibility endpoints as the co-primary
+  released-PyBDSF decision. Every binary declaration matches the manifest.
+  The weakest marginal planned power is about 97.07%; the conservative joint
+  lower bound is `0.9428716467454087` against a binding `0.9` target.
+- Recorded the AI-review limitation, compact/single-scale scope, absence of
+  controlled real-residual evidence, exact one-look rule, and literature basis
+  in the plan, review record, protocol reference, and machine-readable
+  contract.
+
+**Frozen identities**
+
+- Recipe SHA-256:
+  `a49bf060515f777b745012317b4e0172fdfb60f9df88bf9dbe2a0ca70522f5de`.
+- Dataset-record SHA-256:
+  `01e28063fec9be50bd47b155a79383093258d9df22ee1f9ca57286a0dd74ec63`.
+- Manifest-document SHA-256:
+  `b0eac85a27101c25cf77ea1f4df45da6c33383b49c9cfd360039eac50eaa29d4`.
+- Paired-protocol SHA-256:
+  `8db043b70dc295d2a36214fe3ffc5822f86ee89794ed36bb31f11b22b3040a96`.
+- Released PyBDSF remains version `1.14.1` at
+  `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`; pinned `master` remains
+  `1.14.2.dev40+gc70103be3` at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
+
+No qualification image, candidate shard, reference shard, compiled campaign,
+or decision existed when these inputs were frozen and reviewed.
+
+**Next**
+
+- Commit the complete pre-opening state, use that commit as the exact Hebog
+  candidate identity, verify every output path is absent, and run the three
+  immutable campaign legs before inspecting the one-look decision.
+
+## 2026-08-05 — Opened and reviewed the failed Phase 4S qualification
+
+**Plan phase:** Phase 4S — qualification-first checkpoint
+
+**Outcome**
+
+- Hebog, released PyBDSF, and pinned `master` each completed all 800 frozen
+  images with no failed seed. The candidate was Hebog `0.5.0` at
+  `0c9098af01ea2601f95c416e8b8e3d75a31361c9`; the references were PyBDSF
+  `1.14.1` at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc` and
+  `1.14.2.dev40+gc70103be3` at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
+- All 20 paired endpoints passed against released PyBDSF and independently
+  against pinned `master`. Hebog recovered every declared compact association,
+  achieved reliability `0.9956628323590421`, and was materially better on
+  reliability, unresolved-group position/flux error, and aggregate
+  normalized-residual calibration.
+- The immutable decision failed four binding absolute outcomes:
+  `median-position` was `0.02588101695920189` beam against `0.02`;
+  `median-peak-flux` was `0.028183259588272835` against `0.02`;
+  `point-source-specificity` was `0.0` against `0.95`; and the SNR-10
+  integrated-flux normalized-bias interval was
+  `[0.057897558361946606, 0.15435183788920392]` against `[-0.15, 0.15]`.
+  Phase 4S is therefore terminally failed and was not rescored.
+
+**Expert review**
+
+- Hebog labelled every one of the 6,400 declared point cases `unresolved`.
+  The specificity failure came from re-inferring noiseless truth through WCS
+  and beam deconvolution, where tiny projection residue produced a false
+  `major-axis-only` reference. Prospective scoring now compares candidate
+  states directly with declared manifest classes and canonicalizes analytic
+  point truth to unresolved.
+- Fixed 2% raw median position/peak limits are below the noise floor for an
+  equal SNR 10/15/25/50 mixture. Released/master PyBDSF medians were about
+  `0.02608`/`0.02573` beam for position and `0.04623`/`0.04547` for absolute
+  peak error. Hebog's mean signed peak bias was only `0.00398`, and its raw
+  errors declined monotonically with SNR. Future generated mixed-SNR evidence
+  retains raw error distributions as report-only while binding SNR-specific
+  normalized-residual bias, coverage, and dispersion.
+- The SNR-10 integrated-flux result remains a genuine narrow miss. Coverage
+  (`0.68875`) and dispersion (`0.9835004119461924`) passed, and the point
+  estimate was only `0.10612469812557526` sigma, but the predeclared interval
+  rule was not waived. A fresh Phase 4T campaign with eight point sources per
+  SNR tier per image will test the unchanged `0.15`-sigma bound with 6,400 new
+  SNR-10 point residuals.
+
+**Evidence**
+
+- Hebog shard SHA-256:
+  `8e3f4d3ed7973ed931128f8e62024034a118b1641db5c3dc97f820d91d9ab079`.
+- Released-PyBDSF shard SHA-256:
+  `5203c4d5977afd9b0dd58db272e78ef6e7c9c6e0330c83dc3d6c8e46efbd3efc`.
+- Master-PyBDSF shard SHA-256:
+  `18d178d82fd9a3b0cea52fd0d9a648fdff3227edfc18a66c2a1dadf456ce497d`.
+- Compiled-campaign SHA-256:
+  `15b2a38b3bb5876a9323e1aabcf19d7e3b66fb546643c9f4e513c36690eafbfb`.
+- Decision SHA-256:
+  `bcb62bfb170d11b2a204b38893ca97e94b5c123218d3b059559187678a991a3e`.
+- The campaign runner wall times were approximately 2,259 seconds for Hebog,
+  3,358 seconds for released PyBDSF, and 3,724 seconds for pinned `master`.
+  These single scientific-campaign observations are not controlled
+  performance evidence and support no speed claim.
+
+**Next**
+
+- Commit the immutable outcome record and prospective evaluator corrections.
+- Freeze Phase 4T, its fresh population, exact identities, power, and one-look
+  rule before generating any new candidate or reference output.
+
+## 2026-08-05 — Froze the unopened Phase 4T confirmation
+
+**Plan phase:** Phase 4T — targeted compact confirmation
+
+**Completed**
+
+- Added explicit design power for a clustered absolute-mean equivalence gate.
+  The executable preflight binds the population count, anticipated Phase 4S
+  effect, within-image correlation, confidence level, unchanged uncertainty
+  margin, and minimum power to the frozen manifest and gate document.
+- Corrected a pre-opening inference mismatch found during expert review: the
+  decision evaluator now treats each image/noise realization as an independent
+  cluster for Phase 4T coverage, bias, and dispersion intervals. Phase 4S's
+  SNR-10 point residual ICC was about `-0.0097`; the registered positive 0.02
+  planning value provides an allowance without changing any scientific
+  margin. Coverage and bias use cluster-sandwich Student-t intervals, while
+  dispersion uses a fixed-seed whole-realization percentile bootstrap.
+- Froze 800 fresh 512-by-512 realizations with 49 observable groups, 48
+  individual sources, 32 point sources, eight marginal sources, eight clear
+  sources, and one unresolved blend. Every SNR tier contains eight point
+  sources, yielding 6,400 fresh SNR-10 point residuals. Point and non-point
+  cases retain edge examples, and the WCS, correlated-noise, gradient,
+  background, invalid-pixel, and blend stresses remain present.
+- Froze the prospective raw median/tail report-only policy while retaining all
+  uncertainty, completeness, reliability, morphology, catastrophic, group,
+  and stronger-envelope thresholds. The exact 20 paired endpoints and
+  released/master reference roles remain unchanged.
+- Added TDD coverage for manifest reconstruction, seed disjointness, population
+  counts, absolute power, contract/gate binding, and refusal to open under the
+  Phase 4S protocol or gate semantics.
+
+**Power**
+
+- The weakest paired endpoint has planned interval-exclusion power
+  `0.9706664817215229`; the conservative 20-endpoint joint lower bound is
+  `0.9606701920905562` against the binding `0.9` target.
+- The retained SNR-10 integrated-flux normalized-bias gate uses anticipated
+  mean `0.1062`, dispersion `1.0`, eight observations per image, ICC `0.02`,
+  95% confidence, and the unchanged `0.15` margin. Its effective sample size
+  is about `5614.04` and planned interval-containment power is
+  `0.9068880664578192`.
+
+**Frozen canonical identities**
+
+- Recipe SHA-256:
+  `e39400565031867f3412a640ec55aa88e4807ff627affff6439c969e3445a696`.
+- Dataset-record SHA-256:
+  `3afb044f413fbd3aa4748069b09255fbfe300b9a3f47c79f3589bab4ff06ee23`.
+- Manifest-document SHA-256:
+  `919d8a32c4cdbd41fdb16a803aeed850d50af4eedc46d331c5a4dbc224ff5333`.
+- Paired/absolute protocol SHA-256:
+  `2997015cb5235d5be9f3029d563455974fe1a1948843b5a50266fab616e094ee`.
+- Scientific-gates SHA-256:
+  `2841a2a93a17280c8decc5b0b1a7aa138279838f168a69504af37210aef13da6`.
+
+No Phase 4T image, candidate shard, reference shard, compiled campaign, or
+decision existed when these inputs were frozen and reviewed.
+
+The exact released and master PyBDSF versions, commits, and container digests
+remain the Phase 4S identities. The Hebog candidate is the local commit that
+contains this freeze; its dependency inventory and execution configuration
+will be captured by the isolated runner.
+
+**Next**
+
+- Commit the complete pre-opening state and use that commit as the exact
+  Hebog candidate identity.
+- Verify all Phase 4T output paths are absent, run the three immutable legs,
+  compile once, and open the one-look decision once.
+
+## 2026-08-05 — Opened and reviewed the Phase 4T decision
+
+**Plan phase:** Phase 4T — targeted compact confirmation
+
+**Execution**
+
+- Ran Hebog commit `9653b0d5310b9922ffcf66bd2c801f33aa506f38`,
+  released PyBDSF 1.14.1 at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`,
+  and pinned PyBDSF `master` at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c` once on the same 800 frozen
+  images. Every implementation completed 800/800 realizations.
+- Compiled the three immutable shards. A workstation interruption stopped the
+  evaluator before atomic publication; the decision path was absent. Under
+  the frozen infrastructure-recovery rule, resumed only the missing evaluator
+  from the same compiled evidence. No implementation was rerun and no
+  completed evidence was overwritten.
+
+**Decision**
+
+- Hebog passed all 20 paired non-inferiority endpoints against released
+  PyBDSF and independently against pinned `master`, all uncertainty gates,
+  and 76/77 binding absolute gates in total. The targeted SNR-10
+  integrated-flux mean normalized residual was `0.061213` with cluster-aware
+  95% interval `[0.037429, 0.084998]`, passing the unchanged
+  `[-0.15, 0.15]` limit.
+- The decision failed because unresolved-group total-flux 95th-percentile
+  absolute error was `0.207080` against the frozen `0.2` maximum. Released
+  PyBDSF and pinned `master` were both `0.600031`; Hebog strongly passed both
+  paired comparisons, but the absolute gate and stronger envelope remain
+  failed.
+- Post-decision diagnosis found 48/800 errors above 20%, a 95th-percentile
+  bootstrap interval of about `0.19484`--`0.21336`, and 93.25% signed errors
+  below truth with mean `-0.097084`. These diagnostics do not rescore the
+  gate. They support a general blend-flux under-recovery investigation rather
+  than a threshold waiver or unchanged-candidate rerun.
+
+**Evidence SHA-256**
+
+- Hebog shard:
+  `372a0efa4c83c92a1f1ff9f079f360089b65ab74e61f2d67902a55fcc46a09a1`.
+- Released-PyBDSF shard:
+  `456241d08fc2155de6b973e326d22dd10174ba76b6f620ecff2e23158c22721f`.
+- Master-PyBDSF shard:
+  `1f9428ed5fbcaafa1409663868ec81679a6ac83add6afd41300819314dd624a7`.
+- Compiled campaign:
+  `78c7d71a88771e396a801742768c9cebab409b846b3623169aa6744f57a29bc1`.
+- Decision:
+  `e1b52aa42f0213a13a296a108f55a1aafe841bb350317e5fd5e3013f1a09ea49`.
+
+**Disposition**
+
+- Preserved Phase 4T as a terminal failure. Added Phase 4U as blocking,
+  test-driven unresolved-blend flux remediation on independent development
+  and regression data. Substantive Phase 5 work remains paused until a
+  generally improved candidate passes a separately frozen qualification.
+
+## 2026-08-05 — Corrected orientation-dependent compact-blend flux loss
+
+**Plan phase:** Phase 4U — unresolved-blend flux remediation
+
+**Diagnosis and implementation**
+
+- Reproduced the bias analytically without using any Phase 4T realization.
+  The former fixed restoring-beam association aperture recovered about 98.3%,
+  93.8%, and 86.5% of noiseless two-source truth as the pair rotated from the
+  beam major axis through 45 degrees to the minor axis. This isolated
+  aperture clipping from background estimation, island ownership, and beam
+  normalization.
+- Added a model-containment selector. The lower-variance restoring-beam
+  aperture remains in use when it contains at least 90% of the selected fit;
+  otherwise photometry follows the selected-fit ellipse. Flux in both cases
+  is corrected only for the fraction of that same model visible through
+  image, validity, and competing-region masks. No empirical flux multiplier
+  or qualification-dependent branch was added.
+- Renamed the evidence to association-aperture photometry and incremented the
+  unreleased internal catalogue FITS encoding to schema version 3 with
+  `ASSOCIATION_APERTURE_FLUX`. Hebog's pre-production no-compatibility policy
+  intentionally leaves no version-2 development reader.
+
+**Independent development evidence**
+
+- Added noiseless angle regressions and a fresh 18-realization noisy matrix
+  using seeds `2026501001`--`2026501018`, three source/beam angles, and equal
+  and 2:1 component ratios. Mean signed error was `-0.024108`, median signed
+  error `-0.037878`, 95th-percentile absolute error `0.147443`, maximum
+  absolute error `0.153519`, and 12/18 errors were negative.
+- The prior Phase 4R noisy blend regression still passes. Focused fitting and
+  blend tests passed 78/78; the complete unit, integration, and equivalence
+  lanes passed during development. Final branch-aware project coverage was
+  94.12%, with the changed aperture, schema, and configuration paths covered.
+
+**Next**
+
+- Complete final coverage, documentation, serial/Dask, and repository checks;
+  commit the candidate atomically; then freeze a separately named Phase 4U
+  population with several unseen blend separations, orientations, and flux
+  ratios before generating or viewing any qualification output.
+
+## 2026-08-05 — Froze the unopened Phase 4U qualification
+
+**Plan phase:** Phase 4U — unresolved-blend flux remediation
+
+**Design and expert review**
+
+- Froze the scientifically changed candidate only after remediation commit
+  `96cdb40`. No Phase 4U image or candidate/reference result existed during
+  design or review.
+- Retained 48 individual compact controls and added six new unresolved blends
+  at total peak SNR 27. The pairwise-crossed design uses beam-normalized
+  separations `0.45`, `0.65`, and `0.80`, angles 0, 45, and 90 degrees from
+  the beam major axis, and equal versus 2:1 flux ratios. An early pre-output
+  review replaced raw pixel separations with directional elliptical-beam
+  normalization so every declared unresolved case remains genuinely sub-beam.
+- Verified each blend center is at least 60.58 pixels from an individual
+  control. The 800 seeds begin at `2026600001` and overlap neither viewed
+  Phase 4 populations nor development seeds `2026501001`--`2026501018`.
+- The image/noise realization remains the independent unit. The six-blend
+  completeness endpoint now declares 0.02 planning intracluster correlation
+  instead of treating within-image groups as independent.
+- Project-owner-authorized AI expert review judged the design proportionate
+  for the compact Phase 5 start gate. It does not replace independent human
+  production review or controlled real-residual evidence.
+
+**Power and immutable identities**
+
+- Weakest paired interval-exclusion power: `0.9706664817`.
+- Conservative familywise lower bound: `0.9699279153`.
+- Retained absolute mean-gate interval-containment power: `0.9068880665`.
+- Recipe SHA-256:
+  `2fd89b058a113f8318bd67ab7c05925f66b7cfa895fb6a2c7ea6a9746bad144d`.
+- Dataset-record SHA-256:
+  `8e2e0dc5ed2eb7b1ad2d530c088849939b3a147ea0f8fbe52ac067b982c352dc`.
+- Manifest-document SHA-256:
+  `57365cd616d0965d62eb12eae16b8323c1ce94a7f900e4113022a42b85a9c712`.
+- Paired protocol SHA-256:
+  `3106e114508d3858eae44105ca8e03a4dfe0912726fca83ebf6ef0394c472b76`.
+- Unchanged scientific-gates SHA-256:
+  `2841a2a93a17280c8decc5b0b1a7aa138279838f168a69504af37210aef13da6`.
+- Measurement-contract SHA-256:
+  `ab6a3d932a1b73f5414cfef8199831bbb394f990db1b885bd06f15f044b77ed0`.
+
+**Next**
+
+- Commit this complete unopened freeze, verify all five registered output
+  paths remain absent, run Hebog and both exact PyBDSF references once, compile
+  the immutable shards, and open exactly one decision.
+
+## 2026-08-05 — Passed Phase 4U and closed the compact science start gate
+
+**Plan phase:** Phase 4U — unresolved-blend flux remediation
+
+**One-look execution**
+
+- Ran exact candidate `ca51ed24e354fc18f9c18c273b7ede7e54c96569`, released
+  PyBDSF 1.14.1, and pinned PyBDSF `master`
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c` once over all 800 frozen
+  images. Every implementation completed every image.
+- Kept all three shards unopened until completion, compiled the candidate-
+  first triplet once, and opened exactly one decision. The compiler accepted
+  the frozen dataset, seed, contract, reference, and paired-protocol
+  identities.
+- The qualification passed: 77/77 binding absolute gates, 20/20 paired
+  endpoints against released PyBDSF, 20/20 against PyBDSF `master`, and 5/5
+  stronger-Hebog envelopes passed. The closest paired limit was catalogue
+  reliability at `0.003529` against the `0.005` practical margin.
+
+**Scientific outcome**
+
+- Hebog recovered all 4,800 unresolved groups. Median absolute total-flux
+  error was `0.047567`; the 95th-percentile error was `0.139196` against the
+  unchanged `0.2` maximum.
+- Hebog's mean and median signed blend errors were `-0.020217` and
+  `-0.019847`. Released PyBDSF measured about `-0.108544` and `-0.109929`;
+  pinned `master` was effectively identical. The worst approximate
+  per-geometry Hebog 95th percentile was `0.1622`.
+- Four legacy mixed-SNR whole-catalogue summaries remained failed but
+  report-only and essentially unchanged from Phase 4T. Every binding
+  SNR-specific, edge, uncertainty, classification, catastrophic, and
+  unresolved-group result passed; expert review found no material diagnostic
+  regression.
+
+**Evidence identities**
+
+- Candidate:
+  `cbeae07878c2fe3d801fdff816b00db23f6d03655fe5652932e13b9e95a359dc`.
+- Released reference:
+  `75fa0a3a53ae4a7c63ffb2cac63213c04380eab3160622d93dfe1c00f78ea23b`.
+- Master reference:
+  `4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`.
+- Compiled campaign:
+  `0355537bcfc1c716a6b4b9e7d0269c6d78c66bfacdfb69925f37a13ce6b018a1`.
+- Decision:
+  `309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0`.
+
+**Disposition**
+
+- Closed the compact single-scale science start gate and authorized
+  substantive Phase 5 multiscale development. Historical failed campaigns
+  remain immutable. Independent human scientific review, real-residual,
+  performance, bounded-memory, task-graph, and scale evidence remain later
+  production gates.
+
+## 2026-08-05 — Closed the compact Phase 4 engineering milestone
+
+**Plan phase:** Phase 4, Step 8 — qualification replay and performance
+closeout
+
+**Performance diagnosis and correction**
+
+- Added a frozen 20-cell incremental component matrix at 256, 512, 1,024, and
+  3,000 pixels per side for sparse, normal, dense, blend-heavy, and deliberate
+  fit-failure workloads. Each cell uses one warm-up and five measured
+  repetitions and retains stage timing, task/batch/source counts, bounded
+  arrays, process-tree RSS, output size, and typed omissions.
+- Retained the first matrix as failed diagnostic evidence. At 3,000 pixels it
+  scheduled normal, dense, and blend-heavy work as one task and measured
+  complete medians of `1.518125`, `6.498360`, and `4.307945` seconds. The hard
+  memory ceiling had incorrectly doubled as the preferred task size.
+- Separated the preferred `8,000`-pixel fitting batch target from the
+  `500,000`-pixel hard limit, used analytic Gaussian derivatives and FFT
+  covariance convolution, and reused parsed WCS transforms. The benchmark now
+  imports the exact governed Phase 4 candidate configuration and generates
+  beam-correlated noise rather than an inconsistent independent-pixel field.
+- The final matrix passed. At 3,000 pixels, successful measurement/fitting
+  medians are `0.177855`, `0.250447`, `0.757952`, and `0.596301` seconds for
+  sparse through blend-heavy work; output medians are `0.036850`--`0.040811`
+  seconds. Both are below separate 2.0-second budgets. Dense work uses 13
+  batches and 13 Dask tasks with 91 sources and no omissions. Every
+  dense-to-normal per-source time ratio is below one, and the fit-failure
+  profile refuses output with retained `singular-covariance` omissions.
+- Final matrix-summary SHA-256:
+  `ee3729e39a6b432f29b0b5282b39e4023c479b51ee7180187760a5b567f3ffa8`.
+  The retained failed matrix summary is
+  `513f8ee875e88c9961b8cdbcc0f3dec8bf3d3a93f2d5b4f6b082ba4462f04596`.
+
+**Scientific regression replay**
+
+- Added bounded campaign-level process parallelism solely for independent
+  images. Each image still uses the frozen serial scientific implementation;
+  recipe-order output and the worker allocation remain explicit in evidence
+  provenance. A two-process development smoke run passed on macOS.
+- Replayed exact optimized commit
+  `fd7477afa4deb55874ed679b8d380dde6940ad93` over the already viewed Phase 4U
+  population as regression evidence, not a new qualification or rescore. All
+  800 Hebog images completed successfully. Both immutable PyBDSF shards also
+  retain 800/800 successful images.
+- The unchanged evaluator again passed all 77 binding absolute gates, all 20
+  paired endpoints against released PyBDSF, all 20 against pinned `master`,
+  and all five stronger-Hebog envelopes. Four legacy mixed-population results
+  remain explicitly report-only.
+- Candidate, compiled-campaign, and decision SHA-256 values are
+  `62f8f73816b1cb3deae0c276d919173856ab53f43778a4f98bc6ab1392ff4ebc`,
+  `e34da45e0b1a44932178a6df959ea91cf42ca2ad25ab23b1851ebcb509f54137`,
+  and `52b4b374f9160ba52271acc07eb36f1fe8b0b776557b26f392de362bea29f2bb`.
+
+**Disposition**
+
+- Closed Phase 4 for the compact single-scale milestone. The passing
+  component matrix is not a matched PyBDSF speedup: complete Rapthor
+  `filter_skymodel` timing remains a Phase 7 gate.
+- Authorized Phase 5 multiscale work while retaining independent human
+  radio-astronomy review, real-residual evidence, and production-scale Dask
+  memory/task-graph qualification as later cutover gates.
+
+**Validation**
+
+- The optimized scientific implementation passed 182 focused tests, 130
+  integration tests, 27 dual-reference equivalence tests, and branch-aware
+  coverage with 926 passing tests and 94.14% project coverage. Serial and Dask
+  conformance remained included in those lanes.
+- Final closure lanes passed with 130 integration and 27 equivalence tests.
+  Four future contract scenarios and seven future acceptance scenarios remain
+  explicit expected failures. The qualification lane passed its active case,
+  skipped one unavailable-host case, and reports the terminal historical
+  Phase 4 campaign as a non-running expected failure so governed viewed data
+  cannot be rerun.
+- Strict documentation built successfully, and the final fast repository
+  check passed Ruff formatting/lint, Pyright, and 797 tests with four declared
+  expected failures.

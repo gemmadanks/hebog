@@ -1,14 +1,18 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownMemberType=false
 """Serial, Dask, retry, partition, and Zarr compact-detection contracts."""
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from astropy.wcs import WCS
 from distributed import Client
 
 from hebog.algorithms.deblending import (
@@ -20,24 +24,69 @@ from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
+    CompactCatalogueConfig,
     CompactDeblendConfig,
+    CompactGaussianFitConfig,
+    CompactMomentConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds, PartitionManifest
+from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
+from hebog.data_models.measurement import CompactMeasurementGeometry
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
-from hebog.stages.deblending import run_compact_deblend_stage
+from hebog.stages.catalogue import run_compact_catalogue_stage
+from hebog.stages.deblending import (
+    WorkerLocalRegionBatch,
+    run_compact_deblend_stage,
+    run_compact_region_stage,
+)
 from hebog.stages.detection import (
     DetectionStageConfig,
     DetectionStageResult,
     run_detection_from_coarse_grids,
     run_detection_stage,
 )
+from hebog.stages.fitting import run_compact_gaussian_fit_stage
+from hebog.stages.measurement import run_compact_moment_stage
 
 pytestmark = pytest.mark.integration
+
+
+@dataclass(frozen=True, slots=True)
+class _RegionMembershipRecord:
+    """Compact test record proving exact labels reached a worker processor."""
+
+    region_id: str
+    pixel_count: int
+    bounds_pixel_count: int
+    residual_sum: float
+
+
+def _measure_exact_memberships(
+    batch: WorkerLocalRegionBatch,
+) -> tuple[_RegionMembershipRecord, ...]:
+    """Reduce worker-local labels to compact deterministic test records."""
+    records: list[_RegionMembershipRecord] = []
+    for item in batch.islands:
+        for region in item.regions:
+            membership = item.region_labels == region.region_label
+            records.append(
+                _RegionMembershipRecord(
+                    region_id=region.region_id,
+                    pixel_count=int(np.count_nonzero(membership)),
+                    bounds_pixel_count=(
+                        region.bounds.shape_yx[0] * region.bounds.shape_yx[1]
+                    ),
+                    residual_sum=float(
+                        np.sum(item.physical_residual[membership])
+                    ),
+                )
+            )
+    return tuple(records)
 
 
 class _ArrayImageSource:
@@ -160,9 +209,73 @@ def _deblend_config() -> CompactDeblendConfig:
         minimum_peak_signal_to_noise=5.0,
         minimum_peak_separation_pixels=1,
         minimum_saddle_depth_sigma=2.0,
+        minimum_region_pixels=7,
         maximum_compact_island_pixels=64,
         maximum_compact_bounds_pixels=128,
+        target_batch_pixels=128,
         maximum_batch_pixels=256,
+    )
+
+
+def _moment_config() -> CompactMomentConfig:
+    """Return explicit compact moment shape-availability policy."""
+    return CompactMomentConfig(
+        minimum_shape_pixels=3,
+        covariance_relative_tolerance=1e-12,
+    )
+
+
+def _fit_config() -> CompactGaussianFitConfig:
+    """Return a bounded fit-all compact Gaussian policy."""
+    return CompactGaussianFitConfig(
+        minimum_fit_pixels=7,
+        maximum_function_evaluations=200,
+        minimum_sigma_pixels=0.2,
+        maximum_sigma_pixels=20.0,
+        maximum_amplitude_factor=5.0,
+        center_margin_pixels=1.0,
+        convergence_tolerance=1e-8,
+        maximum_axis_ratio=20.0,
+        context_margin_pixels=2,
+    )
+
+
+def _measurement_geometry() -> CompactMeasurementGeometry:
+    """Use a deterministic local pixel-to-beam area ratio."""
+    return CompactMeasurementGeometry(
+        pixel_solid_angle_steradians=1.0,
+        restoring_beam_solid_angle_steradians=4.0,
+    )
+
+
+def _image_metadata() -> ImageMetadata:
+    """Return flat ICRS metadata for compact catalogue conformance."""
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    wcs.wcs.cunit = ["deg", "deg"]
+    wcs.wcs.crpix = [14.0, 12.0]
+    wcs.wcs.crval = [180.0, -30.0]
+    wcs.wcs.cdelt = [-0.001, 0.001]
+    return ImageMetadata(
+        shape_yx=_image().shape,
+        unit="Jy/beam",
+        beam=RestoringBeam(0.003, 0.002, 0.0),
+        celestial_wcs=CelestialWcs(
+            fits_header=wcs.to_header().tostring(
+                sep="\n", endcard=False, padding=False
+            ),
+            coordinate_frame="icrs",
+        ),
+        reference_frequency_hz=150_000_000.0,
+    )
+
+
+def _catalogue_config() -> CompactCatalogueConfig:
+    """Return bounded catalogue and deconvolution policy."""
+    return CompactCatalogueConfig(
+        maximum_catalogue_records=100,
+        deconvolution_relative_tolerance=1e-10,
+        extension_significance_sigma=5.0,
     )
 
 
@@ -329,6 +442,32 @@ def test_one_and_many_tile_detection_publish_identical_topology(
         "rms",
         "source-filtering-mask",
     )
+    catalogue_config = _catalogue_config()
+    one_catalogue_stage = run_compact_catalogue_stage(
+        _ArrayImageSource(_image()),
+        one_result,
+        deblend_config=_deblend_config(),
+        moment_config=_moment_config(),
+        fit_config=_fit_config(),
+        catalogue_config=catalogue_config,
+        geometry=_measurement_geometry(),
+        metadata=_image_metadata(),
+        executor=SerialExecutor(),
+        sink=one_sink,
+    )
+    many_catalogue_stage = run_compact_catalogue_stage(
+        _ArrayImageSource(_image()),
+        many_result,
+        deblend_config=_deblend_config(),
+        moment_config=_moment_config(),
+        fit_config=_fit_config(),
+        catalogue_config=catalogue_config,
+        geometry=_measurement_geometry(),
+        metadata=_image_metadata(),
+        executor=SerialExecutor(),
+        sink=many_sink,
+    )
+    assert many_catalogue_stage == one_catalogue_stage
 
 
 def test_compact_deblend_stage_supports_single_window_sources(
@@ -357,6 +496,87 @@ def test_compact_deblend_stage_supports_single_window_sources(
     assert tuple(island.island_id for island in result.islands) == tuple(
         island.island_id for island in detection.islands
     )
+
+
+def test_region_processor_keeps_membership_worker_local_and_bounded(
+    tmp_path: Path,
+) -> None:
+    """Only compact records, not labels or image windows, are gathered."""
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "region-processor.zarr",
+        manifest,
+        SerialExecutor(),
+    )
+
+    result = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        detection,
+        _deblend_config(),
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    assert result.records
+    assert all(
+        record.pixel_count <= record.bounds_pixel_count
+        for record in result.records
+    )
+    assert sum(record.pixel_count for record in result.records) == sum(
+        island.pixel_count for island in detection.islands
+    )
+    assert result.maximum_processor_array_bytes > 0
+    assert result.maximum_processor_array_bytes <= (
+        _deblend_config().maximum_batch_pixels * (8 + 8 + 1 + 4)
+    )
+    assert not any(
+        isinstance(value, np.ndarray)
+        for record in result.records
+        for field in fields(record)
+        for value in (getattr(record, field.name),)
+    )
+    assert result.deferred_islands == ()
+
+
+def test_region_stage_preserves_deferrals_without_reading_pixels(
+    tmp_path: Path,
+) -> None:
+    """A processor cannot make an over-limit Phase 5 island disappear."""
+    manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "region-deferrals.zarr",
+        manifest,
+        SerialExecutor(),
+    )
+    deferred_config = replace(
+        _deblend_config(),
+        maximum_compact_island_pixels=1,
+    )
+
+    result = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        detection,
+        deferred_config,
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    assert result.records == ()
+    assert result.islands == ()
+    assert len(result.deferred_islands) == len(detection.islands)
+    assert result.planned_batch_count == 0
+    assert result.admitted_bounds_pixel_count == 0
+    assert result.maximum_processor_array_bytes == 0
 
 
 @pytest.mark.parametrize(
@@ -421,6 +641,15 @@ def test_compact_deblend_stage_rejects_a_different_generation(
             _deblend_config(),
             SerialExecutor(),
             different_sink,
+        )
+    with pytest.raises(ValueError, match="does not match"):
+        run_compact_region_stage(
+            _ArrayImageSource(_image()),
+            detection,
+            _deblend_config(),
+            processor=_measure_exact_memberships,
+            executor=SerialExecutor(),
+            sink=different_sink,
         )
 
 
@@ -553,6 +782,45 @@ def test_dask_and_serial_detection_products_are_identical(
             DaskExecutor(client),
             dask_sink,
         )
+        dask_regions = run_compact_region_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            _deblend_config(),
+            processor=_measure_exact_memberships,
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
+        dask_moments = run_compact_moment_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            _deblend_config(),
+            _moment_config(),
+            _measurement_geometry(),
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
+        dask_fits = run_compact_gaussian_fit_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            deblend_config=_deblend_config(),
+            moment_config=_moment_config(),
+            fit_config=_fit_config(),
+            geometry=_measurement_geometry(),
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
+        dask_catalogue = run_compact_catalogue_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            deblend_config=_deblend_config(),
+            moment_config=_moment_config(),
+            fit_config=_fit_config(),
+            catalogue_config=_catalogue_config(),
+            geometry=_measurement_geometry(),
+            metadata=_image_metadata(),
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
 
     assert dask.islands == serial.islands
     assert (
@@ -572,3 +840,56 @@ def test_dask_and_serial_detection_products_are_identical(
         serial_sink,
     )
     assert dask_deblended == serial_deblended
+    serial_regions = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        _deblend_config(),
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_regions == serial_regions
+    serial_moments = run_compact_moment_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        _deblend_config(),
+        _moment_config(),
+        _measurement_geometry(),
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_moments == serial_moments
+    assert dask_moments.records
+    assert all(
+        not isinstance(value, np.ndarray)
+        for record in dask_moments.records
+        for field in fields(record)
+        for value in (getattr(record, field.name),)
+    )
+    serial_fits = run_compact_gaussian_fit_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        deblend_config=_deblend_config(),
+        moment_config=_moment_config(),
+        fit_config=_fit_config(),
+        geometry=_measurement_geometry(),
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_fits == serial_fits
+    assert dask_fits.records
+    assert all(record.region_fits for record in dask_fits.records)
+    serial_catalogue = run_compact_catalogue_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        deblend_config=_deblend_config(),
+        moment_config=_moment_config(),
+        fit_config=_fit_config(),
+        catalogue_config=_catalogue_config(),
+        geometry=_measurement_geometry(),
+        metadata=_image_metadata(),
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_catalogue == serial_catalogue
+    assert len(dask_catalogue.records) == dask_catalogue.planned_batch_count

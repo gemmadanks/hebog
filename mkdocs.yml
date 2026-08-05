@@ -78,7 +78,17 @@ nav:
       - Phase 2 release readiness: reference/phase-2-release-readiness.md
       - Phase 3 release readiness: reference/phase-3-release-readiness.md
       - Phase 3 scientific review record: reference/phase-3-review-record.md
+      - Phase 4 scientific review record: reference/phase-4-review-record.md
+      - Phase 4 paired non-inferiority: reference/phase-4-paired-noninferiority.md
+      - Phase 4S compact qualification: reference/phase-4s-qualification-protocol.md
+      - Phase 4T compact confirmation: reference/phase-4t-confirmation-protocol.md
+      - Phase 4U compact-blend qualification: reference/phase-4u-qualification-protocol.md
+      - Phase 4 release readiness: reference/phase-4-release-readiness.md
       - Compact deblending: reference/compact-deblending.md
+      - Compact moment measurement: reference/compact-measurement.md
+      - Compact Gaussian fitting: reference/compact-fitting.md
+      - Compact astrometry and beam deconvolution: reference/compact-astrometry.md
+      - Compact catalogue and Rapthor FITS view: reference/compact-catalogue.md
   - Explanation:
       - Architecture: explanation/index.md
       - Domain model: explanation/domain-model.md

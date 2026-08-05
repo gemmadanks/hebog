@@ -20,9 +20,20 @@ manifests. The qualification seed is recorded for reproducibility but its
 results must not be inspected during routine algorithm tuning. Do not add a
 role merely to make a dataset available in more than one test lane.
 
-`benchmarks/` contains the complete size/density matrix, crossover rule,
-one-tile overhead budgets, and the provisional 100,000-square resource and
-scaling gates. `contracts/` maps each frozen public behaviour to one executable
-strict-xfail contract or acceptance test. These files are gates, not measured
-evidence; raw measurements use the evidence schemas and stay under the ignored
-`benchmark-results/` directory.
+`benchmarks/` contains the complete size/density matrices, crossover rules,
+one-tile overhead budgets, the Phase 4 incremental compact-catalogue component
+budgets, and the provisional 100,000-square resource and scaling gates.
+`contracts/` contains the public-behaviour ownership manifest
+and versioned phase-specific scientific meanings and margins. Phase 4 keeps
+its measurement semantics separate from its numerical gates so review can
+amend thresholds without silently changing the meaning of a catalogue field.
+The Phase 4 paired non-inferiority contract separately records comparison
+directions, practical margins, clustered design assumptions, failure handling,
+and the one-look stopping rule. Its `reviewed` status records named approval;
+the final unseen population may be frozen only through a separate governed
+manifest and must not be opened before that freeze is complete.
+`datasets/phase-4-final-qualification.json` is that frozen, ungenerated,
+600-image one-look population. Its complete dataset-record digest, not only
+its recipe digest, is the identity carried into each campaign shard.
+These files are gates, not measured evidence; raw measurements use the evidence
+schemas and stay under the ignored `benchmark-results/` directory.

@@ -8,7 +8,11 @@ is treated as evidence.
 ## Catalogue matching
 
 `CatalogueSource` stores canonical ICRS-like sky values in degrees, peak flux
-density in Jy/beam, and integrated flux density in Jy. `from_units` accepts
+density in Jy/beam, and integrated flux density in Jy. It can also carry
+candidate-reported one-standard-deviation errors, fitted/deconvolved
+`CatalogueEllipse` records, an explicit resolved/unresolved/unavailable
+deconvolution state, parent-island identity, component count, and canonical
+quality flags. `from_units` accepts
 degrees or arcseconds and Jy or mJy variants at ingestion. A compatibility
 adapter must decide whether it is comparing PyBDSF sources, Gaussian
 components, or another row type before constructing these records; those
@@ -31,9 +35,44 @@ empty denominator has value `1.0`, so two empty catalogues agree while a
 candidate-only catalogue has zero reliability. Match-only numerical metrics
 are `None` when there are no pairs.
 
-The current oracle deliberately performs one-to-one row matching. Grouped
-source/component or island-aware comparisons require a separately tested
-adapter or future schema; they must not be approximated by duplicating rows.
+For matched rows, the Phase 4 report additionally contains signed fitted and
+deconvolved major/minor-axis fractional differences, shortest position-angle
+differences modulo 180 degrees, resolved/unresolved classification accuracy,
+component-count agreement, exact and Jaccard quality-flag agreement, and
+summary medians and 95th percentiles. Axis summaries use the worse of the
+major/minor fractional errors for each matched row, and fitted and deconvolved
+position angles remain separate so one population cannot conceal another.
+The caller supplies the reviewed minimum reference major/minor-axis ratio for
+position-angle evidence; Phase 4 uses `1.1`, below which orientation is not a
+meaningful scientific quantity. Axis evidence remains eligible. Reference or
+injected truth alone selects every governed population. A missing candidate
+shape, classification, or parent identity therefore counts as unavailable
+rather than silently removing a difficult row. The report carries explicit
+eligible, available, and availability-fraction fields for each gate; absent
+shapes are never converted to zero.
+
+Candidate-reported uncertainties are normalized against the reference value.
+Each reference-eligible metric reports its eligible and candidate-available
+sample counts, availability fraction, one-sigma coverage, mean normalized
+residual, and sample standard deviation when at least two observations exist.
+A missing candidate uncertainty produces an availability failure and an
+explicit empty calibration result, rather than disappearing. The reference
+must therefore be governed truth when the report is used to claim calibration;
+a PyBDSF comparison alone measures compatibility, not error-coverage truth.
+
+Parent-island association is compared after row assignment. Linear-size
+contingency summaries produce pairwise true-positive, false-positive, and
+false-negative co-association counts plus precision, recall, intersection over
+union, and overall agreement without constructing an all-pairs matrix.
+Precision and recall prevent the much larger set of unrelated source pairs
+from concealing a split or merge. A missing candidate parent identity remains
+in the reference-selected population as a unique unavailable identity, so it
+cannot conceal a split; identity availability is also reported directly.
+Component counts are compared separately.
+`CatalogueOutlierThresholds` has no hidden
+defaults: callers must supply their frozen position, flux, and shape limits to
+obtain a catastrophic-outlier fraction and identifiers. The report retains
+those thresholds so persisted evidence remains self-describing.
 
 ## RMS maps
 

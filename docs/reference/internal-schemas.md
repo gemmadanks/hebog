@@ -14,7 +14,7 @@ version and updated current documentation; it must not silently reinterpret
 persisted data. Before `1.0`, stale development products may be rejected and
 recreated rather than supported through legacy readers or migration code.
 
-## Source catalogue schema version 1
+## Source catalogue schema version 2
 
 `SourceCatalogue` represents one MFS catalogue. Catalogue metadata explicitly
 records:
@@ -47,16 +47,31 @@ canonical quality-flag names. Units are part of field names:
 | Reference frequency | Hz |
 
 Unavailable uncertainties and unavailable or unresolved shapes are `None`.
-NaN and legacy zero sentinels are not null values. A fitted Gaussian always
-has a fitted shape; a source-level fitted shape may be unavailable.
+A major-axis-only deconvolution stores one positive
+`deconvolved_major_fwhm_degrees` value, leaves the ellipse null, and carries a
+`major-axis-only` quality flag; it never invents a minor axis or position
+angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
+always has a fitted shape; a source-level fitted shape may be unavailable.
 
-The version-one internal catalogue FITS encoding contains exactly three
+For a compact Gaussian, the fitted pixel record retains the free-model
+infinite-plane integral. The celestial component/source record reports peak as
+integrated flux when extension is not significant, and the free-model integral
+only when extension passes the configured uncertainty test. This is a current
+catalogue semantic, not a change to the meaning of the retained fit parameter.
+
+The version-three internal catalogue FITS encoding contains exactly three
 binary-table extensions: `ISLANDS`, `SOURCES`, and
 `GAUSSIAN_COMPONENTS`. Column names are Hebog domain names with explicit FITS
 units, not PyBDSF compatibility names. At this serialization boundary only,
 an unavailable float is encoded as FITS NaN and decoded back to `None`;
 required scientific values remain finite under model validation. Empty
 catalogues retain all typed columns and contain zero rows.
+
+For a major-axis-only result, `DECONVOLVED_MAJOR` contains the positive axis
+while `DECONVOLVED_MINOR` and `DECONVOLVED_POSITION_ANGLE` are NaN. The reader
+reconstructs the explicit one-axis state from those columns and the canonical
+quality flag. This uses the retained shape columns and does not treat a
+partial ellipse as a valid `GaussianShape`.
 
 Spectral coefficients use fixed-width float64 vectors rather than FITS
 variable-length heap columns. Each source or component table selects the
@@ -75,7 +90,7 @@ time.
 `SpectralModel` distinguishes a reference-frequency-only MFS measurement from
 a log-polynomial spectral fit. For a log-polynomial, coefficient `k`
 multiplies `log(frequency / reference_frequency) ** (k + 1)` in natural-log
-flux space. Catalogue version 1 requires every source and fitted component to
+flux space. Catalogue version 2 requires every source and fitted component to
 use the catalogue's one reference frequency. Per-channel association and
 mixed-frequency catalogues remain outside the initial MFS contract.
 
@@ -177,20 +192,61 @@ reuse at most four validated chunks while assembling multiple compact-island
 windows. The cache is worker-local and cannot grow with the image or island
 count.
 
+Phase 4 exact region labels remain transient worker data. A
+`WorkerLocalRegionBatch` aligns immutable float64 physical residual and RMS,
+boolean validity, and int32 region labels with reconciled island and region
+records. It is an in-task scientific-kernel input, not a durable schema or a
+scheduler result. `CompactRegionStageResult` contains only processor-produced
+compact records, deblending summaries, explicit Phase 5 deferrals, batch
+counts, admitted bounds pixels, and the largest retained processor-array byte
+count. A summary rectangle cannot be deserialized into membership.
+
+The Phase 4 moment processor returns frozen compact records, not a durable
+catalogue schema. `OwnedPixelPhotometry` keeps finite-mask pixel-sum flux
+distinct from fitted-Gaussian flux. A valid result includes a pixel-space
+`GaussianMomentInitializer`; shape-unavailable and fully unavailable union
+members omit invalid fields rather than encoding scientific absence as zero.
+These records contain no image arrays, WCS objects, or scheduler state.
+
+A valid compact fit adds frozen pixel parameters, optimizer diagnostics,
+local RMS, optional formal covariance, and optional mask-aware
+`AssociationAperturePhotometry`. The aperture record retains its configured
+sigma radius, integrated flux, visible selected-model fraction, and pixel
+count; it contains no image array. `CelestialCompactGaussianFit`
+then supplies the ICRS position, fitted sky ellipse, explicit deconvolution
+state, fitted flux, and canonical quality flags. An unresolved deconvolution
+has a null shape internally; zero axes are compatibility serialization only.
+`extension-not-significant` distinguishes a noisy geometric deconvolution that
+failed the significance test, and
+`deconvolution-uncertainty-unavailable` distinguishes a fit that could not be
+classified because its flux uncertainty was unavailable.
+WCS objects are reconstructed transiently inside the astrometry boundary and
+never enter a public record or executor result.
+
+Catalogue FITS schema version 3 replaces the earlier fixed-beam association
+aperture with
+`SourceCandidate.association_aperture_integrated_flux_jy`. It uses the
+restoring-beam ellipse when that contains at least 90% of the fitted model and
+otherwise follows the selected-fit ellipse so rotated and elongated blends are
+not clipped by the restoring beam's narrow axis. `GaussianComponent.flux`
+continues to describe the selected Gaussian model, and materialized Rapthor
+catalogue columns retain their reviewed peak/integrated component semantics.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as
-`Source_id`, `Isl_Total_flux`, or `DC_Maj`. The Rapthor adapter will map the
-internal records to those reviewed compatibility fields. FITS readers and
-writers will use Astropy at the I/O boundary; the schema models do not contain
+`Source_id`, `Isl_Total_flux`, or `DC_Maj`. The Rapthor catalogue adapter maps
+the internal records to the eight directly consumed compatibility fields.
+Astropy remains at the FITS I/O boundary; the schema models do not contain
 Astropy tables, open HDUs, NumPy image planes, or scheduler objects.
 
-These are Hebog's internal final-product encodings, not the Rapthor/PyBDSF
-compatibility view. Internal large-catalogue shard storage remains an
-evidence-driven decision.
-If Arrow or Parquet is adopted for shards, it must preserve this logical
-schema and canonical identities rather than introduce a second scientific
-model.
+`CompactCatalogueShard` is one bounded coarse-task result. Shards combine in
+canonical pairwise levels and final in-memory construction has an explicit
+record cap. The current FITS adapter is the Rapthor/PyBDSF compatibility view;
+the richer internal FITS schema remains pipeline-neutral. Durable streaming of
+larger shard populations remains an evidence-driven extension. It must reuse
+the Zarr boundary or receive an ADR amendment rather than adding Arrow or
+Parquet speculatively.
 
 See [ADR-006](../architecture/adr/006-isolate-compatibility-with-versioned-schemas.md),
 the [domain glossary](domain-glossary.md), and the

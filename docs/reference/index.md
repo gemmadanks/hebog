@@ -17,7 +17,15 @@ Related project references:
 - [Phase 2 release readiness](phase-2-release-readiness.md)
 - [Phase 3 release readiness](phase-3-release-readiness.md)
 - [Phase 3 scientific review record](phase-3-review-record.md)
+- [Phase 4 release readiness](phase-4-release-readiness.md)
+- [Phase 4 scientific review record](phase-4-review-record.md)
+- [Phase 4S compact qualification protocol](phase-4s-qualification-protocol.md)
+- [Phase 4T compact confirmation protocol](phase-4t-confirmation-protocol.md)
 - [Compact deblending](compact-deblending.md)
+- [Compact moment measurement](compact-measurement.md)
+- [Compact Gaussian fitting](compact-fitting.md)
+- [Compact astrometry and beam deconvolution](compact-astrometry.md)
+- [Compact catalogue and Rapthor FITS view](compact-catalogue.md)
 
 ## Top-level package
 
@@ -91,15 +99,69 @@ Related project references:
     options:
       show_symbol_type_toc: true
 
+::: hebog.algorithms.measurement
+    options:
+      show_symbol_type_toc: true
+
 ## Compact-detection execution stage
 
 ::: hebog.stages.detection
     options:
       show_symbol_type_toc: true
 
+## Compact measurement records and execution stage
+
+::: hebog.data_models.measurement
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.measurement
+    options:
+      show_symbol_type_toc: true
+
+## Compact fitting and astrometry
+
+::: hebog.data_models.fitting
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.fitting
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.fitting
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.data_models.astrometry
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.astrometry
+    options:
+      show_symbol_type_toc: true
+
+## Compact catalogue construction
+
+::: hebog.data_models.catalogue_construction
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.catalogue
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.catalogue
+    options:
+      show_symbol_type_toc: true
+
 ## Workflow adapters
 
 ::: hebog.adapters.rapthor
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.adapters.rapthor_catalogue
     options:
       show_symbol_type_toc: true
 

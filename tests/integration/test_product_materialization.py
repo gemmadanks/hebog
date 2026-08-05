@@ -142,6 +142,7 @@ def _catalogue(*, catalogue_id: str = "catalogue-run-001") -> SourceCatalogue:
         fitted_shape=None,
         deconvolved_shape=None,
         quality_flags=("deblended", "edge-truncated"),
+        association_aperture_integrated_flux_jy=0.011,
     )
     component = GaussianComponent(
         gaussian_component_id="gaussian-component-00001",
@@ -200,7 +201,7 @@ def test_catalogue_fits_round_trip_preserves_internal_schema(
 
     assert product.product_role == "source-catalogue"
     assert product.media_type == "application/fits"
-    assert product.content_schema_version == 1
+    assert product.content_schema_version == 3
     assert product.scientific_status == "valid"
     assert product.byte_count == path.stat().st_size
     assert (
@@ -217,6 +218,7 @@ def test_catalogue_fits_round_trip_preserves_internal_schema(
         )
         assert hdus[2].columns["RIGHT_ASCENSION"].unit == "deg"
         assert hdus[2].columns["PEAK_FLUX"].unit == "Jy/beam"
+        assert hdus[2].columns["ASSOCIATION_APERTURE_FLUX"].unit == "Jy"
         assert "Source_id" not in hdus[2].columns.names
 
     assert write_catalogue_fits_product(path, catalogue) == product
@@ -225,6 +227,41 @@ def test_catalogue_fits_round_trip_preserves_internal_schema(
             path,
             _catalogue(catalogue_id="catalogue-run-002"),
         )
+
+
+def test_catalogue_fits_round_trip_preserves_major_only_deconvolution(
+    tmp_path: Path,
+) -> None:
+    """The internal product stores major while censoring minor and PA."""
+    original = _catalogue()
+    source_payload = original.sources[0].model_dump(mode="python")
+    source_payload.update(
+        {
+            "deconvolved_shape": None,
+            "deconvolved_major_fwhm_degrees": 0.0017,
+            "quality_flags": ("major-axis-only",),
+        }
+    )
+    source = SourceCandidate.model_validate(source_payload)
+    catalogue = SourceCatalogue.create(
+        catalogue_id=original.catalogue_id,
+        coordinate_frame=original.coordinate_frame,
+        position_epoch=original.position_epoch,
+        reference_frequency_hz=original.reference_frequency_hz,
+        islands=original.islands,
+        sources=(source,),
+        gaussian_components=(),
+    )
+    path = tmp_path / "major-only-catalogue.fits"
+
+    write_catalogue_fits_product(path, catalogue)
+
+    assert read_catalogue_fits_product(path) == catalogue
+    with fits.open(path) as hdus:
+        row = hdus[2].data[0]
+        assert row["DECONVOLVED_MAJOR"] == pytest.approx(0.0017)
+        assert np.isnan(row["DECONVOLVED_MINOR"])
+        assert np.isnan(row["DECONVOLVED_POSITION_ANGLE"])
 
 
 def test_empty_catalogue_is_a_structurally_complete_fits_product(
@@ -316,7 +353,7 @@ def test_catalogue_reader_rejects_unknown_schema_and_structure(
     path = tmp_path / "catalogue.fits"
     write_catalogue_fits_product(path, _catalogue())
     with fits.open(path, mode="update", checksum=False) as hdus:
-        hdus[0].header["HBGSCHE"] = 2
+        hdus[0].header["HBGSCHE"] = 4
 
     with pytest.raises(UnsupportedMaterializedProductError, match="schema"):
         read_catalogue_fits_product(path)

@@ -5,8 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import isfinite
 from numbers import Integral
+from typing import Literal
 
 _MINIMUM_RMS_SAMPLES = 2
+_MINIMUM_SHAPE_PIXELS = 3
+_MINIMUM_GAUSSIAN_FIT_PIXELS = 7
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,13 +205,15 @@ class SourceFinderConfig:
 
 @dataclass(frozen=True, slots=True)
 class CompactDeblendConfig:
-    """Peak, saddle, and admitted-memory policy for compact deblending."""
+    """Scientific cuts plus preferred and hard compact-work bounds."""
 
     minimum_peak_signal_to_noise: float
     minimum_peak_separation_pixels: int
     minimum_saddle_depth_sigma: float
+    minimum_region_pixels: int
     maximum_compact_island_pixels: int
     maximum_compact_bounds_pixels: int
+    target_batch_pixels: int
     maximum_batch_pixels: int
 
     def __post_init__(self) -> None:
@@ -235,6 +240,14 @@ class CompactDeblendConfig:
             raise ValueError(
                 "minimum_saddle_depth_sigma must be finite and non-negative"
             )
+        if (
+            isinstance(self.minimum_region_pixels, bool)
+            or not isinstance(self.minimum_region_pixels, Integral)
+            or self.minimum_region_pixels < 1
+        ):
+            raise ValueError(
+                "minimum_region_pixels must be a positive integer"
+            )
         for value, name in (
             (
                 self.maximum_compact_island_pixels,
@@ -244,6 +257,7 @@ class CompactDeblendConfig:
                 self.maximum_compact_bounds_pixels,
                 "maximum_compact_bounds_pixels",
             ),
+            (self.target_batch_pixels, "target_batch_pixels"),
             (self.maximum_batch_pixels, "maximum_batch_pixels"),
         ):
             if (
@@ -255,4 +269,228 @@ class CompactDeblendConfig:
         if self.maximum_batch_pixels < self.maximum_compact_bounds_pixels:
             raise ValueError(
                 "maximum_batch_pixels must admit one compact bounds region"
+            )
+        if self.target_batch_pixels > self.maximum_batch_pixels:
+            raise ValueError(
+                "target_batch_pixels cannot exceed maximum_batch_pixels"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class CompactMomentConfig:
+    """Numerical availability policy for compact moment ellipses."""
+
+    minimum_shape_pixels: int
+    covariance_relative_tolerance: float
+
+    def __post_init__(self) -> None:
+        """Require enough pixels for 2-D shape and a strict tolerance."""
+        if (
+            isinstance(self.minimum_shape_pixels, bool)
+            or not isinstance(self.minimum_shape_pixels, Integral)
+            or self.minimum_shape_pixels < _MINIMUM_SHAPE_PIXELS
+        ):
+            raise ValueError("minimum_shape_pixels must be an integer >= 3")
+        if (
+            not isfinite(self.covariance_relative_tolerance)
+            or not 0 < self.covariance_relative_tolerance < 1
+        ):
+            raise ValueError(
+                "covariance_relative_tolerance must be finite and in (0, 1)"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class CompactGaussianFitConfig:
+    """Explicit bounded nonlinear policy for one compact Gaussian fit."""
+
+    minimum_fit_pixels: int
+    maximum_function_evaluations: int
+    minimum_sigma_pixels: float
+    maximum_sigma_pixels: float
+    maximum_amplitude_factor: float
+    center_margin_pixels: float
+    convergence_tolerance: float
+    maximum_axis_ratio: float
+    maximum_background_offset_sigma: float = 3.0
+    context_margin_pixels: int = 8
+    extension_significance_sigma: float = 5.0
+    maximum_information_condition_number: float = 1e8
+    background_model: Literal["fitted-offset", "fixed-zero"] = "fitted-offset"
+    pixel_support: Literal["bounded-context", "owned-region"] = (
+        "bounded-context"
+    )
+    point_estimator: Literal["diagonal-weighted", "correlated-gls"] = (
+        "diagonal-weighted"
+    )
+    maximum_gls_pixels: int = 512
+    model_selection: Literal["free-only", "beam-or-free"] = "free-only"
+    position_estimator: Literal["selected-model", "bounded-context-free"] = (
+        "selected-model"
+    )
+    association_aperture_radius_sigma: float = 3.0
+    association_aperture_minimum_fixed_beam_model_fraction: float = 0.9
+
+    def __post_init__(self) -> None:
+        """Validate scientific parameter bounds and finite work limits."""
+        if (
+            isinstance(self.minimum_fit_pixels, bool)
+            or not isinstance(self.minimum_fit_pixels, Integral)
+            or self.minimum_fit_pixels < _MINIMUM_GAUSSIAN_FIT_PIXELS
+        ):
+            raise ValueError("minimum_fit_pixels must be an integer >= 7")
+        if (
+            isinstance(self.maximum_function_evaluations, bool)
+            or not isinstance(self.maximum_function_evaluations, Integral)
+            or self.maximum_function_evaluations < 1
+        ):
+            raise ValueError(
+                "maximum_function_evaluations must be a positive integer"
+            )
+        if (
+            not isfinite(self.minimum_sigma_pixels)
+            or not isfinite(self.maximum_sigma_pixels)
+            or self.minimum_sigma_pixels <= 0
+            or self.maximum_sigma_pixels <= self.minimum_sigma_pixels
+        ):
+            raise ValueError("sigma bounds must be finite, positive, ordered")
+        if (
+            not isfinite(self.maximum_amplitude_factor)
+            or self.maximum_amplitude_factor <= 1
+        ):
+            raise ValueError("maximum_amplitude_factor must exceed one")
+        if (
+            not isfinite(self.center_margin_pixels)
+            or self.center_margin_pixels < 0
+        ):
+            raise ValueError("center_margin_pixels must be finite and >= 0")
+        if (
+            not isfinite(self.convergence_tolerance)
+            or not 0 < self.convergence_tolerance < 1
+        ):
+            raise ValueError(
+                "convergence_tolerance must be finite and in (0, 1)"
+            )
+        if (
+            not isfinite(self.maximum_axis_ratio)
+            or self.maximum_axis_ratio <= 1
+        ):
+            raise ValueError("maximum_axis_ratio must be finite and > 1")
+        if (
+            not isfinite(self.maximum_background_offset_sigma)
+            or self.maximum_background_offset_sigma <= 0
+        ):
+            raise ValueError(
+                "maximum_background_offset_sigma must be finite and positive"
+            )
+        if (
+            isinstance(self.context_margin_pixels, bool)
+            or not isinstance(self.context_margin_pixels, Integral)
+            or self.context_margin_pixels < 0
+        ):
+            raise ValueError(
+                "context_margin_pixels must be a non-negative integer"
+            )
+        self._validate_selection_policy()
+
+    def _validate_selection_policy(self) -> None:
+        """Validate extension evidence and identifiability thresholds."""
+        if self.background_model not in {"fitted-offset", "fixed-zero"}:
+            raise ValueError("background_model is not a supported policy")
+        if self.pixel_support not in {"bounded-context", "owned-region"}:
+            raise ValueError("pixel_support is not a supported policy")
+        if self.point_estimator not in {
+            "diagonal-weighted",
+            "correlated-gls",
+        }:
+            raise ValueError("point_estimator is not a supported policy")
+        if self.model_selection not in {"free-only", "beam-or-free"}:
+            raise ValueError("model_selection is not a supported policy")
+        if self.position_estimator not in {
+            "selected-model",
+            "bounded-context-free",
+        }:
+            raise ValueError("position_estimator is not a supported policy")
+        self._validate_association_aperture_policy()
+        if (
+            isinstance(self.maximum_gls_pixels, bool)
+            or not isinstance(self.maximum_gls_pixels, Integral)
+            or self.maximum_gls_pixels < _MINIMUM_GAUSSIAN_FIT_PIXELS
+        ):
+            raise ValueError("maximum_gls_pixels must be an integer >= 7")
+        if (
+            not isfinite(self.extension_significance_sigma)
+            or self.extension_significance_sigma <= 0
+        ):
+            raise ValueError(
+                "extension_significance_sigma must be finite and positive"
+            )
+        if (
+            not isfinite(self.maximum_information_condition_number)
+            or self.maximum_information_condition_number <= 1
+        ):
+            raise ValueError(
+                "maximum_information_condition_number must be finite and "
+                "greater than one"
+            )
+
+    def _validate_association_aperture_policy(self) -> None:
+        """Validate association-aperture geometry and model selection."""
+        if (
+            not isfinite(self.association_aperture_radius_sigma)
+            or self.association_aperture_radius_sigma <= 0
+        ):
+            raise ValueError(
+                "association_aperture_radius_sigma must be finite and positive"
+            )
+        model_fraction = (
+            self.association_aperture_minimum_fixed_beam_model_fraction
+        )
+        if not isfinite(model_fraction) or not 0 < model_fraction < 1:
+            raise ValueError(
+                "association aperture minimum fixed-beam model fraction must "
+                "be within (0, 1)"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class CompactCatalogueConfig:
+    """Bounded compact catalogue assembly and deconvolution policy."""
+
+    maximum_catalogue_records: int
+    deconvolution_relative_tolerance: float
+    extension_significance_sigma: float
+    deconvolution_axis_significance_sigma: float = 5.0
+
+    def __post_init__(self) -> None:
+        """Require an explicit population cap and numerical policies."""
+        if (
+            isinstance(self.maximum_catalogue_records, bool)
+            or not isinstance(self.maximum_catalogue_records, Integral)
+            or self.maximum_catalogue_records < 1
+        ):
+            raise ValueError(
+                "maximum_catalogue_records must be a positive integer"
+            )
+        if (
+            not isfinite(self.deconvolution_relative_tolerance)
+            or not 0 < self.deconvolution_relative_tolerance < 1
+        ):
+            raise ValueError(
+                "deconvolution_relative_tolerance must be finite and in (0, 1)"
+            )
+        if (
+            not isfinite(self.extension_significance_sigma)
+            or self.extension_significance_sigma <= 0
+        ):
+            raise ValueError(
+                "extension_significance_sigma must be finite and positive"
+            )
+        if (
+            not isfinite(self.deconvolution_axis_significance_sigma)
+            or self.deconvolution_axis_significance_sigma <= 0
+        ):
+            raise ValueError(
+                "deconvolution_axis_significance_sigma must be finite and "
+                "positive"
             )
