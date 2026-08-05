@@ -1,0 +1,2328 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Dask-aware radio-continuum source finding for SKA SDP pipelines">
+      
+      
+      
+        <link rel="canonical" href="https://gemmadanks.github.io/hebog/reference/domain-glossary/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../internal-schemas/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Domain glossary - Hebog Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#source-finding-domain-glossary" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Hebog Documentation" class="md-header__button md-logo" aria-label="Hebog Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.929 19.487c0 .035.264.2.592.364 1.578.835 2.55 1.742 2.914 2.75.164.435.171.592.028.92-.178.436-.207.429.95.393 1.043-.035 1.657-.15 1.657-.314 0-.078-.857-.885-1.171-1.093a1.4 1.4 0 0 1-.186-.15 8 8 0 0 0-.321-.257 12 12 0 0 1-.372-.278 6 6 0 0 0-.25-.193l-.45-.35a5 5 0 0 0-.535-.357c-.328-.178-.528-.307-.571-.357-.05-.057-1.036-.593-1.5-.814-.214-.1-.45-.214-.514-.25-.157-.086-.271-.093-.271-.014m-5.75-1.536a5 5 0 0 0-.056.415c-.043.5-.379 1.164-.764 1.52-.465.436-.75.572-.993.48a3.4 3.4 0 0 0-.628-.115c-.357-.043-.486-.022-.657.078-.186.108-.222.179-.222.4 0 .315-.007.307.257.165a1 1 0 0 1 .3-.108c.15 0 .093.143-.093.229-.207.093-.264.271-.278.828-.007.422.121.586.236.286.035-.093.17-.221.3-.293A1.4 1.4 0 0 0 8 21.43c.186-.314.286-.364.286-.15 0 .457.236.479.436.036.121-.243.186-.307.271-.271.236.1.515.114.615.028s.092-.114-.043-.257c-.086-.093-.15-.179-.129-.193.157-.114.5-.193.85-.193.628 0 .714-.107.714-.914 0-.82-.214-1.406-.564-1.556-.179-.072-.236-.079-.257-.008zM22.535 1.062a1.2 1.2 0 0 0-.193.315c-.414.885-1.785 1.72-3.949 2.392-.193.064-.535.164-.75.236-.214.064-.635.2-.928.285-3.635 1.107-4.27 1.678-5.57 4.963-.586 1.472-.893 1.964-1.5 2.364-.507.343-.92.457-2.07.6-1.829.221-2.536.436-3.107.943-.35.3-.464.614-.464 1.242 0 .286-.029.536-.057.557-.036.022-.1.214-.15.436-.072.3-.072.45-.007.643.1.292.378.535.628.535.178 0 .186-.05.05-.371q-.045-.117.136-.307c.157-.157.235-.179.72-.179.558 0 .744-.057 1.008-.3.15-.135.157-.135.357.086.421.464 1.52 1.121 2.892 1.735.65.293 1.057.643 1.364 1.186.207.357.236.457.236.97 0 .836-.3 1.408-.886 1.68-.1.05-.243.113-.307.15-.071.035-.336.063-.593.063H8.93l-.15.336a8 8 0 0 1-.25.528c-.078.158-.078.208 0 .322.093.121.122.107.464-.243.358-.364.579-.471.579-.271 0 .057-.129.2-.279.321-.35.278-.4.478-.235.95.135.385.314.5.357.235.014-.078.121-.235.235-.35.115-.107.208-.242.208-.292s.05-.129.107-.179c.157-.128.221.1.121.457-.064.243-.057.314.036.414.071.079.093.186.064.307-.029.129-.014.179.05.179.1 0 .336-.221.336-.314 0-.029.064-.15.15-.264.15-.215.157-.258.021-1.014-.021-.143-.014-.265.014-.265.15 0 .664.329.693.443.05.186.264.079.264-.136a.8.8 0 0 0-.428-.678c-.236-.1-.279-.257-.086-.314.45-.143.871-.4 1.25-.779.457-.442.535-.535.828-.964.407-.592.786-.857 1.221-.857.6 0 2.485.843 3.942 1.764.679.429 2.007 1.357 2.228 1.557.043.043.286.221.543.407.257.179.7.521.986.764.285.236.542.436.57.436.236 0 .315-.614.108-.8a5 5 0 0 0-.557-.343c-.521-.293-1.528-.971-1.964-1.335-.985-.807-2.242-2.385-3.078-3.864a10 10 0 0 1-.278-.485c-.6-1.05-1.743-2.385-2.05-2.385-.121 0-.121-.008.072-.929.057-.293.142-.792.185-1.107.129-.87.314-1.863.45-2.356.386-1.45 1.207-2.457 2.7-3.3 2.092-1.192 2.927-1.928 3.527-3.12.322-.636.386-.793.579-1.507.1-.364.221-1.25.171-1.25a.4.4 0 0 0-.1.057zM3.496.484C1.839 2.198 1.003 3.926 1.003 5.647c0 .393.029.729.072.75s.071.114.071.2c0 .2.172.693.4 1.157.3.621.736 1.057 1.921 1.914.929.67 1.443 1.428 1.614 2.385l.093.514.257-.107c.65-.279 1.15-.379 2.642-.536.957-.1 1.328-.243 1.771-.678.629-.629.329-1.036-1.635-2.2-2.114-1.257-2.87-1.842-3.692-2.863-.657-.822-.993-1.5-1.157-2.343-.157-.785.057-2.028.536-3.142.135-.328.25-.614.25-.642 0-.15-.236.007-.65.428"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Hebog Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Domain glossary
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gemmadanks/hebog" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gemmadanks/hebog
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../tutorials/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quick start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../how-to/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Development
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../explanation/" class="md-tabs__link">
+          
+  
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../tags/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Tags
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Hebog Documentation" class="md-nav__button md-logo" aria-label="Hebog Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.929 19.487c0 .035.264.2.592.364 1.578.835 2.55 1.742 2.914 2.75.164.435.171.592.028.92-.178.436-.207.429.95.393 1.043-.035 1.657-.15 1.657-.314 0-.078-.857-.885-1.171-1.093a1.4 1.4 0 0 1-.186-.15 8 8 0 0 0-.321-.257 12 12 0 0 1-.372-.278 6 6 0 0 0-.25-.193l-.45-.35a5 5 0 0 0-.535-.357c-.328-.178-.528-.307-.571-.357-.05-.057-1.036-.593-1.5-.814-.214-.1-.45-.214-.514-.25-.157-.086-.271-.093-.271-.014m-5.75-1.536a5 5 0 0 0-.056.415c-.043.5-.379 1.164-.764 1.52-.465.436-.75.572-.993.48a3.4 3.4 0 0 0-.628-.115c-.357-.043-.486-.022-.657.078-.186.108-.222.179-.222.4 0 .315-.007.307.257.165a1 1 0 0 1 .3-.108c.15 0 .093.143-.093.229-.207.093-.264.271-.278.828-.007.422.121.586.236.286.035-.093.17-.221.3-.293A1.4 1.4 0 0 0 8 21.43c.186-.314.286-.364.286-.15 0 .457.236.479.436.036.121-.243.186-.307.271-.271.236.1.515.114.615.028s.092-.114-.043-.257c-.086-.093-.15-.179-.129-.193.157-.114.5-.193.85-.193.628 0 .714-.107.714-.914 0-.82-.214-1.406-.564-1.556-.179-.072-.236-.079-.257-.008zM22.535 1.062a1.2 1.2 0 0 0-.193.315c-.414.885-1.785 1.72-3.949 2.392-.193.064-.535.164-.75.236-.214.064-.635.2-.928.285-3.635 1.107-4.27 1.678-5.57 4.963-.586 1.472-.893 1.964-1.5 2.364-.507.343-.92.457-2.07.6-1.829.221-2.536.436-3.107.943-.35.3-.464.614-.464 1.242 0 .286-.029.536-.057.557-.036.022-.1.214-.15.436-.072.3-.072.45-.007.643.1.292.378.535.628.535.178 0 .186-.05.05-.371q-.045-.117.136-.307c.157-.157.235-.179.72-.179.558 0 .744-.057 1.008-.3.15-.135.157-.135.357.086.421.464 1.52 1.121 2.892 1.735.65.293 1.057.643 1.364 1.186.207.357.236.457.236.97 0 .836-.3 1.408-.886 1.68-.1.05-.243.113-.307.15-.071.035-.336.063-.593.063H8.93l-.15.336a8 8 0 0 1-.25.528c-.078.158-.078.208 0 .322.093.121.122.107.464-.243.358-.364.579-.471.579-.271 0 .057-.129.2-.279.321-.35.278-.4.478-.235.95.135.385.314.5.357.235.014-.078.121-.235.235-.35.115-.107.208-.242.208-.292s.05-.129.107-.179c.157-.128.221.1.121.457-.064.243-.057.314.036.414.071.079.093.186.064.307-.029.129-.014.179.05.179.1 0 .336-.221.336-.314 0-.029.064-.15.15-.264.15-.215.157-.258.021-1.014-.021-.143-.014-.265.014-.265.15 0 .664.329.693.443.05.186.264.079.264-.136a.8.8 0 0 0-.428-.678c-.236-.1-.279-.257-.086-.314.45-.143.871-.4 1.25-.779.457-.442.535-.535.828-.964.407-.592.786-.857 1.221-.857.6 0 2.485.843 3.942 1.764.679.429 2.007 1.357 2.228 1.557.043.043.286.221.543.407.257.179.7.521.986.764.285.236.542.436.57.436.236 0 .315-.614.108-.8a5 5 0 0 0-.557-.343c-.521-.293-1.528-.971-1.964-1.335-.985-.807-2.242-2.385-3.078-3.864a10 10 0 0 1-.278-.485c-.6-1.05-1.743-2.385-2.05-2.385-.121 0-.121-.008.072-.929.057-.293.142-.792.185-1.107.129-.87.314-1.863.45-2.356.386-1.45 1.207-2.457 2.7-3.3 2.092-1.192 2.927-1.928 3.527-3.12.322-.636.386-.793.579-1.507.1-.364.221-1.25.171-1.25a.4.4 0 0 0-.1.057zM3.496.484C1.839 2.198 1.003 3.926 1.003 5.647c0 .393.029.729.072.75s.071.114.071.2c0 .2.172.693.4 1.157.3.621.736 1.057 1.921 1.914.929.67 1.443 1.428 1.614 2.385l.093.514.257-.107c.65-.279 1.15-.379 2.642-.536.957-.1 1.328-.243 1.771-.678.629-.629.329-1.036-1.635-2.2-2.114-1.257-2.87-1.842-3.692-2.863-.657-.822-.993-1.5-1.157-2.343-.157-.785.057-2.028.536-3.142.135-.328.25-.614.25-.642 0-.15-.236.007-.65.428"/></svg>
+
+    </a>
+    Hebog Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gemmadanks/hebog" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gemmadanks/hebog
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain glossary
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#images-and-noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Images and noise
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detection-and-measurement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detection and measurement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sky-models-and-products" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sky models and products
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#legacy-term-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy term map
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internal-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internal catalogue and result schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rapthor-source-finding-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rapthor source-finding contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scientific-pre-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific pre-review findings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../starting-revisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 starting revisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-0-baseline-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 baseline results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataset-manifests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation dataset manifests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scientific-comparison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific comparison reports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evidence-documents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evidence documents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance-scalability-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance and scalability contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-0-review-record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 review record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-1-release-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 release readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-2-release-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2 release readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-3-release-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3 release readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-3-review-record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3 scientific review record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4-review-record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 scientific review record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4-paired-noninferiority/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 paired non-inferiority
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4s-qualification-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4S compact qualification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4t-confirmation-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4T compact confirmation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4u-qualification-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4U compact-blend qualification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4-release-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 release readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-deblending/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact deblending
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-measurement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact moment measurement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-fitting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact Gaussian fitting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-astrometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact astrometry and beam deconvolution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-catalogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact catalogue and Rapthor FITS view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/domain-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/quality-attributes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quality attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/native-code-assessment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native-code assessment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADRs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#images-and-noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Images and noise
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detection-and-measurement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detection and measurement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sky-models-and-products" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sky models and products
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#legacy-term-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy term map
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="source-finding-domain-glossary">Source-finding domain glossary</h1>
+<p><strong>Status:</strong> amended after the 2026-07-31 scientific pre-review and approved for
+the documented experimental scope on 2026-08-02.</p>
+<p>This glossary establishes Hebog's domain language and maps the current
+Rapthor/PyBDSF/LSMTool vocabulary onto it. The
+<a href="../phase-3-review-record/">Phase 3 scientific review</a> and
+<a href="../phase-4-review-record/">Phase 4 scientific review</a> approved these
+definitions and naming conventions for the current experimental scope.</p>
+<h2 id="images-and-noise">Images and noise</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition and naming guidance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Image</td>
+<td>A two-dimensional radio-continuum pixel array plus WCS, beam, unit, and validity metadata. Qualify the scientific state when ambiguity is possible.</td>
+</tr>
+<tr>
+<td>Primary-beam-uncorrected image</td>
+<td>Image before primary-beam correction. Its noise is usually more nearly uniform across the field, making it the preferred detection/noise-estimation plane. Rapthor calls this <code>flat_noise_image</code>; “apparent sky” describes the physical state, not the canonical API field.</td>
+</tr>
+<tr>
+<td>Primary-beam-corrected image</td>
+<td>Estimate after primary-beam correction, used for intrinsic-flux measurements where the correction is valid. Rapthor calls this <code>true_sky_image</code>, but the product is not literal truth. Use <code>primary_beam_corrected</code> canonically and retain <code>true_sky</code> only at the adapter boundary.</td>
+</tr>
+<tr>
+<td>Apparent sky</td>
+<td>Sky brightness attenuated by the instrument response. It is represented by a primary-beam-uncorrected image or sky model.</td>
+</tr>
+<tr>
+<td>Intrinsic sky estimate</td>
+<td>Estimated sky brightness with the instrument attenuation removed. Never shorten this to “truth” when discussing an observed image.</td>
+</tr>
+<tr>
+<td>Flat-noise image</td>
+<td>The apparent-sky image used to estimate noise that is approximately uniform across the field. “Flat” describes the noise, not the sky or background.</td>
+</tr>
+<tr>
+<td>Background</td>
+<td>Slowly varying non-source image level estimated independently of RMS. The current Rapthor path requests a zero mean map, but Hebog keeps the concept explicit.</td>
+</tr>
+<tr>
+<td>RMS</td>
+<td>Local root-mean-square noise estimate in the image's physical unit. Use <code>rms</code>, not standard deviation, when describing this compatibility product.</td>
+</tr>
+<tr>
+<td>RMS image</td>
+<td>A materialised image whose pixels contain local RMS estimates aligned with the input image. Qualify its primary-beam state canonically; <code>flat_noise_rms</code> and <code>true_sky_rms</code> are Rapthor compatibility names. An input image copied to an RMS filename is not an RMS image.</td>
+</tr>
+<tr>
+<td>Residual image</td>
+<td>Image remaining after subtracting a current model. It is not synonymous with a background-subtracted or normalized image.</td>
+</tr>
+<tr>
+<td>Normalized image</td>
+<td>Internal dimensionless array <code>(image - background) / rms</code> used for signal-to-noise thresholding. Spell “normalized” only where matching an external API; Hebog prose otherwise uses British English.</td>
+</tr>
+<tr>
+<td>Invalid pixel</td>
+<td>A masked, non-finite, blanked, or otherwise excluded sample. Invalid pixels contribute to neither background/RMS statistics nor source measurements.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="detection-and-measurement">Detection and measurement</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition and naming guidance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Detection threshold</td>
+<td>Minimum normalized peak needed to seed or accept an island. This maps to PyBDSF <code>thresh_pix</code>. Rapthor strategies use 5 sigma while the helper fallback is 7.5 sigma; Hebog requires an explicit <code>detection_threshold_sigma</code>.</td>
+</tr>
+<tr>
+<td>Island threshold</td>
+<td>Lower normalized boundary used to decide island membership. This maps to <code>thresh_isl</code>. Rapthor uses 3 sigma normally, 4 sigma in early cycles, and 5 sigma only as the helper fallback; Hebog requires an explicit <code>island_threshold_sigma</code>. “Growth” and “flood” threshold are common external synonyms.</td>
+</tr>
+<tr>
+<td>Detection seed</td>
+<td>A valid pixel that satisfies the detection threshold and can validate an island. Adjacent seed pixels may form one seed region; a seed is not necessarily a distinct local maximum, source candidate, fitted Gaussian component, or catalogue row.</td>
+</tr>
+<tr>
+<td>Minimum island size</td>
+<td>Smallest accepted number of connected island-member pixels. Hebog requires it explicitly in scientific configuration. The Rapthor compatibility adapter may derive it from reviewed beam metadata; scientific kernels do not inherit an implicit survey default.</td>
+</tr>
+<tr>
+<td>Pixel</td>
+<td>One array sample. Array indexing is <code>(y, x)</code> even when external APIs expose pixel coordinates as <code>(x, y)</code>.</td>
+</tr>
+<tr>
+<td>Island</td>
+<td>Connected above-island-threshold pixels associated with at least one accepted detection peak. It is a segmentation object, not automatically one source.</td>
+</tr>
+<tr>
+<td>Deblended region</td>
+<td>A deterministic subdivision of overlapping emission associated with one or more detection seeds for later measurement. It remains a segmentation result until Phase 4 measurement and grouping establish a source candidate or fitted component.</td>
+</tr>
+<tr>
+<td>Owned-pixel photometry</td>
+<td>Peak, mean, local RMS, and finite-mask pixel-sum flux reduced over one exact island or deblended-region membership. It is preliminary measurement evidence, not a fitted Gaussian or catalogue row. Use <code>owned_pixel_integrated_flux_jy</code> so it cannot be confused with fitted-model flux.</td>
+</tr>
+<tr>
+<td>Moment initializer</td>
+<td>Brightness-weighted pixel centroid and covariance reduced over exact owned pixels to initialize a nonlinear fit. Its axes and pixel-space angle are not fitted or beam-deconvolved source shape.</td>
+</tr>
+<tr>
+<td>Fitted-Gaussian integrated flux</td>
+<td>Infinite-plane integral of a fitted Gaussian component, calculated from its fitted amplitude and Gaussian area relative to the restoring beam. It remains fit evidence; the catalogue uses it only for significantly resolved sources and uses peak flux for unresolved sources. Never copy owned-pixel flux into this field.</td>
+</tr>
+<tr>
+<td>Association aperture flux</td>
+<td>Direct background-subtracted pixel sum inside either the restoring-beam ellipse or the selected-fit ellipse, divided by the same Gaussian model's fraction visible through image, validity, and competing-region masks. The lower-variance beam aperture is selected when it contains at least 90% of the fitted model; otherwise the fitted ellipse avoids clipping elongated or rotated blends. It is bounded compact-source association photometry, not a fitted-Gaussian integral or threshold-truncated owned-pixel flux. Use <code>association_aperture_integrated_flux_jy</code>.</td>
+</tr>
+<tr>
+<td>Extension significance</td>
+<td>Evidence that a geometrically deconvolved Gaussian is measurably larger than the restoring beam. Phase 4 requires the log integrated-to-peak flux ratio to exceed five times its propagated uncertainty; positive deconvolution alone is not sufficient for noisy data.</td>
+</tr>
+<tr>
+<td>Gaussian component</td>
+<td>One fitted Gaussian belonging to a PyBDSF source. Use the full qualifier; bare <code>component</code> is ambiguous.</td>
+</tr>
+<tr>
+<td>Source candidate</td>
+<td>One catalogue-level association inferred to represent astrophysical emission. In the PyBDSF source-list model, one or more fitted Gaussians may be grouped into a source and an island may contain one or more sources. A detection is not established astrophysical truth.</td>
+</tr>
+<tr>
+<td>Source reference position</td>
+<td>Finite zero-based continuous <code>(y, x)</code> pixel position used only to assign one reconciled source to a tile core. Exact internal-boundary ties belong to the core beginning at that boundary. A source may overlap other cores and halos; its reference position alone selects catalogue ownership.</td>
+</tr>
+<tr>
+<td>Catalogue row</td>
+<td>Serialized representation of one source in the compatibility source-list catalogue. A row is data interchange, not the in-memory domain object.</td>
+</tr>
+<tr>
+<td>Compact source</td>
+<td>Detection sufficiently unresolved or small for the reviewed compact-source measurement and comparison rules. State the size criterion when using it in a test.</td>
+</tr>
+<tr>
+<td>Blended source</td>
+<td>Two or more physically distinct sources whose above-threshold emission overlaps and requires deblending.</td>
+</tr>
+<tr>
+<td>Extended emission</td>
+<td>Emission whose structure is not adequately represented as one beam-sized component.</td>
+</tr>
+<tr>
+<td>Multiscale emission</td>
+<td>Emission detected or represented at more than one spatial scale. PyBDSF's wavelet pass is the current compatibility evidence.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sky-models-and-products">Sky models and products</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition and naming guidance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clean component</td>
+<td>Component written by the deconvolver, currently WSClean, before source-finder filtering. It is not a Gaussian component fitted by the source finder.</td>
+</tr>
+<tr>
+<td>Sky-model component</td>
+<td>One row in a makesourcedb/WSClean sky model used for prediction or calibration. Always qualify it when “component” could mean a Gaussian fit.</td>
+</tr>
+<tr>
+<td>Reference frequency</td>
+<td>Frequency at which a component's reported flux and spectral model are defined. Use <code>reference_frequency_hz</code>; never compare channel or MFS fluxes without it.</td>
+</tr>
+<tr>
+<td>Spectral model</td>
+<td>Explicit rule, such as spectral-index coefficients and their convention, relating component flux to frequency. It belongs to a source or component record, not to an implicit filename convention.</td>
+</tr>
+<tr>
+<td>Patch</td>
+<td>Group of sky-model components used as a calibration direction. The current compatibility path groups surviving sky-model components by island.</td>
+</tr>
+<tr>
+<td>Source catalogue</td>
+<td>Materialised table of measured source rows. Hebog documentation uses “catalogue”; compatibility code may retain external names such as <code>source_catalog</code>.</td>
+</tr>
+<tr>
+<td>Scientific status</td>
+<td>Whether a materialised product contains the scientific quantity named by its role. <code>unavailable</code> is explicit metadata, not permission to relabel input or placeholder pixels as an RMS estimate.</td>
+</tr>
+<tr>
+<td>Source-filtering mask</td>
+<td>Image-aligned island mask used to retain and group sky-model components. Do not call it a clean mask; a clean mask controls deconvolution.</td>
+</tr>
+<tr>
+<td>Materialised product</td>
+<td>Closed, restartable file plus plain metadata. It must not contain an open FITS handle, mutable full-image object, or scheduler client.</td>
+</tr>
+<tr>
+<td>Compatibility adapter</td>
+<td>Boundary that maps Hebog's internal schema and terms to the filenames, fields, units, and empty behaviour required by Rapthor/LSMTool. ADR 006 fixes this as a versioned, dependency-free boundary.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="execution">Execution</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition and naming guidance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scientific kernel</td>
+<td>Deterministic array operation independent of scheduler state and file lifecycle where practical.</td>
+</tr>
+<tr>
+<td>Executor</td>
+<td>Policy object that runs coarse scientific work serially, locally, or through an existing Dask client. It does not own Rapthor's top-level graph.</td>
+</tr>
+<tr>
+<td>Port</td>
+<td>Narrow typed protocol at a demonstrated boundary, such as execution, image input, or product output. A port describes a capability needed by the scientific pipeline; it is not a generic plugin registry.</td>
+</tr>
+<tr>
+<td>Workflow adapter</td>
+<td>Boundary that translates another pipeline's orchestration, configuration, product schema, and failure behaviour to and from Hebog's public scientific API. It depends on the core, never the reverse.</td>
+</tr>
+<tr>
+<td>Native extension</td>
+<td>Optional compiled Hebog module implemented outside Python, such as Rust or C++. Use “native” only for implementation language in this context; call ordinary Hebog outputs “Hebog-format products”.</td>
+</tr>
+<tr>
+<td>FFI boundary</td>
+<td>Foreign-function interface between Python/NumPy and a native extension. Its contract includes dtype, shape, strides, alignment, ownership, mutability, copying, errors, interpreter state, and thread budget.</td>
+</tr>
+<tr>
+<td>Performance curve</td>
+<td>Size-stratified record of complete latency, throughput, memory, and execution evidence across the frozen workload matrix. It is preferred to a single headline benchmark.</td>
+</tr>
+<tr>
+<td>Execution crossover</td>
+<td>Measured resource and workload boundary where a different valid executor, storage, partition, or batching plan becomes faster end to end. It is evidence-based, not a permanent image-size constant.</td>
+</tr>
+<tr>
+<td>Admitted worker memory</td>
+<td>RAM budget Rapthor makes available to one Hebog worker after reserving node headroom and concurrent pipeline demand. It may be substantially less than the hundreds of GB physically installed on a production node.</td>
+</tr>
+<tr>
+<td>Serial reference</td>
+<td>Deterministic Hebog execution used as the first oracle for local and Dask conformance. It is not the same as the PyBDSF compatibility oracle.</td>
+</tr>
+<tr>
+<td>Partition manifest</td>
+<td>Small, deterministic record describing a logical image's shape, tile cores, stage-specific halos, global coordinates, ownership, and chunk locations. It contains no image plane or scheduler object.</td>
+</tr>
+<tr>
+<td>Product generation</td>
+<td>One run-scoped set of intermediate Zarr product chunks. It is consumable only after an immutable completion manifest identifies exactly one validated chunk for every expected product and tile. A Zarr hierarchy without that marker is incomplete, even when its array metadata exists.</td>
+</tr>
+<tr>
+<td>Tile core</td>
+<td>Non-overlapping image region owned by one tile for output and source-assignment purposes. A small image is represented as one tile core. Source ownership uses the source reference position and the core's half-open boundaries, never halo overlap or worker completion order.</td>
+</tr>
+<tr>
+<td>Halo</td>
+<td>Read-only pixels surrounding a tile core that provide neighbourhood context for windows, convolution, connectivity, or fitting. Qualify the stage and pixel width; halo pixels are not duplicate output ownership.</td>
+</tr>
+<tr>
+<td>Boundary summary</td>
+<td>Bounded metadata emitted by a tile for cross-tile reconciliation, such as mergeable statistics, connected-label equivalences, or edge-source state. It is proportional to a boundary or catalogue shard, not the full image.</td>
+</tr>
+<tr>
+<td>Reconciliation</td>
+<td>Deterministic merge of tile summaries into global statistics, stable labels, sources, catalogues, or products, normally through hierarchical reductions.</td>
+</tr>
+<tr>
+<td>True-sky branch</td>
+<td>Detection, measurement, catalogue, mask, and true-sky RMS work driven by the true-sky image when beam information is available.</td>
+</tr>
+<tr>
+<td>Flat-noise branch</td>
+<td>Independent RMS-estimation work driven by the flat-noise image. It may run concurrently only within the admitted memory budget.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="naming-conventions">Naming conventions</h2>
+<ul>
+<li>Use <code>(y, x)</code> for NumPy array shapes and indices. Use explicit names such as
+  <code>x_pixel</code> and <code>y_pixel</code> when an external WCS interface takes <code>(x, y)</code>.</li>
+<li>Put coordinate frame and unit in public names where the type does not carry
+  them: for example, <code>ra_deg</code>, <code>dec_deg</code>, <code>major_axis_deg</code>, <code>beam_fwhm_deg</code>,
+  <code>frequency_hz</code>, and <code>flux_jy</code> or <code>flux_jy_per_beam</code>.</li>
+<li>Use <code>detection_threshold</code> and <code>island_threshold</code> internally. Preserve
+  <code>thresh_pix</code> and <code>thresh_isl</code> only in a compatibility or command boundary.</li>
+<li>Qualify every ambiguous component as <code>gaussian_component</code>,
+  <code>clean_component</code>, or <code>sky_model_component</code>.</li>
+<li>Do not use <code>source</code>, <code>island</code>, <code>Gaussian component</code>, <code>catalogue row</code>, and
+  <code>sky-model component</code> interchangeably.</li>
+<li>Prefer <code>primary_beam_uncorrected</code> and <code>primary_beam_corrected</code> in the
+  scientific API. Keep <code>apparent_sky</code>, <code>true_sky</code>, and <code>flat_noise</code> only where
+  their physical meaning or compatibility mapping is explicit.</li>
+<li>Give every frequency-dependent flux a unit and <code>reference_frequency_hz</code>,
+  plus the spectral-model convention when applicable.</li>
+<li>Use <code>catalogue</code> in Hebog prose and internal modules. Preserve <code>catalog</code> in
+  external field names and filenames when compatibility requires it.</li>
+<li>Use <code>serial</code>, <code>local</code>, and <code>dask</code> for executor modes. Do not use <code>parallel</code>
+  as a mode name because it does not identify ownership or resource policy.</li>
+<li>Use <code>tile_y_index</code>, <code>tile_x_index</code>, <code>core_bounds</code>, and stage-qualified halo
+  names such as <code>detection_halo_pixels</code>. Do not use “chunk” and “tile”
+  interchangeably: a chunk is a storage unit; a tile is a scientific work and
+  ownership unit.</li>
+</ul>
+<h2 id="legacy-term-map">Legacy term map</h2>
+<table>
+<thead>
+<tr>
+<th>Current external name</th>
+<th>Hebog concept</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thresh_pix</code></td>
+<td>Detection threshold</td>
+</tr>
+<tr>
+<td><code>thresh_isl</code></td>
+<td>Island threshold</td>
+</tr>
+<tr>
+<td><code>flat_noise_image</code></td>
+<td>Primary-beam-uncorrected detection/noise image</td>
+</tr>
+<tr>
+<td><code>true_sky_image</code></td>
+<td>Primary-beam-corrected image (legacy name; not truth)</td>
+</tr>
+<tr>
+<td><code>rms_box</code>, <code>rms_box_bright</code></td>
+<td>Normal and bright-source RMS window width/step</td>
+</tr>
+<tr>
+<td><code>island_mask</code></td>
+<td>Source-filtering mask</td>
+</tr>
+<tr>
+<td>PyBDSF <code>srl</code> catalogue</td>
+<td>Source catalogue compatibility view</td>
+</tr>
+<tr>
+<td><code>Source_id</code></td>
+<td>Compatibility source identifier</td>
+</tr>
+<tr>
+<td><code>Isl_Total_flux</code></td>
+<td>Compatibility island-integrated flux field</td>
+</tr>
+<tr>
+<td><code>filter_skymodel</code></td>
+<td>Cross-system behaviour that detects emission, filters/groups sky-model components, writes diagnostics products, and currently mixes PyBDSF with LSMTool</td>
+</tr>
+</tbody>
+</table>
+<p>Open vocabulary questions are tracked in the implementation plan. A domain
+review must resolve them before the Phase 0 exit gate.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="Previous: API">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                API
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../internal-schemas/" class="md-footer__link md-footer__link--next" aria-label="Next: Internal catalogue and result schemas">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Internal catalogue and result schemas
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/gemmadanks/hebog" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascript/readthedocs.js"></script>
+      
+    
+  </body>
+</html>

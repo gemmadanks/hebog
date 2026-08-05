@@ -1,0 +1,2625 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Dask-aware radio-continuum source finding for SKA SDP pipelines">
+      
+      
+      
+        <link rel="canonical" href="https://gemmadanks.github.io/hebog/reference/phase-4-release-readiness/">
+      
+      
+        <link rel="prev" href="../phase-4u-qualification-protocol/">
+      
+      
+        <link rel="next" href="../compact-deblending/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Phase 4 release readiness - Hebog Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#phase-4-release-readiness" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Hebog Documentation" class="md-header__button md-logo" aria-label="Hebog Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.929 19.487c0 .035.264.2.592.364 1.578.835 2.55 1.742 2.914 2.75.164.435.171.592.028.92-.178.436-.207.429.95.393 1.043-.035 1.657-.15 1.657-.314 0-.078-.857-.885-1.171-1.093a1.4 1.4 0 0 1-.186-.15 8 8 0 0 0-.321-.257 12 12 0 0 1-.372-.278 6 6 0 0 0-.25-.193l-.45-.35a5 5 0 0 0-.535-.357c-.328-.178-.528-.307-.571-.357-.05-.057-1.036-.593-1.5-.814-.214-.1-.45-.214-.514-.25-.157-.086-.271-.093-.271-.014m-5.75-1.536a5 5 0 0 0-.056.415c-.043.5-.379 1.164-.764 1.52-.465.436-.75.572-.993.48a3.4 3.4 0 0 0-.628-.115c-.357-.043-.486-.022-.657.078-.186.108-.222.179-.222.4 0 .315-.007.307.257.165a1 1 0 0 1 .3-.108c.15 0 .093.143-.093.229-.207.093-.264.271-.278.828-.007.422.121.586.236.286.035-.093.17-.221.3-.293A1.4 1.4 0 0 0 8 21.43c.186-.314.286-.364.286-.15 0 .457.236.479.436.036.121-.243.186-.307.271-.271.236.1.515.114.615.028s.092-.114-.043-.257c-.086-.093-.15-.179-.129-.193.157-.114.5-.193.85-.193.628 0 .714-.107.714-.914 0-.82-.214-1.406-.564-1.556-.179-.072-.236-.079-.257-.008zM22.535 1.062a1.2 1.2 0 0 0-.193.315c-.414.885-1.785 1.72-3.949 2.392-.193.064-.535.164-.75.236-.214.064-.635.2-.928.285-3.635 1.107-4.27 1.678-5.57 4.963-.586 1.472-.893 1.964-1.5 2.364-.507.343-.92.457-2.07.6-1.829.221-2.536.436-3.107.943-.35.3-.464.614-.464 1.242 0 .286-.029.536-.057.557-.036.022-.1.214-.15.436-.072.3-.072.45-.007.643.1.292.378.535.628.535.178 0 .186-.05.05-.371q-.045-.117.136-.307c.157-.157.235-.179.72-.179.558 0 .744-.057 1.008-.3.15-.135.157-.135.357.086.421.464 1.52 1.121 2.892 1.735.65.293 1.057.643 1.364 1.186.207.357.236.457.236.97 0 .836-.3 1.408-.886 1.68-.1.05-.243.113-.307.15-.071.035-.336.063-.593.063H8.93l-.15.336a8 8 0 0 1-.25.528c-.078.158-.078.208 0 .322.093.121.122.107.464-.243.358-.364.579-.471.579-.271 0 .057-.129.2-.279.321-.35.278-.4.478-.235.95.135.385.314.5.357.235.014-.078.121-.235.235-.35.115-.107.208-.242.208-.292s.05-.129.107-.179c.157-.128.221.1.121.457-.064.243-.057.314.036.414.071.079.093.186.064.307-.029.129-.014.179.05.179.1 0 .336-.221.336-.314 0-.029.064-.15.15-.264.15-.215.157-.258.021-1.014-.021-.143-.014-.265.014-.265.15 0 .664.329.693.443.05.186.264.079.264-.136a.8.8 0 0 0-.428-.678c-.236-.1-.279-.257-.086-.314.45-.143.871-.4 1.25-.779.457-.442.535-.535.828-.964.407-.592.786-.857 1.221-.857.6 0 2.485.843 3.942 1.764.679.429 2.007 1.357 2.228 1.557.043.043.286.221.543.407.257.179.7.521.986.764.285.236.542.436.57.436.236 0 .315-.614.108-.8a5 5 0 0 0-.557-.343c-.521-.293-1.528-.971-1.964-1.335-.985-.807-2.242-2.385-3.078-3.864a10 10 0 0 1-.278-.485c-.6-1.05-1.743-2.385-2.05-2.385-.121 0-.121-.008.072-.929.057-.293.142-.792.185-1.107.129-.87.314-1.863.45-2.356.386-1.45 1.207-2.457 2.7-3.3 2.092-1.192 2.927-1.928 3.527-3.12.322-.636.386-.793.579-1.507.1-.364.221-1.25.171-1.25a.4.4 0 0 0-.1.057zM3.496.484C1.839 2.198 1.003 3.926 1.003 5.647c0 .393.029.729.072.75s.071.114.071.2c0 .2.172.693.4 1.157.3.621.736 1.057 1.921 1.914.929.67 1.443 1.428 1.614 2.385l.093.514.257-.107c.65-.279 1.15-.379 2.642-.536.957-.1 1.328-.243 1.771-.678.629-.629.329-1.036-1.635-2.2-2.114-1.257-2.87-1.842-3.692-2.863-.657-.822-.993-1.5-1.157-2.343-.157-.785.057-2.028.536-3.142.135-.328.25-.614.25-.642 0-.15-.236.007-.65.428"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Hebog Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Phase 4 release readiness
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gemmadanks/hebog" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gemmadanks/hebog
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../tutorials/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quick start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../how-to/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Development
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../explanation/" class="md-tabs__link">
+          
+  
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../tags/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Tags
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Hebog Documentation" class="md-nav__button md-logo" aria-label="Hebog Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.929 19.487c0 .035.264.2.592.364 1.578.835 2.55 1.742 2.914 2.75.164.435.171.592.028.92-.178.436-.207.429.95.393 1.043-.035 1.657-.15 1.657-.314 0-.078-.857-.885-1.171-1.093a1.4 1.4 0 0 1-.186-.15 8 8 0 0 0-.321-.257 12 12 0 0 1-.372-.278 6 6 0 0 0-.25-.193l-.45-.35a5 5 0 0 0-.535-.357c-.328-.178-.528-.307-.571-.357-.05-.057-1.036-.593-1.5-.814-.214-.1-.45-.214-.514-.25-.157-.086-.271-.093-.271-.014m-5.75-1.536a5 5 0 0 0-.056.415c-.043.5-.379 1.164-.764 1.52-.465.436-.75.572-.993.48a3.4 3.4 0 0 0-.628-.115c-.357-.043-.486-.022-.657.078-.186.108-.222.179-.222.4 0 .315-.007.307.257.165a1 1 0 0 1 .3-.108c.15 0 .093.143-.093.229-.207.093-.264.271-.278.828-.007.422.121.586.236.286.035-.093.17-.221.3-.293A1.4 1.4 0 0 0 8 21.43c.186-.314.286-.364.286-.15 0 .457.236.479.436.036.121-.243.186-.307.271-.271.236.1.515.114.615.028s.092-.114-.043-.257c-.086-.093-.15-.179-.129-.193.157-.114.5-.193.85-.193.628 0 .714-.107.714-.914 0-.82-.214-1.406-.564-1.556-.179-.072-.236-.079-.257-.008zM22.535 1.062a1.2 1.2 0 0 0-.193.315c-.414.885-1.785 1.72-3.949 2.392-.193.064-.535.164-.75.236-.214.064-.635.2-.928.285-3.635 1.107-4.27 1.678-5.57 4.963-.586 1.472-.893 1.964-1.5 2.364-.507.343-.92.457-2.07.6-1.829.221-2.536.436-3.107.943-.35.3-.464.614-.464 1.242 0 .286-.029.536-.057.557-.036.022-.1.214-.15.436-.072.3-.072.45-.007.643.1.292.378.535.628.535.178 0 .186-.05.05-.371q-.045-.117.136-.307c.157-.157.235-.179.72-.179.558 0 .744-.057 1.008-.3.15-.135.157-.135.357.086.421.464 1.52 1.121 2.892 1.735.65.293 1.057.643 1.364 1.186.207.357.236.457.236.97 0 .836-.3 1.408-.886 1.68-.1.05-.243.113-.307.15-.071.035-.336.063-.593.063H8.93l-.15.336a8 8 0 0 1-.25.528c-.078.158-.078.208 0 .322.093.121.122.107.464-.243.358-.364.579-.471.579-.271 0 .057-.129.2-.279.321-.35.278-.4.478-.235.95.135.385.314.5.357.235.014-.078.121-.235.235-.35.115-.107.208-.242.208-.292s.05-.129.107-.179c.157-.128.221.1.121.457-.064.243-.057.314.036.414.071.079.093.186.064.307-.029.129-.014.179.05.179.1 0 .336-.221.336-.314 0-.029.064-.15.15-.264.15-.215.157-.258.021-1.014-.021-.143-.014-.265.014-.265.15 0 .664.329.693.443.05.186.264.079.264-.136a.8.8 0 0 0-.428-.678c-.236-.1-.279-.257-.086-.314.45-.143.871-.4 1.25-.779.457-.442.535-.535.828-.964.407-.592.786-.857 1.221-.857.6 0 2.485.843 3.942 1.764.679.429 2.007 1.357 2.228 1.557.043.043.286.221.543.407.257.179.7.521.986.764.285.236.542.436.57.436.236 0 .315-.614.108-.8a5 5 0 0 0-.557-.343c-.521-.293-1.528-.971-1.964-1.335-.985-.807-2.242-2.385-3.078-3.864a10 10 0 0 1-.278-.485c-.6-1.05-1.743-2.385-2.05-2.385-.121 0-.121-.008.072-.929.057-.293.142-.792.185-1.107.129-.87.314-1.863.45-2.356.386-1.45 1.207-2.457 2.7-3.3 2.092-1.192 2.927-1.928 3.527-3.12.322-.636.386-.793.579-1.507.1-.364.221-1.25.171-1.25a.4.4 0 0 0-.1.057zM3.496.484C1.839 2.198 1.003 3.926 1.003 5.647c0 .393.029.729.072.75s.071.114.071.2c0 .2.172.693.4 1.157.3.621.736 1.057 1.921 1.914.929.67 1.443 1.428 1.614 2.385l.093.514.257-.107c.65-.279 1.15-.379 2.642-.536.957-.1 1.328-.243 1.771-.678.629-.629.329-1.036-1.635-2.2-2.114-1.257-2.87-1.842-3.692-2.863-.657-.822-.993-1.5-1.157-2.343-.157-.785.057-2.028.536-3.142.135-.328.25-.614.25-.642 0-.15-.236.007-.65.428"/></svg>
+
+    </a>
+    Hebog Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gemmadanks/hebog" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gemmadanks/hebog
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../domain-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internal-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internal catalogue and result schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rapthor-source-finding-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rapthor source-finding contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scientific-pre-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific pre-review findings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../starting-revisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 starting revisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-0-baseline-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 baseline results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataset-manifests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation dataset manifests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scientific-comparison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific comparison reports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evidence-documents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evidence documents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance-scalability-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance and scalability contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-0-review-record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 review record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-1-release-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 release readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-2-release-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2 release readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-3-release-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3 release readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-3-review-record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3 scientific review record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4-review-record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 scientific review record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4-paired-noninferiority/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 paired non-inferiority
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4s-qualification-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4S compact qualification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4t-confirmation-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4T compact confirmation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4u-qualification-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4U compact-blend qualification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 release readiness
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 release readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#implemented-capability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implemented capability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#evidence-that-passes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evidence that passes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resolved-association-amendment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved association amendment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#first-powered-qualification-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First powered qualification result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dual-reference-audit-and-approved-recovery-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dual-reference audit and approved recovery direction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4s-stabilization-and-phase-5-development-readiness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4S stabilization and Phase 5 development readiness
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#portability-scope-and-deferrals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Portability, scope, and deferrals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#root-cause-analysis-and-follow-on-disposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root-cause analysis and follow-on disposition
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4r-terminal-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4R terminal result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-closure-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required closure order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4t-terminal-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4T terminal result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4u-compact-science-closure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4U compact-science closure
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-deblending/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact deblending
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-measurement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact moment measurement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-fitting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact Gaussian fitting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-astrometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact astrometry and beam deconvolution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-catalogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact catalogue and Rapthor FITS view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/domain-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/quality-attributes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quality attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/native-code-assessment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native-code assessment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADRs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#implemented-capability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implemented capability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#evidence-that-passes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evidence that passes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resolved-association-amendment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved association amendment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#first-powered-qualification-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First powered qualification result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dual-reference-audit-and-approved-recovery-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dual-reference audit and approved recovery direction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4s-stabilization-and-phase-5-development-readiness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4S stabilization and Phase 5 development readiness
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#portability-scope-and-deferrals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Portability, scope, and deferrals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#root-cause-analysis-and-follow-on-disposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root-cause analysis and follow-on disposition
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4r-terminal-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4R terminal result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-closure-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required closure order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4t-terminal-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4T terminal result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4u-compact-science-closure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4U compact-science closure
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="phase-4-release-readiness">Phase 4 release readiness</h1>
+<p><strong>Decision:</strong> The compact single-scale Phase 4 milestone is closed. The
+separately governed Phase 4U candidate passed its scientific gate, an exact
+post-optimization regression replay preserved that result, and the controlled
+incremental component matrix passed its performance budgets. This is not full
+PyBDSF equivalence, a complete Rapthor speed claim, or authorization to make
+Hebog the default backend.</p>
+<p>This record deliberately distinguishes milestone capability from production
+qualification. Earlier Phase 4, 4R, 4S, and 4T campaigns remain terminal
+failures under their frozen gates; Phase 4U is a separately designed and
+powered new-candidate qualification, not a rescore. Preserving every viewed
+result without post-inspection tuning remains part of the evidence chain.</p>
+<h2 id="implemented-capability">Implemented capability</h2>
+<ul>
+<li>exact deblended-region membership remains worker-local through measurement
+  and fitting;</li>
+<li>vectorised owned-pixel moments provide deterministic photometry and a
+  readable fit initializer;</li>
+<li>every eligible compact region is fitted with bounded SciPy least squares,
+  with typed non-convergence and invalid-result outcomes;</li>
+<li>fitted positions, covariance, ellipses, and flux geometry are transformed
+  through an Astropy ICRS WCS boundary;</li>
+<li>restoring-beam covariance is deconvolved into explicit fully resolved,
+  major-axis-only, unresolved, and unavailable states, then noisy extension is
+  classified with an explicit high-confidence uncertainty test;</li>
+<li>islands, Gaussian components, and source candidates remain distinct typed
+  records with canonical global identities;</li>
+<li>one catalogue shard is produced per admitted coarse task, pairwise reduction
+  has fan-in two and logarithmic depth, and final in-memory assembly has an
+  explicit population cap; and</li>
+<li>the deterministic J2000 FITS adapter publishes exactly the eight columns
+  consumed by Rapthor's current catalogue diagnostics.</li>
+</ul>
+<p>The stage fails closed if a compact fit is omitted or Phase 5 owns a deferred
+island. It therefore cannot silently publish a complete catalogue for an
+incomplete image.</p>
+<h2 id="evidence-that-passes">Evidence that passes</h2>
+<p>Analytic and property tests cover moment invariants, fit bounds and failure
+states, WCS rotation and wraparound, beam deconvolution, canonical association,
+bounded reduction, empty catalogue output, FITS schema validation, and
+conflict-safe retries. Serial and two-worker Dask runs produce the same
+catalogue shards, and one-tile/many-tile execution preserves identities and
+numeric values.</p>
+<p>After applying the documented peak-as-total unresolved catalogue policy, the
+governed three-source compact catalogue passes every frozen exact Phase 4
+position, flux, fitted/deconvolved shape, classification, association,
+availability, and catastrophic-outlier gate against both references:</p>
+<ul>
+<li>released PyBDSF 1.14.1 used by Rapthor; and</li>
+<li>pinned performance-improved PyBDSF <code>master</code> at the reviewed Phase 0
+  revision.</li>
+</ul>
+<p>The raw PyBDSF products remain immutable. They record one intentional policy
+divergence: an unresolved reference row has a free-fit total about 39% below
+its peak. Hebog reports peak as total for that row, as recommended by the
+radio-catalogue literature; the comparison canonicalizes only that scientific
+view and tests the raw divergence separately.</p>
+<p>Rapthor's catalogue diagnostic cuts retain the same three rows. Pixel-centre
+mask decisions agree for 65,534 of 65,536 pixels against each reference,
+exceeding the existing 99.5% downstream-decision gate. These results apply to
+the compact no-deferral fixture; multiscale emission remains Phase 5 work.</p>
+<h2 id="resolved-association-amendment">Resolved association amendment</h2>
+<p>The regression case <code>phase-4-crowded-association-regression-512</code> injects seven
+Gaussian emitters. Three pairs are narrower than one restoring beam and each
+pair produces only one observable image maximum. The reviewed Phase 3
+deblender consequently produces four regions. A one-region/one-source model
+cannot also satisfy a flat seven-emitter completeness assertion. Setting the
+saddle threshold to zero does not alter that information limit.</p>
+<p>The recommended amendment is:</p>
+<ol>
+<li>define a truth emitter as independently resolvable only when the observed
+   image contains a distinct eligible maximum satisfying the reviewed
+   peak/separation/saddle rules;</li>
+<li>gate per-emitter completeness, position, flux, and shape only for that
+   resolvable population;</li>
+<li>represent sub-beam injected emitters that form one observed maximum as one
+   explicit truth association group, and gate the group centroid and total
+   flux rather than pretending its members were individually measured;</li>
+<li>retain one fitted component/source for a single-maximum compact region in
+   Phase 4; and</li>
+<li>defer evidence-based joint multi-Gaussian model selection until a governed
+   dataset shows that the additional parameters are identifiable and improve
+   completeness without reducing reliability.</li>
+</ol>
+<p>This recommendation follows the information present in the image and the
+project's community-practice principle: report completeness and reliability
+for declared, scientifically eligible populations, and do not infer
+super-resolution from injected truth. Gemma Danks approved this association
+amendment on 2026-08-03, and the truth schema now carries explicit group
+identities rather than inferring them from a flat Gaussian list.</p>
+<h2 id="first-powered-qualification-result">First powered qualification result</h2>
+<p>The powered replacement Phase 4 qualification recipe and explicit truth-group
+definitions were frozen under manifest schema 2 before inspection. Gemma
+Danks approved the replacement group margins and SNR-stratified noisy-source
+decision rule on 2026-08-03. The amended regression passed, after which the
+first and only held-out run was performed.</p>
+<p>Generator-v3 qualification noise uses the restoring-beam Gaussian correlation
+function. Fits use bounded background context and a generalized OLS sandwich
+covariance rather than treating pixels as independent. The powered regression
+provides 1,600 eligible measurements per SNR stratum and passes the predeclared
+Wilson, Student-<em>t</em>, and fixed-seed BCa entire-interval gates. The qualification
+recipe supplied the same minimum power across SNR, shape, and edge strata.
+Shape uncertainty remains report-only.</p>
+<p>The held-out campaign did not pass. It achieved 99.79% completeness and 99.68%
+overall reliability, but resolved/unresolved classification agreement was
+73.57% against a 95% minimum and its catastrophic matched-row rate was 0.783%
+against a 0.5% maximum. Normalized-mean intervals failed for SNR-10 integrated
+flux, SNR-25 peak flux, unresolved-shape integrated flux, and edge integrated
+flux. The runner also revealed that the unresolved-group reliability
+denominator was not frozen precisely enough to separate false candidates near
+individual groups. The exact result and intervals are recorded in the
+<a href="../phase-4-review-record/">scientific review record</a>.</p>
+<p>No post-inspection tuning was performed. This dataset is now known evidence,
+not an unseen qualification population. A new unseen campaign and named review
+of the ambiguous denominator and boundary-classification policy were required
+before corrective implementation work.</p>
+<p>The viewed recipe is now archived unchanged. Before corrective production
+code, a second campaign was frozen with 200 disjoint seeds, distinct WCS,
+negative background, varying RMS, invalid pixels, correlated noise, and
+predeclared point-source, clearly resolved, marginal-resolution, edge, SNR,
+and unresolved-group strata. The first correction selected the ATLAS
+two-sigma integrated-to-peak uncertainty rule, point-source specificity and
+clear-source recall gates, report-only marginal classification, and peak flux
+for beam-compatible sources. The later paired regression showed that this
+threshold retained its expected false-extension tail; Phase 4 now uses the
+five-sigma high-confidence decision approved by Gemma Danks on 2026-08-03.
+The undefined
+morphology-specific reliability gate was removed; overall catalogue
+reliability remains gated.</p>
+<p>The correction is implemented through TDD and the powered independent
+regression now passes. Regression also established, before qualification, that
+the clear-extension gate must be restricted to truth area ratio at least 3 and
+SNR at least 25, and that resolved/marginal integrated-flux uncertainty remains
+report-only. Gemma Danks approved these definitions on 2026-08-03. The new
+campaign had not been generated or inspected at the time of approval.</p>
+<p>The campaign was subsequently opened exactly once. It passed completeness,
+reliability, extension classification, resolved-shape availability, every
+gated normalized-residual calibration decision, and the unresolved-group
+gates. It failed the frozen catastrophic-outlier gate at 17.67% versus 0.5%
+and missed the 99% uncertainty-availability floor in the SNR-10 and edge
+strata at 98.94% and 98.88%. The complete result is recorded in the
+<a href="../phase-4-review-record/">scientific review record</a>. No post-inspection tuning
+or rerun occurred.</p>
+<p>The failed extension-aware manifest is archived, and a third unseen campaign
+is frozen with 200 disjoint seeds and recipe SHA-256
+<code>7d2bf112051231f4fcad4dd8de40b58e5eeaefe572f315bd9f7e3f365f21087b</code>.
+At that point it had not been generated or inspected. Both contracts were
+frozen-provisional until a development/regression-supported correction
+received named review.</p>
+<p>That corrective regression now distinguishes scientific populations rather
+than weakening the 0.5% ceiling. In 4,800 development matches, all 283 raw
+catastrophic rows were marginally resolved truth: 274 failed only integrated
+flux, one failed fitted axes, and eight failed deconvolved axes. The point and
+clearly resolved populations had no catastrophic rows. This agrees with the
+predeclared report-only status of marginal extension and with the
+<a href="https://doi.org/10.1017/pasa.2015.37">ASKAP/EMU source-finding challenge</a>,
+which evaluates catastrophic point-source flux separately and does not apply
+that analysis to its extended-source challenge because the comparison is
+biased by low peak brightness and high integrated flux. The proposed harness
+therefore reports marginal integrated-flux catastrophes but gates every other
+metric for that population and all metrics for point and clearly resolved
+truth. The numerical outlier thresholds and 0.5% ceiling are unchanged.</p>
+<p>A new 250-measurement development regression also reproduced the edge/SNR-10
+availability failure at 247/250. Its three missing matches were valid Gaussian
+fits whose centroids had drifted beyond the bottom image boundary. Clamping
+fit-centre bounds to the sampled image footprint, while retaining the normal
+context margin inside that footprint, raises the same frozen regression to
+250/250 without changing detection thresholds, uncertainty formulae, or the
+third campaign. The complete corrected 4,800-match regression and both exact
+PyBDSF catalogue comparisons pass. Gemma Danks approved both corrections on
+2026-08-03 before any third-campaign output was generated or inspected; both
+contracts were then reviewed-provisional.</p>
+<p>The third campaign was subsequently opened exactly once. It recovered all
+6,600 truth groups from 6,621 candidates (100% completeness and 99.68%
+reliability), with 100% fitted-shape and classification availability, 97.06%
+point-source specificity, 100% clear-resolved recall, and 100% resolved-shape
+availability. Every position and peak-flux calibration gate and every
+unresolved-group gate passed. It nevertheless failed two frozen decisions:
+36 of 6,400 matched individual sources were gated catastrophic outliers, or
+0.5625% against the 0.5% maximum, and the unresolved integrated-flux
+normalized-residual mean interval was 0.0823--0.1846, crossing the approved
+absolute 0.15 boundary. The complete 34,746-byte ignored evidence record has
+SHA-256
+<code>ed060b7703161ba01037939ff9a8e4b6e3d6ab527dc3b1fd45753dfb69c1165e</code>.
+No post-inspection tuning, rerun, population change, or gate change occurred.
+The campaign is now viewed evidence and both contracts are frozen-provisional
+again to prevent accidental reuse.</p>
+<h2 id="dual-reference-audit-and-approved-recovery-direction">Dual-reference audit and approved recovery direction</h2>
+<p>Released PyBDSF 1.14.1 was run on the identical third campaign with Rapthor's
+exact source-finding configuration. Its canonical unresolved-source view
+recovered 6,599 of 6,600 groups, achieved 99.75% point-source specificity, and
+had a 0.1875% gated catastrophic rate. Those two latter results are better
+than Hebog's current 97.06% and 0.5625% and establish concrete weaknesses to
+correct.</p>
+<p>PyBDSF did not pass the complete truth-based campaign: it failed 16
+normalized-uncertainty decisions and two unresolved-group tail gates where
+Hebog passed. Pinned performance-improved PyBDSF <code>master</code> at
+<code>c70103be3ae9ae9908286f144e6ce956acc0ce5c</code> cannot complete frozen seed
+<code>2026090152</code>; its atrous Gaussian-fitting fallback raises an out-of-bounds
+<code>IndexError</code>, while released PyBDSF and Hebog complete that input. The audit
+therefore does not justify replacing the reviewed scientific gates with raw
+PyBDSF reproduction.</p>
+<p>The approved recovery direction is to retain all absolute gates and Hebog's
+stronger recovery, uncertainty-calibration, unresolved-group, deterministic,
+and bounded-execution results while using TDD on independent evidence to fix
+point classification and catastrophic tails. One final predeclared campaign
+must use paired same-image statistics and show Hebog no worse than released
+PyBDSF, as well as passing every absolute gate, before Phase 4 can close.
+Pinned master remains a comparison wherever it completes, and every exception
+is counted as a reference robustness failure rather than silently excluded.</p>
+<h2 id="phase-4s-stabilization-and-phase-5-development-readiness">Phase 4S stabilization and Phase 5 development readiness</h2>
+<p>Review of the terminal Phase 4R evidence found two evaluator defects and two
+scientific-semantics risks. Same-named validation and classification strata
+were unioned even when their memberships differed. The paired power contract
+also retained the earlier 33-group, 32-individual-source, and eight-point-source
+assumptions while the replacement manifest contained 13, 12, and four. With
+the actual four point sources, the historical point-specificity design power
+is about 76.9%, not the reported 94.5%. The historical decision remains false
+and its bytes remain immutable; this audit does not rescore it.</p>
+<p>Future evidence now uses one canonical source-stratum definition, with the
+governed disjoint classification population taking precedence over a
+same-named legacy validation population. The power tooling can bind every
+binary endpoint and the realization count to a frozen manifest. It also
+reports a dependence-robust union-bound lower bound for the probability that
+all declared endpoints pass, rather than presenting the weakest marginal
+endpoint power as joint campaign power. A future qualification contract must
+declare those population units explicitly and fail closed on any mismatch.</p>
+<p>All 18 SNR-15 catastrophic rows in the replacement result came from one
+marginally resolved source family. Each was a deconvolved-axis failure, and the
+representative seed's unstable minor-axis relative error exceeded 100% while
+its fitted axes and deconvolved major remained within 17%. Production fits now
+retain covariance for major sigma, minor sigma, and position angle. Hebog
+propagates it through WCS transformation and beam subtraction and requires
+five-sigma evidence for each reported intrinsic axis. A significant major with
+an insignificant minor is a typed major-axis-only result; an insignificant
+major is unresolved. In temporary regression reruns, all 18 viewed failures
+are censored and none remains catastrophic. These reruns are regression
+diagnostics only and do not alter the frozen qualification result.</p>
+<p>The edge review also found that a truncation-corrected centroid could inherit
+covariance from the first bounded fit. A bound-contact correction now only
+initializes a widened likelihood retry; its final centroid and covariance come
+from that same retry. If the retry is not identifiable, Hebog keeps the
+selected fit instead of combining estimators. The 20 worst viewed SNR-10
+declination residuals were unchanged because they already used a consistent
+free-context estimator. Their governed point estimate was inside the absolute
+gate and only its upper confidence limit crossed. That is treated as a power
+and population-design issue for the next campaign, not as permission to tune
+an estimator to viewed outcomes.</p>
+<p>The technical compact Phase 5 development start gate is met: analytic rotation and
+continuous-size deconvolution tests pass; lower/upper edge-reflection tests
+bind estimator covariance; exact viewed failures are retained as regressions;
+internal FITS and the Rapthor <code>DC_Maj</code> view round-trip a major-only result;
+serial/Dask and non-slow equivalence lanes pass; and the complete governed
+correlated-noise calibration regression passes. Phase 5 may therefore develop
+against the stabilized compact API. This is not the Phase 4S release gate. A
+new manifest-powered one-look qualification, external radio-astronomy review,
+both exact PyBDSF comparisons, and the controlled performance/scalability
+matrix still gate a production claim and default Rapthor cutover.</p>
+<p>The new Phase 4S campaign subsequently completed 800/800 images for Hebog and
+both references and passed all 20 paired endpoints against each reference. Its
+absolute decision failed, however, so the project owner's qualification-first
+checkpoint still blocks substantive multiscale implementation. Two fixed raw
+median limits were below the mixed-SNR noise floor, and the point-specificity
+scorer compared correct candidate states with projection-contaminated truth;
+those semantics are corrected only for future evidence. The remaining SNR-10
+integrated-flux uncertainty interval narrowly crossed its unchanged bound. At
+that point the plan required a fresh, separately governed Phase 4T
+confirmation before Phase 5 could move beyond preparation. Phase 4S remains
+immutable and failed; the later Phase 4T outcome is recorded below.</p>
+<p>The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
+not been run. The final scientific qualification failed, so the controlled
+matrix and any Phase 4 speed claim are ineligible. Non-claim characterization
+and profiling may proceed only as future engineering evidence. The 3,000-square incremental
+compact measurement/fitting median
+must remain within 2.0 seconds and catalogue/materialisation within the shared
+2.0-second allocation. Evidence must include sparse, normal, dense,
+blend-heavy, and fit-failure workloads and compare affected tiers with the
+reviewed Hebog curve and both PyBDSF references. No Phase 4 speed claim is
+made yet.</p>
+<h2 id="portability-scope-and-deferrals">Portability, scope, and deferrals</h2>
+<p>The implementation is pure Python plus established NumPy, SciPy, Astropy,
+Zarr, and Dask boundaries; no native extension or new runtime dependency was
+introduced. Tests cover scheduler-independent records, serial/Dask equality,
+FITS validation, and platform-safe atomic replacement. Normal Windows support
+is retained through the repository CI matrix.</p>
+<p>This phase is limited to primary-beam-corrected MFS Stokes I images in Jy/beam
+with complete ICRS WCS, restoring-beam, and reference-frequency metadata.
+Per-channel catalogues and spectral fitting, extended/multiscale recovery,
+complete public <code>find_sources</code>, Rapthor orchestration and sky-model
+publication, end-to-end filtering equivalence, and production-scale
+qualification remain Phases 5–7.</p>
+<h2 id="root-cause-analysis-and-follow-on-disposition">Root-cause analysis and follow-on disposition</h2>
+<p>The terminal campaign is more useful when its absolute failures and its
+dual-reference regressions are kept distinct. Hebog's median peak-flux,
+fitted-axis, and deconvolved-axis errors missed their absolute community
+limits, but were still lower than both PyBDSF references. The demonstrated
+dual-reference weaknesses are position efficiency and parts of the shape and
+integrated-flux tails:</p>
+<table>
+<thead>
+<tr>
+<th>Diagnostic</th>
+<th style="text-align: right;">Hebog</th>
+<th style="text-align: right;">PyBDSF 1.14.1</th>
+<th style="text-align: right;">PyBDSF <code>master</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Median position error (beam)</td>
+<td style="text-align: right;">0.02736</td>
+<td style="text-align: right;">0.02512</td>
+<td style="text-align: right;">0.02511</td>
+</tr>
+<tr>
+<td>95th-percentile position error (beam)</td>
+<td style="text-align: right;">0.09345</td>
+<td style="text-align: right;">0.08917</td>
+<td style="text-align: right;">0.08966</td>
+</tr>
+<tr>
+<td>Median absolute peak-flux error</td>
+<td style="text-align: right;">0.02942</td>
+<td style="text-align: right;">0.05057</td>
+<td style="text-align: right;">0.05032</td>
+</tr>
+<tr>
+<td>Median absolute integrated-flux error</td>
+<td style="text-align: right;">0.03996</td>
+<td style="text-align: right;">0.06188</td>
+<td style="text-align: right;">0.06146</td>
+</tr>
+<tr>
+<td>95th-percentile integrated-flux error</td>
+<td style="text-align: right;">1.10770</td>
+<td style="text-align: right;">0.54118</td>
+<td style="text-align: right;">0.53634</td>
+</tr>
+<tr>
+<td>Median fitted-axis error</td>
+<td style="text-align: right;">0.05029</td>
+<td style="text-align: right;">0.07316</td>
+<td style="text-align: right;">0.07361</td>
+</tr>
+<tr>
+<td>95th-percentile fitted-axis error</td>
+<td style="text-align: right;">0.20069</td>
+<td style="text-align: right;">0.18331</td>
+<td style="text-align: right;">0.20082</td>
+</tr>
+<tr>
+<td>Gated catastrophic fraction</td>
+<td style="text-align: right;">0.5104%</td>
+<td style="text-align: right;">0.2084%</td>
+<td style="text-align: right;">0.1615%</td>
+</tr>
+</tbody>
+</table>
+<p>All 98 Hebog catastrophic rows are fitted-axis outliers; 96 are edge sources
+and 94 are SNR-10 sources. Twenty-five report bound contact. A direct
+reproduction of seed <code>2026110493</code>, source 16, reaches the upper image-centre
+bound and inflates its major sigma from the injected 2.04 pixels to 6.62
+pixels. This confirms that publishing a converged boundary-pinned free fit is
+one failure mode. Most outliers do not land exactly on a numerical bound, so
+the broader diagnosis is weak identifiability of a seven-parameter free
+ellipse and background for truncated, low-SNR profiles. The largest
+integrated-flux tails are the corresponding free-shape extrapolations.</p>
+<p>Position error is broader: Hebog is worse in about 61% of common source pairs
+and in every SNR stratum, with the largest gap for unresolved, low-SNR, and
+edge sources. Its normalized position biases, coverage, and dispersion pass,
+which argues against a coordinate-convention error and instead motivates an
+estimator-efficiency investigation. The current point fit weights pixels by
+local RMS but uses the beam-correlated noise model only after optimization for
+the sandwich covariance. It also fits source shape and a background offset
+for every source. Beam-constrained fitting, background/support selection, and
+bounded correlated-noise generalized least squares are therefore hypotheses
+to test on independent data, not conclusions selected from this campaign.</p>
+<p>The paired indeterminacy is an evaluator defect rather than a scientific root
+cause. One unavailable source causes uncertainty-summary construction to
+raise before any endpoint is evaluated, so all otherwise independent endpoint
+families fail together. A follow-on evaluator must preserve missing sources
+in completeness and availability denominators while calculating each other
+endpoint independently; the historical decision remains unchanged.</p>
+<p>The authoritative plan now defines a separate
+<a href="https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#phase-4r-compact-measurement-scientific-recovery">Phase 4R compact-measurement recovery milestone</a>.
+It requires TDD on analytic and independently seeded development/regression
+data, a direction-aware registry covering gated and report-only metrics, a
+nested beam-constrained/free fit selected by data-only identifiability and
+extension evidence, and one separately reviewed qualification only after the
+implementation and decision protocol are frozen. Hebog must pass every
+absolute gate and be statistically non-inferior to both references on every
+declared overall and governed-stratum metric; improvements cannot compensate
+for a regression elsewhere.</p>
+<p>For Phase 4R, “absolute gate” follows the metric registry's noisy-campaign
+role. Raw position, flux, axis, and angle medians/tails remain fully reported
+and are independently non-inferiority-gated against both PyBDSF references,
+but exact/noiseless tolerances are not reapplied to irreducible stochastic
+scatter. Completeness, reliability, availability, classification,
+catastrophic, unresolved-group, and powered uncertainty-calibration results
+remain absolute gates. Exact compact fixtures retain the original strict
+accuracy tolerances.</p>
+<h2 id="phase-4r-terminal-result">Phase 4R terminal result</h2>
+<p>Phase 4R is technically complete but did not achieve scientific passage. Its
+only approved replacement qualification used 600 disjoint, vertically
+transformed realizations and exact candidate <code>1065182</code>. Hebog and released
+PyBDSF completed all 600; pinned PyBDSF <code>master</code> completed 599 and retained one
+non-positive-flux catalogue failure under its <code>record-and-continue</code> policy.</p>
+<p>Hebog passed 446/450 dual-reference metric/stratum decisions and 106/107
+absolute gates. Four catastrophic-outlier comparisons failed: SNR 15 against
+both references, marginally resolved against released PyBDSF, and the overall
+released-reference confidence bound. The SNR-10 declination-uncertainty-bias
+95% interval also crossed its absolute upper limit. The full reviewed outcome
+and evidence hashes are recorded in the
+<a href="../phase-4-review-record/">Phase 4 scientific review record</a>.</p>
+<p>This one-look result is terminal and cannot be rescored or replaced within
+Phase 4R. The controlled performance matrix remained ineligible and was not
+run. Phase 4 therefore remains <strong>not ready</strong>, with no compact-equivalence,
+speed, or Rapthor-cutover claim.</p>
+<h2 id="required-closure-order">Required closure order</h2>
+<p>The historical Phase 4 decision cannot be changed to passed. The following
+list records the recovery chain through the distinct passing Phase 4U
+candidate and compact engineering closeout:</p>
+<ol>
+<li>[x] Gemma Danks completed the earlier named amendment review on 2026-08-03 in the
+   <a href="../phase-4-review-record/">Phase 4 scientific review record</a>.</li>
+<li>[x] The regression and untouched qualification truth schemas, recipes,
+   checksums, and gates are replaced consistently before held-out inspection.</li>
+<li>[x] Development and regression science passes, including association-group
+   and uncertainty-calibration reports.</li>
+<li>[x] The post-failure extension-classification amendment receives named
+   human review after independent regression passes.</li>
+<li>[x] The marginal-flux population clarification and image-footprint
+   correction receive named review after their complete development and
+   regression lanes pass. Gemma Danks approved both on 2026-08-03.</li>
+<li>[x] A frozen unseen held-out qualification campaign passes every reviewed
+   gate without post-inspection tuning. All three powered campaigns failed on
+   2026-08-03 and are retained as known evidence. Before another population
+   could be frozen, the recovery protocol had to prevent repeated-campaign
+   optional stopping and pass its independent planning audit and named review.
+   The <a href="../phase-4-paired-noninferiority/">reviewed paired non-inferiority protocol</a>
+   and its executable power calculation are complete. The 50,000-resample
+   independent planning-assumption audit verifies every revised bound. Gemma
+   Danks approved the endpoint families, margins, 600-image design,
+   whole-image interval method, one-look rule, and five-sigma extension policy
+   on 2026-08-03. She also approved removing the statistically unstable extra
+   point-sign gate before final-population freeze.
+   The final population <code>phase4-final-paired-qualification-512</code> was opened
+   exactly once on 2026-08-04 after its complete dataset-record SHA-256
+   <code>07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb</code>,
+   evaluator, and three execution environments were recorded. All 1,800
+   candidate/reference realization records completed and were retained. The
+   immutable decision did not pass: 109 of 114 Hebog absolute gates passed,
+   but catastrophic fraction, median position, median peak flux, median
+   fitted axis, and median deconvolved axis failed their frozen thresholds.
+   One missed Hebog source also made the complete-match uncertainty input
+   unavailable, so the frozen fail-closed joint calculation reported all 20
+   primary and 20 secondary paired endpoints as indeterminate. No result,
+   threshold, contract, or population was changed after inspection.
+   The separately governed Phase 4U new candidate subsequently passed one
+   fresh 800-image qualification: all 77 binding absolute gates, both sets of
+   20 paired endpoints, and all five stronger-result envelopes passed. That
+   result satisfies the prospective compact-science qualification step
+   without altering any historical decision.</li>
+<li>[x] The controlled Phase 4 performance matrix passes its component budgets
+   and shows no unapproved adjacent-tier regression or source-density
+   superlinearity. The retained first matrix diagnosed a one-batch bottleneck;
+   the corrected matrix passes all 20 cells and preserves that failed evidence
+   separately.</li>
+<li>[x] The scientific evidence received project-owner-authorized expert review,
+   every failed campaign retains its terminal disposition, and Phase 4U is
+   recorded as a distinct passing candidate. Independent human radio-astronomy
+   review remains a production-cutover gate rather than a Phase 5 start gate.</li>
+</ol>
+<p>The refreshed 200-image paired regression has 200/200 successful runs for
+both Hebog and released PyBDSF. Hebog matches the reference's perfect point
+specificity, retains substantially better clear-extension, catastrophic-tail,
+and unresolved-blend results, and differs in catalogue reliability by one
+additional unmatched near-threshold candidate. This regression and its
+planning-assumption audit supported the completed named review, but neither is
+qualification evidence. The failed 600-image result remains terminal. The
+later independently frozen Phase 4U qualification supplies the passing
+new-candidate evidence described below; it does not revise that history.</p>
+<h2 id="phase-4t-terminal-result">Phase 4T terminal result</h2>
+<p>Phase 4T opened once on exact candidate commit
+<code>9653b0d5310b9922ffcf66bd2c801f33aa506f38</code>. Hebog and both exact PyBDSF
+references completed all 800 fresh realizations. Hebog passed all 20 paired
+endpoints against each reference, including the previously unresolved SNR-10
+uncertainty question, and passed 76 of 77 binding absolute gates.</p>
+<p>The one failure was the unresolved-group total-flux absolute-error tail:
+Hebog's 95th percentile was <code>0.2070797655</code> against the frozen <code>0.2</code> maximum.
+Released PyBDSF and pinned <code>master</code> both measured <code>0.6000309649</code>, so Hebog is
+materially better and statistically non-inferior on that metric, but the
+absolute gate and its stronger envelope still fail. The decision is terminal;
+it is not rounded, rescored, or replaced by another unchanged-candidate run.</p>
+<p>At the Phase 4T decision point, the compact start gate remained <strong>not ready</strong>
+and its controlled performance matrix was still ineligible. The plan therefore
+required independent TDD remediation of systematic unresolved-blend flux
+under-recovery before any new-candidate qualification. The complete historical
+outcome and file hashes are in the
+<a href="../phase-4-review-record/">Phase 4 scientific review record</a>.</p>
+<h2 id="phase-4u-compact-science-closure">Phase 4U compact-science closure</h2>
+<p>Phase 4U applied a model-containment association aperture on independent
+development data and then opened one separately frozen 800-image
+qualification. Hebog and both exact PyBDSF references completed every image.
+Hebog passed all 77 binding absolute gates, all 20 paired non-inferiority
+endpoints against each reference, and all five stronger-result envelopes.</p>
+<p>The previously blocking unresolved-blend total-flux tail fell from <code>0.207080</code>
+in Phase 4T to <code>0.139196</code> in Phase 4U, inside the unchanged <code>0.2</code> maximum.
+Across 4,800 blends, Hebog's mean signed error was <code>-0.020217</code>, compared with
+about <code>-0.1085</code> for both PyBDSF references. No material compact diagnostic
+regression was found.</p>
+<p>The exact optimized candidate was subsequently replayed on all 800 viewed
+Phase 4U images as regression evidence. All implementations again completed
+every image; Hebog again passed 77/77 binding absolute gates, 20/20 paired
+endpoints against each reference, and all five stronger-result envelopes.
+The replay candidate, compiled campaign, and decision SHA-256 values are
+<code>62f8f73816b1cb3deae0c276d919173856ab53f43778a4f98bc6ab1392ff4ebc</code>,
+<code>e34da45e0b1a44932178a6df959ea91cf42ca2ad25ab23b1851ebcb509f54137</code>,
+and <code>52b4b374f9160ba52271acc07eb36f1fe8b0b776557b26f392de362bea29f2bb</code>.</p>
+<p>The final incremental matrix also passes. At 3,000 by 3,000 pixels, successful
+measurement/fitting medians span <code>0.177855</code>--<code>0.757952</code> seconds and catalogue
+output medians span <code>0.036850</code>--<code>0.040811</code> seconds against separate
+2.0-second budgets. Dense work uses 13 batches and 13 Dask tasks without
+omission; the intentional fit-failure profile refuses publication. The matrix
+summary SHA-256 is
+<code>ee3729e39a6b432f29b0b5282b39e4023c479b51ee7180187760a5b567f3ffa8</code>.
+This is the first reviewed incremental Phase 4 curve; existing PyBDSF results
+time the complete Rapthor filter step and are not a matched component
+baseline.</p>
+<p>Together these results close the compact single-scale milestone and permit
+Phase 5 development. They do not alter the terminal historical
+Phase 4/4R/4S/4T decisions and do not authorize production cutover:
+real-residual evidence, independent human review, complete Rapthor/PyBDSF
+timing, and production-scale Dask qualification remain open. Full findings and
+immutable qualification hashes are in the
+<a href="../phase-4-review-record/">Phase 4 scientific review record</a> and the
+<a href="../phase-4u-qualification-protocol/">Phase 4U protocol</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../phase-4u-qualification-protocol/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Phase 4U compact-blend qualification">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Phase 4U compact-blend qualification
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../compact-deblending/" class="md-footer__link md-footer__link--next" aria-label="Next: Compact deblending">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Compact deblending
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/gemmadanks/hebog" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascript/readthedocs.js"></script>
+      
+    
+  </body>
+</html>
