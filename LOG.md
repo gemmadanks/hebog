@@ -5356,3 +5356,30 @@ closeout
 - Strict documentation built successfully, and the final fast repository
   check passed Ruff formatting/lint, Pyright, and 797 tests with four declared
   expected failures.
+
+## 2026-08-05 — Prepared the delivery plan for Phase 5
+
+**Plan phase:** Phase 5 — multiscale and extended emission preparation
+
+- Reviewed the completed compact milestone, its durable readiness and review
+  records, the remaining extended-island deferrals, and the boundaries between
+  Phase 5 science and Phase 6 distributed execution.
+- Reduced the authoritative implementation plan from 3,255 to about 1,300
+  lines by replacing completed Phase 0--4 checklists and campaign chronology
+  with a milestone ledger, durable constraints, and links to immutable
+  evidence. Historical failed one-look decisions remain explicitly terminal.
+- Expanded Phase 5 into an ordered contract, algorithm-selection,
+  implementation, reconciliation, tile-invariance, qualification, and
+  performance plan. The plan now requires a frozen untouched qualification
+  population, reviewed scale-stratified gates, preservation of the Phase 4U
+  compact baseline, bounded extended-island processing, deterministic
+  cross-scale identity, and the existing 6.0-second representative component
+  budget.
+- Updated stale Phase 0 and Phase 4 future-tense text and replaced the resolved
+  compact-fitting questions with the scientific and architectural decisions
+  that must be answered during Phase 5.
+
+**Immediate next step:** inventory the Rapthor-used multiscale objects and
+current Phase 3/4 deferrals, then freeze the Phase 5 scientific contract,
+dataset roles, evaluator families, and pre-opening review process before
+algorithm tuning.

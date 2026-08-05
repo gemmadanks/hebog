@@ -97,10 +97,11 @@ took 22.53 seconds. Together they accounted for 95.4% of PyBDSF operation time; 
 took only 0.07 seconds. The current RMS implementation also calculated roughly 180,000 fine-grid
 windows although only a small neighbourhood around five bright sources was used.
 
-Rapthor profiling previously reduced an aggregate `filter_skymodel` measurement from 89.54 to
-69.881 seconds by reducing PyBDSF's requested cores from 30 to 15. The provisional 50% target for
-that exact benchmark is therefore 34.94 seconds. Phase 0 must reproduce and replace this with
-matched, versioned released and `master` baselines before it becomes a release gate.
+Rapthor profiling previously reduced an aggregate `filter_skymodel` measurement
+from 89.54 to 69.881 seconds by reducing PyBDSF's requested cores from 30 to
+15. The resulting 34.94-second planning target is historical context. Phase 0
+subsequently captured the matched, versioned released and `master` baselines;
+the governed ratios and confidence rules in Section 1 are the release gates.
 
 These observations indicate that a new array-oriented implementation can meet the target by
 avoiding repeated statistics, whole-image copies, recursively repeated source-finding pipelines,
@@ -186,8 +187,9 @@ top-level graph or resource ownership into Hebog.
 
 ### 4.3 Output compatibility
 
-Phase 0 must inventory every field and side product currently used by LSMTool and Rapthor. At a
-minimum, freeze:
+Phase 0 froze every field and side product used by the pinned LSMTool and
+Rapthor references. Later phases must preserve or deliberately amend, review,
+and version at least:
 
 - catalogue column names, units, coordinate frame, and null conventions;
 - source/component identifiers and grouping semantics;
@@ -410,9 +412,10 @@ lane must exercise 1, 10, 50, 100, and at least 200 worker nodes where the
 approved facility provides them. It records tile and halo geometry, partition
 count, graph size, scheduler throughput, worker occupancy, per-worker and
 aggregate memory, transfer, spill, storage throughput, retries, stragglers,
-and strong- and weak-scaling efficiency. Phase 0 must freeze reviewed runtime,
+and strong- and weak-scaling efficiency. Phase 0 froze the reviewed runtime,
 memory, scheduler-overhead, and scaling-efficiency gates for the 100,000 by
-100,000 qualification case.
+100,000 qualification case; Phase 6/8 must demonstrate them on the approved
+facility.
 
 Do not require PyBDSF to process the complete 100,000-by-100,000 image. Its
 scientific oracle combines versioned generated truth, global conservation and
@@ -638,7 +641,7 @@ does not replace behaviour-focused normal, edge, failure, property, and
 contract tests. Ratchet the floor upward when reviewed coverage makes that
 stable.
 
-### 8.3 Native acceleration policy
+### 8.4 Native acceleration policy
 
 Do not add C++ or Rust to the initial implementation. Start with vectorized
 NumPy/SciPy and use Numba for measured custom loops. The
@@ -767,2208 +770,244 @@ removal is separately justified.
 
 ## 10. Delivery phases
 
-### Phase 0: freeze baselines and contracts
-
-**Technical foundation status:** complete on 2026-07-18. **Scientific contract
-closure status:** complete on 2026-08-02. The captured baselines, comparison
-harness, contracts, governed manifests, and named review establish the Phase 0
-foundation. The external facility review remains a separate governance
-follow-up and does not turn measured engineering gates into
-facility-demonstrated claims.
-
-#### Phase 0 closure order
-
-Complete the remaining work in this order:
-
-1. **Completed 2026-07-31:** reconcile the exported request, result, and
-   configuration scaffold with ADR 006 and the frozen Rapthor contract. One
-   public request now represents one image analysis with explicit scientific
-   thresholds; the versioned Rapthor adapter records own the two-branch inputs,
-   products, and compatibility profile. Documentation and strict contract
-   tests preserve that boundary.
-2. **Controlled-runner closure completed 2026-07-31; clean-host portability
-   remains explicitly limited.** The reference runner now verifies clean exact
-   Rapthor and LSMTool checkouts, imported PyBDSF/LSMTool identities, the
-   master-wheel checksum, container digest, stable scientific inputs, and
-   runner/compiler script hashes. Sanitized installed-package inventories are
-   retained in `config/baselines/phase-0-reference-environments.json`. The
-   immutable image and restricted representative inputs have no approved
-   durable remote locator, so documentation no longer claims independent-host
-   reproduction.
-3. **Completed 2026-08-02:** obtain scientific/domain sign-off after the first
-   research pass completed on 2026-07-31. The reviewer packet was:
-
-   - the [domain glossary](../docs/reference/domain-glossary.md), including its
-     legacy mappings and naming conventions;
-   - the [scientific pre-review findings](../docs/reference/scientific-pre-review.md),
-     including cross-pipeline consensus and Rapthor disagreements;
-   - the [domain model](../docs/explanation/domain-model.md) and the
-     [Rapthor source-finding contract](../docs/reference/rapthor-source-finding-contract.md),
-     including catalogue, RMS, mask, empty-result, and failure semantics;
-   - the [scientific equivalence gates](#5-scientific-equivalence-gates) and
-     [dataset matrix](#6-dataset-matrix);
-   - the frozen [development](../config/datasets/phase-0-development.json),
-     [regression](../config/datasets/phase-0-regression.json), and
-     [qualification](../config/datasets/phase-0-qualification.json) manifests;
-   - the [Phase 0 baseline results](../docs/reference/phase-0-baseline-results.md)
-     and [scientific comparison method](../docs/reference/scientific-comparison.md)
-     as supporting context; and
-   - the [Phase 0 review record](../docs/reference/phase-0-review-record.md),
-     where the reviewer records their name, role or authority, date, decision,
-     and any required amendments.
-4. **Completed 2026-08-02:** record the scientific pre-review amendments as
-   approved, mark the Phase 3 gate contract `reviewed-provisional`, rerun the
-   relevant contract, equivalence, documentation, and normal handoff checks,
-   and record the closure evidence in `LOG.md`.
-5. Complete the facility review and controlled 1/10/50/100/200-node evidence
-   before calling the extreme-image gates demonstrated. This is not a Phase 1
-   start gate and may remain open after technical and scientific Phase 0
-   closure.
-
-Phase 1 and Phase 2 red-green-refactor work was permitted while steps 1 to 3
-were in progress when it used the frozen PyBDSF profile and clearly
-provisional contracts. Human review does not replace automated comparison and
-need not manually certify every product. It approves whether the dataset
-matrix, tolerances, terminology, defaults, and intentional deviations define
-the right scientific and operational contract; PyBDSF remains a compatibility
-oracle rather than scientific ground truth. This sign-off permits the reviewed
-compact contracts to advance; later phase-specific review and evidence remain
-required before claiming complete scientific equivalence or cutting Rapthor
-over to Hebog.
-
-- [x] Capture the current Rapthor, released PyBDSF, PyBDSF `master`, LSMTool, dependency, and
-      container revisions in the
-      [captured starting inventory](../docs/reference/starting-revisions.md), including installed
-      packages, the master wheel checksum, and the immutable reference-image digest.
-- [x] Reproduce the representative PyBDSF operation timings and current `filter_skymodel` median
-      separately for released PyBDSF `1.14.1` and `master` at
-      `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
-- [x] Define versioned machine-readable benchmark and scientific-comparison evidence schemas that
-      require exact revisions, checksums, resource topology, per-stage metrics, and explicit
-      reasons for unavailable instrumentation.
-- [x] Capture per-stage wall time, CPU time, peak RSS, explicit unavailable array-copy
-      instrumentation, and applicable-zero Dask task/transfer/spill metrics in separate released-
-      PyBDSF and pinned-`master` evidence documents. Require the same schema for each future Hebog
-      run once an implementation exists.
-- [x] Freeze the logarithmic 256-to-100,000-pixel performance matrix, workload-density classes,
-      previous-Hebog comparison schema, and cases bracketing every execution crossover.
-- [x] Measure one-tile setup, I/O, partition-planning, and executor-dispatch overhead so small-image
-      latency has an explicit budget.
-- [x] Freeze the 100,000-by-100,000 scalability contract: input and output planes, target storage,
-      tile/halo constraints, 1/10/50/100/200-plus-node matrix, per-worker memory ceiling, runtime,
-      scheduler-overhead, and strong/weak-scaling efficiency gates.
-- [x] Record the representative production node RAM, workers and threads per node, reserved
-      headroom, concurrent pipeline demand, and permitted cache/spill policy; define a resource-
-      aware tile and batch-sizing policy rather than a fixed universal tile size.
-- [x] Inventory exactly which PyBDSF catalogue fields and image products Rapthor consumes in the
-      [provisional contract](../docs/reference/rapthor-source-finding-contract.md).
-- [x] Inventory the domain language used by PyBDSF, LSMTool, and Rapthor; draft the provisional
-      [glossary](../docs/reference/domain-glossary.md) and agree naming conventions for Hebog's
-      public and internal concepts.
-- [x] Create the system-context and processing/data-flow diagrams and document the domain
-      boundaries in `docs/explanation/domain-model.md`.
-- [x] Record ADR 003 for Hebog's deliberately narrow scope and ADR 004 for external scheduler
-      ownership before those boundaries are implemented.
-- [x] Record ADR 005 requiring hierarchical haloed tiles, bounded worker memory, and deterministic
-      boundary reconciliation for large images.
-- [x] Document the maintainability, extensibility, interoperability, Pythonic
-      style, clean-code, dependency-direction, and coverage requirements.
-- [x] Assess C++ and Rust acceleration and record an evidence-driven Python,
-      NumPy/SciPy, Numba, then native escalation policy.
-- [x] Add architecture tests that reject forbidden inward dependencies from
-      algorithms and domain records.
-- [x] Add tests that reject import-time orchestration or I/O side effects.
-- [x] Decide and record ADR 006 after the compatibility boundary and consumed products are known.
-- [x] Add a versioned dataset-manifest schema and a deterministic,
-      window-addressable synthetic generator whose output is invariant to
-      partition layout.
-- [x] Add immutable released-PyBDSF and PyBDSF-`master` reference products with
-      artifact checksums, exact configuration, and complete provenance.
-- [x] Require exactly one development, regression, or qualification role for
-      every manifest entry.
-- [x] Freeze the regression and initial held-out qualification manifests before
-      algorithm work, with qualification cases excluded from routine tuning.
-- [x] Write analytic unit tests for coordinate/flux matching, ambiguous assignments, RMS/mask
-      comparison, and the report calculations before implementing the comparison harness.
-- [x] Implement coordinate/flux catalogue matching and RMS/mask comparison reports.
-- [x] Configure and document the unit/property, contract, integration, small-equivalence,
-      acceptance, qualification, and benchmark lanes.
-- [x] Write at least one strict expected-failure contract or acceptance test for every frozen
-      public behaviour; an unexpected pass fails until the behaviour and specification are reviewed.
-- [x] Obtain domain review of the glossary, naming conventions, and scientific thresholds in
-      Section 5.
-
-Technical exit gate: documented commands reproduce both baselines and the reference-divergence
-report in clean, isolated environments; comparison tests prove the harness against analytic cases;
-and the held-out qualification set is frozen. ADRs 003, 004, and 005 are accepted, and the
-provisional large-image resource and scaling gates are frozen. This technical foundation is
-complete. Domain review was completed on 2026-08-02; facility review plus
-controlled multi-node evidence remains required before the extreme-image
-gates are called demonstrated.
-
-### Phase 1: FITS, beam, WCS, and internal models
-
-**Technical status:** complete on 2026-08-01. **Release status:** qualified as
-an experimental `0.3.x` infrastructure capability by the
-[Phase 1 release-readiness record](../docs/reference/phase-1-release-readiness.md).
-It does not implement scientific source finding and therefore makes no Hebog
-versus PyBDSF equivalence or speed claim.
-
-Start rule applied: Phase 1 infrastructure and red-green-refactor work was
-permitted while Phase 0 scientific review was in progress. The sign-off and
-approved amendments were recorded on 2026-08-02.
-
-- [x] Write failing round-trip and boundary tests for valid, empty, masked, corrupt, and
-      unsupported FITS inputs and products.
-- [x] Write failing tests for partition manifests, bounded window reads, halo clipping, global and
-      tile coordinates, chunk checksums, interrupted writes, and restartable materialisation.
-- [x] Define versioned internal catalogue and materialised result schemas from
-      failing physical-boundary, relationship, empty, serialization, and restart-metadata tests;
-      keep their scientific status provisional until Phase 0 human sign-off,
-      completed on 2026-08-02.
-- [x] Define a narrow image-source seam and explicit Zarr product boundary from
-      concrete FITS and workflow tests; do not introduce a generic sink protocol,
-      registry, or plugin system before a demonstrated second implementation.
-- [x] Write and accept the intermediate-storage ADR after a measured Zarr v3 prototype; use Zarr
-      as the sole intermediate image-plane backend and remove the private NumPy-file path.
-- [x] Prove aligned independent Zarr writes, strict missing-chunk behaviour, corruption detection,
-      duplicate/conflicting retries, interrupted-run recovery, and exact validated completion
-      manifests on `LocalStore`; retain deployment-store atomicity as a separate open gate.
-- [x] Benchmark the selected Zarr v3 `LocalStore`, fixed codec pipeline, FITS
-      ingestion, and final materialisation at 256, 512, 1,024, and 3,000
-      pixels per side with one warm-up and five measurements; retain the
-      machine-readable results outside Git and the compact findings in the
-      Phase 1 release-readiness record. The first curve justifies retaining
-      the simple fixed policy rather than adding unproven tuning.
-- [x] Define a deterministic partition manifest and ownership rule so every output pixel and source
-      has exactly one owning tile.
-- [x] Read and validate required image planes through bounded windows or a chunk-addressable store;
-      use memory mapping where safe without requiring a worker to map or materialise every plane.
-- [x] Write large intermediate planes in independently retryable chunks before compatibility
-      materialisation.
-- [x] Keep one-tile work to one serial Zarr chunk per image product, with no
-      scheduler fanout or second assembly copy; measure complete ingestion and
-      materialisation overhead before adding any initialization, concurrency,
-      or codec tuning.
-- [x] Make FITS, mask, RMS, and catalogue round-trip tests pass without weakening assertions.
-- [x] Cap Hebog-controlled final-product assembly to one admitted full-width
-      tile row plus the currently decoded chunk, reuse the validated owned
-      chunk for one-tile work, and record complete third-party allocation
-      counters as unavailable rather than fabricated.
-
-Exit gate: reference inputs round-trip with correct coordinates, units, shapes, and invalid pixels;
-the intermediate-storage ADR is accepted from reproducible evidence; missing or incomplete chunks
-fail closed; the package can emit empty, structurally complete internal products; and the same I/O
-contract handles one-tile and many-tile images with memory bounded by configured tile and halo
-sizes. This gate passed on 2026-08-01. Deployment-store concurrency and
-atomicity remain Phase 6/8 qualification work and do not become demonstrated
-because `LocalStore` passed.
-
-### Phase 2: robust background and RMS estimation
-
-- [x] Establish an explicit clipping policy and a vectorised serial oracle for
-      batches of independent windows. Cover constant and negative backgrounds,
-      positive affine transforms, masks, NaNs, bright outliers, zero RMS, and
-      insufficient retained samples without Python loops over windows.
-- [x] Extend analytic and property tests through coarse-grid placement and
-      interpolation for affine backgrounds, edges, sparse adaptive cells, and
-      fallback behaviour.
-- [x] Add tile-boundary and partition-invariance tests for RMS windows, interpolation, and adaptive
-      bright-source regions.
-- [x] Place coarse-grid windows in bounded batches and apply the serial
-      sigma-clipped statistics oracle to satisfy those tests.
-- [x] Compute global coarse-grid and interpolation metadata from bounded batch
-      results, and send local bracketing summaries rather than global grids or
-      complete image planes to output tiles. Multi-level distributed reduction
-      remains part of the Phase 6/8 graph-and-scale gate if the coarse-summary
-      volume or scheduler load becomes material at 30,000 or 100,000 pixels.
-- [x] Reuse prepared coarse summaries and calculate adaptive fine-grid cells
-      only in merged local regions around explicit bright candidates.
-- [x] Interpolate cached coarse samples; fallback interpolation does not
-      recompute statistics.
-- [x] Treat masks, NaNs, edges, negative values, zero RMS, and insufficient
-      samples explicitly.
-- [x] Retain vectorised NumPy, SciPy, and Astropy without Numba: controlled
-      four-core measurements meet both component budgets, so profiling does
-      not justify another implementation path.
-- [x] Do not build a Rust or C++ prototype: no remaining kernel meets the
-      native-code decision gate after the vectorised implementation met the
-      end-to-end component and memory gates. If a candidate later meets the
-      gate, benchmark one
-      minimal Rust and/or C++ prototype against the same Python/Numba contract
-      before selecting a language or accepting an ADR.
-- [x] Benchmark window batching and interpolation slab size on the
-      representative image; retain 64-cell batches and 1,500-by-1,500 output
-      tiles for the recorded four-core curve. Keep float64 as the scientific
-      policy because equivalence is established at that precision; a lower
-      precision remains ineligible until it passes the same suite.
-
-Provisional component budget on the 3000 by 3000 reference image: no more than 4 seconds for the
-true-sky background stage and no more than 3 seconds for the flat-noise RMS product on four
-allocated CPU cores.
-
-Exit gate: the relevant analytic, partition, executor, compact-reference, and
-representative RMS matrix passes. On the controlled 3,000-by-3,000 four-core
-run, the true-sky median was 2.471 seconds against a 4-second budget and the
-flat-noise median was 2.527 seconds against a 3-second budget. Maximum sampled
-Hebog process RSS was 974,192,640 bytes, below the approximately 1.30 GB
-matched PyBDSF observations. This gate passed on 2026-08-01. Raw exploratory
-evidence remains under ignored `benchmark-results/phase-2/`; the committed
-summary and scope limitations are in the Phase 2 release-readiness record.
-Automatic bright-candidate discovery, final product persistence, and
-multi-node graph qualification remain their explicitly assigned later phases.
-
-### Phase 3: thresholding, connected islands, and compact deblending
-
-**Readiness status:** technically complete on 2026-08-01 and scientifically
-approved for the compact experimental `0.x` scope on 2026-08-02. The
-provisional gates were frozen before held-out inspection, all Phase 3-scope
-automated gates pass, and their status is now `reviewed-provisional`. The
-release-readiness record preserves the full representative multiscale
-divergence assigned to Phase 5 rather than weakening the compact contract.
-
-The compatibility evidence is explicit but not automatically normative.
-Released and pinned-master PyBDSF use SciPy connected-component labelling with
-eight-neighbour connectivity, include pixels at the island threshold, require
-a peak strictly above the detection threshold, and normally derive a minimum
-island size from the beam area with a six-pixel floor. Rapthor requests hard
-thresholds and adaptive RMS discovery. Test these observed semantics against
-analytic truth and both frozen references; do not reproduce them silently or
-copy their implementation.
-
-Phase 3 stops at detection topology: accepted connected islands, a
-source-filtering mask, deterministic detection-seed membership, and any
-reviewed deblended regions needed to initialize Phase 4. It does not invent
-photometry to populate the measured `Island` schema, fit Gaussian components,
-group final sources, or materialise a compatibility catalogue. Those remain
-Phase 4.
-`hebog.pipeline.find_sources` therefore remains explicitly unimplemented until
-the later measurement and multiscale stages can satisfy its complete result
-contract.
-
-Execute the phase in the following TDD and closure order. Keep each numbered
-slice as a coherent local commit and allow a small experimental release after
-any useful slice whose stated tests, documentation, and earlier gates pass.
-
-1. **Freeze detection and segmentation contracts before implementation.**
-
-   - [x] Add failing analytic tests for exact threshold boundaries, positive
-         emission only, invalid or zero-RMS pixels, masks, negative
-         backgrounds, diagonal eight-neighbour contact distinguished from
-         four-neighbour behaviour,
-         minimum-size boundaries, image edges, non-square images, and empty
-         or all-invalid detections.
-   - [x] Extend the independent comparison oracle through tests first with
-         mask intersection over union and overlap-based island matching,
-         including split, merge, unmatched, empty, and invalid-region cases.
-         Do not use background-dominated pixel accuracy as the Phase 3 gate.
-   - [x] Add immutable Phase 3 supplements to the existing frozen manifests
-         for SNR bins, close-pair
-         separation and flux ratio, saddle depth, sub-threshold bridges,
-         source density, and every tile-edge/corner topology. Freeze the
-         held-out qualification supplement and reviewed mask/object margins
-         before using reference results to tune an algorithm; do not rewrite
-         the Phase 0 entries or inspect held-out results during TDD.
-   - [x] Record eight-neighbour connectivity and the two threshold comparison
-         rules as fixed, documented compact-detection semantics. Do not expose
-         alternate connectivity without a concrete workflow. Make the
-         minimum/maximum island-size policy explicit in typed scientific
-         configuration. The Rapthor adapter may derive its
-         compatibility values from beam metadata, but the scientific kernel
-         must not inherit a hidden workflow default.
-
-2. **Implement bounded normalization and two-threshold detection.**
-
-   - [x] Add a pure serial tile kernel that computes
-         `(image - background) / rms` only for finite, valid, positive-RMS
-         pixels and emits separate island-membership and detection-seed masks.
-         Invalid pixels are never members or seeds; negative emission is not
-         detected by the initial total-intensity profile.
-   - [x] Prove positive-affine invariance and the two distinct monotonicity
-         properties in Section 7.3. An island-threshold increase may split a
-         component even though the active-pixel mask only shrinks.
-   - [x] Fuse normalization with thresholding for each bounded tile by
-         default. Do not persist a complete normalized plane or add another
-         storage backend unless reuse measurements demonstrate a complete-path
-         benefit.
-
-3. **Complete automatic adaptive-RMS candidate discovery and persistence.**
-
-   - [x] Add an explicit high-significance adaptive-candidate policy and use
-         the same threshold/connectivity primitives to scan bounded tiles
-         against the cached coarse background/RMS interpolation. Select a
-         candidate's global peak deterministically, resolving equal peaks by
-         lexicographic `(y, x)` position.
-   - [x] Reconcile candidates that cross tile sides or corners, request sparse
-         adaptive refinement from the existing coarse cache, and prove that
-         neither coarse statistics nor candidate regions are recomputed
-         because of partition shape, task order, or retry.
-   - [x] Compare piggybacked candidate summaries with a separate bounded scan
-         and retain the simpler path unless complete-stage evidence justifies
-         extra coupling. Record any additional image read explicitly.
-   - [x] Publish owned background/RMS tiles through the Phase 1 Zarr generation
-         contract and prove restart, duplicate retry, and missing-chunk
-         behaviour without assembling a full plane.
-
-4. **Establish the one-tile connected-island oracle with SciPy.**
-
-   - [x] Use the established `scipy.ndimage` labelling and reduction
-         primitives first. Adopt the reviewed connectivity, accept a component
-         only when its combined pixels satisfy the size policy and contain a
-         detection seed, and keep threshold inclusion rules explicit.
-   - [x] Reduce pixel count, global bounding box, peak SNR and position,
-         lexicographically smallest member pixel, and image-edge contact in
-         vectorised or compiled library operations. Do not copy the image once
-         per island or loop over island pixels in Python.
-   - [x] Define detection-stage records separately from measured catalogue
-         records. Assign final island identifiers and ordering from canonical
-         reconciled global properties, never local SciPy labels or executor
-         completion order.
-
-5. **Reconcile islands before deblending.**
-
-   - [x] Put compact sources and islands across every side, diagonal, and
-         four-tile corner topology. Exercise shifted partition origins, tile
-         shapes, worker counts, reversed completion, deterministic retry, and
-         labels whose local numeric values deliberately differ.
-   - [x] Summarize boundary label contacts, including diagonal corner contact
-         for eight-neighbour connectivity, and merge equivalences and island
-         reductions hierarchically. Summary volume and graph size must scale
-         with tile boundaries and island shards, not pixels or scheduler-held
-         full label planes.
-   - [x] Write accepted boolean source-filtering-mask cores as independently
-         owned Zarr chunks. A diagnostic label plane is optional and must not
-         become a prerequisite for reconciliation or catalogue ownership.
-   - [x] Prove one-tile and many-tile membership, global summaries, stable
-         identifiers, and scientific mask values are identical before
-         comparing Hebog with PyBDSF.
-
-6. **Select and implement only the deblending needed by the compact contract.**
-
-   - [x] Define the observable output as deterministic regions or seeds for
-         later measurement, not as fitted Gaussian components or final
-         sources. Specify equal-peak, saddle, boundary, noise, and failure
-         behaviour in analytic tests first.
-   - [x] Compare documented multilevel and watershed approaches using mature
-         SciPy primitives. Evaluate scikit-image only if its established
-         implementation materially improves scientific behaviour or reduces
-         maintained custom code enough to justify its runtime, wheel, worker
-         image, and serialization cost. Do not add it speculatively.
-   - [x] Accept the simplest algorithm that passes close-pair separation,
-         flux-ratio, saddle-depth, edge, and partition tests. Record an ADR
-         only if the selection creates a durable dependency or compatibility
-         consequence.
-   - [x] Batch bounded reconciled compact-island regions by pixel cost. Large
-         or extended islands must remain explicit, deterministic input for the
-         Phase 5 partitioned/multiscale path; never drop them, silently treat
-         them as successfully deblended, or materialise an unbounded island on
-         one worker.
-
-7. **Qualify the phase and record release readiness.**
-
-   - [x] Expand generated-truth tests into SNR-stratified seed/island
-         completeness and reliability, object overlap, split/merge, blend,
-         edge, and source-density reports with confidence intervals where
-         appropriate.
-   - [x] Compare the Hebog source-filtering mask and connected regions derived
-         from each mask with both exact PyBDSF references on the
-         redistributable compact case and with the controlled representative
-         products. Report reference divergence rather than selecting one
-         reference as truth.
-   - [x] Add serial/Dask conformance tests after the serial semantics pass.
-         Keep executor tasks coarse and prove retry and task-order invariance.
-   - [x] Benchmark the complete Phase 3 detection, labelling,
-         reconciliation, and compact-deblending stage at 256, 512, 1,024, and
-         3,000 pixels per side across sparse, normal, and dense compact
-         workloads. Use one warm-up and at least five repetitions, retain
-         task, summary-volume, CPU, wall-time, and peak-memory evidence, and
-         compare affected tiers with the previous Hebog curve.
-   - [x] Publish a Phase 3 release-readiness record stating implemented
-         capability, scientific evidence, performance, portability checks,
-         limitations, and the remaining Phase 4/5 work.
-
-Use the same thresholding, labelling, reduction, and reconciliation semantics
-for a one-tile image and a distributed image. Whole-image SciPy labelling may
-optimize the one-tile case, but it must not become a second scientific
-implementation or a prerequisite for correctness. There must be no all-pairs
-island matrix, task per island, or algorithm whose worker memory grows with
-the complete image. Benchmark a log-spaced source-density ladder and
-investigate any superlinear growth; an unexplained all-pairs or quadratic path
-fails the phase even when the representative image is fast.
-
-Exit gate: analytic topology cases are exact; generated and dual-reference
-Phase 3-scope mask, seed, island, blend, edge, partition, and executor reports
-meet the provisional gates; the named scientific review has approved the
-relevant semantics, margins, and explicit multiscale deferral; and the
-controlled four-core 3,000-by-3,000 complete Phase 3 stage median is no more
-than the inclusive 3.5-second component budget without regressing earlier RMS
-evidence. The 3.5-second gate includes durable background, RMS, and mask Zarr
-publication, which the original provisional 2.5-second line also counted in a
-later output budget. The later output allocation is reduced by the same one
-second, so this clarification does not grow the complete performance budget.
-Memory, task count, boundary-summary volume, and the density ladder show no
-image-sized gather or quadratic source-count path. Automated technical gates
-passed on 2026-08-01: the exact representative median was 3.193 seconds and
-the generated 3,000-square sparse/normal/dense medians were 2.848, 2.963, and
-3.489 seconds. Gemma Danks approved the scientific decisions on 2026-08-02,
-so the Phase 3 exit gate passes. This establishes compact detection topology
-only, not catalogue equivalence, multiscale completeness, Rapthor readiness,
-or the complete project speedup.
-
-### Phase 4: measurement, fitting, and catalogue compatibility
-
-**Readiness status:** compact single-scale milestone closed on 2026-08-05
-after the separate Phase 4U qualification, exact optimized-candidate
-regression replay, and controlled incremental performance matrix passed.
-Phase 4 starts from deterministic connected islands and compact
-deblended-region topology. It measures compact emission, fits and associates
-Gaussian components where justified, and produces a Rapthor-compatible
-catalogue view. It does not silently measure Phase 3 deferrals, implement
-multiscale emission, or claim the complete `filter_skymodel` workflow; those
-remain Phase 5 and Phase 7 work.
-
-**Execution status:** Steps 1--8 are complete for the compact milestone.
-Historical failed campaign decisions remain immutable, and production
-cutover retains later real-residual, independent human scientific,
-end-to-end workflow, and multi-node scale gates. Step 1 was completed on
-2026-08-02 without generating or inspecting qualification results. Gemma
-Danks reviewed and approved the
-measurement policy after the gate amendments recorded below. Those decisions
-remain recorded, but the contracts are frozen-provisional after the third
-held-out failure so the consumed campaign cannot be rerun accidentally. Step 2
-was completed on 2026-08-02 with an exact,
-bounded worker-local region processor that is serial/Dask invariant and returns
-only compact records. Step 3 was completed on 2026-08-02 with a vectorized
-owned-pixel moment oracle, explicit availability outcomes, and serial/Dask
-record equivalence. Step 4 was completed on 2026-08-02 with a bounded fit-all
-SciPy reference, independent Astropy agreement, typed failure outcomes, and
-serial/Dask equality. Step 5 now has celestial transformation, beam
-deconvolution, correlated-noise sandwich covariance, and explicit
-uncertainty-availability semantics. Steps 6 and 7 now construct bounded
-canonical catalogue shards, materialise the minimal Rapthor FITS view, and
-pass both exact compact PyBDSF references. The generated close-pair regression
-exposed
-a scientific-contract blocker: three sub-beam pairs have only one observable
-image maximum, so the reviewed one-region/one-source rule cannot satisfy the
-declared seven-source completeness gate. Gemma Danks approved the
-observable-resolvability and explicit truth-group amendment on 2026-08-03.
-The affected regression and unseen qualification definitions now require
-replacement and review before qualification inspection.
-
-Manifest schema 2 and the replacement definitions were prepared on
-2026-08-03 without generating or inspecting replacement held-out output. The
-approved observable groups pass the crowded regression. That run exposed a
-second contract issue: flat absolute tail gates fail ordinary noise scatter
-for one 12-SNR source. Provisional unresolved-group margins and an
-SNR-stratified confidence-interval decision rule now require named numerical
-review before qualification inspection. Gemma Danks approved those numerical
-and statistical amendments on 2026-08-03; regression and calibration
-implementation now precede the first held-out run. Generator-v3
-beam-correlated noise, generalized sandwich covariance, and a bounded
-residual-background context fit now pass the powered regression campaign.
-Each SNR stratum contains 1,600 eligible measurements across the same 200
-predeclared noise realizations.
-
-The first and only inspection of the powered held-out campaign was run on
-2026-08-03 after regression passed. Completeness, overall reliability,
-measurement availability, position calibration, and most flux calibration
-gates passed. The campaign nevertheless failed the reviewed classification,
-catastrophic-outlier, and four normalized-mean gates. No parameter, population,
-seed, or margin was changed after inspection. Phase 4 is scientifically
-blocked; its performance qualification is deferred because the closure order
-does not benchmark a known-ineligible scientific implementation. Preserve the
-failed campaign as governed evidence, freeze a new unseen campaign before any
-corrective implementation work, and obtain review for the unresolved-group
-reliability denominator and any revised boundary-classification policy.
-
-Literature review on 2026-08-03 selected a frozen-provisional correction before
-production changes: use the ATLAS two-sigma integrated-to-peak uncertainty
-test, gate point-source specificity and clearly resolved recovery separately,
-report marginal-extension classification by SNR, use peak flux for
-beam-compatible sources, and retain reliability only as a global catalogue
-metric. The viewed campaign is archived unchanged. A second unseen campaign
-with 200 disjoint seeds, distinct WCS, negative background, varying RMS,
-invalid pixels, correlated noise, and predeclared point/clear/marginal shape
-strata is frozen at recipe SHA-256
-`54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49`.
-Corrective TDD is complete and the independent powered regression passes. It
-predeclares clear extension as fitted-to-beam truth area ratio at least 3 and
-SNR at least 25, keeps moderate extension and resolved/marginal integrated-flux
-uncertainty report-only, and records the intentional peak-as-total divergence
-from raw unresolved PyBDSF output. Gemma Danks approved the amendment on
-2026-08-03; both contracts are reviewed-provisional and the campaign remained
-unopened throughout review.
-
-The third frozen campaign was opened exactly once on 2026-08-03 after Gemma
-Danks approved the marginal-flux and image-footprint corrections. It recovered
-all 6,600 truth groups, passed reliability, availability, classification,
-shape, position, peak-flux, and unresolved-group gates, but failed two frozen
-scientific decisions. Thirty-six of 6,400 matched individual sources were
-gated catastrophic outliers (0.5625% against the 0.5% maximum), and the
-unresolved integrated-flux normalized-residual mean interval was
-0.0823--0.1846, crossing the approved absolute 0.15 boundary. The 34,746-byte
-ignored evidence record has SHA-256
-`ed060b7703161ba01037939ff9a8e4b6e3d6ab527dc3b1fd45753dfb69c1165e`.
-No rerun, gate change, or post-inspection tuning occurred. The campaign is now
-viewed evidence, both contracts have returned to frozen-provisional to prevent
-accidental reuse, Phase 4 remains scientifically blocked, and controlled
-performance qualification remains ineligible. Do not create a succession of
-replacement campaigns merely to obtain a pass; require a new reviewed
-scientific recovery protocol before any further held-out campaign.
-
-A same-campaign reference audit on 2026-08-03 established the recovery
-direction without rerunning Hebog. Released PyBDSF 1.14.1, using Rapthor's
-exact source-finding options on the third campaign, recovered 6,599 of 6,600
-groups with 99.75% point-source specificity and a 0.1875% canonical
-catastrophic rate. It passed those headline gates but failed 16 normalized-
-uncertainty decisions and both unresolved-group 95th-percentile gates. The
-complete comparison has SHA-256
-`298b91312749953ef6b356fbc863343f693a0378aa0aa46815c60bb229640eb0`.
-Pinned performance-improved PyBDSF `master` at
-`c70103be3ae9ae9908286f144e6ce956acc0ce5c` cannot complete the same campaign:
-with Rapthor's required atrous path it raises an out-of-bounds `IndexError` on
-frozen seed `2026090152`, while released PyBDSF and Hebog complete that input.
-The campaign therefore combines compatibility questions with stronger
-truth-based requirements that PyBDSF itself does not meet. Gemma Danks has
-approved the direction to preserve Hebog's better scientific results, correct
-the remaining point-classification and catastrophic-tail weaknesses until
-Hebog is equal to or better than released PyBDSF, close Phase 4, and then make
-scalability the next active engineering focus. Numerical paired-comparison
-margins and the final campaign power remain subject to named review before
-the next qualification population is frozen.
-
-The scientific basis for this phase is [Condon's treatment of errors in
-elliptical Gaussian fits](https://doi.org/10.1086/133871), the
-[ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19),
-the [Aegean 2.0 analysis of correlated-noise fitting and
-uncertainties](https://doi.org/10.1017/pasa.2018.3), and the documented
-[PyBDSF measurement and grouping
-stages](https://pybdsf.readthedocs.io/en/latest/process_image.html). These
-sources establish useful methods and validation questions, not an obligation
-to reproduce one implementation. Use the established
-[Astropy WCS API](https://docs.astropy.org/en/stable/wcs/wcsapi.html) for
-coordinate conversion and evaluate the bound-constrained
-[SciPy least-squares implementation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html)
-before maintaining a custom fitter.
-
-1. **Freeze Phase 4 meanings, datasets, and gates before tuning.**
-
-   - [x] Write a versioned Phase 4 scientific contract and a failing contract
-         test before production measurement code. Define the measurement
-         plane, valid-pixel and region ownership, MFS reference frequency,
-         supported image units, pixel and beam areas, peak and integrated
-         flux, local RMS, fitted and deconvolved ellipses, uncertainty
-         confidence level, and every coordinate and position-angle
-         convention. Require explicit conversion or rejection; never infer
-         missing units or WCS metadata.
-   - [x] Keep island, deblended region, fitted Gaussian component, grouped
-         source, catalogue row, and sky-model component distinct. Freeze the
-         compact association policy from analytic blends and the dual
-         references instead of assuming that one region, Gaussian, or island
-         always equals one source.
-   - [x] Define internal unresolved emission as an absent deconvolved shape
-         plus a canonical quality flag. If the LSMTool-compatible FITS view
-         requires PyBDSF's zero-axis sentinel, translate it only in the
-         adapter and test that no scientific calculation interprets zero as a
-         measured physical size.
-   - [x] Add immutable Phase 4 development and regression supplements for
-         unresolved and resolved elliptical Gaussians over SNR, sub-pixel
-         centroid, beam ellipticity, source density, and blend-separation
-         ladders. Include rotated WCS, unequal pixel scales, non-square images,
-         image edges, masked/NaN pixels, negative backgrounds, varying RMS,
-         fit failure, singular covariance, and marginal deconvolution. Keep
-         numerical failure cases as governed analytic contract cases where
-         encoding them as multi-source sky truth would be misleading.
-   - [x] Freeze a new unseen Phase 4 qualification supplement and its generator
-         before inspecting its results. Do not relabel the already-inspected
-         Phase 3 held-out image as unseen measurement evidence. Include
-         repeated noise realizations sufficient to assess bias and
-         uncertainty coverage by SNR, shape, blend, and edge class.
-   - [x] Extend the independent comparison oracle, TDD first, with fitted and
-         deconvolved shape, position angle modulo 180 degrees, uncertainty
-         calibration, island/source/component association, quality flags,
-         and catastrophic-outlier reports. Preserve separate released and
-         pinned-`master` PyBDSF results and report reference divergence.
-   - [x] Retain the Section 5 position and flux gates for their declared
-         populations. Before held-out inspection, add frozen-provisional
-         shape, deconvolution-classification, association, bias, catastrophic
-         outlier, and uncertainty-coverage margins to the versioned contract.
-         Promote them to reviewed-provisional only after named review.
-         Analytic noiseless cases and deterministic grouping decisions are
-         exact within declared numerical tolerances; low-SNR results remain
-         stratified curves, not one aggregate pass fraction.
-   - [x] Obtain named human scientific review of the contract, datasets,
-         proposed margins, and any departure from the literature or
-         cross-pipeline consensus before treating a measurement policy as a
-         stable default. Red tests and disposable algorithm-selection
-         prototypes may precede review; an unreviewed prototype must not
-         become the accepted scientific implementation. Use the completed
-         [Phase 4 scientific review record](../docs/reference/phase-4-review-record.md)
-         to record the decision and amendments.
-   - [x] Select all gated populations from reference or injected truth, count
-         missing candidate values as unavailable, and gate fitted shape,
-         deconvolution classification/shape, parent identity, and position or
-         flux uncertainty availability explicitly. Restrict position-angle
-         evidence to reference ellipses with major/minor axis ratio at least
-         1.1. Require at least 200 independent eligible uncertainty
-         measurements per stratum and predeclare 95% interval methods with an
-         entire-interval-within-margins decision rule before qualification
-         inspection.
-
-2. **Preserve exact region membership through one bounded worker pipeline.**
-
-   - [x] Add a regression test demonstrating that deblended-region bounding
-         boxes are not membership masks and cannot recover touching or
-         overlapping watershed regions. Never measure a region by treating
-         every pixel in its bounding box as owned.
-   - [x] Refactor the coarse compact batch operation so the Phase 3 deblend
-         labels remain worker-local through moment calculation and fitting,
-         then return only compact typed records. Reuse the existing deblend
-         algorithm; do not rerun it per measurement, send its label arrays
-         through the scheduler, or require a full diagnostic label plane.
-   - [x] Read only the admitted image, background, RMS, validity, and
-         source-filtering-mask windows for each coarse batch. Account for
-         every temporary array in the existing compact island, bounds, and
-         batch memory limits, and preserve explicit Phase 5 deferrals.
-   - [x] Keep the Phase 3 stage result useful for topology inspection, but make
-         the Phase 4 handoff explicit enough that a summary-only caller cannot
-         accidentally invent measurement membership.
-
-   `run_compact_region_stage` now invokes a typed processor inside each
-   existing coarse task with immutable physical residual, RMS, validity, and
-   exact int32 watershed labels. It selects one parent connected component
-   from a boolean mask window by the reconciled first pixel, so nested bounds
-   cannot mix islands. Only compact processor records and topology summaries
-   are gathered. Retained processor arrays are exactly 21 bytes per admitted
-   bounds pixel and the result reports the largest actual batch; source/product
-   reads remain bounded by `maximum_batch_pixels`, while normalized and SciPy
-   watershed work remain bounded by one compact island. The summary-only API
-   still returns no membership plane and all Phase 5 deferrals are preserved.
-
-3. **Implement moments as the readable serial oracle and fit initializer.**
-
-   - [x] Write failing analytic and property tests for amplitude, peak,
-         centroid, second central moments, covariance, position angle,
-         island/region flux, local RMS, translation, rotation, positive
-         scaling, mask exclusion, and deterministic reduction order.
-   - [x] Calculate moments with vectorised NumPy/SciPy reductions over exact
-         owned pixels. Use the physical background-subtracted plane for flux
-         and the normalized plane only where the contract explicitly calls
-         for signal-to-noise; do not loop over pixels or RMS windows in Python.
-   - [x] Convert Jy/beam pixel sums to integrated Jy using reviewed pixel and
-         restoring-beam solid angles. Keep island pixel-sum flux distinct from
-         fitted Gaussian integrated flux and test both against generated
-         truth.
-   - [x] Return explicit statuses for non-finite, non-positive,
-         underdetermined, or numerically singular moments. Do not fabricate a
-         valid ellipse, flux, or zero-valued uncertainty from invalid input.
-
-   `run_compact_moment_stage` applies the pure vectorized oracle inside the
-   Step 2 coarse worker-local processor. It reports the parent island and each
-   exact region in canonical order. Owned-pixel photometry carries an
-   explicitly named finite-mask flux; a separate Gaussian-area helper defines
-   later fitted-component flux without conflating the two. Brightness-weighted
-   global pixel centroids and covariance provide a fit initializer, with
-   pixel-space orientation counterclockwise from positive x. Typed valid,
-   shape-unavailable, and unavailable outcomes preserve usable photometry
-   without fabricating shape, flux, or uncertainty. Analytic/property tests
-   cover translation, rotation, scaling, masking, deterministic order, solid
-   angle conversion, all governed moment failures, and serial/Dask equality.
-   No qualification result was generated or inspected in this step.
-
-4. **Select and implement compact Gaussian fitting from evidence.**
-
-   - [x] Establish a fit-all compact reference lane initialized by the moment
-         oracle. Fit bounded two-dimensional elliptical Gaussian models to
-         the physical residual with explicit amplitude, center, ordered-axis,
-         orientation, iteration, and convergence constraints.
-   - [x] Compare Astropy modelling and SciPy `least_squares` on analytic,
-         blend, failure, and representative compact batches. Prefer the
-         smallest established implementation that passes the science suite
-         and complete-stage profile. Supply a tested analytic Jacobian if it
-         materially improves robustness or latency. Do not add native code
-         unless the existing native-code gates are met.
-   - [x] Define failure and non-convergence as typed outcomes with retained
-         moment initialization and canonical quality flags. Decide through
-         the reviewed contract when a failed fit may produce a scientifically
-         usable source and when it must remain unavailable.
-   - [x] Batch fits by admitted region pixels and estimated component count,
-         cap work per task, and retain enough coarse tasks for occupancy.
-         Never create one executor or Dask task per source or fit.
-   - [x] Propose selective fitting only after the fit-all reference exists.
-         A moment-only fast path must use pre-fit information, have an
-         explicit eligibility status, and match fit-all catalogue acceptance,
-         shape classification, and downstream decisions within frozen
-         margins across development and regression matrices. Otherwise keep
-         the fit; runtime evidence alone cannot justify biased selection.
-
-   The accepted reference uses SciPy's bounded TRF `least_squares` solver on
-   RMS-weighted physical residuals plus a bounded local residual-background
-   offset. Astropy `Gaussian2D` with its TRF fitter
-   independently recovers the same analytic parameters; SciPy keeps the
-   production boundary smaller while directly exposing the residual Jacobian,
-   bounds, work limit, and diagnostics. Fits remain inside existing coarse
-   region tasks, so task count scales with admitted batches rather than
-   sources. Every eligible compact region is fitted: no selective fast path
-   is proposed because no complete-stage scientific and runtime evidence yet
-   justifies one. A declared Gaussian pixel-noise correlation function uses a
-   generalized OLS sandwich covariance; independent-pixel covariance is a
-   flagged fallback when no correlation model is available. Singular
-   covariance is absent rather than zero. Component RMS is bilinearly sampled
-   at the fitted centroid in the retained context coordinate frame.
-
-5. **Transform positions and ellipses, deconvolve the beam, and calibrate
-   uncertainties.**
-
-   - [x] Use zero-based `(x, y)` Astropy pixel-to-world conversion and a local
-         tangent-plane WCS Jacobian to transform centers, covariance matrices,
-         and errors. Test rotated axes, RA wraparound, unequal and signed
-         pixel scales, non-square images, and the reviewed celestial
-         position-angle convention.
-   - [x] Deconvolve fitted and restoring-beam ellipses through covariance
-         matrices. Test rotations and near-singular cases against analytic
-         truth and an independent implementation. Evaluate the established
-         `radio_beam` package before maintaining domain-specific edge handling;
-         add it only if the correctness and maintenance benefit justifies the
-         dependency.
-   - [x] Treat Condon-style correlated-noise error propagation as a baseline,
-         not automatically calibrated truth. Compare candidate covariance or
-         Fisher-information calculations with injected Monte Carlo truth and
-         the Aegean 2.0 findings, using normalized residuals and coverage
-         reports for position, peak/integrated flux, and shape.
-   - [x] Represent underconstrained or uncalibrated errors as absent with a
-         canonical quality flag. Never use zero to mean unknown. Freeze any
-         SNR floor or approximation with human review and report shape-error
-         limitations explicitly.
-
-   Astropy reconstructs the celestial WCS only inside the transformation
-   boundary. A local east/north Jacobian transforms centroids, fit covariance,
-   and local pixel area while preserving rotation, unequal and signed scales,
-   projection effects, and RA wraparound. Fitted and beam ellipses are
-   deconvolved as two-by-two covariance matrices. Fully and marginally
-   unresolved results remain null internally, with the marginal state carrying
-   an additional diagnostic flag. For noisy fits, positive deconvolution must
-   also pass the standardized ATLAS integrated-to-peak uncertainty statistic.
-   The recovery policy now requires five sigma: the earlier two-sigma rule's
-   documented false-extension tail assigns physical sizes too readily, while
-   independent regression left a wide 3.38-to-17.92 sigma separation between
-   point and clearly resolved populations.
-   Point-source specificity and clear-extension recall remain gated
-   separately.
-   `radio_beam` was evaluated but not added:
-   Hebog's reviewed three-state policy still requires explicit logic and direct
-   NumPy covariance subtraction keeps the boundary smaller. Correlated-noise
-   sandwich position and flux errors are transformed when available; shape
-   errors and singular/uncalibrated values are null with quality flags. The
-   corrected powered regression passes for position, peak flux, unresolved
-   peak-as-total flux, point specificity, and clearly resolved recall. Moderate
-   extension classification and resolved/marginal integrated-flux uncertainty
-   remain report-only. The replacement held-out campaign was opened once after
-   named approval and failed catastrophic-flux and low-SNR/edge availability
-   gates, so qualified uncertainty calibration remains an open Phase 4 exit
-   condition.
-
-6. **Associate records and construct deterministic bounded catalogues.**
-
-   - [x] Build `Island`, `GaussianComponent`, and `SourceCandidate` records
-         independently, then apply the reviewed association policy. Derive
-         canonical IDs and ordering from Phase 3 global identities and
-         scientific association keys, never task completion, partition-local
-         labels, or worker count.
-   - [x] Write compact catalogue shards per coarse batch and combine counts,
-         offsets, identities, and summary metadata with a bounded tree
-         reduction. Final FITS materialisation may stream ordered row groups;
-         it must not gather image-sized state or an unbounded source
-         population in scheduler memory.
-   - [x] Reuse the current versioned catalogue models, Zarr generation
-         boundary where durable intermediate ownership is required, and
-         Astropy FITS output. Do not add Arrow/Parquet or a second private
-         catalogue store without a measured requirement and an ADR amendment.
-   - [x] Prove one-tile/many-tile, serial/executor, tile-shape, worker-count,
-         task-order, and retry invariance for IDs, associations, quality flags,
-         ordering, and numeric fields.
-   - [x] Return partial compact records and explicit deferrals only from an
-         explicitly incomplete stage API. Do not materialise a normal
-         compatibility catalogue or successful `find_sources` result while
-         Phase 5 regions are omitted. Keep the complete public behaviour's
-         strict expected failure until compact and multiscale results merge.
-
-   One typed shard is emitted by each existing coarse task. Canonical pairwise
-   reduction has fan-in two and logarithmic depth; the convenience final
-   in-memory catalogue rejects a source population above its explicit cap.
-   This closes the compact Phase 4 fan-in path without adding Arrow, Parquet,
-   or another storage model. One/many-tile, serial/two-worker Dask, input-order,
-   and retry tests preserve identities, values, flags, and ordering. Any fit
-   omission or Phase 5 deferral prevents normal catalogue completion.
-
-7. **Materialise and validate the Rapthor compatibility view.**
-
-   - [x] Write failing FITS contract tests through the pinned Rapthor Astropy
-         reader before implementing the adapter. Rapthor, not LSMTool, reads
-         this FITS product; its diagnostic path then generates makesourcedb
-         text for LSMTool. Freeze the smallest loadable view:
-         the eight directly consumed `Source_id`, `RA`, `DEC`,
-         `Isl_Total_flux`, `Total_flux`, `DC_Maj`, `E_RA`, and `E_DEC` fields,
-         plus only the companion columns the real reader or reviewed
-         diagnostics require. Do not reproduce all incidental PyBDSF columns
-         by default.
-   - [x] Freeze exact field units, dtypes, null/sentinel translation, source
-         numbering, ordering, empty-table schema, metadata, and the mapping
-         from the internal island/source/component records. Keep dummy sky
-         model components and unavailable-RMS compatibility placeholders at
-         the Rapthor adapter boundary.
-   - [x] Materialise the compact-reference catalogue deterministically and
-         verify it against both exact PyBDSF references. On the representative
-         reference, report the known released/`master` row and grouping
-         divergence by class; do not fail Phase 4 for emission that the
-         reviewed Phase 5 multiscale path owns.
-   - [x] Extend the independent adapter oracle to compare the catalogue-based
-         compact-source diagnostic selections and mask-based retained/rejected
-         sky-model decisions on complete, no-deferral fixtures. Reserve actual
-         Rapthor orchestration, filtered-model publication, restart, and
-         end-to-end `filter_skymodel` claims for Phase 7.
-   - [x] Update the schema and compatibility documentation and the living
-         Marimo notebook with compact measurements, fitted/deconvolved shapes,
-         quality flags, and catalogue output. State the multiscale and
-         workflow limitations visibly.
-
-   The adapter publishes exactly the eight directly consumed columns with
-   frozen FITS types and units, a zero-row schema, adapter-only unresolved zero
-   sentinel, NaN unknown errors, deterministic checksums, atomic validation,
-   and conflict-safe retries. Unresolved `Total_flux` uses peak flux; a
-   significantly resolved row uses the free fitted-Gaussian integral. After
-   applying this declared community-policy view, the same three-row Hebog
-   catalogue passes every frozen exact compact gate against released and
-   pinned-`master` PyBDSF. Raw reference bytes remain unchanged and a focused
-   test records the one unresolved PyBDSF row whose total is about 39% below
-   its peak.
-   Rapthor's catalogue diagnostic cuts retain the same three rows, and
-   pixel-centre mask decisions pass the 99.5% downstream agreement threshold.
-   Per-channel flux-normalization columns, orchestration, and filtered-model
-   publication remain outside the MFS-only Phase 4 adapter.
-
-8. **Qualify the phase and prepare the release.**
-
-   - [x] Run analytic/property, contract, integration, dual-reference
-         equivalence, acceptance, and held-out qualification lanes in oracle
-         order. The serial science must pass before executor conformance, and
-         both must pass before PyBDSF or downstream comparisons.
-   - [x] Add a permanent same-image dual-reference campaign runner and a
-         versioned per-source diagnostic record. Preserve the reference
-         version, image seed, truth and candidate identities, match decision,
-         extension classification, quality flags, every catastrophic metric,
-         and every normalized residual so a failed aggregate can be explained
-         without rerunning or tuning against viewed qualification data.
-
-   The maintained runner is invoked independently in the immutable released
-   and pinned-`master` PyBDSF environments, with a matching candidate runner
-   exercising Hebog's complete bounded serial compact path. The runners write
-   mergeable implementation shards, continue past a recorded exception,
-   refuse to overwrite evidence, and preserve association-group as well as
-   individual-source decisions. Their shared runtime module prevents
-   provenance and failure semantics from drifting. The candidate-first
-   compiler rejects dataset, seed, contract, or protocol drift. The final
-   qualification candidate shard remains deliberately unopened until the
-   reviewed paired protocol and final population are frozen; regression
-   shards may be used to verify planning assumptions.
-
-   - [x] Draft a strict paired non-inferiority contract and executable power
-         calculation for named review. The draft proposed 600 independent
-         image realizations, whole-image paired BCa resampling, one-sided 95%
-         intervals, all-endpoint intersection-union passage, retained
-         failures, and one final look. It explicitly quantified the unstable
-         directional point-estimate condition separately from interval-
-         exclusion power so review could decide whether to retain it.
-   - [x] Verify every planning variance bound on independent
-         development/regression data. The maintained 50,000-resample audit
-         recomputes every endpoint by whole image and verifies the combined
-         paired dispersion directly; this avoids inventing false-candidate
-         identities where discordance and intracluster correlation are not
-         separately identifiable. The revised draft rounds failed bounds
-         above observed dispersion, uses at most half the observed favourable
-         effect, changes no scientific margin, and retains 92.2% minimum
-         interval-exclusion power at 600 images.
-   - [x] Obtain named review of the endpoints, practical margins,
-         regression-supported planning inputs, 600-image design,
-         multiplicity rule, stopping rule, five-sigma extension policy, and
-         stricter no-worse point-estimate condition; then change the protocol
-         status to reviewed before freezing any final seeds or truth. Gemma
-         Danks, Data Processing Software Engineer, approved the design on
-         2026-08-03 and approved removal of the extra sign gate. Point
-         estimates remain mandatory report fields; every one-sided upper
-         bound, absolute gate, and stronger-Hebog envelope must pass.
-   - [x] Freeze the final population without generating or inspecting it.
-         `phase-4-final-qualification.json` contains exactly 600 disjoint
-         seeds and a distinct WCS, background, invalid region, correlated-
-         noise gradient, and rotated layout. The rotation preserves the
-         governed blend-to-beam geometry and all 33 truth-group, 32
-         individually resolvable, eight point, one clear, and one unresolved-
-         blend endpoint populations. Recipe SHA-256 is
-         `15f8f607463f2db4cf4c0eb72255a998784e2d83d3a0d7ebc45eb733f6fbc7db`;
-         complete campaign dataset SHA-256 is
-         `07c736a9bafc79fb298ad1c076fb29b93d88ce9f988f38bba99c94af519d1fcb`.
-   - [x] Implement and freeze the final one-look decision evaluator before
-         opening the population. Extend the per-source diagnostic record with
-         the fitted and deconvolved position-angle differences required by the
-         existing absolute gates. The evaluator must recompute every endpoint,
-         apply the reviewed paired one-sided 95% SciPy BCa upper limits,
-         require every absolute science gate and stronger-Hebog envelope,
-         retain failed realizations in the denominator, and emit one immutable
-         machine-readable decision. Test the interval, degenerate, missing-
-         field, implementation-failure, and gate-failure paths on analytic or
-         viewed regression evidence only.
-         `phase_four_decision.py` now shares every aggregate statistic with
-         the planning audit, uses one vectorized whole-image SciPy BCa call for
-         the 20 endpoints, preserves primary and secondary failure policy,
-         distinguishes true gates from report-only individual-source tails,
-         evaluates the entire-interval uncertainty rules, and emits a strict
-         `phase-4-qualification-decision` evidence document. The maintained
-         CLI refuses to overwrite an earlier decision. Analytic tests cover
-         finite and degenerate intervals, missing position angles, absolute
-         gate failures, report-only tails, implementation failures, provenance
-         drift, and the complete decision orchestration without opening the
-         final population.
-   - [x] Obtain named pre-opening review of the finite point-mass bootstrap
-         case exposed by the completed evaluator. On the already-viewed,
-         post-correction regression campaign, 12 endpoints have finite passing
-         BCa upper limits and eight exact-equality endpoints have a degenerate
-         bootstrap distribution. SciPy consequently returns `NaN`, and the
-         original `indeterminate-fail` rule correctly made those eight
-         endpoints indeterminate. This meant a final campaign with exact
-         Hebog/PyBDSF equality on any co-primary endpoint could not qualify
-         even though it demonstrated no regression. Gemma Danks, Data
-         Processing Software Engineer, approved the recommendation on
-         2026-08-04 before any final image was generated or inspected. The
-         reviewed evaluator now uses `[point, point]` only when the complete
-         finite bootstrap distribution is exactly equal to its finite observed
-         point estimate, with no tolerance. Every other non-finite or undefined
-         result remains indeterminate and fails closed. The amended protocol's
-         canonical SHA-256 is
-         `eaa4e30a8d24a299d9f139c89aafc3ea60d424d61ac64f2b3d6fe7178a697dd8`.
-         Reapplying it to the same viewed 200-image campaign returns 20 passes,
-         no failures, and no indeterminate endpoints; the eight exact-equality
-         endpoints each have `[0, 0]`. The final population remained unopened
-         through this amendment.
-   - [x] Record the exact clean Hebog revision, both immutable PyBDSF
-         execution environments, dependency inventories, and output paths;
-         then open the frozen population exactly once. Infrastructure retries
-         may resume only its recorded seeds. Compile without denominator
-         deletion and apply the reviewed intersection-union decision once.
-         The preflight record fixed Hebog at
-         `92f5e4cc233b716987a4f65b75c5f1585d977de1`, released PyBDSF 1.14.1
-         at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`, and pinned PyBDSF
-         `master` at `c70103be3ae9ae9908286f144e6ce956acc0ce5c`. All three
-         implementations completed all 600 images, and the compiler retained
-         all 1,800 realization records. The evaluator initially stopped before
-         scoring because its provenance guard omitted the governed base recipe
-         from the 600-realization count. TDD commit `b4b3930` corrected only
-         that infrastructure guard and exact seed-coverage check; the same
-         immutable campaign, contracts, margins, and unused output path were
-         then resumed under the predeclared infrastructure-retry rule.
-
-         The resulting one-look decision did not pass. Hebog passed 109 of 114
-         absolute gates, but missed catastrophic-outlier fraction (0.5104%
-         versus 0.5%), median position (0.02736 versus 0.02 beam), median peak
-         flux (0.02942 versus 0.02 fractional error), median fitted axis
-         (0.05029 versus 0.05), and median deconvolved axis (0.10340 versus
-         0.1). One unmatched Hebog truth source also made the evaluator's
-         complete-match uncertainty input unavailable; because the frozen
-         vectorized calculation fails closed as one endpoint family, all 20
-         primary and all 20 secondary paired endpoints are indeterminate.
-         This does not erase the five independent absolute-gate failures.
-         Released PyBDSF failed 53 absolute gates and pinned master failed 55
-         on the same truth campaign, so Hebog remains substantially stronger
-         overall, but it is slightly worse than both references on median
-         position and worse on catastrophic fraction. The decision and every
-         source shard are retained as viewed evidence; no threshold, result,
-         population, or contract may be changed in response.
-
-     The structurally representative planning population is now governed by
-     `phase-4-paired-regression.json`: 200 disjoint noise seeds, 33 observable
-     groups, 32 individually resolvable sources, eight point sources, one
-     clearly resolved source, and one unresolved blend per image. Its distinct
-     WCS, noise field, invalid region, and 180-degree mirrored layout preserve
-     the governed blend-to-beam geometry. They are viewable regression
-     evidence only. The corrected candidate/reference execution is complete:
-     released PyBDSF completed all 200 images, while the pre-correction Hebog
-     candidate completed 196. On jointly successful images both recovered
-     every truth group; Hebog retained lower catastrophic, blend-position,
-     and blend-flux errors and stronger clear-extension recovery, but had
-     96.75% point specificity against PyBDSF's 100%. The four Hebog failures
-     all came from the same five-pixel watershed child of the declared
-     unresolved blend. This evidence is diagnostic and planning-only; rerun
-     it after the corrective TDD work before verifying empirical power
-     assumptions.
-
-     The post-correction refresh is now complete: both implementations
-     completed all 200 images and recovered every group. Hebog matches
-     PyBDSF's 100% point specificity, retains 100% clear-resolved recall
-     against 57.5%, reduces governed catastrophic rows from 1.547% to 0.531%,
-     and retains better unresolved-blend position and flux errors. Catalogue
-     reliability differs by one unmatched candidate across 6,600 groups
-     (99.6828% against 99.6979%); its one-sided 95% paired upper regression
-     bound is 0.1808 percentage points, inside the proposed 0.5-point margin.
-     Do not tune a new threshold to this near-SNR-5 noise tail. The maintained
-     planning-assumption audit and named review were completed before final-
-     population freeze.
-
-     The maintained audit is now complete. All 20 revised variance bounds
-     pass across 50,000 whole-image resamples and the weakest planned power
-     remains 92.2%. Catalogue reliability is worse by only 0.0151 percentage
-     points with a 0.1808-point upper bound inside its 0.5-point margin.
-     Median unresolved-blend position is worse by 0.00279 beam with a
-     0.00682-beam upper bound inside its 0.01-beam margin, while its tail and
-     both flux endpoints are materially better. Named review removed the
-     strict directional rule because it would reject negligible sampling-tail
-     differences despite successful non-inferiority.
-
-   - [x] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
-         and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
-         and fit-failure workloads. Record setup, bounded reads, moments,
-         fitting, transformations, catalogue construction/materialisation,
-         task count, source/component count, peak memory, and every repetition.
-         Non-claim characterization and profiling may proceed while the
-         scientific correction is developed, but the final controlled matrix
-         and any speed claim require the corrected science and final
-         qualification to pass.
-   - [x] Keep the controlled four-core 3,000-by-3,000 median within 2.0 seconds
-         for compact measurement/fitting and use no more than the shared
-         2.0-second catalogue/filter-output allocation after the Phase 3
-         budget clarification. Compare affected and adjacent tiers with the
-         previous reviewed Hebog curve and both PyBDSF references;
-         investigate statistically supported regressions and source-density
-         superlinearity.
-   - [x] Show that worker memory is bounded by admitted coarse batches, graph
-         size scales with batches and stages rather than pixels or sources,
-         and catalogue reduction depth is logarithmic. Preserve scale-facility
-         qualification for Phase 6 while adding executable local invariants
-         now.
-   - [x] Publish a Phase 4 release-readiness record with implemented scope,
-         reviewed scientific decisions, dataset roles, numerical gates,
-         reference divergence, performance evidence, portability, known
-         limitations, and Phase 5/7 deferrals.
-
-   Local structural evidence is complete: retained image work is bounded by
-   admitted coarse-batch pixels, task count is one per batch rather than per
-   source, final compact assembly has an explicit record cap, and shard
-   reduction has pairwise fan-in and logarithmic depth. After the separately
-   governed Phase 4U qualification passed, the exact optimized candidate was
-   replayed on the same viewed population as a regression: all 800 Hebog
-   realizations completed and the unchanged decision still passed all 77
-   binding absolute gates, both sets of 20 paired endpoints, and all five
-   stronger-Hebog envelopes. The complete unit/property, contract,
-   integration, dual-reference equivalence, acceptance, and qualification
-   evidence is recorded in `LOG.md`; declared future contract/acceptance
-   scenarios remain explicit expected failures rather than false passes.
-
-   The final 20-cell incremental matrix covers 256, 512, 1,024, and 3,000
-   pixels per side across sparse, normal, dense, blend-heavy, and intentional
-   fit-failure profiles. At 3,000 pixels, successful measurement/fitting
-   medians range from `0.177855` to `0.757952` seconds and catalogue output
-   medians from `0.036850` to `0.040811` seconds, both below their independent
-   2.0-second budgets. Dense work uses 13 admitted batches and 13 Dask tasks,
-   with no omission; the failure profile retains typed omissions and refuses
-   output. Dense-to-normal per-source time ratios are `0.699`--`0.864` across
-   the ladder, so no source-density superlinearity is observed. This closes
-   the compact Phase 4 milestone without making a full Rapthor/PyBDSF speedup
-   or production-scale claim. No earlier reviewed incremental Phase 4 curve
-   exists; this matrix is the baseline for future adjacent-tier regression
-   checks. Existing PyBDSF timings cover the complete Rapthor filter step and
-   remain context only until Phase 7 provides a matched end-to-end comparison.
-
-   **Historical recovery and completed closure order:**
-
-   1. Preserve all three earlier failed Hebog campaigns and the final failed
-      one-look campaign as viewed evidence; never promote, rerun, replace, or
-      tune against them. Preserve every same-campaign PyBDSF result, exact
-      version, environment, and Rapthor configuration alongside the
-      reproducible runners.
-   2. The paired comparison protocol, power calculation, and one final unseen
-      population are now reviewed and frozen. The freeze records the generator
-      version, 600 seeds, truth, WCS and beam strata, practical-equivalence
-      margins, analysis rule, and stopping rule. Record the exact Hebog and
-      PyBDSF execution identities before running each implementation on the
-      identical images. Predeclare the desirable
-      direction or ideal value for every metric; compare absolute departure
-      from the ideal for bias, coverage, and dispersion rather than treating a
-      numerically larger value as better. Report Hebog's signed point estimate
-      and require the one-sided paired 95% interval to exclude a reviewed
-      practically meaningful regression.
-      Pinned `master` remains a second anchor wherever it completes; its
-      runtime failure is a reference robustness failure, not permission to
-      weaken Hebog.
-
-      A machine-readable reviewed contract and executable normal-approximation
-      power calculation now live in
-      [`phase-4-paired-noninferiority.json`](../config/contracts/phase-4-paired-noninferiority.json)
-      and the
-      [paired non-inferiority review guide](../docs/reference/phase-4-paired-noninferiority.md).
-      The weakest interval-exclusion power at 600 realizations is 92.2%. The
-      planning variance assumptions are verified on independent paired
-      development/regression evidence. Gemma Danks approved the protocol and
-      five-sigma policy on 2026-08-03. The final population was frozen and
-      opened exactly once on 2026-08-04 after its decision evaluator and every
-      execution identity were recorded. Its immutable one-look decision is a
-      failure and cannot be replaced by another population.
-   3. Keep every existing absolute community-science gate and every stronger
-      Hebog result. In particular, do not trade away Hebog's complete group
-      recovery, uncertainty availability, calibrated position and peak-flux
-      errors, unresolved-group tails, clear-resolved recall, serial/Dask
-      invariance, or bounded execution to improve another score. Establish
-      regression envelopes from independent development evidence for these
-      strengths. A trade-off requires explicit named review and a
-      community-supported scientific justification; metrics may not silently
-      compensate for one another.
-   4. Use TDD on analytic and independently seeded development/regression
-      cases to explain and correct the remaining weakness. First make the
-      diagnostic schema expose each catastrophic row and its failed metrics.
-      Then add red tests around beam-compatible point sources near the
-      extension boundary across SNR, WCS, edge, background, and noise-gradient
-      strata. Investigate fit bias, local RMS, covariance, deconvolution, and
-      extension significance as one coupled measurement path. Select the
-      smallest community-supported correction from those cases only; do not
-      choose a threshold or formula from any viewed qualification result.
-
-      The first bounded correction now prevents an otherwise fit-capable
-      parent island from producing an unfit child: after prominence merging,
-      any watershed basin below the configured seven-pixel fit minimum joins
-      its neighbour across the strongest shared saddle. Detection uses the
-      same minimum. Analytic tests and all four independently seeded failure
-      cases pass without dropping parent pixels. The remaining active science
-      correction is point-source extension classification; the independent
-      regression showed false resolved decisions at 2.02--3.38 times the
-      flux-ratio uncertainty, while the earlier two-sigma ATLAS rule
-      deliberately permits a 2.3% one-sided false-extension rate. A
-      five-sigma high-confidence decision is now implemented and protected by
-      analytic plus independent worst-margin tests. Across all 1,600 point
-      and 200 clear regression cases, point values ended below 3.39 sigma and
-      clear values began above 17.92 sigma. Named review approved this
-      conservative compatibility policy before final-population freeze; the
-      refreshed complete paired run confirms that no stronger Hebog error
-      envelope regressed. The planning-assumption audit and named review now
-      pass; another scientific threshold change is neither required nor
-      permitted after final-population freeze.
-   5. Require the complete analytic, property, powered regression,
-      serial/Dask, exact-fixture, Rapthor-decision, and coverage lanes to pass
-      before the reviewed final campaign is opened exactly once. The final
-      result must pass all absolute gates, retain the stronger Hebog
-      regression envelopes, and be statistically non-inferior against released
-      PyBDSF. Signed point estimates are reported but are not separate gates. A
-      reference exception is a
-      recorded failure, not a missing value silently removed from a
-      denominator. The 2026-08-04 final result did not meet this requirement;
-      preserve it as the terminal Phase 4 qualification outcome.
-   6. After scientific qualification passes, refresh the controlled Phase 4
-      performance matrix with matched environments and close the phase only
-      when both the scientific and incremental performance exit gates pass.
-      Diagnostic timings from qualification runners are not speed evidence.
-      Because the final scientific qualification failed, this performance
-      matrix is not eligible and Phase 4 cannot be declared passed under the
-      reviewed plan. Any further scientific development belongs in a newly
-      reviewed follow-on milestone; it must use analytic and independent
-      development/regression evidence rather than tuning to this final result.
-
-Exit gate: the named scientific review has approved the measurement,
-association, uncertainty, deconvolution, compatibility, and numerical gate
-contract; analytic compact cases pass; development, regression, and unseen
-qualification results pass every reviewed position, flux, fitted/deconvolved
-shape, association, uncertainty-coverage, and outlier gate; and the
-redistributable compact catalogue passes both exact PyBDSF comparisons. The
-compact no-deferral adapter scenarios satisfy the existing 99.5% downstream
-decision gate, while representative multiscale differences remain explicitly
-assigned to Phase 5. Serial and executor results are partition- and
-retry-invariant, the controlled representative incremental median is within
-the 4.0-second combined Phase 4 allocation, and memory, task count, and
-catalogue reduction evidence show no full-image, per-source-task, unbounded
-fan-in, or quadratic path. Passing Phase 4 establishes experimental compact
-catalogue compatibility, not complete PyBDSF equivalence or Rapthor cutover.
-
-The final one-look campaign did not satisfy this exit gate. Its result is a
-terminal failed Phase 4 decision, not a population that may be rerun or
-rescored. Corrective work therefore belongs to the separately governed Phase
-4R milestone below.
-
-### Phase 4R: compact-measurement scientific recovery
-
-**Status:** complete without scientific passage. Gemma Danks, Data Processing
-Software Engineer, authorized recovery on 2026-08-04 after diagnosis of the
-terminal Phase 4 qualification failure and later authorized exactly one
-replacement qualification. The replacement decision is now terminal and
-failed; no further Phase 4R qualification is authorized. Every viewed campaign
-remains immutable and may be used only to identify failure modes and report
-the historical decision, never to select an algorithm, threshold, model,
-seed, margin, or new qualification truth.
-
-The failure is narrower than the aggregate decision first suggested:
-
-- Hebog's 98 gated catastrophic source rows all failed the fitted-axis
-  definition; 96 were image-edge sources and 94 were in the SNR-10 stratum.
-  Twenty-five carried the undifferentiated `fit-at-bound` flag. A direct
-  reproduction of seed `2026110493`, source 16, shows the free fit pinning its
-  centroid to the image boundary and inflating the major sigma from the
-  injected 2.04 pixels to 6.62 pixels. The other low-SNR edge failures show
-  that truncated-profile identifiability is broader than exact bound contact.
-- Position error is a separate efficiency weakness. Hebog's median was
-  0.02736 beam against 0.02512 for released PyBDSF and 0.02511 for pinned
-  `master`; the gap appears across every SNR stratum and is largest for
-  low-SNR, unresolved, and edge sources. Position uncertainty bias, coverage,
-  and dispersion still pass, so current evidence points to estimator variance
-  rather than a WCS convention or systematic astrometric offset.
-- Hebog missed the absolute median peak-flux, fitted-axis, and deconvolved-axis
-  limits by small amounts while remaining materially more accurate than both
-  PyBDSF references on those medians. These are genuine absolute-science
-  weaknesses to improve without trading away Hebog's advantage.
-- Report-only tails expose additional work that a no-regression objective must
-  not hide: Hebog's 95th-percentile integrated-flux error was 1.108 against
-  0.541 and 0.536 for the two references, and its fitted-axis tail was 0.2007
-  against 0.1833 for released PyBDSF. The largest integrated-flux errors are
-  free-shape extrapolations for truncated edge sources.
-- The paired evaluator has an independent composability defect. One unmatched
-  Hebog source made the uncertainty summary raise, and one shared input builder
-  then marked all 20 primary and all 20 secondary endpoints indeterminate.
-  That fail-closed result is faithful to the reviewed implementation, but one
-  unavailable endpoint must not erase otherwise calculable completeness,
-  reliability, shape, group, or catastrophic comparisons.
-
-The production fitter currently gives every eligible compact source the same
-seven-parameter amplitude, position, two-axis, angle, and background model.
-It obtains the point estimate from RMS-weighted residuals and uses the
-correlated-noise model only afterwards in a sandwich covariance. It also
-publishes a converged bound-contact fit as scientifically valid. This is a
-plausible common mechanism for the low-information position variance and the
-edge shape/flux ridge, but it remains a hypothesis to test through the
-predeclared ablations below. Condon's Gaussian-fit analysis supports a priori
-size constraints for lower amplitude error, and Aegean 2.0 demonstrates
-correlated-noise and forced fitting as established radio-source practice.
-The ASKAP/EMU and SKA source-finding challenges support keeping completeness,
-reliability, position, flux, size, and catastrophic-tail outcomes separate.
-
-1. **Repair the evidence contract before changing the science.**
-
-   - [x] Add a versioned metric registry that declares each scientific and
-         robustness metric's population, stratum, unit, desired direction or
-         ideal, absolute gate, paired statistic, and practical resolution.
-         Include gated and report-only medians and tails for completeness,
-         reliability, association, availability, classification, position,
-         peak and integrated flux, fitted/deconvolved axes and angles,
-         normalized uncertainty calibration, catastrophic rate, and
-         implementation completion. No metric may compensate for another.
-   - [x] Define "no worse" as direction-aware non-inferiority of the expected
-         aggregate metric against both exact PyBDSF references for every
-         eligible overall and governed SNR, shape, edge/corner, WCS, and blend
-         population. Use zero margin where numerical identity is expected and
-         a named, scientifically negligible margin where sampling and metric
-         resolution make zero inappropriate. Development point estimates and
-         regression point estimates must each remain inside that metric's
-         practical margin; qualification additionally requires the one-sided
-         paired upper bound inside the same margin. Never claim that every
-         individual noisy source must be closer to truth.
-   - [x] Refactor paired inputs and decisions endpoint by endpoint, TDD first.
-         A missing source contributes to the declared completeness,
-         association, and availability denominators. Conditional uncertainty
-         calibration uses only its explicitly eligible retained values with a
-         visible retained/expected count and minimum sample; it cannot make a
-         binary or group endpoint indeterminate. Only the affected endpoint is
-         indeterminate when its own minimum information is unavailable.
-   - [x] Verify endpoint isolation and missingness with analytic campaign
-         fixtures. Continue to verify ideal-value direction,
-         dual-reference failure policy, and multiplicity with analytic and
-         already-viewed regression fixtures. Do not rescore or replace the
-         final Phase 4 decision after repairing the evaluator.
-
-2. **Turn the observed failures into independent red tests.**
-
-   - [x] Record parameter-specific bound contact, distance to every bound,
-         visible fitted-model/beam footprint fraction,
-         Jacobian/information condition, model identity, fallback reason, and
-         retained-pixel geometry. The current single `parameters_at_bound`
-         boolean cannot distinguish a harmless periodic-angle representation
-         from an unidentifiable centroid or shape.
-   - [x] Add noiseless analytic tests for beam-shaped and extended Gaussians
-         truncated at each edge and corner, with sub-pixel centers and rotated
-         elliptical beams. A centroid/axis ridge pinned to a physical bound
-         must not be published as an ordinary valid free-shape result.
-   - [x] Add independently seeded development and regression matrices over
-         SNR, unresolved/marginal/clear shape, visible fraction, all edge and
-         corner topologies, background/RMS gradients, correlated-noise
-         orientation and scale, WCS rotation, and nearby-source context. Keep
-         seeds disjoint from every viewed qualification population. Freeze
-         regression seeds before production fitting changes; select among
-         ablations with development data and use the regression set as a
-         confirmation boundary rather than another tuning loop.
-   - [x] Add efficiency tests against analytic expectations and both PyBDSF
-         references for position, peak flux, integrated flux, fitted shape,
-         and deconvolution. Include tail and per-source-family reports so a
-         good median cannot hide a small catastrophic mode.
-
-3. **Select the smallest community-supported fitting correction from
-   ablations.**
-
-   - [x] Implement an internal beam-constrained Gaussian candidate for
-         unresolved or low-information sources, while retaining the existing
-         free elliptical candidate for demonstrably resolved emission. Select
-         between them with a predeclared data-only extension/identifiability
-         rule; never use truth class or a viewed-campaign source identity at
-         runtime.
-   - [x] Treat centroid, scale, amplitude, or background bound contact and an
-         ill-conditioned free model as a failed model-selection attempt.
-         Retry the constrained model and return explicit unavailability if no
-         scientifically valid candidate remains. Do not turn clipping into a
-         successful measurement merely to preserve availability.
-   - [x] Factorially compare fixed versus fitted local background, owned
-         source support versus bounded background context, and the existing
-         diagonal point estimator versus a bounded correlated-noise
-         generalized least-squares or whitening candidate. Test the
-         constrained model first; add whitening complexity only if the broad
-         position/peak efficiency gap remains and complete-path profiling
-         supports it.
-   - [x] Keep the implementation in vectorized NumPy/SciPy, with transformed
-         or scaled parameters where they improve conditioning. Retain a
-         readable serial oracle, bounded per-region memory, coarse batching,
-         deterministic results, and no source-sized Dask task proliferation.
-         Do not introduce native code without meeting the existing profile
-         and maintenance gates.
-
-   Development selected fixed-zero residual background, owned-region support,
-   and bounded correlated-noise GLS for at most 512 retained pixels. Larger
-   regions take an explicit diagonal/sandwich fallback. The nested rule uses a
-   five-sigma log-area test, BIC scaled consistently with the point estimator,
-   and an intensity-weighted-centroid/free-shape retry for bound-contact or
-   ill-conditioned free fits. It is an explicit `beam-or-free` campaign
-   policy; the public
-   default remains the Phase 4 `free-only` serial oracle, so model selection
-   cannot silently alter existing scientific products. On the 20-realization
-   development matrix this removed all four
-   catastrophic rows and improved Hebog's position, peak, integrated-flux,
-   fitted-axis, and deconvolved-axis medians and 95th percentiles relative to
-   both references. The unresolved-blend median also improved; its 95th
-   percentile is worse than both references by 0.0172, inside the predeclared
-   0.02 practical margin, and remains an explicit confirmation endpoint.
-
-   Recovery iteration two repaired the generic availability defect and kept
-   every one of 40 new development realizations complete. A boundary retry now
-   fixes its centroid to the independent intensity-weighted moment rather than
-   the already biased truncated beam fit. This restored the sole missed edge
-   association without changing the retained GLS component estimator. A
-   bounded, mask-aware three-sigma restoring-beam aperture was also added as
-   explicit association photometry. Unlike the rejected threshold-only island
-   sum, it normalizes against the pixelized beam visible through image,
-   validity, and competing-region masks. On the 40 viewable blends it improved
-   median/95th-percentile total-flux error from 0.05755/0.14821 to
-   0.04788/0.10243, versus 0.04830/0.11301 for both PyBDSF references. The
-   retained component-level position, peak, flux, shape, and uncertainty
-   metrics remain unchanged apart from the repaired edge row.
-
-   The executable no-compensation evaluator now expands the 35 registered
-   metrics into 450 independent dual-reference overall/stratum decisions on
-   this matrix. It preserves implementation failures, conditional
-   missingness, absolute gates, and stronger-Hebog envelopes without a
-   weighted score. Its first complete development pass exposed one SNR-10
-   position tail; a separate bounded-context position fit plus an analytic
-   one-sided truncated-normal moment correction removed it without changing
-   the retained morphology or flux estimator. All 450 viewed development
-   comparisons then passed their predeclared practical margins.
-
-   Raw median and tail absolute errors on a stochastic SNR 10/15/25/50 mix
-   are noise-distribution statistics, not estimator-bias tests: even an
-   efficient unbiased measurement has a non-zero absolute-error median set by
-   SNR. Phase 4R therefore reports every position, flux, axis, and angle
-   distribution and gates each independently against both PyBDSF references,
-   but does not reuse the exact/noiseless 2%/0.02-beam thresholds as absolute
-   noisy-campaign gates. The analytic and exact-product suites retain those
-   strict thresholds. Absolute noisy-campaign gates remain on completeness,
-   reliability, availability, classification, catastrophic rate, unresolved
-   groups, and adequately powered normalized-residual calibration.
-
-4. **Qualify the correction on development and regression evidence.**
-
-   - [x] Run the complete analytic, property, serial/Dask, partition, retry,
-         exact-product, Rapthor-adapter, and coverage lanes after every
-         candidate. Preserve the current completeness, reliability,
-         uncertainty calibration, unresolved-group, clear-extension,
-         determinism, and bounded-memory envelopes.
-   - [ ] Freeze the selected candidate before comparing every registered
-         metric against both references overall and by governed stratum. The
-         regression qualifies it only when all applicable absolute gates
-         pass, every point regression is within its reviewed margin, and no
-         material tail or source family remains unexplained. Qualification
-         alone applies the paired upper-bound rule. Archive a failed
-         regression and return to
-         generic analytic/development evidence; do not tune directly to its
-         rows, optimize a weighted score, or average away a weak metric.
-   - [ ] Profile each scientifically passing candidate on compact sparse,
-         normal, dense, edge-heavy, and fit-failure workloads. Reject a
-         correction that violates the Phase 4 component budget or creates an
-         unapproved adjacent-tier regression; prefer the simplest candidate
-         when scientific and performance evidence is indistinguishable.
-
-   Confirmation attempt one is permanently failed. Exact commit `27edde3`
-   completed 98 of 100 frozen regression realizations; two retained typed fit
-   omissions, while released and pinned-`master` PyBDSF completed all 100.
-   The attempt remains under `benchmark-results/phase-4r/` and is not eligible
-   for rescoring. Without opening either failed realization's pixels or truth,
-   an independent analytic test exposed a generic selection error: failure of
-   the smaller beam model could discard an otherwise valid and identifiable
-   free fit. Before changing production selection again, recovery iteration
-   two froze 40 viewable seeds in `phase-4r-development-2.json` and 100
-   confirmation-only seeds in `phase-4r-regression-2.json`; all are disjoint
-   from every earlier Phase 4R seed.
-
-   Confirmation attempt two at exact commit `86e7e02` completed all 100
-   realizations in Hebog and both references. After restoring the registry's
-   predeclared regression point rule, 444 of 450 comparative decisions pass.
-   The six failures are the catastrophic-outlier fraction against both
-   references overall and in the governed marginal-shape and SNR-15 strata.
-   Aggregate diagnostics assign eight of ten Hebog outliers solely to
-   deconvolved axes and two solely to fitted axes; no held-out row or image
-   was opened. The failed confirmation is archived. A new 200-realization,
-   viewable, disjoint tail-development matrix is frozen in
-   `phase-4r-development-3.json` before any further production fitting
-   change. Use it with analytic tests to remove the rare shape mode without
-   weakening the already superior median and 95th-percentile shape results.
-
-   The unchanged candidate then completed all 200 newly frozen development
-   realizations. It produced nine catastrophic matches among 2,400 eligible
-   rows, versus 19 for released PyBDSF and 30 for pinned `master`, and passed
-   all 450 dual-reference point decisions plus the absolute catastrophic
-   gate. Across both iteration-two and tail development, Hebog's rate is
-   9/2,880, versus 23/2,880 and 36/2,880. This independently demonstrates
-   that the failed confirmation was a finite-sample crossing, not a supported
-   estimator regression. Low-SNR nonlinear amplitude and correlated-noise
-   shape biases are expected in the literature, and an additional correction
-   selected after this result would be unreviewed overfitting.
-
-   The approved governance amendment therefore preserves confirmation two as
-   failed but permits the unchanged candidate to advance to exactly one
-   powered qualification. This is the sole exception to the regression point
-   screen: it requires a larger independently frozen viewable population,
-   every comparative point decision and applicable absolute point gate to
-   pass, a supported expected tail no worse than both references, no candidate
-   change after the failed regression, and named review before qualification.
-   It does not alter a metric, margin, source row, or the qualification's
-   paired upper-bound rule. Future candidates do not inherit the exception.
-
-5. **Govern one new Phase 4R qualification and performance closeout.**
-
-   - [x] After implementation and metric definitions are frozen, obtain named
-         scientific review of the model-selection rule, metric registry,
-         practical margins, missingness semantics, regression evidence,
-         power, and one-look stopping rule. Only then freeze one new Phase 4R
-         population with seeds, truth, edge/corner balance, WCS, beam,
-         background, and correlated-noise fields disjoint from all earlier
-         campaigns.
-   - [x] Record immutable Hebog and dual-PyBDSF environments, execute all
-         three implementations on identical images, retain every realization,
-         and evaluate each metric independently. A PyBDSF exception is a
-         reference robustness failure, not permission for Hebog to fail or
-         for a realization to disappear.
-   - [ ] Require every absolute gate and every dual-reference direction-aware
-         paired decision to pass. Preserve the final Phase 4 failure alongside
-         the Phase 4R result; the new milestone does not retroactively turn
-         that historical decision into a pass.
-         The terminal replacement passed 106/107 absolute gates and 446/450
-         dual-reference metric/stratum decisions, so this requirement remains
-         unmet.
-   - [ ] Only after scientific passage, run the controlled Phase 4 performance
-         matrix and close compact measurement when the 4.0-second combined
-         allocation, adjacent-tier, density, memory, and graph-shape gates all
-         pass. This matrix is ineligible after the terminal scientific
-         failure and was not run.
-
-   Named review was recorded at `4688081` before the qualification population
-   existed. The sole population is now frozen as
-   `phase-4r-qualification.json`: 600 new noise seeds, horizontally reflected
-   source/association/invalid-region geometry, beam and correlated-noise PA
-   57 degrees, a new sky field and WCS scale/rotation, and a new negative
-   background. Its manifest and recipe SHA-256 values are
-   `93f2d9f876b9b3f58df09ad64796e39ed404980a14f7c4542f0ae2b3120c42e4`
-   and `82870d14dbe163c1d1ca79d0b163bc69c406ed2288da3cf489ebdb03989de5fc`.
-   No qualification output existed when these identities were recorded.
-   The first execution request then failed in preflight before recipe
-   iteration because the legacy Phase 4 guard did not recognize a registry
-   document. A TDD prerequisite now accepts the registry identifier, requires
-   it for Phase 4R qualification, and rejects development-only approval. The
-   named review is represented directly by registry status
-   `reviewed-qualification`; all 35 metric definitions and margins are
-   unchanged. No qualification image or result was opened by the failed
-   preflight.
-
-   Qualification attempt one at exact candidate commit `f28bda9` is now a
-   failed, immutable availability result. Hebog completed 599 of 600 images;
-   seed `2026170473` retained one `IncompleteCompactCatalogueError` after both
-   its free and restoring-beam fits reached the image-centroid bound. The
-   candidate shard SHA-256 is
-   `c9bb55ab4a446f5cf6b25185cfdc8f87cc0e56cdca8f185dae53d0fe9f20f761`.
-   No aggregate metric was inspected or scored, no realization may be
-   omitted, and this population cannot qualify a corrected candidate.
-   Both exact PyBDSF references completed all 600 images. Released and pinned
-   `master` evidence SHA-256 values are
-   `20741c868caabede59eb131ceb1e9a42f77e2f2b76c4ba62b39f4edb23aa1c68`
-   and `714c6e8ca37972339468d42b6557872b3c912a53393e3007e1b71b92b77c5dcd`;
-   compiled evidence SHA-256 is
-   `506bf236b3341b0d2e2b3e4c5a656b9d04b8df33610574782ae7451da79468c2`.
-   The fail-closed decision retains 450 indeterminate metric comparisons and
-   one indeterminate absolute gate rather than resampling incomplete paired
-   evidence; its SHA-256 is
-   `8967e510be531defb38806e656ecf987419bc1806e32652ed87c6e358568daf7`.
-
-   Recovery iteration three returns to a generic analytic noisy-edge test and
-   two new populations frozen before candidate evaluation:
-   `phase-4r-development-4.json` and `phase-4r-regression-3.json`, with 200
-   disjoint seeds each. The correction may reuse the existing moment-centred
-   retry only when the smaller model converged with finite, conditioned
-   amplitude and shape evidence and its sole physical bound contact is a
-   centroid coordinate. It must not publish an at-bound model, convert an
-   omission into fabricated catalogue data, or change a metric, margin, or
-   threshold. The complete analytic and scientific lanes must pass on
-   development, followed by exactly one unchanged-candidate regression. If
-   that regression passes, a replacement qualification requires a new named
-   human review and a newly frozen population with disjoint seeds and field
-   geometry. The failed one-look result remains terminal for its candidate;
-   a replacement is a separately authorized recovery decision, never a
-   rerun or rescore.
-
-   The first bounded retry candidate at `63d890f` completed all 200 viewable
-   development images. It passed 448 of 450 comparative decisions; three of
-   five recovered edge fits entered the fitted-axis tail, leaving the
-   clear-resolved and SNR-10 95th percentiles 0.0033--0.0039 beyond the
-   registered margin against released PyBDSF. A generic correlated-GLS test
-   then selected the already documented one-sided truncated-moment correction
-   for the retry centroid. Candidate `1065182` completed the same population
-   and passed all 450 comparisons. Its overall development flag remains false
-   only for the pre-existing, sample-limited uncertainty intervals; no
-   uncertainty estimator or gate changed in this availability correction.
-
-   The unchanged `1065182` candidate and both references then completed every
-   image in the frozen 200-realization confirmation. That confirmation remains
-   failed: 447 of 450 comparisons pass, while catastrophic fraction crosses
-   the point margin in SNR-15 against both references and marginal shape
-   against released PyBDSF. Only identity-free aggregates were inspected.
-   Hebog has ten catastrophic rows (eight SNR-15 deconvolved-axis and two
-   SNR-10 fitted-axis), released PyBDSF has four SNR-10 rows, and pinned
-   `master` has fourteen SNR-10 rows. Across the independent development and
-   confirmation populations, Hebog is better overall at 22/4,800 versus
-   24/4,800 and 43/4,798, and the combined SNR/morphology rates remain inside
-   every registered practical margin. This supports preserving `1065182`
-   unchanged rather than selecting another correction from a complementary
-   finite-sample crossing.
-
-   Gemma Danks, Data Processing Software Engineer, approved the replacement
-   qualification decision on 2026-08-04, before its manifest, seeds, or
-   outcomes existed. Both failed outcomes remain immutable. Exact candidate
-   `1065182` may enter exactly one replacement 600-image qualification with a
-   new seed range and vertically transformed source, association,
-   invalid-region, beam/noise, WCS, background, and gradient fields. All 35
-   metrics, margins, absolute gates, paired upper-bound rules, and
-   implementation-completion semantics remain unchanged. This approval does
-   not authorize another candidate, another replacement, or retrospective
-   rescoring.
-
-   The approved population was then frozen as
-   `phase-4r-qualification-replacement.json`, still before any candidate or
-   reference output existed. It contains seeds `2026200001`--`2026200600`, a
-   vertical reflection of the prior qualification geometry, beam/noise PA 123
-   degrees, a new sky field, WCS scale/rotation, and background. Manifest,
-   canonical recipe, and dataset-content SHA-256 values are
-   `11c68f2d390416b0345048a825ed8da35e3a389b9118571b72b10d9108107df3`,
-   `e104ec6d703bfa876ebdfd1bad3b39c0b0dba341afa6c57fbf32e3605c32d3d0`,
-   and `1e566660eed6a995c55f399a5f1579c70b2ffe34cbb81cd2ad6dc67eaa07dee8`.
-   Executable contracts prove its identity, size, seed disjointness, and
-   vertical source, association, invalid-region, beam/noise, and gradient
-   transformation. The freeze path still refuses overwrite.
-
-   Exact candidate `1065182` and released PyBDSF completed all 600 replacement
-   images. Pinned PyBDSF `master` completed 599; seed `2026200549` produced a
-   catalogue with a non-positive source flux and remains a typed reference
-   robustness failure. The frozen `record-and-continue` policy retains that
-   row: Hebog passes implementation completion against both references, while
-   the other `master` metrics use their explicitly conditional retained
-   values.
-
-   The immutable decision is false. Of 450 independent dual-reference
-   comparisons, 446 pass. Catastrophic-outlier fraction fails at SNR 15
-   against both references, for marginally resolved sources against released
-   PyBDSF, and on the overall released-PyBDSF confidence bound. The candidate
-   overall catastrophic rate is 0.003333 versus 0.001528; its point regression
-   of 0.001805 is inside the 0.0025 margin, but the one-sided upper bound is
-   0.003194. At SNR 15 the candidate rate is 0.01 versus 0.0 and 0.000556.
-   The sole failed absolute gate is SNR-10 declination uncertainty bias: its
-   point estimate 0.11372 lies inside the reviewed `[-0.15, 0.15]` interval,
-   but its 95% interval `0.06744`--`0.16001` crosses the upper bound. This also
-   fails the uncertainty-availability-and-calibration envelope. Six raw-error
-   report-only limits fail but do not contribute to the decision.
-
-   Candidate, released-reference, master-reference, compiled-campaign, and
-   decision SHA-256 values are
-   `4b04976ab979a1d4850023994da99f7e0e4b791cc8d8d06e60b33f85eb8c7739`,
-   `f1499e78f79a0435230dbca5564c93e028ba12aa94449d889ecd4066b9debb37`,
-   `0e9af355ef9b3ecacbe80eab8c75b22be0eb10ac94f659ad31b7b4cb34ec1a96`,
-   `3387df580c187b7345a2cafbaa18c343e6fbbceb74386e04188753cf25c96ef4`,
-   and `e18c7ed66a2aa9b6f83908bf8e90d13413c9ff7d54f737321f839f9cece9b125`.
-   Phase 4R is therefore closed as a terminal non-passing milestone. No
-   performance claim or Phase 4 release is permitted from this result.
-
-Exit gate: every registered absolute gate passes. For every comparable
-metric produced by each reference, Hebog is statistically non-inferior for
-every separately evaluated overall and governed-stratum population, with no
-unresolved development/regression evidence of an expected regression or
-unexplained tail. A raw confirmation crossing may be resolved only by the
-named, one-candidate exception recorded above and the powered one-look
-qualification; it remains an immutable failed result.
-Implementation completion is itself a robustness metric and Hebog must
-complete every realization. Stronger Hebog envelopes remain intact; and the
-new one-look Phase 4R campaign, complete controlled performance matrix,
-serial/Dask invariance, bounded-memory, and task-graph checks pass. Only then
-may scalability become the next active engineering focus. Phase 5
-multiscale science remains required for complete Rapthor functionality, and
-all later multiscale work must adopt the same execution contracts.
-
-### Phase 4S: compact-science stabilization and Phase 5 start gate
-
-Status: compact stabilization completed on 2026-08-04. The independently
-frozen Phase 4S qualification opened once on 2026-08-05 and failed. It passed
-all 20 paired non-inferiority endpoints against both released PyBDSF and pinned
-`master`, but failed four binding absolute decisions. The result is immutable
-and does not authorize substantive multiscale implementation. A separately
-named, seed-disjoint Phase 4T confirmation now owns the prospective corrections
-and remaining uncertainty question described below. The review is recorded
-transparently as an AI-conducted technical/scientific review, not independent
-human sign-off. Performance/scalability exit evidence and a recommended
-external human review before production cutover remain pending.
-Phase 4R remains an immutable failed qualification. This milestone must not
-regenerate, rescore, reinterpret, or retrospectively pass that campaign. It
-repairs defects and ambiguities found by the review, then uses new development
-and regression evidence before one independently frozen qualification.
-
-The review found that Hebog's compact-source implementation is broadly sound:
-it completed all 600 replacement images, passed 446 of 450 dual-reference
-comparisons and 106 of 107 binding absolute gates, and had a lower point error
-than either reference for most comparisons. The remaining failures are not a
-reason to relax scientific standards. They expose three concrete issues that
-must be fixed before qualification:
-
-1. classification and validation strata with the same identifier are combined
-   even when they have different memberships, so nominally distinct shape
-   populations can overlap;
-2. the registered power model assumes more independent groups and point-source
-   groups than the frozen manifest actually contains and reports the weakest
-   marginal endpoint power rather than power for the release decision;
-3. marginal deconvolution and edge-position uncertainty can report more
-   precision than their estimators support. The SNR-15 catastrophic tail is
-   concentrated in a single marginally resolved source family, especially its
-   unstable deconvolved minor axis, while the SNR-10 declination-bias result is
-   dominated by one truncated edge family whose corrected point estimate
-   inherits covariance from a different estimator.
-
-The objective is scientific stabilization, not numerical agreement for its own
-sake. Analytic truth and community practice documented in radio-source-finding
-challenges and peer-reviewed literature remain primary. Released PyBDSF is the
-primary compatibility reference because it defines current Rapthor behaviour;
-the pinned performance-improved PyBDSF `master` reference is an independently
-reported robustness reference. Neither reference may override analytic truth
-or justify reproducing a known defect. All stronger reviewed Hebog envelopes
-remain in force.
-
-1. **Repair evidence construction and release-decision semantics using TDD.**
-   - Make one canonical stratum collection authoritative for any identifier.
-     A governed disjoint classification definition replaces a same-named
-     legacy validation definition, and evidence consumers must use that
-     canonical view instead of silently taking their union. Preserve all
-     historical evidence bytes and decisions unchanged.
-   - Derive the number of independent image, association, individual-source,
-     and point-source groups from the frozen manifest. Reject a qualification
-     power declaration whose assumed population does not match those counts.
-   - Register a small, scientifically independent set of co-primary families:
-     completion and robustness; completeness and reliability; association and
-     group recovery; position and flux accuracy; Rapthor-facing retained versus
-     rejected decisions using `DC_Maj`, `E_RA`, and `E_DEC`; calibrated
-     uncertainty; and catastrophic failure only for identifiable quantities in
-     populations where that quantity is scientifically estimable.
-   - Keep every position, flux, fitted/deconvolved shape, angle, SNR, and
-     governed-stratum curve in the machine-readable report. Treat these as
-     diagnostic or hierarchically interpreted outcomes unless they are named
-     co-primary before the campaign is frozen. A diagnostic regression still
-     blocks release when it reveals an unexplained defect; it does not become
-     one of hundreds of interchangeable pass/fail votes.
-   - Compute power for every co-primary family and for their joint release
-     decision under the registered multiplicity rule. Require at least 90%
-     power for each release-blocking family and the reviewed joint target;
-     marginal endpoint power alone is not sufficient.
-
-2. **Make marginal deconvolution scientifically honest.**
-   - Represent fully resolved, major-axis-only, unresolved, and unavailable
-     deconvolution states explicitly. Do not publish a weakly constrained minor
-     axis or position angle as a precise ellipse.
-   - Base axis availability on a reviewed, uncertainty-aware or beam-normalized
-     resolution rule rather than tuning a threshold to Phase 4R outcomes.
-     Rapthor may consume a scientifically identifiable deconvolved major axis
-     without requiring an identifiable minor axis.
-   - Compare a deconvolved axis with relative error only when truth and estimate
-     are both identifiable. Near zero, at a resolution boundary, or under
-     one-axis censoring, use beam-normalized absolute error, classification
-     accuracy, and downstream Rapthor decisions. Preserve fitted-shape metrics
-     for every successful fit.
-   - Add analytic tests on both sides of each resolution boundary, at several
-     SNRs and beam/source position angles, before promoting generated failures
-     to regression fixtures.
-
-3. **Make edge astrometry and uncertainty use the same estimator.**
-   - A centroid corrected for truncation must not inherit covariance from the
-     uncorrected bounded fit. Derive uncertainty for the corrected estimator or
-     report it unavailable with an explicit reason.
-   - Add analytic left, right, top, bottom, and corner cases under rotated WCS,
-     including symmetry tests and coverage/normalized-residual tests. Verify
-     the same result through serial and executor paths.
-
-4. **Broaden development and regression evidence before freezing again.**
-   - Generate continuous source sizes around the resolution boundary rather
-     than relying on a few repeated templates. Cross source and beam position
-     angle, SNR, pixel scale, WCS rotation, all edge/corner topologies,
-     background gradient, correlated noise, blends, invalid regions, and
-     non-square images.
-   - Use disjoint development and regression seeds and record generator
-     version, configuration, role, and checksums. Add a real residual/noise
-     injection case when redistributable or controlled-host data is available;
-     its absence must be recorded rather than replaced with synthetic evidence.
-   - Run Hebog, released PyBDSF, and pinned `master` on the same successful
-     realizations. Report reference failures as typed robustness outcomes and
-     never discard a row merely because one implementation failed.
-   - Diagnose every material Hebog-worse tail. Fix an implementation defect,
-     justify a truth-supported difference, or leave the milestone non-passing;
-     do not compensate one scientific population with another.
-
-5. **Review, freeze once, and qualify.**
-   - Obtain a radio-astronomy review of the co-primary families,
-     resolution/censoring semantics, uncertainty method, population generator,
-     multiplicity rule, and power before qualification outputs are inspected.
-   - Freeze one unseen qualification population and its canonical recipe,
-     thresholds, references, success/failure policies, estimands, power, and
-     one-look stopping rule. The generation path must refuse overwrite.
-   - Require all co-primary absolute truth and Rapthor-facing gates, the joint
-     power contract, serial/executor invariance, and completion robustness to
-     pass. Require non-inferiority to released PyBDSF for its comparable
-     co-primary outcomes; report the `master` comparison separately and
-     investigate any material regression.
-   - Run the complete controlled performance matrix only after science is
-     fixed. Performance evidence cannot rescue a scientific failure.
-
-Phase 5 start-gate evidence recorded on 2026-08-04:
-
-- Canonical classification strata now prevent the clear/marginal overlap in
-  newly compiled evidence. Manifest population audits expose the replacement
-  campaign's actual 13 association groups, 12 individual sources, and four
-  point sources; its corrected point-specificity power is about 76.9%, not
-  94.5%. Power tooling separately reports a dependence-robust familywise lower
-  bound. Historical evidence and decisions were not changed.
-- Free fits retain the major/minor-sigma/angle covariance needed to test each
-  intrinsic eigenvalue. The public scientific states are fully resolved,
-  major-axis-only, unresolved, and unavailable. The five-sigma policy censors
-  weak axes before catalogue publication, internal FITS preserves a
-  major-only value without a false ellipse, and Rapthor receives that value as
-  `DC_Maj`. Campaign configuration identity freezes both the extension and
-  per-axis significance thresholds; missing noisy-fit shape covariance fails
-  closed as unavailable.
-- All 18 viewed SNR-15 deconvolved-axis failures from the repeated marginal
-  source family were rerun only as regression diagnostics. Applying the
-  existing five-sigma extension confidence level independently to each axis
-  censors every weak result and none remains catastrophic; this does not
-  rescore Phase 4R.
-- A truncation correction now initializes a widened context-likelihood retry,
-  whose own centroid and covariance are published together. Lower/upper edge
-  reflection tests cover this path. The 20 worst viewed SNR-10 declination
-  residuals were unchanged because they already used a consistent free-context
-  estimator. Their point estimate was inside the absolute gate, so the narrow
-  confidence crossing is assigned to the larger, more varied and
-  manifest-powered future population rather than post-outcome tuning.
-- Analytic deconvolution spans continuous intrinsic sizes and multiple sky
-  angles. Existing generated regression spans SNR, WCS rotation, every image
-  edge/corner, non-square geometry, gradients, invalid pixels, blends, and
-  correlated noise. The complete governed correlated-noise calibration
-  regression passes. A real residual/noise injection remains unavailable. Its
-  absence is an explicit limitation rather than a blocker for the synthetic
-  compact checkpoint; controlled real-residual evidence remains recommended
-  before production cutover.
-- Unit, integration, non-slow equivalence, focused Phase 4R equivalence,
-  serial/Dask, FITS/Rapthor, Ruff, and Pyright checks pass. The named
-  development review is recorded in the Phase 4 scientific review record;
-  the project owner subsequently authorized the AI-conducted expert review
-  below for Phase 4S pre-opening approval.
-
-Phase 5 start gate: multiscale implementation may begin when steps 1--4 have
-passing focused, project, equivalence, serial/executor, and documentation
-checks; the compact public semantics and evaluator are reviewed and frozen;
-and no known compact estimator defect or unexplained material tail remains.
-This gate intentionally separates permission to develop Phase 5 from the final
-Phase 4S release/cutover decision. The single unseen qualification and
-controlled performance/scalability evidence may continue in parallel, but
-Hebog must not claim compact-source qualification, remove the PyBDSF fallback,
-or make Hebog the default Rapthor path until the complete Phase 4S
-qualification gate passes. Independent human radio-astronomy review remains a
-recommended production-cutover safeguard even though the project owner waived
-it as a blocker for opening this compact qualification.
-
-Qualification-first checkpoint approved on 2026-08-05:
-
-1. Freeze the current compact candidate and its complete execution identity;
-   no compact science, threshold, estimator, or output-semantic change may be
-   mixed into the qualification once the unseen population is frozen.
-2. Complete and record the project-owner-authorized expert radio-astronomy
-   review of the co-primary families, axis-censoring semantics, uncertainty
-   estimands, generator coverage, multiplicity rule, and manifest-derived
-   marginal and joint power before any qualification output is generated or
-   inspected. Disclose whether the review is independent human sign-off or an
-   AI-conducted expert review.
-3. Freeze exactly one new, seed-disjoint, manifest-powered qualification with
-   continuous resolution-boundary sizes; crossed source/beam angles and SNR;
-   every edge/corner topology; non-square WCS geometry; correlated noise,
-   gradients, blends, and invalid regions; and an explicit record of whether a
-   controlled real residual/noise injection is available.
-4. Commit the manifest, contracts, reference revisions, candidate revision,
-   environment identities, checksums, success/failure policies, and refusal-to-
-   overwrite paths before running any implementation.
-5. Run Hebog, released PyBDSF, and pinned `master` once on identical images;
-   retain all implementation failures, compile the registered diagnostics and
-   co-primary family decisions, and inspect the one-look outcome only after all
-   three legs are immutable.
-6. A pass permits substantive Phase 5 multiscale implementation. A failure is
-   preserved and reviewed as a scientific result; it cannot trigger a changed
-   threshold, population, metric, or rerun within this milestone.
-
-Expert scientific review completed on 2026-08-05:
-
-- The project owner explicitly authorized Codex to conduct this pre-opening
-  review. It is an AI-conducted synthesis of the cited peer-reviewed literature,
-  existing analytic tests, and immutable Phase 4/4R evidence; it must not be
-  represented as independent human or institutional approval.
-- Retain the exact 5-sigma peak and 3-sigma island thresholds used by Rapthor's
-  PyBDSF path. Retain the 0.5-restoring-beam compact matching radius. These are
-  compatible with the high-reliability operating point and beam-scaled matching
-  used in the ASKAP/EMU challenge; completeness and reliability must still be
-  reported against SNR rather than reduced to source-count equality.
-- Retain five-sigma extension confidence as Hebog's conservative reviewed
-  policy, not as a claimed universal community threshold. Radio-survey work
-  commonly uses uncertainty envelopes around integrated-to-peak flux ratio;
-  Hebog's stricter threshold protects point-source specificity and requires
-  clear-source recall to pass separately.
-- Retain covariance propagation based on the Condon elliptical-Gaussian error
-  model and the explicit fully resolved, major-axis-only, unresolved, and
-  unavailable states. Near the resolution boundary, relative error for a weak
-  minor axis or position angle is not a valid estimand. Fitted shape, each
-  identifiable intrinsic axis, classification, and Rapthor's `DC_Maj`, `E_RA`,
-  `E_DEC`, and retained/rejected decision remain governed outputs.
-- Keep the existing 20 predeclared compatibility endpoints as the co-primary
-  intersection-union decision. Their small number and distinct scientific
-  meanings are preferable to the 450 correlated metric/stratum comparisons
-  used in Phase 4R. Every detailed SNR, morphology, edge, position, flux,
-  fitted/deconvolved-shape, angle, and uncertainty result remains visible and
-  an unexplained material defect remains release-blocking, but those
-  diagnostics are not hundreds of equal hypothesis-test votes.
-- Increase the new qualification from 600 to 800 paired whole-image noise
-  realizations. Under the frozen conservative planning assumptions, every
-  endpoint exceeds 90% marginal interval-exclusion power and the union-bound
-  lower limit for the joint 20-endpoint decision is about 94.3%; require a
-  registered joint lower-bound target of at least 90% before opening.
-- Freeze a new 512-by-512 compact population with 33 observable association
-  groups, 32 individually resolvable sources, eight beam-compatible point
-  sources, multiple clear-resolved sources, continuous marginal/clear intrinsic
-  sizes, crossed SNR and source/beam angles, all four edges and corners,
-  non-square rotated WCS pixels, correlated noise, a negative background and
-  gradient, an unresolved blend, and invalid pixels. Manifest counts must
-  exactly match every binary planning declaration.
-- This checkpoint qualifies compact, single-scale Rapthor-used behaviour only.
-  It makes no claim about extended or multiscale completeness. Source-finding
-  challenges show that extended morphology, split/merge decisions, and
-  cross-matching need separate evaluation; Phase 5 must add that evidence.
-- No approved controlled real residual/noise image is currently available.
-  Record that limitation rather than treating synthetic Gaussian-correlated
-  noise as real-data evidence. A passing synthetic qualification can authorize
-  Phase 5 development, but real residual/noise injection and independent human
-  domain review remain recommended before production cutover.
-
-Phase 4S one-look outcome and post-opening expert review on 2026-08-05:
-
-- All three implementations completed all 800 images. Every one of the 20
-  paired endpoints passed against released PyBDSF and independently against
-  pinned `master`. Hebog achieved completeness `1.0`, reliability about
-  `0.99566`, and zero declared catastrophic fraction except one of 6,400
-  source cases (`0.00015625`). It was materially better on catalogue
-  reliability, unresolved-group position/flux error, and normalized-residual
-  calibration. This establishes strong compatibility evidence, but it cannot
-  override an absolute scientific failure.
-- The immutable decision failed `median-position` (`0.02588` beam against
-  `0.02`), `median-peak-flux` (`0.02818` against `0.02`),
-  `point-source-specificity` (`0.0` against `0.95`), and the SNR-10
-  integrated-flux uncertainty-bias interval (point estimate `0.10612` sigma,
-  upper 95% limit `0.15435` against `0.15`). The first three failures were
-  traced to evaluation semantics, not a Hebog-worse scientific result:
-  both PyBDSF references also miss the fixed raw-error limits on this SNR mix,
-  and Hebog classified all 6,400 declared point-source cases as unresolved.
-- Fixed raw absolute-error limits are not SNR-invariant. Condon-style Gaussian
-  fit errors predict larger absolute scatter at SNR 10 and 15, and all three
-  implementations show the expected decline with SNR. Prospectively, raw
-  median/tail position, flux, and shape distributions remain visible
-  report-only diagnostics for generated mixed-SNR populations. Binding truth
-  decisions remain completeness/reliability, explicit morphology class,
-  catastrophic tails, and SNR/stratum-specific normalized-residual bias,
-  coverage, and dispersion. The governed compact reference may retain binding
-  raw-error limits because its population is fixed separately.
-- Point/clear classification is prospectively scored against the manifest's
-  explicit intrinsic class and candidate state, not a deconvolution rerun of
-  the noiseless reference ellipse. The latter turned sub-per-cent WCS/beam
-  projection residue into a false `major-axis-only` truth state. Analytic
-  point truth is canonicalized to unresolved before diagnostics.
-- The SNR-10 integrated-flux result remains a real, if very narrow,
-  uncertainty-calibration miss. Its coverage (`0.68875`) and dispersion
-  (`0.98350`) pass, its mean residual is only `0.10612` sigma, and both PyBDSF
-  references are substantially worse; nevertheless, the frozen 95% interval
-  crosses the predeclared bound and is not waived.
-
-Phase 4T targeted confirmation (next blocking checkpoint):
-
-1. Commit the Phase 4S result and prospective evaluator corrections before
-   defining or generating any Phase 4T image. Do not rescore or replace the
-   Phase 4S decision.
-2. Freeze a new seed-disjoint 800-image compact population with eight
-   declared point sources in each SNR tier per image. Preserve marginal and
-   clearly resolved cases, edge/corner/WCS diversity, correlated noise,
-   invalid pixels, and the exact candidate/reference identities. This gives at
-   least 6,400 fresh SNR-10 point residuals and must pass a pre-opening power
-   audit for the retained `0.15`-sigma uncertainty-bias bound after a
-   conservative within-image correlation adjustment.
-3. Freeze the corrected explicit-class endpoint, raw-distribution
-   report-only policy, unchanged uncertainty thresholds, all other absolute
-   gates, the same 20 co-primary non-inferiority endpoints, and the one-look
-   rule before output. Obtain and record the same transparent expert review.
-4. Run Hebog, released PyBDSF, and pinned `master` once on identical images.
-   Require every paired endpoint, every binding absolute gate, every stronger
-   Hebog envelope, and implementation completion to pass. A new failure is
-   terminal for Phase 4T and must not trigger another threshold or population
-   change.
-5. Only a passing Phase 4T decision permits substantive Phase 5 multiscale
-   implementation. Real-residual evidence, controlled performance, bounded
-   memory, Dask task-graph/scaling evidence, and external human review remain
-   production-cutover gates rather than Phase 4T substitutions.
-
-Phase 4T pre-opening freeze completed on 2026-08-05:
-
-- The committed population contains 800 fresh images, 49 observable groups,
-  48 individual sources, 32 point sources, eight marginal sources, eight clear
-  sources, and one unresolved blend. Each SNR tier contains eight point
-  sources, including an edge case. Seeds begin at `2026400001` and are
-  disjoint from all viewed Phase 4/4R/4S populations.
-- The weakest paired endpoint power is about 97.07% and the conservative joint
-  lower bound is about 96.07%. The retained SNR-10 integrated-flux
-  normalized-bias gate has about 90.69% planned interval-containment power
-  after the registered 0.02 within-image correlation adjustment.
-- The independent sampling unit is the image/noise realization. Phase 4T uses
-  cluster-sandwich Student-t intervals for coverage and mean bias and a
-  fixed-seed whole-realization percentile bootstrap for dispersion. The 0.02
-  planning ICC is above the Phase 4S estimate of about -0.0097; no residual is
-  treated as independent merely because it belongs to a different source in
-  the same image.
-- Canonical manifest, dataset, recipe, protocol, and scientific-gate hashes,
-  the raw-distribution report-only policy, unchanged uncertainty thresholds,
-  exact reference roles, one-look rule, and refusal-to-overwrite scripts are
-  recorded in the Phase 4T protocol. No Phase 4T image or implementation
-  result existed when the freeze was completed.
-
-Phase 4T terminal outcome on 2026-08-05:
-
-- Hebog, released PyBDSF, and pinned `master` completed all 800 realizations.
-  Hebog passed all 20 paired non-inferiority endpoints against each reference,
-  every uncertainty-calibration gate, and 76 of 77 binding absolute gates in
-  total. The original SNR-10 integrated-flux question passed with mean
-  normalized residual `0.061213` and cluster-aware 95% interval
-  `[0.037429, 0.084998]` inside `[-0.15, 0.15]`.
-- The sole binding failure was unresolved-group total-flux 95th-percentile
-  absolute error: `0.207080` against the frozen `0.2` maximum. Released
-  PyBDSF and pinned `master` both measured `0.600031`, and Hebog strongly
-  passed both paired comparisons, but superiority to a compatibility
-  reference cannot override an absolute-science gate. The associated stronger
-  envelope therefore failed and the one-look Phase 4T decision is terminally
-  failed.
-- Post-decision diagnostics do not rescore the result. The observed fraction
-  above 20% was 48/800 (6.0%), whose exact 95% interval includes 5%, and the
-  Phase 4S point estimate was `0.198112`. Nevertheless, 93.25% of Phase 4T
-  signed errors were negative, with mean `-0.097084`, so a general
-  under-recovery tendency merits correction rather than a threshold waiver.
-- Do not change the viewed Phase 4T threshold or population, round the value,
-  tune to its seeds, or run another unchanged-candidate campaign. The exact
-  evidence hashes and expert disposition are recorded in the scientific
-  review record. Phase 4T remains failed even if a later candidate qualifies.
-
-Scientific basis for this review:
-
-- [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19);
-- [Condon, Errors in Elliptical Gaussian Fits](https://adsabs.harvard.edu/pdf/1997PASP..109..166C);
-- [ATLAS Data Release 3](https://arxiv.org/abs/1508.03150);
-- [ProFound radio source-finding comparison](https://academic.oup.com/mnras/article/487/3/3971/5511783); and
-- [SKA Science Data Challenge 1 results](https://academic.oup.com/mnras/article/500/3/3821/5918002); and
-- [Cameron & Miller, cluster-robust inference](https://doi.org/10.3368/jhr.50.2.317).
-
-Phase 4T is complete and failed, so the compact-science start gate moves to a
-new-candidate remediation milestone rather than another confirmation of the
-same code.
-
-#### Phase 4U: unresolved-blend flux remediation
-
-Status: complete with scientific passage on 2026-08-05. This is not a rescore
-or replacement of Phase 4T. A general algorithm improvement was developed
-without using the Phase 4T seeds and then passed one separately frozen unseen
-qualification.
-
-1. Add failing analytic and generated development tests spanning coincident to
-   separately detectable pairs, unequal flux ratios, SNR, source/beam angle,
-   beam ellipticity, WCS orientation and scale, background gradients, invalid
-   pixels, and tile boundaries. Include noiseless cases that separate
-   estimator bias from stochastic tail variation.
-2. Attribute flux loss among island/support truncation, local-background
-   absorption, beam-area normalization, and inadequacy of a single Gaussian
-   for a two-emitter blend. Compare residual and truth diagnostics on
-   development data only; do not derive a fixed correction from Phase 4T.
-3. Implement the smallest data-driven correction using TDD. Preserve a clear
-   serial oracle, deterministic ownership, bounded memory, and serial/Dask
-   invariance. Do not regress any current completeness, reliability,
-   morphology, uncertainty, edge, catastrophic, or individual-source gate.
-4. Promote independent cases to regression fixtures and rerun the complete
-   compact scientific matrix against both exact PyBDSF references. Require
-   Hebog to remain equal or better on every paired endpoint while improving
-   unresolved-group flux across the predeclared development matrix.
-5. Only after a substantive general candidate change and passing independent
-   regression may a separately named qualification be proposed. Freeze its
-   code, evaluator, unchanged 20% absolute limit, all other current gates,
-   exact references, power, and one-look rule before generating output. Use
-   several predeclared blend separations and flux ratios rather than repeating
-   one geometry, and treat the image/noise realization as the independent
-   cluster. Obtain external human radio-astronomy review before opening it.
-
-Exit gate: the changed compact candidate passes one independently frozen
-qualification without a Phase 4T threshold waiver, passes every paired
-endpoint against both references, and has no unexplained material diagnostic
-regression. Controlled performance, bounded-memory, task-graph/scaling, and
-real-residual evidence remain later release and production-cutover gates.
-Historical Phase 4, Phase 4R, Phase 4S, and Phase 4T decisions remain failed
-and immutable.
-
-Phase 4U candidate-development checkpoint on 2026-08-05:
-
-- Analytic decomposition identified the fixed restoring-beam association
-  ellipse as the general source of the orientation-dependent loss. For a
-  noiseless two-component beam-shaped blend, the old estimator recovered
-  about 98.3%, 93.8%, and 86.5% of truth when the pair was respectively
-  aligned, diagonal, and perpendicular to the beam major axis. The failure is
-  aperture clipping rather than a global flux-calibration factor, so a fixed
-  multiplicative correction is rejected.
-- The candidate keeps the lower-variance restoring-beam aperture when it
-  contains at least 90% of the selected fitted Gaussian model and otherwise
-  uses the selected-fit ellipse. Both paths normalize over their actually
-  visible, valid, non-competing support. This is a local model-containment
-  decision; it does not inspect campaign truth, source class, seed, or a
-  qualification metric.
-- Three noiseless source/beam angles select the expected aperture and recover
-  total truth within 2%. A seed-disjoint 18-realization development matrix
-  crossing three source/beam angles and two flux ratios measured mean signed
-  error `-0.024108`, median `-0.037878`, and 95th-percentile absolute error
-  `0.147443`. The existing Phase 4R noisy blend regression and the full unit,
-  integration, and equivalence lanes pass.
-- The renamed association-aperture evidence is an intentional pre-production
-  schema cleanup. Internal catalogue FITS schema version 3 records
-  `ASSOCIATION_APERTURE_FLUX`; no compatibility reader for the unreleased
-  version-2 development encoding is retained.
-
-This checkpoint is development evidence, not qualification. Freeze a fresh
-Phase 4U population with several predeclared separations, orientations, and
-flux ratios only after the remediation candidate and regression evidence have
-been committed. Do not inspect any Phase 4U result before that freeze.
-
-Phase 4U pre-opening freeze completed on 2026-08-05:
-
-- The remediation candidate was committed independently as `96cdb40` after
-  its analytic, generated, regression, integration, equivalence, coverage,
-  documentation, type, and pre-commit checks passed.
-- The frozen qualification contains 800 fresh images, the unchanged 48-source
-  compact control population, and six new unresolved blends. The blend design
-  pairwise crosses beam-normalized separations `0.45`, `0.65`, and `0.80`,
-  source/beam angles 0, 45, and 90 degrees, and equal versus 2:1 flux ratios.
-  Directional elliptical-beam normalization keeps every case sub-beam.
-- Seeds begin at `2026600001`; they are disjoint from all viewed Phase 4
-  campaigns and Phase 4U development seeds. The image remains the independent
-  unit, and a 0.02 planning intracluster correlation is declared for all
-  repeated binary observations, including six-blend completeness.
-- The weakest paired endpoint has about 97.07% planned interval-exclusion
-  power, the conservative familywise lower bound is about 96.99%, and the
-  retained absolute uncertainty gate has about 90.69% interval-containment
-  power. The 20% unresolved-group flux-tail limit and all other gates remain
-  unchanged.
-- The project-owner-authorized AI expert review found the design scientifically
-  appropriate for the narrow compact start gate. Independent human review,
-  real-residual evidence, performance, bounded-memory, and scale evidence
-  remain later production gates. No Phase 4U science output existed at freeze.
-
-The exact protocol, canonical hashes, reference identities, fixed output
-paths, and one-look rule are recorded in the Phase 4U protocol. Commit the
-complete unopened state before running any implementation.
-
-Phase 4U one-look qualification completed on 2026-08-05:
-
-- Hebog, released PyBDSF 1.14.1, and pinned PyBDSF `master` each completed all
-  800 fresh images. The compiler accepted the matched dataset, seed,
-  scientific-contract, and paired-protocol identities before the decision was
-  opened exactly once.
-- The decision passed. Hebog passed all 77 binding absolute gates, all 20
-  paired non-inferiority endpoints against each reference, and all five
-  stronger-Hebog regression envelopes. The closest paired result was
-  catalogue reliability: its one-sided upper regression limit was about
-  `0.00353`, inside the frozen `0.005` margin.
-- Across the 4,800 unresolved blends, Hebog's mean and median signed total-flux
-  errors were `-0.020217` and `-0.019847`. Released PyBDSF measured about
-  `-0.108544` and `-0.109929`; pinned `master` was effectively identical.
-  Hebog's binding median absolute error was `0.047567`, and its 95th-
-  percentile absolute error was `0.139196` against the unchanged `0.2`
-  maximum. Each of the six frozen geometries remained inside that tail limit.
-- Four legacy whole-catalogue raw-error summaries remained failed but
-  explicitly report-only. Their values were essentially unchanged from Phase
-  4T, while all SNR-, edge-, uncertainty-, catastrophic-, classification-,
-  and unresolved-group binding gates passed. They do not indicate a material
-  regression and do not alter the frozen aggregate decision.
-- Candidate, released-reference, master-reference, compiled-campaign, and
-  decision SHA-256 values are respectively
-  `cbeae07878c2fe3d801fdff816b00db23f6d03655fe5652932e13b9e95a359dc`,
-  `75fa0a3a53ae4a7c63ffb2cac63213c04380eab3160622d93dfe1c00f78ea23b`,
-  `4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`,
-  `0355537bcfc1c716a6b4b9e7d0269c6d78c66bfacdfb69925f37a13ce6b018a1`,
-  and
-  `309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0`.
-
-This pass closes the compact single-scale science start gate and authorizes
-substantive Phase 5 development. Historical Phase 4, Phase 4R, Phase 4S, and
-Phase 4T decisions remain failed and immutable. The subsequent controlled
-incremental component matrix passes its Phase 4 budgets. Neither result
-authorizes production cutover or establishes the complete Rapthor/PyBDSF
-speedup: real-residual, independent human scientific, end-to-end workflow,
-and production-scale memory/task-graph evidence remain later gates.
+### Completed milestones: Phases 0--4
+
+Detailed chronology, experiment outcomes, immutable evidence identities, and
+superseded candidate decisions live in [`LOG.md`](../LOG.md) and the linked
+readiness and review records. These summaries retain only durable outputs,
+residual obligations, and constraints that Phase 5 must preserve.
+
+| Phase | Closed | Durable outcome | Evidence and remaining boundary |
+| --- | --- | --- | --- |
+| 0: baselines and contracts | 2026-08-02 | Froze the Rapthor contract, released and pinned-`master` PyBDSF references, comparison schemas, governed datasets, test lanes, and scheduler/storage architecture decisions. | [Phase 0 review](../docs/reference/phase-0-review-record.md) and [baseline results](../docs/reference/phase-0-baseline-results.md). Facility review and controlled 1/10/50/100/200-node evidence remain Phase 6/8 gates. |
+| 1: FITS, beam, WCS, and models | 2026-08-01 | Established bounded FITS/Zarr I/O, deterministic partition ownership, restartable products, internal schemas, and the pipeline-neutral image boundary. | [Phase 1 readiness](../docs/reference/phase-1-release-readiness.md). Deployment-store concurrency and atomicity remain Phase 6/8 work. |
+| 2: background and RMS | 2026-08-01 | Delivered the vectorised serial oracle, bounded window batching, adaptive fine regions, partition-invariant interpolation, and serial/executor parity. | [Phase 2 readiness](../docs/reference/phase-2-release-readiness.md). The controlled 3,000-square four-core true-sky and flat-noise medians were 2.471 and 2.527 seconds. |
+| 3: detection and compact deblending | 2026-08-02 | Delivered deterministic thresholding, island reconciliation, compact watershed deblending, durable masks, bounded batches, and explicit extended-island deferrals. | [Phase 3 readiness](../docs/reference/phase-3-release-readiness.md) and [scientific review](../docs/reference/phase-3-review-record.md). Multiscale reference objects and oversized islands are Phase 5 inputs, never accepted compact results. |
+| 4: compact measurement and catalogues | 2026-08-05 | Delivered exact-membership moments and Gaussian fits, calibrated compact positions and fluxes, deterministic catalogue shards, Rapthor-compatible catalogue output, and passing compact scientific and component-performance gates. | [Phase 4 readiness](../docs/reference/phase-4-release-readiness.md) and [scientific review](../docs/reference/phase-4-review-record.md). Real-residual, independent radio-astronomy, complete Rapthor timing, and production-scale Dask evidence remain cutover gates. |
+
+The Phase 4U candidate is the compact single-scale regression baseline for all
+later work. Its fresh 800-image qualification passed all 77 binding absolute
+gates, all 20 paired endpoints against each PyBDSF reference, and all five
+stronger-Hebog envelopes. The corrected 20-cell incremental performance
+matrix also passed; at 3,000 by 3,000 pixels, measurement/fitting medians were
+0.178--0.758 seconds and catalogue-output medians were 0.037--0.041 seconds,
+each below its 2.0-second budget. Exact evidence hashes and reproduction
+details remain in the records above and in `LOG.md`.
+
+Earlier Phase 4, 4R, 4S, and 4T one-look decisions remain terminal historical
+failures. Phase 4U is a separately governed candidate, not a rescore of those
+campaigns. This distinction must remain visible in evidence and review
+records, but their trial-by-trial history is not active plan content.
+
+Every later phase must preserve these completed contracts:
+
+- PyBDSF is a compatibility comparator, while analytic and injected truth
+  govern scientific correctness.
+- The Phase 4U compact population and its absolute, paired, catastrophic-tail,
+  classification, uncertainty, and unresolved-blend gates remain regression
+  requirements.
+- Extended or over-limit work remains explicit and fail-closed until Phase 5
+  produces a scientifically complete result; it must not disappear, become an
+  empty catalogue, or be relabelled as successful compact work.
+- One-tile and many-tile results use the same scientific semantics, immutable
+  global coordinates, deterministic ownership, and scheduler-safe records.
+- Zarr remains the sole intermediate plane backend; worker memory remains
+  bounded by admitted cores, halos, stage workspaces, and small summaries.
+- Complete Rapthor speedup, real-residual evidence, deployment-store
+  qualification, independent human scientific review, and 100-to-200-plus-node
+  scale evidence remain later gates. Completed component timings do not imply
+  those outcomes.
 
 ### Phase 5: multiscale and extended emission
 
-Status: ready to begin. The Phase 4U exit gate passed on 2026-08-05, so the
-qualified compact single-scale baseline may now support substantive multiscale
-implementation. Preserve that baseline through regression envelopes as new
-scale-sensitive behaviour is introduced.
+**Status:** active preparation. Phase 4U closed the compact-science start gate
+on 2026-08-05. Substantive multiscale development may begin from that exact
+compact baseline, but no extended-emission algorithm, scientific tolerance,
+or runtime claim is approved merely by entering this phase.
 
-- [ ] Add failing analytic and generated-truth tests for diffuse, filamentary, mixed,
-      cross-scale, duplicate, and artefact-dominated cases.
-- [ ] Implement an undecimated wavelet or equivalent beam-aware filter bank with reused
-      convolutions and background products.
-- [ ] Detect significant emission at each configured scale without recursively rerunning the full
-      pipeline.
-- [ ] Derive scale-specific halos and trim ownership regions so tile-boundary convolutions match
-      the one-tile reference.
-- [ ] Merge cross-scale islands deterministically and prevent duplicate compact components.
-- [ ] Promote reviewed failures and boundary cases to regression fixtures.
-- [ ] Compare completeness and integrated flux by angular scale.
+**Goal:** recover and measure the extended and cross-scale emission required
+by the Rapthor contract without recursively rerunning the complete compact
+pipeline. The result must combine compact and multiscale detections into one
+deterministic, scientifically complete catalogue and source-filtering product
+while remaining suitable for the bounded tiled execution developed fully in
+Phase 6.
 
-Exit gate: extended-source cases meet reviewed scientific tolerances and the multiscale path stays
-within the complete runtime budget.
+Phase 5 owns scale-space science, cross-scale ownership, extended-island
+completion, compact/multiscale association, and the scheduler-independent
+bounded algorithm. Phase 6 owns production executor planning,
+deployment-store qualification, hierarchical Dask graphs, real worker-loss
+and spill behaviour, and facility-scale execution.
+
+#### Phase 5 execution order
+
+1. **Freeze the Phase 5 contract before algorithm tuning.**
+
+   - [ ] Inventory multiscale objects and deferred-island paths exposed by the
+         Phase 3 representative comparison, Phase 4 compact campaigns, and
+         Rapthor's three-scale PyBDSF configuration. Record which catalogue,
+         RMS, mask, and downstream filter decisions each can affect.
+   - [ ] Define scale in restoring-beam units and freeze the configured scale
+         sequence, filter normalization, threshold meaning, valid-pixel
+         handling, edge policy, maximum supported scale, and failure
+         semantics. Keep workflow defaults in the Rapthor adapter.
+   - [ ] Extend the versioned scientific contract and internal schemas for
+         scale detections, cross-scale associations, extended measurements,
+         explicit omissions, and the combined catalogue. Do not expose
+         worker-local arrays or scheduler objects.
+   - [ ] Add Phase 5 development and regression manifests covering diffuse,
+         filamentary, shell-like or curved, mixed compact/extended,
+         overlapping-scale, edge, invalid-pixel, varying-noise, and
+         artefact-dominated cases. Include sources crossing tile edges and
+         corners and cases above the compact-deblend limits.
+   - [ ] Freeze one untouched qualification manifest before implementation
+         tuning. Record generator versions, seeds, angular scales, injected
+         truth, morphology strata, and intended statistical power.
+   - [ ] Freeze reviewed absolute and paired gates for scale-stratified
+         completeness, reliability, integrated-flux error, astrometry,
+         duplicate rate, mask/island topology, and Rapthor retained/rejected
+         decisions. Predeclare practical margins and interval methods rather
+         than deriving them from viewed qualification results.
+   - [ ] Obtain named scientific review of the contract, datasets, metrics,
+         and margins before opening qualification. Independent
+         radio-astronomy review remains mandatory before production cutover
+         even when project-owner review permits development.
+
+2. **Select the smallest scientifically adequate scale representation.**
+
+   - [ ] Write failing analytic tests for the scale response of isolated
+         Gaussian sources, constant and affine backgrounds, masked/NaN
+         regions, image edges, and separated compact sources.
+   - [ ] Establish a readable one-tile serial oracle that reuses Phase 2
+         background/RMS products and evaluates each configured scale without
+         rerunning ingestion, background estimation, or compact detection.
+   - [ ] Compare an undecimated wavelet construction with a beam-aware matched
+         filter bank on the same development fixtures, recording convolution,
+         memory, and complete-stage measurements. Prefer the simpler
+         maintained NumPy/SciPy design satisfying the frozen science contract.
+   - [ ] Record filter support, truncation error, normalization, correlated
+         noise response, dtype, required halo, temporary planes, and
+         convolution reuse for the selected representation. Create or amend
+         an ADR only if the decision changes an architecture boundary or
+         introduces a durable dependency or storage policy.
+   - [ ] Keep float64 unless lower precision passes the complete governed
+         scientific suite; introduce native code only if the existing profile
+         and end-to-end decision gates are met.
+
+3. **Implement scale detection and extended-island measurement.**
+
+   - [ ] Detect significant emission at every configured scale from shared
+         filter responses and local noise information. Keep graph and kernel
+         work proportional to tiles and scales, not pixels, RMS windows, or
+         islands.
+   - [ ] Define scale-specific connectivity, local maxima or support regions,
+         and minimum-area rules with exact analytic boundary tests.
+   - [ ] Complete islands deferred by the compact planner through a bounded
+         partitioned path. No task may require the full bounds or membership
+         of an arbitrarily large island on one worker.
+   - [ ] Measure extended emission with explicit support, background, flux,
+         centroid, shape, uncertainty availability, and truncation semantics.
+         Preserve typed unavailable or failed outcomes; never substitute zero
+         or silently publish a partial catalogue.
+   - [ ] Retain compact Phase 4 measurements unchanged when no multiscale
+         evidence alters their association. Enabling extra scales must not
+         perturb an isolated compact source.
+
+4. **Reconcile scales and construct complete products.**
+
+   - [ ] Define deterministic cross-scale overlap and ownership rules before
+         implementation. Resolve ambiguous compact/extended associations from
+         physical overlap and flux evidence, never local label, tile,
+         completion, or worker order.
+   - [ ] Merge fragments of one extended object without merging physically
+         distinct compact components embedded in or projected on extended
+         emission.
+   - [ ] Suppress duplicate scale detections while retaining provenance for
+         every contributing scale and the selected representation.
+   - [ ] Derive stable island, source, and Gaussian-component identities from
+         reconciled global properties. Document whether an extended source has
+         zero, one, or several Gaussian compatibility components and test the
+         Rapthor adapter mapping explicitly.
+   - [ ] Combine compact and multiscale shards through bounded deterministic
+         reductions. Publication succeeds only when every accepted or
+         deferred island has a valid terminal disposition.
+   - [ ] Materialise the combined catalogue, source-filtering mask, RMS
+         product, diagnostics, and Rapthor compatibility view without changing
+         frozen compact-only output.
+
+5. **Prove tiled and executor-independent behaviour.**
+
+   - [ ] Derive each scale's halo from finite support or a reviewed truncation
+         tolerance. Trim every tile to its non-overlapping output core and
+         reject configurations whose halo cannot meet the memory contract.
+   - [ ] Test one-tile versus many-tile equality for sources crossing every
+         edge and corner topology, multiple partition origins, rectangular
+         tiles, clipped image edges, invalid regions, and the largest scale.
+   - [ ] Prove partition, tile-shape, batch-shape, worker-count,
+         completion-order, retry, and executor invariance for detections,
+         identities, associations, measurements, catalogue rows, masks, and
+         diagnostics.
+   - [ ] Retain only bounded tile cores, scale halos, convolution workspaces,
+         extended-object summaries, and catalogue shards. Record peak retained
+         bytes and boundary-summary volume in tests and benchmarks.
+   - [ ] Exercise SerialExecutor and the existing executor path on test-sized
+         cases. Production Dask planning and facility-scale proof remain
+         Phase 6 work, but Phase 5 may not introduce scheduler-dependent
+         scientific semantics.
+
+6. **Qualify science, regression, and incremental performance.**
+
+   - [ ] Promote each reviewed development failure and boundary defect to a
+         deterministic regression fixture before fixing it.
+   - [ ] Compare Hebog with injected truth and both exact PyBDSF references by
+         morphology, angular scale, SNR, edge status, blend status, and
+         background regime. Report threshold crossings as completeness and
+         reliability changes.
+   - [ ] Re-run the complete Phase 4U compact regression and require every
+         binding absolute gate, paired endpoint, and stronger-Hebog envelope
+         to remain satisfied. Investigate compact point-estimate degradation
+         even when an interval is inconclusive.
+   - [ ] Open the frozen Phase 5 qualification exactly once with the reviewed
+         evaluator and immutable candidate/reference identities. Retain a
+         terminal failed decision without rescoring or changing its
+         population.
+   - [ ] Benchmark the complete incremental Phase 5 path at 256, 512, 1,024,
+         and 3,000 pixels per side across sparse, normal, dense/extended, and
+         mixed compact/extended work. Add cases on both sides of any new
+         convolution or executor crossover.
+   - [ ] Keep multiscale processing and merge within the controlled four-core
+         3,000-square median budget of 6.0 seconds. Apply Section 1's
+         five-percent Hebog regression rule at affected and adjacent tiers;
+         record task, scale, convolution, temporary-plane, memory, and output
+         counts.
+   - [ ] Update the living Marimo demonstration, current schemas,
+         configuration reference, scientific-method documentation, readiness
+         record, and `LOG.md`. Run the relevant scientific, executor,
+         documentation, package, coverage, and repository checks.
+
+#### Phase 5 exit gate
+
+Phase 5 closes only when:
+
+- reviewed analytic, generated-truth, dual-reference, edge, invalid-pixel,
+  deferred-island, mixed compact/extended, and untouched qualification cases
+  pass their predeclared gates;
+- scale-stratified completeness, reliability, integrated flux, astrometry,
+  duplicate, mask, island split/merge, and Rapthor filter-decision results
+  meet absolute-truth and paired non-inferiority requirements;
+- the complete Phase 4U compact regression remains passing, and compact-only
+  output is unchanged where no multiscale evidence exists;
+- one-tile/many-tile and serial/executor results satisfy the frozen
+  determinism contract, with memory bounded by cores, scale halos,
+  workspaces, summaries, and shards rather than image or extended-island size;
+- the complete incremental multiscale stage meets the 6.0-second
+  representative budget and has no unapproved adjacent-tier regression; and
+- named scientific and engineering review accepts the evidence, algorithm
+  choice, residual risks, and Phase 6 handoff.
+
+Passing this gate establishes the scheduler-independent multiscale scientific
+milestone. It does not establish complete Rapthor speedup, deployment storage
+behaviour, 100-to-200-plus-node scalability, real worker-loss recovery,
+independent radio-astronomy approval, or production cutover.
 
 ### Phase 6: local, out-of-core, and distributed Dask execution
 
@@ -3054,8 +1093,8 @@ unless an explicitly approved throughput trade-off justifies it.
 
 ## 11. Performance budget
 
-Phase 0 will replace provisional values with matched, versioned released and `master` baselines.
-Performance is evaluated as a curve, not one headline image. The initial size
+Phase 0 captured matched, versioned released and `master` baselines.
+Performance is evaluated as a curve, not one headline image. The frozen size
 regimes are:
 
 | Regime | Frozen representative sizes | Primary concern |
@@ -3066,14 +1105,14 @@ regimes are:
 | Distributed | 30,000 pixels per side | Storage throughput, occupancy, reconciliation, and graph overhead |
 | Extreme qualification | 100,000 pixels per side | Out-of-core correctness and 100-to-200-plus-node scaling |
 
-These are benchmark anchors, not hard-coded execution thresholds. Phase 0 and
-subsequent controlled measurements determine crossovers from image planes,
-halos, source density, storage, admitted CPUs/RAM, and executor overhead. Add
-near-boundary cases whenever the fastest valid plan changes.
+These are benchmark anchors, not hard-coded execution thresholds. Controlled
+measurements determine crossovers from image planes, halos, source density,
+storage, admitted CPUs/RAM, and executor overhead. Add near-boundary cases
+whenever the fastest valid plan changes.
 
 The design budget for the representative 3,000-by-3,000 case is:
 
-| Component | Provisional budget |
+| Component | Current budget |
 | --- | ---: |
 | FITS input, validation, beam, and WCS | 1.5 s |
 | True-sky background and RMS | 4.0 s |
@@ -3187,30 +1226,35 @@ count.
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
 | A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
 
-## 14. Open decisions entering Phase 4
+## 14. Open decisions entering Phase 5
 
-The 2026-08-02 scientific review resolved the glossary authority, Phase 3
-mask/object margins, strict detection comparison, beam-aware six-pixel floor,
-and SciPy compact-deblending questions. Their approved disposition is recorded
-in the [Phase 3 scientific review record](../docs/reference/phase-3-review-record.md).
-Phase 4 resolves its first four decisions through the ordered evidence gates
-above rather than making a dependency or optimization choice in advance. The
-remaining decisions are:
+Phase 4 selected SciPy bounded least-squares, calibrated its available compact
+position and flux uncertainties, retained absent shape uncertainties, and
+qualified one fitted Gaussian and one source per compact deblended region.
+Selective moment-only cataloguing was not adopted. Those decisions are
+documented in the [Phase 4 readiness record](../docs/reference/phase-4-release-readiness.md)
+and are now regression constraints rather than open questions.
 
-- Does SciPy `least_squares` or Astropy modelling provide the simplest robust
-  compact fit after the analytic and representative comparison? A compiled
-  kernel is not eligible unless the existing native-code profile gates later
-  pass.
-- Which reviewed uncertainty calculation is sufficiently calibrated for
-  position and flux, and which shape uncertainties must remain explicitly
-  unavailable?
-- Does the compact association evidence support one source per deblended
-  region, or require a separate multi-Gaussian grouping policy within an
-  island?
-- Can a moment-only selective path meet fit-all science and downstream gates,
-  and if so what frozen eligibility rule prevents population bias?
-- Is an undecimated wavelet transform required, or does a beam-aware matched-filter bank satisfy the
-  extended-source gate more efficiently?
+Resolve the following decisions through the ordered Phase 5 evidence gates;
+do not select from convenience or PyBDSF implementation detail alone:
+
+- Does an undecimated wavelet construction or a beam-aware matched-filter bank
+  provide the simplest adequate scale response, noise normalization, edge
+  behaviour, convolution reuse, and representative latency?
+- What finite support or reviewed truncation tolerance defines each scale's
+  halo, and what maximum scale remains compatible with the worker-memory
+  contract?
+- Which scale-specific threshold, connectivity, and support rules recover
+  diffuse and filamentary truth without duplicating compact sources?
+- Which deterministic overlap evidence establishes cross-scale identity,
+  compact/extended association, split/merge behaviour, and ownership across
+  tile boundaries?
+- How are extended islands, sources, and any compatibility Gaussian components
+  represented so the internal schema stays scientifically explicit while the
+  Rapthor adapter retains its frozen contract?
+- Which extended-flux and uncertainty estimators are calibrated by morphology,
+  angular scale, SNR, edges, masks, and correlated noise, and which values must
+  remain explicitly unavailable?
 - Which worker-local cache policy best complements the Zarr intermediate store:
   bounded in-memory arrays, Dask worker data, or store-backed rereads?
 - Which Zarr store, codec, chunk geometry, and concurrency settings meet the
