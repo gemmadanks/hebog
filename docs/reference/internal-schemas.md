@@ -232,6 +232,31 @@ not clipped by the restoring beam's narrow axis. `GaussianComponent.flux`
 continues to describe the selected Gaussian model, and materialized Rapthor
 catalogue columns retain their reviewed peak/integrated component semantics.
 
+## Phase 5 multiscale records
+
+Phase 5 introduces six version-one internal records without changing the
+published catalogue schema. `ScaleDetection` describes one finite,
+beam-normalized response and retains its global bounds, valid-support
+fraction, normalized peak response, significance, and contributing scale. A
+`CrossScaleAssociation` canonically joins scale detections and, when present,
+one compact source. It records the selected detection explicitly rather than
+letting task or scale iteration order choose a catalogue representation.
+
+`ExtendedEmissionMeasurement` stores the association-level centroid, flux,
+beam-normalized extent, uncertainty status, and supporting scale orders.
+`MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
+support, measurement, or association. `CombinedIslandDisposition` gives every
+accepted or deferred island exactly one terminal state. Finally,
+`CombinedCatalogueState` joins the canonical identifiers and makes
+publication eligibility false whenever an omission or incomplete disposition
+remains.
+
+All six records are strict, immutable, and scheduler safe. They contain only
+small scalar values and canonical identifiers: worker-local arrays, open
+files, WCS objects, executor clients, and task state remain outside the
+schema. These records freeze meanings for development; they do not yet claim
+that the Phase 5 combined catalogue algorithm is implemented.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as

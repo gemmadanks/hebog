@@ -1,0 +1,485 @@
+{
+  "datasets": [
+    {
+      "association_group_strata": [],
+      "association_truth_groups": [],
+      "beam": {
+        "major_fwhm_pixels": 5,
+        "minor_fwhm_pixels": 3.5,
+        "position_angle_degrees": 20
+      },
+      "classification_strata": [],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.0001,
+        "finite_fraction": 0.9998092651367188,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase5-development-multiscale-1024",
+      "multiscale_group_strata": [
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "above-compact-deblend-limit"
+        },
+        {
+          "group_identifiers": [
+            "extended-edge-0001"
+          ],
+          "identifier": "image-edge"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "invalid-pixels"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001"
+          ],
+          "identifier": "morphology-artifact"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001"
+          ],
+          "identifier": "morphology-curved-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-diffuse-0001",
+            "extended-edge-0001"
+          ],
+          "identifier": "morphology-diffuse"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001"
+          ],
+          "identifier": "morphology-filament"
+        },
+        {
+          "group_identifiers": [
+            "extended-mixed-0001"
+          ],
+          "identifier": "morphology-mixed-compact-extended"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "morphology-shell"
+        },
+        {
+          "group_identifiers": [
+            "artifact-bright-sidelobes-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-1-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001"
+          ],
+          "identifier": "scale-2-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "scale-4-beam"
+        },
+        {
+          "group_identifiers": [
+            "extended-filament-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-boundary"
+        },
+        {
+          "group_identifiers": [
+            "extended-shell-0001"
+          ],
+          "identifier": "tile-corner"
+        },
+        {
+          "group_identifiers": [
+            "extended-curved-filament-0001",
+            "extended-diffuse-0001",
+            "extended-edge-0001",
+            "extended-filament-0001",
+            "extended-mixed-0001",
+            "extended-shell-0001"
+          ],
+          "identifier": "varying-noise"
+        }
+      ],
+      "multiscale_truth_groups": [
+        {
+          "catalogue_role": "artifact",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1
+          ],
+          "identifier": "artifact-bright-sidelobes-0001",
+          "major_extent_beams": 7,
+          "minor_extent_beams": 2,
+          "morphology": "artifact",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.20357520395261858,
+          "reference_position_xy": [
+            350.00000000000006,
+            800
+          ],
+          "source_indices": [
+            13,
+            14,
+            15
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            2,
+            3
+          ],
+          "identifier": "extended-curved-filament-0001",
+          "major_extent_beams": 7,
+          "minor_extent_beams": 2,
+          "morphology": "curved-filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.3996105855366217,
+          "reference_position_xy": [
+            211.99999999999997,
+            497.13207547169804
+          ],
+          "source_indices": [
+            4,
+            5,
+            6
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-diffuse-0001",
+          "major_extent_beams": 6,
+          "minor_extent_beams": 4,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.8095573684677209,
+          "reference_position_xy": [
+            150,
+            150
+          ],
+          "source_indices": [
+            0
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-edge-0001",
+          "major_extent_beams": 5,
+          "minor_extent_beams": 2,
+          "morphology": "diffuse",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.7539822368615503,
+          "reference_position_xy": [
+            2,
+            650
+          ],
+          "source_indices": [
+            16
+          ],
+          "touches_image_edge": true
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": true,
+          "governed_scale_orders": [
+            2
+          ],
+          "identifier": "extended-filament-0001",
+          "major_extent_beams": 10,
+          "minor_extent_beams": 1.5,
+          "morphology": "filament",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.562973403523291,
+          "reference_position_xy": [
+            512,
+            260
+          ],
+          "source_indices": [
+            1,
+            2,
+            3
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "crosses_tile_boundary": false,
+          "governed_scale_orders": [
+            1,
+            2,
+            3
+          ],
+          "identifier": "extended-mixed-0001",
+          "major_extent_beams": 5,
+          "minor_extent_beams": 3,
+          "morphology": "mixed-compact-extended",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.8482300164692442,
+          "reference_position_xy": [
+            780,
+            280
+          ],
+          "source_indices": [
+            11,
+            12
+          ],
+          "touches_image_edge": false
+        },
+        {
+          "catalogue_role": "astronomical-source",
+          "compact_deblend_disposition": "deferred-extended",
+          "crosses_tile_boundary": true,
+          "crosses_tile_corner": true,
+          "governed_scale_orders": [
+            3
+          ],
+          "identifier": "extended-shell-0001",
+          "major_extent_beams": 9,
+          "minor_extent_beams": 9,
+          "morphology": "shell",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.6031857894892403,
+          "reference_position_xy": [
+            520,
+            520
+          ],
+          "source_indices": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "touches_image_edge": false
+        }
+      ],
+      "noise_realization_seeds": [
+        2026700002,
+        2026700003,
+        2026700004,
+        2026700005,
+        2026700006,
+        2026700007,
+        2026700008,
+        2026700009,
+        2026700010
+      ],
+      "provenance": "Phase 5 development population frozen before filter-family selection or multiscale implementation tuning.",
+      "purpose": "Development truth for scale response, morphology, cross-scale association, artifact rejection, edges, masks, varying noise, and tile-boundary ownership.",
+      "recipe": {
+        "background": -0.0001,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [
+          {
+            "x_start": 790,
+            "x_stop": 800,
+            "y_start": 270,
+            "y_stop": 290
+          }
+        ],
+        "noise_correlation": {
+          "major_fwhm_pixels": 5,
+          "minor_fwhm_pixels": 3.5,
+          "position_angle_degrees": 20,
+          "truncation_sigma": 4
+        },
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.4,
+          -0.2
+        ],
+        "seed": 2026700001,
+        "shape_yx": [
+          1024,
+          1024
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 12,
+            "minor_sigma_pixels": 8,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 20,
+            "x_pixel": 150,
+            "y_pixel": 150
+          },
+          {
+            "major_sigma_pixels": 8,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0018,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 500,
+            "y_pixel": 260
+          },
+          {
+            "major_sigma_pixels": 8,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 512,
+            "y_pixel": 260
+          },
+          {
+            "major_sigma_pixels": 8,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0018,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 524,
+            "y_pixel": 260
+          },
+          {
+            "major_sigma_pixels": 6,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0017,
+            "rotation_degrees_counterclockwise_from_x": 135,
+            "x_pixel": 200,
+            "y_pixel": 500
+          },
+          {
+            "major_sigma_pixels": 6,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0019,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 212,
+            "y_pixel": 492
+          },
+          {
+            "major_sigma_pixels": 6,
+            "minor_sigma_pixels": 2,
+            "peak_flux_jy_per_beam": 0.0017,
+            "rotation_degrees_counterclockwise_from_x": 45,
+            "x_pixel": 224,
+            "y_pixel": 500
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 500,
+            "y_pixel": 520
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 45,
+            "x_pixel": 520,
+            "y_pixel": 500
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 90,
+            "x_pixel": 540,
+            "y_pixel": 520
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 3,
+            "peak_flux_jy_per_beam": 0.0016,
+            "rotation_degrees_counterclockwise_from_x": 135,
+            "x_pixel": 520,
+            "y_pixel": 540
+          },
+          {
+            "major_sigma_pixels": 10,
+            "minor_sigma_pixels": 6,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 30,
+            "x_pixel": 780,
+            "y_pixel": 280
+          },
+          {
+            "major_sigma_pixels": 2,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 30,
+            "x_pixel": 780,
+            "y_pixel": 280
+          },
+          {
+            "major_sigma_pixels": 3,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 350,
+            "y_pixel": 800
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.0012,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 365,
+            "y_pixel": 800
+          },
+          {
+            "major_sigma_pixels": 5,
+            "minor_sigma_pixels": 1.2,
+            "peak_flux_jy_per_beam": 0.0012,
+            "rotation_degrees_counterclockwise_from_x": 0,
+            "x_pixel": 335,
+            "y_pixel": 800
+          },
+          {
+            "major_sigma_pixels": 10,
+            "minor_sigma_pixels": 4,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 80,
+            "x_pixel": 2,
+            "y_pixel": 650
+          }
+        ]
+      },
+      "recipe_sha256": "9e350ba4f5b3cc2461d7cdd4dfe0e61bb4a4504c50cd6a2ee85787803e9b60cb",
+      "redistribution": "generated-locally",
+      "role": "development",
+      "validation_strata": [],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00025,
+          0.0003
+        ],
+        "reference_pixel_xy": [
+          511.5,
+          511.5
+        ],
+        "reference_sky_degrees": [
+          180,
+          -30
+        ],
+        "rotation_degrees_counterclockwise": 11
+      }
+    }
+  ],
+  "manifest_id": "phase-5-development",
+  "schema_version": 3
+}

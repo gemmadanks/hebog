@@ -32,6 +32,131 @@ MANIFEST_PATH = _DATASET_DIRECTORY / "phase-0-development.json"
 _PHASE_FOUR_POWERED_SAMPLE_COUNT = 1_600
 
 
+def _phase_five_qualification_payload() -> dict[str, Any]:
+    """Return a fresh mutable copy of the frozen Phase 5 manifest."""
+    manifest = load_dataset_manifest(
+        _DATASET_DIRECTORY / "phase-5-qualification.json"
+    )
+    return manifest.model_dump(mode="json")
+
+
+def _remove_one_group_from_every_multiscale_stratum(
+    payload: dict[str, Any],
+) -> None:
+    """Leave one truth group without any governed stratum."""
+    dataset = payload["datasets"][0]
+    target = dataset["multiscale_truth_groups"][0]["identifier"]
+    retained_strata: list[dict[str, Any]] = []
+    for stratum in dataset["multiscale_group_strata"]:
+        stratum["group_identifiers"] = [
+            identifier
+            for identifier in stratum["group_identifiers"]
+            if identifier != target
+        ]
+        if stratum["group_identifiers"]:
+            retained_strata.append(stratum)
+    dataset["multiscale_group_strata"] = retained_strata
+
+
+def _clear_multiscale_truth(payload: dict[str, Any]) -> None:
+    """Create a schema-three dataset without multiscale truth."""
+    dataset = payload["datasets"][0]
+    dataset["multiscale_truth_groups"] = []
+    dataset["multiscale_group_strata"] = []
+
+
+_INVALID_MULTISCALE_MANIFEST_MUTATIONS: tuple[
+    tuple[Callable[[dict[str, Any]], None], str], ...
+] = (
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(source_indices=[1, 0]),
+        "unique and sorted",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(source_indices=[-1]),
+        "non-negative",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(reference_position_xy=[float("inf"), 1.0]),
+        "position must be finite",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(minor_extent_beams=100.0),
+        "minor extent",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(governed_scale_orders=[2, 1]),
+        "scale orders",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(catalogue_role="astronomical-source"),
+        "catalogue role",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            0
+        ].update(crosses_tile_corner=True),
+        "must also cross a tile boundary",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_group_strata"][
+            0
+        ].update(group_identifiers=["shell-0001", "diffuse-0001"]),
+        "unique and sorted",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_truth_groups"][
+            1
+        ].update(
+            identifier=payload["datasets"][0]["multiscale_truth_groups"][0][
+                "identifier"
+            ]
+        ),
+        "truth identifiers must be unique",
+    ),
+    (
+        lambda payload: payload["datasets"][0][
+            "multiscale_truth_groups"
+        ].pop(),
+        "partition recipe sources",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_group_strata"][
+            1
+        ].update(
+            identifier=payload["datasets"][0]["multiscale_group_strata"][0][
+                "identifier"
+            ]
+        ),
+        "stratum identifiers must be unique",
+    ),
+    (
+        lambda payload: payload["datasets"][0]["multiscale_group_strata"][
+            0
+        ].update(group_identifiers=["unknown-group"]),
+        "identify governed truth",
+    ),
+    (_remove_one_group_from_every_multiscale_stratum, "requires a stratum"),
+    (
+        lambda payload: payload.update(schema_version=2),
+        "require manifest schema 3",
+    ),
+    (_clear_multiscale_truth, "schema 3 requires multiscale truth"),
+)
+
+
 def _recipe(
     *,
     seed: int = 42,
@@ -287,6 +412,118 @@ def test_phase_four_adds_immutable_role_specific_supplements() -> None:
         for dataset in manifest.datasets
     }
     assert earlier_identifiers.isdisjoint(phase_four_identifiers)
+
+
+def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
+    None
+):
+    """Freeze multiscale roles, morphology, scales, and one-look data."""
+    manifests = {
+        path.stem: load_dataset_manifest(path)
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-5-*.json"))
+    }
+
+    assert set(manifests) == {
+        "phase-5-development",
+        "phase-5-qualification",
+        "phase-5-regression",
+    }
+    expected_roles = {
+        "phase-5-development": DatasetRole.DEVELOPMENT,
+        "phase-5-regression": DatasetRole.REGRESSION,
+        "phase-5-qualification": DatasetRole.QUALIFICATION,
+    }
+    all_morphologies: set[str] = set()
+    all_identifiers: list[str] = []
+    all_seeds: set[int] = set()
+    for manifest_id, manifest in manifests.items():
+        assert manifest.schema_version == 3
+        assert {dataset.role for dataset in manifest.datasets} == {
+            expected_roles[manifest_id]
+        }
+        for dataset in manifest.datasets:
+            assert dataset.multiscale_truth_groups
+            assert dataset.multiscale_group_strata
+            all_identifiers.append(dataset.identifier)
+            all_morphologies.update(
+                group.morphology for group in dataset.multiscale_truth_groups
+            )
+            recipe_seeds = {
+                recipe.seed for recipe in iter_dataset_recipes(dataset)
+            }
+            assert all_seeds.isdisjoint(recipe_seeds)
+            all_seeds.update(recipe_seeds)
+
+    assert len(set(all_identifiers)) == len(all_identifiers)
+    assert all_morphologies == {
+        "artifact",
+        "curved-filament",
+        "diffuse",
+        "filament",
+        "mixed-compact-extended",
+        "shell",
+    }
+    qualification = manifests["phase-5-qualification"].datasets
+    assert len(qualification) == 1
+    qualification_dataset = qualification[0]
+    assert len(iter_dataset_recipes(qualification_dataset)) == 400
+    assert "untouched" in qualification_dataset.provenance.lower()
+    assert qualification_dataset.recipe.noise_correlation is not None
+    assert qualification_dataset.recipe.invalid_rectangles
+    assert qualification_dataset.recipe.noise_rms_fractional_gradient_xy != (
+        0.0,
+        0.0,
+    )
+    scale_orders = {
+        group.governed_scale_orders
+        for group in qualification_dataset.multiscale_truth_groups
+    }
+    assert scale_orders >= {(1,), (2,), (3,)}
+    assert any(
+        group.crosses_tile_boundary
+        for group in qualification_dataset.multiscale_truth_groups
+    )
+    assert any(
+        group.touches_image_edge
+        for group in qualification_dataset.multiscale_truth_groups
+    )
+    assert any(
+        group.crosses_tile_corner
+        and group.compact_deblend_disposition == "deferred-extended"
+        for group in qualification_dataset.multiscale_truth_groups
+    )
+    assert {
+        manifest_id: campaign_dataset_identity(
+            manifest.datasets[0]
+        ).content_sha256
+        for manifest_id, manifest in manifests.items()
+    } == {
+        "phase-5-development": (
+            "319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d"
+        ),
+        "phase-5-qualification": (
+            "b93b0b180341bdeeb4a4ee18398e5203ef83437375b731c8e4bbc550017216a1"
+        ),
+        "phase-5-regression": (
+            "70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5"
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    _INVALID_MULTISCALE_MANIFEST_MUTATIONS,
+)
+def test_phase_five_manifest_rejects_incomplete_multiscale_truth(
+    mutation: Callable[[dict[str, Any]], None],
+    message: str,
+) -> None:
+    """Morphology truth and its strata remain complete and canonical."""
+    payload = _phase_five_qualification_payload()
+    mutation(payload)
+
+    with pytest.raises(ValidationError, match=message):
+        DatasetManifest.model_validate(payload)
 
 
 def test_phase_four_paired_regression_is_independent_and_representative() -> (

@@ -5383,3 +5383,51 @@ closeout
 current Phase 3/4 deferrals, then freeze the Phase 5 scientific contract,
 dataset roles, evaluator families, and pre-opening review process before
 algorithm tuning.
+
+## 2026-08-05 — Completed Phase 5 Step 1 contract freeze
+
+**Plan phase:** Phase 5, Step 1 — multiscale meanings, datasets, gates, and
+development review
+
+- Inventoried the Rapthor three-scale profile, the five unmatched multiscale
+  objects in the representative comparison, oversized compact-island
+  deferrals, the compact catalogue publication boundary, and the downstream
+  catalogue, mask, and filtering decisions they affect.
+- Added strict machine-readable contracts for the three dyadic beam scales,
+  response normalization, Phase 2 background/RMS reuse, valid-support and
+  edge handling, deterministic cross-scale association, combined-catalogue
+  publication, and fail-closed omissions. Filter selection remains explicitly
+  deferred to Step 2.
+- Added immutable scheduler-safe records for scale detections, cross-scale
+  associations, extended measurements, omissions, terminal island
+  dispositions, and combined-catalogue state.
+- Added schema-version-three development, regression, and qualification
+  manifests with analytic morphology truth spanning diffuse, filamentary,
+  curved, shell, mixed, edge, tile-boundary, invalid-pixel, varying-noise,
+  overlapping-scale, and artefact cases. The shell crosses a tile corner and
+  is predeclared above the governed compact-deblend test limit. Their disjoint
+  seed ranges contain 10, 100, and 400 images respectively.
+- Froze conjunctive absolute truth gates and paired non-inferiority margins
+  against released and pinned-`master` PyBDSF, with whole-image bootstrap
+  intervals, a 90% joint-power target, and a one-look qualification rule.
+- Recorded Codex's named AI scientific synthesis as development review. This
+  is not independent human or institutional approval; independent
+  radio-astronomy review and realistic residual evidence remain production
+  cutover gates.
+- Preserved historical Phase 1--4 dataset identities when extending the
+  manifest schema. No Phase 5 qualification image or algorithm output was
+  generated or inspected.
+
+**Development validation:** the initial focused contract and record tests
+failed for the intended missing loaders and records; after implementation,
+the focused contract, dataset, and data-model suite passed 195 tests. The
+branch-aware coverage lane passed 980 tests with four expected failures and
+94.36% project coverage; the new multiscale records reached 99%, contracts
+95%, and dataset validation 97%. The fast handoff lane passed Ruff, Pyright,
+and 850 tests with four expected failures. The frozen equivalence lane passed
+27 tests, the public-contract lane retained its four declared expected
+failures, and strict documentation built successfully.
+
+**Immediate next step:** begin Step 2 with failing analytic scale-response
+tests, then compare the predeclared beam-aware matched-filter and undecimated
+wavelet representations on development data only.

@@ -84,6 +84,7 @@ nav:
       - Phase 4T compact confirmation: reference/phase-4t-confirmation-protocol.md
       - Phase 4U compact-blend qualification: reference/phase-4u-qualification-protocol.md
       - Phase 4 release readiness: reference/phase-4-release-readiness.md
+      - Phase 5 multiscale contract and development review: reference/phase-5-contract.md
       - Compact deblending: reference/compact-deblending.md
       - Compact moment measurement: reference/compact-measurement.md
       - Compact Gaussian fitting: reference/compact-fitting.md

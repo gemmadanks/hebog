@@ -1,0 +1,71 @@
+{
+  "association": {
+    "ambiguous_policy": "typed-unresolved-association",
+    "compact_policy": "preserve-isolated-compact-measurement-without-multiscale-evidence",
+    "duplicate_policy": "one-selected-representation-retain-all-contributing-scales",
+    "identity": "canonical-global-overlap-flux-and-scale-provenance",
+    "tile_policy": "global-identity-independent-of-local-labels"
+  },
+  "combined_catalogue": {
+    "catalogue_schema": "source-catalogue-version-2-plus-scale-provenance",
+    "compact_only": "byte-identical-when-no-multiscale-evidence",
+    "disposition_requirement": "every-accepted-or-deferred-island-has-one-terminal-disposition",
+    "reduction": "bounded-canonical-shards-and-pairwise-tree",
+    "scheduler_state": "forbidden"
+  },
+  "contract_id": "phase-5-multiscale",
+  "detection_threshold": "source-finder-detection-threshold-on-scale-normalized-response",
+  "development_review": "ai-scientific-review-recorded",
+  "failures": {
+    "ambiguous_association": "typed-omission-with-reason",
+    "deferred_island": "must-reach-terminal-disposition",
+    "incomplete_catalogue": "publication-forbidden",
+    "unavailable_measurement": "typed-omission-with-reason",
+    "unknown_value": "null-never-zero-or-nan-sentinel",
+    "unsupported_scale": "configuration-rejected-before-execution"
+  },
+  "filtering": {
+    "background_rms_reuse": "phase-2-products-no-recursive-estimation",
+    "candidates": [
+      "beam-aware-matched-filter",
+      "undecimated-wavelet"
+    ],
+    "compact_residual_policy": "shared-input-no-complete-compact-pipeline-rerun",
+    "family_selection": "phase-5-step-2-evidence",
+    "response_normalization": "unit-integrated-flux-response-in-jy-per-beam"
+  },
+  "independent_human_review": "required-before-cutover",
+  "island_threshold": "source-finder-island-threshold-on-scale-normalized-response",
+  "qualification_policy": "freeze-before-result-inspection",
+  "scales": {
+    "configured_orders": [
+      1,
+      2,
+      3
+    ],
+    "maximum_fwhm_multiplier": 4.0,
+    "nominal_fwhm_multipliers": [
+      1.0,
+      2.0,
+      4.0
+    ],
+    "reference": "restoring-beam-major-fwhm"
+  },
+  "schema_version": 1,
+  "scientific_basis": [
+    "https://doi.org/10.1017/pasa.2018.3",
+    "https://doi.org/10.1093/mnras/stv1866",
+    "https://academic.oup.com/mnras/article/487/3/3971/5511783",
+    "https://academic.oup.com/mnras/article/500/3/3821/5918002",
+    "https://pybdsf.readthedocs.io/en/latest/process_image.html"
+  ],
+  "scope": "mfs-stokes-i-rapthor-three-scale-profile",
+  "status": "reviewed-development",
+  "validity": {
+    "image_edge": "renormalize-and-record-visible-support-fraction",
+    "insufficient_support": "typed-unavailable-scale-detection",
+    "masked_support": "renormalize-over-valid-support",
+    "minimum_support_fraction": 0.8,
+    "valid_pixels": "finite-input-background-rms-and-positive-rms"
+  }
+}

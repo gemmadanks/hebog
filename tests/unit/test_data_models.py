@@ -9,6 +9,7 @@ from typing import Literal
 import pytest
 from pydantic import ValidationError
 
+import hebog.data_models as domain_models
 from hebog import SourceFinderRequest, SourceFinderResult
 from hebog.adapters.rapthor import (
     RapthorCompatibilityConfig,
@@ -471,6 +472,270 @@ def test_image_metadata_is_small_and_pickle_serializable() -> None:
 
     assert metadata.celestial_wcs.coordinate_frame == "icrs"
     assert pickle.loads(pickle.dumps(metadata)) == metadata
+
+
+def test_multiscale_records_are_scheduler_safe_and_fail_closed() -> None:
+    """Phase 5 records preserve provenance and block incomplete publication."""
+    detection = domain_models.ScaleDetection(
+        detection_id="scale-detection-0001",
+        parent_island_id="island-0001",
+        scale_order=2,
+        nominal_scale_beam_fwhm=2.0,
+        support_pixel_count=80,
+        valid_support_fraction=0.8,
+        bounds_yx=(10, 20, 30, 42),
+        canonical_pixel_yx=(12, 35),
+        peak_response_jy_per_beam=0.0016,
+        peak_signal_to_noise=8.0,
+        touches_image_edge=False,
+    )
+    association = domain_models.CrossScaleAssociation(
+        association_id="scale-association-0001",
+        scale_detection_ids=(detection.detection_id,),
+        compact_source_ids=("source-0001",),
+        selected_scale_detection_id=detection.detection_id,
+        contributing_scale_orders=(2,),
+        relationship="contains-compact",
+    )
+    measurement = domain_models.ExtendedEmissionMeasurement(
+        association_id=association.association_id,
+        centroid_xy=(35.5, 14.0),
+        integrated_flux_jy=0.05,
+        integrated_flux_error_jy=None,
+        local_rms_jy_per_beam=0.0002,
+        support_pixel_count=80,
+        major_extent_beams=3.0,
+        minor_extent_beams=1.5,
+        position_angle_degrees=25.0,
+        visible_model_fraction=0.95,
+        uncertainty_status="unavailable",
+    )
+    omission = domain_models.MultiscaleOmission(
+        object_id=association.association_id,
+        stage="extended-measurement",
+        reason="insufficient-valid-support",
+    )
+    disposition = domain_models.CombinedIslandDisposition(
+        island_id="island-0001",
+        status="failed",
+        source_ids=(),
+        association_ids=(association.association_id,),
+        reason=omission.reason,
+    )
+    state = domain_models.CombinedCatalogueState(
+        catalogue_id="catalogue-0001",
+        dispositions=(disposition,),
+        omissions=(omission,),
+    )
+
+    assert measurement.uncertainty_status == "unavailable"
+    assert state.publication_eligible is False
+    assert pickle.loads(pickle.dumps(state)) == state
+
+
+def test_cross_scale_association_requires_selected_detection_membership() -> (
+    None
+):
+    """A selected representation must retain its scale provenance."""
+    with pytest.raises(ValidationError, match="selected scale detection"):
+        domain_models.CrossScaleAssociation(
+            association_id="scale-association-0001",
+            scale_detection_ids=("scale-detection-0001",),
+            compact_source_ids=(),
+            selected_scale_detection_id="scale-detection-0002",
+            contributing_scale_orders=(1,),
+            relationship="extended-only",
+        )
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    [
+        ({"detection_id": "bad ID"}, "domain identifier"),
+        ({"parent_island_id": "bad ID"}, "domain identifier"),
+        ({"bounds_yx": (10, 10, 30, 42)}, "increasing"),
+        ({"canonical_pixel_yx": (25, 35)}, "inside bounds"),
+        ({"nominal_scale_beam_fwhm": float("inf")}, "finite"),
+        ({"peak_response_jy_per_beam": float("inf")}, "finite"),
+        ({"peak_signal_to_noise": float("inf")}, "finite"),
+    ],
+)
+def test_scale_detection_rejects_invalid_geometry(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    """Scale detections fail before noncanonical state can cross a task."""
+    payload: dict[str, object] = {
+        "detection_id": "scale-detection-0001",
+        "parent_island_id": "island-0001",
+        "scale_order": 2,
+        "nominal_scale_beam_fwhm": 2.0,
+        "support_pixel_count": 80,
+        "valid_support_fraction": 0.8,
+        "bounds_yx": (10, 20, 30, 42),
+        "canonical_pixel_yx": (12, 35),
+        "peak_response_jy_per_beam": 0.0016,
+        "peak_signal_to_noise": 8.0,
+        "touches_image_edge": False,
+    }
+    payload.update(update)
+
+    with pytest.raises(ValidationError, match=message):
+        domain_models.ScaleDetection.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    [
+        (
+            {
+                "scale_detection_ids": (
+                    "scale-detection-0002",
+                    "scale-detection-0001",
+                )
+            },
+            "unique and canonical",
+        ),
+        ({"association_id": "bad ID"}, "domain identifier"),
+        ({"contributing_scale_orders": (2, 1)}, "canonical"),
+        (
+            {"relationship": "contains-compact"},
+            "requires a compact source",
+        ),
+    ],
+)
+def test_cross_scale_association_rejects_noncanonical_inputs(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    """Cross-scale identities are independent of completion order."""
+    payload: dict[str, object] = {
+        "association_id": "scale-association-0001",
+        "scale_detection_ids": ("scale-detection-0001",),
+        "compact_source_ids": (),
+        "selected_scale_detection_id": "scale-detection-0001",
+        "contributing_scale_orders": (1,),
+        "relationship": "extended-only",
+    }
+    payload.update(update)
+
+    with pytest.raises(ValidationError, match=message):
+        domain_models.CrossScaleAssociation.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    [
+        ({"association_id": "bad ID"}, "domain identifier"),
+        ({"centroid_xy": (float("inf"), 1.0)}, "finite"),
+        ({"minor_extent_beams": 4.0}, "cannot exceed"),
+        ({"position_angle_degrees": 180.0}, "within"),
+        (
+            {"integrated_flux_error_jy": 0.01},
+            "status must match",
+        ),
+    ],
+)
+def test_extended_measurement_rejects_invalid_science_state(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    """Extended measurements never encode invalid geometry or uncertainty."""
+    payload: dict[str, object] = {
+        "association_id": "scale-association-0001",
+        "centroid_xy": (35.5, 14.0),
+        "integrated_flux_jy": 0.05,
+        "integrated_flux_error_jy": None,
+        "local_rms_jy_per_beam": 0.0002,
+        "support_pixel_count": 80,
+        "major_extent_beams": 3.0,
+        "minor_extent_beams": 1.5,
+        "position_angle_degrees": 25.0,
+        "visible_model_fraction": 0.95,
+        "uncertainty_status": "unavailable",
+    }
+    payload.update(update)
+
+    with pytest.raises(ValidationError, match=message):
+        domain_models.ExtendedEmissionMeasurement.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    [
+        ({"source_ids": ()}, "requires a source"),
+        ({"status": "accepted-multiscale"}, "requires association"),
+        ({"status": "rejected-artifact"}, "requires a reason"),
+        ({"reason": "unexpected-failure"}, "cannot carry"),
+        ({"source_ids": ("source-0002", "source-0001")}, "canonical"),
+    ],
+)
+def test_combined_disposition_rejects_incomplete_terminal_state(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    """Every island disposition carries evidence appropriate to its state."""
+    payload: dict[str, object] = {
+        "island_id": "island-0001",
+        "status": "retained-compact",
+        "source_ids": ("source-0001",),
+        "association_ids": (),
+        "reason": None,
+    }
+    payload.update(update)
+
+    with pytest.raises(ValidationError, match=message):
+        domain_models.CombinedIslandDisposition.model_validate(payload)
+
+
+def test_complete_multiscale_state_is_publication_eligible() -> None:
+    """A canonical non-failed terminal state can be published."""
+    disposition = domain_models.CombinedIslandDisposition(
+        island_id="island-0001",
+        status="accepted-multiscale",
+        source_ids=(),
+        association_ids=("scale-association-0001",),
+        reason=None,
+    )
+    state = domain_models.CombinedCatalogueState(
+        catalogue_id="catalogue-0001",
+        dispositions=(disposition,),
+        omissions=(),
+    )
+
+    assert state.publication_eligible is True
+
+
+def test_multiscale_omissions_and_state_require_canonical_identifiers() -> (
+    None
+):
+    """Fail-closed state retains machine-readable canonical identities."""
+    with pytest.raises(ValidationError, match="domain identifier"):
+        domain_models.MultiscaleOmission(
+            object_id="scale-association-0001",
+            stage="extended-measurement",
+            reason="not machine readable",
+        )
+
+    dispositions = tuple(
+        domain_models.CombinedIslandDisposition(
+            island_id=island_id,
+            status="retained-compact",
+            source_ids=(source_id,),
+            association_ids=(),
+            reason=None,
+        )
+        for island_id, source_id in (
+            ("island-0002", "source-0002"),
+            ("island-0001", "source-0001"),
+        )
+    )
+    with pytest.raises(ValidationError, match="unique and canonical"):
+        domain_models.CombinedCatalogueState(
+            catalogue_id="catalogue-0001",
+            dispositions=dispositions,
+            omissions=(),
+        )
 
 
 @pytest.mark.parametrize("field", ["fits_header", "coordinate_frame"])

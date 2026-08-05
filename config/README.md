@@ -35,5 +35,15 @@ manifest and must not be opened before that freeze is complete.
 `datasets/phase-4-final-qualification.json` is that frozen, ungenerated,
 600-image one-look population. Its complete dataset-record digest, not only
 its recipe digest, is the identity carried into each campaign shard.
+
+The Phase 5 multiscale and scientific-gate contracts freeze the Rapthor-used
+three-scale meaning, failure and association semantics, absolute truth gates,
+paired PyBDSF non-inferiority margins, and one-look statistical design before
+filter selection. Phase 5 dataset schema version 3 adds analytic morphology
+groups and scale-, edge-, tile-, invalid-pixel-, and artefact-aware strata.
+The 400-image qualification manifest is frozen and must remain unopened until
+the independent pre-opening power audit passes; development and regression
+seeds are disjoint from it.
+
 These files are gates, not measured evidence; raw measurements use the evidence
 schemas and stay under the ignored `benchmark-results/` directory.

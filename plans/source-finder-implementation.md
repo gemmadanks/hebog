@@ -820,10 +820,12 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** active preparation. Phase 4U closed the compact-science start gate
-on 2026-08-05. Substantive multiscale development may begin from that exact
-compact baseline, but no extended-emission algorithm, scientific tolerance,
-or runtime claim is approved merely by entering this phase.
+**Status:** Step 1 completed on 2026-08-05. The reviewed-development contract,
+internal records, scientific gates, and disjoint development, regression, and
+unopened qualification manifests are frozen in the
+[Phase 5 contract record](../docs/reference/phase-5-contract.md). Step 2 may
+compare the two predeclared scale representations on development data; no
+extended-emission algorithm, equivalence, or runtime claim is yet approved.
 
 **Goal:** recover and measure the extended and cross-scale emission required
 by the Rapthor contract without recursively rerunning the complete compact
@@ -842,32 +844,32 @@ and spill behaviour, and facility-scale execution.
 
 1. **Freeze the Phase 5 contract before algorithm tuning.**
 
-   - [ ] Inventory multiscale objects and deferred-island paths exposed by the
+   - [x] Inventory multiscale objects and deferred-island paths exposed by the
          Phase 3 representative comparison, Phase 4 compact campaigns, and
          Rapthor's three-scale PyBDSF configuration. Record which catalogue,
          RMS, mask, and downstream filter decisions each can affect.
-   - [ ] Define scale in restoring-beam units and freeze the configured scale
+   - [x] Define scale in restoring-beam units and freeze the configured scale
          sequence, filter normalization, threshold meaning, valid-pixel
          handling, edge policy, maximum supported scale, and failure
          semantics. Keep workflow defaults in the Rapthor adapter.
-   - [ ] Extend the versioned scientific contract and internal schemas for
+   - [x] Extend the versioned scientific contract and internal schemas for
          scale detections, cross-scale associations, extended measurements,
          explicit omissions, and the combined catalogue. Do not expose
          worker-local arrays or scheduler objects.
-   - [ ] Add Phase 5 development and regression manifests covering diffuse,
+   - [x] Add Phase 5 development and regression manifests covering diffuse,
          filamentary, shell-like or curved, mixed compact/extended,
          overlapping-scale, edge, invalid-pixel, varying-noise, and
          artefact-dominated cases. Include sources crossing tile edges and
          corners and cases above the compact-deblend limits.
-   - [ ] Freeze one untouched qualification manifest before implementation
+   - [x] Freeze one untouched qualification manifest before implementation
          tuning. Record generator versions, seeds, angular scales, injected
          truth, morphology strata, and intended statistical power.
-   - [ ] Freeze reviewed absolute and paired gates for scale-stratified
+   - [x] Freeze reviewed absolute and paired gates for scale-stratified
          completeness, reliability, integrated-flux error, astrometry,
          duplicate rate, mask/island topology, and Rapthor retained/rejected
          decisions. Predeclare practical margins and interval methods rather
          than deriving them from viewed qualification results.
-   - [ ] Obtain named scientific review of the contract, datasets, metrics,
+   - [x] Obtain named scientific review of the contract, datasets, metrics,
          and margins before opening qualification. Independent
          radio-astronomy review remains mandatory before production cutover
          even when project-owner review permits development.

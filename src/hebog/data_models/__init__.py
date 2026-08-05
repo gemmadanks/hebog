@@ -12,6 +12,14 @@ from hebog.data_models.catalogues import (
 )
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
+from hebog.data_models.multiscale import (
+    CombinedCatalogueState,
+    CombinedIslandDisposition,
+    CrossScaleAssociation,
+    ExtendedEmissionMeasurement,
+    MultiscaleOmission,
+    ScaleDetection,
+)
 from hebog.data_models.partitioning import (
     ImageBounds,
     PartitionManifest,
@@ -27,6 +35,10 @@ from hebog.data_models.source_finding import (
 
 __all__ = [
     "CelestialWcs",
+    "CombinedCatalogueState",
+    "CombinedIslandDisposition",
+    "CrossScaleAssociation",
+    "ExtendedEmissionMeasurement",
     "FluxMeasurement",
     "GaussianComponent",
     "GaussianShape",
@@ -34,10 +46,12 @@ __all__ = [
     "ImageMetadata",
     "Island",
     "MaterializedProduct",
+    "MultiscaleOmission",
     "PartitionManifest",
     "ProductChunk",
     "ProductGenerationManifest",
     "RestoringBeam",
+    "ScaleDetection",
     "SkyPosition",
     "SourceCandidate",
     "SourceCatalogue",

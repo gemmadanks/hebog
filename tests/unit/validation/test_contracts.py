@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+import hebog.validation.contracts as contract_models
 from hebog.validation.contracts import (
     PerformanceMatrixContract,
     PhaseFourMetricRegistry,
@@ -43,6 +44,12 @@ _PHASE_FOUR_T_GATES_PATH = (
 _PHASE_FOUR_METRICS_PATH = (
     _ROOT / "config/contracts/phase-4r-metric-registry.json"
 )
+_PHASE_FIVE_MULTISCALE_PATH = (
+    _ROOT / "config/contracts/phase-5-multiscale.json"
+)
+_PHASE_FIVE_GATES_PATH = (
+    _ROOT / "config/contracts/phase-5-scientific-gates.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -75,6 +82,55 @@ _INVALID_MEASUREMENT_MUTATIONS: tuple[
     (_repeat_failure_case, "analytic failure case"),
     (_duplicate_scientific_basis, "basis links must be unique"),
     (_use_insecure_scientific_basis, "must use HTTPS"),
+)
+
+_INVALID_PHASE_FIVE_MULTISCALE_MUTATIONS: tuple[
+    tuple[Callable[[dict[str, Any]], None], str], ...
+] = (
+    (
+        lambda payload: payload["scales"].update(configured_orders=[1, 2]),
+        "scale orders",
+    ),
+    (
+        lambda payload: payload["scales"].update(
+            nominal_fwhm_multipliers=[1.0, 2.0, 3.0]
+        ),
+        "nominal scales",
+    ),
+    (
+        lambda payload: payload["scales"].update(maximum_fwhm_multiplier=3.0),
+        "maximum Phase 5 scale",
+    ),
+    (
+        lambda payload: payload["filtering"].update(
+            candidates=[
+                "undecimated-wavelet",
+                "beam-aware-matched-filter",
+            ]
+        ),
+        "filter candidates",
+    ),
+    (_duplicate_scientific_basis, "basis links must be unique"),
+    (_use_insecure_scientific_basis, "must use HTTPS"),
+)
+
+_INVALID_PHASE_FIVE_GATE_MUTATIONS: tuple[
+    tuple[Callable[[dict[str, Any]], None], str], ...
+] = (
+    (
+        lambda payload: payload.update(confidence_level=0.9),
+        "confidence level",
+    ),
+    (
+        lambda payload: payload.update(governed_strata=["scale-1-beam"]),
+        "governed strata",
+    ),
+    (
+        lambda payload: payload["comparison"].update(
+            references=["released-pybdsf"]
+        ),
+        "both PyBDSF references",
+    ),
 )
 
 
@@ -240,6 +296,133 @@ def test_phase_four_measurement_contract_freezes_scientific_meanings() -> None:
     }
     assert contract.human_scientific_review == "required-before-stable-default"
     assert len(contract.scientific_basis) >= 4
+
+
+def test_phase_five_contract_freezes_multiscale_meanings() -> None:
+    """Scale, ownership, failure, and combined-product semantics are fixed."""
+    contract = contract_models.load_phase_five_multiscale_contract(
+        _PHASE_FIVE_MULTISCALE_PATH
+    )
+
+    assert contract.status == "reviewed-development"
+    assert contract.schema_version == 1
+    assert contract.scales.reference == "restoring-beam-major-fwhm"
+    assert contract.scales.configured_orders == (1, 2, 3)
+    assert contract.scales.nominal_fwhm_multipliers == (1.0, 2.0, 4.0)
+    assert contract.scales.maximum_fwhm_multiplier == 4.0
+    assert contract.filtering.family_selection == "phase-5-step-2-evidence"
+    assert contract.filtering.background_rms_reuse == (
+        "phase-2-products-no-recursive-estimation"
+    )
+    assert contract.validity.minimum_support_fraction == 0.8
+    assert contract.failures.incomplete_catalogue == "publication-forbidden"
+    assert contract.association.identity == (
+        "canonical-global-overlap-flux-and-scale-provenance"
+    )
+    assert contract.combined_catalogue.compact_only == (
+        "byte-identical-when-no-multiscale-evidence"
+    )
+    assert contract.qualification_policy == "freeze-before-result-inspection"
+    assert contract.development_review == "ai-scientific-review-recorded"
+    assert contract.independent_human_review == "required-before-cutover"
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    _INVALID_PHASE_FIVE_MULTISCALE_MUTATIONS,
+)
+def test_phase_five_contract_rejects_changed_scientific_meanings(
+    mutation: Callable[[dict[str, Any]], None],
+    message: str,
+) -> None:
+    """The reviewed scale and provenance meanings cannot drift."""
+    contract = contract_models.load_phase_five_multiscale_contract(
+        _PHASE_FIVE_MULTISCALE_PATH
+    )
+    payload = contract.model_dump(mode="json")
+    mutation(payload)
+
+    with pytest.raises(ValidationError, match=message):
+        type(contract).model_validate(payload)
+
+
+def test_phase_five_gates_are_scale_stratified_and_conjunctive() -> None:
+    """Use absolute truth and both compatibility references."""
+    gates = contract_models.load_phase_five_scientific_gates(
+        _PHASE_FIVE_GATES_PATH
+    )
+
+    assert gates.status == "reviewed-development"
+    assert gates.confidence_level == 0.95
+    assert gates.qualification.minimum_noise_realizations == 400
+    assert gates.qualification.minimum_joint_power == 0.9
+    assert gates.qualification.opening_rule == "one-look-terminal-decision"
+    assert gates.comparison.references == (
+        "released-pybdsf",
+        "pinned-pybdsf-master",
+    )
+    assert gates.comparison.rule == (
+        "every-absolute-and-paired-gate-passes-no-compensation"
+    )
+    assert gates.threshold_crossings == "report-only-curves"
+    assert set(gates.governed_strata) >= {
+        "above-compact-deblend-limit",
+        "morphology-artifact",
+        "morphology-curved-filament",
+        "morphology-diffuse",
+        "morphology-filament",
+        "morphology-mixed-compact-extended",
+        "morphology-shell",
+        "scale-1-beam",
+        "scale-2-beam",
+        "scale-4-beam",
+        "tile-boundary",
+        "tile-corner",
+    }
+    assert gates.heldout_qualification.minimum_completeness >= 0.9
+    assert gates.heldout_qualification.minimum_reliability >= 0.95
+    assert gates.heldout_qualification.maximum_duplicate_fraction <= 0.02
+    assert gates.heldout_qualification.minimum_rapthor_decision_agreement == (
+        0.995
+    )
+    assert gates.paired_margins.maximum_completeness_loss <= 0.02
+    assert gates.paired_margins.maximum_integrated_flux_error_increase <= 0.05
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    _INVALID_PHASE_FIVE_GATE_MUTATIONS,
+)
+def test_phase_five_gates_reject_incomplete_governance(
+    mutation: Callable[[dict[str, Any]], None],
+    message: str,
+) -> None:
+    """Confidence, strata, and both references remain binding."""
+    gates = contract_models.load_phase_five_scientific_gates(
+        _PHASE_FIVE_GATES_PATH
+    )
+    payload = gates.model_dump(mode="json")
+    mutation(payload)
+
+    with pytest.raises(ValidationError, match=message):
+        type(gates).model_validate(payload)
+
+
+def test_phase_five_gates_reject_a_tail_tighter_than_its_median() -> None:
+    """Extended error tails cannot be numerically tighter than medians."""
+    gates = contract_models.load_phase_five_scientific_gates(
+        _PHASE_FIVE_GATES_PATH
+    )
+    payload = gates.model_dump(mode="json")
+    payload["generated_regression"][
+        "maximum_median_integrated_flux_fractional_error"
+    ] = 0.3
+    payload["generated_regression"][
+        "maximum_percentile_95_integrated_flux_fractional_error"
+    ] = 0.2
+
+    with pytest.raises(ValidationError, match="extended-error tail"):
+        type(gates).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

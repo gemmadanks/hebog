@@ -19,6 +19,23 @@ _MAXIMUM_MATRIX_SIZE = 100_000
 _DASK_MEMORY_THRESHOLD_COUNT = 4
 _PHASE_FOUR_ANALYTIC_FAILURE_CASE_COUNT = 6
 _PAIRED_CONFIDENCE_LEVEL = 0.95
+_PHASE_FIVE_REQUIRED_STRATA = {
+    "above-compact-deblend-limit",
+    "image-edge",
+    "invalid-pixels",
+    "morphology-artifact",
+    "morphology-curved-filament",
+    "morphology-diffuse",
+    "morphology-filament",
+    "morphology-mixed-compact-extended",
+    "morphology-shell",
+    "scale-1-beam",
+    "scale-2-beam",
+    "scale-4-beam",
+    "tile-boundary",
+    "tile-corner",
+    "varying-noise",
+}
 
 
 class _ContractModel(BaseModel):
@@ -658,6 +675,244 @@ class PhaseFourScientificGates(_ContractModel):
     catastrophic_outlier: PhaseFourOutlierDefinition
 
 
+class PhaseFiveScaleDefinition(_ContractModel):
+    """Frozen scale sequence and beam-normalized reporting convention."""
+
+    reference: Literal["restoring-beam-major-fwhm"]
+    configured_orders: tuple[int, ...] = Field(min_length=1)
+    nominal_fwhm_multipliers: tuple[float, ...] = Field(min_length=1)
+    maximum_fwhm_multiplier: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def validate_sequence(self) -> Self:
+        """Require the governed three-level dyadic compatibility sequence."""
+        if self.configured_orders != (1, 2, 3):
+            raise ValueError("Phase 5 scale orders must be 1, 2, and 3")
+        if self.nominal_fwhm_multipliers != (1.0, 2.0, 4.0):
+            raise ValueError(
+                "Phase 5 nominal scales must be 1, 2, and 4 beams"
+            )
+        if self.maximum_fwhm_multiplier != self.nominal_fwhm_multipliers[-1]:
+            raise ValueError("maximum Phase 5 scale must equal the last scale")
+        return self
+
+
+class PhaseFiveFilteringContract(_ContractModel):
+    """Algorithm-selection boundary and shared-product requirements."""
+
+    family_selection: Literal["phase-5-step-2-evidence"]
+    candidates: tuple[
+        Literal["undecimated-wavelet", "beam-aware-matched-filter"], ...
+    ]
+    response_normalization: Literal[
+        "unit-integrated-flux-response-in-jy-per-beam"
+    ]
+    background_rms_reuse: Literal["phase-2-products-no-recursive-estimation"]
+    compact_residual_policy: Literal[
+        "shared-input-no-complete-compact-pipeline-rerun"
+    ]
+
+    @model_validator(mode="after")
+    def validate_candidates(self) -> Self:
+        """Keep the evidence comparison complete and free of duplicates."""
+        if self.candidates != (
+            "beam-aware-matched-filter",
+            "undecimated-wavelet",
+        ):
+            raise ValueError("Phase 5 filter candidates must be canonical")
+        return self
+
+
+class PhaseFiveValidityContract(_ContractModel):
+    """Masked-support and image-edge semantics for every scale."""
+
+    valid_pixels: Literal["finite-input-background-rms-and-positive-rms"]
+    minimum_support_fraction: float = Field(gt=0, le=1)
+    masked_support: Literal["renormalize-over-valid-support"]
+    image_edge: Literal["renormalize-and-record-visible-support-fraction"]
+    insufficient_support: Literal["typed-unavailable-scale-detection"]
+
+
+class PhaseFiveAssociationContract(_ContractModel):
+    """Cross-scale identity and compact-association meanings."""
+
+    identity: Literal["canonical-global-overlap-flux-and-scale-provenance"]
+    duplicate_policy: Literal[
+        "one-selected-representation-retain-all-contributing-scales"
+    ]
+    compact_policy: Literal[
+        "preserve-isolated-compact-measurement-without-multiscale-evidence"
+    ]
+    ambiguous_policy: Literal["typed-unresolved-association"]
+    tile_policy: Literal["global-identity-independent-of-local-labels"]
+
+
+class PhaseFiveFailureContract(_ContractModel):
+    """Fail-closed semantics for incomplete extended work."""
+
+    unsupported_scale: Literal["configuration-rejected-before-execution"]
+    unavailable_measurement: Literal["typed-omission-with-reason"]
+    ambiguous_association: Literal["typed-omission-with-reason"]
+    deferred_island: Literal["must-reach-terminal-disposition"]
+    incomplete_catalogue: Literal["publication-forbidden"]
+    unknown_value: Literal["null-never-zero-or-nan-sentinel"]
+
+
+class PhaseFiveCombinedCatalogueContract(_ContractModel):
+    """Composition rules for compact and multiscale catalogue records."""
+
+    catalogue_schema: Literal[
+        "source-catalogue-version-2-plus-scale-provenance"
+    ]
+    compact_only: Literal["byte-identical-when-no-multiscale-evidence"]
+    disposition_requirement: Literal[
+        "every-accepted-or-deferred-island-has-one-terminal-disposition"
+    ]
+    reduction: Literal["bounded-canonical-shards-and-pairwise-tree"]
+    scheduler_state: Literal["forbidden"]
+
+
+class PhaseFiveMultiscaleContract(_ContractModel):
+    """Versioned Phase 5 scale, ownership, and failure semantics."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-multiscale"]
+    status: Literal["reviewed-development"]
+    scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]
+    scales: PhaseFiveScaleDefinition
+    filtering: PhaseFiveFilteringContract
+    validity: PhaseFiveValidityContract
+    association: PhaseFiveAssociationContract
+    failures: PhaseFiveFailureContract
+    combined_catalogue: PhaseFiveCombinedCatalogueContract
+    detection_threshold: Literal[
+        "source-finder-detection-threshold-on-scale-normalized-response"
+    ]
+    island_threshold: Literal[
+        "source-finder-island-threshold-on-scale-normalized-response"
+    ]
+    qualification_policy: Literal["freeze-before-result-inspection"]
+    development_review: Literal["ai-scientific-review-recorded"]
+    independent_human_review: Literal["required-before-cutover"]
+    scientific_basis: tuple[str, ...] = Field(min_length=4)
+
+    @model_validator(mode="after")
+    def validate_basis(self) -> Self:
+        """Keep literature provenance unique and externally resolvable."""
+        if len(set(self.scientific_basis)) != len(self.scientific_basis):
+            raise ValueError("Phase 5 scientific basis links must be unique")
+        if any(
+            not link.startswith("https://") for link in self.scientific_basis
+        ):
+            raise ValueError("Phase 5 scientific basis links must use HTTPS")
+        return self
+
+
+class PhaseFiveLaneGate(_ContractModel):
+    """Absolute generated-truth requirements for one Phase 5 lane."""
+
+    minimum_completeness: float = Field(ge=0, le=1)
+    minimum_reliability: float = Field(ge=0, le=1)
+    maximum_median_integrated_flux_fractional_error: float = Field(ge=0)
+    maximum_percentile_95_integrated_flux_fractional_error: float = Field(ge=0)
+    maximum_median_position_beams: float = Field(ge=0)
+    maximum_percentile_95_position_beams: float = Field(ge=0)
+    maximum_duplicate_fraction: float = Field(ge=0, le=1)
+    minimum_mask_precision: float = Field(ge=0, le=1)
+    minimum_mask_recall: float = Field(ge=0, le=1)
+    minimum_mask_intersection_over_union: float = Field(ge=0, le=1)
+    maximum_split_fraction: float = Field(ge=0, le=1)
+    maximum_merge_fraction: float = Field(ge=0, le=1)
+    minimum_rapthor_decision_agreement: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_tails(self) -> Self:
+        """Require tail ceilings to contain their median ceilings."""
+        if (
+            self.maximum_percentile_95_integrated_flux_fractional_error
+            < self.maximum_median_integrated_flux_fractional_error
+            or self.maximum_percentile_95_position_beams
+            < self.maximum_median_position_beams
+        ):
+            raise ValueError(
+                "extended-error tail cannot be tighter than median"
+            )
+        return self
+
+
+class PhaseFivePairedMargins(_ContractModel):
+    """One-sided practical non-inferiority margins against each reference."""
+
+    maximum_completeness_loss: float = Field(gt=0, lt=1)
+    maximum_reliability_loss: float = Field(gt=0, lt=1)
+    maximum_integrated_flux_error_increase: float = Field(gt=0)
+    maximum_position_error_increase_beams: float = Field(gt=0)
+    maximum_duplicate_fraction_increase: float = Field(gt=0, lt=1)
+    maximum_mask_intersection_over_union_loss: float = Field(gt=0, lt=1)
+    maximum_split_fraction_increase: float = Field(gt=0, lt=1)
+    maximum_merge_fraction_increase: float = Field(gt=0, lt=1)
+    maximum_rapthor_decision_disagreement_increase: float = Field(gt=0, lt=1)
+
+
+class PhaseFiveQualificationDesign(_ContractModel):
+    """Frozen one-look population and statistical-design requirements."""
+
+    independent_unit: Literal["noise-seed-image"]
+    minimum_noise_realizations: int = Field(ge=200)
+    minimum_joint_power: float = Field(ge=0.8, lt=1)
+    opening_rule: Literal["one-look-terminal-decision"]
+    resampling: Literal["whole-image-fixed-seed-bootstrap"]
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    failure_policy: Literal["retain-denominator-and-fail-closed"]
+
+
+class PhaseFiveComparisonContract(_ContractModel):
+    """Dual-reference direction and conjunctive decision rule."""
+
+    references: tuple[Literal["released-pybdsf", "pinned-pybdsf-master"], ...]
+    rule: Literal["every-absolute-and-paired-gate-passes-no-compensation"]
+    paired_interval: Literal["one-sided-95-percent-upper-regression-limit"]
+    truth_oracle: Literal["analytic-and-injected-truth"]
+
+    @model_validator(mode="after")
+    def validate_references(self) -> Self:
+        """Require both exact references in canonical order."""
+        if self.references != (
+            "released-pybdsf",
+            "pinned-pybdsf-master",
+        ):
+            raise ValueError("Phase 5 requires both PyBDSF references")
+        return self
+
+
+class PhaseFiveScientificGates(_ContractModel):
+    """Reviewed scale-stratified Phase 5 absolute and paired gates."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-scientific-gates"]
+    status: Literal["reviewed-development"]
+    confidence_level: float = Field(gt=0, lt=1)
+    threshold_crossings: Literal["report-only-curves"]
+    governed_strata: tuple[str, ...] = Field(min_length=1)
+    generated_regression: PhaseFiveLaneGate
+    heldout_qualification: PhaseFiveLaneGate
+    paired_margins: PhaseFivePairedMargins
+    qualification: PhaseFiveQualificationDesign
+    comparison: PhaseFiveComparisonContract
+
+    @model_validator(mode="after")
+    def validate_governance(self) -> Self:
+        """Protect confidence level and the complete governed population."""
+        if self.confidence_level != _PAIRED_CONFIDENCE_LEVEL:
+            raise ValueError("Phase 5 confidence level must remain 0.95")
+        if self.governed_strata != tuple(sorted(_PHASE_FIVE_REQUIRED_STRATA)):
+            raise ValueError(
+                "Phase 5 governed strata must be complete and canonical"
+            )
+        return self
+
+
 class PairedResamplingProtocol(_ContractModel):
     """Predeclared interval construction for same-image comparisons."""
 
@@ -1096,5 +1351,23 @@ def load_paired_noninferiority_contract(
 def load_phase_four_metric_registry(path: Path) -> PhaseFourMetricRegistry:
     """Load the Phase 4R direction-aware no-compensation metric registry."""
     return PhaseFourMetricRegistry.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_multiscale_contract(
+    path: Path,
+) -> PhaseFiveMultiscaleContract:
+    """Load frozen Phase 5 scale, ownership, and failure meanings."""
+    return PhaseFiveMultiscaleContract.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_scientific_gates(
+    path: Path,
+) -> PhaseFiveScientificGates:
+    """Load reviewed Phase 5 absolute and paired scientific gates."""
+    return PhaseFiveScientificGates.model_validate_json(
         path.read_text(encoding="utf-8")
     )

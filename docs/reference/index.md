@@ -21,6 +21,7 @@ Related project references:
 - [Phase 4 scientific review record](phase-4-review-record.md)
 - [Phase 4S compact qualification protocol](phase-4s-qualification-protocol.md)
 - [Phase 4T compact confirmation protocol](phase-4t-confirmation-protocol.md)
+- [Phase 5 multiscale contract and development review](phase-5-contract.md)
 - [Compact deblending](compact-deblending.md)
 - [Compact moment measurement](compact-measurement.md)
 - [Compact Gaussian fitting](compact-fitting.md)
