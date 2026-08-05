@@ -121,3 +121,32 @@ def test_source_diagnostics_do_not_union_conflicting_shape_strata() -> None:
 
     assert "shape-marginal-resolved" in strata
     assert "shape-clear-resolved" not in strata
+
+
+def test_declared_point_truth_survives_projection_roundoff() -> None:
+    """The analytic point stratum remains unresolved across a wide WCS."""
+    dataset = load_dataset_manifest(
+        _ROOT / "config/datasets/phase-4s-qualification.json"
+    ).datasets[0]
+    recipe = iter_dataset_recipes(dataset)[0]
+    point_indices = next(
+        stratum.source_indices
+        for stratum in dataset.classification_strata
+        if stratum.identifier == "shape-unresolved"
+    )
+    point_groups = tuple(
+        group
+        for group in dataset.association_truth_groups
+        if group.source_indices[0] in point_indices
+    )
+
+    truth = tuple(
+        _association_truth_source(group, recipe, dataset)
+        for group in point_groups
+    )
+
+    assert {source.deconvolution_status for source in truth} == {"unresolved"}
+    assert all(
+        source.integrated_flux_jy == source.peak_flux_jy_per_beam
+        for source in truth
+    )

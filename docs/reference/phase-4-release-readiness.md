@@ -277,7 +277,7 @@ gate and only its upper confidence limit crossed. That is treated as a power
 and population-design issue for the next campaign, not as permission to tune
 an estimator to viewed outcomes.
 
-The compact Phase 5 development start gate is now met: analytic rotation and
+The technical compact Phase 5 development start gate is met: analytic rotation and
 continuous-size deconvolution tests pass; lower/upper edge-reflection tests
 bind estimator covariance; exact viewed failures are retained as regressions;
 internal FITS and the Rapthor `DC_Maj` view round-trip a major-only result;
@@ -287,6 +287,17 @@ against the stabilized compact API. This is not the Phase 4S release gate. A
 new manifest-powered one-look qualification, external radio-astronomy review,
 both exact PyBDSF comparisons, and the controlled performance/scalability
 matrix still gate a production claim and default Rapthor cutover.
+
+The new Phase 4S campaign subsequently completed 800/800 images for Hebog and
+both references and passed all 20 paired endpoints against each reference. Its
+absolute decision failed, however, so the project owner's qualification-first
+checkpoint still blocks substantive multiscale implementation. Two fixed raw
+median limits were below the mixed-SNR noise floor, and the point-specificity
+scorer compared correct candidate states with projection-contaminated truth;
+those semantics are corrected only for future evidence. The remaining SNR-10
+integrated-flux uncertainty interval narrowly crossed its unchanged bound. A
+fresh, separately governed Phase 4T confirmation must pass before Phase 5
+moves beyond preparation. Phase 4S remains immutable and failed.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run. The final scientific qualification failed, so the controlled

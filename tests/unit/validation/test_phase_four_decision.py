@@ -56,6 +56,7 @@ from hebog.validation.evidence import (
     load_evidence,
     write_evidence,
 )
+from hebog.validation.phase_four_analysis import count_row
 from hebog.validation.phase_four_decision import (
     EndpointStatistic,
     distribution_gate_decisions,
@@ -224,7 +225,9 @@ def test_absolute_shape_gates_fail_closed_without_position_angles() -> None:
     decisions = distribution_gate_decisions(
         (realization,),  # type: ignore[arg-type]
         dataset,
-        gates.heldout_qualification,
+        gates.heldout_qualification.model_copy(
+            update={"absolute_median_policy": "report-only"}
+        ),
     )
     by_identifier = {item.gate_id: item for item in decisions}
 
@@ -236,6 +239,55 @@ def test_absolute_shape_gates_fail_closed_without_position_angles() -> None:
     )
     assert by_identifier["percentile-95-fitted-position-angle"].role == (
         "report-only"
+    )
+    assert by_identifier["median-position"].role == "report-only"
+
+
+def test_classification_rates_use_declared_truth_classes() -> None:
+    """Numerical truth deconvolution cannot override manifest classes."""
+    campaign, dataset, _, _, _ = _synthetic_campaign_inputs()
+    realization = next(
+        item
+        for item in campaign.realizations
+        if item.implementation_identifier == "hebog"
+    )
+    point_indices = next(
+        stratum.source_indices
+        for stratum in dataset.classification_strata
+        if stratum.identifier == "shape-unresolved"
+    )
+    point_identifiers = {
+        group.identifier
+        for group in dataset.association_truth_groups
+        if group.source_indices[0] in point_indices
+    }
+    clear_indices = next(
+        stratum.source_indices
+        for stratum in dataset.classification_strata
+        if stratum.identifier == "shape-clear-resolved"
+    )
+    clear_identifiers = {
+        group.identifier
+        for group in dataset.association_truth_groups
+        if group.source_indices[0] in clear_indices
+    }
+    rows = tuple(
+        row.model_copy(update={"classification_agrees": False})
+        for row in realization.source_pairs
+    )
+
+    counts = count_row(
+        realization.model_copy(update={"source_pairs": rows}),
+        dataset,
+    )
+
+    assert counts["point-source-specificity"] == (
+        float(len(point_identifiers)),
+        float(len(point_identifiers)),
+    )
+    assert counts["clear-resolved-classification-recall"] == (
+        float(len(clear_identifiers)),
+        float(len(clear_identifiers)),
     )
 
 

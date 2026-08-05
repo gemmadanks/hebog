@@ -1699,3 +1699,52 @@ manifest were recorded. After these inputs and the exact candidate identity
 are committed, the one-look campaign may run against Hebog, released PyBDSF,
 and pinned `master`. No post-opening change or replacement campaign is
 authorized within Phase 4S.
+
+## Phase 4S post-opening expert review
+
+**Review date:** 2026-08-05
+
+**Reviewer:** Codex, acting at the project owner's explicit request
+
+**Review type:** AI-conducted expert radio-astronomy evidence review; not
+independent human or institutional sign-off
+
+**Decision:** preserve Phase 4S as failed; correct prospective evaluation
+semantics and require a separately frozen Phase 4T confirmation before
+substantive Phase 5 implementation
+
+All three implementations completed 800/800 images, and Hebog passed all 20
+paired non-inferiority endpoints against both exact PyBDSF references. That is
+strong evidence that the compact implementation is not scientifically worse
+than PyBDSF on the predeclared compatibility outcomes. It does not make the
+qualification pass because four absolute outcomes failed.
+
+Review of the retained source rows shows that Hebog classified every declared
+point source as unresolved. The zero specificity was caused by comparing that
+state with a noiseless reference deconvolution that converted tiny projection
+roundoff into `major-axis-only`. The manifest declares intrinsic truth and is
+therefore authoritative. Future classification gates compare the candidate
+state directly with the declared point or clear class; analytic point truth is
+canonicalized to unresolved.
+
+The 2% raw median position and peak-flux limits are also unsuitable as binding
+limits across an equal mixture of SNR 10, 15, 25, and 50 sources. Condon-style
+fit errors scale inversely with SNR, and all three implementations show that
+expected curve. Hebog's median position errors fall from about 0.039 beam at
+SNR 10 to 0.014 at SNR 50. Its median absolute peak errors fall from about
+0.063 to 0.013, with only 0.004 mean signed bias overall. Both PyBDSF
+references miss the same fixed raw limits and have substantially larger peak
+error and negative bias. Future mixed-SNR generated campaigns retain raw
+error distributions as report-only diagnostics and bind SNR-specific
+normalized-residual calibration instead.
+
+The SNR-10 unresolved integrated-flux calibration remains the only unresolved
+scientific result. Its mean residual is 0.106 sigma, coverage is 0.689, and
+dispersion is 0.984, but its upper 95% confidence limit of 0.154 exceeds the
+unchanged 0.150 bound. This is a small effect with otherwise good calibration,
+not evidence of a gross flux error; it is nonetheless a frozen gate failure.
+A new Phase 4T population must include at least four point sources per SNR tier
+per image so this boundary is tested with at least 3,200 fresh SNR-10 point
+residuals. The new population, corrected endpoint, unchanged uncertainty
+thresholds, exact references, and one-look rule must be committed before any
+new output exists. Phase 4S will not be rescored.

@@ -118,11 +118,15 @@ def count_row(
         if identifier in individual and item.decision == "matched"
     )
 
-    def agrees(identifiers: set[str]) -> int:
+    def classified_as(
+        identifiers: set[str],
+        expected_statuses: frozenset[str],
+    ) -> int:
         return sum(
             source_by_truth.get(identifier) is not None
             and source_by_truth[identifier].decision == "matched"
-            and source_by_truth[identifier].classification_agrees is True
+            and source_by_truth[identifier].candidate_deconvolution_status
+            in expected_statuses
             for identifier in identifiers
         )
 
@@ -195,11 +199,16 @@ def count_row(
             float(len(individual)),
         ),
         "point-source-specificity": (
-            float(agrees(point)),
+            float(classified_as(point, frozenset({"unresolved"}))),
             float(len(point)),
         ),
         "clear-resolved-classification-recall": (
-            float(agrees(clear)),
+            float(
+                classified_as(
+                    clear,
+                    frozenset({"resolved", "major-axis-only"}),
+                )
+            ),
             float(len(clear)),
         ),
         "catastrophic-outlier-fraction": (

@@ -103,15 +103,31 @@ for Rapthor when appropriate, and obtains a truncation retry's centroid and
 covariance from the same likelihood fit. Analytic, integration, serial/Dask,
 dual-reference regression, and full correlated-noise calibration checks pass.
 
-These corrections make the compact scientific API stable enough to begin
-Phase 5 development. They do not turn Phase 4R into a pass or authorize a
-production cutover. A newly reviewed, manifest-powered Phase 4S qualification,
-external radio-astronomy review, complete performance matrix, and production
-scalability evidence remain required before Hebog replaces PyBDSF by default.
+These corrections make the compact scientific API technically stable, but the
+project owner chose to require another qualification before substantive Phase
+5 work. Phase 4S then completed 800/800 images for Hebog and both PyBDSF
+references. Hebog passed all 20 paired non-inferiority endpoints against both
+references, with better reliability, unresolved-group measurements, and
+uncertainty calibration on several outcomes. The overall result still failed
+four absolute gates. Two fixed raw error limits were below the noise floor of
+the mixed-SNR population, and a point-truth projection artefact produced a
+false zero-specificity score even though Hebog called all 6,400 declared point
+cases unresolved. The remaining genuine miss was narrow: the SNR-10
+integrated-flux mean residual was 0.106 sigma, but its upper 95% limit was
+0.154 against a frozen 0.150 limit.
+
+Phase 4S is preserved as failed rather than rescored. Prospective evidence now
+uses explicit manifest morphology truth and treats raw mixed-SNR error
+distributions as diagnostics while retaining binding normalized-residual
+calibration. A fresh, seed-disjoint Phase 4T confirmation must pass those
+corrected semantics and the unchanged uncertainty bound before substantive
+multiscale development. External radio-astronomy review, the complete
+performance matrix, and production scalability evidence remain required
+before Hebog replaces PyBDSF by default.
 
 The remaining work includes:
 
-- freezing and running one separately governed Phase 4S qualification with
+- freezing and running the separately governed Phase 4T confirmation with
   manifest-bound populations and familywise power;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;

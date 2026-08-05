@@ -464,6 +464,7 @@ class PhaseFourCatalogueGate(_ContractModel):
         "declared-compact-associations-snr-at-least-10"
     ]
     outlier_population: Literal["matched-compact-snr-at-least-10"]
+    absolute_median_policy: Literal["gate", "report-only"] = "gate"
     absolute_tail_policy: Literal["gate", "report-only"]
     minimum_completeness: float = Field(ge=0, le=1)
     minimum_reliability: float = Field(ge=0, le=1)

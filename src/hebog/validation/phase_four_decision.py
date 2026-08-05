@@ -646,6 +646,7 @@ def distribution_gate_decisions(
                     comparator="maximum",
                     threshold=median_limit,
                     eligible_count=eligible_count,
+                    role=gate.absolute_median_policy,
                 ),
                 _scalar_gate(
                     f"percentile-95-{identifier}",

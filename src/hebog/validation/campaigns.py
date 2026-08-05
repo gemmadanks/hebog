@@ -186,11 +186,29 @@ def _association_truth_source(
 ) -> CatalogueSource:
     """Return matching truth for one observable association group."""
     if group.resolution_class == "individually-resolvable":
-        return phase_four_truth_source(
+        truth = phase_four_truth_source(
             recipe.sources[group.source_indices[0]],
             dataset,
             identifier=group.identifier,
         )
+        point_indices = next(
+            (
+                stratum.source_indices
+                for stratum in dataset.classification_strata
+                if stratum.identifier == "shape-unresolved"
+            ),
+            (),
+        )
+        if group.source_indices[0] in point_indices:
+            return replace(
+                truth,
+                integrated_flux_jy=truth.peak_flux_jy_per_beam,
+                deconvolved_shape=None,
+                deconvolved_major_fwhm_degrees=None,
+                deconvolution_status="unresolved",
+                quality_flags=("unresolved",),
+            )
+        return truth
     metadata = synthetic_image_metadata(dataset)
     transform = local_tangent_plane_transform(
         metadata,

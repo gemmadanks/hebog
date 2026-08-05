@@ -2401,14 +2401,16 @@ all later multiscale work must adopt the same execution contracts.
 
 ### Phase 4S: compact-science stabilization and Phase 5 start gate
 
-Status: compact stabilization and the technical Phase 5 development start gate
-completed on 2026-08-04. On 2026-08-05 the project owner made the independently
-frozen Phase 4S qualification the next blocking milestone before substantive
-multiscale implementation and asked Codex to perform the pre-opening expert
-radio-astronomy review. That review is recorded transparently as an
-AI-conducted technical/scientific review, not independent human sign-off.
-Performance/scalability exit evidence and a recommended external human review
-before production cutover remain pending.
+Status: compact stabilization completed on 2026-08-04. The independently
+frozen Phase 4S qualification opened once on 2026-08-05 and failed. It passed
+all 20 paired non-inferiority endpoints against both released PyBDSF and pinned
+`master`, but failed four binding absolute decisions. The result is immutable
+and does not authorize substantive multiscale implementation. A separately
+named, seed-disjoint Phase 4T confirmation now owns the prospective corrections
+and remaining uncertainty question described below. The review is recorded
+transparently as an AI-conducted technical/scientific review, not independent
+human sign-off. Performance/scalability exit evidence and a recommended
+external human review before production cutover remain pending.
 Phase 4R remains an immutable failed qualification. This milestone must not
 regenerate, rescore, reinterpret, or retrospectively pass that campaign. It
 repairs defects and ambiguities found by the review, then uses new development
@@ -2659,6 +2661,69 @@ Expert scientific review completed on 2026-08-05:
   Phase 5 development, but real residual/noise injection and independent human
   domain review remain recommended before production cutover.
 
+Phase 4S one-look outcome and post-opening expert review on 2026-08-05:
+
+- All three implementations completed all 800 images. Every one of the 20
+  paired endpoints passed against released PyBDSF and independently against
+  pinned `master`. Hebog achieved completeness `1.0`, reliability about
+  `0.99566`, and zero declared catastrophic fraction except one of 6,400
+  source cases (`0.00015625`). It was materially better on catalogue
+  reliability, unresolved-group position/flux error, and normalized-residual
+  calibration. This establishes strong compatibility evidence, but it cannot
+  override an absolute scientific failure.
+- The immutable decision failed `median-position` (`0.02588` beam against
+  `0.02`), `median-peak-flux` (`0.02818` against `0.02`),
+  `point-source-specificity` (`0.0` against `0.95`), and the SNR-10
+  integrated-flux uncertainty-bias interval (point estimate `0.10612` sigma,
+  upper 95% limit `0.15435` against `0.15`). The first three failures were
+  traced to evaluation semantics, not a Hebog-worse scientific result:
+  both PyBDSF references also miss the fixed raw-error limits on this SNR mix,
+  and Hebog classified all 6,400 declared point-source cases as unresolved.
+- Fixed raw absolute-error limits are not SNR-invariant. Condon-style Gaussian
+  fit errors predict larger absolute scatter at SNR 10 and 15, and all three
+  implementations show the expected decline with SNR. Prospectively, raw
+  median/tail position, flux, and shape distributions remain visible
+  report-only diagnostics for generated mixed-SNR populations. Binding truth
+  decisions remain completeness/reliability, explicit morphology class,
+  catastrophic tails, and SNR/stratum-specific normalized-residual bias,
+  coverage, and dispersion. The governed compact reference may retain binding
+  raw-error limits because its population is fixed separately.
+- Point/clear classification is prospectively scored against the manifest's
+  explicit intrinsic class and candidate state, not a deconvolution rerun of
+  the noiseless reference ellipse. The latter turned sub-per-cent WCS/beam
+  projection residue into a false `major-axis-only` truth state. Analytic
+  point truth is canonicalized to unresolved before diagnostics.
+- The SNR-10 integrated-flux result remains a real, if very narrow,
+  uncertainty-calibration miss. Its coverage (`0.68875`) and dispersion
+  (`0.98350`) pass, its mean residual is only `0.10612` sigma, and both PyBDSF
+  references are substantially worse; nevertheless, the frozen 95% interval
+  crosses the predeclared bound and is not waived.
+
+Phase 4T targeted confirmation (next blocking checkpoint):
+
+1. Commit the Phase 4S result and prospective evaluator corrections before
+   defining or generating any Phase 4T image. Do not rescore or replace the
+   Phase 4S decision.
+2. Freeze a new seed-disjoint 800-image compact population with at least four
+   declared point sources in each SNR tier per image. Preserve marginal and
+   clearly resolved cases, edge/corner/WCS diversity, correlated noise,
+   invalid pixels, and the exact candidate/reference identities. This gives at
+   least 3,200 fresh SNR-10 point residuals and must pass a pre-opening power
+   audit for the retained `0.15`-sigma uncertainty-bias bound.
+3. Freeze the corrected explicit-class endpoint, raw-distribution
+   report-only policy, unchanged uncertainty thresholds, all other absolute
+   gates, the same 20 co-primary non-inferiority endpoints, and the one-look
+   rule before output. Obtain and record the same transparent expert review.
+4. Run Hebog, released PyBDSF, and pinned `master` once on identical images.
+   Require every paired endpoint, every binding absolute gate, every stronger
+   Hebog envelope, and implementation completion to pass. A new failure is
+   terminal for Phase 4T and must not trigger another threshold or population
+   change.
+5. Only a passing Phase 4T decision permits substantive Phase 5 multiscale
+   implementation. Real-residual evidence, controlled performance, bounded
+   memory, Dask task-graph/scaling evidence, and external human review remain
+   production-cutover gates rather than Phase 4T substitutions.
+
 Scientific basis for this review:
 
 - [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19);
@@ -2667,15 +2732,15 @@ Scientific basis for this review:
 - [ProFound radio source-finding comparison](https://academic.oup.com/mnras/article/487/3/3971/5511783); and
 - [SKA Science Data Challenge 1 results](https://academic.oup.com/mnras/article/500/3/3821/5918002).
 
-Until this checkpoint passes, Phase 5 work is limited to analytic tests,
+Until Phase 4T passes, Phase 5 work is limited to analytic tests,
 interface and data-model scaffolding, filter-bank research, bounded-memory
 execution design, and separately governed development data. Do not merge a
 multiscale path into compact detection, association, fitting, catalogue, or
 Rapthor-facing behaviour, because that would make a qualification failure
 harder to attribute.
 
-Exit gate: the Phase 5 start gate is met; one independently frozen and jointly
-powered qualification passes every co-primary truth, Rapthor-facing,
+Exit gate: the Phase 5 technical start gate is met; the separately frozen and
+jointly powered Phase 4T confirmation passes every co-primary truth, Rapthor-facing,
 robustness, and released-PyBDSF non-inferiority outcome; the pinned `master`
 comparison has no unexplained material regression; all diagnostic tails are
 explained or fixed; the complete performance, bounded-memory, and task-graph
@@ -2684,9 +2749,9 @@ gates pass; and the science review is recorded. Historical Phase 4 and Phase
 
 ### Phase 5: multiscale and extended emission
 
-Status: preparatory work only until the Phase 4S qualification-first checkpoint
-passes. Substantive multiscale implementation is intentionally paused so the
-compact scientific baseline can be qualified independently.
+Status: preparatory work only until the Phase 4T confirmation passes.
+Substantive multiscale implementation is intentionally paused so the compact
+scientific baseline can be qualified independently.
 
 - [ ] Add failing analytic and generated-truth tests for diffuse, filamentary, mixed,
       cross-scale, duplicate, and artefact-dominated cases.

@@ -1,8 +1,8 @@
 # Phase 4S compact qualification protocol
 
-**Status:** expert-reviewed, frozen, and unopened on 2026-08-05. No image or
-implementation result may be inspected until the contracts, manifest, and
-candidate execution identity are committed.
+**Status:** opened exactly once and failed on 2026-08-05. The frozen decision
+and all five evidence files are immutable. The campaign cannot be rescored or
+replaced inside Phase 4S.
 
 This qualification asks one bounded question: is Hebog's compact,
 single-scale behaviour scientifically acceptable against analytic truth and
@@ -60,6 +60,55 @@ uv run python scripts/validation/freeze_phase4s_qualification.py \
 ```
 
 Both freeze scripts and all campaign/evaluator outputs refuse overwrite.
+
+## One-look result
+
+Hebog, released PyBDSF, and pinned `master` each completed all 800 images.
+Every one of the 20 paired non-inferiority endpoints passed against the
+released reference and independently against `master`. Hebog recovered every
+declared compact association, achieved reliability `0.9956628324`, and was
+materially better than both references on reliability, unresolved-group
+position and total flux, and normalized-residual calibration.
+
+The overall decision is nevertheless `false`. Four binding absolute outcomes
+failed:
+
+| Outcome | Hebog result | Frozen requirement |
+| --- | ---: | ---: |
+| Median position error | 0.025881 beam | at most 0.02 beam |
+| Median absolute peak-flux error | 0.028183 | at most 0.02 |
+| Point-source specificity | 0.0 | at least 0.95 |
+| SNR-10 integrated-flux normalized bias | 0.106125; upper 95% limit 0.154352 | complete interval within -0.15 to 0.15 |
+
+Post-opening review found that the first three are evaluation-design failures,
+not evidence that Hebog is scientifically worse. Both PyBDSF references also
+miss the fixed raw position/peak limits on this mixed-SNR population. Hebog's
+median absolute peak error is much smaller than either reference and its mean
+signed peak bias is `0.00398`. Hebog also labelled all 6,400 declared point
+cases `unresolved`; the zero specificity arose because numerical WCS/beam
+residue made the noiseless truth catalogue say `major-axis-only`.
+
+The SNR-10 integrated-flux result is retained as a genuine narrow miss. Its
+coverage (`0.68875`) and dispersion (`0.98350`) pass, and the point estimate is
+only `0.106125` sigma, but the confidence interval crosses the frozen bound by
+about `0.00435` sigma. It is not waived.
+
+Prospective code now scores extension classes against the manifest's explicit
+intrinsic class and canonicalizes analytic point truth to unresolved. Raw
+position, flux, and shape error distributions are report-only for generated
+mixed-SNR populations; SNR/stratum-specific normalized-residual bias,
+coverage, and dispersion remain binding. These changes do not alter this
+decision. A separately frozen Phase 4T campaign with fresh seeds will confirm
+the corrected semantics and the retained uncertainty limit before substantive
+multiscale work begins.
+
+Evidence file SHA-256 values are:
+
+- Hebog shard: `8e3f4d3ed7973ed931128f8e62024034a118b1641db5c3dc97f820d91d9ab079`;
+- released-PyBDSF shard: `5203c4d5977afd9b0dd58db272e78ef6e7c9c6e0330c83dc3d6c8e46efbd3efc`;
+- master-PyBDSF shard: `18d178d82fd9a3b0cea52fd0d9a648fdff3227edfc18a66c2a1dadf456ce497d`;
+- compiled campaign: `15b2a38b3bb5876a9323e1aabcf19d7e3b66fb546643c9f4e513c36690eafbfb`;
+- decision: `bcb62bfb170d11b2a204b38893ca97e94b5c123218d3b059559187678a991a3e`.
 
 ## Scientific decisions
 

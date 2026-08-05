@@ -4936,3 +4936,73 @@ or decision existed when these inputs were frozen and reviewed.
 - Commit the complete pre-opening state, use that commit as the exact Hebog
   candidate identity, verify every output path is absent, and run the three
   immutable campaign legs before inspecting the one-look decision.
+
+## 2026-08-05 — Opened and reviewed the failed Phase 4S qualification
+
+**Plan phase:** Phase 4S — qualification-first checkpoint
+
+**Outcome**
+
+- Hebog, released PyBDSF, and pinned `master` each completed all 800 frozen
+  images with no failed seed. The candidate was Hebog `0.5.0` at
+  `0c9098af01ea2601f95c416e8b8e3d75a31361c9`; the references were PyBDSF
+  `1.14.1` at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc` and
+  `1.14.2.dev40+gc70103be3` at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
+- All 20 paired endpoints passed against released PyBDSF and independently
+  against pinned `master`. Hebog recovered every declared compact association,
+  achieved reliability `0.9956628323590421`, and was materially better on
+  reliability, unresolved-group position/flux error, and aggregate
+  normalized-residual calibration.
+- The immutable decision failed four binding absolute outcomes:
+  `median-position` was `0.02588101695920189` beam against `0.02`;
+  `median-peak-flux` was `0.028183259588272835` against `0.02`;
+  `point-source-specificity` was `0.0` against `0.95`; and the SNR-10
+  integrated-flux normalized-bias interval was
+  `[0.057897558361946606, 0.15435183788920392]` against `[-0.15, 0.15]`.
+  Phase 4S is therefore terminally failed and was not rescored.
+
+**Expert review**
+
+- Hebog labelled every one of the 6,400 declared point cases `unresolved`.
+  The specificity failure came from re-inferring noiseless truth through WCS
+  and beam deconvolution, where tiny projection residue produced a false
+  `major-axis-only` reference. Prospective scoring now compares candidate
+  states directly with declared manifest classes and canonicalizes analytic
+  point truth to unresolved.
+- Fixed 2% raw median position/peak limits are below the noise floor for an
+  equal SNR 10/15/25/50 mixture. Released/master PyBDSF medians were about
+  `0.02608`/`0.02573` beam for position and `0.04623`/`0.04547` for absolute
+  peak error. Hebog's mean signed peak bias was only `0.00398`, and its raw
+  errors declined monotonically with SNR. Future generated mixed-SNR evidence
+  retains raw error distributions as report-only while binding SNR-specific
+  normalized-residual bias, coverage, and dispersion.
+- The SNR-10 integrated-flux result remains a genuine narrow miss. Coverage
+  (`0.68875`) and dispersion (`0.9835004119461924`) passed, and the point
+  estimate was only `0.10612469812557526` sigma, but the predeclared interval
+  rule was not waived. A fresh Phase 4T campaign with at least four point
+  sources per SNR tier per image will test the unchanged `0.15`-sigma bound
+  with at least 3,200 new SNR-10 point residuals.
+
+**Evidence**
+
+- Hebog shard SHA-256:
+  `8e3f4d3ed7973ed931128f8e62024034a118b1641db5c3dc97f820d91d9ab079`.
+- Released-PyBDSF shard SHA-256:
+  `5203c4d5977afd9b0dd58db272e78ef6e7c9c6e0330c83dc3d6c8e46efbd3efc`.
+- Master-PyBDSF shard SHA-256:
+  `18d178d82fd9a3b0cea52fd0d9a648fdff3227edfc18a66c2a1dadf456ce497d`.
+- Compiled-campaign SHA-256:
+  `15b2a38b3bb5876a9323e1aabcf19d7e3b66fb546643c9f4e513c36690eafbfb`.
+- Decision SHA-256:
+  `bcb62bfb170d11b2a204b38893ca97e94b5c123218d3b059559187678a991a3e`.
+- The campaign runner wall times were approximately 2,259 seconds for Hebog,
+  3,358 seconds for released PyBDSF, and 3,724 seconds for pinned `master`.
+  These single scientific-campaign observations are not controlled
+  performance evidence and support no speed claim.
+
+**Next**
+
+- Commit the immutable outcome record and prospective evaluator corrections.
+- Freeze Phase 4T, its fresh population, exact identities, power, and one-look
+  rule before generating any new candidate or reference output.
