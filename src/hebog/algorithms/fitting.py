@@ -14,8 +14,9 @@ from typing import Literal, TypeAlias, cast
 import numpy as np
 import numpy.typing as npt
 from scipy.linalg import solve_triangular
-from scipy.ndimage import correlate, map_coordinates
+from scipy.ndimage import map_coordinates
 from scipy.optimize import least_squares
+from scipy.signal import fftconvolve
 from scipy.special import ndtr
 
 from hebog.algorithms.deblending import DeblendedRegion
@@ -147,6 +148,7 @@ class _ModelSpec:
     lower: npt.NDArray[np.float64]
     upper: npt.NDArray[np.float64]
     expand: Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
+    full_parameter_indices: tuple[int, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,6 +237,61 @@ def _gaussian_values(
     return np.asarray(
         background_offset + amplitude * np.exp(exponent),
         dtype=np.float64,
+    )
+
+
+def _gaussian_parameter_jacobian(
+    parameters: npt.NDArray[np.float64],
+    x: npt.NDArray[np.float64],
+    y: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
+    """Return the exact model derivative for all seven parameters."""
+    (
+        amplitude,
+        center_x,
+        center_y,
+        sigma_first,
+        sigma_second,
+        theta,
+        _,
+    ) = parameters
+    x_offset = x - center_x
+    y_offset = y - center_y
+    cosine = np.cos(theta)
+    sine = np.sin(theta)
+    first_offset = cosine * x_offset + sine * y_offset
+    second_offset = -sine * x_offset + cosine * y_offset
+    inverse_first_variance = 1.0 / sigma_first**2
+    inverse_second_variance = 1.0 / sigma_second**2
+    profile = np.exp(
+        -0.5
+        * (
+            np.square(first_offset) * inverse_first_variance
+            + np.square(second_offset) * inverse_second_variance
+        )
+    )
+    scaled_profile = amplitude * profile
+    return np.column_stack(
+        (
+            profile,
+            scaled_profile
+            * (
+                first_offset * cosine * inverse_first_variance
+                - second_offset * sine * inverse_second_variance
+            ),
+            scaled_profile
+            * (
+                first_offset * sine * inverse_first_variance
+                + second_offset * cosine * inverse_second_variance
+            ),
+            scaled_profile * np.square(first_offset) / sigma_first**3,
+            scaled_profile * np.square(second_offset) / sigma_second**3,
+            scaled_profile
+            * first_offset
+            * second_offset
+            * (inverse_second_variance - inverse_first_variance),
+            np.ones_like(profile),
+        )
     )
 
 
@@ -395,15 +452,15 @@ def _correlated_parameter_covariance(
         int(np.max(x_local)) + 1,
     )
     kernel = _noise_correlation_kernel(correlation_covariance)
-    correlated_jacobian = np.empty_like(jacobian)
-    for parameter_index in range(jacobian.shape[1]):
-        grid = np.zeros(grid_shape, dtype=np.float64)
-        grid[y_local, x_local] = jacobian[:, parameter_index]
-        correlated_grid = correlate(grid, kernel, mode="constant", cval=0.0)
-        correlated_jacobian[:, parameter_index] = correlated_grid[
-            y_local,
-            x_local,
-        ]
+    grid = np.zeros((*grid_shape, jacobian.shape[1]), dtype=np.float64)
+    grid[y_local, x_local, :] = jacobian
+    correlated_grid = fftconvolve(
+        grid,
+        kernel[:, :, np.newaxis],
+        mode="same",
+        axes=(0, 1),
+    )
+    correlated_jacobian = correlated_grid[y_local, x_local, :]
     meat = jacobian.T @ correlated_jacobian
     return np.asarray(
         information_inverse @ meat @ information_inverse,
@@ -660,9 +717,22 @@ def _fit_candidate(
         ) / samples.rms
         return samples.residual_transform(standard_residual)
 
+    def weighted_jacobian(
+        parameters: npt.NDArray[np.float64],
+    ) -> npt.NDArray[np.float64]:
+        full_parameters = spec.expand(parameters)
+        model_jacobian = _gaussian_parameter_jacobian(
+            full_parameters,
+            samples.x,
+            samples.y,
+        )[:, spec.full_parameter_indices]
+        standard_jacobian = model_jacobian / samples.rms[:, np.newaxis]
+        return samples.residual_transform(standard_jacobian)
+
     result = least_squares(
         weighted_residual,
         spec.initial,
+        jac=weighted_jacobian,  # pyright: ignore[reportArgumentType]
         bounds=(spec.lower, spec.upper),
         method="trf",
         x_scale="jac",
@@ -900,6 +970,7 @@ def _free_model_spec(
         lower=lower[free_indices],
         upper=upper[free_indices],
         expand=expand,
+        full_parameter_indices=tuple(int(item) for item in free_indices),
     )
 
 
@@ -1203,6 +1274,7 @@ def _centroid_constrained_retry(  # noqa: PLR0913
             lower=forced_lower[free_indices],
             upper=forced_upper[free_indices],
             expand=expand,
+            full_parameter_indices=tuple(int(item) for item in free_indices),
         ),
         fallback_reason=fallback_reason,
     )
@@ -1772,6 +1844,9 @@ def fit_compact_gaussian(
             lower=lower[constrained_indices],
             upper=upper[constrained_indices],
             expand=expand_constrained,
+            full_parameter_indices=tuple(
+                int(item) for item in constrained_indices
+            ),
         ),
         fallback_reason=fallback_reason,
     )

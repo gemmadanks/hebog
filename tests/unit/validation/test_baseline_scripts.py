@@ -587,6 +587,7 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
             "minimum_peak_signal_to_noise": 5.0,
             "minimum_region_pixels": 7,
             "minimum_saddle_depth_sigma": 1.0,
+            "target_batch_pixels": 8000,
         },
         "executor": "serial",
         "fitting": {
@@ -913,6 +914,23 @@ def test_phase4_benchmark_input_is_deterministic_and_profiled() -> None:
     assert all(array.shape == (64, 64) for array in values.values())
     assert all(array.dtype == np.float64 for array in values.values())
     assert len({array.tobytes() for array in values.values()}) == len(profiles)
+
+
+def test_phase4_benchmark_noise_matches_the_declared_beam_correlation() -> (
+    None
+):
+    """Performance noise exercises the qualified correlated-noise fitter."""
+    namespace = _script("generate_phase4_input.py")
+    generate_noise: Callable[..., Any] = namespace[
+        "_generate_correlated_noise"
+    ]
+
+    noise = generate_noise(256, np.random.default_rng(20260805))
+
+    assert float(np.std(noise)) == pytest.approx(0.0002)
+    assert float(np.corrcoef(noise[:, :-1].flat, noise[:, 1:].flat)[0, 1]) > (
+        0.9
+    )
 
 
 def test_phase4_matrix_protocol_and_execution_policy_are_frozen() -> None:

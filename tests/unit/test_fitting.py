@@ -97,6 +97,28 @@ def _fit_config(**changes: object) -> CompactGaussianFitConfig:
     return CompactGaussianFitConfig(**values)  # type: ignore[arg-type]
 
 
+def test_gaussian_parameter_jacobian_matches_central_difference() -> None:
+    """The production optimizer uses the exact rotated-Gaussian gradient."""
+    parameters = np.asarray(
+        (0.012, 3.2, -1.4, 2.7, 1.3, 0.37, -0.0002),
+        dtype=np.float64,
+    )
+    x = np.asarray((-2.0, 0.5, 2.7, 4.3), dtype=np.float64)
+    y = np.asarray((-3.1, -0.2, 1.8, 3.0), dtype=np.float64)
+    actual = fitting_algorithm._gaussian_parameter_jacobian(parameters, x, y)
+    finite = np.empty_like(actual)
+    step = 1e-6
+    for index in range(parameters.size):
+        offset = np.zeros(parameters.size, dtype=np.float64)
+        offset[index] = step
+        finite[:, index] = (
+            fitting_algorithm._gaussian_values(parameters + offset, x, y)
+            - fitting_algorithm._gaussian_values(parameters - offset, x, y)
+        ) / (2.0 * step)
+
+    np.testing.assert_allclose(actual, finite, rtol=1e-6, atol=1e-9)
+
+
 def _gaussian_input(  # noqa: PLR0913
     *,
     amplitude: float = 3.0,

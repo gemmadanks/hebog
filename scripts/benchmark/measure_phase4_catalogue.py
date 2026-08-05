@@ -16,6 +16,7 @@ import subprocess
 import threading
 import time
 import warnings
+from collections import Counter
 from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -35,15 +36,10 @@ from hebog.algorithms.catalogue import (
 )
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
-    AdaptiveRmsConfig,
-    BackgroundRmsConfig,
     CompactCatalogueConfig,
     CompactDeblendConfig,
     CompactGaussianFitConfig,
     CompactMomentConfig,
-    RmsGridConfig,
-    RmsWindowStatisticsConfig,
-    SourceFinderConfig,
 )
 from hebog.data_models.images import ImageMetadata
 from hebog.executors.base import Executor
@@ -71,6 +67,7 @@ from hebog.validation.evidence import (
     WorkloadClass,
     write_evidence,
 )
+from hebog.validation.hebog_campaign import phase_four_candidate_configs
 
 Input = TypeVar("Input")
 Output = TypeVar("Output")
@@ -125,7 +122,10 @@ class _RunResult:
     source_count: int
     component_count: int
     omission_count: int
+    omission_reasons: tuple[tuple[str, int], ...]
+    omission_objects: tuple[tuple[str, str], ...]
     deferred_island_count: int
+    admitted_bounds_pixel_count: int
     maximum_processor_array_bytes: int
     completion_available: bool
     completion_error: str | None
@@ -160,7 +160,13 @@ class _ResidentMemorySampler:
         self._thread = threading.Thread(target=self._sample, daemon=True)
 
     def _current_bytes(self) -> int:
-        return int(self._process.memory_info().rss)
+        total = int(self._process.memory_info().rss)
+        for child in self._process.children(recursive=True):
+            try:
+                total += int(child.memory_info().rss)
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                continue
+        return total
 
     def _sample(self) -> None:
         while not self._stop.is_set():
@@ -211,48 +217,8 @@ def _configuration() -> tuple[
     CompactGaussianFitConfig,
     CompactCatalogueConfig,
 ]:
-    """Return the frozen Phase 4 compact execution configuration."""
-    statistics = RmsWindowStatisticsConfig(3.0, 10, 6)
-    detection = DetectionStageConfig(
-        background_rms=BackgroundRmsConfig(
-            coarse=RmsGridConfig(
-                window_shape_yx=(150, 150),
-                step_yx=(50, 50),
-                statistics=statistics,
-                maximum_batch_cells=64,
-            ),
-            adaptive=AdaptiveRmsConfig(
-                grid=RmsGridConfig(
-                    window_shape_yx=(35, 35),
-                    step_yx=(7, 7),
-                    statistics=statistics,
-                    maximum_batch_cells=512,
-                ),
-                candidate_threshold_sigma=75.0,
-                influence_radius_pixels=75.0,
-                transition_width_pixels=20.0,
-            ),
-            maximum_spatial_window_fraction=0.25,
-            maximum_constant_map_pixels=10_000_000,
-        ),
-        source_finder=SourceFinderConfig(5.0, 3.0, 7),
-    )
-    deblend = CompactDeblendConfig(
-        minimum_peak_signal_to_noise=5.0,
-        minimum_peak_separation_pixels=2,
-        minimum_saddle_depth_sigma=1.0,
-        minimum_region_pixels=7,
-        maximum_compact_island_pixels=250_000,
-        maximum_compact_bounds_pixels=1_000_000,
-        maximum_batch_pixels=4_000_000,
-    )
-    return (
-        detection,
-        deblend,
-        CompactMomentConfig(3, 1e-12),
-        CompactGaussianFitConfig(7, 300, 0.2, 30.0, 5.0, 1.0, 1e-8, 30.0),
-        CompactCatalogueConfig(10_000, 1e-10, 5.0),
-    )
+    """Return the exact qualified Phase 4 candidate configuration."""
+    return phase_four_candidate_configs()
 
 
 def _measure(function: Callable[[], Result_co]) -> _TimedResult[Result_co]:
@@ -392,6 +358,18 @@ def _run_once(  # noqa: PLR0913
     )
     result = stage.value
     omissions = sum(len(shard.omissions) for shard in result.records)
+    omission_reasons = Counter(
+        omission.reason
+        for shard in result.records
+        for omission in shard.omissions
+    )
+    omission_objects = tuple(
+        sorted(
+            (omission.object_id, omission.reason)
+            for shard in result.records
+            for omission in shard.omissions
+        )
+    )
     completion = _measure_completion(
         lambda: complete_compact_catalogue(
             catalogue_id=f"phase-4-benchmark-{repetition_index:02d}",
@@ -463,7 +441,10 @@ def _run_once(  # noqa: PLR0913
         source_count=source_count,
         component_count=component_count,
         omission_count=omissions,
+        omission_reasons=tuple(sorted(omission_reasons.items())),
+        omission_objects=omission_objects,
         deferred_island_count=len(result.deferred_islands),
+        admitted_bounds_pixel_count=result.admitted_bounds_pixel_count,
         maximum_processor_array_bytes=result.maximum_processor_array_bytes,
         completion_available=completion.value is not None,
         completion_error=completion.error,
@@ -578,7 +559,11 @@ def main() -> None:
         "dependencies": dependencies,
         "machine": platform.machine(),
         "platform": platform.platform(),
+        "peak_rss_scope": "driver process tree sampled every 5 ms",
         "python": platform.python_version(),
+        "worker_isolation": (
+            "process" if args.executor == ExecutorKind.DASK.value else "none"
+        ),
     }
     total_memory = int(psutil.virtual_memory().total)
     executor_kind = ExecutorKind(args.executor)
@@ -641,7 +626,7 @@ def main() -> None:
         with Client(
             n_workers=workers,
             threads_per_worker=threads_per_worker,
-            processes=False,
+            processes=True,
             dashboard_address=None,
             memory_limit=worker_memory,
         ) as client:
@@ -702,6 +687,9 @@ def main() -> None:
                 "completion_available": last.completion_available,
                 "completion_error": last.completion_error,
                 "component_count": last.component_count,
+                "admitted_bounds_pixel_count": (
+                    last.admitted_bounds_pixel_count
+                ),
                 "deferred_island_count": last.deferred_island_count,
                 "evidence": str(args.output),
                 "maximum_processor_array_bytes": (
@@ -709,6 +697,8 @@ def main() -> None:
                 ),
                 "median_wall_seconds": sorted(measured)[len(measured) // 2],
                 "omission_count": last.omission_count,
+                "omission_objects": last.omission_objects,
+                "omission_reasons": dict(last.omission_reasons),
                 "output_byte_count": last.output_byte_count,
                 "planned_batch_count": last.planned_batch_count,
                 "setup_wall_seconds": setup_wall_seconds,

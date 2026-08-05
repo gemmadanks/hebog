@@ -11,6 +11,7 @@ from typing import Literal, cast
 import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
+from scipy.ndimage import gaussian_filter
 
 PhaseFourProfile = Literal[
     "sparse",
@@ -30,6 +31,9 @@ _PROFILES: tuple[PhaseFourProfile, ...] = (
 _PROFILE_INDEX = {profile: index for index, profile in enumerate(_PROFILES)}
 _NOISE_RMS = 0.0002
 _BACKGROUND = -0.0001
+_FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
+_BEAM_MAJOR_SIGMA_PIXELS = 10.0 / _FWHM_PER_SIGMA
+_BEAM_MINOR_SIGMA_PIXELS = 8.0 / _FWHM_PER_SIGMA
 _MINIMUM_SIZE = 32
 _PATCH_RADIUS = 10
 
@@ -106,7 +110,8 @@ def _add_profile_sources(
         _population_count(values.shape[0], profile),
     )
     for index, (centre_y, centre_x) in enumerate(centres):
-        amplitude = _NOISE_RMS * (12.0 + 3.0 * (index % 4))
+        base_signal_to_noise = 25.0 if profile == "dense" else 12.0
+        amplitude = _NOISE_RMS * (base_signal_to_noise + 3.0 * (index % 4))
         if profile == "blend-heavy":
             angle = np.deg2rad((index % 4) * 30.0)
             offset_y = 2.5 * np.sin(angle)
@@ -119,20 +124,51 @@ def _add_profile_sources(
                         centre_x + sign * offset_x,
                     ),
                     amplitude=amplitude * ratio,
-                    sigma_yx=(3.4, 4.2),
+                    sigma_yx=(
+                        _BEAM_MAJOR_SIGMA_PIXELS,
+                        _BEAM_MINOR_SIGMA_PIXELS,
+                    ),
                 )
         elif profile == "fit-failure":
             x_start = max(0, centre_x - 3)
             x_stop = min(values.shape[1], centre_x + 4)
             values[centre_y, x_start:x_stop] += amplitude
         else:
-            scale = 1.0 + 0.15 * (index % 3)
+            scale = 1.0 if profile == "dense" else 1.0 + 0.15 * (index % 3)
             _add_gaussian(
                 values,
                 centre_yx=(centre_y, centre_x),
                 amplitude=amplitude,
-                sigma_yx=(3.4 * scale, 4.2 * scale),
+                sigma_yx=(
+                    _BEAM_MAJOR_SIGMA_PIXELS * scale,
+                    _BEAM_MINOR_SIGMA_PIXELS * scale,
+                ),
             )
+
+
+def _generate_correlated_noise(
+    size: int,
+    generator: np.random.Generator,
+) -> npt.NDArray[np.float64]:
+    """Generate beam-correlated noise with the declared marginal RMS."""
+    white = generator.normal(size=(size, size)).astype(np.float64)
+    correlated = np.asarray(
+        gaussian_filter(
+            white,
+            sigma=(
+                _BEAM_MAJOR_SIGMA_PIXELS / np.sqrt(2.0),
+                _BEAM_MINOR_SIGMA_PIXELS / np.sqrt(2.0),
+            ),
+            mode="reflect",
+        ),
+        dtype=np.float64,
+    )
+    correlated -= float(np.mean(correlated, dtype=np.float64))
+    standard_deviation = float(np.std(correlated, dtype=np.float64))
+    if not np.isfinite(standard_deviation) or standard_deviation <= 0.0:
+        raise ValueError("generated Phase 4 noise has no finite variance")
+    correlated *= _NOISE_RMS / standard_deviation
+    return correlated
 
 
 def _generate_values(
@@ -149,11 +185,7 @@ def _generate_values(
     generator = np.random.default_rng(
         20260805 + size * 10 + _PROFILE_INDEX[typed_profile]
     )
-    values = generator.normal(
-        loc=_BACKGROUND,
-        scale=_NOISE_RMS,
-        size=(size, size),
-    ).astype(np.float64)
+    values = _BACKGROUND + _generate_correlated_noise(size, generator)
     _add_profile_sources(values, typed_profile)
     return values
 
@@ -170,7 +202,7 @@ def _generate_input(
     hdu.header["BUNIT"] = "Jy/beam"
     hdu.header["BMAJ"] = 0.01
     hdu.header["BMIN"] = 0.008
-    hdu.header["BPA"] = 20.0
+    hdu.header["BPA"] = 0.0
     hdu.header["RESTFRQ"] = 150_000_000.0
     hdu.header["CTYPE1"] = "RA---SIN"
     hdu.header["CTYPE2"] = "DEC--SIN"

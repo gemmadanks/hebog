@@ -10,7 +10,9 @@ from typing import Literal
 
 import pytest
 from astropy.wcs import WCS
+from pytest_mock import MockerFixture
 
+from hebog.algorithms import catalogue as catalogue_algorithm
 from hebog.algorithms.catalogue import (
     IncompleteCompactCatalogueError,
     build_compact_catalogue_shard,
@@ -188,6 +190,24 @@ def test_shard_keeps_island_source_and_component_records_distinct() -> None:
         assert source.association_aperture_integrated_flux_jy == 0.018
         assert source.spectral_model.kind == "reference-frequency-only"
         assert source.spectral_model.reference_frequency_hz == 150_000_000.0
+
+
+def test_shard_reuses_one_celestial_wcs_for_all_records(
+    mocker: MockerFixture,
+) -> None:
+    """One coarse shard does not repeatedly parse immutable WCS metadata."""
+    spy = mocker.spy(
+        catalogue_algorithm,
+        "celestial_wcs_from_metadata",
+    )
+
+    build_compact_catalogue_shard(
+        (_island_fit(), _island_fit(2)),
+        _metadata(),
+        deconvolution_relative_tolerance=1e-10,
+    )
+
+    assert spy.call_count == 1
 
 
 def test_island_flux_is_recomputed_with_local_wcs_geometry() -> None:

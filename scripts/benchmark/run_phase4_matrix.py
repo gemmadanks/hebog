@@ -250,6 +250,7 @@ def _cell_summary(
         item.complete for item in loaded.measurements if not item.warmup
     )
     return {
+        "admitted_bounds_pixel_count": status["admitted_bounds_pixel_count"],
         "completion_available": status["completion_available"],
         "completion_error": status["completion_error"],
         "component_count": status["component_count"],
@@ -271,6 +272,8 @@ def _cell_summary(
         ),
         "median_measurement_fitting_seconds": fitting,
         "omission_count": status["omission_count"],
+        "omission_objects": status["omission_objects"],
+        "omission_reasons": status["omission_reasons"],
         "output_byte_count": status["output_byte_count"],
         "planned_batch_count": status["planned_batch_count"],
         "profile": identity.profile,

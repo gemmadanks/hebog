@@ -37,7 +37,7 @@ _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
 _SHAPE_AXIS_PARAMETER_COUNT = 2
 
 
-def _celestial_wcs(metadata: ImageMetadata) -> WCS:
+def celestial_wcs_from_metadata(metadata: ImageMetadata) -> WCS:
     """Reconstruct an independent celestial WCS from serialized metadata."""
     header = fits.Header.fromstring(
         metadata.celestial_wcs.fits_header,
@@ -49,12 +49,18 @@ def _celestial_wcs(metadata: ImageMetadata) -> WCS:
 def local_tangent_plane_transform(
     metadata: ImageMetadata,
     position_xy: tuple[float, float],
+    *,
+    celestial_wcs: WCS | None = None,
 ) -> LocalTangentPlaneTransform:
     """Return the ICRS center and local east/north pixel Jacobian."""
     if metadata.celestial_wcs.coordinate_frame.lower() != "icrs":
         raise ValueError("compact astrometry requires an ICRS celestial WCS")
     x, y = position_xy
-    wcs = _celestial_wcs(metadata)
+    wcs = (
+        celestial_wcs
+        if celestial_wcs is not None
+        else celestial_wcs_from_metadata(metadata)
+    )
     center = wcs.pixel_to_world(x, y).icrs
     step = _FINITE_DIFFERENCE_STEP_PIXELS
     columns: list[tuple[float, float]] = []
@@ -87,11 +93,22 @@ def local_tangent_plane_transform(
 def compact_geometry_at_pixel(
     metadata: ImageMetadata,
     position_xy: tuple[float, float],
+    *,
+    celestial_wcs: WCS | None = None,
+    transform: LocalTangentPlaneTransform | None = None,
 ) -> CompactMeasurementGeometry:
     """Derive reviewed local pixel and restoring-beam solid angles."""
-    transform = local_tangent_plane_transform(metadata, position_xy)
+    local_transform = (
+        transform
+        if transform is not None
+        else local_tangent_plane_transform(
+            metadata,
+            position_xy,
+            celestial_wcs=celestial_wcs,
+        )
+    )
     jacobian = np.asarray(
-        transform.jacobian_degrees_per_pixel,
+        local_transform.jacobian_degrees_per_pixel,
         dtype=np.float64,
     )
     pixel_area_square_degrees = abs(float(np.linalg.det(jacobian)))
@@ -431,13 +448,14 @@ def _axis_significance_classification(  # noqa: PLR0913
     return deconvolution
 
 
-def transform_compact_gaussian_fit(
+def transform_compact_gaussian_fit(  # noqa: PLR0913
     fit: ValidCompactGaussianFit,
     metadata: ImageMetadata,
     *,
     deconvolution_relative_tolerance: float = 1e-10,
     extension_significance_sigma: float = 5.0,
     deconvolution_axis_significance_sigma: float = 5.0,
+    celestial_wcs: WCS | None = None,
 ) -> CelestialCompactGaussianFit:
     """Transform a valid pixel fit into reviewed ICRS catalogue quantities."""
     if metadata.unit != "Jy/beam":
@@ -462,7 +480,11 @@ def transform_compact_gaussian_fit(
         if fit.position_estimate is not None
         else parameters.centroid_xy
     )
-    transform = local_tangent_plane_transform(metadata, position_xy)
+    transform = local_tangent_plane_transform(
+        metadata,
+        position_xy,
+        celestial_wcs=celestial_wcs,
+    )
     jacobian = np.asarray(transform.jacobian_degrees_per_pixel)
     fitted_covariance = (
         jacobian
@@ -479,7 +501,11 @@ def transform_compact_gaussian_fit(
         metadata.beam,
         relative_tolerance=deconvolution_relative_tolerance,
     )
-    geometry = compact_geometry_at_pixel(metadata, position_xy)
+    geometry = compact_geometry_at_pixel(
+        metadata,
+        position_xy,
+        transform=transform,
+    )
     uncertainty = fit.uncertainty
     integrated_flux = fitted_gaussian_integrated_flux_jy(
         amplitude_jy_per_beam=parameters.amplitude_jy_per_beam,

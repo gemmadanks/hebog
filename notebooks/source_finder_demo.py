@@ -295,6 +295,7 @@ def _(
         minimum_region_pixels=7,
         maximum_compact_island_pixels=250_000,
         maximum_compact_bounds_pixels=1_000_000,
+        target_batch_pixels=250_000,
         maximum_batch_pixels=4_000_000,
     )
     moment_configuration = hebog_config.CompactMomentConfig(

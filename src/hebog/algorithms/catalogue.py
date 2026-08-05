@@ -1,10 +1,14 @@
+# pyright: reportMissingTypeStubs=false
 """Deterministic compact association and bounded catalogue construction."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 
+from astropy.wcs import WCS
+
 from hebog.algorithms.astrometry import (
+    celestial_wcs_from_metadata,
     compact_geometry_at_pixel,
     transform_compact_gaussian_fit,
 )
@@ -110,6 +114,7 @@ def reduce_compact_catalogue_shards(
 def _island_record(
     result: CompactIslandFitResult,
     metadata: ImageMetadata,
+    celestial_wcs: WCS,
 ) -> Island | CompactCatalogueOmission:
     """Recompute one island's area-dependent flux at its local WCS position."""
     measurement = result.island_measurement
@@ -125,7 +130,11 @@ def _island_record(
             float(measurement.photometry.peak_position_xy[0]),
             float(measurement.photometry.peak_position_xy[1]),
         )
-    geometry = compact_geometry_at_pixel(metadata, position_xy)
+    geometry = compact_geometry_at_pixel(
+        metadata,
+        position_xy,
+        celestial_wcs=celestial_wcs,
+    )
     photometry = measurement.photometry
     total_brightness = photometry.mean_brightness_jy_per_beam * float(
         measurement.target.pixel_count
@@ -144,9 +153,10 @@ def _island_record(
     )
 
 
-def _associated_records(
+def _associated_records(  # noqa: PLR0913
     fit: ValidCompactGaussianFit,
     metadata: ImageMetadata,
+    celestial_wcs: WCS,
     *,
     deconvolution_relative_tolerance: float,
     extension_significance_sigma: float,
@@ -161,6 +171,7 @@ def _associated_records(
         deconvolution_axis_significance_sigma=(
             deconvolution_axis_significance_sigma
         ),
+        celestial_wcs=celestial_wcs,
     )
     region_id = fit.moment.target.object_id
     source_id = f"source-{region_id}"
@@ -218,8 +229,9 @@ def build_compact_catalogue_shard(
     sources: list[SourceCandidate] = []
     components: list[GaussianComponent] = []
     omissions: list[CompactCatalogueOmission] = []
+    celestial_wcs = celestial_wcs_from_metadata(metadata)
     for result in results:
-        island = _island_record(result, metadata)
+        island = _island_record(result, metadata, celestial_wcs)
         if isinstance(island, CompactCatalogueOmission):
             omissions.append(island)
         else:
@@ -236,6 +248,7 @@ def build_compact_catalogue_shard(
             source, component = _associated_records(
                 fit,
                 metadata,
+                celestial_wcs,
                 deconvolution_relative_tolerance=(
                     deconvolution_relative_tolerance
                 ),

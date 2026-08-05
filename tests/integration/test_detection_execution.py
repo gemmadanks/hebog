@@ -212,6 +212,7 @@ def _deblend_config() -> CompactDeblendConfig:
         minimum_region_pixels=7,
         maximum_compact_island_pixels=64,
         maximum_compact_bounds_pixels=128,
+        target_batch_pixels=128,
         maximum_batch_pixels=256,
     )
 

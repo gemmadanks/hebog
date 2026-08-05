@@ -155,7 +155,7 @@ def plan_compact_deblend_batches(
             )
             continue
         if current and (
-            current_pixels + bounds_pixels > config.maximum_batch_pixels
+            current_pixels + bounds_pixels > config.target_batch_pixels
         ):
             batches.append(
                 CompactDeblendBatch(

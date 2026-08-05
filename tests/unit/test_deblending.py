@@ -32,8 +32,14 @@ def _config(**replacements: object) -> CompactDeblendConfig:
         "minimum_region_pixels": 1,
         "maximum_compact_island_pixels": 64,
         "maximum_compact_bounds_pixels": 128,
+        "target_batch_pixels": 64,
         "maximum_batch_pixels": 256,
     }
+    if (
+        "maximum_batch_pixels" in replacements
+        and "target_batch_pixels" not in replacements
+    ):
+        values["target_batch_pixels"] = replacements["maximum_batch_pixels"]
     values.update(replacements)
     return CompactDeblendConfig(**values)  # type: ignore[arg-type]
 
@@ -118,7 +124,15 @@ def _worker_local_island() -> WorkerLocalDeblendedIsland:
         ({"minimum_region_pixels": 0}, "region_pixels"),
         ({"maximum_compact_island_pixels": 0}, "island_pixels"),
         ({"maximum_compact_bounds_pixels": 0}, "bounds_pixels"),
+        ({"target_batch_pixels": 0}, "target_batch_pixels"),
         ({"maximum_batch_pixels": 0}, "batch_pixels"),
+        (
+            {
+                "target_batch_pixels": 300,
+                "maximum_batch_pixels": 256,
+            },
+            "target_batch_pixels",
+        ),
         (
             {
                 "maximum_compact_bounds_pixels": 20,
@@ -491,6 +505,34 @@ def test_planner_batches_compact_bounds_and_preserves_deferrals() -> None:
     ) == (
         ("island-00003", "island-pixel-limit"),
         ("island-00004", "bounds-pixel-limit"),
+    )
+
+
+def test_planner_targets_parallel_batches_below_the_hard_memory_limit() -> (
+    None
+):
+    """Small islands fill execution targets without lowering admission."""
+    islands = tuple(
+        _compact_island(
+            np.full((2, 2), 6.0),
+            island_id=f"island-{index:05d}",
+            global_label=index,
+        ).island
+        for index in range(1, 5)
+    )
+
+    plan = plan_compact_deblend_batches(
+        islands,
+        _config(
+            maximum_compact_bounds_pixels=16,
+            target_batch_pixels=8,
+            maximum_batch_pixels=32,
+        ),
+    )
+
+    assert tuple(batch.estimated_pixel_count for batch in plan.batches) == (
+        8,
+        8,
     )
 
 

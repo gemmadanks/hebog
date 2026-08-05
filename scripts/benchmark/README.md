@@ -160,11 +160,16 @@ uv run python scripts/benchmark/run_phase4_matrix.py \
   --output-directory benchmark-results/phase-4/matrix
 ```
 
-The 3,000-square component gate uses a reused four-worker Dask client and
-1,000-square tiles. Small tiers use the serial reference to avoid scheduler
-overhead. Deliberately unfit islands must be recorded as omissions and close
-without publishing a partial catalogue. Phase 3 preparation time is retained
-as context but excluded from the incremental Phase 4 budgets. This matrix
+The 3,000-square component gate uses a reused four-worker, process-isolated
+Dask client and 1,000-square tiles. Small tiers use the serial reference to
+avoid scheduler overhead. Its performance-only noise has the declared
+restoring-beam correlation, so it exercises the same qualified correlated-
+noise fitter rather than an inconsistent independent-pixel field. Deliberately
+unfit islands must be recorded as omissions and close without publishing a
+partial catalogue. Phase 3 preparation time is retained as context but
+excluded from the incremental Phase 4 budgets. Peak RSS is the sampled
+aggregate of the driver process tree; exact retained processor-array bytes
+independently establish the worker-local bounded-work invariant. This matrix
 establishes Hebog's component curve; existing PyBDSF figures cover Rapthor's
 complete filter step and therefore cannot support a matched speedup claim for
 this narrower boundary.

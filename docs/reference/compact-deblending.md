@@ -66,11 +66,15 @@ does not require an ADR.
 
 `plan_compact_deblend_batches` considers both accepted island pixels and the
 rectangular bounds that must be read. It groups multiple compact islands into
-coarse batches under `maximum_batch_pixels`; it does not create one scheduler
-task per island. An island above the member-pixel or bounds-area limit is
-returned as a `DeferredDeblendIsland` with an explicit reason. It remains
-deterministic input to the Phase 5 partitioned/multiscale path and is never
-dropped or reported as successfully deblended.
+coarse tasks near `target_batch_pixels`, while `maximum_batch_pixels` remains
+the hard memory ceiling. One admitted island may exceed the preferred target
+but never the per-island or hard batch limit. Separating occupancy from
+admission lets dense fields use several workers without lowering the largest
+compact island Hebog can process or creating one scheduler task per island.
+An island above the member-pixel or bounds-area limit is returned as a
+`DeferredDeblendIsland` with an explicit reason. It remains deterministic
+input to the Phase 5 partitioned/multiscale path and is never dropped or
+reported as successfully deblended.
 
 The compact kernel's memory is bounded by one admitted batch. Its Python loops
 iterate markers, sparse basin adjacencies, or island records—not image pixels.

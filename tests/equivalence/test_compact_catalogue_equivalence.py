@@ -318,6 +318,7 @@ def compact_catalogue(
         minimum_region_pixels=7,
         maximum_compact_island_pixels=100_000,
         maximum_compact_bounds_pixels=250_000,
+        target_batch_pixels=500_000,
         maximum_batch_pixels=500_000,
     )
     moment = CompactMomentConfig(3, 1e-12)

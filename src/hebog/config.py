@@ -205,7 +205,7 @@ class SourceFinderConfig:
 
 @dataclass(frozen=True, slots=True)
 class CompactDeblendConfig:
-    """Peak, saddle, and admitted-memory policy for compact deblending."""
+    """Scientific cuts plus preferred and hard compact-work bounds."""
 
     minimum_peak_signal_to_noise: float
     minimum_peak_separation_pixels: int
@@ -213,6 +213,7 @@ class CompactDeblendConfig:
     minimum_region_pixels: int
     maximum_compact_island_pixels: int
     maximum_compact_bounds_pixels: int
+    target_batch_pixels: int
     maximum_batch_pixels: int
 
     def __post_init__(self) -> None:
@@ -256,6 +257,7 @@ class CompactDeblendConfig:
                 self.maximum_compact_bounds_pixels,
                 "maximum_compact_bounds_pixels",
             ),
+            (self.target_batch_pixels, "target_batch_pixels"),
             (self.maximum_batch_pixels, "maximum_batch_pixels"),
         ):
             if (
@@ -267,6 +269,10 @@ class CompactDeblendConfig:
         if self.maximum_batch_pixels < self.maximum_compact_bounds_pixels:
             raise ValueError(
                 "maximum_batch_pixels must admit one compact bounds region"
+            )
+        if self.target_batch_pixels > self.maximum_batch_pixels:
+            raise ValueError(
+                "target_batch_pixels cannot exceed maximum_batch_pixels"
             )
 
 

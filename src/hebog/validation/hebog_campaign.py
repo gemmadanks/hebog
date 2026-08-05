@@ -72,7 +72,7 @@ class _SyntheticImageSource:
         return tuple(self.read_window(bounds) for bounds in bounds_collection)
 
 
-def _configs() -> tuple[
+def phase_four_candidate_configs() -> tuple[
     DetectionStageConfig,
     CompactDeblendConfig,
     CompactMomentConfig,
@@ -97,7 +97,16 @@ def _configs() -> tuple[
     )
     return (
         detection,
-        CompactDeblendConfig(5.0, 2, 1.0, 7, 100_000, 250_000, 500_000),
+        CompactDeblendConfig(
+            5.0,
+            2,
+            1.0,
+            7,
+            100_000,
+            250_000,
+            8_000,
+            500_000,
+        ),
         CompactMomentConfig(3, 1e-12),
         CompactGaussianFitConfig(
             7,
@@ -120,7 +129,7 @@ def _configs() -> tuple[
 
 def hebog_campaign_configuration() -> dict[str, object]:
     """Return the complete candidate policy used for evidence identity."""
-    detection, deblend, moment, fit, catalogue = _configs()
+    detection, deblend, moment, fit, catalogue = phase_four_candidate_configs()
     coarse = detection.background_rms.coarse
     adaptive = detection.background_rms.adaptive
     assert adaptive is not None
@@ -166,6 +175,7 @@ def hebog_campaign_configuration() -> dict[str, object]:
             ),
             "minimum_region_pixels": deblend.minimum_region_pixels,
             "minimum_saddle_depth_sigma": deblend.minimum_saddle_depth_sigma,
+            "target_batch_pixels": deblend.target_batch_pixels,
         },
         "executor": "serial",
         "fitting": {
@@ -311,7 +321,9 @@ def process_hebog_recipe(
     directory: Path,
 ) -> tuple[CatalogueSource, ...]:
     """Run the complete bounded serial Hebog compact path for one image."""
-    detection_config, deblend, moment, fit, catalogue_config = _configs()
+    detection_config, deblend, moment, fit, catalogue_config = (
+        phase_four_candidate_configs()
+    )
     metadata = synthetic_image_metadata(dataset)
     source = _SyntheticImageSource(recipe)
     manifest = plan_image_partitions(
