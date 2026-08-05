@@ -146,3 +146,26 @@ completeness/reliability and morphology populations, and separate evaluation
 of compact and extended emission, as well as cluster-aware inference when
 several measurements share one independent realization. They do not make
 PyBDSF a scientific source of truth.
+
+## Immutable outcome
+
+The one-look decision opened on 2026-08-05. Hebog, released PyBDSF, and pinned
+PyBDSF `master` each completed all 800 realizations. Hebog passed all 20 paired
+non-inferiority endpoints against each reference, every uncertainty gate, and
+76 of 77 binding absolute gates in total. The targeted SNR-10 integrated-flux
+uncertainty result passed with mean normalized residual `0.06121` and a 95%
+cluster-aware interval `[0.03743, 0.08500]` inside the unchanged
+`[-0.15, 0.15]` limit.
+
+The decision nevertheless failed as pre-registered. Hebog's
+95th-percentile absolute unresolved-group total-flux error was
+`0.2070797655`, above the frozen `0.2` maximum. The corresponding values for
+released PyBDSF and pinned `master` were both `0.6000309649`, and the paired
+upper confidence limits strongly passed, but superiority to the references
+does not override an absolute gate. The `unresolved-group-errors` stronger
+envelope consequently failed.
+
+Phase 4T is terminal and will not be rounded, rescored, or repeated on the
+unchanged candidate. Its result motivates general blend-flux investigation on
+independent development and regression data; it does not authorize tuning to
+these seeds or changing this viewed gate.

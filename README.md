@@ -116,19 +116,29 @@ cases unresolved. The remaining genuine miss was narrow: the SNR-10
 integrated-flux mean residual was 0.106 sigma, but its upper 95% limit was
 0.154 against a frozen 0.150 limit.
 
-Phase 4S is preserved as failed rather than rescored. Prospective evidence now
-uses explicit manifest morphology truth and treats raw mixed-SNR error
-distributions as diagnostics while retaining binding normalized-residual
-calibration. A fresh, seed-disjoint Phase 4T confirmation must pass those
-corrected semantics and the unchanged uncertainty bound before substantive
-multiscale development. External radio-astronomy review, the complete
-performance matrix, and production scalability evidence remain required
-before Hebog replaces PyBDSF by default.
+Phase 4S is preserved as failed rather than rescored. Phase 4T then tested the
+corrected semantics on 800 fresh images. Hebog passed all 20 paired endpoints
+against both PyBDSF references, all uncertainty-calibration gates, and 76 of
+77 binding absolute gates in total. It recovered every unresolved blend and its
+95th-percentile blend total-flux error was 20.71%, much better than 60.00% for
+both references, but just above the frozen 20% absolute limit. Phase 4T is
+therefore preserved as a terminal failure rather than rounded, rescored, or
+repeated on unchanged code.
+
+The remaining compact-science work is a focused, test-driven investigation of
+that roughly 10% systematic blend flux under-recovery across independent
+development cases. A new qualification will be justified only by a general
+algorithm improvement, not by changing the viewed limit or drawing another
+set of seeds. Substantive multiscale development remains paused. External
+radio-astronomy review, the complete performance matrix, and production
+scalability evidence also remain required before Hebog replaces PyBDSF by
+default.
 
 The remaining work includes:
 
-- freezing and running the separately governed Phase 4T confirmation with
-  manifest-bound populations and familywise power;
+- resolving the Phase 4T unresolved-blend flux weakness on independent
+  development and regression populations, then qualifying a changed
+  candidate once under a separately frozen protocol;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;

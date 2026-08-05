@@ -5076,3 +5076,59 @@ will be captured by the isolated runner.
   Hebog candidate identity.
 - Verify all Phase 4T output paths are absent, run the three immutable legs,
   compile once, and open the one-look decision once.
+
+## 2026-08-05 — Opened and reviewed the Phase 4T decision
+
+**Plan phase:** Phase 4T — targeted compact confirmation
+
+**Execution**
+
+- Ran Hebog commit `9653b0d5310b9922ffcf66bd2c801f33aa506f38`,
+  released PyBDSF 1.14.1 at `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`,
+  and pinned PyBDSF `master` at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c` once on the same 800 frozen
+  images. Every implementation completed 800/800 realizations.
+- Compiled the three immutable shards. A workstation interruption stopped the
+  evaluator before atomic publication; the decision path was absent. Under
+  the frozen infrastructure-recovery rule, resumed only the missing evaluator
+  from the same compiled evidence. No implementation was rerun and no
+  completed evidence was overwritten.
+
+**Decision**
+
+- Hebog passed all 20 paired non-inferiority endpoints against released
+  PyBDSF and independently against pinned `master`, all uncertainty gates,
+  and 76/77 binding absolute gates in total. The targeted SNR-10
+  integrated-flux mean normalized residual was `0.061213` with cluster-aware
+  95% interval `[0.037429, 0.084998]`, passing the unchanged
+  `[-0.15, 0.15]` limit.
+- The decision failed because unresolved-group total-flux 95th-percentile
+  absolute error was `0.207080` against the frozen `0.2` maximum. Released
+  PyBDSF and pinned `master` were both `0.600031`; Hebog strongly passed both
+  paired comparisons, but the absolute gate and stronger envelope remain
+  failed.
+- Post-decision diagnosis found 48/800 errors above 20%, a 95th-percentile
+  bootstrap interval of about `0.19484`--`0.21336`, and 93.25% signed errors
+  below truth with mean `-0.097084`. These diagnostics do not rescore the
+  gate. They support a general blend-flux under-recovery investigation rather
+  than a threshold waiver or unchanged-candidate rerun.
+
+**Evidence SHA-256**
+
+- Hebog shard:
+  `372a0efa4c83c92a1f1ff9f079f360089b65ab74e61f2d67902a55fcc46a09a1`.
+- Released-PyBDSF shard:
+  `456241d08fc2155de6b973e326d22dd10174ba76b6f620ecff2e23158c22721f`.
+- Master-PyBDSF shard:
+  `1f9428ed5fbcaafa1409663868ec81679a6ac83add6afd41300819314dd624a7`.
+- Compiled campaign:
+  `78c7d71a88771e396a801742768c9cebab409b846b3623169aa6744f57a29bc1`.
+- Decision:
+  `e1b52aa42f0213a13a296a108f55a1aafe841bb350317e5fd5e3013f1a09ea49`.
+
+**Disposition**
+
+- Preserved Phase 4T as a terminal failure. Added Phase 4U as blocking,
+  test-driven unresolved-blend flux remediation on independent development
+  and regression data. Substantive Phase 5 work remains paused until a
+  generally improved candidate passes a separately frozen qualification.

@@ -295,9 +295,10 @@ checkpoint still blocks substantive multiscale implementation. Two fixed raw
 median limits were below the mixed-SNR noise floor, and the point-specificity
 scorer compared correct candidate states with projection-contaminated truth;
 those semantics are corrected only for future evidence. The remaining SNR-10
-integrated-flux uncertainty interval narrowly crossed its unchanged bound. A
-fresh, separately governed Phase 4T confirmation must pass before Phase 5
-moves beyond preparation. Phase 4S remains immutable and failed.
+integrated-flux uncertainty interval narrowly crossed its unchanged bound. At
+that point the plan required a fresh, separately governed Phase 4T
+confirmation before Phase 5 could move beyond preparation. Phase 4S remains
+immutable and failed; the later Phase 4T outcome is recorded below.
 
 The controlled Phase 4 256, 512, 1,024, and 3,000-pixel performance matrix has
 not been run. The final scientific qualification failed, so the controlled
@@ -473,3 +474,24 @@ on the same truth campaign, compared with Hebog's five, but Hebog was still
 slightly worse than both on median position and worse on catastrophic
 fraction. The reviewed Phase 4 gate is therefore unmet and the decision
 remains **not ready**.
+
+## Phase 4T terminal result
+
+Phase 4T opened once on exact candidate commit
+`9653b0d5310b9922ffcf66bd2c801f33aa506f38`. Hebog and both exact PyBDSF
+references completed all 800 fresh realizations. Hebog passed all 20 paired
+endpoints against each reference, including the previously unresolved SNR-10
+uncertainty question, and passed 76 of 77 binding absolute gates.
+
+The one failure was the unresolved-group total-flux absolute-error tail:
+Hebog's 95th percentile was `0.2070797655` against the frozen `0.2` maximum.
+Released PyBDSF and pinned `master` both measured `0.6000309649`, so Hebog is
+materially better and statistically non-inferior on that metric, but the
+absolute gate and its stronger envelope still fail. The decision is terminal;
+it is not rounded, rescored, or replaced by another unchanged-candidate run.
+
+Phase 4 remains **not ready** and the controlled performance matrix is still
+ineligible. The plan now requires independent TDD remediation of systematic
+unresolved-blend flux under-recovery before any new-candidate qualification.
+Substantive Phase 5 work remains paused. The complete outcome and file hashes
+are in the [Phase 4 scientific review record](phase-4-review-record.md).

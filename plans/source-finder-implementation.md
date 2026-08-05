@@ -2748,6 +2748,31 @@ Phase 4T pre-opening freeze completed on 2026-08-05:
   recorded in the Phase 4T protocol. No Phase 4T image or implementation
   result existed when the freeze was completed.
 
+Phase 4T terminal outcome on 2026-08-05:
+
+- Hebog, released PyBDSF, and pinned `master` completed all 800 realizations.
+  Hebog passed all 20 paired non-inferiority endpoints against each reference,
+  every uncertainty-calibration gate, and 76 of 77 binding absolute gates in
+  total. The original SNR-10 integrated-flux question passed with mean
+  normalized residual `0.061213` and cluster-aware 95% interval
+  `[0.037429, 0.084998]` inside `[-0.15, 0.15]`.
+- The sole binding failure was unresolved-group total-flux 95th-percentile
+  absolute error: `0.207080` against the frozen `0.2` maximum. Released
+  PyBDSF and pinned `master` both measured `0.600031`, and Hebog strongly
+  passed both paired comparisons, but superiority to a compatibility
+  reference cannot override an absolute-science gate. The associated stronger
+  envelope therefore failed and the one-look Phase 4T decision is terminally
+  failed.
+- Post-decision diagnostics do not rescore the result. The observed fraction
+  above 20% was 48/800 (6.0%), whose exact 95% interval includes 5%, and the
+  Phase 4S point estimate was `0.198112`. Nevertheless, 93.25% of Phase 4T
+  signed errors were negative, with mean `-0.097084`, so a general
+  under-recovery tendency merits correction rather than a threshold waiver.
+- Do not change the viewed Phase 4T threshold or population, round the value,
+  tune to its seeds, or run another unchanged-candidate campaign. The exact
+  evidence hashes and expert disposition are recorded in the scientific
+  review record. Phase 4T remains failed even if a later candidate qualifies.
+
 Scientific basis for this review:
 
 - [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19);
@@ -2757,27 +2782,52 @@ Scientific basis for this review:
 - [SKA Science Data Challenge 1 results](https://academic.oup.com/mnras/article/500/3/3821/5918002); and
 - [Cameron & Miller, cluster-robust inference](https://doi.org/10.3368/jhr.50.2.317).
 
-Until Phase 4T passes, Phase 5 work is limited to analytic tests,
-interface and data-model scaffolding, filter-bank research, bounded-memory
-execution design, and separately governed development data. Do not merge a
-multiscale path into compact detection, association, fitting, catalogue, or
-Rapthor-facing behaviour, because that would make a qualification failure
-harder to attribute.
+Phase 4T is complete and failed, so the compact-science start gate moves to a
+new-candidate remediation milestone rather than another confirmation of the
+same code.
 
-Exit gate: the separately frozen and jointly powered Phase 4T confirmation
-passes every co-primary truth, Rapthor-facing, robustness, and
-released-PyBDSF non-inferiority outcome; the pinned `master` comparison has no
-unexplained material regression; all diagnostic tails are explained or fixed;
-and the science review is recorded. That compact-science result authorizes
-substantive Phase 5 development. Controlled performance, bounded-memory,
-task-graph/scaling, real-residual, and independent-human-review evidence remain
-later release and production-cutover gates; they do not invalidate a passing
-compact scientific baseline. Historical Phase 4, Phase 4R, and Phase 4S
-decisions remain failed and immutable.
+#### Phase 4U: unresolved-blend flux remediation
+
+Status: active blocking work. This is not a rescore or replacement of Phase
+4T. It may create a new candidate only through a general algorithm improvement
+demonstrated without using the Phase 4T seeds as development data.
+
+1. Add failing analytic and generated development tests spanning coincident to
+   separately detectable pairs, unequal flux ratios, SNR, source/beam angle,
+   beam ellipticity, WCS orientation and scale, background gradients, invalid
+   pixels, and tile boundaries. Include noiseless cases that separate
+   estimator bias from stochastic tail variation.
+2. Attribute flux loss among island/support truncation, local-background
+   absorption, beam-area normalization, and inadequacy of a single Gaussian
+   for a two-emitter blend. Compare residual and truth diagnostics on
+   development data only; do not derive a fixed correction from Phase 4T.
+3. Implement the smallest data-driven correction using TDD. Preserve a clear
+   serial oracle, deterministic ownership, bounded memory, and serial/Dask
+   invariance. Do not regress any current completeness, reliability,
+   morphology, uncertainty, edge, catastrophic, or individual-source gate.
+4. Promote independent cases to regression fixtures and rerun the complete
+   compact scientific matrix against both exact PyBDSF references. Require
+   Hebog to remain equal or better on every paired endpoint while improving
+   unresolved-group flux across the predeclared development matrix.
+5. Only after a substantive general candidate change and passing independent
+   regression may a separately named qualification be proposed. Freeze its
+   code, evaluator, unchanged 20% absolute limit, all other current gates,
+   exact references, power, and one-look rule before generating output. Use
+   several predeclared blend separations and flux ratios rather than repeating
+   one geometry, and treat the image/noise realization as the independent
+   cluster. Obtain external human radio-astronomy review before opening it.
+
+Exit gate: the changed compact candidate passes one independently frozen
+qualification without a Phase 4T threshold waiver, passes every paired
+endpoint against both references, and has no unexplained material diagnostic
+regression. Controlled performance, bounded-memory, task-graph/scaling, and
+real-residual evidence remain later release and production-cutover gates.
+Historical Phase 4, Phase 4R, Phase 4S, and Phase 4T decisions remain failed
+and immutable.
 
 ### Phase 5: multiscale and extended emission
 
-Status: preparatory work only until the Phase 4T confirmation passes.
+Status: preparatory work only until the Phase 4U exit gate passes.
 Substantive multiscale implementation is intentionally paused so the compact
 scientific baseline can be qualified independently.
 

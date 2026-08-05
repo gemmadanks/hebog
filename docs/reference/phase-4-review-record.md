@@ -1748,3 +1748,66 @@ image so this boundary is tested with at least 6,400 fresh SNR-10 point
 residuals. The new population, corrected endpoint, unchanged uncertainty
 thresholds, exact references, and one-look rule must be committed before any
 new output exists. Phase 4S will not be rescored.
+
+## Phase 4T post-opening expert review
+
+**Review date:** 2026-08-05
+
+**Reviewer:** Codex, acting at the project owner's explicit request
+
+**Review type:** AI-conducted expert radio-astronomy evidence review; not
+independent human or institutional sign-off
+
+**Decision:** preserve Phase 4T as failed, keep substantive Phase 5 work
+paused, and remediate unresolved-blend flux recovery before one new-candidate
+qualification
+
+All three implementations completed 800/800 fresh images. Hebog passed all 20
+paired non-inferiority endpoints against released PyBDSF and independently
+against pinned `master`. It also passed every normalized uncertainty-bias,
+coverage, and dispersion gate, including the Phase 4T target: SNR-10
+integrated-flux bias was `0.061213` sigma with a cluster-aware 95% interval
+`[0.037429, 0.084998]` inside the frozen `[-0.15, 0.15]` range. Point-source
+specificity was `1.0`, compact completeness was `0.999974`, catalogue
+reliability was `0.997658`, and catastrophic-outlier fraction was `0.000286`.
+
+One of 77 binding absolute gates failed. Hebog's unresolved-group absolute
+total-flux-error 95th percentile was `0.207080` against the frozen `0.2`
+maximum. Its median was `0.096439`, all 800 groups were recovered, and both
+position gates passed. Released PyBDSF and pinned `master` each had median
+absolute group flux error `0.523223` and 95th percentile `0.600031`; Hebog's
+paired upper confidence limit was about `-0.38691` against the `0.02`
+non-inferiority margin. Hebog is therefore materially better than both
+references on this metric, but reference superiority cannot compensate for
+an absolute-science miss.
+
+Post-decision diagnostics are explanatory only and do not rescore the gate.
+Forty-eight of 800 Hebog groups exceeded 20%, an observed tail probability of
+6.0%; its exact 95% binomial interval, about 4.46%--7.88%, includes 5%. A
+fixed-seed whole-realization bootstrap placed the sample 95th percentile at
+about 0.19484--0.21336. This explains why Phase 4S passed at `0.198112` while
+Phase 4T narrowly failed, but the pre-registered gate used the point estimate
+and remains failed. More importantly, 93.25% of the signed errors were
+negative, with mean `-0.097084` and median `-0.096439`. That consistent
+direction justifies investigating general flux under-recovery rather than
+dismissing the crossing as noise.
+
+The review prohibits changing the viewed threshold, dropping the stronger
+envelope, tuning against Phase 4T seeds, or running another campaign on the
+unchanged candidate. The next work is a TDD development/regression matrix over
+blend separation, flux ratio, SNR, orientation, beam, and WCS, beginning with
+noiseless analytic truth. It must distinguish island truncation, local
+background absorption, beam normalization, and single-component model
+inadequacy. Any correction must be data-driven rather than a fixed factor,
+improve an independent population, preserve all compact gates, and remain
+serial/Dask invariant. Only a substantive general candidate change can
+justify a separately governed future qualification. Phase 4T itself remains
+immutable and failed.
+
+The candidate, released-reference, master-reference, compiled-campaign, and
+decision file SHA-256 values are
+`372a0efa4c83c92a1f1ff9f079f360089b65ab74e61f2d67902a55fcc46a09a1`,
+`456241d08fc2155de6b973e326d22dd10174ba76b6f620ecff2e23158c22721f`,
+`1f9428ed5fbcaafa1409663868ec81679a6ac83add6afd41300819314dd624a7`,
+`78c7d71a88771e396a801742768c9cebab409b846b3623169aa6744f57a29bc1`,
+and `e1b52aa42f0213a13a296a108f55a1aafe841bb350317e5fd5e3013f1a09ea49`.
