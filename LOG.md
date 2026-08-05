@@ -5278,3 +5278,81 @@ will be captured by the isolated runner.
   remain immutable. Independent human scientific review, real-residual,
   performance, bounded-memory, task-graph, and scale evidence remain later
   production gates.
+
+## 2026-08-05 — Closed the compact Phase 4 engineering milestone
+
+**Plan phase:** Phase 4, Step 8 — qualification replay and performance
+closeout
+
+**Performance diagnosis and correction**
+
+- Added a frozen 20-cell incremental component matrix at 256, 512, 1,024, and
+  3,000 pixels per side for sparse, normal, dense, blend-heavy, and deliberate
+  fit-failure workloads. Each cell uses one warm-up and five measured
+  repetitions and retains stage timing, task/batch/source counts, bounded
+  arrays, process-tree RSS, output size, and typed omissions.
+- Retained the first matrix as failed diagnostic evidence. At 3,000 pixels it
+  scheduled normal, dense, and blend-heavy work as one task and measured
+  complete medians of `1.518125`, `6.498360`, and `4.307945` seconds. The hard
+  memory ceiling had incorrectly doubled as the preferred task size.
+- Separated the preferred `8,000`-pixel fitting batch target from the
+  `500,000`-pixel hard limit, used analytic Gaussian derivatives and FFT
+  covariance convolution, and reused parsed WCS transforms. The benchmark now
+  imports the exact governed Phase 4 candidate configuration and generates
+  beam-correlated noise rather than an inconsistent independent-pixel field.
+- The final matrix passed. At 3,000 pixels, successful measurement/fitting
+  medians are `0.177855`, `0.250447`, `0.757952`, and `0.596301` seconds for
+  sparse through blend-heavy work; output medians are `0.036850`--`0.040811`
+  seconds. Both are below separate 2.0-second budgets. Dense work uses 13
+  batches and 13 Dask tasks with 91 sources and no omissions. Every
+  dense-to-normal per-source time ratio is below one, and the fit-failure
+  profile refuses output with retained `singular-covariance` omissions.
+- Final matrix-summary SHA-256:
+  `ee3729e39a6b432f29b0b5282b39e4023c479b51ee7180187760a5b567f3ffa8`.
+  The retained failed matrix summary is
+  `513f8ee875e88c9961b8cdbcc0f3dec8bf3d3a93f2d5b4f6b082ba4462f04596`.
+
+**Scientific regression replay**
+
+- Added bounded campaign-level process parallelism solely for independent
+  images. Each image still uses the frozen serial scientific implementation;
+  recipe-order output and the worker allocation remain explicit in evidence
+  provenance. A two-process development smoke run passed on macOS.
+- Replayed exact optimized commit
+  `fd7477afa4deb55874ed679b8d380dde6940ad93` over the already viewed Phase 4U
+  population as regression evidence, not a new qualification or rescore. All
+  800 Hebog images completed successfully. Both immutable PyBDSF shards also
+  retain 800/800 successful images.
+- The unchanged evaluator again passed all 77 binding absolute gates, all 20
+  paired endpoints against released PyBDSF, all 20 against pinned `master`,
+  and all five stronger-Hebog envelopes. Four legacy mixed-population results
+  remain explicitly report-only.
+- Candidate, compiled-campaign, and decision SHA-256 values are
+  `62f8f73816b1cb3deae0c276d919173856ab53f43778a4f98bc6ab1392ff4ebc`,
+  `e34da45e0b1a44932178a6df959ea91cf42ca2ad25ab23b1851ebcb509f54137`,
+  and `52b4b374f9160ba52271acc07eb36f1fe8b0b776557b26f392de362bea29f2bb`.
+
+**Disposition**
+
+- Closed Phase 4 for the compact single-scale milestone. The passing
+  component matrix is not a matched PyBDSF speedup: complete Rapthor
+  `filter_skymodel` timing remains a Phase 7 gate.
+- Authorized Phase 5 multiscale work while retaining independent human
+  radio-astronomy review, real-residual evidence, and production-scale Dask
+  memory/task-graph qualification as later cutover gates.
+
+**Validation**
+
+- The optimized scientific implementation passed 182 focused tests, 130
+  integration tests, 27 dual-reference equivalence tests, and branch-aware
+  coverage with 926 passing tests and 94.14% project coverage. Serial and Dask
+  conformance remained included in those lanes.
+- Final closure lanes passed with 130 integration and 27 equivalence tests.
+  Four future contract scenarios and seven future acceptance scenarios remain
+  explicit expected failures. The qualification lane passed its active case,
+  skipped one unavailable-host case, and reports the terminal historical
+  Phase 4 campaign as a non-running expected failure so governed viewed data
+  cannot be rerun.
+- Strict documentation built successfully, and the final fast repository
+  check passed Ruff formatting/lint, Pyright, and 797 tests with four declared
+  expected failures.

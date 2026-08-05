@@ -69,13 +69,17 @@ passes the frozen position, flux, fitted/deconvolved shape, classification,
 association, uncertainty-availability, and outlier gates against both the
 released PyBDSF used by Rapthor and the performance-improved PyBDSF `master`
 reference. The controlled representative Phase 3 detection path has a median
-runtime of approximately 3.2 seconds; the complete incremental Phase 4 runtime
-has not yet passed its controlled release gate.
+runtime of approximately 3.2 seconds. The controlled incremental Phase 4
+component matrix also passes: at 3,000 by 3,000 pixels, median compact
+measurement/fitting is 0.178--0.758 seconds and catalogue materialisation is
+0.037--0.041 seconds across successful profiles, inside the separate
+2.0-second allocations.
 
-The Phase 4 release gate remains unmet. Phase 4R repaired the evidence
-evaluator, introduced data-only beam/free model selection, correlated-noise
-fitting, analytic truncated-edge centroid correction, and a no-compensation
-registry of 35 scientific and robustness metrics. The final candidate
+The historical Phase 4 and Phase 4R release gates were not met. Phase 4R
+repaired the evidence evaluator, introduced data-only beam/free model
+selection, correlated-noise fitting, analytic truncated-edge centroid
+correction, and a no-compensation registry of 35 scientific and robustness
+metrics. The final candidate
 completed all 600 images in its separately reviewed replacement
 qualification; released PyBDSF also completed all 600, while pinned `master`
 retained one invalid negative-flux catalogue failure.
@@ -137,15 +141,15 @@ about -2.0%, compared with about -10.9% for both references; its 95th-
 percentile absolute error was 13.9%, inside the unchanged 20% limit and better
 than 20.7% for both references on this population.
 
-Phase 4U therefore closes the compact single-scale science start gate and
-substantive multiscale work may begin. This is not yet a production or speed
-claim: independent human radio-astronomy review, controlled real-residual
-evidence, the complete performance matrix, and production scalability
-evidence remain required before Hebog replaces PyBDSF by default.
+Phase 4U and the subsequent controlled component matrix therefore close the
+compact single-scale Phase 4 milestone, and substantive multiscale work may
+begin. This is not yet a production or PyBDSF speedup claim: independent human
+radio-astronomy review, controlled real-residual evidence, complete Rapthor
+end-to-end comparison, and production scalability evidence remain required
+before Hebog replaces PyBDSF by default.
 
 The remaining work includes:
 
-- passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;
 - proving end-to-end catalogue and filtering equivalence and speed; and

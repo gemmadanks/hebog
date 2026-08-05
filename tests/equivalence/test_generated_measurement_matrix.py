@@ -926,6 +926,13 @@ def test_edge_source_uncertainty_availability_passes_regression(
 
 @pytest.mark.qualification
 @pytest.mark.slow
+@pytest.mark.xfail(
+    reason=(
+        "terminal historical Phase 4 qualification must not be rerun; "
+        "Phase 4U is the active passing qualification"
+    ),
+    run=False,
+)
 def test_compact_flux_heldout_measurement_qualification(  # noqa: C901, PLR0912, PLR0915
     tmp_path: Path,
 ) -> None:

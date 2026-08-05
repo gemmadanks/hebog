@@ -1217,16 +1217,22 @@ or the complete project speedup.
 
 ### Phase 4: measurement, fitting, and catalogue compatibility
 
-**Readiness status:** prepared on 2026-08-02 after Phase 3 scientific and
-technical closure. Phase 4 starts from deterministic connected islands and
-compact deblended-region topology. It measures compact emission, fits and
-associates Gaussian components where justified, and produces a
-Rapthor-compatible catalogue view. It does not silently measure Phase 3
-deferrals, implement multiscale emission, or claim the complete
-`filter_skymodel` workflow; those remain Phase 5 and Phase 7 work.
+**Readiness status:** compact single-scale milestone closed on 2026-08-05
+after the separate Phase 4U qualification, exact optimized-candidate
+regression replay, and controlled incremental performance matrix passed.
+Phase 4 starts from deterministic connected islands and compact
+deblended-region topology. It measures compact emission, fits and associates
+Gaussian components where justified, and produces a Rapthor-compatible
+catalogue view. It does not silently measure Phase 3 deferrals, implement
+multiscale emission, or claim the complete `filter_skymodel` workflow; those
+remain Phase 5 and Phase 7 work.
 
-**Execution status:** Step 1 was completed on 2026-08-02 without generating or
-inspecting qualification results. Gemma Danks reviewed and approved the
+**Execution status:** Steps 1--8 are complete for the compact milestone.
+Historical failed campaign decisions remain immutable, and production
+cutover retains later real-residual, independent human scientific,
+end-to-end workflow, and multi-node scale gates. Step 1 was completed on
+2026-08-02 without generating or inspecting qualification results. Gemma
+Danks reviewed and approved the
 measurement policy after the gate amendments recorded below. Those decisions
 remain recorded, but the contracts are frozen-provisional after the third
 held-out failure so the consumed campaign cannot be rerun accidentally. Step 2
@@ -1643,7 +1649,7 @@ before maintaining a custom fitter.
 
 8. **Qualify the phase and prepare the release.**
 
-   - [ ] Run analytic/property, contract, integration, dual-reference
+   - [x] Run analytic/property, contract, integration, dual-reference
          equivalence, acceptance, and held-out qualification lanes in oracle
          order. The serial science must pass before executor conformance, and
          both must pass before PyBDSF or downstream comparisons.
@@ -1816,7 +1822,7 @@ before maintaining a custom fitter.
      strict directional rule because it would reject negligible sampling-tail
      differences despite successful non-inferiority.
 
-   - [ ] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
+   - [x] Benchmark the complete incremental Phase 4 path at 256, 512, 1,024,
          and 3,000 pixels per side across sparse, normal, dense, blend-heavy,
          and fit-failure workloads. Record setup, bounded reads, moments,
          fitting, transformations, catalogue construction/materialisation,
@@ -1825,7 +1831,7 @@ before maintaining a custom fitter.
          scientific correction is developed, but the final controlled matrix
          and any speed claim require the corrected science and final
          qualification to pass.
-   - [ ] Keep the controlled four-core 3,000-by-3,000 median within 2.0 seconds
+   - [x] Keep the controlled four-core 3,000-by-3,000 median within 2.0 seconds
          for compact measurement/fitting and use no more than the shared
          2.0-second catalogue/filter-output allocation after the Phase 3
          budget clarification. Compare affected and adjacent tiers with the
@@ -1845,14 +1851,32 @@ before maintaining a custom fitter.
    Local structural evidence is complete: retained image work is bounded by
    admitted coarse-batch pixels, task count is one per batch rather than per
    source, final compact assembly has an explicit record cap, and shard
-   reduction has pairwise fan-in and logarithmic depth. The final reviewed
-   one-look scientific qualification also failed, so the controlled benchmark
-   bullets remain open and are ineligible as Phase 4 release evidence. The
-   [Phase 4 release-readiness record](../docs/reference/phase-4-release-readiness.md)
-   therefore records a **not ready** decision rather than declaring the phase
-   passed.
+   reduction has pairwise fan-in and logarithmic depth. After the separately
+   governed Phase 4U qualification passed, the exact optimized candidate was
+   replayed on the same viewed population as a regression: all 800 Hebog
+   realizations completed and the unchanged decision still passed all 77
+   binding absolute gates, both sets of 20 paired endpoints, and all five
+   stronger-Hebog envelopes. The complete unit/property, contract,
+   integration, dual-reference equivalence, acceptance, and qualification
+   evidence is recorded in `LOG.md`; declared future contract/acceptance
+   scenarios remain explicit expected failures rather than false passes.
 
-   **Current recovery and closure order:**
+   The final 20-cell incremental matrix covers 256, 512, 1,024, and 3,000
+   pixels per side across sparse, normal, dense, blend-heavy, and intentional
+   fit-failure profiles. At 3,000 pixels, successful measurement/fitting
+   medians range from `0.177855` to `0.757952` seconds and catalogue output
+   medians from `0.036850` to `0.040811` seconds, both below their independent
+   2.0-second budgets. Dense work uses 13 admitted batches and 13 Dask tasks,
+   with no omission; the failure profile retains typed omissions and refuses
+   output. Dense-to-normal per-source time ratios are `0.699`--`0.864` across
+   the ladder, so no source-density superlinearity is observed. This closes
+   the compact Phase 4 milestone without making a full Rapthor/PyBDSF speedup
+   or production-scale claim. No earlier reviewed incremental Phase 4 curve
+   exists; this matrix is the baseline for future adjacent-tier regression
+   checks. Existing PyBDSF timings cover the complete Rapthor filter step and
+   remain context only until Phase 7 provides a matched end-to-end comparison.
+
+   **Historical recovery and completed closure order:**
 
    1. Preserve all three earlier failed Hebog campaigns and the final failed
       one-look campaign as viewed evidence; never promote, rerun, replace, or
@@ -2918,10 +2942,11 @@ Phase 4U one-look qualification completed on 2026-08-05:
 
 This pass closes the compact single-scale science start gate and authorizes
 substantive Phase 5 development. Historical Phase 4, Phase 4R, Phase 4S, and
-Phase 4T decisions remain failed and immutable. The qualification does not
-make a runtime claim or authorize production cutover; controlled performance,
-real-residual, independent human scientific, bounded-memory, task-graph, and
-scale evidence remain later gates.
+Phase 4T decisions remain failed and immutable. The subsequent controlled
+incremental component matrix passes its Phase 4 budgets. Neither result
+authorizes production cutover or establishes the complete Rapthor/PyBDSF
+speedup: real-residual, independent human scientific, end-to-end workflow,
+and production-scale memory/task-graph evidence remain later gates.
 
 ### Phase 5: multiscale and extended emission
 

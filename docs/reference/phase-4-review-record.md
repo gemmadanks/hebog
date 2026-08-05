@@ -1864,3 +1864,39 @@ decision file SHA-256 values are
 `4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`,
 `0355537bcfc1c716a6b4b9e7d0269c6d78c66bfacdfb69925f37a13ce6b018a1`,
 and `309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0`.
+
+## Phase 4 optimized-candidate regression review
+
+**Review date:** 2026-08-05
+
+**Reviewer:** Codex, acting at the project owner's explicit request
+
+**Review type:** AI-conducted expert scientific regression review; not an
+independent human or institutional sign-off
+
+**Decision:** accept the exact optimized candidate as preserving Phase 4U and
+close the compact Phase 4 engineering milestone
+
+The exact post-optimization candidate was replayed on the already viewed
+Phase 4U population. This was a regression check, not another qualification,
+new look, or opportunity to change the frozen decision. Hebog and both
+immutable PyBDSF references each completed all 800 images. The unchanged
+evaluator again passed all 77 binding absolute gates, all 20 paired endpoints
+against each reference, and all five stronger-Hebog envelopes. The four
+mixed-SNR raw summaries retain their report-only status; no binding or
+material diagnostic regression appeared.
+
+The candidate, compiled-campaign, and decision SHA-256 values are
+`62f8f73816b1cb3deae0c276d919173856ab53f43778a4f98bc6ab1392ff4ebc`,
+`e34da45e0b1a44932178a6df959ea91cf42ca2ad25ab23b1851ebcb509f54137`,
+and `52b4b374f9160ba52271acc07eb36f1fe8b0b776557b26f392de362bea29f2bb`.
+The unchanged released and master reference hashes remain
+`75fa0a3a53ae4a7c63ffb2cac63213c04380eab3160622d93dfe1c00f78ea23b`
+and `4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`.
+
+The controlled incremental component matrix independently passed its
+measurement/fitting and catalogue-output budgets. It is engineering evidence,
+not a PyBDSF comparison, and therefore does not establish the project's
+complete Rapthor speedup. Independent human radio-astronomy review,
+real-residual science, matched end-to-end workflow timing, and production
+multi-node scale evidence remain required before cutover.

@@ -1,16 +1,17 @@
 # Phase 4 release readiness
 
-**Decision:** Phase 4 is technically implemented for ordinary compact,
-no-deferral images, but its scientific and performance exit gate is not yet
-passed. It must not be released as a completed phase, described as full
-PyBDSF equivalence, or used as Rapthor's default backend.
+**Decision:** The compact single-scale Phase 4 milestone is closed. The
+separately governed Phase 4U candidate passed its scientific gate, an exact
+post-optimization regression replay preserved that result, and the controlled
+incremental component matrix passed its performance budgets. This is not full
+PyBDSF equivalence, a complete Rapthor speed claim, or authorization to make
+Hebog the default backend.
 
-This record deliberately distinguishes implemented capability from qualified
-capability. The close-blend contract and extension policy were corrected and
-their powered regressions pass, but the three earlier held-out campaigns and
-the final reviewed one-look campaign failed frozen scientific gates.
-Preserving those results without post-inspection tuning is more important than
-declaring a premature pass.
+This record deliberately distinguishes milestone capability from production
+qualification. Earlier Phase 4, 4R, 4S, and 4T campaigns remain terminal
+failures under their frozen gates; Phase 4U is a separately designed and
+powered new-candidate qualification, not a rescore. Preserving every viewed
+result without post-inspection tuning remains part of the evidence chain.
 
 ## Implemented capability
 
@@ -418,8 +419,8 @@ speed, or Rapthor-cutover claim.
 ## Required closure order
 
 The historical Phase 4 decision cannot be changed to passed. The following
-list records its incomplete closure, while new corrective work follows Phase
-4R:
+list records the recovery chain through the distinct passing Phase 4U
+candidate and compact engineering closeout:
 
 1. [x] Gemma Danks completed the earlier named amendment review on 2026-08-03 in the
    [Phase 4 scientific review record](phase-4-review-record.md).
@@ -461,11 +462,15 @@ list records its incomplete closure, while new corrective work follows Phase
    20 paired endpoints, and all five stronger-result envelopes passed. That
    result satisfies the prospective compact-science qualification step
    without altering any historical decision.
-7. [ ] The controlled Phase 4 performance matrix passes its component budgets and
-   shows no unapproved adjacent-tier regression or source-density
-   superlinearity.
-8. [ ] The final evidence receives named human review and its failed terminal
-   disposition is acknowledged. The record cannot be changed to **passed**.
+7. [x] The controlled Phase 4 performance matrix passes its component budgets
+   and shows no unapproved adjacent-tier regression or source-density
+   superlinearity. The retained first matrix diagnosed a one-batch bottleneck;
+   the corrected matrix passes all 20 cells and preserves that failed evidence
+   separately.
+8. [x] The scientific evidence received project-owner-authorized expert review,
+   every failed campaign retains its terminal disposition, and Phase 4U is
+   recorded as a distinct passing candidate. Independent human radio-astronomy
+   review remains a production-cutover gate rather than a Phase 5 start gate.
 
 The refreshed 200-image paired regression has 200/200 successful runs for
 both Hebog and released PyBDSF. Hebog matches the reference's perfect point
@@ -473,12 +478,9 @@ specificity, retains substantially better clear-extension, catastrophic-tail,
 and unresolved-blend results, and differs in catalogue reliability by one
 additional unmatched near-threshold candidate. This regression and its
 planning-assumption audit supported the completed named review, but neither is
-qualification evidence. The final 600-image result is now viewed terminal
-evidence. Released PyBDSF failed 53 absolute gates and pinned master failed 55
-on the same truth campaign, compared with Hebog's five, but Hebog was still
-slightly worse than both on median position and worse on catastrophic
-fraction. The reviewed Phase 4 gate is therefore unmet and the decision
-remains **not ready**.
+qualification evidence. The failed 600-image result remains terminal. The
+later independently frozen Phase 4U qualification supplies the passing
+new-candidate evidence described below; it does not revise that history.
 
 ## Phase 4T terminal result
 
@@ -516,12 +518,31 @@ Across 4,800 blends, Hebog's mean signed error was `-0.020217`, compared with
 about `-0.1085` for both PyBDSF references. No material compact diagnostic
 regression was found.
 
-This passing new-candidate result closes the compact single-scale scientific
-start gate and permits Phase 5 development. It does not alter the terminal
-historical Phase 4/4R/4S/4T decisions and does not make this a release-
-readiness pass: the controlled performance matrix, real-residual evidence,
-independent human review, bounded-memory evidence, and production-scale Dask
-qualification remain open before cutover. Full findings and immutable hashes
-are in the
+The exact optimized candidate was subsequently replayed on all 800 viewed
+Phase 4U images as regression evidence. All implementations again completed
+every image; Hebog again passed 77/77 binding absolute gates, 20/20 paired
+endpoints against each reference, and all five stronger-result envelopes.
+The replay candidate, compiled campaign, and decision SHA-256 values are
+`62f8f73816b1cb3deae0c276d919173856ab53f43778a4f98bc6ab1392ff4ebc`,
+`e34da45e0b1a44932178a6df959ea91cf42ca2ad25ab23b1851ebcb509f54137`,
+and `52b4b374f9160ba52271acc07eb36f1fe8b0b776557b26f392de362bea29f2bb`.
+
+The final incremental matrix also passes. At 3,000 by 3,000 pixels, successful
+measurement/fitting medians span `0.177855`--`0.757952` seconds and catalogue
+output medians span `0.036850`--`0.040811` seconds against separate
+2.0-second budgets. Dense work uses 13 batches and 13 Dask tasks without
+omission; the intentional fit-failure profile refuses publication. The matrix
+summary SHA-256 is
+`ee3729e39a6b432f29b0b5282b39e4023c479b51ee7180187760a5b567f3ffa8`.
+This is the first reviewed incremental Phase 4 curve; existing PyBDSF results
+time the complete Rapthor filter step and are not a matched component
+baseline.
+
+Together these results close the compact single-scale milestone and permit
+Phase 5 development. They do not alter the terminal historical
+Phase 4/4R/4S/4T decisions and do not authorize production cutover:
+real-residual evidence, independent human review, complete Rapthor/PyBDSF
+timing, and production-scale Dask qualification remain open. Full findings and
+immutable qualification hashes are in the
 [Phase 4 scientific review record](phase-4-review-record.md) and the
 [Phase 4U protocol](phase-4u-qualification-protocol.md).
