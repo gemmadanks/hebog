@@ -5174,3 +5174,52 @@ will be captured by the isolated runner.
   commit the candidate atomically; then freeze a separately named Phase 4U
   population with several unseen blend separations, orientations, and flux
   ratios before generating or viewing any qualification output.
+
+## 2026-08-05 — Froze the unopened Phase 4U qualification
+
+**Plan phase:** Phase 4U — unresolved-blend flux remediation
+
+**Design and expert review**
+
+- Froze the scientifically changed candidate only after remediation commit
+  `96cdb40`. No Phase 4U image or candidate/reference result existed during
+  design or review.
+- Retained 48 individual compact controls and added six new unresolved blends
+  at total peak SNR 27. The pairwise-crossed design uses beam-normalized
+  separations `0.45`, `0.65`, and `0.80`, angles 0, 45, and 90 degrees from
+  the beam major axis, and equal versus 2:1 flux ratios. An early pre-output
+  review replaced raw pixel separations with directional elliptical-beam
+  normalization so every declared unresolved case remains genuinely sub-beam.
+- Verified each blend center is at least 60.58 pixels from an individual
+  control. The 800 seeds begin at `2026600001` and overlap neither viewed
+  Phase 4 populations nor development seeds `2026501001`--`2026501018`.
+- The image/noise realization remains the independent unit. The six-blend
+  completeness endpoint now declares 0.02 planning intracluster correlation
+  instead of treating within-image groups as independent.
+- Project-owner-authorized AI expert review judged the design proportionate
+  for the compact Phase 5 start gate. It does not replace independent human
+  production review or controlled real-residual evidence.
+
+**Power and immutable identities**
+
+- Weakest paired interval-exclusion power: `0.9706664817`.
+- Conservative familywise lower bound: `0.9699279153`.
+- Retained absolute mean-gate interval-containment power: `0.9068880665`.
+- Recipe SHA-256:
+  `2fd89b058a113f8318bd67ab7c05925f66b7cfa895fb6a2c7ea6a9746bad144d`.
+- Dataset-record SHA-256:
+  `8e2e0dc5ed2eb7b1ad2d530c088849939b3a147ea0f8fbe52ac067b982c352dc`.
+- Manifest-document SHA-256:
+  `57365cd616d0965d62eb12eae16b8323c1ce94a7f900e4113022a42b85a9c712`.
+- Paired protocol SHA-256:
+  `3106e114508d3858eae44105ca8e03a4dfe0912726fca83ebf6ef0394c472b76`.
+- Unchanged scientific-gates SHA-256:
+  `2841a2a93a17280c8decc5b0b1a7aa138279838f168a69504af37210aef13da6`.
+- Measurement-contract SHA-256:
+  `ab6a3d932a1b73f5414cfef8199831bbb394f990db1b885bd06f15f044b77ed0`.
+
+**Next**
+
+- Commit this complete unopened freeze, verify all five registered output
+  paths remain absent, run Hebog and both exact PyBDSF references once, compile
+  the immutable shards, and open exactly one decision.

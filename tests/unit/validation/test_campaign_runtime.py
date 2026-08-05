@@ -36,6 +36,10 @@ _PHASE4T_PROTOCOL = (
     _ROOT / "config/contracts/phase-4t-paired-noninferiority.json"
 )
 _PHASE4T_GATES = _ROOT / "config/contracts/phase-4t-scientific-gates.json"
+_PHASE4U_MANIFEST = _ROOT / "config/datasets/phase-4u-qualification.json"
+_PHASE4U_PROTOCOL = (
+    _ROOT / "config/contracts/phase-4u-paired-noninferiority.json"
+)
 
 
 def test_canonical_hash_ignores_json_presentation() -> None:
@@ -209,6 +213,26 @@ def test_phase4t_confirmation_binds_corrected_gates_and_absolute_power(
             dataset,
             scientific_contracts=[_MEASUREMENT, independent_gates],
             scientific_gates=independent_gates,
+            comparison_protocol=_PHASE4T_PROTOCOL,
+        )
+
+
+def test_phase4u_qualification_requires_its_frozen_protocol() -> None:
+    """Blend remediation cannot be opened with a prior campaign protocol."""
+    dataset = load_dataset_manifest(_PHASE4U_MANIFEST).datasets[0]
+
+    require_reviewed_qualification_inputs(
+        dataset,
+        scientific_contracts=[_MEASUREMENT, _PHASE4T_GATES],
+        scientific_gates=_PHASE4T_GATES,
+        comparison_protocol=_PHASE4U_PROTOCOL,
+    )
+
+    with pytest.raises(ValueError, match="Phase 4U paired protocol"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, _PHASE4T_GATES],
+            scientific_gates=_PHASE4T_GATES,
             comparison_protocol=_PHASE4T_PROTOCOL,
         )
 

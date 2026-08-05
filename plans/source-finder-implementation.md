@@ -2856,6 +2856,34 @@ Phase 4U population with several predeclared separations, orientations, and
 flux ratios only after the remediation candidate and regression evidence have
 been committed. Do not inspect any Phase 4U result before that freeze.
 
+Phase 4U pre-opening freeze completed on 2026-08-05:
+
+- The remediation candidate was committed independently as `96cdb40` after
+  its analytic, generated, regression, integration, equivalence, coverage,
+  documentation, type, and pre-commit checks passed.
+- The frozen qualification contains 800 fresh images, the unchanged 48-source
+  compact control population, and six new unresolved blends. The blend design
+  pairwise crosses beam-normalized separations `0.45`, `0.65`, and `0.80`,
+  source/beam angles 0, 45, and 90 degrees, and equal versus 2:1 flux ratios.
+  Directional elliptical-beam normalization keeps every case sub-beam.
+- Seeds begin at `2026600001`; they are disjoint from all viewed Phase 4
+  campaigns and Phase 4U development seeds. The image remains the independent
+  unit, and a 0.02 planning intracluster correlation is declared for all
+  repeated binary observations, including six-blend completeness.
+- The weakest paired endpoint has about 97.07% planned interval-exclusion
+  power, the conservative familywise lower bound is about 96.99%, and the
+  retained absolute uncertainty gate has about 90.69% interval-containment
+  power. The 20% unresolved-group flux-tail limit and all other gates remain
+  unchanged.
+- The project-owner-authorized AI expert review found the design scientifically
+  appropriate for the narrow compact start gate. Independent human review,
+  real-residual evidence, performance, bounded-memory, and scale evidence
+  remain later production gates. No Phase 4U science output existed at freeze.
+
+The exact protocol, canonical hashes, reference identities, fixed output
+paths, and one-look rule are recorded in the Phase 4U protocol. Commit the
+complete unopened state before running any implementation.
+
 ### Phase 5: multiscale and extended emission
 
 Status: preparatory work only until the Phase 4U exit gate passes.

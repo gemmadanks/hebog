@@ -131,8 +131,9 @@ Hebog's candidate correction keeps that lower-variance aperture when it
 contains at least 90% of the fitted source model and otherwise follows the
 fitted blend shape. Independent development cases reduce mean signed blend
 flux error to about -2.4%, while existing compact regressions continue to
-pass. This is promising development evidence, not a qualification result: one
-separately frozen, unseen Phase 4U campaign still has to pass before
+pass. This is promising development evidence, not a qualification result: a
+separately frozen, unseen Phase 4U campaign is ready for its one permitted run
+and still has to pass before
 substantive multiscale work begins. External radio-astronomy review, the
 complete performance matrix, and production scalability evidence also remain
 required before Hebog replaces PyBDSF by default.

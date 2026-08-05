@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import runpy
 import sys
 from collections.abc import Callable
@@ -343,6 +344,113 @@ def test_phase4t_protocol_freezer_binds_absolute_power_population() -> None:
     }
     assert populations["compact-completeness"] == 49
     assert populations["point-source-specificity"] == 32
+
+
+def test_phase4u_freezer_builds_varied_unseen_blends() -> None:
+    """The remediation qualification crosses frozen blend geometries."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase4u_qualification.py")
+
+    manifest = DatasetManifest.model_validate(
+        namespace["_document"](
+            root / "config/datasets/phase-4t-qualification.json"
+        )
+    )
+    dataset = manifest.datasets[0]
+    blends = tuple(
+        group
+        for group in dataset.association_truth_groups
+        if group.resolution_class == "unresolved-blend"
+    )
+
+    assert manifest.manifest_id == "phase-4u-qualification"
+    assert len(iter_dataset_recipes(dataset)) == 800
+    assert len(dataset.recipe.sources) == 60
+    assert len(dataset.association_truth_groups) == 54
+    assert len(blends) == 6
+    separations_beams: list[float] = []
+    flux_ratios: list[float] = []
+    beam_angle = np.deg2rad(dataset.beam.position_angle_degrees)
+    beam_major = np.asarray([np.cos(beam_angle), np.sin(beam_angle)])
+    beam_minor = np.asarray([-np.sin(beam_angle), np.cos(beam_angle)])
+    for group in blends:
+        first, second = (
+            dataset.recipe.sources[index] for index in group.source_indices
+        )
+        difference = np.asarray(
+            [
+                second.x_pixel - first.x_pixel,
+                second.y_pixel - first.y_pixel,
+            ]
+        )
+        separations_beams.append(
+            float(
+                np.hypot(
+                    np.dot(difference, beam_major)
+                    / dataset.beam.major_fwhm_pixels,
+                    np.dot(difference, beam_minor)
+                    / dataset.beam.minor_fwhm_pixels,
+                )
+            )
+        )
+        flux_ratios.append(
+            min(
+                first.peak_flux_jy_per_beam,
+                second.peak_flux_jy_per_beam,
+            )
+            / max(
+                first.peak_flux_jy_per_beam,
+                second.peak_flux_jy_per_beam,
+            )
+        )
+    assert sorted(separations_beams) == pytest.approx(
+        [0.45, 0.45, 0.65, 0.65, 0.8, 0.8]
+    )
+    assert sorted(flux_ratios) == pytest.approx([0.5, 0.5, 0.5, 1.0, 1.0, 1.0])
+    assert manifest.model_dump(mode="json") == json.loads(
+        (root / "config/datasets/phase-4u-qualification.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def test_phase4u_protocol_freezer_binds_blend_population() -> None:
+    """The final compact protocol preserves gates and counts all blends."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase4u_protocol.py")
+
+    document = namespace["_document"](
+        root / "config/contracts/phase-4t-paired-noninferiority.json"
+    )
+
+    assert document["contract_id"] == "phase-4u-paired-noninferiority"
+    populations = {
+        endpoint["endpoint_id"]: endpoint["observations_per_realization"]
+        for endpoint in document["binary_endpoints"]
+    }
+    assert populations["compact-completeness"] == 54
+    assert populations["unresolved-group-completeness"] == 6
+    unresolved = next(
+        endpoint
+        for endpoint in document["binary_endpoints"]
+        if endpoint["endpoint_id"] == "unresolved-group-completeness"
+    )
+    assert unresolved["planning_intracluster_correlation"] == 0.02
+    assert all(
+        endpoint["planning_intracluster_correlation"] == 0.02
+        for endpoint in document["binary_endpoints"]
+    )
+    assert (
+        document["absolute_mean_power_checks"][0][
+            "observations_per_realization"
+        ]
+        == 8
+    )
+    assert document == json.loads(
+        (
+            root / "config/contracts/phase-4u-paired-noninferiority.json"
+        ).read_text(encoding="utf-8")
+    )
 
 
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (

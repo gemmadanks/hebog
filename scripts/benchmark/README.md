@@ -242,6 +242,14 @@ use cluster-sandwich Student-t intervals and dispersion bootstraps whole
 realizations. Do not substitute the Phase 4S manifest, protocol, or gate
 document.
 
+Phase 4U uses `config/datasets/phase-4u-qualification.json`, dataset
+`phase4u-blend-qualification-512`, and
+`config/contracts/phase-4u-paired-noninferiority.json`. It deliberately reuses
+the unchanged `config/contracts/phase-4t-scientific-gates.json`; do not
+substitute the viewed Phase 4T manifest or paired protocol. Its exact frozen
+paths and one-look rule are recorded in
+`docs/reference/phase-4u-qualification-protocol.md`.
+
 The final population is frozen in
 `config/datasets/phase-4-final-qualification.json` as dataset
 `phase4-final-paired-qualification-512`. Before running it, replace the example

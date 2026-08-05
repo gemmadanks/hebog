@@ -697,6 +697,38 @@ def test_phase4t_confirmation_is_frozen_and_seed_disjoint() -> None:
     }
 
 
+def test_phase4u_qualification_is_frozen_and_seed_disjoint() -> None:
+    """The final compact qualification reuses no viewed or development seed."""
+    manifest_path = _DATASET_DIRECTORY / "phase-4u-qualification.json"
+    qualification = load_dataset_manifest(manifest_path).datasets[0]
+    recipes = iter_dataset_recipes(qualification)
+    other_seeds = {
+        recipe.seed
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4*.json"))
+        if path != manifest_path
+        for dataset in load_dataset_manifest(path).datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+
+    assert qualification.role is DatasetRole.QUALIFICATION
+    assert len(recipes) == 800
+    assert not ({recipe.seed for recipe in recipes} & other_seeds)
+    assert not (
+        {recipe.seed for recipe in recipes}
+        & set(range(2026501001, 2026501019))
+    )
+    assert len(qualification.recipe.sources) == 60
+    assert len(qualification.association_truth_groups) == 54
+    blend_groups = tuple(
+        group
+        for group in qualification.association_truth_groups
+        if group.resolution_class == "unresolved-blend"
+    )
+    assert len(blend_groups) == 6
+    assert "phase 4t failure" in qualification.provenance.lower()
+    assert "real residual" in qualification.provenance.lower()
+
+
 def test_paired_regression_preserves_unresolved_blend_geometry() -> None:
     """Rotating final-like populations preserves blend-to-beam geometry."""
     paired = load_dataset_manifest(

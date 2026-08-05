@@ -816,6 +816,7 @@ class PairedNoninferiorityContract(_ContractModel):
         "phase-4-paired-noninferiority",
         "phase-4s-paired-noninferiority",
         "phase-4t-paired-noninferiority",
+        "phase-4u-paired-noninferiority",
     ]
     status: Literal["draft-provisional", "reviewed"]
     primary_reference: Literal["released-pybdsf-used-by-rapthor"]
@@ -879,11 +880,13 @@ class PairedNoninferiorityContract(_ContractModel):
         if self.controlled_residual_noise_injection is None:
             raise ValueError("Phase 4S requires the residual-noise limitation")
 
-    def _validate_phase4t(self) -> None:
-        """Require the one retained absolute-uncertainty power question."""
+    def _validate_compact_followup(self) -> None:
+        """Require the retained absolute-uncertainty power question."""
         self._validate_phase4s()
         if len(self.absolute_mean_power_checks) != 1:
-            raise ValueError("Phase 4T requires one absolute mean power check")
+            raise ValueError(
+                "compact follow-up requires one absolute mean power check"
+            )
 
     @model_validator(mode="after")
     def validate_protocol(self) -> Self:
@@ -909,8 +912,11 @@ class PairedNoninferiorityContract(_ContractModel):
             raise ValueError("paired scientific basis links must use HTTPS")
         if self.contract_id == "phase-4s-paired-noninferiority":
             self._validate_phase4s()
-        if self.contract_id == "phase-4t-paired-noninferiority":
-            self._validate_phase4t()
+        if self.contract_id in {
+            "phase-4t-paired-noninferiority",
+            "phase-4u-paired-noninferiority",
+        }:
+            self._validate_compact_followup()
         return self
 
 

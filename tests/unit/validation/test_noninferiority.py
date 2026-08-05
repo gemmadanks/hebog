@@ -41,6 +41,10 @@ _PHASE4T_CONTRACT_PATH = (
     _ROOT / "config/contracts/phase-4t-paired-noninferiority.json"
 )
 _PHASE4T_PATH = _ROOT / "config/datasets/phase-4t-qualification.json"
+_PHASE4U_CONTRACT_PATH = (
+    _ROOT / "config/contracts/phase-4u-paired-noninferiority.json"
+)
+_PHASE4U_PATH = _ROOT / "config/datasets/phase-4u-qualification.json"
 
 _POPULATION_UNITS = {
     "compact-completeness": "association-truth-groups",
@@ -360,6 +364,20 @@ def test_phase4t_absolute_power_check_fails_closed() -> None:
 
     with pytest.raises(ValueError, match="absolute mean gates"):
         require_adequate_design_power(underpowered)
+
+
+def test_phase4u_protocol_powers_varied_blend_qualification() -> None:
+    """The unseen blend population retains paired and absolute power."""
+    contract = load_paired_noninferiority_contract(_PHASE4U_CONTRACT_PATH)
+    dataset = load_dataset_manifest(_PHASE4U_PATH).datasets[0]
+
+    paired = require_adequate_design_power(contract, dataset=dataset)
+    absolute = calculate_absolute_gate_design_power(contract)
+
+    assert contract.contract_id == "phase-4u-paired-noninferiority"
+    assert familywise_power_lower_bound(paired) >= 0.9
+    assert len(absolute) == 1
+    assert absolute[0].interval_containment_power >= 0.9
 
 
 @pytest.mark.parametrize(
