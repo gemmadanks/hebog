@@ -1743,8 +1743,8 @@ scientific result. Its mean residual is 0.106 sigma, coverage is 0.689, and
 dispersion is 0.984, but its upper 95% confidence limit of 0.154 exceeds the
 unchanged 0.150 bound. This is a small effect with otherwise good calibration,
 not evidence of a gross flux error; it is nonetheless a frozen gate failure.
-A new Phase 4T population must include at least four point sources per SNR tier
-per image so this boundary is tested with at least 3,200 fresh SNR-10 point
+A new Phase 4T population must include eight point sources per SNR tier per
+image so this boundary is tested with at least 6,400 fresh SNR-10 point
 residuals. The new population, corrected endpoint, unchanged uncertainty
 thresholds, exact references, and one-look rule must be committed before any
 new output exists. Phase 4S will not be rescored.

@@ -31,6 +31,11 @@ _PHASE4S_MANIFEST = _ROOT / "config/datasets/phase-4s-qualification.json"
 _PHASE4S_PROTOCOL = (
     _ROOT / "config/contracts/phase-4s-paired-noninferiority.json"
 )
+_PHASE4T_MANIFEST = _ROOT / "config/datasets/phase-4t-qualification.json"
+_PHASE4T_PROTOCOL = (
+    _ROOT / "config/contracts/phase-4t-paired-noninferiority.json"
+)
+_PHASE4T_GATES = _ROOT / "config/contracts/phase-4t-scientific-gates.json"
 
 
 def test_canonical_hash_ignores_json_presentation() -> None:
@@ -153,6 +158,58 @@ def test_phase4s_qualification_requires_its_powered_reviewed_protocol() -> (
             scientific_contracts=[_MEASUREMENT, _GATES],
             scientific_gates=_GATES,
             comparison_protocol=_PROTOCOL,
+        )
+
+
+def test_phase4t_confirmation_binds_corrected_gates_and_absolute_power(
+    tmp_path: Path,
+) -> None:
+    """The follow-up cannot reopen with old gates or an old protocol."""
+    dataset = load_dataset_manifest(_PHASE4T_MANIFEST).datasets[0]
+
+    require_reviewed_qualification_inputs(
+        dataset,
+        scientific_contracts=[_MEASUREMENT, _PHASE4T_GATES],
+        scientific_gates=_PHASE4T_GATES,
+        comparison_protocol=_PHASE4T_PROTOCOL,
+    )
+
+    with pytest.raises(ValueError, match="Phase 4T paired protocol"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, _PHASE4T_GATES],
+            scientific_gates=_PHASE4T_GATES,
+            comparison_protocol=_PHASE4S_PROTOCOL,
+        )
+    with pytest.raises(ValueError, match="raw medians"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, _GATES],
+            scientific_gates=_GATES,
+            comparison_protocol=_PHASE4T_PROTOCOL,
+        )
+
+    independent_document = json.loads(
+        _PHASE4T_GATES.read_text(encoding="utf-8")
+    )
+    independent_document["uncertainty"].update(
+        {
+            "coverage_interval": "wilson-score",
+            "mean_interval": "student-t",
+            "dispersion_interval": "scipy-bca-bootstrap-fixed-seed",
+        }
+    )
+    independent_gates = tmp_path / "independent-gates.json"
+    independent_gates.write_text(
+        json.dumps(independent_document),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="cluster by image"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, independent_gates],
+            scientific_gates=independent_gates,
+            comparison_protocol=_PHASE4T_PROTOCOL,
         )
 
 

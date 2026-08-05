@@ -37,6 +37,9 @@ _PHASE_FOUR_MEASUREMENT_PATH = (
 _PHASE_FOUR_GATES_PATH = (
     _ROOT / "config/contracts/phase-4-scientific-gates.json"
 )
+_PHASE_FOUR_T_GATES_PATH = (
+    _ROOT / "config/contracts/phase-4t-scientific-gates.json"
+)
 _PHASE_FOUR_METRICS_PATH = (
     _ROOT / "config/contracts/phase-4r-metric-registry.json"
 )
@@ -324,6 +327,44 @@ def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:
         "scipy-bca-bootstrap-fixed-seed"
     )
     assert gates.uncertainty.bootstrap_resamples >= 10_000
+
+
+def test_phase4t_gates_change_only_generated_distribution_roles() -> None:
+    """The confirmation retains uncertainty limits while fixing raw roles."""
+    historical = load_phase_four_scientific_gates(_PHASE_FOUR_GATES_PATH)
+    confirmation = load_phase_four_scientific_gates(_PHASE_FOUR_T_GATES_PATH)
+
+    assert confirmation.compact_reference.absolute_median_policy == "gate"
+    assert (
+        confirmation.generated_regression.absolute_median_policy
+        == "report-only"
+    )
+    assert (
+        confirmation.heldout_qualification.absolute_median_policy
+        == "report-only"
+    )
+    historical_uncertainty = historical.uncertainty.model_dump(mode="json")
+    confirmation_uncertainty = confirmation.uncertainty.model_dump(mode="json")
+    for method in (
+        "coverage_interval",
+        "mean_interval",
+        "dispersion_interval",
+    ):
+        historical_uncertainty.pop(method)
+        confirmation_uncertainty.pop(method)
+    assert confirmation_uncertainty == historical_uncertainty
+    assert (
+        confirmation.uncertainty.coverage_interval
+        == "cluster-robust-student-t"
+    )
+    assert confirmation.uncertainty.mean_interval == "cluster-robust-student-t"
+    assert confirmation.uncertainty.dispersion_interval == (
+        "cluster-percentile-bootstrap-fixed-seed"
+    )
+    assert confirmation.catastrophic_outlier == historical.catastrophic_outlier
+    assert confirmation.extension_classification == (
+        historical.extension_classification
+    )
 
 
 def test_phase_four_recovery_registry_forbids_metric_compensation() -> None:

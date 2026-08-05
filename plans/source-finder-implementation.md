@@ -2704,12 +2704,13 @@ Phase 4T targeted confirmation (next blocking checkpoint):
 1. Commit the Phase 4S result and prospective evaluator corrections before
    defining or generating any Phase 4T image. Do not rescore or replace the
    Phase 4S decision.
-2. Freeze a new seed-disjoint 800-image compact population with at least four
+2. Freeze a new seed-disjoint 800-image compact population with eight
    declared point sources in each SNR tier per image. Preserve marginal and
    clearly resolved cases, edge/corner/WCS diversity, correlated noise,
    invalid pixels, and the exact candidate/reference identities. This gives at
-   least 3,200 fresh SNR-10 point residuals and must pass a pre-opening power
-   audit for the retained `0.15`-sigma uncertainty-bias bound.
+   least 6,400 fresh SNR-10 point residuals and must pass a pre-opening power
+   audit for the retained `0.15`-sigma uncertainty-bias bound after a
+   conservative within-image correlation adjustment.
 3. Freeze the corrected explicit-class endpoint, raw-distribution
    report-only policy, unchanged uncertainty thresholds, all other absolute
    gates, the same 20 co-primary non-inferiority endpoints, and the one-look
@@ -2724,13 +2725,37 @@ Phase 4T targeted confirmation (next blocking checkpoint):
    memory, Dask task-graph/scaling evidence, and external human review remain
    production-cutover gates rather than Phase 4T substitutions.
 
+Phase 4T pre-opening freeze completed on 2026-08-05:
+
+- The committed population contains 800 fresh images, 49 observable groups,
+  48 individual sources, 32 point sources, eight marginal sources, eight clear
+  sources, and one unresolved blend. Each SNR tier contains eight point
+  sources, including an edge case. Seeds begin at `2026400001` and are
+  disjoint from all viewed Phase 4/4R/4S populations.
+- The weakest paired endpoint power is about 97.07% and the conservative joint
+  lower bound is about 96.07%. The retained SNR-10 integrated-flux
+  normalized-bias gate has about 90.69% planned interval-containment power
+  after the registered 0.02 within-image correlation adjustment.
+- The independent sampling unit is the image/noise realization. Phase 4T uses
+  cluster-sandwich Student-t intervals for coverage and mean bias and a
+  fixed-seed whole-realization percentile bootstrap for dispersion. The 0.02
+  planning ICC is above the Phase 4S estimate of about -0.0097; no residual is
+  treated as independent merely because it belongs to a different source in
+  the same image.
+- Canonical manifest, dataset, recipe, protocol, and scientific-gate hashes,
+  the raw-distribution report-only policy, unchanged uncertainty thresholds,
+  exact reference roles, one-look rule, and refusal-to-overwrite scripts are
+  recorded in the Phase 4T protocol. No Phase 4T image or implementation
+  result existed when the freeze was completed.
+
 Scientific basis for this review:
 
 - [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19);
 - [Condon, Errors in Elliptical Gaussian Fits](https://adsabs.harvard.edu/pdf/1997PASP..109..166C);
 - [ATLAS Data Release 3](https://arxiv.org/abs/1508.03150);
 - [ProFound radio source-finding comparison](https://academic.oup.com/mnras/article/487/3/3971/5511783); and
-- [SKA Science Data Challenge 1 results](https://academic.oup.com/mnras/article/500/3/3821/5918002).
+- [SKA Science Data Challenge 1 results](https://academic.oup.com/mnras/article/500/3/3821/5918002); and
+- [Cameron & Miller, cluster-robust inference](https://doi.org/10.3368/jhr.50.2.317).
 
 Until Phase 4T passes, Phase 5 work is limited to analytic tests,
 interface and data-model scaffolding, filter-bank research, bounded-memory
@@ -2739,13 +2764,16 @@ multiscale path into compact detection, association, fitting, catalogue, or
 Rapthor-facing behaviour, because that would make a qualification failure
 harder to attribute.
 
-Exit gate: the Phase 5 technical start gate is met; the separately frozen and
-jointly powered Phase 4T confirmation passes every co-primary truth, Rapthor-facing,
-robustness, and released-PyBDSF non-inferiority outcome; the pinned `master`
-comparison has no unexplained material regression; all diagnostic tails are
-explained or fixed; the complete performance, bounded-memory, and task-graph
-gates pass; and the science review is recorded. Historical Phase 4 and Phase
-4R decisions remain failed and immutable.
+Exit gate: the separately frozen and jointly powered Phase 4T confirmation
+passes every co-primary truth, Rapthor-facing, robustness, and
+released-PyBDSF non-inferiority outcome; the pinned `master` comparison has no
+unexplained material regression; all diagnostic tails are explained or fixed;
+and the science review is recorded. That compact-science result authorizes
+substantive Phase 5 development. Controlled performance, bounded-memory,
+task-graph/scaling, real-residual, and independent-human-review evidence remain
+later release and production-cutover gates; they do not invalidate a passing
+compact scientific baseline. Historical Phase 4, Phase 4R, and Phase 4S
+decisions remain failed and immutable.
 
 ### Phase 5: multiscale and extended emission
 

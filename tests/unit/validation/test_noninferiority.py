@@ -20,6 +20,8 @@ from hebog.validation.datasets import load_dataset_manifest
 from hebog.validation.noninferiority import (
     audit_design_population,
     audit_planning_standard_deviation,
+    calculate_absolute_gate_design_power,
+    calculate_absolute_mean_equivalence_power,
     calculate_design_power,
     familywise_power_lower_bound,
     planned_paired_standard_deviation,
@@ -35,6 +37,10 @@ _REPLACEMENT_PATH = (
     _ROOT / "config/datasets/phase-4r-qualification-replacement.json"
 )
 _PHASE4S_PATH = _ROOT / "config/datasets/phase-4s-qualification.json"
+_PHASE4T_CONTRACT_PATH = (
+    _ROOT / "config/contracts/phase-4t-paired-noninferiority.json"
+)
+_PHASE4T_PATH = _ROOT / "config/datasets/phase-4t-qualification.json"
 
 _POPULATION_UNITS = {
     "compact-completeness": "association-truth-groups",
@@ -179,6 +185,61 @@ def test_power_uses_effective_clustered_sample_size() -> None:
     )
 
 
+def test_absolute_mean_power_accounts_for_image_clustering() -> None:
+    """Eight point sources per image power the retained uncertainty gate."""
+    powered = calculate_absolute_mean_equivalence_power(
+        realization_count=800,
+        observations_per_realization=8,
+        planning_intracluster_correlation=0.02,
+        anticipated_mean=0.1062,
+        planning_standard_deviation=1.0,
+        equivalence_margin=0.15,
+        confidence_level=0.95,
+    )
+    underpowered = calculate_absolute_mean_equivalence_power(
+        realization_count=800,
+        observations_per_realization=4,
+        planning_intracluster_correlation=0.02,
+        anticipated_mean=0.1062,
+        planning_standard_deviation=1.0,
+        equivalence_margin=0.15,
+        confidence_level=0.95,
+    )
+
+    assert powered.effective_sample_size == pytest.approx(6400 / 1.14)
+    assert powered.interval_containment_power > 0.9
+    assert underpowered.interval_containment_power < 0.9
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    (
+        ({"realization_count": 0}, "sample counts"),
+        ({"planning_intracluster_correlation": 1.0}, "correlation"),
+        ({"planning_standard_deviation": 0.0}, "scales"),
+        ({"confidence_level": 1.0}, "confidence level"),
+    ),
+)
+def test_absolute_mean_power_rejects_invalid_designs(
+    update: dict[str, float | int],
+    message: str,
+) -> None:
+    """A malformed absolute design cannot produce plausible power."""
+    arguments: dict[str, float | int] = {
+        "realization_count": 800,
+        "observations_per_realization": 8,
+        "planning_intracluster_correlation": 0.02,
+        "anticipated_mean": 0.1062,
+        "planning_standard_deviation": 1.0,
+        "equivalence_margin": 0.15,
+        "confidence_level": 0.95,
+    }
+    arguments.update(update)
+
+    with pytest.raises(ValueError, match=message):
+        calculate_absolute_mean_equivalence_power(**arguments)  # type: ignore[arg-type]
+
+
 def test_population_audit_uses_frozen_manifest_counts() -> None:
     """Power cannot assume more groups than the qualification contains."""
     contract = _contract_with_population_units()
@@ -271,6 +332,33 @@ def test_phase4s_power_check_enforces_the_joint_target() -> None:
     underpowered = PairedNoninferiorityContract.model_validate(payload)
 
     with pytest.raises(ValueError, match="familywise"):
+        require_adequate_design_power(underpowered)
+
+
+def test_phase4t_protocol_powers_paired_and_absolute_decisions() -> None:
+    """The fresh population powers both retained decision families."""
+    contract = load_paired_noninferiority_contract(_PHASE4T_CONTRACT_PATH)
+    dataset = load_dataset_manifest(_PHASE4T_PATH).datasets[0]
+
+    paired = require_adequate_design_power(contract, dataset=dataset)
+    absolute = calculate_absolute_gate_design_power(contract)
+
+    assert contract.contract_id == "phase-4t-paired-noninferiority"
+    assert familywise_power_lower_bound(paired) >= 0.9
+    assert len(absolute) == 1
+    assert absolute[0].interval_containment_power >= 0.9
+
+
+def test_phase4t_absolute_power_check_fails_closed() -> None:
+    """A smaller point population cannot pass only on paired power."""
+    contract = load_paired_noninferiority_contract(_PHASE4T_CONTRACT_PATH)
+    payload = contract.model_dump(mode="json")
+    payload["absolute_mean_power_checks"][0][
+        "observations_per_realization"
+    ] = 4
+    underpowered = PairedNoninferiorityContract.model_validate(payload)
+
+    with pytest.raises(ValueError, match="absolute mean gates"):
         require_adequate_design_power(underpowered)
 
 

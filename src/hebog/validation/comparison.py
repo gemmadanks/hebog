@@ -45,6 +45,18 @@ UncertaintyMetric = Literal[
     "deconvolved-minor-axis",
     "deconvolved-position-angle",
 ]
+CoverageIntervalMethod = Literal[
+    "wilson-score",
+    "cluster-robust-student-t",
+]
+MeanIntervalMethod = Literal[
+    "student-t",
+    "cluster-robust-student-t",
+]
+DispersionIntervalMethod = Literal[
+    "scipy-bca-bootstrap-fixed-seed",
+    "cluster-percentile-bootstrap-fixed-seed",
+]
 _UncertaintyDecisionFailure = Literal[
     "insufficient-samples",
     "coverage",
@@ -65,6 +77,7 @@ _UNCERTAINTY_METRICS: tuple[UncertaintyMetric, ...] = (
 )
 _MINIMUM_MEAN_INTERVAL_SAMPLES = 2
 _MINIMUM_DISPERSION_INTERVAL_SAMPLES = 3
+_MINIMUM_INTERVAL_CLUSTERS = 2
 _AvailabilityMetric = Literal[
     "fitted-shape",
     "deconvolution-classification",
@@ -393,7 +406,9 @@ class UncertaintyCalibrationReport:
     coverage_fraction: float | None
     mean_normalized_residual: float | None
     sample_standard_deviation: float | None
-    coverage_confidence_interval: BinomialConfidenceInterval | None
+    coverage_confidence_interval: (
+        BinomialConfidenceInterval | NumericConfidenceInterval | None
+    )
     mean_confidence_interval: NumericConfidenceInterval | None
     dispersion_confidence_interval: NumericConfidenceInterval | None
 
@@ -1815,6 +1830,67 @@ def _student_mean_interval(
     )
 
 
+def _cluster_codes(
+    values: npt.NDArray[np.float64],
+    cluster_ids: npt.ArrayLike | None,
+) -> npt.NDArray[np.int64]:
+    """Return dense codes for one cluster identifier per residual."""
+    if cluster_ids is None:
+        raise ValueError("cluster identifiers are required")
+    identifiers = np.asarray(cluster_ids)
+    if identifiers.ndim != 1 or identifiers.size != values.size:
+        raise ValueError(
+            "cluster identifiers must be one-dimensional and match samples"
+        )
+    _, codes = np.unique(identifiers, return_inverse=True)
+    return np.asarray(codes, dtype=np.int64)
+
+
+def _cluster_robust_mean_interval(
+    values: npt.NDArray[np.float64],
+    cluster_codes: npt.NDArray[np.int64],
+    *,
+    confidence_level: float,
+    bounds: tuple[float, float] | None = None,
+) -> NumericConfidenceInterval | None:
+    """Return a cluster-sandwich Student-t interval for a pooled mean."""
+    cluster_count = int(np.max(cluster_codes, initial=-1)) + 1
+    if (
+        values.size < _MINIMUM_MEAN_INTERVAL_SAMPLES
+        or cluster_count < _MINIMUM_INTERVAL_CLUSTERS
+    ):
+        return None
+    mean = float(np.mean(values))
+    cluster_scores = np.bincount(
+        cluster_codes,
+        weights=values - mean,
+        minlength=cluster_count,
+    )
+    variance = (
+        cluster_count
+        / (cluster_count - 1)
+        * float(np.sum(np.square(cluster_scores)))
+        / values.size**2
+    )
+    critical = float(
+        _student_t.ppf(
+            0.5 + confidence_level / 2.0,
+            df=cluster_count - 1,
+        )
+    )
+    radius = critical * variance**0.5
+    lower = mean - radius
+    upper = mean + radius
+    if bounds is not None:
+        lower = max(bounds[0], lower)
+        upper = min(bounds[1], upper)
+    return NumericConfidenceInterval(
+        confidence_level=confidence_level,
+        lower=float(lower),
+        upper=float(upper),
+    )
+
+
 def _sample_standard_deviation(
     values: npt.NDArray[np.float64],
 ) -> float:
@@ -1855,6 +1931,64 @@ def _dispersion_interval(
     )
 
 
+def _cluster_dispersion_interval(
+    values: npt.NDArray[np.float64],
+    cluster_codes: npt.NDArray[np.int64],
+    *,
+    confidence_level: float,
+    bootstrap_resamples: int,
+    bootstrap_seed: int,
+) -> NumericConfidenceInterval | None:
+    """Bootstrap sample dispersion by independent image realization."""
+    cluster_count = int(np.max(cluster_codes, initial=-1)) + 1
+    if (
+        values.size < _MINIMUM_DISPERSION_INTERVAL_SAMPLES
+        or cluster_count < _MINIMUM_INTERVAL_CLUSTERS
+    ):
+        return None
+    standard_deviation = _sample_standard_deviation(values)
+    if standard_deviation == 0.0:
+        return NumericConfidenceInterval(confidence_level, 0.0, 0.0)
+    counts = np.bincount(cluster_codes, minlength=cluster_count)
+    sums = np.bincount(
+        cluster_codes,
+        weights=values,
+        minlength=cluster_count,
+    )
+    sums_of_squares = np.bincount(
+        cluster_codes,
+        weights=np.square(values),
+        minlength=cluster_count,
+    )
+    distribution = np.empty(bootstrap_resamples, dtype=np.float64)
+    random = np.random.default_rng(bootstrap_seed)
+    batch_size = min(256, bootstrap_resamples)
+    for start in range(0, bootstrap_resamples, batch_size):
+        stop = min(start + batch_size, bootstrap_resamples)
+        selected = random.integers(
+            0,
+            cluster_count,
+            size=(stop - start, cluster_count),
+        )
+        sample_counts = np.sum(counts[selected], axis=1)
+        sample_sums = np.sum(sums[selected], axis=1)
+        sample_sums_of_squares = np.sum(
+            sums_of_squares[selected],
+            axis=1,
+        )
+        sample_variances = (
+            sample_sums_of_squares - np.square(sample_sums) / sample_counts
+        ) / (sample_counts - 1)
+        distribution[start:stop] = np.sqrt(np.maximum(0.0, sample_variances))
+    tail = (1.0 - confidence_level) / 2.0
+    lower, upper = np.quantile(distribution, (tail, 1.0 - tail))
+    return NumericConfidenceInterval(
+        confidence_level=confidence_level,
+        lower=float(lower),
+        upper=float(upper),
+    )
+
+
 def uncertainty_calibration_report(  # noqa: PLR0913
     metric: UncertaintyMetric,
     normalized_residuals: npt.ArrayLike,
@@ -1863,6 +1997,12 @@ def uncertainty_calibration_report(  # noqa: PLR0913
     confidence_level: float,
     bootstrap_resamples: int,
     bootstrap_seed: int,
+    cluster_ids: npt.ArrayLike | None = None,
+    coverage_interval: CoverageIntervalMethod = "wilson-score",
+    mean_interval: MeanIntervalMethod = "student-t",
+    dispersion_interval: DispersionIntervalMethod = (
+        "scipy-bca-bootstrap-fixed-seed"
+    ),
 ) -> UncertaintyCalibrationReport:
     """Summarize one uncertainty stratum with reviewed intervals."""
     if metric not in _UNCERTAINTY_METRICS:
@@ -1885,8 +2025,16 @@ def uncertainty_calibration_report(  # noqa: PLR0913
     if isinstance(bootstrap_seed, bool) or bootstrap_seed < 0:
         raise ValueError("bootstrap_seed must be non-negative")
 
+    clustered = (
+        coverage_interval == "cluster-robust-student-t"
+        or mean_interval == "cluster-robust-student-t"
+        or dispersion_interval == "cluster-percentile-bootstrap-fixed-seed"
+    )
+    cluster_codes = _cluster_codes(values, cluster_ids) if clustered else None
+
     sample_count = int(values.size)
     within_one_sigma_count = int(np.count_nonzero(np.abs(values) <= 1.0))
+    coverage_values = np.asarray(np.abs(values) <= 1.0, dtype=np.float64)
     return UncertaintyCalibrationReport(
         metric=metric,
         eligible_count=eligible_count,
@@ -1904,20 +2052,47 @@ def uncertainty_calibration_report(  # noqa: PLR0913
         sample_standard_deviation=(
             _sample_standard_deviation(values) if sample_count > 1 else None
         ),
-        coverage_confidence_interval=wilson_score_interval(
-            within_one_sigma_count,
-            sample_count,
-            confidence_level=confidence_level,
+        coverage_confidence_interval=(
+            _cluster_robust_mean_interval(
+                coverage_values,
+                cast(npt.NDArray[np.int64], cluster_codes),
+                confidence_level=confidence_level,
+                bounds=(0.0, 1.0),
+            )
+            if coverage_interval == "cluster-robust-student-t"
+            else wilson_score_interval(
+                within_one_sigma_count,
+                sample_count,
+                confidence_level=confidence_level,
+            )
         ),
-        mean_confidence_interval=_student_mean_interval(
-            values,
-            confidence_level=confidence_level,
+        mean_confidence_interval=(
+            _cluster_robust_mean_interval(
+                values,
+                cast(npt.NDArray[np.int64], cluster_codes),
+                confidence_level=confidence_level,
+            )
+            if mean_interval == "cluster-robust-student-t"
+            else _student_mean_interval(
+                values,
+                confidence_level=confidence_level,
+            )
         ),
-        dispersion_confidence_interval=_dispersion_interval(
-            values,
-            confidence_level=confidence_level,
-            bootstrap_resamples=bootstrap_resamples,
-            bootstrap_seed=bootstrap_seed,
+        dispersion_confidence_interval=(
+            _cluster_dispersion_interval(
+                values,
+                cast(npt.NDArray[np.int64], cluster_codes),
+                confidence_level=confidence_level,
+                bootstrap_resamples=bootstrap_resamples,
+                bootstrap_seed=bootstrap_seed,
+            )
+            if dispersion_interval == "cluster-percentile-bootstrap-fixed-seed"
+            else _dispersion_interval(
+                values,
+                confidence_level=confidence_level,
+                bootstrap_resamples=bootstrap_resamples,
+                bootstrap_seed=bootstrap_seed,
+            )
         ),
     )
 

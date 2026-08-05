@@ -665,6 +665,38 @@ def test_phase4s_qualification_is_frozen_powered_and_disjoint() -> None:
     }
 
 
+def test_phase4t_confirmation_is_frozen_and_seed_disjoint() -> None:
+    """The corrective confirmation does not reuse any viewed noise seed."""
+    manifest_path = _DATASET_DIRECTORY / "phase-4t-qualification.json"
+    qualification = load_dataset_manifest(manifest_path).datasets[0]
+    recipes = iter_dataset_recipes(qualification)
+    other_seeds = {
+        recipe.seed
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4*.json"))
+        if path != manifest_path
+        for dataset in load_dataset_manifest(path).datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+
+    assert qualification.role is DatasetRole.QUALIFICATION
+    assert len(recipes) == 800
+    assert not ({recipe.seed for recipe in recipes} & other_seeds)
+    assert len(qualification.recipe.sources) == 50
+    assert len(qualification.association_truth_groups) == 49
+    assert "phase 4s failure" in qualification.provenance.lower()
+    assert "real residual" in qualification.provenance.lower()
+
+    classifications = {
+        stratum.identifier: len(stratum.source_indices)
+        for stratum in qualification.classification_strata
+    }
+    assert classifications == {
+        "shape-clear-resolved": 8,
+        "shape-marginal-resolved": 8,
+        "shape-unresolved": 32,
+    }
+
+
 def test_paired_regression_preserves_unresolved_blend_geometry() -> None:
     """Rotating final-like populations preserves blend-to-beam geometry."""
     paired = load_dataset_manifest(

@@ -10,6 +10,8 @@ from typing import cast
 
 from hebog.validation.comparison import CatalogueOutlierThresholds
 from hebog.validation.contracts import (
+    PairedNoninferiorityContract,
+    PhaseFourScientificGates,
     load_paired_noninferiority_contract,
     load_phase_four_measurement_contract,
     load_phase_four_metric_registry,
@@ -146,6 +148,36 @@ def _qualification_contract_paths(
     return documents
 
 
+def _validate_phase4t_inputs(
+    gates: PhaseFourScientificGates,
+    protocol: PairedNoninferiorityContract,
+) -> None:
+    """Bind Phase 4T's prospective policies to its power declaration."""
+    if protocol.contract_id != "phase-4t-paired-noninferiority":
+        raise ValueError("Phase 4T paired protocol is required")
+    if gates.heldout_qualification.absolute_median_policy != "report-only":
+        raise ValueError("Phase 4T raw medians must remain report-only")
+    uncertainty = gates.uncertainty
+    if (
+        uncertainty.coverage_interval != "cluster-robust-student-t"
+        or uncertainty.mean_interval != "cluster-robust-student-t"
+        or uncertainty.dispersion_interval
+        != "cluster-percentile-bootstrap-fixed-seed"
+    ):
+        raise ValueError(
+            "Phase 4T uncertainty intervals must cluster by image"
+        )
+    check = protocol.absolute_mean_power_checks[0]
+    if (
+        check.equivalence_margin
+        != uncertainty.maximum_absolute_mean_normalized_residual
+        or check.confidence_level != uncertainty.confidence_interval_level
+    ):
+        raise ValueError(
+            "Phase 4T absolute power check must match uncertainty gates"
+        )
+
+
 def require_reviewed_qualification_inputs(
     dataset: DatasetRecord,
     *,
@@ -190,13 +222,20 @@ def require_reviewed_qualification_inputs(
     if protocol.status != "reviewed":
         raise ValueError("paired protocol must be reviewed for qualification")
     phase_four_stabilization = dataset.identifier.startswith("phase4s-")
+    phase_four_confirmation = dataset.identifier.startswith("phase4t-")
     if phase_four_stabilization and protocol.contract_id != (
         "phase-4s-paired-noninferiority"
     ):
         raise ValueError("Phase 4S paired protocol is required")
+    if phase_four_confirmation:
+        _validate_phase4t_inputs(gates, protocol)
     require_adequate_design_power(
         protocol,
-        dataset=dataset if phase_four_stabilization else None,
+        dataset=(
+            dataset
+            if phase_four_stabilization or phase_four_confirmation
+            else None
+        ),
     )
 
 

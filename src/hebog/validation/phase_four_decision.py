@@ -744,7 +744,8 @@ def _uncertainty_gate_decisions(
             if not eligible_identifiers:
                 continue
             samples: list[float] = []
-            for realization in realizations:
+            cluster_ids: list[int] = []
+            for realization_index, realization in enumerate(realizations):
                 by_truth = {
                     item.truth_identifier: item
                     for item in realization.source_pairs
@@ -760,6 +761,7 @@ def _uncertainty_gate_decisions(
                     }
                     if metric in residuals:
                         samples.append(residuals[metric])
+                        cluster_ids.append(realization_index)
             eligible_count = len(eligible_identifiers) * len(realizations)
             report = uncertainty_calibration_report(
                 metric,  # type: ignore[arg-type]
@@ -768,6 +770,10 @@ def _uncertainty_gate_decisions(
                 confidence_level=uncertainty.confidence_interval_level,
                 bootstrap_resamples=uncertainty.bootstrap_resamples,
                 bootstrap_seed=uncertainty.bootstrap_seed,
+                cluster_ids=cluster_ids,
+                coverage_interval=uncertainty.coverage_interval,
+                mean_interval=uncertainty.mean_interval,
+                dispersion_interval=uncertainty.dispersion_interval,
             )
             prefix = f"{stratum.identifier}-{metric}-uncertainty"
             role: Literal["gate", "report-only"] = (

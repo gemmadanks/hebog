@@ -228,6 +228,20 @@ identity, all manifest population counts, marginal power, and the binding 90%
 familywise lower-bound target before it generates the first image. Do not use
 the historical Phase 4 protocol for this population.
 
+The separately governed Phase 4T confirmation uses
+`config/datasets/phase-4t-qualification.json`, dataset
+`phase4t-compact-confirmation-512`, protocol
+`config/contracts/phase-4t-paired-noninferiority.json`, and the prospective
+`config/contracts/phase-4t-scientific-gates.json` as both the scientific-gate
+and gate-provenance argument. The preflight additionally binds the explicit
+point/clear truth semantics, raw-median report-only policy, the eight
+SNR-10-point-source population count, unchanged uncertainty margin, and at
+least 90% absolute interval-containment power. Its uncertainty intervals treat
+the image/noise realization as the independent cluster: coverage and mean bias
+use cluster-sandwich Student-t intervals and dispersion bootstraps whole
+realizations. Do not substitute the Phase 4S manifest, protocol, or gate
+document.
+
 The final population is frozen in
 `config/datasets/phase-4-final-qualification.json` as dataset
 `phase4-final-paired-qualification-512`. Before running it, replace the example

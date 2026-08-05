@@ -4980,9 +4980,9 @@ or decision existed when these inputs were frozen and reviewed.
 - The SNR-10 integrated-flux result remains a genuine narrow miss. Coverage
   (`0.68875`) and dispersion (`0.9835004119461924`) passed, and the point
   estimate was only `0.10612469812557526` sigma, but the predeclared interval
-  rule was not waived. A fresh Phase 4T campaign with at least four point
-  sources per SNR tier per image will test the unchanged `0.15`-sigma bound
-  with at least 3,200 new SNR-10 point residuals.
+  rule was not waived. A fresh Phase 4T campaign with eight point sources per
+  SNR tier per image will test the unchanged `0.15`-sigma bound with 6,400 new
+  SNR-10 point residuals.
 
 **Evidence**
 
@@ -5006,3 +5006,73 @@ or decision existed when these inputs were frozen and reviewed.
 - Commit the immutable outcome record and prospective evaluator corrections.
 - Freeze Phase 4T, its fresh population, exact identities, power, and one-look
   rule before generating any new candidate or reference output.
+
+## 2026-08-05 — Froze the unopened Phase 4T confirmation
+
+**Plan phase:** Phase 4T — targeted compact confirmation
+
+**Completed**
+
+- Added explicit design power for a clustered absolute-mean equivalence gate.
+  The executable preflight binds the population count, anticipated Phase 4S
+  effect, within-image correlation, confidence level, unchanged uncertainty
+  margin, and minimum power to the frozen manifest and gate document.
+- Corrected a pre-opening inference mismatch found during expert review: the
+  decision evaluator now treats each image/noise realization as an independent
+  cluster for Phase 4T coverage, bias, and dispersion intervals. Phase 4S's
+  SNR-10 point residual ICC was about `-0.0097`; the registered positive 0.02
+  planning value provides an allowance without changing any scientific
+  margin. Coverage and bias use cluster-sandwich Student-t intervals, while
+  dispersion uses a fixed-seed whole-realization percentile bootstrap.
+- Froze 800 fresh 512-by-512 realizations with 49 observable groups, 48
+  individual sources, 32 point sources, eight marginal sources, eight clear
+  sources, and one unresolved blend. Every SNR tier contains eight point
+  sources, yielding 6,400 fresh SNR-10 point residuals. Point and non-point
+  cases retain edge examples, and the WCS, correlated-noise, gradient,
+  background, invalid-pixel, and blend stresses remain present.
+- Froze the prospective raw median/tail report-only policy while retaining all
+  uncertainty, completeness, reliability, morphology, catastrophic, group,
+  and stronger-envelope thresholds. The exact 20 paired endpoints and
+  released/master reference roles remain unchanged.
+- Added TDD coverage for manifest reconstruction, seed disjointness, population
+  counts, absolute power, contract/gate binding, and refusal to open under the
+  Phase 4S protocol or gate semantics.
+
+**Power**
+
+- The weakest paired endpoint has planned interval-exclusion power
+  `0.9706664817215229`; the conservative 20-endpoint joint lower bound is
+  `0.9606701920905562` against the binding `0.9` target.
+- The retained SNR-10 integrated-flux normalized-bias gate uses anticipated
+  mean `0.1062`, dispersion `1.0`, eight observations per image, ICC `0.02`,
+  95% confidence, and the unchanged `0.15` margin. Its effective sample size
+  is about `5614.04` and planned interval-containment power is
+  `0.9068880664578192`.
+
+**Frozen canonical identities**
+
+- Recipe SHA-256:
+  `e39400565031867f3412a640ec55aa88e4807ff627affff6439c969e3445a696`.
+- Dataset-record SHA-256:
+  `3afb044f413fbd3aa4748069b09255fbfe300b9a3f47c79f3589bab4ff06ee23`.
+- Manifest-document SHA-256:
+  `919d8a32c4cdbd41fdb16a803aeed850d50af4eedc46d331c5a4dbc224ff5333`.
+- Paired/absolute protocol SHA-256:
+  `2997015cb5235d5be9f3029d563455974fe1a1948843b5a50266fab616e094ee`.
+- Scientific-gates SHA-256:
+  `2841a2a93a17280c8decc5b0b1a7aa138279838f168a69504af37210aef13da6`.
+
+No Phase 4T image, candidate shard, reference shard, compiled campaign, or
+decision existed when these inputs were frozen and reviewed.
+
+The exact released and master PyBDSF versions, commits, and container digests
+remain the Phase 4S identities. The Hebog candidate is the local commit that
+contains this freeze; its dependency inventory and execution configuration
+will be captured by the isolated runner.
+
+**Next**
+
+- Commit the complete pre-opening state and use that commit as the exact
+  Hebog candidate identity.
+- Verify all Phase 4T output paths are absent, run the three immutable legs,
+  compile once, and open the one-look decision once.

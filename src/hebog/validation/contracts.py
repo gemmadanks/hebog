@@ -549,9 +549,18 @@ class PhaseFourUncertaintyGate(_ContractModel):
     minimum_samples_per_stratum: int = Field(ge=200)
     confidence_interval_level: float = Field(gt=0, lt=1)
     equivalence_rule: Literal["entire-confidence-interval-within-margins"]
-    coverage_interval: Literal["wilson-score"]
-    mean_interval: Literal["student-t"]
-    dispersion_interval: Literal["scipy-bca-bootstrap-fixed-seed"]
+    coverage_interval: Literal[
+        "wilson-score",
+        "cluster-robust-student-t",
+    ]
+    mean_interval: Literal[
+        "student-t",
+        "cluster-robust-student-t",
+    ]
+    dispersion_interval: Literal[
+        "scipy-bca-bootstrap-fixed-seed",
+        "cluster-percentile-bootstrap-fixed-seed",
+    ]
     bootstrap_resamples: int = Field(ge=10_000)
     bootstrap_seed: int = Field(ge=0)
     insufficient_samples: Literal["report-only"]
@@ -773,6 +782,32 @@ class PairedContinuousEndpoint(_ContractModel):
         return self
 
 
+class AbsoluteMeanPowerCheck(_ContractModel):
+    """Planning assumptions for one absolute normalized-residual mean gate."""
+
+    metric_id: Literal["snr-10-integrated-flux-uncertainty-bias"]
+    population_unit: Literal["snr-10-point-sources"]
+    observations_per_realization: int = Field(ge=1)
+    planning_intracluster_correlation: float = Field(ge=0, lt=1)
+    anticipated_mean_normalized_residual: float
+    planning_standard_deviation: float = Field(gt=0)
+    equivalence_margin: float = Field(gt=0)
+    confidence_level: float = Field(gt=0, lt=1)
+    minimum_interval_containment_power: float = Field(gt=0, lt=1)
+    method: Literal["cluster-adjusted-normal-ci-containment"]
+
+    @model_validator(mode="after")
+    def validate_anticipated_mean(self) -> Self:
+        """Require a scientifically attainable alternative inside the gate."""
+        if abs(self.anticipated_mean_normalized_residual) >= (
+            self.equivalence_margin
+        ):
+            raise ValueError(
+                "anticipated absolute mean must lie inside margin"
+            )
+        return self
+
+
 class PairedNoninferiorityContract(_ContractModel):
     """Draft same-image comparison and power contract for Phase 4 closure."""
 
@@ -780,6 +815,7 @@ class PairedNoninferiorityContract(_ContractModel):
     contract_id: Literal[
         "phase-4-paired-noninferiority",
         "phase-4s-paired-noninferiority",
+        "phase-4t-paired-noninferiority",
     ]
     status: Literal["draft-provisional", "reviewed"]
     primary_reference: Literal["released-pybdsf-used-by-rapthor"]
@@ -823,6 +859,7 @@ class PairedNoninferiorityContract(_ContractModel):
     controlled_residual_noise_injection: (
         Literal["not-available-recorded-limitation"] | None
     ) = None
+    absolute_mean_power_checks: tuple[AbsoluteMeanPowerCheck, ...] = ()
 
     def _validate_phase4s(self) -> None:
         """Require every additional pre-opening Phase 4S declaration."""
@@ -841,6 +878,12 @@ class PairedNoninferiorityContract(_ContractModel):
             raise ValueError("Phase 4S requires an explicit scope")
         if self.controlled_residual_noise_injection is None:
             raise ValueError("Phase 4S requires the residual-noise limitation")
+
+    def _validate_phase4t(self) -> None:
+        """Require the one retained absolute-uncertainty power question."""
+        self._validate_phase4s()
+        if len(self.absolute_mean_power_checks) != 1:
+            raise ValueError("Phase 4T requires one absolute mean power check")
 
     @model_validator(mode="after")
     def validate_protocol(self) -> Self:
@@ -866,6 +909,8 @@ class PairedNoninferiorityContract(_ContractModel):
             raise ValueError("paired scientific basis links must use HTTPS")
         if self.contract_id == "phase-4s-paired-noninferiority":
             self._validate_phase4s()
+        if self.contract_id == "phase-4t-paired-noninferiority":
+            self._validate_phase4t()
         return self
 
 

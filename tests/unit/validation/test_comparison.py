@@ -437,6 +437,75 @@ def test_uncertainty_calibration_uses_predeclared_confidence_methods() -> None:
     )
 
 
+def test_uncertainty_calibration_accounts_for_realization_clusters() -> None:
+    """Repeated sources cannot masquerade as independent noise draws."""
+    realization_values = np.random.default_rng(41).normal(size=240)
+    samples = np.repeat(realization_values, 8)
+    cluster_ids = np.repeat(np.arange(240), 8)
+
+    independent = uncertainty_calibration_report(
+        "integrated-flux",
+        samples,
+        eligible_count=samples.size,
+        confidence_level=0.95,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260802,
+    )
+    clustered = uncertainty_calibration_report(
+        "integrated-flux",
+        samples,
+        eligible_count=samples.size,
+        confidence_level=0.95,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260802,
+        cluster_ids=cluster_ids,
+        coverage_interval="cluster-robust-student-t",
+        mean_interval="cluster-robust-student-t",
+        dispersion_interval="cluster-percentile-bootstrap-fixed-seed",
+    )
+    repeated = uncertainty_calibration_report(
+        "integrated-flux",
+        samples,
+        eligible_count=samples.size,
+        confidence_level=0.95,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260802,
+        cluster_ids=cluster_ids,
+        coverage_interval="cluster-robust-student-t",
+        mean_interval="cluster-robust-student-t",
+        dispersion_interval="cluster-percentile-bootstrap-fixed-seed",
+    )
+
+    assert clustered == repeated
+    assert independent.mean_confidence_interval is not None
+    assert clustered.mean_confidence_interval is not None
+    assert (
+        clustered.mean_confidence_interval.upper
+        - clustered.mean_confidence_interval.lower
+        > independent.mean_confidence_interval.upper
+        - independent.mean_confidence_interval.lower
+    )
+    assert clustered.coverage_confidence_interval is not None
+    assert clustered.dispersion_confidence_interval is not None
+
+
+def test_clustered_uncertainty_requires_one_label_per_sample() -> None:
+    """A malformed cluster declaration must fail before inference."""
+    with pytest.raises(ValueError, match="cluster identifiers"):
+        uncertainty_calibration_report(
+            "integrated-flux",
+            np.asarray((-0.5, 0.5, 1.0)),
+            eligible_count=3,
+            confidence_level=0.95,
+            bootstrap_resamples=10_000,
+            bootstrap_seed=20260802,
+            cluster_ids=np.asarray((1, 1)),
+            coverage_interval="cluster-robust-student-t",
+            mean_interval="cluster-robust-student-t",
+            dispersion_interval="cluster-percentile-bootstrap-fixed-seed",
+        )
+
+
 def test_uncertainty_calibration_gates_entire_intervals() -> None:
     """A point estimate inside a margin cannot hide an uncertain interval."""
     samples = np.tile(np.asarray([-1.0, 1.0]), 100)

@@ -295,6 +295,56 @@ def test_phase4s_protocol_freezer_binds_population_counts() -> None:
     assert populations["point-source-specificity"] == ("point-sources", 8)
 
 
+def test_phase4t_freezer_builds_the_reviewed_confirmation() -> None:
+    """The fresh confirmation has eight point sources in every SNR tier."""
+    namespace = _validation_script("freeze_phase4t_qualification.py")
+
+    manifest = DatasetManifest.model_validate(namespace["_document"]())
+    dataset = manifest.datasets[0]
+    classes = {
+        stratum.identifier: set(stratum.source_indices)
+        for stratum in dataset.classification_strata
+    }
+    validation = {
+        stratum.identifier: set(stratum.source_indices)
+        for stratum in dataset.validation_strata
+    }
+
+    assert manifest.manifest_id == "phase-4t-qualification"
+    assert len(iter_dataset_recipes(dataset)) == 800
+    assert len(dataset.recipe.sources) == 50
+    assert len(dataset.association_truth_groups) == 49
+    assert len(classes["shape-unresolved"]) == 32
+    assert len(classes["shape-marginal-resolved"]) == 8
+    assert len(classes["shape-clear-resolved"]) == 8
+    assert all(
+        len(classes["shape-unresolved"] & validation[f"snr-{snr}"]) == 8
+        for snr in (10, 15, 25, 50)
+    )
+
+
+def test_phase4t_protocol_freezer_binds_absolute_power_population() -> None:
+    """The follow-up protocol retains the viewed effect and frozen margin."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase4t_protocol.py")
+
+    document = namespace["_document"](
+        root / "config/contracts/phase-4s-paired-noninferiority.json"
+    )
+
+    assert document["contract_id"] == "phase-4t-paired-noninferiority"
+    checks = document["absolute_mean_power_checks"]
+    assert len(checks) == 1
+    assert checks[0]["observations_per_realization"] == 8
+    assert checks[0]["anticipated_mean_normalized_residual"] == 0.1062
+    populations = {
+        endpoint["endpoint_id"]: endpoint["observations_per_realization"]
+        for endpoint in document["binary_endpoints"]
+    }
+    assert populations["compact-completeness"] == 49
+    assert populations["point-source-specificity"] == 32
+
+
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
     None
 ):
