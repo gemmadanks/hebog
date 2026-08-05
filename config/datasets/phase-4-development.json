@@ -1,0 +1,314 @@
+{
+  "datasets": [
+    {
+      "beam": {
+        "major_fwhm_pixels": 4.0,
+        "minor_fwhm_pixels": 3.0,
+        "position_angle_degrees": 25.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": -0.0001,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0
+      },
+      "identifier": "phase4-noiseless-shape-development-256",
+      "provenance": "Additive Phase 4 development truth frozen before compact measurement implementation.",
+      "purpose": "Noiseless sub-pixel unresolved and resolved ellipses under rotated unequal-scale WCS metadata.",
+      "recipe": {
+        "background": -0.0001,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 2,
+        "invalid_rectangles": [],
+        "noise_rms": 0.0,
+        "noise_rms_fractional_gradient_xy": [
+          0.0,
+          0.0
+        ],
+        "seed": 2026080201,
+        "shape_yx": [
+          256,
+          256
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 1.6986436006,
+            "minor_sigma_pixels": 1.2739827004,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 25.0,
+            "x_pixel": 63.25,
+            "y_pixel": 64.75
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.4,
+            "peak_flux_jy_per_beam": 0.02,
+            "rotation_degrees_counterclockwise_from_x": 45.0,
+            "x_pixel": 128.5,
+            "y_pixel": 80.25
+          },
+          {
+            "major_sigma_pixels": 4.0,
+            "minor_sigma_pixels": 2.0,
+            "peak_flux_jy_per_beam": 0.015,
+            "rotation_degrees_counterclockwise_from_x": 120.0,
+            "x_pixel": 190.1,
+            "y_pixel": 192.8
+          }
+        ]
+      },
+      "recipe_sha256": "de10c42a9655fbe00eca850c3e4251ea8f18f85d11162b0ad0537c9a672078f8",
+      "redistribution": "generated-locally",
+      "role": "development",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00025,
+          0.0003
+        ],
+        "reference_pixel_xy": [
+          127.5,
+          127.5
+        ],
+        "reference_sky_degrees": [
+          359.98,
+          -30.0
+        ],
+        "rotation_degrees_counterclockwise": 37.0
+      }
+    },
+    {
+      "beam": {
+        "major_fwhm_pixels": 5.0,
+        "minor_fwhm_pixels": 3.5,
+        "position_angle_degrees": 70.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": -0.0002,
+        "finite_fraction": 0.99755859375,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase4-noise-mask-development-192x256",
+      "provenance": "Additive Phase 4 development truth frozen before compact measurement implementation.",
+      "purpose": "SNR ladder, affine varying RMS, governed invalid pixels, negative background, edge sources, and unequal pixel scales.",
+      "recipe": {
+        "background": -0.0002,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 2,
+        "invalid_rectangles": [
+          {
+            "x_start": 120,
+            "x_stop": 130,
+            "y_start": 80,
+            "y_stop": 92
+          }
+        ],
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.6,
+          -0.2
+        ],
+        "seed": 2026080202,
+        "shape_yx": [
+          192,
+          256
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.1233045007,
+            "minor_sigma_pixels": 1.4863131505,
+            "peak_flux_jy_per_beam": 0.0006,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
+            "x_pixel": 24.25,
+            "y_pixel": 28.75
+          },
+          {
+            "major_sigma_pixels": 2.1233045007,
+            "minor_sigma_pixels": 1.4863131505,
+            "peak_flux_jy_per_beam": 0.001,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
+            "x_pixel": 72.5,
+            "y_pixel": 45.25
+          },
+          {
+            "major_sigma_pixels": 2.8,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 35.0,
+            "x_pixel": 176.4,
+            "y_pixel": 104.6
+          },
+          {
+            "major_sigma_pixels": 3.6,
+            "minor_sigma_pixels": 2.0,
+            "peak_flux_jy_per_beam": 0.006,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
+            "x_pixel": 1.2,
+            "y_pixel": 170.5
+          }
+        ]
+      },
+      "recipe_sha256": "73346ec2039ccf83367ccd77c52d98979609e85198a49b68c174eeb3a65aa530",
+      "redistribution": "generated-locally",
+      "role": "development",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0002,
+          0.00035
+        ],
+        "reference_pixel_xy": [
+          127.5,
+          95.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          18.0
+        ],
+        "rotation_degrees_counterclockwise": -22.0
+      }
+    },
+    {
+      "association_group_strata": [
+        {
+          "group_identifiers": [
+            "blend-00001",
+            "blend-00002"
+          ],
+          "identifier": "unresolved-blend"
+        }
+      ],
+      "association_truth_groups": [
+        {
+          "identifier": "blend-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.13045034580785633,
+          "reference_position_xy": [
+            80.00000000000001,
+            80.0
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            0,
+            1
+          ]
+        },
+        {
+          "identifier": "blend-00002",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.18189821464284903,
+          "reference_position_xy": [
+            159.38860103626942,
+            160.12694300518135
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            2,
+            3
+          ]
+        },
+        {
+          "identifier": "source-00005",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.24127431579569614,
+          "reference_position_xy": [
+            240.25,
+            238.75
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            4
+          ]
+        }
+      ],
+      "beam": {
+        "major_fwhm_pixels": 4.5,
+        "minor_fwhm_pixels": 3.2,
+        "position_angle_degrees": 15.0
+      },
+      "expected_statistics": {
+        "background_jy_per_beam": 0.0,
+        "finite_fraction": 1.0,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase4-blend-association-development-320",
+      "provenance": "Additive Phase 4 development truth frozen before compact association policy selection.",
+      "purpose": "Equal and unequal compact pairs exercising region, component, source, and parent-island association.",
+      "recipe": {
+        "background": 0.0,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 2,
+        "invalid_rectangles": [],
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.0,
+          0.0
+        ],
+        "seed": 2026080203,
+        "shape_yx": [
+          320,
+          320
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 1.9109740507,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
+            "x_pixel": 78.0,
+            "y_pixel": 80.0
+          },
+          {
+            "major_sigma_pixels": 1.9109740507,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.004,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
+            "x_pixel": 82.0,
+            "y_pixel": 80.0
+          },
+          {
+            "major_sigma_pixels": 2.4,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.006,
+            "rotation_degrees_counterclockwise_from_x": 55.0,
+            "x_pixel": 158.5,
+            "y_pixel": 160.0
+          },
+          {
+            "major_sigma_pixels": 2.1,
+            "minor_sigma_pixels": 1.4,
+            "peak_flux_jy_per_beam": 0.0025,
+            "rotation_degrees_counterclockwise_from_x": 115.0,
+            "x_pixel": 162.0,
+            "y_pixel": 160.5
+          },
+          {
+            "major_sigma_pixels": 3.0,
+            "minor_sigma_pixels": 1.6,
+            "peak_flux_jy_per_beam": 0.008,
+            "rotation_degrees_counterclockwise_from_x": 95.0,
+            "x_pixel": 240.25,
+            "y_pixel": 238.75
+          }
+        ]
+      },
+      "recipe_sha256": "9d59fe9053f7c8d72b75d0f0a0f37025a07a096409bd4778d98ae535ef5605c1",
+      "redistribution": "generated-locally",
+      "role": "development",
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.0002777777777777778,
+          0.0002777777777777778
+        ],
+        "reference_pixel_xy": [
+          159.5,
+          159.5
+        ],
+        "reference_sky_degrees": [
+          180.0,
+          -30.0
+        ],
+        "rotation_degrees_counterclockwise": 0.0
+      }
+    }
+  ],
+  "manifest_id": "phase-4-development",
+  "schema_version": 2
+}

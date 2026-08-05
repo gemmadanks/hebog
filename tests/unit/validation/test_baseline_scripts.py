@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import runpy
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,12 +18,439 @@ from hebog.data_models.partitioning import ImageBounds
 from hebog.executors import SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.stages.background import estimate_background_rms_grids
+from hebog.validation.comparison import CatalogueOutlierThresholds
+from hebog.validation.datasets import (
+    DatasetManifest,
+    DatasetRole,
+    iter_dataset_recipes,
+    load_dataset_manifest,
+)
+from hebog.validation.phase_four_analysis import ratio_values, truth_sets
 
 
 def _script(name: str) -> dict[str, Any]:
     """Load one script without invoking its command-line entry point."""
     root = Path(__file__).parents[3]
     return runpy.run_path(str(root / "scripts" / "benchmark" / name))
+
+
+def _validation_script(name: str) -> dict[str, Any]:
+    """Load one validation script without invoking its CLI."""
+    root = Path(__file__).parents[3]
+    return runpy.run_path(str(root / "scripts" / "validation" / name))
+
+
+def test_paired_audit_uses_an_aggregate_reliability_ratio() -> None:
+    """Whole-image resampling recomputes the canonical ratio of sums."""
+    counts = {
+        "catalogue-reliability": np.asarray(((33.0, 34.0), (33.0, 35.0)))
+    }
+
+    result = ratio_values(counts, np.asarray(((0, 1),), dtype=np.int64))
+
+    assert result["catalogue-reliability"][0] == pytest.approx(66.0 / 69.0)
+
+
+def test_paired_audit_truth_populations_remain_disjoint() -> None:
+    """Point, clear, and blend endpoints use predeclared truth sets."""
+    root = Path(__file__).parents[3]
+    dataset = load_dataset_manifest(
+        root / "config/datasets/phase-4-paired-regression.json"
+    ).datasets[0]
+
+    all_groups, individual, point, clear, blend = truth_sets(dataset)
+
+    assert len(all_groups) == 33
+    assert len(individual) == 32
+    assert len(point) == 8
+    assert len(clear) == 1
+    assert len(blend) == 1
+    assert point.isdisjoint(clear | blend)
+
+
+def test_final_evaluator_refuses_to_overwrite_a_decision(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The one-look entry point cannot replace an existing result."""
+    output = tmp_path / "decision.json"
+    output.write_text("already evaluated\n", encoding="utf-8")
+    namespace = _validation_script("evaluate_phase4_qualification.py")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evaluate_phase4_qualification.py",
+            "--campaign",
+            "campaign.json",
+            "--manifest",
+            "manifest.json",
+            "--dataset-id",
+            "final",
+            "--scientific-contract",
+            "measurement.json",
+            "--scientific-gates",
+            "gates.json",
+            "--comparison-protocol",
+            "protocol.json",
+            "--output",
+            str(output),
+        ],
+    )
+
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        namespace["main"]()
+
+
+def test_phase4r_qualification_freeze_changes_every_field_family(
+    tmp_path: Path,
+) -> None:
+    """The one-look population is more than a new contiguous seed range."""
+    root = Path(__file__).parents[3]
+    template_path = root / "config/datasets/phase-4r-regression-2.json"
+    template = load_dataset_manifest(template_path).datasets[0]
+    namespace = _validation_script("freeze_phase4r_iteration.py")
+    arguments = SimpleNamespace(
+        template=template_path,
+        output=tmp_path / "qualification.json",
+        identifier="phase4r-qualification-256",
+        role="qualification",
+        first_seed=2026170001,
+        realizations=600,
+        provenance="Frozen after named review and before one-look execution.",
+        reflect_x=True,
+        reference_sky_degrees=(318.2, -58.4),
+        pixel_scale_degrees_xy=(-0.00025, 0.00026),
+        wcs_rotation_degrees=44.0,
+        background=-0.00011,
+    )
+
+    document = namespace["_derived_document"](arguments)
+    manifest = DatasetManifest.model_validate(document)
+    frozen = manifest.datasets[0]
+    recipes = iter_dataset_recipes(frozen)
+
+    assert manifest.manifest_id == "phase-4r-qualification"
+    assert frozen.role is DatasetRole.QUALIFICATION
+    assert len(recipes) == 600
+    assert frozen.recipe.sources[0].x_pixel == pytest.approx(
+        frozen.recipe.shape_yx[1] - 1 - template.recipe.sources[0].x_pixel
+    )
+    assert frozen.recipe.sources[
+        0
+    ].rotation_degrees_counterclockwise_from_x == (
+        pytest.approx(
+            (
+                180.0
+                - template.recipe.sources[
+                    0
+                ].rotation_degrees_counterclockwise_from_x
+            )
+            % 180.0
+        )
+    )
+    assert frozen.beam.position_angle_degrees == pytest.approx(57.0)
+    assert frozen.recipe.noise_correlation is not None
+    assert frozen.recipe.noise_correlation.position_angle_degrees == (
+        pytest.approx(57.0)
+    )
+    assert frozen.recipe.noise_rms_fractional_gradient_xy == pytest.approx(
+        (0.1, 0.14)
+    )
+    assert frozen.recipe.invalid_rectangles[0].x_start == 103
+    assert frozen.recipe.invalid_rectangles[0].x_stop == 111
+    assert frozen.wcs.reference_sky_degrees == pytest.approx((318.2, -58.4))
+    assert frozen.wcs.pixel_scale_degrees_xy == pytest.approx(
+        (-0.00025, 0.00026)
+    )
+    assert frozen.wcs.rotation_degrees_counterclockwise == pytest.approx(44.0)
+    assert frozen.recipe.background == pytest.approx(-0.00011)
+    assert frozen.expected_statistics.background_jy_per_beam == pytest.approx(
+        -0.00011
+    )
+
+
+def test_phase4r_replacement_freeze_reflects_vertical_field(
+    tmp_path: Path,
+) -> None:
+    """The approved replacement changes vertical geometry and identity."""
+    root = Path(__file__).parents[3]
+    template_path = root / "config/datasets/phase-4r-qualification.json"
+    template = load_dataset_manifest(template_path).datasets[0]
+    namespace = _validation_script("freeze_phase4r_iteration.py")
+    arguments = SimpleNamespace(
+        template=template_path,
+        output=tmp_path / "qualification-replacement.json",
+        manifest_id="phase-4r-qualification-replacement",
+        identifier="phase4r-qualification-replacement-256",
+        role="qualification",
+        first_seed=2026200001,
+        realizations=600,
+        provenance=(
+            "Frozen after replacement review and before one-look execution."
+        ),
+        reflect_x=False,
+        reflect_y=True,
+        reference_sky_degrees=(126.5, -30.8),
+        pixel_scale_degrees_xy=(-0.00029, 0.00022),
+        wcs_rotation_degrees=71.0,
+        background=-0.00019,
+    )
+
+    document = namespace["_derived_document"](arguments)
+    manifest = DatasetManifest.model_validate(document)
+    frozen = manifest.datasets[0]
+    height = frozen.recipe.shape_yx[0]
+
+    assert manifest.manifest_id == "phase-4r-qualification-replacement"
+    assert frozen.recipe.sources[0].x_pixel == pytest.approx(
+        template.recipe.sources[0].x_pixel
+    )
+    assert frozen.recipe.sources[0].y_pixel == pytest.approx(
+        height - 1 - template.recipe.sources[0].y_pixel
+    )
+    assert frozen.recipe.sources[
+        0
+    ].rotation_degrees_counterclockwise_from_x == pytest.approx(
+        (
+            180.0
+            - template.recipe.sources[
+                0
+            ].rotation_degrees_counterclockwise_from_x
+        )
+        % 180.0
+    )
+    assert frozen.beam.position_angle_degrees == pytest.approx(123.0)
+    assert frozen.recipe.noise_correlation is not None
+    assert frozen.recipe.noise_correlation.position_angle_degrees == (
+        pytest.approx(123.0)
+    )
+    assert frozen.recipe.noise_rms_fractional_gradient_xy == pytest.approx(
+        (0.1, -0.14)
+    )
+    assert frozen.recipe.invalid_rectangles[0].y_start == 148
+    assert frozen.recipe.invalid_rectangles[0].y_stop == 156
+    assert frozen.association_truth_groups[0].reference_position_xy[1] == (
+        pytest.approx(
+            height
+            - 1
+            - template.association_truth_groups[0].reference_position_xy[1]
+        )
+    )
+
+
+def test_phase4s_freezer_builds_the_reviewed_population() -> None:
+    """The exact unseen truth can be reproduced without opening its noise."""
+    namespace = _validation_script("freeze_phase4s_qualification.py")
+
+    manifest = DatasetManifest.model_validate(namespace["_document"]())
+    dataset = manifest.datasets[0]
+    truth_sets_by_name = {
+        stratum.identifier: stratum.source_indices
+        for stratum in dataset.classification_strata
+    }
+
+    assert manifest.manifest_id == "phase-4s-qualification"
+    assert len(iter_dataset_recipes(dataset)) == 800
+    assert len(truth_sets_by_name["shape-unresolved"]) == 8
+    assert len(truth_sets_by_name["shape-marginal-resolved"]) == 16
+    assert len(truth_sets_by_name["shape-clear-resolved"]) == 8
+    assert (
+        len(
+            {
+                (
+                    source.major_sigma_pixels,
+                    source.minor_sigma_pixels,
+                    source.rotation_degrees_counterclockwise_from_x,
+                )
+                for source in dataset.recipe.sources
+            }
+        )
+        >= 25
+    )
+
+
+def test_phase4s_protocol_freezer_binds_population_counts() -> None:
+    """The reviewed endpoint set is derived with explicit manifest units."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase4s_protocol.py")
+
+    document = namespace["_document"](
+        root / "config/contracts/phase-4-paired-noninferiority.json"
+    )
+
+    assert document["contract_id"] == "phase-4s-paired-noninferiority"
+    assert document["realization_count"] == 800
+    assert document["minimum_familywise_interval_exclusion_power"] == 0.9
+    populations = {
+        endpoint["endpoint_id"]: (
+            endpoint["population_unit"],
+            endpoint["observations_per_realization"],
+        )
+        for endpoint in document["binary_endpoints"]
+    }
+    assert populations["compact-completeness"] == (
+        "association-truth-groups",
+        33,
+    )
+    assert populations["point-source-specificity"] == ("point-sources", 8)
+
+
+def test_phase4t_freezer_builds_the_reviewed_confirmation() -> None:
+    """The fresh confirmation has eight point sources in every SNR tier."""
+    namespace = _validation_script("freeze_phase4t_qualification.py")
+
+    manifest = DatasetManifest.model_validate(namespace["_document"]())
+    dataset = manifest.datasets[0]
+    classes = {
+        stratum.identifier: set(stratum.source_indices)
+        for stratum in dataset.classification_strata
+    }
+    validation = {
+        stratum.identifier: set(stratum.source_indices)
+        for stratum in dataset.validation_strata
+    }
+
+    assert manifest.manifest_id == "phase-4t-qualification"
+    assert len(iter_dataset_recipes(dataset)) == 800
+    assert len(dataset.recipe.sources) == 50
+    assert len(dataset.association_truth_groups) == 49
+    assert len(classes["shape-unresolved"]) == 32
+    assert len(classes["shape-marginal-resolved"]) == 8
+    assert len(classes["shape-clear-resolved"]) == 8
+    assert all(
+        len(classes["shape-unresolved"] & validation[f"snr-{snr}"]) == 8
+        for snr in (10, 15, 25, 50)
+    )
+
+
+def test_phase4t_protocol_freezer_binds_absolute_power_population() -> None:
+    """The follow-up protocol retains the viewed effect and frozen margin."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase4t_protocol.py")
+
+    document = namespace["_document"](
+        root / "config/contracts/phase-4s-paired-noninferiority.json"
+    )
+
+    assert document["contract_id"] == "phase-4t-paired-noninferiority"
+    checks = document["absolute_mean_power_checks"]
+    assert len(checks) == 1
+    assert checks[0]["observations_per_realization"] == 8
+    assert checks[0]["anticipated_mean_normalized_residual"] == 0.1062
+    populations = {
+        endpoint["endpoint_id"]: endpoint["observations_per_realization"]
+        for endpoint in document["binary_endpoints"]
+    }
+    assert populations["compact-completeness"] == 49
+    assert populations["point-source-specificity"] == 32
+
+
+def test_phase4u_freezer_builds_varied_unseen_blends() -> None:
+    """The remediation qualification crosses frozen blend geometries."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase4u_qualification.py")
+
+    manifest = DatasetManifest.model_validate(
+        namespace["_document"](
+            root / "config/datasets/phase-4t-qualification.json"
+        )
+    )
+    dataset = manifest.datasets[0]
+    blends = tuple(
+        group
+        for group in dataset.association_truth_groups
+        if group.resolution_class == "unresolved-blend"
+    )
+
+    assert manifest.manifest_id == "phase-4u-qualification"
+    assert len(iter_dataset_recipes(dataset)) == 800
+    assert len(dataset.recipe.sources) == 60
+    assert len(dataset.association_truth_groups) == 54
+    assert len(blends) == 6
+    separations_beams: list[float] = []
+    flux_ratios: list[float] = []
+    beam_angle = np.deg2rad(dataset.beam.position_angle_degrees)
+    beam_major = np.asarray([np.cos(beam_angle), np.sin(beam_angle)])
+    beam_minor = np.asarray([-np.sin(beam_angle), np.cos(beam_angle)])
+    for group in blends:
+        first, second = (
+            dataset.recipe.sources[index] for index in group.source_indices
+        )
+        difference = np.asarray(
+            [
+                second.x_pixel - first.x_pixel,
+                second.y_pixel - first.y_pixel,
+            ]
+        )
+        separations_beams.append(
+            float(
+                np.hypot(
+                    np.dot(difference, beam_major)
+                    / dataset.beam.major_fwhm_pixels,
+                    np.dot(difference, beam_minor)
+                    / dataset.beam.minor_fwhm_pixels,
+                )
+            )
+        )
+        flux_ratios.append(
+            min(
+                first.peak_flux_jy_per_beam,
+                second.peak_flux_jy_per_beam,
+            )
+            / max(
+                first.peak_flux_jy_per_beam,
+                second.peak_flux_jy_per_beam,
+            )
+        )
+    assert sorted(separations_beams) == pytest.approx(
+        [0.45, 0.45, 0.65, 0.65, 0.8, 0.8]
+    )
+    assert sorted(flux_ratios) == pytest.approx([0.5, 0.5, 0.5, 1.0, 1.0, 1.0])
+    assert manifest.model_dump(mode="json") == json.loads(
+        (root / "config/datasets/phase-4u-qualification.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def test_phase4u_protocol_freezer_binds_blend_population() -> None:
+    """The final compact protocol preserves gates and counts all blends."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase4u_protocol.py")
+
+    document = namespace["_document"](
+        root / "config/contracts/phase-4t-paired-noninferiority.json"
+    )
+
+    assert document["contract_id"] == "phase-4u-paired-noninferiority"
+    populations = {
+        endpoint["endpoint_id"]: endpoint["observations_per_realization"]
+        for endpoint in document["binary_endpoints"]
+    }
+    assert populations["compact-completeness"] == 54
+    assert populations["unresolved-group-completeness"] == 6
+    unresolved = next(
+        endpoint
+        for endpoint in document["binary_endpoints"]
+        if endpoint["endpoint_id"] == "unresolved-group-completeness"
+    )
+    assert unresolved["planning_intracluster_correlation"] == 0.02
+    assert all(
+        endpoint["planning_intracluster_correlation"] == 0.02
+        for endpoint in document["binary_endpoints"]
+    )
+    assert (
+        document["absolute_mean_power_checks"][0][
+            "observations_per_realization"
+        ]
+        == 8
+    )
+    assert document == json.loads(
+        (
+            root / "config/contracts/phase-4u-paired-noninferiority.json"
+        ).read_text(encoding="utf-8")
+    )
 
 
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
@@ -41,6 +470,258 @@ def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
     assert configuration(5.0, 3.0)["threshold_island_sigma"] == 3.0
     with pytest.raises(ValueError, match="0 < island <= detection"):
         configuration(3.0, 5.0)
+
+
+def test_phase_four_reference_runner_freezes_exact_rapthor_profile() -> None:
+    """The campaign runner cannot inherit changing PyBDSF defaults."""
+    namespace = _script("run_phase4_pybdsf_campaign.py")
+    configuration: Callable[[int], dict[str, object]] = namespace[
+        "_pybdsf_configuration"
+    ]
+
+    assert configuration(4) == {
+        "adaptive_rms_box": True,
+        "adaptive_thresh": 75.0,
+        "atrous_do": True,
+        "atrous_jmax": 3,
+        "mean_map": "zero",
+        "ncores": 4,
+        "rms_box": [150, 50],
+        "rms_box_bright": [35, 7],
+        "rms_map": True,
+        "thresh": "hard",
+        "thresh_isl": 3.0,
+        "thresh_pix": 5.0,
+    }
+
+
+def test_phase_four_reference_runner_records_failures() -> None:
+    """A PyBDSF exception remains a result rather than a dropped seed."""
+    namespace = _script("run_phase4_pybdsf_campaign.py")
+    capture: Callable[..., Any] = namespace["_failure_from_exception"]
+
+    failure = capture(
+        ValueError("fitting failed"),
+        stage="pybdsf-source-finding",
+        traceback_text="Traceback: fitting failed",
+    )
+
+    assert failure.stage == "pybdsf-source-finding"
+    assert failure.exception_type == "ValueError"
+    assert len(failure.traceback_sha256) == 64
+
+
+def test_phase_four_reference_runner_keeps_failed_seed(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An implementation crash returns a failure row and an auditable log."""
+    namespace = _script("run_phase4_pybdsf_campaign.py")
+    run_realization: Callable[..., Any] = namespace["_run_realization"]
+    root = Path(__file__).parents[3]
+    dataset = load_dataset_manifest(
+        root / "config/datasets/phase-4-regression.json"
+    ).datasets[0]
+    recipe = iter_dataset_recipes(dataset)[0]
+
+    def fail_process_image(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise IndexError("two-pixel atrous island")
+
+    result = run_realization(
+        SimpleNamespace(process_image=fail_process_image),
+        recipe,
+        dataset,
+        tmp_path,
+        namespace["_pybdsf_configuration"](4),
+        implementation_identifier="pybdsf-master",
+        outlier_thresholds=CatalogueOutlierThresholds(
+            position_beams=0.5,
+            peak_flux_fractional_difference=0.5,
+            integrated_flux_fractional_difference=0.5,
+            fitted_axis_fractional_difference=0.5,
+            deconvolved_axis_fractional_difference=1.0,
+        ),
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+    )
+
+    assert result.status == "failure"
+    assert result.seed == recipe.seed
+    assert result.failure is not None
+    assert result.failure.exception_type == "IndexError"
+    assert "two-pixel atrous island" in capsys.readouterr().err
+
+
+def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
+    """The candidate shard cannot inherit changing library defaults."""
+    namespace = _script("run_phase4_hebog_campaign.py")
+    configuration: Callable[[], dict[str, object]] = namespace[
+        "_hebog_configuration"
+    ]
+
+    assert configuration() == {
+        "adaptive_rms": {
+            "candidate_threshold_sigma": 75.0,
+            "influence_radius_pixels": 75.0,
+            "step_yx": [7, 7],
+            "transition_width_pixels": 20.0,
+            "window_shape_yx": [35, 35],
+        },
+        "catalogue": {
+            "deconvolution_axis_significance_sigma": 5.0,
+            "deconvolution_relative_tolerance": 1e-10,
+            "extension_significance_sigma": 5.0,
+            "maximum_catalogue_records": 10000,
+        },
+        "coarse_rms": {
+            "maximum_batch_cells": 32,
+            "step_yx": [50, 50],
+            "window_shape_yx": [150, 150],
+        },
+        "deblending": {
+            "maximum_batch_pixels": 500000,
+            "maximum_compact_bounds_pixels": 250000,
+            "maximum_compact_island_pixels": 100000,
+            "minimum_peak_separation_pixels": 2,
+            "minimum_peak_signal_to_noise": 5.0,
+            "minimum_region_pixels": 7,
+            "minimum_saddle_depth_sigma": 1.0,
+            "target_batch_pixels": 8000,
+        },
+        "executor": "serial",
+        "fitting": {
+            "association_aperture_minimum_fixed_beam_model_fraction": 0.9,
+            "association_aperture_radius_sigma": 3.0,
+            "background_model": "fixed-zero",
+            "center_margin_pixels": 1.0,
+            "context_margin_pixels": 8,
+            "convergence_tolerance": 1e-8,
+            "maximum_amplitude_factor": 5.0,
+            "maximum_axis_ratio": 30.0,
+            "maximum_background_offset_sigma": 3.0,
+            "maximum_function_evaluations": 300,
+            "maximum_information_condition_number": 100000000.0,
+            "maximum_gls_pixels": 512,
+            "maximum_sigma_pixels": 30.0,
+            "model_selection": "beam-or-free",
+            "minimum_fit_pixels": 7,
+            "minimum_sigma_pixels": 0.2,
+            "extension_significance_sigma": 5.0,
+            "pixel_support": "owned-region",
+            "point_estimator": "correlated-gls",
+            "position_estimator": "bounded-context-free",
+        },
+        "image_dtype": "float64",
+        "moment": {
+            "covariance_relative_tolerance": 1e-12,
+            "minimum_shape_pixels": 3,
+        },
+        "rms_statistics": {
+            "clipping_sigma": 3.0,
+            "maximum_iterations": 10,
+            "minimum_samples": 6,
+        },
+        "source_finder": {
+            "detection_threshold_sigma": 5.0,
+            "island_threshold_sigma": 3.0,
+            "minimum_island_pixels": 7,
+        },
+        "tile_core_shape_yx": [128, 128],
+    }
+
+
+def test_phase_four_hebog_runner_bounds_realization_parallelism(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Concurrent images retain a finite explicit campaign resource bound."""
+    namespace = _script("run_phase4_hebog_campaign.py")
+    validate: Callable[[int], int] = namespace["_validate_realization_workers"]
+    realization_results: Callable[..., Any] = namespace["_realization_results"]
+
+    class RecordingPool:
+        """Minimal process-pool substitute exposing the selected bound."""
+
+        maximum_workers: int | None = None
+
+        def __init__(self, *, max_workers: int) -> None:
+            RecordingPool.maximum_workers = max_workers
+
+        def __enter__(self) -> RecordingPool:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            del args
+
+        def map(
+            self,
+            function: Callable[[object], object],
+            work: tuple[object, ...],
+        ) -> tuple[object, ...]:
+            del function
+            return tuple(reversed(work))
+
+    assert validate(1) == 1
+    assert validate(8) == 8
+    with pytest.raises(ValueError, match="between 1 and 32"):
+        validate(True)
+    with pytest.raises(ValueError, match="between 1 and 32"):
+        validate(0)
+    with pytest.raises(ValueError, match="between 1 and 32"):
+        validate(33)
+    monkeypatch.setitem(
+        realization_results.__globals__,
+        "ProcessPoolExecutor",
+        RecordingPool,
+    )
+
+    assert tuple(realization_results(("first", "second"), 8)) == (
+        "second",
+        "first",
+    )
+    assert RecordingPool.maximum_workers == 8
+
+
+def test_phase_four_hebog_runner_keeps_failed_seed(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A candidate exception remains a result rather than a dropped seed."""
+    namespace = _script("run_phase4_hebog_campaign.py")
+    run_realization: Callable[..., Any] = namespace["_run_realization"]
+    root = Path(__file__).parents[3]
+    dataset = load_dataset_manifest(
+        root / "config/datasets/phase-4-regression.json"
+    ).datasets[0]
+    recipe = iter_dataset_recipes(dataset)[0]
+
+    def fail_candidate(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise RuntimeError("candidate fit failed")
+
+    result = run_realization(
+        recipe,
+        dataset,
+        tmp_path,
+        implementation_identifier="hebog",
+        outlier_thresholds=CatalogueOutlierThresholds(
+            position_beams=0.5,
+            peak_flux_fractional_difference=0.5,
+            integrated_flux_fractional_difference=0.5,
+            fitted_axis_fractional_difference=0.5,
+            deconvolved_axis_fractional_difference=1.0,
+        ),
+        maximum_separation_beams=0.5,
+        position_angle_minimum_axis_ratio=1.1,
+        process_recipe=fail_candidate,
+    )
+
+    assert result.status == "failure"
+    assert result.seed == recipe.seed
+    assert result.failure is not None
+    assert result.failure.stage == "hebog-source-finding"
+    assert result.failure.exception_type == "RuntimeError"
+    assert "candidate fit failed" in capsys.readouterr().err
 
 
 def test_directory_identity_excludes_mutable_casa_lock_files(
@@ -261,3 +942,85 @@ def test_phase3_matrix_uses_serial_small_and_dask_representative() -> None:
     assert execution_policy(256) == ("serial", 256)
     assert execution_policy(1024) == ("serial", 1024)
     assert execution_policy(3000) == ("dask", 1000)
+
+
+def test_phase4_benchmark_input_is_deterministic_and_profiled() -> None:
+    """The incremental matrix has five distinct repeatable workloads."""
+    namespace = _script("generate_phase4_input.py")
+    generate_values: Callable[..., Any] = namespace["_generate_values"]
+
+    profiles = (
+        "sparse",
+        "normal",
+        "dense",
+        "blend-heavy",
+        "fit-failure",
+    )
+    values = {profile: generate_values(64, profile) for profile in profiles}
+
+    np.testing.assert_array_equal(
+        values["blend-heavy"],
+        generate_values(64, "blend-heavy"),
+    )
+    assert all(array.shape == (64, 64) for array in values.values())
+    assert all(array.dtype == np.float64 for array in values.values())
+    assert len({array.tobytes() for array in values.values()}) == len(profiles)
+
+
+def test_phase4_benchmark_noise_matches_the_declared_beam_correlation() -> (
+    None
+):
+    """Performance noise exercises the qualified correlated-noise fitter."""
+    namespace = _script("generate_phase4_input.py")
+    generate_noise: Callable[..., Any] = namespace[
+        "_generate_correlated_noise"
+    ]
+
+    noise = generate_noise(256, np.random.default_rng(20260805))
+
+    assert float(np.std(noise)) == pytest.approx(0.0002)
+    assert float(np.corrcoef(noise[:, :-1].flat, noise[:, 1:].flat)[0, 1]) > (
+        0.9
+    )
+
+
+def test_phase4_matrix_protocol_and_execution_policy_are_frozen() -> None:
+    """The closure runner covers every reviewed size/profile cell."""
+    namespace = _script("run_phase4_matrix.py")
+    load_protocol: Callable[[Path], Any] = namespace["_load_protocol"]
+    execution_policy: Callable[[int, Any], tuple[str, int]] = namespace[
+        "_execution_policy"
+    ]
+    protocol = load_protocol(
+        Path("config/benchmarks/phase-4-performance.json")
+    )
+
+    assert protocol.sizes == (256, 512, 1024, 3000)
+    assert protocol.profiles == (
+        "sparse",
+        "normal",
+        "dense",
+        "blend-heavy",
+        "fit-failure",
+    )
+    assert protocol.warmups == 1
+    assert protocol.repetitions == 5
+    assert protocol.workers == 4
+    assert execution_policy(1024, protocol) == ("serial", 1024)
+    assert execution_policy(3000, protocol) == ("dask", 1000)
+
+
+def test_phase4_benchmark_reports_incremental_stage_boundaries() -> None:
+    """Measurement and output allocations remain separately reviewable."""
+    namespace = _script("measure_phase4_catalogue.py")
+    stage_names: Callable[[bool], tuple[str, ...]] = namespace["_stage_names"]
+
+    assert stage_names(True) == (
+        "compact-measurement-fitting",
+        "catalogue-reduction",
+        "rapthor-catalogue-materialization",
+    )
+    assert stage_names(False) == (
+        "compact-measurement-fitting",
+        "catalogue-reduction",
+    )

@@ -1,9 +1,8 @@
 # Evidence documents
 
-Phase 0 benchmark and scientific-comparison outputs use the strict versioned
-models in `hebog.validation.evidence`. These documents preserve measurements
-and provenance without implying that an exploratory run has passed a release
-gate.
+Benchmark and scientific-validation outputs use the strict versioned models
+in `hebog.validation.evidence`. These documents preserve measurements and
+provenance without implying that an exploratory run has passed a release gate.
 
 Every document contains:
 
@@ -61,6 +60,96 @@ document embeds the complete reports for those products. Released PyBDSF and
 pinned PyBDSF `master` therefore produce separate documents even when they use
 the same dataset and candidate output.
 
+## Paired scientific-campaign evidence
+
+A scientific-campaign document compares Hebog and every reference on the same
+image realization. It declares one candidate first, names every implementation
+independently of its package name, and requires one outcome from every
+implementation for every seed. A reference failure is retained as a structured
+failure rather than dropping the seed or publishing a partial result.
+
+Successful outcomes retain one deterministic row for every matched source,
+unmatched truth source, and unmatched candidate. Rows include truth strata,
+classification and quality information, flux and position differences,
+fitted and deconvolved position-angle differences where reference truth is
+eligible, independent catastrophic flags, the governed catastrophic decision,
+and all available normalized residuals. Successful implementations must
+expose the same truth identifiers. This makes paired non-inferiority analysis
+auditable and prevents aggregate pass/fail counts from hiding which sources
+changed.
+
+Association rows separately preserve every observable truth group, including
+unresolved blends, with its match decision, group strata, separation, and
+integrated-flux difference. Group metrics use the raw fitted total; individual
+unresolved catalogue rows use Rapthor's documented peak-as-total compatibility
+view. This distinction keeps unresolved-group gates scientifically unchanged.
+
+Each isolated environment first writes a
+`CampaignImplementationEvidence` shard. A shard binds the complete dataset
+record and seed population, shared scientific contracts, paired-comparison
+protocol, exact software and execution configuration, elapsed diagnostic time,
+and every result or failure. The campaign compiler requires identical shard
+provenance and seeds and refuses to infer a missing result.
+The directions, practical margins, clustered interval method, failure policy,
+and stopping rule come from the separately reviewed
+[Phase 4 paired non-inferiority protocol](phase-4-paired-noninferiority.md),
+never from an inspected campaign result.
+The maintained Hebog runner exercises the complete bounded serial compact path
+and converts its pipeline-neutral catalogue directly to comparison rows. The
+two PyBDSF environments use the matching reference runner. This keeps candidate
+and reference execution isolated while sharing provenance hashing, failure
+capture, truth diagnostics, and compilation rules.
+
+Use `hebog.validation.diagnostics.source_pair_diagnostics` to derive these
+rows from the independent catalogue comparison report. It deliberately shares
+the normalized-residual calculation used by the aggregate uncertainty report,
+so per-source and campaign-level statistics cannot silently diverge.
+
+## Phase 4 one-look decision evidence
+
+The final evaluator consumes a compiled campaign, the exact frozen dataset,
+the ordered scientific-contract set, the scientific gates, and the reviewed
+paired protocol. It verifies every checksum and seed before scoring anything.
+It then emits one strict `phase-4-qualification-decision` document containing:
+
+- every signed Hebog-versus-released-PyBDSF endpoint estimate and one-sided
+  95% SciPy BCa upper limit;
+- a report-only secondary comparison with pinned PyBDSF `master` wherever that
+  implementation completed;
+- every absolute held-out catalogue, shape, association, unresolved-group,
+  catastrophic, and entire-interval uncertainty result;
+- the named conjunctions protecting Hebog's stronger scientific results; and
+- every failed seed under its reviewed `qualification-fails` or
+  `record-and-continue` policy.
+
+Individual-source 95th-percentile tails retain their contractually declared
+`report-only` role; unresolved-group tails remain gates. An otherwise
+undefined BCa result uses `[point, point]` only when its complete finite
+bootstrap distribution is exactly equal to the finite observed point estimate.
+A missing required field or every other non-finite result is recorded as
+`indeterminate` and fails closed. The signed endpoint estimate remains visible
+but is not itself a gate.
+
+Run the evaluator only after all isolated final shards have been compiled:
+
+```console
+python scripts/validation/evaluate_phase4_qualification.py \
+  --campaign benchmark-results/<campaign>-compiled.json \
+  --manifest config/datasets/phase-4-final-qualification.json \
+  --dataset-id phase4-final-paired-qualification-512 \
+  --scientific-contract config/contracts/phase-4-measurement.json \
+  --scientific-contract config/contracts/phase-4-scientific-gates.json \
+  --scientific-gates config/contracts/phase-4-scientific-gates.json \
+  --comparison-protocol \
+    config/contracts/phase-4-paired-noninferiority.json \
+  --output benchmark-results/<campaign>-decision.json
+```
+
+The command refuses to replace an existing output. Its `exploratory` evidence
+status means the machine decision still requires the normal human evidence
+review before it is promoted as a release conclusion; it does not permit a
+second look or a replacement population.
+
 ## Writing and loading evidence
 
 Use the validated atomic writer rather than assembling JSON dictionaries:
@@ -103,6 +192,10 @@ ignored; the committed records are complete typed evidence rather than copied
 console summaries.
 
 ::: hebog.validation.evidence
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.validation.diagnostics
     options:
       show_symbol_type_toc: true
 

@@ -1,0 +1,1114 @@
+{
+  "datasets": [
+    {
+      "association_group_strata": [
+        {
+          "group_identifiers": [
+            "blend-00001"
+          ],
+          "identifier": "unresolved-blend"
+        }
+      ],
+      "association_truth_groups": [
+        {
+          "identifier": "source-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.03478675888129861,
+          "reference_position_xy": [
+            80.25,
+            80.75
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            0
+          ]
+        },
+        {
+          "identifier": "source-00002",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.05981592412434966,
+          "reference_position_xy": [
+            256.5,
+            80.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            1
+          ]
+        },
+        {
+          "identifier": "source-00003",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.08143008158104745,
+          "reference_position_xy": [
+            431.75000000000006,
+            80.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            2
+          ]
+        },
+        {
+          "identifier": "source-00004",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.05218013832194792,
+          "reference_position_xy": [
+            80.5,
+            176.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            3
+          ]
+        },
+        {
+          "identifier": "blend-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.13354910370410208,
+          "reference_position_xy": [
+            255.88285109386027,
+            176.23535638673252
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            4,
+            5
+          ]
+        },
+        {
+          "identifier": "source-00007",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.09236282401553991,
+          "reference_position_xy": [
+            80.75,
+            272.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            6
+          ]
+        },
+        {
+          "identifier": "source-00008",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.17907078125461823,
+          "reference_position_xy": [
+            256.25,
+            272.75
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            7
+          ]
+        },
+        {
+          "identifier": "source-00009",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.27646015351590186,
+          "reference_position_xy": [
+            432.5,
+            272.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            8
+          ]
+        },
+        {
+          "identifier": "source-00010",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.1739337944064931,
+          "reference_position_xy": [
+            80.25,
+            368.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            9
+          ]
+        },
+        {
+          "identifier": "source-00011",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.3845309407993907,
+          "reference_position_xy": [
+            256.75,
+            368.25
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            10
+          ]
+        },
+        {
+          "identifier": "source-00012",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.47752208334564855,
+          "reference_position_xy": [
+            510.25,
+            460.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            11
+          ]
+        },
+        {
+          "identifier": "source-00013",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.03478675888129861,
+          "reference_position_xy": [
+            1.5,
+            35
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            12
+          ]
+        },
+        {
+          "identifier": "source-00014",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.03478675888129861,
+          "reference_position_xy": [
+            140,
+            1.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            13
+          ]
+        },
+        {
+          "identifier": "source-00015",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.03478675888129861,
+          "reference_position_xy": [
+            340,
+            1.5
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            14
+          ]
+        },
+        {
+          "identifier": "source-00016",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.03478675888129861,
+          "reference_position_xy": [
+            1.5,
+            235
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            15
+          ]
+        },
+        {
+          "identifier": "source-00017",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.05981592412434966,
+          "reference_position_xy": [
+            510,
+            135
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            16
+          ]
+        },
+        {
+          "identifier": "source-00018",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.12214512237157117,
+          "reference_position_xy": [
+            510,
+            335
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            17
+          ]
+        },
+        {
+          "identifier": "source-00019",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.07068583470577033,
+          "reference_position_xy": [
+            240,
+            510
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            18
+          ]
+        },
+        {
+          "identifier": "source-00020",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10744246875277091,
+          "reference_position_xy": [
+            40,
+            35
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            19
+          ]
+        },
+        {
+          "identifier": "source-00021",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.08972388618652448,
+          "reference_position_xy": [
+            140,
+            35
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            20
+          ]
+        },
+        {
+          "identifier": "source-00022",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.12214512237157117,
+          "reference_position_xy": [
+            240,
+            35
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            21
+          ]
+        },
+        {
+          "identifier": "source-00023",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.07068583470577033,
+          "reference_position_xy": [
+            340,
+            35
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            22
+          ]
+        },
+        {
+          "identifier": "source-00024",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10744246875277091,
+          "reference_position_xy": [
+            440,
+            35
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            23
+          ]
+        },
+        {
+          "identifier": "source-00025",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.14953981031087415,
+          "reference_position_xy": [
+            40,
+            135
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            24
+          ]
+        },
+        {
+          "identifier": "source-00026",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.20357520395261863,
+          "reference_position_xy": [
+            140,
+            135
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            25
+          ]
+        },
+        {
+          "identifier": "source-00027",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.11780972450961724,
+          "reference_position_xy": [
+            240,
+            135
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            26
+          ]
+        },
+        {
+          "identifier": "source-00028",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.17907078125461823,
+          "reference_position_xy": [
+            340,
+            135
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            27
+          ]
+        },
+        {
+          "identifier": "source-00029",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.14953981031087415,
+          "reference_position_xy": [
+            440,
+            135
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            28
+          ]
+        },
+        {
+          "identifier": "source-00030",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.40715040790523727,
+          "reference_position_xy": [
+            40,
+            235
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            29
+          ]
+        },
+        {
+          "identifier": "source-00031",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.23561944901923448,
+          "reference_position_xy": [
+            140,
+            235
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            30
+          ]
+        },
+        {
+          "identifier": "source-00032",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.35814156250923646,
+          "reference_position_xy": [
+            240,
+            235
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            31
+          ]
+        },
+        {
+          "identifier": "source-00033",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.2990796206217483,
+          "reference_position_xy": [
+            340,
+            235
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            32
+          ]
+        },
+        {
+          "identifier": "source-00034",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.40715040790523727,
+          "reference_position_xy": [
+            440,
+            235
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            33
+          ]
+        }
+      ],
+      "beam": {
+        "major_fwhm_pixels": 4.8,
+        "minor_fwhm_pixels": 3.2,
+        "position_angle_degrees": 33.0
+      },
+      "classification_strata": [
+        {
+          "identifier": "shape-unresolved",
+          "source_indices": [
+            0,
+            3,
+            6,
+            9,
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "identifier": "shape-clear-resolved",
+          "source_indices": [
+            8
+          ]
+        },
+        {
+          "identifier": "shape-marginal-resolved",
+          "source_indices": [
+            1,
+            2,
+            7,
+            10,
+            11,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ]
+        }
+      ],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.00012,
+        "finite_fraction": 0.9993896484375,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase4-unseen-extension-aware-measurement-qualification-512",
+      "noise_realization_seeds": [
+        2026087002,
+        2026087003,
+        2026087004,
+        2026087005,
+        2026087006,
+        2026087007,
+        2026087008,
+        2026087009,
+        2026087010,
+        2026087011,
+        2026087012,
+        2026087013,
+        2026087014,
+        2026087015,
+        2026087016,
+        2026087017,
+        2026087018,
+        2026087019,
+        2026087020,
+        2026087021,
+        2026087022,
+        2026087023,
+        2026087024,
+        2026087025,
+        2026087026,
+        2026087027,
+        2026087028,
+        2026087029,
+        2026087030,
+        2026087031,
+        2026087032,
+        2026087033,
+        2026087034,
+        2026087035,
+        2026087036,
+        2026087037,
+        2026087038,
+        2026087039,
+        2026087040,
+        2026087041,
+        2026087042,
+        2026087043,
+        2026087044,
+        2026087045,
+        2026087046,
+        2026087047,
+        2026087048,
+        2026087049,
+        2026087050,
+        2026087051,
+        2026087052,
+        2026087053,
+        2026087054,
+        2026087055,
+        2026087056,
+        2026087057,
+        2026087058,
+        2026087059,
+        2026087060,
+        2026087061,
+        2026087062,
+        2026087063,
+        2026087064,
+        2026087065,
+        2026087066,
+        2026087067,
+        2026087068,
+        2026087069,
+        2026087070,
+        2026087071,
+        2026087072,
+        2026087073,
+        2026087074,
+        2026087075,
+        2026087076,
+        2026087077,
+        2026087078,
+        2026087079,
+        2026087080,
+        2026087081,
+        2026087082,
+        2026087083,
+        2026087084,
+        2026087085,
+        2026087086,
+        2026087087,
+        2026087088,
+        2026087089,
+        2026087090,
+        2026087091,
+        2026087092,
+        2026087093,
+        2026087094,
+        2026087095,
+        2026087096,
+        2026087097,
+        2026087098,
+        2026087099,
+        2026087100,
+        2026087101,
+        2026087102,
+        2026087103,
+        2026087104,
+        2026087105,
+        2026087106,
+        2026087107,
+        2026087108,
+        2026087109,
+        2026087110,
+        2026087111,
+        2026087112,
+        2026087113,
+        2026087114,
+        2026087115,
+        2026087116,
+        2026087117,
+        2026087118,
+        2026087119,
+        2026087120,
+        2026087121,
+        2026087122,
+        2026087123,
+        2026087124,
+        2026087125,
+        2026087126,
+        2026087127,
+        2026087128,
+        2026087129,
+        2026087130,
+        2026087131,
+        2026087132,
+        2026087133,
+        2026087134,
+        2026087135,
+        2026087136,
+        2026087137,
+        2026087138,
+        2026087139,
+        2026087140,
+        2026087141,
+        2026087142,
+        2026087143,
+        2026087144,
+        2026087145,
+        2026087146,
+        2026087147,
+        2026087148,
+        2026087149,
+        2026087150,
+        2026087151,
+        2026087152,
+        2026087153,
+        2026087154,
+        2026087155,
+        2026087156,
+        2026087157,
+        2026087158,
+        2026087159,
+        2026087160,
+        2026087161,
+        2026087162,
+        2026087163,
+        2026087164,
+        2026087165,
+        2026087166,
+        2026087167,
+        2026087168,
+        2026087169,
+        2026087170,
+        2026087171,
+        2026087172,
+        2026087173,
+        2026087174,
+        2026087175,
+        2026087176,
+        2026087177,
+        2026087178,
+        2026087179,
+        2026087180,
+        2026087181,
+        2026087182,
+        2026087183,
+        2026087184,
+        2026087185,
+        2026087186,
+        2026087187,
+        2026087188,
+        2026087189,
+        2026087190,
+        2026087191,
+        2026087192,
+        2026087193,
+        2026087194,
+        2026087195,
+        2026087196,
+        2026087197,
+        2026087198,
+        2026087199,
+        2026087200
+      ],
+      "provenance": "Second replacement Phase 4 unseen qualification truth frozen after the first powered campaign was inspected and before any extension-classification correction or result from this campaign was produced.",
+      "purpose": "Unseen compact measurement population with powered SNR, point-source specificity, clear-extension recovery, marginal-extension reporting, unresolved-group, edge, invalid-pixel, and varying-noise evidence.",
+      "recipe": {
+        "background": -0.00012,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [
+          {
+            "x_start": 300,
+            "x_stop": 308,
+            "y_start": 300,
+            "y_stop": 320
+          }
+        ],
+        "noise_correlation": {
+          "major_fwhm_pixels": 4.8,
+          "minor_fwhm_pixels": 3.2,
+          "position_angle_degrees": 33.0,
+          "truncation_sigma": 4.0
+        },
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          0.12,
+          -0.08
+        ],
+        "seed": 2026087001,
+        "shape_yx": [
+          512,
+          512
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
+            "x_pixel": 80.25,
+            "y_pixel": 80.75
+          },
+          {
+            "major_sigma_pixels": 2.8,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 70.0,
+            "x_pixel": 256.5,
+            "y_pixel": 80.25
+          },
+          {
+            "major_sigma_pixels": 3.6,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 125.0,
+            "x_pixel": 431.75,
+            "y_pixel": 80.5
+          },
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
+            "x_pixel": 80.5,
+            "y_pixel": 176.25
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 15.0,
+            "x_pixel": 254.0,
+            "y_pixel": 176.0
+          },
+          {
+            "major_sigma_pixels": 2.3,
+            "minor_sigma_pixels": 1.45,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 105.0,
+            "x_pixel": 258.0,
+            "y_pixel": 176.5
+          },
+          {
+            "major_sigma_pixels": 2.1,
+            "minor_sigma_pixels": 1.4,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 40.0,
+            "x_pixel": 80.75,
+            "y_pixel": 272.5
+          },
+          {
+            "major_sigma_pixels": 3.0,
+            "minor_sigma_pixels": 1.9,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 90.0,
+            "x_pixel": 256.25,
+            "y_pixel": 272.75
+          },
+          {
+            "major_sigma_pixels": 4.0,
+            "minor_sigma_pixels": 2.2,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 145.0,
+            "x_pixel": 432.5,
+            "y_pixel": 272.25
+          },
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 33.0,
+            "x_pixel": 80.25,
+            "y_pixel": 368.5
+          },
+          {
+            "major_sigma_pixels": 3.4,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 60.0,
+            "x_pixel": 256.75,
+            "y_pixel": 368.25
+          },
+          {
+            "major_sigma_pixels": 3.8,
+            "minor_sigma_pixels": 2.0,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 120.0,
+            "x_pixel": 510.25,
+            "y_pixel": 460.5
+          },
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 33,
+            "x_pixel": 1.5,
+            "y_pixel": 35
+          },
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 33,
+            "x_pixel": 140,
+            "y_pixel": 1.5
+          },
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 33,
+            "x_pixel": 340,
+            "y_pixel": 1.5
+          },
+          {
+            "major_sigma_pixels": 2.0383723207,
+            "minor_sigma_pixels": 1.3580651027,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 33,
+            "x_pixel": 1.5,
+            "y_pixel": 235
+          },
+          {
+            "major_sigma_pixels": 2.8,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 70,
+            "x_pixel": 510,
+            "y_pixel": 135
+          },
+          {
+            "major_sigma_pixels": 3.6,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 125,
+            "x_pixel": 510,
+            "y_pixel": 335
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 15,
+            "x_pixel": 240,
+            "y_pixel": 510
+          },
+          {
+            "major_sigma_pixels": 3,
+            "minor_sigma_pixels": 1.9,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 90,
+            "x_pixel": 40,
+            "y_pixel": 35
+          },
+          {
+            "major_sigma_pixels": 2.8,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 70,
+            "x_pixel": 140,
+            "y_pixel": 35
+          },
+          {
+            "major_sigma_pixels": 3.6,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 125,
+            "x_pixel": 240,
+            "y_pixel": 35
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 15,
+            "x_pixel": 340,
+            "y_pixel": 35
+          },
+          {
+            "major_sigma_pixels": 3,
+            "minor_sigma_pixels": 1.9,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 90,
+            "x_pixel": 440,
+            "y_pixel": 35
+          },
+          {
+            "major_sigma_pixels": 2.8,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 70,
+            "x_pixel": 40,
+            "y_pixel": 135
+          },
+          {
+            "major_sigma_pixels": 3.6,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 125,
+            "x_pixel": 140,
+            "y_pixel": 135
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 15,
+            "x_pixel": 240,
+            "y_pixel": 135
+          },
+          {
+            "major_sigma_pixels": 3,
+            "minor_sigma_pixels": 1.9,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 90,
+            "x_pixel": 340,
+            "y_pixel": 135
+          },
+          {
+            "major_sigma_pixels": 2.8,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 70,
+            "x_pixel": 440,
+            "y_pixel": 135
+          },
+          {
+            "major_sigma_pixels": 3.6,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 125,
+            "x_pixel": 40,
+            "y_pixel": 235
+          },
+          {
+            "major_sigma_pixels": 2.5,
+            "minor_sigma_pixels": 1.5,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 15,
+            "x_pixel": 140,
+            "y_pixel": 235
+          },
+          {
+            "major_sigma_pixels": 3,
+            "minor_sigma_pixels": 1.9,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 90,
+            "x_pixel": 240,
+            "y_pixel": 235
+          },
+          {
+            "major_sigma_pixels": 2.8,
+            "minor_sigma_pixels": 1.7,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 70,
+            "x_pixel": 340,
+            "y_pixel": 235
+          },
+          {
+            "major_sigma_pixels": 3.6,
+            "minor_sigma_pixels": 1.8,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 125,
+            "x_pixel": 440,
+            "y_pixel": 235
+          }
+        ]
+      },
+      "recipe_sha256": "54657fb15360afbbc2536667aec37e3f4b9b033f756633a82feec57a2a14ca49",
+      "redistribution": "generated-locally",
+      "role": "qualification",
+      "validation_strata": [
+        {
+          "identifier": "snr-10",
+          "source_indices": [
+            0,
+            1,
+            2,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "identifier": "snr-15",
+          "source_indices": [
+            3,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ]
+        },
+        {
+          "identifier": "snr-25",
+          "source_indices": [
+            6,
+            7,
+            8,
+            24,
+            25,
+            26,
+            27,
+            28
+          ]
+        },
+        {
+          "identifier": "snr-50",
+          "source_indices": [
+            9,
+            10,
+            11,
+            29,
+            30,
+            31,
+            32,
+            33
+          ]
+        },
+        {
+          "identifier": "shape-unresolved",
+          "source_indices": [
+            0,
+            3,
+            6,
+            9,
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "identifier": "shape-clear-resolved",
+          "source_indices": [
+            2,
+            8,
+            10,
+            11,
+            25,
+            29,
+            31,
+            33
+          ]
+        },
+        {
+          "identifier": "shape-marginal-resolved",
+          "source_indices": [
+            1,
+            7,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            26,
+            27,
+            28,
+            30,
+            32
+          ]
+        },
+        {
+          "identifier": "edge",
+          "source_indices": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        }
+      ],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00024,
+          0.00027
+        ],
+        "reference_pixel_xy": [
+          255.5,
+          255.5
+        ],
+        "reference_sky_degrees": [
+          47.25,
+          -18.5
+        ],
+        "rotation_degrees_counterclockwise": 71.0
+      }
+    }
+  ],
+  "manifest_id": "phase-4-qualification",
+  "schema_version": 2
+}

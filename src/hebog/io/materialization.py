@@ -39,6 +39,7 @@ from hebog.io.base import ImageBounds, ImageWindow
 from hebog.io.fits import FitsImageSource, InvalidFitsImageError
 
 _CONTENT_SCHEMA_VERSION = 1
+_CATALOGUE_SCHEMA_VERSION = 3
 _IMAGE_DIMENSIONS = 2
 _IMAGE_ROLES = {"rms": "RMS", "source-filtering-mask": "MASK"}
 _IMAGE_MEDIA_TYPE = "image/fits"
@@ -82,7 +83,11 @@ _MEASURED_COLUMNS = (
     "DECONVOLVED_POSITION_ANGLE_ERROR",
     "QUALITY_FLAGS",
 )
-_SOURCE_COLUMNS = ("SOURCE_ID", *_MEASURED_COLUMNS)
+_SOURCE_COLUMNS = (
+    "SOURCE_ID",
+    *_MEASURED_COLUMNS,
+    "ASSOCIATION_APERTURE_FLUX",
+)
 _COMPONENT_COLUMNS = (
     "GAUSSIAN_COMPONENT_ID",
     "SOURCE_ID",
@@ -103,6 +108,7 @@ _CATALOGUE_COLUMN_UNITS: dict[str, str | None] = {
     "DECLINATION_ERROR": "deg",
     "PEAK_FLUX": "Jy/beam",
     "PEAK_FLUX_ERROR": "Jy/beam",
+    "ASSOCIATION_APERTURE_FLUX": "Jy",
     "SPECTRAL_KIND": None,
     "REFERENCE_FREQUENCY": "Hz",
     "SPECTRAL_COEFFICIENTS": None,
@@ -165,7 +171,11 @@ def _product_record(
         byte_count=byte_count,
         content_sha256=content_sha256,
         scientific_status=scientific_status,
-        content_schema_version=_CONTENT_SCHEMA_VERSION,
+        content_schema_version=(
+            _CATALOGUE_SCHEMA_VERSION
+            if role == "source-catalogue"
+            else _CONTENT_SCHEMA_VERSION
+        ),
     )
 
 
@@ -183,7 +193,12 @@ def _resolve_product_path(
             f"expected {expected_role} product role, got "
             f"{product.product_role}"
         )
-    if product.content_schema_version != _CONTENT_SCHEMA_VERSION:
+    expected_schema_version = (
+        _CATALOGUE_SCHEMA_VERSION
+        if expected_role == "source-catalogue"
+        else _CONTENT_SCHEMA_VERSION
+    )
+    if product.content_schema_version != expected_schema_version:
         raise UnsupportedMaterializedProductError(
             f"unsupported materialized product schema: "
             f"{product.content_schema_version}"
@@ -300,6 +315,8 @@ def _shape_values(
 def _shape_columns(
     prefix: str,
     values: Sequence[GaussianShape | None],
+    *,
+    major_only_values: Sequence[float | None] | None = None,
 ) -> list[fits.Column]:
     """Build the six canonical columns for optional Gaussian ellipses."""
     fields = (
@@ -310,14 +327,26 @@ def _shape_columns(
         ("MINOR_ERROR", "minor_fwhm_error_degrees", "deg"),
         ("POSITION_ANGLE_ERROR", "position_angle_error_degrees", "deg"),
     )
-    return [
-        _float_column(
-            f"{prefix}_{suffix}",
-            _shape_values(values, attribute),
-            unit=unit,
+    columns: list[fits.Column] = []
+    for suffix, attribute, unit in fields:
+        column_values = _shape_values(values, attribute)
+        if suffix == "MAJOR" and major_only_values is not None:
+            column_values = [
+                major_only if shape is None else shape.major_fwhm_degrees
+                for shape, major_only in zip(
+                    values,
+                    major_only_values,
+                    strict=True,
+                )
+            ]
+        columns.append(
+            _float_column(
+                f"{prefix}_{suffix}",
+                column_values,
+                unit=unit,
+            )
         )
-        for suffix, attribute, unit in fields
-    ]
+    return columns
 
 
 def _spectral_coefficient_column(
@@ -407,7 +436,13 @@ def _measured_columns(
         ),
         _spectral_coefficient_column(spectra),
         *_shape_columns("FITTED", fitted),
-        *_shape_columns("DECONVOLVED", deconvolved),
+        *_shape_columns(
+            "DECONVOLVED",
+            deconvolved,
+            major_only_values=[
+                value.deconvolved_major_fwhm_degrees for value in values
+            ],
+        ),
         _string_column(
             "QUALITY_FLAGS",
             [",".join(value.quality_flags) for value in values],
@@ -417,10 +452,10 @@ def _measured_columns(
 
 
 def _catalogue_hdus(catalogue: SourceCatalogue) -> fits.HDUList:
-    """Serialize one internal catalogue into exact version-one FITS HDUs."""
+    """Serialize one internal catalogue into exact version-two FITS HDUs."""
     primary = fits.PrimaryHDU()
     primary.header["HBGROLE"] = "CATALOGUE"
-    primary.header["HBGSCHE"] = _CONTENT_SCHEMA_VERSION
+    primary.header["HBGSCHE"] = _CATALOGUE_SCHEMA_VERSION
     primary.header["CATID"] = catalogue.catalogue_id
     primary.header["HBGFRAME"] = catalogue.coordinate_frame
     primary.header["HBGEPCH"] = catalogue.position_epoch
@@ -464,6 +499,14 @@ def _catalogue_hdus(catalogue: SourceCatalogue) -> fits.HDUList:
             [value.source_id for value in catalogue.sources],
         ),
         *_measured_columns(catalogue.sources),
+        _float_column(
+            "ASSOCIATION_APERTURE_FLUX",
+            [
+                value.association_aperture_integrated_flux_jy
+                for value in catalogue.sources
+            ],
+            unit="Jy",
+        ),
     ]
     component_columns = [
         _string_column(
@@ -556,6 +599,19 @@ def _measured_fields(row: Any) -> dict[str, Any]:
     """Reconstruct shared measured-object fields from one table row."""
     coefficients = _spectral_coefficients_from_row(row)
     quality_flags_text = _text(row["QUALITY_FLAGS"])
+    deconvolved_major = _optional_float(row["DECONVOLVED_MAJOR"])
+    deconvolved_minor = _optional_float(row["DECONVOLVED_MINOR"])
+    deconvolved_angle = _optional_float(row["DECONVOLVED_POSITION_ANGLE"])
+    major_only = (
+        deconvolved_major
+        if deconvolved_major is not None
+        and deconvolved_minor is None
+        and deconvolved_angle is None
+        else None
+    )
+    deconvolved_shape = (
+        None if major_only is not None else _shape_from_row(row, "DECONVOLVED")
+    )
     return {
         "island_id": _text(row["ISLAND_ID"]),
         "position": SkyPosition(
@@ -587,7 +643,8 @@ def _measured_fields(row: Any) -> dict[str, Any]:
             reference_frequency_hz=float(row["REFERENCE_FREQUENCY"]),
             coefficients=coefficients,
         ),
-        "deconvolved_shape": _shape_from_row(row, "DECONVOLVED"),
+        "deconvolved_shape": deconvolved_shape,
+        "deconvolved_major_fwhm_degrees": major_only,
         "quality_flags": (
             tuple(quality_flags_text.split(",")) if quality_flags_text else ()
         ),
@@ -595,11 +652,11 @@ def _measured_fields(row: Any) -> dict[str, Any]:
 
 
 def _require_catalogue_structure(hdus: fits.HDUList) -> None:
-    """Require exact version-one HDUs and column names."""
+    """Require exact version-two HDUs and column names."""
     expected_hdus = ("PRIMARY", "ISLANDS", "SOURCES", "GAUSSIAN_COMPONENTS")
     if tuple(hdu.name for hdu in hdus) != expected_hdus:
         raise InvalidMaterializedProductError(
-            "catalogue FITS structure does not match schema version 1"
+            "catalogue FITS structure does not match schema version 3"
         )
     expected_columns = (
         _ISLAND_COLUMNS,
@@ -644,7 +701,7 @@ def read_catalogue_fits_product(
         with fits.open(path, mode="readonly", memmap=False) as hdus:
             header = hdus[0].header
             schema_version = header.get("HBGSCHE")
-            if schema_version != _CONTENT_SCHEMA_VERSION:
+            if schema_version != _CATALOGUE_SCHEMA_VERSION:
                 raise UnsupportedMaterializedProductError(
                     f"unsupported catalogue content schema: {schema_version}"
                 )
@@ -670,6 +727,9 @@ def read_catalogue_fits_product(
                 SourceCandidate(
                     source_id=_text(row["SOURCE_ID"]),
                     fitted_shape=_shape_from_row(row, "FITTED"),
+                    association_aperture_integrated_flux_jy=(
+                        _optional_float(row["ASSOCIATION_APERTURE_FLUX"])
+                    ),
                     **_measured_fields(row),
                 )
                 for row in hdus[2].data

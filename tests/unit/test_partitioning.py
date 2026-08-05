@@ -37,6 +37,24 @@ def test_small_image_uses_one_tile_with_clipped_halo() -> None:
     assert pickle.loads(pickle.dumps(manifest)) == manifest
 
 
+def test_bounds_expansion_is_clipped_to_the_logical_image() -> None:
+    """Fit context grows uniformly without crossing image edges."""
+    bounds = ImageBounds(2, 5, 8, 12)
+
+    assert bounds.expanded(3, (10, 13)) == ImageBounds(0, 8, 5, 13)
+    assert bounds.expanded(0, (10, 13)) == bounds
+
+
+@pytest.mark.parametrize("margin", [-1, True, 1.5])
+def test_bounds_expansion_rejects_invalid_margins(margin: object) -> None:
+    """Context sizes cannot become negative or non-integral bounds."""
+    with pytest.raises(ValueError, match="non-negative integer"):
+        ImageBounds(2, 5, 8, 12).expanded(
+            margin,  # pyright: ignore[reportArgumentType]
+            (10, 13),
+        )
+
+
 def test_many_tiles_cover_every_pixel_once_and_clip_halos() -> None:
     """Row-major cores partition the plane while read halos may overlap."""
     manifest = plan_image_partitions(

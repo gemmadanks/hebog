@@ -15,7 +15,7 @@ import numpy.typing as npt
 from astropy.io import fits
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from hebog.validation.comparison import CatalogueSource
+from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
 from hebog.validation.evidence import DatasetIdentity, SoftwareIdentity
 
 _SHA256_PATTERN = r"^[0-9a-f]{64}$"
@@ -199,8 +199,33 @@ def product_set_by_reference(
 
 
 def load_pybdsf_catalogue(path: Path) -> tuple[CatalogueSource, ...]:
-    """Read the canonical catalogue fields used by scientific comparison."""
+    """Read governed PyBDSF source, shape, association, and error fields."""
     table = cast(npt.NDArray[np.void], fits.getdata(path, ext=1))
+
+    def optional_positive(row: np.void, name: str) -> float | None:
+        """Translate PyBDSF zero and NaN error sentinels to unavailable."""
+        value = float(row[name])
+        return value if np.isfinite(value) and value > 0.0 else None
+
+    def ellipse(row: np.void, prefix: str) -> CatalogueEllipse:
+        return CatalogueEllipse(
+            major_fwhm_degrees=float(row[f"{prefix}Maj"]),
+            minor_fwhm_degrees=float(row[f"{prefix}Min"]),
+            position_angle_degrees=float(row[f"{prefix}PA"]),
+            major_fwhm_error_degrees=optional_positive(
+                row,
+                f"E_{prefix}Maj",
+            ),
+            minor_fwhm_error_degrees=optional_positive(
+                row,
+                f"E_{prefix}Min",
+            ),
+            position_angle_error_degrees=optional_positive(
+                row,
+                f"E_{prefix}PA",
+            ),
+        )
+
     return tuple(
         CatalogueSource(
             identifier=str(row["Source_id"]),
@@ -208,6 +233,41 @@ def load_pybdsf_catalogue(path: Path) -> tuple[CatalogueSource, ...]:
             declination_degrees=float(row["DEC"]),
             peak_flux_jy_per_beam=float(row["Peak_flux"]),
             integrated_flux_jy=float(row["Total_flux"]),
+            association_integrated_flux_jy=float(row["Total_flux"]),
+            right_ascension_error_degrees=optional_positive(row, "E_RA"),
+            declination_error_degrees=optional_positive(row, "E_DEC"),
+            peak_flux_error_jy_per_beam=optional_positive(
+                row,
+                "E_Peak_flux",
+            ),
+            integrated_flux_error_jy=optional_positive(row, "E_Total_flux"),
+            fitted_shape=ellipse(row, ""),
+            deconvolved_shape=(
+                ellipse(row, "DC_")
+                if float(row["DC_Maj"]) > 0 and float(row["DC_Min"]) > 0
+                else None
+            ),
+            deconvolved_major_fwhm_degrees=(
+                float(row["DC_Maj"])
+                if float(row["DC_Maj"]) > 0 and not float(row["DC_Min"]) > 0
+                else None
+            ),
+            deconvolution_status=(
+                "resolved"
+                if float(row["DC_Maj"]) > 0 and float(row["DC_Min"]) > 0
+                else "major-axis-only"
+                if float(row["DC_Maj"]) > 0
+                else "unresolved"
+            ),
+            island_identifier=str(row["Isl_id"]),
+            component_count=1,
+            quality_flags=(
+                ()
+                if float(row["DC_Maj"]) > 0 and float(row["DC_Min"]) > 0
+                else ("major-axis-only",)
+                if float(row["DC_Maj"]) > 0
+                else ("unresolved",)
+            ),
         )
         for row in table
     )

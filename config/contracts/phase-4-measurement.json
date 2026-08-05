@@ -1,0 +1,86 @@
+{
+  "association": {
+    "compact_component_policy": "one-fitted-gaussian-per-deblended-region",
+    "compact_source_policy": "one-source-per-deblended-region",
+    "identifier_policy": "canonical-global-topology-and-association-order",
+    "joint_model_policy": "deferred-until-identifiability-and-reliability-evidence",
+    "parent_policy": "retain-reconciled-parent-island",
+    "region_membership": "worker-local-watershed-labels",
+    "truth_resolvability_policy": "distinct-eligible-observed-maximum",
+    "unresolved_truth_policy": "explicit-group-centroid-and-total-flux",
+    "unsupported_region_policy": "explicit-later-phase-deferral"
+  },
+  "contract_id": "phase-4-measurement",
+  "coordinates": {
+    "celestial_frame": "icrs",
+    "pixel_coordinate_order": "x-y",
+    "pixel_origin": "zero-based-pixel-centres",
+    "position_angle": "east-of-north-modulo-180",
+    "transform": "astropy-local-tangent-plane-jacobian",
+    "uncertainty_interpretation": "one-standard-deviation"
+  },
+  "eligibility": {
+    "association_eligibility": "reference-parent-association-declared",
+    "availability_reporting": "required-for-every-gated-field",
+    "deconvolved_shape_eligibility": "reference-resolved-with-shape",
+    "fitted_shape_eligibility": "reference-fitted-shape-available",
+    "missing_candidate_value": "counts-as-unavailable-not-excluded",
+    "population_selection": "reference-or-injected-truth-only",
+    "position_angle_eligibility": "eligible-reference-shape-axis-ratio-at-least-minimum",
+    "position_angle_minimum_axis_ratio": 1.1,
+    "uncertainty_eligibility": "reference-compact-snr-at-least-10"
+  },
+  "failures": {
+    "compatibility_unresolved_shape": "adapter-zero-axes-only",
+    "invalid_measurement": "typed-unavailable-result",
+    "omitted_deferred_region": "forbidden-in-complete-result",
+    "unavailable_uncertainty": "null-with-quality-flag",
+    "unresolved_deconvolution": "null-shape-with-unresolved-quality-flag"
+  },
+  "fitting": {
+    "implementation_selection": "established-library-science-and-complete-stage-evidence",
+    "moment_policy": "serial-oracle-and-fit-initializer",
+    "reference_policy": "fit-all-admitted-compact-regions",
+    "selective_policy": "fit-all-reference-before-selection"
+  },
+  "human_scientific_review": "required-before-stable-default",
+  "measurements": {
+    "component_integrated_flux": "peak-for-unresolved-otherwise-peak-times-fitted-gaussian-area-over-beam-area",
+    "component_local_rms": "bilinear-rms-map-at-fitted-centroid",
+    "component_peak_flux": "fitted-gaussian-amplitude",
+    "island_integrated_flux": "owned-valid-pixel-sum-times-pixel-area-over-beam-area",
+    "island_local_rms": "mean-rms-over-owned-valid-pixels",
+    "island_mean_brightness": "mean-background-subtracted-brightness-over-owned-valid-pixels",
+    "pixel_solid_angle": "absolute-local-tangent-plane-jacobian-determinant",
+    "restoring_beam_solid_angle": "pi-major-fwhm-times-minor-fwhm-over-four-ln-two",
+    "source_flux": "associated-component-flux-for-compact-scope"
+  },
+  "qualification_policy": "freeze-before-result-inspection",
+  "required_analytic_failure_cases": [
+    "fit-non-convergence",
+    "marginal-deconvolution",
+    "non-finite-owned-pixels",
+    "non-positive-measurement",
+    "singular-covariance",
+    "underdetermined-region"
+  ],
+  "schema_version": 2,
+  "scientific_basis": [
+    "https://doi.org/10.1086/133871",
+    "https://doi.org/10.1017/pasa.2018.3",
+    "https://doi.org/10.1093/mnras/stv1866",
+    "https://doi.org/10.1111/j.1365-2966.2007.11842.x",
+    "https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19",
+    "https://pybdsf.readthedocs.io/en/latest/process_image.html",
+    "https://docs.astropy.org/en/stable/wcs/wcsapi.html",
+    "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html"
+  ],
+  "scope": {
+    "brightness_unit": "Jy/beam",
+    "frequency_semantics": "reference-frequency-only",
+    "image_kind": "mfs-stokes-i",
+    "invalid_pixels": "excluded-from-membership-and-measurement",
+    "measurement_plane": "background-subtracted-primary-beam-corrected"
+  },
+  "status": "reviewed-provisional"
+}

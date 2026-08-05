@@ -91,6 +91,7 @@ def _source(
         fitted_shape=_shape(),
         deconvolved_shape=None,
         quality_flags=("deblended", "edge-truncated"),
+        association_aperture_integrated_flux_jy=0.011,
     )
 
 
@@ -136,11 +137,14 @@ def test_catalogue_round_trip_is_canonical_and_pickle_safe() -> None:
     """Executor payloads and persisted schema metadata are deterministic."""
     catalogue = _catalogue()
 
-    assert catalogue.schema_version == 1
+    assert catalogue.schema_version == 2
     assert catalogue.coordinate_frame == "icrs"
     assert catalogue.sources[0].deconvolved_shape is None
     assert catalogue.sources[0].position.declination_error_degrees is None
     assert catalogue.sources[0].flux.integrated_flux_error_jy is None
+    assert (
+        catalogue.sources[0].association_aperture_integrated_flux_jy == 0.011
+    )
     assert (
         SourceCatalogue.from_json_bytes(catalogue.canonical_json_bytes())
         == catalogue
@@ -381,6 +385,11 @@ def test_measurements_reject_noncanonical_physical_values(
         (_source(), {"source_id": "../source"}, "domain identifier"),
         (
             _source(),
+            {"association_aperture_integrated_flux_jy": 0.0},
+            "aperture flux",
+        ),
+        (
+            _source(),
             {"quality_flags": ("edge-truncated", "deblended")},
             "quality flags must be unique and canonical",
         ),
@@ -396,7 +405,7 @@ def test_measurements_reject_noncanonical_physical_values(
             {"mean_brightness_jy_per_beam": float("nan")},
             "mean brightness",
         ),
-        (_catalogue(), {"schema_version": 2}, "schema_version"),
+        (_catalogue(), {"schema_version": 1}, "schema_version"),
         (_catalogue(), {"position_epoch": ""}, "position epoch"),
         (
             _catalogue(),
