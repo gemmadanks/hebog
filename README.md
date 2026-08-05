@@ -125,23 +125,26 @@ both references, but just above the frozen 20% absolute limit. Phase 4T is
 therefore preserved as a terminal failure rather than rounded, rescored, or
 repeated on unchanged code.
 
-The roughly 10% systematic blend flux under-recovery has now been traced to a
-fixed restoring-beam aperture clipping blends across the beam's narrow axis.
-Hebog's candidate correction keeps that lower-variance aperture when it
-contains at least 90% of the fitted source model and otherwise follows the
-fitted blend shape. Independent development cases reduce mean signed blend
-flux error to about -2.4%, while existing compact regressions continue to
-pass. This is promising development evidence, not a qualification result: a
-separately frozen, unseen Phase 4U campaign is ready for its one permitted run
-and still has to pass before
-substantive multiscale work begins. External radio-astronomy review, the
-complete performance matrix, and production scalability evidence also remain
-required before Hebog replaces PyBDSF by default.
+The roughly 10% systematic blend flux under-recovery was traced to a fixed
+restoring-beam aperture clipping blends across the beam's narrow axis. Hebog
+now keeps that lower-variance aperture when it contains at least 90% of the
+fitted source model and otherwise follows the fitted blend shape. A separately
+frozen, unseen 800-image Phase 4U qualification then passed. Hebog completed
+every image, passed all 77 binding absolute gates, and passed all 20 paired
+non-inferiority endpoints against both released PyBDSF and pinned PyBDSF
+`master`. Across 4,800 unresolved blends, its mean signed total-flux error was
+about -2.0%, compared with about -10.9% for both references; its 95th-
+percentile absolute error was 13.9%, inside the unchanged 20% limit and better
+than 20.7% for both references on this population.
+
+Phase 4U therefore closes the compact single-scale science start gate and
+substantive multiscale work may begin. This is not yet a production or speed
+claim: independent human radio-astronomy review, controlled real-residual
+evidence, the complete performance matrix, and production scalability
+evidence remain required before Hebog replaces PyBDSF by default.
 
 The remaining work includes:
 
-- qualifying the corrected blend-photometry candidate once under a separately
-  frozen unseen protocol;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;
@@ -149,12 +152,13 @@ The remaining work includes:
 - qualifying out-of-core execution on production-scale multi-node clusters.
 
 A useful mental model is that Hebog can now locate, outline, fit, and catalogue
-ordinary compact objects, and can serialize the part of that catalogue used by
-Rapthor's image diagnostics. It cannot yet make a defensible choice for every
-sub-beam blend or extended object, nor run as Rapthor's complete source-finder
-backend. By planned capability, this is roughly two-thirds to three-quarters
-through the Rapthor-specific reimplementation; multiscale recovery, workflow
-integration, and qualification remain scientifically significant.
+ordinary compact objects and unresolved compact blends, and can serialize the
+part of that catalogue used by Rapthor's image diagnostics. It cannot yet
+recover the full range of extended or multiscale emission, nor run as
+Rapthor's complete source-finder backend. By planned capability, this is
+roughly three-quarters through the Rapthor-specific reimplementation;
+multiscale recovery, workflow integration, performance, and scale
+qualification remain scientifically significant.
 
 Hebog is therefore a functioning compact-source detector, but it is not yet a
 drop-in PyBDSF replacement or production-ready Rapthor backend. Named human

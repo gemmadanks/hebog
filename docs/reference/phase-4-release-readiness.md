@@ -432,7 +432,7 @@ list records its incomplete closure, while new corrective work follows Phase
 5. [x] The marginal-flux population clarification and image-footprint
    correction receive named review after their complete development and
    regression lanes pass. Gemma Danks approved both on 2026-08-03.
-6. [ ] A frozen unseen held-out qualification campaign passes every reviewed
+6. [x] A frozen unseen held-out qualification campaign passes every reviewed
    gate without post-inspection tuning. All three powered campaigns failed on
    2026-08-03 and are retained as known evidence. Before another population
    could be frozen, the recovery protocol had to prevent repeated-campaign
@@ -456,6 +456,11 @@ list records its incomplete closure, while new corrective work follows Phase
    unavailable, so the frozen fail-closed joint calculation reported all 20
    primary and 20 secondary paired endpoints as indeterminate. No result,
    threshold, contract, or population was changed after inspection.
+   The separately governed Phase 4U new candidate subsequently passed one
+   fresh 800-image qualification: all 77 binding absolute gates, both sets of
+   20 paired endpoints, and all five stronger-result envelopes passed. That
+   result satisfies the prospective compact-science qualification step
+   without altering any historical decision.
 7. [ ] The controlled Phase 4 performance matrix passes its component budgets and
    shows no unapproved adjacent-tier regression or source-density
    superlinearity.
@@ -490,8 +495,33 @@ materially better and statistically non-inferior on that metric, but the
 absolute gate and its stronger envelope still fail. The decision is terminal;
 it is not rounded, rescored, or replaced by another unchanged-candidate run.
 
-Phase 4 remains **not ready** and the controlled performance matrix is still
-ineligible. The plan now requires independent TDD remediation of systematic
-unresolved-blend flux under-recovery before any new-candidate qualification.
-Substantive Phase 5 work remains paused. The complete outcome and file hashes
-are in the [Phase 4 scientific review record](phase-4-review-record.md).
+At the Phase 4T decision point, the compact start gate remained **not ready**
+and its controlled performance matrix was still ineligible. The plan therefore
+required independent TDD remediation of systematic unresolved-blend flux
+under-recovery before any new-candidate qualification. The complete historical
+outcome and file hashes are in the
+[Phase 4 scientific review record](phase-4-review-record.md).
+
+## Phase 4U compact-science closure
+
+Phase 4U applied a model-containment association aperture on independent
+development data and then opened one separately frozen 800-image
+qualification. Hebog and both exact PyBDSF references completed every image.
+Hebog passed all 77 binding absolute gates, all 20 paired non-inferiority
+endpoints against each reference, and all five stronger-result envelopes.
+
+The previously blocking unresolved-blend total-flux tail fell from `0.207080`
+in Phase 4T to `0.139196` in Phase 4U, inside the unchanged `0.2` maximum.
+Across 4,800 blends, Hebog's mean signed error was `-0.020217`, compared with
+about `-0.1085` for both PyBDSF references. No material compact diagnostic
+regression was found.
+
+This passing new-candidate result closes the compact single-scale scientific
+start gate and permits Phase 5 development. It does not alter the terminal
+historical Phase 4/4R/4S/4T decisions and does not make this a release-
+readiness pass: the controlled performance matrix, real-residual evidence,
+independent human review, bounded-memory evidence, and production-scale Dask
+qualification remain open before cutover. Full findings and immutable hashes
+are in the
+[Phase 4 scientific review record](phase-4-review-record.md) and the
+[Phase 4U protocol](phase-4u-qualification-protocol.md).

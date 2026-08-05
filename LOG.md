@@ -5223,3 +5223,58 @@ will be captured by the isolated runner.
 - Commit this complete unopened freeze, verify all five registered output
   paths remain absent, run Hebog and both exact PyBDSF references once, compile
   the immutable shards, and open exactly one decision.
+
+## 2026-08-05 — Passed Phase 4U and closed the compact science start gate
+
+**Plan phase:** Phase 4U — unresolved-blend flux remediation
+
+**One-look execution**
+
+- Ran exact candidate `ca51ed24e354fc18f9c18c273b7ede7e54c96569`, released
+  PyBDSF 1.14.1, and pinned PyBDSF `master`
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c` once over all 800 frozen
+  images. Every implementation completed every image.
+- Kept all three shards unopened until completion, compiled the candidate-
+  first triplet once, and opened exactly one decision. The compiler accepted
+  the frozen dataset, seed, contract, reference, and paired-protocol
+  identities.
+- The qualification passed: 77/77 binding absolute gates, 20/20 paired
+  endpoints against released PyBDSF, 20/20 against PyBDSF `master`, and 5/5
+  stronger-Hebog envelopes passed. The closest paired limit was catalogue
+  reliability at `0.003529` against the `0.005` practical margin.
+
+**Scientific outcome**
+
+- Hebog recovered all 4,800 unresolved groups. Median absolute total-flux
+  error was `0.047567`; the 95th-percentile error was `0.139196` against the
+  unchanged `0.2` maximum.
+- Hebog's mean and median signed blend errors were `-0.020217` and
+  `-0.019847`. Released PyBDSF measured about `-0.108544` and `-0.109929`;
+  pinned `master` was effectively identical. The worst approximate
+  per-geometry Hebog 95th percentile was `0.1622`.
+- Four legacy mixed-SNR whole-catalogue summaries remained failed but
+  report-only and essentially unchanged from Phase 4T. Every binding
+  SNR-specific, edge, uncertainty, classification, catastrophic, and
+  unresolved-group result passed; expert review found no material diagnostic
+  regression.
+
+**Evidence identities**
+
+- Candidate:
+  `cbeae07878c2fe3d801fdff816b00db23f6d03655fe5652932e13b9e95a359dc`.
+- Released reference:
+  `75fa0a3a53ae4a7c63ffb2cac63213c04380eab3160622d93dfe1c00f78ea23b`.
+- Master reference:
+  `4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`.
+- Compiled campaign:
+  `0355537bcfc1c716a6b4b9e7d0269c6d78c66bfacdfb69925f37a13ce6b018a1`.
+- Decision:
+  `309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0`.
+
+**Disposition**
+
+- Closed the compact single-scale science start gate and authorized
+  substantive Phase 5 multiscale development. Historical failed campaigns
+  remain immutable. Independent human scientific review, real-residual,
+  performance, bounded-memory, task-graph, and scale evidence remain later
+  production gates.

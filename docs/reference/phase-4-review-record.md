@@ -1811,3 +1811,56 @@ decision file SHA-256 values are
 `1f9428ed5fbcaafa1409663868ec81679a6ac83add6afd41300819314dd624a7`,
 `78c7d71a88771e396a801742768c9cebab409b846b3623169aa6744f57a29bc1`,
 and `e1b52aa42f0213a13a296a108f55a1aafe841bb350317e5fd5e3013f1a09ea49`.
+
+## Phase 4U post-opening expert review
+
+**Review date:** 2026-08-05
+
+**Reviewer:** Codex, acting at the project owner's explicit request
+
+**Review type:** AI-conducted expert radio-astronomy evidence review; not
+independent human or institutional sign-off
+
+**Decision:** accept the Phase 4U compact single-scale qualification and
+authorize substantive Phase 5 multiscale development
+
+The candidate and both exact PyBDSF references completed all 800 fresh images.
+Hebog passed all 77 binding absolute gates, all 20 paired non-inferiority
+endpoints against each reference, and all five stronger-result protection
+envelopes. No implementation had a failed seed. The closest paired endpoint
+was catalogue reliability: Hebog measured `0.996862` versus `0.999931` for
+released PyBDSF, and its one-sided upper regression limit of `0.003529`
+remained inside the frozen `0.005` practical margin.
+
+The flux correction resolved the Phase 4T weakness across the broader frozen
+blend design. Hebog recovered all 4,800 unresolved groups. Its median absolute
+total-flux error was `0.047567`, and its 95th percentile was `0.139196`
+against the unchanged `0.2` maximum. Mean and median signed errors were
+`-0.020217` and `-0.019847`; both exact PyBDSF references retained about
+`-0.1085` mean and `-0.1099` median under-recovery. Each of the six
+predeclared separation/orientation/flux-ratio geometries passed separately;
+the worst approximate per-geometry 95th percentile was `0.1622`.
+
+Four legacy whole-catalogue raw position or flux summaries remained over
+their report-only reference limits. Their values were essentially unchanged
+from Phase 4T, including a `0.414080` integrated-flux tail versus `0.411566`
+previously. These summaries deliberately combine different SNR populations;
+the binding SNR-specific normalized-residual, edge, classification,
+catastrophic, and unresolved-group gates all passed. I find no unexplained
+material diagnostic regression.
+
+This decision closes the compact single-scale science start gate. It does not
+rescore the failed historical Phase 4, Phase 4R, Phase 4S, or Phase 4T
+campaigns, establish a timing result, authorize removal of the PyBDSF
+fallback, or establish production readiness. Independent human
+radio-astronomy review and controlled real-residual, performance,
+bounded-memory, task-graph, and multi-node scale evidence remain required
+before production cutover.
+
+The candidate, released-reference, master-reference, compiled-campaign, and
+decision file SHA-256 values are
+`cbeae07878c2fe3d801fdff816b00db23f6d03655fe5652932e13b9e95a359dc`,
+`75fa0a3a53ae4a7c63ffb2cac63213c04380eab3160622d93dfe1c00f78ea23b`,
+`4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`,
+`0355537bcfc1c716a6b4b9e7d0269c6d78c66bfacdfb69925f37a13ce6b018a1`,
+and `309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0`.

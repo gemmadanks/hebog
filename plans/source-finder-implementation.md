@@ -2788,9 +2788,10 @@ same code.
 
 #### Phase 4U: unresolved-blend flux remediation
 
-Status: active blocking work. This is not a rescore or replacement of Phase
-4T. It may create a new candidate only through a general algorithm improvement
-demonstrated without using the Phase 4T seeds as development data.
+Status: complete with scientific passage on 2026-08-05. This is not a rescore
+or replacement of Phase 4T. A general algorithm improvement was developed
+without using the Phase 4T seeds and then passed one separately frozen unseen
+qualification.
 
 1. Add failing analytic and generated development tests spanning coincident to
    separately detectable pairs, unequal flux ratios, SNR, source/beam angle,
@@ -2884,11 +2885,50 @@ The exact protocol, canonical hashes, reference identities, fixed output
 paths, and one-look rule are recorded in the Phase 4U protocol. Commit the
 complete unopened state before running any implementation.
 
+Phase 4U one-look qualification completed on 2026-08-05:
+
+- Hebog, released PyBDSF 1.14.1, and pinned PyBDSF `master` each completed all
+  800 fresh images. The compiler accepted the matched dataset, seed,
+  scientific-contract, and paired-protocol identities before the decision was
+  opened exactly once.
+- The decision passed. Hebog passed all 77 binding absolute gates, all 20
+  paired non-inferiority endpoints against each reference, and all five
+  stronger-Hebog regression envelopes. The closest paired result was
+  catalogue reliability: its one-sided upper regression limit was about
+  `0.00353`, inside the frozen `0.005` margin.
+- Across the 4,800 unresolved blends, Hebog's mean and median signed total-flux
+  errors were `-0.020217` and `-0.019847`. Released PyBDSF measured about
+  `-0.108544` and `-0.109929`; pinned `master` was effectively identical.
+  Hebog's binding median absolute error was `0.047567`, and its 95th-
+  percentile absolute error was `0.139196` against the unchanged `0.2`
+  maximum. Each of the six frozen geometries remained inside that tail limit.
+- Four legacy whole-catalogue raw-error summaries remained failed but
+  explicitly report-only. Their values were essentially unchanged from Phase
+  4T, while all SNR-, edge-, uncertainty-, catastrophic-, classification-,
+  and unresolved-group binding gates passed. They do not indicate a material
+  regression and do not alter the frozen aggregate decision.
+- Candidate, released-reference, master-reference, compiled-campaign, and
+  decision SHA-256 values are respectively
+  `cbeae07878c2fe3d801fdff816b00db23f6d03655fe5652932e13b9e95a359dc`,
+  `75fa0a3a53ae4a7c63ffb2cac63213c04380eab3160622d93dfe1c00f78ea23b`,
+  `4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`,
+  `0355537bcfc1c716a6b4b9e7d0269c6d78c66bfacdfb69925f37a13ce6b018a1`,
+  and
+  `309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0`.
+
+This pass closes the compact single-scale science start gate and authorizes
+substantive Phase 5 development. Historical Phase 4, Phase 4R, Phase 4S, and
+Phase 4T decisions remain failed and immutable. The qualification does not
+make a runtime claim or authorize production cutover; controlled performance,
+real-residual, independent human scientific, bounded-memory, task-graph, and
+scale evidence remain later gates.
+
 ### Phase 5: multiscale and extended emission
 
-Status: preparatory work only until the Phase 4U exit gate passes.
-Substantive multiscale implementation is intentionally paused so the compact
-scientific baseline can be qualified independently.
+Status: ready to begin. The Phase 4U exit gate passed on 2026-08-05, so the
+qualified compact single-scale baseline may now support substantive multiscale
+implementation. Preserve that baseline through regression envelopes as new
+scale-sensitive behaviour is introduced.
 
 - [ ] Add failing analytic and generated-truth tests for diffuse, filamentary, mixed,
       cross-scale, duplicate, and artefact-dominated cases.

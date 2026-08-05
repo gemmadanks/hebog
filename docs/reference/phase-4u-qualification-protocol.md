@@ -1,12 +1,11 @@
 # Phase 4U compact-blend qualification protocol
 
-**Status:** AI-expert-reviewed, frozen, and unopened on 2026-08-05. No
-candidate or reference image has been generated and no implementation result
-exists.
+**Status:** completed and passed on 2026-08-05 after one frozen opening. The
+pre-opening inputs, candidate, references, and decision rule were not changed.
 
 Phase 4U is a separately named qualification of the compact candidate created
 after the immutable Phase 4T failure. It does not rescore or replace Phase 4T.
-It asks whether the orientation-independent association aperture removes the
+It asked whether the orientation-independent association aperture removed the
 observed blend-flux weakness without regressing any compact result relative to
 released PyBDSF or pinned PyBDSF `master`.
 
@@ -140,6 +139,56 @@ A pass closes the compact-science start gate and permits substantive Phase 5
 multiscale implementation. It does not authorize a release claim, remove the
 PyBDSF fallback, or waive performance, scalability, real-data, and production
 review gates.
+
+## Immutable outcome
+
+Hebog, released PyBDSF, and pinned PyBDSF `master` each completed 800/800
+images. The three immutable shards were compiled before the decision was
+opened exactly once. The compiler and evaluator accepted all frozen dataset,
+seed, contract, implementation, and protocol identities.
+
+The Phase 4U decision passed:
+
+- 77/77 binding absolute gates passed;
+- 20/20 paired endpoints passed against released PyBDSF;
+- 20/20 paired endpoints passed against pinned PyBDSF `master`;
+- 5/5 stronger-Hebog regression envelopes passed; and
+- no implementation had a failed seed.
+
+Hebog recovered all 4,800 unresolved groups. Its median absolute total-flux
+error was `0.047567` and its 95th-percentile absolute error was `0.139196`,
+inside the unchanged `0.2` maximum. The mean and median signed errors were
+`-0.020217` and `-0.019847`, compared with about `-0.1085` and `-0.1099` for
+both PyBDSF references. The worst per-geometry Hebog 95th-percentile absolute
+error was about `0.1622`, so the improvement is not confined to one blend
+orientation or flux ratio.
+
+Four legacy whole-catalogue raw-error summaries failed their report-only
+reference limits. They were non-binding by the frozen contract, were
+essentially unchanged from Phase 4T, and did not reveal a material diagnostic
+regression. All binding SNR-, edge-, uncertainty-, classification-,
+catastrophic-, and unresolved-group gates passed. The closest paired endpoint
+was catalogue reliability, whose upper one-sided regression limit was
+`0.003529` against the frozen `0.005` margin.
+
+The immutable evidence-file SHA-256 values are:
+
+- Hebog shard:
+  `cbeae07878c2fe3d801fdff816b00db23f6d03655fe5652932e13b9e95a359dc`;
+- released-PyBDSF shard:
+  `75fa0a3a53ae4a7c63ffb2cac63213c04380eab3160622d93dfe1c00f78ea23b`;
+- PyBDSF-master shard:
+  `4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`;
+- compiled campaign:
+  `0355537bcfc1c716a6b4b9e7d0269c6d78c66bfacdfb69925f37a13ce6b018a1`;
+  and
+- decision:
+  `309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0`.
+
+This result closes the compact single-scale science start gate and permits
+Phase 5 multiscale development. It does not retrospectively change a failed
+historical campaign and does not establish performance, real-data,
+large-scale, or production readiness.
 
 ## Scientific basis
 
