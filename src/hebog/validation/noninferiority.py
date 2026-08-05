@@ -348,4 +348,12 @@ def require_adequate_design_power(
     if underpowered:
         joined = ", ".join(underpowered)
         raise ValueError(f"underpowered paired endpoints: {joined}")
+    familywise_target = contract.minimum_familywise_interval_exclusion_power
+    if familywise_target is not None:
+        familywise_power = familywise_power_lower_bound(estimates)
+        if familywise_power < familywise_target:
+            raise ValueError(
+                "underpowered familywise paired decision: "
+                f"{familywise_power:.6f} is below {familywise_target:.6f}"
+            )
     return estimates

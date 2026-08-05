@@ -28,9 +28,13 @@ from hebog.validation.noninferiority import (
 
 _ROOT = Path(__file__).parents[3]
 _CONTRACT_PATH = _ROOT / "config/contracts/phase-4-paired-noninferiority.json"
+_PHASE4S_CONTRACT_PATH = (
+    _ROOT / "config/contracts/phase-4s-paired-noninferiority.json"
+)
 _REPLACEMENT_PATH = (
     _ROOT / "config/datasets/phase-4r-qualification-replacement.json"
 )
+_PHASE4S_PATH = _ROOT / "config/datasets/phase-4s-qualification.json"
 
 _POPULATION_UNITS = {
     "compact-completeness": "association-truth-groups",
@@ -239,6 +243,67 @@ def test_familywise_power_uses_a_conservative_union_bound() -> None:
         )
     )
     assert joint < min(item.interval_exclusion_power for item in estimates)
+
+
+def test_phase4s_protocol_is_manifest_and_jointly_powered() -> None:
+    """The new unseen decision has adequate marginal and joint power."""
+    contract = load_paired_noninferiority_contract(_PHASE4S_CONTRACT_PATH)
+    dataset = load_dataset_manifest(_PHASE4S_PATH).datasets[0]
+
+    estimates = require_adequate_design_power(contract, dataset=dataset)
+
+    assert contract.contract_id == "phase-4s-paired-noninferiority"
+    assert contract.realization_count == 800
+    assert contract.minimum_familywise_interval_exclusion_power == 0.9
+    assert all(
+        endpoint.population_unit is not None
+        for endpoint in contract.binary_endpoints
+    )
+    assert min(item.interval_exclusion_power for item in estimates) >= 0.9
+    assert familywise_power_lower_bound(estimates) >= 0.9
+
+
+def test_phase4s_power_check_enforces_the_joint_target() -> None:
+    """Marginally powered endpoints cannot hide an underpowered decision."""
+    contract = load_paired_noninferiority_contract(_PHASE4S_CONTRACT_PATH)
+    payload = contract.model_dump(mode="json")
+    payload["realization_count"] = 600
+    underpowered = PairedNoninferiorityContract.model_validate(payload)
+
+    with pytest.raises(ValueError, match="familywise"):
+        require_adequate_design_power(underpowered)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("population-unit", "population units"),
+        ("familywise-power", "familywise power"),
+        ("expert-review", "expert review"),
+        ("scope", "explicit scope"),
+        ("residual-noise", "residual-noise limitation"),
+    ),
+)
+def test_phase4s_protocol_requires_every_preopening_declaration(
+    mutation: str,
+    message: str,
+) -> None:
+    """The frozen protocol cannot omit a reviewed Phase 4S safeguard."""
+    contract = load_paired_noninferiority_contract(_PHASE4S_CONTRACT_PATH)
+    payload = contract.model_dump(mode="json")
+    if mutation == "population-unit":
+        payload["binary_endpoints"][0]["population_unit"] = None
+    elif mutation == "familywise-power":
+        payload["minimum_familywise_interval_exclusion_power"] = None
+    elif mutation == "expert-review":
+        payload["expert_scientific_review"] = None
+    elif mutation == "scope":
+        payload["qualification_scope"] = None
+    else:
+        payload["controlled_residual_noise_injection"] = None
+
+    with pytest.raises(ValidationError, match=message):
+        PairedNoninferiorityContract.model_validate(payload)
 
 
 def test_binary_planning_bound_is_expressed_on_the_realization_scale() -> None:

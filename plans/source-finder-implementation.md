@@ -2401,9 +2401,14 @@ all later multiscale work must adopt the same execution contracts.
 
 ### Phase 4S: compact-science stabilization and Phase 5 start gate
 
-Status: compact stabilization and the Phase 5 development start gate completed
-on 2026-08-04; the independently frozen Phase 4S qualification, external
-science review, and performance/scalability exit evidence remain pending.
+Status: compact stabilization and the technical Phase 5 development start gate
+completed on 2026-08-04. On 2026-08-05 the project owner made the independently
+frozen Phase 4S qualification the next blocking milestone before substantive
+multiscale implementation and asked Codex to perform the pre-opening expert
+radio-astronomy review. That review is recorded transparently as an
+AI-conducted technical/scientific review, not independent human sign-off.
+Performance/scalability exit evidence and a recommended external human review
+before production cutover remain pending.
 Phase 4R remains an immutable failed qualification. This milestone must not
 regenerate, rescore, reinterpret, or retrospectively pass that campaign. It
 repairs defects and ambiguities found by the review, then uses new development
@@ -2553,24 +2558,121 @@ Phase 5 start-gate evidence recorded on 2026-08-04:
   angles. Existing generated regression spans SNR, WCS rotation, every image
   edge/corner, non-square geometry, gradients, invalid pixels, blends, and
   correlated noise. The complete governed correlated-noise calibration
-  regression passes. A real residual/noise injection remains unavailable and
-  is an explicit final-qualification prerequisite when controlled data can be
-  approved.
+  regression passes. A real residual/noise injection remains unavailable. Its
+  absence is an explicit limitation rather than a blocker for the synthetic
+  compact checkpoint; controlled real-residual evidence remains recommended
+  before production cutover.
 - Unit, integration, non-slow equivalence, focused Phase 4R equivalence,
   serial/Dask, FITS/Rapthor, Ruff, and Pyright checks pass. The named
   development review is recorded in the Phase 4 scientific review record;
-  external radio-astronomy review is still required before qualification.
+  the project owner subsequently authorized the AI-conducted expert review
+  below for Phase 4S pre-opening approval.
 
 Phase 5 start gate: multiscale implementation may begin when steps 1--4 have
 passing focused, project, equivalence, serial/executor, and documentation
 checks; the compact public semantics and evaluator are reviewed and frozen;
 and no known compact estimator defect or unexplained material tail remains.
 This gate intentionally separates permission to develop Phase 5 from the final
-Phase 4S release/cutover decision. The single unseen qualification, external
-science review, and controlled performance/scalability evidence may continue
-in parallel, but Hebog must not claim compact-source qualification, remove the
-PyBDSF fallback, or make Hebog the default Rapthor path until the complete
-Phase 4S qualification gate passes.
+Phase 4S release/cutover decision. The single unseen qualification and
+controlled performance/scalability evidence may continue in parallel, but
+Hebog must not claim compact-source qualification, remove the PyBDSF fallback,
+or make Hebog the default Rapthor path until the complete Phase 4S
+qualification gate passes. Independent human radio-astronomy review remains a
+recommended production-cutover safeguard even though the project owner waived
+it as a blocker for opening this compact qualification.
+
+Qualification-first checkpoint approved on 2026-08-05:
+
+1. Freeze the current compact candidate and its complete execution identity;
+   no compact science, threshold, estimator, or output-semantic change may be
+   mixed into the qualification once the unseen population is frozen.
+2. Complete and record the project-owner-authorized expert radio-astronomy
+   review of the co-primary families, axis-censoring semantics, uncertainty
+   estimands, generator coverage, multiplicity rule, and manifest-derived
+   marginal and joint power before any qualification output is generated or
+   inspected. Disclose whether the review is independent human sign-off or an
+   AI-conducted expert review.
+3. Freeze exactly one new, seed-disjoint, manifest-powered qualification with
+   continuous resolution-boundary sizes; crossed source/beam angles and SNR;
+   every edge/corner topology; non-square WCS geometry; correlated noise,
+   gradients, blends, and invalid regions; and an explicit record of whether a
+   controlled real residual/noise injection is available.
+4. Commit the manifest, contracts, reference revisions, candidate revision,
+   environment identities, checksums, success/failure policies, and refusal-to-
+   overwrite paths before running any implementation.
+5. Run Hebog, released PyBDSF, and pinned `master` once on identical images;
+   retain all implementation failures, compile the registered diagnostics and
+   co-primary family decisions, and inspect the one-look outcome only after all
+   three legs are immutable.
+6. A pass permits substantive Phase 5 multiscale implementation. A failure is
+   preserved and reviewed as a scientific result; it cannot trigger a changed
+   threshold, population, metric, or rerun within this milestone.
+
+Expert scientific review completed on 2026-08-05:
+
+- The project owner explicitly authorized Codex to conduct this pre-opening
+  review. It is an AI-conducted synthesis of the cited peer-reviewed literature,
+  existing analytic tests, and immutable Phase 4/4R evidence; it must not be
+  represented as independent human or institutional approval.
+- Retain the exact 5-sigma peak and 3-sigma island thresholds used by Rapthor's
+  PyBDSF path. Retain the 0.5-restoring-beam compact matching radius. These are
+  compatible with the high-reliability operating point and beam-scaled matching
+  used in the ASKAP/EMU challenge; completeness and reliability must still be
+  reported against SNR rather than reduced to source-count equality.
+- Retain five-sigma extension confidence as Hebog's conservative reviewed
+  policy, not as a claimed universal community threshold. Radio-survey work
+  commonly uses uncertainty envelopes around integrated-to-peak flux ratio;
+  Hebog's stricter threshold protects point-source specificity and requires
+  clear-source recall to pass separately.
+- Retain covariance propagation based on the Condon elliptical-Gaussian error
+  model and the explicit fully resolved, major-axis-only, unresolved, and
+  unavailable states. Near the resolution boundary, relative error for a weak
+  minor axis or position angle is not a valid estimand. Fitted shape, each
+  identifiable intrinsic axis, classification, and Rapthor's `DC_Maj`, `E_RA`,
+  `E_DEC`, and retained/rejected decision remain governed outputs.
+- Keep the existing 20 predeclared compatibility endpoints as the co-primary
+  intersection-union decision. Their small number and distinct scientific
+  meanings are preferable to the 450 correlated metric/stratum comparisons
+  used in Phase 4R. Every detailed SNR, morphology, edge, position, flux,
+  fitted/deconvolved-shape, angle, and uncertainty result remains visible and
+  an unexplained material defect remains release-blocking, but those
+  diagnostics are not hundreds of equal hypothesis-test votes.
+- Increase the new qualification from 600 to 800 paired whole-image noise
+  realizations. Under the frozen conservative planning assumptions, every
+  endpoint exceeds 90% marginal interval-exclusion power and the union-bound
+  lower limit for the joint 20-endpoint decision is about 94.3%; require a
+  registered joint lower-bound target of at least 90% before opening.
+- Freeze a new 512-by-512 compact population with 33 observable association
+  groups, 32 individually resolvable sources, eight beam-compatible point
+  sources, multiple clear-resolved sources, continuous marginal/clear intrinsic
+  sizes, crossed SNR and source/beam angles, all four edges and corners,
+  non-square rotated WCS pixels, correlated noise, a negative background and
+  gradient, an unresolved blend, and invalid pixels. Manifest counts must
+  exactly match every binary planning declaration.
+- This checkpoint qualifies compact, single-scale Rapthor-used behaviour only.
+  It makes no claim about extended or multiscale completeness. Source-finding
+  challenges show that extended morphology, split/merge decisions, and
+  cross-matching need separate evaluation; Phase 5 must add that evidence.
+- No approved controlled real residual/noise image is currently available.
+  Record that limitation rather than treating synthetic Gaussian-correlated
+  noise as real-data evidence. A passing synthetic qualification can authorize
+  Phase 5 development, but real residual/noise injection and independent human
+  domain review remain recommended before production cutover.
+
+Scientific basis for this review:
+
+- [ASKAP/EMU Source Finding Data Challenge](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/askapemu-source-finding-data-challenge/A6C846F3ABB0105F026E3BD6B6EB9D19);
+- [Condon, Errors in Elliptical Gaussian Fits](https://adsabs.harvard.edu/pdf/1997PASP..109..166C);
+- [ATLAS Data Release 3](https://arxiv.org/abs/1508.03150);
+- [ProFound radio source-finding comparison](https://academic.oup.com/mnras/article/487/3/3971/5511783); and
+- [SKA Science Data Challenge 1 results](https://academic.oup.com/mnras/article/500/3/3821/5918002).
+
+Until this checkpoint passes, Phase 5 work is limited to analytic tests,
+interface and data-model scaffolding, filter-bank research, bounded-memory
+execution design, and separately governed development data. Do not merge a
+multiscale path into compact detection, association, fitting, catalogue, or
+Rapthor-facing behaviour, because that would make a qualification failure
+harder to attribute.
 
 Exit gate: the Phase 5 start gate is met; one independently frozen and jointly
 powered qualification passes every co-primary truth, Rapthor-facing,
@@ -2581,6 +2683,10 @@ gates pass; and the science review is recorded. Historical Phase 4 and Phase
 4R decisions remain failed and immutable.
 
 ### Phase 5: multiscale and extended emission
+
+Status: preparatory work only until the Phase 4S qualification-first checkpoint
+passes. Substantive multiscale implementation is intentionally paused so the
+compact scientific baseline can be qualified independently.
 
 - [ ] Add failing analytic and generated-truth tests for diffuse, filamentary, mixed,
       cross-scale, duplicate, and artefact-dominated cases.

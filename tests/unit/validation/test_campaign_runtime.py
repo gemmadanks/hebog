@@ -27,6 +27,10 @@ _MEASUREMENT = _ROOT / "config/contracts/phase-4-measurement.json"
 _GATES = _ROOT / "config/contracts/phase-4-scientific-gates.json"
 _REGISTRY = _ROOT / "config/contracts/phase-4r-metric-registry.json"
 _PROTOCOL = _ROOT / "config/contracts/phase-4-paired-noninferiority.json"
+_PHASE4S_MANIFEST = _ROOT / "config/datasets/phase-4s-qualification.json"
+_PHASE4S_PROTOCOL = (
+    _ROOT / "config/contracts/phase-4s-paired-noninferiority.json"
+)
 
 
 def test_canonical_hash_ignores_json_presentation() -> None:
@@ -122,6 +126,28 @@ def test_phase4r_qualification_requires_the_reviewed_metric_registry() -> None:
     )
 
     with pytest.raises(ValueError, match="metric registry"):
+        require_reviewed_qualification_inputs(
+            dataset,
+            scientific_contracts=[_MEASUREMENT, _GATES],
+            scientific_gates=_GATES,
+            comparison_protocol=_PROTOCOL,
+        )
+
+
+def test_phase4s_qualification_requires_its_powered_reviewed_protocol() -> (
+    None
+):
+    """The new compact checkpoint cannot run under a historical protocol."""
+    dataset = load_dataset_manifest(_PHASE4S_MANIFEST).datasets[0]
+
+    require_reviewed_qualification_inputs(
+        dataset,
+        scientific_contracts=[_MEASUREMENT, _GATES],
+        scientific_gates=_GATES,
+        comparison_protocol=_PHASE4S_PROTOCOL,
+    )
+
+    with pytest.raises(ValueError, match="Phase 4S paired protocol"):
         require_reviewed_qualification_inputs(
             dataset,
             scientific_contracts=[_MEASUREMENT, _GATES],

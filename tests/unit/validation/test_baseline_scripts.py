@@ -238,6 +238,63 @@ def test_phase4r_replacement_freeze_reflects_vertical_field(
     )
 
 
+def test_phase4s_freezer_builds_the_reviewed_population() -> None:
+    """The exact unseen truth can be reproduced without opening its noise."""
+    namespace = _validation_script("freeze_phase4s_qualification.py")
+
+    manifest = DatasetManifest.model_validate(namespace["_document"]())
+    dataset = manifest.datasets[0]
+    truth_sets_by_name = {
+        stratum.identifier: stratum.source_indices
+        for stratum in dataset.classification_strata
+    }
+
+    assert manifest.manifest_id == "phase-4s-qualification"
+    assert len(iter_dataset_recipes(dataset)) == 800
+    assert len(truth_sets_by_name["shape-unresolved"]) == 8
+    assert len(truth_sets_by_name["shape-marginal-resolved"]) == 16
+    assert len(truth_sets_by_name["shape-clear-resolved"]) == 8
+    assert (
+        len(
+            {
+                (
+                    source.major_sigma_pixels,
+                    source.minor_sigma_pixels,
+                    source.rotation_degrees_counterclockwise_from_x,
+                )
+                for source in dataset.recipe.sources
+            }
+        )
+        >= 25
+    )
+
+
+def test_phase4s_protocol_freezer_binds_population_counts() -> None:
+    """The reviewed endpoint set is derived with explicit manifest units."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase4s_protocol.py")
+
+    document = namespace["_document"](
+        root / "config/contracts/phase-4-paired-noninferiority.json"
+    )
+
+    assert document["contract_id"] == "phase-4s-paired-noninferiority"
+    assert document["realization_count"] == 800
+    assert document["minimum_familywise_interval_exclusion_power"] == 0.9
+    populations = {
+        endpoint["endpoint_id"]: (
+            endpoint["population_unit"],
+            endpoint["observations_per_realization"],
+        )
+        for endpoint in document["binary_endpoints"]
+    }
+    assert populations["compact-completeness"] == (
+        "association-truth-groups",
+        33,
+    )
+    assert populations["point-source-specificity"] == ("point-sources", 8)
+
+
 def test_reference_configuration_requires_explicit_ordered_thresholds() -> (
     None
 ):

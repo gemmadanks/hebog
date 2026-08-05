@@ -1645,3 +1645,57 @@ radio-astronomy reviewer must approve the new population, marginal-resolution
 semantics, co-primary families, multiplicity/power rule, and one-look freeze;
 then the new qualification, both exact PyBDSF comparisons, and controlled
 performance/scalability gates must pass.
+
+## Phase 4S expert pre-opening review
+
+**Review date:** 2026-08-05
+
+**Reviewer:** Codex, acting at the project owner's explicit request
+
+**Review type:** AI-conducted expert radio-astronomy literature and evidence
+synthesis; not independent human or institutional sign-off
+
+**Scope:** scientific approval to freeze and open one new compact,
+single-scale qualification; no approval of multiscale performance or
+production cutover
+
+The review approves the
+[Phase 4S compact qualification protocol](phase-4s-qualification-protocol.md)
+before any campaign image or implementation result exists. The owner waived
+independent human radio-astronomy review as an opening blocker. Independent
+human domain review and controlled real-residual validation remain recommended
+before production cutover.
+
+The review retains the existing 5-sigma/3-sigma detection policy, 0.5-beam
+association radius, truth-based completeness and reliability, five-sigma
+conservative extension decision, and covariance-aware partial deconvolution.
+It confirms that weak minor-axis and position-angle estimates at the beam
+boundary are not scientifically identifiable and must remain unavailable.
+The retained observables are fitted shape, identifiable intrinsic axes,
+classification, position/flux uncertainty, and Rapthor's downstream decision.
+
+The existing 20 paired compatibility endpoints remain the co-primary
+intersection-union decision against released PyBDSF. The 450 correlated
+Phase 4R metric/stratum comparisons remain valuable diagnostics but are not
+equal hypothesis-test votes. Every detailed result remains visible and an
+unexplained material defect still blocks release.
+
+The historical 600-image design had only about 82.7% conservative joint-power
+lower bound across 20 endpoints. The new contract freezes 800 paired images,
+giving about 94.29% joint lower-bound power and at least 97.07% marginal power.
+Its binary planning populations exactly match the frozen manifest: 33
+association groups, 32 individual sources, eight point sources, eight clear
+sources, and one unresolved group per image.
+
+The new population includes continuous marginal and clear sizes, four SNR
+tiers, crossed source/beam angles, every edge and corner topology, rotated
+non-square WCS pixels, correlated noise, a gradient and negative background,
+an invalid region, and a blend. Its scope is compact and single-scale. The
+absence of an approved real residual/noise injection is recorded as a
+limitation rather than replaced with a synthetic real-data claim.
+
+No qualification output had been generated when this review, protocol, and
+manifest were recorded. After these inputs and the exact candidate identity
+are committed, the one-look campaign may run against Hebog, released PyBDSF,
+and pinned `master`. No post-opening change or replacement campaign is
+authorized within Phase 4S.

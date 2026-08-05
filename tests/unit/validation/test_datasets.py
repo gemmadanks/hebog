@@ -615,6 +615,56 @@ def test_phase_four_final_qualification_is_frozen_and_unseen() -> None:
     }
 
 
+def test_phase4s_qualification_is_frozen_powered_and_disjoint() -> None:
+    """The expert-reviewed compact population is new and fully declared."""
+    manifest_path = _DATASET_DIRECTORY / "phase-4s-qualification.json"
+    qualification = load_dataset_manifest(manifest_path).datasets[0]
+    recipes = iter_dataset_recipes(qualification)
+    other_seeds = {
+        recipe.seed
+        for path in sorted(_DATASET_DIRECTORY.glob("phase-4*.json"))
+        if path != manifest_path
+        for dataset in load_dataset_manifest(path).datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+
+    assert qualification.role is DatasetRole.QUALIFICATION
+    assert len(recipes) == 800
+    assert not ({recipe.seed for recipe in recipes} & other_seeds)
+    assert qualification.recipe.generator_version == 3
+    assert qualification.recipe.shape_yx == (512, 512)
+    assert len(qualification.recipe.sources) == 34
+    assert len(qualification.association_truth_groups) == 33
+    assert len(qualification.recipe.invalid_rectangles) == 1
+    assert qualification.recipe.noise_correlation is not None
+    assert "ai-conducted expert review" in qualification.provenance.lower()
+    assert "real residual" in qualification.provenance.lower()
+
+    classification = {
+        stratum.identifier: len(stratum.source_indices)
+        for stratum in qualification.classification_strata
+    }
+    assert classification == {
+        "shape-clear-resolved": 8,
+        "shape-marginal-resolved": 16,
+        "shape-unresolved": 8,
+    }
+    canonical = {
+        stratum.identifier: len(stratum.source_indices)
+        for stratum in qualification.canonical_source_strata()
+    }
+    assert canonical == {
+        "edge": 8,
+        "shape-clear-resolved": 8,
+        "shape-marginal-resolved": 16,
+        "shape-unresolved": 8,
+        "snr-10": 8,
+        "snr-15": 8,
+        "snr-25": 8,
+        "snr-50": 8,
+    }
+
+
 def test_paired_regression_preserves_unresolved_blend_geometry() -> None:
     """Rotating final-like populations preserves blend-to-beam geometry."""
     paired = load_dataset_manifest(

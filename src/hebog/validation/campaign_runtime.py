@@ -25,6 +25,7 @@ from hebog.validation.evidence import (
     DatasetIdentity,
     WorkloadClass,
 )
+from hebog.validation.noninferiority import require_adequate_design_power
 
 
 def canonical_sha256(value: object) -> str:
@@ -188,6 +189,15 @@ def require_reviewed_qualification_inputs(
     protocol = load_paired_noninferiority_contract(comparison_protocol)
     if protocol.status != "reviewed":
         raise ValueError("paired protocol must be reviewed for qualification")
+    phase_four_stabilization = dataset.identifier.startswith("phase4s-")
+    if phase_four_stabilization and protocol.contract_id != (
+        "phase-4s-paired-noninferiority"
+    ):
+        raise ValueError("Phase 4S paired protocol is required")
+    require_adequate_design_power(
+        protocol,
+        dataset=dataset if phase_four_stabilization else None,
+    )
 
 
 def phase_four_outlier_thresholds(path: Path) -> CatalogueOutlierThresholds:

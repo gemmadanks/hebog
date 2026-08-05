@@ -4828,3 +4828,111 @@ and compatibility serialization
   radio-astronomy review, freeze one manifest-powered and jointly powered
   unseen population, run both exact PyBDSF references, and pass the controlled
   performance/scalability matrix.
+
+## 2026-08-05 — Made Phase 4S qualification the next blocking milestone
+
+**Plan phase:** Phase 4S — qualification-first checkpoint
+
+**Decision**
+
+- The project owner requested one more unseen compact qualification before
+  adding multiscale behaviour, prioritizing confidence in the scientific
+  baseline over starting substantive Phase 5 implementation immediately.
+- Phase 5 preparation may continue through analytic tests, interfaces,
+  filter-bank research, bounded-memory design, and independent development
+  data. Changes to compact science or Rapthor-facing behaviour remain frozen
+  until the Phase 4S one-look decision is known.
+- The qualification must be pre-opening reviewed, manifest-powered,
+  disjoint from all earlier populations, and executed exactly once against
+  Hebog, released PyBDSF, and pinned `master`. Historical Phase 4 and Phase 4R
+  evidence remains immutable.
+
+**Next**
+
+- Audit the current tooling against the Phase 4S co-primary-family, joint-power,
+  population, and one-look requirements.
+- Prepare the new contracts, generator population, reference identities, and
+  project-owner-authorized expert review without generating qualification
+  output.
+
+## 2026-08-05 — Completed the Phase 4S expert pre-opening science review
+
+**Plan phase:** Phase 4S — qualification-first checkpoint
+
+**Decision**
+
+- At the project owner's explicit request, Codex performed the pre-opening
+  radio-astronomy review. The result is recorded as an AI-conducted expert
+  literature and evidence synthesis, not independent human or institutional
+  sign-off. The owner waived external human review as a blocker for this
+  compact qualification; independent human review remains recommended before
+  production cutover.
+- Retained the 5-sigma/3-sigma detection thresholds, 0.5-beam matching rule,
+  five-sigma conservative extension policy, covariance-aware axis censoring,
+  and existing 20 co-primary compatibility endpoints. Detailed metric/stratum
+  results remain diagnostic and an unexplained material defect still blocks
+  release, but the 450 correlated Phase 4R comparisons are not repeated as
+  equal pass/fail votes.
+- Increased the new qualification to 800 paired whole-image realizations. The
+  historical 600-image design's conservative 20-endpoint joint-power lower
+  bound was about 82.7%; at 800 it is about 94.3%, above a new binding 90%
+  joint target while every marginal endpoint remains above 90%.
+- Limited the checkpoint claim to compact, single-scale Rapthor-used
+  behaviour. No controlled real residual/noise injection is available, so its
+  absence remains explicit and cannot be replaced by a synthetic claim.
+
+**Next**
+
+- Implement executable joint-power and Phase 4S qualification-input checks
+  using TDD.
+- Freeze and commit the new 800-realization manifest, comparison protocol,
+  reviewed identities, and refusal-to-overwrite paths before generating any
+  qualification image or implementation output.
+
+## 2026-08-05 — Froze the unopened Phase 4S compact qualification
+
+**Plan phase:** Phase 4S — qualification-first checkpoint
+
+**Completed**
+
+- Added TDD coverage that prevents Phase 4S from opening under the historical
+  protocol, without explicit manifest population units, with mismatched
+  population counts, or below either its marginal or joint power target.
+- Froze a reproducible 800-realization, 512-by-512 compact population with 33
+  observable groups, 32 individual sources, eight point sources, 16 marginal
+  sources, eight clear sources, four SNR tiers, eight edge/corner topologies,
+  continuous source sizes and angles, correlated noise, WCS rotation,
+  non-square pixels, a gradient, negative background, invalid pixels, and one
+  unresolved blend.
+- Froze the existing 20 paired compatibility endpoints as the co-primary
+  released-PyBDSF decision. Every binary declaration matches the manifest.
+  The weakest marginal planned power is about 97.07%; the conservative joint
+  lower bound is `0.9428716467454087` against a binding `0.9` target.
+- Recorded the AI-review limitation, compact/single-scale scope, absence of
+  controlled real-residual evidence, exact one-look rule, and literature basis
+  in the plan, review record, protocol reference, and machine-readable
+  contract.
+
+**Frozen identities**
+
+- Recipe SHA-256:
+  `a49bf060515f777b745012317b4e0172fdfb60f9df88bf9dbe2a0ca70522f5de`.
+- Dataset-record SHA-256:
+  `01e28063fec9be50bd47b155a79383093258d9df22ee1f9ca57286a0dd74ec63`.
+- Manifest-document SHA-256:
+  `b0eac85a27101c25cf77ea1f4df45da6c33383b49c9cfd360039eac50eaa29d4`.
+- Paired-protocol SHA-256:
+  `8db043b70dc295d2a36214fe3ffc5822f86ee89794ed36bb31f11b22b3040a96`.
+- Released PyBDSF remains version `1.14.1` at
+  `1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc`; pinned `master` remains
+  `1.14.2.dev40+gc70103be3` at
+  `c70103be3ae9ae9908286f144e6ce956acc0ce5c`.
+
+No qualification image, candidate shard, reference shard, compiled campaign,
+or decision existed when these inputs were frozen and reviewed.
+
+**Next**
+
+- Commit the complete pre-opening state, use that commit as the exact Hebog
+  candidate identity, verify every output path is absent, and run the three
+  immutable campaign legs before inspecting the one-look decision.

@@ -776,12 +776,20 @@ class PairedNoninferiorityContract(_ContractModel):
     """Draft same-image comparison and power contract for Phase 4 closure."""
 
     schema_version: Literal[1]
-    contract_id: Literal["phase-4-paired-noninferiority"]
+    contract_id: Literal[
+        "phase-4-paired-noninferiority",
+        "phase-4s-paired-noninferiority",
+    ]
     status: Literal["draft-provisional", "reviewed"]
     primary_reference: Literal["released-pybdsf-used-by-rapthor"]
     secondary_reference: Literal["pinned-pybdsf-master"]
     realization_count: int = Field(ge=1)
     minimum_interval_exclusion_power: float = Field(gt=0, lt=1)
+    minimum_familywise_interval_exclusion_power: float | None = Field(
+        default=None,
+        gt=0,
+        lt=1,
+    )
     resampling: PairedResamplingProtocol
     decision: PairedDecisionRule
     reference_failures: PairedReferenceFailurePolicy
@@ -801,7 +809,37 @@ class PairedNoninferiorityContract(_ContractModel):
         "verify-on-independent-data-before-review-and-freeze"
     ]
     scientific_basis: tuple[str, ...] = Field(min_length=4)
-    human_scientific_review: Literal["required-before-freeze"]
+    human_scientific_review: Literal[
+        "required-before-freeze",
+        "project-owner-waived-independent-human-review",
+    ]
+    expert_scientific_review: (
+        Literal["ai-conducted-review-completed-before-freeze"] | None
+    ) = None
+    qualification_scope: (
+        Literal["compact-single-scale-rapthor-used-behaviour"] | None
+    ) = None
+    controlled_residual_noise_injection: (
+        Literal["not-available-recorded-limitation"] | None
+    ) = None
+
+    def _validate_phase4s(self) -> None:
+        """Require every additional pre-opening Phase 4S declaration."""
+        if any(
+            endpoint.population_unit is None
+            for endpoint in self.binary_endpoints
+        ):
+            raise ValueError(
+                "Phase 4S binary endpoints require population units"
+            )
+        if self.minimum_familywise_interval_exclusion_power is None:
+            raise ValueError("Phase 4S requires a familywise power target")
+        if self.expert_scientific_review is None:
+            raise ValueError("Phase 4S requires recorded expert review")
+        if self.qualification_scope is None:
+            raise ValueError("Phase 4S requires an explicit scope")
+        if self.controlled_residual_noise_injection is None:
+            raise ValueError("Phase 4S requires the residual-noise limitation")
 
     @model_validator(mode="after")
     def validate_protocol(self) -> Self:
@@ -825,6 +863,8 @@ class PairedNoninferiorityContract(_ContractModel):
             not link.startswith("https://") for link in self.scientific_basis
         ):
             raise ValueError("paired scientific basis links must use HTTPS")
+        if self.contract_id == "phase-4s-paired-noninferiority":
+            self._validate_phase4s()
         return self
 
 

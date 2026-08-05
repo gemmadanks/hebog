@@ -184,9 +184,9 @@ trusted from the contract:
 
 ```console
 uv run python scripts/validation/calculate_phase4_paired_power.py \
-  config/contracts/<phase-4s-protocol>.json \
-  --dataset-manifest config/datasets/<phase-4s-qualification>.json \
-  --dataset-id <frozen-dataset-id>
+  config/contracts/phase-4s-paired-noninferiority.json \
+  --dataset-manifest config/datasets/phase-4s-qualification.json \
+  --dataset-id phase4s-compact-qualification-512
 ```
 
 Every binary endpoint in that protocol must declare its manifest population
@@ -218,6 +218,15 @@ changes not represented by the commit, and `--container-image-digest` on a
 controlled container runner. Both candidate and reference runners accept
 regression data for planning-assumption verification. Qualification use
 requires the reviewed protocol and frozen final population.
+
+The Phase 4S compact checkpoint uses the same runner with
+`phase-4s-qualification.json`, dataset
+`phase4s-compact-qualification-512`, and
+`phase-4s-paired-noninferiority.json`. Pass the measurement and scientific-gate
+contracts exactly as shown above. The runtime checks the Phase 4S protocol
+identity, all manifest population counts, marginal power, and the binding 90%
+familywise lower-bound target before it generates the first image. Do not use
+the historical Phase 4 protocol for this population.
 
 The final population is frozen in
 `config/datasets/phase-4-final-qualification.json` as dataset
