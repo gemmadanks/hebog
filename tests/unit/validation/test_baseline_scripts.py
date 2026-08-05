@@ -631,6 +631,57 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
     }
 
 
+def test_phase_four_hebog_runner_bounds_realization_parallelism(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Concurrent images retain a finite explicit campaign resource bound."""
+    namespace = _script("run_phase4_hebog_campaign.py")
+    validate: Callable[[int], int] = namespace["_validate_realization_workers"]
+    realization_results: Callable[..., Any] = namespace["_realization_results"]
+
+    class RecordingPool:
+        """Minimal process-pool substitute exposing the selected bound."""
+
+        maximum_workers: int | None = None
+
+        def __init__(self, *, max_workers: int) -> None:
+            RecordingPool.maximum_workers = max_workers
+
+        def __enter__(self) -> RecordingPool:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            del args
+
+        def map(
+            self,
+            function: Callable[[object], object],
+            work: tuple[object, ...],
+        ) -> tuple[object, ...]:
+            del function
+            return tuple(reversed(work))
+
+    assert validate(1) == 1
+    assert validate(8) == 8
+    with pytest.raises(ValueError, match="between 1 and 32"):
+        validate(True)
+    with pytest.raises(ValueError, match="between 1 and 32"):
+        validate(0)
+    with pytest.raises(ValueError, match="between 1 and 32"):
+        validate(33)
+    monkeypatch.setitem(
+        realization_results.__globals__,
+        "ProcessPoolExecutor",
+        RecordingPool,
+    )
+
+    assert tuple(realization_results(("first", "second"), 8)) == (
+        "second",
+        "first",
+    )
+    assert RecordingPool.maximum_workers == 8
+
+
 def test_phase_four_hebog_runner_keeps_failed_seed(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

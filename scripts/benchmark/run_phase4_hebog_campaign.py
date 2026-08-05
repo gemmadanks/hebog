@@ -8,6 +8,9 @@ import json
 import sys
 import time
 import traceback
+from collections.abc import Iterator
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -46,6 +49,21 @@ from hebog.validation.hebog_campaign import (
 
 _hebog_configuration = hebog_campaign_configuration
 _process_recipe = process_hebog_recipe
+
+_MAXIMUM_REALIZATION_WORKERS = 32
+
+
+@dataclass(frozen=True, slots=True)
+class _RealizationWork:
+    """One independent campaign image and its deterministic output path."""
+
+    recipe: SyntheticRecipe
+    dataset: DatasetRecord
+    directory: Path
+    implementation_identifier: str
+    outlier_thresholds: CatalogueOutlierThresholds
+    maximum_separation_beams: float
+    position_angle_minimum_axis_ratio: float
 
 
 def _run_realization(  # noqa: PLR0913
@@ -102,6 +120,46 @@ def _run_realization(  # noqa: PLR0913
         )
 
 
+def _execute_realization(
+    work: _RealizationWork,
+) -> CampaignRealizationDiagnostic:
+    """Execute one pickleable campaign item with serial image science."""
+    return _run_realization(
+        work.recipe,
+        work.dataset,
+        work.directory,
+        implementation_identifier=work.implementation_identifier,
+        outlier_thresholds=work.outlier_thresholds,
+        maximum_separation_beams=work.maximum_separation_beams,
+        position_angle_minimum_axis_ratio=(
+            work.position_angle_minimum_axis_ratio
+        ),
+    )
+
+
+def _validate_realization_workers(value: int) -> int:
+    """Require an explicit bounded image-level campaign allocation."""
+    if (
+        isinstance(value, bool)
+        or not 1 <= value <= _MAXIMUM_REALIZATION_WORKERS
+    ):
+        raise ValueError("realization workers must be between 1 and 32")
+    return value
+
+
+def _realization_results(
+    work: tuple[_RealizationWork, ...],
+    workers: int,
+) -> Iterator[CampaignRealizationDiagnostic]:
+    """Preserve recipe order while optionally running independent images."""
+    if workers == 1:
+        for item in work:
+            yield _execute_realization(item)
+        return
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        yield from executor.map(_execute_realization, work)
+
+
 def _parse_args() -> argparse.Namespace:
     """Parse one isolated candidate campaign request."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -122,6 +180,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--container-image-digest")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--realization-workers", default=1, type=int)
     parser.add_argument("--maximum-separation-beams", default=0.5, type=float)
     parser.add_argument(
         "--position-angle-minimum-axis-ratio",
@@ -147,6 +206,10 @@ def _run(args: argparse.Namespace) -> CampaignImplementationEvidence:
         comparison_protocol=args.comparison_protocol,
     )
     configuration = _hebog_configuration()
+    realization_workers = _validate_realization_workers(
+        args.realization_workers
+    )
+    configuration["campaign_realization_workers"] = realization_workers
     outlier_thresholds = phase_four_outlier_thresholds(args.scientific_gates)
     started = time.perf_counter()
     realizations: list[CampaignRealizationDiagnostic] = []
@@ -155,22 +218,26 @@ def _run(args: argparse.Namespace) -> CampaignImplementationEvidence:
     )
     with TemporaryDirectory(prefix="hebog-phase4-candidate-") as temporary:
         root = Path(temporary)
-        for index, recipe in enumerate(recipes):
-            directory = root / f"seed-{recipe.seed}"
-            directory.mkdir()
-            realizations.append(
-                _run_realization(
-                    recipe,
-                    dataset,
-                    directory,
-                    implementation_identifier=args.implementation_id,
-                    outlier_thresholds=outlier_thresholds,
-                    maximum_separation_beams=args.maximum_separation_beams,
-                    position_angle_minimum_axis_ratio=(
-                        args.position_angle_minimum_axis_ratio
-                    ),
-                )
+        work = tuple(
+            _RealizationWork(
+                recipe=recipe,
+                dataset=dataset,
+                directory=root / f"seed-{recipe.seed}",
+                implementation_identifier=args.implementation_id,
+                outlier_thresholds=outlier_thresholds,
+                maximum_separation_beams=args.maximum_separation_beams,
+                position_angle_minimum_axis_ratio=(
+                    args.position_angle_minimum_axis_ratio
+                ),
             )
+            for recipe in recipes
+        )
+        for item in work:
+            item.directory.mkdir()
+        for index, realization in enumerate(
+            _realization_results(work, realization_workers)
+        ):
+            realizations.append(realization)
             print(
                 json.dumps(
                     {

@@ -195,6 +195,13 @@ captured run log, and continues. It never drops the seed or publishes partial
 source rows. Existing evidence is not overwritten. Its wall time is diagnostic
 provenance only and must not be used for a performance claim.
 
+Campaign images are scientifically independent. For a local regression replay,
+`--realization-workers N` may therefore process up to `N` images concurrently
+while retaining serial execution within each image and writing results in
+recipe order. The value is bounded to 1--32, defaults to 1, and is included in
+the evidence execution-configuration digest. Size it from available host
+memory; it changes campaign throughput, not the frozen image-level algorithm.
+
 Inspect the reviewed protocol and its design-stage power with:
 
 ```console
