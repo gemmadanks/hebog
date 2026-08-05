@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: If you use hebog in your research, please cite it as below.
 title: 'Hebog: an experimental source finder for radio astronomy images.'
-version: 0.5.0
+version: 0.6.0
 date-released: '2026-08-02'
 authors:
   - family-names: Danks

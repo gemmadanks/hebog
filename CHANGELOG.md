@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0](https://github.com/gemmadanks/hebog/compare/v0.5.0...v0.6.0) (2026-08-05)
+
+
+### 🚀 Features
+
+* add bounded correlated Gaussian fitting ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* add compact moment measurements ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* add explainable campaign evidence ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* add Hebog campaign runner ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* add paired PyBDSF campaign runner ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* calibrate compact fits for correlated noise ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* complete Phase 4 compact source catalogues ([#42](https://github.com/gemmadanks/hebog/issues/42)) ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* fit compact Gaussian components ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* improve compact association photometry ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* improve compact source positions ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* materialize compact Rapthor catalogues ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* transform compact fits to sky coordinates ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+
+
+### 🐛 Bug Fixes
+
+* correct truncated edge centroids ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* keep compact deblends fit-capable ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* preserve paired blend geometry ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* recover bounded edge fits ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* recover flux from rotated compact blends ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* require high-confidence source extension ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+
+
+### ⚡ Performance
+
+* accelerate compact catalogue fitting ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+
+
+### 📚 Documentation
+
+* plan compact-science stabilization ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+
+
+### 📦 Build
+
+* **deps:** update dependencies ([#44](https://github.com/gemmadanks/hebog/issues/44)) ([8477f76](https://github.com/gemmadanks/hebog/commit/8477f769ae3dbd3a8925a6ae661143010d11daaf))
+* **deps:** update uv-build requirement ([#37](https://github.com/gemmadanks/hebog/issues/37)) ([e7f6046](https://github.com/gemmadanks/hebog/commit/e7f6046dd18452e6fe1022420f1e4730fdbb8d23))
+
+
+### 🧪 Tests
+
+* cover correlated edge recovery ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+* parallelize scientific campaign replay ([b7fe3f9](https://github.com/gemmadanks/hebog/commit/b7fe3f9abd6a4ff89e6350371435ccf8c15fafae))
+
 ## [0.5.0](https://github.com/gemmadanks/hebog/compare/v0.4.0...v0.5.0) (2026-08-02)
 
 
