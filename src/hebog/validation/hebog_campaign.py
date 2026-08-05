@@ -169,6 +169,9 @@ def hebog_campaign_configuration() -> dict[str, object]:
         },
         "executor": "serial",
         "fitting": {
+            "association_aperture_minimum_fixed_beam_model_fraction": (
+                fit.association_aperture_minimum_fixed_beam_model_fraction
+            ),
             "association_aperture_radius_sigma": (
                 fit.association_aperture_radius_sigma
             ),
@@ -256,9 +259,8 @@ def _comparison_sources(
             peak_flux_jy_per_beam=source.flux.peak_flux_jy_per_beam,
             integrated_flux_jy=source.flux.integrated_flux_jy,
             association_integrated_flux_jy=(
-                source.restoring_beam_aperture_integrated_flux_jy
-                if source.restoring_beam_aperture_integrated_flux_jy
-                is not None
+                source.association_aperture_integrated_flux_jy
+                if source.association_aperture_integrated_flux_jy is not None
                 else (
                     source.flux.peak_flux_jy_per_beam
                     * source.fitted_shape.major_fwhm_degrees

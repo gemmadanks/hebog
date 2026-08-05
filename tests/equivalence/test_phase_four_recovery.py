@@ -142,7 +142,7 @@ def test_phase4r_edge_retry_preserves_the_valid_association(
     assert pair.gated_catastrophic is False
 
 
-def test_phase4r_blend_uses_mask_aware_restoring_beam_aperture(
+def test_phase4r_blend_uses_mask_aware_association_aperture(
     tmp_path: Path,
 ) -> None:
     """Association flux uses bounded aperture photometry for a blend."""

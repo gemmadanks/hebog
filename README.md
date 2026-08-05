@@ -125,20 +125,22 @@ both references, but just above the frozen 20% absolute limit. Phase 4T is
 therefore preserved as a terminal failure rather than rounded, rescored, or
 repeated on unchanged code.
 
-The remaining compact-science work is a focused, test-driven investigation of
-that roughly 10% systematic blend flux under-recovery across independent
-development cases. A new qualification will be justified only by a general
-algorithm improvement, not by changing the viewed limit or drawing another
-set of seeds. Substantive multiscale development remains paused. External
-radio-astronomy review, the complete performance matrix, and production
-scalability evidence also remain required before Hebog replaces PyBDSF by
-default.
+The roughly 10% systematic blend flux under-recovery has now been traced to a
+fixed restoring-beam aperture clipping blends across the beam's narrow axis.
+Hebog's candidate correction keeps that lower-variance aperture when it
+contains at least 90% of the fitted source model and otherwise follows the
+fitted blend shape. Independent development cases reduce mean signed blend
+flux error to about -2.4%, while existing compact regressions continue to
+pass. This is promising development evidence, not a qualification result: one
+separately frozen, unseen Phase 4U campaign still has to pass before
+substantive multiscale work begins. External radio-astronomy review, the
+complete performance matrix, and production scalability evidence also remain
+required before Hebog replaces PyBDSF by default.
 
 The remaining work includes:
 
-- resolving the Phase 4T unresolved-blend flux weakness on independent
-  development and regression populations, then qualifying a changed
-  candidate once under a separately frozen protocol;
+- qualifying the corrected blend-photometry candidate once under a separately
+  frozen unseen protocol;
 - passing the complete incremental Phase 4 performance budget;
 - recovering extended or multiscale emission;
 - integrating the complete path into Rapthor's `filter_skymodel` workflow;

@@ -182,9 +182,9 @@ def _associated_records(
             transformed.deconvolved_major_fwhm_degrees
         ),
         quality_flags=transformed.quality_flags,
-        restoring_beam_aperture_integrated_flux_jy=(
-            fit.restoring_beam_aperture.integrated_flux_jy
-            if fit.restoring_beam_aperture is not None
+        association_aperture_integrated_flux_jy=(
+            fit.association_aperture.integrated_flux_jy
+            if fit.association_aperture is not None
             else None
         ),
     )

@@ -47,7 +47,7 @@ A valid fitted component reports:
 - global pixel centroid, ordered sigma axes, and orientation;
 - an infinite-plane fitted-Gaussian integral used for resolved-source
   measurement and extension testing;
-- a mask-aware three-sigma restoring-beam aperture flux for compact-source
+- a mask-aware three-sigma association aperture flux for compact-source
   association, kept distinct from both the Gaussian integral and owned-pixel
   photometry;
 - bilinearly sampled local RMS at the fitted centroid; and
@@ -80,10 +80,13 @@ identities, exact bound parameters, bound distances, condition number, visible
 footprint, retained geometry, and fallback reason remain auditable.
 
 The association aperture is an explicit configurable radius, currently three
-restoring-beam sigmas. Its flux is a direct sum of finite background-subtracted
-pixels within that ellipse. The normalization integrates the pixelized beam
-over exactly the same valid, non-competing support, so image edges and invalid
-pixels reduce a recorded visible-beam fraction rather than silently losing
+Gaussian sigmas. Hebog uses the lower-variance restoring-beam ellipse when it
+contains at least 90% of the fitted model. Otherwise it uses the selected-fit
+ellipse so a rotated or elongated unresolved blend is not clipped by the
+beam's narrow axis. The flux is a direct sum of finite background-subtracted
+pixels within the selected ellipse, normalized by the same Gaussian model over
+exactly the same valid, non-competing support. Image edges and invalid pixels
+therefore reduce a recorded visible-model fraction rather than silently losing
 flux. This bounded aperture is used only for association and blend-total
 comparisons; fitted component flux and Rapthor's unresolved peak-as-total
 catalogue convention are unchanged.

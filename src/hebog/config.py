@@ -323,6 +323,7 @@ class CompactGaussianFitConfig:
         "selected-model"
     )
     association_aperture_radius_sigma: float = 3.0
+    association_aperture_minimum_fixed_beam_model_fraction: float = 0.9
 
     def __post_init__(self) -> None:
         """Validate scientific parameter bounds and finite work limits."""
@@ -404,13 +405,7 @@ class CompactGaussianFitConfig:
             "bounded-context-free",
         }:
             raise ValueError("position_estimator is not a supported policy")
-        if (
-            not isfinite(self.association_aperture_radius_sigma)
-            or self.association_aperture_radius_sigma <= 0
-        ):
-            raise ValueError(
-                "association_aperture_radius_sigma must be finite and positive"
-            )
+        self._validate_association_aperture_policy()
         if (
             isinstance(self.maximum_gls_pixels, bool)
             or not isinstance(self.maximum_gls_pixels, Integral)
@@ -431,6 +426,24 @@ class CompactGaussianFitConfig:
             raise ValueError(
                 "maximum_information_condition_number must be finite and "
                 "greater than one"
+            )
+
+    def _validate_association_aperture_policy(self) -> None:
+        """Validate association-aperture geometry and model selection."""
+        if (
+            not isfinite(self.association_aperture_radius_sigma)
+            or self.association_aperture_radius_sigma <= 0
+        ):
+            raise ValueError(
+                "association_aperture_radius_sigma must be finite and positive"
+            )
+        model_fraction = (
+            self.association_aperture_minimum_fixed_beam_model_fraction
+        )
+        if not isfinite(model_fraction) or not 0 < model_fraction < 1:
+            raise ValueError(
+                "association aperture minimum fixed-beam model fraction must "
+                "be within (0, 1)"
             )
 
 

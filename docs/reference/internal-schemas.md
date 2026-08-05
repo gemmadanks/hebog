@@ -59,7 +59,7 @@ integrated flux when extension is not significant, and the free-model integral
 only when extension passes the configured uncertainty test. This is a current
 catalogue semantic, not a change to the meaning of the retained fit parameter.
 
-The version-two internal catalogue FITS encoding contains exactly three
+The version-three internal catalogue FITS encoding contains exactly three
 binary-table extensions: `ISLANDS`, `SOURCES`, and
 `GAUSSIAN_COMPONENTS`. Column names are Hebog domain names with explicit FITS
 units, not PyBDSF compatibility names. At this serialization boundary only,
@@ -70,7 +70,7 @@ catalogues retain all typed columns and contain zero rows.
 For a major-axis-only result, `DECONVOLVED_MAJOR` contains the positive axis
 while `DECONVOLVED_MINOR` and `DECONVOLVED_POSITION_ANGLE` are NaN. The reader
 reconstructs the explicit one-axis state from those columns and the canonical
-quality flag. This uses the existing version-two columns and does not treat a
+quality flag. This uses the retained shape columns and does not treat a
 partial ellipse as a valid `GaussianShape`.
 
 Spectral coefficients use fixed-width float64 vectors rather than FITS
@@ -210,8 +210,8 @@ These records contain no image arrays, WCS objects, or scheduler state.
 
 A valid compact fit adds frozen pixel parameters, optimizer diagnostics,
 local RMS, optional formal covariance, and optional mask-aware
-`RestoringBeamAperturePhotometry`. The aperture record retains its configured
-sigma radius, integrated flux, visible pixelized-beam fraction, and pixel
+`AssociationAperturePhotometry`. The aperture record retains its configured
+sigma radius, integrated flux, visible selected-model fraction, and pixel
 count; it contains no image array. `CelestialCompactGaussianFit`
 then supplies the ICRS position, fitted sky ellipse, explicit deconvolution
 state, fitted flux, and canonical quality flags. An unresolved deconvolution
@@ -223,9 +223,12 @@ classified because its flux uncertainty was unavailable.
 WCS objects are reconstructed transiently inside the astrometry boundary and
 never enter a public record or executor result.
 
-Catalogue schema version 2 adds
-`SourceCandidate.restoring_beam_aperture_integrated_flux_jy` to expose that
-association measurement when it is available. `GaussianComponent.flux`
+Catalogue FITS schema version 3 replaces the earlier fixed-beam association
+aperture with
+`SourceCandidate.association_aperture_integrated_flux_jy`. It uses the
+restoring-beam ellipse when that contains at least 90% of the fitted model and
+otherwise follows the selected-fit ellipse so rotated and elongated blends are
+not clipped by the restoring beam's narrow axis. `GaussianComponent.flux`
 continues to describe the selected Gaussian model, and materialized Rapthor
 catalogue columns retain their reviewed peak/integrated component semantics.
 

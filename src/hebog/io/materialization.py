@@ -39,7 +39,7 @@ from hebog.io.base import ImageBounds, ImageWindow
 from hebog.io.fits import FitsImageSource, InvalidFitsImageError
 
 _CONTENT_SCHEMA_VERSION = 1
-_CATALOGUE_SCHEMA_VERSION = 2
+_CATALOGUE_SCHEMA_VERSION = 3
 _IMAGE_DIMENSIONS = 2
 _IMAGE_ROLES = {"rms": "RMS", "source-filtering-mask": "MASK"}
 _IMAGE_MEDIA_TYPE = "image/fits"
@@ -86,7 +86,7 @@ _MEASURED_COLUMNS = (
 _SOURCE_COLUMNS = (
     "SOURCE_ID",
     *_MEASURED_COLUMNS,
-    "RESTORING_BEAM_APERTURE_FLUX",
+    "ASSOCIATION_APERTURE_FLUX",
 )
 _COMPONENT_COLUMNS = (
     "GAUSSIAN_COMPONENT_ID",
@@ -108,7 +108,7 @@ _CATALOGUE_COLUMN_UNITS: dict[str, str | None] = {
     "DECLINATION_ERROR": "deg",
     "PEAK_FLUX": "Jy/beam",
     "PEAK_FLUX_ERROR": "Jy/beam",
-    "RESTORING_BEAM_APERTURE_FLUX": "Jy",
+    "ASSOCIATION_APERTURE_FLUX": "Jy",
     "SPECTRAL_KIND": None,
     "REFERENCE_FREQUENCY": "Hz",
     "SPECTRAL_COEFFICIENTS": None,
@@ -500,9 +500,9 @@ def _catalogue_hdus(catalogue: SourceCatalogue) -> fits.HDUList:
         ),
         *_measured_columns(catalogue.sources),
         _float_column(
-            "RESTORING_BEAM_APERTURE_FLUX",
+            "ASSOCIATION_APERTURE_FLUX",
             [
-                value.restoring_beam_aperture_integrated_flux_jy
+                value.association_aperture_integrated_flux_jy
                 for value in catalogue.sources
             ],
             unit="Jy",
@@ -656,7 +656,7 @@ def _require_catalogue_structure(hdus: fits.HDUList) -> None:
     expected_hdus = ("PRIMARY", "ISLANDS", "SOURCES", "GAUSSIAN_COMPONENTS")
     if tuple(hdu.name for hdu in hdus) != expected_hdus:
         raise InvalidMaterializedProductError(
-            "catalogue FITS structure does not match schema version 2"
+            "catalogue FITS structure does not match schema version 3"
         )
     expected_columns = (
         _ISLAND_COLUMNS,
@@ -727,8 +727,8 @@ def read_catalogue_fits_product(
                 SourceCandidate(
                     source_id=_text(row["SOURCE_ID"]),
                     fitted_shape=_shape_from_row(row, "FITTED"),
-                    restoring_beam_aperture_integrated_flux_jy=(
-                        _optional_float(row["RESTORING_BEAM_APERTURE_FLUX"])
+                    association_aperture_integrated_flux_jy=(
+                        _optional_float(row["ASSOCIATION_APERTURE_FLUX"])
                     ),
                     **_measured_fields(row),
                 )

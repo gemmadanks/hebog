@@ -44,13 +44,14 @@ class GaussianFitUncertainty:
 
 
 @dataclass(frozen=True, slots=True)
-class RestoringBeamAperturePhotometry:
-    """Mask-aware flux within a fixed restoring-beam aperture."""
+class AssociationAperturePhotometry:
+    """Mask-aware flux within a data-selected compact association aperture."""
 
     radius_sigma: float
     integrated_flux_jy: float
-    visible_beam_fraction: float
+    visible_model_fraction: float
     retained_pixel_count: int
+    aperture_model: Literal["restoring-beam", "selected-fit"]
 
     def __post_init__(self) -> None:
         """Require finite positive photometry and bounded visibility."""
@@ -62,12 +63,14 @@ class RestoringBeamAperturePhotometry:
         ):
             raise ValueError("aperture flux must be finite and positive")
         if (
-            not isfinite(self.visible_beam_fraction)
-            or not 0 < self.visible_beam_fraction <= 1
+            not isfinite(self.visible_model_fraction)
+            or not 0 < self.visible_model_fraction <= 1
         ):
-            raise ValueError("visible beam fraction must be within (0, 1]")
+            raise ValueError("visible model fraction must be within (0, 1]")
         if self.retained_pixel_count <= 0:
             raise ValueError("aperture retained pixel count must be positive")
+        if self.aperture_model not in {"restoring-beam", "selected-fit"}:
+            raise ValueError("aperture model is not supported")
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,7 +172,7 @@ class ValidCompactGaussianFit:
     diagnostics: GaussianFitDiagnostics
     quality_flags: tuple[str, ...]
     position_estimate: GaussianPositionEstimate | None = None
-    restoring_beam_aperture: RestoringBeamAperturePhotometry | None = None
+    association_aperture: AssociationAperturePhotometry | None = None
     status: Literal["valid"] = "valid"
 
 

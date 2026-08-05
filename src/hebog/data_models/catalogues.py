@@ -281,18 +281,18 @@ class SourceCandidate(_MeasuredCatalogueObject):
 
     source_id: str
     fitted_shape: GaussianShape | None
-    restoring_beam_aperture_integrated_flux_jy: float | None = None
+    association_aperture_integrated_flux_jy: float | None = None
 
     @model_validator(mode="after")
     def _validate_source_id(self) -> Self:
         """Require stable identity and valid optional aperture photometry."""
         _require_domain_identifier(self.source_id, field_name="source ID")
-        aperture_flux = self.restoring_beam_aperture_integrated_flux_jy
+        aperture_flux = self.association_aperture_integrated_flux_jy
         if aperture_flux is not None and (
             not isfinite(aperture_flux) or aperture_flux <= 0
         ):
             raise ValueError(
-                "restoring-beam aperture flux must be finite and positive"
+                "association aperture flux must be finite and positive"
             )
         return self
 

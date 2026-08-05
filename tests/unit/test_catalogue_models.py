@@ -91,7 +91,7 @@ def _source(
         fitted_shape=_shape(),
         deconvolved_shape=None,
         quality_flags=("deblended", "edge-truncated"),
-        restoring_beam_aperture_integrated_flux_jy=0.011,
+        association_aperture_integrated_flux_jy=0.011,
     )
 
 
@@ -143,8 +143,7 @@ def test_catalogue_round_trip_is_canonical_and_pickle_safe() -> None:
     assert catalogue.sources[0].position.declination_error_degrees is None
     assert catalogue.sources[0].flux.integrated_flux_error_jy is None
     assert (
-        catalogue.sources[0].restoring_beam_aperture_integrated_flux_jy
-        == 0.011
+        catalogue.sources[0].association_aperture_integrated_flux_jy == 0.011
     )
     assert (
         SourceCatalogue.from_json_bytes(catalogue.canonical_json_bytes())
@@ -386,7 +385,7 @@ def test_measurements_reject_noncanonical_physical_values(
         (_source(), {"source_id": "../source"}, "domain identifier"),
         (
             _source(),
-            {"restoring_beam_aperture_integrated_flux_jy": 0.0},
+            {"association_aperture_integrated_flux_jy": 0.0},
             "aperture flux",
         ),
         (

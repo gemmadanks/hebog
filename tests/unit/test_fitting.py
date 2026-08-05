@@ -21,9 +21,9 @@ from hebog.algorithms.measurement import measure_compact_moments
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
 from hebog.data_models.fitting import (
+    AssociationAperturePhotometry,
     FailedCompactGaussianFit,
     GaussianPositionEstimate,
-    RestoringBeamAperturePhotometry,
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
@@ -306,15 +306,15 @@ def test_beam_shaped_edge_and_corner_sources_use_constrained_fit(
     assert not result.diagnostics.parameters_at_bound
     assert "beam-constrained-fit" in result.quality_flags
     assert isinstance(
-        result.restoring_beam_aperture,
-        RestoringBeamAperturePhotometry,
+        result.association_aperture,
+        AssociationAperturePhotometry,
     )
-    assert result.restoring_beam_aperture.radius_sigma == 3.0
-    assert result.restoring_beam_aperture.integrated_flux_jy == pytest.approx(
+    assert result.association_aperture.radius_sigma == 3.0
+    assert result.association_aperture.integrated_flux_jy == pytest.approx(
         0.5,
         rel=1e-6,
     )
-    assert 0.0 < result.restoring_beam_aperture.visible_beam_fraction <= 1.0
+    assert 0.0 < result.association_aperture.visible_model_fraction <= 1.0
 
 
 def test_clear_extended_source_retains_free_elliptical_fit() -> None:
@@ -332,6 +332,143 @@ def test_clear_extended_source_retains_free_elliptical_fit() -> None:
     assert result.diagnostics.fallback_reason is None
     assert result.parameters.major_sigma_pixels == pytest.approx(3.8)
     assert result.parameters.minor_sigma_pixels == pytest.approx(2.4)
+
+
+@pytest.mark.parametrize(
+    ("pair_angle_degrees", "aperture_model"),
+    (
+        (20.0, "restoring-beam"),
+        (65.0, "selected-fit"),
+        (110.0, "selected-fit"),
+    ),
+)
+def test_association_aperture_recovers_rotated_blend_total_flux(
+    pair_angle_degrees: float,
+    aperture_model: str,
+) -> None:
+    """Association flux follows the observed blend, not a fixed beam mask."""
+    geometry = _beam_geometry()
+    beam_covariance = geometry.restoring_beam_covariance_pixels_squared
+    assert beam_covariance is not None
+    covariance = np.asarray(
+        [
+            [beam_covariance[0], beam_covariance[1]],
+            [beam_covariance[1], beam_covariance[2]],
+        ]
+    )
+    beam_axes = tuple(np.sqrt(np.linalg.eigvalsh(covariance)[::-1]))
+    center_xy = (20.0, 20.0)
+    separation_pixels = 2.5
+    angle = np.deg2rad(pair_angle_degrees)
+    offset_xy = (
+        0.5 * separation_pixels * np.cos(angle),
+        0.5 * separation_pixels * np.sin(angle),
+    )
+    shared = {
+        "sigma_axes": beam_axes,
+        "angle_degrees": 20.0,
+        "shape_yx": (41, 41),
+        "origin_yx": (0, 0),
+        "rms_value": 0.01,
+    }
+    first = _gaussian_input(
+        amplitude=1.0,
+        centroid_xy=(
+            center_xy[0] - offset_xy[0],
+            center_xy[1] - offset_xy[1],
+        ),
+        **shared,  # type: ignore[arg-type]
+    )
+    second = _gaussian_input(
+        amplitude=0.8,
+        centroid_xy=(
+            center_xy[0] + offset_xy[0],
+            center_xy[1] + offset_xy[1],
+        ),
+        **shared,  # type: ignore[arg-type]
+    )
+    blend = replace(
+        first,
+        physical_residual=first.physical_residual + second.physical_residual,
+    )
+
+    result = _fit(
+        blend,
+        config=_fit_config(
+            background_model="fixed-zero",
+            pixel_support="owned-region",
+            model_selection="beam-or-free",
+        ),
+        geometry=geometry,
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == "free-elliptical"
+    assert result.association_aperture is not None
+    assert result.association_aperture.aperture_model == aperture_model
+    assert result.association_aperture.integrated_flux_jy == pytest.approx(
+        1.8,
+        rel=0.02,
+    )
+
+
+def test_association_aperture_omits_unusable_support(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Empty or non-positive aperture support remains explicit absence."""
+    original = fitting_algorithm._association_aperture_photometry
+    omitted: list[AssociationAperturePhotometry | None] = []
+
+    def probe(
+        compact: _FitInput,
+        region: DeblendedRegion,
+        candidate: fitting_algorithm._FitCandidate,
+        geometry: CompactMeasurementGeometry,
+        config: CompactGaussianFitConfig,
+    ) -> AssociationAperturePhotometry | None:
+        omitted.append(
+            original(
+                replace(
+                    compact,
+                    valid_pixels=np.zeros_like(compact.valid_pixels),
+                ),
+                region,
+                candidate,
+                geometry,
+                config,
+            )
+        )
+        omitted.append(
+            original(
+                replace(
+                    compact,
+                    physical_residual=-np.abs(compact.physical_residual),
+                ),
+                region,
+                candidate,
+                geometry,
+                config,
+            )
+        )
+        return original(
+            compact,
+            region,
+            candidate,
+            geometry,
+            config,
+        )
+
+    monkeypatch.setattr(
+        fitting_algorithm,
+        "_association_aperture_photometry",
+        probe,
+    )
+
+    result = _fit(_gaussian_input(), geometry=_beam_geometry())
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.association_aperture is not None
+    assert omitted == [None, None]
 
 
 def test_valid_free_fit_survives_failed_smaller_model(
@@ -914,9 +1051,10 @@ def test_underdetermined_measurement_is_not_fitted() -> None:
         ({"radius_sigma": float("nan")}, "radius"),
         ({"integrated_flux_jy": 0.0}, "flux"),
         ({"integrated_flux_jy": float("inf")}, "flux"),
-        ({"visible_beam_fraction": 0.0}, "fraction"),
-        ({"visible_beam_fraction": 1.01}, "fraction"),
+        ({"visible_model_fraction": 0.0}, "fraction"),
+        ({"visible_model_fraction": 1.01}, "fraction"),
         ({"retained_pixel_count": 0}, "pixel count"),
+        ({"aperture_model": "unknown"}, "model"),
     ],
 )
 def test_aperture_photometry_rejects_invalid_evidence(
@@ -927,13 +1065,14 @@ def test_aperture_photometry_rejects_invalid_evidence(
     values: dict[str, object] = {
         "radius_sigma": 3.0,
         "integrated_flux_jy": 0.5,
-        "visible_beam_fraction": 0.8,
+        "visible_model_fraction": 0.8,
         "retained_pixel_count": 20,
+        "aperture_model": "selected-fit",
     }
     values.update(changes)
 
     with pytest.raises(ValueError, match=message):
-        RestoringBeamAperturePhotometry(**values)  # type: ignore[arg-type]
+        AssociationAperturePhotometry(**values)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
@@ -963,6 +1102,14 @@ def test_aperture_photometry_rejects_invalid_evidence(
         (
             {"association_aperture_radius_sigma": 0.0},
             "association_aperture_radius_sigma",
+        ),
+        (
+            {"association_aperture_minimum_fixed_beam_model_fraction": 1.0},
+            "minimum fixed-beam model fraction",
+        ),
+        (
+            {"association_aperture_minimum_fixed_beam_model_fraction": 0.0},
+            "minimum fixed-beam model fraction",
         ),
     ],
 )

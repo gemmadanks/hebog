@@ -5132,3 +5132,45 @@ will be captured by the isolated runner.
   test-driven unresolved-blend flux remediation on independent development
   and regression data. Substantive Phase 5 work remains paused until a
   generally improved candidate passes a separately frozen qualification.
+
+## 2026-08-05 — Corrected orientation-dependent compact-blend flux loss
+
+**Plan phase:** Phase 4U — unresolved-blend flux remediation
+
+**Diagnosis and implementation**
+
+- Reproduced the bias analytically without using any Phase 4T realization.
+  The former fixed restoring-beam association aperture recovered about 98.3%,
+  93.8%, and 86.5% of noiseless two-source truth as the pair rotated from the
+  beam major axis through 45 degrees to the minor axis. This isolated
+  aperture clipping from background estimation, island ownership, and beam
+  normalization.
+- Added a model-containment selector. The lower-variance restoring-beam
+  aperture remains in use when it contains at least 90% of the selected fit;
+  otherwise photometry follows the selected-fit ellipse. Flux in both cases
+  is corrected only for the fraction of that same model visible through
+  image, validity, and competing-region masks. No empirical flux multiplier
+  or qualification-dependent branch was added.
+- Renamed the evidence to association-aperture photometry and incremented the
+  unreleased internal catalogue FITS encoding to schema version 3 with
+  `ASSOCIATION_APERTURE_FLUX`. Hebog's pre-production no-compatibility policy
+  intentionally leaves no version-2 development reader.
+
+**Independent development evidence**
+
+- Added noiseless angle regressions and a fresh 18-realization noisy matrix
+  using seeds `2026501001`--`2026501018`, three source/beam angles, and equal
+  and 2:1 component ratios. Mean signed error was `-0.024108`, median signed
+  error `-0.037878`, 95th-percentile absolute error `0.147443`, maximum
+  absolute error `0.153519`, and 12/18 errors were negative.
+- The prior Phase 4R noisy blend regression still passes. Focused fitting and
+  blend tests passed 78/78; the complete unit, integration, and equivalence
+  lanes passed during development. Final branch-aware project coverage was
+  94.12%, with the changed aperture, schema, and configuration paths covered.
+
+**Next**
+
+- Complete final coverage, documentation, serial/Dask, and repository checks;
+  commit the candidate atomically; then freeze a separately named Phase 4U
+  population with several unseen blend separations, orientations, and flux
+  ratios before generating or viewing any qualification output.

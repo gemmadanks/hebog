@@ -20,11 +20,11 @@ from hebog.algorithms.catalogue import (
 from hebog.config import CompactCatalogueConfig
 from hebog.data_models.catalogue_construction import CompactCatalogueOmission
 from hebog.data_models.fitting import (
+    AssociationAperturePhotometry,
     CompactIslandFitResult,
     FailedCompactGaussianFit,
     FittedGaussianPixelParameters,
     GaussianFitDiagnostics,
-    RestoringBeamAperturePhotometry,
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
@@ -120,11 +120,12 @@ def _fit(
         uncertainty=None,
         diagnostics=GaussianFitDiagnostics(True, 8, 1.0, 14, 1.0 / 14, False),
         quality_flags=(),
-        restoring_beam_aperture=RestoringBeamAperturePhotometry(
+        association_aperture=AssociationAperturePhotometry(
             radius_sigma=3.0,
             integrated_flux_jy=0.018,
-            visible_beam_fraction=0.98,
+            visible_model_fraction=0.98,
             retained_pixel_count=32,
+            aperture_model="selected-fit",
         ),
     )
 
@@ -184,7 +185,7 @@ def test_shard_keeps_island_source_and_component_records_distinct() -> None:
         assert component.island_id == source.island_id
         assert component.flux == source.flux
         assert component.fitted_shape == source.fitted_shape
-        assert source.restoring_beam_aperture_integrated_flux_jy == 0.018
+        assert source.association_aperture_integrated_flux_jy == 0.018
         assert source.spectral_model.kind == "reference-frequency-only"
         assert source.spectral_model.reference_frequency_hz == 150_000_000.0
 

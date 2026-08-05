@@ -2825,6 +2825,37 @@ real-residual evidence remain later release and production-cutover gates.
 Historical Phase 4, Phase 4R, Phase 4S, and Phase 4T decisions remain failed
 and immutable.
 
+Phase 4U candidate-development checkpoint on 2026-08-05:
+
+- Analytic decomposition identified the fixed restoring-beam association
+  ellipse as the general source of the orientation-dependent loss. For a
+  noiseless two-component beam-shaped blend, the old estimator recovered
+  about 98.3%, 93.8%, and 86.5% of truth when the pair was respectively
+  aligned, diagonal, and perpendicular to the beam major axis. The failure is
+  aperture clipping rather than a global flux-calibration factor, so a fixed
+  multiplicative correction is rejected.
+- The candidate keeps the lower-variance restoring-beam aperture when it
+  contains at least 90% of the selected fitted Gaussian model and otherwise
+  uses the selected-fit ellipse. Both paths normalize over their actually
+  visible, valid, non-competing support. This is a local model-containment
+  decision; it does not inspect campaign truth, source class, seed, or a
+  qualification metric.
+- Three noiseless source/beam angles select the expected aperture and recover
+  total truth within 2%. A seed-disjoint 18-realization development matrix
+  crossing three source/beam angles and two flux ratios measured mean signed
+  error `-0.024108`, median `-0.037878`, and 95th-percentile absolute error
+  `0.147443`. The existing Phase 4R noisy blend regression and the full unit,
+  integration, and equivalence lanes pass.
+- The renamed association-aperture evidence is an intentional pre-production
+  schema cleanup. Internal catalogue FITS schema version 3 records
+  `ASSOCIATION_APERTURE_FLUX`; no compatibility reader for the unreleased
+  version-2 development encoding is retained.
+
+This checkpoint is development evidence, not qualification. Freeze a fresh
+Phase 4U population with several predeclared separations, orientations, and
+flux ratios only after the remediation candidate and regression evidence have
+been committed. Do not inspect any Phase 4U result before that freeze.
+
 ### Phase 5: multiscale and extended emission
 
 Status: preparatory work only until the Phase 4U exit gate passes.

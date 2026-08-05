@@ -482,6 +482,7 @@ def test_phase_four_hebog_runner_freezes_scientific_configuration() -> None:
         },
         "executor": "serial",
         "fitting": {
+            "association_aperture_minimum_fixed_beam_model_fraction": 0.9,
             "association_aperture_radius_sigma": 3.0,
             "background_model": "fixed-zero",
             "center_margin_pixels": 1.0,
