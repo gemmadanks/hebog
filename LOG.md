@@ -5487,3 +5487,33 @@ and strict documentation built successfully.
 **Immediate next step:** begin Step 3 with failing tests for scale-specific
 thresholds, support connectivity, local maxima, and bounded deferred-island
 measurement using the selected matched-filter responses.
+
+## 2026-08-06 — Required paired filter re-evaluation before Step 3
+
+**Plan phase:** Phase 5, Step 2B — representation selection by paired science
+
+- Reclassified the Step 2 matched-filter choice as provisional. Its 8.585%
+  masked-response error passed the 10% absolute gate but was materially larger
+  than the wavelet's 0.397%; the matched filter also had lower propagated
+  noise in that probe, so neither centre-response bias nor cost alone decides
+  the scientific trade-off.
+- Added a fail-closed Step 2B before candidate-specific detection,
+  measurement, reconciliation, tiling, or optimization. The comparison must
+  use identical prepared inputs and a frozen non-qualification matrix spanning
+  scales, support fractions, masks, edges, morphologies, nearby sources,
+  varying RMS, correlated noise, and SNR.
+- Required paired response and integrated-flux error, calibrated SNR, noise
+  calibration, completeness, reliability, astrometry, support availability,
+  fragmentation or negative-lobe behaviour, and mask topology in every
+  applicable governed stratum. Practical margins and confidence rules must be
+  frozen before inspecting the new results.
+- Cost may distinguish candidates only after every absolute and paired
+  scientific gate passes without a practically material advantage. If either
+  candidate is scientifically better, it must be selected at its current
+  bounded cost and optimized afterward.
+- Kept the frozen qualification population unopened. The existing selection
+  contract and evidence remain the reproducible initial Step 2 record and
+  must be amended or confirmed by named Step 2B review before Step 3.
+
+**Immediate next step:** freeze the Step 2B paired matrix, response-level
+margins, and confidence procedure before generating new candidate results.

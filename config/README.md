@@ -45,13 +45,15 @@ The 400-image qualification manifest is frozen and must remain unopened until
 the independent pre-opening power audit passes; development and regression
 seeds are disjoint from it.
 
-`contracts/phase-5-filter-selection.json` records the development-only Step 2
-decision to use the float64 beam-aware matched-filter bank, including its
+`contracts/phase-5-filter-selection.json` records the provisional
+development-only Step 2 decision to use the float64 beam-aware matched-filter
+bank, including its
 normalization, four-sigma support, halo formula, correlated-noise model,
 bounded structural costs, and typed evidence identity. Analytic edge evidence
 amended the minimum valid support from 0.8 to 0.5 before qualification was
-opened. The undecimated-wavelet candidate remains comparison evidence rather
-than a second production implementation.
+opened. A paired Step 2B scientific comparison must amend or confirm this
+record before Step 3; the undecimated-wavelet candidate remains active
+development evidence until then.
 
 These files are gates, not measured evidence; raw measurements use the evidence
 schemas and stay under the ignored `benchmark-results/` directory.

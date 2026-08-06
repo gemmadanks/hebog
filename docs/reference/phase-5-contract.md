@@ -3,7 +3,9 @@
 **Status:** reviewed for development on 2026-08-05 and amended by the
 [Step 2 filter decision](phase-5-filter-selection.md) on 2026-08-06. The
 qualification population remains frozen and unopened. This record establishes
-the governing contract but does not establish multiscale equivalence.
+the governing contract but does not establish multiscale equivalence. The
+initial matched-filter choice is provisional pending the paired Step 2B
+scientific comparison and does not authorize Step 3.
 
 Gemma Danks asked Codex to complete Phase 5 Step 1. Codex performed the named
 scientific and engineering review recorded here as an AI-conducted synthesis
@@ -48,9 +50,12 @@ The machine-readable meanings are in
   support is renormalized and its visible fraction is retained; insufficient
   support is a typed unavailable result.
 - Step 2 compared a beam-aware matched-filter bank with an undecimated
-  wavelet construction and selected the matched-filter bank after both passed
-  the analytic gates. The support threshold changed from 80% to 50% because
-  the original value made the required image-edge stratum unavailable.
+  wavelet construction and provisionally selected the matched-filter bank
+  after both passed the initial analytic gates. The much smaller wavelet error
+  in the masked and edge probes requires the paired Step 2B scientific
+  comparison before final selection. The support threshold changed from 80%
+  to 50% because the original value made the required image-edge stratum
+  unavailable.
 - Cross-scale identities derive from global overlap, flux, and retained scale
   provenance. Local label, tile, task, retry, and worker order have no
   scientific meaning.
@@ -162,14 +167,16 @@ Residual risks are explicit:
 - The 50% support threshold and numerical margins are reviewed-development
   values; opening qualification requires the registered power audit and
   independent review remains a cutover gate.
-- Step 2 froze the filter support, truncation, normalization, dtype, and
-  convolution implementation. Detection connectivity and extended
-  measurement semantics remain Step 3 work.
+- Step 2 recorded provisional filter support, truncation, normalization,
+  dtype, and convolution implementations. Step 2B must compare their paired
+  scientific outcomes and select one before detection connectivity and
+  extended measurement proceed in Step 3.
 - The internal records establish meanings, not a supported public API or
   completed combined catalogue implementation.
 
-The next authorized work is Phase 5 Step 3: implement thresholded scale
-detection and bounded extended-island measurement from the selected response.
+The next authorized work is Phase 5 Step 2B: freeze and run the paired
+non-qualification representation comparison. Step 3 remains blocked until
+its named review records the final algorithm selection.
 
 ## Frozen identities
 

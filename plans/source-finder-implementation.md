@@ -820,13 +820,15 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Steps 1--2 completed. The reviewed-development contract, internal
-records, scientific gates, disjoint manifests, and selected float64
-beam-aware matched-filter representation are frozen in the
-[Phase 5 contract](../docs/reference/phase-5-contract.md) and
-[filter decision](../docs/reference/phase-5-filter-selection.md). Step 3 may
-implement thresholded scale detections and extended measurement; no
-multiscale equivalence or complete runtime claim is yet approved.
+**Status:** Steps 1--2 completed; Step 2B is now the next required gate. The
+reviewed-development contract, internal records, scientific gates, and
+disjoint manifests remain frozen. The float64 beam-aware matched filter is
+only the provisional result of the initial analytic and bounded-cost screen
+recorded in the [Phase 5 contract](../docs/reference/phase-5-contract.md) and
+[filter decision](../docs/reference/phase-5-filter-selection.md). Step 3 is
+not authorized until a broader paired scientific comparison selects the
+representation. No multiscale equivalence or complete runtime claim is yet
+approved.
 
 **Goal:** recover and measure the extended and cross-scale emission required
 by the Rapthor contract without recursively rerunning the complete compact
@@ -875,7 +877,7 @@ and spill behaviour, and facility-scale execution.
          radio-astronomy review remains mandatory before production cutover
          even when project-owner review permits development.
 
-2. **Select the smallest scientifically adequate scale representation.**
+2. **Complete the initial analytic and bounded-cost candidate screen.**
 
    - [x] Write failing analytic tests for the scale response of isolated
          Gaussian sources, constant and affine backgrounds, masked/NaN
@@ -889,14 +891,50 @@ and spill behaviour, and facility-scale execution.
          maintained NumPy/SciPy design satisfying the frozen science contract.
    - [x] Record filter support, truncation error, normalization, correlated
          noise response, dtype, required halo, temporary planes, and
-         convolution reuse for the selected representation. Create or amend
-         an ADR only if the decision changes an architecture boundary or
-         introduces a durable dependency or storage policy.
+         convolution reuse for both candidates and the provisional initial
+         choice. Create or amend an ADR only if the final decision changes an
+         architecture boundary or introduces a durable dependency or storage
+         policy.
    - [x] Keep float64 unless lower precision passes the complete governed
          scientific suite; introduce native code only if the existing profile
          and end-to-end decision gates are met.
 
-3. **Implement scale detection and extended-island measurement.**
+2B. **Select the representation through a paired scientific comparison.**
+
+   - [ ] Before inspecting new candidate results, freeze a non-qualification
+         paired matrix spanning all three scales; support fractions from 0.5
+         to 1.0; mask and image-edge offsets, orientations, corners, and
+         irregular holes; compact, diffuse, filamentary, shell, and mixed
+         morphologies; nearby sources; varying RMS; correlated noise; and a
+         governed SNR range. Use only the development and regression roles;
+         keep the qualification population unopened.
+   - [ ] Evaluate both existing float64 candidates from identical prepared
+         image, validity, background, and RMS products. Use candidate-neutral
+         response and minimal threshold evaluation so no downstream
+         matched-filter design choice prejudges the comparison.
+   - [ ] Record paired centre- and integrated-flux bias, median and
+         95th-percentile error, calibrated response SNR, noise calibration,
+         completeness, reliability, position error, support availability,
+         negative-lobe or fragmentation behaviour, and mask topology in every
+         applicable governed stratum.
+   - [ ] Freeze practical paired margins and confidence rules before running
+         the matrix. Require the selected representation to pass every
+         absolute gate and to be scientifically non-inferior in every
+         governed stratum; an aggregate result may not compensate for a
+         masked, edge, morphology, scale, or SNR failure. An inconclusive
+         comparison selects neither candidate and requires a newly frozen
+         development design rather than weaker or post-hoc margins.
+   - [ ] Prefer lower convolution, memory, halo, and latency cost only after
+         the paired scientific comparison finds no practically material
+         advantage. If one candidate has a repeatable material scientific
+         advantage, select it regardless of its current cost and optimize it
+         only after selection.
+   - [ ] Obtain named review of the paired evidence and update the selection
+         contract, evidence identity, decision record, plan, and `LOG.md`.
+         Step 3 remains blocked until this review records one selected
+         representation and confirms `qualification_opened=false`.
+
+3. **Implement scale detection and extended-island measurement after Step 2B.**
 
    - [ ] Detect significant emission at every configured scale from shared
          filter responses and local noise information. Keep graph and kernel
@@ -991,6 +1029,9 @@ and spill behaviour, and facility-scale execution.
 
 Phase 5 closes only when:
 
+- the representation selected by Step 2B passes the predeclared paired
+  scientific comparison in every applicable masked, edge, scale, morphology,
+  noise, and SNR stratum before implementation-specific optimization;
 - reviewed analytic, generated-truth, dual-reference, edge, invalid-pixel,
   deferred-island, mixed compact/extended, and untouched qualification cases
   pass their predeclared gates;
@@ -1238,12 +1279,17 @@ Selective moment-only cataloguing was not adopted. Those decisions are
 documented in the [Phase 4 readiness record](../docs/reference/phase-4-release-readiness.md)
 and are now regression constraints rather than open questions.
 
-Step 2 selected the float64 beam-aware matched-filter bank after both
-predeclared candidates passed the analytic gates. It froze four-sigma support,
-9-, 17-, and 34-pixel development halos, correlated-noise gain, 50% minimum
-valid support, and bounded SciPy FFT convolution. The 4-beam scale remains the
-largest supported scale. See the
-[filter decision](../docs/reference/phase-5-filter-selection.md).
+Step 2 provisionally selected the float64 beam-aware matched-filter bank after
+both predeclared candidates passed the initial analytic gates. It recorded
+four-sigma support, 9-, 17-, and 34-pixel development halos,
+correlated-noise gain, 50% minimum valid support, and bounded SciPy FFT
+convolution. The 4-beam scale remains the largest supported scale. The much
+smaller wavelet bias in the initial masked and edge probes showed that a
+pass/fail analytic screen followed immediately by cost was not sufficient to
+make the final representation decision. Step 2B therefore requires a broader
+paired scientific comparison before Step 3 or candidate-specific
+optimization. See the
+[provisional filter decision](../docs/reference/phase-5-filter-selection.md).
 
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:

@@ -1,10 +1,13 @@
 # Phase 5 scale-filter selection
 
-**Decision:** select the beam-aware matched-filter bank for Phase 5
-development. Both predeclared candidates passed the analytic response gates,
-so the decision followed the frozen secondary rule: choose the maintained
-NumPy/SciPy design with the smaller bounded structural cost. This is a
-development component decision, not multiscale equivalence, complete Rapthor
+**Status:** provisional development decision pending Phase 5 Step 2B. The
+initial screen selected the beam-aware matched-filter bank because both
+predeclared candidates passed its analytic response gates and the matched
+filter had the smaller bounded structural cost. The substantially lower
+wavelet error in the masked and edge probes means that screen is not
+sufficient to authorize candidate-specific Step 3 work. A broader paired
+scientific comparison must now select the representation before performance
+optimization. This is not multiscale equivalence, complete Rapthor
 performance, or production-readiness evidence.
 
 The comparison used only the ten frozen development realizations. The
@@ -41,6 +44,32 @@ within the 10% edge gate; below it the response remains typed unavailable.
 This amendment was made from analytic and development evidence before any
 qualification result was generated.
 
+## Required paired scientific re-evaluation
+
+The initial rule treated each scientific metric as an absolute pass/fail gate
+and compared cost once both candidates passed. That protected the minimum
+contract but did not ask whether one passing candidate had a repeatable,
+practically material scientific advantage. The matched filter's 8.585%
+masked-response error is close to the 10% gate, while the wavelet's error is
+0.397%. Conversely, the matched response has lower propagated noise in that
+probe, so centre-response bias alone cannot establish which representation
+has better detection or measurement behaviour.
+
+Step 2B therefore blocks Step 3 until both candidates have been compared on a
+frozen non-qualification matrix of mask geometry, support fraction, image
+edge, morphology, scale, nearby-source, varying-RMS, correlated-noise, and SNR
+cases. The comparison must record paired flux bias, tail error, calibrated
+response SNR, noise calibration, completeness, reliability, astrometry,
+support availability, fragmentation or negative-lobe behaviour, and mask
+topology by governed stratum. Practical margins and confidence rules must be
+frozen before the new results are inspected.
+
+The final decision is science-first: every absolute and paired stratum gate
+must pass, with no compensation by aggregate results. Cost distinguishes the
+candidates only when neither has a practically material scientific advantage.
+If the wavelet is materially better, it will be selected at its current
+bounded cost and optimized afterward. Qualification remains unopened.
+
 ## Bounded cost comparison
 
 The controlled runner performed one warm-up followed by five complete
@@ -61,9 +90,10 @@ halo. The matched bank also has a direct positive-kernel masked-support and
 local-noise interpretation. Its measured median was lower on this environment,
 but timing was only the last tie-breaker after science and structural cost.
 
-## Selected representation
+## Provisional matched-filter representation
 
-The machine-readable decision is
+The machine-readable record captures the initial Step 2 decision and must be
+amended after Step 2B. It is
 `config/contracts/phase-5-filter-selection.json`.
 
 - Each scale uses an elliptical Gaussian aligned with the restoring beam and
@@ -84,9 +114,10 @@ The machine-readable decision is
 - Prepared inputs are shared across scales. Response planes are transient and
   are not added to Zarr or another storage backend.
 
-No ADR is needed: this decision retains the existing NumPy/SciPy dependency,
-serial-oracle boundary, float64 policy, and Zarr architecture. It neither adds
-a dependency nor changes scheduler or storage ownership.
+No ADR was needed for the initial screen: it retained the existing
+NumPy/SciPy dependency, serial-oracle boundary, float64 policy, and Zarr
+architecture. It neither adds a dependency nor changes scheduler or storage
+ownership.
 
 ## Evidence and limitations
 
@@ -101,4 +132,4 @@ every measured repetition, analytic errors, and structural costs.
 The evidence does not establish thresholded scale detections, connectivity,
 extended measurements, cross-scale reconciliation, real-residual behaviour,
 PyBDSF equivalence, or complete `filter_skymodel` speedup. Those remain later
-Phase 5 and Phase 7 gates. Phase 5 Step 3 is next.
+Phase 5 and Phase 7 gates. Phase 5 Step 2B is next; Step 3 remains blocked.
