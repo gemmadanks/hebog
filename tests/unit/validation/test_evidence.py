@@ -32,6 +32,10 @@ from hebog.validation.evidence import (
     Measurement,
     NormalizedResidualDiagnostic,
     PhaseFiveFilterCandidateEvidence,
+    PhaseFiveFilterReviewCandidateConclusion,
+    PhaseFiveFilterReviewEndpointEvidence,
+    PhaseFiveFilterReviewEvidence,
+    PhaseFiveFilterReviewPairedEndpointEvidence,
     PhaseFiveFilterSelectionEvidence,
     ResourceAllocation,
     RuntimeMetrics,
@@ -295,6 +299,146 @@ def test_phase_five_filter_selection_requires_canonical_candidates() -> None:
         PhaseFiveFilterSelectionEvidence.model_validate(
             _phase_five_selection_payload(candidates)
         )
+
+
+def _phase_five_review_endpoint(
+    family: Literal[
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    ],
+    *,
+    passed: bool,
+) -> PhaseFiveFilterReviewEndpointEvidence:
+    """Return one binding absolute endpoint from the paired review."""
+    return PhaseFiveFilterReviewEndpointEvidence(
+        metric="response-fractional-error",
+        population="analytic",
+        stratum="overall",
+        statistic="median",
+        family=family,
+        sample_count=84,
+        estimate=0.08,
+        absolute_limit=0.05,
+        absolute_direction="maximum",
+        passed=passed,
+    )
+
+
+def _phase_five_paired_endpoint(
+    family: Literal[
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    ],
+) -> PhaseFiveFilterReviewPairedEndpointEvidence:
+    """Return one exact non-inferiority endpoint from the paired review."""
+    reference = (
+        "undecimated-wavelet"
+        if family == "beam-aware-matched-filter"
+        else "beam-aware-matched-filter"
+    )
+    return PhaseFiveFilterReviewPairedEndpointEvidence(
+        metric="response-fractional-error",
+        population="analytic",
+        stratum="overall",
+        statistic="median",
+        family=family,
+        reference_family=reference,
+        sample_count=84,
+        estimate_difference=0.01,
+        upper_confidence_limit=0.01,
+        margin=0.02,
+        passed=True,
+    )
+
+
+def _phase_five_review_evidence() -> PhaseFiveFilterReviewEvidence:
+    """Return a valid fail-closed Step 2B review decision."""
+    matched = "beam-aware-matched-filter"
+    wavelet = "undecimated-wavelet"
+    return PhaseFiveFilterReviewEvidence(
+        schema_version=1,
+        evidence_type="phase-five-filter-paired-review",
+        run_id="phase-five-filter-paired-review-regression",
+        captured_at=datetime(2026, 8, 6, 12, 0, tzinfo=UTC),
+        status=EvidenceStatus.REVIEWED,
+        dataset=_dataset().model_copy(
+            update={
+                "identifier": "phase5-regression-multiscale-1024",
+                "role": DatasetRole.REGRESSION,
+            }
+        ),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        development_manifest_sha256="4" * 64,
+        regression_manifest_sha256="5" * 64,
+        analytic_case_count=84,
+        development_image_count=10,
+        regression_image_count=100,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260806,
+        endpoints=(
+            _phase_five_review_endpoint(matched, passed=False),
+            _phase_five_review_endpoint(wavelet, passed=False),
+        ),
+        paired_endpoints=(
+            _phase_five_paired_endpoint(matched),
+            _phase_five_paired_endpoint(wavelet),
+        ),
+        candidates=(
+            PhaseFiveFilterReviewCandidateConclusion(
+                family=matched,
+                passes_absolute=False,
+                noninferior_to_other=True,
+                bounded_cost=(9, 7, 34),
+                failed_absolute_endpoint_count=1,
+                failed_paired_endpoint_count=0,
+            ),
+            PhaseFiveFilterReviewCandidateConclusion(
+                family=wavelet,
+                passes_absolute=False,
+                noninferior_to_other=True,
+                bounded_cost=(11, 9, 49),
+                failed_absolute_endpoint_count=1,
+                failed_paired_endpoint_count=0,
+            ),
+        ),
+        decision="select-neither",
+        selected_family=None,
+        step_three_authorized=False,
+        qualification_opened=False,
+    )
+
+
+def test_phase_five_filter_review_round_trips_select_neither(
+    tmp_path: Path,
+) -> None:
+    """A completed inconclusive review is typed and keeps Step 3 blocked."""
+    evidence = _phase_five_review_evidence()
+    path = tmp_path / "phase-five-filter-paired-review.json"
+
+    write_evidence(path, evidence)
+
+    assert load_evidence(path) == evidence
+
+
+def test_phase_five_filter_review_cannot_authorize_without_selection() -> None:
+    """Fail-closed evidence cannot authorize Step 3 after selecting neither."""
+    payload = _phase_five_review_evidence().model_dump(mode="python")
+    payload["step_three_authorized"] = True
+
+    with pytest.raises(ValidationError, match="authorization requires"):
+        PhaseFiveFilterReviewEvidence.model_validate(payload)
+
+
+def test_phase_five_filter_review_derives_candidate_failures() -> None:
+    """Candidate conclusions must agree with their recorded endpoints."""
+    payload = _phase_five_review_evidence().model_dump(mode="python")
+    payload["candidates"][0]["passes_absolute"] = True
+
+    with pytest.raises(ValidationError, match="candidate conclusion"):
+        PhaseFiveFilterReviewEvidence.model_validate(payload)
 
 
 def test_software_identity_can_record_an_uncommitted_source_tree() -> None:

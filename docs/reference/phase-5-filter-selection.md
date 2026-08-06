@@ -1,14 +1,12 @@
 # Phase 5 scale-filter selection
 
-**Status:** provisional development decision pending Phase 5 Step 2B. The
-initial screen selected the beam-aware matched-filter bank because both
-predeclared candidates passed its analytic response gates and the matched
-filter had the smaller bounded structural cost. The substantially lower
-wavelet error in the masked and edge probes means that screen is not
-sufficient to authorize candidate-specific Step 3 work. A broader paired
-scientific comparison must now select the representation before performance
-optimization. This is not multiscale equivalence, complete Rapthor
-performance, or production-readiness evidence.
+**Status:** Step 2B completed with `select-neither`. The broader paired review
+found that neither the beam-aware matched filter nor the undecimated wavelet
+passed every absolute and candidate-to-candidate stratum gate. The initial
+matched-filter selection is retained only as historical Step 2 evidence.
+Step 3 and candidate-specific optimization remain blocked until a newly
+frozen corrective design passes the same review. This is not multiscale
+equivalence, complete Rapthor performance, or production-readiness evidence.
 
 The comparison used only the ten frozen development realizations. The
 qualification manifest and all qualification results remained unopened.
@@ -44,7 +42,7 @@ within the 10% edge gate; below it the response remains typed unavailable.
 This amendment was made from analytic and development evidence before any
 qualification result was generated.
 
-## Required paired scientific re-evaluation
+## Completed paired scientific re-evaluation
 
 The initial rule treated each scientific metric as an absolute pass/fail gate
 and compared cost once both candidates passed. That protected the minimum
@@ -55,14 +53,11 @@ masked-response error is close to the 10% gate, while the wavelet's error is
 probe, so centre-response bias alone cannot establish which representation
 has better detection or measurement behaviour.
 
-Step 2B therefore blocks Step 3 until both candidates have been compared on a
-frozen non-qualification matrix of mask geometry, support fraction, image
-edge, morphology, scale, nearby-source, varying-RMS, correlated-noise, and SNR
-cases. The comparison must record paired flux bias, tail error, calibrated
-response SNR, noise calibration, completeness, reliability, astrometry,
-support availability, fragmentation or negative-lobe behaviour, and mask
-topology by governed stratum. Practical margins and confidence rules must be
-frozen before the new results are inspected.
+Step 2B compared both candidates on the same prepared image, validity,
+background, and RMS products over 84 exact analytic cases, ten development
+images, and 100 fixed-seed regression images. It used the same 5-sigma seeds,
+3-sigma support, connectivity, truth groups, and whole-image bootstrap for
+both candidates.
 
 The machine-readable pre-results protocol is
 `config/contracts/phase-5-filter-paired-review.json`, SHA-256
@@ -70,11 +65,31 @@ The machine-readable pre-results protocol is
 It binds the ten-image development and 100-image regression manifests, keeps
 qualification closed, and leaves `step_three_authorized=false`.
 
-The final decision is science-first: every absolute and paired stratum gate
-must pass, with no compensation by aggregate results. Cost distinguishes the
-candidates only when neither has a practically material scientific advantage.
-If the wavelet is materially better, it will be selected at its current
-bounded cost and optimized afterward. Qualification remains unopened.
+The result is scientifically mixed rather than a cost tie. On exact analytic
+truth, the matched filter had 7.49% median and 12.86% 95th-percentile response
+error, versus 5.98% and 19.81% for the wavelet; both missed the 5%/10% gates.
+The matched filter retained higher median calibrated response SNR (15.99
+versus 11.32). The wavelet was much better on several straight masked
+half-planes but worse at corners, irregular holes, and some edge cases.
+
+On the generated regression population, both recovered every governed group.
+The wavelet produced substantially better mean mask overlap (0.617 versus
+0.239), but neither reached the frozen 0.8 gate. Both exceeded the 0.25-beam
+95th-percentile position gate (0.444 wavelet and 0.462 matched). The wavelet's
+mean fragmentation fraction was 0.167, above the 0.1 absolute gate and 0.15
+worse than the matched filter; the matched result was 0.017. Flux measured
+within candidate-retained support had median fractional error 0.145 for the
+wavelet versus 0.059 for the matched filter, so the wavelet missed both the
+0.1 absolute median gate and its paired margin. These trade-offs, plus
+failures in finer scale, morphology, mask, edge, and SNR strata, prevent either
+candidate from satisfying the no-compensation rule.
+
+The reviewed machine-readable decision is
+`config/contracts/phase-5-filter-paired-decision.json`. It records
+`selected_family=null`, `step_three_authorized=false`,
+`optimization_authorized=false`, and `qualification_opened=false`.
+Independent human scientific review remains required before production
+cutover.
 
 ## Bounded cost comparison
 
@@ -96,10 +111,10 @@ halo. The matched bank also has a direct positive-kernel masked-support and
 local-noise interpretation. Its measured median was lower on this environment,
 but timing was only the last tie-breaker after science and structural cost.
 
-## Provisional matched-filter representation
+## Historical provisional matched-filter representation
 
-The machine-readable record captures the initial Step 2 decision and must be
-amended after Step 2B. It is
+The machine-readable record captures the superseded initial Step 2 decision.
+It is
 `config/contracts/phase-5-filter-selection.json`.
 
 - Each scale uses an elliptical Gaussian aligned with the restoring beam and
@@ -135,7 +150,14 @@ It binds source-tree SHA-256
 the complete development dataset identity, dependency inventory, environment,
 every measured repetition, analytic errors, and structural costs.
 
-The evidence does not establish thresholded scale detections, connectivity,
+The paired Step 2B evidence is
+`benchmark-results/phase-5/filter-paired-review.json`; its exact checksum and
+source-tree identity are frozen in the paired decision contract. The runner
+is `scripts/benchmark/review_phase5_filters.py`.
+
+Neither evidence record establishes production thresholded scale detections,
+connectivity,
 extended measurements, cross-scale reconciliation, real-residual behaviour,
 PyBDSF equivalence, or complete `filter_skymodel` speedup. Those remain later
-Phase 5 and Phase 7 gates. Phase 5 Step 2B is next; Step 3 remains blocked.
+Phase 5 and Phase 7 gates. Step 2C must now freeze a corrective design; Step 3
+remains blocked.

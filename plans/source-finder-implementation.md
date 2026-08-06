@@ -820,15 +820,14 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Steps 1--2 completed; Step 2B is now the next required gate. The
-reviewed-development contract, internal records, scientific gates, and
-disjoint manifests remain frozen. The float64 beam-aware matched filter is
-only the provisional result of the initial analytic and bounded-cost screen
-recorded in the [Phase 5 contract](../docs/reference/phase-5-contract.md) and
-[filter decision](../docs/reference/phase-5-filter-selection.md). Step 3 is
-not authorized until a broader paired scientific comparison selects the
-representation. No multiscale equivalence or complete runtime claim is yet
-approved.
+**Status:** Steps 1--2B completed. The frozen paired comparison selected
+neither existing representation: both missed absolute truth gates and both
+failed candidate-to-candidate non-inferiority in governed strata. The initial
+float64 beam-aware matched-filter choice therefore remains a historical Step
+2 result, not an implementation authorization. Step 3 and candidate-specific
+optimization remain blocked pending a newly frozen corrective development
+design and re-evaluation. Qualification remains unopened; no multiscale
+equivalence or complete runtime claim is approved.
 
 **Goal:** recover and measure the extended and cross-scale emission required
 by the Rapthor contract without recursively rerunning the complete compact
@@ -908,11 +907,11 @@ and spill behaviour, and facility-scale execution.
          morphologies; nearby sources; varying RMS; correlated noise; and a
          governed SNR range. Use only the development and regression roles;
          keep the qualification population unopened.
-   - [ ] Evaluate both existing float64 candidates from identical prepared
+   - [x] Evaluate both existing float64 candidates from identical prepared
          image, validity, background, and RMS products. Use candidate-neutral
          response and minimal threshold evaluation so no downstream
          matched-filter design choice prejudges the comparison.
-   - [ ] Record paired centre- and integrated-flux bias, median and
+   - [x] Record paired centre- and integrated-flux bias, median and
          95th-percentile error, calibrated response SNR, noise calibration,
          completeness, reliability, position error, support availability,
          negative-lobe or fragmentation behaviour, and mask topology in every
@@ -924,15 +923,31 @@ and spill behaviour, and facility-scale execution.
          masked, edge, morphology, scale, or SNR failure. An inconclusive
          comparison selects neither candidate and requires a newly frozen
          development design rather than weaker or post-hoc margins.
-   - [ ] Prefer lower convolution, memory, halo, and latency cost only after
+   - [x] Prefer lower convolution, memory, halo, and latency cost only after
          the paired scientific comparison finds no practically material
          advantage. If one candidate has a repeatable material scientific
          advantage, select it regardless of its current cost and optimize it
          only after selection.
-   - [ ] Obtain named review of the paired evidence and update the selection
-         contract, evidence identity, decision record, plan, and `LOG.md`.
-         Step 3 remains blocked until this review records one selected
-         representation and confirms `qualification_opened=false`.
+   - [x] Complete a named governed-evidence review and update the selection
+         status, evidence identity, decision record, plan, and `LOG.md`. The
+         review recorded `select-neither`, `qualification_opened=false`, and
+         `step_three_authorized=false`; independent human scientific review
+         remains required before production cutover.
+
+2C. **Correct the representation design after the inconclusive review.**
+
+   - [ ] Diagnose the failed analytic response, response-SNR, astrometry,
+         fragmentation, and mask-topology strata without opening
+         qualification. Separate evaluator defects from representation
+         limitations with exact truth and development-only probes.
+   - [ ] Freeze a corrective development design before changing either
+         candidate. It may optimize the wavelet, correct missing-support and
+         edge response, or define a scientifically justified hybrid, but must
+         preserve identical inputs, thresholds, absolute gates, paired
+         margins, and fail-closed decision semantics.
+   - [ ] Re-run the full Step 2B analytic and 100-image regression protocol.
+         Authorize Step 3 only if one representation passes every applicable
+         absolute and paired stratum gate. Keep qualification unopened.
 
 3. **Implement scale detection and extended-island measurement after Step 2B.**
 
@@ -1280,16 +1295,14 @@ documented in the [Phase 4 readiness record](../docs/reference/phase-4-release-r
 and are now regression constraints rather than open questions.
 
 Step 2 provisionally selected the float64 beam-aware matched-filter bank after
-both predeclared candidates passed the initial analytic gates. It recorded
-four-sigma support, 9-, 17-, and 34-pixel development halos,
-correlated-noise gain, 50% minimum valid support, and bounded SciPy FFT
-convolution. The 4-beam scale remains the largest supported scale. The much
-smaller wavelet bias in the initial masked and edge probes showed that a
-pass/fail analytic screen followed immediately by cost was not sufficient to
-make the final representation decision. Step 2B therefore requires a broader
-paired scientific comparison before Step 3 or candidate-specific
-optimization. See the
-[provisional filter decision](../docs/reference/phase-5-filter-selection.md).
+the initial analytic screen. Step 2B superseded that selection status: the
+matched filter was more consistent and had higher calibrated response SNR,
+while the wavelet was better for several straight masked half-planes and had
+substantially better generated mask overlap. Neither passed the complete
+absolute and paired matrix. The reviewed decision is therefore
+`select-neither`; Step 2C must freeze a corrective design before any
+representation is optimized or Step 3 begins. See the
+[filter decision](../docs/reference/phase-5-filter-selection.md).
 
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:

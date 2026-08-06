@@ -486,6 +486,215 @@ class PhaseFiveFilterSelectionEvidence(_EvidenceDocument):
         return self
 
 
+PhaseFiveFilterFamily: TypeAlias = Literal[
+    "beam-aware-matched-filter",
+    "undecimated-wavelet",
+]
+
+
+class PhaseFiveFilterReviewEndpointEvidence(_EvidenceModel):
+    """One absolute or diagnostic Step 2B endpoint summary."""
+
+    metric: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    population: Literal["analytic", "development", "regression"]
+    stratum: str = Field(min_length=1)
+    statistic: Literal[
+        "fraction", "maximum", "mean", "median", "percentile-95"
+    ]
+    family: PhaseFiveFilterFamily
+    sample_count: int = Field(ge=1)
+    estimate: float = Field(allow_inf_nan=False)
+    absolute_limit: float | None = Field(default=None, allow_inf_nan=False)
+    absolute_direction: Literal["maximum", "minimum"] | None = None
+    passed: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_absolute_decision(self) -> Self:
+        """Keep diagnostic and binding fields internally consistent."""
+        decision_fields = (
+            self.absolute_limit,
+            self.absolute_direction,
+            self.passed,
+        )
+        if any(item is None for item in decision_fields) != all(
+            item is None for item in decision_fields
+        ):
+            raise ValueError(
+                "absolute endpoint limit, direction, and decision must "
+                "be supplied together"
+            )
+        if self.absolute_limit is not None:
+            expected = (
+                self.estimate <= self.absolute_limit
+                if self.absolute_direction == "maximum"
+                else self.estimate >= self.absolute_limit
+            )
+            if self.passed != expected:
+                raise ValueError("absolute endpoint decision is incorrect")
+        return self
+
+
+class PhaseFiveFilterReviewPairedEndpointEvidence(_EvidenceModel):
+    """One candidate-to-candidate Step 2B non-inferiority decision."""
+
+    metric: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    population: Literal["analytic", "regression"]
+    stratum: str = Field(min_length=1)
+    statistic: Literal["fraction", "mean", "median", "percentile-95"]
+    family: PhaseFiveFilterFamily
+    reference_family: PhaseFiveFilterFamily
+    sample_count: int = Field(ge=1)
+    estimate_difference: float = Field(allow_inf_nan=False)
+    upper_confidence_limit: float = Field(allow_inf_nan=False)
+    margin: float = Field(gt=0, allow_inf_nan=False)
+    passed: bool
+
+    @model_validator(mode="after")
+    def validate_paired_decision(self) -> Self:
+        """Require the opposite candidate and the frozen upper-limit rule."""
+        if self.family == self.reference_family:
+            raise ValueError("paired endpoint requires the other candidate")
+        if self.passed != (self.upper_confidence_limit <= self.margin):
+            raise ValueError("paired endpoint decision is incorrect")
+        return self
+
+
+class PhaseFiveFilterReviewCandidateConclusion(_EvidenceModel):
+    """Conjunctive science decision and structural cost for one candidate."""
+
+    family: PhaseFiveFilterFamily
+    passes_absolute: bool
+    noninferior_to_other: bool
+    bounded_cost: tuple[int, int, int]
+    failed_absolute_endpoint_count: int = Field(ge=0)
+    failed_paired_endpoint_count: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_cost_and_counts(self) -> Self:
+        """Reject non-positive costs or inconsistent conclusions."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("filter-review bounded costs must be positive")
+        if self.passes_absolute != (
+            self.failed_absolute_endpoint_count == 0
+        ) or self.noninferior_to_other != (
+            self.failed_paired_endpoint_count == 0
+        ):
+            raise ValueError("candidate conclusion disagrees with failures")
+        return self
+
+
+class PhaseFiveFilterReviewEvidence(_EvidenceDocument):
+    """Completed non-qualification paired review for Phase 5 Step 2B."""
+
+    evidence_type: Literal["phase-five-filter-paired-review"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    development_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    regression_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    analytic_case_count: int = Field(ge=1)
+    development_image_count: int = Field(ge=1)
+    regression_image_count: int = Field(ge=100)
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    endpoints: tuple[PhaseFiveFilterReviewEndpointEvidence, ...] = Field(
+        min_length=1
+    )
+    paired_endpoints: tuple[
+        PhaseFiveFilterReviewPairedEndpointEvidence, ...
+    ] = Field(min_length=1)
+    candidates: tuple[PhaseFiveFilterReviewCandidateConclusion, ...]
+    decision: Literal[
+        "select-matched-filter",
+        "select-wavelet",
+        "select-neither",
+    ]
+    selected_family: PhaseFiveFilterFamily | None
+    step_three_authorized: bool
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_review_conclusion(self) -> Self:
+        """Bind the final decision to all constituent scientific endpoints."""
+        if self.status is not EvidenceStatus.REVIEWED:
+            raise ValueError(
+                "completed filter review evidence must be reviewed"
+            )
+        families: tuple[PhaseFiveFilterFamily, ...] = (
+            "beam-aware-matched-filter",
+            "undecimated-wavelet",
+        )
+        if tuple(item.family for item in self.candidates) != families:
+            raise ValueError("filter-review candidates must be canonical")
+        endpoint_keys = [
+            (
+                item.population,
+                item.stratum,
+                item.metric,
+                item.statistic,
+                item.family,
+            )
+            for item in self.endpoints
+        ]
+        paired_keys = [
+            (
+                item.population,
+                item.stratum,
+                item.metric,
+                item.statistic,
+                item.family,
+            )
+            for item in self.paired_endpoints
+        ]
+        if len(set(endpoint_keys)) != len(endpoint_keys) or len(
+            set(paired_keys)
+        ) != len(paired_keys):
+            raise ValueError(
+                "filter-review endpoint identities must be unique"
+            )
+        for candidate in self.candidates:
+            absolute_failures = sum(
+                item.family == candidate.family and item.passed is False
+                for item in self.endpoints
+            )
+            paired_failures = sum(
+                item.family == candidate.family and not item.passed
+                for item in self.paired_endpoints
+            )
+            if (
+                candidate.failed_absolute_endpoint_count != absolute_failures
+                or candidate.failed_paired_endpoint_count != paired_failures
+            ):
+                raise ValueError(
+                    "candidate conclusion disagrees with recorded endpoints"
+                )
+        eligible = tuple(
+            item
+            for item in self.candidates
+            if item.passes_absolute and item.noninferior_to_other
+        )
+        expected_selected = (
+            min(eligible, key=lambda item: item.bounded_cost).family
+            if eligible
+            else None
+        )
+        expected_decision = {
+            None: "select-neither",
+            "beam-aware-matched-filter": "select-matched-filter",
+            "undecimated-wavelet": "select-wavelet",
+        }[expected_selected]
+        if (
+            self.selected_family != expected_selected
+            or self.decision != expected_decision
+        ):
+            raise ValueError(
+                "filter-review decision disagrees with candidates"
+            )
+        if self.step_three_authorized != (self.selected_family is not None):
+            raise ValueError("Step 3 authorization requires a selected family")
+        return self
+
+
 class ScientificComparisonEvidence(_EvidenceDocument):
     """Provenance and reports for one candidate/reference comparison."""
 
@@ -1467,6 +1676,7 @@ class PhaseFourRecoveryDecision(_EvidenceDocument):
 EvidenceDocument: TypeAlias = (
     BenchmarkEvidence
     | PhaseFiveFilterSelectionEvidence
+    | PhaseFiveFilterReviewEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence

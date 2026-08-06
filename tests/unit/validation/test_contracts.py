@@ -56,6 +56,9 @@ _PHASE_FIVE_FILTER_SELECTION_PATH = (
 _PHASE_FIVE_FILTER_REVIEW_PATH = (
     _ROOT / "config/contracts/phase-5-filter-paired-review.json"
 )
+_PHASE_FIVE_FILTER_PAIRED_DECISION_PATH = (
+    _ROOT / "config/contracts/phase-5-filter-paired-decision.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -617,6 +620,40 @@ def test_phase_five_filter_review_rejects_post_hoc_drift(
 
     with pytest.raises(ValidationError, match=message):
         type(review).model_validate(payload)
+
+
+def test_phase_five_filter_paired_decision_blocks_step_three() -> None:
+    """The completed review records no scientifically eligible candidate."""
+    decision = contract_models.load_phase_five_filter_paired_decision(
+        _PHASE_FIVE_FILTER_PAIRED_DECISION_PATH
+    )
+
+    assert decision.status == "reviewed-inconclusive"
+    assert decision.decision == "select-neither"
+    assert decision.selected_family is None
+    assert tuple(item.family for item in decision.candidates) == (
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    )
+    assert all(not item.passes_absolute for item in decision.candidates)
+    assert decision.step_three_authorized is False
+    assert decision.optimization_authorized is False
+    assert decision.qualification_opened is False
+    assert decision.independent_human_scientific_review == "still-required"
+
+
+def test_phase_five_filter_paired_decision_rejects_false_authorization() -> (
+    None
+):
+    """An inconclusive decision cannot silently authorize implementation."""
+    decision = contract_models.load_phase_five_filter_paired_decision(
+        _PHASE_FIVE_FILTER_PAIRED_DECISION_PATH
+    )
+    payload = decision.model_dump(mode="json")
+    payload["step_three_authorized"] = True
+
+    with pytest.raises(ValidationError):
+        type(decision).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

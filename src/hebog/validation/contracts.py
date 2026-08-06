@@ -1165,6 +1165,61 @@ class PhaseFiveFilterReview(_ContractModel):
         return self
 
 
+class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
+    """Conjunctive Step 2B outcome for one existing representation."""
+
+    family: Literal["beam-aware-matched-filter", "undecimated-wavelet"]
+    passes_absolute: Literal[False]
+    noninferior_to_other: Literal[False]
+    failed_absolute_endpoint_count: int = Field(ge=1)
+    failed_paired_endpoint_count: int = Field(ge=1)
+    bounded_cost: tuple[int, int, int]
+
+    @model_validator(mode="after")
+    def validate_cost(self) -> Self:
+        """Require a complete positive structural-cost diagnostic."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("paired-decision bounded costs must be positive")
+        return self
+
+
+class PhaseFiveFilterPairedDecision(_ContractModel):
+    """Reviewed fail-closed decision produced by the frozen Step 2B review."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-filter-paired-decision"]
+    status: Literal["reviewed-inconclusive"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prior_selection_contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveFilterPairedCandidateDecision, ...]
+    decision: Literal["select-neither"]
+    selected_family: None
+    named_review: Literal["codex-step-2b-governed-evidence-review"]
+    review_scope: Literal[
+        "technical-and-governed-development-regression-evidence"
+    ]
+    independent_human_scientific_review: Literal["still-required"]
+    next_action: Literal[
+        "freeze-corrective-development-design-before-re-evaluation"
+    ]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_inconclusive_decision(self) -> Self:
+        """Require both canonical failed candidates and no authorization."""
+        if tuple(item.family for item in self.candidates) != (
+            "beam-aware-matched-filter",
+            "undecimated-wavelet",
+        ):
+            raise ValueError("paired-decision candidates must be canonical")
+        return self
+
+
 class PairedResamplingProtocol(_ContractModel):
     """Predeclared interval construction for same-image comparisons."""
 
@@ -1637,5 +1692,14 @@ def load_phase_five_filter_selection(
 def load_phase_five_filter_review(path: Path) -> PhaseFiveFilterReview:
     """Load the frozen Step 2B paired representation-review contract."""
     return PhaseFiveFilterReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_filter_paired_decision(
+    path: Path,
+) -> PhaseFiveFilterPairedDecision:
+    """Load the reviewed fail-closed Step 2B representation decision."""
+    return PhaseFiveFilterPairedDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

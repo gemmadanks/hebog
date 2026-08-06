@@ -5548,3 +5548,57 @@ margins, and confidence procedure before generating new candidate results.
 **Immediate next step:** implement the candidate-neutral analytic and
 generated-response evaluator test-first, then run the frozen protocol without
 opening qualification.
+
+## 2026-08-06 — Completed Step 2B with no eligible representation
+
+**Plan phase:** Phase 5, Step 2B — paired representation decision
+
+- Implemented candidate-neutral exact-response and minimal 5-sigma/3-sigma
+  threshold evaluation for the existing float64 matched-filter and wavelet
+  banks. Both candidates consume identical image, validity, background, RMS,
+  truth-group, threshold, and connectivity inputs.
+- Evaluated 84 exact analytic cases, all ten frozen development images, and
+  all 100 frozen regression images. The runner verified the pre-results
+  protocol and both manifest checksums and did not read qualification data.
+- Corrected the generated integrated-flux evaluator before final evidence: it
+  now integrates within candidate-retained support. A regression test first
+  demonstrated that the old raw truth aperture returned identical flux for
+  both candidates regardless of their representation.
+- The matched filter's overall analytic response error was 7.49% median and
+  12.86% at the 95th percentile; the wavelet's was 5.98% and 19.81%. Both
+  missed the frozen 5%/10% gates. The matched filter had higher median
+  calibrated response SNR, 15.99 versus 11.32.
+- Both candidates reached regression completeness 1.0. The wavelet improved
+  mean mask IoU from 0.239 to 0.617, but both missed the 0.8 gate. Their
+  95th-percentile position errors were 0.462 beam for matched and 0.444 for
+  wavelet, both above 0.25 beam. Wavelet fragmentation was 0.167 versus 0.017
+  and its retained-support median flux error was 0.145 versus 0.059.
+- Applied all exact and 10,000-resample one-sided paired decisions without
+  cross-stratum compensation. Matched failed 169 absolute and 88 paired
+  endpoints; wavelet failed 203 absolute and 269 paired endpoints. Structural
+  cost was therefore not used to select either candidate.
+- Added a strict `reviewed-inconclusive` decision contract recording
+  `select-neither`, no selected family, and false Step 3, optimization, and
+  qualification authorization. The initial Step 2 matched-filter selection
+  remains historical evidence only.
+- Wrote typed ignored evidence at
+  `benchmark-results/phase-5/filter-paired-review.json`, SHA-256
+  `e7f6805cb42bb0f41c844adf152d7e53ead1837def3fbb6b0fae48482031b5c0`.
+  It binds source-tree SHA-256
+  `bfb9bc08e3f294b86b7a3f3ba29458b1ce502d0a35cf57494d85fc7e5149611b`
+  and configuration SHA-256
+  `2701feb4a909cf4dce0725e05f2ed828b1d581eccd540b93d7e6c6893ca4f208`.
+
+**Development validation:** the evaluator, contract, and evidence suite passed
+132 focused tests before the final campaign. The branch-aware coverage lane
+passed 1,063 tests with four expected failures and 94.46% project coverage;
+the new evaluator and analysis modules each reached 94%. All 27 frozen
+equivalence tests passed. Strict documentation built, and the fast handoff
+lane passed Ruff, Pyright, 933 tests, and four expected failures. Pre-commit
+results are recorded by the final local commit.
+
+**Immediate next step:** freeze the corrective Step 2C development design.
+Diagnose exact missing-support response, wavelet SNR/negative lobes,
+retained-support flux, astrometry, fragmentation, and mask topology before
+optimizing a candidate or defining a justified hybrid. Keep qualification and
+Step 3 closed.

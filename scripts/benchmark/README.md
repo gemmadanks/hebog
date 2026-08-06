@@ -11,6 +11,21 @@ Python and dependency versions, worker topology, CPU allocation, wall time,
 CPU time, and peak resident memory. Generated results belong in the ignored
 `benchmark-results/` directory.
 
+`review_phase5_filters.py` reproduces the completed Phase 5 Step 2B paired
+review. It accepts only the frozen development and regression manifests,
+verifies their checksums against the pre-results protocol, evaluates both
+float64 candidates from identical prepared products, applies the exact and
+10,000-resample whole-image rules, and writes typed evidence. It never reads
+the qualification manifest:
+
+```console
+uv run python scripts/benchmark/review_phase5_filters.py \
+  --output benchmark-results/phase-5/filter-paired-review.json
+```
+
+The reviewed outcome is `select-neither`; the decision contract keeps Step 3,
+candidate-specific optimization, and qualification closed.
+
 `run_phase0_pybdsf_baseline.py` starts a fresh local Podman container for every
 warm-up or measured repetition. Release 1.14.1 uses the PyBDSF already present
 in the immutable container. The master campaign installs a separately built

@@ -60,6 +60,19 @@ document embeds the complete reports for those products. Released PyBDSF and
 pinned PyBDSF `master` therefore produce separate documents even when they use
 the same dataset and candidate output.
 
+## Phase 5 filter-review evidence
+
+A `phase-five-filter-paired-review` document binds the pre-results protocol,
+development and regression manifest checksums, source tree, dependency
+inventory, and environment. It records every analytic, development, and
+regression endpoint by candidate, statistic, and applicable stratum, plus both
+directions of each exact or whole-image bootstrapped paired comparison.
+Candidate conclusions are derived from their recorded failures; a document
+cannot authorize Step 3 unless one candidate passes every absolute and paired
+endpoint. The reviewed Step 2B evidence selected neither candidate, so its
+separate committed decision contract keeps optimization, qualification, and
+Step 3 closed.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same

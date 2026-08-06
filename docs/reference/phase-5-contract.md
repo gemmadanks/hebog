@@ -1,11 +1,11 @@
 # Phase 5 multiscale contract and development review
 
 **Status:** reviewed for development on 2026-08-05 and amended by the
-[Step 2 filter decision](phase-5-filter-selection.md) on 2026-08-06. The
+[filter decision](phase-5-filter-selection.md) on 2026-08-06. Step 2B selected
+neither existing representation, so Step 3 and representation-specific
+optimization remain blocked pending a newly frozen corrective design. The
 qualification population remains frozen and unopened. This record establishes
-the governing contract but does not establish multiscale equivalence. The
-initial matched-filter choice is provisional pending the paired Step 2B
-scientific comparison and does not authorize Step 3.
+the governing contract but does not establish multiscale equivalence.
 
 Gemma Danks asked Codex to complete Phase 5 Step 1. Codex performed the named
 scientific and engineering review recorded here as an AI-conducted synthesis
