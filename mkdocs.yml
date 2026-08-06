@@ -85,6 +85,7 @@ nav:
       - Phase 4U compact-blend qualification: reference/phase-4u-qualification-protocol.md
       - Phase 4 release readiness: reference/phase-4-release-readiness.md
       - Phase 5 multiscale contract and development review: reference/phase-5-contract.md
+      - Phase 5 scale-filter selection: reference/phase-5-filter-selection.md
       - Compact deblending: reference/compact-deblending.md
       - Compact moment measurement: reference/compact-measurement.md
       - Compact Gaussian fitting: reference/compact-fitting.md

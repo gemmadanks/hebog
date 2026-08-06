@@ -65,7 +65,7 @@
     "image_edge": "renormalize-and-record-visible-support-fraction",
     "insufficient_support": "typed-unavailable-scale-detection",
     "masked_support": "renormalize-over-valid-support",
-    "minimum_support_fraction": 0.8,
+    "minimum_support_fraction": 0.5,
     "valid_pixels": "finite-input-background-rms-and-positive-rms"
   }
 }

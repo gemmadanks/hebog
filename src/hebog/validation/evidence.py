@@ -11,7 +11,9 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from enum import Enum
+from math import isclose, isfinite
 from pathlib import Path
+from statistics import median
 from typing import Literal, Self, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
@@ -380,6 +382,107 @@ class BenchmarkEvidence(_EvidenceDocument):
                 raise ValueError(
                     "reviewed multi-node evidence requires scalability metrics"
                 )
+        return self
+
+
+class PhaseFiveFilterCandidateEvidence(_EvidenceModel):
+    """Scientific and bounded-cost observations for one filter family."""
+
+    family: Literal[
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    ]
+    measured_wall_seconds: tuple[float, ...] = Field(min_length=5)
+    median_wall_seconds: float = Field(gt=0, allow_inf_nan=False)
+    maximum_workspace_bytes: int = Field(ge=1)
+    convolution_count_per_image: int = Field(ge=1)
+    temporary_plane_count: int = Field(ge=1)
+    maximum_halo_pixels: int = Field(ge=1)
+    maximum_unit_flux_response_fractional_error: float = Field(
+        ge=0,
+        allow_inf_nan=False,
+    )
+    maximum_masked_response_fractional_error: float = Field(
+        ge=0,
+        allow_inf_nan=False,
+    )
+    maximum_edge_response_fractional_error: float = Field(
+        ge=0,
+        allow_inf_nan=False,
+    )
+    maximum_absolute_background_response_jy_per_beam: float = Field(
+        ge=0,
+        allow_inf_nan=False,
+    )
+    finite_truth_group_response_fraction: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    minimum_correlated_noise_gain: float = Field(gt=0, allow_inf_nan=False)
+    maximum_correlated_noise_gain: float = Field(gt=0, allow_inf_nan=False)
+    scientifically_adequate: bool
+
+    @model_validator(mode="after")
+    def validate_measurements(self) -> Self:
+        """Bind summaries to finite measurements and ordered noise gains."""
+        if not all(
+            isfinite(value) and value > 0
+            for value in self.measured_wall_seconds
+        ):
+            raise ValueError(
+                "filter wall measurements must be finite and positive"
+            )
+        measured_median = float(median(self.measured_wall_seconds))
+        if not isclose(
+            self.median_wall_seconds,
+            measured_median,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            raise ValueError("filter median wall time must match measurements")
+        if (
+            self.minimum_correlated_noise_gain
+            > self.maximum_correlated_noise_gain
+        ):
+            raise ValueError("correlated-noise gain bounds must be ordered")
+        return self
+
+
+class PhaseFiveFilterSelectionEvidence(_EvidenceDocument):
+    """Reviewed development-only decision between the Phase 5 candidates."""
+
+    evidence_type: Literal["phase-five-filter-selection"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    candidates: tuple[PhaseFiveFilterCandidateEvidence, ...]
+    selected_family: Literal[
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    ]
+    decision_rule: Literal[
+        "all-analytic-gates-then-lowest-maintained-bounded-cost"
+    ]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_selection(self) -> Self:
+        """Require both candidates and scientific passage before selection."""
+        families = tuple(item.family for item in self.candidates)
+        if families != (
+            "beam-aware-matched-filter",
+            "undecimated-wavelet",
+        ):
+            raise ValueError(
+                "filter candidates must be complete and canonical"
+            )
+        selected = next(
+            item
+            for item in self.candidates
+            if item.family == self.selected_family
+        )
+        if not selected.scientifically_adequate:
+            raise ValueError("selected filter must be scientifically adequate")
         return self
 
 
@@ -1363,6 +1466,7 @@ class PhaseFourRecoveryDecision(_EvidenceDocument):
 
 EvidenceDocument: TypeAlias = (
     BenchmarkEvidence
+    | PhaseFiveFilterSelectionEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence

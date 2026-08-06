@@ -820,12 +820,13 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Step 1 completed on 2026-08-05. The reviewed-development contract,
-internal records, scientific gates, and disjoint development, regression, and
-unopened qualification manifests are frozen in the
-[Phase 5 contract record](../docs/reference/phase-5-contract.md). Step 2 may
-compare the two predeclared scale representations on development data; no
-extended-emission algorithm, equivalence, or runtime claim is yet approved.
+**Status:** Steps 1--2 completed. The reviewed-development contract, internal
+records, scientific gates, disjoint manifests, and selected float64
+beam-aware matched-filter representation are frozen in the
+[Phase 5 contract](../docs/reference/phase-5-contract.md) and
+[filter decision](../docs/reference/phase-5-filter-selection.md). Step 3 may
+implement thresholded scale detections and extended measurement; no
+multiscale equivalence or complete runtime claim is yet approved.
 
 **Goal:** recover and measure the extended and cross-scale emission required
 by the Rapthor contract without recursively rerunning the complete compact
@@ -876,22 +877,22 @@ and spill behaviour, and facility-scale execution.
 
 2. **Select the smallest scientifically adequate scale representation.**
 
-   - [ ] Write failing analytic tests for the scale response of isolated
+   - [x] Write failing analytic tests for the scale response of isolated
          Gaussian sources, constant and affine backgrounds, masked/NaN
          regions, image edges, and separated compact sources.
-   - [ ] Establish a readable one-tile serial oracle that reuses Phase 2
+   - [x] Establish a readable one-tile serial oracle that reuses Phase 2
          background/RMS products and evaluates each configured scale without
          rerunning ingestion, background estimation, or compact detection.
-   - [ ] Compare an undecimated wavelet construction with a beam-aware matched
+   - [x] Compare an undecimated wavelet construction with a beam-aware matched
          filter bank on the same development fixtures, recording convolution,
          memory, and complete-stage measurements. Prefer the simpler
          maintained NumPy/SciPy design satisfying the frozen science contract.
-   - [ ] Record filter support, truncation error, normalization, correlated
+   - [x] Record filter support, truncation error, normalization, correlated
          noise response, dtype, required halo, temporary planes, and
          convolution reuse for the selected representation. Create or amend
          an ADR only if the decision changes an architecture boundary or
          introduces a durable dependency or storage policy.
-   - [ ] Keep float64 unless lower precision passes the complete governed
+   - [x] Keep float64 unless lower precision passes the complete governed
          scientific suite; introduce native code only if the existing profile
          and end-to-end decision gates are met.
 
@@ -1228,7 +1229,7 @@ count.
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
 | A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
 
-## 14. Open decisions entering Phase 5
+## 14. Phase 5 decision ledger and open questions
 
 Phase 4 selected SciPy bounded least-squares, calibrated its available compact
 position and flux uncertainties, retained absent shape uncertainties, and
@@ -1237,15 +1238,16 @@ Selective moment-only cataloguing was not adopted. Those decisions are
 documented in the [Phase 4 readiness record](../docs/reference/phase-4-release-readiness.md)
 and are now regression constraints rather than open questions.
 
-Resolve the following decisions through the ordered Phase 5 evidence gates;
+Step 2 selected the float64 beam-aware matched-filter bank after both
+predeclared candidates passed the analytic gates. It froze four-sigma support,
+9-, 17-, and 34-pixel development halos, correlated-noise gain, 50% minimum
+valid support, and bounded SciPy FFT convolution. The 4-beam scale remains the
+largest supported scale. See the
+[filter decision](../docs/reference/phase-5-filter-selection.md).
+
+Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:
 
-- Does an undecimated wavelet construction or a beam-aware matched-filter bank
-  provide the simplest adequate scale response, noise normalization, edge
-  behaviour, convolution reuse, and representative latency?
-- What finite support or reviewed truncation tolerance defines each scale's
-  halo, and what maximum scale remains compatible with the worker-memory
-  contract?
 - Which scale-specific threshold, connectivity, and support rules recover
   diffuse and filamentary truth without duplicating compact sources?
 - Which deterministic overlap evidence establishes cross-scale identity,

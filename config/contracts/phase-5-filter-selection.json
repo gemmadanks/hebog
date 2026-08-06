@@ -1,0 +1,32 @@
+{
+  "convolution_backend": "scipy-signal-fftconvolve",
+  "convolution_count_per_image": 9,
+  "convolution_reuse": "shared-prepared-inputs-no-persisted-response-planes",
+  "correlated_noise_model": "restoring-beam-gaussian-covariance",
+  "decision_id": "phase-5-filter-selection",
+  "development_halo_pixels": [
+    9,
+    17,
+    34
+  ],
+  "dtype": "float64",
+  "evidence_sha256": "f250f4b6e938db91eb4811d68ba048e72ed3ba4595caba36e2334a926338917f",
+  "halo_formula": "ceil-truncation-sigma-times-scale-times-beam-major-sigma-pixels",
+  "local_noise_propagation": "kernel-squared-rms-scaled-by-correlated-to-independent-gain",
+  "lower_precision_authorized": false,
+  "maximum_relative_kernel_tail": 0.00033546262790251185,
+  "measured_development_images": 10,
+  "measured_repetitions": 5,
+  "minimum_support_fraction": 0.5,
+  "native_code_authorized": false,
+  "qualification_opened": false,
+  "rejected_family": "undecimated-wavelet",
+  "response_normalization": "unit-integrated-flux-response-in-jy-per-beam",
+  "schema_version": 1,
+  "selected_family": "beam-aware-matched-filter",
+  "selection_rule": "all-analytic-gates-then-lowest-maintained-bounded-cost",
+  "status": "reviewed-development",
+  "support_amendment": "phase-5-step-2-edge-evidence-lowered-0.8-to-0.5",
+  "temporary_plane_count": 7,
+  "truncation_sigma": 4.0
+}

@@ -50,6 +50,9 @@ _PHASE_FIVE_MULTISCALE_PATH = (
 _PHASE_FIVE_GATES_PATH = (
     _ROOT / "config/contracts/phase-5-scientific-gates.json"
 )
+_PHASE_FIVE_FILTER_SELECTION_PATH = (
+    _ROOT / "config/contracts/phase-5-filter-selection.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -314,7 +317,7 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     assert contract.filtering.background_rms_reuse == (
         "phase-2-products-no-recursive-estimation"
     )
-    assert contract.validity.minimum_support_fraction == 0.8
+    assert contract.validity.minimum_support_fraction == 0.5
     assert contract.failures.incomplete_catalogue == "publication-forbidden"
     assert contract.association.identity == (
         "canonical-global-overlap-flux-and-scale-provenance"
@@ -423,6 +426,67 @@ def test_phase_five_gates_reject_a_tail_tighter_than_its_median() -> None:
 
     with pytest.raises(ValidationError, match="extended-error tail"):
         type(gates).model_validate(payload)
+
+
+def test_phase_five_filter_selection_freezes_the_bounded_float64_design() -> (
+    None
+):
+    """The development decision fixes the smallest adequate representation."""
+    decision = contract_models.load_phase_five_filter_selection(
+        _PHASE_FIVE_FILTER_SELECTION_PATH
+    )
+
+    assert decision.status == "reviewed-development"
+    assert decision.selected_family == "beam-aware-matched-filter"
+    assert decision.rejected_family == "undecimated-wavelet"
+    assert decision.minimum_support_fraction == 0.5
+    assert decision.truncation_sigma == 4.0
+    assert decision.dtype == "float64"
+    assert decision.convolution_backend == "scipy-signal-fftconvolve"
+    assert decision.development_halo_pixels == (9, 17, 34)
+    assert decision.convolution_count_per_image == 9
+    assert decision.temporary_plane_count == 7
+    assert decision.lower_precision_authorized is False
+    assert decision.native_code_authorized is False
+    assert decision.qualification_opened is False
+
+
+def test_phase_five_filter_selection_rejects_unreviewed_drift() -> None:
+    """Candidate, precision, and support semantics cannot change silently."""
+    decision = contract_models.load_phase_five_filter_selection(
+        _PHASE_FIVE_FILTER_SELECTION_PATH
+    )
+    payload = decision.model_dump(mode="json")
+    payload["selected_family"] = "undecimated-wavelet"
+
+    with pytest.raises(ValidationError):
+        type(decision).model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("minimum_support_fraction", 0.6, "minimum support"),
+        ("truncation_sigma", 3.0, "four sigma"),
+        ("development_halo_pixels", [9, 17, 35], "development halos"),
+        ("convolution_count_per_image", 10, "nine convolutions"),
+        ("temporary_plane_count", 8, "seven temporaries"),
+    ],
+)
+def test_phase_five_filter_selection_rejects_cost_or_support_drift(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    """The selected bank cannot silently exceed its reviewed bounds."""
+    decision = contract_models.load_phase_five_filter_selection(
+        _PHASE_FIVE_FILTER_SELECTION_PATH
+    )
+    payload = decision.model_dump(mode="json")
+    payload[field] = value
+
+    with pytest.raises(ValidationError, match=message):
+        type(decision).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

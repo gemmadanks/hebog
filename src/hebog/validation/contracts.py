@@ -19,6 +19,10 @@ _MAXIMUM_MATRIX_SIZE = 100_000
 _DASK_MEMORY_THRESHOLD_COUNT = 4
 _PHASE_FOUR_ANALYTIC_FAILURE_CASE_COUNT = 6
 _PAIRED_CONFIDENCE_LEVEL = 0.95
+_PHASE_FIVE_SELECTED_MINIMUM_SUPPORT = 0.5
+_PHASE_FIVE_SELECTED_TRUNCATION_SIGMA = 4.0
+_PHASE_FIVE_SELECTED_CONVOLUTION_COUNT = 9
+_PHASE_FIVE_SELECTED_TEMPORARY_PLANES = 7
 _PHASE_FIVE_REQUIRED_STRATA = {
     "above-compact-deblend-limit",
     "image-edge",
@@ -913,6 +917,72 @@ class PhaseFiveScientificGates(_ContractModel):
         return self
 
 
+class PhaseFiveFilterSelection(_ContractModel):
+    """Reviewed development decision for the Phase 5 filter representation."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-filter-selection"]
+    status: Literal["reviewed-development"]
+    selected_family: Literal["beam-aware-matched-filter"]
+    rejected_family: Literal["undecimated-wavelet"]
+    selection_rule: Literal[
+        "all-analytic-gates-then-lowest-maintained-bounded-cost"
+    ]
+    response_normalization: Literal[
+        "unit-integrated-flux-response-in-jy-per-beam"
+    ]
+    minimum_support_fraction: float = Field(gt=0, le=1)
+    support_amendment: Literal[
+        "phase-5-step-2-edge-evidence-lowered-0.8-to-0.5"
+    ]
+    truncation_sigma: float = Field(ge=3, le=8)
+    maximum_relative_kernel_tail: float = Field(gt=0, lt=1)
+    halo_formula: Literal[
+        "ceil-truncation-sigma-times-scale-times-beam-major-sigma-pixels"
+    ]
+    development_halo_pixels: tuple[int, int, int]
+    dtype: Literal["float64"]
+    convolution_backend: Literal["scipy-signal-fftconvolve"]
+    convolution_reuse: Literal[
+        "shared-prepared-inputs-no-persisted-response-planes"
+    ]
+    correlated_noise_model: Literal["restoring-beam-gaussian-covariance"]
+    local_noise_propagation: Literal[
+        "kernel-squared-rms-scaled-by-correlated-to-independent-gain"
+    ]
+    convolution_count_per_image: int = Field(ge=1)
+    temporary_plane_count: int = Field(ge=1)
+    measured_development_images: int = Field(ge=1)
+    measured_repetitions: int = Field(ge=5)
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    lower_precision_authorized: Literal[False]
+    native_code_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_selected_design(self) -> Self:
+        """Protect the exact reviewed float64 matched-filter implementation."""
+        if (
+            self.minimum_support_fraction
+            != _PHASE_FIVE_SELECTED_MINIMUM_SUPPORT
+        ):
+            raise ValueError("selected minimum support fraction must be 0.5")
+        if self.truncation_sigma != _PHASE_FIVE_SELECTED_TRUNCATION_SIGMA:
+            raise ValueError("selected truncation must remain four sigma")
+        if self.development_halo_pixels != (9, 17, 34):
+            raise ValueError(
+                "development halos must match the selected scales"
+            )
+        if (
+            self.convolution_count_per_image
+            != _PHASE_FIVE_SELECTED_CONVOLUTION_COUNT
+        ):
+            raise ValueError("selected filter bank requires nine convolutions")
+        if self.temporary_plane_count != _PHASE_FIVE_SELECTED_TEMPORARY_PLANES:
+            raise ValueError("selected filter bank requires seven temporaries")
+        return self
+
+
 class PairedResamplingProtocol(_ContractModel):
     """Predeclared interval construction for same-image comparisons."""
 
@@ -1369,5 +1439,14 @@ def load_phase_five_scientific_gates(
 ) -> PhaseFiveScientificGates:
     """Load reviewed Phase 5 absolute and paired scientific gates."""
     return PhaseFiveScientificGates.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_filter_selection(
+    path: Path,
+) -> PhaseFiveFilterSelection:
+    """Load the reviewed Phase 5 filter-family decision."""
+    return PhaseFiveFilterSelection.model_validate_json(
         path.read_text(encoding="utf-8")
     )

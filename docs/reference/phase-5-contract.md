@@ -1,8 +1,9 @@
 # Phase 5 multiscale contract and development review
 
-**Status:** reviewed for development on 2026-08-05. The qualification
-population is frozen and unopened. This record completes Phase 5 Step 1; it
-does not select a filter family or establish multiscale equivalence.
+**Status:** reviewed for development on 2026-08-05 and amended by the
+[Step 2 filter decision](phase-5-filter-selection.md) on 2026-08-06. The
+qualification population remains frozen and unopened. This record establishes
+the governing contract but does not establish multiscale equivalence.
 
 Gemma Danks asked Codex to complete Phase 5 Step 1. Codex performed the named
 scientific and engineering review recorded here as an AI-conducted synthesis
@@ -43,11 +44,13 @@ The machine-readable meanings are in
 - Phase 2 background and RMS products are reused. A scale pass may not rerun
   ingestion, background estimation, or the complete compact pipeline.
 - A valid response requires finite input, background, and RMS with positive
-  RMS. At least 80% of the filter support must be valid. Masked or clipped
+  RMS. At least 50% of the filter support must be valid. Masked or clipped
   support is renormalized and its visible fraction is retained; insufficient
   support is a typed unavailable result.
-- Step 2 compares a beam-aware matched-filter bank with an undecimated
-  wavelet construction. Neither is selected by this review.
+- Step 2 compared a beam-aware matched-filter bank with an undecimated
+  wavelet construction and selected the matched-filter bank after both passed
+  the analytic gates. The support threshold changed from 80% to 50% because
+  the original value made the required image-edge stratum unavailable.
 - Cross-scale identities derive from global overlap, flux, and retained scale
   provenance. Local label, tile, task, retry, and worker order have no
   scientific meaning.
@@ -156,22 +159,24 @@ Residual risks are explicit:
 
 - Gaussian-basis morphology does not replace controlled real-residual or
   realistic complex-source injection.
-- The 80% support threshold and numerical margins are reviewed-development
+- The 50% support threshold and numerical margins are reviewed-development
   values; opening qualification requires the registered power audit and
   independent review remains a cutover gate.
-- The nominal beam scale does not freeze filter support, truncation, or
-  convolution implementation. Step 2 must derive and test those quantities.
+- Step 2 froze the filter support, truncation, normalization, dtype, and
+  convolution implementation. Detection connectivity and extended
+  measurement semantics remain Step 3 work.
 - The internal records establish meanings, not a supported public API or
   completed combined catalogue implementation.
 
-The next authorized work is Phase 5 Step 2: implement analytic scale-response
-tests and compare the two filter families on development data only.
+The next authorized work is Phase 5 Step 3: implement thresholded scale
+detection and bounded extended-island measurement from the selected response.
 
 ## Frozen identities
 
 | Document | SHA-256 |
 | --- | --- |
-| Multiscale contract | `d33ad559f24e41dcfdac23d423d08b97e2ab514a4a94cf84b91629b7dd1c10f7` |
+| Multiscale contract | `1fbfb8e3026178dc539b5d0b76cec6f46d7bf73b67ac2a10ed3c77d0f3e092cd` |
+| Filter-selection decision | `38c2340c1e49a30178dd866bcb587f8f0bcd9cfc00e76bb496e6e93da5ed4e46` |
 | Scientific gates | `cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b` |
 | Development manifest | `b3c9594efa0c39ce30f3b287988f3fca90f69c5ccb8507adc463b37fed0b8350` |
 | Regression manifest | `7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e` |

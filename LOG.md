@@ -5431,3 +5431,59 @@ failures, and strict documentation built successfully.
 **Immediate next step:** begin Step 2 with failing analytic scale-response
 tests, then compare the predeclared beam-aware matched-filter and undecimated
 wavelet representations on development data only.
+
+## 2026-08-06 — Selected the Phase 5 scale representation
+
+**Plan phase:** Phase 5, Step 2 — analytic scale response and filter-family
+selection
+
+- Added a readable float64 one-tile serial oracle that consumes prepared
+  image, validity, background, and RMS planes. It does not rerun ingestion,
+  background estimation, RMS estimation, or compact detection, and it retains
+  no durable image-sized response plane.
+- Implemented both predeclared SciPy candidates: an elliptical beam-aware
+  matched-filter bank and an undecimated Gaussian-difference wavelet with
+  shared dyadic smoothings. New analytic tests cover unit-flux normalization,
+  constant and affine backgrounds, masks and NaNs, image edges, separated
+  compact sources, dtype, halos, noise gain, bounded workspace, and invalid
+  inputs.
+- Both candidates passed the analytic gates and produced finite responses in
+  every governed development truth window. The matched filter's maximum
+  masked and edge response errors were 8.585% and 7.588%; the wavelet's were
+  0.397% and 0.076%. Unit-response errors were below `9e-16`, and prepared
+  background responses were exactly zero.
+- Amended the minimum valid support fraction from 0.8 to 0.5. The original
+  value made the required edge-source stratum unavailable; the amended value
+  recovers its analytic flux within the frozen 10% Step 2 edge gate and still
+  fails closed below half support. No qualification result informed the
+  amendment.
+- Ran one warm-up and five measurements over all ten frozen 1,024-square
+  development images. The matched-filter median was 2.05222 seconds versus
+  2.57138 seconds for the wavelet. More importantly, the matched bank uses 9
+  rather than 11 convolutions per image, 7 rather than 9 temporary planes, a
+  34- rather than 49-pixel maximum halo, and 159,485,104 rather than
+  176,399,304 logical workspace bytes.
+- Selected the beam-aware matched-filter bank under the predeclared
+  science-first bounded-cost rule. Froze four-sigma Gaussian truncation,
+  unit-integrated-flux calibration, correlated-noise gain, SciPy FFT
+  convolution, float64, and the halo formula. Neither lower precision nor
+  native code is authorized, and no ADR is needed because dependency,
+  scheduler, and storage boundaries are unchanged.
+- Wrote typed ignored evidence at
+  `benchmark-results/phase-5/filter-selection.json`, SHA-256
+  `f250f4b6e938db91eb4811d68ba048e72ed3ba4595caba36e2334a926338917f`.
+  The evidence binds source-tree SHA-256
+  `6150aa39661e63bca5c9d6303d34169ca3a97e155fbe28e16d0bf67bb179c9cc`
+  and confirms `qualification_opened=false`.
+
+**Development validation:** the focused algorithm, contract, and evidence
+suite passed 148 tests. The branch-aware coverage lane passed 1,036 tests
+with four expected failures and 94.54% project coverage; the new multiscale
+oracle reached 99%. The frozen equivalence lane passed 27 tests, and the
+public-contract lane retained its four declared expected failures. The fast
+handoff lane passed Ruff, Pyright, and 906 tests with four expected failures,
+and strict documentation built successfully.
+
+**Immediate next step:** begin Step 3 with failing tests for scale-specific
+thresholds, support connectivity, local maxima, and bounded deferred-island
+measurement using the selected matched-filter responses.

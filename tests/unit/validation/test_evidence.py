@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import pytest
@@ -30,6 +31,8 @@ from hebog.validation.evidence import (
     ExecutorKind,
     Measurement,
     NormalizedResidualDiagnostic,
+    PhaseFiveFilterCandidateEvidence,
+    PhaseFiveFilterSelectionEvidence,
     ResourceAllocation,
     RuntimeMetrics,
     ScalabilityMetrics,
@@ -152,6 +155,146 @@ def test_evidence_round_trips_through_canonical_json(tmp_path: Path) -> None:
     assert loaded == evidence
     assert path.read_bytes() == first_bytes
     assert first_bytes.endswith(b"\n")
+
+
+def _phase_five_filter_candidate(
+    family: Literal[
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    ],
+    *,
+    scientifically_adequate: bool = True,
+) -> PhaseFiveFilterCandidateEvidence:
+    """Return one complete five-repetition filter-selection observation."""
+    return PhaseFiveFilterCandidateEvidence(
+        family=family,
+        measured_wall_seconds=(1.0, 1.1, 0.9, 1.05, 0.95),
+        median_wall_seconds=1.0,
+        maximum_workspace_bytes=1024,
+        convolution_count_per_image=9,
+        temporary_plane_count=7,
+        maximum_halo_pixels=34,
+        maximum_unit_flux_response_fractional_error=0.01,
+        maximum_masked_response_fractional_error=0.08,
+        maximum_edge_response_fractional_error=0.07,
+        maximum_absolute_background_response_jy_per_beam=0.0,
+        finite_truth_group_response_fraction=1.0,
+        minimum_correlated_noise_gain=1.1,
+        maximum_correlated_noise_gain=2.0,
+        scientifically_adequate=scientifically_adequate,
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        (
+            "measured_wall_seconds",
+            (1.0, 1.1, 0.0, 1.05, 0.95),
+            "finite and positive",
+        ),
+        ("median_wall_seconds", 1.1, "must match measurements"),
+        ("minimum_correlated_noise_gain", 3.0, "must be ordered"),
+    ],
+)
+def test_phase_five_filter_candidate_rejects_invalid_summaries(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    """Candidate summaries remain derivable from valid observations."""
+    candidate = _phase_five_filter_candidate("beam-aware-matched-filter")
+    payload = candidate.model_dump(mode="python")
+    payload[field] = value
+
+    with pytest.raises(ValidationError, match=message):
+        PhaseFiveFilterCandidateEvidence.model_validate(payload)
+
+
+def _phase_five_selection_payload(
+    candidates: tuple[PhaseFiveFilterCandidateEvidence, ...],
+) -> dict[str, object]:
+    """Return one complete selection evidence payload."""
+    return {
+        "schema_version": 1,
+        "evidence_type": "phase-five-filter-selection",
+        "run_id": "phase-five-filter-selection-development",
+        "captured_at": datetime(2026, 8, 6, 9, 0, tzinfo=UTC),
+        "status": EvidenceStatus.REVIEWED,
+        "dataset": _dataset(),
+        "configuration_sha256": SHA256,
+        "subject": _software("hebog", commit="e" * 40),
+        "environment_sha256": "2" * 64,
+        "candidates": candidates,
+        "selected_family": "beam-aware-matched-filter",
+        "decision_rule": (
+            "all-analytic-gates-then-lowest-maintained-bounded-cost"
+        ),
+        "qualification_opened": False,
+    }
+
+
+def test_phase_five_filter_selection_round_trips_and_requires_evidence(
+    tmp_path: Path,
+) -> None:
+    """The development-only representation decision is machine-readable."""
+    evidence = PhaseFiveFilterSelectionEvidence(
+        schema_version=1,
+        evidence_type="phase-five-filter-selection",
+        run_id="phase-five-filter-selection-development",
+        captured_at=datetime(2026, 8, 6, 9, 0, tzinfo=UTC),
+        status=EvidenceStatus.REVIEWED,
+        dataset=_dataset().model_copy(
+            update={"identifier": "phase5-development-multiscale-1024"}
+        ),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        candidates=(
+            _phase_five_filter_candidate("beam-aware-matched-filter"),
+            _phase_five_filter_candidate("undecimated-wavelet"),
+        ),
+        selected_family="beam-aware-matched-filter",
+        decision_rule=(
+            "all-analytic-gates-then-lowest-maintained-bounded-cost"
+        ),
+        qualification_opened=False,
+    )
+    path = tmp_path / "phase-five-filter-selection.json"
+
+    write_evidence(path, evidence)
+
+    assert load_evidence(path) == evidence
+
+
+def test_phase_five_filter_selection_rejects_inadequate_selected_family() -> (
+    None
+):
+    """Measured speed cannot select a scientifically inadequate filter."""
+    candidates = (
+        _phase_five_filter_candidate(
+            "beam-aware-matched-filter",
+            scientifically_adequate=False,
+        ),
+        _phase_five_filter_candidate("undecimated-wavelet"),
+    )
+    payload = _phase_five_selection_payload(candidates)
+
+    with pytest.raises(ValidationError, match="scientifically adequate"):
+        PhaseFiveFilterSelectionEvidence.model_validate(payload)
+
+
+def test_phase_five_filter_selection_requires_canonical_candidates() -> None:
+    """Evidence always compares both candidates in the governed order."""
+    candidates = (
+        _phase_five_filter_candidate("undecimated-wavelet"),
+        _phase_five_filter_candidate("beam-aware-matched-filter"),
+    )
+
+    with pytest.raises(ValidationError, match="complete and canonical"):
+        PhaseFiveFilterSelectionEvidence.model_validate(
+            _phase_five_selection_payload(candidates)
+        )
 
 
 def test_software_identity_can_record_an_uncommitted_source_tree() -> None:
