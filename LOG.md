@@ -5517,3 +5517,34 @@ measurement using the selected matched-filter responses.
 
 **Immediate next step:** freeze the Step 2B paired matrix, response-level
 margins, and confidence procedure before generating new candidate results.
+
+## 2026-08-06 — Froze the Phase 5 Step 2B paired protocol
+
+**Plan phase:** Phase 5, Step 2B — pre-results protocol freeze
+
+- Added a strict machine-readable protocol for the matched-filter and wavelet
+  comparison before generating any new candidate result. It binds the exact
+  ten-image development and 100-image regression manifests and keeps the
+  qualification population unopened.
+- Froze all three scales, 0.5--1.0 support, seven mask and edge geometries,
+  seven analytic and injected morphologies, four SNR levels, noiseless and
+  beam-correlated varying-noise cases, and candidate-neutral 5-sigma/3-sigma
+  response thresholds.
+- Froze ten binding endpoints covering response and integrated-flux error,
+  calibrated SNR, noise calibration, completeness, reliability, astrometry,
+  support, fragmentation, and mask topology. Runtime and negative-lobe depth
+  remain recorded diagnostics rather than compensating scientific endpoints.
+- Froze absolute gates, candidate-to-candidate practical non-inferiority
+  margins, exact analytic evaluation, and whole-image 10,000-resample
+  one-sided 95% intervals for the 100 regression images.
+- Required every applicable absolute and paired stratum gate to pass. A
+  scientific advantage overrides current cost, a scientific tie uses bounded
+  structural cost, and an inconclusive result selects neither candidate.
+  Optimization remains forbidden until after selection.
+- Recorded protocol SHA-256
+  `749d2393c485239bea6a897beaeb4a97b0b8ab7d8aff851646e43e857b4c993d`
+  with `step_three_authorized=false` and `qualification_opened=false`.
+
+**Immediate next step:** implement the candidate-neutral analytic and
+generated-response evaluator test-first, then run the frozen protocol without
+opening qualification.

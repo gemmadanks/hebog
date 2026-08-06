@@ -184,6 +184,7 @@ its named review records the final algorithm selection.
 | --- | --- |
 | Multiscale contract | `1fbfb8e3026178dc539b5d0b76cec6f46d7bf73b67ac2a10ed3c77d0f3e092cd` |
 | Filter-selection decision | `38c2340c1e49a30178dd866bcb587f8f0bcd9cfc00e76bb496e6e93da5ed4e46` |
+| Paired filter-review protocol | `749d2393c485239bea6a897beaeb4a97b0b8ab7d8aff851646e43e857b4c993d` |
 | Scientific gates | `cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b` |
 | Development manifest | `b3c9594efa0c39ce30f3b287988f3fca90f69c5ccb8507adc463b37fed0b8350` |
 | Regression manifest | `7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e` |

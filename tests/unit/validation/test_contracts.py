@@ -53,6 +53,9 @@ _PHASE_FIVE_GATES_PATH = (
 _PHASE_FIVE_FILTER_SELECTION_PATH = (
     _ROOT / "config/contracts/phase-5-filter-selection.json"
 )
+_PHASE_FIVE_FILTER_REVIEW_PATH = (
+    _ROOT / "config/contracts/phase-5-filter-paired-review.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -487,6 +490,133 @@ def test_phase_five_filter_selection_rejects_cost_or_support_drift(
 
     with pytest.raises(ValidationError, match=message):
         type(decision).model_validate(payload)
+
+
+def test_phase_five_filter_review_freezes_science_first_selection() -> None:
+    """The paired review precedes Step 3 and any candidate optimization."""
+    review = contract_models.load_phase_five_filter_review(
+        _PHASE_FIVE_FILTER_REVIEW_PATH
+    )
+
+    assert review.status == "frozen-before-paired-results"
+    assert review.candidates == (
+        "beam-aware-matched-filter",
+        "undecimated-wavelet",
+    )
+    assert tuple(item.role for item in review.dataset_manifests) == (
+        "development",
+        "regression",
+    )
+    assert review.matrix.scale_orders == (1, 2, 3)
+    assert review.matrix.support_fraction_bounds == (0.5, 1.0)
+    assert review.matrix.snr_levels == (5.0, 8.0, 15.0, 30.0)
+    assert "integrated-flux-fractional-error" in review.binding_metrics
+    assert "calibrated-response-snr" in review.binding_metrics
+    assert review.absolute_gates.minimum_completeness == 0.9
+    assert review.absolute_gates.minimum_reliability == 0.95
+    assert review.paired_margins.maximum_completeness_loss == 0.02
+    assert review.statistical_design.bootstrap_resamples == 10_000
+    assert review.decision_policy.inconclusive == "select-neither"
+    assert review.decision_policy.optimization == "after-selection-only"
+    assert review.step_three_authorized is False
+    assert review.qualification_opened is False
+
+
+_INVALID_PHASE_FIVE_FILTER_REVIEW_MUTATIONS: tuple[
+    tuple[Callable[[dict[str, Any]], None], str], ...
+] = (
+    (
+        lambda payload: payload.update(
+            {"candidates": ["undecimated-wavelet"]}
+        ),
+        "candidates",
+    ),
+    (
+        lambda payload: payload["matrix"].update(
+            {"support_fraction_bounds": [0.6, 1.0]}
+        ),
+        "support fraction",
+    ),
+    (
+        lambda payload: payload["matrix"].update({"scale_orders": [1, 2]}),
+        "scales",
+    ),
+    (
+        lambda payload: payload["matrix"].update(
+            {"snr_levels": [5.0, 8.0, 15.0, 31.0]}
+        ),
+        "SNR levels",
+    ),
+    (
+        lambda payload: payload["matrix"].update({"detection_sigma": 4.5}),
+        "thresholds",
+    ),
+    (
+        lambda payload: payload["matrix"]["mask_geometries"].reverse(),
+        "mask geometries",
+    ),
+    (
+        lambda payload: payload["matrix"]["morphologies"].reverse(),
+        "morphologies",
+    ),
+    (
+        lambda payload: payload["matrix"]["noise_models"].reverse(),
+        "noise models",
+    ),
+    (
+        lambda payload: payload["dataset_manifests"].reverse(),
+        "development and regression",
+    ),
+    (
+        lambda payload: payload["absolute_gates"].update(
+            {"maximum_median_response_fractional_error": 0.2}
+        ),
+        "tail cannot be tighter",
+    ),
+    (
+        lambda payload: payload["binding_metrics"].__setitem__(
+            -1, "calibrated-response-snr"
+        ),
+        "binding metrics must be complete",
+    ),
+    (
+        lambda payload: payload["binding_metrics"].reverse(),
+        "binding metrics must be canonical",
+    ),
+    (
+        lambda payload: payload["diagnostic_metrics"].reverse(),
+        "diagnostic metrics must be canonical",
+    ),
+    (
+        lambda payload: payload["statistical_design"].update(
+            {"confidence_level": 0.9}
+        ),
+        "confidence level",
+    ),
+    (
+        lambda payload: payload.update({"step_three_authorized": True}),
+        "False",
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    _INVALID_PHASE_FIVE_FILTER_REVIEW_MUTATIONS,
+)
+def test_phase_five_filter_review_rejects_post_hoc_drift(
+    mutation: Callable[[dict[str, Any]], None],
+    message: str,
+) -> None:
+    """Candidate, population, support, and sequencing cannot drift."""
+    review = contract_models.load_phase_five_filter_review(
+        _PHASE_FIVE_FILTER_REVIEW_PATH
+    )
+    payload = review.model_dump(mode="json")
+    mutation(payload)
+
+    with pytest.raises(ValidationError, match=message):
+        type(review).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

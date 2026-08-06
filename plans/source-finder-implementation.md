@@ -901,7 +901,7 @@ and spill behaviour, and facility-scale execution.
 
 2B. **Select the representation through a paired scientific comparison.**
 
-   - [ ] Before inspecting new candidate results, freeze a non-qualification
+   - [x] Before inspecting new candidate results, freeze a non-qualification
          paired matrix spanning all three scales; support fractions from 0.5
          to 1.0; mask and image-edge offsets, orientations, corners, and
          irregular holes; compact, diffuse, filamentary, shell, and mixed
@@ -917,7 +917,7 @@ and spill behaviour, and facility-scale execution.
          completeness, reliability, position error, support availability,
          negative-lobe or fragmentation behaviour, and mask topology in every
          applicable governed stratum.
-   - [ ] Freeze practical paired margins and confidence rules before running
+   - [x] Freeze practical paired margins and confidence rules before running
          the matrix. Require the selected representation to pass every
          absolute gate and to be scientifically non-inferior in every
          governed stratum; an aggregate result may not compensate for a

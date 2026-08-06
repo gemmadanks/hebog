@@ -23,6 +23,8 @@ _PHASE_FIVE_SELECTED_MINIMUM_SUPPORT = 0.5
 _PHASE_FIVE_SELECTED_TRUNCATION_SIGMA = 4.0
 _PHASE_FIVE_SELECTED_CONVOLUTION_COUNT = 9
 _PHASE_FIVE_SELECTED_TEMPORARY_PLANES = 7
+_PHASE_FIVE_REVIEW_DETECTION_SIGMA = 5.0
+_PHASE_FIVE_REVIEW_ISLAND_SIGMA = 3.0
 _PHASE_FIVE_REQUIRED_STRATA = {
     "above-compact-deblend-limit",
     "image-edge",
@@ -983,6 +985,186 @@ class PhaseFiveFilterSelection(_ContractModel):
         return self
 
 
+class PhaseFiveFilterReviewDataset(_ContractModel):
+    """One frozen non-qualification population in the paired review."""
+
+    role: Literal["development", "regression"]
+    manifest: str
+    manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    image_count: int = Field(ge=1)
+
+
+class PhaseFiveFilterReviewMatrix(_ContractModel):
+    """Candidate-neutral cases evaluated before the final filter choice."""
+
+    scale_orders: tuple[int, ...]
+    support_fraction_bounds: tuple[float, float]
+    mask_geometries: tuple[str, ...] = Field(min_length=6)
+    morphologies: tuple[str, ...] = Field(min_length=6)
+    snr_levels: tuple[float, ...] = Field(min_length=4)
+    noise_models: tuple[str, ...] = Field(min_length=2)
+    detection_sigma: float = Field(gt=0)
+    island_sigma: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def validate_matrix(self) -> Self:
+        """Keep scales, support, SNR, and thresholds predeclared."""
+        if self.scale_orders != (1, 2, 3):
+            raise ValueError("filter-review scales must be 1, 2, and 3")
+        if self.support_fraction_bounds != (0.5, 1.0):
+            raise ValueError("filter-review support fraction must span 0.5--1")
+        if self.snr_levels != (5.0, 8.0, 15.0, 30.0):
+            raise ValueError("filter-review SNR levels must remain canonical")
+        if (
+            self.detection_sigma != _PHASE_FIVE_REVIEW_DETECTION_SIGMA
+            or self.island_sigma != _PHASE_FIVE_REVIEW_ISLAND_SIGMA
+        ):
+            raise ValueError("filter-review thresholds must remain 5/3 sigma")
+        if tuple(sorted(set(self.mask_geometries))) != self.mask_geometries:
+            raise ValueError("filter-review mask geometries must be canonical")
+        if tuple(sorted(set(self.morphologies))) != self.morphologies:
+            raise ValueError("filter-review morphologies must be canonical")
+        if tuple(sorted(set(self.noise_models))) != self.noise_models:
+            raise ValueError("filter-review noise models must be canonical")
+        return self
+
+
+class PhaseFiveFilterReviewAbsoluteGates(_ContractModel):
+    """Absolute truth requirements shared by both filter candidates."""
+
+    maximum_median_response_fractional_error: float = Field(ge=0)
+    maximum_percentile_95_response_fractional_error: float = Field(ge=0)
+    maximum_median_integrated_flux_fractional_error: float = Field(ge=0)
+    maximum_percentile_95_integrated_flux_fractional_error: float = Field(ge=0)
+    maximum_noise_std_fractional_error: float = Field(ge=0)
+    minimum_support_availability: float = Field(ge=0, le=1)
+    minimum_completeness: float = Field(ge=0, le=1)
+    minimum_reliability: float = Field(ge=0, le=1)
+    maximum_percentile_95_position_beams: float = Field(ge=0)
+    minimum_mask_intersection_over_union: float = Field(ge=0, le=1)
+    maximum_fragmentation_fraction: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_tails(self) -> Self:
+        """Tail ceilings contain their corresponding median ceilings."""
+        if (
+            self.maximum_percentile_95_response_fractional_error
+            < self.maximum_median_response_fractional_error
+            or self.maximum_percentile_95_integrated_flux_fractional_error
+            < self.maximum_median_integrated_flux_fractional_error
+        ):
+            raise ValueError(
+                "filter-review tail cannot be tighter than median"
+            )
+        return self
+
+
+class PhaseFiveFilterReviewPairedMargins(_ContractModel):
+    """Practical one-sided candidate-to-candidate non-inferiority margins."""
+
+    maximum_median_response_error_increase: float = Field(gt=0)
+    maximum_percentile_95_response_error_increase: float = Field(gt=0)
+    maximum_median_integrated_flux_error_increase: float = Field(gt=0)
+    maximum_calibrated_snr_fractional_loss: float = Field(gt=0, lt=1)
+    maximum_noise_std_error_increase: float = Field(gt=0)
+    maximum_completeness_loss: float = Field(gt=0, lt=1)
+    maximum_reliability_loss: float = Field(gt=0, lt=1)
+    maximum_position_error_increase_beams: float = Field(gt=0)
+    maximum_mask_intersection_over_union_loss: float = Field(gt=0, lt=1)
+    maximum_fragmentation_fraction_increase: float = Field(gt=0, lt=1)
+
+
+class PhaseFiveFilterReviewStatistics(_ContractModel):
+    """Frozen exact and image-resampled comparison procedures."""
+
+    confidence_level: float = Field(gt=0, lt=1)
+    analytic_cases: Literal["exact-no-resampling"]
+    generated_cases: Literal["whole-image-fixed-seed-bootstrap"]
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    interval: Literal["one-sided-upper-95-percent"]
+    minimum_regression_images: int = Field(ge=100)
+
+
+class PhaseFiveFilterReviewDecisionPolicy(_ContractModel):
+    """Fail-closed ordering of science, cost, and optimization."""
+
+    absolute_rule: Literal["every-gate-every-applicable-stratum"]
+    paired_rule: Literal["non-inferior-to-other-candidate-no-compensation"]
+    scientific_advantage: Literal["select-regardless-of-current-cost"]
+    scientific_tie: Literal["lowest-bounded-structural-cost"]
+    inconclusive: Literal["select-neither"]
+    optimization: Literal["after-selection-only"]
+
+
+class PhaseFiveFilterReview(_ContractModel):
+    """Frozen Step 2B paired scientific representation review."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-filter-paired-review"]
+    status: Literal["frozen-before-paired-results"]
+    candidates: tuple[
+        Literal["beam-aware-matched-filter", "undecimated-wavelet"], ...
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    matrix: PhaseFiveFilterReviewMatrix
+    binding_metrics: tuple[str, ...] = Field(min_length=10)
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=2)
+    absolute_gates: PhaseFiveFilterReviewAbsoluteGates
+    paired_margins: PhaseFiveFilterReviewPairedMargins
+    statistical_design: PhaseFiveFilterReviewStatistics
+    decision_policy: PhaseFiveFilterReviewDecisionPolicy
+    step_three_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_review(self) -> Self:
+        """Protect candidates, populations, and complete metric governance."""
+        if self.candidates != (
+            "beam-aware-matched-filter",
+            "undecimated-wavelet",
+        ):
+            raise ValueError("filter-review candidates must be canonical")
+        if tuple(item.role for item in self.dataset_manifests) != (
+            "development",
+            "regression",
+        ):
+            raise ValueError(
+                "filter review requires development and regression manifests"
+            )
+        expected_metrics = {
+            "calibrated-response-snr",
+            "completeness",
+            "fragmentation-fraction",
+            "integrated-flux-fractional-error",
+            "mask-intersection-over-union",
+            "noise-standard-deviation-error",
+            "position-error-beams",
+            "reliability",
+            "response-fractional-error",
+            "support-availability",
+        }
+        if set(self.binding_metrics) != expected_metrics or len(
+            self.binding_metrics
+        ) != len(expected_metrics):
+            raise ValueError("filter-review binding metrics must be complete")
+        if tuple(sorted(set(self.binding_metrics))) != self.binding_metrics:
+            raise ValueError("filter-review binding metrics must be canonical")
+        if (
+            tuple(sorted(set(self.diagnostic_metrics)))
+            != self.diagnostic_metrics
+        ):
+            raise ValueError(
+                "filter-review diagnostic metrics must be canonical"
+            )
+        if (
+            self.statistical_design.confidence_level
+            != _PAIRED_CONFIDENCE_LEVEL
+        ):
+            raise ValueError("filter-review confidence level must remain 0.95")
+        return self
+
+
 class PairedResamplingProtocol(_ContractModel):
     """Predeclared interval construction for same-image comparisons."""
 
@@ -1448,5 +1630,12 @@ def load_phase_five_filter_selection(
 ) -> PhaseFiveFilterSelection:
     """Load the reviewed Phase 5 filter-family decision."""
     return PhaseFiveFilterSelection.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_filter_review(path: Path) -> PhaseFiveFilterReview:
+    """Load the frozen Step 2B paired representation-review contract."""
+    return PhaseFiveFilterReview.model_validate_json(
         path.read_text(encoding="utf-8")
     )

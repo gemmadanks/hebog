@@ -55,5 +55,11 @@ opened. A paired Step 2B scientific comparison must amend or confirm this
 record before Step 3; the undecimated-wavelet candidate remains active
 development evidence until then.
 
+`contracts/phase-5-filter-paired-review.json` freezes the Step 2B candidates,
+development and regression manifest identities, analytic and generated case
+matrix, binding metrics, absolute and paired margins, confidence procedure,
+and fail-closed decision order before new paired results are inspected.
+Qualification and Step 3 remain closed in this protocol.
+
 These files are gates, not measured evidence; raw measurements use the evidence
 schemas and stay under the ignored `benchmark-results/` directory.

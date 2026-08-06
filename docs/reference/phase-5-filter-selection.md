@@ -64,6 +64,12 @@ support availability, fragmentation or negative-lobe behaviour, and mask
 topology by governed stratum. Practical margins and confidence rules must be
 frozen before the new results are inspected.
 
+The machine-readable pre-results protocol is
+`config/contracts/phase-5-filter-paired-review.json`, SHA-256
+`749d2393c485239bea6a897beaeb4a97b0b8ab7d8aff851646e43e857b4c993d`.
+It binds the ten-image development and 100-image regression manifests, keeps
+qualification closed, and leaves `step_three_authorized=false`.
+
 The final decision is science-first: every absolute and paired stratum gate
 must pass, with no compensation by aggregate results. Cost distinguishes the
 candidates only when neither has a practically material scientific advantage.

@@ -1,0 +1,124 @@
+{
+  "absolute_gates": {
+    "maximum_fragmentation_fraction": 0.1,
+    "maximum_median_integrated_flux_fractional_error": 0.1,
+    "maximum_median_response_fractional_error": 0.05,
+    "maximum_noise_std_fractional_error": 0.15,
+    "maximum_percentile_95_integrated_flux_fractional_error": 0.25,
+    "maximum_percentile_95_position_beams": 0.25,
+    "maximum_percentile_95_response_fractional_error": 0.1,
+    "minimum_completeness": 0.9,
+    "minimum_mask_intersection_over_union": 0.8,
+    "minimum_reliability": 0.95,
+    "minimum_support_availability": 0.95
+  },
+  "binding_metrics": [
+    "calibrated-response-snr",
+    "completeness",
+    "fragmentation-fraction",
+    "integrated-flux-fractional-error",
+    "mask-intersection-over-union",
+    "noise-standard-deviation-error",
+    "position-error-beams",
+    "reliability",
+    "response-fractional-error",
+    "support-availability"
+  ],
+  "candidates": [
+    "beam-aware-matched-filter",
+    "undecimated-wavelet"
+  ],
+  "contract_id": "phase-5-filter-paired-review",
+  "dataset_manifests": [
+    {
+      "image_count": 10,
+      "manifest": "config/datasets/phase-5-development.json",
+      "manifest_sha256": "b3c9594efa0c39ce30f3b287988f3fca90f69c5ccb8507adc463b37fed0b8350",
+      "role": "development"
+    },
+    {
+      "image_count": 100,
+      "manifest": "config/datasets/phase-5-regression.json",
+      "manifest_sha256": "7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e",
+      "role": "regression"
+    }
+  ],
+  "decision_policy": {
+    "absolute_rule": "every-gate-every-applicable-stratum",
+    "inconclusive": "select-neither",
+    "optimization": "after-selection-only",
+    "paired_rule": "non-inferior-to-other-candidate-no-compensation",
+    "scientific_advantage": "select-regardless-of-current-cost",
+    "scientific_tie": "lowest-bounded-structural-cost"
+  },
+  "diagnostic_metrics": [
+    "negative-lobe-depth",
+    "runtime-and-bounded-cost"
+  ],
+  "matrix": {
+    "detection_sigma": 5.0,
+    "island_sigma": 3.0,
+    "mask_geometries": [
+      "diagonal-half-plane",
+      "horizontal-half-plane",
+      "image-corner",
+      "image-edge",
+      "irregular-hole",
+      "unmasked",
+      "vertical-half-plane"
+    ],
+    "morphologies": [
+      "artifact",
+      "curved-filament",
+      "diffuse",
+      "filament",
+      "gaussian",
+      "mixed-compact-extended",
+      "shell"
+    ],
+    "noise_models": [
+      "beam-correlated-varying-rms",
+      "noiseless-analytic"
+    ],
+    "scale_orders": [
+      1,
+      2,
+      3
+    ],
+    "snr_levels": [
+      5.0,
+      8.0,
+      15.0,
+      30.0
+    ],
+    "support_fraction_bounds": [
+      0.5,
+      1.0
+    ]
+  },
+  "paired_margins": {
+    "maximum_calibrated_snr_fractional_loss": 0.1,
+    "maximum_completeness_loss": 0.02,
+    "maximum_fragmentation_fraction_increase": 0.02,
+    "maximum_mask_intersection_over_union_loss": 0.05,
+    "maximum_median_integrated_flux_error_increase": 0.05,
+    "maximum_median_response_error_increase": 0.02,
+    "maximum_noise_std_error_increase": 0.05,
+    "maximum_percentile_95_response_error_increase": 0.05,
+    "maximum_position_error_increase_beams": 0.05,
+    "maximum_reliability_loss": 0.02
+  },
+  "qualification_opened": false,
+  "schema_version": 1,
+  "statistical_design": {
+    "analytic_cases": "exact-no-resampling",
+    "bootstrap_resamples": 10000,
+    "bootstrap_seed": 20260806,
+    "confidence_level": 0.95,
+    "generated_cases": "whole-image-fixed-seed-bootstrap",
+    "interval": "one-sided-upper-95-percent",
+    "minimum_regression_images": 100
+  },
+  "status": "frozen-before-paired-results",
+  "step_three_authorized": false
+}
