@@ -7,6 +7,13 @@ optimization remain blocked pending a newly frozen corrective design. The
 qualification population remains frozen and unopened. This record establishes
 the governing contract but does not establish multiscale equivalence.
 
+The 2026-08-08 community-practice review nominated residual B3-spline à trous
+reconstruction, morphology-independent support growth, and original-image
+measurement as the Step 2C corrective candidate. Before new results are
+viewed, Step 2C must version the response-evaluation meaning while preserving
+the frozen populations, numerical gates, paired margins, and fail-closed
+decision. This nomination is not algorithm selection or qualification.
+
 Gemma Danks asked Codex to complete Phase 5 Step 1. Codex performed the named
 scientific and engineering review recorded here as an AI-conducted synthesis
 of the governed compact evidence, analytic truth design, and cited literature.

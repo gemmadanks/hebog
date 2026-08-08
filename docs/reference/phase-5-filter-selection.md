@@ -8,6 +8,13 @@ Step 3 and candidate-specific optimization remain blocked until a newly
 frozen corrective design passes the same review. This is not multiscale
 equivalence, complete Rapthor performance, or production-readiness evidence.
 
+The 2026-08-08 community-practice review identified a residual B3-spline
+à trous reconstruction with morphology-independent support and
+original-image measurement as the corrective Step 2C candidate. It remains a
+candidate, not a selected representation. The existing matched filter remains
+a comparator and possible known-template compact aid; neither family is
+authorized for extended-source production work.
+
 The comparison used only the ten frozen development realizations. The
 qualification manifest and all qualification results remained unopened.
 
@@ -159,5 +166,9 @@ Neither evidence record establishes production thresholded scale detections,
 connectivity,
 extended measurements, cross-scale reconciliation, real-residual behaviour,
 PyBDSF equivalence, or complete `filter_skymodel` speedup. Those remain later
-Phase 5 and Phase 7 gates. Step 2C must now freeze a corrective design; Step 3
-remains blocked.
+Phase 5 and Phase 7 gates. Step 2C must now freeze the detection,
+reconstruction, support-growth, original-pixel measurement, and amended
+response-evaluation contract before implementation or new result inspection;
+Step 3 remains blocked. The separate compact-only Rapthor probe selects only
+that workflow's explicit profile and cannot establish general multiscale
+equivalence.

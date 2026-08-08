@@ -22,6 +22,14 @@ product adapters. Reduce the median wall time of Rapthor's complete
 used by Rapthor, and also outperform the current performance-improved PyBDSF
 `master` reference.
 
+Community usefulness is an independent product requirement. Hebog's general
+continuum mode must use transparent, literature-grounded methods, publish the
+intermediate provenance needed to audit a result, and qualify compact and
+extended populations beyond the initial Rapthor workload. A workflow adapter
+may select a narrower qualified profile, but it may not silently redefine the
+scientific default or present task-specific equivalence as general source-
+finder equivalence.
+
 The 50% reduction and `master` comparison are minimum release gates, not an
 optimization stopping point. Subject to scientific, memory, and operational
 gates, Hebog should minimize complete end-to-end latency and maximize useful
@@ -107,6 +115,39 @@ These observations indicate that a new array-oriented implementation can meet th
 avoiding repeated statistics, whole-image copies, recursively repeated source-finding pipelines,
 and fork-based worker startup.
 
+### 2.1 Community-practice evidence for the multiscale design
+
+A 2026-08-08 review of established continuum finders and survey practice found
+no universal best extended-source algorithm, but did identify a defensible
+common envelope:
+
+- PyBDSF applies an optional B3-spline à trous decomposition to the residual
+  after ordinary Gaussian fitting; it does not treat a raw wavelet coefficient
+  as the final source photometry ([PyBDSF documentation](https://pybdsf.readthedocs.io/en/latest/process_image.html)).
+- Aegean combines thresholded islands, curvature-informed component counts,
+  and constrained Gaussian fits, providing a strong precedent for compact and
+  blended sources rather than arbitrary diffuse morphology
+  ([Hancock et al. 2012](https://academic.oup.com/mnras/article/422/2/1812/1041871)).
+- ASKAP Selavy combines local-noise thresholds, seed-and-grow islands,
+  optional à trous reconstruction, and overlapped distributed subimages
+  ([ASKAPsoft documentation](https://www.atnf.csiro.au/computing/software/askapsoft/sdp/docs/current/analysis/selavy.html)).
+- ProFound and CAESAR demonstrate the value of morphology-independent
+  segmentation and residual processing for irregular diffuse emission, while
+  also exposing noise-growth and component-representation trade-offs
+  ([Hale et al. 2019](https://academic.oup.com/mnras/article/487/3/3971/5511783);
+  [Riggi et al. 2021](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/caesar-source-finder-recent-developments-and-testing/DC9883C05E033D27CC05EE86AFC4B17F)).
+- The Hydra comparison found the largest finder-to-finder differences on real
+  diffuse emission and no representation that dominated island segmentation,
+  Gaussian component modelling, and noise rejection simultaneously
+  ([Boyce et al. 2023](https://www.cambridge.org/core/journals/publications-of-the-astronomical-society-of-australia/article/hydra-ii-characterisation-of-aegean-caesar-profound-pybdsf-and-selavy-source-finders/DC245D86E75644800D682F7E0FC3D7D9)).
+
+The resulting corrective direction is therefore a transparent hybrid of
+established operations: retain the qualified compact branch, detect extended
+emission through an optimized residual B3-spline à trous reconstruction, grow
+and reconcile morphology-independent support, and measure final properties on
+the original background-subtracted image. This is a development design to be
+frozen and tested in Phase 5 Step 2C, not an algorithm-selection result.
+
 ## 3. Scope
 
 ### In scope
@@ -115,7 +156,9 @@ and fork-based worker startup.
 - Background mean and RMS estimation, including an adaptive bright-source mode.
 - Seed and island thresholds compatible with Rapthor's PyBDSF settings.
 - Connected islands, deblending, compact-source measurements, and Gaussian fitting where needed.
-- Multiscale detection sufficient for the extended sources relevant to sky-model filtering.
+- A general continuum profile with multiscale detection and measurement for
+  extended sources, plus an explicit compact profile for qualified workflows
+  that do not require extended emission.
 - Catalogue, RMS image, and mask products consumed by LSMTool/Rapthor.
 - Out-of-core, haloed tile processing for images up to 100,000 by 100,000
   pixels.
@@ -162,6 +205,15 @@ record. Scientific thresholds are explicit rather than inherited from a
 workflow or survey default. A workflow adapter may compose several analyses;
 the Rapthor adapter owns its primary-beam-corrected and flat-noise branches,
 filtered sky models, legacy filenames, and compatibility configuration.
+
+Scientific configuration exposes explicit `compact` and `continuum` profiles.
+The qualified `continuum` profile is the intended general-community default
+and adds residual multiscale processing to the unchanged compact branch. A
+workflow may select `compact` only through explicit configuration and governed
+evidence for its downstream decisions. Every product records the profile,
+scale sequence, thresholds, beam, background/RMS method, implementation
+version, and material omission or truncation flags. No adapter may label a
+compact-only result as extended-source complete.
 
 The public scientific API and domain records must not import Rapthor, Prefect,
 LSMTool, or a concrete scheduler. Workflow-specific configuration, filenames,
@@ -211,6 +263,13 @@ Analytic and injected governed truth remain the primary scientific oracles;
 PyBDSF remains a compatibility oracle. A deliberate departure from literature
 or cross-pipeline consensus requires an explicit rationale, governed evidence,
 and renewed human scientific review before promotion.
+
+Detection representations and photometric estimators are separate. Filter or
+wavelet responses may establish significant support, but final extended-source
+flux, centroid, shape, and uncertainty gates are evaluated from reconstructed
+support on the original background-subtracted pixels. Representation-level
+response remains an auditable diagnostic and analytic calibration target; it
+must not be substituted silently for catalogue photometry.
 
 The initial thresholds below began as engineering gates requiring review with
 an SKA imaging/domain expert during Phase 0. The 2026-07-31
@@ -280,6 +339,11 @@ The suite must cover:
 8. A generated scalability ladder at 10,000, 30,000, and 100,000 pixels per side, with controlled
    source populations and features deliberately crossing tile boundaries.
 9. Several `filter_skymodel` calls from a complete Rapthor benchmark run.
+10. Public real or challenge cut-outs spanning at least two of LOFAR, ASKAP,
+    MeerKAT, and SKA SDC1, with redistributable provenance where possible and
+    isolated comparison runs for PyBDSF, Aegean, Selavy, ProFound, or CAESAR as
+    appropriate to the compact or extended population. These tools are
+    validation comparators, not runtime dependencies or scientific truth.
 
 The performance manifest samples image dimensions logarithmically, initially
 including 256, 512, 1,024, 3,000, 8,000, 10,000, 30,000, and 100,000 pixels
@@ -820,21 +884,25 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Steps 1--2B completed. The frozen paired comparison selected
-neither existing representation: both missed absolute truth gates and both
-failed candidate-to-candidate non-inferiority in governed strata. The initial
-float64 beam-aware matched-filter choice therefore remains a historical Step
-2 result, not an implementation authorization. Step 3 and candidate-specific
-optimization remain blocked pending a newly frozen corrective development
-design and re-evaluation. Qualification remains unopened; no multiscale
-equivalence or complete runtime claim is approved.
+**Status:** Steps 1--2B and the community-practice review are completed. The
+frozen paired comparison selected neither existing representation: both
+missed absolute truth gates and both failed candidate-to-candidate
+non-inferiority in governed strata. The initial float64 beam-aware
+matched-filter choice remains historical Step 2 evidence, not implementation
+authorization. Step 3 and candidate-specific optimization remain blocked
+pending a frozen residual-wavelet corrective design and re-evaluation.
+Qualification remains unopened; no multiscale equivalence or complete runtime
+claim is approved.
 
-**Goal:** recover and measure the extended and cross-scale emission required
-by the Rapthor contract without recursively rerunning the complete compact
-pipeline. The result must combine compact and multiscale detections into one
-deterministic, scientifically complete catalogue and source-filtering product
-while remaining suitable for the bounded tiled execution developed fully in
-Phase 6.
+**Goal:** provide a trusted general continuum profile that recovers and
+measures extended and cross-scale emission without recursively rerunning the
+complete compact pipeline, while separately determining whether Rapthor needs
+that profile for sky-model filtering. The continuum result must combine
+compact and multiscale detections into one deterministic catalogue and
+source-filtering product and remain suitable for the bounded tiled execution
+developed fully in Phase 6. Rapthor may use the compact profile only if the
+governed downstream decision probe passes; that outcome does not reduce the
+general continuum scope.
 
 Phase 5 owns scale-space science, cross-scale ownership, extended-island
 completion, compact/multiscale association, and the scheduler-independent
@@ -934,34 +1002,82 @@ and spill behaviour, and facility-scale execution.
          `step_three_authorized=false`; independent human scientific review
          remains required before production cutover.
 
-2C. **Correct the representation design after the inconclusive review.**
+2C. **Freeze and re-evaluate the corrective continuum design.**
 
+   - [x] Review established source finders and major survey practice. Record
+         the residual à trous, curvature/Gaussian, seed-and-grow,
+         segmentation, and distributed-overlap precedents and keep the final
+         design explainable without hidden learned models or proprietary
+         training data.
    - [ ] Diagnose the failed analytic response, response-SNR, astrometry,
          fragmentation, and mask-topology strata without opening
          qualification. Separate evaluator defects from representation
          limitations with exact truth and development-only probes.
-   - [ ] Freeze a corrective development design before changing either
-         candidate. It may optimize the wavelet, correct missing-support and
-         edge response, or define a scientifically justified hybrid, but must
-         preserve identical inputs, thresholds, absolute gates, paired
-         margins, and fail-closed decision semantics.
-   - [ ] Re-run the full Step 2B analytic and 100-image regression protocol.
-         Authorize Step 3 only if one representation passes every applicable
+   - [ ] Freeze a corrective serial design that subtracts or excludes accepted
+         compact emission, computes a normalized B3-spline à trous transform
+         of the residual, calibrates correlated noise and valid support per
+         scale, reconstructs significant adjacent-scale support, grows that
+         support on the original residual, and measures final extended
+         properties on the original background-subtracted pixels.
+   - [ ] Predeclare how the existing response endpoint applies to reconstructed
+         signal before viewing new results. Preserve the numerical absolute
+         gates, paired margins, source population, inputs, thresholds, and
+         fail-closed semantics; do not weaken a gate because detection,
+         reconstruction, masking, and photometry are now explicit stages.
+   - [ ] Freeze a bounded implementation using separable sparse B3-spline
+         convolutions, reused adjacent smoothings, scale-specific finite
+         halos, bounded normalized-convolution support, and no durable full
+         response bank. Profile first before authorizing Numba, native code,
+         lower precision, or a new dependency.
+   - [ ] Keep the beam-aware matched filter as a governed comparator and
+         possible known-template compact aid, not the default extended-source
+         representation. A future workflow-specific matched-filter profile
+         requires its own explicit scientific and downstream qualification.
+   - [ ] Re-run the full Step 2B analytic and 100-image regression protocol on
+         final reconstructed masks and original-pixel measurements. Authorize
+         Step 3 only if the corrective candidate passes every applicable
          absolute and paired stratum gate. Keep qualification unopened.
 
-3. **Implement scale detection and extended-island measurement after Step 2B.**
+2D. **Determine the Rapthor profile without narrowing community science.**
 
-   - [ ] Detect significant emission at every configured scale from shared
-         filter responses and local noise information. Keep graph and kernel
-         work proportional to tiles and scales, not pixels, RMS windows, or
-         islands.
-   - [ ] Define scale-specific connectivity, local maxima or support regions,
-         and minimum-area rules with exact analytic boundary tests.
+   - [ ] Freeze the Rapthor revision, LSMTool filtering implementation, input
+         checksums, released and pinned-`master` PyBDSF configurations, and
+         several real `filter_skymodel` calls before inspecting decisions.
+   - [ ] Run an isolated compact-only decision probe that feeds the Hebog
+         compact mask and the PyBDSF multiscale mask separately through the
+         same LSMTool filtering logic. This may use a bounded validation
+         harness; the public backend, fallback, and dual-run integration
+         remain Phase 7 work.
+   - [ ] Compare retained and rejected identifiers for every true, apparent,
+         and bright sky-model component, with explicit attribution to the five
+         multiscale-only objects in the representative image and to extended,
+         edge, masked, sparse, and crowded strata.
+   - [ ] Select the Rapthor `compact` profile only if the predeclared at-least
+         99.5% agreement gate and every safety stratum pass. Otherwise select
+         the qualified `continuum` profile. Record catalogue and diagnostic
+         differences separately even when filtering decisions agree.
+   - [ ] Treat this as workflow-profile evidence only. Continue the general
+         continuum implementation and qualification in either outcome, retain
+         the PyBDSF fallback until Phase 7 acceptance passes, and do not claim
+         general extended-source equivalence from Rapthor agreement.
+
+3. **Implement scale detection and extended-island measurement after Step 2C.**
+
+   - [ ] Detect significant residual emission at every configured scale from
+         shared à trous smoothings and calibrated local noise. Reconstruct
+         accepted adjacent-scale signal without retaining an image-sized
+         response bank. Keep graph and kernel work proportional to tiles and
+         scales, not pixels, RMS windows, or islands.
+   - [ ] Define scale-specific connectivity, cross-scale persistence, support
+         regions, seed-and-grow rules, and minimum areas with exact analytic
+         boundary tests.
    - [ ] Complete islands deferred by the compact planner through a bounded
          partitioned path. No task may require the full bounds or membership
          of an arbitrarily large island on one worker.
-   - [ ] Measure extended emission with explicit support, background, flux,
+   - [ ] Measure extended emission from original background-subtracted pixels
+         using the reconciled support, with explicit background, flux,
          centroid, shape, uncertainty availability, and truncation semantics.
+         Treat scale coefficients as detection provenance, not photometry.
          Preserve typed unavailable or failed outcomes; never substitute zero
          or silently publish a partial catalogue.
    - [ ] Retain compact Phase 4 measurements unchanged when no multiscale
@@ -1018,6 +1134,12 @@ and spill behaviour, and facility-scale execution.
          morphology, angular scale, SNR, edge status, blend status, and
          background regime. Report threshold crossings as completeness and
          reliability changes.
+   - [ ] On public multi-survey or challenge cut-outs, compare compact
+         populations with PyBDSF, Aegean, and Selavy and extended masks and
+         fluxes with PyBDSF à trous, ProFound, and CAESAR where runnable.
+         Publish per-population results and failure modes; do not rank a
+         finder from one aggregate score or make these tools runtime
+         dependencies.
    - [ ] Re-run the complete Phase 4U compact regression and require every
          binding absolute gate, paired endpoint, and stronger-Hebog envelope
          to remain satisfied. Investigate compact point-estimate degradation
@@ -1037,16 +1159,20 @@ and spill behaviour, and facility-scale execution.
          counts.
    - [ ] Update the living Marimo demonstration, current schemas,
          configuration reference, scientific-method documentation, readiness
-         record, and `LOG.md`. Run the relevant scientific, executor,
-         documentation, package, coverage, and repository checks.
+         record, and `LOG.md`. Provide per-object scale/support provenance and
+         an auditable diagnostic mode for reconstruction, mask, model, and
+         residual products without forcing their materialisation in the fast
+         path. Run the relevant scientific, executor, documentation, package,
+         coverage, and repository checks.
 
 #### Phase 5 exit gate
 
 Phase 5 closes only when:
 
-- the representation selected by Step 2B passes the predeclared paired
-  scientific comparison in every applicable masked, edge, scale, morphology,
-  noise, and SNR stratum before implementation-specific optimization;
+- the corrective continuum design selected through Step 2C passes the
+  predeclared final-output scientific comparison in every applicable masked,
+  edge, scale, morphology, noise, and SNR stratum before candidate-specific
+  optimization;
 - reviewed analytic, generated-truth, dual-reference, edge, invalid-pixel,
   deferred-island, mixed compact/extended, and untouched qualification cases
   pass their predeclared gates;
@@ -1055,13 +1181,17 @@ Phase 5 closes only when:
   meet absolute-truth and paired non-inferiority requirements;
 - the complete Phase 4U compact regression remains passing, and compact-only
   output is unchanged where no multiscale evidence exists;
+- the Rapthor decision probe records an explicit `compact` or `continuum`
+  profile outcome without changing the general continuum gates or opening the
+  Phase 7 backend cutover;
 - one-tile/many-tile and serial/executor results satisfy the frozen
   determinism contract, with memory bounded by cores, scale halos,
   workspaces, summaries, and shards rather than image or extended-island size;
 - the complete incremental multiscale stage meets the 6.0-second
   representative budget and has no unapproved adjacent-tier regression; and
-- named scientific and engineering review accepts the evidence, algorithm
-  choice, residual risks, and Phase 6 handoff.
+- named independent radio-astronomy and engineering review accepts the
+  evidence, algorithm choice, inspectable provenance, residual risks, and
+  Phase 6 handoff.
 
 Passing this gate establishes the scheduler-independent multiscale scientific
 milestone. It does not establish complete Rapthor speedup, deployment storage
@@ -1251,6 +1381,8 @@ count.
 | Beam/WCS conventions rotate or distort fitted shapes | Transform local covariance through Astropy WCS, freeze position-angle and pixel-origin conventions, and test rotated and unequal-scale axes |
 | Marginal beam deconvolution invents physical source size | Represent unresolved results explicitly, test near-singular covariance cases, and confine compatibility sentinels to the adapter |
 | Source grouping differs while aggregate flux appears correct | Gate island, Gaussian-component, source, and downstream association separately on analytic blends and both compatibility references |
+| Filter coefficients are mistaken for source photometry | Separate detection, reconstruction, support growth, and measurement; evaluate final flux and shape on original background-subtracted pixels |
+| A Rapthor compact profile is mistaken for general scientific completeness | Make profiles explicit in configuration and every product, prohibit extended-complete claims for compact output, and retain independent continuum qualification |
 | Catalogue fan-in exhausts the scheduler or one worker | Write bounded ordered shards, merge metadata hierarchically, and stream final FITS rows without per-source tasks or unbounded gathers |
 | A watershed or island is too large for one worker | Batch bounded compact regions, preserve explicit undecomposed state for extended work, and require the Phase 5/6 partitioned path before claiming large-island support |
 | Extended or blended sources diverge | Maintain dedicated fixtures and stratified metrics; do not hide them in aggregate recovery |
@@ -1281,7 +1413,7 @@ count.
 | Binary wheels reduce portability | Keep native acceleration optional until all supported wheels and source builds pass; never require users to compile during a normal supported install |
 | Terminology drifts across PyBDSF, LSMTool, Rapthor, and Hebog | Maintain a reviewed glossary, map legacy names explicitly, and include vocabulary in contract review |
 | Architecture diagrams become speculative or stale | Keep code-native diagrams at stable boundaries, review them with architectural changes, and defer unstable detail |
-| Full PyBDSF scope delays delivery | Implement only features proven necessary by the Rapthor contract and dataset matrix |
+| Full PyBDSF scope delays delivery | Implement the qualified compact and general continuum profiles, not every PyBDSF option or output format |
 | Algorithm licensing or attribution is unclear | Use published algorithms, write new code, document sources, and complete review before release |
 | A frequent release is mistaken for production readiness | Label every `0.x` capability and limitation explicitly; require the complete gates and soak before 1.0 or default cutover |
 
@@ -1304,11 +1436,22 @@ absolute and paired matrix. The reviewed decision is therefore
 representation is optimized or Step 3 begins. See the
 [filter decision](../docs/reference/phase-5-filter-selection.md).
 
+The community-practice review now makes residual B3-spline à trous detection,
+reconstruction, morphology-independent support, and original-image
+measurement the corrective Step 2C candidate. This is intentionally familiar
+to PyBDSF and Selavy users while adopting the segmentation strengths exposed
+by ProFound, CAESAR, and Hydra. It is not selected until the unchanged final-
+output gates pass. The separate Step 2D evidence decides only whether Rapthor
+uses the `compact` or `continuum` profile.
+
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:
 
 - Which scale-specific threshold, connectivity, and support rules recover
   diffuse and filamentary truth without duplicating compact sources?
+- Does compact-only processing preserve Rapthor's retained/rejected sky-model
+  decisions in every governed real-workload stratum, or must its adapter use
+  the continuum profile?
 - Which deterministic overlap evidence establishes cross-scale identity,
   compact/extended association, split/merge behaviour, and ownership across
   tile boundaries?
@@ -1360,3 +1503,8 @@ The project is ready to release `1.0.0` and replace PyBDSF in Rapthor when:
 13. If Hebog contains native code, the accepted native-code ADR, complete
     supported wheel matrix, source build, safety checks, license/provenance,
     scientific equivalence, fallback, and cold/warm performance gates pass.
+14. The general continuum profile passes reviewed public multi-survey or
+    challenge comparisons across at least two telescope families, exposes
+    auditable per-object detection and measurement provenance, and receives
+    independent radio-astronomy approval before becoming the scientific
+    default.

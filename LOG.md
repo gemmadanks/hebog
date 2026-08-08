@@ -5602,3 +5602,36 @@ Diagnose exact missing-support response, wavelet SNR/negative lobes,
 retained-support flux, astrometry, fragmentation, and mask topology before
 optimizing a candidate or defining a justified hybrid. Keep qualification and
 Step 3 closed.
+
+## 2026-08-08 — Reframed the Phase 5 corrective design from community practice
+
+**Plan phase:** Phase 5, Steps 2C--2D — corrective continuum design and
+Rapthor profile evidence
+
+- Reviewed PyBDSF, Aegean, Selavy, ProFound, CAESAR, Hydra, and radio source-
+  finder challenge evidence. The review found strong precedent for local-noise
+  seed-and-grow islands, compact Gaussian modelling, residual multiscale
+  processing, morphology-independent extended support, and explicit tiled
+  overlap, but no universally superior extended-source representation.
+- Chose an optimized residual B3-spline à trous reconstruction followed by
+  original-image segmentation and measurement as the corrective candidate to
+  freeze and evaluate. This is not a selection result: Step 3, candidate-
+  specific optimization, and qualification remain closed until the amended
+  Step 2C protocol passes.
+- Separated detection, reconstruction, masking, and photometry in the plan so
+  neither wavelet nor matched-filter coefficients are treated as final
+  extended-source flux estimates. Kept the existing numerical science gates
+  and fail-closed selection policy.
+- Added explicit `compact` and `continuum` scientific profiles. The continuum
+  profile remains the intended general-community default; Rapthor may select
+  compact only if a frozen same-filtering comparison passes the at-least 99.5%
+  retained/rejected-component gate in every safety stratum.
+- Added public multi-survey/challenge comparisons and auditable scale/support,
+  reconstruction, mask, model, and residual provenance to the Phase 5
+  qualification and documentation requirements. External finders remain
+  isolated validation comparators, not runtime dependencies or truth.
+
+**Immediate next step:** diagnose the Step 2B failures on development evidence,
+then freeze the exact residual B3-spline reconstruction, support-growth,
+measurement, and amended response-evaluation contract before implementation.
+Keep the qualification population unopened.
