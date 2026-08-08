@@ -74,6 +74,9 @@ _PHASE_FIVE_CORRECTIVE_R_DECISION_PATH = (
 _PHASE_FIVE_CORRECTIVE_A_REVIEW_PATH = (
     _ROOT / "config/contracts/phase-5-corrective-a-review.json"
 )
+_PHASE_FIVE_CORRECTIVE_A_DECISION_PATH = (
+    _ROOT / "config/contracts/phase-5-corrective-a-decision.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -856,6 +859,52 @@ def test_phase_five_corrective_a_review_rejects_estimator_drift() -> None:
 
     with pytest.raises(ValidationError, match="datasets must remain frozen"):
         type(review).model_validate(payload)
+
+
+def test_phase_five_corrective_a_decision_requires_human_review() -> None:
+    """The failed one-look confirmation cannot be tuned or rescored."""
+    decision = contract_models.load_phase_five_corrective_a_decision(
+        _PHASE_FIVE_CORRECTIVE_A_DECISION_PATH
+    )
+
+    assert decision.status == "reviewed-rejected"
+    assert decision.decision == "reject-corrective-a"
+    assert decision.selected_family is None
+    assert decision.candidates[1].failed_absolute_endpoint_count == 5
+    assert decision.candidates[1].failed_paired_endpoint_count == 0
+    assert decision.candidates[1].noninferior_to_other is True
+    assert decision.corrective_failure_domains == (
+        "astrometry-curved-filament-variance",
+        "astrometry-uncertainty-undercoverage",
+    )
+    assert decision.independent_human_scientific_review == (
+        "required-before-any-further-astrometry-revision"
+    )
+    assert decision.step_three_authorized is False
+    assert decision.optimization_authorized is False
+    assert decision.qualification_opened is False
+
+
+def test_phase_five_corrective_a_decision_rejects_record_drift() -> None:
+    """The closed one-look result cannot change counts or failure domains."""
+    decision = contract_models.load_phase_five_corrective_a_decision(
+        _PHASE_FIVE_CORRECTIVE_A_DECISION_PATH
+    )
+
+    payload = decision.model_dump(mode="json")
+    payload["candidates"][1]["failed_absolute_endpoint_count"] = 4
+    with pytest.raises(ValidationError, match="counts must remain exact"):
+        type(decision).model_validate(payload)
+
+    payload = decision.model_dump(mode="json")
+    payload["corrective_failure_domains"].reverse()
+    with pytest.raises(ValidationError, match="domains must remain exact"):
+        type(decision).model_validate(payload)
+
+    payload = decision.model_dump(mode="json")
+    payload["candidates"][1]["bounded_cost"][0] = 0
+    with pytest.raises(ValidationError, match="costs must be positive"):
+        type(decision).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

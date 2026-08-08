@@ -884,15 +884,14 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Steps 1--2C-R are completed. Step 2C-R preserved the residual
-B3-spline à trous representation and fixed association, artifact disposition,
-and false-positive control. B3 now passes every paired gate and every absolute
-domain except astrometry: nine absolute position-error strata remain just
-outside the 0.25-beam limit (0.260--0.291 beams). The measured bias is small;
-centred seed scatter is the residual problem. Step 3 and candidate-specific
-optimization remain blocked pending the independent 2C-A astrometry review.
-Qualification remains unopened; no multiscale equivalence or complete runtime
-claim is approved.
+**Status:** Steps 1--2C-A are completed with no eligible production
+representation. The independent 2C-A confirmation left residual B3
+non-inferior on every paired gate but failed five absolute position-error
+strata (0.360--0.432 beams). Raw population astrometry was materially better,
+but curved-filament variance and uncertainty undercoverage make a post-hoc
+endpoint change unsafe. Step 3, candidate-specific optimization, and
+qualification remain blocked pending independent human scientific review; no
+multiscale equivalence or complete runtime claim is approved.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1077,10 +1076,27 @@ and spill behaviour, and facility-scale execution.
          edge support, shells, filaments, blends, and topology aggregation.
          Record estimator availability and uncertainty; never substitute a
          truth coordinate or drop a difficult astronomical morphology.
-   - [ ] Re-run all 84 analytic cases and the new 100-image confirmation under
+   - [x] Re-run all 84 analytic cases and the new 100-image confirmation under
          a hashed pre-results contract. Authorize Step 3 only if B3 passes
          every unchanged absolute and paired stratum; otherwise obtain human
          scientific review before revising the endpoint or estimator again.
+         The one-look decision is `reject-corrective-a`: B3 failed five
+         absolute position-error strata and no paired strata. The confirmation
+         is closed to tuning, rescoring, or reuse; qualification remains
+         unopened.
+
+2C-H. **Review the residual astrometry question with a human scientist.**
+
+   - [ ] Review whether the frozen per-image/group-tail endpoint represents
+         catalogue astrometry appropriately, the curved-filament variance,
+         and the estimator's correlated-noise uncertainty undercoverage.
+         Treat raw population percentiles as diagnostics, not replacement
+         gates on the viewed confirmation.
+   - [ ] Record a governed decision before further astrometry work. Any new
+         estimator or endpoint protocol requires a newly frozen confirmation
+         population and may not tune, rescore, or reconfirm on the closed
+         2C-A population. Keep Step 3, optimization, and qualification closed
+         until a pre-results design passes every required gate.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
@@ -1213,7 +1229,7 @@ and spill behaviour, and facility-scale execution.
 
 Phase 5 closes only when:
 
-- the corrective continuum design corrected through Step 2C-A passes the
+- a human-reviewed follow-up to the rejected Step 2C-A result passes a new
   predeclared final-output scientific comparison in every applicable masked,
   edge, scale, morphology, noise, and SNR stratum before candidate-specific
   optimization;
@@ -1483,16 +1499,21 @@ reconstruction, morphology-independent support, and original-image
 measurement the corrective Step 2C candidate. This is familiar to PyBDSF and
 Selavy users while adopting segmentation strengths exposed by ProFound,
 CAESAR, and Hydra. Step 2C-R retained that representation and corrected
-association, artifact disposition, and false-positive control. B3 then passed
-all paired gates and all absolute domains except nine close astrometry-
-variance strata. Step 2C-A therefore isolates position estimation on a new
-seed-disjoint confirmation population before Step 3. The separate Step 2D
-evidence decides only whether Rapthor uses the `compact` or `continuum`
-profile.
+association, artifact disposition, and false-positive control. Step 2C-A then
+tested a frozen noise-aware model-assisted position estimator on a new
+seed-disjoint population. B3 remained non-inferior but failed five absolute
+position-error strata; curved-filament variance and uncertainty undercoverage
+now require human scientific review before another estimator or endpoint
+design. The separate Step 2D evidence decides only whether Rapthor uses the
+`compact` or `continuum` profile.
 
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:
 
+- Does the per-image/group-tail position endpoint express catalogue-level
+  astrometry appropriately, and how should correlated-noise uncertainty be
+  calibrated for curved or model-mismatched emission without tuning on the
+  closed 2C-A population?
 - Which scale-specific threshold, connectivity, and support rules recover
   diffuse and filamentary truth without duplicating compact sources?
 - Does compact-only processing preserve Rapthor's retained/rejected sky-model

@@ -1,0 +1,51 @@
+{
+  "candidates": [
+    {
+      "bounded_cost": [
+        9,
+        7,
+        38
+      ],
+      "failed_absolute_endpoint_count": 14,
+      "failed_paired_endpoint_count": 9,
+      "family": "beam-aware-matched-filter",
+      "noninferior_to_other": false,
+      "passes_absolute": false
+    },
+    {
+      "bounded_cost": [
+        21,
+        7,
+        38
+      ],
+      "failed_absolute_endpoint_count": 5,
+      "failed_paired_endpoint_count": 0,
+      "family": "residual-b3-atrous",
+      "noninferior_to_other": true,
+      "passes_absolute": false
+    }
+  ],
+  "confirmation_manifest_sha256": "7576f8e6e373b12a42c9820ee381750c32208444682bde4a52a1311cccfc6011",
+  "confirmation_reuse": "closed-after-one-look",
+  "corrective_failure_domains": [
+    "astrometry-curved-filament-variance",
+    "astrometry-uncertainty-undercoverage"
+  ],
+  "decision": "reject-corrective-a",
+  "decision_id": "phase-5-corrective-a-decision",
+  "evidence_configuration_sha256": "74c71a6a97831d6eeb82cc200ec2187983b9e5e4864ebdefdfe6cc68584335a8",
+  "evidence_sha256": "b8eeaf7858b57b07d2c4ab9912e45792d2b5f59658b4f86256fb5ae801aace05",
+  "evidence_source_tree_sha256": "16a640a59e4f8e1aac194e5ae75aad90ed73d068b375dd5c9a74663b6aab6612",
+  "independent_human_scientific_review": "required-before-any-further-astrometry-revision",
+  "named_review": "codex-step-2c-a-one-look-governed-evidence-review",
+  "next_action": "human-scientific-review-of-astrometry-endpoint-and-estimator",
+  "optimization_authorized": false,
+  "prior_decision_sha256": "6727657ff039b1ccf0ab88c169df0f02cf1b080b6ca1ca4b7059f49d0640340d",
+  "protocol_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+  "qualification_opened": false,
+  "review_scope": "technical-and-governed-independent-confirmation-evidence",
+  "schema_version": 1,
+  "selected_family": null,
+  "status": "reviewed-rejected",
+  "step_three_authorized": false
+}

@@ -1,17 +1,17 @@
 # Phase 5 multiscale contract and development review
 
-**Status:** reviewed for development and amended through Step 2C-R by the
-[filter decision](phase-5-filter-selection.md). Residual B3 now passes every
-paired gate and every absolute domain except nine close astrometry-variance
-strata. Step 3 and representation-specific optimization remain blocked pending
-Step 2C-A. Qualification remains frozen and unopened; this contract does not
-establish multiscale equivalence.
+**Status:** reviewed for development and amended through Step 2C-A by the
+[filter decision](phase-5-filter-selection.md). Residual B3 passes every paired
+gate and every absolute domain except five astrometry-variance strata on the
+independent confirmation. Step 3 and representation-specific optimization
+remain blocked pending human scientific review. Qualification remains frozen
+and unopened; this contract does not establish multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
-measurement. Steps 2C and 2C-R evaluated it without changing the frozen gates
-or opening qualification. It remains unselected until the independent Step
-2C-A astrometry confirmation passes.
+measurement. Steps 2C through 2C-A evaluated it without changing the frozen
+gates or opening qualification. The independent astrometry confirmation did
+not pass, so the representation remains unselected.
 
 Gemma Danks asked Codex to complete Phase 5 Step 1. Codex performed the named
 scientific and engineering review recorded here as an AI-conducted synthesis
@@ -92,6 +92,7 @@ production algorithm to a Gaussian decomposition.
 | --- | --- | ---: | --- |
 | `phase-5-development.json` | development | 10 | Fast scale-response, schema, failure, and association TDD. |
 | `phase-5-regression.json` | regression | 100 | Seed- and geometry-disjoint morphology, scale, mask, edge, artifact, and boundary regression. |
+| `phase-5-corrective-a-confirmation.json` | regression confirmation | 100 | One-look seed-disjoint confirmation of the frozen Step 2C-A estimator. |
 | `phase-5-qualification.json` | qualification | 400 | Untouched one-look population spanning every governed stratum. |
 
 Each image contains diffuse, filamentary, curved-filament, shell,
@@ -107,7 +108,8 @@ positive deterministic sidelobe analogues whose catalogue role is explicitly
 The image/noise seed is the independent unit. Seed ranges do not overlap:
 
 - development: `2026700001`--`2026700010`;
-- regression: `2026710001`--`2026710100`; and
+- regression: `2026710001`--`2026710100`;
+- Step 2C-A confirmation: `2026730001`--`2026730100`; and
 - qualification: `2026720001`--`2026720400`.
 
 The qualification population is frozen before algorithm selection, tuning,
@@ -173,16 +175,16 @@ Residual risks are explicit:
 - The 50% support threshold and numerical margins are reviewed-development
   values; opening qualification requires the registered power audit and
   independent review remains a cutover gate.
-- Step 2 recorded provisional filter support, truncation, normalization,
-  dtype, and convolution implementations. Step 2B must compare their paired
-  scientific outcomes and select one before detection connectivity and
-  extended measurement proceed in Step 3.
+- Step 2C-A left five absolute astrometry tails above the frozen gate despite
+  passing all paired endpoints. Curved-filament variance and uncertainty
+  undercoverage require human scientific review before another estimator or
+  endpoint design.
 - The internal records establish meanings, not a supported public API or
   completed combined catalogue implementation.
 
-The next authorized work is Phase 5 Step 2B: freeze and run the paired
-non-qualification representation comparison. Step 3 remains blocked until
-its named review records the final algorithm selection.
+The next authorized work is the Step 2C-H human scientific review. The viewed
+confirmation is closed to tuning, rescoring, and reuse; any replacement study
+must freeze a new confirmation population. Step 3 remains blocked.
 
 ## Frozen identities
 
@@ -194,6 +196,8 @@ its named review records the final algorithm selection.
 | Scientific gates | `cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b` |
 | Development manifest | `b3c9594efa0c39ce30f3b287988f3fca90f69c5ccb8507adc463b37fed0b8350` |
 | Regression manifest | `7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e` |
+| Step 2C-A confirmation manifest | `7576f8e6e373b12a42c9820ee381750c32208444682bde4a52a1311cccfc6011` |
+| Step 2C-A review protocol | `b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b` |
 | Qualification manifest | `40f1d0cfd173947e323cc35ff140c04f25fdd5c8303fbab8c138dc058fb0235f` |
 | Development complete dataset record | `319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d` |
 | Regression complete dataset record | `70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5` |

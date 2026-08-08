@@ -1687,6 +1687,89 @@ class PhaseFiveCorrectiveRDecision(_ContractModel):
         return self
 
 
+class PhaseFiveCorrectiveACandidateDecision(_ContractModel):
+    """Conjunctive Step 2C-A result for one governed representation."""
+
+    family: Literal["beam-aware-matched-filter", "residual-b3-atrous"]
+    passes_absolute: bool
+    noninferior_to_other: bool
+    failed_absolute_endpoint_count: int = Field(ge=0)
+    failed_paired_endpoint_count: int = Field(ge=0)
+    bounded_cost: tuple[int, int, int]
+
+    @model_validator(mode="after")
+    def validate_cost(self) -> Self:
+        """Require complete positive structural-cost diagnostics."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("corrective-A decision costs must be positive")
+        return self
+
+
+class PhaseFiveCorrectiveADecision(_ContractModel):
+    """Reviewed fail-closed decision from the one-look Step 2C-A review."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-corrective-a-decision"]
+    status: Literal["reviewed-rejected"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirmation_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveCorrectiveACandidateDecision, ...]
+    decision: Literal["reject-corrective-a"]
+    selected_family: None
+    corrective_failure_domains: tuple[
+        Literal[
+            "astrometry-curved-filament-variance",
+            "astrometry-uncertainty-undercoverage",
+        ],
+        ...,
+    ]
+    named_review: Literal["codex-step-2c-a-one-look-governed-evidence-review"]
+    review_scope: Literal[
+        "technical-and-governed-independent-confirmation-evidence"
+    ]
+    independent_human_scientific_review: Literal[
+        "required-before-any-further-astrometry-revision"
+    ]
+    next_action: Literal[
+        "human-scientific-review-of-astrometry-endpoint-and-estimator"
+    ]
+    confirmation_reuse: Literal["closed-after-one-look"]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_rejected_decision(self) -> Self:
+        """Bind the one-look counts and residual scientific concerns."""
+        expected = (
+            ("beam-aware-matched-filter", False, False, 14, 9),
+            ("residual-b3-atrous", False, True, 5, 0),
+        )
+        observed = tuple(
+            (
+                item.family,
+                item.passes_absolute,
+                item.noninferior_to_other,
+                item.failed_absolute_endpoint_count,
+                item.failed_paired_endpoint_count,
+            )
+            for item in self.candidates
+        )
+        if observed != expected:
+            raise ValueError("corrective-A decision counts must remain exact")
+        expected_domains = (
+            "astrometry-curved-filament-variance",
+            "astrometry-uncertainty-undercoverage",
+        )
+        if self.corrective_failure_domains != expected_domains:
+            raise ValueError("corrective-A failure domains must remain exact")
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -2268,5 +2351,14 @@ def load_phase_five_corrective_r_decision(
 ) -> PhaseFiveCorrectiveRDecision:
     """Load the reviewed fail-closed Step 2C-R decision."""
     return PhaseFiveCorrectiveRDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_a_decision(
+    path: Path,
+) -> PhaseFiveCorrectiveADecision:
+    """Load the reviewed fail-closed one-look Step 2C-A decision."""
+    return PhaseFiveCorrectiveADecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

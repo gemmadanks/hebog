@@ -5800,3 +5800,51 @@ tests pass; focused Ruff and Pyright checks pass.
 
 **Immediate next step:** seal this implementation and protocol in Git, then
 run the 84 analytic cases and frozen 100-image confirmation exactly once.
+
+## 2026-08-08 — Completed Step 2C-A and rejected the astrometry correction
+
+**Plan phase:** Phase 5, Step 2C-A — one-look independent astrometry review
+
+- Opened the seed-disjoint confirmation only after committing its manifest as
+  `9deedf4` and the development-derived estimator and protocol as `b221db5`.
+  Ran all 84 analytic cases, ten development images, and 100 confirmation
+  images exactly once. No confirmation result was used for tuning, rescoring,
+  or a second run; qualification remained unopened.
+- Residual B3 passed every paired endpoint and failed five absolute endpoints,
+  all position-error tails: overall, curved filament, scales 2 and 4, and
+  varying noise. The overall frozen endpoint was 0.3597 beams and the
+  curved-filament endpoint was 0.4315 against the unchanged 0.250-beam gate.
+  Completeness was 1.000, median and p95 flux error were 0.0497 and 0.1050,
+  reliability was 0.9806, mask IoU was 0.8314, and fragmentation was 0.0000.
+- Raw 600-object diagnostics show 0.0072-beam bias, 0.2048-beam centred p95
+  scatter, and 0.2084-beam radial p95 error. The frozen endpoint remains
+  binding because it aggregates within-image group tails before the outer
+  percentile; the better raw diagnostic does not authorize a post-hoc change.
+- The model assisted 599 of 600 B3 measurements. Median and p95 position
+  uncertainties were 0.0876 and 0.1916 beams, but the p95
+  error-to-uncertainty ratio was 2.56. Recorded curved-filament variance and
+  correlated-noise uncertainty undercoverage as the unresolved scientific
+  domains.
+- The matched comparator failed 14 absolute and nine paired endpoints; B3
+  failed five and zero. The reviewed decision therefore records
+  `reject-corrective-a`, no selected family, and false Step 3, optimization,
+  and qualification authorization in
+  `config/contracts/phase-5-corrective-a-decision.json`.
+- Wrote typed ignored evidence at
+  `benchmark-results/phase-5/corrective-a-review.json`, SHA-256
+  `b8eeaf7858b57b07d2c4ab9912e45792d2b5f59658b4f86256fb5ae801aace05`.
+  Its configuration and source-tree identities are
+  `74c71a6a97831d6eeb82cc200ec2187983b9e5e4864ebdefdfe6cc68584335a8`
+  and `16a640a59e4f8e1aac194e5ae75aad90ed73d068b375dd5c9a74663b6aab6612`.
+
+**Validation:** 152 focused contract, evidence, and Step 2C scientific tests
+pass. `just coverage` passes 1,091 tests with 94.38% branch-aware project
+coverage; all new decision-model branches are covered. The equivalence lane
+passes 27 tests, the strict documentation build passes, and `just check`
+passes Ruff format/lint, Pyright, 961 tests, and four expected xfails.
+
+**Immediate next step:** obtain independent human scientific review of the
+endpoint aggregation, curved-filament variance, and uncertainty calibration.
+Do not revise the endpoint or estimator on the closed confirmation; any new
+study requires a newly frozen confirmation population. Keep Step 3,
+optimization, and qualification closed.

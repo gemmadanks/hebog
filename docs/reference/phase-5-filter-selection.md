@@ -1,12 +1,13 @@
 # Phase 5 scale-filter selection
 
-**Status:** Steps 2B--2C-R are complete with no eligible production
-representation. Step 2C-R reduced the residual B3 result to nine absolute
-astrometry failures and zero paired failures; every other scientific domain
-passes. The unchanged conjunctive rule therefore keeps Step 3,
-candidate-specific optimization, and qualification blocked pending Step 2C-A.
-This is not multiscale equivalence, complete Rapthor performance, or
-production-readiness evidence.
+**Status:** Steps 2B--2C-A are complete with no eligible production
+representation. The independent 2C-A confirmation reduced residual B3 to five
+absolute astrometry failures and zero paired failures; every other scientific
+domain passes. Curved-filament variance and astrometric uncertainty
+undercoverage require human scientific review before another estimator or
+endpoint design. Step 3, candidate-specific optimization, and qualification
+remain blocked. This is not multiscale equivalence, complete Rapthor
+performance, or production-readiness evidence.
 
 The 2026-08-08 community-practice review identified a residual B3-spline
 à trous reconstruction with morphology-independent support and
@@ -16,6 +17,59 @@ neither family is authorized for extended-source production work.
 
 The completed comparisons used the frozen development and regression roles.
 The qualification manifest and all qualification results remained unopened.
+
+## Completed independent astrometry confirmation
+
+Step 2C-A froze a seed-disjoint 100-image confirmation manifest before
+estimator development. Its SHA-256 is
+`7576f8e6e373b12a42c9820ee381750c32208444682bde4a52a1311cccfc6011`;
+seeds `2026730001`--`2026730100` do not overlap development, the viewed Step
+2C-R regression, or qualification. The estimator was then derived using only
+analytic truth and development data and frozen in
+`config/contracts/phase-5-corrective-a-review.json`, SHA-256
+`b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b`.
+
+The frozen estimator jointly fits up to six local-RMS-weighted Gaussian
+components to original residual pixels with robust loss, combines the fitted
+observable-domain centroid equally with the Step 2C-R robust moment, and
+falls back to that moment when the model is unavailable or inconsistent. It
+also reports a correlated-noise moment uncertainty. Detection, masks,
+association, photometry, gates, and paired margins were unchanged.
+
+| Confirmation endpoint | Residual B3 | Gate |
+| --- | ---: | ---: |
+| Completeness | 1.000 | at least 0.900 |
+| Median / 95th-percentile flux error | 0.0497 / 0.1050 | at most 0.100 / 0.250 |
+| Mean mask IoU | 0.8314 | at least 0.800 |
+| Mean fragmentation | 0.0000 | at most 0.100 |
+| Mean reliability | 0.9806 | at least 0.950 |
+| 95th-percentile position endpoint | 0.3597 beams | at most 0.250 |
+
+B3 passed every paired endpoint and failed five absolute endpoints, all
+position-error tails: overall, curved filament, scales 2 and 4, and varying
+noise. The curved-filament endpoint was 0.4315 beams. The raw 600-object
+diagnostics show small bias (0.0072 beams), centred p95 scatter of 0.2048
+beams, and radial p95 error of 0.2084 beams; the binding frozen endpoint is
+more conservative because it takes within-image group tails before the outer
+percentile. This difference is diagnostic and does not authorize a post-hoc
+gate change.
+
+Of 600 B3 positions, 599 were model-assisted and one used the fallback. The
+median and p95 reported uncertainties were 0.0876 and 0.1916 beams, while the
+p95 error-to-uncertainty ratio was 2.56. Together with the curved-filament
+tail, this records estimator uncertainty undercoverage and morphology
+variance as the unresolved scientific questions.
+
+The reviewed record is
+`config/contracts/phase-5-corrective-a-decision.json`. It binds ignored
+evidence `benchmark-results/phase-5/corrective-a-review.json`, SHA-256
+`b8eeaf7858b57b07d2c4ab9912e45792d2b5f59658b4f86256fb5ae801aace05`,
+and records `reject-corrective-a`, no selected family, false Step 3,
+optimization, and qualification authorization, and a closed one-look
+confirmation. The matched comparator failed 14 absolute and nine paired
+endpoints; B3 failed five and zero. Human scientific review is required before
+revising the estimator or endpoint, and any new study must freeze a new
+confirmation population.
 
 ## Completed final-output correction review
 
@@ -252,14 +306,14 @@ every measured repetition, analytic errors, and structural costs.
 The paired Step 2B evidence is
 `benchmark-results/phase-5/filter-paired-review.json`; its exact checksum and
 source-tree identity are frozen in the paired decision contract. The runner
-is `scripts/benchmark/review_phase5_filters.py`. The Step 2C evidence and
-identity are frozen in the corrective decision contract; its runner is
-`scripts/benchmark/review_phase5_corrective.py`.
+is `scripts/benchmark/review_phase5_filters.py`. The Step 2C, 2C-R, and 2C-A
+evidence identities are frozen in their corrective decision contracts; their
+runner is `scripts/benchmark/review_phase5_corrective.py`.
 
 None of these records establishes production extended measurements,
 cross-tile reconciliation, real-residual behaviour, PyBDSF equivalence, or
-complete `filter_skymodel` speedup. Those remain later gates. Step 2C-A must
-resolve the remaining astrometry variance on new confirmation data; Step 3
-remains blocked. The separate compact-only Rapthor probe selects only that
-workflow's explicit profile and cannot establish general multiscale
-equivalence.
+complete `filter_skymodel` speedup. Those remain later gates. Step 2C-A did
+not resolve the remaining astrometry variance, so Step 3 remains blocked
+pending human scientific review. The separate compact-only Rapthor probe
+selects only that workflow's explicit profile and cannot establish general
+multiscale equivalence.
