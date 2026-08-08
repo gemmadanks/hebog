@@ -1024,3 +1024,26 @@ def test_phase4_benchmark_reports_incremental_stage_boundaries() -> None:
         "compact-measurement-fitting",
         "catalogue-reduction",
     )
+
+
+def test_phase5_corrective_a_freezer_builds_disjoint_confirmation() -> None:
+    """The astrometry confirmation is frozen outside all prior seed ranges."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase5_corrective_a.py")
+
+    manifest = DatasetManifest.model_validate(
+        namespace["_document"](
+            root / "config/datasets/phase-5-regression.json"
+        )
+    )
+    dataset = manifest.datasets[0]
+    recipes = iter_dataset_recipes(dataset)
+
+    assert manifest.manifest_id == "phase-5-corrective-a-confirmation"
+    assert dataset.identifier == "phase5-corrective-a-confirmation-1024"
+    assert dataset.role is DatasetRole.REGRESSION
+    assert len(recipes) == 100
+    assert recipes[0].seed == 2026730001
+    assert recipes[-1].seed == 2026730100
+    assert len(dataset.multiscale_truth_groups) == 7
+    assert "before estimator selection" in dataset.provenance

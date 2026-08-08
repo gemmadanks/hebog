@@ -5741,3 +5741,26 @@ correction tests pass. Full handoff checks are recorded by the local commit.
 then evaluate a standard noise-aware original-pixel position estimator using
 only analytic truth and development data. Do not retune against or reconfirm on
 the now-viewed Step 2C-R regression; keep qualification unopened.
+
+## 2026-08-08 — Froze the independent Step 2C-A confirmation
+
+**Plan phase:** Phase 5, Step 2C-A — astrometry confirmation freeze
+
+- Added an overwrite-refusing freezer and canonical manifest for 100
+  confirmation realizations with seeds `2026730001` through `2026730100`.
+  These seeds are disjoint from Phase 5 development, the viewed Step 2C-R
+  regression, and frozen qualification populations.
+- Preserved the reviewed regression beam, WCS, source geometry, morphology,
+  scale, artifact, edge, invalid-pixel, varying-noise, and tile-boundary
+  matrix. Only the dataset identity, provenance, and noise seeds changed.
+- Frozen manifest SHA-256:
+  `7576f8e6e373b12a42c9820ee381750c32208444682bde4a52a1311cccfc6011`.
+  Canonical dataset-content SHA-256:
+  `12fc92e16a5f2ea2b57b63d565430f7b1f484ee3591070345987c92cf8de979a`.
+- No confirmation image or result was generated while freezing the manifest;
+  qualification remains unopened.
+
+**Validation:** focused freezer and dataset identity tests pass.
+
+**Immediate next step:** derive and freeze the estimator against exact truth
+and the ten-image development role only, then open this confirmation once.

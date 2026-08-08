@@ -424,11 +424,13 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
     }
 
     assert set(manifests) == {
+        "phase-5-corrective-a-confirmation",
         "phase-5-development",
         "phase-5-qualification",
         "phase-5-regression",
     }
     expected_roles = {
+        "phase-5-corrective-a-confirmation": DatasetRole.REGRESSION,
         "phase-5-development": DatasetRole.DEVELOPMENT,
         "phase-5-regression": DatasetRole.REGRESSION,
         "phase-5-qualification": DatasetRole.QUALIFICATION,
@@ -463,6 +465,11 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "mixed-compact-extended",
         "shell",
     }
+    confirmation_dataset = manifests[
+        "phase-5-corrective-a-confirmation"
+    ].datasets[0]
+    assert len(iter_dataset_recipes(confirmation_dataset)) == 100
+    assert "before estimator selection" in confirmation_dataset.provenance
     qualification = manifests["phase-5-qualification"].datasets
     assert len(qualification) == 1
     qualification_dataset = qualification[0]
@@ -498,6 +505,9 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         ).content_sha256
         for manifest_id, manifest in manifests.items()
     } == {
+        "phase-5-corrective-a-confirmation": (
+            "12fc92e16a5f2ea2b57b63d565430f7b1f484ee3591070345987c92cf8de979a"
+        ),
         "phase-5-development": (
             "319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d"
         ),
