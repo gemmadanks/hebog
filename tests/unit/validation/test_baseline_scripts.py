@@ -1047,3 +1047,24 @@ def test_phase5_corrective_a_freezer_builds_disjoint_confirmation() -> None:
     assert recipes[-1].seed == 2026730100
     assert len(dataset.multiscale_truth_groups) == 7
     assert "before estimator selection" in dataset.provenance
+
+
+def test_phase5_corrective_a_protocol_freezer_binds_frozen_inputs() -> None:
+    """The one-look review binds its prior decision and confirmation bytes."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase5_corrective_a_protocol.py")
+
+    document = namespace["_document"](
+        root / "config/contracts/phase-5-corrective-r-review.json",
+        root / "config/contracts/phase-5-corrective-r-decision.json",
+        root / "config/datasets/phase-5-corrective-a-confirmation.json",
+    )
+
+    assert document["contract_id"] == "phase-5-corrective-a-review"
+    assert document["confirmation_reuse"] == "one-look-no-tuning-or-rescoring"
+    assert document["dataset_manifests"][1]["manifest"] == (
+        "config/datasets/phase-5-corrective-a-confirmation.json"
+    )
+    assert document["astrometry_estimator"]["model_weight"] == 0.5
+    assert document["step_three_authorized"] is False
+    assert document["qualification_opened"] is False

@@ -1,3 +1,4 @@
+# pyright: reportPrivateUsage=false
 """Candidate-neutral tests for the frozen Phase 5 Step 2B review."""
 
 from __future__ import annotations
@@ -5,13 +6,16 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     ScaleFilterBankResult,
     ScaleFilterResponse,
 )
+from hebog.validation import phase_five_filter_review as filter_review
 from hebog.validation.contracts import (
+    load_phase_five_corrective_a_review,
     load_phase_five_corrective_r_review,
     load_phase_five_corrective_review,
     load_phase_five_filter_review,
@@ -41,6 +45,9 @@ _CORRECTIVE_CONTRACT = (
 )
 _CORRECTIVE_R_CONTRACT = (
     _ROOT / "config/contracts/phase-5-corrective-r-review.json"
+)
+_CORRECTIVE_A_CONTRACT = (
+    _ROOT / "config/contracts/phase-5-corrective-a-review.json"
 )
 
 
@@ -443,3 +450,229 @@ def test_corrective_r_astrometry_reports_bias_separately_from_scatter() -> (
         scatter_95 = np.percentile(np.linalg.norm(centred, axis=1), 95)
         assert bias <= 0.15
         assert scatter_95 <= 0.3
+
+
+def test_corrective_a_astrometry_is_typed_uncertain_and_bounded() -> None:
+    """Development-only model assistance lowers the governed position tail."""
+    review = load_phase_five_corrective_a_review(_CORRECTIVE_A_CONTRACT)
+    dataset = load_dataset_manifest(_DEVELOPMENT).datasets[0]
+    image_tails: list[float] = []
+    estimators: set[str] = set()
+    offsets: dict[str, list[tuple[float, float]]] = {}
+    multi_component_morphologies: set[str] = set()
+
+    for recipe_index in range(10):
+        observation = evaluate_corrective_generated_image(
+            dataset,
+            recipe_index=recipe_index,
+            family="residual-b3-atrous",
+            review=review,
+        )
+        astronomical = tuple(
+            group
+            for group in observation.groups
+            if group.measurement_disposition != "known-artifact-control"
+        )
+        assert all(
+            group.position_estimator_available for group in astronomical
+        )
+        assert all(
+            group.position_uncertainty_beams is not None
+            and np.isfinite(group.position_uncertainty_beams)
+            and group.position_uncertainty_beams > 0
+            for group in astronomical
+        )
+        assert all(
+            group.position_estimator is not None for group in astronomical
+        )
+        estimators.update(
+            group.position_estimator
+            for group in astronomical
+            if group.position_estimator is not None
+        )
+        for group in astronomical:
+            assert group.position_offset_xy_beams is not None
+            offsets.setdefault(group.morphology, []).append(
+                group.position_offset_xy_beams
+            )
+            if (
+                group.position_model_component_count is not None
+                and group.position_model_component_count >= 2
+            ):
+                multi_component_morphologies.add(group.morphology)
+        position_errors = tuple(
+            group.position_error_beams for group in astronomical
+        )
+        assert all(value is not None for value in position_errors)
+        image_tails.append(
+            float(
+                np.percentile(
+                    [value for value in position_errors if value is not None],
+                    95,
+                )
+            )
+        )
+
+    assert "model-assisted-shrinkage" in estimators
+    assert multi_component_morphologies >= {
+        "curved-filament",
+        "filament",
+        "shell",
+    }
+    for morphology_offsets in offsets.values():
+        values = np.asarray(morphology_offsets, dtype=np.float64)
+        bias = np.linalg.norm(np.mean(values, axis=0))
+        centred = values - np.mean(values, axis=0)
+        scatter_95 = np.percentile(np.linalg.norm(centred, axis=1), 95)
+        assert bias <= 0.15
+        assert scatter_95 <= 0.3
+    assert np.percentile(image_tails, 95) <= (
+        review.absolute_gates.maximum_percentile_95_position_beams
+    )
+
+
+def test_corrective_a_uncertainty_scales_with_correlated_noise() -> None:
+    """The recorded position uncertainty responds to local RMS exactly."""
+    y_grid, x_grid = np.indices((9, 9), dtype=np.float64)
+    support = np.ones((9, 9), dtype=np.bool_)
+    signal = np.exp(-0.5 * ((x_grid - 4.0) ** 2 + (y_grid - 4.0) ** 2))
+    beam = BeamShapePixels(5.0, 3.5, 20.0)
+
+    baseline = filter_review._correlated_position_uncertainty(
+        signal,
+        np.full(signal.shape, 0.1),
+        support,
+        (4.0, 4.0),
+        beam,
+    )
+    doubled = filter_review._correlated_position_uncertainty(
+        signal,
+        np.full(signal.shape, 0.2),
+        support,
+        (4.0, 4.0),
+        beam,
+    )
+
+    assert baseline > 0
+    assert doubled == pytest.approx(2.0 * baseline)
+    unavailable = filter_review._correlated_position_uncertainty(
+        np.zeros(signal.shape),
+        np.full(signal.shape, 0.1),
+        support,
+        (4.0, 4.0),
+        beam,
+    )
+    assert unavailable == float("inf")
+
+
+def test_corrective_a_model_window_and_peak_failures_are_bounded() -> None:
+    """Empty support, invalid support, and excess peaks fail closed."""
+    review = load_phase_five_corrective_a_review(_CORRECTIVE_A_CONTRACT)
+    estimator = review.astrometry_estimator
+    beam = BeamShapePixels(2.0, 1.5, 0.0)
+    shape = (80, 80)
+    empty = np.zeros(shape, dtype=np.bool_)
+    valid = np.ones(shape, dtype=np.bool_)
+    residual = np.zeros(shape, dtype=np.float64)
+    rms = np.ones(shape, dtype=np.float64)
+    planes = filter_review._ObservableMeasurementPlanes(
+        residual=residual,
+        rms=rms,
+        valid_pixels=valid,
+        truth_signal=residual,
+        component_labels=np.zeros(shape, dtype=np.int32),
+    )
+
+    assert (
+        filter_review._corrective_a_fit_window(planes, empty, beam, estimator)
+        is None
+    )
+    selected = empty.copy()
+    selected[40, 40] = True
+    invalid_planes = filter_review._ObservableMeasurementPlanes(
+        residual=residual,
+        rms=rms,
+        valid_pixels=empty,
+        truth_signal=residual,
+        component_labels=np.zeros(shape, dtype=np.int32),
+    )
+    assert (
+        filter_review._corrective_a_fit_window(
+            invalid_planes, selected, beam, estimator
+        )
+        is None
+    )
+
+    peak_positions = (
+        (10, 10),
+        (10, 30),
+        (10, 50),
+        (30, 10),
+        (30, 30),
+        (30, 50),
+        (50, 30),
+    )
+    selected = empty.copy()
+    residual = residual.copy()
+    for y_pixel, x_pixel in peak_positions:
+        selected[y_pixel, x_pixel] = True
+        residual[y_pixel, x_pixel] = 7.0
+    crowded_planes = filter_review._ObservableMeasurementPlanes(
+        residual=residual,
+        rms=rms,
+        valid_pixels=valid,
+        truth_signal=residual,
+        component_labels=np.zeros(shape, dtype=np.int32),
+    )
+    window = filter_review._corrective_a_fit_window(
+        crowded_planes, selected, beam, estimator
+    )
+    assert window is not None
+    assert (
+        filter_review._corrective_a_peaks(
+            window, beam, (30.0, 30.0), estimator
+        )
+        is None
+    )
+
+    quiet_selected = empty.copy()
+    quiet_selected[39, 39] = True
+    quiet_window = filter_review._corrective_a_fit_window(
+        planes, quiet_selected, beam, estimator
+    )
+    assert quiet_window is not None
+    quiet_peaks = filter_review._corrective_a_peaks(
+        quiet_window, beam, (39.0, 39.0), estimator
+    )
+    assert quiet_peaks is not None
+    np.testing.assert_array_equal(quiet_peaks[0], [39])
+    np.testing.assert_array_equal(quiet_peaks[1], [39])
+
+
+def test_corrective_a_falls_back_when_model_fit_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A numerical model failure retains the observable-pixel estimator."""
+    review = load_phase_five_corrective_a_review(_CORRECTIVE_A_CONTRACT)
+    dataset = load_dataset_manifest(_DEVELOPMENT).datasets[0]
+
+    def fail_fit(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("injected model failure")
+
+    monkeypatch.setattr(filter_review, "least_squares", fail_fit)
+    observation = evaluate_corrective_generated_image(
+        dataset,
+        recipe_index=0,
+        family="residual-b3-atrous",
+        review=review,
+    )
+
+    astronomical = tuple(
+        group
+        for group in observation.groups
+        if group.measurement_disposition != "known-artifact-control"
+    )
+    assert all(group.position_estimator_available for group in astronomical)
+    assert {group.position_estimator for group in astronomical} == {
+        "robust-observable-moment-fallback"
+    }

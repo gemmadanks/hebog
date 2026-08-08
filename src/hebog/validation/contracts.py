@@ -1414,6 +1414,137 @@ class PhaseFiveCorrectiveRReview(_ContractModel):
         return self
 
 
+class PhaseFiveCorrectiveAEstimator(_ContractModel):
+    """Frozen Step 2C-A model-assisted original-pixel estimator."""
+
+    family: Literal[
+        "local-rms-weighted-multigaussian-observable-centroid-shrinkage"
+    ]
+    pixel_domain: Literal["original-residual-pixels"]
+    target: Literal["observable-valid-domain-flux-centroid"]
+    peak_selection: Literal["beam-separated-original-pixel-local-maxima"]
+    loss: Literal["soft-l1-local-rms-standardized"]
+    fallback: Literal["step-2c-r-robust-observable-moment"]
+    uncertainty: Literal["correlated-noise-moment-propagation"]
+    peak_seed_sigma: float
+    peak_separation_beams: float
+    maximum_components: int
+    fit_margin_beams: float
+    component_centre_bound_beams: float
+    minimum_sigma_minor_fwhm_divisor: float
+    maximum_sigma_major_beams: float
+    maximum_iterations: int
+    model_weight: float
+    maximum_normalized_cost: float
+    maximum_model_moment_disagreement_beams: float
+
+    @model_validator(mode="after")
+    def validate_estimator(self) -> Self:
+        """Keep every development-selected estimator constant exact."""
+        expected = (6.0, 2.0, 6, 3.0, 1.0, 2.355, 3.0, 300, 0.5, 2.0, 1.0)
+        observed = (
+            self.peak_seed_sigma,
+            self.peak_separation_beams,
+            self.maximum_components,
+            self.fit_margin_beams,
+            self.component_centre_bound_beams,
+            self.minimum_sigma_minor_fwhm_divisor,
+            self.maximum_sigma_major_beams,
+            self.maximum_iterations,
+            self.model_weight,
+            self.maximum_normalized_cost,
+            self.maximum_model_moment_disagreement_beams,
+        )
+        if observed != expected:
+            raise ValueError(
+                "corrective-A estimator constants must remain frozen"
+            )
+        return self
+
+
+class PhaseFiveCorrectiveAReview(_ContractModel):
+    """Frozen independent Step 2C-A astrometry confirmation contract."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-corrective-a-review"]
+    status: Literal["frozen-before-corrective-a-results"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[
+        Literal["beam-aware-matched-filter", "residual-b3-atrous"], ...
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    matrix: PhaseFiveFilterReviewMatrix
+    binding_metrics: tuple[str, ...] = Field(min_length=10)
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=2)
+    absolute_gates: PhaseFiveFilterReviewAbsoluteGates
+    paired_margins: PhaseFiveFilterReviewPairedMargins
+    statistical_design: PhaseFiveFilterReviewStatistics
+    decision_policy: PhaseFiveFilterReviewDecisionPolicy
+    response_endpoint: PhaseFiveCorrectiveResponseEndpoint
+    final_measurement: PhaseFiveCorrectiveMeasurement
+    corrective_design: PhaseFiveCorrectiveDesign
+    bounded_implementation: PhaseFiveCorrectiveBoundedImplementation
+    precheck_amendment: Literal[
+        "retain-direct-five-sigma-islands-after-area-floor-failed-analytic"
+    ]
+    supersedes_failed_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    corrections: PhaseFiveCorrectiveRCorrections
+    supersedes_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    astrometry_estimator: PhaseFiveCorrectiveAEstimator
+    confirmation_reuse: Literal["one-look-no-tuning-or-rescoring"]
+    step_three_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_inherited_review(self) -> Self:
+        """Preserve Step 2C-R semantics while replacing only astrometry."""
+        observed_datasets = tuple(
+            (item.role, item.manifest, item.manifest_sha256, item.image_count)
+            for item in self.dataset_manifests
+        )
+        expected_datasets = (
+            (
+                "development",
+                "config/datasets/phase-5-development.json",
+                "b3c9594efa0c39ce30f3b287988f3fca90f69c5ccb8507adc463b37fed0b8350",
+                10,
+            ),
+            (
+                "regression",
+                "config/datasets/phase-5-corrective-a-confirmation.json",
+                "7576f8e6e373b12a42c9820ee381750c32208444682bde4a52a1311cccfc6011",
+                100,
+            ),
+        )
+        if observed_datasets != expected_datasets:
+            raise ValueError("corrective-A datasets must remain frozen")
+        payload = self.model_dump(
+            exclude={
+                "astrometry_estimator",
+                "confirmation_reuse",
+                "supersedes_protocol_sha256",
+            }
+        )
+        payload["contract_id"] = "phase-5-corrective-r-review"
+        payload["status"] = "frozen-before-corrective-r-results"
+        payload["prior_decision_sha256"] = (
+            "7d50397bc679b06dd856e9484675e4981eee55448c87acc96ff9d249e41d4684"
+        )
+        payload["dataset_manifests"] = (
+            self.dataset_manifests[0].model_dump(mode="json"),
+            {
+                "role": "regression",
+                "manifest": "config/datasets/phase-5-regression.json",
+                "manifest_sha256": (
+                    "7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e"
+                ),
+                "image_count": 100,
+            },
+        )
+        PhaseFiveCorrectiveRReview.model_validate(payload)
+        return self
+
+
 class PhaseFiveCorrectiveCandidateDecision(_ContractModel):
     """Conjunctive Step 2C outcome for one governed representation."""
 
@@ -2110,6 +2241,15 @@ def load_phase_five_corrective_r_review(
 ) -> PhaseFiveCorrectiveRReview:
     """Load the frozen Step 2C-R final-output correction contract."""
     return PhaseFiveCorrectiveRReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_a_review(
+    path: Path,
+) -> PhaseFiveCorrectiveAReview:
+    """Load the frozen independent Step 2C-A astrometry review."""
+    return PhaseFiveCorrectiveAReview.model_validate_json(
         path.read_text(encoding="utf-8")
     )
 

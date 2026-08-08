@@ -32,6 +32,8 @@ from hebog.validation.evidence import (
     Measurement,
     NormalizedResidualDiagnostic,
     PhaseFiveAstrometryDiagnostic,
+    PhaseFiveAstrometryEstimatorDiagnostic,
+    PhaseFiveCorrectiveAReviewEvidence,
     PhaseFiveCorrectiveReviewEvidence,
     PhaseFiveCorrectiveRReviewEvidence,
     PhaseFiveFilterCandidateEvidence,
@@ -558,6 +560,41 @@ def test_phase_five_corrective_review_requires_corrective_gate_passage() -> (
         corrective_r_payload
     )
     assert corrective_r.evidence_type == "phase-five-corrective-r-review"
+
+    corrective_a_payload = corrective_r.model_dump(mode="python")
+    corrective_a_payload["evidence_type"] = "phase-five-corrective-a-review"
+    corrective_a_payload["run_id"] = (
+        "phase-five-corrective-a-review-confirmation"
+    )
+    corrective_a_payload["astrometry_estimator_diagnostics"] = (
+        PhaseFiveAstrometryEstimatorDiagnostic(
+            family="residual-b3-atrous",
+            stratum="overall",
+            sample_count=600,
+            available_count=600,
+            model_assisted_count=590,
+            fallback_count=10,
+            median_uncertainty_beams=0.08,
+            percentile_95_uncertainty_beams=0.14,
+            percentile_95_error_to_uncertainty_ratio=1.9,
+        ),
+    )
+    corrective_a = PhaseFiveCorrectiveAReviewEvidence.model_validate(
+        corrective_a_payload
+    )
+    assert corrective_a.evidence_type == "phase-five-corrective-a-review"
+
+    unavailable_payload = corrective_a.model_dump(mode="python")
+    unavailable_payload["astrometry_estimator_diagnostics"][0][
+        "available_count"
+    ] = 601
+    with pytest.raises(ValidationError, match="cannot exceed sample count"):
+        PhaseFiveCorrectiveAReviewEvidence.model_validate(unavailable_payload)
+
+    count_payload = corrective_a.model_dump(mode="python")
+    count_payload["astrometry_estimator_diagnostics"][0]["fallback_count"] = 9
+    with pytest.raises(ValidationError, match="must equal available count"):
+        PhaseFiveCorrectiveAReviewEvidence.model_validate(count_payload)
 
     payload = evidence.model_dump(mode="python")
     payload["step_three_authorized"] = True

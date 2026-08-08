@@ -10,6 +10,7 @@ import numpy.typing as npt
 
 from hebog.algorithms.multiscale import FilterFamily
 from hebog.validation.contracts import (
+    PhaseFiveCorrectiveAReview,
     PhaseFiveCorrectiveReview,
     PhaseFiveCorrectiveRReview,
     PhaseFiveFilterReview,
@@ -32,6 +33,7 @@ _ReviewContract = (
     PhaseFiveFilterReview
     | PhaseFiveCorrectiveReview
     | PhaseFiveCorrectiveRReview
+    | PhaseFiveCorrectiveAReview
 )
 
 
@@ -628,7 +630,10 @@ def _compile_generated_population(
     for stratum, groups in _group_strata(dataset):
         measurement_groups = (
             groups & astronomical_groups
-            if isinstance(review, PhaseFiveCorrectiveRReview)
+            if isinstance(
+                review,
+                (PhaseFiveCorrectiveRReview, PhaseFiveCorrectiveAReview),
+            )
             else groups
         )
         series = {

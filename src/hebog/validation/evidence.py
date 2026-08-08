@@ -877,6 +877,81 @@ class PhaseFiveCorrectiveRReviewEvidence(_EvidenceDocument):
         return self
 
 
+class PhaseFiveAstrometryEstimatorDiagnostic(_EvidenceModel):
+    """Availability and uncertainty calibration for one astrometry stratum."""
+
+    family: PhaseFiveFilterFamily
+    stratum: str = Field(min_length=1)
+    sample_count: int = Field(ge=1)
+    available_count: int = Field(ge=0)
+    model_assisted_count: int = Field(ge=0)
+    fallback_count: int = Field(ge=0)
+    median_uncertainty_beams: float = Field(gt=0, allow_inf_nan=False)
+    percentile_95_uncertainty_beams: float = Field(gt=0, allow_inf_nan=False)
+    percentile_95_error_to_uncertainty_ratio: float = Field(
+        ge=0, allow_inf_nan=False
+    )
+
+    @model_validator(mode="after")
+    def validate_counts(self) -> Self:
+        """Require estimator dispositions to explain every available row."""
+        if self.available_count > self.sample_count:
+            raise ValueError("available astrometry cannot exceed sample count")
+        if (
+            self.model_assisted_count + self.fallback_count
+            != self.available_count
+        ):
+            raise ValueError(
+                "astrometry estimator counts must equal available count"
+            )
+        return self
+
+
+class PhaseFiveCorrectiveAReviewEvidence(_EvidenceDocument):
+    """Completed one-look independent astrometry review for Step 2C-A."""
+
+    evidence_type: Literal["phase-five-corrective-a-review"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    prior_decision_sha256: str = Field(pattern=_SHA256_PATTERN)
+    development_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    regression_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    analytic_case_count: int = Field(ge=1)
+    development_image_count: int = Field(ge=1)
+    regression_image_count: int = Field(ge=100)
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    endpoints: tuple[PhaseFiveFilterReviewEndpointEvidence, ...] = Field(
+        min_length=1
+    )
+    paired_endpoints: tuple[
+        PhaseFiveFilterReviewPairedEndpointEvidence, ...
+    ] = Field(min_length=1)
+    candidates: tuple[PhaseFiveFilterReviewCandidateConclusion, ...]
+    decision: Literal["authorize-corrective", "reject-corrective"]
+    selected_family: Literal["residual-b3-atrous"] | None
+    step_three_authorized: bool
+    qualification_opened: Literal[False]
+    astrometry_diagnostics: tuple[PhaseFiveAstrometryDiagnostic, ...] = Field(
+        min_length=1
+    )
+    measurement_dispositions: tuple[
+        PhaseFiveMeasurementDispositionDiagnostic, ...
+    ] = Field(min_length=1)
+    astrometry_estimator_diagnostics: tuple[
+        PhaseFiveAstrometryEstimatorDiagnostic, ...
+    ] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_inherited_conclusion(self) -> Self:
+        """Reuse every Step 2C-R endpoint and diagnostic requirement."""
+        payload = self.model_dump(exclude={"astrometry_estimator_diagnostics"})
+        payload["evidence_type"] = "phase-five-corrective-r-review"
+        PhaseFiveCorrectiveRReviewEvidence.model_validate(payload)
+        return self
+
+
 class ScientificComparisonEvidence(_EvidenceDocument):
     """Provenance and reports for one candidate/reference comparison."""
 
@@ -1861,6 +1936,7 @@ EvidenceDocument: TypeAlias = (
     | PhaseFiveFilterReviewEvidence
     | PhaseFiveCorrectiveReviewEvidence
     | PhaseFiveCorrectiveRReviewEvidence
+    | PhaseFiveCorrectiveAReviewEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence

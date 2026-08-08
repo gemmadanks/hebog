@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.metadata
+import json
 import os
 import platform
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -25,7 +27,10 @@ from hebog.validation.campaign_runtime import (
     dependency_inventory_sha256,
 )
 from hebog.validation.contracts import (
+    PhaseFiveCorrectiveAReview,
+    PhaseFiveCorrectiveReview,
     PhaseFiveCorrectiveRReview,
+    load_phase_five_corrective_a_review,
     load_phase_five_corrective_r_review,
     load_phase_five_corrective_review,
 )
@@ -38,6 +43,8 @@ from hebog.validation.datasets import (
 from hebog.validation.evidence import (
     EvidenceStatus,
     PhaseFiveAstrometryDiagnostic,
+    PhaseFiveAstrometryEstimatorDiagnostic,
+    PhaseFiveCorrectiveAReviewEvidence,
     PhaseFiveCorrectiveReviewEvidence,
     PhaseFiveCorrectiveRReviewEvidence,
     PhaseFiveMeasurementDispositionDiagnostic,
@@ -59,6 +66,86 @@ from hebog.validation.phase_five_filter_review import (
 
 _DEPENDENCIES = ("hebog", "numpy", "pydantic", "scipy")
 _SCALES = ((1, 1.0), (2, 2.0), (3, 4.0))
+
+
+def _load_review(
+    path: Path,
+) -> (
+    PhaseFiveCorrectiveReview
+    | PhaseFiveCorrectiveRReview
+    | PhaseFiveCorrectiveAReview
+):
+    """Load one supported corrective protocol by its governed identity."""
+    protocol_id = json.loads(path.read_text(encoding="utf-8")).get(
+        "contract_id"
+    )
+    if protocol_id == "phase-5-corrective-a-review":
+        return load_phase_five_corrective_a_review(path)
+    if protocol_id == "phase-5-corrective-r-review":
+        return load_phase_five_corrective_r_review(path)
+    if protocol_id == "phase-5-corrective-review":
+        return load_phase_five_corrective_review(path)
+    raise ValueError("unsupported corrective-review protocol")
+
+
+def _evidence_definition(
+    review: (
+        PhaseFiveCorrectiveReview
+        | PhaseFiveCorrectiveRReview
+        | PhaseFiveCorrectiveAReview
+    ),
+) -> tuple[
+    type[PhaseFiveCorrectiveReviewEvidence]
+    | type[PhaseFiveCorrectiveRReviewEvidence]
+    | type[PhaseFiveCorrectiveAReviewEvidence],
+    str,
+    str,
+]:
+    """Return the schema, type identity, and run identity for a review."""
+    if isinstance(review, PhaseFiveCorrectiveAReview):
+        return (
+            PhaseFiveCorrectiveAReviewEvidence,
+            "phase-five-corrective-a-review",
+            "phase-five-corrective-a-review-confirmation",
+        )
+    if isinstance(review, PhaseFiveCorrectiveRReview):
+        return (
+            PhaseFiveCorrectiveRReviewEvidence,
+            "phase-five-corrective-r-review",
+            "phase-five-corrective-r-review-regression",
+        )
+    return (
+        PhaseFiveCorrectiveReviewEvidence,
+        "phase-five-corrective-review",
+        "phase-five-corrective-review-regression",
+    )
+
+
+def _review_diagnostics(
+    review: (
+        PhaseFiveCorrectiveReview
+        | PhaseFiveCorrectiveRReview
+        | PhaseFiveCorrectiveAReview
+    ),
+    observations: tuple[GeneratedImageObservation, ...],
+    dataset: DatasetRecord,
+) -> dict[str, object]:
+    """Build only diagnostics declared by the active review schema."""
+    diagnostics: dict[str, object] = {}
+    if isinstance(
+        review, (PhaseFiveCorrectiveRReview, PhaseFiveCorrectiveAReview)
+    ):
+        diagnostics.update(
+            astrometry_diagnostics=_astrometry_diagnostics(
+                observations, dataset
+            ),
+            measurement_dispositions=_measurement_dispositions(observations),
+        )
+    if isinstance(review, PhaseFiveCorrectiveAReview):
+        diagnostics["astrometry_estimator_diagnostics"] = (
+            _astrometry_estimator_diagnostics(observations, dataset)
+        )
+    return diagnostics
 
 
 def _astrometry_diagnostics(
@@ -125,7 +212,13 @@ def _measurement_dispositions(
     """Count each typed measurement outcome in regression."""
     diagnostics: list[PhaseFiveMeasurementDispositionDiagnostic] = []
     for family in ("beam-aware-matched-filter", "residual-b3-atrous"):
-        counts = Counter(
+        counts: Counter[
+            Literal[
+                "measured",
+                "known-artifact-control",
+                "truncated-observable-domain",
+            ]
+        ] = Counter(
             group.measurement_disposition
             for observation in observations
             if observation.family == family
@@ -139,6 +232,80 @@ def _measurement_dispositions(
             )
             for disposition, count in sorted(counts.items())
         )
+    return tuple(diagnostics)
+
+
+def _astrometry_estimator_diagnostics(
+    observations: tuple[GeneratedImageObservation, ...],
+    dataset: DatasetRecord,
+) -> tuple[PhaseFiveAstrometryEstimatorDiagnostic, ...]:
+    """Summarize model availability and uncertainty without hiding rows."""
+    astronomical = frozenset(
+        group.identifier
+        for group in dataset.multiscale_truth_groups
+        if group.catalogue_role == "astronomical-source"
+    )
+    strata = (
+        ("overall", astronomical),
+        *(
+            (
+                stratum.identifier,
+                frozenset(stratum.group_identifiers) & astronomical,
+            )
+            for stratum in dataset.multiscale_group_strata
+        ),
+    )
+    diagnostics: list[PhaseFiveAstrometryEstimatorDiagnostic] = []
+    for family in ("beam-aware-matched-filter", "residual-b3-atrous"):
+        family_observations = tuple(
+            item for item in observations if item.family == family
+        )
+        for stratum, identifiers in strata:
+            groups = tuple(
+                group
+                for observation in family_observations
+                for group in observation.groups
+                if group.group_identifier in identifiers
+            )
+            if not groups:
+                continue
+            available = tuple(
+                group for group in groups if group.position_estimator_available
+            )
+            uncertainties = np.asarray(
+                [group.position_uncertainty_beams for group in available],
+                dtype=np.float64,
+            )
+            errors = np.asarray(
+                [group.position_error_beams for group in available],
+                dtype=np.float64,
+            )
+            if uncertainties.size == 0 or not np.all(
+                np.isfinite(uncertainties)
+            ):
+                raise ValueError(
+                    f"Step 2C-A astrometry unavailable for {family}/{stratum}"
+                )
+            methods = Counter(group.position_estimator for group in available)
+            diagnostics.append(
+                PhaseFiveAstrometryEstimatorDiagnostic(
+                    family=family,
+                    stratum=stratum,
+                    sample_count=len(groups),
+                    available_count=len(available),
+                    model_assisted_count=methods["model-assisted-shrinkage"],
+                    fallback_count=methods[
+                        "robust-observable-moment-fallback"
+                    ],
+                    median_uncertainty_beams=float(np.median(uncertainties)),
+                    percentile_95_uncertainty_beams=float(
+                        np.percentile(uncertainties, 95)
+                    ),
+                    percentile_95_error_to_uncertainty_ratio=float(
+                        np.percentile(errors / uncertainties, 95)
+                    ),
+                )
+            )
     return tuple(diagnostics)
 
 
@@ -218,10 +385,7 @@ def _single_dataset(
 def main() -> None:
     """Evaluate the comparator and corrective candidate fail-closed."""
     args = _parse_args()
-    if args.protocol.name == "phase-5-corrective-r-review.json":
-        review = load_phase_five_corrective_r_review(args.protocol)
-    else:
-        review = load_phase_five_corrective_review(args.protocol)
+    review = _load_review(args.protocol)
     development_manifest, development_dataset = _single_dataset(
         args.development_manifest, DatasetRole.DEVELOPMENT
     )
@@ -303,41 +467,18 @@ def main() -> None:
         corrective.noninferior_to_other
     )
     environment = _environment()
-    evidence_model = (
-        PhaseFiveCorrectiveRReviewEvidence
-        if isinstance(review, PhaseFiveCorrectiveRReview)
-        else PhaseFiveCorrectiveReviewEvidence
-    )
-    evidence_type = (
-        "phase-five-corrective-r-review"
-        if isinstance(review, PhaseFiveCorrectiveRReview)
-        else "phase-five-corrective-review"
-    )
-    run_id = (
-        "phase-five-corrective-r-review-regression"
-        if isinstance(review, PhaseFiveCorrectiveRReview)
-        else "phase-five-corrective-review-regression"
-    )
-    corrective_r_diagnostics = (
-        {
-            "astrometry_diagnostics": _astrometry_diagnostics(
-                regression, regression_dataset
-            ),
-            "measurement_dispositions": _measurement_dispositions(regression),
-        }
-        if isinstance(review, PhaseFiveCorrectiveRReview)
-        else {}
-    )
-    evidence = evidence_model(
-        schema_version=1,
-        evidence_type=evidence_type,
-        run_id=run_id,
-        captured_at=datetime.now(UTC),
-        status=EvidenceStatus.REVIEWED,
-        dataset=campaign_dataset_identity(regression_dataset).model_copy(
+    evidence_model, evidence_type, run_id = _evidence_definition(review)
+    diagnostics = _review_diagnostics(review, regression, regression_dataset)
+    evidence_payload: dict[str, object] = {
+        "schema_version": 1,
+        "evidence_type": evidence_type,
+        "run_id": run_id,
+        "captured_at": datetime.now(UTC),
+        "status": EvidenceStatus.REVIEWED,
+        "dataset": campaign_dataset_identity(regression_dataset).model_copy(
             update={"workload_class": WorkloadClass.DENSE_EXTENDED}
         ),
-        configuration_sha256=canonical_sha256(
+        "configuration_sha256": canonical_sha256(
             {
                 "protocol": review.model_dump(mode="json"),
                 "runner_sha256": _file_sha256(Path(__file__)),
@@ -349,32 +490,33 @@ def main() -> None:
                 ),
             }
         ),
-        subject=SoftwareIdentity(
+        "subject": SoftwareIdentity(
             name="hebog",
             source_tree_sha256=_source_tree_sha256(),
             dependency_inventory_sha256=dependency_inventory_sha256(),
         ),
-        environment_sha256=canonical_sha256(environment),
-        protocol_sha256=_file_sha256(args.protocol),
-        prior_decision_sha256=_file_sha256(args.prior_decision),
-        development_manifest_sha256=_file_sha256(args.development_manifest),
-        regression_manifest_sha256=_file_sha256(args.regression_manifest),
-        analytic_case_count=len(analytic_cases),
-        development_image_count=len(development) // len(review.candidates),
-        regression_image_count=len(regression) // len(review.candidates),
-        bootstrap_resamples=review.statistical_design.bootstrap_resamples,
-        bootstrap_seed=review.statistical_design.bootstrap_seed,
-        endpoints=compiled.endpoints,
-        paired_endpoints=compiled.paired_endpoints,
-        candidates=compiled.candidates,
-        decision=(
+        "environment_sha256": canonical_sha256(environment),
+        "protocol_sha256": _file_sha256(args.protocol),
+        "prior_decision_sha256": _file_sha256(args.prior_decision),
+        "development_manifest_sha256": _file_sha256(args.development_manifest),
+        "regression_manifest_sha256": _file_sha256(args.regression_manifest),
+        "analytic_case_count": len(analytic_cases),
+        "development_image_count": len(development) // len(review.candidates),
+        "regression_image_count": len(regression) // len(review.candidates),
+        "bootstrap_resamples": review.statistical_design.bootstrap_resamples,
+        "bootstrap_seed": review.statistical_design.bootstrap_seed,
+        "endpoints": compiled.endpoints,
+        "paired_endpoints": compiled.paired_endpoints,
+        "candidates": compiled.candidates,
+        "decision": (
             "authorize-corrective" if authorized else "reject-corrective"
         ),
-        selected_family="residual-b3-atrous" if authorized else None,
-        step_three_authorized=authorized,
-        qualification_opened=False,
-        **corrective_r_diagnostics,
-    )
+        "selected_family": "residual-b3-atrous" if authorized else None,
+        "step_three_authorized": authorized,
+        "qualification_opened": False,
+        **diagnostics,
+    }
+    evidence = evidence_model.model_validate(evidence_payload)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     write_evidence(args.output, evidence)
     print(args.output)

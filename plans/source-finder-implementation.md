@@ -1062,18 +1062,18 @@ and spill behaviour, and facility-scale execution.
 
 2C-A. **Resolve the remaining astrometry variance independently.**
 
-   - [ ] Freeze a new seed-disjoint confirmation population before changing
+   - [x] Freeze a new seed-disjoint confirmation population before changing
          the estimator. The viewed Step 2C-R regression remains diagnostic and
          must not be reused to tune or confirm the replacement; qualification
          remains unopened.
-   - [ ] Derive and freeze a noise-aware original-pixel position estimator
+   - [x] Derive and freeze a noise-aware original-pixel position estimator
          against analytic truth and the development role only. Preserve the
          observable flux-centroid target, typed truncation, B3 provenance,
          masks, photometry, association, false-positive control, all numerical
          gates, and all paired margins. Prefer a standard generalized
          least-squares or model-assisted estimator with an explicit
          model-mismatch fallback over another morphology-specific heuristic.
-   - [ ] Test bias, centred variance, correlated-noise calibration, masked and
+   - [x] Test bias, centred variance, correlated-noise calibration, masked and
          edge support, shells, filaments, blends, and topology aggregation.
          Record estimator availability and uncertainty; never substitute a
          truth coordinate or drop a difficult astronomical morphology.

@@ -7,12 +7,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import ceil, hypot, sqrt
+from math import ceil, cos, hypot, log, pi, sin, sqrt
 from typing import Literal, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
-from scipy.ndimage import binary_dilation, label
+from scipy.ndimage import binary_dilation, label, maximum_filter
+from scipy.optimize import least_squares
 
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
@@ -29,6 +30,8 @@ from hebog.algorithms.multiscale import (
     reconstruct_significant_atrous,
 )
 from hebog.validation.contracts import (
+    PhaseFiveCorrectiveAEstimator,
+    PhaseFiveCorrectiveAReview,
     PhaseFiveCorrectiveReview,
     PhaseFiveCorrectiveRReview,
     PhaseFiveFilterReview,
@@ -51,6 +54,12 @@ _ReviewContract = (
     PhaseFiveFilterReview
     | PhaseFiveCorrectiveReview
     | PhaseFiveCorrectiveRReview
+    | PhaseFiveCorrectiveAReview
+)
+_CorrectiveReviewContract = (
+    PhaseFiveCorrectiveReview
+    | PhaseFiveCorrectiveRReview
+    | PhaseFiveCorrectiveAReview
 )
 
 
@@ -136,6 +145,17 @@ class GeneratedGroupObservation:
         "truncated-observable-domain",
     ] = "measured"
     position_offset_xy_beams: tuple[float, float] | None = None
+    position_estimator_available: bool = False
+    position_estimator: (
+        Literal[
+            "model-assisted-shrinkage",
+            "robust-observable-moment-fallback",
+        ]
+        | None
+    ) = None
+    position_uncertainty_beams: float | None = None
+    position_model_component_count: int | None = None
+    position_model_normalized_cost: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,7 +208,43 @@ class _CorrectiveObservationContext:
     response_source: ScaleFilterBankResult | ResidualAtrousResult
     prepared: PreparedScaleInputs
     beam: BeamShapePixels
-    review: PhaseFiveCorrectiveReview | PhaseFiveCorrectiveRReview
+    review: _CorrectiveReviewContract
+
+
+@dataclass(frozen=True, slots=True)
+class _CorrectiveAPositionEstimate:
+    """Typed Step 2C-A position result and model diagnostics."""
+
+    x_pixel: float
+    y_pixel: float
+    uncertainty_beams: float
+    available: bool
+    estimator: Literal[
+        "model-assisted-shrinkage",
+        "robust-observable-moment-fallback",
+    ]
+    model_component_count: int | None
+    model_normalized_cost: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class _CorrectiveAFitWindow:
+    """Bounded original-pixel arrays for one model-assisted position fit."""
+
+    x_start: int
+    x_stop: int
+    y_start: int
+    y_stop: int
+    valid: npt.NDArray[np.bool_]
+    selected: npt.NDArray[np.bool_]
+    residual: npt.NDArray[np.float64]
+    rms: npt.NDArray[np.float64]
+    x_grid: npt.NDArray[np.float64]
+    y_grid: npt.NDArray[np.float64]
+    fit_x: npt.NDArray[np.float64]
+    fit_y: npt.NDArray[np.float64]
+    fit_values: npt.NDArray[np.float64]
+    fit_rms: npt.NDArray[np.float64]
 
 
 def _elliptical_gaussian(
@@ -858,7 +914,7 @@ def _corrective_threshold(
     matched: ScaleFilterBankResult,
     atrous: ResidualAtrousResult | None,
     beam: BeamShapePixels,
-    review: PhaseFiveCorrectiveReview | PhaseFiveCorrectiveRReview,
+    review: _CorrectiveReviewContract,
 ) -> ThresholdFilterResult:
     """Seed from calibrated evidence and grow only on original residual."""
     shape = prepared.residual_jy_per_beam.shape
@@ -900,7 +956,9 @@ def _corrective_threshold(
     retained = np.isin(raw_labels, seed_labels)
     minimum_area_beams = (
         review.corrections.minimum_island_area_beams
-        if isinstance(review, PhaseFiveCorrectiveRReview)
+        if isinstance(
+            review, (PhaseFiveCorrectiveRReview, PhaseFiveCorrectiveAReview)
+        )
         else 0.25
     )
     minimum_area = max(
@@ -915,7 +973,9 @@ def _corrective_threshold(
     label_count = int(np.max(raw_labels)) + 1
     retained_counts = np.bincount(raw_labels[retained], minlength=label_count)
     accepted = retained_counts >= minimum_area
-    if isinstance(review, PhaseFiveCorrectiveRReview):
+    if isinstance(
+        review, (PhaseFiveCorrectiveRReview, PhaseFiveCorrectiveAReview)
+    ):
         direct_maxima = np.full(label_count, -np.inf, dtype=np.float64)
         np.maximum.at(direct_maxima, raw_labels.ravel(), direct_snr.ravel())
         accepted |= (
@@ -928,7 +988,10 @@ def _corrective_threshold(
     if atrous is not None and retained.any():
         association_distance_beams = (
             review.corrections.association_distance_beams
-            if isinstance(review, PhaseFiveCorrectiveRReview)
+            if isinstance(
+                review,
+                (PhaseFiveCorrectiveRReview, PhaseFiveCorrectiveAReview),
+            )
             else 2.0
         )
         association_support = binary_dilation(
@@ -963,7 +1026,7 @@ def _corrective_threshold(
 def _corrective_results(
     prepared: PreparedScaleInputs,
     beam: BeamShapePixels,
-    review: PhaseFiveCorrectiveReview | PhaseFiveCorrectiveRReview,
+    review: _CorrectiveReviewContract,
     *,
     family: FilterFamily,
 ) -> tuple[
@@ -1072,7 +1135,7 @@ def _weighted_coordinate_quantile(
 def _corrective_r_position(
     planes: _ObservableMeasurementPlanes,
     overlapping_labels: npt.NDArray[np.int32],
-    review: PhaseFiveCorrectiveRReview,
+    review: PhaseFiveCorrectiveRReview | PhaseFiveCorrectiveAReview,
 ) -> tuple[float, float]:
     """Estimate a robust centre from original, noise-excess pixels only."""
     selected = np.isin(planes.component_labels, overlapping_labels)
@@ -1168,11 +1231,424 @@ def _corrective_r_position(
     )
 
 
+def _correlated_position_uncertainty(
+    signal: npt.NDArray[np.float64],
+    rms: npt.NDArray[np.float64],
+    support: npt.NDArray[np.bool_],
+    position_xy: tuple[float, float],
+    beam: BeamShapePixels,
+) -> float:
+    """Propagate local RMS through a centroid with beam-area inflation."""
+    weights = np.where(support, np.maximum(signal, 0.0), 0.0)
+    total = float(np.sum(weights, dtype=np.float64))
+    if total <= 0 or not np.isfinite(total):
+        return float("inf")
+    y_grid, x_grid = np.indices(signal.shape, dtype=np.float64)
+    centre_x, centre_y = position_xy
+    correlated_area = 1.1331 * beam.major_fwhm_pixels * beam.minor_fwhm_pixels
+    variance_x = (
+        correlated_area
+        * float(
+            np.sum(
+                np.where(
+                    support,
+                    (rms * (x_grid - centre_x)) ** 2,
+                    0.0,
+                ),
+                dtype=np.float64,
+            )
+        )
+        / (total * total)
+    )
+    variance_y = (
+        correlated_area
+        * float(
+            np.sum(
+                np.where(
+                    support,
+                    (rms * (y_grid - centre_y)) ** 2,
+                    0.0,
+                ),
+                dtype=np.float64,
+            )
+        )
+        / (total * total)
+    )
+    return sqrt(variance_x + variance_y) / beam.major_fwhm_pixels
+
+
+def _corrective_a_fit_window(
+    planes: _ObservableMeasurementPlanes,
+    selected: npt.NDArray[np.bool_],
+    beam: BeamShapePixels,
+    estimator: PhaseFiveCorrectiveAEstimator,
+) -> _CorrectiveAFitWindow | None:
+    """Extract one bounded original-pixel fit window."""
+    selected_y, selected_x = np.nonzero(selected)
+    if selected_x.size == 0:
+        return None
+    margin = ceil(estimator.fit_margin_beams * beam.major_fwhm_pixels)
+    y_start = max(0, int(np.min(selected_y)) - margin)
+    y_stop = min(selected.shape[0], int(np.max(selected_y)) + margin + 1)
+    x_start = max(0, int(np.min(selected_x)) - margin)
+    x_stop = min(selected.shape[1], int(np.max(selected_x)) + margin + 1)
+    valid = planes.valid_pixels[y_start:y_stop, x_start:x_stop]
+    if not np.any(valid):
+        return None
+    residual = planes.residual[y_start:y_stop, x_start:x_stop]
+    rms = planes.rms[y_start:y_stop, x_start:x_stop]
+    coordinate_grids = np.indices(valid.shape, dtype=np.float64)
+    y_grid = np.asarray(coordinate_grids[0], dtype=np.float64) + y_start
+    x_grid = np.asarray(coordinate_grids[1], dtype=np.float64) + x_start
+    return _CorrectiveAFitWindow(
+        x_start=x_start,
+        x_stop=x_stop,
+        y_start=y_start,
+        y_stop=y_stop,
+        valid=valid,
+        selected=selected[y_start:y_stop, x_start:x_stop],
+        residual=residual,
+        rms=rms,
+        x_grid=x_grid,
+        y_grid=y_grid,
+        fit_x=x_grid[valid],
+        fit_y=y_grid[valid],
+        fit_values=residual[valid],
+        fit_rms=rms[valid],
+    )
+
+
+def _corrective_a_peaks(
+    window: _CorrectiveAFitWindow,
+    beam: BeamShapePixels,
+    initial_xy: tuple[float, float],
+    estimator: PhaseFiveCorrectiveAEstimator,
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]] | None:
+    """Find deterministic beam-separated original-pixel fit seeds."""
+    direct_snr = np.full(window.valid.shape, -np.inf, dtype=np.float64)
+    np.divide(
+        window.residual,
+        window.rms,
+        out=direct_snr,
+        where=window.valid,
+    )
+    peak_window = max(
+        3,
+        ceil(estimator.peak_separation_beams * beam.major_fwhm_pixels),
+    )
+    local_maximum = maximum_filter(
+        direct_snr,
+        size=peak_window,
+        mode="constant",
+        cval=-np.inf,
+    )
+    peak_y, peak_x = np.nonzero(
+        window.selected
+        & (direct_snr >= estimator.peak_seed_sigma)
+        & (direct_snr == local_maximum)
+    )
+    if peak_x.size > estimator.maximum_components:
+        return None
+    if peak_x.size == 0:
+        peak_x = np.asarray(
+            [round(initial_xy[0]) - window.x_start], dtype=np.int64
+        )
+        peak_y = np.asarray(
+            [round(initial_xy[1]) - window.y_start], dtype=np.int64
+        )
+    return peak_x + window.x_start, peak_y + window.y_start
+
+
+def _corrective_a_fit_parameters(
+    planes: _ObservableMeasurementPlanes,
+    window: _CorrectiveAFitWindow,
+    peaks_xy: tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]],
+    beam: BeamShapePixels,
+    estimator: PhaseFiveCorrectiveAEstimator,
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+]:
+    """Build bounded Gaussian-mixture initial values."""
+    peak_x, peak_y = peaks_xy
+    minimum_sigma = (
+        beam.minor_fwhm_pixels / estimator.minimum_sigma_minor_fwhm_divisor
+    )
+    maximum_sigma = (
+        estimator.maximum_sigma_major_beams * beam.major_fwhm_pixels
+    )
+    maximum_amplitude = max(
+        5.0 * float(np.max(window.fit_values)),
+        5.0 * float(np.median(window.fit_rms)),
+    )
+    centre_radius = (
+        estimator.component_centre_bound_beams * beam.major_fwhm_pixels
+    )
+    initial_values: list[float] = []
+    lower_values: list[float] = []
+    upper_values: list[float] = []
+    for centre_x, centre_y in zip(peak_x, peak_y, strict=True):
+        peak = max(
+            float(planes.residual[centre_y, centre_x]),
+            float(np.median(window.fit_rms)),
+        )
+        initial_values.extend(
+            (
+                peak,
+                float(centre_x),
+                float(centre_y),
+                log(max(beam.major_fwhm_pixels, minimum_sigma)),
+                log(max(beam.minor_fwhm_pixels, minimum_sigma)),
+                0.0,
+            )
+        )
+        lower_values.extend(
+            (
+                0.0,
+                max(window.x_start, centre_x - centre_radius),
+                max(window.y_start, centre_y - centre_radius),
+                log(minimum_sigma),
+                log(minimum_sigma),
+                -pi,
+            )
+        )
+        upper_values.extend(
+            (
+                maximum_amplitude,
+                min(window.x_stop - 1, centre_x + centre_radius),
+                min(window.y_stop - 1, centre_y + centre_radius),
+                log(maximum_sigma),
+                log(maximum_sigma),
+                pi,
+            )
+        )
+    median_rms = float(np.median(window.fit_rms))
+    initial_values.append(0.0)
+    lower_values.append(-5.0 * median_rms)
+    upper_values.append(5.0 * median_rms)
+    return (
+        np.asarray(initial_values),
+        np.asarray(lower_values),
+        np.asarray(upper_values),
+    )
+
+
+def _multigaussian_values(
+    parameters: npt.NDArray[np.float64],
+    model_x: npt.NDArray[np.float64],
+    model_y: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
+    """Evaluate a parameter vector as a Gaussian mixture without offset."""
+    model = np.zeros_like(model_x)
+    for start in range(0, len(parameters) - 1, 6):
+        peak, centre_x, centre_y, log_x, log_y, angle = parameters[
+            start : start + 6
+        ]
+        cosine = cos(angle)
+        sine = sin(angle)
+        delta_x = model_x - centre_x
+        delta_y = model_y - centre_y
+        rotated_x = cosine * delta_x + sine * delta_y
+        rotated_y = -sine * delta_x + cosine * delta_y
+        model += peak * np.exp(
+            -0.5
+            * (
+                (rotated_x / np.exp(log_x)) ** 2
+                + (rotated_y / np.exp(log_y)) ** 2
+            )
+        )
+    return model
+
+
+def _solve_multigaussian_model(
+    window: _CorrectiveAFitWindow,
+    initial: npt.NDArray[np.float64],
+    lower: npt.NDArray[np.float64],
+    upper: npt.NDArray[np.float64],
+    estimator: PhaseFiveCorrectiveAEstimator,
+) -> tuple[npt.NDArray[np.float64], float] | None:
+    """Solve and validate one robust local-RMS-weighted mixture."""
+
+    def standardized_residual(
+        parameters: npt.NDArray[np.float64],
+    ) -> npt.NDArray[np.float64]:
+        return (
+            _multigaussian_values(parameters, window.fit_x, window.fit_y)
+            + parameters[-1]
+            - window.fit_values
+        ) / window.fit_rms
+
+    try:
+        result = least_squares(
+            standardized_residual,
+            initial,
+            bounds=(lower, upper),
+            loss="soft_l1",
+            f_scale=1.0,
+            x_scale="jac",
+            max_nfev=estimator.maximum_iterations,
+        )
+    except (FloatingPointError, RuntimeError, ValueError):
+        return None
+    parameters = np.asarray(result.x, dtype=np.float64)
+    normalized_cost = float(
+        2.0 * result.cost / max(1, window.fit_values.size - len(parameters))
+    )
+    valid = (
+        result.success
+        and np.all(np.isfinite(parameters))
+        and np.isfinite(normalized_cost)
+        and normalized_cost <= estimator.maximum_normalized_cost
+    )
+    return (parameters, normalized_cost) if valid else None
+
+
+def _multigaussian_model_position(
+    planes: _ObservableMeasurementPlanes,
+    overlapping_labels: npt.NDArray[np.int32],
+    beam: BeamShapePixels,
+    initial_xy: tuple[float, float],
+    review: PhaseFiveCorrectiveAReview,
+) -> tuple[float, float, float, int] | None:
+    """Fit a local-RMS-weighted Gaussian mixture on original pixels."""
+    selected = np.isin(planes.component_labels, overlapping_labels)
+    window = _corrective_a_fit_window(
+        planes, selected, beam, review.astrometry_estimator
+    )
+    peaks = (
+        _corrective_a_peaks(
+            window,
+            beam,
+            initial_xy,
+            review.astrometry_estimator,
+        )
+        if window is not None and all(np.isfinite(initial_xy))
+        else None
+    )
+    parameters = (
+        _corrective_a_fit_parameters(
+            planes,
+            window,
+            peaks,
+            beam,
+            review.astrometry_estimator,
+        )
+        if window is not None and peaks is not None
+        else None
+    )
+    solution = (
+        _solve_multigaussian_model(
+            window,
+            *parameters,
+            review.astrometry_estimator,
+        )
+        if window is not None and parameters is not None
+        else None
+    )
+    if window is None or peaks is None or solution is None:
+        return None
+    fitted, normalized_cost = solution
+    model = np.where(
+        window.valid,
+        _multigaussian_values(fitted, window.x_grid, window.y_grid),
+        0.0,
+    )
+    model_flux = float(np.sum(model, dtype=np.float64))
+    if model_flux <= 0 or not np.isfinite(model_flux):
+        return None
+    model_x = float(
+        np.sum(window.x_grid * model, dtype=np.float64) / model_flux
+    )
+    model_y = float(
+        np.sum(window.y_grid * model, dtype=np.float64) / model_flux
+    )
+    disagreement = (
+        hypot(model_x - initial_xy[0], model_y - initial_xy[1])
+        / beam.major_fwhm_pixels
+    )
+    valid_position = (
+        np.isfinite(disagreement)
+        and disagreement
+        <= review.astrometry_estimator.maximum_model_moment_disagreement_beams
+    )
+    return (
+        (model_x, model_y, normalized_cost, len(peaks[0]))
+        if valid_position
+        else None
+    )
+
+
+def _corrective_a_position(
+    planes: _ObservableMeasurementPlanes,
+    overlapping_labels: npt.NDArray[np.int32],
+    beam: BeamShapePixels,
+    current_xy: tuple[float, float],
+    review: PhaseFiveCorrectiveAReview,
+) -> _CorrectiveAPositionEstimate:
+    """Combine the governed model and robust observable-pixel estimates."""
+    selected = np.isin(planes.component_labels, overlapping_labels)
+    support = (
+        np.asarray(
+            binary_dilation(
+                selected,
+                iterations=review.corrections.astrometry_dilation_pixels,
+            ),
+            dtype=np.bool_,
+        )
+        & planes.valid_pixels
+    )
+    model = _multigaussian_model_position(
+        planes,
+        overlapping_labels,
+        beam,
+        current_xy,
+        review,
+    )
+    if model is None:
+        position_xy = current_xy
+        estimator: Literal[
+            "model-assisted-shrinkage",
+            "robust-observable-moment-fallback",
+        ] = "robust-observable-moment-fallback"
+        component_count = None
+        normalized_cost = None
+    else:
+        model_x, model_y, normalized_cost, component_count = model
+        model_weight = review.astrometry_estimator.model_weight
+        position_xy = (
+            model_weight * model_x + (1.0 - model_weight) * current_xy[0],
+            model_weight * model_y + (1.0 - model_weight) * current_xy[1],
+        )
+        estimator = "model-assisted-shrinkage"
+    uncertainty = _correlated_position_uncertainty(
+        planes.residual,
+        planes.rms,
+        support,
+        position_xy,
+        beam,
+    )
+    available = bool(
+        all(np.isfinite(position_xy))
+        and np.isfinite(uncertainty)
+        and uncertainty > 0
+    )
+    return _CorrectiveAPositionEstimate(
+        x_pixel=position_xy[0],
+        y_pixel=position_xy[1],
+        uncertainty_beams=uncertainty,
+        available=available,
+        estimator=estimator,
+        model_component_count=component_count,
+        model_normalized_cost=normalized_cost,
+    )
+
+
 def _corrective_r_signal_measurement(
     planes: _ObservableMeasurementPlanes,
     overlapping_labels: npt.NDArray[np.int32],
     beam: BeamShapePixels,
-    review: PhaseFiveCorrectiveRReview,
+    review: PhaseFiveCorrectiveRReview | PhaseFiveCorrectiveAReview,
 ) -> tuple[float, float, tuple[float, float]]:
     """Measure unchanged flux and corrected astrometry on original pixels."""
     flux_error, _ = _observable_signal_measurement(
@@ -1306,10 +1782,56 @@ def _corrective_r_signal_measurement(
     return flux_error, position_error, offset
 
 
+def _corrective_a_signal_measurement(
+    planes: _ObservableMeasurementPlanes,
+    overlapping_labels: npt.NDArray[np.int32],
+    beam: BeamShapePixels,
+    review: PhaseFiveCorrectiveAReview,
+) -> tuple[
+    float,
+    float,
+    tuple[float, float],
+    _CorrectiveAPositionEstimate,
+]:
+    """Apply the frozen model-assisted estimator without changing flux."""
+    flux_error, _, current_offset = _corrective_r_signal_measurement(
+        planes,
+        overlapping_labels,
+        beam,
+        review,
+    )
+    observable_truth = planes.truth_signal * planes.valid_pixels
+    reference_flux = float(np.sum(observable_truth, dtype=np.float64))
+    y_grid, x_grid = np.indices(planes.residual.shape, dtype=np.float64)
+    reference_x = float(
+        np.sum(x_grid * observable_truth, dtype=np.float64) / reference_flux
+    )
+    reference_y = float(
+        np.sum(y_grid * observable_truth, dtype=np.float64) / reference_flux
+    )
+    current_xy = (
+        reference_x + current_offset[0] * beam.major_fwhm_pixels,
+        reference_y + current_offset[1] * beam.major_fwhm_pixels,
+    )
+    estimate = _corrective_a_position(
+        planes,
+        overlapping_labels,
+        beam,
+        current_xy,
+        review,
+    )
+    offset = (
+        (estimate.x_pixel - reference_x) / beam.major_fwhm_pixels,
+        (estimate.y_pixel - reference_y) / beam.major_fwhm_pixels,
+    )
+    position_error = hypot(*offset) if estimate.available else float("inf")
+    return flux_error, position_error, offset, estimate
+
+
 def evaluate_corrective_analytic_cases(
     cases: tuple[AnalyticFilterReviewCase, ...],
     beam: BeamShapePixels,
-    review: PhaseFiveCorrectiveReview | PhaseFiveCorrectiveRReview,
+    review: _CorrectiveReviewContract,
 ) -> tuple[AnalyticFilterObservation, ...]:
     """Evaluate Step 2C final-output semantics on the unchanged matrix."""
     observations: list[AnalyticFilterObservation] = []
@@ -1359,7 +1881,13 @@ def evaluate_corrective_analytic_cases(
                     truth_signal=truth_signal,
                     component_labels=thresholded.component_labels,
                 )
-                if isinstance(review, PhaseFiveCorrectiveRReview):
+                if isinstance(review, PhaseFiveCorrectiveAReview):
+                    flux_error, position_error, _, _ = (
+                        _corrective_a_signal_measurement(
+                            planes, overlapping_labels, beam, review
+                        )
+                    )
+                elif isinstance(review, PhaseFiveCorrectiveRReview):
                     flux_error, position_error, _ = (
                         _corrective_r_signal_measurement(
                             planes, overlapping_labels, beam, review
@@ -1436,9 +1964,12 @@ def _corrective_group_observation(
         "truncated-observable-domain",
     ] = "measured"
     position_offset: tuple[float, float] | None = None
+    position_estimate: _CorrectiveAPositionEstimate | None = None
     if (
         detected
-        and isinstance(review, PhaseFiveCorrectiveRReview)
+        and isinstance(
+            review, (PhaseFiveCorrectiveRReview, PhaseFiveCorrectiveAReview)
+        )
         and truth.catalogue_role == "artifact"
     ):
         flux_error = None
@@ -1452,7 +1983,29 @@ def _corrective_group_observation(
             truth_signal=truth.signal_jy_per_beam,
             component_labels=thresholded.component_labels,
         )
-        if isinstance(review, PhaseFiveCorrectiveRReview):
+        if isinstance(review, PhaseFiveCorrectiveAReview):
+            flux_error, position_error, position_offset, position_estimate = (
+                _corrective_a_signal_measurement(
+                    planes, overlapping_labels, beam, review
+                )
+            )
+            selected = np.isin(
+                thresholded.component_labels, overlapping_labels
+            )
+            dilation = review.corrections.astrometry_dilation_pixels
+            expanded = np.asarray(
+                binary_dilation(selected, iterations=dilation),
+                dtype=np.bool_,
+            )
+            touches_edge = bool(
+                np.any(selected[0, :])
+                or np.any(selected[-1, :])
+                or np.any(selected[:, 0])
+                or np.any(selected[:, -1])
+            )
+            if touches_edge or np.any(expanded & ~valid_pixels):
+                disposition = "truncated-observable-domain"
+        elif isinstance(review, PhaseFiveCorrectiveRReview):
             flux_error, position_error, position_offset = (
                 _corrective_r_signal_measurement(
                     planes, overlapping_labels, beam, review
@@ -1493,6 +2046,31 @@ def _corrective_group_observation(
         fragment_count=int(overlapping_labels.size),
         measurement_disposition=disposition,
         position_offset_xy_beams=position_offset,
+        position_estimator_available=(
+            position_estimate.available
+            if position_estimate is not None
+            else False
+        ),
+        position_estimator=(
+            position_estimate.estimator
+            if position_estimate is not None
+            else None
+        ),
+        position_uncertainty_beams=(
+            position_estimate.uncertainty_beams
+            if position_estimate is not None
+            else None
+        ),
+        position_model_component_count=(
+            position_estimate.model_component_count
+            if position_estimate is not None
+            else None
+        ),
+        position_model_normalized_cost=(
+            position_estimate.model_normalized_cost
+            if position_estimate is not None
+            else None
+        ),
     )
 
 
@@ -1501,7 +2079,7 @@ def _evaluate_corrective_generated_with_truth(
     recipe: SyntheticRecipe,
     *,
     family: FilterFamily,
-    review: PhaseFiveCorrectiveReview | PhaseFiveCorrectiveRReview,
+    review: _CorrectiveReviewContract,
     truth_groups: tuple[_GeneratedTruthGroup, ...],
 ) -> GeneratedImageObservation:
     """Evaluate one generated image under frozen final-output semantics."""
@@ -1586,7 +2164,7 @@ def evaluate_corrective_generated_image(
     *,
     recipe_index: int,
     family: FilterFamily,
-    review: PhaseFiveCorrectiveReview | PhaseFiveCorrectiveRReview,
+    review: _CorrectiveReviewContract,
 ) -> GeneratedImageObservation:
     """Evaluate one corrective-review image for tests and diagnosis."""
     recipes = iter_dataset_recipes(dataset)
@@ -1604,7 +2182,7 @@ def evaluate_corrective_generated_image(
 
 def evaluate_corrective_generated_population(
     dataset: DatasetRecord,
-    review: PhaseFiveCorrectiveReview | PhaseFiveCorrectiveRReview,
+    review: _CorrectiveReviewContract,
 ) -> tuple[GeneratedImageObservation, ...]:
     """Evaluate both Step 2C candidates over one frozen population."""
     truth_groups = _build_generated_truth(dataset, review)

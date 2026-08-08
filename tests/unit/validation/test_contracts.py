@@ -71,6 +71,9 @@ _PHASE_FIVE_CORRECTIVE_R_REVIEW_PATH = (
 _PHASE_FIVE_CORRECTIVE_R_DECISION_PATH = (
     _ROOT / "config/contracts/phase-5-corrective-r-decision.json"
 )
+_PHASE_FIVE_CORRECTIVE_A_REVIEW_PATH = (
+    _ROOT / "config/contracts/phase-5-corrective-a-review.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -803,6 +806,56 @@ def test_phase_five_corrective_r_decision_keeps_step_three_closed() -> None:
     assert decision.step_three_authorized is False
     assert decision.optimization_authorized is False
     assert decision.qualification_opened is False
+
+
+def test_phase_five_corrective_a_review_freezes_independent_estimator() -> (
+    None
+):
+    """The final astrometry protocol precedes confirmation results."""
+    review = contract_models.load_phase_five_corrective_a_review(
+        _PHASE_FIVE_CORRECTIVE_A_REVIEW_PATH
+    )
+
+    assert review.status == "frozen-before-corrective-a-results"
+    assert review.prior_decision_sha256 == (
+        "6727657ff039b1ccf0ab88c169df0f02cf1b080b6ca1ca4b7059f49d0640340d"
+    )
+    assert review.dataset_manifests[1].manifest == (
+        "config/datasets/phase-5-corrective-a-confirmation.json"
+    )
+    assert review.dataset_manifests[1].manifest_sha256 == (
+        "7576f8e6e373b12a42c9820ee381750c32208444682bde4a52a1311cccfc6011"
+    )
+    estimator = review.astrometry_estimator
+    assert estimator.peak_seed_sigma == 6.0
+    assert estimator.peak_separation_beams == 2.0
+    assert estimator.maximum_components == 6
+    assert estimator.model_weight == 0.5
+    assert estimator.maximum_normalized_cost == 2.0
+    assert estimator.maximum_model_moment_disagreement_beams == 1.0
+    assert review.absolute_gates.maximum_percentile_95_position_beams == 0.25
+    assert review.paired_margins.maximum_position_error_increase_beams == 0.05
+    assert review.confirmation_reuse == "one-look-no-tuning-or-rescoring"
+    assert review.step_three_authorized is False
+    assert review.qualification_opened is False
+
+
+def test_phase_five_corrective_a_review_rejects_estimator_drift() -> None:
+    """Confirmation cannot silently retune a development-selected constant."""
+    review = contract_models.load_phase_five_corrective_a_review(
+        _PHASE_FIVE_CORRECTIVE_A_REVIEW_PATH
+    )
+    payload = review.model_dump(mode="json")
+    payload["astrometry_estimator"]["model_weight"] = 0.6
+
+    with pytest.raises(ValidationError, match="estimator constants"):
+        type(review).model_validate(payload)
+
+    payload = review.model_dump(mode="json")
+    payload["dataset_manifests"][1]["manifest_sha256"] = "0" * 64
+
+    with pytest.raises(ValidationError, match="datasets must remain frozen"):
+        type(review).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

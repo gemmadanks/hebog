@@ -5764,3 +5764,39 @@ the now-viewed Step 2C-R regression; keep qualification unopened.
 
 **Immediate next step:** derive and freeze the estimator against exact truth
 and the ten-image development role only, then open this confirmation once.
+
+## 2026-08-08 — Froze the Step 2C-A estimator before confirmation
+
+**Plan phase:** Phase 5, Step 2C-A — estimator derivation and pre-results freeze
+
+- Used exact truth and the ten-image development role only to select a
+  standard local-RMS-weighted multi-Gaussian position model. Original-pixel
+  local maxima at or above 6 sigma are separated by two beam major axes and
+  fitted jointly with a robust `soft_l1` loss. The model's observable-domain
+  centroid is combined equally with the Step 2C-R robust original-pixel
+  estimator.
+- Froze at most six components, a three-beam fit margin, one-beam component
+  centre bounds, 300 optimizer evaluations, a maximum normalized cost of 2.0,
+  and a maximum one-beam model/moment disagreement. Any unavailable or
+  inconsistent model falls back to the unchanged robust observable-pixel
+  position; flux, masks, association, and detection are untouched.
+- Added correlated-noise moment propagation for typed finite position
+  uncertainty. Tests cover exact endpoints, per-morphology bias and centred
+  scatter, shells, filaments, topology aggregation, masked and edge support,
+  RMS scaling, and injected model failure.
+- The frozen development endpoint is 0.2176 beams, down from the Step 2C-R
+  tail near 0.29 beams. All 60 development astronomical measurements used the
+  model-assisted estimator; the explicit fallback is covered by fault
+  injection.
+- Frozen protocol:
+  `config/contracts/phase-5-corrective-a-review.json`, SHA-256
+  `b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b`.
+  It binds the Step 2C-R decision and the unopened confirmation manifest,
+  preserves all scientific gates and paired margins, forbids tuning or
+  rescoring on confirmation, and keeps qualification closed.
+
+**Validation:** 18 focused inherited/corrective tests plus protocol-freezer
+tests pass; focused Ruff and Pyright checks pass.
+
+**Immediate next step:** seal this implementation and protocol in Git, then
+run the 84 analytic cases and frozen 100-image confirmation exactly once.
