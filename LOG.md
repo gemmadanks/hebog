@@ -5635,3 +5635,60 @@ Rapthor profile evidence
 then freeze the exact residual B3-spline reconstruction, support-growth,
 measurement, and amended response-evaluation contract before implementation.
 Keep the qualification population unopened.
+
+## 2026-08-08 — Completed Step 2C with the corrective candidate rejected
+
+**Plan phase:** Phase 5, Step 2C — corrective continuum re-evaluation
+
+- Diagnosed Step 2B as a stage-separation failure as well as a representation
+  comparison: scale coefficients had been used for response, retained-mask
+  flux, and position even though detection, reconstruction, segmentation, and
+  measurement have different scientific meanings. The old generated failures
+  concentrated in astrometry, fragmentation, retained support, and mask
+  topology.
+- Froze `config/contracts/phase-5-corrective-review.json` before corrective
+  results. It retained the exact development/regression manifests, 84 analytic
+  cases, 5/3-sigma thresholds, numerical absolute gates, paired margins,
+  10,000-resample intervals, and fail-closed policy. It predeclared observable
+  valid-domain truth, reconstructed response, original-residual masks,
+  original-pixel flux and astrometry, and coefficient-only detection and
+  association provenance.
+- Added a readable float64 residual B3-spline à trous serial path with the
+  standard five-tap kernel, dyadic 1/2/4-pixel holes, adjacent smoothing reuse,
+  normalized valid support, correlated-noise gains, compact model subtraction
+  or mask exclusion, a 14-pixel cumulative halo, 12 sparse one-dimensional
+  convolutions, seven bounded temporaries, and no durable response bank. The
+  complete reviewed candidate, including its permitted matched-filter seed
+  aid, records 21 convolutions, seven peak scratch planes, and a 38-pixel
+  maximum halo.
+- Applied matched/B3/direct calibrated seed evidence, original-residual
+  3-sigma growth, a beam-area noise-component floor, and cross-scale
+  association without expanding the final pixel mask. Final flux and centroid
+  measurements use the original background-subtracted residual.
+- Re-ran all 84 analytic cases, ten development images, and 100 seed-disjoint
+  regression images without reading qualification data. Corrected analytic
+  response semantics passed every absolute endpoint for both candidates.
+  Generated B3 results reached completeness 1.000, median flux error 0.0496,
+  mean mask IoU 0.8260, overall fragmentation 0.0686, and maximum noise error
+  0.0148.
+- Rejected the corrective candidate because no-compensation gates still
+  failed: regression position error was 1.598 beams at the 95th percentile
+  versus the 0.250 gate; reliability was 0.9405 versus 0.950; shell and
+  tile-boundary fragmentation strata failed; and the artifact flux stratum
+  failed. It recorded 23 absolute and eight paired failures, improved from the
+  matched comparator's 28 and 21, but improvement cannot substitute for
+  passage.
+- Wrote typed ignored evidence at
+  `benchmark-results/phase-5/corrective-review.json`, SHA-256
+  `5d21e1815fe16bdfce7f349238bec819b485cf50eef2cc552c925939fed0dc7e`.
+  The reviewed decision contract records `reject-corrective`, no selected
+  family, and false Step 3, optimization, and qualification authorization.
+
+**Development validation:** focused contract, evidence, B3 kernel, amended
+analytic, and generated smoke tests were developed red-to-green. The complete
+handoff validation is recorded by the local commit.
+
+**Immediate next step:** freeze Step 2C-R corrections for lower-variance
+original-pixel astrometry, shell/tile association, artifact disposition, and
+false-positive control. Preserve the B3 representation and every gate; keep
+Step 3 and qualification closed until the complete review passes.

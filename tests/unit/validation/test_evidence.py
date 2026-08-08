@@ -31,7 +31,9 @@ from hebog.validation.evidence import (
     ExecutorKind,
     Measurement,
     NormalizedResidualDiagnostic,
+    PhaseFiveCorrectiveReviewEvidence,
     PhaseFiveFilterCandidateEvidence,
+    PhaseFiveFilterFamily,
     PhaseFiveFilterReviewCandidateConclusion,
     PhaseFiveFilterReviewEndpointEvidence,
     PhaseFiveFilterReviewEvidence,
@@ -439,6 +441,98 @@ def test_phase_five_filter_review_derives_candidate_failures() -> None:
 
     with pytest.raises(ValidationError, match="candidate conclusion"):
         PhaseFiveFilterReviewEvidence.model_validate(payload)
+
+
+def test_phase_five_corrective_review_requires_corrective_gate_passage() -> (
+    None
+):
+    """A comparator result cannot authorize the residual continuum path."""
+    matched_endpoint = _phase_five_review_endpoint(
+        "beam-aware-matched-filter", passed=False
+    )
+    corrective_endpoint = PhaseFiveFilterReviewEndpointEvidence(
+        metric="response-fractional-error",
+        population="analytic",
+        stratum="overall",
+        statistic="median",
+        family="residual-b3-atrous",
+        sample_count=84,
+        estimate=0.08,
+        absolute_limit=0.05,
+        absolute_direction="maximum",
+        passed=False,
+    )
+    candidate_pairs: tuple[
+        tuple[PhaseFiveFilterFamily, PhaseFiveFilterFamily], ...
+    ] = (
+        ("beam-aware-matched-filter", "residual-b3-atrous"),
+        ("residual-b3-atrous", "beam-aware-matched-filter"),
+    )
+    paired = (
+        PhaseFiveFilterReviewPairedEndpointEvidence(
+            metric="response-fractional-error",
+            population="analytic",
+            stratum="overall",
+            statistic="median",
+            family=family,
+            reference_family=reference,
+            sample_count=84,
+            estimate_difference=0.01,
+            upper_confidence_limit=0.01,
+            margin=0.02,
+            passed=True,
+        )
+        for family, reference in candidate_pairs
+    )
+    evidence = PhaseFiveCorrectiveReviewEvidence(
+        schema_version=1,
+        evidence_type="phase-five-corrective-review",
+        run_id="phase-five-corrective-review-regression",
+        captured_at=datetime(2026, 8, 8, 12, 0, tzinfo=UTC),
+        status=EvidenceStatus.REVIEWED,
+        dataset=_dataset().model_copy(update={"role": DatasetRole.REGRESSION}),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        prior_decision_sha256="4" * 64,
+        development_manifest_sha256="5" * 64,
+        regression_manifest_sha256="6" * 64,
+        analytic_case_count=84,
+        development_image_count=10,
+        regression_image_count=100,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260806,
+        endpoints=(matched_endpoint, corrective_endpoint),
+        paired_endpoints=tuple(paired),
+        candidates=(
+            PhaseFiveFilterReviewCandidateConclusion(
+                family="beam-aware-matched-filter",
+                passes_absolute=False,
+                noninferior_to_other=True,
+                bounded_cost=(9, 7, 34),
+                failed_absolute_endpoint_count=1,
+                failed_paired_endpoint_count=0,
+            ),
+            PhaseFiveFilterReviewCandidateConclusion(
+                family="residual-b3-atrous",
+                passes_absolute=False,
+                noninferior_to_other=True,
+                bounded_cost=(12, 7, 14),
+                failed_absolute_endpoint_count=1,
+                failed_paired_endpoint_count=0,
+            ),
+        ),
+        decision="reject-corrective",
+        selected_family=None,
+        step_three_authorized=False,
+        qualification_opened=False,
+    )
+    payload = evidence.model_dump(mode="python")
+    payload["step_three_authorized"] = True
+
+    with pytest.raises(ValidationError, match="passing corrective"):
+        PhaseFiveCorrectiveReviewEvidence.model_validate(payload)
 
 
 def test_software_identity_can_record_an_uncommitted_source_tree() -> None:

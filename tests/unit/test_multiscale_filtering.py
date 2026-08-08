@@ -10,10 +10,15 @@ import pytest
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
     FilterFamily,
+    ResidualAtrousResult,
     ScaleFilterBankResult,
+    ScaleFilterResponse,
+    build_residual_atrous_plan,
     build_scale_filter_bank,
+    evaluate_residual_atrous,
     evaluate_scale_filter_bank,
     prepare_scale_filter_inputs,
+    reconstruct_significant_atrous,
 )
 
 _FWHM_TO_SIGMA = 1.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
@@ -356,6 +361,181 @@ def test_serial_scale_filter_outputs_are_float64_and_read_only(
         assert response.effective_rms_jy_per_beam.dtype == np.float64
         assert not response.response_jy_per_beam.flags.writeable
         assert not response.effective_rms_jy_per_beam.flags.writeable
+
+
+def test_residual_atrous_plan_freezes_standard_b3_bounds() -> None:
+    """The corrective transform uses the reviewed sparse dyadic B3 plan."""
+    plan = build_residual_atrous_plan(_beam(), noise_correlation=_beam())
+
+    np.testing.assert_allclose(
+        plan.base_kernel,
+        np.asarray([1.0, 4.0, 6.0, 4.0, 1.0]) / 16.0,
+    )
+    assert plan.scale_dilations_pixels == (1, 2, 4)
+    assert plan.scale_halo_pixels == (2, 6, 14)
+    assert plan.maximum_halo_pixels == 14
+    assert plan.convolution_count_per_evaluation == 12
+    assert plan.temporary_plane_count == 7
+    assert all(item.correlated_noise_gain > 0 for item in plan.scales)
+
+
+def test_residual_atrous_preserves_affine_background_and_telescopes() -> None:
+    """Adjacent smoothings cancel affine signal and reconstruct exactly."""
+    y_grid, x_grid = np.indices((65, 67), dtype=np.float64)
+    image = 3.0 + 0.02 * x_grid - 0.03 * y_grid
+    prepared = prepare_scale_filter_inputs(
+        image,
+        np.ones(image.shape, dtype=np.bool_),
+        np.zeros(image.shape, dtype=np.float64),
+        np.full(image.shape, 0.01, dtype=np.float64),
+    )
+
+    result = evaluate_residual_atrous(
+        prepared,
+        build_residual_atrous_plan(_beam(), noise_correlation=_beam()),
+        minimum_support_fraction=0.5,
+    )
+
+    interior = np.s_[14:-14, 14:-14]
+    for response in result.responses:
+        np.testing.assert_allclose(
+            response.response_jy_per_beam[interior],
+            0.0,
+            atol=2e-14,
+        )
+    np.testing.assert_allclose(
+        result.reconstructed_signal_jy_per_beam[interior]
+        + result.coarse_smoothing_jy_per_beam[interior],
+        prepared.residual_jy_per_beam[interior],
+        atol=2e-14,
+    )
+
+
+def test_residual_atrous_normalizes_mask_support_and_excludes_compact() -> (
+    None
+):
+    """Invalid and accepted compact pixels do not enter smoothing."""
+    image = _unit_flux_gaussian(
+        (65, 65), centre_xy=(32.0, 32.0), scale_beams=1.0
+    )
+    valid = np.ones(image.shape, dtype=np.bool_)
+    valid[:, :31] = False
+    image[~valid] = np.nan
+    compact = np.zeros(image.shape, dtype=np.bool_)
+    compact[30:35, 30:35] = True
+    prepared = prepare_scale_filter_inputs(
+        image,
+        valid,
+        np.zeros(image.shape, dtype=np.float64),
+        np.full(image.shape, 0.01, dtype=np.float64),
+    )
+
+    result = evaluate_residual_atrous(
+        prepared,
+        build_residual_atrous_plan(_beam(), noise_correlation=_beam()),
+        minimum_support_fraction=0.5,
+        accepted_compact_mask=compact,
+    )
+
+    assert not result.scientifically_valid[32, 32]
+    assert np.isnan(result.responses[0].response_jy_per_beam[32, 32])
+    assert result.responses[0].valid_support_fraction[32, 35] >= 0.5
+    assert all(
+        not response.response_jy_per_beam.flags.writeable
+        for response in result.responses
+    )
+
+
+def test_residual_atrous_subtracts_an_accepted_compact_model() -> None:
+    """A supplied compact model is removed before residual coefficients."""
+    image = _unit_flux_gaussian(
+        (65, 65), centre_xy=(32.0, 32.0), scale_beams=1.0
+    )
+    prepared = prepare_scale_filter_inputs(
+        image,
+        np.ones(image.shape, dtype=np.bool_),
+        np.zeros(image.shape, dtype=np.float64),
+        np.full(image.shape, 0.01, dtype=np.float64),
+    )
+    plan = build_residual_atrous_plan(_beam(), noise_correlation=_beam())
+
+    result = evaluate_residual_atrous(
+        prepared,
+        plan,
+        minimum_support_fraction=0.5,
+        accepted_compact_model=image,
+    )
+
+    for response in result.responses:
+        np.testing.assert_allclose(
+            response.response_jy_per_beam[response.scientifically_valid],
+            0.0,
+            atol=1e-15,
+        )
+    with pytest.raises(ValueError, match="subtracted or excluded"):
+        evaluate_residual_atrous(
+            prepared,
+            plan,
+            minimum_support_fraction=0.5,
+            accepted_compact_model=image,
+            accepted_compact_mask=np.zeros(image.shape, dtype=np.bool_),
+        )
+
+
+def test_residual_atrous_reconstruction_requires_adjacent_scale_support() -> (
+    None
+):
+    """An isolated coefficient cannot become reconstructed source signal."""
+    shape = (5, 5)
+
+    def response(order: int, values: np.ndarray) -> ScaleFilterResponse:
+        return ScaleFilterResponse(
+            scale_order=order,
+            nominal_scale_beam_fwhm=float(2 ** (order - 1)),
+            response_jy_per_beam=values,
+            effective_rms_jy_per_beam=np.ones(shape, dtype=np.float64),
+            valid_support_fraction=np.ones(shape, dtype=np.float64),
+            scientifically_valid=np.ones(shape, dtype=np.bool_),
+        )
+
+    first = np.zeros(shape, dtype=np.float64)
+    second = np.zeros(shape, dtype=np.float64)
+    third = np.zeros(shape, dtype=np.float64)
+    first[2, 2:4] = (5.0, 3.5)
+    second[2, 2:4] = (5.2, 3.2)
+    third[1, 1] = 6.0
+    result = ResidualAtrousResult(
+        family="residual-b3-atrous",
+        responses=(
+            response(1, first),
+            response(2, second),
+            response(3, third),
+        ),
+        reconstructed_signal_jy_per_beam=np.zeros(shape, dtype=np.float64),
+        coarse_smoothing_jy_per_beam=np.zeros(shape, dtype=np.float64),
+        scientifically_valid=np.ones(shape, dtype=np.bool_),
+        convolution_count=12,
+        temporary_plane_count=7,
+        maximum_workspace_bytes=1,
+    )
+
+    reconstruction = reconstruct_significant_atrous(
+        result,
+        detection_sigma=5.0,
+        island_sigma=3.0,
+    )
+
+    assert reconstruction.support_mask[2, 2:4].all()
+    assert reconstruction.signal_jy_per_beam[2, 2] == pytest.approx(10.2)
+    assert reconstruction.signal_jy_per_beam[2, 3] == pytest.approx(6.7)
+    assert not reconstruction.support_mask[1, 1]
+    assert reconstruction.signal_jy_per_beam[1, 1] == 0.0
+    with pytest.raises(ValueError, match="detection_sigma"):
+        reconstruct_significant_atrous(
+            result,
+            detection_sigma=3.0,
+            island_sigma=3.0,
+        )
 
 
 @pytest.mark.parametrize(

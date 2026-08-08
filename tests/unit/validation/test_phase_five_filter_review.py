@@ -11,7 +11,10 @@ from hebog.algorithms.multiscale import (
     ScaleFilterBankResult,
     ScaleFilterResponse,
 )
-from hebog.validation.contracts import load_phase_five_filter_review
+from hebog.validation.contracts import (
+    load_phase_five_corrective_review,
+    load_phase_five_filter_review,
+)
 from hebog.validation.datasets import load_dataset_manifest
 from hebog.validation.phase_five_filter_analysis import (
     FilterReviewDatasets,
@@ -22,6 +25,8 @@ from hebog.validation.phase_five_filter_review import (
     CandidateScientificDecision,
     build_analytic_review_cases,
     evaluate_analytic_cases,
+    evaluate_corrective_analytic_cases,
+    evaluate_corrective_generated_image,
     evaluate_generated_image,
     select_filter_family,
     threshold_filter_responses,
@@ -30,6 +35,9 @@ from hebog.validation.phase_five_filter_review import (
 _ROOT = Path(__file__).parents[3]
 _CONTRACT = _ROOT / "config/contracts/phase-5-filter-paired-review.json"
 _DEVELOPMENT = _ROOT / "config/datasets/phase-5-development.json"
+_CORRECTIVE_CONTRACT = (
+    _ROOT / "config/contracts/phase-5-corrective-review.json"
+)
 
 
 def _response(values: np.ndarray) -> ScaleFilterResponse:
@@ -265,4 +273,72 @@ def test_compiled_review_fails_closed_across_recorded_strata() -> None:
         item.population == "regression"
         and item.stratum == "morphology-diffuse"
         for item in compiled.paired_endpoints
+    )
+
+
+def test_corrective_analytic_measurement_uses_observable_original_pixels() -> (
+    None
+):
+    """Masked final-output flux and position use observable original truth."""
+    review = load_phase_five_corrective_review(_CORRECTIVE_CONTRACT)
+    beam = BeamShapePixels(5.0, 3.5, 20.0)
+    cases = build_analytic_review_cases(beam, review)
+
+    observations = evaluate_corrective_analytic_cases(cases, beam, review)
+
+    assert len(observations) == 2 * len(cases)
+    assert all(item.available for item in observations)
+    response_limit = (
+        review.absolute_gates.maximum_percentile_95_response_fractional_error
+    )
+    assert (
+        max(item.response_fractional_error or 0.0 for item in observations)
+        <= response_limit
+    )
+    assert max(
+        item.integrated_flux_fractional_error or 0.0 for item in observations
+    ) <= (
+        review.absolute_gates.maximum_percentile_95_integrated_flux_fractional_error
+    )
+    assert (
+        max(item.position_error_beams or 0.0 for item in observations)
+        <= review.absolute_gates.maximum_percentile_95_position_beams
+    )
+
+
+def test_corrective_generated_measurement_passes_development_smoke_case() -> (
+    None
+):
+    """Final residual masks and measurements satisfy one untuned image."""
+    review = load_phase_five_corrective_review(_CORRECTIVE_CONTRACT)
+    dataset = load_dataset_manifest(_DEVELOPMENT).datasets[0]
+
+    observation = evaluate_corrective_generated_image(
+        dataset,
+        recipe_index=0,
+        family="residual-b3-atrous",
+        review=review,
+    )
+
+    assert (
+        observation.completeness >= review.absolute_gates.minimum_completeness
+    )
+    assert observation.reliability >= review.absolute_gates.minimum_reliability
+    assert observation.mask_intersection_over_union >= (
+        review.absolute_gates.minimum_mask_intersection_over_union
+    )
+    assert observation.fragmentation_fraction <= (
+        review.absolute_gates.maximum_fragmentation_fraction
+    )
+    gates = review.absolute_gates
+    flux_limit = gates.maximum_percentile_95_integrated_flux_fractional_error
+    assert all(
+        group.integrated_flux_fractional_error is not None
+        and group.integrated_flux_fractional_error <= flux_limit
+        for group in observation.groups
+    )
+    assert all(
+        group.position_error_beams is not None
+        and np.isfinite(group.position_error_beams)
+        for group in observation.groups
     )

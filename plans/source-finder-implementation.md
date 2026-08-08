@@ -884,13 +884,12 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Steps 1--2B and the community-practice review are completed. The
-frozen paired comparison selected neither existing representation: both
-missed absolute truth gates and both failed candidate-to-candidate
-non-inferiority in governed strata. The initial float64 beam-aware
-matched-filter choice remains historical Step 2 evidence, not implementation
-authorization. Step 3 and candidate-specific optimization remain blocked
-pending a frozen residual-wavelet corrective design and re-evaluation.
+**Status:** Steps 1--2C are completed. Step 2B selected neither original
+representation. Step 2C then froze and evaluated a residual B3-spline à trous
+corrective design, but rejected it: the corrective candidate failed 23
+absolute and eight paired endpoints, principally astrometry, shell/tile
+fragmentation, artifact flux, and reliability. Step 3 and candidate-specific
+optimization remain blocked pending the focused 2C-R correction below.
 Qualification remains unopened; no multiscale equivalence or complete runtime
 claim is approved.
 
@@ -1009,34 +1008,53 @@ and spill behaviour, and facility-scale execution.
          segmentation, and distributed-overlap precedents and keep the final
          design explainable without hidden learned models or proprietary
          training data.
-   - [ ] Diagnose the failed analytic response, response-SNR, astrometry,
+   - [x] Diagnose the failed analytic response, response-SNR, astrometry,
          fragmentation, and mask-topology strata without opening
          qualification. Separate evaluator defects from representation
          limitations with exact truth and development-only probes.
-   - [ ] Freeze a corrective serial design that subtracts or excludes accepted
+   - [x] Freeze a corrective serial design that subtracts or excludes accepted
          compact emission, computes a normalized B3-spline à trous transform
          of the residual, calibrates correlated noise and valid support per
          scale, reconstructs significant adjacent-scale support, grows that
          support on the original residual, and measures final extended
          properties on the original background-subtracted pixels.
-   - [ ] Predeclare how the existing response endpoint applies to reconstructed
+   - [x] Predeclare how the existing response endpoint applies to reconstructed
          signal before viewing new results. Preserve the numerical absolute
          gates, paired margins, source population, inputs, thresholds, and
          fail-closed semantics; do not weaken a gate because detection,
          reconstruction, masking, and photometry are now explicit stages.
-   - [ ] Freeze a bounded implementation using separable sparse B3-spline
+   - [x] Freeze a bounded implementation using separable sparse B3-spline
          convolutions, reused adjacent smoothings, scale-specific finite
          halos, bounded normalized-convolution support, and no durable full
          response bank. Profile first before authorizing Numba, native code,
          lower precision, or a new dependency.
-   - [ ] Keep the beam-aware matched filter as a governed comparator and
+   - [x] Keep the beam-aware matched filter as a governed comparator and
          possible known-template compact aid, not the default extended-source
          representation. A future workflow-specific matched-filter profile
          requires its own explicit scientific and downstream qualification.
-   - [ ] Re-run the full Step 2B analytic and 100-image regression protocol on
+   - [x] Re-run the full Step 2B analytic and 100-image regression protocol on
          final reconstructed masks and original-pixel measurements. Authorize
          Step 3 only if the corrective candidate passes every applicable
-         absolute and paired stratum gate. Keep qualification unopened.
+         absolute and paired stratum gate. The reviewed outcome was
+         `reject-corrective`: 23 absolute and eight paired failures, so Step 3
+         remains unauthorized and qualification unopened.
+
+2C-R. **Correct the failed final-output stages without changing representation.**
+
+   - [ ] Freeze, before another result run, a lower-variance original-pixel
+         astrometry estimator, cross-scale association rule for shell and
+         tile-boundary fragments, artifact-aware measurement disposition, and
+         calibrated false-positive control. Preserve B3 detection provenance,
+         original-pixel measurement, the populations, and every numerical
+         gate and margin.
+   - [ ] Add exact and development regression tests for the four observed
+         failure domains. Distinguish estimator variance from bias and report
+         typed truncation or artifact disposition rather than substituting a
+         truth coordinate or weakening the astrometry and flux endpoints.
+   - [ ] Re-run the complete 84-case analytic and 100-image regression review
+         under a newly hashed pre-results contract. Authorize Step 3 only when
+         the residual B3 candidate passes every absolute and paired stratum;
+         otherwise revise the plan again and keep qualification closed.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
@@ -1169,7 +1187,7 @@ and spill behaviour, and facility-scale execution.
 
 Phase 5 closes only when:
 
-- the corrective continuum design selected through Step 2C passes the
+- the corrective continuum design corrected through Step 2C-R passes the
   predeclared final-output scientific comparison in every applicable masked,
   edge, scale, morphology, noise, and SNR stratum before candidate-specific
   optimization;
@@ -1431,18 +1449,20 @@ the initial analytic screen. Step 2B superseded that selection status: the
 matched filter was more consistent and had higher calibrated response SNR,
 while the wavelet was better for several straight masked half-planes and had
 substantially better generated mask overlap. Neither passed the complete
-absolute and paired matrix. The reviewed decision is therefore
-`select-neither`; Step 2C must freeze a corrective design before any
-representation is optimized or Step 3 begins. See the
+absolute and paired matrix; the reviewed decision was `select-neither`. See the
 [filter decision](../docs/reference/phase-5-filter-selection.md).
 
-The community-practice review now makes residual B3-spline à trous detection,
+The community-practice review made residual B3-spline à trous detection,
 reconstruction, morphology-independent support, and original-image
-measurement the corrective Step 2C candidate. This is intentionally familiar
-to PyBDSF and Selavy users while adopting the segmentation strengths exposed
-by ProFound, CAESAR, and Hydra. It is not selected until the unchanged final-
-output gates pass. The separate Step 2D evidence decides only whether Rapthor
-uses the `compact` or `continuum` profile.
+measurement the corrective Step 2C candidate. This is familiar to PyBDSF and
+Selavy users while adopting segmentation strengths exposed by ProFound,
+CAESAR, and Hydra. The governed Step 2C result rejected the current
+final-output pipeline: B3 reduced failures relative to the matched comparator
+but did not pass every unchanged gate. Step 2C-R therefore retains the
+representation and corrects measurement, association, artifact disposition,
+and false-positive control before another frozen review. The separate Step 2D
+evidence decides only whether Rapthor uses the `compact` or `continuum`
+profile.
 
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:

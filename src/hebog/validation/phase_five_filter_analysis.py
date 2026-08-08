@@ -9,7 +9,10 @@ import numpy as np
 import numpy.typing as npt
 
 from hebog.algorithms.multiscale import FilterFamily
-from hebog.validation.contracts import PhaseFiveFilterReview
+from hebog.validation.contracts import (
+    PhaseFiveCorrectiveReview,
+    PhaseFiveFilterReview,
+)
 from hebog.validation.datasets import DatasetRecord
 from hebog.validation.evidence import (
     PhaseFiveFilterReviewCandidateConclusion,
@@ -24,6 +27,7 @@ from hebog.validation.phase_five_filter_review import (
 
 _Statistic = Literal["fraction", "maximum", "mean", "median", "percentile-95"]
 _Direction = Literal["maximum", "minimum"]
+_ReviewContract = PhaseFiveFilterReview | PhaseFiveCorrectiveReview
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,7 +88,7 @@ class _PairedSeries:
 
 
 def _families(
-    review: PhaseFiveFilterReview,
+    review: _ReviewContract,
 ) -> tuple[FilterFamily, FilterFamily]:
     """Return the contract-validated canonical candidate pair."""
     return cast(tuple[FilterFamily, FilterFamily], review.candidates)
@@ -191,7 +195,7 @@ def _paired_endpoint(
     stratum: str,
     series: _PairedSeries,
     spec: _PairedSpec,
-    review: PhaseFiveFilterReview,
+    review: _ReviewContract,
 ) -> PhaseFiveFilterReviewPairedEndpointEvidence:
     """Build one exact analytic or bootstrapped generated comparison."""
     if population == "analytic":
@@ -285,7 +289,7 @@ def _analytic_values(
 
 def _compile_analytic(
     observations: tuple[AnalyticFilterObservation, ...],
-    review: PhaseFiveFilterReview,
+    review: _ReviewContract,
 ) -> tuple[
     tuple[PhaseFiveFilterReviewEndpointEvidence, ...],
     tuple[PhaseFiveFilterReviewPairedEndpointEvidence, ...],
@@ -590,7 +594,7 @@ def _generated_image_series(
 def _compile_generated_population(
     observations: tuple[GeneratedImageObservation, ...],
     dataset: DatasetRecord,
-    review: PhaseFiveFilterReview,
+    review: _ReviewContract,
     *,
     population: Literal["development", "regression"],
 ) -> tuple[
@@ -809,7 +813,7 @@ def _compile_generated_population(
 def compile_filter_review(
     observations: FilterReviewObservations,
     datasets: FilterReviewDatasets,
-    review: PhaseFiveFilterReview,
+    review: _ReviewContract,
     *,
     bounded_costs: dict[FilterFamily, tuple[int, int, int]],
 ) -> CompiledFilterReview:

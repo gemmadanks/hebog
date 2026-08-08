@@ -489,6 +489,7 @@ class PhaseFiveFilterSelectionEvidence(_EvidenceDocument):
 PhaseFiveFilterFamily: TypeAlias = Literal[
     "beam-aware-matched-filter",
     "undecimated-wavelet",
+    "residual-b3-atrous",
 ]
 
 
@@ -692,6 +693,107 @@ class PhaseFiveFilterReviewEvidence(_EvidenceDocument):
             )
         if self.step_three_authorized != (self.selected_family is not None):
             raise ValueError("Step 3 authorization requires a selected family")
+        return self
+
+
+class PhaseFiveCorrectiveReviewEvidence(_EvidenceDocument):
+    """Completed non-qualification corrective review for Phase 5 Step 2C."""
+
+    evidence_type: Literal["phase-five-corrective-review"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    prior_decision_sha256: str = Field(pattern=_SHA256_PATTERN)
+    development_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    regression_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    analytic_case_count: int = Field(ge=1)
+    development_image_count: int = Field(ge=1)
+    regression_image_count: int = Field(ge=100)
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    endpoints: tuple[PhaseFiveFilterReviewEndpointEvidence, ...] = Field(
+        min_length=1
+    )
+    paired_endpoints: tuple[
+        PhaseFiveFilterReviewPairedEndpointEvidence, ...
+    ] = Field(min_length=1)
+    candidates: tuple[PhaseFiveFilterReviewCandidateConclusion, ...]
+    decision: Literal["authorize-corrective", "reject-corrective"]
+    selected_family: Literal["residual-b3-atrous"] | None
+    step_three_authorized: bool
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_corrective_conclusion(self) -> Self:
+        """Authorize only a corrective candidate passing every endpoint."""
+        if self.status is not EvidenceStatus.REVIEWED:
+            raise ValueError("completed corrective evidence must be reviewed")
+        if tuple(item.family for item in self.candidates) != (
+            "beam-aware-matched-filter",
+            "residual-b3-atrous",
+        ):
+            raise ValueError("corrective-review candidates must be canonical")
+        endpoint_keys = [
+            (
+                item.population,
+                item.stratum,
+                item.metric,
+                item.statistic,
+                item.family,
+            )
+            for item in self.endpoints
+        ]
+        paired_keys = [
+            (
+                item.population,
+                item.stratum,
+                item.metric,
+                item.statistic,
+                item.family,
+            )
+            for item in self.paired_endpoints
+        ]
+        if len(set(endpoint_keys)) != len(endpoint_keys) or len(
+            set(paired_keys)
+        ) != len(paired_keys):
+            raise ValueError(
+                "corrective-review endpoint identities must be unique"
+            )
+        for candidate in self.candidates:
+            absolute_failures = sum(
+                item.family == candidate.family and item.passed is False
+                for item in self.endpoints
+            )
+            paired_failures = sum(
+                item.family == candidate.family and not item.passed
+                for item in self.paired_endpoints
+            )
+            if (
+                candidate.failed_absolute_endpoint_count != absolute_failures
+                or candidate.failed_paired_endpoint_count != paired_failures
+            ):
+                raise ValueError(
+                    "corrective candidate conclusion disagrees with endpoints"
+                )
+        corrective = self.candidates[1]
+        authorized = (
+            corrective.passes_absolute and corrective.noninferior_to_other
+        )
+        if self.step_three_authorized != authorized:
+            raise ValueError(
+                "Step 3 authorization requires a passing corrective candidate"
+            )
+        expected_family = "residual-b3-atrous" if authorized else None
+        expected_decision = (
+            "authorize-corrective" if authorized else "reject-corrective"
+        )
+        if (
+            self.selected_family != expected_family
+            or self.decision != expected_decision
+        ):
+            raise ValueError(
+                "corrective-review decision disagrees with candidate gates"
+            )
         return self
 
 
@@ -1677,6 +1779,7 @@ EvidenceDocument: TypeAlias = (
     BenchmarkEvidence
     | PhaseFiveFilterSelectionEvidence
     | PhaseFiveFilterReviewEvidence
+    | PhaseFiveCorrectiveReviewEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence

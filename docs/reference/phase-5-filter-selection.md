@@ -1,22 +1,75 @@
 # Phase 5 scale-filter selection
 
-**Status:** Step 2B completed with `select-neither`. The broader paired review
-found that neither the beam-aware matched filter nor the undecimated wavelet
-passed every absolute and candidate-to-candidate stratum gate. The initial
-matched-filter selection is retained only as historical Step 2 evidence.
-Step 3 and candidate-specific optimization remain blocked until a newly
-frozen corrective design passes the same review. This is not multiscale
+**Status:** Steps 2B and 2C are complete with no eligible production
+representation. Step 2B selected neither original candidate. Step 2C froze
+and evaluated a residual B3-spline à trous correction, then rejected it after
+23 absolute and eight paired endpoint failures. Step 3, candidate-specific
+optimization, and qualification remain blocked. This is not multiscale
 equivalence, complete Rapthor performance, or production-readiness evidence.
 
 The 2026-08-08 community-practice review identified a residual B3-spline
 à trous reconstruction with morphology-independent support and
-original-image measurement as the corrective Step 2C candidate. It remains a
-candidate, not a selected representation. The existing matched filter remains
-a comparator and possible known-template compact aid; neither family is
-authorized for extended-source production work.
+original-image measurement as the corrective Step 2C candidate. The existing
+matched filter remained a comparator and possible known-template compact aid;
+neither family is authorized for extended-source production work.
 
-The comparison used only the ten frozen development realizations. The
-qualification manifest and all qualification results remained unopened.
+The completed comparisons used the frozen development and regression roles.
+The qualification manifest and all qualification results remained unopened.
+
+## Completed corrective continuum review
+
+The pre-results contract is
+`config/contracts/phase-5-corrective-review.json`, SHA-256
+`28a1edf8a472f4eb0431f4c566cd47b3131d365cefd03f0cd97c857bab2ffe3e`.
+It preserved the 84 analytic cases, 100 regression images, 5-sigma seeds,
+3-sigma growth, numerical gates, paired margins, and 10,000-resample
+confidence rule from Step 2B. Before new results, it changed only the endpoint
+semantics that Step 2B had shown to be defective:
+
+- filter and wavelet responses provide calibrated detection evidence;
+- normalized B3 coefficients provide adjacent-scale association provenance;
+- final masks grow on the original residual;
+- flux and astrometry use original background-subtracted pixels; and
+- masked and edge truth is compared on the observable valid domain, with
+  truncation reported rather than imputed.
+
+The serial transform uses the standard `[1, 4, 6, 4, 1] / 16` B3 kernel,
+dyadic holes of 1, 2, and 4 pixels, adjacent smoothing reuse, a 14-pixel
+cumulative halo, 12 sparse one-dimensional convolutions, seven temporary
+planes, float64, and no durable coefficient bank. No dependency, native code,
+or lower-precision path was added. With the permitted matched-filter seed aid,
+the complete corrective screen records 21 convolutions, seven peak scratch
+planes, and the comparator's 38-pixel maximum halo; selection did not reach
+the cost tie-breaker.
+
+| Regression endpoint | Matched comparator | Residual B3 | Gate |
+| --- | ---: | ---: | ---: |
+| Completeness | 1.000 | 1.000 | at least 0.900 |
+| Median flux error | 0.0508 | 0.0496 | at most 0.100 |
+| Mean mask IoU | 0.8266 | 0.8260 | at least 0.800 |
+| Mean fragmentation | 0.2600 | 0.0686 | at most 0.100 |
+| Mean reliability | 0.8524 | 0.9405 | at least 0.950 |
+| 95th-percentile position error | 1.6171 beams | 1.5983 beams | at most 0.250 |
+
+The amended analytic response, flux, position, and support endpoints all
+passed, confirming that masked-source response bias in Step 2B was largely an
+evaluator-stage error rather than proof of an inferior representation. On
+generated data, B3 association reduced overall fragmentation below its gate
+and improved reliability substantially. It nevertheless failed shell and
+tile-boundary fragmentation strata, missed reliability by 0.0095, retained
+artifact flux failures, and exceeded the astrometry gate across 16 strata.
+Those failures cannot be compensated by its improvements.
+
+The reviewed record is
+`config/contracts/phase-5-corrective-decision.json`. It binds ignored evidence
+`benchmark-results/phase-5/corrective-review.json`, SHA-256
+`5d21e1815fe16bdfce7f349238bec819b485cf50eef2cc552c925939fed0dc7e`,
+and records `reject-corrective`, `selected_family=null`, and false Step 3,
+optimization, and qualification authorization. The next review must freeze a
+lower-variance original-pixel astrometry estimator, stronger shell/tile
+association, artifact-aware measurement disposition, and calibrated
+false-positive control without changing the representation or weakening a
+gate.
 
 ## Scientific response
 
@@ -160,15 +213,13 @@ every measured repetition, analytic errors, and structural costs.
 The paired Step 2B evidence is
 `benchmark-results/phase-5/filter-paired-review.json`; its exact checksum and
 source-tree identity are frozen in the paired decision contract. The runner
-is `scripts/benchmark/review_phase5_filters.py`.
+is `scripts/benchmark/review_phase5_filters.py`. The Step 2C evidence and
+identity are frozen in the corrective decision contract; its runner is
+`scripts/benchmark/review_phase5_corrective.py`.
 
-Neither evidence record establishes production thresholded scale detections,
-connectivity,
-extended measurements, cross-scale reconciliation, real-residual behaviour,
-PyBDSF equivalence, or complete `filter_skymodel` speedup. Those remain later
-Phase 5 and Phase 7 gates. Step 2C must now freeze the detection,
-reconstruction, support-growth, original-pixel measurement, and amended
-response-evaluation contract before implementation or new result inspection;
-Step 3 remains blocked. The separate compact-only Rapthor probe selects only
-that workflow's explicit profile and cannot establish general multiscale
-equivalence.
+None of these records establishes production extended measurements,
+cross-tile reconciliation, real-residual behaviour, PyBDSF equivalence, or
+complete `filter_skymodel` speedup. Those remain later gates. Step 2C-R must
+freeze and pass the four final-output corrections above; Step 3 remains
+blocked. The separate compact-only Rapthor probe selects only that workflow's
+explicit profile and cannot establish general multiscale equivalence.

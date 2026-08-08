@@ -25,6 +25,7 @@ _PHASE_FIVE_SELECTED_CONVOLUTION_COUNT = 9
 _PHASE_FIVE_SELECTED_TEMPORARY_PLANES = 7
 _PHASE_FIVE_REVIEW_DETECTION_SIGMA = 5.0
 _PHASE_FIVE_REVIEW_ISLAND_SIGMA = 3.0
+_PHASE_FIVE_CORRECTIVE_MAXIMUM_HALO = 14
 _PHASE_FIVE_REQUIRED_STRATA = {
     "above-compact-deblend-limit",
     "image-edge",
@@ -1165,6 +1166,244 @@ class PhaseFiveFilterReview(_ContractModel):
         return self
 
 
+class PhaseFiveCorrectiveResponseEndpoint(_ContractModel):
+    """Candidate-neutral Step 2C response meaning at final output."""
+
+    signal: Literal["final-reconstructed-signal"]
+    truth: Literal["observable-valid-domain-truth"]
+    statistic: Literal["integrated-original-pixel-signal"]
+    truncation: Literal["reported-not-imputed"]
+
+
+class PhaseFiveCorrectiveMeasurement(_ContractModel):
+    """Frozen separation of detection, segmentation, and measurement."""
+
+    mask: Literal["original-residual-seed-and-grow"]
+    photometry: Literal["original-residual-pixels"]
+    astrometry: Literal["original-residual-pixels"]
+    wavelet_coefficients: Literal["detection-and-association-provenance-only"]
+
+
+class PhaseFiveCorrectiveDesign(_ContractModel):
+    """Scientifically familiar residual-wavelet corrective design."""
+
+    compact_treatment: Literal["exclude-or-subtract-accepted-compact-emission"]
+    wavelet: Literal["normalized-b3-spline-atrous"]
+    noise: Literal["per-scale-correlated-local-rms"]
+    support: Literal["per-scale-normalized-valid-support"]
+    reconstruction: Literal["significant-adjacent-scale-support"]
+    matched_filter_role: Literal[
+        "known-template-seed-aid-and-governed-comparator"
+    ]
+
+
+class PhaseFiveCorrectiveBoundedImplementation(_ContractModel):
+    """Frozen serial cost and storage boundaries for the corrective screen."""
+
+    kernel: Literal["separable-sparse-b3-spline"]
+    scale_dilations_pixels: tuple[int, ...]
+    maximum_halo_pixels: int
+    shared_adjacent_smoothings: Literal[True]
+    durable_response_bank: Literal[False]
+    dtype: Literal["float64"]
+    optimization: Literal["profile-after-scientific-selection"]
+
+    @model_validator(mode="after")
+    def validate_bounds(self) -> Self:
+        """Protect the reviewed three-scale finite-halo construction."""
+        if self.scale_dilations_pixels != (1, 2, 4):
+            raise ValueError("corrective B3 dilations must be 1, 2, and 4")
+        if self.maximum_halo_pixels != _PHASE_FIVE_CORRECTIVE_MAXIMUM_HALO:
+            raise ValueError("corrective cumulative halo must be 14 pixels")
+        return self
+
+
+class PhaseFiveCorrectiveReview(_ContractModel):
+    """Frozen Step 2C corrective continuum re-evaluation contract."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-corrective-review"]
+    status: Literal["frozen-before-corrective-results"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[
+        Literal["beam-aware-matched-filter", "residual-b3-atrous"], ...
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    matrix: PhaseFiveFilterReviewMatrix
+    binding_metrics: tuple[str, ...] = Field(min_length=10)
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=2)
+    absolute_gates: PhaseFiveFilterReviewAbsoluteGates
+    paired_margins: PhaseFiveFilterReviewPairedMargins
+    statistical_design: PhaseFiveFilterReviewStatistics
+    decision_policy: PhaseFiveFilterReviewDecisionPolicy
+    response_endpoint: PhaseFiveCorrectiveResponseEndpoint
+    final_measurement: PhaseFiveCorrectiveMeasurement
+    corrective_design: PhaseFiveCorrectiveDesign
+    bounded_implementation: PhaseFiveCorrectiveBoundedImplementation
+    step_three_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_corrective_review(self) -> Self:
+        """Freeze the prior populations, metrics, gates, and paired margins."""
+        if self.candidates != (
+            "beam-aware-matched-filter",
+            "residual-b3-atrous",
+        ):
+            raise ValueError("corrective-review candidates must be canonical")
+        expected_datasets = (
+            (
+                "development",
+                "config/datasets/phase-5-development.json",
+                "b3c9594efa0c39ce30f3b287988f3fca90f69c5ccb8507adc463b37fed0b8350",
+                10,
+            ),
+            (
+                "regression",
+                "config/datasets/phase-5-regression.json",
+                "7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e",
+                100,
+            ),
+        )
+        observed_datasets = tuple(
+            (item.role, item.manifest, item.manifest_sha256, item.image_count)
+            for item in self.dataset_manifests
+        )
+        if observed_datasets != expected_datasets:
+            raise ValueError(
+                "corrective review requires unchanged Step 2B populations"
+            )
+        expected_metrics = {
+            "calibrated-response-snr",
+            "completeness",
+            "fragmentation-fraction",
+            "integrated-flux-fractional-error",
+            "mask-intersection-over-union",
+            "noise-standard-deviation-error",
+            "position-error-beams",
+            "reliability",
+            "response-fractional-error",
+            "support-availability",
+        }
+        if (
+            set(self.binding_metrics) != expected_metrics
+            or tuple(sorted(expected_metrics)) != self.binding_metrics
+        ):
+            raise ValueError("corrective-review metrics must remain canonical")
+        expected_gates = {
+            "maximum_median_response_fractional_error": 0.05,
+            "maximum_percentile_95_response_fractional_error": 0.1,
+            "maximum_median_integrated_flux_fractional_error": 0.1,
+            "maximum_percentile_95_integrated_flux_fractional_error": 0.25,
+            "maximum_noise_std_fractional_error": 0.15,
+            "minimum_support_availability": 0.95,
+            "minimum_completeness": 0.9,
+            "minimum_reliability": 0.95,
+            "maximum_percentile_95_position_beams": 0.25,
+            "minimum_mask_intersection_over_union": 0.8,
+            "maximum_fragmentation_fraction": 0.1,
+        }
+        expected_margins = {
+            "maximum_median_response_error_increase": 0.02,
+            "maximum_percentile_95_response_error_increase": 0.05,
+            "maximum_median_integrated_flux_error_increase": 0.05,
+            "maximum_calibrated_snr_fractional_loss": 0.1,
+            "maximum_noise_std_error_increase": 0.05,
+            "maximum_completeness_loss": 0.02,
+            "maximum_reliability_loss": 0.02,
+            "maximum_position_error_increase_beams": 0.05,
+            "maximum_mask_intersection_over_union_loss": 0.05,
+            "maximum_fragmentation_fraction_increase": 0.02,
+        }
+        if self.absolute_gates.model_dump() != expected_gates or (
+            self.paired_margins.model_dump() != expected_margins
+        ):
+            raise ValueError(
+                "corrective review requires unchanged Step 2B gates"
+            )
+        if (
+            self.statistical_design.confidence_level
+            != _PAIRED_CONFIDENCE_LEVEL
+        ):
+            raise ValueError("corrective-review confidence must remain 0.95")
+        return self
+
+
+class PhaseFiveCorrectiveCandidateDecision(_ContractModel):
+    """Conjunctive Step 2C outcome for one governed representation."""
+
+    family: Literal["beam-aware-matched-filter", "residual-b3-atrous"]
+    passes_absolute: Literal[False]
+    noninferior_to_other: Literal[False]
+    failed_absolute_endpoint_count: int = Field(ge=1)
+    failed_paired_endpoint_count: int = Field(ge=1)
+    bounded_cost: tuple[int, int, int]
+
+    @model_validator(mode="after")
+    def validate_cost(self) -> Self:
+        """Require complete positive structural-cost diagnostics."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("corrective-decision costs must be positive")
+        return self
+
+
+class PhaseFiveCorrectiveDecision(_ContractModel):
+    """Reviewed fail-closed decision produced by the Step 2C review."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-corrective-decision"]
+    status: Literal["reviewed-rejected"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveCorrectiveCandidateDecision, ...]
+    decision: Literal["reject-corrective"]
+    selected_family: None
+    corrective_failure_domains: tuple[
+        Literal[
+            "artifact-flux",
+            "astrometry",
+            "fragmentation",
+            "reliability",
+        ],
+        ...,
+    ]
+    named_review: Literal["codex-step-2c-governed-evidence-review"]
+    review_scope: Literal[
+        "technical-and-governed-development-regression-evidence"
+    ]
+    independent_human_scientific_review: Literal["still-required"]
+    next_action: Literal[
+        "redesign-measurement-association-and-false-positive-control"
+    ]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_rejected_decision(self) -> Self:
+        """Require both failed candidates and preserve all closed gates."""
+        if tuple(item.family for item in self.candidates) != (
+            "beam-aware-matched-filter",
+            "residual-b3-atrous",
+        ):
+            raise ValueError(
+                "corrective decision requires canonical candidates"
+            )
+        if self.corrective_failure_domains != (
+            "artifact-flux",
+            "astrometry",
+            "fragmentation",
+            "reliability",
+        ):
+            raise ValueError(
+                "corrective failure domains must remain complete and canonical"
+            )
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -1701,5 +1940,23 @@ def load_phase_five_filter_paired_decision(
 ) -> PhaseFiveFilterPairedDecision:
     """Load the reviewed fail-closed Step 2B representation decision."""
     return PhaseFiveFilterPairedDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_review(
+    path: Path,
+) -> PhaseFiveCorrectiveReview:
+    """Load the frozen Step 2C corrective continuum-review contract."""
+    return PhaseFiveCorrectiveReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_decision(
+    path: Path,
+) -> PhaseFiveCorrectiveDecision:
+    """Load the reviewed fail-closed Step 2C corrective decision."""
+    return PhaseFiveCorrectiveDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

@@ -59,6 +59,12 @@ _PHASE_FIVE_FILTER_REVIEW_PATH = (
 _PHASE_FIVE_FILTER_PAIRED_DECISION_PATH = (
     _ROOT / "config/contracts/phase-5-filter-paired-decision.json"
 )
+_PHASE_FIVE_CORRECTIVE_REVIEW_PATH = (
+    _ROOT / "config/contracts/phase-5-corrective-review.json"
+)
+_PHASE_FIVE_CORRECTIVE_DECISION_PATH = (
+    _ROOT / "config/contracts/phase-5-corrective-decision.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -654,6 +660,88 @@ def test_phase_five_filter_paired_decision_rejects_false_authorization() -> (
 
     with pytest.raises(ValidationError):
         type(decision).model_validate(payload)
+
+
+def test_phase_five_corrective_review_freezes_amended_endpoint_semantics() -> (
+    None
+):
+    """Step 2C must be frozen before evaluating the corrective candidate."""
+    review = contract_models.load_phase_five_corrective_review(
+        _PHASE_FIVE_CORRECTIVE_REVIEW_PATH
+    )
+
+    assert review.status == "frozen-before-corrective-results"
+    assert review.prior_decision_sha256 == (
+        "d2b3f5f4fc51b32b93bd29f0e08047e8bd60c60b64f5f046e2031bc0eb1c3594"
+    )
+    assert review.candidates == (
+        "beam-aware-matched-filter",
+        "residual-b3-atrous",
+    )
+    assert review.matrix.detection_sigma == 5.0
+    assert review.matrix.island_sigma == 3.0
+    assert review.response_endpoint.signal == "final-reconstructed-signal"
+    assert review.response_endpoint.truth == "observable-valid-domain-truth"
+    assert review.final_measurement.mask == "original-residual-seed-and-grow"
+    assert review.final_measurement.photometry == "original-residual-pixels"
+    assert review.final_measurement.astrometry == "original-residual-pixels"
+    assert review.corrective_design.wavelet == "normalized-b3-spline-atrous"
+    assert review.corrective_design.compact_treatment == (
+        "exclude-or-subtract-accepted-compact-emission"
+    )
+    assert review.corrective_design.matched_filter_role == (
+        "known-template-seed-aid-and-governed-comparator"
+    )
+    assert review.bounded_implementation.maximum_halo_pixels == 14
+    assert review.bounded_implementation.durable_response_bank is False
+    assert review.absolute_gates.minimum_mask_intersection_over_union == 0.8
+    assert review.paired_margins.maximum_completeness_loss == 0.02
+    assert review.step_three_authorized is False
+    assert review.qualification_opened is False
+
+
+def test_phase_five_corrective_review_rejects_gate_or_measurement_drift() -> (
+    None
+):
+    """Corrective staging cannot weaken a gate or measure wavelet pixels."""
+    review = contract_models.load_phase_five_corrective_review(
+        _PHASE_FIVE_CORRECTIVE_REVIEW_PATH
+    )
+    gate_payload = review.model_dump(mode="json")
+    gate_payload["absolute_gates"]["minimum_reliability"] = 0.9
+    measurement_payload = review.model_dump(mode="json")
+    measurement_payload["final_measurement"]["photometry"] = (
+        "wavelet-coefficients"
+    )
+
+    with pytest.raises(ValidationError, match="unchanged Step 2B gates"):
+        type(review).model_validate(gate_payload)
+    with pytest.raises(ValidationError):
+        type(review).model_validate(measurement_payload)
+
+
+def test_phase_five_corrective_decision_keeps_step_three_closed() -> None:
+    """The reviewed Step 2C failure identifies the next frozen redesign."""
+    decision = contract_models.load_phase_five_corrective_decision(
+        _PHASE_FIVE_CORRECTIVE_DECISION_PATH
+    )
+
+    assert decision.status == "reviewed-rejected"
+    assert decision.decision == "reject-corrective"
+    assert decision.selected_family is None
+    assert tuple(item.family for item in decision.candidates) == (
+        "beam-aware-matched-filter",
+        "residual-b3-atrous",
+    )
+    assert decision.candidates[1].failed_absolute_endpoint_count == 23
+    assert decision.candidates[1].failed_paired_endpoint_count == 8
+    assert decision.candidates[1].bounded_cost == (21, 7, 38)
+    assert decision.next_action == (
+        "redesign-measurement-association-and-false-positive-control"
+    )
+    assert decision.step_three_authorized is False
+    assert decision.optimization_authorized is False
+    assert decision.qualification_opened is False
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

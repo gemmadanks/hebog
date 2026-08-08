@@ -18,13 +18,20 @@ from hebog.algorithms.multiscale import (
     BeamShapePixels,
     FilterFamily,
     PreparedScaleInputs,
+    ResidualAtrousResult,
     ScaleFilterBankResult,
     ScaleFilterResponse,
+    build_residual_atrous_plan,
     build_scale_filter_bank,
+    evaluate_residual_atrous,
     evaluate_scale_filter_bank,
     prepare_scale_filter_inputs,
+    reconstruct_significant_atrous,
 )
-from hebog.validation.contracts import PhaseFiveFilterReview
+from hebog.validation.contracts import (
+    PhaseFiveCorrectiveReview,
+    PhaseFiveFilterReview,
+)
 from hebog.validation.datasets import (
     DatasetRecord,
     SyntheticRecipe,
@@ -36,7 +43,9 @@ _FWHM_TO_SIGMA = 1.0 / (2.0 * sqrt(2.0 * np.log(2.0)))
 _ANALYTIC_SHAPE = (193, 193)
 _ANALYTIC_RMS = 0.01
 _TRUNCATION_SIGMA = 4.0
+_MINIMUM_REVIEW_SUPPORT = 0.5
 _ArrayScalar = TypeVar("_ArrayScalar", bound=np.generic)
+_ReviewContract = PhaseFiveFilterReview | PhaseFiveCorrectiveReview
 
 
 def _read_only(
@@ -144,6 +153,17 @@ class _GeneratedTruthGroup:
     reference_integrated_flux: float
     detection_mask: npt.NDArray[np.bool_]
     flux_aperture: npt.NDArray[np.bool_]
+    signal_jy_per_beam: npt.NDArray[np.float64]
+
+
+@dataclass(frozen=True, slots=True)
+class _ObservableMeasurementPlanes:
+    """Original and truth planes used by the governed endpoint evaluator."""
+
+    residual: npt.NDArray[np.float64]
+    valid_pixels: npt.NDArray[np.bool_]
+    truth_signal: npt.NDArray[np.float64]
+    component_labels: npt.NDArray[np.int32]
 
 
 def _elliptical_gaussian(
@@ -225,7 +245,7 @@ def _geometry_case(
 
 def build_analytic_review_cases(
     beam: BeamShapePixels,
-    review: PhaseFiveFilterReview,
+    review: _ReviewContract,
 ) -> tuple[AnalyticFilterReviewCase, ...]:
     """Build the complete frozen analytic matrix without candidate results."""
     scale_widths = dict(
@@ -498,7 +518,7 @@ def _rms_plane(recipe: SyntheticRecipe) -> npt.NDArray[np.float64]:
 
 def _build_generated_truth(
     dataset: DatasetRecord,
-    review: PhaseFiveFilterReview,
+    review: _ReviewContract,
 ) -> tuple[_GeneratedTruthGroup, ...]:
     """Build noiseless group masks once for every population seed."""
     rms = _rms_plane(dataset.recipe)
@@ -537,6 +557,9 @@ def _build_generated_truth(
                 ),
                 detection_mask=_read_only(detection_mask),
                 flux_aperture=_read_only(flux_aperture),
+                signal_jy_per_beam=_read_only(
+                    np.asarray(signal, dtype=np.float64)
+                ),
             )
         )
     return tuple(truth_groups)
@@ -775,6 +798,461 @@ def evaluate_generated_population(
     truth_groups = _build_generated_truth(dataset, review)
     return tuple(
         _evaluate_generated_with_truth(
+            dataset,
+            recipe,
+            family=family,
+            review=review,
+            truth_groups=truth_groups,
+        )
+        for recipe in iter_dataset_recipes(dataset)
+        for family in review.candidates
+    )
+
+
+def _maximum_response_snr(
+    shape: tuple[int, int],
+    responses: tuple[ScaleFilterResponse, ...],
+) -> npt.NDArray[np.float64]:
+    """Combine calibrated scale evidence without changing final pixels."""
+    combined = np.full(shape, -np.inf, dtype=np.float64)
+    for response in responses:
+        scale_snr = np.full(shape, -np.inf, dtype=np.float64)
+        np.divide(
+            response.response_jy_per_beam,
+            response.effective_rms_jy_per_beam,
+            out=scale_snr,
+            where=response.scientifically_valid,
+        )
+        np.maximum(combined, scale_snr, out=combined)
+    return combined
+
+
+def _corrective_threshold(
+    prepared: PreparedScaleInputs,
+    matched: ScaleFilterBankResult,
+    atrous: ResidualAtrousResult | None,
+    beam: BeamShapePixels,
+    review: PhaseFiveCorrectiveReview,
+) -> ThresholdFilterResult:
+    """Seed from calibrated evidence and grow only on original residual."""
+    shape = prepared.residual_jy_per_beam.shape
+    combined_snr = _maximum_response_snr(shape, matched.responses)
+    reconstructed_support = np.zeros(shape, dtype=np.bool_)
+    if atrous is not None:
+        reconstruction = reconstruct_significant_atrous(
+            atrous,
+            detection_sigma=review.matrix.detection_sigma,
+            island_sigma=review.matrix.island_sigma,
+        )
+        reconstructed_support = reconstruction.support_mask
+        atrous_snr = _maximum_response_snr(shape, atrous.responses)
+        atrous_snr[~reconstructed_support] = -np.inf
+        np.maximum(
+            combined_snr,
+            atrous_snr,
+            out=combined_snr,
+        )
+    direct_snr = np.full(shape, -np.inf, dtype=np.float64)
+    np.divide(
+        prepared.residual_jy_per_beam,
+        prepared.rms_jy_per_beam,
+        out=direct_snr,
+        where=prepared.scientifically_valid,
+    )
+    np.maximum(combined_snr, direct_snr, out=combined_snr)
+    original_support = (
+        direct_snr >= review.matrix.island_sigma
+    ) & prepared.scientifically_valid
+    raw_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        label(original_support, structure=np.ones((3, 3), dtype=np.int8)),
+    )
+    seed_labels = np.unique(
+        raw_labels[combined_snr >= review.matrix.detection_sigma]
+    )
+    seed_labels = seed_labels[seed_labels > 0]
+    retained = np.isin(raw_labels, seed_labels)
+    minimum_area = max(
+        1,
+        ceil(0.25 * 1.1331 * beam.major_fwhm_pixels * beam.minor_fwhm_pixels),
+    )
+    retained_counts = np.bincount(raw_labels[retained])
+    accepted_raw_labels = np.flatnonzero(retained_counts >= minimum_area)
+    accepted_raw_labels = accepted_raw_labels[accepted_raw_labels > 0]
+    retained = np.isin(raw_labels, accepted_raw_labels)
+
+    if atrous is not None and retained.any():
+        association_support = binary_dilation(
+            retained | reconstructed_support,
+            iterations=ceil(2 * beam.major_fwhm_pixels),
+        )
+        association_labels, _ = cast(
+            tuple[npt.NDArray[np.int32], int],
+            label(
+                association_support,
+                structure=np.ones((3, 3), dtype=np.int8),
+            ),
+        )
+        component_labels = np.where(retained, association_labels, 0).astype(
+            np.int32, copy=False
+        )
+    else:
+        component_labels = np.where(retained, raw_labels, 0).astype(
+            np.int32, copy=False
+        )
+    component_count = int(np.count_nonzero(np.unique(component_labels) > 0))
+    return ThresholdFilterResult(
+        combined_snr=_read_only(combined_snr),
+        retained_mask=_read_only(np.asarray(retained, dtype=np.bool_)),
+        component_labels=_read_only(component_labels),
+        component_count=component_count,
+    )
+
+
+def _corrective_results(
+    prepared: PreparedScaleInputs,
+    beam: BeamShapePixels,
+    review: PhaseFiveCorrectiveReview,
+    *,
+    family: FilterFamily,
+) -> tuple[
+    ScaleFilterBankResult,
+    ResidualAtrousResult | None,
+    ThresholdFilterResult,
+]:
+    """Evaluate the common comparator and optional residual transform."""
+    scales = tuple(
+        zip(review.matrix.scale_orders, (1.0, 2.0, 4.0), strict=True)
+    )
+    matched = evaluate_scale_filter_bank(
+        prepared,
+        build_scale_filter_bank(
+            beam,
+            family="beam-aware-matched-filter",
+            scales=scales,
+            truncation_sigma=_TRUNCATION_SIGMA,
+            noise_correlation=beam,
+        ),
+        minimum_support_fraction=review.matrix.support_fraction_bounds[0],
+    )
+    atrous = None
+    if family == "residual-b3-atrous":
+        atrous = evaluate_residual_atrous(
+            prepared,
+            build_residual_atrous_plan(beam, noise_correlation=beam),
+            minimum_support_fraction=(
+                review.matrix.support_fraction_bounds[0]
+            ),
+        )
+    elif family != "beam-aware-matched-filter":
+        raise ValueError("unsupported corrective-review family")
+    thresholded = _corrective_threshold(
+        prepared,
+        matched,
+        atrous,
+        beam,
+        review,
+    )
+    return matched, atrous, thresholded
+
+
+def _observable_signal_measurement(
+    planes: _ObservableMeasurementPlanes,
+    overlapping_labels: npt.NDArray[np.int32],
+    beam: BeamShapePixels,
+) -> tuple[float, float]:
+    """Measure flux and centroid errors on original observable pixels."""
+    selected = np.isin(planes.component_labels, overlapping_labels)
+    measurement_support = (
+        np.asarray(
+            binary_dilation(
+                selected,
+                iterations=ceil(4 * beam.major_fwhm_pixels),
+            ),
+            dtype=np.bool_,
+        )
+        & planes.valid_pixels
+    )
+    observable_truth = planes.truth_signal * planes.valid_pixels
+    reference_flux = float(np.sum(observable_truth, dtype=np.float64))
+    measured_flux = float(
+        np.sum(planes.residual[measurement_support], dtype=np.float64)
+    )
+    flux_error = abs(measured_flux - reference_flux) / reference_flux
+    y_grid, x_grid = np.indices(planes.residual.shape, dtype=np.float64)
+    reference_x = float(
+        np.sum(x_grid * observable_truth, dtype=np.float64) / reference_flux
+    )
+    reference_y = float(
+        np.sum(y_grid * observable_truth, dtype=np.float64) / reference_flux
+    )
+    measurement_weights = np.where(measurement_support, planes.residual, 0.0)
+    weight_sum = float(np.sum(measurement_weights, dtype=np.float64))
+    if weight_sum <= 0:
+        return flux_error, float("inf")
+    measured_x = float(
+        np.sum(x_grid * measurement_weights, dtype=np.float64) / weight_sum
+    )
+    measured_y = float(
+        np.sum(y_grid * measurement_weights, dtype=np.float64) / weight_sum
+    )
+    position_error = (
+        hypot(measured_x - reference_x, measured_y - reference_y)
+        / beam.major_fwhm_pixels
+    )
+    return flux_error, position_error
+
+
+def evaluate_corrective_analytic_cases(
+    cases: tuple[AnalyticFilterReviewCase, ...],
+    beam: BeamShapePixels,
+    review: PhaseFiveCorrectiveReview,
+) -> tuple[AnalyticFilterObservation, ...]:
+    """Evaluate Step 2C final-output semantics on the unchanged matrix."""
+    observations: list[AnalyticFilterObservation] = []
+    for family in review.candidates:
+        for case in cases:
+            prepared = prepare_scale_filter_inputs(
+                case.image_jy_per_beam,
+                case.valid_pixels,
+                case.background_jy_per_beam,
+                case.rms_jy_per_beam,
+            )
+            matched, atrous, thresholded = _corrective_results(
+                prepared, beam, review, family=family
+            )
+            truth_signal = np.where(
+                case.valid_pixels,
+                case.image_jy_per_beam - case.background_jy_per_beam,
+                0.0,
+            )
+            peak = float(np.max(truth_signal))
+            truth_core = truth_signal >= 0.5 * peak
+            overlapping_labels = np.unique(
+                thresholded.component_labels[truth_core]
+            )
+            overlapping_labels = overlapping_labels[overlapping_labels > 0]
+            available = bool(overlapping_labels.size)
+            centre_x, centre_y = case.centre_xy
+            support_response = (
+                atrous.responses[case.scale_order - 1]
+                if atrous is not None
+                else matched.responses[case.scale_order - 1]
+            )
+            support = float(
+                np.clip(
+                    support_response.valid_support_fraction[
+                        centre_y, centre_x
+                    ],
+                    0.0,
+                    1.0,
+                )
+            )
+            if available:
+                flux_error, position_error = _observable_signal_measurement(
+                    _ObservableMeasurementPlanes(
+                        residual=prepared.residual_jy_per_beam,
+                        valid_pixels=prepared.scientifically_valid,
+                        truth_signal=truth_signal,
+                        component_labels=thresholded.component_labels,
+                    ),
+                    overlapping_labels,
+                    beam,
+                )
+                response_snr = float(
+                    np.max(thresholded.combined_snr[truth_core])
+                )
+            else:
+                flux_error = None
+                position_error = None
+                response_snr = None
+            observations.append(
+                AnalyticFilterObservation(
+                    case_identifier=case.identifier,
+                    family=family,
+                    scale_order=case.scale_order,
+                    geometry=case.geometry,
+                    input_peak_snr=case.input_peak_snr,
+                    support_fraction=support,
+                    available=available,
+                    response_fractional_error=flux_error,
+                    integrated_flux_fractional_error=flux_error,
+                    calibrated_response_snr=response_snr,
+                    position_error_beams=position_error,
+                    negative_lobe_fraction=0.0 if available else None,
+                )
+            )
+    return tuple(observations)
+
+
+def _corrective_group_observation(
+    truth: _GeneratedTruthGroup,
+    thresholded: ThresholdFilterResult,
+    response_source: ScaleFilterBankResult | ResidualAtrousResult,
+    prepared: PreparedScaleInputs,
+    beam: BeamShapePixels,
+) -> GeneratedGroupObservation:
+    """Measure one generated truth group using only final original pixels."""
+    valid_pixels = prepared.scientifically_valid
+    detection_truth = truth.detection_mask & valid_pixels
+    overlapping_labels = np.unique(
+        thresholded.component_labels[detection_truth]
+    )
+    overlapping_labels = overlapping_labels[overlapping_labels > 0]
+    detected = bool(overlapping_labels.size)
+    maximum_snr = max(
+        0.0, float(np.max(thresholded.combined_snr[detection_truth]))
+    )
+    centre_x = round(truth.reference_position_xy[0])
+    centre_y = round(truth.reference_position_xy[1])
+    response_indices = {
+        response.scale_order: response
+        for response in response_source.responses
+    }
+    support_available = all(
+        response_indices[scale_order].valid_support_fraction[
+            centre_y, centre_x
+        ]
+        >= _MINIMUM_REVIEW_SUPPORT
+        for scale_order in truth.scale_orders
+    )
+    if detected:
+        flux_error, position_error = _observable_signal_measurement(
+            _ObservableMeasurementPlanes(
+                residual=prepared.residual_jy_per_beam,
+                valid_pixels=valid_pixels,
+                truth_signal=truth.signal_jy_per_beam,
+                component_labels=thresholded.component_labels,
+            ),
+            overlapping_labels,
+            beam,
+        )
+    else:
+        flux_error = None
+        position_error = None
+    return GeneratedGroupObservation(
+        group_identifier=truth.identifier,
+        morphology=truth.morphology,
+        scale_orders=truth.scale_orders,
+        detected=detected,
+        maximum_snr=maximum_snr,
+        integrated_flux_fractional_error=flux_error,
+        position_error_beams=position_error,
+        support_available=support_available,
+        fragment_count=int(overlapping_labels.size),
+    )
+
+
+def _evaluate_corrective_generated_with_truth(
+    dataset: DatasetRecord,
+    recipe: SyntheticRecipe,
+    *,
+    family: FilterFamily,
+    review: PhaseFiveCorrectiveReview,
+    truth_groups: tuple[_GeneratedTruthGroup, ...],
+) -> GeneratedImageObservation:
+    """Evaluate one generated image under frozen final-output semantics."""
+    image = generate_synthetic_image(recipe)
+    valid_pixels = np.isfinite(image)
+    prepared = prepare_scale_filter_inputs(
+        image,
+        valid_pixels,
+        np.full(image.shape, recipe.background, dtype=np.float64),
+        _rms_plane(recipe),
+    )
+    beam = BeamShapePixels(
+        dataset.beam.major_fwhm_pixels,
+        dataset.beam.minor_fwhm_pixels,
+        dataset.beam.position_angle_degrees,
+    )
+    matched, atrous, thresholded = _corrective_results(
+        prepared, beam, review, family=family
+    )
+    response_source: ScaleFilterBankResult | ResidualAtrousResult = (
+        atrous if atrous is not None else matched
+    )
+    truth_mask = (
+        np.logical_or.reduce(
+            tuple(group.detection_mask for group in truth_groups)
+        )
+        & valid_pixels
+    )
+    groups = tuple(
+        _corrective_group_observation(
+            truth,
+            thresholded,
+            response_source,
+            prepared,
+            beam,
+        )
+        for truth in truth_groups
+    )
+    component_labels = np.unique(
+        thresholded.component_labels[thresholded.retained_mask]
+    )
+    component_labels = component_labels[component_labels > 0]
+    true_components = sum(
+        bool(np.any(thresholded.component_labels[truth_mask] == component))
+        for component in component_labels
+    )
+    reliability = (
+        true_components / thresholded.component_count
+        if thresholded.component_count
+        else 0.0
+    )
+    intersection = int(
+        np.count_nonzero(thresholded.retained_mask & truth_mask)
+    )
+    union = int(np.count_nonzero(thresholded.retained_mask | truth_mask))
+    fragmented = sum(group.fragment_count > 1 for group in groups)
+    return GeneratedImageObservation(
+        dataset_identifier=dataset.identifier,
+        seed=recipe.seed,
+        family=family,
+        groups=groups,
+        completeness=sum(group.detected for group in groups) / len(groups),
+        reliability=reliability,
+        mask_intersection_over_union=intersection / union if union else 1.0,
+        fragmentation_fraction=fragmented / len(groups),
+        noise_std_fractional_error=_noise_std_error(
+            matched,
+            truth_mask,
+            valid_pixels,
+            exclusion_iterations=ceil(2 * beam.major_fwhm_pixels),
+        ),
+        component_count=thresholded.component_count,
+    )
+
+
+def evaluate_corrective_generated_image(
+    dataset: DatasetRecord,
+    *,
+    recipe_index: int,
+    family: FilterFamily,
+    review: PhaseFiveCorrectiveReview,
+) -> GeneratedImageObservation:
+    """Evaluate one corrective-review image for tests and diagnosis."""
+    recipes = iter_dataset_recipes(dataset)
+    if not 0 <= recipe_index < len(recipes):
+        raise IndexError("generated review recipe_index is out of range")
+    truth_groups = _build_generated_truth(dataset, review)
+    return _evaluate_corrective_generated_with_truth(
+        dataset,
+        recipes[recipe_index],
+        family=family,
+        review=review,
+        truth_groups=truth_groups,
+    )
+
+
+def evaluate_corrective_generated_population(
+    dataset: DatasetRecord,
+    review: PhaseFiveCorrectiveReview,
+) -> tuple[GeneratedImageObservation, ...]:
+    """Evaluate both Step 2C candidates over one frozen population."""
+    truth_groups = _build_generated_truth(dataset, review)
+    return tuple(
+        _evaluate_corrective_generated_with_truth(
             dataset,
             recipe,
             family=family,
