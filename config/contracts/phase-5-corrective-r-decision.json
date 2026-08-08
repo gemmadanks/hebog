@@ -1,0 +1,48 @@
+{
+  "candidates": [
+    {
+      "bounded_cost": [
+        9,
+        7,
+        38
+      ],
+      "failed_absolute_endpoint_count": 18,
+      "failed_paired_endpoint_count": 9,
+      "family": "beam-aware-matched-filter",
+      "noninferior_to_other": false,
+      "passes_absolute": false
+    },
+    {
+      "bounded_cost": [
+        21,
+        7,
+        38
+      ],
+      "failed_absolute_endpoint_count": 9,
+      "failed_paired_endpoint_count": 0,
+      "family": "residual-b3-atrous",
+      "noninferior_to_other": true,
+      "passes_absolute": false
+    }
+  ],
+  "corrective_failure_domains": [
+    "astrometry-variance"
+  ],
+  "decision": "reject-corrective-r",
+  "decision_id": "phase-5-corrective-r-decision",
+  "evidence_configuration_sha256": "46f80c65635cf6436f702eca53848afb3bae3608d83737efdad72aef78d2f504",
+  "evidence_sha256": "4d57604c09351a54d51e45ca6441d15e7596e5b452bd6b96e0921e64d00c0e09",
+  "evidence_source_tree_sha256": "f76b92498b882063953f5cd1a4c8ac8339b728a9452fae44f0bd6b6eea272017",
+  "independent_human_scientific_review": "still-required",
+  "named_review": "codex-step-2c-r-governed-evidence-review",
+  "next_action": "freeze-independent-astrometry-estimator-review",
+  "optimization_authorized": false,
+  "prior_decision_sha256": "7d50397bc679b06dd856e9484675e4981eee55448c87acc96ff9d249e41d4684",
+  "protocol_sha256": "e1dc70bccfd8d8c706f25e2f02599324b376699c30fdc634affcca994c4b3a8b",
+  "qualification_opened": false,
+  "review_scope": "technical-and-governed-development-regression-evidence",
+  "schema_version": 1,
+  "selected_family": null,
+  "status": "reviewed-rejected",
+  "step_three_authorized": false
+}

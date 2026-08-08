@@ -797,6 +797,86 @@ class PhaseFiveCorrectiveReviewEvidence(_EvidenceDocument):
         return self
 
 
+class PhaseFiveAstrometryDiagnostic(_EvidenceModel):
+    """Bias and centred scatter for one regression astrometry stratum."""
+
+    family: PhaseFiveFilterFamily
+    stratum: str = Field(min_length=1)
+    sample_count: int = Field(ge=1)
+    mean_offset_xy_beams: tuple[float, float]
+    bias_beams: float = Field(ge=0, allow_inf_nan=False)
+    centred_percentile_95_beams: float = Field(ge=0, allow_inf_nan=False)
+    radial_percentile_95_beams: float = Field(ge=0, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def validate_mean_offset(self) -> Self:
+        """Reject unavailable or inconsistent bias diagnostics."""
+        if not all(isfinite(value) for value in self.mean_offset_xy_beams):
+            raise ValueError("astrometry mean offset must be finite")
+        expected_bias = (
+            sum(value * value for value in self.mean_offset_xy_beams) ** 0.5
+        )
+        if not isclose(self.bias_beams, expected_bias, rel_tol=1e-12):
+            raise ValueError("astrometry bias disagrees with mean offset")
+        return self
+
+
+class PhaseFiveMeasurementDispositionDiagnostic(_EvidenceModel):
+    """Count one typed final-measurement disposition in regression."""
+
+    family: PhaseFiveFilterFamily
+    disposition: Literal[
+        "measured",
+        "known-artifact-control",
+        "truncated-observable-domain",
+    ]
+    count: int = Field(ge=1)
+
+
+class PhaseFiveCorrectiveRReviewEvidence(_EvidenceDocument):
+    """Completed non-qualification correction review for Step 2C-R."""
+
+    evidence_type: Literal["phase-five-corrective-r-review"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    prior_decision_sha256: str = Field(pattern=_SHA256_PATTERN)
+    development_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    regression_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    analytic_case_count: int = Field(ge=1)
+    development_image_count: int = Field(ge=1)
+    regression_image_count: int = Field(ge=100)
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    endpoints: tuple[PhaseFiveFilterReviewEndpointEvidence, ...] = Field(
+        min_length=1
+    )
+    paired_endpoints: tuple[
+        PhaseFiveFilterReviewPairedEndpointEvidence, ...
+    ] = Field(min_length=1)
+    candidates: tuple[PhaseFiveFilterReviewCandidateConclusion, ...]
+    decision: Literal["authorize-corrective", "reject-corrective"]
+    selected_family: Literal["residual-b3-atrous"] | None
+    step_three_authorized: bool
+    qualification_opened: Literal[False]
+    astrometry_diagnostics: tuple[PhaseFiveAstrometryDiagnostic, ...] = Field(
+        min_length=1
+    )
+    measurement_dispositions: tuple[
+        PhaseFiveMeasurementDispositionDiagnostic, ...
+    ] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_inherited_conclusion(self) -> Self:
+        """Reuse every unchanged Step 2C endpoint and decision check."""
+        payload = self.model_dump(
+            exclude={"astrometry_diagnostics", "measurement_dispositions"}
+        )
+        payload["evidence_type"] = "phase-five-corrective-review"
+        PhaseFiveCorrectiveReviewEvidence.model_validate(payload)
+        return self
+
+
 class ScientificComparisonEvidence(_EvidenceDocument):
     """Provenance and reports for one candidate/reference comparison."""
 
@@ -1780,6 +1860,7 @@ EvidenceDocument: TypeAlias = (
     | PhaseFiveFilterSelectionEvidence
     | PhaseFiveFilterReviewEvidence
     | PhaseFiveCorrectiveReviewEvidence
+    | PhaseFiveCorrectiveRReviewEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence

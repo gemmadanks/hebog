@@ -7,8 +7,11 @@ import hashlib
 import importlib.metadata
 import os
 import platform
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
+
+import numpy as np
 
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
@@ -21,7 +24,11 @@ from hebog.validation.campaign_runtime import (
     canonical_sha256,
     dependency_inventory_sha256,
 )
-from hebog.validation.contracts import load_phase_five_corrective_review
+from hebog.validation.contracts import (
+    PhaseFiveCorrectiveRReview,
+    load_phase_five_corrective_r_review,
+    load_phase_five_corrective_review,
+)
 from hebog.validation.datasets import (
     DatasetManifest,
     DatasetRecord,
@@ -30,7 +37,10 @@ from hebog.validation.datasets import (
 )
 from hebog.validation.evidence import (
     EvidenceStatus,
+    PhaseFiveAstrometryDiagnostic,
     PhaseFiveCorrectiveReviewEvidence,
+    PhaseFiveCorrectiveRReviewEvidence,
+    PhaseFiveMeasurementDispositionDiagnostic,
     SoftwareIdentity,
     WorkloadClass,
     write_evidence,
@@ -41,6 +51,7 @@ from hebog.validation.phase_five_filter_analysis import (
     compile_filter_review,
 )
 from hebog.validation.phase_five_filter_review import (
+    GeneratedImageObservation,
     build_analytic_review_cases,
     evaluate_corrective_analytic_cases,
     evaluate_corrective_generated_population,
@@ -48,6 +59,87 @@ from hebog.validation.phase_five_filter_review import (
 
 _DEPENDENCIES = ("hebog", "numpy", "pydantic", "scipy")
 _SCALES = ((1, 1.0), (2, 2.0), (3, 4.0))
+
+
+def _astrometry_diagnostics(
+    observations: tuple[GeneratedImageObservation, ...],
+    dataset: DatasetRecord,
+) -> tuple[PhaseFiveAstrometryDiagnostic, ...]:
+    """Separate regression astrometry bias from centred seed scatter."""
+    astronomical = frozenset(
+        group.identifier
+        for group in dataset.multiscale_truth_groups
+        if group.catalogue_role == "astronomical-source"
+    )
+    strata = (
+        ("overall", astronomical),
+        *(
+            (
+                stratum.identifier,
+                frozenset(stratum.group_identifiers) & astronomical,
+            )
+            for stratum in dataset.multiscale_group_strata
+        ),
+    )
+    diagnostics: list[PhaseFiveAstrometryDiagnostic] = []
+    for family in ("beam-aware-matched-filter", "residual-b3-atrous"):
+        family_observations = tuple(
+            item for item in observations if item.family == family
+        )
+        for stratum, identifiers in strata:
+            offsets = np.asarray(
+                [
+                    group.position_offset_xy_beams
+                    for observation in family_observations
+                    for group in observation.groups
+                    if group.group_identifier in identifiers
+                    and group.position_offset_xy_beams is not None
+                ],
+                dtype=np.float64,
+            )
+            if offsets.size == 0:
+                continue
+            mean = np.mean(offsets, axis=0)
+            centred = offsets - mean
+            diagnostics.append(
+                PhaseFiveAstrometryDiagnostic(
+                    family=family,
+                    stratum=stratum,
+                    sample_count=len(offsets),
+                    mean_offset_xy_beams=(float(mean[0]), float(mean[1])),
+                    bias_beams=float(np.linalg.norm(mean)),
+                    centred_percentile_95_beams=float(
+                        np.percentile(np.linalg.norm(centred, axis=1), 95)
+                    ),
+                    radial_percentile_95_beams=float(
+                        np.percentile(np.linalg.norm(offsets, axis=1), 95)
+                    ),
+                )
+            )
+    return tuple(diagnostics)
+
+
+def _measurement_dispositions(
+    observations: tuple[GeneratedImageObservation, ...],
+) -> tuple[PhaseFiveMeasurementDispositionDiagnostic, ...]:
+    """Count each typed measurement outcome in regression."""
+    diagnostics: list[PhaseFiveMeasurementDispositionDiagnostic] = []
+    for family in ("beam-aware-matched-filter", "residual-b3-atrous"):
+        counts = Counter(
+            group.measurement_disposition
+            for observation in observations
+            if observation.family == family
+            for group in observation.groups
+        )
+        diagnostics.extend(
+            PhaseFiveMeasurementDispositionDiagnostic(
+                family=family,
+                disposition=disposition,
+                count=count,
+            )
+            for disposition, count in sorted(counts.items())
+        )
+    return tuple(diagnostics)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -126,7 +218,10 @@ def _single_dataset(
 def main() -> None:
     """Evaluate the comparator and corrective candidate fail-closed."""
     args = _parse_args()
-    review = load_phase_five_corrective_review(args.protocol)
+    if args.protocol.name == "phase-5-corrective-r-review.json":
+        review = load_phase_five_corrective_r_review(args.protocol)
+    else:
+        review = load_phase_five_corrective_review(args.protocol)
     development_manifest, development_dataset = _single_dataset(
         args.development_manifest, DatasetRole.DEVELOPMENT
     )
@@ -208,10 +303,35 @@ def main() -> None:
         corrective.noninferior_to_other
     )
     environment = _environment()
-    evidence = PhaseFiveCorrectiveReviewEvidence(
+    evidence_model = (
+        PhaseFiveCorrectiveRReviewEvidence
+        if isinstance(review, PhaseFiveCorrectiveRReview)
+        else PhaseFiveCorrectiveReviewEvidence
+    )
+    evidence_type = (
+        "phase-five-corrective-r-review"
+        if isinstance(review, PhaseFiveCorrectiveRReview)
+        else "phase-five-corrective-review"
+    )
+    run_id = (
+        "phase-five-corrective-r-review-regression"
+        if isinstance(review, PhaseFiveCorrectiveRReview)
+        else "phase-five-corrective-review-regression"
+    )
+    corrective_r_diagnostics = (
+        {
+            "astrometry_diagnostics": _astrometry_diagnostics(
+                regression, regression_dataset
+            ),
+            "measurement_dispositions": _measurement_dispositions(regression),
+        }
+        if isinstance(review, PhaseFiveCorrectiveRReview)
+        else {}
+    )
+    evidence = evidence_model(
         schema_version=1,
-        evidence_type="phase-five-corrective-review",
-        run_id="phase-five-corrective-review-regression",
+        evidence_type=evidence_type,
+        run_id=run_id,
         captured_at=datetime.now(UTC),
         status=EvidenceStatus.REVIEWED,
         dataset=campaign_dataset_identity(regression_dataset).model_copy(
@@ -253,6 +373,7 @@ def main() -> None:
         selected_family="residual-b3-atrous" if authorized else None,
         step_three_authorized=authorized,
         qualification_opened=False,
+        **corrective_r_diagnostics,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     write_evidence(args.output, evidence)

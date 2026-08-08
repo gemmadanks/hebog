@@ -1,11 +1,12 @@
 # Phase 5 scale-filter selection
 
-**Status:** Steps 2B and 2C are complete with no eligible production
-representation. Step 2B selected neither original candidate. Step 2C froze
-and evaluated a residual B3-spline à trous correction, then rejected it after
-23 absolute and eight paired endpoint failures. Step 3, candidate-specific
-optimization, and qualification remain blocked. This is not multiscale
-equivalence, complete Rapthor performance, or production-readiness evidence.
+**Status:** Steps 2B--2C-R are complete with no eligible production
+representation. Step 2C-R reduced the residual B3 result to nine absolute
+astrometry failures and zero paired failures; every other scientific domain
+passes. The unchanged conjunctive rule therefore keeps Step 3,
+candidate-specific optimization, and qualification blocked pending Step 2C-A.
+This is not multiscale equivalence, complete Rapthor performance, or
+production-readiness evidence.
 
 The 2026-08-08 community-practice review identified a residual B3-spline
 à trous reconstruction with morphology-independent support and
@@ -15,6 +16,44 @@ neither family is authorized for extended-source production work.
 
 The completed comparisons used the frozen development and regression roles.
 The qualification manifest and all qualification results remained unopened.
+
+## Completed final-output correction review
+
+The Step 2C-R pre-results contract is
+`config/contracts/phase-5-corrective-r-review.json`, SHA-256
+`e1dc70bccfd8d8c706f25e2f02599324b376699c30fdc634affcca994c4b3a8b`.
+It preserved the representation, populations, 84 analytic cases, gates, and
+paired margins. It froze a direct-5-sigma-or-one-beam island rule, three-beam
+cross-scale linkage, explicit non-photometric artifact controls, typed
+truncation, and robust original-pixel position measurement. A stricter first
+area rule failed the exact low-SNR compact precheck and is retained by hash in
+the amended contract rather than hidden.
+
+| Regression endpoint | Matched comparator | Residual B3 | Gate |
+| --- | ---: | ---: | ---: |
+| Completeness | 1.000 | 1.000 | at least 0.900 |
+| Median flux error | 0.0514 | 0.0514 | at most 0.100 |
+| Mean mask IoU | 0.8311 | 0.8311 | at least 0.800 |
+| Mean fragmentation | 0.2529 | 0.0000 | at most 0.100 |
+| Mean reliability | 0.9762 | 0.9674 | at least 0.950 |
+| 95th-percentile position error | 0.2913 beams | 0.2913 beams | at most 0.250 |
+
+B3 passes every paired endpoint and every absolute endpoint except nine
+position-error strata, whose estimates range from 0.260 to 0.291 beams.
+Machine-readable diagnostics separate small overall bias (0.0116 beams) from
+centred 95th-percentile scatter (0.2093 beams); the binding endpoint is more
+conservative because it first takes the within-image group tail. The remaining
+failure is therefore recorded as astrometry variance, not B3 detection,
+photometry, association, masking, or false-positive failure.
+
+The reviewed record is
+`config/contracts/phase-5-corrective-r-decision.json`. It binds ignored
+evidence `benchmark-results/phase-5/corrective-r-review.json`, SHA-256
+`4d57604c09351a54d51e45ca6441d15e7596e5b452bd6b96e0921e64d00c0e09`,
+and records `reject-corrective-r`, no selected family, and false Step 3,
+optimization, and qualification authorization. Step 2C-A must use a new
+seed-disjoint confirmation population; the viewed regression cannot be tuned
+against and then reused as confirmation.
 
 ## Completed corrective continuum review
 
@@ -219,7 +258,8 @@ identity are frozen in the corrective decision contract; its runner is
 
 None of these records establishes production extended measurements,
 cross-tile reconciliation, real-residual behaviour, PyBDSF equivalence, or
-complete `filter_skymodel` speedup. Those remain later gates. Step 2C-R must
-freeze and pass the four final-output corrections above; Step 3 remains
-blocked. The separate compact-only Rapthor probe selects only that workflow's
-explicit profile and cannot establish general multiscale equivalence.
+complete `filter_skymodel` speedup. Those remain later gates. Step 2C-A must
+resolve the remaining astrometry variance on new confirmation data; Step 3
+remains blocked. The separate compact-only Rapthor probe selects only that
+workflow's explicit profile and cannot establish general multiscale
+equivalence.

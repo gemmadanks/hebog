@@ -1,18 +1,17 @@
 # Phase 5 multiscale contract and development review
 
-**Status:** reviewed for development on 2026-08-05 and amended by the
-[filter decision](phase-5-filter-selection.md) on 2026-08-06. Step 2B selected
-neither existing representation, so Step 3 and representation-specific
-optimization remain blocked pending a newly frozen corrective design. The
-qualification population remains frozen and unopened. This record establishes
-the governing contract but does not establish multiscale equivalence.
+**Status:** reviewed for development and amended through Step 2C-R by the
+[filter decision](phase-5-filter-selection.md). Residual B3 now passes every
+paired gate and every absolute domain except nine close astrometry-variance
+strata. Step 3 and representation-specific optimization remain blocked pending
+Step 2C-A. Qualification remains frozen and unopened; this contract does not
+establish multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
-measurement as the Step 2C corrective candidate. Before new results are
-viewed, Step 2C must version the response-evaluation meaning while preserving
-the frozen populations, numerical gates, paired margins, and fail-closed
-decision. This nomination is not algorithm selection or qualification.
+measurement. Steps 2C and 2C-R evaluated it without changing the frozen gates
+or opening qualification. It remains unselected until the independent Step
+2C-A astrometry confirmation passes.
 
 Gemma Danks asked Codex to complete Phase 5 Step 1. Codex performed the named
 scientific and engineering review recorded here as an AI-conducted synthesis

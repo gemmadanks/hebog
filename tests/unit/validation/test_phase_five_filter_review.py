@@ -12,6 +12,7 @@ from hebog.algorithms.multiscale import (
     ScaleFilterResponse,
 )
 from hebog.validation.contracts import (
+    load_phase_five_corrective_r_review,
     load_phase_five_corrective_review,
     load_phase_five_filter_review,
 )
@@ -37,6 +38,9 @@ _CONTRACT = _ROOT / "config/contracts/phase-5-filter-paired-review.json"
 _DEVELOPMENT = _ROOT / "config/datasets/phase-5-development.json"
 _CORRECTIVE_CONTRACT = (
     _ROOT / "config/contracts/phase-5-corrective-review.json"
+)
+_CORRECTIVE_R_CONTRACT = (
+    _ROOT / "config/contracts/phase-5-corrective-r-review.json"
 )
 
 
@@ -342,3 +346,100 @@ def test_corrective_generated_measurement_passes_development_smoke_case() -> (
         and np.isfinite(group.position_error_beams)
         for group in observation.groups
     )
+
+
+def test_corrective_r_applies_association_and_false_positive_controls() -> (
+    None
+):
+    """The frozen area and linkage rules remove development false islands."""
+    review = load_phase_five_corrective_r_review(_CORRECTIVE_R_CONTRACT)
+    dataset = load_dataset_manifest(_DEVELOPMENT).datasets[0]
+
+    observation = evaluate_corrective_generated_image(
+        dataset,
+        recipe_index=0,
+        family="residual-b3-atrous",
+        review=review,
+    )
+
+    assert observation.completeness == 1.0
+    assert observation.reliability == 1.0
+    assert observation.fragmentation_fraction == 0.0
+    assert observation.mask_intersection_over_union >= (
+        review.absolute_gates.minimum_mask_intersection_over_union
+    )
+
+
+def test_corrective_r_preserves_all_exact_analytic_endpoints() -> None:
+    """The false-positive floor retains low-SNR and truncated exact truth."""
+    review = load_phase_five_corrective_r_review(_CORRECTIVE_R_CONTRACT)
+    beam = BeamShapePixels(5.0, 3.5, 20.0)
+    cases = build_analytic_review_cases(beam, review)
+
+    observations = evaluate_corrective_analytic_cases(cases, beam, review)
+
+    assert len(observations) == 2 * 84
+    assert all(item.available for item in observations)
+    assert (
+        max(item.position_error_beams or 0.0 for item in observations)
+        <= review.absolute_gates.maximum_percentile_95_position_beams
+    )
+
+
+def test_corrective_r_types_artifact_and_truncated_measurements() -> None:
+    """Non-photometric controls and truncated sources remain explicit."""
+    review = load_phase_five_corrective_r_review(_CORRECTIVE_R_CONTRACT)
+    dataset = load_dataset_manifest(_DEVELOPMENT).datasets[0]
+
+    observation = evaluate_corrective_generated_image(
+        dataset,
+        recipe_index=0,
+        family="residual-b3-atrous",
+        review=review,
+    )
+    groups = {item.morphology: item for item in observation.groups}
+
+    artifact = groups["artifact"]
+    assert artifact.measurement_disposition == "known-artifact-control"
+    assert artifact.integrated_flux_fractional_error is None
+    assert artifact.position_error_beams is None
+    edge = next(
+        item
+        for item in observation.groups
+        if item.group_identifier == "extended-edge-0001"
+    )
+    assert edge.measurement_disposition == "truncated-observable-domain"
+    assert edge.integrated_flux_fractional_error is not None
+    assert edge.position_error_beams is not None
+
+
+def test_corrective_r_astrometry_reports_bias_separately_from_scatter() -> (
+    None
+):
+    """Development astrometry is observable, finite, and bias-auditable."""
+    review = load_phase_five_corrective_r_review(_CORRECTIVE_R_CONTRACT)
+    dataset = load_dataset_manifest(_DEVELOPMENT).datasets[0]
+    offsets: dict[str, list[tuple[float, float]]] = {}
+
+    for recipe_index in range(10):
+        observation = evaluate_corrective_generated_image(
+            dataset,
+            recipe_index=recipe_index,
+            family="residual-b3-atrous",
+            review=review,
+        )
+        for group in observation.groups:
+            if group.measurement_disposition == "known-artifact-control":
+                continue
+            assert group.position_offset_xy_beams is not None
+            offsets.setdefault(group.morphology, []).append(
+                group.position_offset_xy_beams
+            )
+
+    for morphology_offsets in offsets.values():
+        values = np.asarray(morphology_offsets, dtype=np.float64)
+        bias = np.linalg.norm(np.mean(values, axis=0))
+        centred = values - np.mean(values, axis=0)
+        scatter_95 = np.percentile(np.linalg.norm(centred, axis=1), 95)
+        assert bias <= 0.15
+        assert scatter_95 <= 0.3

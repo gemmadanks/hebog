@@ -65,6 +65,12 @@ _PHASE_FIVE_CORRECTIVE_REVIEW_PATH = (
 _PHASE_FIVE_CORRECTIVE_DECISION_PATH = (
     _ROOT / "config/contracts/phase-5-corrective-decision.json"
 )
+_PHASE_FIVE_CORRECTIVE_R_REVIEW_PATH = (
+    _ROOT / "config/contracts/phase-5-corrective-r-review.json"
+)
+_PHASE_FIVE_CORRECTIVE_R_DECISION_PATH = (
+    _ROOT / "config/contracts/phase-5-corrective-r-decision.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -739,6 +745,61 @@ def test_phase_five_corrective_decision_keeps_step_three_closed() -> None:
     assert decision.next_action == (
         "redesign-measurement-association-and-false-positive-control"
     )
+    assert decision.step_three_authorized is False
+    assert decision.optimization_authorized is False
+    assert decision.qualification_opened is False
+
+
+def test_phase_five_corrective_r_review_freezes_all_four_corrections() -> None:
+    """Step 2C-R rules and unchanged gates precede replacement results."""
+    review = contract_models.load_phase_five_corrective_r_review(
+        _PHASE_FIVE_CORRECTIVE_R_REVIEW_PATH
+    )
+
+    assert review.status == "frozen-before-corrective-r-results"
+    assert review.prior_decision_sha256 == (
+        "7d50397bc679b06dd856e9484675e4981eee55448c87acc96ff9d249e41d4684"
+    )
+    assert review.corrections.astrometry_dilation_pixels == 2
+    assert review.corrections.association_distance_beams == 3.0
+    assert review.corrections.component_flux_fraction == 0.1
+    assert review.corrections.minimum_island_area_beams == 1.0
+    assert review.corrections.minimum_direct_seed_sigma == 5.0
+    assert review.supersedes_failed_protocol_sha256 == (
+        "57a8e1171bd1e555dc262ccc35f59aa3b271c0ae5c43ea4fc896f9cc6dc77e22"
+    )
+    assert review.absolute_gates.minimum_reliability == 0.95
+    assert review.absolute_gates.maximum_percentile_95_position_beams == 0.25
+    assert review.paired_margins.maximum_position_error_increase_beams == 0.05
+    assert review.step_three_authorized is False
+    assert review.qualification_opened is False
+
+
+def test_phase_five_corrective_r_review_rejects_correction_drift() -> None:
+    """A result run cannot retune a frozen correction constant."""
+    review = contract_models.load_phase_five_corrective_r_review(
+        _PHASE_FIVE_CORRECTIVE_R_REVIEW_PATH
+    )
+    payload = review.model_dump(mode="json")
+    payload["corrections"]["minimum_island_area_beams"] = 0.75
+
+    with pytest.raises(ValidationError, match="constants must remain frozen"):
+        type(review).model_validate(payload)
+
+
+def test_phase_five_corrective_r_decision_keeps_step_three_closed() -> None:
+    """Only astrometry variance remains, but the absolute rule is binding."""
+    decision = contract_models.load_phase_five_corrective_r_decision(
+        _PHASE_FIVE_CORRECTIVE_R_DECISION_PATH
+    )
+
+    assert decision.status == "reviewed-rejected"
+    assert decision.decision == "reject-corrective-r"
+    assert decision.selected_family is None
+    assert decision.candidates[1].failed_absolute_endpoint_count == 9
+    assert decision.candidates[1].failed_paired_endpoint_count == 0
+    assert decision.candidates[1].noninferior_to_other is True
+    assert decision.corrective_failure_domains == ("astrometry-variance",)
     assert decision.step_three_authorized is False
     assert decision.optimization_authorized is False
     assert decision.qualification_opened is False

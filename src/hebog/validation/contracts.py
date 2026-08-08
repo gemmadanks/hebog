@@ -1329,6 +1329,91 @@ class PhaseFiveCorrectiveReview(_ContractModel):
         return self
 
 
+class PhaseFiveCorrectiveRCorrections(_ContractModel):
+    """Frozen Step 2C-R corrections to final-output semantics."""
+
+    astrometry: Literal[
+        "one-rms-excess-central-eighty-percent-original-pixel-estimator"
+    ]
+    astrometry_topology: Literal[
+        "equal-centre-of-three-or-more-ten-percent-components"
+    ]
+    truncation_astrometry: Literal[
+        "robust-except-noiseless-or-below-eight-sigma-observable-moment"
+    ]
+    association: Literal["three-beam-adjacent-scale-support-linkage"]
+    artifact_disposition: Literal["known-artifact-control-not-photometric"]
+    false_positive_control: Literal[
+        "one-correlated-beam-or-direct-five-sigma-seed"
+    ]
+    astrometry_dilation_pixels: int
+    association_distance_beams: float
+    component_flux_fraction: float
+    minimum_island_area_beams: float
+    minimum_direct_seed_sigma: float
+
+    @model_validator(mode="after")
+    def validate_corrections(self) -> Self:
+        """Keep all development-selected correction constants exact."""
+        expected = (2, 3.0, 0.1, 1.0, 5.0)
+        observed = (
+            self.astrometry_dilation_pixels,
+            self.association_distance_beams,
+            self.component_flux_fraction,
+            self.minimum_island_area_beams,
+            self.minimum_direct_seed_sigma,
+        )
+        if observed != expected:
+            raise ValueError("corrective-R constants must remain frozen")
+        return self
+
+
+class PhaseFiveCorrectiveRReview(_ContractModel):
+    """Frozen Step 2C-R final-output correction review contract."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-corrective-r-review"]
+    status: Literal["frozen-before-corrective-r-results"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[
+        Literal["beam-aware-matched-filter", "residual-b3-atrous"], ...
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    matrix: PhaseFiveFilterReviewMatrix
+    binding_metrics: tuple[str, ...] = Field(min_length=10)
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=2)
+    absolute_gates: PhaseFiveFilterReviewAbsoluteGates
+    paired_margins: PhaseFiveFilterReviewPairedMargins
+    statistical_design: PhaseFiveFilterReviewStatistics
+    decision_policy: PhaseFiveFilterReviewDecisionPolicy
+    response_endpoint: PhaseFiveCorrectiveResponseEndpoint
+    final_measurement: PhaseFiveCorrectiveMeasurement
+    corrective_design: PhaseFiveCorrectiveDesign
+    bounded_implementation: PhaseFiveCorrectiveBoundedImplementation
+    precheck_amendment: Literal[
+        "retain-direct-five-sigma-islands-after-area-floor-failed-analytic"
+    ]
+    supersedes_failed_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    corrections: PhaseFiveCorrectiveRCorrections
+    step_three_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_inherited_review(self) -> Self:
+        """Reuse every unchanged Step 2C population, metric, and gate check."""
+        payload = self.model_dump(
+            exclude={
+                "precheck_amendment",
+                "supersedes_failed_protocol_sha256",
+                "corrections",
+            }
+        )
+        payload["contract_id"] = "phase-5-corrective-review"
+        payload["status"] = "frozen-before-corrective-results"
+        PhaseFiveCorrectiveReview.model_validate(payload)
+        return self
+
+
 class PhaseFiveCorrectiveCandidateDecision(_ContractModel):
     """Conjunctive Step 2C outcome for one governed representation."""
 
@@ -1401,6 +1486,73 @@ class PhaseFiveCorrectiveDecision(_ContractModel):
             raise ValueError(
                 "corrective failure domains must remain complete and canonical"
             )
+        return self
+
+
+class PhaseFiveCorrectiveRCandidateDecision(_ContractModel):
+    """Conjunctive Step 2C-R result for one governed representation."""
+
+    family: Literal["beam-aware-matched-filter", "residual-b3-atrous"]
+    passes_absolute: bool
+    noninferior_to_other: bool
+    failed_absolute_endpoint_count: int = Field(ge=0)
+    failed_paired_endpoint_count: int = Field(ge=0)
+    bounded_cost: tuple[int, int, int]
+
+    @model_validator(mode="after")
+    def validate_cost(self) -> Self:
+        """Require complete positive structural-cost diagnostics."""
+        if any(value <= 0 for value in self.bounded_cost):
+            raise ValueError("corrective-R decision costs must be positive")
+        return self
+
+
+class PhaseFiveCorrectiveRDecision(_ContractModel):
+    """Reviewed fail-closed decision produced by the Step 2C-R review."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-corrective-r-decision"]
+    status: Literal["reviewed-rejected"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveCorrectiveRCandidateDecision, ...]
+    decision: Literal["reject-corrective-r"]
+    selected_family: None
+    corrective_failure_domains: tuple[Literal["astrometry-variance"], ...]
+    named_review: Literal["codex-step-2c-r-governed-evidence-review"]
+    review_scope: Literal[
+        "technical-and-governed-development-regression-evidence"
+    ]
+    independent_human_scientific_review: Literal["still-required"]
+    next_action: Literal["freeze-independent-astrometry-estimator-review"]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_rejected_decision(self) -> Self:
+        """Bind the reviewed failure counts and sole residual domain."""
+        expected = (
+            ("beam-aware-matched-filter", False, False, 18, 9),
+            ("residual-b3-atrous", False, True, 9, 0),
+        )
+        observed = tuple(
+            (
+                item.family,
+                item.passes_absolute,
+                item.noninferior_to_other,
+                item.failed_absolute_endpoint_count,
+                item.failed_paired_endpoint_count,
+            )
+            for item in self.candidates
+        )
+        if observed != expected:
+            raise ValueError("corrective-R decision counts must remain exact")
+        if self.corrective_failure_domains != ("astrometry-variance",):
+            raise ValueError("corrective-R failure domain must remain exact")
         return self
 
 
@@ -1953,10 +2105,28 @@ def load_phase_five_corrective_review(
     )
 
 
+def load_phase_five_corrective_r_review(
+    path: Path,
+) -> PhaseFiveCorrectiveRReview:
+    """Load the frozen Step 2C-R final-output correction contract."""
+    return PhaseFiveCorrectiveRReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
 def load_phase_five_corrective_decision(
     path: Path,
 ) -> PhaseFiveCorrectiveDecision:
     """Load the reviewed fail-closed Step 2C corrective decision."""
     return PhaseFiveCorrectiveDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_corrective_r_decision(
+    path: Path,
+) -> PhaseFiveCorrectiveRDecision:
+    """Load the reviewed fail-closed Step 2C-R decision."""
+    return PhaseFiveCorrectiveRDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

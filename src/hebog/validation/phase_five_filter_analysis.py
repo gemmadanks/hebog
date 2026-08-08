@@ -11,6 +11,7 @@ import numpy.typing as npt
 from hebog.algorithms.multiscale import FilterFamily
 from hebog.validation.contracts import (
     PhaseFiveCorrectiveReview,
+    PhaseFiveCorrectiveRReview,
     PhaseFiveFilterReview,
 )
 from hebog.validation.datasets import DatasetRecord
@@ -27,7 +28,11 @@ from hebog.validation.phase_five_filter_review import (
 
 _Statistic = Literal["fraction", "maximum", "mean", "median", "percentile-95"]
 _Direction = Literal["maximum", "minimum"]
-_ReviewContract = PhaseFiveFilterReview | PhaseFiveCorrectiveReview
+_ReviewContract = (
+    PhaseFiveFilterReview
+    | PhaseFiveCorrectiveReview
+    | PhaseFiveCorrectiveRReview
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -525,38 +530,19 @@ def _available_group_values(
 def _generated_group_series(
     observations: tuple[GeneratedImageObservation, ...],
     groups: frozenset[str],
+    measurement_groups: frozenset[str] | None = None,
 ) -> dict[str, npt.NDArray[np.float64]]:
     """Return every group-level endpoint as paired image summaries."""
-    return {
+    result = {
         "completeness": _group_image_values(
             observations,
             groups,
             lambda rows: float(np.mean([item.detected for item in rows])),
         ),
-        "integrated-flux-fractional-error": _group_image_values(
-            observations,
-            groups,
-            lambda rows: float(
-                np.median(
-                    _available_group_values(
-                        rows, "integrated_flux_fractional_error"
-                    )
-                )
-            ),
-        ),
         "calibrated-response-snr": _group_image_values(
             observations,
             groups,
             lambda rows: float(np.median([item.maximum_snr for item in rows])),
-        ),
-        "position-error-beams": _group_image_values(
-            observations,
-            groups,
-            lambda rows: float(
-                np.percentile(
-                    _available_group_values(rows, "position_error_beams"), 95
-                )
-            ),
         ),
         "support-availability": _group_image_values(
             observations,
@@ -573,6 +559,29 @@ def _generated_group_series(
             ),
         ),
     }
+    measured = groups if measurement_groups is None else measurement_groups
+    if measured:
+        result["integrated-flux-fractional-error"] = _group_image_values(
+            observations,
+            measured,
+            lambda rows: float(
+                np.median(
+                    _available_group_values(
+                        rows, "integrated_flux_fractional_error"
+                    )
+                )
+            ),
+        )
+        result["position-error-beams"] = _group_image_values(
+            observations,
+            measured,
+            lambda rows: float(
+                np.percentile(
+                    _available_group_values(rows, "position_error_beams"), 95
+                )
+            ),
+        )
+    return result
 
 
 def _generated_image_series(
@@ -611,9 +620,19 @@ def _compile_generated_population(
     }
     endpoints: list[PhaseFiveFilterReviewEndpointEvidence] = []
     paired: list[PhaseFiveFilterReviewPairedEndpointEvidence] = []
+    astronomical_groups = frozenset(
+        item.identifier
+        for item in dataset.multiscale_truth_groups
+        if item.catalogue_role == "astronomical-source"
+    )
     for stratum, groups in _group_strata(dataset):
+        measurement_groups = (
+            groups & astronomical_groups
+            if isinstance(review, PhaseFiveCorrectiveRReview)
+            else groups
+        )
         series = {
-            family: _generated_group_series(rows, groups)
+            family: _generated_group_series(rows, groups, measurement_groups)
             for family, rows in by_family.items()
         }
         specs = (
@@ -669,6 +688,7 @@ def _compile_generated_population(
                     ),
                 )
                 for spec in specs
+                if spec.metric in series[family]
             )
         if binding:
             paired_specs = (
@@ -727,6 +747,7 @@ def _compile_generated_population(
                         review=review,
                     )
                     for spec in paired_specs
+                    if spec.metric in series[family]
                 )
 
     image_series = {

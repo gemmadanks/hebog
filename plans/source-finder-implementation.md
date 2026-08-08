@@ -884,12 +884,13 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Steps 1--2C are completed. Step 2B selected neither original
-representation. Step 2C then froze and evaluated a residual B3-spline à trous
-corrective design, but rejected it: the corrective candidate failed 23
-absolute and eight paired endpoints, principally astrometry, shell/tile
-fragmentation, artifact flux, and reliability. Step 3 and candidate-specific
-optimization remain blocked pending the focused 2C-R correction below.
+**Status:** Steps 1--2C-R are completed. Step 2C-R preserved the residual
+B3-spline à trous representation and fixed association, artifact disposition,
+and false-positive control. B3 now passes every paired gate and every absolute
+domain except astrometry: nine absolute position-error strata remain just
+outside the 0.25-beam limit (0.260--0.291 beams). The measured bias is small;
+centred seed scatter is the residual problem. Step 3 and candidate-specific
+optimization remain blocked pending the independent 2C-A astrometry review.
 Qualification remains unopened; no multiscale equivalence or complete runtime
 claim is approved.
 
@@ -1041,20 +1042,45 @@ and spill behaviour, and facility-scale execution.
 
 2C-R. **Correct the failed final-output stages without changing representation.**
 
-   - [ ] Freeze, before another result run, a lower-variance original-pixel
+   - [x] Freeze, before another result run, a lower-variance original-pixel
          astrometry estimator, cross-scale association rule for shell and
          tile-boundary fragments, artifact-aware measurement disposition, and
          calibrated false-positive control. Preserve B3 detection provenance,
          original-pixel measurement, the populations, and every numerical
          gate and margin.
-   - [ ] Add exact and development regression tests for the four observed
+   - [x] Add exact and development regression tests for the four observed
          failure domains. Distinguish estimator variance from bias and report
          typed truncation or artifact disposition rather than substituting a
          truth coordinate or weakening the astrometry and flux endpoints.
-   - [ ] Re-run the complete 84-case analytic and 100-image regression review
+   - [x] Re-run the complete 84-case analytic and 100-image regression review
          under a newly hashed pre-results contract. Authorize Step 3 only when
          the residual B3 candidate passes every absolute and paired stratum;
-         otherwise revise the plan again and keep qualification closed.
+         otherwise revise the plan again and keep qualification closed. The
+         reviewed decision is `reject-corrective-r`: B3 failed nine absolute
+         astrometry strata and no paired strata, so Step 3, optimization, and
+         qualification remain closed.
+
+2C-A. **Resolve the remaining astrometry variance independently.**
+
+   - [ ] Freeze a new seed-disjoint confirmation population before changing
+         the estimator. The viewed Step 2C-R regression remains diagnostic and
+         must not be reused to tune or confirm the replacement; qualification
+         remains unopened.
+   - [ ] Derive and freeze a noise-aware original-pixel position estimator
+         against analytic truth and the development role only. Preserve the
+         observable flux-centroid target, typed truncation, B3 provenance,
+         masks, photometry, association, false-positive control, all numerical
+         gates, and all paired margins. Prefer a standard generalized
+         least-squares or model-assisted estimator with an explicit
+         model-mismatch fallback over another morphology-specific heuristic.
+   - [ ] Test bias, centred variance, correlated-noise calibration, masked and
+         edge support, shells, filaments, blends, and topology aggregation.
+         Record estimator availability and uncertainty; never substitute a
+         truth coordinate or drop a difficult astronomical morphology.
+   - [ ] Re-run all 84 analytic cases and the new 100-image confirmation under
+         a hashed pre-results contract. Authorize Step 3 only if B3 passes
+         every unchanged absolute and paired stratum; otherwise obtain human
+         scientific review before revising the endpoint or estimator again.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
@@ -1187,7 +1213,7 @@ and spill behaviour, and facility-scale execution.
 
 Phase 5 closes only when:
 
-- the corrective continuum design corrected through Step 2C-R passes the
+- the corrective continuum design corrected through Step 2C-A passes the
   predeclared final-output scientific comparison in every applicable masked,
   edge, scale, morphology, noise, and SNR stratum before candidate-specific
   optimization;
@@ -1456,11 +1482,11 @@ The community-practice review made residual B3-spline à trous detection,
 reconstruction, morphology-independent support, and original-image
 measurement the corrective Step 2C candidate. This is familiar to PyBDSF and
 Selavy users while adopting segmentation strengths exposed by ProFound,
-CAESAR, and Hydra. The governed Step 2C result rejected the current
-final-output pipeline: B3 reduced failures relative to the matched comparator
-but did not pass every unchanged gate. Step 2C-R therefore retains the
-representation and corrects measurement, association, artifact disposition,
-and false-positive control before another frozen review. The separate Step 2D
+CAESAR, and Hydra. Step 2C-R retained that representation and corrected
+association, artifact disposition, and false-positive control. B3 then passed
+all paired gates and all absolute domains except nine close astrometry-
+variance strata. Step 2C-A therefore isolates position estimation on a new
+seed-disjoint confirmation population before Step 3. The separate Step 2D
 evidence decides only whether Rapthor uses the `compact` or `continuum`
 profile.
 

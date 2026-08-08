@@ -31,7 +31,9 @@ from hebog.validation.evidence import (
     ExecutorKind,
     Measurement,
     NormalizedResidualDiagnostic,
+    PhaseFiveAstrometryDiagnostic,
     PhaseFiveCorrectiveReviewEvidence,
+    PhaseFiveCorrectiveRReviewEvidence,
     PhaseFiveFilterCandidateEvidence,
     PhaseFiveFilterFamily,
     PhaseFiveFilterReviewCandidateConclusion,
@@ -39,6 +41,7 @@ from hebog.validation.evidence import (
     PhaseFiveFilterReviewEvidence,
     PhaseFiveFilterReviewPairedEndpointEvidence,
     PhaseFiveFilterSelectionEvidence,
+    PhaseFiveMeasurementDispositionDiagnostic,
     ResourceAllocation,
     RuntimeMetrics,
     ScalabilityMetrics,
@@ -528,6 +531,34 @@ def test_phase_five_corrective_review_requires_corrective_gate_passage() -> (
         step_three_authorized=False,
         qualification_opened=False,
     )
+    corrective_r_payload = evidence.model_dump(mode="python")
+    corrective_r_payload["evidence_type"] = "phase-five-corrective-r-review"
+    corrective_r_payload["run_id"] = (
+        "phase-five-corrective-r-review-regression"
+    )
+    corrective_r_payload["astrometry_diagnostics"] = (
+        PhaseFiveAstrometryDiagnostic(
+            family="residual-b3-atrous",
+            stratum="overall",
+            sample_count=100,
+            mean_offset_xy_beams=(0.03, 0.04),
+            bias_beams=0.05,
+            centred_percentile_95_beams=0.2,
+            radial_percentile_95_beams=0.21,
+        ),
+    )
+    corrective_r_payload["measurement_dispositions"] = (
+        PhaseFiveMeasurementDispositionDiagnostic(
+            family="residual-b3-atrous",
+            disposition="measured",
+            count=500,
+        ),
+    )
+    corrective_r = PhaseFiveCorrectiveRReviewEvidence.model_validate(
+        corrective_r_payload
+    )
+    assert corrective_r.evidence_type == "phase-five-corrective-r-review"
+
     payload = evidence.model_dump(mode="python")
     payload["step_three_authorized"] = True
 

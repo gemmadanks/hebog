@@ -5692,3 +5692,52 @@ handoff validation is recorded by the local commit.
 original-pixel astrometry, shell/tile association, artifact disposition, and
 false-positive control. Preserve the B3 representation and every gate; keep
 Step 3 and qualification closed until the complete review passes.
+
+## 2026-08-08 — Completed Step 2C-R with only astrometry variance unresolved
+
+**Plan phase:** Phase 5, Step 2C-R — final-output correction review
+
+- Used only exact truth and the development role to freeze robust
+  original-pixel astrometry, topology aggregation for comparable components,
+  three-beam cross-scale association, typed non-photometric artifact controls,
+  typed observable-domain truncation, and calibrated false-positive control.
+  Preserved residual B3 detection provenance, original-pixel photometry, both
+  populations, all gates, all paired margins, and unopened qualification.
+- The first frozen false-positive rule, protocol SHA-256
+  `57a8e1171bd1e555dc262ccc35f59aa3b271c0ae5c43ea4fc896f9cc6dc77e22`,
+  applied a one-correlated-beam floor without exception. Its exact analytic
+  precheck rejected legitimate 5--8-sigma beam-scale islands. The amended
+  pre-results contract records that failure by hash and retains a small island
+  only when its original pixels independently contain a 5-sigma seed.
+- Froze the amended contract at
+  `config/contracts/phase-5-corrective-r-review.json`, SHA-256
+  `e1dc70bccfd8d8c706f25e2f02599324b376699c30fdc634affcca994c4b3a8b`,
+  before opening replacement regression results. Exact and development tests
+  cover low-SNR compact retention, shell/tile linkage, false islands, known
+  artifact disposition, masked/edge truncation, and separate position bias
+  and centred scatter.
+- Re-ran all 84 analytic cases, ten development images, and 100 seed-disjoint
+  regression images. Residual B3 reached completeness 1.000, median flux error
+  0.0514, mean mask IoU 0.8311, fragmentation 0.0000, reliability 0.9674, and
+  maximum response-noise error 0.0148. It passed every paired endpoint and all
+  absolute domains other than position error.
+- Rejected Step 2C-R because nine absolute astrometry strata remained above
+  the unchanged 0.250-beam gate, with estimates from 0.260 to 0.291 beams.
+  Diagnostics identify variance rather than material bias: the B3 overall
+  mean offset is 0.0116 beams and centred 95th-percentile scatter is 0.2093
+  beams. The binding within-image-group tail is 0.2913 beams. The matched
+  comparator failed 18 absolute and nine paired endpoints; B3 failed nine and
+  zero respectively.
+- Wrote typed ignored evidence at
+  `benchmark-results/phase-5/corrective-r-review.json`, SHA-256
+  `4d57604c09351a54d51e45ca6441d15e7596e5b452bd6b96e0921e64d00c0e09`.
+  The reviewed decision contract records `reject-corrective-r`, no selected
+  family, and false Step 3, optimization, and qualification authorization.
+
+**Validation:** focused contract, evidence, analytic, development, and
+correction tests pass. Full handoff checks are recorded by the local commit.
+
+**Immediate next step:** freeze a new seed-disjoint confirmation population,
+then evaluate a standard noise-aware original-pixel position estimator using
+only analytic truth and development data. Do not retune against or reconfirm on
+the now-viewed Step 2C-R regression; keep qualification unopened.
