@@ -4,8 +4,9 @@
 [filter decision](phase-5-filter-selection.md). Residual B3 passes every paired
 gate and every absolute domain except five astrometry-variance strata on the
 independent confirmation. Step 3 and representation-specific optimization
-remain blocked pending human scientific review. Qualification remains frozen
-and unopened; this contract does not establish multiscale equivalence.
+remain blocked pending human scientific review and the Step 2C-P external
+source-finder comparison. Qualification remains frozen and unopened; this
+contract does not establish multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -123,6 +124,23 @@ PyBDSF `master` are separate compatibility comparators. A better flux result
 cannot compensate for worse completeness, reliability, astrometry, mask
 topology, duplicate control, or Rapthor filtering.
 
+The Step 2B through 2C-A paired endpoints compared Hebog representations with
+each other; neither PyBDSF nor Aegean was executed in those reviews. They
+therefore do not satisfy the external-comparator clause above. Before Step 3,
+a successor pre-results protocol must preserve the numerical gates and bind a
+fresh comparison population, both exact PyBDSF references, and a maintained
+Aegean release.
+
+PyBDSF with `atrous_do=true` is binding over the applicable full-continuum
+scope: catalogue completeness and reliability, astrometry, flux, masks,
+duplicates, and split/merge topology. Aegean is binding for compact, blended,
+and Gaussian-like catalogue completeness, reliability, astrometry, flux,
+association, duplicate, and split/merge metrics. Its extended-island results
+are diagnostic because Aegean is a compact-source finder without an à trous
+diffuse-reconstruction product. An unavailable Aegean extended mask is not a
+failure by either finder. Hebog must still pass every absolute injected-truth
+gate; a weak reference result cannot legitimize a weak Hebog result.
+
 The following absolute margins apply independently to generated regression
 and held-out qualification, overall and in every applicable governed stratum:
 
@@ -182,9 +200,10 @@ Residual risks are explicit:
 - The internal records establish meanings, not a supported public API or
   completed combined catalogue implementation.
 
-The next authorized work is the Step 2C-H human scientific review. The viewed
-confirmation is closed to tuning, rescoring, and reuse; any replacement study
-must freeze a new confirmation population. Step 3 remains blocked.
+The next authorized work is the Step 2C-H human scientific review followed by
+the frozen Step 2C-P external comparison. The viewed confirmation is closed to
+tuning, rescoring, and reuse; the comparison requires a new population. Step
+3 remains blocked until both gates pass.
 
 ## Frozen identities
 
@@ -205,11 +224,13 @@ must freeze a new confirmation population. Step 3 remains blocked.
 
 ## Scientific basis
 
-- [ASKAP/EMU Source Finding Data Challenge](https://doi.org/10.1017/pasa.2018.3)
+- [ASKAP/EMU Source Finding Data Challenge](https://doi.org/10.1017/pasa.2015.37)
 - [ATLAS Data Release 3](https://doi.org/10.1093/mnras/stv1866)
 - [ProFound radio source-finding comparison](https://academic.oup.com/mnras/article/487/3/3971/5511783)
 - [SKA Science Data Challenge 1 results](https://academic.oup.com/mnras/article/500/3/3821/5918002)
 - [PyBDSF process documentation](https://pybdsf.readthedocs.io/en/latest/process_image.html)
+- [Aegean compact source-finding method](https://doi.org/10.1111/j.1365-2966.2012.20768.x)
+- [Aegean 2.0](https://doi.org/10.1017/pasa.2018.3)
 
 These sources motivate truth-based, morphology-stratified completeness,
 reliability, flux, and topology evaluation. They do not make any one source

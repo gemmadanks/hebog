@@ -6,8 +6,9 @@ absolute astrometry failures and zero paired failures; every other scientific
 domain passes. Curved-filament variance and astrometric uncertainty
 undercoverage require human scientific review before another estimator or
 endpoint design. Step 3, candidate-specific optimization, and qualification
-remain blocked. This is not multiscale equivalence, complete Rapthor
-performance, or production-readiness evidence.
+remain blocked. A fresh direct comparison with PyBDSF and the applicable
+Aegean catalogue scope is also required before Step 3. This is not multiscale
+equivalence, complete Rapthor performance, or production-readiness evidence.
 
 The 2026-08-08 community-practice review identified a residual B3-spline
 à trous reconstruction with morphology-independent support and
@@ -17,6 +18,29 @@ neither family is authorized for extended-source production work.
 
 The completed comparisons used the frozen development and regression roles.
 The qualification manifest and all qualification results remained unopened.
+
+## External comparison still required
+
+The `paired` results in Steps 2B through 2C-A compare the Hebog matched-filter,
+wavelet, and residual-B3 candidates with each other. They did not execute
+PyBDSF or Aegean and therefore provide no external non-inferiority evidence.
+
+Before production implementation in Step 3, Step 2C-P will freeze and run a
+fresh source-finder comparison. Released PyBDSF used by Rapthor and pinned
+PyBDSF `master`, both with the governed residual à trous profile, are binding
+comparators for all applicable compact and extended catalogue, mask, flux,
+astrometry, duplicate, and topology metrics. A maintained Aegean release is
+binding for compact, blended, and Gaussian-like catalogue metrics. Its
+diffuse, filament, shell, extended-mask, and multiscale-provenance results are
+diagnostic because those products are outside Aegean's compact/Gaussian design.
+
+Hebog must first pass every unchanged absolute injected-truth gate, then be
+non-inferior to both PyBDSF references across their applicable full-continuum
+scope and to Aegean across its applicable catalogue scope. A poor reference
+result cannot excuse a Hebog absolute failure, and cost cannot compensate for
+a scientific failure. Step 3 is authorized only after this comparison and the
+independent human astrometry review both pass. The closed Step 2C-A population
+will not be reused, and qualification remains unopened.
 
 ## Completed independent astrometry confirmation
 
@@ -314,6 +338,6 @@ None of these records establishes production extended measurements,
 cross-tile reconciliation, real-residual behaviour, PyBDSF equivalence, or
 complete `filter_skymodel` speedup. Those remain later gates. Step 2C-A did
 not resolve the remaining astrometry variance, so Step 3 remains blocked
-pending human scientific review. The separate compact-only Rapthor probe
-selects only that workflow's explicit profile and cannot establish general
-multiscale equivalence.
+pending human scientific review and the Step 2C-P external comparison. The
+separate compact-only Rapthor probe selects only that workflow's explicit
+profile and cannot establish general multiscale equivalence.

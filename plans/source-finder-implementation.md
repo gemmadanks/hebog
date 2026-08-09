@@ -148,6 +148,17 @@ and reconcile morphology-independent support, and measure final properties on
 the original background-subtracted image. This is a development design to be
 frozen and tested in Phase 5 Step 2C, not an algorithm-selection result.
 
+The external comparison roles are deliberately asymmetric. PyBDSF with its
+residual à trous path is the binding full-continuum comparator because it
+detects and fits residual emission across wavelet scales. Aegean is binding for
+compact, blended, and Gaussian-like catalogue populations, where its
+curvature-informed component model and covariance-aware fits are directly
+applicable. Aegean island measurements remain useful diagnostics for extended
+objects, but its compact-source design and cautioned extended-island flux
+correction make it an inappropriate binding oracle for diffuse reconstruction,
+filament or shell masks, or multiscale provenance. Neither finder replaces
+analytic or injected truth.
+
 ## 3. Scope
 
 ### In scope
@@ -890,8 +901,10 @@ non-inferior on every paired gate but failed five absolute position-error
 strata (0.360--0.432 beams). Raw population astrometry was materially better,
 but curved-filament variance and uncertainty undercoverage make a post-hoc
 endpoint change unsafe. Step 3, candidate-specific optimization, and
-qualification remain blocked pending independent human scientific review; no
-multiscale equivalence or complete runtime claim is approved.
+qualification remain blocked pending independent human scientific review and
+the direct PyBDSF/Aegean comparison in Step 2C-P; no multiscale equivalence or
+complete runtime claim is approved. The paired results through Step 2C-A
+compare Hebog representations, not Hebog with either external finder.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1096,7 +1109,51 @@ and spill behaviour, and facility-scale execution.
          estimator or endpoint protocol requires a newly frozen confirmation
          population and may not tune, rescore, or reconfirm on the closed
          2C-A population. Keep Step 3, optimization, and qualification closed
-         until a pre-results design passes every required gate.
+         until a pre-results design passes every required absolute gate and
+         the external comparison in Step 2C-P.
+
+2C-P. **Establish external source-finder non-inferiority before Step 3.**
+
+   - [ ] Freeze a fresh seed-disjoint comparison population, power audit,
+         finder-neutral matcher, and hashed pre-results protocol before
+         generating any new output. Bind the exact Hebog candidate, released
+         PyBDSF used by Rapthor, pinned PyBDSF `master`, maintained Aegean
+         release, containers, dependencies, configurations, input checksums,
+         output mappings, applicable strata, margins, and one-look rule. The
+         closed Step 2C-A confirmation may inform diagnosis but may not be
+         reused for selection or confirmation; qualification remains unopened.
+   - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
+         (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
+         on the same FITS images, beam, WCS, valid region, and declared science
+         target. Where supported, add a controlled-input diagnostic using the
+         same frozen background and RMS products; keep each finder's normal
+         operational configuration as the primary interoperability result.
+   - [ ] Run Aegean blind source finding on the same inputs with a frozen
+         standard-practice configuration and a separately labelled
+         threshold-matched diagnostic if required. Make its completeness,
+         reliability, astrometry, peak/integrated flux, component association,
+         duplicate, and split/merge results binding for compact, blended, and
+         Gaussian-like or mixed catalogue populations. Report its diffuse,
+         filament, shell, extended-mask, and multiscale-provenance results
+         without treating unavailable products as either success or failure.
+   - [ ] Evaluate analytic and injected truth first. Hebog must pass every
+         unchanged absolute gate and be non-inferior to released PyBDSF and
+         pinned `master` on every applicable full-continuum endpoint and
+         stratum, and to Aegean on every applicable catalogue endpoint and
+         stratum. Use the predeclared one-sided 95% confidence rules with no
+         cross-metric or cross-morphology compensation. A reference failure
+         cannot excuse a Hebog absolute failure; an incomplete reference leg
+         makes the corresponding comparison unavailable and fails closed.
+   - [ ] Include a bounded public or challenge cut-out with injected or curated
+         truth if redistribution and exact execution are feasible. Otherwise
+         require it in Step 6 and keep real-data cross-finder agreement
+         diagnostic rather than treating majority agreement as truth.
+   - [ ] Record scientific outcomes before runtime. Report wall time, CPU,
+         memory, failures, and output counts for context, but use cost only
+         after the scientific rule finds Hebog eligible. Authorize Step 3 only
+         when the named human review accepts the estimator/endpoint and this
+         external comparison passes; otherwise select no production candidate
+         and revise the plan without weakening or post-hoc changing a gate.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
@@ -1121,7 +1178,8 @@ and spill behaviour, and facility-scale execution.
          the PyBDSF fallback until Phase 7 acceptance passes, and do not claim
          general extended-source equivalence from Rapthor agreement.
 
-3. **Implement scale detection and extended-island measurement after Step 2C.**
+3. **Implement scale detection and extended-island measurement after Steps
+   2C-H and 2C-P pass.**
 
    - [ ] Detect significant residual emission at every configured scale from
          shared à trous smoothings and calibrated local noise. Reconstruct
@@ -1190,10 +1248,13 @@ and spill behaviour, and facility-scale execution.
 
    - [ ] Promote each reviewed development failure and boundary defect to a
          deterministic regression fixture before fixing it.
-   - [ ] Compare Hebog with injected truth and both exact PyBDSF references by
-         morphology, angular scale, SNR, edge status, blend status, and
-         background regime. Report threshold crossings as completeness and
-         reliability changes.
+   - [ ] Repeat the pre-development comparison with the final production
+         implementation and untouched qualification data. Compare Hebog with
+         injected truth, both exact PyBDSF references across the full continuum
+         scope, and Aegean across its binding compact/Gaussian catalogue scope,
+         stratified by morphology, angular scale, SNR, edge status, blend
+         status, and background regime. Report threshold crossings as
+         completeness and reliability changes.
    - [ ] On public multi-survey or challenge cut-outs, compare compact
          populations with PyBDSF, Aegean, and Selavy and extended masks and
          fluxes with PyBDSF à trous, ProFound, and CAESAR where runnable.
@@ -1233,6 +1294,10 @@ Phase 5 closes only when:
   predeclared final-output scientific comparison in every applicable masked,
   edge, scale, morphology, noise, and SNR stratum before candidate-specific
   optimization;
+- the pre-development Step 2C-P comparison shows Hebog is scientifically
+  non-inferior to released and pinned-`master` PyBDSF over the full applicable
+  continuum scope and to Aegean over its applicable compact/Gaussian catalogue
+  scope, while still passing every absolute truth gate;
 - reviewed analytic, generated-truth, dual-reference, edge, invalid-pixel,
   deferred-island, mixed compact/extended, and untouched qualification cases
   pass their predeclared gates;
@@ -1504,8 +1569,12 @@ tested a frozen noise-aware model-assisted position estimator on a new
 seed-disjoint population. B3 remained non-inferior but failed five absolute
 position-error strata; curved-filament variance and uncertainty undercoverage
 now require human scientific review before another estimator or endpoint
-design. The separate Step 2D evidence decides only whether Rapthor uses the
-`compact` or `continuum` profile.
+design. The completed Phase 5 paired comparisons were between Hebog candidate
+representations and did not execute PyBDSF or Aegean. Step 2C-P now requires
+direct non-inferiority against both exact PyBDSF references and, for its
+applicable compact/Gaussian catalogue scope, Aegean before Step 3. The separate
+Step 2D evidence decides only whether Rapthor uses the `compact` or `continuum`
+profile.
 
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:

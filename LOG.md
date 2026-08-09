@@ -5848,3 +5848,46 @@ endpoint aggregation, curved-filament variance, and uncertainty calibration.
 Do not revise the endpoint or estimator on the closed confirmation; any new
 study requires a newly frozen confirmation population. Keep Step 3,
 optimization, and qualification closed.
+
+## 2026-08-09 — Required external source-finder evidence before Phase 5 development
+
+**Plan phase:** Phase 5, Step 2C-P — pre-development reference comparison
+
+- Audited the Phase 5 contract and completed evidence after the Step 2C-A
+  rejection. Although the scientific-gate contract names released and pinned
+  PyBDSF as compatibility references, every paired result in Steps 2B through
+  2C-A compared Hebog representations with each other. No Phase 5 PyBDSF or
+  Aegean result exists, so those paired passes cannot support a multiscale
+  equivalence or development decision.
+- Rechecked primary method documentation. PyBDSF's `atrous_do` path decomposes
+  the residual after ordinary Gaussian fitting, extracts across wavelet scales,
+  and merges overlapping wavelet and original islands. It is therefore the
+  binding full-continuum comparator. Aegean is explicitly a compact continuum
+  finder with curvature-informed Gaussian components and useful island fluxes;
+  its own documentation cautions that the island flux correction does not
+  generally hold for extended sources. It is binding for applicable compact,
+  blended, and Gaussian-like catalogue metrics and diagnostic for diffuse
+  reconstruction, masks, and multiscale provenance.
+- Added Step 2C-P before production Step 3. It requires a fresh seed-disjoint
+  comparison population, exact released and pinned-`master` PyBDSF references,
+  a maintained pinned Aegean release, finder-neutral matching, predeclared
+  applicability, power and margins, and one-look fail-closed evidence. The
+  closed Step 2C-A population may not be reused and qualification stays
+  unopened.
+- Made the authorization rule conjunctive: Hebog must pass every absolute
+  injected-truth gate, be non-inferior to both PyBDSF references over the full
+  applicable continuum scope, and be non-inferior to Aegean over its applicable
+  catalogue scope. A weak reference result cannot excuse a Hebog failure, and
+  runtime cannot compensate for scientific inferiority.
+- Required the final production implementation to repeat the comparison on
+  untouched qualification data. Public or challenge data remain important,
+  but real-data finder agreement without truth is diagnostic rather than a
+  vote that defines correctness.
+
+**Validation:** the strict documentation build passes. `just check` passes
+Ruff format/lint, Pyright, 961 tests, and four expected xfails.
+
+**Immediate next step:** complete the independent Step 2C-H astrometry review,
+then freeze the Step 2C-P comparison protocol and fresh population before
+running Hebog, either PyBDSF reference, or Aegean. Keep Step 3, optimization,
+and qualification closed until both gates pass.
