@@ -4,11 +4,13 @@
 [astrometry pre-review](phase-5-astrometry-pre-review.md). Residual B3 passes
 every paired gate and every absolute domain except five astrometry-variance
 strata on the independent confirmation. The pre-review recommends prospective
-endpoint, estimator, and uncertainty revision; independent human scientific
-review remains open. Step 3 and representation-specific optimization remain
-blocked pending that review and the Step 2C-P external source-finder
-comparison. Qualification remains frozen and unopened; this contract does not
-establish multiscale equivalence.
+endpoint, estimator, and uncertainty revision. Gemma Danks approved those
+recommendations on 2026-08-09 for prospective development under
+`config/contracts/phase-5-astrometry-human-decision.json`. Step 3 and
+representation-specific optimization remain blocked pending fresh astrometry
+confirmation and the Step 2C-P external source-finder comparison.
+Qualification remains frozen and unopened; this contract does not establish
+multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -208,11 +210,12 @@ Residual risks are explicit:
 - The internal records establish meanings, not a supported public API or
   completed combined catalogue implementation.
 
-The next authorized work is the independent Step 2C-H human decision on the
-[technical pre-review](phase-5-astrometry-pre-review.md), followed by a newly
-frozen astrometry design and Step 2C-P external comparison. The viewed
-confirmation is closed to tuning, rescoring, and reuse; each successor study
-requires a new population. Step 3 remains blocked until both gates pass.
+The Step 2C-H human decision approved the
+[technical pre-review](phase-5-astrometry-pre-review.md). The next authorized
+work is a newly frozen astrometry design and fresh development/confirmation
+populations. The viewed confirmation is closed to tuning, rescoring, and
+reuse. Step 2C-P execution and Step 3 remain blocked until the successor
+astrometry gate passes.
 
 ## Frozen identities
 

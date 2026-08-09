@@ -1,0 +1,27 @@
+{
+  "approved_recommendations": [
+    "direct-group-median-and-p95-with-image-cluster-resampling",
+    "observable-domain-flux-centroid-with-explicit-external-mappings",
+    "direct-pixel-baseline-with-evidence-gated-model-assistance",
+    "two-dimensional-correlated-noise-position-covariance",
+    "morphology-stratified-coverage-validation",
+    "fresh-development-and-confirmation-populations"
+  ],
+  "closed_confirmation_policy": "no-tuning-rescoring-or-reconfirmation",
+  "confirmation_execution_authorized": false,
+  "decision": "approve-recommendations-for-prospective-implementation",
+  "decision_id": "phase-5-astrometry-human-decision",
+  "development_execution_authorized": true,
+  "next_action": "freeze-successor-astrometry-development-and-confirmation-protocol",
+  "optimization_authorized": false,
+  "pre_review_sha256": "c279bf33f842d614bf8334eae4d5df90619348d9208d77979f4c4f215eae7af7",
+  "prior_decision_sha256": "55e0dc448fc09437e289b2567c78b378b66cecc17f9983e94e722fc96fe4390a",
+  "qualification_opened": false,
+  "review_source": "interactive-project-owner-approval",
+  "reviewed_on": "2026-08-09",
+  "reviewer": "Gemma Danks",
+  "schema_version": 1,
+  "status": "approved-prospective-revision",
+  "step_three_authorized": false,
+  "successor_protocol_freeze_authorized": true
+}

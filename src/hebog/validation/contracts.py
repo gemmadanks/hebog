@@ -1770,6 +1770,61 @@ class PhaseFiveCorrectiveADecision(_ContractModel):
         return self
 
 
+class PhaseFiveAstrometryHumanDecision(_ContractModel):
+    """Human approval of the prospective Step 2C-H astrometry revision."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-human-decision"]
+    status: Literal["approved-prospective-revision"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    pre_review_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reviewer: Literal["Gemma Danks"]
+    review_source: Literal["interactive-project-owner-approval"]
+    reviewed_on: Literal["2026-08-09"]
+    decision: Literal["approve-recommendations-for-prospective-implementation"]
+    approved_recommendations: tuple[
+        Literal[
+            "direct-group-median-and-p95-with-image-cluster-resampling",
+            "observable-domain-flux-centroid-with-explicit-external-mappings",
+            "direct-pixel-baseline-with-evidence-gated-model-assistance",
+            "two-dimensional-correlated-noise-position-covariance",
+            "morphology-stratified-coverage-validation",
+            "fresh-development-and-confirmation-populations",
+        ],
+        ...,
+    ]
+    closed_confirmation_policy: Literal[
+        "no-tuning-rescoring-or-reconfirmation"
+    ]
+    successor_protocol_freeze_authorized: Literal[True]
+    development_execution_authorized: Literal[True]
+    confirmation_execution_authorized: Literal[False]
+    next_action: Literal[
+        "freeze-successor-astrometry-development-and-confirmation-protocol"
+    ]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_approval_scope(self) -> Self:
+        """Require the complete approved recommendations in review order."""
+        expected = (
+            "direct-group-median-and-p95-with-image-cluster-resampling",
+            "observable-domain-flux-centroid-with-explicit-external-mappings",
+            "direct-pixel-baseline-with-evidence-gated-model-assistance",
+            "two-dimensional-correlated-noise-position-covariance",
+            "morphology-stratified-coverage-validation",
+            "fresh-development-and-confirmation-populations",
+        )
+        if self.approved_recommendations != expected:
+            raise ValueError(
+                "approved astrometry recommendations must remain complete "
+                "and ordered"
+            )
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -2360,5 +2415,14 @@ def load_phase_five_corrective_a_decision(
 ) -> PhaseFiveCorrectiveADecision:
     """Load the reviewed fail-closed one-look Step 2C-A decision."""
     return PhaseFiveCorrectiveADecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_human_decision(
+    path: Path,
+) -> PhaseFiveAstrometryHumanDecision:
+    """Load the approved prospective Step 2C-H astrometry decision."""
+    return PhaseFiveAstrometryHumanDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

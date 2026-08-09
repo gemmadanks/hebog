@@ -1,9 +1,11 @@
 # Phase 5 astrometry technical pre-review
 
-**Status:** AI-conducted pre-review complete; independent human scientific
-review remains open. The recommendation is to revise the astrometry protocol
-prospectively before selecting a production representation. Step 3,
-optimization, the external Step 2C-P run, and qualification remain blocked.
+**Status:** pre-review complete and recommendations approved by Gemma Danks on
+2026-08-09. The governed decision is
+`config/contracts/phase-5-astrometry-human-decision.json`. It authorizes a
+prospective astrometry protocol and development execution, not a production
+representation. Step 3, optimization, the external Step 2C-P run, and
+qualification remain blocked.
 
 This review diagnoses the closed Step 2C-A evidence. It does not rerun an
 image, change a result, rescore the confirmation, or open qualification. The
@@ -196,8 +198,7 @@ why they are negligible.
 
 ## Proposed human-review decisions
 
-The independent scientist should explicitly accept, amend, or reject these
-recommendations before further implementation:
+The following recommendations were approved for prospective implementation:
 
 1. **Position meaning:** observable-valid-domain flux centroid for Hebog
    extended objects, with peak and component coordinates reported separately
@@ -219,7 +220,8 @@ recommendations before further implementation:
    scope; no forced Aegean island-position comparison for irregular extended
    centroids.
 
-Only after these decisions are recorded should Hebog freeze the successor
-pre-results protocol and Step 2C-P comparison. The new candidate must pass
-every absolute truth gate before performance or external non-inferiority can
-make it eligible.
+The decision has now been recorded. Hebog may freeze the successor pre-results
+protocol and fresh datasets, run development-only estimator selection, and
+then separately authorize a one-look confirmation. The new candidate must
+pass every absolute truth gate before Step 2C-P execution, performance, or
+external non-inferiority can make it eligible.

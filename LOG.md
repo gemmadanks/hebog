@@ -5939,3 +5939,28 @@ Ruff format/lint, Pyright, 961 tests, and four expected xfails.
 questions in the pre-review. If revision is approved, freeze a new development
 matrix, estimator/uncertainty comparison, power audit, and seed- and
 geometry-disjoint confirmation before viewing any new output.
+
+## 2026-08-09 — Approved the Step 2C-H astrometry recommendations
+
+**Plan phase:** Phase 5, Step 2C-H — human scientific decision
+
+- Gemma Danks approved all six recommendations in the astrometry technical
+  pre-review: direct group-level median and p95 endpoints with image-cluster
+  resampling; explicit extended-position and external-mapping semantics; a
+  direct-pixel baseline with evidence-gated model assistance; two-dimensional
+  correlated-noise covariance; morphology-stratified coverage; and fresh
+  development and confirmation populations.
+- Added the machine-validated decision
+  `config/contracts/phase-5-astrometry-human-decision.json`, binding the closed
+  Step 2C-A decision and pre-review checksums. The decision preserves the
+  closed confirmation and authorizes only successor-protocol freezing and
+  development execution.
+- Kept confirmation execution, Step 2C-P execution, Step 3, optimization, and
+  qualification closed. Confirmation requires a separately frozen estimator
+  after development-only comparison.
+
+**Validation:** focused contract tests pass.
+
+**Immediate next step:** freeze the fresh diverse astrometry development and
+confirmation manifests and successor pre-results protocol before changing or
+executing an estimator.

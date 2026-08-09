@@ -77,6 +77,9 @@ _PHASE_FIVE_CORRECTIVE_A_REVIEW_PATH = (
 _PHASE_FIVE_CORRECTIVE_A_DECISION_PATH = (
     _ROOT / "config/contracts/phase-5-corrective-a-decision.json"
 )
+_PHASE_FIVE_ASTROMETRY_HUMAN_DECISION_PATH = (
+    _ROOT / "config/contracts/phase-5-astrometry-human-decision.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -904,6 +907,47 @@ def test_phase_five_corrective_a_decision_rejects_record_drift() -> None:
     payload = decision.model_dump(mode="json")
     payload["candidates"][1]["bounded_cost"][0] = 0
     with pytest.raises(ValidationError, match="costs must be positive"):
+        type(decision).model_validate(payload)
+
+
+def test_phase_five_astrometry_human_decision_approves_fresh_revision() -> (
+    None
+):
+    """The project owner's approval authorizes only prospective work."""
+    decision = contract_models.load_phase_five_astrometry_human_decision(
+        _PHASE_FIVE_ASTROMETRY_HUMAN_DECISION_PATH
+    )
+
+    assert decision.status == "approved-prospective-revision"
+    assert decision.reviewer == "Gemma Danks"
+    assert decision.approved_recommendations == (
+        "direct-group-median-and-p95-with-image-cluster-resampling",
+        "observable-domain-flux-centroid-with-explicit-external-mappings",
+        "direct-pixel-baseline-with-evidence-gated-model-assistance",
+        "two-dimensional-correlated-noise-position-covariance",
+        "morphology-stratified-coverage-validation",
+        "fresh-development-and-confirmation-populations",
+    )
+    assert decision.closed_confirmation_policy == (
+        "no-tuning-rescoring-or-reconfirmation"
+    )
+    assert decision.next_action == (
+        "freeze-successor-astrometry-development-and-confirmation-protocol"
+    )
+    assert decision.step_three_authorized is False
+    assert decision.optimization_authorized is False
+    assert decision.qualification_opened is False
+
+
+def test_phase_five_astrometry_human_decision_rejects_scope_drift() -> None:
+    """Approval cannot silently open downstream gates or drop safeguards."""
+    decision = contract_models.load_phase_five_astrometry_human_decision(
+        _PHASE_FIVE_ASTROMETRY_HUMAN_DECISION_PATH
+    )
+    payload = decision.model_dump(mode="json")
+    payload["approved_recommendations"].pop()
+
+    with pytest.raises(ValidationError, match="recommendations must remain"):
         type(decision).model_validate(payload)
 
 

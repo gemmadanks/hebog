@@ -1110,7 +1110,7 @@ and spill behaviour, and facility-scale execution.
          validate a two-dimensional correlated-noise uncertainty model. The
          durable findings are in the
          [Step 2C-H pre-review](../docs/reference/phase-5-astrometry-pre-review.md).
-   - [ ] Review whether the frozen per-image/group-tail endpoint represents
+   - [x] Review whether the frozen per-image/group-tail endpoint represents
          catalogue astrometry appropriately, the curved-filament variance,
          and the estimator's correlated-noise uncertainty undercoverage.
          Treat raw population percentiles as diagnostics, not replacement
@@ -1118,8 +1118,12 @@ and spill behaviour, and facility-scale execution.
          meaning, direct-versus-model-assisted estimator policy, direct
          group-level median and tail estimands, cluster-resampling and
          confidence rule, uncertainty coverage, external-finder mappings,
-         and fresh morphology/population design.
-   - [ ] Record a governed decision before further astrometry work. Any new
+         and fresh morphology/population design. Gemma Danks approved all six
+         pre-review recommendations on 2026-08-09.
+   - [x] Record a governed decision before further astrometry work. The
+         machine-validated
+         `config/contracts/phase-5-astrometry-human-decision.json` authorizes
+         a prospective successor protocol and development execution only. Any new
          estimator or endpoint protocol requires a newly frozen confirmation
          population and may not tune, rescore, or reconfirm on the closed
          2C-A population. Keep Step 3, optimization, and qualification closed
