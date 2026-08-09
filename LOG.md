@@ -6193,3 +6193,28 @@ one-look confirmation authorization. Do not tune or open confirmation.
 **Immediate next step:** commit this authorization, then implement and commit
 a checksum-validating one-look confirmation runner before opening the sealed
 population.
+
+## 2026-08-09 — Implemented the Step 2C-HR one-look confirmation runner
+
+**Plan phase:** Phase 5, Step 2C-HR — confirmation execution boundary
+
+- Added a separate confirmation evidence schema that requires the regression
+  role, at least 400 images, all overall endpoint types, named human review,
+  an explicit one-look-complete state, no post-confirmation development
+  tuning, and every downstream authorization false. Raw evidence remains
+  exploratory until a separate decision reviews it.
+- Added a one-look runner that refuses existing output and verifies the frozen
+  protocol, base residual-B3 protocol, development decision, ignored
+  development evidence, human decision, selected candidate, and confirmation
+  manifest before evaluating an image.
+- Kept the committed development runner unchanged and did not read or execute
+  the confirmation population during implementation.
+
+**Validation:** focused authorization, runner, and evidence tests pass. The
+branch-aware suite passed with 1,139 tests plus four expected failures and
+94.36% project coverage; all new confirmation-evidence validation branches
+are covered. The complete evidence lane passed 71 tests, the strict docs build
+passed, and `just check` passed with 1,009 tests plus four expected failures.
+
+**Immediate next step:** complete full validation and commit the runner, then
+execute the authorized 400-image confirmation exactly once.

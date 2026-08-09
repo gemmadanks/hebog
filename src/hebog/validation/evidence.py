@@ -1306,6 +1306,76 @@ class PhaseFiveAstrometryFollowUpDevelopmentEvidence(_EvidenceDocument):
         return self
 
 
+class PhaseFiveAstrometryFollowUpConfirmationEvidence(_EvidenceDocument):
+    """Raw one-look confirmation evidence for the segment position."""
+
+    evidence_type: Literal["phase-five-astrometry-follow-up-confirmation"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    base_protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    human_decision_sha256: str = Field(pattern=_SHA256_PATTERN)
+    development_decision_sha256: str = Field(pattern=_SHA256_PATTERN)
+    development_evidence_sha256: str = Field(pattern=_SHA256_PATTERN)
+    confirmation_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    image_count: int = Field(ge=400)
+    group_count: int = Field(ge=1)
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    endpoints: tuple[PhaseFiveAstrometryFollowUpEndpointEvidence, ...] = Field(
+        min_length=1
+    )
+    diagnostics: tuple[PhaseFiveAstrometryFollowUpDiagnosticEvidence, ...] = (
+        Field(min_length=1)
+    )
+    failed_endpoint_count: int = Field(ge=0)
+    confirmation_result: Literal[
+        "pass-awaiting-reviewed-decision",
+        "reject-confirmation",
+    ]
+    independent_human_scientific_review_complete: Literal[True]
+    confirmation_one_look_complete: Literal[True]
+    development_tuning_after_confirmation: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_confirmation_result(self) -> Self:
+        """Keep raw evidence unreviewed and downstream gates closed."""
+        if self.status is not EvidenceStatus.EXPLORATORY:
+            raise ValueError("confirmation evidence awaits technical review")
+        if self.dataset.role is not DatasetRole.REGRESSION:
+            raise ValueError("confirmation evidence requires regression data")
+        overall_metrics = {
+            item.metric for item in self.endpoints if item.stratum == "overall"
+        }
+        expected_metrics = {
+            "availability",
+            "absolute-mean-offset-x",
+            "absolute-mean-offset-y",
+            "radial-percentile-95",
+        }
+        if overall_metrics != expected_metrics:
+            raise ValueError(
+                "confirmation evidence requires every overall metric"
+            )
+        failed = sum(not item.passed for item in self.endpoints)
+        expected_result = (
+            "pass-awaiting-reviewed-decision"
+            if failed == 0
+            else "reject-confirmation"
+        )
+        if (
+            self.failed_endpoint_count != failed
+            or self.confirmation_result != expected_result
+        ):
+            raise ValueError("confirmation result disagrees with endpoints")
+        return self
+
+
 class ScientificComparisonEvidence(_EvidenceDocument):
     """Provenance and reports for one candidate/reference comparison."""
 
@@ -2293,6 +2363,7 @@ EvidenceDocument: TypeAlias = (
     | PhaseFiveCorrectiveAReviewEvidence
     | PhaseFiveAstrometryDevelopmentEvidence
     | PhaseFiveAstrometryFollowUpDevelopmentEvidence
+    | PhaseFiveAstrometryFollowUpConfirmationEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence

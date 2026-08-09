@@ -26,6 +26,22 @@ uv run python scripts/benchmark/review_phase5_filters.py \
 The reviewed outcome is `select-neither`; the decision contract keeps Step 3,
 candidate-specific optimization, and qualification closed.
 
+`confirm_phase5_astrometry_follow_up.py` is the one-look Step 2C-HR
+confirmation runner. It requires the named human decision, verifies the frozen
+protocol, base residual-B3 protocol, development decision and ignored evidence,
+candidate, and 400-image regression manifest, and refuses to overwrite an
+existing result. It emits raw exploratory evidence and cannot authorize
+Step 2C-P or a later phase:
+
+```console
+uv run python scripts/benchmark/confirm_phase5_astrometry_follow_up.py \
+  --output benchmark-results/phase-5/astrometry-follow-up-confirmation.json
+```
+
+Run it only after the authorization and runner commits are complete. A result
+must receive a separate fail-closed technical decision before external-finder
+comparison can begin.
+
 `run_phase0_pybdsf_baseline.py` starts a fresh local Podman container for every
 warm-up or measured repetition. Release 1.14.1 uses the PyBDSF already present
 in the immutable container. The master campaign installs a separately built

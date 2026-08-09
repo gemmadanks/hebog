@@ -109,6 +109,13 @@ named project-owner review. It may authorize exactly one sealed confirmation
 without changing the candidate, target, population, bootstrap, or gates. It
 does not authorize Step 2C-P or any later phase.
 
+A `phase-five-astrometry-follow-up-confirmation` document is the raw result of
+that authorized one-look execution. It binds the human and development
+decisions, development evidence, frozen protocols, confirmation manifest,
+runner, source tree, dependencies, and environment. Its status remains
+`exploratory` and every downstream gate remains false until a separate
+technical decision reviews all confirmation endpoints.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same

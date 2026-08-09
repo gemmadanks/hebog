@@ -102,6 +102,28 @@ def test_final_evaluator_refuses_to_overwrite_a_decision(
         namespace["main"]()
 
 
+def test_phase_five_follow_up_confirmation_refuses_overwrite(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The one-look confirmation runner cannot replace existing evidence."""
+    output = tmp_path / "confirmation.json"
+    output.write_text("already executed\n", encoding="utf-8")
+    namespace = _script("confirm_phase5_astrometry_follow_up.py")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "confirm_phase5_astrometry_follow_up.py",
+            "--output",
+            str(output),
+        ],
+    )
+
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        namespace["main"]()
+
+
 def test_phase4r_qualification_freeze_changes_every_field_family(
     tmp_path: Path,
 ) -> None:

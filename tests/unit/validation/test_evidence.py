@@ -37,6 +37,7 @@ from hebog.validation.evidence import (
     PhaseFiveAstrometryDiagnostic,
     PhaseFiveAstrometryEndpointEvidence,
     PhaseFiveAstrometryEstimatorDiagnostic,
+    PhaseFiveAstrometryFollowUpConfirmationEvidence,
     PhaseFiveAstrometryFollowUpDevelopmentEvidence,
     PhaseFiveAstrometryFollowUpDiagnosticEvidence,
     PhaseFiveAstrometryFollowUpEndpointEvidence,
@@ -905,6 +906,107 @@ def test_phase_five_astrometry_follow_up_evidence_awaits_human_review(
         PhaseFiveAstrometryFollowUpEndpointEvidence.model_validate(
             endpoint_payload
         )
+
+
+def test_phase_five_follow_up_confirmation_evidence_awaits_review() -> None:
+    """One-look confirmation stays raw and cannot open external comparison."""
+    specifications: tuple[
+        tuple[
+            Literal[
+                "availability",
+                "absolute-mean-offset-x",
+                "absolute-mean-offset-y",
+                "radial-percentile-95",
+            ],
+            float,
+            float,
+            float,
+            Literal["at-least", "at-most"],
+        ],
+        ...,
+    ] = (
+        ("availability", 1.0, 1.0, 1.0, "at-least"),
+        ("absolute-mean-offset-x", 0.01, 0.02, 0.1, "at-most"),
+        ("absolute-mean-offset-y", 0.01, 0.02, 0.1, "at-most"),
+        ("radial-percentile-95", 0.25, 0.3, 0.5, "at-most"),
+    )
+    endpoints = tuple(
+        PhaseFiveAstrometryFollowUpEndpointEvidence(
+            candidate="original-pixel-detected-segment-centroid",
+            stratum="overall",
+            metric=metric,
+            image_count=400,
+            group_count=2_400,
+            estimate=estimate,
+            confidence_bound=bound,
+            limit=limit,
+            required_relation=relation,
+            passed=True,
+        )
+        for metric, estimate, bound, limit, relation in specifications
+    )
+    dataset = _dataset().model_copy(update={"role": DatasetRole.REGRESSION})
+    evidence = PhaseFiveAstrometryFollowUpConfirmationEvidence(
+        schema_version=1,
+        evidence_type="phase-five-astrometry-follow-up-confirmation",
+        run_id="phase-five-astrometry-follow-up-confirmation",
+        captured_at=datetime(2026, 8, 9, 16, 0, tzinfo=UTC),
+        status=EvidenceStatus.EXPLORATORY,
+        dataset=dataset,
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        base_protocol_sha256="4" * 64,
+        human_decision_sha256="5" * 64,
+        development_decision_sha256="6" * 64,
+        development_evidence_sha256="7" * 64,
+        confirmation_manifest_sha256="8" * 64,
+        image_count=400,
+        group_count=2_400,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260809,
+        candidate="original-pixel-detected-segment-centroid",
+        endpoints=endpoints,
+        diagnostics=(
+            PhaseFiveAstrometryFollowUpDiagnosticEvidence(
+                stratum="overall",
+                available_group_count=2_400,
+                radial_median_beams=0.1,
+                former_target_percentile_95_beams=0.3,
+            ),
+        ),
+        failed_endpoint_count=0,
+        confirmation_result="pass-awaiting-reviewed-decision",
+        independent_human_scientific_review_complete=True,
+        confirmation_one_look_complete=True,
+        development_tuning_after_confirmation=False,
+        step_two_c_p_execution_authorized=False,
+        step_three_authorized=False,
+        optimization_authorized=False,
+        qualification_opened=False,
+    )
+
+    assert evidence.confirmation_result == ("pass-awaiting-reviewed-decision")
+    payload = evidence.model_dump(mode="python")
+    payload["confirmation_result"] = "reject-confirmation"
+    with pytest.raises(ValidationError, match="disagrees with endpoints"):
+        PhaseFiveAstrometryFollowUpConfirmationEvidence.model_validate(payload)
+
+    payload = evidence.model_dump(mode="python")
+    payload["status"] = EvidenceStatus.REVIEWED
+    with pytest.raises(ValidationError, match="awaits technical review"):
+        PhaseFiveAstrometryFollowUpConfirmationEvidence.model_validate(payload)
+
+    payload = evidence.model_dump(mode="python")
+    payload["dataset"]["role"] = DatasetRole.DEVELOPMENT
+    with pytest.raises(ValidationError, match="requires regression data"):
+        PhaseFiveAstrometryFollowUpConfirmationEvidence.model_validate(payload)
+
+    payload = evidence.model_dump(mode="python")
+    payload["endpoints"] = payload["endpoints"][:-1]
+    with pytest.raises(ValidationError, match="every overall metric"):
+        PhaseFiveAstrometryFollowUpConfirmationEvidence.model_validate(payload)
 
 
 def test_software_identity_can_record_an_uncommitted_source_tree() -> None:
