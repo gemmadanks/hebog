@@ -1175,7 +1175,7 @@ and spill behaviour, and facility-scale execution.
          condition. Do not use the viewed Step 2C-H development population,
          the closed 2C-A confirmation, or the sealed Step 2C-H confirmation
          for selection.
-   - [ ] Preserve the Phase 4 compact/component position definition and its
+   - [x] Preserve the Phase 4 compact/component position definition and its
          0.10-beam median and 0.25-beam p95 gates. For irregular extended
          objects, define the catalogue coordinate as the original-pixel
          flux-weighted centroid of the accepted detection segment, report the
@@ -1183,7 +1183,7 @@ and spill behaviour, and facility-scale execution.
          neither coordinate is a host-galaxy position. Compare the segment
          centroid with the matched noiseless 3-sigma truth segment, not
          unobservable flux below the catalogue boundary.
-   - [ ] Implement one transparent, morphology-neutral segment estimator and
+   - [x] Implement one transparent, morphology-neutral segment estimator and
          typed position semantics before another candidate comparison. It
          must use the accepted B3-associated original-pixel segment without
          dilation or truth information, retain deterministic peak tie-breaking,

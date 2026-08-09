@@ -1,12 +1,13 @@
 # Phase 5 multiscale contract and development review
 
-**Status:** reviewed through the Step 2C-H prospective astrometry development
-run. Both the direct observable-pixel centroid and covariance-gated
-Gaussian-assisted candidate failed required endpoint and uncertainty-coverage
-strata, so neither was selected. The fresh 400-image confirmation remains
-sealed. Step 3, Step 2C-P execution, optimization, and qualification remain
-blocked pending renewed human scientific review; this contract does not
-establish multiscale equivalence.
+**Status:** reviewed through the Step 2C-H rejection and the prospective Step
+2C-HR position redesign. Compact Gaussian astrometry remains unchanged;
+irregular extended emission now has an explicit detected-segment centroid and
+separate peak contract. Its fresh development and sealed confirmation
+populations were frozen before implementation. Step 3, Step 2C-P execution,
+optimization, and qualification remain blocked pending fresh development
+evidence and human scientific review; this contract does not establish
+multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -74,11 +75,15 @@ The machine-readable meanings are in
   or deferred island requires one terminal disposition, and any incomplete
   result forbids catalogue publication.
 
-The internal version-one records are `ScaleDetection`,
-`CrossScaleAssociation`, `ExtendedEmissionMeasurement`, `MultiscaleOmission`,
-`CombinedIslandDisposition`, and `CombinedCatalogueState`. They are strict,
-immutable, scheduler-safe records; they contain no arrays, files, clients, or
-mutable execution state.
+The internal records are `ScaleDetection`, `CrossScaleAssociation`,
+`ExtendedEmissionMeasurement`, `MultiscaleOmission`,
+`CombinedIslandDisposition`, and `CombinedCatalogueState`.
+`ExtendedEmissionMeasurement` is version 2: it distinguishes the
+detection-conditioned segment centroid from the brightest original pixel,
+denies a host-position claim, and keeps position uncertainty unavailable until
+support selection is calibrated. The other records remain version 1. All are
+strict, immutable, scheduler-safe records; they contain no arrays, files,
+clients, or mutable execution state.
 
 ## Frozen datasets
 
@@ -94,6 +99,8 @@ production algorithm to a Gaussian decomposition.
 | `phase-5-development.json` | development | 10 | Fast scale-response, schema, failure, and association TDD. |
 | `phase-5-regression.json` | regression | 100 | Seed- and geometry-disjoint morphology, scale, mask, edge, artifact, and boundary regression. |
 | `phase-5-corrective-a-confirmation.json` | regression confirmation | 100 | One-look seed-disjoint confirmation of the frozen Step 2C-A estimator. |
+| `phase-5-astrometry-follow-up-development.json` | development | 80 | Fresh geometry and noise validation of the detected-segment position. |
+| `phase-5-astrometry-follow-up-confirmation.json` | regression confirmation | 400 | Sealed one-look confirmation, unauthorized pending development and human review. |
 | `phase-5-qualification.json` | qualification | 400 | Untouched one-look population spanning every governed stratum. |
 
 Each image contains diffuse, filamentary, curved-filament, shell,
@@ -111,6 +118,10 @@ The image/noise seed is the independent unit. Seed ranges do not overlap:
 - development: `2026700001`--`2026700010`;
 - regression: `2026710001`--`2026710100`;
 - Step 2C-A confirmation: `2026730001`--`2026730100`; and
+- Step 2C-HR development: four 20-image ranges beginning at `2026760001`,
+  `2026761001`, `2026762001`, and `2026763001`;
+- Step 2C-HR confirmation: four 100-image ranges beginning at `2026770001`,
+  `2026771001`, `2026772001`, and `2026773001`; and
 - qualification: `2026720001`--`2026720400`.
 
 The qualification population is frozen before algorithm selection, tuning,
@@ -149,7 +160,8 @@ and held-out qualification, overall and in every applicable governed stratum:
 | Completeness | at least 0.90 |
 | Reliability | at least 0.95 |
 | Median / 95th-percentile integrated-flux fractional error | at most 0.10 / 0.25 |
-| Median / 95th-percentile position error | at most 0.10 / 0.25 beam FWHM |
+| Compact/component fitted-position median / p95 error | at most 0.10 / 0.25 beam FWHM |
+| Irregular detected-segment signed-axis bias / radial p95 upper bound | at most 0.10 / 0.50 beam FWHM |
 | Duplicate fraction | at most 0.02 |
 | Mask precision / recall / IoU | at least 0.85 / 0.90 / 0.80 |
 | Island split / merge fraction | at most 0.10 / 0.10 |
@@ -197,6 +209,11 @@ Residual risks are explicit:
   the nested tail statistic and omitted median endpoint prospectively, but its
   two candidates still failed endpoint and coverage strata on fresh
   development data.
+- The Step 2C-HR technical review found that those offsets were unbiased and
+  that the former target conflated compact-component astrometry with the
+  threshold-dependent location of irregular emission. The new half-beam tail
+  is a segment-repeatability gate and does not replace the compact 0.10/0.25
+  astrometry requirement.
 - The internal records establish meanings, not a supported public API or
   completed combined catalogue implementation.
 
@@ -226,6 +243,9 @@ Step 3 remain blocked.
 | Successor astrometry development manifest | `5e9da7471f9ca33053421bf3fed6e9583e4ac0e9c3a0b230cd15f48b35159636` |
 | Successor astrometry confirmation manifest | `0cb216ad04469169a45a19e0d2b9eb51b84d4fee6f03ffd6dccce413c00659f7` |
 | Successor astrometry selection decision | `567512af8220c041767d08f6313b8ccc62b0f429e77758f2e39075751314a2a5` |
+| Step 2C-HR position protocol | `0fec937aeb90dec119993529af04fb5a431aeb070ab483d713abf8c91972037f` |
+| Step 2C-HR development manifest | `c96faa8e6bf15bd324a56a5ca37c036f5361f678d1722d6d775c8a2e929587eb` |
+| Step 2C-HR sealed confirmation manifest | `0e0c360a95044e155b489670d50de6c0ef41ccb3b314354a56388e208d2b87c7` |
 | Qualification manifest | `40f1d0cfd173947e323cc35ff140c04f25fdd5c8303fbab8c138dc058fb0235f` |
 | Development complete dataset record | `319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d` |
 | Regression complete dataset record | `70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5` |

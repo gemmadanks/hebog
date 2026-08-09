@@ -6094,3 +6094,36 @@ optimization, and qualification remain unauthorized.
 **Immediate next step:** implement the typed position products and frozen
 segment estimator, then run the 80-image development protocol without opening
 confirmation.
+
+## 2026-08-09 — Implemented the Step 2C-HR segment-position candidate
+
+**Plan phase:** Phase 5, Step 2C-HR — development candidate implementation
+
+- Added a pure original-pixel position kernel that measures the signed-flux
+  centroid and row-major-first brightest pixel on the exact accepted source
+  segment. Empty finite support and non-positive segment flux return typed
+  unavailability; no dilation, Gaussian fit, morphology branch, or truth
+  coordinate enters the estimator.
+- Replaced the provisional extended-measurement schema directly with version
+  2. It names the centroid and peak separately, makes the absence of a host
+  claim explicit, separates flux and position uncertainty status, and forbids
+  a position covariance until support-selection uncertainty is calibrated.
+- Added the development evaluator and compiler for exact availability,
+  whole-image-cluster signed-axis bias, radial p95 repeatability, and
+  non-binding old-target/median diagnostics. Passing development can only
+  become `eligible-awaiting-human-review`; confirmation and downstream gates
+  remain false.
+- Added a versioned exploratory evidence document and a runner that accepts no
+  confirmation input, verifies the protocol, base residual-B3 contract, prior
+  decision, and development-manifest checksums, and refuses to overwrite an
+  existing result.
+- Final code review found and corrected one fail-closed harness gap: the
+  compiler now rejects an observation population that omits any governed
+  astronomical stratum instead of allowing that stratum to disappear from the
+  decision.
+
+**Validation:** focused estimator, schema, compiler, and evidence tests pass;
+Ruff and Pyright pass before development execution.
+
+**Immediate next step:** commit the implementation, run only the frozen
+80-image development manifest, and review every applicable stratum.

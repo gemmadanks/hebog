@@ -86,6 +86,16 @@ for the direct estimator unless an eligible model improves overall p95 by at
 least 0.02 beam. A rejected development result cannot authorize confirmation,
 Step 2C-P, Step 3, optimization, or qualification.
 
+A later `phase-five-astrometry-follow-up-development` document binds the
+Step 2C-HR compact/extended position split, the exact corrective-A residual-B3
+detection protocol, and a new 80-image development manifest. It records exact
+availability plus whole-image-cluster upper confidence bounds for signed-axis
+bias and radial p95 repeatability in every applicable astronomical stratum.
+Median radial error and error against the former threshold-independent target
+remain diagnostic. Even a completely passing document remains `exploratory`,
+marks only `eligible-awaiting-human-review`, and cannot authorize the sealed
+confirmation or any downstream Phase 5 step.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same

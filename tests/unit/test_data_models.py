@@ -500,6 +500,11 @@ def test_multiscale_records_are_scheduler_safe_and_fail_closed() -> None:
     measurement = domain_models.ExtendedEmissionMeasurement(
         association_id=association.association_id,
         centroid_xy=(35.5, 14.0),
+        centroid_kind="detected-segment-flux-centroid",
+        peak_position_xy=(36, 14),
+        host_position_claim=False,
+        position_covariance_pixels_squared=None,
+        position_uncertainty_status="unavailable",
         integrated_flux_jy=0.05,
         integrated_flux_error_jy=None,
         local_rms_jy_per_beam=0.0002,
@@ -508,7 +513,7 @@ def test_multiscale_records_are_scheduler_safe_and_fail_closed() -> None:
         minor_extent_beams=1.5,
         position_angle_degrees=25.0,
         visible_model_fraction=0.95,
-        uncertainty_status="unavailable",
+        flux_uncertainty_status="unavailable",
     )
     omission = domain_models.MultiscaleOmission(
         object_id=association.association_id,
@@ -528,7 +533,12 @@ def test_multiscale_records_are_scheduler_safe_and_fail_closed() -> None:
         omissions=(omission,),
     )
 
-    assert measurement.uncertainty_status == "unavailable"
+    assert measurement.centroid_kind == "detected-segment-flux-centroid"
+    assert measurement.peak_position_xy == (36, 14)
+    assert measurement.host_position_claim is False
+    assert measurement.position_uncertainty_status == "unavailable"
+    assert measurement.flux_uncertainty_status == "unavailable"
+    assert measurement.schema_version == 2
     assert state.publication_eligible is False
     assert pickle.loads(pickle.dumps(state)) == state
 
@@ -628,6 +638,7 @@ def test_cross_scale_association_rejects_noncanonical_inputs(
     [
         ({"association_id": "bad ID"}, "domain identifier"),
         ({"centroid_xy": (float("inf"), 1.0)}, "finite"),
+        ({"peak_position_xy": (-1, 14)}, "non-negative"),
         ({"minor_extent_beams": 4.0}, "cannot exceed"),
         ({"position_angle_degrees": 180.0}, "within"),
         (
@@ -644,6 +655,11 @@ def test_extended_measurement_rejects_invalid_science_state(
     payload: dict[str, object] = {
         "association_id": "scale-association-0001",
         "centroid_xy": (35.5, 14.0),
+        "centroid_kind": "detected-segment-flux-centroid",
+        "peak_position_xy": (36, 14),
+        "host_position_claim": False,
+        "position_covariance_pixels_squared": None,
+        "position_uncertainty_status": "unavailable",
         "integrated_flux_jy": 0.05,
         "integrated_flux_error_jy": None,
         "local_rms_jy_per_beam": 0.0002,
@@ -652,7 +668,7 @@ def test_extended_measurement_rejects_invalid_science_state(
         "minor_extent_beams": 1.5,
         "position_angle_degrees": 25.0,
         "visible_model_fraction": 0.95,
-        "uncertainty_status": "unavailable",
+        "flux_uncertainty_status": "unavailable",
     }
     payload.update(update)
 

@@ -139,6 +139,11 @@ class ExtendedEmissionMeasurement(_MultiscaleModel):
 
     association_id: str
     centroid_xy: tuple[float, float]
+    centroid_kind: Literal["detected-segment-flux-centroid"]
+    peak_position_xy: tuple[int, int]
+    host_position_claim: Literal[False]
+    position_covariance_pixels_squared: None = None
+    position_uncertainty_status: Literal["unavailable"]
     integrated_flux_jy: float = Field(gt=0)
     integrated_flux_error_jy: float | None = Field(default=None, ge=0)
     local_rms_jy_per_beam: float = Field(gt=0)
@@ -147,8 +152,8 @@ class ExtendedEmissionMeasurement(_MultiscaleModel):
     minor_extent_beams: float = Field(gt=0)
     position_angle_degrees: float
     visible_model_fraction: float = Field(gt=0, le=1)
-    uncertainty_status: Literal["available", "unavailable"]
-    schema_version: Literal[1] = 1
+    flux_uncertainty_status: Literal["available", "unavailable"]
+    schema_version: Literal[2] = 2
 
     @model_validator(mode="after")
     def validate_measurement(self) -> Self:
@@ -165,12 +170,14 @@ class ExtendedEmissionMeasurement(_MultiscaleModel):
         )
         if not all(isfinite(value) for value in values):
             raise ValueError("extended measurement values must be finite")
+        if min(*self.centroid_xy, *self.peak_position_xy) < 0:
+            raise ValueError("extended positions must be non-negative")
         if self.minor_extent_beams > self.major_extent_beams:
             raise ValueError("extended minor extent cannot exceed major")
         if not 0 <= self.position_angle_degrees < _HALF_CIRCLE_DEGREES:
             raise ValueError("extended position angle must be within [0, 180)")
         error_available = self.integrated_flux_error_jy is not None
-        if error_available != (self.uncertainty_status == "available"):
+        if error_available != (self.flux_uncertainty_status == "available"):
             raise ValueError(
                 "uncertainty status must match flux-error availability"
             )

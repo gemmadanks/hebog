@@ -37,6 +37,9 @@ from hebog.validation.evidence import (
     PhaseFiveAstrometryDiagnostic,
     PhaseFiveAstrometryEndpointEvidence,
     PhaseFiveAstrometryEstimatorDiagnostic,
+    PhaseFiveAstrometryFollowUpDevelopmentEvidence,
+    PhaseFiveAstrometryFollowUpDiagnosticEvidence,
+    PhaseFiveAstrometryFollowUpEndpointEvidence,
     PhaseFiveCorrectiveAReviewEvidence,
     PhaseFiveCorrectiveReviewEvidence,
     PhaseFiveCorrectiveRReviewEvidence,
@@ -807,6 +810,101 @@ def test_phase_five_astrometry_evidence_recomputes_positive_selection() -> (
     payload["selected_candidate"] = "covariance-gated-model-assisted-centroid"
     model = PhaseFiveAstrometryDevelopmentEvidence.model_validate(payload)
     assert model.decision == "select-model"
+
+
+def test_phase_five_astrometry_follow_up_evidence_awaits_human_review(
+    tmp_path: Path,
+) -> None:
+    """Passing development remains exploratory and cannot open confirmation."""
+    endpoint_specs: tuple[
+        tuple[
+            Literal[
+                "availability",
+                "absolute-mean-offset-x",
+                "absolute-mean-offset-y",
+                "radial-percentile-95",
+            ],
+            float,
+            float,
+            float,
+            Literal["at-least", "at-most"],
+        ],
+        ...,
+    ] = (
+        ("availability", 1.0, 1.0, 1.0, "at-least"),
+        ("absolute-mean-offset-x", 0.01, 0.03, 0.1, "at-most"),
+        ("absolute-mean-offset-y", 0.02, 0.04, 0.1, "at-most"),
+        ("radial-percentile-95", 0.25, 0.35, 0.5, "at-most"),
+    )
+    endpoints = tuple(
+        PhaseFiveAstrometryFollowUpEndpointEvidence(
+            candidate="original-pixel-detected-segment-centroid",
+            stratum="overall",
+            metric=metric,
+            image_count=80,
+            group_count=480,
+            estimate=estimate,
+            confidence_bound=confidence_bound,
+            limit=limit,
+            required_relation=relation,
+            passed=True,
+        )
+        for metric, estimate, confidence_bound, limit, relation in (
+            endpoint_specs
+        )
+    )
+    evidence = PhaseFiveAstrometryFollowUpDevelopmentEvidence(
+        schema_version=1,
+        evidence_type="phase-five-astrometry-follow-up-development",
+        run_id="phase-five-astrometry-follow-up-development",
+        captured_at=datetime(2026, 8, 9, 14, 0, tzinfo=UTC),
+        status=EvidenceStatus.EXPLORATORY,
+        dataset=_dataset(),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        base_protocol_sha256="4" * 64,
+        development_manifest_sha256="5" * 64,
+        image_count=80,
+        group_count=480,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260809,
+        candidate="original-pixel-detected-segment-centroid",
+        endpoints=endpoints,
+        diagnostics=(
+            PhaseFiveAstrometryFollowUpDiagnosticEvidence(
+                stratum="overall",
+                available_group_count=480,
+                radial_median_beams=0.1,
+                former_target_percentile_95_beams=0.3,
+            ),
+        ),
+        failed_endpoint_count=0,
+        eligible_for_human_review=True,
+        decision="eligible-awaiting-human-review",
+        independent_human_review_complete=False,
+        confirmation_execution_authorized=False,
+        step_two_c_p_execution_authorized=False,
+        step_three_authorized=False,
+        optimization_authorized=False,
+        qualification_opened=False,
+    )
+    path = tmp_path / "follow-up.json"
+    write_evidence(path, evidence)
+
+    assert load_evidence(path) == evidence
+    payload = evidence.model_dump(mode="python")
+    payload["confirmation_execution_authorized"] = True
+    with pytest.raises(ValidationError, match="confirmation remains sealed"):
+        PhaseFiveAstrometryFollowUpDevelopmentEvidence.model_validate(payload)
+
+    endpoint_payload = endpoints[1].model_dump(mode="python")
+    endpoint_payload["passed"] = False
+    with pytest.raises(ValidationError, match="endpoint decision"):
+        PhaseFiveAstrometryFollowUpEndpointEvidence.model_validate(
+            endpoint_payload
+        )
 
 
 def test_software_identity_can_record_an_uncommitted_source_tree() -> None:

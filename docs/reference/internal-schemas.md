@@ -234,16 +234,21 @@ catalogue columns retain their reviewed peak/integrated component semantics.
 
 ## Phase 5 multiscale records
 
-Phase 5 introduces six version-one internal records without changing the
-published catalogue schema. `ScaleDetection` describes one finite,
+Phase 5 introduces six internal records without changing the published
+catalogue schema. `ScaleDetection` describes one finite,
 beam-normalized response and retains its global bounds, valid-support
 fraction, normalized peak response, significance, and contributing scale. A
 `CrossScaleAssociation` canonically joins scale detections and, when present,
 one compact source. It records the selected detection explicitly rather than
 letting task or scale iteration order choose a catalogue representation.
 
-`ExtendedEmissionMeasurement` stores the association-level centroid, flux,
-beam-normalized extent, uncertainty status, and supporting scale orders.
+`ExtendedEmissionMeasurement` schema version 2 stores a detected-segment flux
+centroid and brightest original-pixel coordinate as distinct fields. It
+explicitly records that neither is a host position. Its position covariance is
+unavailable until nonlinear segment-selection uncertainty has a validated
+per-source approximation; flux-uncertainty availability remains independent.
+It also stores association-level flux and beam-normalized extent. The other
+five Phase 5 records remain at schema version 1.
 `MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
 support, measurement, or association. `CombinedIslandDisposition` gives every
 accepted or deferred island exactly one terminal state. Finally,

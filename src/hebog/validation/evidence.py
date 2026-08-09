@@ -1176,6 +1176,136 @@ class PhaseFiveAstrometryDevelopmentEvidence(_EvidenceDocument):
         return self
 
 
+class PhaseFiveAstrometryFollowUpEndpointEvidence(_EvidenceModel):
+    """One binding irregular segment-position development endpoint."""
+
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    stratum: str = Field(min_length=1)
+    metric: Literal[
+        "availability",
+        "absolute-mean-offset-x",
+        "absolute-mean-offset-y",
+        "radial-percentile-95",
+    ]
+    image_count: int = Field(ge=1)
+    group_count: int = Field(ge=1)
+    estimate: float = Field(ge=0, allow_inf_nan=False)
+    confidence_bound: float = Field(ge=0, allow_inf_nan=False)
+    limit: float = Field(gt=0, allow_inf_nan=False)
+    required_relation: Literal["at-least", "at-most"]
+    passed: bool
+
+    @model_validator(mode="after")
+    def validate_endpoint(self) -> Self:
+        """Recompute the declared one-sided endpoint decision."""
+        if self.metric == "availability":
+            if self.required_relation != "at-least":
+                raise ValueError("availability requires an at-least relation")
+            if not isclose(
+                self.confidence_bound,
+                self.estimate,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            ):
+                raise ValueError(
+                    "availability uses the exact observed fraction"
+                )
+        elif self.required_relation != "at-most":
+            raise ValueError("position errors require an at-most relation")
+        expected = (
+            self.confidence_bound >= self.limit
+            if self.required_relation == "at-least"
+            else self.confidence_bound <= self.limit
+        )
+        if self.passed != expected:
+            raise ValueError("follow-up endpoint decision is inconsistent")
+        return self
+
+
+class PhaseFiveAstrometryFollowUpDiagnosticEvidence(_EvidenceModel):
+    """Non-binding old-target and median position summaries."""
+
+    stratum: str = Field(min_length=1)
+    available_group_count: int = Field(ge=1)
+    radial_median_beams: float = Field(ge=0, allow_inf_nan=False)
+    former_target_percentile_95_beams: float = Field(ge=0, allow_inf_nan=False)
+
+
+class PhaseFiveAstrometryFollowUpDevelopmentEvidence(_EvidenceDocument):
+    """Fresh development evidence for the detected-segment position."""
+
+    evidence_type: Literal["phase-five-astrometry-follow-up-development"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    base_protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    development_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    image_count: int = Field(ge=80)
+    group_count: int = Field(ge=1)
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    endpoints: tuple[PhaseFiveAstrometryFollowUpEndpointEvidence, ...] = Field(
+        min_length=1
+    )
+    diagnostics: tuple[PhaseFiveAstrometryFollowUpDiagnosticEvidence, ...] = (
+        Field(min_length=1)
+    )
+    failed_endpoint_count: int = Field(ge=0)
+    eligible_for_human_review: bool
+    decision: Literal[
+        "eligible-awaiting-human-review",
+        "reject-segment-position",
+    ]
+    independent_human_review_complete: Literal[False]
+    confirmation_execution_authorized: bool
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_development_decision(self) -> Self:
+        """Keep passing development exploratory and every next gate closed."""
+        if self.status is not EvidenceStatus.EXPLORATORY:
+            raise ValueError(
+                "follow-up evidence remains exploratory before human review"
+            )
+        if self.confirmation_execution_authorized:
+            raise ValueError(
+                "follow-up confirmation remains sealed before human review"
+            )
+        overall_metrics = {
+            item.metric for item in self.endpoints if item.stratum == "overall"
+        }
+        expected_metrics = {
+            "availability",
+            "absolute-mean-offset-x",
+            "absolute-mean-offset-y",
+            "radial-percentile-95",
+        }
+        if overall_metrics != expected_metrics:
+            raise ValueError(
+                "follow-up evidence requires every overall metric"
+            )
+        failed = sum(not item.passed for item in self.endpoints)
+        eligible = failed == 0
+        expected_decision = (
+            "eligible-awaiting-human-review"
+            if eligible
+            else "reject-segment-position"
+        )
+        if (
+            self.failed_endpoint_count != failed
+            or self.eligible_for_human_review != eligible
+            or self.decision != expected_decision
+        ):
+            raise ValueError(
+                "follow-up development decision disagrees with endpoints"
+            )
+        return self
+
+
 class ScientificComparisonEvidence(_EvidenceDocument):
     """Provenance and reports for one candidate/reference comparison."""
 
@@ -2162,6 +2292,7 @@ EvidenceDocument: TypeAlias = (
     | PhaseFiveCorrectiveRReviewEvidence
     | PhaseFiveCorrectiveAReviewEvidence
     | PhaseFiveAstrometryDevelopmentEvidence
+    | PhaseFiveAstrometryFollowUpDevelopmentEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence
