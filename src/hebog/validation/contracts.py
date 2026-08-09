@@ -2376,6 +2376,91 @@ class PhaseFiveAstrometryFollowUpHumanDecision(_ContractModel):
         return self
 
 
+class PhaseFiveAstrometryFollowUpConfirmationDecision(_ContractModel):
+    """Reviewed one-look decision for the segment-position confirmation."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-follow-up-confirmation-decision"]
+    status: Literal["reviewed-passed"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    human_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirmation_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    image_count: Literal[400]
+    group_count: Literal[2400]
+    endpoint_count: Literal[60]
+    failed_endpoint_count: Literal[0]
+    overall_availability_fraction: float
+    overall_axis_bias_upper_bounds_beams: tuple[float, float]
+    overall_radial_p95_beams: float
+    overall_radial_p95_upper_bound_beams: float
+    overall_radial_median_beams: float
+    former_target_radial_p95_beams: float
+    limiting_radial_strata: tuple[str, ...]
+    limiting_radial_p95_upper_bound_beams: float
+    confirmation_result: Literal["pass-awaiting-reviewed-decision"]
+    decision: Literal["confirm-candidate-for-external-comparison"]
+    selected_candidate: Literal["original-pixel-detected-segment-centroid"]
+    named_review: Literal["codex-step-2c-hr-confirmation-evidence-review"]
+    review_scope: Literal["technical-and-governed-one-look-confirmation"]
+    independent_human_scientific_review: Literal[
+        "completed-before-confirmation"
+    ]
+    confirmation_reuse: Literal["closed-after-one-look"]
+    step_two_c_p_protocol_freeze_authorized: Literal[True]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "freeze-external-comparison-protocol-before-generating-output"
+    ]
+
+    @model_validator(mode="after")
+    def validate_confirmation_decision(self) -> Self:
+        """Require every frozen confirmation gate and keep execution closed."""
+        metrics = (
+            self.overall_availability_fraction,
+            *self.overall_axis_bias_upper_bounds_beams,
+            self.overall_radial_p95_beams,
+            self.overall_radial_p95_upper_bound_beams,
+            self.overall_radial_median_beams,
+            self.former_target_radial_p95_beams,
+            self.limiting_radial_p95_upper_bound_beams,
+        )
+        if not all(isfinite(item) and item >= 0 for item in metrics):
+            raise ValueError(
+                "confirmation metrics must be finite and non-negative"
+            )
+        if (
+            self.overall_availability_fraction != 1.0
+            or max(self.overall_axis_bias_upper_bounds_beams)
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_AXIS_BIAS_BEAMS
+            or self.overall_radial_p95_upper_bound_beams
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS
+            or self.limiting_radial_p95_upper_bound_beams
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS
+        ):
+            raise ValueError("confirmation gates must all pass")
+        if (
+            self.overall_radial_median_beams > self.overall_radial_p95_beams
+            or self.overall_radial_p95_beams
+            > self.overall_radial_p95_upper_bound_beams
+        ):
+            raise ValueError("radial confirmation summaries must be ordered")
+        expected_limiting = (
+            "above-compact-deblend-limit",
+            "morphology-shell",
+            "tile-corner",
+        )
+        if self.limiting_radial_strata != expected_limiting:
+            raise ValueError("limiting radial strata must remain exact")
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -3020,5 +3105,14 @@ def load_phase_five_astrometry_follow_up_human_decision(
 ) -> PhaseFiveAstrometryFollowUpHumanDecision:
     """Load the named confirmation-only Step 2C-HR approval."""
     return PhaseFiveAstrometryFollowUpHumanDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_follow_up_confirmation_decision(
+    path: Path,
+) -> PhaseFiveAstrometryFollowUpConfirmationDecision:
+    """Load the reviewed Step 2C-HR one-look confirmation decision."""
+    return PhaseFiveAstrometryFollowUpConfirmationDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

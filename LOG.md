@@ -6218,3 +6218,47 @@ passed, and `just check` passed with 1,009 tests plus four expected failures.
 
 **Immediate next step:** complete full validation and commit the runner, then
 execute the authorized 400-image confirmation exactly once.
+
+## 2026-08-09 — Step 2C-HR one-look confirmation passed
+
+**Plan phase:** Phase 5, Step 2C-HR — confirmation decision
+
+- Executed the sealed confirmation once from committed runner `0e37424` after
+  committed human authorization `562f86e`. The run evaluated 400 images and
+  2,400 eligible astronomical groups without post-development tuning.
+- All 60 binding endpoints passed. Availability was 1.0; overall x/y
+  absolute-mean-offset upper bounds were 0.00431787/0.00407039 beam against
+  0.10; and overall radial p95 was 0.295771 beam with a 0.310348 upper bound
+  against 0.50.
+- The shell cohort again supplied the `above-compact-deblend-limit`,
+  `morphology-shell`, and `tile-corner` limiting strata. Its radial-p95 upper
+  bound was 0.488331 beam, independently reproducing the narrow development
+  margin. Tile-boundary was 0.430297 beam; every other radial-tail bound was
+  at most 0.324638 beam.
+- The overall diagnostic radial median was 0.0867493 beam. Diagnostic p95
+  against the former full-observable-domain target was 0.329930 beam and did
+  not enter the decision.
+- The ignored evidence SHA-256 is
+  `6a9ca9be593d3f5c04a190869be709f698ff1582c570a55052c3ea4a7238e87a`;
+  configuration SHA-256 is
+  `621c6192445be3b4bf556e9c2291379313daf450f3cac82b7e861ca45c48e48e`;
+  and source-tree SHA-256 is
+  `f448a0be0a08ce6d62b35a17522ba8d93686d10e21453448070710b580a97ab2`.
+- Recorded `confirm-candidate-for-external-comparison` in a machine-validated
+  decision. Confirmation is closed after one look. Only Step 2C-P protocol
+  freeze is authorized; external execution and every later gate remain false.
+
+**Review conclusion:** confirmation supports the declared irregular segment
+location and repeats the development result without tuning. It does not
+establish host astrometry, calibrated position uncertainty, external-finder
+non-inferiority, or production readiness. The persistent narrow shell margin
+must remain visible in Step 2C-P and later qualification.
+
+**Validation:** the branch-aware suite passed with 1,140 tests plus four
+expected failures and 94.43% project coverage; the new decision validator has
+focused coverage of all branches. All 27 equivalence tests and the strict docs
+build passed. `just check` passed with 1,010 tests plus four expected
+failures.
+
+**Immediate next step:** freeze the complete fresh Step 2C-P external-finder
+comparison protocol before generating any Hebog, PyBDSF, or Aegean output.

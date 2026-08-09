@@ -116,6 +116,12 @@ runner, source tree, dependencies, and environment. Its status remains
 `exploratory` and every downstream gate remains false until a separate
 technical decision reviews all confirmation endpoints.
 
+The checked-in
+`phase-5-astrometry-follow-up-confirmation-decision.json` binds the raw
+evidence checksum and reviewed metrics. A passing decision may authorize only
+the freeze of a fresh Step 2C-P protocol; external-finder execution remains
+false until that prospective protocol is complete and validated.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same

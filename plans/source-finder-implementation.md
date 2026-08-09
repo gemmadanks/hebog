@@ -902,11 +902,13 @@ development images and 480 eligible groups. The overall radial-p95 upper bound
 was 0.3183 beam; the limiting shell/tile-corner cohort passed narrowly at
 0.4887 against 0.50 beam. Gemma Danks approved the coordinate semantics,
 gates, narrow-margin risk, unavailable position uncertainty, and one-look
-confirmation on 2026-08-09. The new confirmation population remains sealed
-until its runner is committed. Step 3, candidate-specific optimization, Step
-2C-P execution, and qualification remain blocked; no multiscale equivalence
-or complete runtime claim is approved. Comparisons completed so far are
-between Hebog representations, not Hebog and an external finder.
+confirmation on 2026-08-09. The single 400-image confirmation then passed all
+60 endpoints; its overall radial-p95 upper bound was 0.3103 beam and the
+limiting shell/tile-corner bound was 0.4883 beam. The population is closed.
+Freezing the Step 2C-P protocol is now authorized, but its execution, Step 3,
+candidate-specific optimization, and qualification remain blocked; no
+external non-inferiority, multiscale equivalence, or complete runtime claim is
+approved.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1208,7 +1210,11 @@ and spill behaviour, and facility-scale execution.
          as semantic precedents, not additional ground truth. The technical
          decision is recorded as `retain-candidate-for-human-review`. Gemma
          Danks approved the reviewed findings and confirmation-only execution
-         on 2026-08-09. Step 2C-P and every later authorization remain false.
+         on 2026-08-09. The one-look 400-image confirmation passed all 60
+         endpoints with an overall radial-p95 bound of 0.3103 beam and a
+         limiting shell/tile-corner bound of 0.4883 beam. Confirmation is now
+         closed. Step 2C-P protocol freeze is authorized, but execution and
+         every later gate remain false.
 
 2C-P. **Establish external source-finder non-inferiority before Step 3.**
 

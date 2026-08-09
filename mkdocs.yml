@@ -89,6 +89,7 @@ nav:
       - Phase 5 astrometry technical pre-review: reference/phase-5-astrometry-pre-review.md
       - Phase 5 extended-position follow-up review: reference/phase-5-astrometry-follow-up-review.md
       - Phase 5 extended-position development review: reference/phase-5-astrometry-follow-up-development-review.md
+      - Phase 5 extended-position confirmation review: reference/phase-5-astrometry-follow-up-confirmation-review.md
       - Compact deblending: reference/compact-deblending.md
       - Compact moment measurement: reference/compact-measurement.md
       - Compact Gaussian fitting: reference/compact-fitting.md

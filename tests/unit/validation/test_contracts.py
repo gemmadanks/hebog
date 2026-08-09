@@ -18,6 +18,7 @@ from hebog.validation.contracts import (
     ScalabilityContract,
     load_performance_matrix,
     load_phase_five_astrometry_follow_up_development_decision,
+    load_phase_five_follow_up_confirmation_decision,
     load_phase_four_measurement_contract,
     load_phase_four_metric_registry,
     load_phase_four_scientific_gates,
@@ -96,6 +97,10 @@ _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_DECISION_PATH = (
 )
 _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_HUMAN_DECISION_PATH = (
     _ROOT / "config/contracts/phase-5-astrometry-follow-up-human-decision.json"
+)
+_PHASE_FIVE_ASTROMETRY_FOLLOW_UP_CONFIRMATION_DECISION_PATH = (
+    _ROOT / "config/contracts/"
+    "phase-5-astrometry-follow-up-confirmation-decision.json"
 )
 
 
@@ -1262,6 +1267,52 @@ def test_follow_up_human_decision_opens_only_confirmation() -> None:
     payload["approved_findings"].pop()
     with pytest.raises(ValidationError, match="approved findings"):
         type(decision).model_validate(payload)
+
+
+def test_follow_up_confirmation_decision_opens_protocol_freeze_only() -> None:
+    """Passing confirmation permits planning, not external execution."""
+    decision = load_phase_five_follow_up_confirmation_decision(
+        _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_CONFIRMATION_DECISION_PATH
+    )
+
+    assert decision.status == "reviewed-passed"
+    assert decision.image_count == 400
+    assert decision.group_count == 2_400
+    assert decision.failed_endpoint_count == 0
+    assert decision.decision == "confirm-candidate-for-external-comparison"
+    assert decision.step_two_c_p_protocol_freeze_authorized is True
+    assert decision.step_two_c_p_execution_authorized is False
+    assert decision.step_three_authorized is False
+    assert decision.optimization_authorized is False
+    assert decision.qualification_opened is False
+
+    mutations = (
+        (
+            "limiting_radial_p95_upper_bound_beams",
+            0.51,
+            "confirmation gates",
+        ),
+        (
+            "overall_availability_fraction",
+            -0.1,
+            "finite and non-negative",
+        ),
+        (
+            "overall_radial_median_beams",
+            0.4,
+            "summaries must be ordered",
+        ),
+        (
+            "limiting_radial_strata",
+            ["tile-corner", "morphology-shell"],
+            "strata must remain exact",
+        ),
+    )
+    for field, value, message in mutations:
+        payload = decision.model_dump(mode="json")
+        payload[field] = value
+        with pytest.raises(ValidationError, match=message):
+            type(decision).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

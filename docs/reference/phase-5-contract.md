@@ -4,9 +4,11 @@
 development pass. Compact Gaussian astrometry remains unchanged; irregular
 extended emission has an explicit detected-segment centroid and separate peak
 contract. All 60 development endpoints passed, and Gemma Danks authorized its
-one-look confirmation after named scientific review on 2026-08-09. Step 3,
-Step 2C-P execution, optimization, and qualification remain blocked; this
-contract does not establish multiscale equivalence.
+one-look confirmation after named scientific review on 2026-08-09. All 60
+confirmation endpoints then passed on 400 images and 2,400 eligible groups.
+The confirmation population is closed. Step 2C-P protocol freeze is
+authorized, but its execution, Step 3, optimization, and qualification remain
+blocked; this contract does not establish multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -236,6 +238,14 @@ technical decision retains the candidate for named human scientific review;
 Gemma Danks subsequently approved confirmation-only execution. It does not
 authorize external-finder comparison.
 
+The single Step 2C-HR
+[confirmation](phase-5-astrometry-follow-up-confirmation-review.md) passed all
+60 endpoints. Overall x/y bias upper bounds were 0.0043/0.0041 beam and the
+radial-p95 upper bound was 0.3103 beam. The independently repeated limiting
+shell/tile-corner bound was 0.4883 beam. The reviewed decision confirms the
+candidate for Step 2C-P protocol design only; external execution remains
+closed.
+
 ## Frozen identities
 
 | Document | SHA-256 |
@@ -257,6 +267,7 @@ authorize external-finder comparison.
 | Step 2C-HR sealed confirmation manifest | `0e0c360a95044e155b489670d50de6c0ef41ccb3b314354a56388e208d2b87c7` |
 | Step 2C-HR development decision | `cd6d54cf1c22daf3d68423bc931b58bb81ec192d30ec9c1472bdabcd22969c72` |
 | Step 2C-HR human confirmation decision | `02124201a45ecc9e88ac9542de1f6ee0fa5a5a0a43759247bc696c68170664ab` |
+| Step 2C-HR confirmation decision | `61eff7dd2c3785a82b3048ebdfc88a3f6004f34e1b1183be2e409ceab4094b75` |
 | Qualification manifest | `40f1d0cfd173947e323cc35ff140c04f25fdd5c8303fbab8c138dc058fb0235f` |
 | Development complete dataset record | `319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d` |
 | Regression complete dataset record | `70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5` |
