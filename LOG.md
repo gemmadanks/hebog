@@ -6074,11 +6074,14 @@ pre-results protocol
   than 0.10 beam for signed-axis bias and 0.50 beam for radial p95 in every
   applicable governed stratum. Position uncertainty remains explicitly
   unavailable until nonlinear support-selection uncertainty is calibrated.
+- Before any development result was generated, added the exact corrective-A
+  detection-protocol checksum to the frozen review so the runner cannot change
+  the residual-B3 detection and association settings independently.
 
 **Evidence identity:** technical review SHA-256
 `cd377693b64762d02908d6a175b1a370a0090d23354f3e163d339ae81dea64fc`;
 protocol SHA-256
-`d9eaea57009c670a82bf6998724a475d5d4e80f1cc47e10a30c2d3a6a691bfad`;
+`0fec937aeb90dec119993529af04fb5a431aeb070ab483d713abf8c91972037f`;
 development-manifest SHA-256
 `c96faa8e6bf15bd324a56a5ca37c036f5361f678d1722d6d775c8a2e929587eb`;
 sealed-confirmation-manifest SHA-256

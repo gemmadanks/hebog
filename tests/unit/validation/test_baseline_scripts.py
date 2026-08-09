@@ -1155,6 +1155,7 @@ def test_phase5_astrometry_follow_up_freezer_varies_every_morphology() -> None:
         root / "config/datasets/phase-5-regression.json",
         root / "config/contracts/phase-5-astrometry-selection-decision.json",
         root / "docs/reference/phase-5-astrometry-follow-up-review.md",
+        root / "config/contracts/phase-5-corrective-a-review.json",
     )
     development = DatasetManifest.model_validate(development_document)
     confirmation = DatasetManifest.model_validate(confirmation_document)

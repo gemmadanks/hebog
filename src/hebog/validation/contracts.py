@@ -2184,6 +2184,7 @@ class PhaseFiveAstrometryFollowUpReview(_ContractModel):
     status: Literal["frozen-before-follow-up-development-results"]
     prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     technical_review_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    base_detection_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     technical_review_author: Literal["Codex AI technical review"]
     independent_human_review_complete: Literal[False]
     closed_population_policy: Literal[

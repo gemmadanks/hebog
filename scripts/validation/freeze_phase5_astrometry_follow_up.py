@@ -325,6 +325,7 @@ def _documents(
     template_path: Path,
     prior_decision_path: Path,
     technical_review_path: Path,
+    base_detection_protocol_path: Path,
 ) -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
     """Build and validate fresh manifests and their bound protocol."""
     template_manifest = DatasetManifest.model_validate_json(
@@ -365,6 +366,9 @@ def _documents(
         "status": "frozen-before-follow-up-development-results",
         "prior_decision_sha256": _sha256(prior_decision_path),
         "technical_review_sha256": _sha256(technical_review_path),
+        "base_detection_protocol_sha256": _sha256(
+            base_detection_protocol_path
+        ),
         "technical_review_author": "Codex AI technical review",
         "independent_human_review_complete": False,
         "closed_population_policy": (
@@ -498,6 +502,11 @@ def _parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--base-detection-protocol",
+        type=Path,
+        default=root / "config/contracts/phase-5-corrective-a-review.json",
+    )
+    parser.add_argument(
         "--development-output",
         type=Path,
         default=(
@@ -540,6 +549,7 @@ def main() -> None:
         arguments.template,
         arguments.prior_decision,
         arguments.technical_review,
+        arguments.base_detection_protocol,
     )
     for path, document in zip(outputs, documents, strict=True):
         path.parent.mkdir(parents=True, exist_ok=True)

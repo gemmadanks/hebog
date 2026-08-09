@@ -1,4 +1,5 @@
 {
+  "base_detection_protocol_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
   "closed_population_policy": "no-tuning-rescoring-confirmation-or-selection",
   "compact_position": {
     "maximum_median_position_beams": 0.1,

@@ -1113,6 +1113,9 @@ def test_phase_five_astrometry_follow_up_separates_position_semantics() -> (
     assert review.estimator.candidate == (
         "original-pixel-detected-segment-centroid"
     )
+    assert review.base_detection_protocol_sha256 == (
+        "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+    )
     assert review.estimator.centroid_support_dilation_pixels == 0
     assert review.estimator.position_uncertainty == (
         "unavailable-until-support-selection-calibrated"
