@@ -4,13 +4,15 @@
 [technical pre-review](phase-5-astrometry-pre-review.md) are complete with no
 eligible production representation. The independent 2C-A confirmation reduced
 residual B3 to five absolute astrometry failures and zero paired failures;
-every other scientific domain passes. The pre-review recommends prospective
-endpoint, estimator, and uncertainty revision. Gemma Danks approved those
-recommendations on 2026-08-09 for prospective development only. Step 3,
-candidate-specific optimization, and qualification remain blocked. A fresh
-direct comparison with PyBDSF and the applicable Aegean catalogue scope is
-also required before Step 3. This is not multiscale equivalence, complete
-Rapthor performance, or production-readiness evidence.
+every other scientific domain passes. Gemma Danks approved a prospective
+endpoint, estimator, and uncertainty revision on 2026-08-09. Its successor
+protocol and fresh 40-image development and sealed 400-image confirmation
+populations are now frozen. Development-only estimator comparison is
+authorized; confirmation, Step 3, candidate-specific optimization, and
+qualification remain blocked. A fresh direct comparison with PyBDSF and the
+applicable Aegean catalogue scope is also required before Step 3. This is not
+multiscale equivalence, complete Rapthor performance, or production-readiness
+evidence.
 
 The 2026-08-08 community-practice review identified a residual B3-spline
 à trous reconstruction with morphology-independent support and

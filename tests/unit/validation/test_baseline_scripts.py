@@ -1068,3 +1068,78 @@ def test_phase5_corrective_a_protocol_freezer_binds_frozen_inputs() -> None:
     assert document["astrometry_estimator"]["model_weight"] == 0.5
     assert document["step_three_authorized"] is False
     assert document["qualification_opened"] is False
+
+
+def test_phase5_astrometry_revision_freezer_builds_disjoint_populations() -> (
+    None
+):
+    """The approved revision varies morphology before estimator results."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase5_astrometry_revision.py")
+
+    development_document, confirmation_document, protocol_document = namespace[
+        "_documents"
+    ](
+        root / "config/datasets/phase-5-regression.json",
+        root / "config/contracts/phase-5-astrometry-human-decision.json",
+        root / "config/contracts/phase-5-corrective-a-decision.json",
+    )
+    development = DatasetManifest.model_validate(development_document)
+    confirmation = DatasetManifest.model_validate(confirmation_document)
+
+    assert development.manifest_id == "phase-5-astrometry-development"
+    assert confirmation.manifest_id == "phase-5-astrometry-confirmation"
+    assert len(development.datasets) == 4
+    assert len(confirmation.datasets) == 4
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in development.datasets
+        )
+        == 40
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in confirmation.datasets
+        )
+        == 400
+    )
+    development_seeds = {
+        recipe.seed
+        for dataset in development.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+    confirmation_seeds = {
+        recipe.seed
+        for dataset in confirmation.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+    assert development_seeds.isdisjoint(confirmation_seeds)
+    assert min(development_seeds) == 2026740001
+    assert max(confirmation_seeds) == 2026753100
+
+    development_counts = tuple(
+        len(
+            next(
+                group
+                for group in dataset.multiscale_truth_groups
+                if group.morphology == "curved-filament"
+            ).source_indices
+        )
+        for dataset in development.datasets
+    )
+    confirmation_counts = tuple(
+        len(
+            next(
+                group
+                for group in dataset.multiscale_truth_groups
+                if group.morphology == "curved-filament"
+            ).source_indices
+        )
+        for dataset in confirmation.datasets
+    )
+    assert development_counts == (3, 4, 5, 6)
+    assert confirmation_counts == (4, 5, 6, 7)
+    assert protocol_document["confirmation_execution_authorized"] is False
+    assert protocol_document["qualification_opened"] is False

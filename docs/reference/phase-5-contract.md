@@ -211,11 +211,15 @@ Residual risks are explicit:
   completed combined catalogue implementation.
 
 The Step 2C-H human decision approved the
-[technical pre-review](phase-5-astrometry-pre-review.md). The next authorized
-work is a newly frozen astrometry design and fresh development/confirmation
-populations. The viewed confirmation is closed to tuning, rescoring, and
-reuse. Step 2C-P execution and Step 3 remain blocked until the successor
-astrometry gate passes.
+[technical pre-review](phase-5-astrometry-pre-review.md). The prospective
+successor design is now frozen in
+`config/contracts/phase-5-astrometry-revision-review.json`, with a fresh
+40-image development population and a sealed, seed-disjoint 400-image
+confirmation population. Development may compare the direct-pixel and
+covariance-gated model-assisted estimators. Confirmation remains unauthorized
+until that comparison freezes one estimator. The viewed Step 2C-A confirmation
+is closed to tuning, rescoring, and reuse. Step 2C-P execution and Step 3 remain
+blocked until the successor astrometry gate passes.
 
 ## Frozen identities
 
@@ -229,6 +233,9 @@ astrometry gate passes.
 | Regression manifest | `7188b1c65b7d193e27f5bca3cf5b427874f97cea87fb206000a591460f95b85e` |
 | Step 2C-A confirmation manifest | `7576f8e6e373b12a42c9820ee381750c32208444682bde4a52a1311cccfc6011` |
 | Step 2C-A review protocol | `b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b` |
+| Successor astrometry review protocol | `de7265384d8c591e776bbd21bd5488e68144ee8d3dd670277f496dea46a5d917` |
+| Successor astrometry development manifest | `5e9da7471f9ca33053421bf3fed6e9583e4ac0e9c3a0b230cd15f48b35159636` |
+| Successor astrometry confirmation manifest | `0cb216ad04469169a45a19e0d2b9eb51b84d4fee6f03ffd6dccce413c00659f7` |
 | Qualification manifest | `40f1d0cfd173947e323cc35ff140c04f25fdd5c8303fbab8c138dc058fb0235f` |
 | Development complete dataset record | `319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d` |
 | Regression complete dataset record | `70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5` |

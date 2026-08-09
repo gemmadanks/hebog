@@ -1,0 +1,92 @@
+{
+  "closed_confirmation_policy": "no-tuning-rescoring-or-reconfirmation",
+  "closed_decision_sha256": "55e0dc448fc09437e289b2567c78b378b66cecc17f9983e94e722fc96fe4390a",
+  "confirmation_execution_authorized": false,
+  "contract_id": "phase-5-astrometry-revision-review",
+  "dataset_manifests": [
+    {
+      "image_count": 40,
+      "manifest": "config/datasets/phase-5-astrometry-development.json",
+      "manifest_sha256": "5e9da7471f9ca33053421bf3fed6e9583e4ac0e9c3a0b230cd15f48b35159636",
+      "role": "development"
+    },
+    {
+      "image_count": 400,
+      "manifest": "config/datasets/phase-5-astrometry-confirmation.json",
+      "manifest_sha256": "0cb216ad04469169a45a19e0d2b9eb51b84d4fee6f03ffd6dccce413c00659f7",
+      "role": "regression"
+    }
+  ],
+  "development_execution_authorized": true,
+  "endpoint": {
+    "absolute_gate_rule": "point-estimate-with-one-sided-confidence-bound-reported",
+    "bootstrap_resamples": 10000,
+    "bootstrap_seed": 20260809,
+    "confidence_level": 0.95,
+    "independent_unit": "noise-seed-image",
+    "maximum_median_position_beams": 0.1,
+    "maximum_percentile_95_position_beams": 0.25,
+    "observation_unit": "eligible-astronomical-truth-group",
+    "per_image_risk_metric": "separate-report-only-maximum",
+    "resampling": "whole-image-cluster-bootstrap-retain-all-groups",
+    "statistics": [
+      "median",
+      "percentile-95"
+    ],
+    "target": "observable-valid-domain-flux-centroid"
+  },
+  "estimator_candidates": [
+    "direct-observable-pixel-centroid",
+    "covariance-gated-model-assisted-centroid"
+  ],
+  "external_position_mappings": [
+    "pybdsf-source-moment-centroid-where-semantically-aligned",
+    "aegean-component-centre-compact-gaussian-scope-only",
+    "no-aegean-irregular-island-position-binding"
+  ],
+  "human_decision_sha256": "472ac6eca04b5b991e3f50c089a8a3bb08cf9828e87a401ab6f9fa4ec01bcd16",
+  "optimization_authorized": false,
+  "qualification_opened": false,
+  "schema_version": 1,
+  "selection": {
+    "absolute_and_coverage_rule": "every-endpoint-and-stratum-passes-no-compensation",
+    "confirmation_policy": "freeze-selected-estimator-before-one-look-confirmation",
+    "maximum_model_inadequate_fraction": 0.05,
+    "maximum_model_unavailable_fraction": 0.01,
+    "minimum_model_p95_improvement_beams": 0.02,
+    "preference": "prefer-direct-unless-model-materially-improves-tail",
+    "selection_population": "fresh-development-only"
+  },
+  "status": "frozen-before-astrometry-development-results",
+  "step_three_authorized": false,
+  "step_two_c_p_execution_authorized": false,
+  "uncertainty": {
+    "calibration_statistic": "mahalanobis-chi-square-two",
+    "covariance_coordinates": [
+      "pixel",
+      "sky"
+    ],
+    "covariance_shape": "two-by-two",
+    "coverage_levels": [
+      0.68,
+      0.95
+    ],
+    "coverage_strata": [
+      "morphology",
+      "signal-to-noise",
+      "scale",
+      "image-edge",
+      "invalid-pixels",
+      "truncation",
+      "estimator-disposition"
+    ],
+    "maximum_absolute_coverage_error": [
+      0.1,
+      0.05
+    ],
+    "nonlinear_calibration": "repeated-correlated-noise-injections",
+    "pixel_covariance_method": "delta-method-full-gaussian-beam-correlation",
+    "require_positive_definite_fraction": 1.0,
+    "sky_transform": "local-wcs-jacobian"
+  }
+}

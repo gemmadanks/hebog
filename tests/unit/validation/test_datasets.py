@@ -424,12 +424,16 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
     }
 
     assert set(manifests) == {
+        "phase-5-astrometry-confirmation",
+        "phase-5-astrometry-development",
         "phase-5-corrective-a-confirmation",
         "phase-5-development",
         "phase-5-qualification",
         "phase-5-regression",
     }
     expected_roles = {
+        "phase-5-astrometry-confirmation": DatasetRole.REGRESSION,
+        "phase-5-astrometry-development": DatasetRole.DEVELOPMENT,
         "phase-5-corrective-a-confirmation": DatasetRole.REGRESSION,
         "phase-5-development": DatasetRole.DEVELOPMENT,
         "phase-5-regression": DatasetRole.REGRESSION,
@@ -470,6 +474,30 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
     ].datasets[0]
     assert len(iter_dataset_recipes(confirmation_dataset)) == 100
     assert "before estimator selection" in confirmation_dataset.provenance
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests["phase-5-astrometry-development"].datasets
+        )
+        == 40
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests[
+                "phase-5-astrometry-confirmation"
+            ].datasets
+        )
+        == 400
+    )
+    assert all(
+        "before successor estimator" in dataset.provenance
+        for manifest_id in (
+            "phase-5-astrometry-development",
+            "phase-5-astrometry-confirmation",
+        )
+        for dataset in manifests[manifest_id].datasets
+    )
     qualification = manifests["phase-5-qualification"].datasets
     assert len(qualification) == 1
     qualification_dataset = qualification[0]
@@ -500,22 +528,35 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         for group in qualification_dataset.multiscale_truth_groups
     )
     assert {
-        manifest_id: campaign_dataset_identity(
-            manifest.datasets[0]
-        ).content_sha256
+        manifest_id: tuple(
+            campaign_dataset_identity(dataset).content_sha256
+            for dataset in manifest.datasets
+        )
         for manifest_id, manifest in manifests.items()
     } == {
+        "phase-5-astrometry-confirmation": (
+            "a2ed7c2d469c2c3ab78e394b7ddcb8a89c4354daf2750bcd1c631f662db7263d",
+            "b4acdf2dd8dd891913ad339e4eb8a28c9d17cdf915cb64ad5c50ec16315e22be",
+            "4a123be9ea8a45ff5103a2ab70b81fdf0cfbc90c291769fc2a9e2505aea6b7e4",
+            "3d1f6b5e382a7b4b0d2d7dfd8b6c80b16bdc71afedf96c176ba65f80b13e83cf",
+        ),
+        "phase-5-astrometry-development": (
+            "f2985a2255dba56f02f3adbb3493751278e846cd9a7175ed0a82ca3c2a2cd6a9",
+            "6cb7506329a8cf6481e370fa151a6306b84980dc69275b6e16bad876b3c09f4c",
+            "0a145ccf8fcd48137a688b776a75930c7b25d3101dc41d70b7a66d2bbc2430fd",
+            "543b2d5127fea62b0f80863c7fc8369abc2837a32f3d09c1cb02924c8c75857f",
+        ),
         "phase-5-corrective-a-confirmation": (
-            "12fc92e16a5f2ea2b57b63d565430f7b1f484ee3591070345987c92cf8de979a"
+            "12fc92e16a5f2ea2b57b63d565430f7b1f484ee3591070345987c92cf8de979a",
         ),
         "phase-5-development": (
-            "319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d"
+            "319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d",
         ),
         "phase-5-qualification": (
-            "b93b0b180341bdeeb4a4ee18398e5203ef83437375b731c8e4bbc550017216a1"
+            "b93b0b180341bdeeb4a4ee18398e5203ef83437375b731c8e4bbc550017216a1",
         ),
         "phase-5-regression": (
-            "70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5"
+            "70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5",
         ),
     }
 

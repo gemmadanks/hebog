@@ -80,6 +80,9 @@ _PHASE_FIVE_CORRECTIVE_A_DECISION_PATH = (
 _PHASE_FIVE_ASTROMETRY_HUMAN_DECISION_PATH = (
     _ROOT / "config/contracts/phase-5-astrometry-human-decision.json"
 )
+_PHASE_FIVE_ASTROMETRY_REVISION_REVIEW_PATH = (
+    _ROOT / "config/contracts/phase-5-astrometry-revision-review.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -949,6 +952,111 @@ def test_phase_five_astrometry_human_decision_rejects_scope_drift() -> None:
 
     with pytest.raises(ValidationError, match="recommendations must remain"):
         type(decision).model_validate(payload)
+
+
+def test_phase_five_astrometry_revision_review_freezes_semantics() -> None:
+    """Estimator development cannot change the approved endpoint design."""
+    review = contract_models.load_phase_five_astrometry_revision_review(
+        _PHASE_FIVE_ASTROMETRY_REVISION_REVIEW_PATH
+    )
+
+    assert review.status == "frozen-before-astrometry-development-results"
+    assert review.estimator_candidates == (
+        "direct-observable-pixel-centroid",
+        "covariance-gated-model-assisted-centroid",
+    )
+    assert review.endpoint.observation_unit == (
+        "eligible-astronomical-truth-group"
+    )
+    assert review.endpoint.statistics == ("median", "percentile-95")
+    assert review.endpoint.resampling == (
+        "whole-image-cluster-bootstrap-retain-all-groups"
+    )
+    assert review.endpoint.maximum_median_position_beams == 0.1
+    assert review.endpoint.maximum_percentile_95_position_beams == 0.25
+    assert review.uncertainty.covariance_shape == "two-by-two"
+    assert review.uncertainty.coverage_levels == (0.68, 0.95)
+    assert review.uncertainty.calibration_statistic == (
+        "mahalanobis-chi-square-two"
+    )
+    assert review.development_execution_authorized is True
+    assert review.confirmation_execution_authorized is False
+    assert review.step_three_authorized is False
+    assert review.qualification_opened is False
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "message"),
+    (
+        (
+            ("endpoint", "bootstrap_resamples"),
+            9_999,
+            "endpoint constants",
+        ),
+        (
+            ("uncertainty", "covariance_coordinates"),
+            ["pixel"],
+            "covariance coordinates",
+        ),
+        (
+            ("uncertainty", "coverage_levels"),
+            [0.68],
+            "coverage levels",
+        ),
+        (
+            ("uncertainty", "maximum_absolute_coverage_error"),
+            [0.1],
+            "coverage tolerances",
+        ),
+        (
+            ("uncertainty", "require_positive_definite_fraction"),
+            0.99,
+            "covariance must be positive",
+        ),
+        (
+            ("uncertainty", "coverage_strata"),
+            ["morphology"],
+            "coverage strata",
+        ),
+        (
+            ("selection", "minimum_model_p95_improvement_beams"),
+            0.01,
+            "selection constants",
+        ),
+        (
+            ("dataset_manifests", 0, "image_count"),
+            39,
+            "datasets must remain frozen",
+        ),
+        (
+            ("estimator_candidates",),
+            ["direct-observable-pixel-centroid"],
+            "estimator candidates",
+        ),
+        (
+            ("external_position_mappings",),
+            ["no-aegean-irregular-island-position-binding"],
+            "external astrometry mappings",
+        ),
+    ),
+)
+def test_phase_five_astrometry_revision_review_rejects_drift(
+    path: tuple[str | int, ...],
+    value: object,
+    message: str,
+) -> None:
+    """The successor campaign cannot weaken any approved safeguard."""
+    review = contract_models.load_phase_five_astrometry_revision_review(
+        _PHASE_FIVE_ASTROMETRY_REVISION_REVIEW_PATH
+    )
+    payload = review.model_dump(mode="json")
+    target: Any = payload
+    for part in path[:-1]:
+        target = target[part]
+    target[path[-1]] = value
+
+    with pytest.raises(ValidationError, match=message):
+        type(review).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

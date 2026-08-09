@@ -5964,3 +5964,37 @@ geometry-disjoint confirmation before viewing any new output.
 **Immediate next step:** freeze the fresh diverse astrometry development and
 confirmation manifests and successor pre-results protocol before changing or
 executing an estimator.
+
+## 2026-08-09 — Froze the successor Phase 5 astrometry protocol
+
+**Plan phase:** Phase 5, Step 2C-H — prospective astrometry revision
+
+- Froze a fresh 40-image development population and a sealed, seed-disjoint
+  400-image confirmation population before changing the estimator. Four
+  morphology/geometry families vary curve, orientation, knot contrast, source
+  width, beam, WCS, scale, edge, invalid-pixel, and truncation conditions.
+- Bound direct group-level median and p95 position errors to whole-image
+  cluster bootstrap inference, with the unchanged 0.10/0.25-beam gates and no
+  per-image nested percentile gate.
+- Bound development-only selection between a direct observable-pixel centroid
+  and covariance-gated model assistance. Model assistance must improve p95 by
+  at least 0.02 beam while satisfying availability, adequacy, absolute, and
+  uncertainty-coverage requirements; otherwise the direct estimator wins.
+- Required positive-definite two-dimensional pixel and sky covariance using
+  the full Gaussian beam correlation, a local WCS Jacobian, and repeated-noise
+  coverage at 68% and 95% across the declared morphology and support strata.
+- Kept confirmation execution, external comparison, Step 3, optimization, and
+  qualification unauthorized until a development-only estimator is frozen.
+
+**Frozen identities:** successor protocol
+`de7265384d8c591e776bbd21bd5488e68144ee8d3dd670277f496dea46a5d917`;
+development manifest
+`5e9da7471f9ca33053421bf3fed6e9583e4ac0e9c3a0b230cd15f48b35159636`;
+confirmation manifest
+`0cb216ad04469169a45a19e0d2b9eb51b84d4fee6f03ffd6dccce413c00659f7`.
+
+**Validation:** 188 focused dataset, contract, and freezer tests pass.
+
+**Immediate next step:** add test-first direct and model-assisted estimator
+endpoints with calibrated two-dimensional covariance, then compare them on the
+development population only.

@@ -1825,6 +1825,209 @@ class PhaseFiveAstrometryHumanDecision(_ContractModel):
         return self
 
 
+class PhaseFiveAstrometryEndpointProtocol(_ContractModel):
+    """Approved catalogue-level position estimand and resampling rule."""
+
+    target: Literal["observable-valid-domain-flux-centroid"]
+    observation_unit: Literal["eligible-astronomical-truth-group"]
+    independent_unit: Literal["noise-seed-image"]
+    statistics: tuple[Literal["median", "percentile-95"], ...]
+    resampling: Literal["whole-image-cluster-bootstrap-retain-all-groups"]
+    bootstrap_resamples: int
+    bootstrap_seed: int
+    confidence_level: float
+    absolute_gate_rule: Literal[
+        "point-estimate-with-one-sided-confidence-bound-reported"
+    ]
+    maximum_median_position_beams: float
+    maximum_percentile_95_position_beams: float
+    per_image_risk_metric: Literal["separate-report-only-maximum"]
+
+    @model_validator(mode="after")
+    def validate_endpoint(self) -> Self:
+        """Keep the approved direct catalogue estimand exact."""
+        observed = (
+            self.statistics,
+            self.bootstrap_resamples,
+            self.bootstrap_seed,
+            self.confidence_level,
+            self.maximum_median_position_beams,
+            self.maximum_percentile_95_position_beams,
+        )
+        expected = (
+            ("median", "percentile-95"),
+            10_000,
+            20260809,
+            0.95,
+            0.1,
+            0.25,
+        )
+        if observed != expected:
+            raise ValueError(
+                "astrometry endpoint constants must remain frozen"
+            )
+        return self
+
+
+class PhaseFiveAstrometryUncertaintyProtocol(_ContractModel):
+    """Two-dimensional correlated-noise uncertainty and coverage design."""
+
+    covariance_shape: Literal["two-by-two"]
+    covariance_coordinates: tuple[Literal["pixel", "sky"], ...]
+    pixel_covariance_method: Literal[
+        "delta-method-full-gaussian-beam-correlation"
+    ]
+    sky_transform: Literal["local-wcs-jacobian"]
+    nonlinear_calibration: Literal["repeated-correlated-noise-injections"]
+    calibration_statistic: Literal["mahalanobis-chi-square-two"]
+    coverage_levels: tuple[float, ...]
+    maximum_absolute_coverage_error: tuple[float, ...]
+    require_positive_definite_fraction: float
+    coverage_strata: tuple[
+        Literal[
+            "morphology",
+            "signal-to-noise",
+            "scale",
+            "image-edge",
+            "invalid-pixels",
+            "truncation",
+            "estimator-disposition",
+        ],
+        ...,
+    ]
+
+    @model_validator(mode="after")
+    def validate_uncertainty(self) -> Self:
+        """Require calibrated two-dimensional uncertainty without gaps."""
+        if self.covariance_coordinates != ("pixel", "sky"):
+            raise ValueError("astrometry covariance coordinates must be exact")
+        if self.coverage_levels != (0.68, 0.95):
+            raise ValueError("astrometry coverage levels must remain frozen")
+        if self.maximum_absolute_coverage_error != (0.1, 0.05):
+            raise ValueError(
+                "astrometry coverage tolerances must remain frozen"
+            )
+        if self.require_positive_definite_fraction != 1.0:
+            raise ValueError("every astrometry covariance must be positive")
+        expected_strata = (
+            "morphology",
+            "signal-to-noise",
+            "scale",
+            "image-edge",
+            "invalid-pixels",
+            "truncation",
+            "estimator-disposition",
+        )
+        if self.coverage_strata != expected_strata:
+            raise ValueError("astrometry coverage strata must remain complete")
+        return self
+
+
+class PhaseFiveAstrometrySelectionProtocol(_ContractModel):
+    """Development-only choice and model-admission policy."""
+
+    selection_population: Literal["fresh-development-only"]
+    absolute_and_coverage_rule: Literal[
+        "every-endpoint-and-stratum-passes-no-compensation"
+    ]
+    preference: Literal["prefer-direct-unless-model-materially-improves-tail"]
+    minimum_model_p95_improvement_beams: float
+    maximum_model_unavailable_fraction: float
+    maximum_model_inadequate_fraction: float
+    confirmation_policy: Literal[
+        "freeze-selected-estimator-before-one-look-confirmation"
+    ]
+
+    @model_validator(mode="after")
+    def validate_selection(self) -> Self:
+        """Protect the simple-baseline preference and model safeguards."""
+        observed = (
+            self.minimum_model_p95_improvement_beams,
+            self.maximum_model_unavailable_fraction,
+            self.maximum_model_inadequate_fraction,
+        )
+        if observed != (0.02, 0.01, 0.05):
+            raise ValueError(
+                "astrometry selection constants must remain frozen"
+            )
+        return self
+
+
+class PhaseFiveAstrometryRevisionReview(_ContractModel):
+    """Frozen successor astrometry development and confirmation design."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-astrometry-revision-review"]
+    status: Literal["frozen-before-astrometry-development-results"]
+    human_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    closed_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    closed_confirmation_policy: Literal[
+        "no-tuning-rescoring-or-reconfirmation"
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    estimator_candidates: tuple[
+        Literal[
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        ],
+        ...,
+    ]
+    endpoint: PhaseFiveAstrometryEndpointProtocol
+    uncertainty: PhaseFiveAstrometryUncertaintyProtocol
+    selection: PhaseFiveAstrometrySelectionProtocol
+    external_position_mappings: tuple[
+        Literal[
+            "pybdsf-source-moment-centroid-where-semantically-aligned",
+            "aegean-component-centre-compact-gaussian-scope-only",
+            "no-aegean-irregular-island-position-binding",
+        ],
+        ...,
+    ]
+    development_execution_authorized: Literal[True]
+    confirmation_execution_authorized: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_review(self) -> Self:
+        """Bind fresh populations, candidates, and external semantics."""
+        expected_datasets = (
+            (
+                "development",
+                "config/datasets/phase-5-astrometry-development.json",
+                40,
+            ),
+            (
+                "regression",
+                "config/datasets/phase-5-astrometry-confirmation.json",
+                400,
+            ),
+        )
+        observed_datasets = tuple(
+            (item.role, item.manifest, item.image_count)
+            for item in self.dataset_manifests
+        )
+        if observed_datasets != expected_datasets:
+            raise ValueError("astrometry revision datasets must remain frozen")
+        if self.estimator_candidates != (
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        ):
+            raise ValueError(
+                "astrometry estimator candidates must remain exact"
+            )
+        expected_mappings = (
+            "pybdsf-source-moment-centroid-where-semantically-aligned",
+            "aegean-component-centre-compact-gaussian-scope-only",
+            "no-aegean-irregular-island-position-binding",
+        )
+        if self.external_position_mappings != expected_mappings:
+            raise ValueError("external astrometry mappings must remain exact")
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -2424,5 +2627,14 @@ def load_phase_five_astrometry_human_decision(
 ) -> PhaseFiveAstrometryHumanDecision:
     """Load the approved prospective Step 2C-H astrometry decision."""
     return PhaseFiveAstrometryHumanDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_revision_review(
+    path: Path,
+) -> PhaseFiveAstrometryRevisionReview:
+    """Load the frozen successor Step 2C-H astrometry review."""
+    return PhaseFiveAstrometryRevisionReview.model_validate_json(
         path.read_text(encoding="utf-8")
     )

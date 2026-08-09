@@ -1129,6 +1129,17 @@ and spill behaviour, and facility-scale execution.
          2C-A population. Keep Step 3, optimization, and qualification closed
          until a pre-results design passes every required absolute gate and
          the external comparison in Step 2C-P.
+   - [x] Freeze the prospective successor protocol before estimator changes.
+         `config/contracts/phase-5-astrometry-revision-review.json` binds
+         direct group-level median and p95 endpoints, whole-image cluster
+         bootstrap inference, a direct-pixel baseline, a covariance-gated
+         model-assisted candidate, two-dimensional correlated-noise
+         covariance and coverage, and development-only selection. Its fresh
+         40-image development and sealed 400-image confirmation populations
+         vary curve geometry, orientation, knot contrast, source width, beam,
+         WCS, scale, edge and invalid-pixel conditions. Confirmation remains
+         unauthorized until one estimator is frozen from development-only
+         evidence.
 
 2C-P. **Establish external source-finder non-inferiority before Step 3.**
 
