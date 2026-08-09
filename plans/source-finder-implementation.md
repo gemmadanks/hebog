@@ -900,12 +900,13 @@ representation. Step 2C-HR separated compact fitted astrometry from irregular
 detected-segment location and passed all 60 binding endpoints on 80 fresh
 development images and 480 eligible groups. The overall radial-p95 upper bound
 was 0.3183 beam; the limiting shell/tile-corner cohort passed narrowly at
-0.4887 against 0.50 beam. The candidate is retained only for named human
-scientific review. Previously viewed populations and both sealed confirmation
-populations remain closed. Step 3, candidate-specific optimization, Step 2C-P
-execution, and qualification remain blocked; no multiscale equivalence or
-complete runtime claim is approved. Comparisons completed so far are between
-Hebog representations, not Hebog and an external finder.
+0.4887 against 0.50 beam. Gemma Danks approved the coordinate semantics,
+gates, narrow-margin risk, unavailable position uncertainty, and one-look
+confirmation on 2026-08-09. The new confirmation population remains sealed
+until its runner is committed. Step 3, candidate-specific optimization, Step
+2C-P execution, and qualification remain blocked; no multiscale equivalence
+or complete runtime claim is approved. Comparisons completed so far are
+between Hebog representations, not Hebog and an external finder.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1199,14 +1200,15 @@ and spill behaviour, and facility-scale execution.
          0.0105/0.0147 beam; and the overall radial-p95 bound was 0.3183 beam.
          The limiting shell/tile-corner cohort passed at 0.4887 beam, so the
          larger sealed confirmation remains essential.
-   - [ ] Record the development decision and obtain named human scientific
+   - [x] Record the development decision and obtain named human scientific
          review before authorizing the one-look confirmation or Step 2C-P.
          Map PyBDSF source moments only where grouping and source-model
          semantics align; compare Aegean fitted centres only for compact or
          Gaussian-component scope. Use Selavy and ProFound segment centroids
          as semantic precedents, not additional ground truth. The technical
-         decision is recorded as `retain-candidate-for-human-review`; named
-         human review and every downstream authorization remain outstanding.
+         decision is recorded as `retain-candidate-for-human-review`. Gemma
+         Danks approved the reviewed findings and confirmation-only execution
+         on 2026-08-09. Step 2C-P and every later authorization remain false.
 
 2C-P. **Establish external source-finder non-inferiority before Step 3.**
 

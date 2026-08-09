@@ -6173,3 +6173,23 @@ and Aegean comparison remain material risks.
 **Immediate next step:** obtain named human scientific review of the position
 meaning, half-beam irregular-tail gate, and narrow shell margin before any
 one-look confirmation authorization. Do not tune or open confirmation.
+
+## 2026-08-09 — Human review authorized Step 2C-HR confirmation only
+
+**Plan phase:** Phase 5, Step 2C-HR — confirmation authorization
+
+- Gemma Danks approved the reviewed compact/irregular position split, the
+  0.10-beam axis-bias and 0.50-beam radial-p95 irregular gates, proceeding
+  despite the 0.488746-beam limiting shell bound, keeping position uncertainty
+  unavailable, and one-look confirmation without tuning.
+- Recorded the interactive project-owner approval in the machine-validated
+  `phase-5-astrometry-follow-up-human-decision.json`, SHA-256
+  `02124201a45ecc9e88ac9542de1f6ee0fa5a5a0a43759247bc696c68170664ab`.
+  It binds the frozen protocol, development decision and evidence, candidate,
+  and confirmation manifest.
+- The decision authorizes confirmation execution only. Step 2C-P, Step 3,
+  optimization, and qualification remain false.
+
+**Immediate next step:** commit this authorization, then implement and commit
+a checksum-validating one-look confirmation runner before opening the sealed
+population.

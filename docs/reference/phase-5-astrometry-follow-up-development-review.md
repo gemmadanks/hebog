@@ -1,9 +1,10 @@
 # Phase 5 detected-segment position development review
 
 **Status:** the frozen Step 2C-HR development population passed all 60
-binding endpoints. The candidate is retained for named human scientific
-review, not selected for production. Confirmation, Step 2C-P, Step 3,
-optimization, and qualification remain unauthorized.
+binding endpoints. Gemma Danks approved the reviewed scientific semantics,
+gates, narrow shell risk, unavailable position uncertainty, and one-look
+confirmation on 2026-08-09. This authorizes confirmation only; Step 2C-P,
+Step 3, optimization, and qualification remain unauthorized.
 
 This Codex technical review covers only the authorized 80-image development
 run. It did not execute the sealed confirmation or qualification populations.
@@ -46,6 +47,7 @@ at most 0.3554 beam. The largest axis-bias bound was 0.0652 beam.
 | Evidence configuration | `d7429ef8309c090f5daece15eb7cfb693dc6fea26988b3c2681f731bb366acb8` |
 | Evidence source tree | `91193c9df23c1a2089001fa6dacf0c8e37e5c2a22d0b73163ef34db9c11b209f` |
 | Development decision | `cd6d54cf1c22daf3d68423bc931b58bb81ec192d30ec9c1472bdabcd22969c72` |
+| Human confirmation decision | `02124201a45ecc9e88ac9542de1f6ee0fa5a5a0a43759247bc696c68170664ab` |
 
 The generated evidence remains outside Git under
 `benchmark-results/phase-5/astrometry-follow-up-development.json`; the
@@ -81,10 +83,8 @@ The residual risks are material:
 
 ## Decision and next review
 
-Retain `original-pixel-detected-segment-centroid` unchanged for human
-scientific review. A named human reviewer should decide whether the coordinate
-meaning, half-beam irregular-tail gate, and narrow shell margin justify a
-single one-look confirmation. Only an explicit reviewed authorization may
-open that sealed population. No development parameter, estimator, target, or
-gate should change before confirmation; a change requires a new pre-results
-protocol and fresh populations.
+Retain `original-pixel-detected-segment-centroid` unchanged for the authorized
+single one-look confirmation. The confirmation runner must validate the human
+decision and every frozen input before opening the population. No development
+parameter, estimator, target, or gate may change; a change would invalidate
+the approval and require a new pre-results protocol and fresh populations.

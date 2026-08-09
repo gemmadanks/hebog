@@ -2330,6 +2330,52 @@ class PhaseFiveAstrometryFollowUpDevelopmentDecision(_ContractModel):
         return self
 
 
+class PhaseFiveAstrometryFollowUpHumanDecision(_ContractModel):
+    """Named scientific approval of one-look segment-position confirmation."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-follow-up-human-decision"]
+    status: Literal["approved-confirmation-only"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    development_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    development_evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirmation_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reviewer: Literal["Gemma Danks"]
+    review_source: Literal["interactive-project-owner-approval"]
+    reviewed_on: Literal["2026-08-09"]
+    decision: Literal["approve-one-look-confirmation"]
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    approved_findings: tuple[str, ...]
+    closed_confirmation_policy: Literal[
+        "one-look-no-tuning-rescoring-or-reconfirmation"
+    ]
+    independent_human_scientific_review_complete: Literal[True]
+    confirmation_execution_authorized: Literal[True]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "run-sealed-confirmation-once-and-review-before-external-comparison"
+    ]
+
+    @model_validator(mode="after")
+    def validate_approval_scope(self) -> Self:
+        """Require every reviewed safeguard and no downstream authority."""
+        expected = (
+            "compact-and-irregular-position-semantics-remain-distinct",
+            "irregular-axis-0p10-and-radial-p95-0p50-gates",
+            "narrow-shell-margin-accepted-for-confirmation",
+            "position-uncertainty-remains-unavailable",
+            "one-look-confirmation-without-tuning",
+        )
+        if self.approved_findings != expected:
+            raise ValueError(
+                "approved findings must remain complete and exact"
+            )
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -2965,5 +3011,14 @@ def load_phase_five_astrometry_follow_up_development_decision(
 ) -> PhaseFiveAstrometryFollowUpDevelopmentDecision:
     """Load the technical review of fresh segment-position development."""
     return PhaseFiveAstrometryFollowUpDevelopmentDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_follow_up_human_decision(
+    path: Path,
+) -> PhaseFiveAstrometryFollowUpHumanDecision:
+    """Load the named confirmation-only Step 2C-HR approval."""
+    return PhaseFiveAstrometryFollowUpHumanDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

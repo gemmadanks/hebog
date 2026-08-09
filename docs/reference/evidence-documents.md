@@ -104,6 +104,11 @@ scientific review. Its schema keeps confirmation, Step 2C-P, Step 3,
 optimization, and qualification false, so a development pass cannot be
 mistaken for production selection.
 
+The separate `phase-5-astrometry-follow-up-human-decision.json` records the
+named project-owner review. It may authorize exactly one sealed confirmation
+without changing the candidate, target, population, bootstrap, or gates. It
+does not authorize Step 2C-P or any later phase.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same
