@@ -5998,3 +5998,51 @@ confirmation manifest
 **Immediate next step:** add test-first direct and model-assisted estimator
 endpoints with calibrated two-dimensional covariance, then compare them on the
 development population only.
+
+## 2026-08-09 — Rejected both prospective Step 2C-H estimators
+
+**Plan phase:** Phase 5, Step 2C-H — prospective astrometry development
+
+- Implemented the direct signed original-residual flux centroid and a
+  covariance-gated Gaussian-assisted comparator without changing residual B3
+  detection, support ownership, association, photometry, or false-positive
+  control. Added full rotated Gaussian beam covariance in pixel coordinates
+  and local-WCS sky covariance.
+- Implemented the approved direct group-level median and p95 endpoints with
+  10,000 whole-image cluster-bootstrap resamples, plus globally calibrated 68%
+  and 95% Mahalanobis coverage across morphology, SNR, scale, edge,
+  invalid-pixel, truncation, and estimator-disposition strata.
+- Ran only the fresh 40-image development population. It supplied 240 unique
+  astronomical group observations per candidate. The sealed 400-image
+  confirmation was not generated, inspected, or opened.
+- The direct estimator recorded overall median/p95 errors of 0.0974/0.2730
+  beam, covariance scale 2.5721, 17 failed endpoint strata, and 17 failed
+  coverage strata. The Gaussian-assisted estimator recorded 0.0860/0.3068
+  beam, covariance scale 1.1618, 15 failed endpoint strata, and 11 failed
+  coverage strata. Its 4.58% inadequate-model fallback rate passed the 5%
+  admission limit, but its tail was worse rather than at least 0.02 beam
+  better.
+- Recorded `reject-astrometry-candidates` in
+  `config/contracts/phase-5-astrometry-selection-decision.json`. Confirmation
+  execution, Step 2C-P, Step 3, optimization, and qualification remain false.
+
+**Evidence:** ignored typed development evidence
+`benchmark-results/phase-5/astrometry-development.json`, SHA-256
+`919e19345028c16496f4b18199266d82d4e7b604ce865743b20d38c7ebd5c1d8`;
+committed decision SHA-256
+`567512af8220c041767d08f6313b8ccc62b0f429e77758f2e39075751314a2a5`.
+
+**Decision:** neither estimator is eligible. Aggregate overall coverage does
+not compensate for governed stratum failures. The successor confirmation
+remains sealed and may not be opened after a development rejection.
+
+**Validation:** 162 focused astrometry, evidence, and contract tests pass. The
+branch-aware coverage lane passes 1,117 tests with four expected xfails and
+94.44% project coverage; the new astrometry review module is 94% covered. The
+scientific-equivalence lane passes 27 tests. Ruff format/lint, Pyright, 987
+fast handoff tests with four expected xfails, and the strict documentation
+build pass.
+
+**Immediate next step:** obtain renewed human scientific review before
+freezing another estimator/endpoint revision. Keep Step 2C-P execution and all
+downstream development closed.

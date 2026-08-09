@@ -83,6 +83,9 @@ _PHASE_FIVE_ASTROMETRY_HUMAN_DECISION_PATH = (
 _PHASE_FIVE_ASTROMETRY_REVISION_REVIEW_PATH = (
     _ROOT / "config/contracts/phase-5-astrometry-revision-review.json"
 )
+_PHASE_FIVE_ASTROMETRY_SELECTION_DECISION_PATH = (
+    _ROOT / "config/contracts/phase-5-astrometry-selection-decision.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -1057,6 +1060,28 @@ def test_phase_five_astrometry_revision_review_rejects_drift(
 
     with pytest.raises(ValidationError, match=message):
         type(review).model_validate(payload)
+
+
+def test_phase_five_astrometry_selection_rejects_both_candidates() -> None:
+    """Failed development keeps confirmation and downstream work sealed."""
+    decision = contract_models.load_phase_five_astrometry_selection_decision(
+        _PHASE_FIVE_ASTROMETRY_SELECTION_DECISION_PATH
+    )
+
+    assert decision.status == "reviewed-rejected"
+    assert decision.decision == "reject-astrometry-candidates"
+    assert decision.selected_candidate is None
+    assert all(not item.eligible for item in decision.candidates)
+    assert decision.confirmation_execution_authorized is False
+    assert decision.step_two_c_p_execution_authorized is False
+    assert decision.step_three_authorized is False
+    assert decision.optimization_authorized is False
+    assert decision.qualification_opened is False
+
+    payload = decision.model_dump(mode="json")
+    payload["candidates"].reverse()
+    with pytest.raises(ValidationError, match="candidates must remain exact"):
+        type(decision).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

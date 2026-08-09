@@ -1,18 +1,13 @@
 # Phase 5 scale-filter selection
 
-**Status:** Steps 2B--2C-A and the Step 2C-H
-[technical pre-review](phase-5-astrometry-pre-review.md) are complete with no
-eligible production representation. The independent 2C-A confirmation reduced
-residual B3 to five absolute astrometry failures and zero paired failures;
-every other scientific domain passes. Gemma Danks approved a prospective
-endpoint, estimator, and uncertainty revision on 2026-08-09. Its successor
-protocol and fresh 40-image development and sealed 400-image confirmation
-populations are now frozen. Development-only estimator comparison is
-authorized; confirmation, Step 3, candidate-specific optimization, and
-qualification remain blocked. A fresh direct comparison with PyBDSF and the
-applicable Aegean catalogue scope is also required before Step 3. This is not
-multiscale equivalence, complete Rapthor performance, or production-readiness
-evidence.
+**Status:** Steps 2B--2C-H are complete with no eligible production
+representation. The prospective Step 2C-H comparison corrected the catalogue
+astrometry endpoint and covariance protocol, but both frozen candidates failed
+required endpoint and coverage strata on fresh development data. Neither was
+selected and the 400-image confirmation remains sealed. Step 3, Step 2C-P
+execution, candidate-specific optimization, and qualification remain blocked
+pending renewed human scientific review. This is not multiscale equivalence,
+complete Rapthor performance, or production-readiness evidence.
 
 The 2026-08-08 community-practice review identified a residual B3-spline
 à trous reconstruction with morphology-independent support and
@@ -336,12 +331,16 @@ The paired Step 2B evidence is
 source-tree identity are frozen in the paired decision contract. The runner
 is `scripts/benchmark/review_phase5_filters.py`. The Step 2C, 2C-R, and 2C-A
 evidence identities are frozen in their corrective decision contracts; their
-runner is `scripts/benchmark/review_phase5_corrective.py`.
+runner is `scripts/benchmark/review_phase5_corrective.py`. The Step 2C-H
+development evidence is
+`benchmark-results/phase-5/astrometry-development.json`, SHA-256
+`919e19345028c16496f4b18199266d82d4e7b604ce865743b20d38c7ebd5c1d8`;
+its reviewed summary is the committed astrometry selection decision.
 
 None of these records establishes production extended measurements,
 cross-tile reconciliation, real-residual behaviour, PyBDSF equivalence, or
 complete `filter_skymodel` speedup. Those remain later gates. Step 2C-A did
 not resolve the remaining astrometry variance, so Step 3 remains blocked
-pending human scientific review and the Step 2C-P external comparison. The
-separate compact-only Rapthor probe selects only that workflow's explicit
+pending renewed human scientific review and the Step 2C-P external comparison.
+The separate compact-only Rapthor probe selects only that workflow's explicit
 profile and cannot establish general multiscale equivalence.

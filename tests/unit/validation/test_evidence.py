@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import pytest
@@ -31,7 +31,11 @@ from hebog.validation.evidence import (
     ExecutorKind,
     Measurement,
     NormalizedResidualDiagnostic,
+    PhaseFiveAstrometryCandidateEvidence,
+    PhaseFiveAstrometryCoverageEvidence,
+    PhaseFiveAstrometryDevelopmentEvidence,
     PhaseFiveAstrometryDiagnostic,
+    PhaseFiveAstrometryEndpointEvidence,
     PhaseFiveAstrometryEstimatorDiagnostic,
     PhaseFiveCorrectiveAReviewEvidence,
     PhaseFiveCorrectiveReviewEvidence,
@@ -601,6 +605,208 @@ def test_phase_five_corrective_review_requires_corrective_gate_passage() -> (
 
     with pytest.raises(ValidationError, match="passing corrective"):
         PhaseFiveCorrectiveReviewEvidence.model_validate(payload)
+
+
+def test_phase_five_astrometry_evidence_is_fail_closed(tmp_path: Path) -> None:
+    """Endpoint or coverage failures cannot authorize confirmation."""
+    candidates = tuple(
+        PhaseFiveAstrometryCandidateEvidence(
+            candidate=candidate,
+            covariance_scale=2.0,
+            overall_percentile_95_beams=0.3,
+            unavailable_fraction=0.0,
+            model_unavailable_fraction=0.0,
+            model_inadequate_fraction=0.0,
+            failed_endpoint_count=1,
+            failed_coverage_count=1,
+            endpoints_pass=False,
+            coverage_pass=False,
+            model_admission_pass=True,
+            eligible=False,
+        )
+        for candidate in (
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        )
+    )
+    evidence = PhaseFiveAstrometryDevelopmentEvidence(
+        schema_version=1,
+        evidence_type="phase-five-astrometry-development",
+        run_id="phase-five-astrometry-development-selection",
+        captured_at=datetime(2026, 8, 9, 12, 0, tzinfo=UTC),
+        status=EvidenceStatus.REVIEWED,
+        dataset=_dataset(),
+        configuration_sha256=SHA256,
+        subject=_software("hebog", commit="e" * 40),
+        environment_sha256="2" * 64,
+        protocol_sha256="3" * 64,
+        base_protocol_sha256="4" * 64,
+        development_manifest_sha256="5" * 64,
+        image_count=40,
+        group_count=240,
+        bootstrap_resamples=10_000,
+        bootstrap_seed=20260809,
+        endpoints=tuple(
+            PhaseFiveAstrometryEndpointEvidence(
+                candidate=candidate.candidate,
+                stratum="overall",
+                statistic="percentile-95",
+                image_count=40,
+                group_count=240,
+                estimate_beams=0.3,
+                upper_confidence_bound_beams=0.35,
+                absolute_limit_beams=0.25,
+                passed=False,
+            )
+            for candidate in candidates
+        ),
+        coverage=tuple(
+            PhaseFiveAstrometryCoverageEvidence(
+                candidate=candidate.candidate,
+                stratum="overall",
+                sample_count=240,
+                covariance_positive_definite_fraction=1.0,
+                level=0.68,
+                empirical_coverage=0.5,
+                maximum_absolute_error=0.1,
+                passed=False,
+            )
+            for candidate in candidates
+        ),
+        candidates=candidates,
+        decision="reject-astrometry-candidates",
+        selected_candidate=None,
+        confirmation_execution_authorized=False,
+        step_two_c_p_execution_authorized=False,
+        step_three_authorized=False,
+        optimization_authorized=False,
+        qualification_opened=False,
+    )
+    path = tmp_path / "astrometry.json"
+    write_evidence(path, evidence)
+
+    assert load_evidence(path) == evidence
+
+    payload = evidence.model_dump(mode="python")
+    payload["confirmation_execution_authorized"] = True
+    with pytest.raises(ValidationError, match="selection is inconsistent"):
+        PhaseFiveAstrometryDevelopmentEvidence.model_validate(payload)
+
+    endpoint_payload = evidence.endpoints[0].model_dump(mode="python")
+    endpoint_payload["passed"] = True
+    with pytest.raises(ValidationError, match="endpoint decision"):
+        PhaseFiveAstrometryEndpointEvidence.model_validate(endpoint_payload)
+
+    coverage_payload = evidence.coverage[0].model_dump(mode="python")
+    coverage_payload["level"] = 0.5
+    with pytest.raises(ValidationError, match="level must be"):
+        PhaseFiveAstrometryCoverageEvidence.model_validate(coverage_payload)
+
+    candidate_payload = evidence.candidates[0].model_dump(mode="python")
+    candidate_payload["eligible"] = True
+    with pytest.raises(ValidationError, match="eligibility is inconsistent"):
+        PhaseFiveAstrometryCandidateEvidence.model_validate(candidate_payload)
+
+    inconsistent = evidence.model_dump(mode="python")
+    inconsistent["candidates"][0]["failed_endpoint_count"] = 2
+    with pytest.raises(ValidationError, match="disagrees with endpoints"):
+        PhaseFiveAstrometryDevelopmentEvidence.model_validate(inconsistent)
+
+    inconsistent = evidence.model_dump(mode="python")
+    inconsistent["candidates"][0]["overall_percentile_95_beams"] = 0.31
+    with pytest.raises(ValidationError, match="tail disagrees"):
+        PhaseFiveAstrometryDevelopmentEvidence.model_validate(inconsistent)
+
+
+def test_phase_five_astrometry_evidence_recomputes_positive_selection() -> (
+    None
+):
+    """Eligible evidence applies the simple-candidate preference exactly."""
+    candidates = (
+        "direct-observable-pixel-centroid",
+        "covariance-gated-model-assisted-centroid",
+    )
+    tails = dict(zip(candidates, (0.2, 0.19), strict=True))
+    payload: dict[str, Any] = {
+        "schema_version": 1,
+        "evidence_type": "phase-five-astrometry-development",
+        "run_id": "phase-five-astrometry-development-selection",
+        "captured_at": datetime(2026, 8, 9, 12, 0, tzinfo=UTC),
+        "status": EvidenceStatus.REVIEWED,
+        "dataset": _dataset(),
+        "configuration_sha256": SHA256,
+        "subject": _software("hebog", commit="e" * 40),
+        "environment_sha256": "2" * 64,
+        "protocol_sha256": "3" * 64,
+        "base_protocol_sha256": "4" * 64,
+        "development_manifest_sha256": "5" * 64,
+        "image_count": 40,
+        "group_count": 240,
+        "bootstrap_resamples": 10_000,
+        "bootstrap_seed": 20260809,
+        "endpoints": [
+            {
+                "candidate": candidate,
+                "stratum": "overall",
+                "statistic": "percentile-95",
+                "image_count": 40,
+                "group_count": 240,
+                "estimate_beams": tails[candidate],
+                "upper_confidence_bound_beams": tails[candidate] + 0.01,
+                "absolute_limit_beams": 0.25,
+                "passed": True,
+            }
+            for candidate in candidates
+        ],
+        "coverage": [
+            {
+                "candidate": candidate,
+                "stratum": "overall",
+                "sample_count": 240,
+                "covariance_positive_definite_fraction": 1.0,
+                "level": 0.68,
+                "empirical_coverage": 0.68,
+                "maximum_absolute_error": 0.1,
+                "passed": True,
+            }
+            for candidate in candidates
+        ],
+        "candidates": [
+            {
+                "candidate": candidate,
+                "covariance_scale": 1.0,
+                "overall_percentile_95_beams": tails[candidate],
+                "unavailable_fraction": 0.0,
+                "model_unavailable_fraction": 0.0,
+                "model_inadequate_fraction": 0.0,
+                "failed_endpoint_count": 0,
+                "failed_coverage_count": 0,
+                "endpoints_pass": True,
+                "coverage_pass": True,
+                "model_admission_pass": True,
+                "eligible": True,
+            }
+            for candidate in candidates
+        ],
+        "decision": "select-direct",
+        "selected_candidate": "direct-observable-pixel-centroid",
+        "confirmation_execution_authorized": True,
+        "step_two_c_p_execution_authorized": False,
+        "step_three_authorized": False,
+        "optimization_authorized": False,
+        "qualification_opened": False,
+    }
+
+    direct = PhaseFiveAstrometryDevelopmentEvidence.model_validate(payload)
+    assert direct.decision == "select-direct"
+
+    payload["endpoints"][1]["estimate_beams"] = 0.17
+    payload["endpoints"][1]["upper_confidence_bound_beams"] = 0.18
+    payload["candidates"][1]["overall_percentile_95_beams"] = 0.17
+    payload["decision"] = "select-model"
+    payload["selected_candidate"] = "covariance-gated-model-assisted-centroid"
+    model = PhaseFiveAstrometryDevelopmentEvidence.model_validate(payload)
+    assert model.decision == "select-model"
 
 
 def test_software_identity_can_record_an_uncommitted_source_tree() -> None:

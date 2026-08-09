@@ -1,11 +1,11 @@
 # Phase 5 astrometry technical pre-review
 
-**Status:** pre-review complete and recommendations approved by Gemma Danks on
-2026-08-09. The governed decision is
-`config/contracts/phase-5-astrometry-human-decision.json`. It authorizes a
-prospective astrometry protocol and development execution, not a production
-representation. Step 3, optimization, the external Step 2C-P run, and
-qualification remain blocked.
+**Status:** pre-review complete, recommendations approved, and the prospective
+development comparison completed. Neither frozen estimator passed every
+endpoint and uncertainty-coverage stratum, so the decision is
+`reject-astrometry-candidates`. The sealed successor confirmation was not
+opened. Step 3, optimization, Step 2C-P execution, and qualification remain
+blocked pending renewed human scientific review.
 
 This review diagnoses the closed Step 2C-A evidence. It does not rerun an
 image, change a result, rescore the confirmation, or open qualification. The
@@ -220,8 +220,35 @@ The following recommendations were approved for prospective implementation:
    scope; no forced Aegean island-position comparison for irregular extended
    centroids.
 
-The decision has now been recorded. Hebog may freeze the successor pre-results
-protocol and fresh datasets, run development-only estimator selection, and
-then separately authorize a one-look confirmation. The new candidate must
-pass every absolute truth gate before Step 2C-P execution, performance, or
-external non-inferiority can make it eligible.
+## Prospective development outcome
+
+The approved revision was implemented without reopening the closed Step 2C-A
+population. The direct estimator measures signed original residual flux on
+the reconciled B3 island support, reports full rotated-beam pixel covariance
+and local-WCS sky covariance, and serves as the simple baseline. The
+model-assisted comparator uses the existing multi-Gaussian model only when it
+lies inside the predeclared direct-covariance adequacy gate; otherwise it falls
+back explicitly to the direct estimate.
+
+Across 40 fresh images and 240 unique astronomical group observations per
+candidate:
+
+| Candidate | Median (beam) | p95 (beam) | Endpoint failures | Coverage failures |
+| --- | ---: | ---: | ---: | ---: |
+| Direct observable-pixel centroid | 0.0974 | 0.2730 | 17 | 17 |
+| Covariance-gated Gaussian assistance | 0.0860 | 0.3068 | 15 | 11 |
+
+The direct candidate passed the 0.10-beam overall median but failed the
+0.25-beam overall p95 and multiple governed strata. The model candidate had a
+better median but a worse p95, so it did not provide the required 0.02-beam
+tail improvement; it also failed endpoint and coverage strata. Neither is
+eligible. The reviewed evidence is
+`benchmark-results/phase-5/astrometry-development.json`, SHA-256
+`919e19345028c16496f4b18199266d82d4e7b604ce865743b20d38c7ebd5c1d8`,
+and the committed decision is
+`config/contracts/phase-5-astrometry-selection-decision.json`.
+
+The 400-image successor confirmation remains sealed. Another estimator or
+endpoint revision requires renewed human scientific review and a fresh
+confirmation design; the failed development result does not authorize
+Step 2C-P, Step 3, optimization, or qualification.

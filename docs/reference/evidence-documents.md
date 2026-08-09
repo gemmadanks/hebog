@@ -73,6 +73,19 @@ endpoint. The reviewed Step 2B evidence selected neither candidate, so its
 separate committed decision contract keeps optimization, qualification, and
 Step 3 closed.
 
+## Phase 5 astrometry-development evidence
+
+A `phase-five-astrometry-development` document binds the successor protocol,
+base corrective protocol, fresh development manifest, source tree, dependency
+inventory, and environment. It records direct group-level median and p95
+position endpoints with whole-image cluster-bootstrap bounds; 68% and 95%
+Mahalanobis coverage by morphology, SNR, scale, edge, invalid-pixel,
+truncation, and estimator disposition; model availability and adequacy; and a
+conjunctive candidate decision. The schema recomputes the frozen preference
+for the direct estimator unless an eligible model improves overall p95 by at
+least 0.02 beam. A rejected development result cannot authorize confirmation,
+Step 2C-P, Step 3, optimization, or qualification.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same

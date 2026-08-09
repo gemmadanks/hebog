@@ -1,16 +1,12 @@
 # Phase 5 multiscale contract and development review
 
-**Status:** reviewed for development and amended through the Step 2C-H
-[astrometry pre-review](phase-5-astrometry-pre-review.md). Residual B3 passes
-every paired gate and every absolute domain except five astrometry-variance
-strata on the independent confirmation. The pre-review recommends prospective
-endpoint, estimator, and uncertainty revision. Gemma Danks approved those
-recommendations on 2026-08-09 for prospective development under
-`config/contracts/phase-5-astrometry-human-decision.json`. Step 3 and
-representation-specific optimization remain blocked pending fresh astrometry
-confirmation and the Step 2C-P external source-finder comparison.
-Qualification remains frozen and unopened; this contract does not establish
-multiscale equivalence.
+**Status:** reviewed through the Step 2C-H prospective astrometry development
+run. Both the direct observable-pixel centroid and covariance-gated
+Gaussian-assisted candidate failed required endpoint and uncertainty-coverage
+strata, so neither was selected. The fresh 400-image confirmation remains
+sealed. Step 3, Step 2C-P execution, optimization, and qualification remain
+blocked pending renewed human scientific review; this contract does not
+establish multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -197,29 +193,22 @@ Residual risks are explicit:
 - The 50% support threshold and numerical margins are reviewed-development
   values; opening qualification requires the registered power audit and
   independent review remains a cutover gate.
-- Step 2C-A left five absolute astrometry tails above the frozen gate despite
-  passing all paired endpoints. Curved-filament variance and uncertainty
-  undercoverage require human scientific review before another estimator or
-  endpoint design.
-- The Step 2C-H technical pre-review found that the frozen position statistic
-  nests a per-image group p95 inside a population p95, so its meaning changes
-  with the number of groups in a stratum. It also found that the durable median
-  position gate was not bound by the Step 2B--2C-A review implementation. These
-  findings do not rescore the closed confirmation; a successor protocol must
-  address them prospectively on fresh data.
+- Step 2C-A left five astrometry tails above the old gate. Step 2C-H corrected
+  the nested tail statistic and omitted median endpoint prospectively, but its
+  two candidates still failed endpoint and coverage strata on fresh
+  development data.
 - The internal records establish meanings, not a supported public API or
   completed combined catalogue implementation.
 
 The Step 2C-H human decision approved the
 [technical pre-review](phase-5-astrometry-pre-review.md). The prospective
-successor design is now frozen in
-`config/contracts/phase-5-astrometry-revision-review.json`, with a fresh
-40-image development population and a sealed, seed-disjoint 400-image
-confirmation population. Development may compare the direct-pixel and
-covariance-gated model-assisted estimators. Confirmation remains unauthorized
-until that comparison freezes one estimator. The viewed Step 2C-A confirmation
-is closed to tuning, rescoring, and reuse. Step 2C-P execution and Step 3 remain
-blocked until the successor astrometry gate passes.
+protocol then compared its two frozen candidates on 40 fresh development
+images. The direct estimator's overall median/p95 was 0.0974/0.2730 beam; the
+model-assisted result was 0.0860/0.3068 beam. Both had stratum failures, so the
+decision in `config/contracts/phase-5-astrometry-selection-decision.json` is
+`reject-astrometry-candidates`. The viewed Step 2C-A population remains closed
+and the fresh 400-image confirmation remains sealed. Step 2C-P execution and
+Step 3 remain blocked.
 
 ## Frozen identities
 
@@ -236,6 +225,7 @@ blocked until the successor astrometry gate passes.
 | Successor astrometry review protocol | `de7265384d8c591e776bbd21bd5488e68144ee8d3dd670277f496dea46a5d917` |
 | Successor astrometry development manifest | `5e9da7471f9ca33053421bf3fed6e9583e4ac0e9c3a0b230cd15f48b35159636` |
 | Successor astrometry confirmation manifest | `0cb216ad04469169a45a19e0d2b9eb51b84d4fee6f03ffd6dccce413c00659f7` |
+| Successor astrometry selection decision | `567512af8220c041767d08f6313b8ccc62b0f429e77758f2e39075751314a2a5` |
 | Qualification manifest | `40f1d0cfd173947e323cc35ff140c04f25fdd5c8303fbab8c138dc058fb0235f` |
 | Development complete dataset record | `319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d` |
 | Regression complete dataset record | `70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5` |

@@ -2028,6 +2028,70 @@ class PhaseFiveAstrometryRevisionReview(_ContractModel):
         return self
 
 
+class PhaseFiveAstrometrySelectionCandidate(_ContractModel):
+    """One development-only successor estimator conclusion."""
+
+    candidate: Literal[
+        "direct-observable-pixel-centroid",
+        "covariance-gated-model-assisted-centroid",
+    ]
+    covariance_scale: float = Field(gt=0, allow_inf_nan=False)
+    overall_percentile_95_beams: float = Field(ge=0, allow_inf_nan=False)
+    unavailable_fraction: float = Field(ge=0, le=1, allow_inf_nan=False)
+    model_unavailable_fraction: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    model_inadequate_fraction: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    failed_endpoint_count: int = Field(ge=1)
+    failed_coverage_count: int = Field(ge=1)
+    endpoints_pass: Literal[False]
+    coverage_pass: Literal[False]
+    model_admission_pass: bool
+    eligible: Literal[False]
+
+
+class PhaseFiveAstrometrySelectionDecision(_ContractModel):
+    """Reviewed fail-closed result of successor astrometry development."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-selection-decision"]
+    status: Literal["reviewed-rejected"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    development_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidates: tuple[PhaseFiveAstrometrySelectionCandidate, ...]
+    decision: Literal["reject-astrometry-candidates"]
+    selected_candidate: None
+    confirmation_execution_authorized: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "human-scientific-review-before-another-estimator-revision"
+    ]
+
+    @model_validator(mode="after")
+    def validate_rejection(self) -> Self:
+        """Require both canonical estimators to fail without compensation."""
+        if tuple(item.candidate for item in self.candidates) != (
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        ):
+            raise ValueError(
+                "astrometry selection candidates must remain exact"
+            )
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -2636,5 +2700,14 @@ def load_phase_five_astrometry_revision_review(
 ) -> PhaseFiveAstrometryRevisionReview:
     """Load the frozen successor Step 2C-H astrometry review."""
     return PhaseFiveAstrometryRevisionReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_selection_decision(
+    path: Path,
+) -> PhaseFiveAstrometrySelectionDecision:
+    """Load the reviewed successor astrometry development decision."""
+    return PhaseFiveAstrometrySelectionDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

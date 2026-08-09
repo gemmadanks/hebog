@@ -895,16 +895,15 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Steps 1--2C-A are completed with no eligible production
-representation. The independent 2C-A confirmation left residual B3
-non-inferior on every paired gate but failed five absolute position-error
-strata (0.360--0.432 beams). Raw population astrometry was materially better,
-but curved-filament variance and uncertainty undercoverage make a post-hoc
-endpoint change unsafe. Step 3, candidate-specific optimization, and
-qualification remain blocked pending independent human scientific review and
-the direct PyBDSF/Aegean comparison in Step 2C-P; no multiscale equivalence or
-complete runtime claim is approved. The paired results through Step 2C-A
-compare Hebog representations, not Hebog with either external finder.
+**Status:** Steps 1--2C-H are completed with no eligible production
+representation. The prospective Step 2C-H revision used fresh development
+data and corrected the endpoint and uncertainty protocol, but both the direct
+centroid and covariance-gated Gaussian-assisted candidate failed required
+strata. The sealed successor confirmation remains unopened. Step 3,
+candidate-specific optimization, Step 2C-P execution, and qualification remain
+blocked pending renewed human scientific review; no multiscale equivalence or
+complete runtime claim is approved. Comparisons completed so far are between
+Hebog representations, not Hebog and an external finder.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1140,6 +1139,20 @@ and spill behaviour, and facility-scale execution.
          WCS, scale, edge and invalid-pixel conditions. Confirmation remains
          unauthorized until one estimator is frozen from development-only
          evidence.
+   - [x] Implement the direct observable-pixel centroid, covariance-gated
+         Gaussian-assisted comparator, full rotated-beam pixel covariance,
+         local-WCS sky covariance, direct group-level median and p95 endpoints,
+         whole-image cluster bootstrap, and morphology/support-stratified
+         Mahalanobis coverage. On 40 fresh images and 240 unique group
+         observations per candidate, the direct estimator produced an overall
+         median/p95 of 0.0974/0.2730 beam and failed 17 endpoint and 17 coverage
+         strata. The model-assisted candidate produced 0.0860/0.3068 beam and
+         failed 15 endpoint and 11 coverage strata. Neither passed every
+         absolute gate, and the model did not provide the required 0.02-beam
+         p95 improvement. The reviewed decision is
+         `reject-astrometry-candidates`; the 400-image confirmation remains
+         sealed and another estimator revision requires renewed human
+         scientific review.
 
 2C-P. **Establish external source-finder non-inferiority before Step 3.**
 
@@ -1592,26 +1605,25 @@ The community-practice review made residual B3-spline à trous detection,
 reconstruction, morphology-independent support, and original-image
 measurement the corrective Step 2C candidate. This is familiar to PyBDSF and
 Selavy users while adopting segmentation strengths exposed by ProFound,
-CAESAR, and Hydra. Step 2C-R retained that representation and corrected
-association, artifact disposition, and false-positive control. Step 2C-A then
-tested a frozen noise-aware model-assisted position estimator on a new
-seed-disjoint population. B3 remained non-inferior but failed five absolute
-position-error strata; curved-filament variance and uncertainty undercoverage
-now require human scientific review before another estimator or endpoint
-design. The completed Phase 5 paired comparisons were between Hebog candidate
-representations and did not execute PyBDSF or Aegean. Step 2C-P now requires
+CAESAR, and Hydra. Step 2C-R corrected association, artifact disposition, and
+false-positive control. Step 2C-A exposed astrometry variance and uncertainty
+undercoverage. Step 2C-H then prospectively corrected the catalogue endpoint
+and covariance protocol on fresh development data. The direct and
+Gaussian-assisted estimators both failed required endpoint and coverage
+strata, so neither was selected and the sealed confirmation was not opened.
+The completed Phase 5 comparisons remain internal to Hebog. Step 2C-P requires
 direct non-inferiority against both exact PyBDSF references and, for its
-applicable compact/Gaussian catalogue scope, Aegean before Step 3. The separate
-Step 2D evidence decides only whether Rapthor uses the `compact` or `continuum`
-profile.
+applicable compact/Gaussian scope, Aegean before Step 3. Step 2D separately
+decides only whether Rapthor uses the `compact` or `continuum` profile.
 
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:
 
-- Does the per-image/group-tail position endpoint express catalogue-level
-  astrometry appropriately, and how should correlated-noise uncertainty be
-  calibrated for curved or model-mismatched emission without tuning on the
-  closed 2C-A population?
+- Which prospectively reviewed extended-position estimator can pass every
+  direct group-level median, p95, and two-dimensional uncertainty-coverage
+  stratum on fresh development data? The direct and covariance-gated Gaussian
+  candidates have been rejected; the closed 2C-A and sealed Step 2C-H
+  confirmation populations cannot be used for tuning.
 - Which scale-specific threshold, connectivity, and support rules recover
   diffuse and filamentary truth without duplicating compact sources?
 - Does compact-only processing preserve Rapthor's retained/rejected sky-model

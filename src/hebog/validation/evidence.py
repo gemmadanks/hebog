@@ -30,6 +30,7 @@ _SHA256_PATTERN = r"^[0-9a-f]{64}$"
 _CONTAINER_DIGEST_PATTERN = r"^sha256:[0-9a-f]{64}$"
 _COMMIT_PATTERN = r"^[0-9a-f]{40}$"
 _MINIMUM_REVIEWED_REPETITIONS = 5
+_MINIMUM_ASTROMETRY_MODEL_IMPROVEMENT_BEAMS = 0.02
 
 OptionalMetricName: TypeAlias = Literal[
     "array_copy_count",
@@ -949,6 +950,229 @@ class PhaseFiveCorrectiveAReviewEvidence(_EvidenceDocument):
         payload = self.model_dump(exclude={"astrometry_estimator_diagnostics"})
         payload["evidence_type"] = "phase-five-corrective-r-review"
         PhaseFiveCorrectiveRReviewEvidence.model_validate(payload)
+        return self
+
+
+class PhaseFiveAstrometryEndpointEvidence(_EvidenceModel):
+    """One successor group-level astrometry endpoint."""
+
+    candidate: Literal[
+        "direct-observable-pixel-centroid",
+        "covariance-gated-model-assisted-centroid",
+    ]
+    stratum: str = Field(min_length=1)
+    statistic: Literal["median", "percentile-95"]
+    image_count: int = Field(ge=1)
+    group_count: int = Field(ge=1)
+    estimate_beams: float = Field(ge=0, allow_inf_nan=False)
+    upper_confidence_bound_beams: float = Field(ge=0, allow_inf_nan=False)
+    absolute_limit_beams: float = Field(gt=0, allow_inf_nan=False)
+    passed: bool
+
+    @model_validator(mode="after")
+    def validate_endpoint(self) -> Self:
+        """Require the point estimate to determine the absolute decision."""
+        if self.passed != (self.estimate_beams <= self.absolute_limit_beams):
+            raise ValueError("astrometry endpoint decision is inconsistent")
+        return self
+
+
+class PhaseFiveAstrometryCoverageEvidence(_EvidenceModel):
+    """One morphology- or support-stratified covariance coverage result."""
+
+    candidate: Literal[
+        "direct-observable-pixel-centroid",
+        "covariance-gated-model-assisted-centroid",
+    ]
+    stratum: str = Field(min_length=1)
+    sample_count: int = Field(ge=1)
+    covariance_positive_definite_fraction: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    level: float = Field(gt=0, lt=1, allow_inf_nan=False)
+    empirical_coverage: float = Field(ge=0, le=1, allow_inf_nan=False)
+    maximum_absolute_error: float = Field(gt=0, allow_inf_nan=False)
+    passed: bool
+
+    @model_validator(mode="after")
+    def validate_coverage(self) -> Self:
+        """Require full positive definiteness and the declared tolerance."""
+        if self.level not in {0.68, 0.95}:
+            raise ValueError("astrometry coverage level must be 0.68 or 0.95")
+        expected = self.covariance_positive_definite_fraction == 1.0 and (
+            abs(self.empirical_coverage - self.level)
+            <= self.maximum_absolute_error
+        )
+        if self.passed != expected:
+            raise ValueError("astrometry coverage decision is inconsistent")
+        return self
+
+
+class PhaseFiveAstrometryCandidateEvidence(_EvidenceModel):
+    """Conjunctive development conclusion for one position estimator."""
+
+    candidate: Literal[
+        "direct-observable-pixel-centroid",
+        "covariance-gated-model-assisted-centroid",
+    ]
+    covariance_scale: float = Field(gt=0, allow_inf_nan=False)
+    overall_percentile_95_beams: float = Field(ge=0, allow_inf_nan=False)
+    unavailable_fraction: float = Field(ge=0, le=1, allow_inf_nan=False)
+    model_unavailable_fraction: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    model_inadequate_fraction: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    failed_endpoint_count: int = Field(ge=0)
+    failed_coverage_count: int = Field(ge=0)
+    endpoints_pass: bool
+    coverage_pass: bool
+    model_admission_pass: bool
+    eligible: bool
+
+    @model_validator(mode="after")
+    def validate_conclusion(self) -> Self:
+        """Reject any compensation among position, coverage, and admission."""
+        expected = (
+            self.failed_endpoint_count == 0
+            and self.failed_coverage_count == 0
+            and self.endpoints_pass
+            and self.coverage_pass
+            and self.model_admission_pass
+            and self.unavailable_fraction == 0.0
+        )
+        if self.eligible != expected:
+            raise ValueError(
+                "astrometry candidate eligibility is inconsistent"
+            )
+        return self
+
+
+class PhaseFiveAstrometryDevelopmentEvidence(_EvidenceDocument):
+    """Development-only successor astrometry selection evidence."""
+
+    evidence_type: Literal["phase-five-astrometry-development"]
+    subject: SoftwareIdentity
+    environment_sha256: str = Field(pattern=_SHA256_PATTERN)
+    protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    base_protocol_sha256: str = Field(pattern=_SHA256_PATTERN)
+    development_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
+    image_count: int = Field(ge=40)
+    group_count: int = Field(ge=1)
+    bootstrap_resamples: int = Field(ge=10_000)
+    bootstrap_seed: int = Field(ge=0)
+    endpoints: tuple[PhaseFiveAstrometryEndpointEvidence, ...] = Field(
+        min_length=1
+    )
+    coverage: tuple[PhaseFiveAstrometryCoverageEvidence, ...] = Field(
+        min_length=1
+    )
+    candidates: tuple[PhaseFiveAstrometryCandidateEvidence, ...]
+    decision: Literal[
+        "select-direct",
+        "select-model",
+        "reject-astrometry-candidates",
+    ]
+    selected_candidate: (
+        Literal[
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        ]
+        | None
+    )
+    confirmation_execution_authorized: bool
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_selection(self) -> Self:
+        """Recompute the frozen simple-baseline estimator selection."""
+        names = tuple(item.candidate for item in self.candidates)
+        if names != (
+            "direct-observable-pixel-centroid",
+            "covariance-gated-model-assisted-centroid",
+        ):
+            raise ValueError(
+                "astrometry evidence candidates must remain exact"
+            )
+        for candidate in self.candidates:
+            endpoints = tuple(
+                item
+                for item in self.endpoints
+                if item.candidate == candidate.candidate
+            )
+            coverage = tuple(
+                item
+                for item in self.coverage
+                if item.candidate == candidate.candidate
+            )
+            if not endpoints or not coverage:
+                raise ValueError(
+                    "each astrometry candidate requires endpoints and coverage"
+                )
+            failed_endpoint_count = sum(not item.passed for item in endpoints)
+            failed_coverage_count = sum(not item.passed for item in coverage)
+            if (
+                candidate.failed_endpoint_count != failed_endpoint_count
+                or candidate.endpoints_pass != (failed_endpoint_count == 0)
+                or candidate.failed_coverage_count != failed_coverage_count
+                or candidate.coverage_pass != (failed_coverage_count == 0)
+            ):
+                raise ValueError(
+                    "astrometry candidate conclusion disagrees with endpoints"
+                )
+            overall_tail = tuple(
+                item
+                for item in endpoints
+                if item.stratum == "overall"
+                and item.statistic == "percentile-95"
+            )
+            if len(overall_tail) != 1 or not isclose(
+                candidate.overall_percentile_95_beams,
+                overall_tail[0].estimate_beams,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            ):
+                raise ValueError(
+                    "astrometry candidate tail disagrees with overall endpoint"
+                )
+        direct, model = self.candidates
+        selected = None
+        if direct.eligible:
+            improvement = (
+                direct.overall_percentile_95_beams
+                - model.overall_percentile_95_beams
+            )
+            selected = (
+                model.candidate
+                if model.eligible
+                and improvement >= _MINIMUM_ASTROMETRY_MODEL_IMPROVEMENT_BEAMS
+                else direct.candidate
+            )
+        elif model.eligible:
+            selected = model.candidate
+        decision = {
+            "direct-observable-pixel-centroid": "select-direct",
+            "covariance-gated-model-assisted-centroid": "select-model",
+            None: "reject-astrometry-candidates",
+        }[selected]
+        if (
+            self.selected_candidate != selected
+            or self.decision != decision
+            or self.confirmation_execution_authorized != (selected is not None)
+        ):
+            raise ValueError(
+                "astrometry development selection is inconsistent"
+            )
         return self
 
 
@@ -1937,6 +2161,7 @@ EvidenceDocument: TypeAlias = (
     | PhaseFiveCorrectiveReviewEvidence
     | PhaseFiveCorrectiveRReviewEvidence
     | PhaseFiveCorrectiveAReviewEvidence
+    | PhaseFiveAstrometryDevelopmentEvidence
     | ScientificComparisonEvidence
     | CampaignImplementationEvidence
     | ScientificCampaignEvidence
