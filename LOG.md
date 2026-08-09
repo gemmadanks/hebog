@@ -6046,3 +6046,48 @@ build pass.
 **Immediate next step:** obtain renewed human scientific review before
 freezing another estimator/endpoint revision. Keep Step 2C-P execution and all
 downstream development closed.
+
+## 2026-08-09 — Reviewed and froze the Step 2C-HR position split
+
+**Plan phase:** Phase 5, Step 2C-HR — extended-position semantics and fresh
+pre-results protocol
+
+- Audited only the rejected Step 2C-H development evidence. Direct and
+  Gaussian-assisted offsets were not materially biased; failures concentrated
+  in irregular morphology and support strata. Diagnostic truth-support and
+  estimator-interpolation probes did not justify another tuned hybrid.
+- Reviewed PyBDSF, Aegean, Selavy, ProFound, Condon Gaussian-error theory, the
+  ASKAP/EMU challenge, and Hydra. The common product distinction is between a
+  fitted compact/component centre and a centroid or peak tied to an extended
+  source segment/model.
+- Recorded a prospective split: Phase 4 compact/component astrometry and its
+  0.10/0.25-beam gates remain unchanged. An irregular extended object instead
+  reports a detected-segment flux centroid and a separate peak, neither of
+  which claims to locate the host galaxy.
+- Froze 80 fresh development images and 400 sealed confirmation images. All
+  governed source morphologies, not only curved filaments, vary in geometry,
+  size, orientation, contrast, beam, WCS, noise, edge, invalid-pixel, and tile
+  conditions. Seeds start at 2026760001 and 2026770001 and are disjoint from
+  every earlier campaign.
+- Froze one morphology-neutral original-pixel segment estimator. Development
+  requires complete availability and one-sided 95% confidence bounds no larger
+  than 0.10 beam for signed-axis bias and 0.50 beam for radial p95 in every
+  applicable governed stratum. Position uncertainty remains explicitly
+  unavailable until nonlinear support-selection uncertainty is calibrated.
+
+**Evidence identity:** technical review SHA-256
+`cd377693b64762d02908d6a175b1a370a0090d23354f3e163d339ae81dea64fc`;
+protocol SHA-256
+`d9eaea57009c670a82bf6998724a475d5d4e80f1cc47e10a30c2d3a6a691bfad`;
+development-manifest SHA-256
+`c96faa8e6bf15bd324a56a5ca37c036f5361f678d1722d6d775c8a2e929587eb`;
+sealed-confirmation-manifest SHA-256
+`0e0c360a95044e155b489670d50de6c0ef41ccb3b314354a56388e208d2b87c7`.
+
+**Decision:** implement and execute development only. This Codex review is not
+independent human scientific approval. Confirmation, Step 2C-P, Step 3,
+optimization, and qualification remain unauthorized.
+
+**Immediate next step:** implement the typed position products and frozen
+segment estimator, then run the 80-image development protocol without opening
+confirmation.

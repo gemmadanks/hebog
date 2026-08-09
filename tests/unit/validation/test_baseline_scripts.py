@@ -1118,7 +1118,6 @@ def test_phase5_astrometry_revision_freezer_builds_disjoint_populations() -> (
     assert development_seeds.isdisjoint(confirmation_seeds)
     assert min(development_seeds) == 2026740001
     assert max(confirmation_seeds) == 2026753100
-
     development_counts = tuple(
         len(
             next(
@@ -1143,3 +1142,71 @@ def test_phase5_astrometry_revision_freezer_builds_disjoint_populations() -> (
     assert confirmation_counts == (4, 5, 6, 7)
     assert protocol_document["confirmation_execution_authorized"] is False
     assert protocol_document["qualification_opened"] is False
+
+
+def test_phase5_astrometry_follow_up_freezer_varies_every_morphology() -> None:
+    """The renewed study cannot reuse fixed non-curve source geometries."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase5_astrometry_follow_up.py")
+
+    development_document, confirmation_document, protocol_document = namespace[
+        "_documents"
+    ](
+        root / "config/datasets/phase-5-regression.json",
+        root / "config/contracts/phase-5-astrometry-selection-decision.json",
+        root / "docs/reference/phase-5-astrometry-follow-up-review.md",
+    )
+    development = DatasetManifest.model_validate(development_document)
+    confirmation = DatasetManifest.model_validate(confirmation_document)
+
+    assert development.manifest_id == (
+        "phase-5-astrometry-follow-up-development"
+    )
+    assert confirmation.manifest_id == (
+        "phase-5-astrometry-follow-up-confirmation"
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in development.datasets
+        )
+        == 80
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in confirmation.datasets
+        )
+        == 400
+    )
+    development_seeds = {
+        recipe.seed
+        for dataset in development.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+    confirmation_seeds = {
+        recipe.seed
+        for dataset in confirmation.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+    assert development_seeds.isdisjoint(confirmation_seeds)
+    assert min(development_seeds) == 2026760001
+    assert max(confirmation_seeds) == 2026773100
+
+    template = load_dataset_manifest(
+        root / "config/datasets/phase-5-regression.json"
+    ).datasets[0]
+    template_sources = tuple(
+        source.model_dump(mode="json") for source in template.recipe.sources
+    )
+    assert all(
+        tuple(
+            source.model_dump(mode="json") for source in dataset.recipe.sources
+        )
+        != template_sources
+        for dataset in (*development.datasets, *confirmation.datasets)
+    )
+    assert protocol_document["estimator"]["candidate"] == (
+        "original-pixel-detected-segment-centroid"
+    )
+    assert protocol_document["confirmation_execution_authorized"] is False

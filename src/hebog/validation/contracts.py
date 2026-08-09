@@ -2092,6 +2092,159 @@ class PhaseFiveAstrometrySelectionDecision(_ContractModel):
         return self
 
 
+class PhaseFiveCompactPositionProtocol(_ContractModel):
+    """Unchanged compact/component astrometry retained by Step 2C-HR."""
+
+    position: Literal["fitted-gaussian-component-centre"]
+    maximum_median_position_beams: float
+    maximum_percentile_95_position_beams: float
+
+    @model_validator(mode="after")
+    def validate_compact_position(self) -> Self:
+        """Prevent an extended-position revision weakening Phase 4."""
+        if (
+            self.maximum_median_position_beams,
+            self.maximum_percentile_95_position_beams,
+        ) != (0.1, 0.25):
+            raise ValueError("compact position constants must remain frozen")
+        return self
+
+
+class PhaseFiveExtendedPositionProtocol(_ContractModel):
+    """Explicit location products for one irregular extended source."""
+
+    position: Literal["detected-segment-flux-centroid"]
+    truth_target: Literal["noiseless-three-sigma-truth-segment-centroid"]
+    peak_position: Literal["brightest-original-pixel"]
+    host_position_claim: Literal[False]
+    former_full_observable_target: Literal["diagnostic-only"]
+
+
+class PhaseFiveSegmentEstimatorProtocol(_ContractModel):
+    """Transparent original-pixel segment centroid implementation."""
+
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    detection_provenance: Literal["residual-b3-atrous"]
+    measurement_pixels: Literal["original-background-subtracted"]
+    support: Literal["accepted-b3-associated-original-pixel-segment"]
+    weighting: Literal["signed-flux"]
+    centroid_support_dilation_pixels: int
+    peak_tie_breaking: Literal["row-major-first"]
+    position_uncertainty: Literal[
+        "unavailable-until-support-selection-calibrated"
+    ]
+
+    @model_validator(mode="after")
+    def validate_estimator(self) -> Self:
+        """Keep measurement and catalogue support identical."""
+        if self.centroid_support_dilation_pixels != 0:
+            raise ValueError("segment estimator constants must remain frozen")
+        return self
+
+
+class PhaseFiveExtendedPositionEndpointProtocol(_ContractModel):
+    """Bias and repeatability gates for irregular segment locations."""
+
+    observation_unit: Literal["eligible-astronomical-truth-group"]
+    independent_unit: Literal["noise-seed-image"]
+    resampling: Literal["whole-image-cluster-bootstrap-retain-all-groups"]
+    bootstrap_resamples: int
+    bootstrap_seed: int
+    confidence_level: float
+    availability_fraction: float
+    maximum_absolute_axis_bias_beams: float
+    maximum_radial_percentile_95_beams: float
+    binding_rule: Literal[
+        "one-sided-confidence-bound-passes-every-governed-stratum"
+    ]
+    radial_median: Literal["report-only"]
+
+    @model_validator(mode="after")
+    def validate_endpoint(self) -> Self:
+        """Keep the resolution-based irregular-position gate fixed."""
+        observed = (
+            self.bootstrap_resamples,
+            self.bootstrap_seed,
+            self.confidence_level,
+            self.availability_fraction,
+            self.maximum_absolute_axis_bias_beams,
+            self.maximum_radial_percentile_95_beams,
+        )
+        expected = (10_000, 20260809, 0.95, 1.0, 0.1, 0.5)
+        if observed != expected:
+            raise ValueError("extended endpoint constants must remain frozen")
+        return self
+
+
+class PhaseFiveAstrometryFollowUpReview(_ContractModel):
+    """Frozen Step 2C-HR compact/extended position split."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-astrometry-follow-up-review"]
+    status: Literal["frozen-before-follow-up-development-results"]
+    prior_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    technical_review_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    technical_review_author: Literal["Codex AI technical review"]
+    independent_human_review_complete: Literal[False]
+    closed_population_policy: Literal[
+        "no-tuning-rescoring-confirmation-or-selection"
+    ]
+    dataset_manifests: tuple[PhaseFiveFilterReviewDataset, ...]
+    compact_position: PhaseFiveCompactPositionProtocol
+    extended_position: PhaseFiveExtendedPositionProtocol
+    estimator: PhaseFiveSegmentEstimatorProtocol
+    endpoint: PhaseFiveExtendedPositionEndpointProtocol
+    governed_strata: tuple[str, ...]
+    external_position_mappings: tuple[
+        Literal[
+            "pybdsf-source-moment-where-grouping-and-model-semantics-align",
+            "aegean-component-centre-compact-gaussian-scope-only",
+            "selavy-island-centroid-semantic-precedent",
+            "profound-segment-centroid-semantic-precedent",
+        ],
+        ...,
+    ]
+    development_execution_authorized: Literal[True]
+    confirmation_execution_authorized: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_review(self) -> Self:
+        """Bind new populations, all strata, and product mappings."""
+        expected_datasets = (
+            (
+                "development",
+                "config/datasets/phase-5-astrometry-follow-up-development.json",
+                80,
+            ),
+            (
+                "regression",
+                "config/datasets/phase-5-astrometry-follow-up-confirmation.json",
+                400,
+            ),
+        )
+        observed_datasets = tuple(
+            (item.role, item.manifest, item.image_count)
+            for item in self.dataset_manifests
+        )
+        if observed_datasets != expected_datasets:
+            raise ValueError("follow-up datasets must remain frozen")
+        if self.governed_strata != tuple(sorted(_PHASE_FIVE_REQUIRED_STRATA)):
+            raise ValueError("follow-up governed strata must remain complete")
+        expected_mappings = (
+            "pybdsf-source-moment-where-grouping-and-model-semantics-align",
+            "aegean-component-centre-compact-gaussian-scope-only",
+            "selavy-island-centroid-semantic-precedent",
+            "profound-segment-centroid-semantic-precedent",
+        )
+        if self.external_position_mappings != expected_mappings:
+            raise ValueError("follow-up external mappings must remain exact")
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -2709,5 +2862,14 @@ def load_phase_five_astrometry_selection_decision(
 ) -> PhaseFiveAstrometrySelectionDecision:
     """Load the reviewed successor astrometry development decision."""
     return PhaseFiveAstrometrySelectionDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_follow_up_review(
+    path: Path,
+) -> PhaseFiveAstrometryFollowUpReview:
+    """Load the frozen Step 2C-HR position-semantics review."""
+    return PhaseFiveAstrometryFollowUpReview.model_validate_json(
         path.read_text(encoding="utf-8")
     )

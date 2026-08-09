@@ -896,14 +896,19 @@ Every later phase must preserve these completed contracts:
 ### Phase 5: multiscale and extended emission
 
 **Status:** Steps 1--2C-H are completed with no eligible production
-representation. The prospective Step 2C-H revision used fresh development
-data and corrected the endpoint and uncertainty protocol, but both the direct
-centroid and covariance-gated Gaussian-assisted candidate failed required
-strata. The sealed successor confirmation remains unopened. Step 3,
-candidate-specific optimization, Step 2C-P execution, and qualification remain
-blocked pending renewed human scientific review; no multiscale equivalence or
-complete runtime claim is approved. Comparisons completed so far are between
-Hebog representations, not Hebog and an external finder.
+representation. A renewed technical review found that the rejected Step 2C-H
+candidates were unbiased but that the frozen endpoint conflated compact
+component astrometry with a threshold-independent position for irregular
+extended emission. Step 2C-HR is now implementing a prospective,
+standard-practice split: compact Gaussian centres retain the existing
+astrometry gates, while irregular objects report an explicitly
+detection-conditioned segment centroid and a separate peak. Previously viewed
+development evidence and both sealed confirmation populations remain closed
+to selection. Step 3, candidate-specific optimization, Step 2C-P execution,
+and qualification remain blocked pending fresh development evidence and human
+scientific review; no multiscale equivalence or complete runtime claim is
+approved. Comparisons completed so far are between Hebog representations, not
+Hebog and an external finder.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1153,6 +1158,52 @@ and spill behaviour, and facility-scale execution.
          `reject-astrometry-candidates`; the 400-image confirmation remains
          sealed and another estimator revision requires renewed human
          scientific review.
+
+2C-HR. **Separate compact astrometry from irregular-source location.**
+
+   - [x] Audit the rejected direct and Gaussian-assisted candidates without
+         reopening confirmation. Their offsets have no material common bias;
+         failures concentrate in curved, shell, scale-2/4, edge, and tile
+         strata. Even an oracle 3-sigma truth support does not make a
+         threshold-independent full-emission centroid stable in every
+         irregular-morphology stratum. Record the scientific interpretation
+         and source-finder precedents in the renewed technical review.
+   - [x] Freeze a new seed- and geometry-disjoint development and confirmation
+         design before changing the estimator. The development population
+         must vary every governed astronomical morphology, beam, WCS,
+         scale, edge, invalid-pixel, tile-boundary, and component-contrast
+         condition. Do not use the viewed Step 2C-H development population,
+         the closed 2C-A confirmation, or the sealed Step 2C-H confirmation
+         for selection.
+   - [ ] Preserve the Phase 4 compact/component position definition and its
+         0.10-beam median and 0.25-beam p95 gates. For irregular extended
+         objects, define the catalogue coordinate as the original-pixel
+         flux-weighted centroid of the accepted detection segment, report the
+         brightest-pixel coordinate separately, and state explicitly that
+         neither coordinate is a host-galaxy position. Compare the segment
+         centroid with the matched noiseless 3-sigma truth segment, not
+         unobservable flux below the catalogue boundary.
+   - [ ] Implement one transparent, morphology-neutral segment estimator and
+         typed position semantics before another candidate comparison. It
+         must use the accepted B3-associated original-pixel segment without
+         dilation or truth information, retain deterministic peak tie-breaking,
+         and report position uncertainty as unavailable until support-selection
+         uncertainty has a validated production approximation. Do not publish
+         the rejected global covariance inflation as a calibrated error.
+   - [ ] On fresh development data, require 100% estimator availability, a
+         one-sided 95% confidence bound no larger than 0.10 beam for each
+         signed-axis population bias, and a one-sided 95% confidence bound no
+         larger than 0.50 beam for radial p95 repeatability in every governed
+         stratum. The half-beam tail is an irregular-segment repeatability
+         requirement, not a relaxation or replacement of compact astrometry.
+         Report median radial error and the former full-observable-domain
+         target as diagnostics only.
+   - [ ] Record the development decision and obtain named human scientific
+         review before authorizing the one-look confirmation or Step 2C-P.
+         Map PyBDSF source moments only where grouping and source-model
+         semantics align; compare Aegean fitted centres only for compact or
+         Gaussian-component scope. Use Selavy and ProFound segment centroids
+         as semantic precedents, not additional ground truth.
 
 2C-P. **Establish external source-finder non-inferiority before Step 3.**
 

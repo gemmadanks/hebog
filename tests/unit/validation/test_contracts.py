@@ -86,6 +86,9 @@ _PHASE_FIVE_ASTROMETRY_REVISION_REVIEW_PATH = (
 _PHASE_FIVE_ASTROMETRY_SELECTION_DECISION_PATH = (
     _ROOT / "config/contracts/phase-5-astrometry-selection-decision.json"
 )
+_PHASE_FIVE_ASTROMETRY_FOLLOW_UP_REVIEW_PATH = (
+    _ROOT / "config/contracts/phase-5-astrometry-follow-up-review.json"
+)
 
 
 def _duplicate_failure_case(payload: dict[str, Any]) -> None:
@@ -1082,6 +1085,93 @@ def test_phase_five_astrometry_selection_rejects_both_candidates() -> None:
     payload["candidates"].reverse()
     with pytest.raises(ValidationError, match="candidates must remain exact"):
         type(decision).model_validate(payload)
+
+
+def test_phase_five_astrometry_follow_up_separates_position_semantics() -> (
+    None
+):
+    """Irregular segment location cannot weaken compact astrometry."""
+    review = contract_models.load_phase_five_astrometry_follow_up_review(
+        _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_REVIEW_PATH
+    )
+
+    assert review.status == "frozen-before-follow-up-development-results"
+    assert review.compact_position.position == (
+        "fitted-gaussian-component-centre"
+    )
+    assert review.compact_position.maximum_median_position_beams == 0.1
+    assert review.compact_position.maximum_percentile_95_position_beams == (
+        0.25
+    )
+    assert review.extended_position.position == (
+        "detected-segment-flux-centroid"
+    )
+    assert review.extended_position.peak_position == (
+        "brightest-original-pixel"
+    )
+    assert review.extended_position.host_position_claim is False
+    assert review.estimator.candidate == (
+        "original-pixel-detected-segment-centroid"
+    )
+    assert review.estimator.centroid_support_dilation_pixels == 0
+    assert review.estimator.position_uncertainty == (
+        "unavailable-until-support-selection-calibrated"
+    )
+    assert review.endpoint.maximum_absolute_axis_bias_beams == 0.1
+    assert review.endpoint.maximum_radial_percentile_95_beams == 0.5
+    assert review.development_execution_authorized is True
+    assert review.confirmation_execution_authorized is False
+    assert review.step_two_c_p_execution_authorized is False
+    assert review.step_three_authorized is False
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "message"),
+    (
+        (
+            ("compact_position", "maximum_percentile_95_position_beams"),
+            0.5,
+            "compact position constants",
+        ),
+        (
+            ("estimator", "centroid_support_dilation_pixels"),
+            2,
+            "segment estimator constants",
+        ),
+        (
+            ("endpoint", "maximum_radial_percentile_95_beams"),
+            0.6,
+            "extended endpoint constants",
+        ),
+        (
+            ("dataset_manifests", 0, "image_count"),
+            40,
+            "follow-up datasets",
+        ),
+        (
+            ("external_position_mappings",),
+            ["aegean-component-centre-compact-gaussian-scope-only"],
+            "follow-up external mappings",
+        ),
+    ),
+)
+def test_phase_five_astrometry_follow_up_rejects_semantic_drift(
+    path: tuple[str | int, ...],
+    value: object,
+    message: str,
+) -> None:
+    """The renewed protocol cannot silently merge position products again."""
+    review = contract_models.load_phase_five_astrometry_follow_up_review(
+        _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_REVIEW_PATH
+    )
+    payload = review.model_dump(mode="json")
+    target: Any = payload
+    for part in path[:-1]:
+        target = target[part]
+    target[path[-1]] = value
+
+    with pytest.raises(ValidationError, match=message):
+        type(review).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

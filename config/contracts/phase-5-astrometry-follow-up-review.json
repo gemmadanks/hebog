@@ -1,0 +1,88 @@
+{
+  "closed_population_policy": "no-tuning-rescoring-confirmation-or-selection",
+  "compact_position": {
+    "maximum_median_position_beams": 0.1,
+    "maximum_percentile_95_position_beams": 0.25,
+    "position": "fitted-gaussian-component-centre"
+  },
+  "confirmation_execution_authorized": false,
+  "contract_id": "phase-5-astrometry-follow-up-review",
+  "dataset_manifests": [
+    {
+      "image_count": 80,
+      "manifest": "config/datasets/phase-5-astrometry-follow-up-development.json",
+      "manifest_sha256": "c96faa8e6bf15bd324a56a5ca37c036f5361f678d1722d6d775c8a2e929587eb",
+      "role": "development"
+    },
+    {
+      "image_count": 400,
+      "manifest": "config/datasets/phase-5-astrometry-follow-up-confirmation.json",
+      "manifest_sha256": "0e0c360a95044e155b489670d50de6c0ef41ccb3b314354a56388e208d2b87c7",
+      "role": "regression"
+    }
+  ],
+  "development_execution_authorized": true,
+  "endpoint": {
+    "availability_fraction": 1.0,
+    "binding_rule": "one-sided-confidence-bound-passes-every-governed-stratum",
+    "bootstrap_resamples": 10000,
+    "bootstrap_seed": 20260809,
+    "confidence_level": 0.95,
+    "independent_unit": "noise-seed-image",
+    "maximum_absolute_axis_bias_beams": 0.1,
+    "maximum_radial_percentile_95_beams": 0.5,
+    "observation_unit": "eligible-astronomical-truth-group",
+    "radial_median": "report-only",
+    "resampling": "whole-image-cluster-bootstrap-retain-all-groups"
+  },
+  "estimator": {
+    "candidate": "original-pixel-detected-segment-centroid",
+    "centroid_support_dilation_pixels": 0,
+    "detection_provenance": "residual-b3-atrous",
+    "measurement_pixels": "original-background-subtracted",
+    "peak_tie_breaking": "row-major-first",
+    "position_uncertainty": "unavailable-until-support-selection-calibrated",
+    "support": "accepted-b3-associated-original-pixel-segment",
+    "weighting": "signed-flux"
+  },
+  "extended_position": {
+    "former_full_observable_target": "diagnostic-only",
+    "host_position_claim": false,
+    "peak_position": "brightest-original-pixel",
+    "position": "detected-segment-flux-centroid",
+    "truth_target": "noiseless-three-sigma-truth-segment-centroid"
+  },
+  "external_position_mappings": [
+    "pybdsf-source-moment-where-grouping-and-model-semantics-align",
+    "aegean-component-centre-compact-gaussian-scope-only",
+    "selavy-island-centroid-semantic-precedent",
+    "profound-segment-centroid-semantic-precedent"
+  ],
+  "governed_strata": [
+    "above-compact-deblend-limit",
+    "image-edge",
+    "invalid-pixels",
+    "morphology-artifact",
+    "morphology-curved-filament",
+    "morphology-diffuse",
+    "morphology-filament",
+    "morphology-mixed-compact-extended",
+    "morphology-shell",
+    "scale-1-beam",
+    "scale-2-beam",
+    "scale-4-beam",
+    "tile-boundary",
+    "tile-corner",
+    "varying-noise"
+  ],
+  "independent_human_review_complete": false,
+  "optimization_authorized": false,
+  "prior_decision_sha256": "567512af8220c041767d08f6313b8ccc62b0f429e77758f2e39075751314a2a5",
+  "qualification_opened": false,
+  "schema_version": 1,
+  "status": "frozen-before-follow-up-development-results",
+  "step_three_authorized": false,
+  "step_two_c_p_execution_authorized": false,
+  "technical_review_author": "Codex AI technical review",
+  "technical_review_sha256": "cd377693b64762d02908d6a175b1a370a0090d23354f3e163d339ae81dea64fc"
+}

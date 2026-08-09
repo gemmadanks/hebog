@@ -426,6 +426,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
     assert set(manifests) == {
         "phase-5-astrometry-confirmation",
         "phase-5-astrometry-development",
+        "phase-5-astrometry-follow-up-confirmation",
+        "phase-5-astrometry-follow-up-development",
         "phase-5-corrective-a-confirmation",
         "phase-5-development",
         "phase-5-qualification",
@@ -434,6 +436,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
     expected_roles = {
         "phase-5-astrometry-confirmation": DatasetRole.REGRESSION,
         "phase-5-astrometry-development": DatasetRole.DEVELOPMENT,
+        "phase-5-astrometry-follow-up-confirmation": DatasetRole.REGRESSION,
+        "phase-5-astrometry-follow-up-development": DatasetRole.DEVELOPMENT,
         "phase-5-corrective-a-confirmation": DatasetRole.REGRESSION,
         "phase-5-development": DatasetRole.DEVELOPMENT,
         "phase-5-regression": DatasetRole.REGRESSION,
@@ -490,11 +494,37 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         )
         == 400
     )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests[
+                "phase-5-astrometry-follow-up-development"
+            ].datasets
+        )
+        == 80
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests[
+                "phase-5-astrometry-follow-up-confirmation"
+            ].datasets
+        )
+        == 400
+    )
     assert all(
         "before successor estimator" in dataset.provenance
         for manifest_id in (
             "phase-5-astrometry-development",
             "phase-5-astrometry-confirmation",
+        )
+        for dataset in manifests[manifest_id].datasets
+    )
+    assert all(
+        "before segment-estimator" in dataset.provenance
+        for manifest_id in (
+            "phase-5-astrometry-follow-up-development",
+            "phase-5-astrometry-follow-up-confirmation",
         )
         for dataset in manifests[manifest_id].datasets
     )
@@ -545,6 +575,18 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
             "6cb7506329a8cf6481e370fa151a6306b84980dc69275b6e16bad876b3c09f4c",
             "0a145ccf8fcd48137a688b776a75930c7b25d3101dc41d70b7a66d2bbc2430fd",
             "543b2d5127fea62b0f80863c7fc8369abc2837a32f3d09c1cb02924c8c75857f",
+        ),
+        "phase-5-astrometry-follow-up-confirmation": (
+            "f75c63af9240523bb91e32e08f81149c6fd229a49f04085c41be6919b2987d48",
+            "7710e24c14c0f9b99f94fed86608ed913473219faec46dd933eefd09b38ff864",
+            "f540cbd1072291017555ecb1e6bcd5cf5edaba58955a1758235e7242503cd600",
+            "6c199f0e13bd95862ea5caa9af8cf08e665147a3efade408141ea3d6d90a97a3",
+        ),
+        "phase-5-astrometry-follow-up-development": (
+            "2d7ac8dd5bbb653e34b88c9be17010a504be67d97c1ba55a240bc464be6f674e",
+            "b3ce7b44803b25ae505d405cd0f9171caca9cf51c28224db698238c25b501d21",
+            "6162245b3c215329e428c326be212b117f572a6e6efe339e6cdb9e5a1f220a9d",
+            "2b0c8016ba881cc2dbf0f4192c5322da5aebd3603e792104bfef57fd73908523",
         ),
         "phase-5-corrective-a-confirmation": (
             "12fc92e16a5f2ea2b57b63d565430f7b1f484ee3591070345987c92cf8de979a",
