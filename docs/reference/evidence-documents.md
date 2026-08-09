@@ -96,6 +96,14 @@ remain diagnostic. Even a completely passing document remains `exploratory`,
 marks only `eligible-awaiting-human-review`, and cannot authorize the sealed
 confirmation or any downstream Phase 5 step.
 
+The checked-in
+`phase-5-astrometry-follow-up-development-decision.json` binds the ignored
+development evidence by checksum and records its compact technical review.
+The decision can retain a completely passing candidate only for named human
+scientific review. Its schema keeps confirmation, Step 2C-P, Step 3,
+optimization, and qualification false, so a development pass cannot be
+mistaken for production selection.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same

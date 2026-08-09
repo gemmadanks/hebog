@@ -1,0 +1,42 @@
+{
+  "base_protocol_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+  "candidate": "original-pixel-detected-segment-centroid",
+  "confirmation_execution_authorized": false,
+  "decision": "retain-candidate-for-human-review",
+  "decision_id": "phase-5-astrometry-follow-up-development-decision",
+  "development_manifest_sha256": "c96faa8e6bf15bd324a56a5ca37c036f5361f678d1722d6d775c8a2e929587eb",
+  "endpoint_count": 60,
+  "evidence_configuration_sha256": "d7429ef8309c090f5daece15eb7cfb693dc6fea26988b3c2681f731bb366acb8",
+  "evidence_sha256": "c0a51dff38f0f7b925e5fbfaf98fabbab737ce20b22f09452826fb16ea426e23",
+  "evidence_source_tree_sha256": "91193c9df23c1a2089001fa6dacf0c8e37e5c2a22d0b73163ef34db9c11b209f",
+  "failed_endpoint_count": 0,
+  "former_target_radial_p95_beams": 0.30014380902607507,
+  "group_count": 480,
+  "image_count": 80,
+  "independent_human_scientific_review": "still-required",
+  "limiting_radial_p95_upper_bound_beams": 0.4887460818546344,
+  "limiting_radial_strata": [
+    "above-compact-deblend-limit",
+    "morphology-shell",
+    "tile-corner"
+  ],
+  "named_review": "codex-step-2c-hr-development-evidence-review",
+  "next_action": "named-human-scientific-review-before-confirmation",
+  "optimization_authorized": false,
+  "overall_availability_fraction": 1.0,
+  "overall_axis_bias_upper_bounds_beams": [
+    0.0105355392616725,
+    0.014698591712017286
+  ],
+  "overall_radial_median_beams": 0.08562100805659614,
+  "overall_radial_p95_beams": 0.2982310353301216,
+  "overall_radial_p95_upper_bound_beams": 0.31833199998709466,
+  "protocol_sha256": "0fec937aeb90dec119993529af04fb5a431aeb070ab483d713abf8c91972037f",
+  "qualification_opened": false,
+  "review_scope": "technical-and-governed-fresh-development-evidence",
+  "schema_version": 1,
+  "selected_candidate": "original-pixel-detected-segment-centroid",
+  "status": "technical-review-complete-awaiting-human-scientific-review",
+  "step_three_authorized": false,
+  "step_two_c_p_execution_authorized": false
+}

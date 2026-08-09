@@ -896,19 +896,16 @@ Every later phase must preserve these completed contracts:
 ### Phase 5: multiscale and extended emission
 
 **Status:** Steps 1--2C-H are completed with no eligible production
-representation. A renewed technical review found that the rejected Step 2C-H
-candidates were unbiased but that the frozen endpoint conflated compact
-component astrometry with a threshold-independent position for irregular
-extended emission. Step 2C-HR is now implementing a prospective,
-standard-practice split: compact Gaussian centres retain the existing
-astrometry gates, while irregular objects report an explicitly
-detection-conditioned segment centroid and a separate peak. Previously viewed
-development evidence and both sealed confirmation populations remain closed
-to selection. Step 3, candidate-specific optimization, Step 2C-P execution,
-and qualification remain blocked pending fresh development evidence and human
-scientific review; no multiscale equivalence or complete runtime claim is
-approved. Comparisons completed so far are between Hebog representations, not
-Hebog and an external finder.
+representation. Step 2C-HR separated compact fitted astrometry from irregular
+detected-segment location and passed all 60 binding endpoints on 80 fresh
+development images and 480 eligible groups. The overall radial-p95 upper bound
+was 0.3183 beam; the limiting shell/tile-corner cohort passed narrowly at
+0.4887 against 0.50 beam. The candidate is retained only for named human
+scientific review. Previously viewed populations and both sealed confirmation
+populations remain closed. Step 3, candidate-specific optimization, Step 2C-P
+execution, and qualification remain blocked; no multiscale equivalence or
+complete runtime claim is approved. Comparisons completed so far are between
+Hebog representations, not Hebog and an external finder.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1190,20 +1187,26 @@ and spill behaviour, and facility-scale execution.
          and report position uncertainty as unavailable until support-selection
          uncertainty has a validated production approximation. Do not publish
          the rejected global covariance inflation as a calibrated error.
-   - [ ] On fresh development data, require 100% estimator availability, a
+   - [x] On fresh development data, require 100% estimator availability, a
          one-sided 95% confidence bound no larger than 0.10 beam for each
          signed-axis population bias, and a one-sided 95% confidence bound no
          larger than 0.50 beam for radial p95 repeatability in every governed
          stratum. The half-beam tail is an irregular-segment repeatability
          requirement, not a relaxation or replacement of compact astrometry.
          Report median radial error and the former full-observable-domain
-         target as diagnostics only.
+         target as diagnostics only. The frozen 80-image run passed all 60
+         endpoints: availability was 1.0; overall x/y bias bounds were
+         0.0105/0.0147 beam; and the overall radial-p95 bound was 0.3183 beam.
+         The limiting shell/tile-corner cohort passed at 0.4887 beam, so the
+         larger sealed confirmation remains essential.
    - [ ] Record the development decision and obtain named human scientific
          review before authorizing the one-look confirmation or Step 2C-P.
          Map PyBDSF source moments only where grouping and source-model
          semantics align; compare Aegean fitted centres only for compact or
          Gaussian-component scope. Use Selavy and ProFound segment centroids
-         as semantic precedents, not additional ground truth.
+         as semantic precedents, not additional ground truth. The technical
+         decision is recorded as `retain-candidate-for-human-review`; named
+         human review and every downstream authorization remain outstanding.
 
 2C-P. **Establish external source-finder non-inferiority before Step 3.**
 

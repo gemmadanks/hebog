@@ -7,6 +7,7 @@ execution plan or import a scheduler, read science data, or run benchmarks.
 from __future__ import annotations
 
 from enum import Enum
+from math import isfinite
 from pathlib import Path
 from typing import Literal, Self
 
@@ -26,6 +27,8 @@ _PHASE_FIVE_SELECTED_TEMPORARY_PLANES = 7
 _PHASE_FIVE_REVIEW_DETECTION_SIGMA = 5.0
 _PHASE_FIVE_REVIEW_ISLAND_SIGMA = 3.0
 _PHASE_FIVE_CORRECTIVE_MAXIMUM_HALO = 14
+_PHASE_FIVE_EXTENDED_MAXIMUM_AXIS_BIAS_BEAMS = 0.1
+_PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS = 0.5
 _PHASE_FIVE_REQUIRED_STRATA = {
     "above-compact-deblend-limit",
     "image-edge",
@@ -2246,6 +2249,87 @@ class PhaseFiveAstrometryFollowUpReview(_ContractModel):
         return self
 
 
+class PhaseFiveAstrometryFollowUpDevelopmentDecision(_ContractModel):
+    """Technical review of fresh irregular-position development evidence."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-astrometry-follow-up-development-decision"]
+    status: Literal[
+        "technical-review-complete-awaiting-human-scientific-review"
+    ]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    base_protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    development_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_configuration_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate: Literal["original-pixel-detected-segment-centroid"]
+    image_count: Literal[80]
+    group_count: Literal[480]
+    endpoint_count: Literal[60]
+    failed_endpoint_count: Literal[0]
+    overall_availability_fraction: float
+    overall_axis_bias_upper_bounds_beams: tuple[float, float]
+    overall_radial_p95_beams: float
+    overall_radial_p95_upper_bound_beams: float
+    overall_radial_median_beams: float
+    former_target_radial_p95_beams: float
+    limiting_radial_strata: tuple[str, ...]
+    limiting_radial_p95_upper_bound_beams: float
+    decision: Literal["retain-candidate-for-human-review"]
+    selected_candidate: Literal["original-pixel-detected-segment-centroid"]
+    named_review: Literal["codex-step-2c-hr-development-evidence-review"]
+    review_scope: Literal["technical-and-governed-fresh-development-evidence"]
+    independent_human_scientific_review: Literal["still-required"]
+    confirmation_execution_authorized: Literal[False]
+    step_two_c_p_execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal["named-human-scientific-review-before-confirmation"]
+
+    @model_validator(mode="after")
+    def validate_technical_decision(self) -> Self:
+        """Require passing results while retaining every downstream gate."""
+        metrics = (
+            self.overall_availability_fraction,
+            *self.overall_axis_bias_upper_bounds_beams,
+            self.overall_radial_p95_beams,
+            self.overall_radial_p95_upper_bound_beams,
+            self.overall_radial_median_beams,
+            self.former_target_radial_p95_beams,
+            self.limiting_radial_p95_upper_bound_beams,
+        )
+        if not all(isfinite(item) and item >= 0 for item in metrics):
+            raise ValueError(
+                "development metrics must be finite and non-negative"
+            )
+        if (
+            self.overall_availability_fraction != 1.0
+            or max(self.overall_axis_bias_upper_bounds_beams)
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_AXIS_BIAS_BEAMS
+            or self.overall_radial_p95_upper_bound_beams
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS
+            or self.limiting_radial_p95_upper_bound_beams
+            > _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS
+        ):
+            raise ValueError("development gates must all pass")
+        if (
+            self.overall_radial_median_beams > self.overall_radial_p95_beams
+            or self.overall_radial_p95_beams
+            > self.overall_radial_p95_upper_bound_beams
+        ):
+            raise ValueError("radial development summaries must be ordered")
+        expected_limiting = (
+            "above-compact-deblend-limit",
+            "morphology-shell",
+            "tile-corner",
+        )
+        if self.limiting_radial_strata != expected_limiting:
+            raise ValueError("limiting radial strata must remain exact")
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -2872,5 +2956,14 @@ def load_phase_five_astrometry_follow_up_review(
 ) -> PhaseFiveAstrometryFollowUpReview:
     """Load the frozen Step 2C-HR position-semantics review."""
     return PhaseFiveAstrometryFollowUpReview.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_astrometry_follow_up_development_decision(
+    path: Path,
+) -> PhaseFiveAstrometryFollowUpDevelopmentDecision:
+    """Load the technical review of fresh segment-position development."""
+    return PhaseFiveAstrometryFollowUpDevelopmentDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

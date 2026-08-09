@@ -17,6 +17,7 @@ from hebog.validation.contracts import (
     PhaseFourScientificGates,
     ScalabilityContract,
     load_performance_matrix,
+    load_phase_five_astrometry_follow_up_development_decision,
     load_phase_four_measurement_contract,
     load_phase_four_metric_registry,
     load_phase_four_scientific_gates,
@@ -88,6 +89,10 @@ _PHASE_FIVE_ASTROMETRY_SELECTION_DECISION_PATH = (
 )
 _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_REVIEW_PATH = (
     _ROOT / "config/contracts/phase-5-astrometry-follow-up-review.json"
+)
+_PHASE_FIVE_ASTROMETRY_FOLLOW_UP_DECISION_PATH = (
+    _ROOT
+    / "config/contracts/phase-5-astrometry-follow-up-development-decision.json"
 )
 
 
@@ -1175,6 +1180,61 @@ def test_phase_five_astrometry_follow_up_rejects_semantic_drift(
 
     with pytest.raises(ValidationError, match=message):
         type(review).model_validate(payload)
+
+
+def test_phase_five_astrometry_follow_up_decision_awaits_human_review() -> (
+    None
+):
+    """Passing development retains the candidate without opening gates."""
+    decision = load_phase_five_astrometry_follow_up_development_decision(
+        _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_DECISION_PATH
+    )
+
+    assert decision.status == (
+        "technical-review-complete-awaiting-human-scientific-review"
+    )
+    assert decision.decision == "retain-candidate-for-human-review"
+    assert decision.image_count == 80
+    assert decision.group_count == 480
+    assert decision.failed_endpoint_count == 0
+    assert decision.overall_availability_fraction == 1.0
+    assert max(decision.overall_axis_bias_upper_bounds_beams) < 0.1
+    assert decision.overall_radial_p95_upper_bound_beams < 0.5
+    assert decision.limiting_radial_p95_upper_bound_beams < 0.5
+    assert decision.independent_human_scientific_review == "still-required"
+    assert decision.confirmation_execution_authorized is False
+    assert decision.step_two_c_p_execution_authorized is False
+    assert decision.step_three_authorized is False
+    assert decision.optimization_authorized is False
+    assert decision.qualification_opened is False
+
+    mutations = (
+        (
+            "limiting_radial_p95_upper_bound_beams",
+            0.51,
+            "development gates",
+        ),
+        (
+            "overall_availability_fraction",
+            -0.1,
+            "finite and non-negative",
+        ),
+        (
+            "overall_radial_median_beams",
+            0.4,
+            "summaries must be ordered",
+        ),
+        (
+            "limiting_radial_strata",
+            ["tile-corner", "morphology-shell"],
+            "strata must remain exact",
+        ),
+    )
+    for field, value, message in mutations:
+        payload = decision.model_dump(mode="json")
+        payload[field] = value
+        with pytest.raises(ValidationError, match=message):
+            type(decision).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

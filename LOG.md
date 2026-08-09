@@ -6127,3 +6127,49 @@ Ruff and Pyright pass before development execution.
 
 **Immediate next step:** commit the implementation, run only the frozen
 80-image development manifest, and review every applicable stratum.
+
+## 2026-08-09 — Step 2C-HR development passed technical review
+
+**Plan phase:** Phase 5, Step 2C-HR — fresh development decision
+
+- Ran only the authorized 80-image development manifest with committed source
+  tree `91193c9df23c1a2089001fa6dacf0c8e37e5c2a22d0b73163ef34db9c11b209f`.
+  The runner verified the frozen protocol, base residual-B3 protocol, prior
+  decision, and development manifest; no confirmation input was accepted.
+- All 480 eligible astronomical groups produced a segment position. All 60
+  binding endpoints across overall and 14 governed astronomical strata
+  passed. Overall x/y absolute-mean-offset upper bounds were
+  0.0105355/0.0146986 beam against 0.10; overall radial p95 was 0.298231 beam
+  with a 0.318332 upper bound against 0.50.
+- The limiting 0.488746-beam radial-p95 upper bound belonged to one shell
+  cohort labelled by `above-compact-deblend-limit`, `morphology-shell`, and
+  `tile-corner`, leaving only 0.011254 beam of margin. The tile-boundary bound
+  was 0.462552 beam. This narrow result is a confirmation risk, not a reason
+  to tune on development.
+- The overall diagnostic radial median was 0.0856210 beam. The diagnostic p95
+  against the former full-observable-domain target was 0.300144 beam and did
+  not enter selection.
+- Recorded the machine-validated technical decision as
+  `retain-candidate-for-human-review`. The ignored evidence SHA-256 is
+  `c0a51dff38f0f7b925e5fbfaf98fabbab737ce20b22f09452826fb16ea426e23`;
+  its configuration SHA-256 is
+  `d7429ef8309c090f5daece15eb7cfb693dc6fea26988b3c2681f731bb366acb8`.
+  The evidence remains exploratory, and every confirmation and downstream
+  authorization remains false.
+
+**Validation:** 249 focused contract, evidence, estimator, compiler, and
+schema tests passed. The branch-aware suite passed with 1,136 tests plus four
+expected failures and 94.33% project coverage; the new segment estimator has
+100% coverage. The 91-test contract lane left no misses in the new decision
+model. All 27 equivalence tests passed, the strict documentation build passed,
+and `just check` passed with 1,006 tests plus four expected failures.
+
+**Review conclusion:** the result supports the declared segment-location
+semantics but is not comparable as an astrometric improvement over the old
+full-emission target. Synthetic-only evidence, the narrow shell margin,
+unavailable support-selection uncertainty, and pending like-product PyBDSF
+and Aegean comparison remain material risks.
+
+**Immediate next step:** obtain named human scientific review of the position
+meaning, half-beam irregular-tail gate, and narrow shell margin before any
+one-look confirmation authorization. Do not tune or open confirmation.

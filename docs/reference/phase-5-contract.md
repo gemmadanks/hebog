@@ -1,13 +1,12 @@
 # Phase 5 multiscale contract and development review
 
-**Status:** reviewed through the Step 2C-H rejection and the prospective Step
-2C-HR position redesign. Compact Gaussian astrometry remains unchanged;
-irregular extended emission now has an explicit detected-segment centroid and
-separate peak contract. Its fresh development and sealed confirmation
-populations were frozen before implementation. Step 3, Step 2C-P execution,
-optimization, and qualification remain blocked pending fresh development
-evidence and human scientific review; this contract does not establish
-multiscale equivalence.
+**Status:** reviewed through the Step 2C-H rejection and the Step 2C-HR fresh
+development pass. Compact Gaussian astrometry remains unchanged; irregular
+extended emission has an explicit detected-segment centroid and separate peak
+contract. All 60 development endpoints passed, but the candidate is retained
+only for named human scientific review. The sealed confirmation remains
+unauthorized. Step 3, Step 2C-P execution, optimization, and qualification
+remain blocked; this contract does not establish multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -227,6 +226,15 @@ decision in `config/contracts/phase-5-astrometry-selection-decision.json` is
 and the fresh 400-image confirmation remains sealed. Step 2C-P execution and
 Step 3 remain blocked.
 
+The later Step 2C-HR
+[development review](phase-5-astrometry-follow-up-development-review.md)
+evaluated the frozen detected-segment centroid on 80 new images and 480
+eligible astronomical groups. All 60 endpoints passed. Overall x/y bias upper
+bounds were 0.0105/0.0147 beam, and the radial-p95 upper bound was 0.3183 beam.
+The shell cohort was limiting at 0.4887 against the 0.50-beam gate. The
+technical decision retains the candidate for named human scientific review;
+it does not authorize confirmation or external-finder comparison.
+
 ## Frozen identities
 
 | Document | SHA-256 |
@@ -246,6 +254,7 @@ Step 3 remain blocked.
 | Step 2C-HR position protocol | `0fec937aeb90dec119993529af04fb5a431aeb070ab483d713abf8c91972037f` |
 | Step 2C-HR development manifest | `c96faa8e6bf15bd324a56a5ca37c036f5361f678d1722d6d775c8a2e929587eb` |
 | Step 2C-HR sealed confirmation manifest | `0e0c360a95044e155b489670d50de6c0ef41ccb3b314354a56388e208d2b87c7` |
+| Step 2C-HR development decision | `cd6d54cf1c22daf3d68423bc931b58bb81ec192d30ec9c1472bdabcd22969c72` |
 | Qualification manifest | `40f1d0cfd173947e323cc35ff140c04f25fdd5c8303fbab8c138dc058fb0235f` |
 | Development complete dataset record | `319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d` |
 | Regression complete dataset record | `70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5` |
