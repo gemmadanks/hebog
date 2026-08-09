@@ -1100,11 +1100,25 @@ and spill behaviour, and facility-scale execution.
 
 2C-H. **Review the residual astrometry question with a human scientist.**
 
+   - [x] Complete an AI-conducted technical pre-review of the endpoint
+         implementation, closed evidence, estimator, uncertainty model, and
+         primary radio-astronomy precedents. It recommends prospective
+         revision, not approval: use direct group-level median and p95
+         catalogue endpoints with whole-image cluster resampling, restore the
+         omitted median gate, retain a direct original-pixel extended-source
+         centroid baseline, require explicit model-adequacy evidence, and
+         validate a two-dimensional correlated-noise uncertainty model. The
+         durable findings are in the
+         [Step 2C-H pre-review](../docs/reference/phase-5-astrometry-pre-review.md).
    - [ ] Review whether the frozen per-image/group-tail endpoint represents
          catalogue astrometry appropriately, the curved-filament variance,
          and the estimator's correlated-noise uncertainty undercoverage.
          Treat raw population percentiles as diagnostics, not replacement
-         gates on the viewed confirmation.
+         gates on the viewed confirmation. Explicitly decide the position
+         meaning, direct-versus-model-assisted estimator policy, direct
+         group-level median and tail estimands, cluster-resampling and
+         confidence rule, uncertainty coverage, external-finder mappings,
+         and fresh morphology/population design.
    - [ ] Record a governed decision before further astrometry work. Any new
          estimator or endpoint protocol requires a newly frozen confirmation
          population and may not tune, rescore, or reconfirm on the closed

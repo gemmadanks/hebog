@@ -1,11 +1,12 @@
 # Phase 5 scale-filter selection
 
-**Status:** Steps 2B--2C-A are complete with no eligible production
-representation. The independent 2C-A confirmation reduced residual B3 to five
-absolute astrometry failures and zero paired failures; every other scientific
-domain passes. Curved-filament variance and astrometric uncertainty
-undercoverage require human scientific review before another estimator or
-endpoint design. Step 3, candidate-specific optimization, and qualification
+**Status:** Steps 2B--2C-A and the Step 2C-H
+[technical pre-review](phase-5-astrometry-pre-review.md) are complete with no
+eligible production representation. The independent 2C-A confirmation reduced
+residual B3 to five absolute astrometry failures and zero paired failures;
+every other scientific domain passes. The pre-review recommends prospective
+endpoint, estimator, and uncertainty revision, while independent human review
+remains open. Step 3, candidate-specific optimization, and qualification
 remain blocked. A fresh direct comparison with PyBDSF and the applicable
 Aegean catalogue scope is also required before Step 3. This is not multiscale
 equivalence, complete Rapthor performance, or production-readiness evidence.

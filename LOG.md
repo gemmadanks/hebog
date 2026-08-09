@@ -5891,3 +5891,51 @@ Ruff format/lint, Pyright, 961 tests, and four expected xfails.
 then freeze the Step 2C-P comparison protocol and fresh population before
 running Hebog, either PyBDSF reference, or Aegean. Keep Step 3, optimization,
 and qualification closed until both gates pass.
+
+## 2026-08-09 — Completed the Step 2C-H astrometry technical pre-review
+
+**Plan phase:** Phase 5, Step 2C-H — pre-review before independent scientific
+decision
+
+- Audited the frozen endpoint implementation and the closed Step 2C-A
+  evidence without rerunning, tuning, or rescoring it. The binding statistic
+  is a p95 of per-image group p95 values. It changes meaning with the number of
+  groups in a stratum and inflated the overall, scale-2, scale-4, and
+  varying-noise diagnostics relative to the direct group-level p95.
+- Preserved the real curved-filament failure. Its nested and direct p95 are
+  both 0.4315 beam against the unchanged 0.25-beam limit; its 0.0136-beam bias
+  and 0.4294-beam centred p95 identify variance rather than stable offset as
+  the dominant problem.
+- Found a contract/implementation gap: the durable Phase 5 gates require both
+  median and p95 position error, while the Step 2B--2C-A review contracts and
+  compiler bind only p95. The closed population remains terminal and must not
+  be retrospectively scored against the missing median endpoint.
+- Reviewed primary radio-astronomy precedents from Condon, PyBDSF, Aegean,
+  ASKAP/EMU, Hydra, and ProFound. Gaussian fitting and Condon-style errors are
+  established for compact or Gaussian-component astrometry. Extended-source
+  positions depend on morphology and catalogue semantics; direct segmentation
+  or moment centroids remain important for irregular emission.
+- Diagnosed the uncertainty as a scalar beam-area-inflated moment proxy rather
+  than a complete correlated-noise position covariance. It omits model,
+  component-selection, support, association, shrinkage, and background/RMS
+  contributions. The stored error/uncertainty ratios raise under-dispersion
+  concern but are not a defined coverage test.
+- Recommended a prospective successor protocol: direct group-level median and
+  p95 endpoints with whole-image cluster resampling; a direct original-pixel
+  centroid baseline with evidence-gated model assistance; two-dimensional
+  covariance and error-ellipse coverage; diverse curved morphologies; and
+  explicit PyBDSF/Aegean position mappings. Recorded the full review in
+  `docs/reference/phase-5-astrometry-pre-review.md`.
+
+**Decision:** this AI-conducted pre-review recommends revision and does not
+satisfy the independent human approval required by Step 2C-H. The closed
+`reject-corrective-a` decision remains unchanged. Step 3, optimization,
+Step 2C-P execution, and qualification remain unauthorized.
+
+**Validation:** the strict documentation build passes. `just check` passes
+Ruff format/lint, Pyright, 961 tests, and four expected xfails.
+
+**Immediate next step:** obtain an independent human decision on the six
+questions in the pre-review. If revision is approved, freeze a new development
+matrix, estimator/uncertainty comparison, power audit, and seed- and
+geometry-disjoint confirmation before viewing any new output.

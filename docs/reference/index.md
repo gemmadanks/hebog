@@ -23,6 +23,7 @@ Related project references:
 - [Phase 4T compact confirmation protocol](phase-4t-confirmation-protocol.md)
 - [Phase 5 multiscale contract and development review](phase-5-contract.md)
 - [Phase 5 scale-filter selection](phase-5-filter-selection.md)
+- [Phase 5 astrometry technical pre-review](phase-5-astrometry-pre-review.md)
 - [Compact deblending](compact-deblending.md)
 - [Compact moment measurement](compact-measurement.md)
 - [Compact Gaussian fitting](compact-fitting.md)

@@ -1,12 +1,14 @@
 # Phase 5 multiscale contract and development review
 
-**Status:** reviewed for development and amended through Step 2C-A by the
-[filter decision](phase-5-filter-selection.md). Residual B3 passes every paired
-gate and every absolute domain except five astrometry-variance strata on the
-independent confirmation. Step 3 and representation-specific optimization
-remain blocked pending human scientific review and the Step 2C-P external
-source-finder comparison. Qualification remains frozen and unopened; this
-contract does not establish multiscale equivalence.
+**Status:** reviewed for development and amended through the Step 2C-H
+[astrometry pre-review](phase-5-astrometry-pre-review.md). Residual B3 passes
+every paired gate and every absolute domain except five astrometry-variance
+strata on the independent confirmation. The pre-review recommends prospective
+endpoint, estimator, and uncertainty revision; independent human scientific
+review remains open. Step 3 and representation-specific optimization remain
+blocked pending that review and the Step 2C-P external source-finder
+comparison. Qualification remains frozen and unopened; this contract does not
+establish multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -197,13 +199,20 @@ Residual risks are explicit:
   passing all paired endpoints. Curved-filament variance and uncertainty
   undercoverage require human scientific review before another estimator or
   endpoint design.
+- The Step 2C-H technical pre-review found that the frozen position statistic
+  nests a per-image group p95 inside a population p95, so its meaning changes
+  with the number of groups in a stratum. It also found that the durable median
+  position gate was not bound by the Step 2B--2C-A review implementation. These
+  findings do not rescore the closed confirmation; a successor protocol must
+  address them prospectively on fresh data.
 - The internal records establish meanings, not a supported public API or
   completed combined catalogue implementation.
 
-The next authorized work is the Step 2C-H human scientific review followed by
-the frozen Step 2C-P external comparison. The viewed confirmation is closed to
-tuning, rescoring, and reuse; the comparison requires a new population. Step
-3 remains blocked until both gates pass.
+The next authorized work is the independent Step 2C-H human decision on the
+[technical pre-review](phase-5-astrometry-pre-review.md), followed by a newly
+frozen astrometry design and Step 2C-P external comparison. The viewed
+confirmation is closed to tuning, rescoring, and reuse; each successor study
+requires a new population. Step 3 remains blocked until both gates pass.
 
 ## Frozen identities
 
