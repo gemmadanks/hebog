@@ -31,7 +31,7 @@ dev = [
     "pyright>=1.1.411,<2.0.0",
     "pytest-cov>=7.1.0,<8.0.0",
     "pytest-mock>=3.15,<4",
-    "hypothesis>=6.163.0,<7",
+    "hypothesis>=6.165.2,<7",
     "matplotlib>=3.10,<4",
 ]
 
