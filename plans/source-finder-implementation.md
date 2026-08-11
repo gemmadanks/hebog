@@ -907,7 +907,15 @@ Hebog runtime, and complete-population launcher are ready. Gemma Danks
 approved the 512-pixel controlled-diagnostic limitation, four PyBDSF cores,
 runtime identities, and final one-look decision on 2026-08-11. A no-write
 preflight expanded exactly 1,400 inputs and 7,000 runs against those identities
-and left both public and private campaign paths absent. The one-look remains
+and left both public and private campaign paths absent. A checksum-bound
+absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
+astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
+one-sided radial-p95 upper confidence bound; irregular radial median remains
+report-only. Its
+synthetic pass, absolute-failure, unavailable-reference, excess-variance, and
+incomplete-population cases pass. The audit also found that the raw-product
+science compiler and exact endpoint registry have not yet been implemented,
+so they are a new explicit prerequisite before execution. The one-look remains
 unopened. Step 3, candidate-specific optimization, and qualification remain
 blocked; no external non-inferiority, multiscale equivalence, or complete
 runtime claim is approved.
@@ -1287,6 +1295,36 @@ and spill behaviour, and facility-scale execution.
          no-write approved-runtime preflight passed with request SHA-256
          `182944e174098544092a8e48490bdbfd39f7d9e332a9beb586b1db2441522ef7`;
          no private staging or finder output was created.
+   - [x] Freeze and test the external scientific decision boundary before
+         opening the one-look. `phase-5-external-evaluation.json` binds the
+         exact evaluator, upstream protocol, Phase 4/5 gates, compact decision
+         engine, and confirmed irregular-position review. It applies absolute
+         truth first, then every binding paired comparison, fails closed on an
+         unavailable reference or incomplete image/endpoint population, and
+         declares excess observed paired variance underpowered. The mapping is
+         machine-explicit: compact-component radial median/p95 retain
+         0.10/0.25 beam; irregular detected segments retain 0.10-beam signed
+         x/y bias and a 0.50-beam one-sided radial-p95 upper confidence bound,
+         while their radial median is report-only. Fourteen synthetic tests
+         cover passing, higher- and
+         lower-is-better absolute and paired failures, unavailable or missing
+         references, candidate failure, non-finite evidence, excess variance,
+         incomplete populations, duplicate endpoint identity, overwrite
+         refusal, compiler absence, paired-regression sign inversion, and
+         separation of absolute confidence bounds from paired point estimates,
+         and mapping drift.
+   - [ ] Implement and freeze the raw-product science compiler and exact
+         endpoint registry before campaign execution. It must verify the
+         terminal `campaign.json` and every artifact checksum; derive analytic
+         truth and applicable group, pixel, and catalogue populations without
+         opening an adaptive endpoint set; run finder-neutral association;
+         produce the sufficient statistics for absolute and paired whole-image
+         inference; reuse the frozen Phase 4 decision engine for compact
+         endpoints; retain failures in denominators; and preserve typed
+         unavailable/inapplicable products. Validate it on synthetic manifests
+         and already-viewed development evidence, bind both hashes in
+         `phase-5-external-evaluation.json`, and obtain pre-results review. Do
+         not run or inspect the fresh 1,400-image campaign before this closes.
    - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
          (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
          on the same FITS images, beam, WCS, valid region, and declared science

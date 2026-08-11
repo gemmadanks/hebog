@@ -6485,3 +6485,74 @@ does not alter scientific code, configurations, inputs, or outputs.
 staging or partial outputs. After terminal publication, review scientific
 outcomes before runtime and keep Step 3, optimization, and qualification
 closed until the separately reviewed decision permits otherwise.
+
+## 2026-08-11 — Froze the external decision kernel and found a compiler gap
+
+**Plan phase:** Phase 5, Step 2C-P — pre-results scientific evaluation review
+
+- Implemented a checksum-bound, absolute-first decision kernel without
+  changing `src/hebog/` or the approved immutable candidate runtime. The
+  evaluator requires exact image and endpoint populations, every binding
+  reference, finite endpoint evidence, paired upper limits within their
+  practical margins, and observed paired standard deviations within the
+  prospective power bounds. It fails closed for unavailable references,
+  incomplete populations, and duplicate endpoint identities; absolute truth
+  failures cannot be compensated by external-reference results. It recomputes
+  each paired point regression from the candidate/reference values and
+  desirable direction so a compiler cannot invert the comparison. It also
+  separates absolute decision values from paired point estimates; in
+  particular, the irregular radial-p95 absolute gate uses its one-sided 95%
+  upper confidence bound rather than its lower point estimate.
+- Added `config/contracts/phase-5-external-evaluation.json`, which recomputes
+  its policies from the frozen external protocol, Phase 4/5 gates, Phase 4
+  metric registry and decision engine, and the confirmed irregular-position
+  review. The mapping now prevents a previously ambiguous flat position gate:
+  compact components retain 0.10/0.25-beam radial median/p95 limits, while
+  irregular segments retain 0.10-beam signed-axis bias and 0.50-beam radial
+  p95. Irregular radial median is report-only and cannot be substituted for
+  the signed-axis bias endpoint.
+- Added synthetic decisions for a passing endpoint, absolute failure despite
+  paired success, unavailable binding references, observed variance above the
+  planning bound, incomplete image and endpoint populations, duplicate
+  endpoint-registry identities, and evaluator/upstream-contract drift.
+- The review found no raw-product science compiler or prospective exact
+  endpoint registry in the repository. Runners and the truth-first matcher
+  produce and associate products, but nothing yet derives every governed
+  absolute and paired sufficient statistic and feeds the terminal decision.
+  Hand-assembled summaries would leave room for post-results applicability,
+  missingness, and statistic choices, so campaign execution is now explicitly
+  blocked until the compiler and registry are implemented, tested on synthetic
+  and already-viewed evidence, hash-bound, and reviewed.
+- Reviewed the Continuum absolute evidence and runner boundary. The revised
+  detected-segment position passed 60/60 development and 60/60 confirmation
+  endpoints, but the shell/tile-corner radial-p95 bound remains narrow at
+  0.4883 versus 0.50 beam after independently reproducing 0.4887 in
+  development. Two more complex astrometric candidates had already performed
+  worse. Retuning this transparent estimator before the unopened campaign
+  would invalidate the candidate/protocol/runtime identities and risk
+  optimizing a reproduced morphology-specific tail, so no algorithm change is
+  recommended from the closed evidence.
+- Audited the validation-only four-beam Continuum photometry aperture against
+  all four frozen external geometries. Each has six astronomical truth groups;
+  no dilated truth support overlaps another group, and the nearest group
+  separations are 36.7--51.8 beam FWHM. Neighbour contamination therefore
+  should not affect this campaign's absolute flux result. The population does
+  not, however, qualify close extended-source photometry for general use; that
+  remains a Step 3/6 test obligation rather than a reason to alter this frozen
+  pre-development candidate.
+
+**Validation:** the focused evaluator suite first failed for the missing
+implementation, then for an incorrect irregular-median interpretation and a
+duplicate endpoint registry. All fourteen tests now pass; direct line/branch
+coverage of the new evaluator is 81%. The combined evaluator, campaign,
+matcher, product, compact-decision, and astrometry regression selection passes
+71 tests. The full branch-aware suite passes 1,196 tests with four expected
+failures and 93.94% project coverage; all 27 scientific-equivalence tests pass.
+The strict documentation build and `just check` pass, including Ruff, Pyright,
+1,066 unit/doctest cases, and four expected failures. No external-comparison
+realization or finder output was created or inspected. The final all-files
+pre-commit check passes cleanly.
+
+**Immediate next step:** implement and pre-results-freeze the raw-product
+science compiler and exact endpoint registry. Do not invoke the already
+approved launcher without `--preflight-only` until that prerequisite closes.

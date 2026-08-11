@@ -1,13 +1,15 @@
 # Phase 5 external source-finder comparison protocol
 
 **Status:** the Step 2C-P protocol, scientific boundaries, isolated runners,
-immutable runtimes, and sealed complete-population launcher are ready. Gemma
-Danks approved the exact hash-bound one-look execution on 2026-08-11, and the
-authorization is frozen in
+immutable runtimes, sealed complete-population launcher, and scientific
+decision kernel are ready. Gemma Danks approved the exact hash-bound one-look
+execution on 2026-08-11, and the authorization is frozen in
 `config/contracts/phase-5-external-execution-decision.json`. The launcher's
 no-write preflight passed over all 1,400 inputs and 7,000 runs; no staging or
-finder output was created. The one-look remains unopened. Step 3,
-optimization, and qualification remain closed.
+finder output was created. Review then identified one remaining pre-execution
+prerequisite: the raw-product science compiler and exact endpoint registry are
+not implemented or hash-bound. The one-look remains unopened until they pass
+pre-results review. Step 3, optimization, and qualification remain closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -122,10 +124,46 @@ A reference failure cannot excuse a Hebog absolute failure. Missing binding
 output makes that comparison unavailable and fails Step 2C-P. Scientific
 outcomes are reviewed before runtime information.
 
+The position contract is explicit by scientific population:
+
+| Population | Binding absolute position checks | Diagnostic only |
+| --- | --- | --- |
+| Compact/component | radial median at most 0.10 beam; radial p95 at most 0.25 beam | none |
+| Irregular detected segment | one-sided 95% upper bounds: absolute signed x/y bias at most 0.10 beam; radial p95 at most 0.50 beam | radial median |
+
+The irregular p95 is repeatability of the reported detected-segment centroid
+against the noiseless three-sigma truth-segment centroid. It is not a relaxed
+compact astrometry gate and is not a host-galaxy position claim. In
+particular, the 0.10-beam signed-axis bias limit must not be relabelled as an
+irregular radial-median limit.
+
 A public challenge cut-out is deferred to Step 6 because this controlled host
 does not currently hold a redistributable, checksum-bound input with curated
 or injected truth. Real-data majority agreement will remain diagnostic, not
 ground truth.
+
+## Decision boundary and remaining compiler
+
+`config/contracts/phase-5-external-evaluation.json` binds the evaluator at
+`scripts/validation/evaluate_phase5_external_decision.py`, the external
+protocol, Phase 4 and Phase 5 gates, the compact decision engine, and the
+confirmed irregular-position contract. The kernel enforces absolute-first
+decisions, exact binding references and populations, observed-variance power
+audits, recomputation of the paired point-regression direction, and no
+compensation. Absolute confidence-bound values remain separate from the point
+statistics used for paired comparisons. Synthetic tests cover a complete
+pass, higher- and lower-is-better failures, unavailable or missing references,
+candidate failure, excess variance, incomplete raw and endpoint populations,
+duplicate endpoint identity, and the compact/irregular position split.
+
+The evaluator intentionally does not infer metrics directly from raw finder
+products. Before execution, a separate compiler and exact endpoint registry
+must be implemented, tested on synthetic and already-viewed development
+evidence, reviewed, and checksum-bound in that contract. The compiler must
+verify every terminal artifact, derive truth and applicability before reading
+scientific values, reuse the Phase 4 compact engine, and emit the sufficient
+statistics needed for the frozen whole-image intervals. This separation keeps
+raw-product interpretation from changing after the one-look is opened.
 
 ## Execution boundary
 
