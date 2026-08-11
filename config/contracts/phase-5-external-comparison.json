@@ -1,0 +1,249 @@
+{
+  "aegean_binding_scope": "compact-blended-gaussian-like-and-mixed-catalogue-products",
+  "aegean_configuration": {
+    "controlled_background_diagnostic": "same-frozen-background-and-rms",
+    "cores": 1,
+    "covariance": "enabled",
+    "island_catalogue": true,
+    "mode": "blind-source-finding",
+    "primary_background": "finder-operational-internal-estimation",
+    "primary_floodclip_sigma": 4.0,
+    "primary_seedclip_sigma": 5.0,
+    "threshold_matched_floodclip_sigma": 3.0,
+    "threshold_matched_seedclip_sigma": 5.0
+  },
+  "aegean_diagnostic_scope": "diffuse-filament-shell-mask-and-multiscale-provenance",
+  "bootstrap_resamples": 50000,
+  "bootstrap_seed": 20260810,
+  "candidate": "residual-b3-original-pixel-measurement",
+  "candidate_position": "confirmed-detected-segment-centroid",
+  "compact_binding_registry": "phase-4r-metric-registry",
+  "confirmation_decision_sha256": "61eff7dd2c3785a82b3048ebdfc88a3f6004f34e1b1183be2e409ceab4094b75",
+  "continuum_binding_metrics": [
+    "completeness",
+    "reliability",
+    "integrated-flux-median",
+    "integrated-flux-p95",
+    "position-median",
+    "position-p95",
+    "duplicate-fraction",
+    "mask-precision",
+    "mask-recall",
+    "mask-iou",
+    "split-fraction",
+    "merge-fraction"
+  ],
+  "contract_id": "phase-5-external-comparison",
+  "decision_rule": "absolute-first-every-applicable-noninferiority-gate-no-compensation",
+  "execution_authorized": false,
+  "failure_denominator": "retain-every-image",
+  "incomplete_reference_policy": "comparison-unavailable-and-step-two-c-p-fails-closed",
+  "matcher": {
+    "aegean_mask_metrics": "unavailable-not-failure",
+    "aegean_position": "component-centre-compact-gaussian-and-mixed-scope-only",
+    "aegean_support": "three-sigma-fitted-ellipse-union-proxy",
+    "compact_edge": "centre-distance-at-most-half-restoring-beam-fwhm",
+    "coordinate_system": "zero-based-fits-pixel-centre-x-y",
+    "extended_edge": "minimum-support-overlap-at-least-0.1-or-centre-in-one-beam-dilation",
+    "hebog_compact_position": "fitted-gaussian-component-centre",
+    "hebog_extended_position": "detected-segment-flux-centroid",
+    "hebog_support": "reconciled-detected-segment",
+    "no_cross_finder_matching": true,
+    "primary_assignment": "maximum-cardinality-maximum-overlap-minimum-distance-stable-id",
+    "pybdsf_compact_position": "gaussian-component-centre",
+    "pybdsf_extended_position": "source-moment-only-when-grouping-and-model-semantics-align",
+    "pybdsf_support": "island-mask",
+    "topology_rule": "retain-all-eligible-edges-after-primary-assignment",
+    "truth_authority": "analytic-and-injected-truth-first"
+  },
+  "next_action": "implement-and-hash-runners-and-matcher-before-execution-review",
+  "one_look_rule": "one-terminal-look-no-tuning-rescoring-or-adaptive-sample-size",
+  "optimization_authorized": false,
+  "phase_five_scientific_gates_sha256": "cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b",
+  "phase_four_metric_registry_sha256": "f1bcbbb6d1d216bdc5271c45a1e64789b1c8928a98bd4927f7e707d0318dd0b5",
+  "phase_four_scientific_gates_sha256": "39a6d0c6c0d10f3c91d8db7d63a6c6173680387d62895af28b331f118f568233",
+  "populations": [
+    {
+      "geometry_policy": "reviewed-generator-geometries-new-noise-images-no-prior-results",
+      "image_count": 600,
+      "independent_unit": "noise-seed-image",
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-external-continuum.json",
+      "manifest_sha256": "9f88b8904b264e61c5a7445fd8a0cc966cf928d072d010dce3c6d47b6e8e6193",
+      "role": "regression"
+    },
+    {
+      "geometry_policy": "reviewed-generator-geometries-new-noise-images-no-prior-results",
+      "image_count": 800,
+      "independent_unit": "noise-seed-image",
+      "lane": "compact-blend",
+      "manifest": "config/datasets/phase-5-external-compact-blend.json",
+      "manifest_sha256": "55c6ecef09711219e45f3e6192cea130b17a02bded6b10e72e1a839743ce2e32",
+      "role": "regression"
+    }
+  ],
+  "power_audit": {
+    "assumption_failure": "observed-variance-above-bound-makes-comparison-underpowered",
+    "combined_familywise_power_lower_bound": 0.9081757791446857,
+    "compact_familywise_power_lower_bound": 0.9097837457955092,
+    "compact_realization_count": 800,
+    "compact_reference_count": 3,
+    "compact_reviewed_contract_sha256": "28bb37393792f8fc4cd829e9fecfc5edb6b1e77a2a3d50df586f37f33ba39eb4",
+    "compact_single_reference_familywise_power_lower_bound": 0.9699279152651697,
+    "confidence_level": 0.95,
+    "continuum_assumptions": [
+      {
+        "comparison_count": 70,
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "reliability",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "position-median",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.003,
+        "planning_paired_standard_deviation": 0.03,
+        "practical_regression_margin": 0.01
+      },
+      {
+        "comparison_count": 56,
+        "metric_family": "mask-precision",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 56,
+        "metric_family": "mask-recall",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 56,
+        "metric_family": "mask-iou",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.005,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": -0.005,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02
+      }
+    ],
+    "continuum_familywise_power_lower_bound": 0.9983920333491765,
+    "continuum_realization_count": 600,
+    "method": "cluster-normal-planning-plus-conservative-union-lower-bound",
+    "minimum_joint_power": 0.9
+  },
+  "public_cutout": "deferred-to-step-6-no-redistributable-checksum-bound-input-on-host",
+  "pybdsf_configuration": {
+    "adaptive_rms_box": true,
+    "adaptive_threshold": 75.0,
+    "atrous_bdsm_do": true,
+    "atrous_do": true,
+    "atrous_jmax": 3,
+    "atrous_lpf": "b3",
+    "atrous_orig_isl": false,
+    "atrous_sum": true,
+    "controlled_background_diagnostic": "same-frozen-mean-and-rms-via-rmsmean-map-filename",
+    "mean_map": "zero",
+    "primary_background": "finder-operational",
+    "rms_box": [
+      150,
+      50
+    ],
+    "rms_box_bright": [
+      35,
+      7
+    ],
+    "rms_map": true,
+    "threshold_island_sigma": 3.0,
+    "threshold_pixel_sigma": 5.0,
+    "threshold_type": "hard"
+  },
+  "qualification_opened": false,
+  "references": [
+    {
+      "artifact_sha256": "8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2",
+      "artifact_type": "pypi-sdist",
+      "comparison_scope": "binding-full-continuum",
+      "container_image_digest": "sha256:dce93991e2e671428ff8043a7e0d132294d2d2decf1e1587e9904d3e8f49b754",
+      "dependency_inventory_sha256": "ad533f28942ba1d3891a1c5d960028c7bde558ea682e08da21a246235d2eb3c8",
+      "finder_id": "released-pybdsf",
+      "source_revision": "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc",
+      "version": "1.14.1"
+    },
+    {
+      "artifact_sha256": "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d",
+      "artifact_type": "local-wheel",
+      "comparison_scope": "binding-full-continuum",
+      "container_image_digest": "sha256:f045820aa3e8bc0f5d90a35b90a4492048351de7d0255d6b7746b787d254b0d6",
+      "dependency_inventory_sha256": "9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76",
+      "finder_id": "pinned-pybdsf-master",
+      "source_revision": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
+      "version": "1.14.2.dev40+gc70103be3"
+    },
+    {
+      "artifact_sha256": "dda95cb525e229b60bc357d3e5fc454cac20f364ee8aa10b730c2f7223da428d",
+      "artifact_type": "pypi-wheel",
+      "comparison_scope": "binding-compact-blended-and-gaussian-like-catalogue",
+      "container_image_digest": "sha256:ca5fd09f82041d619d286cd2ccb33d36d30c8d5e87aba8e7098a623d46b1f808",
+      "dependency_inventory_sha256": "74f378721391486dc1a2c41dc1570bea21f09225d5165c3f29c891dd9e479a2e",
+      "finder_id": "aegean",
+      "source_revision": "bb04f50a3ec117d180a79260c6a5c844f1d8dbbc",
+      "version": "2.3.5"
+    }
+  ],
+  "resampling": "paired-whole-image-fixed-seed-bca-one-sided-95-percent",
+  "schema_version": 1,
+  "scientific_outcomes_before_runtime": true,
+  "status": "frozen-before-external-output",
+  "step_three_authorized": false
+}

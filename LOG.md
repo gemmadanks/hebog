@@ -6262,3 +6262,65 @@ failures.
 
 **Immediate next step:** freeze the complete fresh Step 2C-P external-finder
 comparison protocol before generating any Hebog, PyBDSF, or Aegean output.
+
+## 2026-08-09 — Froze the Step 2C-P external-comparison protocol
+
+**Plan phase:** Phase 5, Step 2C-P — pre-results protocol freeze
+
+- Froze 600 full-continuum images across four reviewed geometry, beam, and WCS
+  configurations and 800 compact/blend images. All 1,400 noise seeds are new
+  and globally disjoint from every checked-in historical manifest. Only
+  reviewed analytic generator designs are reused; no finder output or prior
+  result enters the new populations. Phase 5 qualification remains unopened.
+- Bound released PyBDSF 1.14.1 and pinned `master` `c70103b` to their existing
+  immutable images and dependency inventories. Both use Rapthor's residual B3
+  à trous profile with three scales, 5/3-sigma thresholds, and operational
+  background/RMS as primary; a same-map diagnostic is separately labelled.
+- Selected maintained AegeanTools 2.3.5 as the catalogue comparator. Verified
+  published wheel SHA-256 `dda95cb...`, smoke-tested the CLI, and captured
+  isolated image digest `sha256:ca5fd09...` plus dependency-inventory SHA-256
+  `74f3787...`. Isolation is required because Aegean 2.3.5 requires NumPy 2.x
+  while the governed PyBDSF image retains NumPy 1.26.
+- Froze Aegean's blind 5/4-sigma covariance-enabled primary run with internal
+  background/noise estimation and a separately labelled 5/3-sigma same-map
+  diagnostic. Its compact, blended, Gaussian-like, and mixed catalogue products
+  are binding. Diffuse, filament, shell, mask, and multiscale-provenance
+  products outside its design are diagnostic or unavailable, never implicit
+  passes or failures.
+- Froze truth-first, no-cross-finder association. The matcher retains
+  secondary eligible edges after deterministic primary assignment so
+  one-to-one matching cannot hide duplicates, splits, or merges. Like-product
+  mappings keep compact Gaussian centres separate from Hebog's confirmed
+  irregular detected-segment centroid and limit PyBDSF source moments to
+  semantically aligned groups.
+- The conservative prospective power lower bounds are 0.998392 for continuum,
+  0.909784 for three-reference compact comparison, and 0.908176 jointly. An
+  observed per-image variance above any planning bound makes the comparison
+  underpowered and fails closed; sample size cannot adapt after opening.
+- Final code review found that mask precision and mask recall were binding but
+  initially represented only by the mask-IoU planning family. Added both as
+  explicit prospective power families and a generator-equality regression
+  test before freezing the final identity; the conservative rounded bounds are
+  unchanged.
+- Deferred a public challenge cut-out to Step 6 because the controlled host
+  has no redistributable, checksum-bound input with curated or injected truth.
+  Real-data finder agreement remains diagnostic rather than ground truth.
+- The protocol SHA-256 is
+  `b9db9adbd1cae1a8c11a081b0af245e3e8dca8979bce9e2dc0ffda968c5d2d72`;
+  continuum and compact/blend manifest SHA-256 values are respectively
+  `9f88b8904b264e61c5a7445fd8a0cc966cf928d072d010dce3c6d47b6e8e6193`
+  and `55c6ecef09711219e45f3e6192cea130b17a02bded6b10e72e1a839743ce2e32`.
+
+**Validation:** the focused contract, freezer, disjointness,
+overwrite-refusal, generated-document equality, and dataset-identity suites
+pass (213 tests); Ruff passes on every changed Python file;
+`just test-equivalence` passes 27 tests; the strict documentation build passes;
+and `just check` passes, including Pyright and 1,014 unit/doctest cases with 4
+expected failures. `just coverage` passes with 1,144 tests, 4 expected failures,
+and 94.48% branch-aware project coverage. The final pre-commit check remains
+pending.
+
+**Immediate next step:** implement and test the frozen matcher, FITS
+materializer, and isolated Hebog/PyBDSF/Aegean runners, then bind their
+committed hashes in a separate execution decision. Do not generate finder
+output before that review.

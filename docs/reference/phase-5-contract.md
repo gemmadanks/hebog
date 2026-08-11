@@ -6,15 +6,17 @@ extended emission has an explicit detected-segment centroid and separate peak
 contract. All 60 development endpoints passed, and Gemma Danks authorized its
 one-look confirmation after named scientific review on 2026-08-09. All 60
 confirmation endpoints then passed on 400 images and 2,400 eligible groups.
-The confirmation population is closed. Step 2C-P protocol freeze is
-authorized, but its execution, Step 3, optimization, and qualification remain
-blocked; this contract does not establish multiscale equivalence.
+The confirmation population is closed. The fresh Step 2C-P protocol is now
+frozen, but its execution, Step 3, optimization, and qualification remain
+blocked until the runners and matcher are implemented and separately
+reviewed; this contract does not establish multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
-measurement. Steps 2C through 2C-A evaluated it without changing the frozen
-gates or opening qualification. The independent astrometry confirmation did
-not pass, so the representation remains unselected.
+measurement. Steps 2C through 2C-HR evaluated and confirmed its explicit
+detected-segment position without changing the frozen gates or opening
+qualification. The representation remains a comparison candidate, not a
+production selection, until external non-inferiority passes.
 
 Gemma Danks asked Codex to complete Phase 5 Step 1. Codex performed the named
 scientific and engineering review recorded here as an AI-conducted synthesis
@@ -246,6 +248,13 @@ shell/tile-corner bound was 0.4883 beam. The reviewed decision confirms the
 candidate for Step 2C-P protocol design only; external execution remains
 closed.
 
+The [Step 2C-P external protocol](phase-5-external-comparison-protocol.md)
+freezes 1,400 fresh seed-disjoint images, the exact PyBDSF and Aegean
+runtimes, operational and controlled-background configurations, truth-first
+matching, metric scope, and a 0.9082 conservative joint-power lower bound.
+Execution remains closed until the matcher and isolated runners are committed
+and hash-bound.
+
 ## Frozen identities
 
 | Document | SHA-256 |
@@ -268,6 +277,9 @@ closed.
 | Step 2C-HR development decision | `cd6d54cf1c22daf3d68423bc931b58bb81ec192d30ec9c1472bdabcd22969c72` |
 | Step 2C-HR human confirmation decision | `02124201a45ecc9e88ac9542de1f6ee0fa5a5a0a43759247bc696c68170664ab` |
 | Step 2C-HR confirmation decision | `61eff7dd2c3785a82b3048ebdfc88a3f6004f34e1b1183be2e409ceab4094b75` |
+| Step 2C-P external comparison protocol | `b9db9adbd1cae1a8c11a081b0af245e3e8dca8979bce9e2dc0ffda968c5d2d72` |
+| Step 2C-P continuum manifest | `9f88b8904b264e61c5a7445fd8a0cc966cf928d072d010dce3c6d47b6e8e6193` |
+| Step 2C-P compact/blend manifest | `55c6ecef09711219e45f3e6192cea130b17a02bded6b10e72e1a839743ce2e32` |
 | Qualification manifest | `40f1d0cfd173947e323cc35ff140c04f25fdd5c8303fbab8c138dc058fb0235f` |
 | Development complete dataset record | `319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d` |
 | Regression complete dataset record | `70a7288ccd6230695f906e40d51a3509497ac4f88ba4e94e1174a29ef4017ec5` |

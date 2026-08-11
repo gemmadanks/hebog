@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ from hebog.validation.contracts import (
     ScalabilityContract,
     load_performance_matrix,
     load_phase_five_astrometry_follow_up_development_decision,
+    load_phase_five_external_comparison_protocol,
     load_phase_five_follow_up_confirmation_decision,
     load_phase_four_measurement_contract,
     load_phase_four_metric_registry,
@@ -101,6 +103,9 @@ _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_HUMAN_DECISION_PATH = (
 _PHASE_FIVE_ASTROMETRY_FOLLOW_UP_CONFIRMATION_DECISION_PATH = (
     _ROOT / "config/contracts/"
     "phase-5-astrometry-follow-up-confirmation-decision.json"
+)
+_PHASE_FIVE_EXTERNAL_COMPARISON_PROTOCOL_PATH = (
+    _ROOT / "config/contracts/phase-5-external-comparison.json"
 )
 
 
@@ -1313,6 +1318,106 @@ def test_follow_up_confirmation_decision_opens_protocol_freeze_only() -> None:
         payload[field] = value
         with pytest.raises(ValidationError, match=message):
             type(decision).model_validate(payload)
+
+
+def test_phase_five_external_protocol_freezes_without_opening_results() -> (
+    None
+):
+    """Step 2C-P fixes references and rules before runner authorization."""
+    protocol = load_phase_five_external_comparison_protocol(
+        _PHASE_FIVE_EXTERNAL_COMPARISON_PROTOCOL_PATH
+    )
+
+    assert protocol.status == "frozen-before-external-output"
+    assert protocol.candidate == "residual-b3-original-pixel-measurement"
+    assert tuple(item.finder_id for item in protocol.references) == (
+        "released-pybdsf",
+        "pinned-pybdsf-master",
+        "aegean",
+    )
+    assert {item.image_count for item in protocol.populations} == {600, 800}
+    assert (
+        tuple(
+            item.metric_family
+            for item in protocol.power_audit.continuum_assumptions
+        )
+        == protocol.continuum_binding_metrics
+    )
+    assert protocol.power_audit.combined_familywise_power_lower_bound >= 0.9
+    assert protocol.execution_authorized is False
+    assert protocol.step_three_authorized is False
+    assert protocol.qualification_opened is False
+    for population in protocol.populations:
+        manifest_path = _ROOT / population.manifest
+        assert hashlib.sha256(manifest_path.read_bytes()).hexdigest() == (
+            population.manifest_sha256
+        )
+
+    payload = protocol.model_dump(mode="json")
+    payload["references"] = list(reversed(payload["references"]))
+    with pytest.raises(ValidationError, match="reference order"):
+        type(protocol).model_validate(payload)
+
+    payload = protocol.model_dump(mode="json")
+    payload["references"][2]["version"] = "2.3.6"
+    with pytest.raises(ValidationError, match="identities"):
+        type(protocol).model_validate(payload)
+
+    payload = protocol.model_dump(mode="json")
+    payload["populations"] = list(reversed(payload["populations"]))
+    with pytest.raises(ValidationError, match="population order"):
+        type(protocol).model_validate(payload)
+
+    payload = protocol.model_dump(mode="json")
+    payload["populations"][0]["manifest"] = (
+        "config/datasets/phase-5-regression.json"
+    )
+    with pytest.raises(ValidationError, match="population identities"):
+        type(protocol).model_validate(payload)
+
+    payload = protocol.model_dump(mode="json")
+    payload["continuum_binding_metrics"] = ["completeness"] * 12
+    with pytest.raises(ValidationError, match="continuum metrics"):
+        type(protocol).model_validate(payload)
+
+    payload = protocol.model_dump(mode="json")
+    payload["power_audit"]["combined_familywise_power_lower_bound"] = 0.89
+    with pytest.raises(ValidationError, match="power"):
+        type(protocol).model_validate(payload)
+
+    payload = protocol.model_dump(mode="json")
+    assumptions = payload["power_audit"]["continuum_assumptions"]
+    assumptions[0], assumptions[1] = assumptions[1], assumptions[0]
+    with pytest.raises(ValidationError, match="assumptions must be canonical"):
+        type(protocol).model_validate(payload)
+
+    payload = protocol.model_dump(mode="json")
+    assumption = payload["power_audit"]["continuum_assumptions"][0]
+    assumption["planning_expected_regression"] = assumption[
+        "practical_regression_margin"
+    ]
+    with pytest.raises(ValidationError, match="below margin"):
+        type(protocol).model_validate(payload)
+
+
+def test_phase_five_external_protocol_freezes_continuous_values() -> None:
+    """Frozen floating-point settings reject configuration drift."""
+    protocol = load_phase_five_external_comparison_protocol(
+        _PHASE_FIVE_EXTERNAL_COMPARISON_PROTOCOL_PATH
+    )
+
+    payload = protocol.model_dump(mode="json")
+    payload["pybdsf_configuration"]["threshold_pixel_sigma"] = 5.1
+    with pytest.raises(ValidationError, match="less than or equal to 5"):
+        type(protocol).model_validate(payload)
+
+    payload = protocol.model_dump(mode="json")
+    payload["power_audit"]["confidence_level"] = 0.94
+    with pytest.raises(
+        ValidationError,
+        match=r"greater than or equal to 0\.95",
+    ):
+        type(protocol).model_validate(payload)
 
 
 def test_phase_four_gates_freeze_role_specific_catalogue_margins() -> None:

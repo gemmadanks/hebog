@@ -122,6 +122,14 @@ evidence checksum and reviewed metrics. A passing decision may authorize only
 the freeze of a fresh Step 2C-P protocol; external-finder execution remains
 false until that prospective protocol is complete and validated.
 
+The checked-in `phase-5-external-comparison.json` is that prospective
+pre-results protocol. It binds two fresh seed-disjoint manifests, exact
+PyBDSF release/master and Aegean runtimes, finder configurations, like-product
+mappings, truth-first matcher rules, metric scopes, margins, resampling,
+power, and the one-look failure policy. It keeps execution false until the
+three runners and matcher are implemented, tested, and hash-bound by a
+separate review.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same

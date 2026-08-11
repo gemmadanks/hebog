@@ -1,13 +1,12 @@
 # Phase 5 scale-filter selection
 
-**Status:** Steps 2B--2C-H are complete with no eligible production
-representation. The prospective Step 2C-H comparison corrected the catalogue
-astrometry endpoint and covariance protocol, but both frozen candidates failed
-required endpoint and coverage strata on fresh development data. Neither was
-selected and the 400-image confirmation remains sealed. Step 3, Step 2C-P
-execution, candidate-specific optimization, and qualification remain blocked
-pending renewed human scientific review. This is not multiscale equivalence,
-complete Rapthor performance, or production-readiness evidence.
+**Status:** Steps 2B--2C-HR are complete. The residual-B3 candidate's explicit
+detected-segment position passed its one-look 400-image confirmation, but no
+production representation is selected. The Step 2C-P external-comparison
+protocol is frozen; execution, Step 3, candidate-specific optimization, and
+qualification remain blocked until its runners and matcher are implemented
+and reviewed. This is not multiscale equivalence, complete Rapthor
+performance, or production-readiness evidence.
 
 The 2026-08-08 community-practice review identified a residual B3-spline
 à trous reconstruction with morphology-independent support and
@@ -24,7 +23,7 @@ The `paired` results in Steps 2B through 2C-A compare the Hebog matched-filter,
 wavelet, and residual-B3 candidates with each other. They did not execute
 PyBDSF or Aegean and therefore provide no external non-inferiority evidence.
 
-Before production implementation in Step 3, Step 2C-P will freeze and run a
+Before production implementation in Step 3, Step 2C-P must run its now-frozen
 fresh source-finder comparison. Released PyBDSF used by Rapthor and pinned
 PyBDSF `master`, both with the governed residual à trous profile, are binding
 comparators for all applicable compact and extended catalogue, mask, flux,
@@ -339,8 +338,10 @@ its reviewed summary is the committed astrometry selection decision.
 
 None of these records establishes production extended measurements,
 cross-tile reconciliation, real-residual behaviour, PyBDSF equivalence, or
-complete `filter_skymodel` speedup. Those remain later gates. Step 2C-A did
-not resolve the remaining astrometry variance, so Step 3 remains blocked
-pending renewed human scientific review and the Step 2C-P external comparison.
-The separate compact-only Rapthor probe selects only that workflow's explicit
-profile and cannot establish general multiscale equivalence.
+complete `filter_skymodel` speedup. The later Step 2C-HR one-look study
+confirmed the detected-segment position, and the Step 2C-P external protocol
+is now frozen. Step 3 remains blocked until the matcher and runners are
+implemented, hash-bound, executed once, and the external non-inferiority
+decision passes. The separate compact-only Rapthor probe selects only that
+workflow's explicit profile and cannot establish general multiscale
+equivalence.

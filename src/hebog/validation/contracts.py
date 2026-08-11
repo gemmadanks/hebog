@@ -9,6 +9,7 @@ from __future__ import annotations
 from enum import Enum
 from math import isfinite
 from pathlib import Path
+from statistics import NormalDist
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -29,6 +30,7 @@ _PHASE_FIVE_REVIEW_ISLAND_SIGMA = 3.0
 _PHASE_FIVE_CORRECTIVE_MAXIMUM_HALO = 14
 _PHASE_FIVE_EXTENDED_MAXIMUM_AXIS_BIAS_BEAMS = 0.1
 _PHASE_FIVE_EXTENDED_MAXIMUM_RADIAL_P95_BEAMS = 0.5
+_POWER_RECOMPUTATION_TOLERANCE = 1e-12
 _PHASE_FIVE_REQUIRED_STRATA = {
     "above-compact-deblend-limit",
     "image-edge",
@@ -2461,6 +2463,421 @@ class PhaseFiveAstrometryFollowUpConfirmationDecision(_ContractModel):
         return self
 
 
+class PhaseFiveExternalReference(_ContractModel):
+    """One immutable Step 2C-P source-finder runtime."""
+
+    finder_id: Literal[
+        "released-pybdsf",
+        "pinned-pybdsf-master",
+        "aegean",
+    ]
+    version: str = Field(min_length=1)
+    source_revision: str = Field(pattern=r"^[0-9a-f]{40}$")
+    artifact_type: Literal["pypi-sdist", "local-wheel", "pypi-wheel"]
+    artifact_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    container_image_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    dependency_inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    comparison_scope: Literal[
+        "binding-full-continuum",
+        "binding-compact-blended-and-gaussian-like-catalogue",
+    ]
+
+
+class PhaseFiveExternalPopulation(_ContractModel):
+    """One fresh seed-disjoint external-comparison population."""
+
+    lane: Literal["continuum", "compact-blend"]
+    manifest: str = Field(pattern=r"^config/datasets/[a-z0-9-]+\.json$")
+    manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    role: Literal["regression"]
+    image_count: Literal[600, 800]
+    independent_unit: Literal["noise-seed-image"]
+    geometry_policy: Literal[
+        "reviewed-generator-geometries-new-noise-images-no-prior-results"
+    ]
+
+
+class PhaseFiveExternalMatcher(_ContractModel):
+    """Finder-neutral truth association and like-product mapping."""
+
+    truth_authority: Literal["analytic-and-injected-truth-first"]
+    coordinate_system: Literal["zero-based-fits-pixel-centre-x-y"]
+    compact_edge: Literal["centre-distance-at-most-half-restoring-beam-fwhm"]
+    extended_edge: Literal[
+        "minimum-support-overlap-at-least-0.1-or-centre-in-one-beam-dilation"
+    ]
+    primary_assignment: Literal[
+        "maximum-cardinality-maximum-overlap-minimum-distance-stable-id"
+    ]
+    topology_rule: Literal[
+        "retain-all-eligible-edges-after-primary-assignment"
+    ]
+    no_cross_finder_matching: Literal[True]
+    hebog_compact_position: Literal["fitted-gaussian-component-centre"]
+    hebog_extended_position: Literal["detected-segment-flux-centroid"]
+    pybdsf_compact_position: Literal["gaussian-component-centre"]
+    pybdsf_extended_position: Literal[
+        "source-moment-only-when-grouping-and-model-semantics-align"
+    ]
+    aegean_position: Literal[
+        "component-centre-compact-gaussian-and-mixed-scope-only"
+    ]
+    hebog_support: Literal["reconciled-detected-segment"]
+    pybdsf_support: Literal["island-mask"]
+    aegean_support: Literal["three-sigma-fitted-ellipse-union-proxy"]
+    aegean_mask_metrics: Literal["unavailable-not-failure"]
+
+
+class PhaseFiveExternalPybdsfConfiguration(_ContractModel):
+    """Exact Rapthor-profile PyBDSF settings for both references."""
+
+    threshold_pixel_sigma: float = Field(ge=5.0, le=5.0, allow_inf_nan=False)
+    threshold_island_sigma: float = Field(ge=3.0, le=3.0, allow_inf_nan=False)
+    threshold_type: Literal["hard"]
+    mean_map: Literal["zero"]
+    rms_map: Literal[True]
+    rms_box: tuple[Literal[150], Literal[50]]
+    adaptive_rms_box: Literal[True]
+    rms_box_bright: tuple[Literal[35], Literal[7]]
+    adaptive_threshold: float = Field(ge=75.0, le=75.0, allow_inf_nan=False)
+    atrous_do: Literal[True]
+    atrous_bdsm_do: Literal[True]
+    atrous_jmax: Literal[3]
+    atrous_lpf: Literal["b3"]
+    atrous_sum: Literal[True]
+    atrous_orig_isl: Literal[False]
+    primary_background: Literal["finder-operational"]
+    controlled_background_diagnostic: Literal[
+        "same-frozen-mean-and-rms-via-rmsmean-map-filename"
+    ]
+
+
+class PhaseFiveExternalAegeanConfiguration(_ContractModel):
+    """Exact blind Aegean primary and threshold-matched diagnostic."""
+
+    mode: Literal["blind-source-finding"]
+    primary_seedclip_sigma: float = Field(
+        ge=5.0,
+        le=5.0,
+        allow_inf_nan=False,
+    )
+    primary_floodclip_sigma: float = Field(
+        ge=4.0,
+        le=4.0,
+        allow_inf_nan=False,
+    )
+    threshold_matched_seedclip_sigma: float = Field(
+        ge=5.0,
+        le=5.0,
+        allow_inf_nan=False,
+    )
+    threshold_matched_floodclip_sigma: float = Field(
+        ge=3.0,
+        le=3.0,
+        allow_inf_nan=False,
+    )
+    covariance: Literal["enabled"]
+    island_catalogue: Literal[True]
+    cores: Literal[1]
+    primary_background: Literal["finder-operational-internal-estimation"]
+    controlled_background_diagnostic: Literal["same-frozen-background-and-rms"]
+
+
+class PhaseFiveExternalPowerAssumption(_ContractModel):
+    """Planning variance bound for one continuum endpoint family."""
+
+    metric_family: Literal[
+        "completeness",
+        "reliability",
+        "integrated-flux-median",
+        "integrated-flux-p95",
+        "position-median",
+        "position-p95",
+        "duplicate-fraction",
+        "mask-precision",
+        "mask-recall",
+        "mask-iou",
+        "split-fraction",
+        "merge-fraction",
+    ]
+    practical_regression_margin: float = Field(gt=0, allow_inf_nan=False)
+    planning_expected_regression: float = Field(allow_inf_nan=False)
+    planning_paired_standard_deviation: float = Field(
+        gt=0,
+        allow_inf_nan=False,
+    )
+    comparison_count: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def validate_alternative(self) -> Self:
+        """Keep the planning alternative inside its practical margin."""
+        if self.planning_expected_regression >= (
+            self.practical_regression_margin
+        ):
+            raise ValueError("planning regression must be below margin")
+        return self
+
+
+class PhaseFiveExternalPowerAudit(_ContractModel):
+    """Prospective joint-power audit across continuum and compact lanes."""
+
+    method: Literal[
+        "cluster-normal-planning-plus-conservative-union-lower-bound"
+    ]
+    confidence_level: float = Field(ge=0.95, le=0.95, allow_inf_nan=False)
+    minimum_joint_power: float = Field(ge=0.9, le=0.9, allow_inf_nan=False)
+    continuum_realization_count: Literal[600]
+    continuum_assumptions: tuple[PhaseFiveExternalPowerAssumption, ...] = (
+        Field(min_length=12, max_length=12)
+    )
+    continuum_familywise_power_lower_bound: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    compact_reviewed_contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    compact_realization_count: Literal[800]
+    compact_single_reference_familywise_power_lower_bound: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    compact_reference_count: Literal[3]
+    compact_familywise_power_lower_bound: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    combined_familywise_power_lower_bound: float = Field(
+        ge=0,
+        le=1,
+        allow_inf_nan=False,
+    )
+    assumption_failure: Literal[
+        "observed-variance-above-bound-makes-comparison-underpowered"
+    ]
+
+    @model_validator(mode="after")
+    def validate_power(self) -> Self:
+        """Recompute every conservative lower bound from frozen inputs."""
+        expected_order = (
+            "completeness",
+            "reliability",
+            "integrated-flux-median",
+            "integrated-flux-p95",
+            "position-median",
+            "position-p95",
+            "duplicate-fraction",
+            "mask-precision",
+            "mask-recall",
+            "mask-iou",
+            "split-fraction",
+            "merge-fraction",
+        )
+        if (
+            tuple(item.metric_family for item in self.continuum_assumptions)
+            != expected_order
+        ):
+            raise ValueError("continuum power assumptions must be canonical")
+        critical = NormalDist().inv_cdf(self.confidence_level)
+        total_failure = 0.0
+        for item in self.continuum_assumptions:
+            standard_error = item.planning_paired_standard_deviation / (
+                self.continuum_realization_count**0.5
+            )
+            threshold = (
+                item.practical_regression_margin - critical * standard_error
+            )
+            power = NormalDist().cdf(
+                (threshold - item.planning_expected_regression)
+                / standard_error
+            )
+            total_failure += item.comparison_count * (1.0 - power)
+        continuum = max(0.0, 1.0 - total_failure)
+        compact = max(
+            0.0,
+            1.0
+            - self.compact_reference_count
+            * (
+                1.0
+                - self.compact_single_reference_familywise_power_lower_bound
+            ),
+        )
+        combined = max(0.0, 1.0 - (1.0 - continuum) - (1.0 - compact))
+        declared = (
+            self.continuum_familywise_power_lower_bound,
+            self.compact_familywise_power_lower_bound,
+            self.combined_familywise_power_lower_bound,
+        )
+        calculated = (continuum, compact, combined)
+        if any(
+            abs(left - right) > _POWER_RECOMPUTATION_TOLERANCE
+            for left, right in zip(declared, calculated, strict=True)
+        ):
+            raise ValueError("declared external-comparison power is stale")
+        if combined < self.minimum_joint_power:
+            raise ValueError("external-comparison power is below target")
+        return self
+
+
+class PhaseFiveExternalComparisonProtocol(_ContractModel):
+    """Frozen pre-results Step 2C-P external source-finder protocol."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-external-comparison"]
+    status: Literal["frozen-before-external-output"]
+    confirmation_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    phase_five_scientific_gates_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    phase_four_scientific_gates_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    phase_four_metric_registry_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate: Literal["residual-b3-original-pixel-measurement"]
+    candidate_position: Literal["confirmed-detected-segment-centroid"]
+    references: tuple[PhaseFiveExternalReference, ...] = Field(
+        min_length=3,
+        max_length=3,
+    )
+    populations: tuple[PhaseFiveExternalPopulation, ...] = Field(
+        min_length=2,
+        max_length=2,
+    )
+    pybdsf_configuration: PhaseFiveExternalPybdsfConfiguration
+    aegean_configuration: PhaseFiveExternalAegeanConfiguration
+    matcher: PhaseFiveExternalMatcher
+    continuum_binding_metrics: tuple[str, ...] = Field(min_length=10)
+    compact_binding_registry: Literal["phase-4r-metric-registry"]
+    aegean_binding_scope: Literal[
+        "compact-blended-gaussian-like-and-mixed-catalogue-products"
+    ]
+    aegean_diagnostic_scope: Literal[
+        "diffuse-filament-shell-mask-and-multiscale-provenance"
+    ]
+    resampling: Literal[
+        "paired-whole-image-fixed-seed-bca-one-sided-95-percent"
+    ]
+    bootstrap_resamples: Literal[50000]
+    bootstrap_seed: Literal[20260810]
+    decision_rule: Literal[
+        "absolute-first-every-applicable-noninferiority-gate-no-compensation"
+    ]
+    incomplete_reference_policy: Literal[
+        "comparison-unavailable-and-step-two-c-p-fails-closed"
+    ]
+    failure_denominator: Literal["retain-every-image"]
+    one_look_rule: Literal[
+        "one-terminal-look-no-tuning-rescoring-or-adaptive-sample-size"
+    ]
+    power_audit: PhaseFiveExternalPowerAudit
+    public_cutout: Literal[
+        "deferred-to-step-6-no-redistributable-checksum-bound-input-on-host"
+    ]
+    scientific_outcomes_before_runtime: Literal[True]
+    execution_authorized: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "implement-and-hash-runners-and-matcher-before-execution-review"
+    ]
+
+    @model_validator(mode="after")
+    def validate_external_protocol(self) -> Self:
+        """Require canonical references, populations, and metric families."""
+        if tuple(item.finder_id for item in self.references) != (
+            "released-pybdsf",
+            "pinned-pybdsf-master",
+            "aegean",
+        ):
+            raise ValueError("external reference order must remain canonical")
+        reference_identities = tuple(
+            (
+                item.finder_id,
+                item.version,
+                item.source_revision,
+                item.artifact_type,
+                item.artifact_sha256,
+                item.container_image_digest,
+                item.dependency_inventory_sha256,
+                item.comparison_scope,
+            )
+            for item in self.references
+        )
+        expected_reference_identities = (
+            (
+                "released-pybdsf",
+                "1.14.1",
+                "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc",
+                "pypi-sdist",
+                "8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2",
+                "sha256:dce93991e2e671428ff8043a7e0d132294d2d2decf1e1587e9904d3e8f49b754",
+                "ad533f28942ba1d3891a1c5d960028c7bde558ea682e08da21a246235d2eb3c8",
+                "binding-full-continuum",
+            ),
+            (
+                "pinned-pybdsf-master",
+                "1.14.2.dev40+gc70103be3",
+                "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
+                "local-wheel",
+                "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d",
+                "sha256:f045820aa3e8bc0f5d90a35b90a4492048351de7d0255d6b7746b787d254b0d6",
+                "9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76",
+                "binding-full-continuum",
+            ),
+            (
+                "aegean",
+                "2.3.5",
+                "bb04f50a3ec117d180a79260c6a5c844f1d8dbbc",
+                "pypi-wheel",
+                "dda95cb525e229b60bc357d3e5fc454cac20f364ee8aa10b730c2f7223da428d",
+                "sha256:ca5fd09f82041d619d286cd2ccb33d36d30c8d5e87aba8e7098a623d46b1f808",
+                "74f378721391486dc1a2c41dc1570bea21f09225d5165c3f29c891dd9e479a2e",
+                "binding-compact-blended-and-gaussian-like-catalogue",
+            ),
+        )
+        if reference_identities != expected_reference_identities:
+            raise ValueError("external reference identities must remain exact")
+        if tuple(item.lane for item in self.populations) != (
+            "continuum",
+            "compact-blend",
+        ):
+            raise ValueError("external population order must remain canonical")
+        population_identities = tuple(
+            (item.lane, item.manifest, item.image_count)
+            for item in self.populations
+        )
+        if population_identities != (
+            (
+                "continuum",
+                "config/datasets/phase-5-external-continuum.json",
+                600,
+            ),
+            (
+                "compact-blend",
+                "config/datasets/phase-5-external-compact-blend.json",
+                800,
+            ),
+        ):
+            raise ValueError(
+                "external population identities must remain exact"
+            )
+        expected_metrics = (
+            "completeness",
+            "reliability",
+            "integrated-flux-median",
+            "integrated-flux-p95",
+            "position-median",
+            "position-p95",
+            "duplicate-fraction",
+            "mask-precision",
+            "mask-recall",
+            "mask-iou",
+            "split-fraction",
+            "merge-fraction",
+        )
+        if self.continuum_binding_metrics != expected_metrics:
+            raise ValueError("continuum metrics must remain canonical")
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -3114,5 +3531,14 @@ def load_phase_five_follow_up_confirmation_decision(
 ) -> PhaseFiveAstrometryFollowUpConfirmationDecision:
     """Load the reviewed Step 2C-HR one-look confirmation decision."""
     return PhaseFiveAstrometryFollowUpConfirmationDecision.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_external_comparison_protocol(
+    path: Path,
+) -> PhaseFiveExternalComparisonProtocol:
+    """Load the frozen Step 2C-P external source-finder protocol."""
+    return PhaseFiveExternalComparisonProtocol.model_validate_json(
         path.read_text(encoding="utf-8")
     )

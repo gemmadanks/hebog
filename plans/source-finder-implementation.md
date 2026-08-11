@@ -905,7 +905,10 @@ gates, narrow-margin risk, unavailable position uncertainty, and one-look
 confirmation on 2026-08-09. The single 400-image confirmation then passed all
 60 endpoints; its overall radial-p95 upper bound was 0.3103 beam and the
 limiting shell/tile-corner bound was 0.4883 beam. The population is closed.
-Freezing the Step 2C-P protocol is now authorized, but its execution, Step 3,
+The Step 2C-P protocol is now frozen over 600 continuum and 800 compact/blend
+images, exact PyBDSF release/master and Aegean runtimes, a truth-first matcher,
+and a 0.9082 conservative joint-power lower bound. Execution remains blocked
+until the matcher and isolated runners are implemented and hash-bound. Step 3,
 candidate-specific optimization, and qualification remain blocked; no
 external non-inferiority, multiscale equivalence, or complete runtime claim is
 approved.
@@ -1213,12 +1216,13 @@ and spill behaviour, and facility-scale execution.
          on 2026-08-09. The one-look 400-image confirmation passed all 60
          endpoints with an overall radial-p95 bound of 0.3103 beam and a
          limiting shell/tile-corner bound of 0.4883 beam. Confirmation is now
-         closed. Step 2C-P protocol freeze is authorized, but execution and
-         every later gate remain false.
+         closed. The Step 2C-P protocol is now frozen; execution and every
+         later gate remain false until its implementations are hash-bound and
+         separately reviewed.
 
 2C-P. **Establish external source-finder non-inferiority before Step 3.**
 
-   - [ ] Freeze a fresh seed-disjoint comparison population, power audit,
+   - [x] Freeze a fresh seed-disjoint comparison population, power audit,
          finder-neutral matcher, and hashed pre-results protocol before
          generating any new output. Bind the exact Hebog candidate, released
          PyBDSF used by Rapthor, pinned PyBDSF `master`, maintained Aegean
@@ -1226,6 +1230,19 @@ and spill behaviour, and facility-scale execution.
          output mappings, applicable strata, margins, and one-look rule. The
          closed Step 2C-A confirmation may inform diagnosis but may not be
          reused for selection or confirmation; qualification remains unopened.
+         The frozen protocol uses 600 continuum images across four reviewed
+         geometries and 800 compact/blend images, all with new globally
+         disjoint noise seeds. It binds PyBDSF 1.14.1, pinned `master`
+         `c70103b`, and isolated AegeanTools 2.3.5; exact primary and
+         controlled-background configurations; like-product mappings; a
+         topology-preserving truth matcher; 50,000 paired bootstrap resamples;
+         and a conservative combined power lower bound of 0.9082. The Aegean
+         image is isolated because its maintained release requires NumPy 2.x
+         while the governed PyBDSF image retains NumPy 1.26. The public cut-out
+         is explicitly deferred to Step 6 because no redistributable,
+         checksum-bound truth input is present on the controlled host. Source-
+         finder output remains unopened until the matcher and runners are
+         implemented, tested, committed, and hash-bound.
    - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
          (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
          on the same FITS images, beam, WCS, valid region, and declared science

@@ -1233,3 +1233,114 @@ def test_phase5_astrometry_follow_up_freezer_varies_every_morphology() -> None:
         "original-pixel-detected-segment-centroid"
     )
     assert protocol_document["confirmation_execution_authorized"] is False
+
+
+def test_phase5_external_freezer_binds_fresh_powered_populations() -> None:
+    """Step 2C-P freezes all finders before any comparison output."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script("freeze_phase5_external_comparison.py")
+
+    continuum_document, compact_document, protocol_document = namespace[
+        "_documents"
+    ](
+        continuum_template_path=(
+            root / "config/datasets/"
+            "phase-5-astrometry-follow-up-confirmation.json"
+        ),
+        compact_template_path=(
+            root / "config/datasets/phase-4u-qualification.json"
+        ),
+        dataset_directory=root / "config/datasets",
+        confirmation_decision_path=(
+            root / "config/contracts/"
+            "phase-5-astrometry-follow-up-confirmation-decision.json"
+        ),
+        phase_five_gates_path=(
+            root / "config/contracts/phase-5-scientific-gates.json"
+        ),
+        phase_four_gates_path=(
+            root / "config/contracts/phase-4-scientific-gates.json"
+        ),
+        phase_four_registry_path=(
+            root / "config/contracts/phase-4r-metric-registry.json"
+        ),
+        compact_power_contract_path=(
+            root / "config/contracts/phase-4u-paired-noninferiority.json"
+        ),
+    )
+    continuum = DatasetManifest.model_validate(continuum_document)
+    compact = DatasetManifest.model_validate(compact_document)
+
+    continuum_seeds = {
+        recipe.seed
+        for dataset in continuum.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+    compact_seeds = {
+        recipe.seed
+        for dataset in compact.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+    assert len(continuum_seeds) == 600
+    assert len(compact_seeds) == 800
+    assert continuum_seeds.isdisjoint(compact_seeds)
+    assert min(continuum_seeds) == 2026780001
+    assert max(compact_seeds) == 2026790800
+    assert protocol_document["references"][2]["version"] == "2.3.5"
+    assert protocol_document["pybdsf_configuration"]["atrous_jmax"] == 3
+    assert (
+        protocol_document["power_audit"][
+            "combined_familywise_power_lower_bound"
+        ]
+        >= 0.9
+    )
+    assert protocol_document["execution_authorized"] is False
+    assert continuum_document == json.loads(
+        (root / "config/datasets/phase-5-external-continuum.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert compact_document == json.loads(
+        (
+            root / "config/datasets/phase-5-external-compact-blend.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert protocol_document == json.loads(
+        (root / "config/contracts/phase-5-external-comparison.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def test_phase5_external_freezer_refuses_existing_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A frozen external protocol cannot be replaced or partially opened."""
+    root = Path(__file__).parents[3]
+    output = tmp_path / "continuum.json"
+    output.write_text("already frozen\n", encoding="utf-8")
+    namespace = _validation_script("freeze_phase5_external_comparison.py")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "freeze_phase5_external_comparison.py",
+            "--continuum-template",
+            str(
+                root / "config/datasets/"
+                "phase-5-astrometry-follow-up-confirmation.json"
+            ),
+            "--compact-template",
+            str(root / "config/datasets/phase-4u-qualification.json"),
+            "--continuum-output",
+            str(output),
+            "--compact-output",
+            str(tmp_path / "compact.json"),
+            "--protocol-output",
+            str(tmp_path / "protocol.json"),
+        ],
+    )
+
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        namespace["main"]()

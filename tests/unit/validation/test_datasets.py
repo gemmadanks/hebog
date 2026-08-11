@@ -430,6 +430,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-astrometry-follow-up-development",
         "phase-5-corrective-a-confirmation",
         "phase-5-development",
+        "phase-5-external-compact-blend",
+        "phase-5-external-continuum",
         "phase-5-qualification",
         "phase-5-regression",
     }
@@ -440,6 +442,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-astrometry-follow-up-development": DatasetRole.DEVELOPMENT,
         "phase-5-corrective-a-confirmation": DatasetRole.REGRESSION,
         "phase-5-development": DatasetRole.DEVELOPMENT,
+        "phase-5-external-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-continuum": DatasetRole.REGRESSION,
         "phase-5-regression": DatasetRole.REGRESSION,
         "phase-5-qualification": DatasetRole.QUALIFICATION,
     }
@@ -447,13 +451,20 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
     all_identifiers: list[str] = []
     all_seeds: set[int] = set()
     for manifest_id, manifest in manifests.items():
-        assert manifest.schema_version == 3
+        expected_schema = (
+            2 if manifest_id == "phase-5-external-compact-blend" else 3
+        )
+        assert manifest.schema_version == expected_schema
         assert {dataset.role for dataset in manifest.datasets} == {
             expected_roles[manifest_id]
         }
         for dataset in manifest.datasets:
-            assert dataset.multiscale_truth_groups
-            assert dataset.multiscale_group_strata
+            if expected_schema == 3:
+                assert dataset.multiscale_truth_groups
+                assert dataset.multiscale_group_strata
+            else:
+                assert dataset.association_truth_groups
+                assert dataset.association_group_strata
             all_identifiers.append(dataset.identifier)
             all_morphologies.update(
                 group.morphology for group in dataset.multiscale_truth_groups
@@ -493,6 +504,20 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
             ].datasets
         )
         == 400
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests["phase-5-external-continuum"].datasets
+        )
+        == 600
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests["phase-5-external-compact-blend"].datasets
+        )
+        == 800
     )
     assert (
         sum(
@@ -593,6 +618,15 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         ),
         "phase-5-development": (
             "319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d",
+        ),
+        "phase-5-external-compact-blend": (
+            "41183ce796824b56cdf79d965bc655840c1b006934262f269c0ace4eede7a610",
+        ),
+        "phase-5-external-continuum": (
+            "38ca0562132fc061bbd08c12a7aa7ae1411f25ebb9efdde068bceac3a2d7d9f8",
+            "0638cc7a27e6e00d978c6234f538494d745399e82de41486bea8612aef8670f1",
+            "684d6dc90793f034f9ac5a2743303d0645486fd00f85e2b69e865f6b65e01d7e",
+            "75dfa8b8c8c537c294900be5a55174b343e731500902332c0abcb6da34c65ca5",
         ),
         "phase-5-qualification": (
             "b93b0b180341bdeeb4a4ee18398e5203ef83437375b731c8e4bbc550017216a1",
