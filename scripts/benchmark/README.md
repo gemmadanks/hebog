@@ -42,6 +42,29 @@ Run it only after the authorization and runner commits are complete. A result
 must receive a separate fail-closed technical decision before external-finder
 comparison can begin.
 
+The Step 2C-P external comparison uses
+`run_phase5_external_hebog.py`, `run_phase5_external_pybdsf.py`, and
+`run_phase5_external_aegean.py`. Each entry point processes one canonical
+`input.json` realization, verifies all image/mean/RMS checksums, refuses an
+existing output directory, and requires a separately reviewed execution
+decision that binds the protocol, candidate review, complete source tree, and
+runner hash. The decision also freezes Hebog's container/dependency inventory
+and PyBDSF's core count; each external runner checks its protocol-bound
+container digest and installed dependency-inventory hash. No such decision is
+checked in yet, so these entry points fail closed and must not be used to
+inspect partial results.
+
+Successful runs atomically publish a raw `result.json` plus checksummed finder
+products. PyBDSF retains separate Gaussian-component and source catalogues,
+its binary island mask, and island-identity label plane; Aegean retains
+component and island catalogues plus the explicitly non-segmentation
+three-sigma ellipse proxy; Hebog retains the qualified compact catalogue and
+residual-B3 detected-segment catalogue, mask, and labels. A finder exception is
+a typed failure result with no partial artifacts, so the image remains in the
+frozen denominator. The 512-pixel PyBDSF same-map diagnostic is rejected
+because PyBDSF would ignore the supplied maps under its RMS-box guard; primary
+operational runs are unchanged.
+
 `run_phase0_pybdsf_baseline.py` starts a fresh local Podman container for every
 warm-up or measured repetition. Release 1.14.1 uses the PyBDSF already present
 in the immutable container. The master campaign installs a separately built

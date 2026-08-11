@@ -2878,6 +2878,58 @@ class PhaseFiveExternalComparisonProtocol(_ContractModel):
         return self
 
 
+class PhaseFiveExternalRunnerArtifact(_ContractModel):
+    """One isolated runner bound by a reviewed execution decision."""
+
+    relative_path: Literal[
+        "scripts/benchmark/run_phase5_external_hebog.py",
+        "scripts/benchmark/run_phase5_external_pybdsf.py",
+        "scripts/benchmark/run_phase5_external_aegean.py",
+    ]
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class PhaseFiveExternalExecutionDecision(_ContractModel):
+    """Named one-look authorization bound to committed runner code."""
+
+    schema_version: Literal[1]
+    decision_id: Literal["phase-5-external-execution-decision"]
+    status: Literal["reviewed-before-external-output"]
+    protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate_review_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    implementation_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    source_tree_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    hebog_container_image_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    hebog_dependency_inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    pybdsf_ncores: int = Field(ge=1)
+    runners: tuple[
+        PhaseFiveExternalRunnerArtifact,
+        PhaseFiveExternalRunnerArtifact,
+        PhaseFiveExternalRunnerArtifact,
+    ]
+    named_review: str = Field(min_length=1)
+    decision: Literal["authorize-one-terminal-external-comparison"]
+    execution_authorized: Literal[True]
+    one_look_opened: Literal[False]
+    step_three_authorized: Literal[False]
+    optimization_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    next_action: Literal[
+        "execute-complete-frozen-comparison-once-without-opening-partial-results"
+    ]
+
+    @model_validator(mode="after")
+    def validate_runner_order(self) -> Self:
+        """Keep the three isolated entry points canonical and complete."""
+        if tuple(item.relative_path for item in self.runners) != (
+            "scripts/benchmark/run_phase5_external_hebog.py",
+            "scripts/benchmark/run_phase5_external_pybdsf.py",
+            "scripts/benchmark/run_phase5_external_aegean.py",
+        ):
+            raise ValueError("external runner order must remain canonical")
+        return self
+
+
 class PhaseFiveFilterPairedCandidateDecision(_ContractModel):
     """Conjunctive Step 2B outcome for one existing representation."""
 
@@ -3540,5 +3592,14 @@ def load_phase_five_external_comparison_protocol(
 ) -> PhaseFiveExternalComparisonProtocol:
     """Load the frozen Step 2C-P external source-finder protocol."""
     return PhaseFiveExternalComparisonProtocol.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_external_execution_decision(
+    path: Path,
+) -> PhaseFiveExternalExecutionDecision:
+    """Load the reviewed one-look Step 2C-P execution authorization."""
+    return PhaseFiveExternalExecutionDecision.model_validate_json(
         path.read_text(encoding="utf-8")
     )

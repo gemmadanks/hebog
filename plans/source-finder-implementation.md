@@ -907,11 +907,13 @@ confirmation on 2026-08-09. The single 400-image confirmation then passed all
 limiting shell/tile-corner bound was 0.4883 beam. The population is closed.
 The Step 2C-P protocol is now frozen over 600 continuum and 800 compact/blend
 images, exact PyBDSF release/master and Aegean runtimes, a truth-first matcher,
-and a 0.9082 conservative joint-power lower bound. Execution remains blocked
-until the matcher and isolated runners are implemented and hash-bound. Step 3,
-candidate-specific optimization, and qualification remain blocked; no
-external non-inferiority, multiscale equivalence, or complete runtime claim is
-approved.
+and a 0.9082 conservative joint-power lower bound. The matcher, common FITS
+materializer, product adapters, and isolated Hebog/PyBDSF/Aegean runners are
+implemented and tested without opening finder output. Execution remains
+blocked until their committed identities are bound by a separate named
+one-look decision. Step 3, candidate-specific optimization, and qualification
+remain blocked; no external non-inferiority, multiscale equivalence, or
+complete runtime claim is approved.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1243,6 +1245,21 @@ and spill behaviour, and facility-scale execution.
          checksum-bound truth input is present on the controlled host. Source-
          finder output remains unopened until the matcher and runners are
          implemented, tested, committed, and hash-bound.
+   - [x] Implement and test the truth-first matcher, deterministic float64
+         image/mean/RMS materializer, PyBDSF and Aegean product adapters,
+         frozen Hebog candidate-product boundary, three isolated runners, and
+         atomic raw-result manifests. Every runner refuses overwrite, verifies
+         the common input bytes and a future named decision, checks its source
+         tree and entry-point hashes, retains finder failures in the image
+         denominator, and cannot run while the execution-decision record is
+         absent. No external finder output was generated during implementation.
+         PyBDSF's own RMS-map guard ignores supplied maps on the 512-pixel
+         compact lane because the frozen 150-pixel RMS box exceeds one quarter
+         of the image. The runner therefore marks that controlled diagnostic
+         unavailable rather than mislabelling it; the operational primary and
+         the 1,024-pixel continuum controlled diagnostic are unaffected. Named
+         review must accept this diagnostic limitation or revise the frozen
+         design before authorizing the one terminal comparison.
    - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
          (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
          on the same FITS images, beam, WCS, valid region, and declared science

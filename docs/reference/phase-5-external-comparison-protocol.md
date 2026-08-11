@@ -1,8 +1,9 @@
 # Phase 5 external source-finder comparison protocol
 
-**Status:** the Step 2C-P protocol, reference runtimes, fresh populations,
-like-product mappings, matcher rules, metrics, margins, and power audit are
-frozen before external output. Execution is not yet authorized. Step 3,
+**Status:** the Step 2C-P protocol and its matcher, common-input materializer,
+product adapters, and three isolated runner implementations are complete
+without opening finder output. Execution is not yet authorized: a separate
+named decision must bind the committed source tree and runner hashes. Step 3,
 optimization, and qualification remain closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
@@ -25,6 +26,15 @@ PyBDSF's documented `rmsmean_map_filename` boundary. PyBDSF's own operational
 background/RMS path remains primary. The
 [PyBDSF processing reference](https://pybdsf.readthedocs.io/en/stable/process_image.html)
 describes the residual à trous module and its scale controls.
+
+PyBDSF checks the RMS-box size before honoring `rmsmean_map_filename`. On the
+512-pixel compact/blend lane, the frozen 150-pixel box exceeds one quarter of
+the image, so supplied maps would silently be ignored. The runner fails that
+controlled diagnostic explicitly instead of giving it a false label. This
+does not change the binding operational result, and the 1,024-pixel continuum
+lane can use the same-map diagnostic as frozen. The execution review must
+accept that scoped diagnostic unavailability or revise the design before any
+result is opened.
 
 AegeanTools 2.3.5 is the maintained published release as of the freeze. Its
 [published wheel](https://pypi.org/project/aegeantools/2.3.5/) requires NumPy
@@ -114,10 +124,18 @@ does not currently hold a redistributable, checksum-bound input with curated
 or injected truth. Real-data majority agreement will remain diagnostic, not
 ground truth.
 
-## Required implementation boundary
+## Execution boundary
 
-The next change must implement and test the finder-neutral matcher, FITS
-materializer, and three isolated runners, then bind their committed hashes in
-a separate execution decision. No finder output may be generated before that
-review. Passing Step 2C-P will still require a reviewed scientific decision
-before Step 3 opens.
+The finder-neutral matcher retains every eligible topology edge after its
+deterministic primary assignment. The materializer publishes one canonical
+`input.json` plus checksum-bound four-axis float64 `image.fits`, `mean.fits`,
+and `rms.fits`. Every isolated runner consumes that bundle and writes one
+atomic `result.json` with checksummed native or normalized artifacts. Failures
+remain typed results in the image denominator; partial products are discarded,
+and existing results cannot be replaced.
+
+The next change must bind the committed source tree, candidate review, frozen
+protocol, and three runner hashes in a separately reviewed one-look execution
+decision. The runners will not open an input without that record. No finder
+output may be generated before the review. Passing Step 2C-P will still require
+a reviewed scientific decision before Step 3 opens.

@@ -41,6 +41,7 @@ RecipeProcessor: TypeAlias = Callable[
     [SyntheticRecipe, DatasetRecord, Path],
     tuple[CatalogueSource, ...],
 ]
+_IMAGE_DIMENSIONS = 2
 
 
 class _SyntheticImageSource:
@@ -69,6 +70,37 @@ class _SyntheticImageSource:
         bounds_collection: tuple[ImageBounds, ...],
     ) -> tuple[ImageWindow, ...]:
         """Return generated windows in request order."""
+        return tuple(self.read_window(bounds) for bounds in bounds_collection)
+
+
+class _ArrayImageSource:
+    """Expose one verified shared FITS plane through bounded windows."""
+
+    def __init__(self, image: np.ndarray) -> None:
+        if image.ndim != _IMAGE_DIMENSIONS:
+            raise ValueError("external Hebog image must be two-dimensional")
+        self._image = np.asarray(image, dtype=np.float64)
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Copy one bounded window from the common input plane."""
+        values = np.asarray(
+            self._image[
+                bounds.y_start : bounds.y_stop,
+                bounds.x_start : bounds.x_stop,
+            ],
+            dtype=np.float64,
+        ).copy()
+        return ImageWindow(
+            bounds=bounds,
+            values=values,
+            valid_pixels=np.isfinite(values),
+        )
+
+    def read_windows(
+        self,
+        bounds_collection: tuple[ImageBounds, ...],
+    ) -> tuple[ImageWindow, ...]:
+        """Return copied windows in deterministic request order."""
         return tuple(self.read_window(bounds) for bounds in bounds_collection)
 
 
@@ -315,26 +347,28 @@ def _comparison_sources(
     )
 
 
-def process_hebog_recipe(
-    recipe: SyntheticRecipe,
+def _process_hebog_source(
+    source: _SyntheticImageSource | _ArrayImageSource,
     dataset: DatasetRecord,
     directory: Path,
+    *,
+    shape_yx: tuple[int, int],
+    generation_id: str,
 ) -> tuple[CatalogueSource, ...]:
-    """Run the complete bounded serial Hebog compact path for one image."""
+    """Run the frozen bounded compact branch over one window source."""
     detection_config, deblend, moment, fit, catalogue_config = (
         phase_four_candidate_configs()
     )
     metadata = synthetic_image_metadata(dataset)
-    source = _SyntheticImageSource(recipe)
     manifest = plan_image_partitions(
-        image_shape_yx=recipe.shape_yx,
+        image_shape_yx=shape_yx,
         tile_core_shape_yx=(128, 128),
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
         directory / "products.zarr",
         manifest,
-        generation_id=f"{dataset.identifier}-{recipe.seed}",
+        generation_id=generation_id,
     )
     executor = SerialExecutor()
     detection = run_detection_stage(
@@ -346,7 +380,7 @@ def process_hebog_recipe(
     )
     geometry = compact_geometry_at_pixel(
         metadata,
-        (recipe.shape_yx[1] / 2.0, recipe.shape_yx[0] / 2.0),
+        (shape_yx[1] / 2.0, shape_yx[0] / 2.0),
     )
     stage = run_compact_catalogue_stage(
         source,
@@ -361,7 +395,7 @@ def process_hebog_recipe(
         sink=sink,
     )
     completed = complete_compact_catalogue(
-        catalogue_id=f"{dataset.identifier}-{recipe.seed}",
+        catalogue_id=generation_id,
         metadata=metadata,
         shards=stage.records,
         deferred_island_ids=tuple(
@@ -370,3 +404,37 @@ def process_hebog_recipe(
         config=catalogue_config,
     )
     return _comparison_sources(completed.catalogue, metadata)
+
+
+def process_hebog_recipe(
+    recipe: SyntheticRecipe,
+    dataset: DatasetRecord,
+    directory: Path,
+) -> tuple[CatalogueSource, ...]:
+    """Run the complete bounded serial Hebog compact path for one image."""
+    return _process_hebog_source(
+        _SyntheticImageSource(recipe),
+        dataset,
+        directory,
+        shape_yx=recipe.shape_yx,
+        generation_id=f"{dataset.identifier}-{recipe.seed}",
+    )
+
+
+def process_hebog_image(
+    image: np.ndarray,
+    dataset: DatasetRecord,
+    directory: Path,
+    *,
+    generation_id: str,
+) -> tuple[CatalogueSource, ...]:
+    """Run the compact branch on the exact shared external FITS plane."""
+    if tuple(image.shape) != dataset.recipe.shape_yx:
+        raise ValueError("external Hebog image shape differs from dataset")
+    return _process_hebog_source(
+        _ArrayImageSource(image),
+        dataset,
+        directory,
+        shape_yx=dataset.recipe.shape_yx,
+        generation_id=generation_id,
+    )

@@ -5,13 +5,24 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
+import pytest
 from astropy.io import fits
+from astropy.table import Table
 
-from hebog.validation.products import load_pybdsf_catalogue
+from hebog.validation.products import (
+    aegean_support_label_plane,
+    build_hebog_segment_catalogue,
+    load_aegean_catalogue,
+    load_comparison_catalogue,
+    load_pybdsf_catalogue,
+    load_pybdsf_gaussian_catalogue,
+    write_comparison_catalogue,
+)
 
 _ROOT = Path(__file__).parents[3]
 _CATALOGUE = (
@@ -37,3 +48,368 @@ def test_pybdsf_reader_treats_nonpositive_errors_as_unavailable(
     assert row.fitted_shape is not None
     assert row.fitted_shape.major_fwhm_error_degrees is None
     assert row.association_integrated_flux_jy == float(table["Total_flux"][0])
+
+
+def test_pybdsf_gaussian_reader_preserves_component_and_source_identity(
+    tmp_path: Path,
+) -> None:
+    """Gaussian centres retain their PyBDSF source grouping."""
+    names = (
+        "Gaus_id",
+        "Isl_id",
+        "Source_id",
+        "Wave_id",
+        "RA",
+        "E_RA",
+        "DEC",
+        "E_DEC",
+        "Total_flux",
+        "E_Total_flux",
+        "Peak_flux",
+        "E_Peak_flux",
+        "Maj",
+        "E_Maj",
+        "Min",
+        "E_Min",
+        "PA",
+        "E_PA",
+        "DC_Maj",
+        "E_DC_Maj",
+        "DC_Min",
+        "E_DC_Min",
+        "DC_PA",
+        "E_DC_PA",
+    )
+    rows = (
+        (
+            2,
+            0,
+            4,
+            1,
+            10.0,
+            0.001,
+            -30.0,
+            0.001,
+            0.7,
+            0.1,
+            0.6,
+            0.1,
+            0.002,
+            0.0001,
+            0.001,
+            0.0001,
+            20.0,
+            2.0,
+            0.001,
+            0.0001,
+            0.0005,
+            0.0001,
+            20.0,
+            2.0,
+        ),
+        (
+            1,
+            0,
+            4,
+            0,
+            10.001,
+            0.001,
+            -30.0,
+            0.001,
+            0.3,
+            0.1,
+            0.25,
+            0.1,
+            0.002,
+            0.0001,
+            0.001,
+            0.0001,
+            25.0,
+            2.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ),
+    )
+    path = tmp_path / "gaussian_catalog.fits"
+    Table(rows=rows, names=names).write(path)
+
+    sources = load_pybdsf_gaussian_catalogue(path)
+
+    assert tuple(source.identifier for source in sources) == (
+        "pybdsf-island-0-source-4-wave-0-gaussian-1",
+        "pybdsf-island-0-source-4-wave-1-gaussian-2",
+    )
+    assert all(source.component_count == 2 for source in sources)
+    assert all(
+        source.association_integrated_flux_jy == 1.0 for source in sources
+    )
+    assert sources[0].deconvolution_status == "unresolved"
+    assert sources[1].deconvolution_status == "resolved"
+
+
+def _write_aegean_catalogues(
+    component_path: Path,
+    island_path: Path,
+) -> None:
+    """Write the exact maintained Aegean column boundary used by the reader."""
+    components = Table(
+        rows=(
+            (
+                0,
+                0,
+                10.0,
+                -30.0,
+                1.0,
+                0.1,
+                1.2,
+                0.2,
+                6.0,
+                0.5,
+                3.0,
+                0.4,
+                20.0,
+                2.0,
+                0,
+            ),
+            (
+                0,
+                1,
+                10.001,
+                -30.0,
+                0.5,
+                np.nan,
+                0.6,
+                0.0,
+                5.0,
+                0.4,
+                2.5,
+                0.3,
+                30.0,
+                0.0,
+                4,
+            ),
+        ),
+        names=(
+            "island",
+            "source",
+            "ra",
+            "dec",
+            "peak_flux",
+            "err_peak_flux",
+            "int_flux",
+            "err_int_flux",
+            "a",
+            "err_a",
+            "b",
+            "err_b",
+            "pa",
+            "err_pa",
+            "flags",
+        ),
+    )
+    islands = Table(
+        rows=((0, 2, 10.0005, -30.0, 1.0, 1.9, 0.3),),
+        names=(
+            "island",
+            "components",
+            "ra",
+            "dec",
+            "peak_flux",
+            "int_flux",
+            "err_int_flux",
+        ),
+    )
+    components.write(component_path)
+    islands.write(island_path)
+
+
+def test_aegean_reader_uses_stable_ids_and_island_flux(tmp_path: Path) -> None:
+    """Random Aegean UUIDs never enter matching or association identity."""
+    component_path = tmp_path / "catalog_comp.fits"
+    island_path = tmp_path / "catalog_isle.fits"
+    _write_aegean_catalogues(component_path, island_path)
+
+    sources = load_aegean_catalogue(component_path, island_path)
+
+    assert tuple(item.identifier for item in sources) == (
+        "aegean-island-0-component-0",
+        "aegean-island-0-component-1",
+    )
+    assert all(item.island_identifier == "aegean-island-0" for item in sources)
+    assert all(item.component_count == 2 for item in sources)
+    assert all(item.association_integrated_flux_jy == 1.9 for item in sources)
+    assert sources[0].fitted_shape is not None
+    assert sources[0].fitted_shape.major_fwhm_degrees == 6.0 / 3600.0
+    assert sources[1].peak_flux_error_jy_per_beam is None
+    assert sources[1].integrated_flux_error_jy is None
+    assert sources[1].quality_flags == ("aegean-flags-4",)
+
+
+def test_aegean_support_proxy_is_island_grouped_and_deterministic(
+    tmp_path: Path,
+) -> None:
+    """Three-sigma fitted ellipses are an association proxy, not a mask."""
+    component_path = tmp_path / "catalog_comp.fits"
+    island_path = tmp_path / "catalog_isle.fits"
+    _write_aegean_catalogues(component_path, island_path)
+    sources = load_aegean_catalogue(component_path, island_path)
+    header = fits.Header()
+    header["NAXIS"] = 2
+    header["NAXIS1"] = 21
+    header["NAXIS2"] = 21
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 11.0
+    header["CRPIX2"] = 11.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+
+    first, first_labels = aegean_support_label_plane(
+        sources,
+        header,
+        shape_yx=(21, 21),
+    )
+    second, second_labels = aegean_support_label_plane(
+        tuple(reversed(sources)),
+        header,
+        shape_yx=(21, 21),
+    )
+
+    np.testing.assert_array_equal(first, second)
+    assert first_labels == second_labels == {"aegean-island-0": 1}
+    assert first[10, 10] == 1
+    assert first[0, 0] == 0
+
+
+def test_hebog_segment_catalogue_measures_original_pixels_and_round_trips(
+    tmp_path: Path,
+) -> None:
+    """Extended output retains its exact segment identity and sky position."""
+    header = fits.Header()
+    header["NAXIS"] = 2
+    header["NAXIS1"] = 21
+    header["NAXIS2"] = 21
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 11.0
+    header["CRPIX2"] = 11.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    yy, xx = np.indices((21, 21), dtype=np.float64)
+    image = np.exp(-0.5 * ((xx - 10.0) ** 2 + (yy - 10.0) ** 2) / 2.0)
+    labels = np.zeros((21, 21), dtype=np.int32)
+    labels[9:12, 9:12] = 4
+
+    sources = build_hebog_segment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=3.0,
+        beam_minor_fwhm_pixels=2.0,
+    )
+    path = tmp_path / "segments.json"
+    write_comparison_catalogue(path, sources)
+
+    assert load_comparison_catalogue(path) == sources
+    assert sources[0].identifier == "hebog-segment-4"
+    assert sources[0].right_ascension_degrees == pytest.approx(10.0)
+    assert sources[0].declination_degrees == pytest.approx(-30.0)
+    assert sources[0].integrated_flux_jy > sources[0].peak_flux_jy_per_beam
+
+
+def test_aegean_products_reject_schema_and_association_drift(
+    tmp_path: Path,
+) -> None:
+    """Maintained Aegean schema or island-count changes fail explicitly."""
+    component_path = tmp_path / "catalog_comp.fits"
+    island_path = tmp_path / "catalog_isle.fits"
+    _write_aegean_catalogues(component_path, island_path)
+    islands = cast(Table, Table.read(island_path))
+    islands["components"][0] = 3
+    changed_islands = tmp_path / "changed_isle.fits"
+    islands.write(changed_islands)
+
+    with pytest.raises(ValueError, match="component count differs"):
+        load_aegean_catalogue(component_path, changed_islands)
+
+    components = cast(Table, Table.read(component_path))
+    components.remove_column("flags")
+    changed_components = tmp_path / "changed_comp.fits"
+    components.write(changed_components)
+    with pytest.raises(ValueError, match="misses columns: flags"):
+        load_aegean_catalogue(changed_components, island_path)
+
+
+def test_support_and_catalogue_boundaries_reject_ambiguous_products(
+    tmp_path: Path,
+) -> None:
+    """Proxy and JSON products never infer missing identity or shape."""
+    component_path = tmp_path / "catalog_comp.fits"
+    island_path = tmp_path / "catalog_isle.fits"
+    _write_aegean_catalogues(component_path, island_path)
+    sources = load_aegean_catalogue(component_path, island_path)
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 2.0
+    header["CRPIX2"] = 2.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+
+    with pytest.raises(ValueError, match="positive axes"):
+        aegean_support_label_plane(sources, header, shape_yx=(0, 3))
+    with pytest.raises(ValueError, match="island identifiers"):
+        aegean_support_label_plane(
+            (replace(sources[0], island_identifier=None),),
+            header,
+            shape_yx=(3, 3),
+        )
+    with pytest.raises(ValueError, match="identifiers must be unique"):
+        write_comparison_catalogue(
+            tmp_path / "duplicate.json",
+            (sources[0], sources[0]),
+        )
+    malformed = tmp_path / "malformed.json"
+    malformed.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="JSON array"):
+        load_comparison_catalogue(malformed)
+
+
+def test_hebog_segment_catalogue_rejects_invalid_planes_and_beam() -> None:
+    """Extended measurement cannot coerce fractional labels or a zero beam."""
+    image = np.ones((3, 3), dtype=np.float64)
+    valid = np.ones((3, 3), dtype=np.bool_)
+    header = fits.Header()
+
+    with pytest.raises(ValueError, match="integer array"):
+        build_hebog_segment_catalogue(
+            image,
+            np.zeros_like(image),
+            valid,
+            np.ones((3, 3), dtype=np.float64),
+            header,
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="beam axes"):
+        build_hebog_segment_catalogue(
+            image,
+            np.zeros_like(image),
+            valid,
+            np.ones((3, 3), dtype=np.int32),
+            header,
+            beam_major_fwhm_pixels=0.0,
+            beam_minor_fwhm_pixels=1.0,
+        )

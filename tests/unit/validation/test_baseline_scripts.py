@@ -19,6 +19,9 @@ from hebog.executors import SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.stages.background import estimate_background_rms_grids
 from hebog.validation.comparison import CatalogueOutlierThresholds
+from hebog.validation.contracts import (
+    load_phase_five_external_comparison_protocol,
+)
 from hebog.validation.datasets import (
     DatasetManifest,
     DatasetRole,
@@ -26,6 +29,7 @@ from hebog.validation.datasets import (
     load_dataset_manifest,
 )
 from hebog.validation.phase_four_analysis import ratio_values, truth_sets
+from hebog.validation.products import load_aegean_catalogue
 
 
 def _script(name: str) -> dict[str, Any]:
@@ -38,6 +42,11 @@ def _validation_script(name: str) -> dict[str, Any]:
     """Load one validation script without invoking its CLI."""
     root = Path(__file__).parents[3]
     return runpy.run_path(str(root / "scripts" / "validation" / name))
+
+
+def _named_fits_path(role: str) -> Path:
+    """Return one concise role-named path for runner configuration tests."""
+    return Path(f"{role}.fits")
 
 
 def test_paired_audit_uses_an_aggregate_reliability_ratio() -> None:
@@ -1339,6 +1348,174 @@ def test_phase5_external_freezer_refuses_existing_output(
             str(tmp_path / "compact.json"),
             "--protocol-output",
             str(tmp_path / "protocol.json"),
+        ],
+    )
+
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        namespace["main"]()
+
+
+def test_phase5_external_pybdsf_runner_maps_every_atrous_option() -> None:
+    """The reference cannot inherit changing PyBDSF wavelet defaults."""
+    root = Path(__file__).parents[3]
+    protocol = load_phase_five_external_comparison_protocol(
+        root / "config/contracts/phase-5-external-comparison.json"
+    )
+    namespace = _script("run_phase5_external_pybdsf.py")
+    authorized = SimpleNamespace(
+        input_bundle=SimpleNamespace(shape_yx=(1024, 1024)),
+        artifact_path=_named_fits_path,
+    )
+
+    configuration = namespace["_configuration"](
+        protocol,
+        authorized,
+        mode="operational",
+        ncores=3,
+    )
+
+    assert configuration["thresh_pix"] == 5.0
+    assert configuration["thresh_isl"] == 3.0
+    assert configuration["atrous_do"] is True
+    assert configuration["atrous_bdsm_do"] is True
+    assert configuration["atrous_jmax"] == 3
+    assert configuration["atrous_lpf"] == "b3"
+    assert configuration["atrous_sum"] is True
+    assert configuration["atrous_orig_isl"] is False
+    assert configuration["ncores"] == 3
+    assert "rmsmean_map_filename" not in configuration
+
+
+def test_phase5_external_pybdsf_controlled_maps_fail_if_ignored() -> None:
+    """A PyBDSF diagnostic is never controlled when maps are ignored."""
+    root = Path(__file__).parents[3]
+    protocol = load_phase_five_external_comparison_protocol(
+        root / "config/contracts/phase-5-external-comparison.json"
+    )
+    namespace = _script("run_phase5_external_pybdsf.py")
+    compact = SimpleNamespace(
+        input_bundle=SimpleNamespace(shape_yx=(512, 512)),
+        artifact_path=_named_fits_path,
+    )
+
+    with pytest.raises(ValueError, match="controlled diagnostic unavailable"):
+        namespace["_configuration"](
+            protocol,
+            compact,
+            mode="controlled-background",
+            ncores=1,
+        )
+
+
+def test_phase5_external_aegean_runner_freezes_cli(tmp_path: Path) -> None:
+    """Aegean changes only declared maps and the diagnostic flood clip."""
+    root = Path(__file__).parents[3]
+    protocol = load_phase_five_external_comparison_protocol(
+        root / "config/contracts/phase-5-external-comparison.json"
+    )
+    namespace = _script("run_phase5_external_aegean.py")
+    authorized = SimpleNamespace(
+        artifact_path=_named_fits_path,
+    )
+    primary = namespace["_configuration"](
+        protocol,
+        authorized,
+        mode="operational",
+        table_path=Path("catalogue.fits"),
+    )
+    controlled = namespace["_configuration"](
+        protocol,
+        authorized,
+        mode="controlled-background",
+        table_path=Path("catalogue.fits"),
+    )
+    primary_command = namespace["_command"](
+        primary,
+        image_path=Path("image.fits"),
+    )
+    controlled_command = namespace["_command"](
+        controlled,
+        image_path=Path("image.fits"),
+    )
+
+    assert primary["seedclip"] == 5.0
+    assert primary["floodclip"] == 4.0
+    assert controlled["seedclip"] == 5.0
+    assert controlled["floodclip"] == 3.0
+    assert "--nocov" not in primary_command
+    assert "--noise" not in primary_command
+    assert "--background" not in primary_command
+    assert "--noise" in controlled_command
+    assert "--background" in controlled_command
+    assert primary_command[-1] == controlled_command[-1] == "image.fits"
+    component_path = tmp_path / "empty_comp.fits"
+    island_path = tmp_path / "empty_isle.fits"
+    namespace["_write_empty_catalogues"](component_path, island_path)
+    assert load_aegean_catalogue(component_path, island_path) == ()
+
+
+@pytest.mark.parametrize(
+    "script_name,extra_arguments",
+    (
+        (
+            "run_phase5_external_hebog.py",
+            (
+                "--base-review",
+                "review.json",
+                "--manifest",
+                "manifest.json",
+                "--container-image-digest",
+                f"sha256:{'0' * 64}",
+            ),
+        ),
+        (
+            "run_phase5_external_pybdsf.py",
+            (
+                "--finder-id",
+                "released-pybdsf",
+                "--mode",
+                "operational",
+                "--ncores",
+                "1",
+                "--container-image-digest",
+                f"sha256:{'0' * 64}",
+            ),
+        ),
+        (
+            "run_phase5_external_aegean.py",
+            (
+                "--mode",
+                "operational",
+                "--container-image-digest",
+                f"sha256:{'0' * 64}",
+            ),
+        ),
+    ),
+)
+def test_phase5_external_runners_refuse_existing_output(
+    script_name: str,
+    extra_arguments: tuple[str, ...],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No isolated finder leg can replace an opened realization."""
+    output = tmp_path / "result"
+    output.mkdir()
+    namespace = _script(script_name)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            script_name,
+            "--protocol",
+            "protocol.json",
+            "--execution-decision",
+            "decision.json",
+            "--input",
+            "input.json",
+            *extra_arguments,
+            "--output",
+            str(output),
         ],
     )
 

@@ -1070,6 +1070,37 @@ def _corrective_results(
     return matched, atrous, thresholded
 
 
+def evaluate_external_candidate_detection(  # noqa: PLR0913
+    image_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    rms_jy_per_beam: npt.ArrayLike,
+    *,
+    beam: BeamShapePixels,
+    review: PhaseFiveCorrectiveAReview,
+) -> ThresholdFilterResult:
+    """Return the frozen residual-B3 candidate's blind detection product.
+
+    This validation-only boundary exposes the exact candidate selected for
+    external comparison. It does not open the blocked production Step 3 API.
+    """
+    prepared = prepare_scale_filter_inputs(
+        image_jy_per_beam,
+        valid_pixels,
+        background_jy_per_beam,
+        rms_jy_per_beam,
+    )
+    _, atrous, thresholded = _corrective_results(
+        prepared,
+        beam,
+        review,
+        family="residual-b3-atrous",
+    )
+    if atrous is None:
+        raise RuntimeError("external candidate requires residual B3 evidence")
+    return thresholded
+
+
 def _observable_signal_measurement(
     planes: _ObservableMeasurementPlanes,
     overlapping_labels: npt.NDArray[np.int32],

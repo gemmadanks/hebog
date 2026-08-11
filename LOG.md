@@ -6324,3 +6324,54 @@ pending.
 materializer, and isolated Hebog/PyBDSF/Aegean runners, then bind their
 committed hashes in a separate execution decision. Do not generate finder
 output before that review.
+
+## 2026-08-11 — Implemented the Step 2C-P external execution boundary
+
+**Plan phase:** Phase 5, Step 2C-P — pre-execution implementation
+
+- Implemented the finder-neutral truth-first matcher. Compact eligibility is
+  limited to half a beam; extended eligibility uses the frozen support-overlap
+  or one-beam-dilation clauses. Primary assignment maximizes cardinality,
+  overlap, and proximity in order, while every eligible secondary edge remains
+  available for split, merge, and duplicate metrics.
+- Added a deterministic shared-input materializer. Each declared realization
+  produces canonical `input.json` metadata and byte-identical four-axis
+  float64 image, analytic-mean, and analytic-RMS FITS files with checksums,
+  beam, WCS, recipe, and seed identity. Undeclared seeds, manifest drift,
+  artifact drift, and overwrite attempts fail closed.
+- Added maintained PyBDSF source and Gaussian-component readers, an Aegean
+  component/island reader with deterministic identifiers, Aegean's explicitly
+  non-segmentation three-sigma fitted-ellipse proxy, and canonical Hebog
+  compact/extended product mappings. PyBDSF Gaussian centres remain separate
+  from source moments; Aegean random UUIDs never enter matching.
+- Added isolated one-realization Hebog, released/master PyBDSF, and Aegean
+  runners. They require a future named execution decision bound to the exact
+  protocol, residual-B3 review, committed source tree, runner scripts,
+  containers, dependency inventories, and PyBDSF core count. Successful raw
+  results publish atomically with artifact hashes; finder exceptions remain
+  typed image-denominator failures and partial products are discarded.
+- Review found that PyBDSF checks `rms_box` before honoring supplied
+  `rmsmean_map_filename` products. The frozen 150-pixel box exceeds one
+  quarter of the 512-pixel compact image, so that controlled diagnostic would
+  silently ignore the shared maps. The runner instead marks it unavailable.
+  Operational primary results and the 1,024-pixel continuum controlled leg are
+  unaffected. This scoped limitation must be accepted or the design revised
+  before execution authorization.
+- No Hebog, PyBDSF, or Aegean output from the fresh external population was
+  generated. Step 3, optimization, and qualification remain false.
+
+**Validation:** 71 focused matcher, materializer, product, runner, and compact-
+input tests passed. The full Pyright project check reported no errors. The
+branch-aware suite passed with 1,170 tests plus four expected failures and
+93.95% project coverage; changed validation modules were 87--98% covered
+except the broader product-reader module at 71%, whose uncovered lines are
+predominantly older reference-manifest paths. All 27 equivalence tests and the
+strict documentation build passed. `just check` passed, including Ruff,
+Pyright, and 1,040 unit/doctest cases with four expected failures. The final
+all-files `just pre-commit` gate also passed cleanly.
+
+**Immediate next step:** complete review and commit this implementation, then
+obtain named approval of the 512-pixel diagnostic limitation, exact Hebog
+runtime, and PyBDSF core count. Only then create a separate decision bound to
+the committed source-tree and runner hashes. Do not execute or inspect any
+external-finder output before that decision.

@@ -6,6 +6,11 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import numpy as np
+import pytest
+
+from hebog.data_models import ImageBounds
+from hebog.validation import hebog_campaign
 from hebog.validation.campaigns import (
     _association_truth_source,
     _source_strata,
@@ -20,6 +25,7 @@ from hebog.validation.datasets import (
     iter_dataset_recipes,
     load_dataset_manifest,
 )
+from hebog.validation.hebog_campaign import process_hebog_image
 
 _ROOT = Path(__file__).parents[3]
 
@@ -150,3 +156,69 @@ def test_declared_point_truth_survives_projection_roundoff() -> None:
         source.integrated_flux_jy == source.peak_flux_jy_per_beam
         for source in truth
     )
+
+
+def test_external_array_source_returns_owned_bounded_windows() -> None:
+    """The common FITS plane enters the compact branch without aliasing."""
+    image = np.arange(20, dtype=np.float64).reshape(4, 5)
+    image[2, 3] = np.nan
+    source = hebog_campaign._ArrayImageSource(image)
+    bounds = ImageBounds(y_start=1, y_stop=4, x_start=2, x_stop=5)
+
+    first = source.read_window(bounds)
+    first.values[0, 0] = -1.0
+    second = source.read_windows((bounds,))[0]
+
+    assert second.values[0, 0] == image[1, 2]
+    assert not second.valid_pixels[1, 1]
+
+
+def test_external_compact_entry_validates_shape_before_processing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The compact branch uses the shared plane only at its frozen shape."""
+    dataset = load_dataset_manifest(
+        _ROOT / "config/datasets/phase-5-external-compact-blend.json"
+    ).datasets[0]
+    with pytest.raises(ValueError, match="shape differs"):
+        process_hebog_image(
+            np.zeros((2, 2), dtype=np.float64),
+            dataset,
+            tmp_path,
+            generation_id="bad-shape",
+        )
+
+    observed: dict[str, object] = {}
+
+    def fake_process(
+        source: object,
+        selected_dataset: object,
+        directory: Path,
+        *,
+        shape_yx: tuple[int, int],
+        generation_id: str,
+    ) -> tuple[CatalogueSource, ...]:
+        observed.update(
+            source=source,
+            dataset=selected_dataset,
+            directory=directory,
+            shape_yx=shape_yx,
+            generation_id=generation_id,
+        )
+        return ()
+
+    monkeypatch.setattr(hebog_campaign, "_process_hebog_source", fake_process)
+    image = np.zeros(dataset.recipe.shape_yx, dtype=np.float64)
+
+    assert (
+        process_hebog_image(
+            image,
+            dataset,
+            tmp_path,
+            generation_id="external-unit-test",
+        )
+        == ()
+    )
+    assert observed["shape_yx"] == dataset.recipe.shape_yx
+    assert observed["generation_id"] == "external-unit-test"
