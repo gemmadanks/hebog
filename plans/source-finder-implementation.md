@@ -909,9 +909,11 @@ four PyBDSF cores, runtime identities, and final one-look decision on
 2026-08-11. A no-write preflight expanded exactly 1,400 inputs and 7,000 runs
 against those identities and left both public and private campaign paths
 absent. Those four local images were subsequently lost before execution.
-Scientifically matched reconstructions are smoke-tested, but their new OCI and
-external-reference dependency identities require renewed review, decision
-binding, and no-write preflight. A checksum-bound
+The external-reference reconstructions are smoke-tested and protocol-bound;
+Aegean was rebuilt again to retain the originally frozen Astropy/SciPy stack.
+The active decision now fails closed pending a Hebog rebuild from the updated
+runtime validator, renewed named approval, and no-write preflight. A
+checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
 one-sided radial-p95 upper confidence bound; irregular radial median remains
@@ -1294,20 +1296,30 @@ and spill behaviour, and facility-scale execution.
          opening the one-look. Hebog retains its exact `471bed9...` source tree
          and `d383be3...` inventory. The new Hebog, PyBDSF release/master, and
          Aegean image digests are `f78be6d...`, `7245407...`, `192964b...`, and
-         `6dd2064...`; their complete inventory hashes are `d383be3...`,
-         `8211043...`, `83574dd...`, and `17d1e3c...`. Both matched PyBDSF
+         `b496d29...`; their complete inventory hashes are `d383be3...`,
+         `8211043...`, `83574dd...`, and `346c1f3...`. Both matched PyBDSF
          runners reproduced three sources and three Gaussians on the governed
          256-pixel compact fixture; Aegean reproduced three islands and six
          fitted components; Hebog's exact source/inventory and CLI checks
          passed. Check in pinned rebuild definitions, but do not claim bitwise
          equality with the missing OCI objects.
-   - [ ] Review the reconstructed runtime delta and bind all four new image and
-         dependency identities in a renewed execution decision. Confirm the
-         PyBDSF release/master environment remains matched except for `bdsf`,
-         accept Aegean's isolated current dependency stack, retain four PyBDSF
-         cores and the 512-pixel limitation, then repeat the complete launcher's
-         no-write preflight. The historical decision is not transferable and
-         campaign execution remains closed until this review passes.
+   - [x] Complete the technical reconstructed-runtime pre-review and replace
+         drift before seeking approval. The PyBDSF release/master runtimes use
+         the same Python 3.12.3 scientific stack and differ only in `bdsf`;
+         both reproduce three sources and Gaussians on the governed compact
+         fixture. Reject the first Aegean reconstruction because it resolved
+         newer Astropy/SciPy releases; its replacement retains NumPy 2.5.2,
+         SciPy 1.17.1, Astropy 7.2.2, and LMFit 1.3.4 and reproduces three
+         islands and six components. Protocol-bind the three reviewed external
+         images and make the active execution decision explicitly fail closed
+         while approval is pending.
+   - [ ] Rebuild Hebog from the committed fail-closed validator source, then
+         bind its new image, source tree, commit, and unchanged dependency
+         inventory. Obtain named approval for all four new identities, retain
+         four PyBDSF cores and the 512-pixel limitation, and repeat the complete
+         launcher's no-write preflight. The historical decision is not
+         transferable and campaign execution remains closed until these steps
+         pass.
    - [x] Implement and review the complete-population launcher. It stages
          all inputs and raw finder results privately, refuses an existing
          campaign target, retains every failed image in the denominator, and
@@ -1351,7 +1363,8 @@ and spill behaviour, and facility-scale execution.
          `phase-5-external-evaluation.json`, and obtain pre-results review. Do
          not run or inspect the fresh 1,400-image campaign before this closes.
          This prerequisite is closed: the compiler is bound at `81d1384d...`,
-         the endpoint registry at `a6e469c1...`, and the evaluator at
+         the runtime-rebound endpoint registry at `e56074be...`, and the
+         evaluator at
          `df99e10a...`. Exact request/runtime drift, topology semantics,
          conditional measurements, failures, applicability, endpoint sets,
          and write-once outputs are covered. The irregular-position adapter

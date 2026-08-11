@@ -383,6 +383,8 @@ def _validate_decision_bindings(
     """Fail before staging if any approved repository identity changed."""
     protocol = load_phase_five_external_comparison_protocol(protocol_path)
     decision = load_phase_five_external_execution_decision(decision_path)
+    if not decision.execution_authorized:
+        raise ValueError("external comparison execution is not authorized")
     if file_sha256(protocol_path) != decision.protocol_sha256:
         raise ValueError("campaign decision does not bind the protocol")
     if file_sha256(base_review_path) != decision.candidate_review_sha256:

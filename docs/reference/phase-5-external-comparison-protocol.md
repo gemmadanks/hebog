@@ -7,11 +7,11 @@ are ready. Gemma Danks approved an exact hash-bound one-look execution on
 `config/contracts/phase-5-external-execution-decision.json`. The launcher's
 no-write preflight passed over all 1,400 inputs and 7,000 runs; no staging or
 finder output was created. The four approved local images were then lost
-before execution. Scientifically matched reconstructions are prepared and
-smoke-tested, but their OCI and external-reference dependency identities are
-new. The historical decision cannot authorize them. The one-look remains
-unopened pending renewed runtime review and a newly bound execution decision;
-Step 3, optimization, and qualification remain closed.
+before execution. The reconstructed external-reference identities are now
+protocol-bound, smoke-tested, and aligned to the originally frozen scientific
+stack. The checked-in execution decision is explicitly fail-closed pending a
+new Hebog build and named approval. The one-look remains unopened; Step 3,
+optimization, and qualification remain closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -30,7 +30,8 @@ These are the originally authorized runtime identities. They remain useful
 historical provenance but are no longer present on the controlled host. The
 reconstructed identities are listed under the execution boundary below.
 
-The two PyBDSF identities are unchanged from Phase 0. They run Rapthor's
+The two PyBDSF software and artifact identities are unchanged from Phase 0.
+They run Rapthor's
 5-sigma pixel, 3-sigma island, three-scale residual B3-spline à trous profile.
 The controlled diagnostic supplies the same frozen mean and RMS maps through
 PyBDSF's documented `rmsmean_map_filename` boundary. PyBDSF's own operational
@@ -47,12 +48,12 @@ lane can use the same-map diagnostic as frozen. The execution review must
 accept that scoped diagnostic unavailability or revise the design before any
 result is opened.
 
-AegeanTools 2.3.5 is the maintained published release as of the freeze. Its
+AegeanTools 2.3.5 is the maintained published release selected at the freeze. Its
 [published wheel](https://pypi.org/project/aegeantools/2.3.5/) requires NumPy
 2.x, whereas the governed Rapthor/PyBDSF runtime retains NumPy 1.26. Aegean
 therefore runs in a separate image derived from the same immutable base. The
-build verified the published wheel hash and captured dependency-inventory
-hash `74f3787...`; its scientific stack includes NumPy 2.5.2, SciPy 1.17.1,
+replacement build verified the published wheel hash and captured
+dependency-inventory hash `346c1f3...`; its scientific stack includes NumPy 2.5.2, SciPy 1.17.1,
 Astropy 7.2.2, and LMFit 1.3.4. This prevents an Aegean dependency upgrade from
 changing either PyBDSF reference.
 
@@ -158,7 +159,7 @@ registry and compiler:
 
 - compiler SHA-256 `81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370`;
 - endpoint-registry SHA-256
-  `a6e469c106cd36800ec775553f1d115523901ab124fc9370eff55522fe7a66d3`;
+  `e56074bee4316399b2bcfe2f06a302f757ea2f0d5ed559b64bb5798c85c975e7`;
 - evaluator SHA-256
   `df99e10a6fbbe7c4c1b9826c88b0d11908500c817e30aea7750bfc9d920cadab`.
 
@@ -295,7 +296,7 @@ identities are:
 | Hebog 0.6.0 | `localhost/hebog:phase5-external-106715b-reconstructed` | `sha256:f78be6d330859cdd0889c476e26c884796f4991aaaf7bec52b90aa14a23c46ce` | `d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2` |
 | PyBDSF 1.14.1 | `localhost/rapthor-dev:ci-aligned-reconstructed` | `sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37` | `8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f` |
 | PyBDSF master | `localhost/hebog-pybdsf-master:c70103be3-reconstructed` | `sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73` | `83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99` |
-| AegeanTools 2.3.5 | `localhost/hebog-aegean:2.3.5-step2cp-reconstructed` | `sha256:6dd2064c5f5718e584d413ecb1fa6338306662693d0384b398630d639b5e22d3` | `17d1e3c1d84b13612153ad11d5478065712731a181adb1dfe2c2c180859eaaed` |
+| AegeanTools 2.3.5 | `localhost/hebog-aegean:2.3.5-step2cp-reconstructed-matched` | `sha256:b496d2907c13d083e7c87eda61a6a40057f92b5cb6e605330bcb1b6db27158b8` | `346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909` |
 
 Hebog again has Python 3.14.7, the exact 35-distribution inventory, and source
 tree `471bed9a...`. The published PyBDSF 1.14.1 sdist, frozen master wheel,
@@ -306,6 +307,15 @@ and a three-source 256-pixel governed compact fixture passed with identical
 three-source/three-Gaussian counts. Aegean's runner import, CLI, and the same
 fixture passed, finding three islands and fitting six components. Hebog's CLI,
 source, and inventory checks passed.
+
+The first replacement Aegean build resolved newer Astropy and SciPy releases
+than the originally frozen environment. It was rejected before authorization,
+replaced by the matched stack above, and removed. Updating the fail-closed
+runtime validator changes Hebog's source-tree identity, so the listed Hebog
+image remains reconstruction evidence but is not the final executable image.
+The active decision cannot open a runner or campaign preflight until Hebog is
+rebuilt from the committed validator and the complete set receives named
+approval.
 
 The checked-in build definitions and artifact requirements are documented in
 `scripts/benchmark/containers/phase5/README.md`. They deliberately do not

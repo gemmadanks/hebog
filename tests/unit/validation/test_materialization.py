@@ -218,7 +218,7 @@ def test_external_realization_materializes_one_shared_float64_bundle(
     assert first.dtype == "float64"
     assert first.shape_yx == (512, 512)
     assert first.protocol_sha256 == (
-        "b9db9adbd1cae1a8c11a081b0af245e3e8dca8979bce9e2dc0ffda968c5d2d72"
+        "7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d"
     )
     assert {artifact.role for artifact in first.artifacts} == {
         "image",

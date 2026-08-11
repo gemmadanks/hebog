@@ -1,16 +1,16 @@
 {
   "candidate_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
-  "decision": "authorize-one-terminal-external-comparison",
+  "decision": "await-renewed-runtime-approval",
   "decision_id": "phase-5-external-execution-decision",
-  "execution_authorized": true,
-  "hebog_container_image_digest": "sha256:b92080db558246e2ae781c69f6caf39fef8e393ab74ea6774d9b02672981b4ce",
+  "execution_authorized": false,
+  "hebog_container_image_digest": "sha256:f78be6d330859cdd0889c476e26c884796f4991aaaf7bec52b90aa14a23c46ce",
   "hebog_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
   "implementation_commit": "106715b22b9858149e42467f4e2c581f15961cb0",
-  "named_review": "Gemma Danks, 2026-08-11",
-  "next_action": "execute-complete-frozen-comparison-once-without-opening-partial-results",
+  "named_review": "Codex technical runtime pre-review, 2026-08-11",
+  "next_action": "obtain-renewed-runtime-approval-before-campaign-preflight",
   "one_look_opened": false,
   "optimization_authorized": false,
-  "protocol_sha256": "b9db9adbd1cae1a8c11a081b0af245e3e8dca8979bce9e2dc0ffda968c5d2d72",
+  "protocol_sha256": "7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d",
   "pybdsf_ncores": 4,
   "qualification_opened": false,
   "runners": [
@@ -28,7 +28,7 @@
     }
   ],
   "schema_version": 1,
-  "source_tree_sha256": "471bed9a428df10d9139afc334d97b5df190f4f64e6dd6daeb91f9b436d37362",
-  "status": "reviewed-before-external-output",
+  "source_tree_sha256": "2f80c8779d3d8fe91fc599aa98edd95491d13922667cbab3af9d178caecc225b",
+  "status": "awaiting-reconstructed-runtime-approval",
   "step_three_authorized": false
 }

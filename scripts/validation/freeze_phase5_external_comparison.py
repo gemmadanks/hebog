@@ -40,7 +40,7 @@ _COMPACT_REALIZATIONS = 800
 _CONFIDENCE_LEVEL = 0.95
 _MINIMUM_JOINT_POWER = 0.9
 _AEGEAN_CONTAINER_DIGEST = (
-    "sha256:ca5fd09f82041d619d286cd2ccb33d36d30c8d5e87aba8e7098a623d46b1f808"
+    "sha256:b496d2907c13d083e7c87eda61a6a40057f92b5cb6e605330bcb1b6db27158b8"
 )
 
 
@@ -284,10 +284,10 @@ def _protocol_document(  # noqa: PLR0913
                     "8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2"
                 ),
                 "container_image_digest": (
-                    "sha256:dce93991e2e671428ff8043a7e0d132294d2d2decf1e1587e9904d3e8f49b754"
+                    "sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37"
                 ),
                 "dependency_inventory_sha256": (
-                    "ad533f28942ba1d3891a1c5d960028c7bde558ea682e08da21a246235d2eb3c8"
+                    "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f"
                 ),
                 "comparison_scope": "binding-full-continuum",
             },
@@ -302,10 +302,10 @@ def _protocol_document(  # noqa: PLR0913
                     "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d"
                 ),
                 "container_image_digest": (
-                    "sha256:f045820aa3e8bc0f5d90a35b90a4492048351de7d0255d6b7746b787d254b0d6"
+                    "sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73"
                 ),
                 "dependency_inventory_sha256": (
-                    "9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76"
+                    "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99"
                 ),
                 "comparison_scope": "binding-full-continuum",
             },
@@ -321,7 +321,7 @@ def _protocol_document(  # noqa: PLR0913
                 ),
                 "container_image_digest": _AEGEAN_CONTAINER_DIGEST,
                 "dependency_inventory_sha256": (
-                    "74f378721391486dc1a2c41dc1570bea21f09225d5165c3f29c891dd9e479a2e"
+                    "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909"
                 ),
                 "comparison_scope": (
                     "binding-compact-blended-and-gaussian-like-catalogue"

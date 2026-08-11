@@ -138,7 +138,10 @@ source-tree digest, and the three isolated entry-point digests. It also
 freezes the Hebog container and dependency inventory and the PyBDSF core
 count; reference container and dependency identities remain fixed by the
 prospective protocol. The decision is valid only before the one-look
-population opens and keeps Step 3, optimization, and qualification false.
+population opens and keeps Step 3, optimization, and qualification false. An
+`awaiting-reconstructed-runtime-approval` record is deliberately not an
+authorization: runners and the campaign launcher reject it before opening an
+input or staging directory. Only the named reviewed state may proceed.
 Each raw one-realization `result.json` then binds that decision and the common
 `input.json`, preserves a finder failure rather than dropping the image, and
 lists every output artifact by relative path, byte count, and SHA-256.

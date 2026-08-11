@@ -8,8 +8,10 @@ import json
 import runpy
 import subprocess
 from argparse import Namespace
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 import pytest
@@ -32,11 +34,40 @@ def _namespace() -> dict[str, Any]:
 
 
 @pytest.fixture(scope="module")
-def campaign_request() -> object:
+def authorized_decision_path() -> Iterator[Path]:
+    """Write a repository-local authorized decision for structural tests."""
+    pending = load_phase_five_external_execution_decision(_DECISION)
+    decision_type = type(pending)
+    decision = decision_type.model_validate(
+        {
+            **pending.model_dump(mode="json"),
+            "status": "reviewed-before-external-output",
+            "named_review": "unit-test authorization",
+            "decision": "authorize-one-terminal-external-comparison",
+            "execution_authorized": True,
+            "next_action": (
+                "execute-complete-frozen-comparison-once-without-opening-"
+                "partial-results"
+            ),
+        }
+    )
+    with TemporaryDirectory(prefix=".phase5-test-", dir=_ROOT) as directory:
+        decision_path = Path(directory) / "decision.json"
+        decision_path.write_text(
+            decision.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
+        yield decision_path
+
+
+@pytest.fixture(scope="module")
+def campaign_request(authorized_decision_path: Path) -> object:
     """Build the complete frozen request once for structural tests."""
     namespace = _namespace()
     protocol = load_phase_five_external_comparison_protocol(_PROTOCOL)
-    decision = load_phase_five_external_execution_decision(_DECISION)
+    decision = load_phase_five_external_execution_decision(
+        authorized_decision_path
+    )
     container_type = namespace["CampaignContainerImage"]
     references = {item.finder_id: item for item in protocol.references}
     containers = {
@@ -66,11 +97,23 @@ def campaign_request() -> object:
     return namespace["build_campaign_request"](
         repository_root=_ROOT,
         protocol_path=_PROTOCOL,
-        decision_path=_DECISION,
+        decision_path=authorized_decision_path,
         base_review_path=_BASE_REVIEW,
         launcher_path=_LAUNCHER,
         containers=containers,
     )
+
+
+def test_pending_decision_blocks_campaign_preflight() -> None:
+    """The active technical review cannot create an authorized request."""
+    with pytest.raises(ValueError, match="execution is not authorized"):
+        _namespace()["_validate_decision_bindings"](
+            _ROOT,
+            _PROTOCOL,
+            _DECISION,
+            _BASE_REVIEW,
+            _LAUNCHER,
+        )
 
 
 def test_frozen_leg_matrix_excludes_unsupported_products() -> None:
@@ -397,6 +440,7 @@ def test_terminal_publication_refuses_a_partial_matrix(
 def test_preflight_only_never_opens_private_staging(
     tmp_path: Path,
     campaign_request: Any,
+    authorized_decision_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -406,7 +450,7 @@ def test_preflight_only_never_opens_private_staging(
     arguments = Namespace(
         repository_root=_ROOT,
         protocol=_PROTOCOL,
-        execution_decision=_DECISION,
+        execution_decision=authorized_decision_path,
         base_review=_BASE_REVIEW,
         hebog_image="localhost/hebog:test",
         released_pybdsf_image="localhost/released-pybdsf:test",

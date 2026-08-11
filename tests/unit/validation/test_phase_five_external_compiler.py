@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import runpy
+from collections.abc import Iterator
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 import numpy as np
@@ -31,11 +33,24 @@ def registry(compiler: dict[str, Any]) -> dict[str, Any]:
 
 
 @pytest.fixture(scope="module")
-def approved_campaign_request(compiler: dict[str, Any]) -> Any:
+def approved_campaign_request(
+    compiler: dict[str, Any],
+) -> Iterator[tuple[Any, Path]]:
     """Build the unopened approved request without inspecting containers."""
     launcher = compiler["_LAUNCHER"]
     protocol = compiler["_json_object"](_PROTOCOL)
-    decision = compiler["_json_object"](_DECISION)
+    pending = compiler["_json_object"](_DECISION)
+    decision = {
+        **pending,
+        "status": "reviewed-before-external-output",
+        "named_review": "unit-test authorization",
+        "decision": "authorize-one-terminal-external-comparison",
+        "execution_authorized": True,
+        "next_action": (
+            "execute-complete-frozen-comparison-once-without-opening-"
+            "partial-results"
+        ),
+    }
     container_type = launcher["CampaignContainerImage"]
     references = {item["finder_id"]: item for item in protocol["references"]}
     containers = {
@@ -61,14 +76,25 @@ def approved_campaign_request(compiler: dict[str, Any]) -> Any:
             )
         },
     }
-    return launcher["build_campaign_request"](
-        repository_root=_ROOT,
-        protocol_path=_PROTOCOL,
-        decision_path=_DECISION,
-        base_review_path=_BASE_REVIEW,
-        launcher_path=_LAUNCHER,
-        containers=containers,
-    )
+    decision_type = launcher["PhaseFiveExternalExecutionDecision"]
+    validated = decision_type.model_validate(decision)
+    with TemporaryDirectory(prefix=".phase5-test-", dir=_ROOT) as directory:
+        decision_path = Path(directory) / "decision.json"
+        decision_path.write_text(
+            validated.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
+        yield (
+            launcher["build_campaign_request"](
+                repository_root=_ROOT,
+                protocol_path=_PROTOCOL,
+                decision_path=decision_path,
+                base_review_path=_BASE_REVIEW,
+                launcher_path=_LAUNCHER,
+                containers=containers,
+            ),
+            decision_path,
+        )
 
 
 def test_registry_expands_exact_binding_and_diagnostic_populations(
@@ -120,27 +146,31 @@ def test_registry_limits_aegean_to_products_it_supplies(
 def test_compiler_accepts_only_the_approved_campaign_request(
     compiler: dict[str, Any],
     registry: dict[str, Any],
-    approved_campaign_request: Any,
+    approved_campaign_request: tuple[Any, Path],
 ) -> None:
     """Protocol equality cannot substitute for approved execution identity."""
     validate = compiler["_validate_campaign_request_identity"]
+    request, decision_path = approved_campaign_request
+    authorized_registry = {
+        **registry,
+        "execution_decision_path": decision_path.relative_to(_ROOT).as_posix(),
+        "execution_decision_sha256": compiler["_file_sha256"](decision_path),
+    }
 
-    validate(approved_campaign_request, registry, _ROOT)
+    validate(request, authorized_registry, _ROOT)
 
-    changed_launcher = approved_campaign_request.model_copy(
-        update={"launcher_sha256": "0" * 64}
-    )
+    changed_launcher = request.model_copy(update={"launcher_sha256": "0" * 64})
     with pytest.raises(ValueError, match="request identity"):
-        validate(changed_launcher, registry, _ROOT)
+        validate(changed_launcher, authorized_registry, _ROOT)
 
-    first_input = approved_campaign_request.inputs[0].model_copy(
+    first_input = request.inputs[0].model_copy(
         update={"manifest_sha256": "0" * 64}
     )
-    changed_inputs = approved_campaign_request.model_copy(
-        update={"inputs": (first_input, *approved_campaign_request.inputs[1:])}
+    changed_inputs = request.model_copy(
+        update={"inputs": (first_input, *request.inputs[1:])}
     )
     with pytest.raises(ValueError, match="input manifest"):
-        validate(changed_inputs, registry, _ROOT)
+        validate(changed_inputs, authorized_registry, _ROOT)
 
 
 def test_whole_image_compiler_preserves_direction_and_pairing(

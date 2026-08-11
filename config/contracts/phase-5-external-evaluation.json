@@ -118,7 +118,7 @@
   "contract_id": "phase-5-external-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-endpoint-registry.json",
-    "sha256": "a6e469c106cd36800ec775553f1d115523901ab124fc9370eff55522fe7a66d3",
+    "sha256": "e56074bee4316399b2bcfe2f06a302f757ea2f0d5ed559b64bb5798c85c975e7",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_decision.py",
@@ -164,7 +164,7 @@
     }
   },
   "protocol_path": "config/contracts/phase-5-external-comparison.json",
-  "protocol_sha256": "b9db9adbd1cae1a8c11a081b0af245e3e8dca8979bce9e2dc0ffda968c5d2d72",
+  "protocol_sha256": "7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d",
   "required_synthetic_cases": [
     "passing-all-gates",
     "absolute-failure-with-paired-pass",

@@ -2808,8 +2808,8 @@ class PhaseFiveExternalComparisonProtocol(_ContractModel):
                 "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc",
                 "pypi-sdist",
                 "8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2",
-                "sha256:dce93991e2e671428ff8043a7e0d132294d2d2decf1e1587e9904d3e8f49b754",
-                "ad533f28942ba1d3891a1c5d960028c7bde558ea682e08da21a246235d2eb3c8",
+                "sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37",
+                "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
                 "binding-full-continuum",
             ),
             (
@@ -2818,8 +2818,8 @@ class PhaseFiveExternalComparisonProtocol(_ContractModel):
                 "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
                 "local-wheel",
                 "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d",
-                "sha256:f045820aa3e8bc0f5d90a35b90a4492048351de7d0255d6b7746b787d254b0d6",
-                "9ae1698f862aba82638c5c71bcf699fbda4da056d59a79f939f76230aa32fe76",
+                "sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73",
+                "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
                 "binding-full-continuum",
             ),
             (
@@ -2828,8 +2828,8 @@ class PhaseFiveExternalComparisonProtocol(_ContractModel):
                 "bb04f50a3ec117d180a79260c6a5c844f1d8dbbc",
                 "pypi-wheel",
                 "dda95cb525e229b60bc357d3e5fc454cac20f364ee8aa10b730c2f7223da428d",
-                "sha256:ca5fd09f82041d619d286cd2ccb33d36d30c8d5e87aba8e7098a623d46b1f808",
-                "74f378721391486dc1a2c41dc1570bea21f09225d5165c3f29c891dd9e479a2e",
+                "sha256:b496d2907c13d083e7c87eda61a6a40057f92b5cb6e605330bcb1b6db27158b8",
+                "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
                 "binding-compact-blended-and-gaussian-like-catalogue",
             ),
         )
@@ -2894,7 +2894,10 @@ class PhaseFiveExternalExecutionDecision(_ContractModel):
 
     schema_version: Literal[1]
     decision_id: Literal["phase-5-external-execution-decision"]
-    status: Literal["reviewed-before-external-output"]
+    status: Literal[
+        "awaiting-reconstructed-runtime-approval",
+        "reviewed-before-external-output",
+    ]
     protocol_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     candidate_review_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     implementation_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
@@ -2908,19 +2911,47 @@ class PhaseFiveExternalExecutionDecision(_ContractModel):
         PhaseFiveExternalRunnerArtifact,
     ]
     named_review: str = Field(min_length=1)
-    decision: Literal["authorize-one-terminal-external-comparison"]
-    execution_authorized: Literal[True]
+    decision: Literal[
+        "await-renewed-runtime-approval",
+        "authorize-one-terminal-external-comparison",
+    ]
+    execution_authorized: bool
     one_look_opened: Literal[False]
     step_three_authorized: Literal[False]
     optimization_authorized: Literal[False]
     qualification_opened: Literal[False]
     next_action: Literal[
-        "execute-complete-frozen-comparison-once-without-opening-partial-results"
+        "execute-complete-frozen-comparison-once-without-opening-partial-results",
+        "obtain-renewed-runtime-approval-before-campaign-preflight",
     ]
 
     @model_validator(mode="after")
-    def validate_runner_order(self) -> Self:
-        """Keep the three isolated entry points canonical and complete."""
+    def validate_state_and_runner_order(self) -> Self:
+        """Keep authorization state and entry points canonical."""
+        pending = self.status == "awaiting-reconstructed-runtime-approval"
+        expected_state = (
+            (
+                "await-renewed-runtime-approval",
+                False,
+                "obtain-renewed-runtime-approval-before-campaign-preflight",
+            )
+            if pending
+            else (
+                "authorize-one-terminal-external-comparison",
+                True,
+                "execute-complete-frozen-comparison-once-without-opening-"
+                "partial-results",
+            )
+        )
+        observed_state = (
+            self.decision,
+            self.execution_authorized,
+            self.next_action,
+        )
+        if observed_state != expected_state:
+            raise ValueError(
+                "external execution authorization state is invalid"
+            )
         if tuple(item.relative_path for item in self.runners) != (
             "scripts/benchmark/run_phase5_external_hebog.py",
             "scripts/benchmark/run_phase5_external_pybdsf.py",

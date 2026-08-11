@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Literal
 
@@ -47,8 +48,38 @@ _SHA256 = "0" * 64
 _CONTAINER_DIGEST = f"sha256:{_SHA256}"
 
 
-def test_external_execution_decision_binds_approved_runtime() -> None:
-    """The one-look authorization cannot drift from the named approval."""
+def test_external_protocol_binds_reconstructed_reference_runtimes() -> None:
+    """The frozen finder versions use only the reviewed replacement images."""
+    protocol = load_phase_five_external_comparison_protocol(_PROTOCOL)
+
+    assert tuple(
+        (
+            reference.finder_id,
+            reference.container_image_digest,
+            reference.dependency_inventory_sha256,
+        )
+        for reference in protocol.references
+    ) == (
+        (
+            "released-pybdsf",
+            "sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37",
+            "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+        ),
+        (
+            "pinned-pybdsf-master",
+            "sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73",
+            "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
+        ),
+        (
+            "aegean",
+            "sha256:b496d2907c13d083e7c87eda61a6a40057f92b5cb6e605330bcb1b6db27158b8",
+            "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
+        ),
+    )
+
+
+def test_external_execution_decision_records_pending_runtime_review() -> None:
+    """Reconstructed identities remain fail-closed before named approval."""
     decision = load_phase_five_external_execution_decision(_EXECUTION_DECISION)
 
     assert decision.protocol_sha256 == file_sha256(_PROTOCOL)
@@ -58,15 +89,100 @@ def test_external_execution_decision_binds_approved_runtime() -> None:
     )
     assert decision.source_tree_sha256 == source_tree_sha256(_ROOT)
     assert decision.hebog_container_image_digest == (
-        "sha256:b92080db558246e2ae781c69f6caf39fef8e393ab74ea6774d9b02672981b4ce"
+        "sha256:f78be6d330859cdd0889c476e26c884796f4991aaaf7bec52b90aa14a23c46ce"
     )
     assert decision.hebog_dependency_inventory_sha256 == (
         "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2"
     )
     assert decision.pybdsf_ncores == 4
-    assert decision.named_review == "Gemma Danks, 2026-08-11"
+    assert decision.named_review == (
+        "Codex technical runtime pre-review, 2026-08-11"
+    )
+    assert decision.execution_authorized is False
     for artifact in decision.runners:
         assert artifact.sha256 == file_sha256(_ROOT / artifact.relative_path)
+
+
+def test_pending_runtime_review_cannot_authorize_an_external_run(
+    tmp_path: Path,
+) -> None:
+    """Technical preparation cannot substitute for named authorization."""
+    input_path = materialize_external_realization(
+        _PROTOCOL,
+        _COMPACT_MANIFEST,
+        _COMPACT_DATASET,
+        _COMPACT_SEED,
+        tmp_path / "input",
+    )
+    runner_paths = (
+        "scripts/benchmark/run_phase5_external_hebog.py",
+        "scripts/benchmark/run_phase5_external_pybdsf.py",
+        "scripts/benchmark/run_phase5_external_aegean.py",
+    )
+    decision = PhaseFiveExternalExecutionDecision.model_validate(
+        {
+            "schema_version": 1,
+            "decision_id": "phase-5-external-execution-decision",
+            "status": "awaiting-reconstructed-runtime-approval",
+            "protocol_sha256": file_sha256(_PROTOCOL),
+            "candidate_review_sha256": file_sha256(_BASE_REVIEW),
+            "implementation_commit": "0" * 40,
+            "source_tree_sha256": source_tree_sha256(_ROOT),
+            "hebog_container_image_digest": _CONTAINER_DIGEST,
+            "hebog_dependency_inventory_sha256": _SHA256,
+            "pybdsf_ncores": 4,
+            "runners": [
+                {
+                    "relative_path": relative_path,
+                    "sha256": file_sha256(_ROOT / relative_path),
+                }
+                for relative_path in runner_paths
+            ],
+            "named_review": "technical pre-review only",
+            "decision": "await-renewed-runtime-approval",
+            "execution_authorized": False,
+            "one_look_opened": False,
+            "step_three_authorized": False,
+            "optimization_authorized": False,
+            "qualification_opened": False,
+            "next_action": (
+                "obtain-renewed-runtime-approval-before-campaign-preflight"
+            ),
+        }
+    )
+    decision_path = tmp_path / "pending-decision.json"
+    decision_path.write_text(decision.model_dump_json(), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="execution is not authorized"):
+        authorize_external_run(
+            protocol_path=_PROTOCOL,
+            execution_decision_path=decision_path,
+            input_bundle_path=input_path,
+            runner_path=_ROOT / runner_paths[0],
+            finder_id="hebog",
+        )
+
+
+@pytest.mark.parametrize(
+    "updates",
+    (
+        {"execution_authorized": True},
+        {
+            "status": "reviewed-before-external-output",
+            "decision": "authorize-one-terminal-external-comparison",
+            "execution_authorized": True,
+        },
+    ),
+)
+def test_external_decision_rejects_mixed_authorization_state(
+    updates: dict[str, object],
+) -> None:
+    """No partial field edit can turn preparation into authorization."""
+    document = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
+    document.update(updates)
+
+    with pytest.raises(ValueError, match="authorization state is invalid"):
+        PhaseFiveExternalExecutionDecision.model_validate(document)
 
 
 def _runtime(name: str, version: str) -> ExternalRuntimeIdentity:

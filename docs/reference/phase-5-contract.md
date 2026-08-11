@@ -277,7 +277,7 @@ and hash-bound.
 | Step 2C-HR development decision | `cd6d54cf1c22daf3d68423bc931b58bb81ec192d30ec9c1472bdabcd22969c72` |
 | Step 2C-HR human confirmation decision | `02124201a45ecc9e88ac9542de1f6ee0fa5a5a0a43759247bc696c68170664ab` |
 | Step 2C-HR confirmation decision | `61eff7dd2c3785a82b3048ebdfc88a3f6004f34e1b1183be2e409ceab4094b75` |
-| Step 2C-P external comparison protocol | `b9db9adbd1cae1a8c11a081b0af245e3e8dca8979bce9e2dc0ffda968c5d2d72` |
+| Step 2C-P external comparison protocol | `7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d` |
 | Step 2C-P continuum manifest | `9f88b8904b264e61c5a7445fd8a0cc966cf928d072d010dce3c6d47b6e8e6193` |
 | Step 2C-P compact/blend manifest | `55c6ecef09711219e45f3e6192cea130b17a02bded6b10e72e1a839743ce2e32` |
 | Qualification manifest | `40f1d0cfd173947e323cc35ff140c04f25fdd5c8303fbab8c138dc058fb0235f` |

@@ -6659,3 +6659,49 @@ approximately 60 GiB safe campaign target for roughly 46 GiB of raw products.
 **Immediate next step:** finish host cleanup, then review and bind the four
 reconstructed image and dependency identities. Repeat the launcher's no-write
 preflight against that renewed decision before opening the one-look once.
+
+## 2026-08-11 — Made reconstructed-runtime preparation fail closed
+
+**Plan phase:** Phase 5, Step 2C-P — renewed execution preparation
+
+- Reviewed the external runtime delta before rebinding it. Released PyBDSF
+  1.14.1 and pinned master use identical minimal Python 3.12.3 scientific
+  stacks and differ only in the `bdsf` distribution. Their artifact and source
+  revisions remain exact, and both reproduce three sources and three Gaussians
+  on the governed 256-pixel compact fixture.
+- Rejected the first Aegean reconstruction because dependency resolution had
+  advanced Astropy from 7.2.2 to 8.0.1 and SciPy from 1.17.1 to 1.18.0. Built
+  and smoke-tested replacement `sha256:b496d29...` with the originally frozen
+  NumPy 2.5.2, SciPy 1.17.1, Astropy 7.2.2, and LMFit 1.3.4 stack. Its complete
+  inventory hashes to `346c1f3...`, and its standard 5/4-sigma run again finds
+  three islands and fits six components. Removed the superseded image.
+- Protocol-bound the reconstructed PyBDSF release/master and matched Aegean
+  identities without changing finder versions, artifacts, configurations,
+  populations, endpoints, gates, or inference. Updated the protocol,
+  endpoint-registry, launcher, and evaluator hash chain.
+- Added an explicit `awaiting-reconstructed-runtime-approval` execution state.
+  Both one-realization authorization and the complete campaign launcher reject
+  this state before opening an input or private staging. Unit tests use local
+  synthetic authorization only to preserve structural success-path coverage.
+- Updating the runtime validator changes the complete Hebog source-tree hash,
+  so the earlier reconstructed Hebog image cannot become the final campaign
+  image. Execution remains false until a clean committed image is rebuilt and
+  all four exact identities receive named approval.
+- Removed exact untagged failed-build images and stopped build containers from
+  the earlier attempt. Podman retained deeper shared layers used by other
+  external build containers; the four reviewed runtime images were untouched.
+
+**Validation:** the new fail-closed test first failed because the decision
+schema accepted only authorization. The reconstructed-reference test then
+failed against the historical identities. After implementation, 63 focused
+external protocol, runner, launcher, compiler, evaluator, materialization, and
+freezer tests pass. The full branch-aware lane passes 1,216 tests with four
+expected failures and 93.96% project coverage. No campaign input, staging
+path, or finder output was created or inspected; the one-look remains
+unopened. Current host free space is approximately 58 GiB, close to but not
+yet at the approximately 60 GiB campaign safety target.
+
+**Immediate next step:** commit this non-authorized source state, rebuild and
+smoke-test Hebog from that exact commit, and bind the resulting immutable
+identity. Named approval and the no-write 1,400-input/7,000-run preflight remain
+required before campaign execution.

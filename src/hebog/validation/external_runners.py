@@ -203,6 +203,8 @@ def authorize_external_run(
     decision = load_phase_five_external_execution_decision(
         execution_decision_path
     )
+    if not decision.execution_authorized:
+        raise ValueError("external comparison execution is not authorized")
     input_bundle = load_external_input_bundle(
         input_bundle_path,
         verify_artifacts=True,

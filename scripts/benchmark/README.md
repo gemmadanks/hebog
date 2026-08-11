@@ -53,13 +53,13 @@ and PyBDSF's core count; each external runner checks its protocol-bound
 container digest and installed dependency-inventory hash. No such decision is
 accepted unless it is the exact checked-in
 `config/contracts/phase-5-external-execution-decision.json`. That decision now
-records the earlier authorization, but its four bound local images were lost
-before execution. Scientifically matched reconstructed images are now present;
-their new identities are recorded in
-[`containers/phase5/README.md`](containers/phase5/README.md). The old decision
-does not authorize them. The one-look remains unopened, so do not use the
-entry points or complete-population launcher until a renewed runtime review
-and execution decision bind the reconstructed identities.
+records the reconstructed external-reference identities but has the explicit
+`awaiting-reconstructed-runtime-approval` status and does not authorize
+execution. Their new identities are recorded in
+[`containers/phase5/README.md`](containers/phase5/README.md). The one-look
+remains unopened, so neither the entry points nor complete-population launcher
+can proceed until a rebuilt Hebog image and named renewed approval complete the
+identity chain.
 
 `run_phase5_external_campaign.py` is that launcher. It first expands the
 complete 1,400-input, 7,000-run matrix and inspects all four local image tags
@@ -78,9 +78,10 @@ uv run python scripts/benchmark/run_phase5_external_campaign.py \
 
 The historical reviewed preflight request is
 `182944e174098544092a8e48490bdbfd39f7d9e332a9beb586b1db2441522ef7`.
-That command now fails closed because the four approved image identities are
-absent. Do not substitute the `-reconstructed` tags or run without
-`--preflight-only` until the new identities have been reviewed and rebound.
+That command now fails closed because the checked-in decision explicitly
+withholds execution authorization. Do not run with reconstructed tags or
+without `--preflight-only` until the new identities have been reviewed and
+rebound.
 Once renewed authorization exists, the launcher executes inspected immutable
 image IDs, not mutable tags, with networking disabled and publishes only after
 all legs are terminal and verified. If infrastructure interrupts the private
