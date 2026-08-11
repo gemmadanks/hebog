@@ -18,5 +18,5 @@ RUN uv sync --frozen --no-install-project --no-dev
 COPY src/ ./src/
 RUN uv sync --frozen --no-dev
 LABEL org.hebog.phase="5-step-2c-p-reconstruction" \
-      org.opencontainers.image.revision="106715b22b9858149e42467f4e2c581f15961cb0"
+      org.opencontainers.image.revision="303a49de3ea37af795d34e361f522a419d5c0bc2"
 CMD ["hebog", "--version"]

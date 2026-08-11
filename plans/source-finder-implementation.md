@@ -911,8 +911,9 @@ against those identities and left both public and private campaign paths
 absent. Those four local images were subsequently lost before execution.
 The external-reference reconstructions are smoke-tested and protocol-bound;
 Aegean was rebuilt again to retain the originally frozen Astropy/SciPy stack.
-The active decision now fails closed pending a Hebog rebuild from the updated
-runtime validator, renewed named approval, and no-write preflight. A
+The final Hebog image has now been rebuilt from the committed fail-closed
+validator source and bound into the still-pending execution decision. Renewed
+named approval and the no-write preflight remain. A
 checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
@@ -1313,13 +1314,19 @@ and spill behaviour, and facility-scale execution.
          islands and six components. Protocol-bind the three reviewed external
          images and make the active execution decision explicitly fail closed
          while approval is pending.
-   - [ ] Rebuild Hebog from the committed fail-closed validator source, then
-         bind its new image, source tree, commit, and unchanged dependency
-         inventory. Obtain named approval for all four new identities, retain
-         four PyBDSF cores and the 512-pixel limitation, and repeat the complete
-         launcher's no-write preflight. The historical decision is not
-         transferable and campaign execution remains closed until these steps
-         pass.
+   - [x] Rebuild Hebog from committed fail-closed validator source
+         `303a49de...`. The final Linux/arm64 image is `sha256:728bbd7...`, its
+         source tree is `2f80c87...`, and its unchanged dependency inventory is
+         `d383be3...`. The CLI, runner-help boundary, checksum checks, and
+         governed 256-pixel compact fixture pass with the expected three
+         sources. Bind that exact identity into the pending decision and
+         refresh the registry/evaluation hash chain. Host free space is 61 GiB,
+         above the approximate 60 GiB campaign safety target.
+   - [ ] Obtain named approval for all four reconstructed identities, retaining
+         four PyBDSF cores and the approved 512-pixel limitation, then repeat
+         the complete launcher's no-write preflight. The historical approval
+         is not transferable and campaign execution remains closed until both
+         steps pass.
    - [x] Implement and review the complete-population launcher. It stages
          all inputs and raw finder results privately, refuses an existing
          campaign target, retains every failed image in the denominator, and
@@ -1363,7 +1370,7 @@ and spill behaviour, and facility-scale execution.
          `phase-5-external-evaluation.json`, and obtain pre-results review. Do
          not run or inspect the fresh 1,400-image campaign before this closes.
          This prerequisite is closed: the compiler is bound at `81d1384d...`,
-         the runtime-rebound endpoint registry at `e56074be...`, and the
+         the runtime-rebound endpoint registry at `49a76259...`, and the
          evaluator at
          `df99e10a...`. Exact request/runtime drift, topology semantics,
          conditional measurements, failures, applicability, endpoint sets,

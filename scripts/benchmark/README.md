@@ -57,9 +57,9 @@ records the reconstructed external-reference identities but has the explicit
 `awaiting-reconstructed-runtime-approval` status and does not authorize
 execution. Their new identities are recorded in
 [`containers/phase5/README.md`](containers/phase5/README.md). The one-look
-remains unopened, so neither the entry points nor complete-population launcher
-can proceed until a rebuilt Hebog image and named renewed approval complete the
-identity chain.
+remains unopened. The final Hebog image is rebuilt and identity-bound, so
+named renewed approval is the remaining prerequisite before the no-write
+preflight.
 
 `run_phase5_external_campaign.py` is that launcher. It first expands the
 complete 1,400-input, 7,000-run matrix and inspects all four local image tags
@@ -68,10 +68,10 @@ writes and must pass before the terminal run:
 
 ```console
 uv run python scripts/benchmark/run_phase5_external_campaign.py \
-  --hebog-image localhost/hebog:phase5-external-106715b \
-  --released-pybdsf-image localhost/rapthor-dev:ci-aligned \
-  --master-pybdsf-image localhost/hebog-pybdsf-master:c70103be3 \
-  --aegean-image localhost/hebog-aegean:2.3.5-step2cp \
+  --hebog-image localhost/hebog:phase5-external-303a49d-reconstructed-final \
+  --released-pybdsf-image localhost/rapthor-dev:ci-aligned-reconstructed \
+  --master-pybdsf-image localhost/hebog-pybdsf-master:c70103be3-reconstructed \
+  --aegean-image localhost/hebog-aegean:2.3.5-step2cp-reconstructed-matched \
   --output benchmark-results/phase-5/external-source-finder-comparison \
   --preflight-only
 ```
@@ -79,9 +79,9 @@ uv run python scripts/benchmark/run_phase5_external_campaign.py \
 The historical reviewed preflight request is
 `182944e174098544092a8e48490bdbfd39f7d9e332a9beb586b1db2441522ef7`.
 That command now fails closed because the checked-in decision explicitly
-withholds execution authorization. Do not run with reconstructed tags or
-without `--preflight-only` until the new identities have been reviewed and
-rebound.
+withholds execution authorization. Do not run it until the rebound identities
+have received named approval, and do not omit `--preflight-only` until that
+preflight passes.
 Once renewed authorization exists, the launcher executes inspected immutable
 image IDs, not mutable tags, with networking disabled and publishes only after
 all legs are terminal and verified. If infrastructure interrupts the private

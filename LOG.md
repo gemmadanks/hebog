@@ -6705,3 +6705,41 @@ yet at the approximately 60 GiB campaign safety target.
 smoke-test Hebog from that exact commit, and bind the resulting immutable
 identity. Named approval and the no-write 1,400-input/7,000-run preflight remain
 required before campaign execution.
+
+## 2026-08-11 — Bound the final reconstructed Hebog runtime
+
+**Plan phase:** Phase 5, Step 2C-P — final runtime preparation
+
+- Committed the fail-closed validator and reconstructed-reference bindings as
+  `303a49de3ea37af795d34e361f522a419d5c0bc2`, then built Hebog only from a
+  clean archive of that commit. The final Linux/arm64 image tag is
+  `localhost/hebog:phase5-external-303a49d-reconstructed-final`; its immutable
+  digest is
+  `sha256:728bbd7ab59d0fbb9537d36fac34652e640300091024498cbebdaeb452da55a6`.
+- Recomputed the runtime identities inside the image. Its source-tree SHA-256
+  is `2f80c8779d3d8fe91fc599aa98edd95491d13922667cbab3af9d178caecc225b`,
+  exactly matching the committed checkout, and its 35-distribution inventory
+  remains `d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2`.
+  The OCI revision label carries the complete implementation commit.
+- Bound the final image and commit into the still-pending execution decision.
+  The decision hash is `36825774...`; the refreshed endpoint-registry and
+  evaluation-contract hashes are `49a76259...` and `3ed90c21...`. Execution,
+  one-look, optimization, Step 3, and qualification flags remain false.
+- Host free space is now 61 GiB, above the approximate 60 GiB safety target
+  for roughly 46 GiB of raw campaign products.
+- Removed only the superseded `sha256:f78be6d...` Hebog reconstruction after
+  resolving its exact tag and digest. A final inspection confirms all four
+  bound Linux/arm64 runtime digests remain present.
+
+**Validation:** the image reports Hebog 0.6.0, the exact source and dependency
+checksums above, and the expected commit label. The read-only campaign-runner
+help boundary passes. The complete compact path over the governed 256-pixel
+development fixture returns the expected three source identifiers. Registry
+and evaluation loaders accept the refreshed hash chain. No campaign input,
+staging path, or finder result was created or inspected; the one-look remains
+unopened.
+
+**Immediate next step:** obtain renewed named approval for the four exact
+reconstructed runtime identities, the unchanged four-core PyBDSF allocation,
+and the approved 512-pixel diagnostic limitation. Only then may the decision
+be authorized and the complete no-write preflight run.

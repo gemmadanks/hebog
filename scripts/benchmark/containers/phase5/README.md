@@ -40,13 +40,14 @@ podman build --platform linux/arm64 \
 ```
 
 Build Hebog only from a clean archive of
-`106715b22b9858149e42467f4e2c581f15961cb0`. Place
+`303a49de3ea37af795d34e361f522a419d5c0bc2`. Place
 `Containerfile.hebog` at the archive root, then run:
 
 ```console
 podman build --platform linux/arm64 \
   --file Containerfile.hebog \
-  --tag localhost/hebog:phase5-external-106715b-reconstructed .
+  --label org.opencontainers.image.revision=303a49de3ea37af795d34e361f522a419d5c0bc2 \
+  --tag localhost/hebog:phase5-external-303a49d-reconstructed-final .
 ```
 
 The Hebog definition pins the two parent identities used by the approved
@@ -63,13 +64,13 @@ The 2026-08-11 reconstruction produced:
 
 | Runtime | Image digest | Dependency inventory SHA-256 |
 | --- | --- | --- |
-| Hebog | `sha256:f78be6d330859cdd0889c476e26c884796f4991aaaf7bec52b90aa14a23c46ce` | `d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2` |
+| Hebog | `sha256:728bbd7ab59d0fbb9537d36fac34652e640300091024498cbebdaeb452da55a6` | `d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2` |
 | PyBDSF 1.14.1 | `sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37` | `8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f` |
 | PyBDSF master | `sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73` | `83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99` |
 | AegeanTools 2.3.5 | `sha256:b496d2907c13d083e7c87eda61a6a40057f92b5cb6e605330bcb1b6db27158b8` | `346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909` |
 
 The two PyBDSF inventories are identical except for the `bdsf` version. The
-Hebog source tree remains exactly
-`471bed9a428df10d9139afc334d97b5df190f4f64e6dd6daeb91f9b436d37362`.
+final Hebog source tree is
+`2f80c8779d3d8fe91fc599aa98edd95491d13922667cbab3af9d178caecc225b`.
 The Aegean replacement deliberately retains the originally frozen NumPy
 2.5.2, SciPy 1.17.1, Astropy 7.2.2, and LMFit 1.3.4 scientific stack.

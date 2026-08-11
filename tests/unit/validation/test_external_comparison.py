@@ -85,11 +85,11 @@ def test_external_execution_decision_records_pending_runtime_review() -> None:
     assert decision.protocol_sha256 == file_sha256(_PROTOCOL)
     assert decision.candidate_review_sha256 == file_sha256(_BASE_REVIEW)
     assert decision.implementation_commit == (
-        "106715b22b9858149e42467f4e2c581f15961cb0"
+        "303a49de3ea37af795d34e361f522a419d5c0bc2"
     )
     assert decision.source_tree_sha256 == source_tree_sha256(_ROOT)
     assert decision.hebog_container_image_digest == (
-        "sha256:f78be6d330859cdd0889c476e26c884796f4991aaaf7bec52b90aa14a23c46ce"
+        "sha256:728bbd7ab59d0fbb9537d36fac34652e640300091024498cbebdaeb452da55a6"
     )
     assert decision.hebog_dependency_inventory_sha256 == (
         "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2"
