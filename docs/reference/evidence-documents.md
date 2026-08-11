@@ -130,17 +130,18 @@ power, and the one-look failure policy. It keeps execution false until the
 three runners and matcher are implemented, tested, and hash-bound by a
 separate review.
 
-A `phase-5-external-execution-decision` is the only record that can open those
-runners. It binds the frozen protocol, residual-B3 candidate review, committed
-implementation revision, complete production-source-tree digest, and the
-three isolated entry-point digests. It also freezes the Hebog container and
-dependency inventory and the PyBDSF core count; reference container and
-dependency identities remain fixed by the prospective protocol. The decision
-is valid only before the one-look population opens and keeps Step 3,
-optimization, and qualification false. Each raw one-realization `result.json`
-then binds that decision and the common `input.json`, preserves a finder
-failure rather than dropping the image, and lists every output artifact by
-relative path, byte count, and SHA-256.
+The checked-in
+`config/contracts/phase-5-external-execution-decision.json` is the only record
+that can open those runners. It binds the frozen protocol, residual-B3
+candidate review, committed implementation revision, complete production-
+source-tree digest, and the three isolated entry-point digests. It also
+freezes the Hebog container and dependency inventory and the PyBDSF core
+count; reference container and dependency identities remain fixed by the
+prospective protocol. The decision is valid only before the one-look
+population opens and keeps Step 3, optimization, and qualification false.
+Each raw one-realization `result.json` then binds that decision and the common
+`input.json`, preserves a finder failure rather than dropping the image, and
+lists every output artifact by relative path, byte count, and SHA-256.
 
 ## Paired scientific-campaign evidence
 

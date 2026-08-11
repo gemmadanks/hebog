@@ -11,6 +11,7 @@ import pytest
 from hebog.validation.contracts import (
     PhaseFiveExternalExecutionDecision,
     load_phase_five_external_comparison_protocol,
+    load_phase_five_external_execution_decision,
 )
 from hebog.validation.external_comparison import (
     AssociationObject,
@@ -33,6 +34,9 @@ from hebog.validation.materialization import (
 
 _ROOT = Path(__file__).parents[3]
 _PROTOCOL = _ROOT / "config/contracts/phase-5-external-comparison.json"
+_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/phase-5-external-execution-decision.json"
+)
 _BASE_REVIEW = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
 _COMPACT_MANIFEST = (
     _ROOT / "config/datasets/phase-5-external-compact-blend.json"
@@ -41,6 +45,28 @@ _COMPACT_DATASET = "phase5-external-compact-blend-512"
 _COMPACT_SEED = 2026790002
 _SHA256 = "0" * 64
 _CONTAINER_DIGEST = f"sha256:{_SHA256}"
+
+
+def test_external_execution_decision_binds_approved_runtime() -> None:
+    """The one-look authorization cannot drift from the named approval."""
+    decision = load_phase_five_external_execution_decision(_EXECUTION_DECISION)
+
+    assert decision.protocol_sha256 == file_sha256(_PROTOCOL)
+    assert decision.candidate_review_sha256 == file_sha256(_BASE_REVIEW)
+    assert decision.implementation_commit == (
+        "106715b22b9858149e42467f4e2c581f15961cb0"
+    )
+    assert decision.source_tree_sha256 == source_tree_sha256(_ROOT)
+    assert decision.hebog_container_image_digest == (
+        "sha256:b92080db558246e2ae781c69f6caf39fef8e393ab74ea6774d9b02672981b4ce"
+    )
+    assert decision.hebog_dependency_inventory_sha256 == (
+        "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2"
+    )
+    assert decision.pybdsf_ncores == 4
+    assert decision.named_review == "Gemma Danks, 2026-08-11"
+    for artifact in decision.runners:
+        assert artifact.sha256 == file_sha256(_ROOT / artifact.relative_path)
 
 
 def _runtime(name: str, version: str) -> ExternalRuntimeIdentity:

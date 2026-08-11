@@ -2,9 +2,11 @@
 
 **Status:** the Step 2C-P protocol and its matcher, common-input materializer,
 product adapters, and three isolated runner implementations are complete
-without opening finder output. Execution is not yet authorized: a separate
-named decision must bind the committed source tree and runner hashes. Step 3,
-optimization, and qualification remain closed.
+without opening finder output. Gemma Danks approved the exact hash-bound
+one-look execution on 2026-08-11, and the authorization is frozen in
+`config/contracts/phase-5-external-execution-decision.json`. The one-look
+population remains unopened while the complete-population staging boundary is
+reviewed. Step 3, optimization, and qualification remain closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -134,11 +136,13 @@ atomic `result.json` with checksummed native or normalized artifacts. Failures
 remain typed results in the image denominator; partial products are discarded,
 and existing results cannot be replaced.
 
-The next change must bind the committed source tree, candidate review, frozen
-protocol, and three runner hashes in a separately reviewed one-look execution
-decision. The runners will not open an input without that record. No finder
-output may be generated before the review. Passing Step 2C-P will still require
-a reviewed scientific decision before Step 3 opens.
+The approved execution decision binds the committed source tree, candidate
+review, frozen protocol, four-core PyBDSF allocation, Hebog runtime, and three
+runner hashes. The next change must provide and review a complete-population
+launcher that stages all work privately, refuses an existing campaign target,
+and exposes no partial result before the terminal run is complete. Passing
+Step 2C-P will still require a reviewed scientific decision before Step 3
+opens.
 
 ### Prepared Hebog runtime
 
@@ -164,4 +168,4 @@ The CLI and validation imports passed, as did the residual-B3 kernel on a
 64-by-64 zero plane and the complete compact branch on the existing 256-pixel
 development fixture. These checks did not materialize, process, or inspect any
 frozen external-comparison realization. Final execution authorization remains
-absent.
+present; the one-look population remains unopened.

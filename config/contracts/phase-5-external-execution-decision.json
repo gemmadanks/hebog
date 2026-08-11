@@ -1,0 +1,34 @@
+{
+  "candidate_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+  "decision": "authorize-one-terminal-external-comparison",
+  "decision_id": "phase-5-external-execution-decision",
+  "execution_authorized": true,
+  "hebog_container_image_digest": "sha256:b92080db558246e2ae781c69f6caf39fef8e393ab74ea6774d9b02672981b4ce",
+  "hebog_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+  "implementation_commit": "106715b22b9858149e42467f4e2c581f15961cb0",
+  "named_review": "Gemma Danks, 2026-08-11",
+  "next_action": "execute-complete-frozen-comparison-once-without-opening-partial-results",
+  "one_look_opened": false,
+  "optimization_authorized": false,
+  "protocol_sha256": "b9db9adbd1cae1a8c11a081b0af245e3e8dca8979bce9e2dc0ffda968c5d2d72",
+  "pybdsf_ncores": 4,
+  "qualification_opened": false,
+  "runners": [
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_hebog.py",
+      "sha256": "ea912a43a8523d01af29350e5b9f9523c6175de48f9c4e31e45853c04657592b"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_pybdsf.py",
+      "sha256": "9e9de39eed5838df0571391d53c60814ed495a23f976e008bb070640004898fd"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_aegean.py",
+      "sha256": "016d6a852b0564c7a8f56068a97e9a8be3320ef91b3097099f1f9405f8320ae9"
+    }
+  ],
+  "schema_version": 1,
+  "source_tree_sha256": "471bed9a428df10d9139afc334d97b5df190f4f64e6dd6daeb91f9b436d37362",
+  "status": "reviewed-before-external-output",
+  "step_three_authorized": false
+}

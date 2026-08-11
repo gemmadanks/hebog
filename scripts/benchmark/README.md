@@ -51,7 +51,10 @@ decision that binds the protocol, candidate review, complete source tree, and
 runner hash. The decision also freezes Hebog's container/dependency inventory
 and PyBDSF's core count; each external runner checks its protocol-bound
 container digest and installed dependency-inventory hash. No such decision is
-checked in yet, so these entry points fail closed and must not be used to
+accepted unless it is the exact checked-in
+`config/contracts/phase-5-external-execution-decision.json`. That decision now
+authorizes one terminal comparison but the one-look remains unopened; use the
+entry points only through the reviewed complete-population launcher, never to
 inspect partial results.
 
 Successful runs atomically publish a raw `result.json` plus checksummed finder

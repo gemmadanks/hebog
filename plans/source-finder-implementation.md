@@ -916,10 +916,13 @@ That Linux/arm64 runtime is now prepared from commit `106715b` as image
 `sha256:b92080d...b4ce`, with dependency-inventory SHA-256
 `d383be3...b5a2`; its candidate kernel and complete compact branch passed
 smoke tests without opening the external population. Execution remains
-blocked until these exact identities and the runner hashes are bound by a
-separate final named one-look decision. Step 3, candidate-specific
-optimization, and qualification remain blocked; no external non-inferiority,
-multiscale equivalence, or complete runtime claim is approved.
+unopened, but Gemma Danks approved the exact hash-bound one-look decision on
+2026-08-11. The checked-in authorization binds all runner and runtime
+identities and four PyBDSF cores. The complete-population launcher must still
+be implemented and reviewed before the terminal run begins. Step 3,
+candidate-specific optimization, and qualification remain blocked; no
+external non-inferiority, multiscale equivalence, or complete runtime claim is
+approved.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1264,8 +1267,8 @@ and spill behaviour, and facility-scale execution.
          of the image. The runner therefore marks that controlled diagnostic
          unavailable rather than mislabelling it; the operational primary and
          the 1,024-pixel continuum controlled diagnostic are unaffected. Named
-         review must accept this diagnostic limitation or revise the frozen
-         design before authorizing the one terminal comparison.
+         review accepted this scoped limitation on 2026-08-11 before
+         authorizing the one terminal comparison.
    - [x] Prepare the approved immutable Hebog runtime from the clean
          `106715b22b9858149e42467f4e2c581f15961cb0` archive. The Linux/arm64
          Python 3.14.7 image digest is
@@ -1277,6 +1280,19 @@ and spill behaviour, and facility-scale execution.
          The CLI/import surface, zero-image residual-B3 kernel, and complete
          compact branch on the existing 256-pixel development fixture passed.
          No external-comparison realization was materialized or processed.
+   - [x] Freeze Gemma Danks's 2026-08-11 final approval as
+         `config/contracts/phase-5-external-execution-decision.json`. The
+         decision binds protocol `b9db9ad...`, residual-B3 review `b7bcf5d...`,
+         implementation `106715b`, source tree `471bed9...`, the three exact
+         runner hashes, the prepared Hebog runtime, and four PyBDSF cores. It
+         authorizes one terminal comparison while keeping the one-look
+         unopened and Step 3, optimization, and qualification false.
+   - [ ] Implement and review the complete-population launcher. It must stage
+         all inputs and raw finder results privately, refuse an existing
+         campaign target, retain every failed image in the denominator, and
+         publish nothing until all frozen legs have reached a terminal state.
+         Do not use the one-realization runners interactively or inspect
+         partial products.
    - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
          (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
          on the same FITS images, beam, WCS, valid region, and declared science

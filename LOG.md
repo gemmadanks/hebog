@@ -6413,3 +6413,32 @@ output was generated or inspected.
 implementation, source-tree, runner, container, dependency, and four-core
 identities for final named approval. Only after that approval may the separate
 one-look execution decision be written and committed.
+
+## 2026-08-11 — Authorized the Step 2C-P one-look execution
+
+**Plan phase:** Phase 5, Step 2C-P — final pre-execution decision
+
+- Gemma Danks explicitly approved the final one-look execution decision bound
+  to the presented protocol, candidate-review, implementation, source-tree,
+  runner, Hebog-container, dependency-inventory, and four-core PyBDSF
+  identities.
+- Wrote the immutable authorization as
+  `config/contracts/phase-5-external-execution-decision.json`. It records
+  `one_look_opened=false` and keeps Step 3, candidate-specific optimization,
+  and qualification false. A focused regression test recomputes the protocol,
+  candidate-review, source-tree, and runner hashes from the checkout and
+  requires the exact approved runtime and named reviewer.
+- The decision authorizes one complete terminal comparison, not interactive
+  execution of individual realizations. No finder process was started and no
+  one-look output was opened while writing the record.
+
+**Validation:** the decision-drift test first failed because the authorization
+file was absent, then passed after the exact approved record was written. All
+nine focused external-comparison boundary tests passed, as did the strict
+documentation build and `just check` with Ruff, Pyright, 1,041 unit/doctest
+cases, and four expected failures.
+
+**Immediate next step:** implement and review the complete-population launcher
+that privately stages every frozen leg and publishes only after all legs are
+terminal. The approved one-look must remain unopened until that boundary is
+ready.
