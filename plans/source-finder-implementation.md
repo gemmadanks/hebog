@@ -909,11 +909,17 @@ The Step 2C-P protocol is now frozen over 600 continuum and 800 compact/blend
 images, exact PyBDSF release/master and Aegean runtimes, a truth-first matcher,
 and a 0.9082 conservative joint-power lower bound. The matcher, common FITS
 materializer, product adapters, and isolated Hebog/PyBDSF/Aegean runners are
-implemented and tested without opening finder output. Execution remains
-blocked until their committed identities are bound by a separate named
-one-look decision. Step 3, candidate-specific optimization, and qualification
-remain blocked; no external non-inferiority, multiscale equivalence, or
-complete runtime claim is approved.
+implemented and tested without opening finder output. On 2026-08-11 Gemma
+Danks approved the unavailable 512-pixel PyBDSF controlled-background
+diagnostic, four PyBDSF cores, and preparation of the immutable Hebog runtime.
+That Linux/arm64 runtime is now prepared from commit `106715b` as image
+`sha256:b92080d...b4ce`, with dependency-inventory SHA-256
+`d383be3...b5a2`; its candidate kernel and complete compact branch passed
+smoke tests without opening the external population. Execution remains
+blocked until these exact identities and the runner hashes are bound by a
+separate final named one-look decision. Step 3, candidate-specific
+optimization, and qualification remain blocked; no external non-inferiority,
+multiscale equivalence, or complete runtime claim is approved.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1260,6 +1266,17 @@ and spill behaviour, and facility-scale execution.
          the 1,024-pixel continuum controlled diagnostic are unaffected. Named
          review must accept this diagnostic limitation or revise the frozen
          design before authorizing the one terminal comparison.
+   - [x] Prepare the approved immutable Hebog runtime from the clean
+         `106715b22b9858149e42467f4e2c581f15961cb0` archive. The Linux/arm64
+         Python 3.14.7 image digest is
+         `sha256:b92080db558246e2ae781c69f6caf39fef8e393ab74ea6774d9b02672981b4ce`;
+         its complete 35-distribution inventory hashes to
+         `d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2`,
+         and its baked source tree matches the checkout at
+         `471bed9a428df10d9139afc334d97b5df190f4f64e6dd6daeb91f9b436d37362`.
+         The CLI/import surface, zero-image residual-B3 kernel, and complete
+         compact branch on the existing 256-pixel development fixture passed.
+         No external-comparison realization was materialized or processed.
    - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
          (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
          on the same FITS images, beam, WCS, valid region, and declared science

@@ -139,3 +139,29 @@ protocol, and three runner hashes in a separately reviewed one-look execution
 decision. The runners will not open an input without that record. No finder
 output may be generated before the review. Passing Step 2C-P will still require
 a reviewed scientific decision before Step 3 opens.
+
+### Prepared Hebog runtime
+
+Gemma Danks approved the 512-pixel diagnostic limitation, a four-core PyBDSF
+allocation, and immutable Hebog-runtime preparation on 2026-08-11. The runtime
+was built from a clean archive of commit
+`106715b22b9858149e42467f4e2c581f15961cb0`, not from the working tree. Its
+frozen identity is:
+
+- Linux/arm64, Python 3.14.7, Hebog 0.6.0;
+- image digest
+  `sha256:b92080db558246e2ae781c69f6caf39fef8e393ab74ea6774d9b02672981b4ce`;
+- 35-distribution inventory SHA-256
+  `d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2`;
+- baked and checkout source-tree SHA-256
+  `471bed9a428df10d9139afc334d97b5df190f4f64e6dd6daeb91f9b436d37362`.
+
+The resolved parent images were `python:3.14-slim` at
+`sha256:c65a4a1140b75416bbc7f28807f82a3746bd6567645d5848123b6a6587f86962`
+and `ghcr.io/astral-sh/uv:0.9.16` at
+`sha256:d8b6f79959466b3e45efebd7143f1d6e3bb72a1c6f9482fd154edbc5331b9299`.
+The CLI and validation imports passed, as did the residual-B3 kernel on a
+64-by-64 zero plane and the complete compact branch on the existing 256-pixel
+development fixture. These checks did not materialize, process, or inspect any
+frozen external-comparison realization. Final execution authorization remains
+absent.

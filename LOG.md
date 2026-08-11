@@ -6375,3 +6375,41 @@ obtain named approval of the 512-pixel diagnostic limitation, exact Hebog
 runtime, and PyBDSF core count. Only then create a separate decision bound to
 the committed source-tree and runner hashes. Do not execute or inspect any
 external-finder output before that decision.
+
+## 2026-08-11 — Prepared the immutable Step 2C-P Hebog runtime
+
+**Plan phase:** Phase 5, Step 2C-P — pre-execution runtime preparation
+
+- Gemma Danks approved the unavailable 512-pixel PyBDSF controlled-background
+  diagnostic, four PyBDSF cores, and preparation of an immutable Hebog runtime.
+  This did not authorize the final one-look decision or external-finder
+  execution.
+- Built the existing `Dockerfile` runtime target from a temporary clean
+  `git archive` of commit
+  `106715b22b9858149e42467f4e2c581f15961cb0`. The resulting local
+  `localhost/hebog:phase5-external-106715b` Linux/arm64 image has immutable
+  digest
+  `sha256:b92080db558246e2ae781c69f6caf39fef8e393ab74ea6774d9b02672981b4ce`
+  and carries the complete commit as an OCI revision label.
+- The Python 3.14.7/Hebog 0.6.0 runtime contains 35 installed distributions.
+  Its canonical dependency-inventory SHA-256 is
+  `d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2`.
+  Its baked source-tree SHA-256 is
+  `471bed9a428df10d9139afc334d97b5df190f4f64e6dd6daeb91f9b436d37362`,
+  exactly matching the committed checkout.
+- Recorded the resolved arm64 parents: `python:3.14-slim` at
+  `sha256:c65a4a1140b75416bbc7f28807f82a3746bd6567645d5848123b6a6587f86962`
+  and `ghcr.io/astral-sh/uv:0.9.16` at
+  `sha256:d8b6f79959466b3e45efebd7143f1d6e3bb72a1c6f9482fd154edbc5331b9299`.
+
+**Validation:** `hebog --version`, validation-module imports, the read-only
+runner `--help` path, a residual-B3 detection on a 64-by-64 all-zero smoke
+image, and the complete compact branch on the existing Phase 0 256-pixel
+development fixture all passed inside the image. The compact smoke case
+returned its expected three sources. No external-comparison input or finder
+output was generated or inspected.
+
+**Immediate next step:** present the exact protocol, candidate-review,
+implementation, source-tree, runner, container, dependency, and four-core
+identities for final named approval. Only after that approval may the separate
+one-look execution decision be written and committed.
