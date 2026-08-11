@@ -914,7 +914,9 @@ Aegean was rebuilt again to retain the originally frozen Astropy/SciPy stack.
 The final Hebog image has now been rebuilt from the committed fail-closed
 validator source and bound into the execution decision. Gemma Danks renewed
 named approval for the four exact identities and unchanged operational limits
-on 2026-08-11; the no-write preflight remains. A
+on 2026-08-11. The renewed no-write preflight passed request `31a56c50...`
+over exactly 1,400 inputs and 7,000 runs while leaving both public and private
+campaign paths absent. A
 checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
@@ -1328,9 +1330,11 @@ and spill behaviour, and facility-scale execution.
          one sealed terminal execution. Record Gemma Danks's 2026-08-11
          approval in the exact execution decision before running a campaign
          command.
-   - [ ] Repeat the complete launcher's no-write preflight against the renewed
-         decision and four inspected images. Campaign execution remains closed
-         until it passes and its request identity is recorded.
+   - [x] Repeat the complete launcher's no-write preflight against the renewed
+         decision and four inspected images. It passed exactly 1,400 inputs and
+         7,000 runs with request `31a56c50...`; both terminal and hidden staging
+         paths remained absent. The one-look is ready for its one authorized
+         terminal execution.
    - [x] Implement and review the complete-population launcher. It stages
          all inputs and raw finder results privately, refuses an existing
          campaign target, retains every failed image in the denominator, and

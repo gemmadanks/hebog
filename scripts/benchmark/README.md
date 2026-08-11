@@ -75,10 +75,11 @@ uv run python scripts/benchmark/run_phase5_external_campaign.py \
 
 The historical reviewed preflight request is
 `182944e174098544092a8e48490bdbfd39f7d9e332a9beb586b1db2441522ef7`.
-It is not transferable to the reconstructed identities. Run the command above
-with `--preflight-only` and record its new request identity before opening the
-campaign. Do not omit `--preflight-only` until that preflight passes. The
-launcher executes inspected immutable
+It is not transferable to the reconstructed identities. The renewed
+zero-write preflight passed with request
+`31a56c509a354e497a9902f32d02ef77dc9d90b047c59f28239f423bed372251`,
+exactly 1,400 inputs, and 7,000 runs. Both terminal and private campaign paths
+remained absent. The launcher executes inspected immutable
 image IDs, not mutable tags, with networking disabled and publishes only after
 all legs are terminal and verified. If infrastructure interrupts the private
 campaign, rerun the newly approved exact command with `--resume`; changing any

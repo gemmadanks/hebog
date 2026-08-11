@@ -6771,3 +6771,31 @@ one-look remains unopened.
 complete-population command with `--preflight-only`. Record the new request
 identity and verify that both public and private campaign paths remain absent
 before allowing terminal execution.
+
+## 2026-08-11 — Passed the renewed reconstructed-runtime preflight
+
+**Plan phase:** Phase 5, Step 2C-P — terminal campaign readiness
+
+- Ran the complete-population launcher against the four approved local
+  Linux/arm64 tags with `--preflight-only`. It inspected and matched every
+  approved immutable digest, verified the committed protocol, named execution
+  decision, candidate review, source tree, runners, and four-core allocation,
+  and expanded exactly 1,400 common inputs and 7,000 applicable runs.
+- The canonical unopened request SHA-256 is
+  `31a56c509a354e497a9902f32d02ef77dc9d90b047c59f28239f423bed372251`.
+  The superseded historical request `182944e1...` was not reused.
+- Verified immediately before and after the command that neither
+  `benchmark-results/phase-5/external-source-finder-comparison` nor hidden
+  staging path
+  `.external-source-finder-comparison.phase5-external-c7e36400e0c3.staging`
+  exists. No input or finder product was written or inspected.
+
+**Validation:** the launcher reported `preflight passed`, `images=1400`, and
+`runs=7000`; the terminal and decision-specific private paths remained absent.
+The one-look is unopened, all required preparation gates are closed, and the
+sealed terminal campaign is ready to run once.
+
+**Immediate next step:** execute the exact approved command once without
+`--preflight-only`, do not inspect private partial products, and publish only
+the checksum-verified terminal campaign. After publication, compile and review
+the frozen scientific decision before opening Step 3.

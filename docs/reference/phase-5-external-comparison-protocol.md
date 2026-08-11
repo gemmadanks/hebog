@@ -12,8 +12,10 @@ stack. The final Hebog runtime has been rebuilt from the committed fail-closed
 source and bound into the checked-in decision. Gemma Danks renewed named
 approval for all four exact identities, four PyBDSF cores, the scoped
 512-pixel diagnostic limitation, and one sealed terminal execution on
-2026-08-11. The one-look remains unopened pending the new no-write preflight;
-Step 3, optimization, and qualification remain closed.
+2026-08-11. The renewed no-write preflight passed with request `31a56c50...`,
+exactly 1,400 inputs, and 7,000 runs while leaving terminal and private paths
+absent. The one-look remains unopened; Step 3, optimization, and qualification
+remain closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -324,5 +326,5 @@ terminal campaign. Neither has yet opened an input or result.
 The checked-in build definitions and artifact requirements are documented in
 `scripts/benchmark/containers/phase5/README.md`. They deliberately do not
 claim bitwise reproduction of the missing OCI objects. The renewed review has
-accepted all four bound digests and inventories; the launcher's no-write
-preflight remains the last prerequisite before the campaign can open.
+accepted all four bound digests and inventories, and the launcher's renewed
+no-write preflight passed. The sealed campaign is ready to open once.
