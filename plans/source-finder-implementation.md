@@ -912,8 +912,9 @@ absent. Those four local images were subsequently lost before execution.
 The external-reference reconstructions are smoke-tested and protocol-bound;
 Aegean was rebuilt again to retain the originally frozen Astropy/SciPy stack.
 The final Hebog image has now been rebuilt from the committed fail-closed
-validator source and bound into the still-pending execution decision. Renewed
-named approval and the no-write preflight remain. A
+validator source and bound into the execution decision. Gemma Danks renewed
+named approval for the four exact identities and unchanged operational limits
+on 2026-08-11; the no-write preflight remains. A
 checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
@@ -1322,11 +1323,14 @@ and spill behaviour, and facility-scale execution.
          sources. Bind that exact identity into the pending decision and
          refresh the registry/evaluation hash chain. Host free space is 61 GiB,
          above the approximate 60 GiB campaign safety target.
-   - [ ] Obtain named approval for all four reconstructed identities, retaining
-         four PyBDSF cores and the approved 512-pixel limitation, then repeat
-         the complete launcher's no-write preflight. The historical approval
-         is not transferable and campaign execution remains closed until both
-         steps pass.
+   - [x] Obtain renewed named approval for all four reconstructed identities,
+         retaining four PyBDSF cores, the approved 512-pixel limitation, and
+         one sealed terminal execution. Record Gemma Danks's 2026-08-11
+         approval in the exact execution decision before running a campaign
+         command.
+   - [ ] Repeat the complete launcher's no-write preflight against the renewed
+         decision and four inspected images. Campaign execution remains closed
+         until it passes and its request identity is recorded.
    - [x] Implement and review the complete-population launcher. It stages
          all inputs and raw finder results privately, refuses an existing
          campaign target, retains every failed image in the denominator, and
@@ -1370,7 +1374,7 @@ and spill behaviour, and facility-scale execution.
          `phase-5-external-evaluation.json`, and obtain pre-results review. Do
          not run or inspect the fresh 1,400-image campaign before this closes.
          This prerequisite is closed: the compiler is bound at `81d1384d...`,
-         the runtime-rebound endpoint registry at `49a76259...`, and the
+         the runtime-rebound endpoint registry at `498ddf18...`, and the
          evaluator at
          `df99e10a...`. Exact request/runtime drift, topology semantics,
          conditional measurements, failures, applicability, endpoint sets,

@@ -9,9 +9,11 @@ or finder output was created. The four approved local images were then lost
 before execution. The reconstructed external-reference identities are now
 protocol-bound, smoke-tested, and aligned to the originally frozen scientific
 stack. The final Hebog runtime has been rebuilt from the committed fail-closed
-source and bound into the checked-in decision. That decision still withholds
-execution pending named approval. The one-look remains unopened; Step 3,
-optimization, and qualification remain closed.
+source and bound into the checked-in decision. Gemma Danks renewed named
+approval for all four exact identities, four PyBDSF cores, the scoped
+512-pixel diagnostic limitation, and one sealed terminal execution on
+2026-08-11. The one-look remains unopened pending the new no-write preflight;
+Step 3, optimization, and qualification remain closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -159,7 +161,7 @@ registry and compiler:
 
 - compiler SHA-256 `81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370`;
 - endpoint-registry SHA-256
-  `49a76259fba49b7b2aed2c5a306118fa36d133e675ffc52187dc3798acdd977c`;
+  `498ddf18fcfdd16b69a5873e59e8c9521786607f09291756f2960fa684f8f8f5`;
 - evaluator SHA-256
   `df99e10a6fbbe7c4c1b9826c88b0d11908500c817e30aea7750bfc9d920cadab`.
 
@@ -316,11 +318,11 @@ reconstruction was superseded because the fail-closed runtime validator
 changed its source-tree identity. The final image above was built from a clean
 archive of the validator commit, then reproduced the exact checkout source and
 dependency checksums and the three-source governed compact smoke result. The
-active decision binds it but cannot open a runner or campaign preflight until
-the complete runtime set receives named approval.
+active decision binds it and now authorizes the no-write preflight and one
+terminal campaign. Neither has yet opened an input or result.
 
 The checked-in build definitions and artifact requirements are documented in
 `scripts/benchmark/containers/phase5/README.md`. They deliberately do not
-claim bitwise reproduction of the missing OCI objects. A renewed review must
-accept all four bound digests and inventories before the launcher's no-write
-preflight and campaign can open.
+claim bitwise reproduction of the missing OCI objects. The renewed review has
+accepted all four bound digests and inventories; the launcher's no-write
+preflight remains the last prerequisite before the campaign can open.

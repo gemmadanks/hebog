@@ -6743,3 +6743,31 @@ unopened.
 reconstructed runtime identities, the unchanged four-core PyBDSF allocation,
 and the approved 512-pixel diagnostic limitation. Only then may the decision
 be authorized and the complete no-write preflight run.
+
+## 2026-08-11 — Renewed the reconstructed-runtime execution approval
+
+**Plan phase:** Phase 5, Step 2C-P — final execution authorization
+
+- Gemma Danks explicitly approved the four exact reconstructed runtime
+  identities presented after the final Hebog build, the unchanged four-core
+  PyBDSF allocation, the scoped 512-pixel controlled-diagnostic limitation,
+  and one sealed terminal one-look execution.
+- Changed only the canonical authorization triplet in the execution decision:
+  status `reviewed-before-external-output`, decision
+  `authorize-one-terminal-external-comparison`, and execution authorization
+  true. Step 3, optimization, qualification, and one-look-opened remain false.
+- The authorized decision SHA-256 is `c7e36400...`; the refreshed endpoint
+  registry and evaluation-contract SHA-256 values are `498ddf18...` and
+  `3a749e79...`. Runtime, source, runner, protocol, candidate, population,
+  configuration, metric, and gate identities are otherwise unchanged.
+
+**Validation:** the previously pending-state assertion failed after the
+governed decision changed, then passed after being updated to require Gemma
+Danks's renewed named approval and canonical authorized state. No campaign
+input, staging directory, or finder result was created or inspected; the
+one-look remains unopened.
+
+**Immediate next step:** commit this authorization record, then run the exact
+complete-population command with `--preflight-only`. Record the new request
+identity and verify that both public and private campaign paths remain absent
+before allowing terminal execution.

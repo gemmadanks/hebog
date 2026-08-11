@@ -78,8 +78,8 @@ def test_external_protocol_binds_reconstructed_reference_runtimes() -> None:
     )
 
 
-def test_external_execution_decision_records_pending_runtime_review() -> None:
-    """Reconstructed identities remain fail-closed before named approval."""
+def test_external_execution_decision_records_renewed_named_approval() -> None:
+    """The exact reconstructed identities receive named authorization."""
     decision = load_phase_five_external_execution_decision(_EXECUTION_DECISION)
 
     assert decision.protocol_sha256 == file_sha256(_PROTOCOL)
@@ -96,9 +96,11 @@ def test_external_execution_decision_records_pending_runtime_review() -> None:
     )
     assert decision.pybdsf_ncores == 4
     assert decision.named_review == (
-        "Codex technical runtime pre-review, 2026-08-11"
+        "Gemma Danks, 2026-08-11, renewed reconstructed-runtime approval"
     )
-    assert decision.execution_authorized is False
+    assert decision.execution_authorized is True
+    assert decision.status == "reviewed-before-external-output"
+    assert decision.decision == "authorize-one-terminal-external-comparison"
     for artifact in decision.runners:
         assert artifact.sha256 == file_sha256(_ROOT / artifact.relative_path)
 
@@ -166,18 +168,18 @@ def test_pending_runtime_review_cannot_authorize_an_external_run(
 @pytest.mark.parametrize(
     "updates",
     (
-        {"execution_authorized": True},
+        {"execution_authorized": False},
         {
-            "status": "reviewed-before-external-output",
-            "decision": "authorize-one-terminal-external-comparison",
-            "execution_authorized": True,
+            "status": "awaiting-reconstructed-runtime-approval",
+            "decision": "await-renewed-runtime-approval",
+            "execution_authorized": False,
         },
     ),
 )
 def test_external_decision_rejects_mixed_authorization_state(
     updates: dict[str, object],
 ) -> None:
-    """No partial field edit can turn preparation into authorization."""
+    """No partial field edit can change the authorization state."""
     document = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
     document.update(updates)
 

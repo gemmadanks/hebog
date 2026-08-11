@@ -142,6 +142,9 @@ population opens and keeps Step 3, optimization, and qualification false. An
 `awaiting-reconstructed-runtime-approval` record is deliberately not an
 authorization: runners and the campaign launcher reject it before opening an
 input or staging directory. Only the named reviewed state may proceed.
+The active record reached that reviewed state on 2026-08-11 after Gemma Danks
+approved the exact reconstructed identities, four PyBDSF cores, the scoped
+512-pixel diagnostic limitation, and one sealed terminal execution.
 Each raw one-realization `result.json` then binds that decision and the common
 `input.json`, preserves a finder failure rather than dropping the image, and
 lists every output artifact by relative path, byte count, and SHA-256.

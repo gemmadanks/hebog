@@ -118,7 +118,7 @@
   "contract_id": "phase-5-external-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-endpoint-registry.json",
-    "sha256": "49a76259fba49b7b2aed2c5a306118fa36d133e675ffc52187dc3798acdd977c",
+    "sha256": "498ddf18fcfdd16b69a5873e59e8c9521786607f09291756f2960fa684f8f8f5",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_decision.py",

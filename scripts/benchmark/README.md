@@ -53,13 +53,10 @@ and PyBDSF's core count; each external runner checks its protocol-bound
 container digest and installed dependency-inventory hash. No such decision is
 accepted unless it is the exact checked-in
 `config/contracts/phase-5-external-execution-decision.json`. That decision now
-records the reconstructed external-reference identities but has the explicit
-`awaiting-reconstructed-runtime-approval` status and does not authorize
-execution. Their new identities are recorded in
+records the reconstructed identities and Gemma Danks's renewed named approval
+with `reviewed-before-external-output` status. Their exact identities are in
 [`containers/phase5/README.md`](containers/phase5/README.md). The one-look
-remains unopened. The final Hebog image is rebuilt and identity-bound, so
-named renewed approval is the remaining prerequisite before the no-write
-preflight.
+remains unopened; the no-write preflight is the next required action.
 
 `run_phase5_external_campaign.py` is that launcher. It first expands the
 complete 1,400-input, 7,000-run matrix and inspects all four local image tags
@@ -78,11 +75,10 @@ uv run python scripts/benchmark/run_phase5_external_campaign.py \
 
 The historical reviewed preflight request is
 `182944e174098544092a8e48490bdbfd39f7d9e332a9beb586b1db2441522ef7`.
-That command now fails closed because the checked-in decision explicitly
-withholds execution authorization. Do not run it until the rebound identities
-have received named approval, and do not omit `--preflight-only` until that
-preflight passes.
-Once renewed authorization exists, the launcher executes inspected immutable
+It is not transferable to the reconstructed identities. Run the command above
+with `--preflight-only` and record its new request identity before opening the
+campaign. Do not omit `--preflight-only` until that preflight passes. The
+launcher executes inspected immutable
 image IDs, not mutable tags, with networking disabled and publishes only after
 all legs are terminal and verified. If infrastructure interrupts the private
 campaign, rerun the newly approved exact command with `--resume`; changing any

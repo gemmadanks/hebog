@@ -104,13 +104,32 @@ def campaign_request(authorized_decision_path: Path) -> object:
     )
 
 
-def test_pending_decision_blocks_campaign_preflight() -> None:
-    """The active technical review cannot create an authorized request."""
+def test_pending_decision_blocks_campaign_preflight(tmp_path: Path) -> None:
+    """A technical review cannot create an authorized request."""
+    authorized = load_phase_five_external_execution_decision(_DECISION)
+    pending = type(authorized).model_validate(
+        {
+            **authorized.model_dump(mode="json"),
+            "status": "awaiting-reconstructed-runtime-approval",
+            "named_review": "technical pre-review only",
+            "decision": "await-renewed-runtime-approval",
+            "execution_authorized": False,
+            "next_action": (
+                "obtain-renewed-runtime-approval-before-campaign-preflight"
+            ),
+        }
+    )
+    decision_path = tmp_path / "pending-decision.json"
+    decision_path.write_text(
+        pending.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+
     with pytest.raises(ValueError, match="execution is not authorized"):
         _namespace()["_validate_decision_bindings"](
             _ROOT,
             _PROTOCOL,
-            _DECISION,
+            decision_path,
             _BASE_REVIEW,
             _LAUNCHER,
         )

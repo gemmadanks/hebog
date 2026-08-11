@@ -1,13 +1,13 @@
 {
   "candidate_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
-  "decision": "await-renewed-runtime-approval",
+  "decision": "authorize-one-terminal-external-comparison",
   "decision_id": "phase-5-external-execution-decision",
-  "execution_authorized": false,
+  "execution_authorized": true,
   "hebog_container_image_digest": "sha256:728bbd7ab59d0fbb9537d36fac34652e640300091024498cbebdaeb452da55a6",
   "hebog_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
   "implementation_commit": "303a49de3ea37af795d34e361f522a419d5c0bc2",
-  "named_review": "Codex technical runtime pre-review, 2026-08-11",
-  "next_action": "obtain-renewed-runtime-approval-before-campaign-preflight",
+  "named_review": "Gemma Danks, 2026-08-11, renewed reconstructed-runtime approval",
+  "next_action": "execute-complete-frozen-comparison-once-without-opening-partial-results",
   "one_look_opened": false,
   "optimization_authorized": false,
   "protocol_sha256": "7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d",
@@ -29,6 +29,6 @@
   ],
   "schema_version": 1,
   "source_tree_sha256": "2f80c8779d3d8fe91fc599aa98edd95491d13922667cbab3af9d178caecc225b",
-  "status": "awaiting-reconstructed-runtime-approval",
+  "status": "reviewed-before-external-output",
   "step_three_authorized": false
 }
