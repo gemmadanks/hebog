@@ -1,12 +1,13 @@
 # Phase 5 external source-finder comparison protocol
 
-**Status:** the Step 2C-P protocol and its matcher, common-input materializer,
-product adapters, and three isolated runner implementations are complete
-without opening finder output. Gemma Danks approved the exact hash-bound
-one-look execution on 2026-08-11, and the authorization is frozen in
-`config/contracts/phase-5-external-execution-decision.json`. The one-look
-population remains unopened while the complete-population staging boundary is
-reviewed. Step 3, optimization, and qualification remain closed.
+**Status:** the Step 2C-P protocol, scientific boundaries, isolated runners,
+immutable runtimes, and sealed complete-population launcher are ready. Gemma
+Danks approved the exact hash-bound one-look execution on 2026-08-11, and the
+authorization is frozen in
+`config/contracts/phase-5-external-execution-decision.json`. The launcher's
+no-write preflight passed over all 1,400 inputs and 7,000 runs; no staging or
+finder output was created. The one-look remains unopened. Step 3,
+optimization, and qualification remain closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -138,11 +139,26 @@ and existing results cannot be replaced.
 
 The approved execution decision binds the committed source tree, candidate
 review, frozen protocol, four-core PyBDSF allocation, Hebog runtime, and three
-runner hashes. The next change must provide and review a complete-population
-launcher that stages all work privately, refuses an existing campaign target,
-and exposes no partial result before the terminal run is complete. Passing
-Step 2C-P will still require a reviewed scientific decision before Step 3
-opens.
+runner hashes. `run_phase5_external_campaign.py` expands the complete frozen
+matrix before writing anything and binds its own checksum plus the inspected
+local image IDs into a canonical request. Containers run by immutable image
+ID with networking disabled and only the committed repository read-only and a
+hidden campaign directory writable. The 512-pixel PyBDSF controlled leg is
+absent from the matrix; its typed unavailability is already represented by the
+approved scope rather than by a misleading run.
+
+Opening creates a deterministic hidden sibling of the requested output.
+Resume is explicit and accepts only the byte-identical request and opening
+state. Materialization and 7,000 finder legs remain serial and private;
+container failures are retained as infrastructure logs, while finder failures
+remain typed terminal results in the scientific denominator. Publication
+requires every expected `input.json` and `result.json`, verified artifacts and
+runtime identities, no undeclared result manifest, and no abandoned private
+temporary path. A canonical `campaign.json` is written atomically and the
+complete staging directory is then renamed once to the public target. A
+verified manifest left by an interruption before that rename is safe to
+resume. Passing Step 2C-P will still require a reviewed scientific decision
+before Step 3 opens.
 
 ### Prepared Hebog runtime
 

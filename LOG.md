@@ -6442,3 +6442,46 @@ cases, and four expected failures.
 that privately stages every frozen leg and publishes only after all legs are
 terminal. The approved one-look must remain unopened until that boundary is
 ready.
+
+## 2026-08-11 — Sealed the Step 2C-P complete-population launcher
+
+**Plan phase:** Phase 5, Step 2C-P — terminal campaign boundary
+
+- Implemented the only supported launcher for the approved external
+  comparison. It expands the frozen 600-image continuum and 800-image
+  compact/blend populations into exactly 1,400 common inputs and 7,000
+  applicable finder/mode runs before writing any state.
+- Added a no-write preflight that verifies the protocol, decision, candidate
+  review, production source tree, runner hashes, manifest recipes, four local
+  container digests, shared platform, and four-core PyBDSF allocation. The
+  canonical request also binds the launcher checksum and inspected image IDs.
+- Containers execute those immutable local image IDs with networking disabled,
+  a read-only repository mount, and only the hidden campaign directory
+  writable. Review corrected an earlier draft that inspected immutable IDs but
+  would still have executed mutable tags.
+- Added deterministic private staging, explicit exact-request resume, serial
+  execution, retained infrastructure logs, typed finder failures, complete
+  input/result and artifact verification, private-temporary-remnant refusal,
+  and atomic terminal publication. Resume accepts the exact canonical terminal
+  manifest if an interruption occurred after sealing but before the final
+  rename.
+- The approved-container `--preflight-only` run passed with request SHA-256
+  `182944e174098544092a8e48490bdbfd39f7d9e332a9beb586b1db2441522ef7`.
+  Both the public target and deterministic hidden staging path remained
+  absent. No realization was materialized and no Hebog, PyBDSF, or Aegean
+  finder process was opened.
+
+**Validation:** all 11 focused launcher tests passed, including the complete
+matrix, immutable command, resume, infrastructure-failure, partial-publication,
+temporary-remnant, and rename-interruption cases. Focused Ruff and Pyright
+checks passed. The strict documentation build passed. The branch-aware suite
+passed 1,182 tests with four expected failures and 93.94% project coverage.
+`just check` passed Ruff, Pyright, and 1,052 unit/doctest cases with four
+expected failures. Scientific equivalence was not rerun because this change
+does not alter scientific code, configurations, inputs, or outputs.
+
+**Immediate next step:** invoke this exact launcher once without
+`--preflight-only` to run the approved sealed campaign. Do not inspect hidden
+staging or partial outputs. After terminal publication, review scientific
+outcomes before runtime and keep Step 3, optimization, and qualification
+closed until the separately reviewed decision permits otherwise.

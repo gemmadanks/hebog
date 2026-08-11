@@ -57,6 +57,30 @@ authorizes one terminal comparison but the one-look remains unopened; use the
 entry points only through the reviewed complete-population launcher, never to
 inspect partial results.
 
+`run_phase5_external_campaign.py` is that launcher. It first expands the
+complete 1,400-input, 7,000-run matrix and inspects all four local image tags
+against their approved digests without pulling. `--preflight-only` performs no
+writes and must pass before the terminal run:
+
+```console
+uv run python scripts/benchmark/run_phase5_external_campaign.py \
+  --hebog-image localhost/hebog:phase5-external-106715b \
+  --released-pybdsf-image localhost/rapthor-dev:ci-aligned \
+  --master-pybdsf-image localhost/hebog-pybdsf-master:c70103be3 \
+  --aegean-image localhost/hebog-aegean:2.3.5-step2cp \
+  --output benchmark-results/phase-5/external-source-finder-comparison \
+  --preflight-only
+```
+
+The reviewed preflight request is
+`182944e174098544092a8e48490bdbfd39f7d9e332a9beb586b1db2441522ef7`.
+Run the same command without `--preflight-only` only for the authorized
+one-look. The launcher executes the inspected immutable image IDs, not mutable
+tags, with networking disabled and publishes only after all legs are terminal
+and verified. If infrastructure interrupts the private campaign, rerun that
+exact command with `--resume`; changing any request, runtime, source, runner,
+or launcher identity fails closed. Do not inspect the hidden staging path.
+
 Successful runs atomically publish a raw `result.json` plus checksummed finder
 products. PyBDSF retains separate Gaussian-component and source catalogues,
 its binary island mask, and island-identity label plane; Aegean retains

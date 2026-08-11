@@ -895,34 +895,22 @@ Every later phase must preserve these completed contracts:
 
 ### Phase 5: multiscale and extended emission
 
-**Status:** Steps 1--2C-H are completed with no eligible production
-representation. Step 2C-HR separated compact fitted astrometry from irregular
-detected-segment location and passed all 60 binding endpoints on 80 fresh
-development images and 480 eligible groups. The overall radial-p95 upper bound
-was 0.3183 beam; the limiting shell/tile-corner cohort passed narrowly at
-0.4887 against 0.50 beam. Gemma Danks approved the coordinate semantics,
-gates, narrow-margin risk, unavailable position uncertainty, and one-look
-confirmation on 2026-08-09. The single 400-image confirmation then passed all
-60 endpoints; its overall radial-p95 upper bound was 0.3103 beam and the
-limiting shell/tile-corner bound was 0.4883 beam. The population is closed.
-The Step 2C-P protocol is now frozen over 600 continuum and 800 compact/blend
-images, exact PyBDSF release/master and Aegean runtimes, a truth-first matcher,
-and a 0.9082 conservative joint-power lower bound. The matcher, common FITS
-materializer, product adapters, and isolated Hebog/PyBDSF/Aegean runners are
-implemented and tested without opening finder output. On 2026-08-11 Gemma
-Danks approved the unavailable 512-pixel PyBDSF controlled-background
-diagnostic, four PyBDSF cores, and preparation of the immutable Hebog runtime.
-That Linux/arm64 runtime is now prepared from commit `106715b` as image
-`sha256:b92080d...b4ce`, with dependency-inventory SHA-256
-`d383be3...b5a2`; its candidate kernel and complete compact branch passed
-smoke tests without opening the external population. Execution remains
-unopened, but Gemma Danks approved the exact hash-bound one-look decision on
-2026-08-11. The checked-in authorization binds all runner and runtime
-identities and four PyBDSF cores. The complete-population launcher must still
-be implemented and reviewed before the terminal run begins. Step 3,
-candidate-specific optimization, and qualification remain blocked; no
-external non-inferiority, multiscale equivalence, or complete runtime claim is
-approved.
+**Status:** Steps 1--2C-HR are complete. Earlier representations and astrometry
+corrections were rejected; the reviewed compact/irregular position split then
+passed all 60 endpoints on fresh development data and the single 400-image
+confirmation. Its limiting shell/tile-corner radial-p95 bound was 0.4883 beam
+against the 0.50-beam gate, and that population is closed. Step 2C-P freezes
+600 continuum and 800 compact/blend images, exact PyBDSF release/master and
+Aegean runtimes, truth-first matching, and 0.9082 conservative joint power.
+The matcher, common-input materializer, adapters, isolated runners, immutable
+Hebog runtime, and complete-population launcher are ready. Gemma Danks
+approved the 512-pixel controlled-diagnostic limitation, four PyBDSF cores,
+runtime identities, and final one-look decision on 2026-08-11. A no-write
+preflight expanded exactly 1,400 inputs and 7,000 runs against those identities
+and left both public and private campaign paths absent. The one-look remains
+unopened. Step 3, candidate-specific optimization, and qualification remain
+blocked; no external non-inferiority, multiscale equivalence, or complete
+runtime claim is approved.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1287,12 +1275,18 @@ and spill behaviour, and facility-scale execution.
          runner hashes, the prepared Hebog runtime, and four PyBDSF cores. It
          authorizes one terminal comparison while keeping the one-look
          unopened and Step 3, optimization, and qualification false.
-   - [ ] Implement and review the complete-population launcher. It must stage
-         all inputs and raw finder results privately, refuse an existing
-         campaign target, retain every failed image in the denominator, and
+   - [x] Implement and review the complete-population launcher. It stages
+         all inputs and raw finder results privately, refuses an existing
+         campaign target, retains every failed image in the denominator, and
          publish nothing until all frozen legs have reached a terminal state.
          Do not use the one-realization runners interactively or inspect
-         partial products.
+         partial products. The launcher freezes 1,400 common inputs and 7,000
+         applicable runs, executes inspected immutable image IDs with no
+         network and four PyBDSF cores, resumes only the exact request, and
+         atomically publishes a checksum-verified terminal manifest. Its
+         no-write approved-runtime preflight passed with request SHA-256
+         `182944e174098544092a8e48490bdbfd39f7d9e332a9beb586b1db2441522ef7`;
+         no private staging or finder output was created.
    - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
          (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
          on the same FITS images, beam, WCS, valid region, and declared science

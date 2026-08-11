@@ -143,6 +143,17 @@ Each raw one-realization `result.json` then binds that decision and the common
 `input.json`, preserves a finder failure rather than dropping the image, and
 lists every output artifact by relative path, byte count, and SHA-256.
 
+The complete-population launcher adds three campaign-level records outside the
+public scientific-evidence schema. `campaign-request.json` freezes the launcher
+checksum, all four inspected immutable image identities, every realization,
+and every applicable finder/mode leg before execution. The private
+`campaign-open-state.json` records the exact request hash and UTC opening time.
+Only after all 7,000 results verify does `campaign.json` seal the ordered raw
+result-manifest checksums, terminal success/failure counts, and unchanged
+closed downstream gates. These records are canonical JSON and raw campaign
+provenance; they do not themselves evaluate non-inferiority or authorize Step
+3.
+
 ## Paired scientific-campaign evidence
 
 A scientific-campaign document compares Hebog and every reference on the same
