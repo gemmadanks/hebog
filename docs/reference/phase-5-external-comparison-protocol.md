@@ -1,17 +1,17 @@
 # Phase 5 external source-finder comparison protocol
 
 **Status:** the Step 2C-P protocol, scientific boundaries, isolated runners,
-immutable runtimes, sealed complete-population launcher, and scientific
-compiler and decision path are ready. Gemma Danks approved the exact
-hash-bound one-look
-execution on 2026-08-11, and the authorization is frozen in
+sealed complete-population launcher, and scientific compiler and decision path
+are ready. Gemma Danks approved an exact hash-bound one-look execution on
+2026-08-11, and its historical authorization remains frozen in
 `config/contracts/phase-5-external-execution-decision.json`. The launcher's
 no-write preflight passed over all 1,400 inputs and 7,000 runs; no staging or
-finder output was created. The subsequent pre-results review froze the exact
-raw-product endpoint registry, compiler, and evaluator identities and checked
-the irregular-position adapter against closed development evidence. The
-one-look remains unopened. Step 3, optimization, and qualification remain
-closed.
+finder output was created. The four approved local images were then lost
+before execution. Scientifically matched reconstructions are prepared and
+smoke-tested, but their OCI and external-reference dependency identities are
+new. The historical decision cannot authorize them. The one-look remains
+unopened pending renewed runtime review and a newly bound execution decision;
+Step 3, optimization, and qualification remain closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -25,6 +25,10 @@ representations. The machine-readable protocol is
 | Rapthor release | PyBDSF 1.14.1, commit `1b6e0a0`, published sdist `8d5113f...` | `sha256:dce9399...` | Full continuum |
 | Performance reference | PyBDSF `master` `c70103b`, version `1.14.2.dev40+gc70103be3`, wheel `2f1fdfb...` | `sha256:f045820...` | Full continuum |
 | Community catalogue reference | AegeanTools 2.3.5, publication commit `bb04f50`, wheel `dda95cb...` | `sha256:ca5fd09...` | Compact, blended, Gaussian-like, and mixed catalogue products |
+
+These are the originally authorized runtime identities. They remain useful
+historical provenance but are no longer present on the controlled host. The
+reconstructed identities are listed under the execution boundary below.
 
 The two PyBDSF identities are unchanged from Phase 0. They run Rapthor's
 5-sigma pixel, 3-sigma island, three-scale residual B3-spline à trous profile.
@@ -274,5 +278,38 @@ and `ghcr.io/astral-sh/uv:0.9.16` at
 The CLI and validation imports passed, as did the residual-B3 kernel on a
 64-by-64 zero plane and the complete compact branch on the existing 256-pixel
 development fixture. These checks did not materialize, process, or inspect any
-frozen external-comparison realization. Final execution authorization remains
-present; the one-look population remains unopened.
+frozen external-comparison realization. That exact image is no longer present.
+Its scientific inventory and source tree were reproduced below, but its
+historical execution authorization cannot be transferred to the reconstructed
+image. The one-look population remains unopened.
+
+### Reconstructed runtime set
+
+The four images were reconstructed on 2026-08-11 without opening or creating
+any external-comparison input or result. Each build retained the frozen finder
+version or source revision and used the same Linux/arm64 platform. The current
+identities are:
+
+| Runtime | Reconstructed tag | Image digest | Dependency inventory SHA-256 |
+| --- | --- | --- | --- |
+| Hebog 0.6.0 | `localhost/hebog:phase5-external-106715b-reconstructed` | `sha256:f78be6d330859cdd0889c476e26c884796f4991aaaf7bec52b90aa14a23c46ce` | `d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2` |
+| PyBDSF 1.14.1 | `localhost/rapthor-dev:ci-aligned-reconstructed` | `sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37` | `8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f` |
+| PyBDSF master | `localhost/hebog-pybdsf-master:c70103be3-reconstructed` | `sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73` | `83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99` |
+| AegeanTools 2.3.5 | `localhost/hebog-aegean:2.3.5-step2cp-reconstructed` | `sha256:6dd2064c5f5718e584d413ecb1fa6338306662693d0384b398630d639b5e22d3` | `17d1e3c1d84b13612153ad11d5478065712731a181adb1dfe2c2c180859eaaed` |
+
+Hebog again has Python 3.14.7, the exact 35-distribution inventory, and source
+tree `471bed9a...`. The published PyBDSF 1.14.1 sdist, frozen master wheel,
+and published AegeanTools wheel retained checksums `8d5113f...`, `2f1fdfb...`,
+and `dda95cb...`. Both PyBDSF references use the same Python 3.12.3 scientific
+stack and differ only in the `bdsf` distribution version. Their runner imports
+and a three-source 256-pixel governed compact fixture passed with identical
+three-source/three-Gaussian counts. Aegean's runner import, CLI, and the same
+fixture passed, finding three islands and fitting six components. Hebog's CLI,
+source, and inventory checks passed.
+
+The checked-in build definitions and artifact requirements are documented in
+`scripts/benchmark/containers/phase5/README.md`. They deliberately do not
+claim bitwise reproduction of the missing OCI objects. A renewed review must
+accept the matched PyBDSF/Aegean environments, bind all four new digests and
+inventories, and repeat the launcher's no-write preflight before the campaign
+can open.

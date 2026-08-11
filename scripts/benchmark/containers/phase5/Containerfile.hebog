@@ -1,0 +1,22 @@
+FROM ghcr.io/astral-sh/uv:0.9.16@sha256:d8b6f79959466b3e45efebd7143f1d6e3bb72a1c6f9482fd154edbc5331b9299 AS uv-bin
+
+FROM docker.io/library/python:3.14-slim@sha256:c65a4a1140b75416bbc7f28807f82a3746bd6567645d5848123b6a6587f86962
+
+WORKDIR /app
+RUN apt-get update \
+    && apt-get --no-install-recommends install -y ca-certificates tini \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=uv-bin /uv /uvx /usr/local/bin/
+ENV UV_LINK_MODE=copy \
+    VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
+ENTRYPOINT ["tini", "-g", "--"]
+
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-install-project --no-dev
+COPY src/ ./src/
+RUN uv sync --frozen --no-dev
+LABEL org.hebog.phase="5-step-2c-p-reconstruction" \
+      org.opencontainers.image.revision="106715b22b9858149e42467f4e2c581f15961cb0"
+CMD ["hebog", "--version"]

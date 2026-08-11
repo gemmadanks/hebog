@@ -6613,3 +6613,49 @@ launcher once, without `--preflight-only`, and do not inspect private staging.
 After atomic terminal publication, run the frozen compiler and evaluator once
 and review science before runtime. Step 3, optimization, and qualification
 remain closed unless that decision passes and receives review.
+
+## 2026-08-11 — Reconstructed the lost Step 2C-P runtime images
+
+**Plan phase:** Phase 5, Step 2C-P — campaign runtime recovery
+
+- Confirmed that all four previously approved local OCI images had been
+  removed before the one-look opened. Their historical digests remain frozen
+  evidence but cannot be recreated or silently replaced in the approved
+  execution decision.
+- Rebuilt Hebog from the clean
+  `106715b22b9858149e42467f4e2c581f15961cb0` archive. The reconstructed
+  Linux/arm64 image is `sha256:f78be6d...`; it reproduces the exact
+  `471bed9...` source-tree hash and `d383be3...` 35-distribution inventory.
+  Python remains 3.14.7 and Hebog remains 0.6.0.
+- Rebuilt released PyBDSF 1.14.1 from the exact published `8d5113f...`
+  sdist and installed the exact frozen `2f1fdfb...` master wheel into a
+  separately targeted copy of the same minimal Python 3.12.3 Linux/arm64
+  runtime. The new image digests are `sha256:7245407...` and
+  `sha256:192964b...`; inventory hashes are `8211043...` and `83574dd...`.
+  Their complete package inventories are identical except for the `bdsf`
+  version.
+- Rebuilt AegeanTools 2.3.5 from the exact published `dda95cb...` wheel in an
+  isolated Python 3.12.3 Linux/arm64 runtime. Its new image digest is
+  `sha256:6dd2064...` and its dependency-inventory hash is `17d1e3c...`.
+- Added pinned, checksum-verifying build definitions and complete resolved
+  Python requirement sets under `scripts/benchmark/containers/phase5/`.
+  These make future reconstruction reviewable but do not claim bitwise OCI
+  reproducibility: repository metadata for operating-system packages and OCI
+  layer timestamps remain outside the content-addressed inputs.
+- Kept the external one-look closed. No campaign input, staging directory, or
+  finder result was created or inspected. The old execution decision does not
+  authorize the reconstructed identities; a renewed runtime review, decision,
+  and no-write preflight are now explicit prerequisites.
+
+**Validation:** all four reconstructed images are present. Hebog's exact
+source/inventory checks and CLI passed. Both PyBDSF runners imported through
+the frozen launcher boundary and each processed the existing governed
+256-pixel compact fixture as three sources and three Gaussians. Aegean's runner
+and CLI passed; on the same fixture its blind 5/4-sigma path found three
+islands and fitted six components. The canonical inventories were recomputed
+inside the images. Host free space increased to 48 GiB, still below the
+approximately 60 GiB safe campaign target for roughly 46 GiB of raw products.
+
+**Immediate next step:** finish host cleanup, then review and bind the four
+reconstructed image and dependency identities. Repeat the launcher's no-write
+preflight against that renewed decision before opening the one-look once.

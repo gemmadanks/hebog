@@ -1,0 +1,26 @@
+FROM docker.io/library/ubuntu@sha256:b17516cd982bf06bdd5d5600253d12a8de017b9eb831cc052b532a0363d294f9
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        python3 \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /opt/phase5
+ENV PATH="/opt/phase5/bin:${PATH}" \
+    PYTHONUNBUFFERED=1
+COPY aegeantools-2.3.5-py3-none-any.whl /tmp/
+COPY requirements-aegean-runtime.txt /tmp/requirements-aegean-runtime.txt
+RUN test "$(sha256sum /tmp/aegeantools-2.3.5-py3-none-any.whl | cut -d ' ' -f 1)" = \
+        "dda95cb525e229b60bc357d3e5fc454cac20f364ee8aa10b730c2f7223da428d" \
+    && python -m pip install --no-cache-dir \
+        --requirement /tmp/requirements-aegean-runtime.txt \
+    && python -m pip install --no-cache-dir --no-deps \
+        /tmp/aegeantools-2.3.5-py3-none-any.whl \
+    && python -c "import importlib.metadata as m; assert m.version('AegeanTools') == '2.3.5'" \
+    && rm /tmp/aegeantools-2.3.5-py3-none-any.whl
+LABEL org.hebog.phase="5-step-2c-p-reconstruction" \
+      org.hebog.reference="aegeantools-2.3.5" \
+      org.hebog.source-revision="bb04f50a3ec117d180a79260c6a5c844f1d8dbbc" \
+      org.hebog.wheel-sha256="dda95cb525e229b60bc357d3e5fc454cac20f364ee8aa10b730c2f7223da428d"

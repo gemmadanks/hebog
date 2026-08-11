@@ -1,0 +1,73 @@
+FROM docker.io/library/ubuntu@sha256:b17516cd982bf06bdd5d5600253d12a8de017b9eb831cc052b532a0363d294f9 AS wheel-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        cmake \
+        gfortran \
+        libboost-numpy-dev \
+        libboost-python-dev \
+        ninja-build \
+        python3 \
+        python3-dev \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /opt/build-venv
+ENV PATH="/opt/build-venv/bin:${PATH}"
+COPY bdsf-1.14.1.tar.gz /tmp/bdsf-1.14.1.tar.gz
+COPY requirements-pybdsf-build.txt /tmp/requirements-pybdsf-build.txt
+RUN test "$(sha256sum /tmp/bdsf-1.14.1.tar.gz | cut -d ' ' -f 1)" = \
+        "8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2" \
+    && python -m pip install --no-cache-dir \
+        --requirement /tmp/requirements-pybdsf-build.txt \
+    && python -m pip wheel --no-build-isolation --no-deps \
+        --wheel-dir /wheels /tmp/bdsf-1.14.1.tar.gz
+
+FROM docker.io/library/ubuntu@sha256:b17516cd982bf06bdd5d5600253d12a8de017b9eb831cc052b532a0363d294f9 AS runtime-base
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libboost-numpy1.83.0 \
+        libboost-python1.83.0 \
+        libgfortran5 \
+        libgomp1 \
+        python3 \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /opt/phase5
+ENV PATH="/opt/phase5/bin:${PATH}" \
+    PYTHONUNBUFFERED=1
+COPY requirements-pybdsf-runtime.txt /tmp/requirements-pybdsf-runtime.txt
+RUN python -m pip install --no-cache-dir \
+        --requirement /tmp/requirements-pybdsf-runtime.txt
+
+FROM runtime-base AS released
+
+COPY --from=wheel-builder /wheels/bdsf-1.14.1-*.whl /tmp/
+RUN python -m pip install --no-cache-dir --no-deps \
+        /tmp/bdsf-1.14.1-*.whl \
+    && python -c "import importlib.metadata as m; assert m.version('bdsf') == '1.14.1'" \
+    && rm /tmp/bdsf-1.14.1-*.whl
+LABEL org.hebog.phase="5-step-2c-p-reconstruction" \
+      org.hebog.reference="pybdsf-1.14.1" \
+      org.hebog.source-revision="1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc" \
+      org.hebog.sdist-sha256="8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2"
+
+FROM runtime-base AS master
+
+COPY bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl /tmp/
+RUN test "$(sha256sum /tmp/bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl | cut -d ' ' -f 1)" = \
+        "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d" \
+    && python -m pip install --no-cache-dir --no-deps \
+        /tmp/bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl \
+    && python -c "import importlib.metadata as m; assert m.version('bdsf') == '1.14.2.dev40+gc70103be3'" \
+    && rm /tmp/bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl
+LABEL org.hebog.phase="5-step-2c-p-reconstruction" \
+      org.hebog.reference="pybdsf-master-c70103be3" \
+      org.hebog.source-revision="c70103be3ae9ae9908286f144e6ce956acc0ce5c" \
+      org.hebog.wheel-sha256="2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d"

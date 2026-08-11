@@ -902,13 +902,16 @@ confirmation. Its limiting shell/tile-corner radial-p95 bound was 0.4883 beam
 against the 0.50-beam gate, and that population is closed. Step 2C-P freezes
 600 continuum and 800 compact/blend images, exact PyBDSF release/master and
 Aegean runtimes, truth-first matching, and 0.9082 conservative joint power.
-The matcher, common-input materializer, adapters, isolated runners, immutable
-Hebog runtime, complete-population launcher, raw-product compiler, and exact
-endpoint registry are ready. Gemma Danks
-approved the 512-pixel controlled-diagnostic limitation, four PyBDSF cores,
-runtime identities, and final one-look decision on 2026-08-11. A no-write
-preflight expanded exactly 1,400 inputs and 7,000 runs against those identities
-and left both public and private campaign paths absent. A checksum-bound
+The matcher, common-input materializer, adapters, isolated runners,
+complete-population launcher, raw-product compiler, and exact endpoint registry
+are ready. Gemma Danks approved the 512-pixel controlled-diagnostic limitation,
+four PyBDSF cores, runtime identities, and final one-look decision on
+2026-08-11. A no-write preflight expanded exactly 1,400 inputs and 7,000 runs
+against those identities and left both public and private campaign paths
+absent. Those four local images were subsequently lost before execution.
+Scientifically matched reconstructions are smoke-tested, but their new OCI and
+external-reference dependency identities require renewed review, decision
+binding, and no-write preflight. A checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
 one-sided radial-p95 upper confidence bound; irregular radial median remains
@@ -1287,6 +1290,24 @@ and spill behaviour, and facility-scale execution.
          runner hashes, the prepared Hebog runtime, and four PyBDSF cores. It
          authorizes one terminal comparison while keeping the one-look
          unopened and Step 3, optimization, and qualification false.
+   - [x] Reconstruct all four missing Linux/arm64 campaign images without
+         opening the one-look. Hebog retains its exact `471bed9...` source tree
+         and `d383be3...` inventory. The new Hebog, PyBDSF release/master, and
+         Aegean image digests are `f78be6d...`, `7245407...`, `192964b...`, and
+         `6dd2064...`; their complete inventory hashes are `d383be3...`,
+         `8211043...`, `83574dd...`, and `17d1e3c...`. Both matched PyBDSF
+         runners reproduced three sources and three Gaussians on the governed
+         256-pixel compact fixture; Aegean reproduced three islands and six
+         fitted components; Hebog's exact source/inventory and CLI checks
+         passed. Check in pinned rebuild definitions, but do not claim bitwise
+         equality with the missing OCI objects.
+   - [ ] Review the reconstructed runtime delta and bind all four new image and
+         dependency identities in a renewed execution decision. Confirm the
+         PyBDSF release/master environment remains matched except for `bdsf`,
+         accept Aegean's isolated current dependency stack, retain four PyBDSF
+         cores and the 512-pixel limitation, then repeat the complete launcher's
+         no-write preflight. The historical decision is not transferable and
+         campaign execution remains closed until this review passes.
    - [x] Implement and review the complete-population launcher. It stages
          all inputs and raw finder results privately, refuses an existing
          campaign target, retains every failed image in the denominator, and
