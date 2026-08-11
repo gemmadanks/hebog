@@ -2,14 +2,16 @@
 
 **Status:** the Step 2C-P protocol, scientific boundaries, isolated runners,
 immutable runtimes, sealed complete-population launcher, and scientific
-decision kernel are ready. Gemma Danks approved the exact hash-bound one-look
+compiler and decision path are ready. Gemma Danks approved the exact
+hash-bound one-look
 execution on 2026-08-11, and the authorization is frozen in
 `config/contracts/phase-5-external-execution-decision.json`. The launcher's
 no-write preflight passed over all 1,400 inputs and 7,000 runs; no staging or
-finder output was created. Review then identified one remaining pre-execution
-prerequisite: the raw-product science compiler and exact endpoint registry are
-not implemented or hash-bound. The one-look remains unopened until they pass
-pre-results review. Step 3, optimization, and qualification remain closed.
+finder output was created. The subsequent pre-results review froze the exact
+raw-product endpoint registry, compiler, and evaluator identities and checked
+the irregular-position adapter against closed development evidence. The
+one-look remains unopened. Step 3, optimization, and qualification remain
+closed.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -142,27 +144,78 @@ does not currently hold a redistributable, checksum-bound input with curated
 or injected truth. Real-data majority agreement will remain diagnostic, not
 ground truth.
 
-## Decision boundary and remaining compiler
+## Frozen raw-product compiler and decision boundary
 
 `config/contracts/phase-5-external-evaluation.json` binds the evaluator at
 `scripts/validation/evaluate_phase5_external_decision.py`, the external
 protocol, Phase 4 and Phase 5 gates, the compact decision engine, and the
-confirmed irregular-position contract. The kernel enforces absolute-first
-decisions, exact binding references and populations, observed-variance power
+confirmed irregular-position contract. It also binds the exact endpoint
+registry and compiler:
+
+- compiler SHA-256 `81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370`;
+- endpoint-registry SHA-256
+  `a6e469c106cd36800ec775553f1d115523901ab124fc9370eff55522fe7a66d3`;
+- evaluator SHA-256
+  `df99e10a6fbbe7c4c1b9826c88b0d11908500c817e30aea7750bfc9d920cadab`.
+
+The compiler first verifies the approved execution decision, launcher,
+protocol, candidate review, manifests, container digests, source revisions,
+dependency inventories, terminal request, every input bundle, every result,
+and every artifact checksum. Only then does it read scientific products. Its
+prospective registry expands to 143 binding and 15 report-only continuum
+endpoints. The compact lane derives 225 exact Phase 4R metric/stratum keys per
+PyBDSF reference and 143 applicable Aegean keys; both identity sets are
+recomputed from the frozen manifest and registry rather than accepted from
+declared totals.
+
+Raw continuum products have one interpretation:
+
+| Quantity | Frozen interpretation |
+| --- | --- |
+| Catalogue duplicate | More than one eligible catalogue row for one truth group |
+| Support split | More than one distinct native support for one truth group |
+| Support merge | One distinct native support eligible for more than one truth group |
+| Reliability | Primary truth-associated catalogue rows divided by all catalogue rows |
+| Mask precision/recall/IoU | Whole valid image; Hebog segment labels versus PyBDSF island labels |
+| Flux and position | Conditional on a truth-primary catalogue association; completeness retains unmatched truth separately |
+| Compact PyBDSF position and shape | Gaussian catalogue rows, as required by the Phase 4 component contract |
+| Compact Aegean position and shape | Component rows grouped by the native island catalogue; deconvolution and joint position/flux uncertainty families remain inapplicable |
+
+All continuum intervals resample complete images as the independent clusters.
+Finder failures stay in every endpoint denominator. A stratum with no
+conditional flux or position measurement is unavailable rather than silently
+dropped, while an unmatched truth group remains visible through completeness.
+The irregular signed-axis and radial-p95 absolute bounds use the already
+reviewed clustered estimators; the closed development cross-check reproduced
+105 estimates, confidence bounds, and medians exactly (maximum absolute
+difference zero).
+
+The 50,000-resample path pads each bounded image cluster once and evaluates
+SciPy's 500-sample BCa batches with vectorised NumPy reductions. On this
+development host, a representative 600-image scalar comparison fell from
+5.159 to 0.219 seconds with the identical point estimate and upper bound; a
+ragged six-value radial-p95 comparison completed in 4.598 seconds. These are
+compiler-kernel checks, not finder or end-to-end campaign speed claims.
+
+The compact manifest remains a `regression`-role external confirmation. The
+compiler passes an analysis-only role view to the unchanged Phase 4R
+qualification BCa interval implementation because that is the reviewed engine
+path; it changes no truth, seed, recipe, stratum, product, threshold, margin,
+or gate and records both roles in the output. This is reuse of the frozen
+Phase 4 inference implementation, not promotion of the external population to
+held-out qualification.
+
+The decision kernel enforces absolute-first decisions, exact binding
+references and populations, observed-variance power
 audits, recomputation of the paired point-regression direction, and no
 compensation. Absolute confidence-bound values remain separate from the point
 statistics used for paired comparisons. Synthetic tests cover a complete
 pass, higher- and lower-is-better failures, unavailable or missing references,
 candidate failure, excess variance, incomplete raw and endpoint populations,
 duplicate endpoint identity, and the compact/irregular position split.
-
-The evaluator intentionally does not infer metrics directly from raw finder
-products. Before execution, a separate compiler and exact endpoint registry
-must be implemented, tested on synthetic and already-viewed development
-evidence, reviewed, and checksum-bound in that contract. The compiler must
-verify every terminal artifact, derive truth and applicability before reading
-scientific values, reuse the Phase 4 compact engine, and emit the sufficient
-statistics needed for the frozen whole-image intervals. This separation keeps
+The evaluator independently rechecks the exact continuum endpoint population,
+both PyBDSF compact key populations, and that the Aegean binding subset is the
+unaltered applicable subset of its Phase 4R decision. This separation keeps
 raw-product interpretation from changing after the one-look is opened.
 
 ## Execution boundary

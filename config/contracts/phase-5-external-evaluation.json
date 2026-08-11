@@ -1,8 +1,8 @@
 {
   "analysis_compiler": {
-    "path": null,
-    "sha256": null,
-    "status": "required-before-campaign-execution"
+    "path": "scripts/validation/compile_phase5_external_campaign.py",
+    "sha256": "81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370",
+    "status": "frozen-before-campaign-output"
   },
   "astrometry_follow_up_path": "config/contracts/phase-5-astrometry-follow-up-review.json",
   "astrometry_follow_up_sha256": "0fec937aeb90dec119993529af04fb5a431aeb070ab483d713abf8c91972037f",
@@ -21,95 +21,95 @@
   "compact_decision_engine_sha256": "50646ce3ab40a45a01de8c89c62112040ba0064dd95efbd0beb4769eb5740102",
   "continuum_metrics": {
     "completeness": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.9,
       "absolute_relation": "at-least",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "higher-is-better",
       "planning_paired_standard_deviation": 0.08,
       "practical_regression_margin": 0.02
     },
     "duplicate-fraction": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.02,
       "absolute_relation": "at-most",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "lower-is-better",
       "planning_paired_standard_deviation": 0.03,
       "practical_regression_margin": 0.01
     },
     "integrated-flux-median": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.1,
       "absolute_relation": "at-most",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "lower-is-better",
       "planning_paired_standard_deviation": 0.2,
       "practical_regression_margin": 0.05
     },
     "integrated-flux-p95": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.25,
       "absolute_relation": "at-most",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "lower-is-better",
       "planning_paired_standard_deviation": 0.25,
       "practical_regression_margin": 0.05
     },
     "mask-iou": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.8,
       "absolute_relation": "at-least",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "higher-is-better",
       "planning_paired_standard_deviation": 0.15,
       "practical_regression_margin": 0.05
     },
     "mask-precision": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.85,
       "absolute_relation": "at-least",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "higher-is-better",
       "planning_paired_standard_deviation": 0.15,
       "practical_regression_margin": 0.05
     },
     "mask-recall": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.9,
       "absolute_relation": "at-least",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "higher-is-better",
       "planning_paired_standard_deviation": 0.15,
       "practical_regression_margin": 0.05
     },
     "merge-fraction": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.1,
       "absolute_relation": "at-most",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "lower-is-better",
       "planning_paired_standard_deviation": 0.06,
       "practical_regression_margin": 0.02
     },
     "position-median": {
-      "absolute_relation": "at-most",
       "absolute_decision_statistic": "point-estimate",
+      "absolute_relation": "at-most",
       "desirable_direction": "lower-is-better",
       "planning_paired_standard_deviation": 0.15,
       "practical_regression_margin": 0.05
     },
     "position-p95": {
-      "absolute_relation": "at-most",
       "absolute_decision_statistic": "point-estimate",
+      "absolute_relation": "at-most",
       "desirable_direction": "lower-is-better",
       "planning_paired_standard_deviation": 0.25,
       "practical_regression_margin": 0.05
     },
     "reliability": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.95,
       "absolute_relation": "at-least",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "higher-is-better",
       "planning_paired_standard_deviation": 0.08,
       "practical_regression_margin": 0.02
     },
     "split-fraction": {
+      "absolute_decision_statistic": "point-estimate",
       "absolute_limit": 0.1,
       "absolute_relation": "at-most",
-      "absolute_decision_statistic": "point-estimate",
       "desirable_direction": "lower-is-better",
       "planning_paired_standard_deviation": 0.06,
       "practical_regression_margin": 0.02
@@ -117,12 +117,12 @@
   },
   "contract_id": "phase-5-external-evaluation",
   "endpoint_registry": {
-    "path": null,
-    "sha256": null,
-    "status": "required-before-campaign-execution"
+    "path": "config/contracts/phase-5-external-endpoint-registry.json",
+    "sha256": "a6e469c106cd36800ec775553f1d115523901ab124fc9370eff55522fe7a66d3",
+    "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_decision.py",
-  "evaluator_sha256": "b7a6498e9fe1ffe1bfaff6037d42f40f0896a2b5349feab947cf9db752c4788f",
+  "evaluator_sha256": "df99e10a6fbbe7c4c1b9826c88b0d11908500c817e30aea7750bfc9d920cadab",
   "failure_policy": "absolute-first-retain-denominator-incomplete-reference-fails-closed",
   "phase_five_scientific_gates_path": "config/contracts/phase-5-scientific-gates.json",
   "phase_five_scientific_gates_sha256": "cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b",
@@ -137,6 +137,18 @@
     "image_count": 1400,
     "terminal_run_count": 7000
   },
+  "position_decision_statistics": {
+    "compact-component": {
+      "position-median": "point-estimate",
+      "position-p95": "point-estimate"
+    },
+    "irregular-segment": {
+      "absolute-mean-offset-x": "one-sided-95-percent-upper-confidence-limit",
+      "absolute-mean-offset-y": "one-sided-95-percent-upper-confidence-limit",
+      "position-median": "report-only",
+      "position-p95": "one-sided-95-percent-upper-confidence-limit"
+    }
+  },
   "position_mapping": {
     "compact-component": {
       "position-median": 0.1,
@@ -149,18 +161,6 @@
       "position-median": "report-only",
       "position-p95": 0.5,
       "truth_target": "noiseless-three-sigma-truth-segment-centroid"
-    }
-  },
-  "position_decision_statistics": {
-    "compact-component": {
-      "position-median": "point-estimate",
-      "position-p95": "point-estimate"
-    },
-    "irregular-segment": {
-      "absolute-mean-offset-x": "one-sided-95-percent-upper-confidence-limit",
-      "absolute-mean-offset-y": "one-sided-95-percent-upper-confidence-limit",
-      "position-median": "report-only",
-      "position-p95": "one-sided-95-percent-upper-confidence-limit"
     }
   },
   "protocol_path": "config/contracts/phase-5-external-comparison.json",

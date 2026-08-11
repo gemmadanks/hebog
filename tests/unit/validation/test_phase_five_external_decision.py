@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import runpy
 import sys
 from pathlib import Path
@@ -139,6 +140,96 @@ def test_irregular_radial_median_remains_report_only(
             lane="continuum",
             metric_family="position-median",
             position_population="irregular-segment",
+        )
+
+
+def test_irregular_axis_bias_is_absolute_only(
+    evaluator: dict[str, Any], contract: dict[str, Any]
+) -> None:
+    """Signed-axis bias has its own confidence bound and no paired proxy."""
+    policy = evaluator["endpoint_policy"](
+        contract,
+        lane="continuum",
+        metric_family="absolute-mean-offset-x",
+        position_population="irregular-segment",
+    )
+    evidence = evaluator["EndpointEvidence"](
+        endpoint_id="continuum--absolute-mean-offset-x--overall",
+        lane="continuum",
+        metric_family="absolute-mean-offset-x",
+        stratum="overall",
+        position_population="irregular-segment",
+        image_count=600,
+        candidate_status="success",
+        candidate_value=0.02,
+        absolute_decision_value=0.04,
+        comparisons=(),
+    )
+
+    decision = evaluator["evaluate_endpoint"](evidence, policy)
+
+    assert policy.binding_references == ()
+    assert policy.absolute_limit == pytest.approx(0.10)
+    assert decision.status == "pass"
+
+
+def test_registry_expansion_matches_compiler_binding_count(
+    evaluator: dict[str, Any], contract: dict[str, Any]
+) -> None:
+    """The decision layer independently expands all 143 binding identities."""
+    registry_identity = contract["endpoint_registry"]
+    registry = evaluator["_json_object"](_ROOT / registry_identity["path"])
+
+    identifiers = evaluator["_expected_continuum_endpoint_ids"](registry)
+
+    assert len(identifiers) == 143
+    assert len(set(identifiers)) == 143
+    assert "continuum--absolute-mean-offset-x--overall" in identifiers
+    assert "continuum--position-median--overall" not in identifiers
+
+
+def test_compiled_analysis_identity_binds_protocol_and_authorization_state(
+    evaluator: dict[str, Any], contract: dict[str, Any]
+) -> None:
+    """Correct endpoint rows cannot be detached from the approved campaign."""
+    registry_identity = contract["endpoint_registry"]
+    registry = evaluator["_json_object"](_ROOT / registry_identity["path"])
+    expected = evaluator["_expected_continuum_endpoint_ids"](registry)
+    compiler = contract["analysis_compiler"]
+    analysis: dict[str, Any] = {
+        "schema_version": 1,
+        "analysis_id": "phase-5-external-terminal-science",
+        "status": "compiled-terminal-science",
+        "compiler_sha256": compiler["sha256"],
+        "endpoint_registry_sha256": registry_identity["sha256"],
+        "protocol_sha256": contract["protocol_sha256"],
+        "execution_decision_sha256": registry["execution_decision_sha256"],
+        "expected_continuum_endpoint_ids": list(expected),
+        "continuum_diagnostics": [{} for _ in range(15)],
+        "compact": {
+            "source_manifest_role": "regression",
+            "phase_four_interval_engine_mode": "qualification-bca",
+        },
+        "scientific_outcomes_before_runtime": True,
+        "step_three_authorized": False,
+        "optimization_authorized": False,
+        "qualification_opened": False,
+    }
+
+    assert (
+        evaluator["_validate_compiled_analysis_identity"](
+            analysis, contract, registry
+        )
+        == expected
+    )
+
+    changed: dict[str, Any] = {
+        **analysis,
+        "protocol_sha256": "0" * 64,
+    }
+    with pytest.raises(ValueError, match="analysis identity"):
+        evaluator["_validate_compiled_analysis_identity"](
+            changed, contract, registry
         )
 
 
@@ -529,6 +620,74 @@ def test_campaign_requires_exact_terminal_and_endpoint_populations(
     assert duplicate_registry.status == "indeterminate"
 
 
+def test_compact_decision_recomputes_exact_selected_aegean_rows(
+    evaluator: dict[str, Any], contract: dict[str, Any]
+) -> None:
+    """A detached or altered Aegean subset cannot pass the conjunction."""
+    registry_identity = contract["endpoint_registry"]
+    registry: dict[str, Any] = json.loads(
+        (_ROOT / registry_identity["path"]).read_text(encoding="utf-8")
+    )
+    applicable: list[str] = registry["compact"]["aegean_applicable_metric_ids"]
+    applicable_keys = [
+        (applicable[index % len(applicable)], f"stratum-{index:03d}")
+        for index in range(143)
+    ]
+    other_keys = [
+        ("deconvolution-classification-availability", f"other-{index:03d}")
+        for index in range(82)
+    ]
+    all_keys = [*applicable_keys, *other_keys]
+
+    def rows(reference: str) -> list[dict[str, str]]:
+        return [
+            {
+                "reference_identifier": reference,
+                "metric_id": metric_id,
+                "stratum": stratum,
+                "status": "pass",
+            }
+            for metric_id, stratum in all_keys
+        ]
+
+    selected = rows("aegean")[:143]
+    compact: dict[str, Any] = {
+        "status": "pass",
+        "phase_four_pybdsf_decision": {
+            "passed": True,
+            "metric_decisions": [
+                *rows("released-pybdsf"),
+                *rows("pinned-pybdsf-master"),
+            ],
+        },
+        "phase_four_aegean_decision": {
+            "metric_decisions": selected,
+            "implementation_outcomes": [
+                {
+                    "implementation_identifier": "aegean",
+                    "failed_seeds": [],
+                }
+            ],
+        },
+        "aegean_binding_metric_decisions": selected,
+    }
+
+    assert evaluator["_compact_decision_status"](compact, registry) == "pass"
+
+    detached: dict[str, Any] = {
+        **compact,
+        "aegean_binding_metric_decisions": [*selected],
+    }
+    detached["aegean_binding_metric_decisions"][0] = {
+        **selected[0],
+        "status": "fail",
+    }
+    assert (
+        evaluator["_compact_decision_status"](detached, registry)
+        == "indeterminate"
+    )
+
+
 def test_contract_refuses_evaluator_or_upstream_drift(
     evaluator: dict[str, Any], tmp_path: Path
 ) -> None:
@@ -548,7 +707,7 @@ def test_contract_refuses_evaluator_or_upstream_drift(
         evaluator["load_evaluation_contract"](changed, _EVALUATOR)
 
 
-def test_cli_refuses_analysis_until_its_compiler_is_frozen(
+def test_cli_refuses_analysis_not_emitted_by_frozen_compiler(
     evaluator: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -571,7 +730,7 @@ def test_cli_refuses_analysis_until_its_compiler_is_frozen(
         ],
     )
 
-    with pytest.raises(RuntimeError, match="compiler must be frozen"):
+    with pytest.raises(ValueError, match="compiler checksum differs"):
         evaluator["main"]()
 
     assert not output.exists()

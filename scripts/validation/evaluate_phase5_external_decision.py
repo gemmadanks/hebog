@@ -2,9 +2,8 @@
 """Apply the frozen fail-closed Phase 5 external decision rules.
 
 This script is deliberately a decision boundary, not a raw-product analysis
-compiler. The latter must be frozen and checksum-bound before the one-look
-campaign can run; this evaluator then consumes only its strict endpoint
-evidence and cannot reinterpret source-finder products after results exist.
+compiler. It consumes only evidence from the separately checksum-bound
+compiler and cannot reinterpret source-finder products after results exist.
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from math import isclose, isfinite
 from pathlib import Path
 from typing import Literal, cast
@@ -230,6 +229,24 @@ def load_evaluation_contract(
         sha_key="astrometry_follow_up_sha256",
         description="astrometry follow-up",
     )
+    compiler = document.get("analysis_compiler")
+    registry = document.get("endpoint_registry")
+    if not isinstance(compiler, dict) or not isinstance(registry, dict):
+        raise ValueError("external compiler identities are absent")
+    _require_file_sha256(
+        root,
+        compiler,
+        path_key="path",
+        sha_key="sha256",
+        description="raw scientific compiler",
+    )
+    _require_file_sha256(
+        root,
+        registry,
+        path_key="path",
+        sha_key="sha256",
+        description="external endpoint registry",
+    )
     _validate_contract_constants(document, root)
     return document
 
@@ -299,10 +316,15 @@ def _validate_contract_constants(
     }:
         raise ValueError("external position decision statistic changed")
     compiler = document.get("analysis_compiler")
+    registry = document.get("endpoint_registry")
     if not isinstance(compiler, dict) or compiler.get("status") != (
-        "required-before-campaign-execution"
+        "frozen-before-campaign-output"
     ):
         raise ValueError("raw scientific compiler policy changed")
+    if not isinstance(registry, dict) or registry.get("status") != (
+        "frozen-before-campaign-output"
+    ):
+        raise ValueError("external endpoint registry policy changed")
 
 
 def _validate_metric_policies(document: dict[str, object], root: Path) -> None:
@@ -463,11 +485,20 @@ def endpoint_policy(
     metrics = contract.get("continuum_metrics")
     if not isinstance(metrics, dict):
         raise ValueError("continuum metric policies are absent")
-    untyped = metrics.get(metric_family)
+    axis_metric = metric_family in {
+        "absolute-mean-offset-x",
+        "absolute-mean-offset-y",
+    }
+    untyped = metrics.get("position-p95" if axis_metric else metric_family)
     if not isinstance(untyped, dict):
         raise ValueError(f"unknown continuum metric family: {metric_family}")
     metric = cast(dict[str, object], untyped)
-    is_position = metric_family in {"position-median", "position-p95"}
+    is_position = metric_family in {
+        "position-median",
+        "position-p95",
+        "absolute-mean-offset-x",
+        "absolute-mean-offset-y",
+    }
     if is_position != (position_population != "not-applicable"):
         raise ValueError("position population is inconsistent with metric")
     if is_position:
@@ -485,7 +516,7 @@ def endpoint_policy(
     population = cast(dict[str, object], contract["population"])
     if not isinstance(references, dict):
         raise ValueError("binding reference policy is absent")
-    lane_references = references.get(lane)
+    lane_references = [] if axis_metric else references.get(lane)
     if not isinstance(lane_references, list):
         raise ValueError("continuum binding references are absent")
     numeric = (
@@ -505,7 +536,11 @@ def endpoint_policy(
         metric_family=metric_family,
         position_population=position_population,
         expected_image_count=cast(int, population["continuum_image_count"]),
-        desirable_direction=cast(Direction, metric["desirable_direction"]),
+        desirable_direction=(
+            "lower-is-better"
+            if axis_metric
+            else cast(Direction, metric["desirable_direction"])
+        ),
         absolute_relation=cast(Relation, metric["absolute_relation"]),
         absolute_limit=float(cast(float, absolute_limit)),
         absolute_decision_statistic=cast(
@@ -859,6 +894,293 @@ def evaluate_campaign(
     )
 
 
+def _expected_continuum_endpoint_ids(
+    registry: dict[str, object],
+) -> tuple[str, ...]:
+    """Expand the checksum-bound rule matrix without opening new endpoints."""
+    rows = registry.get("continuum")
+    if not isinstance(rows, list):
+        raise ValueError("external continuum endpoint registry is absent")
+    identifiers: list[str] = []
+    for row in rows:
+        if not isinstance(row, dict) or row.get("role") != "binding":
+            continue
+        metric = row.get("metric_family")
+        strata = row.get("strata")
+        if not isinstance(metric, str) or not isinstance(strata, list):
+            raise ValueError("external continuum endpoint rule is malformed")
+        identifiers.extend(
+            f"continuum--{metric}--{stratum}"
+            for stratum in strata
+            if isinstance(stratum, str)
+        )
+    if len(identifiers) != len(set(identifiers)):
+        raise ValueError("external continuum endpoint IDs are duplicated")
+    return tuple(identifiers)
+
+
+def _comparison_evidence(value: object) -> ReferenceComparisonEvidence:
+    """Validate one compiler-produced paired comparison record."""
+    if not isinstance(value, dict):
+        raise ValueError("external reference comparison is malformed")
+    return ReferenceComparisonEvidence(
+        reference_id=cast(str, value.get("reference_id")),
+        status=cast(FinderStatus, value.get("status")),
+        reference_value=cast(float | None, value.get("reference_value")),
+        positive_regression=cast(
+            float | None, value.get("positive_regression")
+        ),
+        upper_confidence_limit=cast(
+            float | None, value.get("upper_confidence_limit")
+        ),
+        observed_paired_standard_deviation=cast(
+            float | None,
+            value.get("observed_paired_standard_deviation"),
+        ),
+        reason=cast(str | None, value.get("reason")),
+    )
+
+
+def _endpoint_evidence(value: object) -> EndpointEvidence:
+    """Validate one complete compiler-produced continuum endpoint."""
+    if not isinstance(value, dict):
+        raise ValueError("external continuum endpoint is malformed")
+    comparisons = value.get("comparisons")
+    if not isinstance(comparisons, list):
+        raise ValueError("external endpoint comparisons are malformed")
+    return EndpointEvidence(
+        endpoint_id=cast(str, value.get("endpoint_id")),
+        lane=cast(Literal["continuum"], value.get("lane")),
+        metric_family=cast(str, value.get("metric_family")),
+        stratum=cast(str, value.get("stratum")),
+        position_population=cast(
+            PositionPopulation, value.get("position_population")
+        ),
+        image_count=cast(int, value.get("image_count")),
+        candidate_status=cast(FinderStatus, value.get("candidate_status")),
+        candidate_value=cast(float | None, value.get("candidate_value")),
+        absolute_decision_value=cast(
+            float | None, value.get("absolute_decision_value")
+        ),
+        comparisons=tuple(_comparison_evidence(item) for item in comparisons),
+        reason=cast(str | None, value.get("reason")),
+    )
+
+
+def _compact_decision_status(  # noqa: C901, PLR0911, PLR0912
+    compact: object, registry: dict[str, object]
+) -> DecisionStatus:
+    """Recompute the compact conjunction from exact Phase 4R constituents."""
+    if not isinstance(compact, dict):
+        return "indeterminate"
+    policy = registry.get("compact")
+    pybdsf = compact.get("phase_four_pybdsf_decision")
+    aegean = compact.get("phase_four_aegean_decision")
+    selected = compact.get("aegean_binding_metric_decisions")
+    if (
+        not isinstance(policy, dict)
+        or not isinstance(pybdsf, dict)
+        or not isinstance(aegean, dict)
+        or not isinstance(selected, list)
+    ):
+        return "indeterminate"
+    expected_pybdsf = policy.get(
+        "pybdsf_expected_endpoint_count_per_reference"
+    )
+    pybdsf_rows = pybdsf.get("metric_decisions")
+    if not isinstance(expected_pybdsf, int) or not isinstance(
+        pybdsf_rows, list
+    ):
+        return "indeterminate"
+    reference_counts: dict[str, int] = {}
+    reference_keys: dict[str, list[tuple[str, str]]] = {}
+    for item in pybdsf_rows:
+        if not isinstance(item, dict):
+            return "indeterminate"
+        reference = item.get("reference_identifier")
+        metric_id = item.get("metric_id")
+        stratum = item.get("stratum")
+        if (
+            not isinstance(reference, str)
+            or not isinstance(metric_id, str)
+            or not isinstance(stratum, str)
+        ):
+            return "indeterminate"
+        reference_counts[reference] = reference_counts.get(reference, 0) + 1
+        reference_keys.setdefault(reference, []).append((metric_id, stratum))
+    if set(reference_counts) != {
+        "released-pybdsf",
+        "pinned-pybdsf-master",
+    } or set(reference_counts.values()) != {expected_pybdsf}:
+        return "indeterminate"
+    if any(
+        len(keys) != len(set(keys)) for keys in reference_keys.values()
+    ) or set(reference_keys["released-pybdsf"]) != set(
+        reference_keys["pinned-pybdsf-master"]
+    ):
+        return "indeterminate"
+    applicable = set(cast(list[str], policy["aegean_applicable_metric_ids"]))
+    expected_aegean = policy.get("aegean_expected_endpoint_count")
+    aegean_rows = aegean.get("metric_decisions")
+    if not isinstance(aegean_rows, list):
+        return "indeterminate"
+    expected_selected = [
+        item
+        for item in aegean_rows
+        if isinstance(item, dict)
+        and item.get("reference_identifier") == "aegean"
+        and item.get("metric_id") in applicable
+    ]
+    if selected != expected_selected:
+        return "indeterminate"
+    keys: list[tuple[str, str]] = []
+    for item in selected:
+        if (
+            not isinstance(item, dict)
+            or item.get("reference_identifier") != "aegean"
+            or item.get("metric_id") not in applicable
+            or not isinstance(item.get("stratum"), str)
+        ):
+            return "indeterminate"
+        keys.append((item["metric_id"], item["stratum"]))
+    if (
+        not isinstance(expected_aegean, int)
+        or len(keys) != expected_aegean
+        or len(keys) != len(set(keys))
+        or not set(keys).issubset(set(reference_keys["released-pybdsf"]))
+    ):
+        return "indeterminate"
+    outcomes = aegean.get("implementation_outcomes")
+    aegean_outcome = (
+        next(
+            (
+                item
+                for item in outcomes
+                if isinstance(item, dict)
+                and item.get("implementation_identifier") == "aegean"
+            ),
+            None,
+        )
+        if isinstance(outcomes, list)
+        else None
+    )
+    if aegean_outcome is None:
+        return "indeterminate"
+    passed = (
+        pybdsf.get("passed") is True
+        and not aegean_outcome.get("failed_seeds")
+        and all(
+            isinstance(item, dict) and item.get("status") == "pass"
+            for item in selected
+        )
+    )
+    declared = compact.get("status")
+    expected_declared = "pass" if passed else "fail"
+    if declared != expected_declared:
+        return "indeterminate"
+    return "pass" if passed else "fail"
+
+
+def _validate_compiled_analysis_identity(
+    analysis: dict[str, object],
+    contract: dict[str, object],
+    registry: dict[str, object],
+) -> tuple[str, ...]:
+    """Reject compiler, protocol, population, or authorization drift."""
+    compiler = cast(dict[str, object], contract["analysis_compiler"])
+    registry_identity = cast(dict[str, object], contract["endpoint_registry"])
+    expected = _expected_continuum_endpoint_ids(registry)
+    declared = analysis.get("expected_continuum_endpoint_ids")
+    diagnostics = analysis.get("continuum_diagnostics")
+    counts = registry.get("expanded_continuum_counts")
+    compact = analysis.get("compact")
+    if (
+        analysis.get("schema_version") != 1
+        or analysis.get("analysis_id") != "phase-5-external-terminal-science"
+        or analysis.get("status") != "compiled-terminal-science"
+        or analysis.get("compiler_sha256") != compiler["sha256"]
+        or analysis.get("endpoint_registry_sha256")
+        != registry_identity["sha256"]
+        or analysis.get("protocol_sha256") != contract["protocol_sha256"]
+        or analysis.get("execution_decision_sha256")
+        != registry["execution_decision_sha256"]
+        or declared != list(expected)
+        or not isinstance(diagnostics, list)
+        or not isinstance(counts, dict)
+        or len(diagnostics) != counts.get("report_only")
+        or not isinstance(compact, dict)
+        or compact.get("source_manifest_role") != "regression"
+        or compact.get("phase_four_interval_engine_mode")
+        != "qualification-bca"
+        or analysis.get("scientific_outcomes_before_runtime") is not True
+        or analysis.get("step_three_authorized") is not False
+        or analysis.get("optimization_authorized") is not False
+        or analysis.get("qualification_opened") is not False
+    ):
+        raise ValueError("external compiled analysis identity changed")
+    return expected
+
+
+def evaluate_compiled_analysis(
+    analysis: dict[str, object],
+    contract: dict[str, object],
+    registry: dict[str, object],
+) -> tuple[CampaignDecision, tuple[EndpointDecision, ...], DecisionStatus]:
+    """Evaluate the exact compiler output and compact Phase 4R result."""
+    expected = _validate_compiled_analysis_identity(
+        analysis,
+        contract,
+        registry,
+    )
+    population = analysis.get("population_audit")
+    endpoint_rows = analysis.get("continuum_endpoints")
+    if not isinstance(population, dict) or not isinstance(endpoint_rows, list):
+        raise ValueError("external compiled populations are absent")
+    audit = CampaignPopulationAudit(**population)
+    evidence = tuple(_endpoint_evidence(item) for item in endpoint_rows)
+    decisions = tuple(
+        evaluate_endpoint(
+            item,
+            endpoint_policy(
+                contract,
+                lane="continuum",
+                metric_family=item.metric_family,
+                position_population=item.position_population,
+            ),
+        )
+        for item in evidence
+    )
+    continuum = evaluate_campaign(
+        audit,
+        decisions,
+        expected_endpoint_ids=expected,
+        contract=contract,
+    )
+    compact_status = _compact_decision_status(
+        analysis.get("compact"), registry
+    )
+    statuses = {continuum.status, compact_status}
+    if "fail" in statuses:
+        status: DecisionStatus = "fail"
+        reason = "continuum or compact external science failed"
+    elif "underpowered" in statuses:
+        status = "underpowered"
+        reason = "a continuum or compact comparison is underpowered"
+    elif "indeterminate" in statuses:
+        status = "indeterminate"
+        reason = "continuum or compact external science is indeterminate"
+    else:
+        status = "pass"
+        reason = "every continuum and compact external endpoint passed"
+    combined = CampaignDecision(
+        status=status,
+        endpoint_count=continuum.endpoint_count + 1,
+        expected_endpoint_count=continuum.expected_endpoint_count + 1,
+        reason=reason,
+    )
+    return combined, decisions, compact_status
+
+
 def _parse_args() -> argparse.Namespace:
     """Parse the future compiler output and immutable contract paths."""
     root = Path(__file__).parents[2]
@@ -874,7 +1196,7 @@ def _parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """Reject unbound analysis until its compiler is frozen and implemented."""
+    """Evaluate one compiler-bound analysis and publish a terminal decision."""
     arguments = _parse_args()
     if arguments.output.exists():
         raise FileExistsError(
@@ -882,19 +1204,46 @@ def main() -> None:
         )
     contract = load_evaluation_contract(arguments.contract, Path(__file__))
     compiler = cast(dict[str, object], contract["analysis_compiler"])
-    if compiler.get("sha256") is None:
-        raise RuntimeError(
-            "raw-product scientific compiler must be frozen before campaign "
-            "evaluation"
-        )
     analysis = json.loads(arguments.analysis.read_text(encoding="utf-8"))
     if not isinstance(analysis, dict):
         raise ValueError("external analysis must be an object")
     if analysis.get("compiler_sha256") != compiler["sha256"]:
         raise ValueError("external analysis compiler checksum differs")
-    raise NotImplementedError(
-        "analysis ingestion opens only after the raw compiler is frozen"
+    registry_identity = cast(dict[str, object], contract["endpoint_registry"])
+    if analysis.get("endpoint_registry_sha256") != registry_identity["sha256"]:
+        raise ValueError("external analysis endpoint registry differs")
+    root = Path(__file__).parents[2]
+    registry = _json_object(root / cast(str, registry_identity["path"]))
+    combined, endpoints, compact_status = evaluate_compiled_analysis(
+        cast(dict[str, object], analysis), contract, registry
     )
+    decision = {
+        "schema_version": 1,
+        "decision_id": "phase-5-external-terminal-decision",
+        "status": combined.status,
+        "analysis_sha256": _file_sha256(arguments.analysis),
+        "contract_sha256": _file_sha256(arguments.contract),
+        "campaign": asdict(combined),
+        "continuum_endpoints": [asdict(item) for item in endpoints],
+        "compact_status": compact_status,
+        "scientific_outcomes_before_runtime": True,
+        "step_three_authorized": False,
+        "optimization_authorized": False,
+        "qualification_opened": False,
+    }
+    arguments.output.parent.mkdir(parents=True, exist_ok=True)
+    with arguments.output.open("xb") as output:
+        output.write(
+            (
+                json.dumps(
+                    decision,
+                    allow_nan=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n"
+            ).encode()
+        )
 
 
 if __name__ == "__main__":

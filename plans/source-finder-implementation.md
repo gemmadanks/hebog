@@ -903,7 +903,8 @@ against the 0.50-beam gate, and that population is closed. Step 2C-P freezes
 600 continuum and 800 compact/blend images, exact PyBDSF release/master and
 Aegean runtimes, truth-first matching, and 0.9082 conservative joint power.
 The matcher, common-input materializer, adapters, isolated runners, immutable
-Hebog runtime, and complete-population launcher are ready. Gemma Danks
+Hebog runtime, complete-population launcher, raw-product compiler, and exact
+endpoint registry are ready. Gemma Danks
 approved the 512-pixel controlled-diagnostic limitation, four PyBDSF cores,
 runtime identities, and final one-look decision on 2026-08-11. A no-write
 preflight expanded exactly 1,400 inputs and 7,000 runs against those identities
@@ -913,12 +914,15 @@ astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
 one-sided radial-p95 upper confidence bound; irregular radial median remains
 report-only. Its
 synthetic pass, absolute-failure, unavailable-reference, excess-variance, and
-incomplete-population cases pass. The audit also found that the raw-product
-science compiler and exact endpoint registry have not yet been implemented,
-so they are a new explicit prerequisite before execution. The one-look remains
-unopened. Step 3, candidate-specific optimization, and qualification remain
-blocked; no external non-inferiority, multiscale equivalence, or complete
-runtime claim is approved.
+incomplete-population cases pass. The compiler verifies the approved request,
+runtime and artifact identities before reading science, then expands 143
+binding and 15 report-only continuum endpoints, 225 Phase 4R compact endpoints
+per PyBDSF reference, and the exact 143 applicable Aegean endpoints. Synthetic
+tests and a closed-development astrometry cross-check pass; the latter
+reproduced all 105 checked estimates, confidence bounds, and medians exactly.
+The one-look remains unopened. Step 3, candidate-specific optimization, and
+qualification remain blocked; no external non-inferiority, multiscale
+equivalence, or complete runtime claim is approved.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1313,7 +1317,7 @@ and spill behaviour, and facility-scale execution.
          refusal, compiler absence, paired-regression sign inversion, and
          separation of absolute confidence bounds from paired point estimates,
          and mapping drift.
-   - [ ] Implement and freeze the raw-product science compiler and exact
+   - [x] Implement and freeze the raw-product science compiler and exact
          endpoint registry before campaign execution. It must verify the
          terminal `campaign.json` and every artifact checksum; derive analytic
          truth and applicable group, pixel, and catalogue populations without
@@ -1325,6 +1329,13 @@ and spill behaviour, and facility-scale execution.
          and already-viewed development evidence, bind both hashes in
          `phase-5-external-evaluation.json`, and obtain pre-results review. Do
          not run or inspect the fresh 1,400-image campaign before this closes.
+         This prerequisite is closed: the compiler is bound at `81d1384d...`,
+         the endpoint registry at `a6e469c1...`, and the evaluator at
+         `df99e10a...`. Exact request/runtime drift, topology semantics,
+         conditional measurements, failures, applicability, endpoint sets,
+         and write-once outputs are covered. The irregular-position adapter
+         reproduced 105 values from closed development evidence with zero
+         difference. No fresh external result was opened.
    - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
          (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
          on the same FITS images, beam, WCS, valid region, and declared science
@@ -1768,23 +1779,18 @@ measurement the corrective Step 2C candidate. This is familiar to PyBDSF and
 Selavy users while adopting segmentation strengths exposed by ProFound,
 CAESAR, and Hydra. Step 2C-R corrected association, artifact disposition, and
 false-positive control. Step 2C-A exposed astrometry variance and uncertainty
-undercoverage. Step 2C-H then prospectively corrected the catalogue endpoint
-and covariance protocol on fresh development data. The direct and
-Gaussian-assisted estimators both failed required endpoint and coverage
-strata, so neither was selected and the sealed confirmation was not opened.
-The completed Phase 5 comparisons remain internal to Hebog. Step 2C-P requires
-direct non-inferiority against both exact PyBDSF references and, for its
-applicable compact/Gaussian scope, Aegean before Step 3. Step 2D separately
-decides only whether Rapthor uses the `compact` or `continuum` profile.
+undercoverage. Step 2C-H rejected direct and Gaussian-assisted estimators;
+Step 2C-HR then separated compact-component astrometry from irregular
+detected-segment repeatability and passed fresh development and one-look
+confirmation. The completed comparisons remain internal to Hebog. Step 2C-P
+now requires direct non-inferiority against both exact PyBDSF references and,
+for its applicable compact/Gaussian scope, Aegean before Step 3. Step 2D
+separately decides only whether Rapthor uses the `compact` or `continuum`
+profile.
 
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:
 
-- Which prospectively reviewed extended-position estimator can pass every
-  direct group-level median, p95, and two-dimensional uncertainty-coverage
-  stratum on fresh development data? The direct and covariance-gated Gaussian
-  candidates have been rejected; the closed 2C-A and sealed Step 2C-H
-  confirmation populations cannot be used for tuning.
 - Which scale-specific threshold, connectivity, and support rules recover
   diffuse and filamentary truth without duplicating compact sources?
 - Does compact-only processing preserve Rapthor's retained/rejected sky-model

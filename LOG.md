@@ -6556,3 +6556,60 @@ pre-commit check passes cleanly.
 **Immediate next step:** implement and pre-results-freeze the raw-product
 science compiler and exact endpoint registry. Do not invoke the already
 approved launcher without `--preflight-only` until that prerequisite closes.
+
+## 2026-08-11 — Closed the Step 2C-P raw-product compiler prerequisite
+
+**Plan phase:** Phase 5, Step 2C-P — pre-results science compilation
+
+- Added the write-once terminal science compiler and prospective endpoint
+  registry without changing `src/hebog/` or the approved Hebog runtime. Before
+  reading scientific values, the compiler now verifies the approved execution
+  decision, complete-population launcher, protocol, candidate review,
+  manifests, container digests, source and dependency identities, sealed
+  request, every common input, every finder result, and every artifact
+  checksum.
+- Froze 143 binding and 15 report-only continuum endpoints. Catalogue-row
+  multiplicity defines duplicates; distinct native supports define splits and
+  merges. Truth-primary matches condition flux and position while completeness
+  separately retains unmatched truth, and finder failures remain in every
+  image denominator. Signed x/y bias remains absolute-only; irregular radial
+  median remains report-only.
+- Reused the unchanged Phase 4R decision and BCa interval engines for compact
+  products. The compiler derives and validates the exact 225 metric/stratum
+  keys per PyBDSF reference and exact 143 applicable Aegean keys. PyBDSF uses
+  Gaussian catalogue rows for the compact component contract; Aegean excludes
+  only the prospectively inapplicable deconvolution, classification, and joint
+  position/flux-uncertainty families.
+- Bound compiler `81d1384d...`, endpoint registry `a6e469c1...`, and evaluator
+  `df99e10a...` in evaluation contract `4ce9cad7...`. The evaluator
+  independently recomputes the continuum population, both PyBDSF compact key
+  populations, and the exact unaltered Aegean subset before applying the
+  absolute-first conjunction.
+- Replaced Python-per-resample endpoint loops with padded bounded image
+  clusters and vectorised NumPy reductions inside the unchanged 500-sample
+  SciPy BCa batches. A representative 600-image, 50,000-resample scalar
+  comparison fell from 5.159 to 0.219 seconds with identical evidence; a
+  ragged radial-p95 comparison completed in 4.598 seconds. These are compiler
+  kernel checks only, not source-finder or end-to-end performance claims.
+- Cross-checked the irregular-position adapter against the already-viewed
+  development population. It reproduced 105 endpoint estimates, confidence
+  bounds, and diagnostic medians exactly across 80 images and 480 group
+  observations; maximum absolute difference was zero. No fresh external
+  realization or result was generated or inspected.
+
+**Validation:** 113 focused compiler, evaluator, launcher, matcher, product,
+compact-decision, astrometry, and recovery tests pass. All 27 equivalence tests
+pass. The branch-aware suite passes 1,208 tests with four expected failures and
+93.95% project coverage, including the Dask lanes with loopback permission.
+The direct `just check` equivalents pass Ruff, Pyright, and 1,081
+unit/doctest cases with four expected failures; the strict documentation build
+passes. `uv run` itself panicked in this restricted macOS host's system proxy
+discovery, so the already-synchronized `.venv` executables ran the identical
+commands. The final all-files `just pre-commit` run passes cleanly, including
+the lock check.
+
+**Immediate next step:** execute the already-approved complete-population
+launcher once, without `--preflight-only`, and do not inspect private staging.
+After atomic terminal publication, run the frozen compiler and evaluator once
+and review science before runtime. Step 3, optimization, and qualification
+remain closed unless that decision passes and receives review.
