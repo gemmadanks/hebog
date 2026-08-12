@@ -920,9 +920,13 @@ campaign paths absent. The sealed campaign subsequently completed all 8,400
 isolated invocations, verified every input and result, and atomically published
 terminal raw evidence at manifest `b9996100...`. The first frozen compiler
 attempt failed before writing analysis because its analysis-only Phase 4R role
-copy contained a plain string rather than the required enum. A regression test
-now binds the type-safe correction; scientific output remains unopened while
-the corrected compiler is committed and rerun. A
+copy contained a plain string rather than the required enum. The committed
+type-only correction then compiled analysis `bdc59fdc...`; the unchanged
+evaluator sealed decision `73c7e2eb...` as `fail`/`select-neither`. All 143
+Continuum endpoints were indeterminate, compact comparison also failed, and
+only 1,492 of 5,000 binding runs succeeded. Step 3, optimization, and
+qualification therefore remain closed while Step 2C-PF corrects product and
+reference interoperability prospectively. A
 checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
@@ -935,9 +939,11 @@ binding and 15 report-only continuum endpoints, 225 Phase 4R compact endpoints
 per PyBDSF reference, and the exact 143 applicable Aegean endpoints. Synthetic
 tests and a closed-development astrometry cross-check pass; the latter
 reproduced all 105 checked estimates, confidence bounds, and medians exactly.
-The one-look remains unopened. Step 3, candidate-specific optimization, and
-qualification remain blocked; no external non-inferiority, multiscale
-equivalence, or complete runtime claim is approved.
+The one-look is closed with a failed scientific decision. Step 3,
+candidate-specific optimization, and qualification remain blocked; no
+external non-inferiority, multiscale equivalence, or complete runtime claim is
+approved. The campaign may inform failure diagnosis but may not be rescored,
+tuned, or reused as confirmation.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1408,24 +1414,64 @@ and spill behaviour, and facility-scale execution.
          Gaussian-like or mixed catalogue populations. Report its diffuse,
          filament, shell, extended-mask, and multiscale-provenance results
          without treating unavailable products as either success or failure.
-   - [ ] Evaluate analytic and injected truth first. Hebog must pass every
+   - [x] Evaluate analytic and injected truth first. Hebog must pass every
          unchanged absolute gate and be non-inferior to released PyBDSF and
          pinned `master` on every applicable full-continuum endpoint and
          stratum, and to Aegean on every applicable catalogue endpoint and
          stratum. Use the predeclared one-sided 95% confidence rules with no
          cross-metric or cross-morphology compensation. A reference failure
          cannot excuse a Hebog absolute failure; an incomplete reference leg
-         makes the corresponding comparison unavailable and fails closed.
+         makes the corresponding comparison unavailable and fails closed. The
+         frozen evaluator did fail closed: all 143 Continuum endpoints were
+         indeterminate, the compact decision failed, and no candidate or
+         paired scientific value was admitted. The analysis and decision
+         SHA-256 identities are `bdc59fdc...` and `73c7e2eb...`.
    - [ ] Include a bounded public or challenge cut-out with injected or curated
          truth if redistribution and exact execution are feasible. Otherwise
          require it in Step 6 and keep real-data cross-finder agreement
          diagnostic rather than treating majority agreement as truth.
-   - [ ] Record scientific outcomes before runtime. Report wall time, CPU,
+   - [x] Record scientific outcomes before runtime. Report wall time, CPU,
          memory, failures, and output counts for context, but use cost only
          after the scientific rule finds Hebog eligible. Authorize Step 3 only
          when the named human review accepts the estimator/endpoint and this
          external comparison passes; otherwise select no production candidate
          and revise the plan without weakening or post-hoc changing a gate.
+         The recorded outcome is `select-neither`: 2,292 of 7,000 terminal
+         finder runs succeeded and 1,492 of 5,000 binding runs succeeded.
+         Aegean completed 1,600/1,600 runs; Hebog completed 692/1,400; both
+         PyBDSF references each completed 0/2,000. The serial campaign took
+         about 7 h 12 min. Per-run CPU and peak memory were not captured, so
+         they are explicitly unavailable; failed-leg wall times are not
+         performance evidence and no runtime comparison is authorized.
+
+2C-PF. **Correct terminal product interoperability before a fresh external
+comparison.**
+
+   - [ ] Freeze the closed campaign's failure taxonomy and reproduce each
+         class on bounded development fixtures or explicitly diagnostic use
+         of an already-opened failed realization. Do not rescore, retune, or
+         promote any result from campaign `b9996100...`.
+   - [ ] Correct and independently test PyBDSF product interpretation for both
+         pinned versions: reconcile exported island-mask semantics with
+         `pyrank` labels, and make controlled mean/RMS filenames conform to
+         PyBDSF's actual file-loading contract. Require source, Gaussian,
+         island, mask, and label identities to agree without coercion.
+   - [ ] Review Hebog's terminal catalogue contract for reconstructed
+         segments with non-positive aperture flux and for positions without a
+         finite local RMS. Preserve every detection in the denominator and
+         represent unavailable or non-physical measurements explicitly; do
+         not clip flux, substitute noise, discard difficult morphologies, or
+         weaken association and flux gates merely to make a run succeed.
+   - [ ] Pass a development execution-validity matrix for all four immutable
+         finder implementations across compact, diffuse, shell, filament,
+         masked, edge, and varying-noise cases before freezing new evidence.
+         Add regression tests for every terminal failure class and require
+         zero unexpected runner failures.
+   - [ ] Freeze and review a new seed-disjoint, adequately powered successor
+         population, exact runtimes, compiler, evaluator, and one-look rule.
+         Obtain named approval before execution. Step 3 opens only if the new
+         campaign passes every unchanged absolute and applicable paired gate;
+         the closed campaign is diagnostic history, not pooled evidence.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

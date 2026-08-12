@@ -18,9 +18,13 @@ absent. The one-look then completed all 8,400 isolated invocations and
 atomically published checksum-verified terminal raw evidence with manifest
 SHA-256 `b9996100...`. The first compiler attempt failed closed before writing
 analysis because an analysis-only Phase 4R role copy retained a plain string
-instead of its enum type. The type-only correction is regression-tested and
-rebound; Step 3, optimization, and qualification remain closed pending the
-corrected compiler and frozen evaluator.
+instead of its enum type. After the committed, regression-tested type-only
+correction, analysis `bdc59fdc...` and frozen decision `73c7e2eb...` closed the
+campaign as `fail`/`select-neither`. All 143 Continuum endpoints were
+indeterminate, compact comparison also failed, and only 1,492 of 5,000 binding
+runs succeeded. Step 3, optimization, and qualification remain closed. The
+campaign may support failure diagnosis but may not be rescored or reused as
+confirmation.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -264,6 +268,32 @@ complete staging directory is then renamed once to the public target. A
 verified manifest left by an interruption before that rename is safe to
 resume. Passing Step 2C-P will still require a reviewed scientific decision
 before Step 3 opens.
+
+### Terminal decision
+
+The corrected compiler finished against the unchanged terminal manifest and
+wrote analysis SHA-256
+`bdc59fdc62409c32bba8233b848e93581a5da4131e50c48a5b0771ce2fd2a227`.
+The unchanged frozen evaluator wrote decision SHA-256
+`73c7e2eb4befb87b35fc9cb4a35a90fe28a5a4f9864c33aa4a5ef77069689dac`.
+It records `scientific_outcomes_before_runtime=true`, `status=fail`, and false
+values for Step 3, optimization, and qualification.
+
+The terminal campaign contained 2,292 successful and 4,708 failed finder runs.
+Aegean completed all 1,600 operational and controlled runs. Hebog completed
+692/1,400; 576 failures contained a reconstructed segment with non-positive
+aperture flux and 132 lacked a finite positive local RMS. Each PyBDSF version
+failed all 1,400 operational runs at the adapter's island-mask/label check and
+all 600 controlled-background runs while PyBDSF loaded the supplied mean/RMS
+files. These failures made all external science indeterminate; they do not
+establish scientific inferiority or non-inferiority.
+
+Runtime is contextual only because Hebog was not scientifically eligible. The
+serial campaign took about 7 h 12 min. Aegean's median controlled/operational
+wall times were 1.56/1.79 seconds, and successful Hebog runs had a 2.85-second
+median. PyBDSF and failed-Hebog timings terminate on errors and are not
+comparable performance evidence. Per-run CPU and peak memory were not captured
+and are explicitly unavailable.
 
 ### Prepared Hebog runtime
 

@@ -6858,3 +6858,43 @@ focused compiler and evaluator tests. No analysis or decision output exists.
 **Immediate next step:** commit the complete type-only correction and governed
 hash chain, rerun the compiler once, then apply the unchanged frozen evaluator
 to its write-once output.
+
+## 2026-08-12 — Closed the external comparison as select-neither
+
+**Plan phase:** Phase 5, Step 2C-P — terminal scientific decision
+
+- Committed the type-only compiler correction as `c5a2772`, confirmed that no
+  analysis or decision output existed, and reran it against the unchanged raw
+  campaign SHA-256 `b9996100...`. The compiler completed successfully and
+  wrote analysis SHA-256 `bdc59fdc...`.
+- Applied the unchanged frozen evaluator `df99e10a...`. It wrote decision
+  SHA-256 `73c7e2eb...` with `status=fail`,
+  `scientific_outcomes_before_runtime=true`, and Step 3, optimization, and
+  qualification all false. The compact result failed and all 143 Continuum
+  endpoints were indeterminate; no absolute or paired metric value was
+  admitted.
+- The terminal population contained 7,000 finder runs: 2,292 succeeded and
+  4,708 failed. Of the 5,000 binding runs, 1,492 succeeded and 3,508 failed.
+  Aegean completed 1,600/1,600, Hebog 692/1,400, released PyBDSF 0/2,000, and
+  pinned-master PyBDSF 0/2,000.
+- Post-decision typed failure review found 576 Hebog runs with a non-positive
+  reconstructed-segment aperture flux and 132 with no finite positive local
+  RMS. Each PyBDSF version failed 1,400 operational runs at the adapter's
+  island-mask/label consistency check and 600 controlled-background runs
+  inside PyBDSF while loading the supplied mean/RMS maps. Aegean had no runner
+  failures.
+- Runtime was reviewed only after the scientific failure. The serial campaign
+  lasted about 7 h 12 min. Aegean median controlled/operational wall times were
+  1.56/1.79 seconds and successful Hebog runs had a 2.85-second median. Failed
+  leg timings are not comparable performance evidence. Per-run CPU and peak
+  memory were not captured and are explicitly unavailable.
+
+**Decision:** select no production candidate. This campaign is closed and may
+inform failure diagnosis only; it must not be rescored, tuned, pooled into a
+successor decision, or reused as confirmation.
+
+**Immediate next step:** execute prospective Step 2C-PF. First reproduce and
+test the PyBDSF mask/label and controlled-map contracts and Hebog's terminal
+segment measurement dispositions on bounded development evidence. Then pass a
+zero-unexpected-failure development matrix before freezing a new seed-disjoint
+external campaign and seeking named execution approval.
