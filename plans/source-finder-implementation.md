@@ -933,8 +933,12 @@ The matrix used only two already-opened failed realizations: the compact/blend
 case and one continuum case containing diffuse, shell, filament, edge,
 invalid-pixel, and varying-noise strata. It did not inspect or rescore science
 metrics. The checksum-bound terminal compiler remains byte-identical; its
-successor must admit native mask-only detections before a new protocol is
-frozen. A
+successor science kernel now admits native mask-only detections without
+inventing catalogue rows. It preserves the terminal metric result whenever
+every support is catalogued, keeps label-only supports in mask and topology
+metrics, and keeps their catalogue completeness, reliability, flux, and
+position dispositions explicit. It passed both pinned PyBDSF product
+boundaries on one already-opened diagnostic realization. A
 checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
@@ -1485,13 +1489,23 @@ comparison.**
          and continuum operational/controlled modes, and Aegean in both modes
          on both inputs. The approved 512-pixel PyBDSF controlled diagnostic
          remains inapplicable. No scientific metric was compiled or opened.
-   - [ ] Freeze and review a new seed-disjoint, adequately powered successor
-         population, exact runtimes, compiler, evaluator, and one-look rule.
-         First update and regression-test the prospective compiler so native
-         label/mask detections without catalogue rows remain in detection
-         denominators; do not alter the checksum-bound terminal compiler or
-         its closed evidence chain.
-         Obtain named approval before execution. Step 3 opens only if the new
+   - [x] Implement and regression-test the prospective successor science
+         compiler boundary so native label/mask detections without catalogue
+         rows remain in mask and topology denominators without being treated
+         as catalogue rows in completeness, reliability, flux, or position.
+         Require exact parity
+         with the terminal compiler when every native support has a catalogue
+         row. The new boundary has complete focused branch coverage and passed
+         real-product integration against both pinned PyBDSF versions; the
+         checksum-bound terminal compiler remains byte-identical.
+   - [ ] Generate and power-audit a new seed-disjoint successor population
+         without opening finder output. Bind the candidate source, corrected
+         runners, prospective science kernel, manifests, and exact runtime
+         inventories only after their pre-results checks pass.
+   - [ ] Freeze and review the successor compiler composition, endpoint
+         registry, evaluator, absolute and paired gates, complete-population
+         launcher, and one-look rule. Obtain named approval before execution.
+         Step 3 opens only if the new
          campaign passes every unchanged absolute and applicable paired gate;
          the closed campaign is diagnostic history, not pooled evidence.
 

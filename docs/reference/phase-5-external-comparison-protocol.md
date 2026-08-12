@@ -326,9 +326,39 @@ controlled diagnostic remains inapplicable. This matrix checked execution and
 product validity only; no closed-campaign science metric was inspected,
 rescored, or promoted.
 
-The next gate is a new seed-disjoint successor freeze. Its prospective
-compiler must treat native mask-only detections as denominator objects without
-changing the checksum-bound terminal compiler or its closed evidence chain.
+The prospective successor science boundary is implemented independently in
+`hebog.validation.external_successor_compiler`. It keeps two populations
+explicit:
+
+| Population | Included products | Scientific use |
+| --- | --- | --- |
+| Measurable catalogue rows | Rows whose island IDs refer to positive native labels | Catalogue completeness and reliability; conditional flux and position; catalogue duplicates |
+| Native support objects | Every distinct positive label, including fitless and otherwise unmeasurable labels | Mask overlap and support split/merge topology only |
+
+A label-only detection therefore contributes to mask and topology
+denominators, but it does not receive an invented catalogue centre, flux,
+identity, completeness match, or reliability observation. Its geometric
+support centroid is used only as a deterministic topology descriptor when no
+catalogue row exists; catalogued supports retain the frozen row-centre
+aggregation. Truth recovered only by that label remains unmatched in
+catalogue completeness; conditional flux and position remain unavailable.
+When every positive label
+has a catalogue row, the successor kernel reproduces every terminal continuum
+metric exactly.
+
+Twenty-one focused tests cover ordinary, label-only, fitless, artifact, empty,
+malformed, and misaligned cases with complete line and branch coverage. On the
+already-opened diagnostic continuum realization, released PyBDSF produced 12
+catalogue rows alongside 11 native supports, with the catalogue-label set a
+strict subset of the native-label set. Pinned master produced 14 rows alongside
+11 supports. Both passed the prospective adapter without coercion. These were
+product-validity checks only, not science rescoring.
+
+The next gate is a new seed-disjoint population and power audit, followed by a
+pre-results freeze that composes this kernel with a new verifier, endpoint
+registry, evaluator, launcher, and exact runtime identities. The terminal
+compiler remains unchanged at SHA-256 `7a055891...`; its closed evidence chain
+will not be rebound.
 
 ### Prepared Hebog runtime
 

@@ -6954,3 +6954,49 @@ scientific non-inferiority.
 Before binding it, update its prospective compiler to retain mask-only native
 detections in the science denominators, then freeze new source/runtime hashes,
 power, evaluator, and one-look rule and obtain named execution approval.
+
+## 2026-08-12 — Prepared the successor mask-only compiler contract
+
+**Plan phase:** Phase 5, Step 2C-PF — prospective successor compiler
+
+- Added `hebog.validation.external_successor_compiler` rather than modifying
+  the closed terminal compiler. Its catalogue adapter permits measurable rows
+  to be a strict subset of positive Hebog/PyBDSF labels while still rejecting
+  absent, missing, negative, non-canonical, and malformed island identities.
+- Separated measurable catalogue objects from one topology object per native
+  positive label. Catalogue rows alone govern catalogue completeness,
+  reliability, duplicate, conditional flux, and conditional position
+  endpoints. Every native label—including a fitless or unmeasurable label—
+  governs mask overlap and support split/merge topology. A label-only recovery
+  therefore stays scientifically visible without fabricated photometry or an
+  invented catalogue source.
+- Used TDD: four initial regressions failed with the intentionally absent
+  implementation, then the completed suite passed 21 ordinary, mask-only,
+  fitless, empty, artifact, malformed, and plane-identity cases with 100% line
+  and branch coverage for the new module. Review-added red/green cases also
+  require runtime-invalid finder and truth-role identities to fail closed. The
+  no-mask-only case reproduces the terminal compiler's complete metric mapping
+  exactly.
+- Ran the corrected operational product path on the already-opened continuum-1
+  seed `2026780001` inside both pinned, network-disabled PyBDSF containers with
+  read-only repository/input mounts and transient outputs. Released PyBDSF had
+  12 source rows alongside 11 native supports, with a strict catalogue-label
+  subset; pinned master had 14 rows alongside 11 supports. Both prospective
+  adapters completed without coercion. No truth metric was compiled or
+  inspected.
+- Confirmed the closed terminal compiler remains byte-identical at SHA-256
+  `7a0558916ac003b71a781337dc710c99c359899c4d77f88486c1c206916b43f6`.
+- Final validation passed: `just coverage` selected 1,253 tests and reported
+  1,249 passed, 4 expected failures, and 94.08% branch-aware project coverage;
+  the new module retained 100% line and branch coverage. `just
+  test-equivalence` passed 27 tests, `just check` passed Ruff, Pyright, and
+  1,119 tests with 4 expected failures, and `just docs-build` passed strictly.
+
+**Decision:** the successor compiler's mask-only scientific interpretation is
+ready for pre-results composition and identity binding. This is not a frozen
+campaign, human scientific approval, or authorization to execute one.
+
+**Immediate next step:** generate and power-audit a new seed-disjoint
+population without opening finder output, then bind the reviewed compiler
+composition, endpoint registry, evaluator, launcher, corrected runners, and
+exact runtimes for named approval.
