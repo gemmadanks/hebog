@@ -11,7 +11,6 @@ import json
 from collections import Counter
 from dataclasses import asdict
 from datetime import datetime
-from math import ceil
 from pathlib import Path, PurePosixPath
 from typing import Literal, Self, TypeAlias, cast
 
@@ -20,7 +19,6 @@ import numpy.typing as npt
 from astropy.io import fits
 from astropy.wcs import WCS
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from scipy.ndimage import binary_dilation
 
 from hebog.algorithms.extended_measurement import (
     measure_detected_segment_position,
@@ -775,7 +773,12 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
     beam_major_fwhm_pixels: float,
     beam_minor_fwhm_pixels: float,
 ) -> tuple[CatalogueSource, ...]:
-    """Measure blind extended-segment products on original image pixels."""
+    """Measure catalogue rows for physically measurable blind segments.
+
+    Labels remain the authoritative record of every accepted detection.
+    Segments without a finite positive signed-flux measurement therefore stay
+    in the label/mask products but do not receive an invented catalogue row.
+    """
     image = np.asarray(image_jy_per_beam, dtype=np.float64)
     background = np.asarray(background_jy_per_beam, dtype=np.float64)
     valid = np.asarray(valid_pixels, dtype=np.bool_)
@@ -809,32 +812,17 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         * beam_major_fwhm_pixels
         * beam_minor_fwhm_pixels
     )
-    dilation = ceil(4.0 * beam_major_fwhm_pixels)
     celestial_wcs = WCS(header, relax=True).celestial
     output: list[CatalogueSource] = []
     for label_value in sorted(
         int(item) for item in np.unique(labels) if item > 0
     ):
-        support = (labels == label_value) & valid
+        support = (labels == label_value) & valid & np.isfinite(residual)
         estimate = measure_detected_segment_position(residual, support)
         if not estimate.available or estimate.centroid_xy is None:
-            raise ValueError(
-                f"Hebog segment {label_value} has no available position"
-            )
-        aperture = (
-            np.asarray(
-                binary_dilation(support, iterations=dilation), dtype=np.bool_
-            )
-            & valid
-        )
-        integrated_flux = float(
-            np.sum(residual[aperture], dtype=np.float64)
-        ) / (beam_area_pixels)
+            continue
+        integrated_flux = estimate.integrated_weight / beam_area_pixels
         peak_flux = float(np.max(residual[support]))
-        if integrated_flux <= 0.0 or peak_flux <= 0.0:
-            raise ValueError(
-                f"Hebog segment {label_value} has non-positive flux"
-            )
         right_ascension, declination = celestial_wcs.all_pix2world(
             [estimate.centroid_xy],
             0,

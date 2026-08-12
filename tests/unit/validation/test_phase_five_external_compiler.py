@@ -51,6 +51,16 @@ def approved_campaign_request(
         "named_review": "unit-test authorization",
         "decision": "authorize-one-terminal-external-comparison",
         "execution_authorized": True,
+        "source_tree_sha256": launcher["source_tree_sha256"](_ROOT),
+        "runners": [
+            {
+                **runner,
+                "sha256": launcher["file_sha256"](
+                    _ROOT / runner["relative_path"]
+                ),
+            }
+            for runner in pending["runners"]
+        ],
         "next_action": (
             "execute-complete-frozen-comparison-once-without-opening-"
             "partial-results"

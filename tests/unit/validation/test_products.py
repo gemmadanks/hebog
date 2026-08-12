@@ -324,7 +324,11 @@ def test_hebog_segment_catalogue_measures_original_pixels_and_round_trips(
     assert sources[0].identifier == "hebog-segment-4"
     assert sources[0].right_ascension_degrees == pytest.approx(10.0)
     assert sources[0].declination_degrees == pytest.approx(-30.0)
-    assert sources[0].integrated_flux_jy > sources[0].peak_flux_jy_per_beam
+    support_flux = float(np.sum(image[labels == 4], dtype=np.float64))
+    beam_area_pixels = 2.0 * np.pi / (8.0 * np.log(2.0)) * 3.0 * 2.0
+    assert sources[0].integrated_flux_jy == pytest.approx(
+        support_flux / beam_area_pixels
+    )
 
 
 def test_aegean_products_reject_schema_and_association_drift(
@@ -413,3 +417,67 @@ def test_hebog_segment_catalogue_rejects_invalid_planes_and_beam() -> None:
             beam_major_fwhm_pixels=0.0,
             beam_minor_fwhm_pixels=1.0,
         )
+
+
+def test_hebog_segment_catalogue_measures_only_accepted_support() -> None:
+    """Negative pixels outside a segment cannot change its catalogue flux."""
+    image = np.full((21, 21), -1.0, dtype=np.float64)
+    labels = np.zeros((21, 21), dtype=np.int32)
+    labels[9:12, 9:12] = 4
+    image[labels == 4] = 1.0
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 11.0
+    header["CRPIX2"] = 11.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+
+    sources = build_hebog_segment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=3.0,
+        beam_minor_fwhm_pixels=2.0,
+    )
+
+    beam_area_pixels = 2.0 * np.pi / (8.0 * np.log(2.0)) * 3.0 * 2.0
+    assert sources[0].integrated_flux_jy == pytest.approx(
+        9.0 / beam_area_pixels
+    )
+
+
+def test_hebog_unmeasurable_segment_remains_mask_only() -> None:
+    """A non-physical segment cannot turn the finder run into an error."""
+    image = np.ones((5, 5), dtype=np.float64)
+    labels = np.zeros((5, 5), dtype=np.int32)
+    labels[1:3, 1:3] = 1
+    labels[3:5, 3:5] = 2
+    image[labels == 2] = -1.0
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 3.0
+    header["CRPIX2"] = 3.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+
+    sources = build_hebog_segment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+    )
+
+    assert tuple(source.island_identifier for source in sources) == (
+        "hebog-segment-1",
+    )

@@ -1407,6 +1407,133 @@ def test_phase5_external_pybdsf_controlled_maps_fail_if_ignored() -> None:
         )
 
 
+def test_phase5_external_pybdsf_controlled_maps_are_input_relative() -> None:
+    """PyBDSF must not prepend the image directory to absolute map paths."""
+    root = Path(__file__).parents[3]
+    protocol = load_phase_five_external_comparison_protocol(
+        root / "config/contracts/phase-5-external-comparison.json"
+    )
+    namespace = _script("run_phase5_external_pybdsf.py")
+
+    def artifact_path(role: str) -> Path:
+        return Path("/sealed/input") / f"{role}.fits"
+
+    authorized = SimpleNamespace(
+        input_bundle=SimpleNamespace(shape_yx=(1024, 1024)),
+        artifact_path=artifact_path,
+    )
+
+    configuration = namespace["_configuration"](
+        protocol,
+        authorized,
+        mode="controlled-background",
+        ncores=1,
+    )
+
+    assert configuration["rmsmean_map_filename"] == (
+        "mean.fits",
+        "rms.fits",
+    )
+
+
+def test_pybdsf_controlled_maps_must_share_input_directory() -> None:
+    """Relative map names are valid only beside PyBDSF's input image."""
+    root = Path(__file__).parents[3]
+    protocol = load_phase_five_external_comparison_protocol(
+        root / "config/contracts/phase-5-external-comparison.json"
+    )
+    namespace = _script("run_phase5_external_pybdsf.py")
+    paths = {
+        "image": Path("/sealed/input/image.fits"),
+        "mean": Path("/sealed/maps/mean.fits"),
+        "rms": Path("/sealed/maps/rms.fits"),
+    }
+    authorized = SimpleNamespace(
+        input_bundle=SimpleNamespace(shape_yx=(1024, 1024)),
+        artifact_path=paths.__getitem__,
+    )
+
+    with pytest.raises(ValueError, match="share the image directory"):
+        namespace["_configuration"](
+            protocol,
+            authorized,
+            mode="controlled-background",
+            ncores=1,
+        )
+
+
+def test_phase5_external_pybdsf_labels_follow_exported_fits_axes() -> None:
+    """Internal PyBDSF x/y ranks must match its transposed FITS mask."""
+    namespace = _script("run_phase5_external_pybdsf.py")
+    internal_rank = np.asarray(
+        ((-1, 0, 0), (1, 1, -1)),
+        dtype=np.int32,
+    )
+
+    labels = namespace["_pybdsf_label_plane"](internal_rank)
+
+    np.testing.assert_array_equal(
+        labels,
+        np.asarray(((0, 2), (1, 2), (1, 0)), dtype=np.int32),
+    )
+
+
+@pytest.mark.parametrize(
+    "rank",
+    (
+        np.asarray((-1, 0), dtype=np.int32),
+        np.asarray(((-1.0, 0.0),), dtype=np.float64),
+        np.asarray(((-2, 0),), dtype=np.int32),
+    ),
+)
+def test_phase5_external_pybdsf_rejects_invalid_internal_ranks(
+    rank: np.ndarray,
+) -> None:
+    """Rank conversion cannot coerce malformed PyBDSF state."""
+    namespace = _script("run_phase5_external_pybdsf.py")
+
+    with pytest.raises(ValueError, match="PyBDSF pyrank"):
+        namespace["_pybdsf_label_plane"](rank)
+
+
+def test_phase5_external_pybdsf_allows_fitless_native_islands() -> None:
+    """A detected island without a fitted catalogue source stays mask-only."""
+    namespace = _script("run_phase5_external_pybdsf.py")
+    labels = np.asarray(((1, 0), (2, 3)), dtype=np.int32)
+    sources = (
+        SimpleNamespace(island_identifier="0"),
+        SimpleNamespace(island_identifier="2"),
+    )
+    gaussians = (SimpleNamespace(island_identifier="2"),)
+
+    namespace["_validate_pybdsf_island_identities"](
+        sources,
+        gaussians,
+        labels,
+    )
+
+    with pytest.raises(ValueError, match="catalogue and island labels"):
+        namespace["_validate_pybdsf_island_identities"](
+            (*sources, SimpleNamespace(island_identifier="4")),
+            gaussians,
+            labels,
+        )
+
+    with pytest.raises(ValueError, match="Gaussian and source catalogues"):
+        namespace["_validate_pybdsf_island_identities"](
+            sources,
+            (*gaussians, SimpleNamespace(island_identifier="1")),
+            labels,
+        )
+
+    with pytest.raises(ValueError, match="missing an island identity"):
+        namespace["_validate_pybdsf_island_identities"](
+            (*sources, SimpleNamespace(island_identifier=None)),
+            gaussians,
+            labels,
+        )
+
+
 def test_phase5_external_aegean_runner_freezes_cli(tmp_path: Path) -> None:
     """Aegean changes only declared maps and the diagnostic flood clip."""
     root = Path(__file__).parents[3]

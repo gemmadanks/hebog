@@ -26,8 +26,8 @@ runs succeeded. Step 3, optimization, and qualification remain closed. The
 campaign may support failure diagnosis but may not be rescored or reused as
 confirmation.
 
-This is the first Phase 5 comparison that will place Hebog beside external
-source finders. Earlier `paired` Phase 5 results compared only Hebog
+This was the first Phase 5 comparison to place Hebog beside external source
+finders. Earlier `paired` Phase 5 results compared only Hebog
 representations. The machine-readable protocol is
 `config/contracts/phase-5-external-comparison.json`.
 
@@ -266,8 +266,8 @@ runtime identities, no undeclared result manifest, and no abandoned private
 temporary path. A canonical `campaign.json` is written atomically and the
 complete staging directory is then renamed once to the public target. A
 verified manifest left by an interruption before that rename is safe to
-resume. Passing Step 2C-P will still require a reviewed scientific decision
-before Step 3 opens.
+resume. Step 2C-P required a reviewed scientific decision before Step 3; its
+terminal decision failed and keeps Step 3 closed.
 
 ### Terminal decision
 
@@ -295,6 +295,41 @@ median. PyBDSF and failed-Hebog timings terminate on errors and are not
 comparable performance evidence. Per-run CPU and peak memory were not captured
 and are explicitly unavailable.
 
+### Prospective failure correction
+
+Step 2C-PF diagnosed the terminal failures without rescoring the closed
+campaign. PyBDSF stores `pyrank` in internal x/y order and transposes it when
+exporting FITS products; the adapter had compared its untransposed labels with
+the exported mask. Native PyBDSF detection islands can also remain fitless, so
+Gaussian island IDs are required to be a subset of source island IDs, which
+are in turn a subset of label IDs. In controlled mode PyBDSF resolves supplied
+mean/RMS names relative to the input-image directory, so the corrected runner
+passes adjacent basenames instead of absolute paths. Both pinned PyBDSF
+versions emitted their four expected products in operational and applicable
+controlled diagnostics after these changes.
+
+Hebog's segment catalogue had grown accepted support by four beam widths only
+for photometry. Negative noise in that larger aperture caused positive
+detections to abort. Segment position and flux now use the same exact accepted
+support; detections without a physical signed-flux measurement remain in the
+mask and labels without an invented catalogue row. Local RMS sampling now
+normalizes bilinear weights over finite positive neighbours, while retaining
+explicit unavailability when none exist. The two already-opened representative
+failures now complete and emit all four products.
+
+A 12-cell diagnostic matrix then passed with zero unexpected runner failures:
+Hebog on compact/blend and continuum inputs; each PyBDSF reference on compact
+operational and continuum operational/controlled modes; and Aegean on both
+inputs in both modes. The continuum input includes diffuse, shell, filament,
+edge, invalid-pixel, and varying-noise strata. The approved 512-pixel PyBDSF
+controlled diagnostic remains inapplicable. This matrix checked execution and
+product validity only; no closed-campaign science metric was inspected,
+rescored, or promoted.
+
+The next gate is a new seed-disjoint successor freeze. Its prospective
+compiler must treat native mask-only detections as denominator objects without
+changing the checksum-bound terminal compiler or its closed evidence chain.
+
 ### Prepared Hebog runtime
 
 Gemma Danks approved the 512-pixel diagnostic limitation, a four-core PyBDSF
@@ -319,9 +354,10 @@ The CLI and validation imports passed, as did the residual-B3 kernel on a
 64-by-64 zero plane and the complete compact branch on the existing 256-pixel
 development fixture. These checks did not materialize, process, or inspect any
 frozen external-comparison realization. That exact image is no longer present.
-Its scientific inventory and source tree were reproduced below, but its
-historical execution authorization cannot be transferred to the reconstructed
-image. The one-look population remains unopened.
+Its scientific inventory and source tree were reproduced below. Its historical
+execution authorization could not transfer to the reconstructed image; a
+later named review separately authorized the rebuilt identities used by the
+now-closed campaign.
 
 ### Reconstructed runtime set
 
@@ -355,11 +391,11 @@ reconstruction was superseded because the fail-closed runtime validator
 changed its source-tree identity. The final image above was built from a clean
 archive of the validator commit, then reproduced the exact checkout source and
 dependency checksums and the three-source governed compact smoke result. The
-active decision binds it and now authorizes the no-write preflight and one
-terminal campaign. Neither has yet opened an input or result.
+execution decision bound it for the single terminal campaign described above.
 
 The checked-in build definitions and artifact requirements are documented in
 `scripts/benchmark/containers/phase5/README.md`. They deliberately do not
-claim bitwise reproduction of the missing OCI objects. The renewed review has
-accepted all four bound digests and inventories, and the launcher's renewed
-no-write preflight passed. The sealed campaign is ready to open once.
+claim bitwise reproduction of the missing OCI objects. The renewed review
+accepted all four bound digests and inventories, the launcher's no-write
+preflight passed, and the resulting sealed campaign is now closed as
+`select-neither`.

@@ -6898,3 +6898,59 @@ test the PyBDSF mask/label and controlled-map contracts and Hebog's terminal
 segment measurement dispositions on bounded development evidence. Then pass a
 zero-unexpected-failure development matrix before freezing a new seed-disjoint
 external campaign and seeking named execution approval.
+
+## 2026-08-12 — Corrected terminal runner interoperability
+
+**Plan phase:** Phase 5, Step 2C-PF — prospective failure correction
+
+- Kept terminal campaign `b9996100...`, analysis `bdc59fdc...`, decision
+  `73c7e2eb...`, and their checksum-bound compiler immutable. The closed
+  campaign was used only to identify typed failure classes and select two
+  already-opened diagnostic realizations; no science metric was recomputed,
+  inspected, rescored, or promoted.
+- Reproduced all four runner failure classes. Released PyBDSF 1.14.1 source
+  review showed that `pyrank` is internal x/y state transposed by native FITS
+  export, and that supplied mean/RMS names are resolved relative to the image
+  directory. A native island with no fitted source established that catalogue
+  island IDs are legitimate subsets of the detection-label population.
+- Corrected the PyBDSF adapter to transpose and validate integer ranks, pass
+  adjacent controlled-map basenames, require exact mask/label agreement, and
+  validate Gaussian IDs as a subset of source IDs and source IDs as a subset
+  of native label IDs. Both reconstructed pinned versions emitted all four
+  expected products in compact operational and continuum
+  operational/controlled diagnostics.
+- Removed Hebog's unreviewed four-beam measurement-only segment dilation.
+  Segment position and integrated flux now use the same exact accepted support;
+  unmeasurable detections remain explicit in label/mask products without an
+  invented catalogue row. Replaced NaN-propagating local-RMS interpolation
+  with normalized masked bilinear interpolation over finite positive
+  neighbours, retaining unavailable output when no weight remains.
+- The formerly failing compact/blend seed `2026790678` now emitted all four
+  Hebog products with 54 compact and 51 measurable segment rows. The formerly
+  failing masked continuum-4 seed `2026783062` emitted all four with 12 compact
+  and 8 measurable segment rows. These counts are execution diagnostics, not
+  scientific acceptance results.
+- Passed a 12-cell diagnostic execution-validity matrix with zero unexpected
+  failures: Hebog on the two inputs; each PyBDSF reference on compact
+  operational and continuum operational/controlled modes; and Aegean on both
+  inputs in both modes. The continuum realization contains diffuse, shell,
+  filament, edge, invalid-pixel, and varying-noise strata. The approved
+  512-pixel PyBDSF controlled diagnostic remains inapplicable.
+- Updated post-terminal tests so structural launcher fixtures use synthetic
+  current identities while the checked-in authorization is asserted to retain
+  its historical source and runner hashes. Added a targeted Ruff exception for
+  the immutable terminal compiler instead of changing its bound bytes.
+- Validation passed: 166 focused tests; 15 equivalence tests; `just check`
+  with Ruff, Pyright, 1,098 tests, and 4 expected failures; strict MkDocs; and
+  full branch-aware coverage with 1,228 passed, 4 expected failures, and
+  93.98% total coverage. The diagnostic container matrix used networking
+  disabled, read-only input/repository mounts, and transient outputs.
+
+**Decision:** all known terminal runner failures are corrected and the
+execution-validity gate passes. This does not reopen Step 3 or establish
+scientific non-inferiority.
+
+**Immediate next step:** prepare and review a seed-disjoint successor freeze.
+Before binding it, update its prospective compiler to retain mask-only native
+detections in the science denominators, then freeze new source/runtime hashes,
+power, evaluator, and one-look rule and obtain named execution approval.

@@ -36,6 +36,7 @@ def _namespace() -> dict[str, Any]:
 @pytest.fixture(scope="module")
 def authorized_decision_path() -> Iterator[Path]:
     """Write a repository-local authorized decision for structural tests."""
+    namespace = _namespace()
     pending = load_phase_five_external_execution_decision(_DECISION)
     decision_type = type(pending)
     decision = decision_type.model_validate(
@@ -45,6 +46,16 @@ def authorized_decision_path() -> Iterator[Path]:
             "named_review": "unit-test authorization",
             "decision": "authorize-one-terminal-external-comparison",
             "execution_authorized": True,
+            "source_tree_sha256": namespace["source_tree_sha256"](_ROOT),
+            "runners": [
+                {
+                    **runner,
+                    "sha256": namespace["file_sha256"](
+                        _ROOT / runner["relative_path"]
+                    ),
+                }
+                for runner in pending.model_dump(mode="json")["runners"]
+            ],
             "next_action": (
                 "execute-complete-frozen-comparison-once-without-opening-"
                 "partial-results"

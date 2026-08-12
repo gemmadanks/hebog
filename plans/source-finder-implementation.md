@@ -926,7 +926,15 @@ evaluator sealed decision `73c7e2eb...` as `fail`/`select-neither`. All 143
 Continuum endpoints were indeterminate, compact comparison also failed, and
 only 1,492 of 5,000 binding runs succeeded. Step 3, optimization, and
 qualification therefore remain closed while Step 2C-PF corrects product and
-reference interoperability prospectively. A
+reference interoperability prospectively. Step 2C-PF has reproduced all four
+runner failure classes, corrected them with focused regressions, and passed a
+12-cell diagnostic execution-validity matrix with no unexpected failures.
+The matrix used only two already-opened failed realizations: the compact/blend
+case and one continuum case containing diffuse, shell, filament, edge,
+invalid-pixel, and varying-noise strata. It did not inspect or rescore science
+metrics. The checksum-bound terminal compiler remains byte-identical; its
+successor must admit native mask-only detections before a new protocol is
+frozen. A
 checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
@@ -1447,28 +1455,42 @@ and spill behaviour, and facility-scale execution.
 2C-PF. **Correct terminal product interoperability before a fresh external
 comparison.**
 
-   - [ ] Freeze the closed campaign's failure taxonomy and reproduce each
+   - [x] Freeze the closed campaign's failure taxonomy and reproduce each
          class on bounded development fixtures or explicitly diagnostic use
          of an already-opened failed realization. Do not rescore, retune, or
          promote any result from campaign `b9996100...`.
-   - [ ] Correct and independently test PyBDSF product interpretation for both
+   - [x] Correct and independently test PyBDSF product interpretation for both
          pinned versions: reconcile exported island-mask semantics with
          `pyrank` labels, and make controlled mean/RMS filenames conform to
-         PyBDSF's actual file-loading contract. Require source, Gaussian,
-         island, mask, and label identities to agree without coercion.
-   - [ ] Review Hebog's terminal catalogue contract for reconstructed
+         PyBDSF's actual file-loading contract. Require the native mask and
+         labels to agree exactly, Gaussian island IDs to be a subset of source
+         island IDs, and source island IDs to be a subset of label IDs. This
+         preserves legitimate detected islands for which PyBDSF fitted no
+         source instead of inventing a catalogue row.
+   - [x] Review Hebog's terminal catalogue contract for reconstructed
          segments with non-positive aperture flux and for positions without a
          finite local RMS. Preserve every detection in the denominator and
          represent unavailable or non-physical measurements explicitly; do
          not clip flux, substitute noise, discard difficult morphologies, or
-         weaken association and flux gates merely to make a run succeed.
-   - [ ] Pass a development execution-validity matrix for all four immutable
+         weaken association and flux gates merely to make a run succeed. Flux
+         is now measured on exact accepted support; an unmeasurable segment
+         remains in mask/labels without a fabricated catalogue row, and local
+         RMS uses normalized masked bilinear interpolation only when valid
+         interpolation support exists.
+   - [x] Pass a diagnostic development execution-validity matrix for all four
          finder implementations across compact, diffuse, shell, filament,
          masked, edge, and varying-noise cases before freezing new evidence.
-         Add regression tests for every terminal failure class and require
-         zero unexpected runner failures.
+         The 12 applicable cells passed with zero unexpected runner failures:
+         Hebog on both inputs, each PyBDSF reference in compact operational
+         and continuum operational/controlled modes, and Aegean in both modes
+         on both inputs. The approved 512-pixel PyBDSF controlled diagnostic
+         remains inapplicable. No scientific metric was compiled or opened.
    - [ ] Freeze and review a new seed-disjoint, adequately powered successor
          population, exact runtimes, compiler, evaluator, and one-look rule.
+         First update and regression-test the prospective compiler so native
+         label/mask detections without catalogue rows remain in detection
+         denominators; do not alter the checksum-bound terminal compiler or
+         its closed evidence chain.
          Obtain named approval before execution. Step 3 opens only if the new
          campaign passes every unchanged absolute and applicable paired gate;
          the closed campaign is diagnostic history, not pooled evidence.

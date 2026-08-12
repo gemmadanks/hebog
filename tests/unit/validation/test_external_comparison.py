@@ -78,8 +78,8 @@ def test_external_protocol_binds_reconstructed_reference_runtimes() -> None:
     )
 
 
-def test_external_execution_decision_records_renewed_named_approval() -> None:
-    """The exact reconstructed identities receive named authorization."""
+def test_external_execution_decision_preserves_closed_approval() -> None:
+    """Post-decision fixes cannot silently rebind the closed authorization."""
     decision = load_phase_five_external_execution_decision(_EXECUTION_DECISION)
 
     assert decision.protocol_sha256 == file_sha256(_PROTOCOL)
@@ -87,7 +87,10 @@ def test_external_execution_decision_records_renewed_named_approval() -> None:
     assert decision.implementation_commit == (
         "303a49de3ea37af795d34e361f522a419d5c0bc2"
     )
-    assert decision.source_tree_sha256 == source_tree_sha256(_ROOT)
+    assert decision.source_tree_sha256 == (
+        "2f80c8779d3d8fe91fc599aa98edd95491d13922667cbab3af9d178caecc225b"
+    )
+    assert decision.source_tree_sha256 != source_tree_sha256(_ROOT)
     assert decision.hebog_container_image_digest == (
         "sha256:728bbd7ab59d0fbb9537d36fac34652e640300091024498cbebdaeb452da55a6"
     )
@@ -101,8 +104,24 @@ def test_external_execution_decision_records_renewed_named_approval() -> None:
     assert decision.execution_authorized is True
     assert decision.status == "reviewed-before-external-output"
     assert decision.decision == "authorize-one-terminal-external-comparison"
-    for artifact in decision.runners:
-        assert artifact.sha256 == file_sha256(_ROOT / artifact.relative_path)
+    runners = {
+        artifact.relative_path: artifact.sha256
+        for artifact in decision.runners
+    }
+    assert runners == {
+        "scripts/benchmark/run_phase5_external_hebog.py": (
+            "ea912a43a8523d01af29350e5b9f9523c6175de48f9c4e31e45853c04657592b"
+        ),
+        "scripts/benchmark/run_phase5_external_pybdsf.py": (
+            "9e9de39eed5838df0571391d53c60814ed495a23f976e008bb070640004898fd"
+        ),
+        "scripts/benchmark/run_phase5_external_aegean.py": (
+            "016d6a852b0564c7a8f56068a97e9a8be3320ef91b3097099f1f9405f8320ae9"
+        ),
+    }
+    assert runners["scripts/benchmark/run_phase5_external_pybdsf.py"] != (
+        file_sha256(_ROOT / "scripts/benchmark/run_phase5_external_pybdsf.py")
+    )
 
 
 def test_pending_runtime_review_cannot_authorize_an_external_run(

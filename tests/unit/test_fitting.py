@@ -922,6 +922,35 @@ def test_fit_bilinearly_samples_rms_at_the_fitted_centroid() -> None:
     assert result.parameters.local_rms_jy_per_beam == pytest.approx(expected)
 
 
+def test_local_rms_interpolation_renormalizes_masked_neighbours() -> None:
+    """One invalid interpolation neighbour cannot erase valid local noise."""
+    compact = _gaussian_input(centroid_xy=(28.25, 17.5))
+    local_y, local_x = np.indices(compact.rms.shape, dtype=np.float64)
+    compact.rms[:] = 0.01 + 0.001 * local_x + 0.002 * local_y
+    compact.rms[:, 9:] = np.nan
+
+    actual = fitting_algorithm._local_rms_at_centroid(
+        compact,
+        (28.25, 17.5),
+    )
+
+    expected = 0.01 + 0.001 * 8.0 + 0.002 * 7.5
+    assert actual == pytest.approx(expected)
+
+
+def test_local_rms_interpolation_preserves_explicit_unavailability() -> None:
+    """No valid interpolation support remains a typed unavailable fit input."""
+    compact = _gaussian_input(centroid_xy=(28.25, 17.5))
+    compact.rms[:] = np.nan
+
+    actual = fitting_algorithm._local_rms_at_centroid(
+        compact,
+        (28.25, 17.5),
+    )
+
+    assert np.isnan(actual)
+
+
 def test_context_fit_samples_rms_relative_to_the_retained_array() -> None:
     """Expanded fit context does not shift the local-RMS coordinate frame."""
     compact = _gaussian_input(centroid_xy=(28.25, 17.5))

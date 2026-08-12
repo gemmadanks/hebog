@@ -198,15 +198,24 @@ def _local_rms_at_centroid(
         ],
         dtype=np.float64,
     )
-    return float(
-        map_coordinates(
-            compact.rms,
-            local_coordinates,
-            order=1,
-            mode="nearest",
-            prefilter=False,
-        )[0]
-    )
+    valid_rms = np.isfinite(compact.rms) & (compact.rms > 0.0)
+    weighted_rms = map_coordinates(
+        np.where(valid_rms, compact.rms, 0.0),
+        local_coordinates,
+        order=1,
+        mode="nearest",
+        prefilter=False,
+    )[0]
+    retained_weight = map_coordinates(
+        valid_rms.astype(np.float64),
+        local_coordinates,
+        order=1,
+        mode="nearest",
+        prefilter=False,
+    )[0]
+    if not isfinite(retained_weight) or retained_weight <= 0.0:
+        return float("nan")
+    return float(weighted_rms / retained_weight)
 
 
 def _gaussian_values(

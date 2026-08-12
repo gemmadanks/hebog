@@ -101,6 +101,8 @@ known-first-party = ["hebog"]
 
 [tool.ruff.lint.per-file-ignores]
 "notebooks/**" = ["PLC0415", "PLR0913", "PLR0917", "PLR1711"]
+# This terminal evidence compiler is checksum-bound to the sealed campaign.
+"scripts/validation/compile_phase5_external_campaign.py" = ["PLR0917"]
 "tests/**" = ["PLR2004"]
 
 [build-system]

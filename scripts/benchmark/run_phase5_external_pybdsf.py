@@ -32,6 +32,7 @@ from hebog.validation.products import (
 
 PybdsfFinderId = Literal["released-pybdsf", "pinned-pybdsf-master"]
 PybdsfMode = Literal["operational", "controlled-background"]
+_IMAGE_DIMENSIONS = 2
 
 
 def _parse_args() -> argparse.Namespace:
@@ -93,9 +94,19 @@ def _configuration(
                 "PyBDSF ignores supplied RMS/mean maps when rms_box exceeds "
                 "one quarter of the image; controlled diagnostic unavailable"
             )
+        image_directory = authorized.artifact_path("image").parent
+        mean_path = authorized.artifact_path("mean")
+        rms_path = authorized.artifact_path("rms")
+        if (
+            mean_path.parent != image_directory
+            or rms_path.parent != image_directory
+        ):
+            raise ValueError(
+                "controlled mean/RMS maps must share the image directory"
+            )
         configuration["rmsmean_map_filename"] = (
-            str(authorized.artifact_path("mean")),
-            str(authorized.artifact_path("rms")),
+            mean_path.name,
+            rms_path.name,
         )
     return configuration
 
@@ -118,6 +129,42 @@ def _configuration_identity(
     if "rmsmean_map_filename" in identity:
         identity["rmsmean_map_filename"] = ("mean.fits", "rms.fits")
     return identity
+
+
+def _pybdsf_label_plane(pyrank: object) -> np.ndarray:
+    """Transform PyBDSF's internal x/y ranks to a FITS y/x label plane."""
+    rank = np.asarray(pyrank)
+    if rank.ndim != _IMAGE_DIMENSIONS or not np.issubdtype(
+        rank.dtype, np.integer
+    ):
+        raise ValueError(
+            "PyBDSF pyrank must be a two-dimensional integer array"
+        )
+    if np.any(rank < -1):
+        raise ValueError("PyBDSF pyrank contains an invalid negative rank")
+    return np.ascontiguousarray((rank + 1).T, dtype=np.int32)
+
+
+def _validate_pybdsf_island_identities(
+    catalogue: tuple[Any, ...],
+    gaussian_catalogue: tuple[Any, ...],
+    labels: np.ndarray,
+) -> None:
+    """Validate catalogue subsets while retaining fitless native islands."""
+    if any(
+        source.island_identifier is None
+        for source in (*catalogue, *gaussian_catalogue)
+    ):
+        raise ValueError("PyBDSF catalogue row is missing an island identity")
+    island_ids = {int(item) - 1 for item in np.unique(labels) if item > 0}
+    source_ids = {int(source.island_identifier) for source in catalogue}
+    if not source_ids.issubset(island_ids):
+        raise ValueError("PyBDSF catalogue and island labels disagree")
+    gaussian_ids = {
+        int(source.island_identifier) for source in gaussian_catalogue
+    }
+    if not gaussian_ids.issubset(source_ids):
+        raise ValueError("PyBDSF Gaussian and source catalogues disagree")
 
 
 def _run_pybdsf(
@@ -154,7 +201,7 @@ def _run_pybdsf(
     ):
         raise RuntimeError("PyBDSF did not export its island mask")
     input_header = cast(fits.Header, fits.getheader(image_path))
-    labels = np.asarray(processed.pyrank + 1, dtype=np.int32)
+    labels = _pybdsf_label_plane(processed.pyrank)
     fits.PrimaryHDU(
         data=labels[np.newaxis, np.newaxis, :, :],
         header=input_header,
@@ -164,19 +211,11 @@ def _run_pybdsf(
     mask = load_mask_plane(mask_path)
     if np.any(mask != (labels > 0)):
         raise ValueError("PyBDSF island mask and labels disagree")
-    island_ids = {
-        int(source.island_identifier)
-        for source in catalogue
-        if source.island_identifier is not None
-    }
-    if island_ids != {int(item) - 1 for item in np.unique(labels) if item > 0}:
-        raise ValueError("PyBDSF catalogue and island labels disagree")
-    if {
-        int(source.island_identifier)
-        for source in gaussian_catalogue
-        if source.island_identifier is not None
-    }.difference(island_ids):
-        raise ValueError("PyBDSF Gaussian and source catalogues disagree")
+    _validate_pybdsf_island_identities(
+        catalogue,
+        gaussian_catalogue,
+        labels,
+    )
     return {
         "gaussian-catalogue-fits": gaussian_path,
         "island-labels-fits": label_path,
