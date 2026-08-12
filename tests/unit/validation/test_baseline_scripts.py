@@ -1355,6 +1355,147 @@ def test_phase5_external_freezer_refuses_existing_output(
         namespace["main"]()
 
 
+def test_phase5_external_successor_freezer_binds_powered_population() -> None:
+    """Step 2C-PF freezes new seeds and current pre-results identities."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script(
+        "freeze_phase5_external_successor_population.py"
+    )
+
+    continuum_document, compact_document, freeze_document = namespace[
+        "_documents"
+    ](
+        continuum_template_path=(
+            root / "config/datasets/phase-5-external-continuum.json"
+        ),
+        compact_template_path=(
+            root / "config/datasets/phase-5-external-compact-blend.json"
+        ),
+        dataset_directory=root / "config/datasets",
+        prior_protocol_path=(
+            root / "config/contracts/phase-5-external-comparison.json"
+        ),
+        repository_root=root,
+    )
+    continuum = DatasetManifest.model_validate(continuum_document)
+    compact = DatasetManifest.model_validate(compact_document)
+    continuum_seeds = {
+        recipe.seed
+        for dataset in continuum.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+    compact_seeds = {
+        recipe.seed
+        for dataset in compact.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    }
+
+    assert len(continuum_seeds) == 600
+    assert len(compact_seeds) == 800
+    assert continuum_seeds.isdisjoint(compact_seeds)
+    assert min(continuum_seeds) == 2026820001
+    assert max(compact_seeds) == 2026830800
+    assert freeze_document["population_audit"]["new_seed_count"] == 1400
+    assert freeze_document["population_audit"]["seed_disjoint"] is True
+    assert (
+        freeze_document["power_audit"]["combined_familywise_power_lower_bound"]
+        >= 0.9
+    )
+    assert freeze_document["source_binding"]["candidate_commit"] == (
+        "c1f7eb0bdf5e8581e0024f0f7469c2908a22a594"
+    )
+    assert (
+        freeze_document["source_binding"]["science_kernel"]["relative_path"]
+        == "src/hebog/validation/external_successor_compiler.py"
+    )
+    assert freeze_document["execution_authorized"] is False
+    assert freeze_document["finder_output_opened"] is False
+    assert continuum_document == json.loads(
+        (
+            root / "config/datasets/phase-5-external-successor-continuum.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert compact_document == json.loads(
+        (
+            root / "config/datasets/"
+            "phase-5-external-successor-compact-blend.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert freeze_document == json.loads(
+        (
+            root / "config/contracts/"
+            "phase-5-external-successor-population.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def test_phase5_external_successor_freezer_refuses_overwrite(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The prospective successor population cannot be replaced in place."""
+    root = Path(__file__).parents[3]
+    output = tmp_path / "continuum.json"
+    output.write_text("already frozen\n", encoding="utf-8")
+    namespace = _validation_script(
+        "freeze_phase5_external_successor_population.py"
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "freeze_phase5_external_successor_population.py",
+            "--continuum-template",
+            str(root / "config/datasets/phase-5-external-continuum.json"),
+            "--compact-template",
+            str(root / "config/datasets/phase-5-external-compact-blend.json"),
+            "--continuum-output",
+            str(output),
+            "--compact-output",
+            str(tmp_path / "compact.json"),
+            "--freeze-output",
+            str(tmp_path / "freeze.json"),
+        ],
+    )
+
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        namespace["main"]()
+
+
+def test_phase5_external_successor_freezer_rejects_seed_reuse() -> None:
+    """A closed-campaign seed cannot enter either successor lane."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script(
+        "freeze_phase5_external_successor_population.py"
+    )
+    reused = load_dataset_manifest(
+        root / "config/datasets/phase-5-external-continuum.json"
+    )
+    successor = load_dataset_manifest(
+        root / "config/datasets/phase-5-external-successor-compact-blend.json"
+    )
+
+    with pytest.raises(ValueError, match="globally disjoint"):
+        namespace["_population_audit"](
+            dataset_directory=root / "config/datasets",
+            new_manifests=(reused, successor),
+        )
+
+
+def test_phase5_external_successor_freezer_rejects_source_drift() -> None:
+    """Population evidence cannot bind an unreviewed candidate source tree."""
+    root = Path(__file__).parents[3]
+    namespace = _validation_script(
+        "freeze_phase5_external_successor_population.py"
+    )
+    namespace["_source_binding"].__globals__[
+        "_CANDIDATE_SOURCE_TREE_SHA256"
+    ] = "0" * 64
+
+    with pytest.raises(ValueError, match="candidate source tree changed"):
+        namespace["_source_binding"](root)
+
+
 def test_phase5_external_pybdsf_runner_maps_every_atrous_option() -> None:
     """The reference cannot inherit changing PyBDSF wavelet defaults."""
     root = Path(__file__).parents[3]

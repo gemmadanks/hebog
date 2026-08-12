@@ -938,8 +938,14 @@ inventing catalogue rows. It preserves the terminal metric result whenever
 every support is catalogued, keeps label-only supports in mask and topology
 metrics, and keeps their catalogue completeness, reliability, flux, and
 position dispositions explicit. It passed both pinned PyBDSF product
-boundaries on one already-opened diagnostic realization. A
-checksum-bound
+boundaries on one already-opened diagnostic realization. A new 1,400-image
+successor population is now frozen across the same reviewed geometry and
+endpoint design with 1,400 seeds disjoint from all 9,053 historical seeds.
+Its independently recomputed conservative joint-power lower bound is
+0.908176 against the unchanged 0.90 gate. The population freeze binds the
+candidate source, corrected runners, successor science kernel, manifest
+hashes, and exact intended runtime inventories while leaving the candidate
+image unbuilt and execution unauthorized. A checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
 one-sided radial-p95 upper confidence bound; irregular radial median remains
@@ -1498,13 +1504,21 @@ comparison.**
          row. The new boundary has complete focused branch coverage and passed
          real-product integration against both pinned PyBDSF versions; the
          checksum-bound terminal compiler remains byte-identical.
-   - [ ] Generate and power-audit a new seed-disjoint successor population
-         without opening finder output. Bind the candidate source, corrected
-         runners, prospective science kernel, manifests, and exact runtime
-         inventories only after their pre-results checks pass.
+   - [x] Generate and power-audit a new seed-disjoint successor population
+         without opening finder output. The frozen 600-image continuum and
+         800-image compact/blend lanes reuse the reviewed geometry, endpoint,
+         margin, and sample-size design but use 1,400 seeds disjoint from all
+         9,053 historical seeds in 35 manifests. Their recomputed conservative
+         joint-power lower bound is 0.908176 against the unchanged 0.90 gate.
+         The freeze binds candidate source `d50be75...`, the corrected runners,
+         mask-only kernel `8e38de3...`, manifests `906a3e8...` and
+         `05507a6...`, and all intended package inventories. The three exact
+         reference images remain present; the Hebog image is deliberately
+         unbound and must be rebuilt from the candidate source before review.
    - [ ] Freeze and review the successor compiler composition, endpoint
          registry, evaluator, absolute and paired gates, complete-population
-         launcher, and one-look rule. Obtain named approval before execution.
+         launcher, candidate runtime, and one-look rule. Obtain named approval
+         before execution.
          Step 3 opens only if the new
          campaign passes every unchanged absolute and applicable paired gate;
          the closed campaign is diagnostic history, not pooled evidence.

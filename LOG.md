@@ -7000,3 +7000,45 @@ campaign, human scientific approval, or authorization to execute one.
 population without opening finder output, then bind the reviewed compiler
 composition, endpoint registry, evaluator, launcher, corrected runners, and
 exact runtimes for named approval.
+
+## 2026-08-12 — Froze the powered external successor population
+
+**Plan phase:** Phase 5, Step 2C-PF — successor population and power audit
+
+- Generated write-once 600-image continuum and 800-image compact/blend
+  manifests from the reviewed pre-results geometry, endpoint, margin, and
+  sample-size design. Their seeds occupy four continuum blocks beginning at
+  `2026820001` and one compact block beginning at `2026830001`; all 1,400 are
+  disjoint from 9,053 historical seeds across 35 checked-in manifests.
+- Recomputed the unchanged cluster-normal, conservative-union power model
+  through `PhaseFiveExternalPowerAudit`. The continuum lower bound is
+  0.998392, the three-reference compact lower bound is 0.909784, and the joint
+  lower bound is 0.908176, above the unchanged 0.90 gate. Observed variance
+  above a planning bound still fails closed and sample size cannot adapt.
+- Bound manifest SHA-256 values `906a3e8...` and `05507a6...`, candidate commit
+  `c1f7eb0...`, source tree `d50be75...`, mask-only science kernel `8e38de3...`,
+  and all three corrected runner hashes. Bound the exact intended dependency
+  inventories for Hebog, released/master PyBDSF, and Aegean.
+- Inspected only local image identities and confirmed all three immutable
+  reference digests remain present. The historical Hebog image lacks the bound
+  candidate source, so the freeze deliberately records no candidate digest and
+  requires a clean rebuild before execution review. Network-isolated inventory
+  recomputation inside all four local images exactly reproduced the four bound
+  dependency hashes.
+- No successor image was materialized and no finder, campaign, analysis, or
+  decision output was generated or opened. Execution and qualification remain
+  false. The closed terminal compiler remains byte-identical and its evidence
+  chain was not rebound.
+- Validation passed: 251 focused freezer, manifest, contract, and successor
+  compiler tests; 1,253 tests plus 4 expected failures at 94.08% branch-aware
+  project coverage; all 27 equivalence tests; strict documentation; and `just
+  check` with Ruff, Pyright, 1,123 tests, and 4 expected failures.
+
+**Decision:** the successor population passes its prospective power and global
+seed-disjointness gates. Population contract SHA-256 is
+`8056bbc7e124230f63b2d8c8f3f6a0d217b4bfabcb45e02c261936eda763b34b`.
+
+**Immediate next step:** rebuild the Hebog runtime from the bound candidate
+source, then compose and freeze the new verifier/compiler, endpoint registry,
+evaluator, launcher, gates, exact runtimes, and one-look rule for named
+approval.

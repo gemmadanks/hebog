@@ -354,9 +354,34 @@ strict subset of the native-label set. Pinned master produced 14 rows alongside
 11 supports. Both passed the prospective adapter without coercion. These were
 product-validity checks only, not science rescoring.
 
-The next gate is a new seed-disjoint population and power audit, followed by a
-pre-results freeze that composes this kernel with a new verifier, endpoint
-registry, evaluator, launcher, and exact runtime identities. The terminal
+The successor population and prospective power audit are now frozen in
+`phase-5-external-successor-population.json`:
+
+| Lane | Images | Seed range | Manifest SHA-256 |
+| --- | ---: | --- | --- |
+| Continuum | 600 across four reviewed geometries | `2026820001`–`2026823150` in four disjoint blocks | `906a3e8bcc5bbc775418c30b5da08559e1425fbae74dd05fd9b2e96f69df7c46` |
+| Compact/blend | 800 | `2026830001`–`2026830800` | `05507a6605873981636b18d1b63e1b6e715937790c290027e72117a5928ce81c` |
+
+All 1,400 seeds are disjoint from 9,053 historical seeds across 35 checked-in
+manifests, including the closed campaign. The new population reuses the
+reviewed geometry, endpoint, margin, and sample-size design—not any image,
+finder product, measurement, or result. The power model was recomputed through
+the typed validator and retains lower bounds of 0.998392 for continuum,
+0.909784 for the three-reference compact family, and 0.908176 jointly. The
+joint result remains above the unchanged 0.90 gate. Excess observed variance
+still fails closed; sample size cannot adapt after results are opened.
+
+The freeze binds candidate commit `c1f7eb0...`, source-tree SHA-256
+`d50be758...`, the mask-only science kernel `8e38de3...`, all three corrected
+runner hashes, and the exact intended package inventories. Read-only local
+inspection confirmed the three reference image digests remain present. The
+historical Hebog image does not contain the bound candidate source, so its
+digest is explicitly absent and its status is `candidate-rebuild-required`.
+Execution, output opening, and qualification remain false.
+
+The next gate is to rebuild Hebog from the bound source and freeze the complete
+successor verifier/compiler composition, endpoint registry, evaluator,
+launcher, gates, runtimes, and one-look rule for named review. The terminal
 compiler remains unchanged at SHA-256 `7a055891...`; its closed evidence chain
 will not be rebound.
 

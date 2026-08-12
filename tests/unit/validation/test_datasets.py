@@ -432,6 +432,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-development",
         "phase-5-external-compact-blend",
         "phase-5-external-continuum",
+        "phase-5-external-successor-compact-blend",
+        "phase-5-external-successor-continuum",
         "phase-5-qualification",
         "phase-5-regression",
     }
@@ -444,6 +446,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-development": DatasetRole.DEVELOPMENT,
         "phase-5-external-compact-blend": DatasetRole.REGRESSION,
         "phase-5-external-continuum": DatasetRole.REGRESSION,
+        "phase-5-external-successor-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-successor-continuum": DatasetRole.REGRESSION,
         "phase-5-regression": DatasetRole.REGRESSION,
         "phase-5-qualification": DatasetRole.QUALIFICATION,
     }
@@ -452,7 +456,13 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
     all_seeds: set[int] = set()
     for manifest_id, manifest in manifests.items():
         expected_schema = (
-            2 if manifest_id == "phase-5-external-compact-blend" else 3
+            2
+            if manifest_id
+            in {
+                "phase-5-external-compact-blend",
+                "phase-5-external-successor-compact-blend",
+            }
+            else 3
         )
         assert manifest.schema_version == expected_schema
         assert {dataset.role for dataset in manifest.datasets} == {
@@ -516,6 +526,24 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         sum(
             len(iter_dataset_recipes(dataset))
             for dataset in manifests["phase-5-external-compact-blend"].datasets
+        )
+        == 800
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests[
+                "phase-5-external-successor-continuum"
+            ].datasets
+        )
+        == 600
+    )
+    assert (
+        sum(
+            len(iter_dataset_recipes(dataset))
+            for dataset in manifests[
+                "phase-5-external-successor-compact-blend"
+            ].datasets
         )
         == 800
     )
@@ -627,6 +655,15 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
             "0638cc7a27e6e00d978c6234f538494d745399e82de41486bea8612aef8670f1",
             "684d6dc90793f034f9ac5a2743303d0645486fd00f85e2b69e865f6b65e01d7e",
             "75dfa8b8c8c537c294900be5a55174b343e731500902332c0abcb6da34c65ca5",
+        ),
+        "phase-5-external-successor-compact-blend": (
+            "ef4a73f33a7997eec3c5f14cc4f1effa3156ffabccfaec9b472a9279f153c779",
+        ),
+        "phase-5-external-successor-continuum": (
+            "098af6cec85eecc4b69db64d277925148311678acf3d94c726da45367b7bb5b7",
+            "9fa97adc12640d4422f5f9bc5049b060b4a7927c92992c6649b196943b12e1e7",
+            "24596d46796954b6ff1a61be26d4ed9bebb17ffe58322e33d699b540d952e1d7",
+            "7601ec3640a354985f17cbb0596363bb0a7f6e95556bf1cad01c2e3cd1f03891",
         ),
         "phase-5-qualification": (
             "b93b0b180341bdeeb4a4ee18398e5203ef83437375b731c8e4bbc550017216a1",
