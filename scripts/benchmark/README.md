@@ -42,7 +42,7 @@ Run it only after the authorization and runner commits are complete. A result
 must receive a separate fail-closed technical decision before external-finder
 comparison can begin.
 
-The Step 2C-P external comparison uses
+The historical Step 2C-P external comparison used
 `run_phase5_external_hebog.py`, `run_phase5_external_pybdsf.py`, and
 `run_phase5_external_aegean.py`. Each entry point processes one canonical
 `input.json` realization, verifies all image/mean/RMS checksums, refuses an
@@ -52,11 +52,10 @@ runner hash. The decision also freezes Hebog's container/dependency inventory
 and PyBDSF's core count; each external runner checks its protocol-bound
 container digest and installed dependency-inventory hash. No such decision is
 accepted unless it is the exact checked-in
-`config/contracts/phase-5-external-execution-decision.json`. That decision now
-records the reconstructed identities and Gemma Danks's renewed named approval
-with `reviewed-before-external-output` status. Their exact identities are in
-[`containers/phase5/README.md`](containers/phase5/README.md). The one-look
-remains unopened; the no-write preflight is the next required action.
+`config/contracts/phase-5-external-execution-decision.json`. That decision and
+its failed one-look are terminal evidence and must not be reused, rescored, or
+rebound. Their exact identities remain in
+[`containers/phase5/README.md`](containers/phase5/README.md).
 
 `run_phase5_external_campaign.py` is that launcher. It first expands the
 complete 1,400-input, 7,000-run matrix and inspects all four local image tags
@@ -96,6 +95,28 @@ a typed failure result with no partial artifacts, so the image remains in the
 frozen denominator. The 512-pixel PyBDSF same-map diagnostic is rejected
 because PyBDSF would ignore the supplied maps under its RMS-box guard; primary
 operational runs are unchanged.
+
+The Step 2C-PF successor uses the `*_successor_*` launcher, runner wrappers,
+compiler, and evaluator. Its protocol binds fresh manifests while reusing the
+unchanged terminal campaign mechanics and gates. The only scientific compiler
+replacement is the reviewed mask-only continuum boundary. The checked-in
+execution decision is deliberately pending, so even `--preflight-only` fails
+before container inspection until named approval is recorded and the dependent
+hash chain is refreshed. After that approval, the required first action is:
+
+```console
+uv run python scripts/benchmark/run_phase5_external_successor_campaign.py \
+  --hebog-image localhost/hebog:phase5-external-successor-c1f7eb0 \
+  --released-pybdsf-image localhost/rapthor-dev:ci-aligned-reconstructed \
+  --master-pybdsf-image localhost/hebog-pybdsf-master:c70103be3-reconstructed \
+  --aegean-image localhost/hebog-aegean:2.3.5-step2cp-reconstructed-matched \
+  --output benchmark-results/phase-5/external-successor-comparison \
+  --preflight-only
+```
+
+Do not substitute the terminal campaign, manifests, decision, registry, or
+evaluator, and do not inspect or pool the closed campaign as successor
+evidence.
 
 `run_phase0_pybdsf_baseline.py` starts a fresh local Podman container for every
 warm-up or measured repetition. Release 1.14.1 uses the PyBDSF already present

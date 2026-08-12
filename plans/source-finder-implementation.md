@@ -1515,10 +1515,22 @@ comparison.**
          `05507a6...`, and all intended package inventories. The three exact
          reference images remain present; the Hebog image is deliberately
          unbound and must be rebuilt from the candidate source before review.
-   - [ ] Freeze and review the successor compiler composition, endpoint
-         registry, evaluator, absolute and paired gates, complete-population
-         launcher, candidate runtime, and one-look rule. Obtain named approval
-         before execution.
+   - [x] Freeze and technically review the successor compiler composition,
+         endpoint registry, evaluator, unchanged absolute and paired gates,
+         complete-population launcher, candidate runtime, and one-look rule.
+         The rebuilt Linux/arm64 Hebog image has digest `d0c1319...`, source
+         tree `d50be75...`, and the predeclared dependency inventory
+         `d383be3...`. The composed boundary reuses the byte-identical terminal
+         campaign verifier, compact compiler, interval engine, and evaluator;
+         only the independently tested `8e38de3...` mask-only continuum
+         kernel and seed-disjoint manifests differ. The launcher expands all
+         1,400 inputs and 7,000 runs but rejects the pending decision before
+         container inspection or staging. No successor finder output has been
+         opened.
+   - [ ] Obtain named approval bound to the successor preflight review and
+         exact runtime identities. Mechanically refresh the decision-dependent
+         registry/evaluation hashes, run the no-write preflight, and execute
+         the one terminal look only after that approval.
          Step 3 opens only if the new
          campaign passes every unchanged absolute and applicable paired gate;
          the closed campaign is diagnostic history, not pooled evidence.

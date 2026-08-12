@@ -74,3 +74,23 @@ final Hebog source tree is
 `2f80c8779d3d8fe91fc599aa98edd95491d13922667cbab3af9d178caecc225b`.
 The Aegean replacement deliberately retains the originally frozen NumPy
 2.5.2, SciPy 1.17.1, Astropy 7.2.2, and LMFit 1.3.4 scientific stack.
+
+## Step 2C-PF successor candidate
+
+The prospective successor was built from a clean archive of
+`c1f7eb0bdf5e8581e0024f0f7469c2908a22a594` with the same definition and an
+overriding revision label:
+
+```console
+podman build --platform linux/arm64 \
+  --file Containerfile.hebog \
+  --label org.opencontainers.image.revision=c1f7eb0bdf5e8581e0024f0f7469c2908a22a594 \
+  --label org.hebog.phase=5-step-2c-pf-successor \
+  --tag localhost/hebog:phase5-external-successor-c1f7eb0 .
+```
+
+The resulting Linux/arm64 image ID is `0f362268f4ff...` and immutable digest
+is `sha256:d0c1319072c3716811ed51452fe83d92be8f8d2b62a11795678f31037b7b1f68`.
+Network-disabled checks inside it reproduce source tree `d50be758...` and
+dependency inventory `d383be3...`. These identities are pending named
+execution approval; they do not authorize the successor one-look.

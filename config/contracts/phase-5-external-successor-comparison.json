@@ -1,0 +1,28 @@
+{
+  "base_protocol_path": "config/contracts/phase-5-external-comparison.json",
+  "base_protocol_sha256": "7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d",
+  "closed_campaign_reuse_authorized": false,
+  "contract_id": "phase-5-external-successor-comparison",
+  "execution_authorized": false,
+  "optimization_authorized": false,
+  "populations": [
+    {
+      "image_count": 600,
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-external-successor-continuum.json",
+      "manifest_sha256": "906a3e8bcc5bbc775418c30b5da08559e1425fbae74dd05fd9b2e96f69df7c46"
+    },
+    {
+      "image_count": 800,
+      "lane": "compact-blend",
+      "manifest": "config/datasets/phase-5-external-successor-compact-blend.json",
+      "manifest_sha256": "05507a6605873981636b18d1b63e1b6e715937790c290027e72117a5928ce81c"
+    }
+  ],
+  "qualification_opened": false,
+  "schema_version": 1,
+  "status": "frozen-before-external-output",
+  "step_three_authorized": false,
+  "successor_population_contract_path": "config/contracts/phase-5-external-successor-population.json",
+  "successor_population_contract_sha256": "8056bbc7e124230f63b2d8c8f3f6a0d217b4bfabcb45e02c261936eda763b34b"
+}

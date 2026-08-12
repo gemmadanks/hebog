@@ -7042,3 +7042,50 @@ seed-disjointness gates. Population contract SHA-256 is
 source, then compose and freeze the new verifier/compiler, endpoint registry,
 evaluator, launcher, gates, exact runtimes, and one-look rule for named
 approval.
+
+## 2026-08-12 — Froze the successor external one-look composition
+
+**Plan phase:** Phase 5, Step 2C-PF — successor pre-execution freeze
+
+- Built `localhost/hebog:phase5-external-successor-c1f7eb0` only from a
+  clean archive of candidate commit `c1f7eb0bdf5e8581e0024f0f7469c2908a22a594`.
+  The Linux/arm64 image ID is `0f362268...` and immutable digest is
+  `sha256:d0c1319072c3716811ed51452fe83d92be8f8d2b62a11795678f31037b7b1f68`.
+  Network-disabled in-image checks reproduced source tree `d50be758...`, the
+  predeclared inventory `d383be3...`, and Hebog 0.6.0. All three exact
+  reference images remain present on the same platform.
+- Added a successor protocol/verifier and thin runner, launcher, compiler, and
+  evaluator composition around the immutable terminal mechanics. The
+  composition retains the closed campaign verifier, compact compiler,
+  interval engine, endpoints, absolute gates, paired margins, reference
+  applicability, and failure policy. It replaces only the continuum
+  catalogue/native-support interpretation with science kernel `8e38de3...`
+  and the two fresh manifests. The closed compiler remains byte-identical at
+  `7a055891...`; the closed campaign is explicitly ineligible for reuse.
+- Froze successor protocol `9eaf49d...`, endpoint registry `a4027fc...`,
+  evaluation contract `c931601...`, pending execution decision `e7f2f1c...`,
+  and preflight review `200d107...`. The complete-population expansion has
+  exactly 1,400 inputs, 7,000 terminal runs, and 5,000 binding runs. PyBDSF
+  remains fixed at four cores; the existing 512-pixel same-map diagnostic
+  limitation is unchanged.
+- The pending launcher rejects execution before container inspection, input
+  materialization, or staging. A direct fail-closed invocation did so and left
+  its proposed output absent. No successor realization, finder product,
+  analysis, or scientific decision was generated or opened.
+- TDD first produced five expected missing-artifact failures. The completed
+  focused successor and inherited-mechanics suite passes 144 tests; the
+  successor-specific subset passes 32 tests. Ruff and Pyright pass, and the
+  strict documentation build succeeds. Full branch-aware coverage passes
+  1,260 tests with 4 expected failures and remains 94.08%; all 27 equivalence
+  tests pass. `just check` passes Ruff, Pyright, 1,130 tests, and 4 expected
+  failures.
+
+**Decision:** the technical pre-review passes with zero scientific gate
+changes. Execution remains unauthorized and the one-look unopened. The
+decision-dependent hash chain must be refreshed mechanically after, and only
+after, named approval.
+
+**Immediate next step:** obtain named approval bound to preflight review
+`200d107...` and the four exact runtime identities. Then refresh the pending
+decision, registry, evaluation, and review hashes and run the no-write
+preflight before any campaign execution.

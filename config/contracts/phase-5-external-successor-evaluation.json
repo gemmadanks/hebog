@@ -1,0 +1,35 @@
+{
+  "analysis_compiler": {
+    "path": "scripts/validation/compile_phase5_external_successor_campaign.py",
+    "sha256": "c3981833d7f9125f9bf676753ba6fa2f3d1847f354dfa948aad9a6eb2fdca0e3",
+    "status": "frozen-before-campaign-output"
+  },
+  "astrometry_follow_up_path": "config/contracts/phase-5-astrometry-follow-up-review.json",
+  "astrometry_follow_up_sha256": "0fec937aeb90dec119993529af04fb5a431aeb070ab483d713abf8c91972037f",
+  "base_evaluation_path": "config/contracts/phase-5-external-evaluation.json",
+  "base_evaluation_sha256": "fc3e9ed3d4272c67d95dcec968aeecd0c3f1a530a2e7bde1083f382884b86bea",
+  "closed_campaign_reuse_authorized": false,
+  "compact_decision_engine_path": "src/hebog/validation/phase_four_decision.py",
+  "compact_decision_engine_sha256": "50646ce3ab40a45a01de8c89c62112040ba0064dd95efbd0beb4769eb5740102",
+  "contract_id": "phase-5-external-successor-evaluation",
+  "endpoint_registry": {
+    "path": "config/contracts/phase-5-external-successor-endpoint-registry.json",
+    "sha256": "a4027fc8118b95d70858ba5e18ca3506b172fcb7dd737a19f515e75066f3af52",
+    "status": "frozen-before-campaign-output"
+  },
+  "evaluator_path": "scripts/validation/evaluate_phase5_external_successor_decision.py",
+  "evaluator_sha256": "8a8a194c37f78773546406f68987f9a1aa8342eb9ae02e288e2284cec1d106e8",
+  "one_look_rule": "one-terminal-look-no-tuning-rescoring-reconfirmation-or-adaptive-sample-size",
+  "phase_five_scientific_gates_path": "config/contracts/phase-5-scientific-gates.json",
+  "phase_five_scientific_gates_sha256": "cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b",
+  "phase_four_metric_registry_path": "config/contracts/phase-4r-metric-registry.json",
+  "phase_four_metric_registry_sha256": "f1bcbbb6d1d216bdc5271c45a1e64789b1c8928a98bd4927f7e707d0318dd0b5",
+  "phase_four_scientific_gates_path": "config/contracts/phase-4-scientific-gates.json",
+  "phase_four_scientific_gates_sha256": "39a6d0c6c0d10f3c91d8db7d63a6c6173680387d62895af28b331f118f568233",
+  "protocol_path": "config/contracts/phase-5-external-successor-comparison.json",
+  "protocol_sha256": "9eaf49d70a7dbae6dbb5c7bc17dcd3de542ca2886f6a7367550248110dcf82ea",
+  "schema_version": 1,
+  "status": "frozen-before-campaign-output",
+  "terminal_evaluator_path": "scripts/validation/evaluate_phase5_external_decision.py",
+  "terminal_evaluator_sha256": "df99e10a6fbbe7c4c1b9826c88b0d11908500c817e30aea7750bfc9d920cadab"
+}

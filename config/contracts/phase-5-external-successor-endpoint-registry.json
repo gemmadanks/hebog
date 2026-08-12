@@ -1,0 +1,33 @@
+{
+  "base_registry_path": "config/contracts/phase-5-external-endpoint-registry.json",
+  "base_registry_sha256": "d174fc9e9ab6648427147850e948ee33d77a6cf8cfccc05cb8a82cbd3141ff9b",
+  "closed_campaign_reuse_authorized": false,
+  "compact_manifest_path": "config/datasets/phase-5-external-successor-compact-blend.json",
+  "compact_manifest_sha256": "05507a6605873981636b18d1b63e1b6e715937790c290027e72117a5928ce81c",
+  "compiler_path": "scripts/validation/compile_phase5_external_successor_campaign.py",
+  "compiler_sha256": "c3981833d7f9125f9bf676753ba6fa2f3d1847f354dfa948aad9a6eb2fdca0e3",
+  "continuum_manifest_path": "config/datasets/phase-5-external-successor-continuum.json",
+  "continuum_manifest_sha256": "906a3e8bcc5bbc775418c30b5da08559e1425fbae74dd05fd9b2e96f69df7c46",
+  "execution_decision_path": "config/contracts/phase-5-external-successor-execution-decision.json",
+  "execution_decision_sha256": "e7f2f1ca4a4f56b585af3ff89d6dd7ecba3be16486a5d33a713d279b4e5c1a94",
+  "launcher_path": "scripts/benchmark/run_phase5_external_successor_campaign.py",
+  "launcher_sha256": "3490f920d4d3c5420b8e14bcc7baaeb0a826e821fce7ca3ac022729e8172c5c6",
+  "protocol_path": "config/contracts/phase-5-external-successor-comparison.json",
+  "protocol_sha256": "9eaf49d70a7dbae6dbb5c7bc17dcd3de542ca2886f6a7367550248110dcf82ea",
+  "registry_id": "phase-5-external-endpoint-registry",
+  "schema_version": 1,
+  "status": "frozen-before-campaign-output",
+  "successor_composition": {
+    "protocol_verifier_path": "scripts/validation/phase5_external_successor_protocol.py",
+    "protocol_verifier_sha256": "ecef3225719eadd616689867ff27e0f1d3510117a8bf6bf25f55e143e0e2503a",
+    "science_kernel_path": "src/hebog/validation/external_successor_compiler.py",
+    "science_kernel_sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55",
+    "successor_compiler_path": "scripts/validation/compile_phase5_external_successor_campaign.py",
+    "successor_compiler_sha256": "c3981833d7f9125f9bf676753ba6fa2f3d1847f354dfa948aad9a6eb2fdca0e3",
+    "terminal_compiler_path": "scripts/validation/compile_phase5_external_campaign.py",
+    "terminal_compiler_sha256": "7a0558916ac003b71a781337dc710c99c359899c4d77f88486c1c206916b43f6",
+    "terminal_launcher_path": "scripts/benchmark/run_phase5_external_campaign.py",
+    "terminal_launcher_sha256": "9eb832e96c862327467ae700db8e7b59165f14f05c823f1783ccf696ecd2125c"
+  },
+  "successor_registry_id": "phase-5-external-successor-endpoint-registry"
+}
