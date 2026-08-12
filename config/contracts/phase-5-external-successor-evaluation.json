@@ -14,7 +14,7 @@
   "contract_id": "phase-5-external-successor-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-successor-endpoint-registry.json",
-    "sha256": "a4027fc8118b95d70858ba5e18ca3506b172fcb7dd737a19f515e75066f3af52",
+    "sha256": "69ceaa494d2c4a45027bac00130523a7f7c62ce49c13c822d01b22e5c364bb5e",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_successor_decision.py",

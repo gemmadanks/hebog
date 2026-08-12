@@ -7089,3 +7089,40 @@ after, named approval.
 `200d107...` and the four exact runtime identities. Then refresh the pending
 decision, registry, evaluation, and review hashes and run the no-write
 preflight before any campaign execution.
+
+## 2026-08-12 — Approved and preflighted the successor one-look
+
+**Plan phase:** Phase 5, Step 2C-PF — named authorization and no-write
+preflight
+
+- Gemma Danks explicitly approved successor preflight review `200d107...` and
+  the exact four Linux/arm64 runtime identities. Recorded the named approval
+  in execution decision `12925d0...`; execution is authorized while the
+  one-look, optimization, Step 3, and qualification flags remain false.
+- Mechanically refreshed endpoint registry `69ceaa4...`, evaluation contract
+  `fd76998...`, and approved preflight review `4dfb86c...`. No executable,
+  population, endpoint, absolute gate, paired margin, reference scope, or
+  one-look rule changed.
+- Ran the exact network-disabled `--preflight-only` successor launcher against
+  the approved Hebog, released PyBDSF, master PyBDSF, and Aegean images. It
+  passed with request
+  `931df412d3487bed9840677c1374b6c438f69b498140a7b33cf77ee3ec81a9db`,
+  exactly 1,400 inputs and 7,000 runs. Both the terminal output and private
+  staging path remained absent; no image, finder product, or campaign evidence
+  was generated or opened.
+- Post-preflight free storage is 52,648,452,096 bytes, reported as 49 GiB.
+  This is below the reviewed approximate 60 GiB campaign safety target, so the
+  authorized campaign remains closed until at least about 11 GiB is restored.
+- The focused approval, strict-schema, hash-chain, complete-population, and
+  fail-closed tests pass all 7 cases. The inherited campaign-mechanics suite
+  passes all 144 cases; strict documentation builds; full branch-aware
+  coverage passes 1,260 tests with 4 expected failures and remains 94.08%.
+  `just check` passes Ruff, Pyright, 1,130 tests, and 4 expected failures.
+
+**Decision:** named scientific/runtime authorization and the complete no-write
+preflight pass. Storage headroom is the only current execution prerequisite;
+the terminal one-look has not opened.
+
+**Immediate next step:** restore at least 60 GiB free space, recheck the four
+local image identities and output-path absence, then execute the approved
+successor campaign exactly once without inspecting partial results.

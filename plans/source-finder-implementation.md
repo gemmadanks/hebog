@@ -1527,10 +1527,16 @@ comparison.**
          1,400 inputs and 7,000 runs but rejects the pending decision before
          container inspection or staging. No successor finder output has been
          opened.
-   - [ ] Obtain named approval bound to the successor preflight review and
-         exact runtime identities. Mechanically refresh the decision-dependent
-         registry/evaluation hashes, run the no-write preflight, and execute
-         the one terminal look only after that approval.
+   - [x] Obtain named approval bound to the successor preflight review and
+         exact runtime identities, mechanically refresh the decision-dependent
+         registry/evaluation hashes, and run the no-write preflight. Gemma
+         Danks approved review `200d107...` and the exact four-runtime set on
+         2026-08-12. Request `931df41...` passed with exactly 1,400 inputs and
+         7,000 runs; both terminal and private staging paths remained absent.
+   - [ ] Restore at least the reviewed approximate 60 GiB campaign storage
+         headroom, then execute the approved successor one-look exactly once.
+         The post-preflight host has 49 GiB free, so execution remains closed
+         on storage safety despite the valid authorization and preflight.
          Step 3 opens only if the new
          campaign passes every unchanged absolute and applicable paired gate;
          the closed campaign is diagnostic history, not pooled evidence.

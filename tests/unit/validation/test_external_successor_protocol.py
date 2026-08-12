@@ -6,6 +6,7 @@ import hashlib
 import json
 import runpy
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -23,10 +24,10 @@ def _script(relative_path: str) -> dict[str, Any]:
     return runpy.run_path(str(_ROOT / relative_path))
 
 
-def test_successor_loaders_validate_new_population_and_pending_decision() -> (
+def test_successor_loaders_validate_new_population_and_approved_decision() -> (
     None
 ):
-    """The compatibility view exposes only the new unopened population."""
+    """Expose only the named-approved unopened successor population."""
     module = _script(
         "scripts/validation/phase5_external_successor_protocol.py"
     )
@@ -42,8 +43,9 @@ def test_successor_loaders_validate_new_population_and_pending_decision() -> (
         "config/datasets/phase-5-external-successor-continuum.json",
         "config/datasets/phase-5-external-successor-compact-blend.json",
     )
-    assert decision.execution_authorized is False
+    assert decision.execution_authorized is True
     assert decision.one_look_opened is False
+    assert "200d1076aae8e833" in decision.named_review
     assert decision.source_tree_sha256 == (
         "d50be758d788967cf13912190b9de43e021d7e9f4325c2b7e5180f89c29516fd"
     )
@@ -147,6 +149,15 @@ def test_successor_launcher_rejects_pending_authorization_before_inspection(
     def unexpected_inspection(*_args: object, **_kwargs: object) -> object:
         raise AssertionError("container inspection must remain closed")
 
+    def pending_decision(_path: Path) -> SimpleNamespace:
+        """Return one explicit non-authorized synthetic decision."""
+        return SimpleNamespace(execution_authorized=False)
+
+    monkeypatch.setitem(
+        module["_HELPERS"],
+        "load_successor_execution_decision",
+        pending_decision,
+    )
     monkeypatch.setattr(
         module["_TERMINAL"]["subprocess"],
         "run",
@@ -188,8 +199,10 @@ def test_successor_launcher_expands_the_complete_frozen_population() -> None:
     assert len({item.seed for item in inputs}) == 1400
 
 
-def test_successor_freeze_is_complete_and_awaits_named_approval() -> None:
-    """The review record binds every executable without authorizing a look."""
+def test_successor_freeze_records_named_approval_and_no_write_preflight() -> (
+    None
+):
+    """The review binds the approved identities and exact preflight request."""
     review = json.loads(
         (
             _ROOT / "config/contracts/"
@@ -197,12 +210,14 @@ def test_successor_freeze_is_complete_and_awaits_named_approval() -> None:
         ).read_text(encoding="utf-8")
     )
 
-    assert review["status"] == "awaiting-named-execution-approval"
-    assert review["execution_authorized"] is False
+    assert review["status"] == "approved-no-write-preflight-passed"
+    assert review["execution_authorized"] is True
     assert review["one_look_opened"] is False
     assert review["closed_campaign_reuse_authorized"] is False
     assert review["population"]["image_count"] == 1400
     assert review["population"]["terminal_run_count"] == 7000
+    assert review["technical_review"]["preflight_status"] == "pass-no-write"
+    assert len(review["technical_review"]["preflight_request_sha256"]) == 64
     assert review["runtime"]["hebog"]["container_image_digest"] == (
         "sha256:d0c1319072c3716811ed51452fe83d92be8f8d2b62a11795678f31037b7b1f68"
     )

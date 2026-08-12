@@ -9,7 +9,7 @@
   "continuum_manifest_path": "config/datasets/phase-5-external-successor-continuum.json",
   "continuum_manifest_sha256": "906a3e8bcc5bbc775418c30b5da08559e1425fbae74dd05fd9b2e96f69df7c46",
   "execution_decision_path": "config/contracts/phase-5-external-successor-execution-decision.json",
-  "execution_decision_sha256": "e7f2f1ca4a4f56b585af3ff89d6dd7ecba3be16486a5d33a713d279b4e5c1a94",
+  "execution_decision_sha256": "12925d0586e684a825e0c2e6a384c366ca1982701027508888e5aa7f145dade9",
   "launcher_path": "scripts/benchmark/run_phase5_external_successor_campaign.py",
   "launcher_sha256": "3490f920d4d3c5420b8e14bcc7baaeb0a826e821fce7ca3ac022729e8172c5c6",
   "protocol_path": "config/contracts/phase-5-external-successor-comparison.json",

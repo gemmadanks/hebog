@@ -1,13 +1,13 @@
 {
   "candidate_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
-  "decision": "await-named-execution-approval",
+  "decision": "authorize-one-terminal-successor-comparison",
   "decision_id": "phase-5-external-successor-execution-decision",
-  "execution_authorized": false,
+  "execution_authorized": true,
   "hebog_container_image_digest": "sha256:d0c1319072c3716811ed51452fe83d92be8f8d2b62a11795678f31037b7b1f68",
   "hebog_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
   "implementation_commit": "c1f7eb0bdf5e8581e0024f0f7469c2908a22a594",
-  "named_review": "pending",
-  "next_action": "obtain-named-approval-before-successor-preflight",
+  "named_review": "Gemma Danks, 2026-08-12, approved successor preflight review sha256:200d1076aae8e8339d25b15619df5ff263794a24f03935062974a1611a0cd247 and exact four-runtime identities",
+  "next_action": "execute-complete-successor-comparison-once-without-opening-partial-results",
   "one_look_opened": false,
   "optimization_authorized": false,
   "protocol_sha256": "9eaf49d70a7dbae6dbb5c7bc17dcd3de542ca2886f6a7367550248110dcf82ea",
@@ -29,6 +29,6 @@
   ],
   "schema_version": 1,
   "source_tree_sha256": "d50be758d788967cf13912190b9de43e021d7e9f4325c2b7e5180f89c29516fd",
-  "status": "awaiting-named-execution-approval",
+  "status": "reviewed-before-external-output",
   "step_three_authorized": false
 }

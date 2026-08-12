@@ -1,12 +1,13 @@
 {
   "authorization": {
+    "approved_pending_review_sha256": "200d1076aae8e8339d25b15619df5ff263794a24f03935062974a1611a0cd247",
     "execution_decision_path": "config/contracts/phase-5-external-successor-execution-decision.json",
-    "execution_decision_sha256": "e7f2f1ca4a4f56b585af3ff89d6dd7ecba3be16486a5d33a713d279b4e5c1a94",
-    "named_review": "pending",
-    "next_action": "obtain-named-approval-then-refresh-the-decision-dependent-hash-chain-and-run-no-write-preflight"
+    "execution_decision_sha256": "12925d0586e684a825e0c2e6a384c366ca1982701027508888e5aa7f145dade9",
+    "named_review": "Gemma Danks, 2026-08-12, approved successor preflight review sha256:200d1076aae8e8339d25b15619df5ff263794a24f03935062974a1611a0cd247 and exact four-runtime identities",
+    "next_action": "restore-at-least-60-gib-free-space-then-execute-the-approved-one-look"
   },
   "closed_campaign_reuse_authorized": false,
-  "execution_authorized": false,
+  "execution_authorized": true,
   "gates": {
     "absolute_and_paired_change_count": 0,
     "base_evaluation_path": "config/contracts/phase-5-external-evaluation.json",
@@ -35,9 +36,9 @@
     "compiler_path": "scripts/validation/compile_phase5_external_successor_campaign.py",
     "compiler_sha256": "c3981833d7f9125f9bf676753ba6fa2f3d1847f354dfa948aad9a6eb2fdca0e3",
     "endpoint_registry_path": "config/contracts/phase-5-external-successor-endpoint-registry.json",
-    "endpoint_registry_sha256": "a4027fc8118b95d70858ba5e18ca3506b172fcb7dd737a19f515e75066f3af52",
+    "endpoint_registry_sha256": "69ceaa494d2c4a45027bac00130523a7f7c62ce49c13c822d01b22e5c364bb5e",
     "evaluation_contract_path": "config/contracts/phase-5-external-successor-evaluation.json",
-    "evaluation_contract_sha256": "c9316014744ac466111ab7c962a4fc62000e474febeb930dfcbf60278d668f11",
+    "evaluation_contract_sha256": "fd769985811c0c7a34a2eda789e1ff4c5156a2a3160423f3e91d1bd19f39c0a7",
     "evaluator_path": "scripts/validation/evaluate_phase5_external_successor_decision.py",
     "evaluator_sha256": "8a8a194c37f78773546406f68987f9a1aa8342eb9ae02e288e2284cec1d106e8",
     "launcher_path": "scripts/benchmark/run_phase5_external_successor_campaign.py",
@@ -84,13 +85,19 @@
     }
   },
   "schema_version": 1,
-  "status": "awaiting-named-execution-approval",
+  "status": "approved-no-write-preflight-passed",
   "technical_review": {
     "campaign_data_opened": false,
+    "campaign_storage_safety_status": "insufficient-at-49-gib-against-60-gib-target",
     "complete_population_expansion": "1400-inputs-7000-runs",
     "container_identity_check": "pass",
     "dependency_inventory_check": "pass",
-    "preflight_status": "not-run-pending-named-approval",
+    "host_available_bytes_after_preflight": 52648452096,
+    "preflight_completed_at": "2026-08-12",
+    "preflight_output_absent": true,
+    "preflight_private_staging_absent": true,
+    "preflight_request_sha256": "931df412d3487bed9840677c1374b6c438f69b498140a7b33cf77ee3ec81a9db",
+    "preflight_status": "pass-no-write",
     "source_tree_check": "pass"
   }
 }
