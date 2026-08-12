@@ -196,6 +196,12 @@ def test_compiled_analysis_identity_binds_protocol_and_authorization_state(
     registry = evaluator["_json_object"](_ROOT / registry_identity["path"])
     expected = evaluator["_expected_continuum_endpoint_ids"](registry)
     compiler = contract["analysis_compiler"]
+    assert compiler["pre_results_sha256"] == (
+        "81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370"
+    )
+    assert compiler["correction"] == (
+        "type-only-dataset-role-enum-before-scientific-output"
+    )
     analysis: dict[str, Any] = {
         "schema_version": 1,
         "analysis_id": "phase-5-external-terminal-science",

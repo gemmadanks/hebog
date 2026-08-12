@@ -46,6 +46,7 @@ from hebog.validation.contracts import (
 )
 from hebog.validation.datasets import (
     DatasetRecord,
+    DatasetRole,
     SyntheticRecipe,
     iter_dataset_recipes,
     load_dataset_manifest,
@@ -1816,7 +1817,7 @@ def _phase_four_interval_dataset(dataset: DatasetRecord) -> DatasetRecord:
     implementation only through the qualification decision stage, so this
     analysis-only view changes the role field and no truth, recipe, or stratum.
     """
-    return dataset.model_copy(update={"role": "qualification"})
+    return dataset.model_copy(update={"role": DatasetRole.QUALIFICATION})
 
 
 def _compact_status(

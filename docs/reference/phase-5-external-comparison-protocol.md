@@ -14,8 +14,13 @@ approval for all four exact identities, four PyBDSF cores, the scoped
 512-pixel diagnostic limitation, and one sealed terminal execution on
 2026-08-11. The renewed no-write preflight passed with request `31a56c50...`,
 exactly 1,400 inputs, and 7,000 runs while leaving terminal and private paths
-absent. The one-look remains unopened; Step 3, optimization, and qualification
-remain closed.
+absent. The one-look then completed all 8,400 isolated invocations and
+atomically published checksum-verified terminal raw evidence with manifest
+SHA-256 `b9996100...`. The first compiler attempt failed closed before writing
+analysis because an analysis-only Phase 4R role copy retained a plain string
+instead of its enum type. The type-only correction is regression-tested and
+rebound; Step 3, optimization, and qualification remain closed pending the
+corrected compiler and frozen evaluator.
 
 This is the first Phase 5 comparison that will place Hebog beside external
 source finders. Earlier `paired` Phase 5 results compared only Hebog
@@ -161,9 +166,9 @@ protocol, Phase 4 and Phase 5 gates, the compact decision engine, and the
 confirmed irregular-position contract. It also binds the exact endpoint
 registry and compiler:
 
-- compiler SHA-256 `81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370`;
+- compiler SHA-256 `7a0558916ac003b71a781337dc710c99c359899c4d77f88486c1c206916b43f6`;
 - endpoint-registry SHA-256
-  `498ddf18fcfdd16b69a5873e59e8c9521786607f09291756f2960fa684f8f8f5`;
+  `d174fc9e9ab6648427147850e948ee33d77a6cf8cfccc05cb8a82cbd3141ff9b`;
 - evaluator SHA-256
   `df99e10a6fbbe7c4c1b9826c88b0d11908500c817e30aea7750bfc9d920cadab`.
 

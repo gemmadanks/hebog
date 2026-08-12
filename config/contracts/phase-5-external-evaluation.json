@@ -1,7 +1,9 @@
 {
   "analysis_compiler": {
+    "correction": "type-only-dataset-role-enum-before-scientific-output",
     "path": "scripts/validation/compile_phase5_external_campaign.py",
-    "sha256": "81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370",
+    "pre_results_sha256": "81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370",
+    "sha256": "7a0558916ac003b71a781337dc710c99c359899c4d77f88486c1c206916b43f6",
     "status": "frozen-before-campaign-output"
   },
   "astrometry_follow_up_path": "config/contracts/phase-5-astrometry-follow-up-review.json",
@@ -118,7 +120,7 @@
   "contract_id": "phase-5-external-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-endpoint-registry.json",
-    "sha256": "498ddf18fcfdd16b69a5873e59e8c9521786607f09291756f2960fa684f8f8f5",
+    "sha256": "d174fc9e9ab6648427147850e948ee33d77a6cf8cfccc05cb8a82cbd3141ff9b",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_decision.py",

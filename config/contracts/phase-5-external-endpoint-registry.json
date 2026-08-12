@@ -40,7 +40,7 @@
   "compact_manifest_path": "config/datasets/phase-5-external-compact-blend.json",
   "compact_manifest_sha256": "55c6ecef09711219e45f3e6192cea130b17a02bded6b10e72e1a839743ce2e32",
   "compiler_path": "scripts/validation/compile_phase5_external_campaign.py",
-  "compiler_sha256": "81d1384d2942268b34b52279aafb532ed9bef7dff83f197282b909ee4a033370",
+  "compiler_sha256": "7a0558916ac003b71a781337dc710c99c359899c4d77f88486c1c206916b43f6",
   "continuum": [
     {
       "metric_family": "completeness",

@@ -6799,3 +6799,62 @@ sealed terminal campaign is ready to run once.
 `--preflight-only`, do not inspect private partial products, and publish only
 the checksum-verified terminal campaign. After publication, compile and review
 the frozen scientific decision before opening Step 3.
+
+## 2026-08-12 — Published the terminal external-finder campaign
+
+**Plan phase:** Phase 5, Step 2C-P — sealed one-look execution
+
+- Executed the exact preflighted request
+  `31a56c509a354e497a9902f32d02ef77dc9d90b047c59f28239f423bed372251`
+  once without `--preflight-only`. The launcher completed 1,400 common-input
+  materializations and 7,000 finder runs as 8,400 serial, network-isolated
+  container invocations against the four approved immutable image IDs.
+- Monitored only the attached launcher, active-container process state,
+  aggregate container-start count, and filesystem capacity. No private input,
+  catalogue, image, log, or partial result was opened. Free space never
+  approached exhaustion and recovered to 62 GiB after terminal publication.
+- The launcher verified all 1,400 input bundles and all 7,000 result manifests
+  and artifacts before atomically publishing
+  `benchmark-results/phase-5/external-source-finder-comparison/campaign.json`.
+  Its SHA-256 is
+  `b9996100458d305a3553ee7c8e793513b13d9d4bd2cb428c359fd0a0cadf3a7e`,
+  status is `terminal-raw-results-sealed`, and completion time is
+  `2026-08-12T01:04:07.506327Z`. The decision-specific private staging path is
+  absent.
+
+**Validation:** the launcher exited zero only after reporting `verified
+1400/1400 common inputs`, `verified 7000/7000 finder runs`, and the terminal
+campaign path. This closes execution only; no scientific eligibility or Step
+3 claim follows from raw terminal publication.
+
+**Immediate next step:** run only the checksum-bound compiler and frozen
+decision evaluator against the terminal manifest, recording scientific
+outcomes before any runtime interpretation.
+
+## 2026-08-12 — Corrected the fail-closed compact compiler role type
+
+**Plan phase:** Phase 5, Step 2C-P — post-publication scientific compilation
+
+- The first checksum-bound compiler attempt verified the terminal campaign and
+  entered compact Phase 4R evaluation, then failed before writing an analysis
+  file with `Phase 4R decision stage and dataset role differ`.
+- Diagnosed the cause without inspecting raw scientific products: Pydantic's
+  unchecked `model_copy(update=...)` retained the analysis-only qualification
+  role as a plain string. Phase 4R deliberately compares the role by enum
+  identity and therefore rejected it. The analysis output remains absent.
+- Added a regression test that first failed on the string-valued role, then
+  changed the copy to use `DatasetRole.QUALIFICATION`. No truth, recipe,
+  stratum, finder product, endpoint, threshold, confidence rule, or decision
+  logic changed.
+- Rebound the corrected compiler SHA-256 `7a055891...`, endpoint-registry
+  SHA-256 `d174fc9e...`, and evaluation-contract SHA-256 `fc3e9ed3...`. The
+  original pre-results compiler remains recorded at `81d1384d...`; this is a
+  transparent fail-closed technical correction after raw publication and
+  before any scientific analysis output.
+
+**Validation:** the new role-identity regression test passes, as do all 30
+focused compiler and evaluator tests. No analysis or decision output exists.
+
+**Immediate next step:** commit the complete type-only correction and governed
+hash chain, rerun the compiler once, then apply the unchanged frozen evaluator
+to its write-once output.

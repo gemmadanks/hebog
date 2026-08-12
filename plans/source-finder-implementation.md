@@ -916,7 +916,13 @@ validator source and bound into the execution decision. Gemma Danks renewed
 named approval for the four exact identities and unchanged operational limits
 on 2026-08-11. The renewed no-write preflight passed request `31a56c50...`
 over exactly 1,400 inputs and 7,000 runs while leaving both public and private
-campaign paths absent. A
+campaign paths absent. The sealed campaign subsequently completed all 8,400
+isolated invocations, verified every input and result, and atomically published
+terminal raw evidence at manifest `b9996100...`. The first frozen compiler
+attempt failed before writing analysis because its analysis-only Phase 4R role
+copy contained a plain string rather than the required enum. A regression test
+now binds the type-safe correction; scientific output remains unopened while
+the corrected compiler is committed and rerun. A
 checksum-bound
 absolute-first decision kernel now distinguishes compact 0.10/0.25-beam
 astrometry from irregular-segment 0.10-beam signed-axis bias and 0.50-beam
@@ -1377,21 +1383,24 @@ and spill behaviour, and facility-scale execution.
          and already-viewed development evidence, bind both hashes in
          `phase-5-external-evaluation.json`, and obtain pre-results review. Do
          not run or inspect the fresh 1,400-image campaign before this closes.
-         This prerequisite is closed: the compiler is bound at `81d1384d...`,
-         the runtime-rebound endpoint registry at `498ddf18...`, and the
+         The original pre-results compiler was bound at `81d1384d...`. The
+         terminal campaign exposed a fail-closed role-type defect before any
+         analysis was written. Its type-only correction is bound at
+         `7a055891...`, the refreshed endpoint registry at `d174fc9e...`, and
+         the
          evaluator at
          `df99e10a...`. Exact request/runtime drift, topology semantics,
          conditional measurements, failures, applicability, endpoint sets,
          and write-once outputs are covered. The irregular-position adapter
          reproduced 105 values from closed development evidence with zero
          difference. No fresh external result was opened.
-   - [ ] Run both PyBDSF references with Rapthor's residual à trous profile
+   - [x] Run both PyBDSF references with Rapthor's residual à trous profile
          (`atrous_do=true`, three governed scales, and 5/3-sigma thresholds)
          on the same FITS images, beam, WCS, valid region, and declared science
          target. Where supported, add a controlled-input diagnostic using the
          same frozen background and RMS products; keep each finder's normal
          operational configuration as the primary interoperability result.
-   - [ ] Run Aegean blind source finding on the same inputs with a frozen
+   - [x] Run Aegean blind source finding on the same inputs with a frozen
          standard-practice configuration and a separately labelled
          threshold-matched diagnostic if required. Make its completeness,
          reliability, astrometry, peak/integrated flux, component association,

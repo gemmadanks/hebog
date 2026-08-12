@@ -11,6 +11,8 @@ from typing import Any
 import numpy as np
 import pytest
 
+from hebog.validation.datasets import DatasetRole, load_dataset_manifest
+
 _ROOT = Path(__file__).parents[3]
 _COMPILER = _ROOT / "scripts/validation/compile_phase5_external_campaign.py"
 _REGISTRY = _ROOT / "config/contracts/phase-5-external-endpoint-registry.json"
@@ -18,6 +20,9 @@ _PROTOCOL = _ROOT / "config/contracts/phase-5-external-comparison.json"
 _DECISION = _ROOT / "config/contracts/phase-5-external-execution-decision.json"
 _BASE_REVIEW = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
 _LAUNCHER = _ROOT / "scripts/benchmark/run_phase5_external_campaign.py"
+_COMPACT_MANIFEST = (
+    _ROOT / "config/datasets/phase-5-external-compact-blend.json"
+)
 
 
 @pytest.fixture(scope="module")
@@ -141,6 +146,18 @@ def test_registry_limits_aegean_to_products_it_supplies(
     assert len(endpoint_keys) == 225
     assert len(aegean_keys) == 143
     assert len(set(endpoint_keys)) == 225
+
+
+def test_phase_four_interval_view_retains_a_validated_role(
+    compiler: dict[str, Any],
+) -> None:
+    """The analysis-only view must satisfy Phase 4R's role identity check."""
+    source = load_dataset_manifest(_COMPACT_MANIFEST).datasets[0]
+
+    interval_view = compiler["_phase_four_interval_dataset"](source)
+
+    assert source.role is DatasetRole.REGRESSION
+    assert interval_view.role is DatasetRole.QUALIFICATION
 
 
 def test_compiler_accepts_only_the_approved_campaign_request(
