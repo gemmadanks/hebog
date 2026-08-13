@@ -1594,29 +1594,32 @@ comparison.**
          side, and the Aegean marginal fitted-axis tail improved from 0.20472
          to 0.17292 versus 0.19026. These are development results on the
          closed population, not a rescore or promotion claim.
-   - [ ] Freeze a new seed-disjoint successor population, candidate/runtime
-         identities, and unchanged external gates before requesting another
-         one-look execution. The closed campaigns and corrective development
-         results remain ineligible as confirmation evidence; Step 3,
-         optimization, qualification, and runtime interpretation stay closed.
-         Retain the same powered 600-continuum/800-compact design for direct
-         comparability. Before the freeze, compose the prospective bounded
-         execution and compilation accelerators into new checksum-bound
-         wrappers without modifying the closed successor programs. The next
-         request must declare exactly two execution lanes: all four-core
-         PyBDSF legs remain serial in one lane while Hebog/Aegean legs remain
-         serial in the companion lane. This fits the measured six-CPU VM and
-         preserves fresh-container isolation. The closed campaign recorded
-         5.722 finder-hours; the two resource-lane critical sum is 3.476 hours,
-         a development projection rather than a new campaign wall-time claim.
-         The prospective compiler may reuse only finder-invariant input/truth
-         state for the current image and replace repeated per-label plane
-         scans with an exactly equivalent grouped pass. On an exact 20-image
-         closed-product slice, every captured endpoint observation remained
-         equal while preparation improved from 34.21 to 27.47 seconds
-         (1.25×). Require a bounded real-container concurrency matrix, full
-         observation parity, and the new registry/request/compiler identity
-         checks before named execution approval.
+   - [x] Freeze and technically review a new seed-disjoint confirmation
+         campaign with the unchanged powered 600-continuum/800-compact design.
+         All 1,400 seeds are disjoint from 10,453 historical seeds and retain
+         the 0.908176 joint-power lower bound. New wrappers compose the exact
+         two-lane scheduler and per-image compiler accelerators without
+         changing either closed campaign. All captured observations on the
+         20-image/three-finder parity slice remain exact. A network-disabled
+         real-container probe on the six-CPU VM passed all four-core-PyBDSF
+         plus one-core-companion pairings. Review `4d5cb1...` binds the new
+         manifests, programs, unchanged gates, candidate image `88696bd...`,
+         and all three reference images. Campaign and staging outputs remain
+         absent; Step 3, optimization, qualification, and runtime
+         interpretation remain closed.
+   - [ ] Obtain named approval bound to preflight review `4d5cb1...` and the
+         exact four runtime identities. Refresh only the decision-dependent
+         checksum chain, commit it, then run the complete 1,400-input/7,000-run
+         no-write preflight. Do not materialize a confirmation image unless
+         the preflight passes and public/private output paths remain absent.
+   - [ ] Execute the approved confirmation once with exactly two resource
+         lanes and no partial-result inspection. Require approximately 60 GiB
+         storage headroom; about 81.5 GiB was available at technical review.
+         Monitor operational progress only until the terminal manifest seals.
+   - [ ] Compile the sealed campaign with the parity-reviewed bounded
+         accelerators, run the unchanged evaluator before interpreting
+         runtime, and record the scientific decision. A pass may open Step 3;
+         a fail closes this candidate without rescoring or adaptive follow-up.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

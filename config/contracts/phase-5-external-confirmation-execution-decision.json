@@ -1,0 +1,37 @@
+{
+  "candidate_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+  "decision": "await-named-execution-approval",
+  "decision_id": "phase-5-external-confirmation-execution-decision",
+  "execution_authorized": false,
+  "execution_concurrency": 2,
+  "hebog_container_image_digest": "sha256:88696bd96844d5d28022ce21185b731b2d78183192db53991e8b04e556dfcbf3",
+  "hebog_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+  "implementation_commit": "ee69ebae316e79b793c410d36c94fb3e0121908d",
+  "named_review": "pending",
+  "next_action": "obtain-named-approval-before-confirmation-preflight",
+  "one_look_opened": false,
+  "optimization_authorized": false,
+  "preflight_review_path": "config/contracts/phase-5-external-confirmation-preflight-review.json",
+  "preflight_review_sha256": "pending",
+  "protocol_sha256": "f9105d922e4972c63b811b59cd3bb9e1f196490f2f20e9f6914b0f0d07ef65d2",
+  "pybdsf_ncores": 4,
+  "qualification_opened": false,
+  "runners": [
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_confirmation_hebog.py",
+      "sha256": "d2b3bfce1fbfab1e95d2adb1df5fe18a11819b85ba131342d91ca66e721420f8"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_confirmation_pybdsf.py",
+      "sha256": "0e224725709796e05f147ccfff2c8d480a3ec93bbffd59a95bea3be9cf4295c8"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_confirmation_aegean.py",
+      "sha256": "37b716055e9f14a9287708e5352bec14dd5b8c8899bbf73f7b2f477cfc3a3263"
+    }
+  ],
+  "schema_version": 1,
+  "source_tree_sha256": "b002878831c5f00fbe15c7b1d5a34abcee773aa35457b6fb2d56acef050fc942",
+  "status": "awaiting-named-execution-approval",
+  "step_three_authorized": false
+}

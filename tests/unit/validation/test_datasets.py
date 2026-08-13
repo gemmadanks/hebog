@@ -430,6 +430,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-astrometry-follow-up-development",
         "phase-5-corrective-a-confirmation",
         "phase-5-development",
+        "phase-5-external-confirmation-compact-blend",
+        "phase-5-external-confirmation-continuum",
         "phase-5-external-compact-blend",
         "phase-5-external-continuum",
         "phase-5-external-successor-compact-blend",
@@ -444,6 +446,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-astrometry-follow-up-development": DatasetRole.DEVELOPMENT,
         "phase-5-corrective-a-confirmation": DatasetRole.REGRESSION,
         "phase-5-development": DatasetRole.DEVELOPMENT,
+        "phase-5-external-confirmation-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-confirmation-continuum": DatasetRole.REGRESSION,
         "phase-5-external-compact-blend": DatasetRole.REGRESSION,
         "phase-5-external-continuum": DatasetRole.REGRESSION,
         "phase-5-external-successor-compact-blend": DatasetRole.REGRESSION,
@@ -460,6 +464,7 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
             if manifest_id
             in {
                 "phase-5-external-compact-blend",
+                "phase-5-external-confirmation-compact-blend",
                 "phase-5-external-successor-compact-blend",
             }
             else 3
@@ -499,72 +504,25 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
     ].datasets[0]
     assert len(iter_dataset_recipes(confirmation_dataset)) == 100
     assert "before estimator selection" in confirmation_dataset.provenance
-    assert (
-        sum(
+    expected_recipe_counts = {
+        "phase-5-astrometry-development": 40,
+        "phase-5-astrometry-confirmation": 400,
+        "phase-5-astrometry-follow-up-development": 80,
+        "phase-5-astrometry-follow-up-confirmation": 400,
+        "phase-5-external-continuum": 600,
+        "phase-5-external-compact-blend": 800,
+        "phase-5-external-successor-continuum": 600,
+        "phase-5-external-successor-compact-blend": 800,
+        "phase-5-external-confirmation-continuum": 600,
+        "phase-5-external-confirmation-compact-blend": 800,
+    }
+    assert {
+        manifest_id: sum(
             len(iter_dataset_recipes(dataset))
-            for dataset in manifests["phase-5-astrometry-development"].datasets
+            for dataset in manifests[manifest_id].datasets
         )
-        == 40
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in manifests[
-                "phase-5-astrometry-confirmation"
-            ].datasets
-        )
-        == 400
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in manifests["phase-5-external-continuum"].datasets
-        )
-        == 600
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in manifests["phase-5-external-compact-blend"].datasets
-        )
-        == 800
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in manifests[
-                "phase-5-external-successor-continuum"
-            ].datasets
-        )
-        == 600
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in manifests[
-                "phase-5-external-successor-compact-blend"
-            ].datasets
-        )
-        == 800
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in manifests[
-                "phase-5-astrometry-follow-up-development"
-            ].datasets
-        )
-        == 80
-    )
-    assert (
-        sum(
-            len(iter_dataset_recipes(dataset))
-            for dataset in manifests[
-                "phase-5-astrometry-follow-up-confirmation"
-            ].datasets
-        )
-        == 400
-    )
+        for manifest_id in expected_recipe_counts
+    } == expected_recipe_counts
     assert all(
         "before successor estimator" in dataset.provenance
         for manifest_id in (
@@ -646,6 +604,15 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         ),
         "phase-5-development": (
             "319b43f99e0ff5d771f1f79721eb228b82f5e478d921f9dad6f0a2f1caf8d13d",
+        ),
+        "phase-5-external-confirmation-compact-blend": (
+            "207a4b89618abc9dc9a7a077156207bf996bf395b1cdf0df256678b42ede8d5d",
+        ),
+        "phase-5-external-confirmation-continuum": (
+            "f357da2de33939519c7db8d3619330388b18c797213ff5b9f6ae46f796c1dc53",
+            "7289d452d6defc63fd3b2c2cd5e92e7db4d6748b7e767a0ff324632096727b69",
+            "9cae51b4d386cac39342e2e278b350bd001870f96738604f739d7f4e22fd7974",
+            "9e840422cb986716c0f82410be7b0c8bb99523f51bd3ef17c9d6a5ab85b6ae02",
         ),
         "phase-5-external-compact-blend": (
             "41183ce796824b56cdf79d965bc655840c1b006934262f269c0ace4eede7a610",

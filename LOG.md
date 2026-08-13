@@ -7352,3 +7352,50 @@ benchmark was read-only and generated no new campaign evidence.
 **Immediate next step:** compose the helpers into new prospective wrappers,
 run the bounded real-container concurrency and full observation-parity matrix,
 then freeze the same-size seed-disjoint campaign identities.
+
+## 2026-08-13 — Froze the corrected external confirmation composition
+
+**Plan phase:** Phase 5, Step 2C-PF — confirmation pre-execution review
+
+- Built Linux/arm64 candidate image
+  `localhost/hebog:phase5-external-confirmation-ee69eba` from a clean archive
+  of commit `ee69eba...`. The mandatory hook first removed one obsolete lint
+  suppression from the compiler accelerator; this source-comment-only change
+  was committed separately before the final build. Network-disabled inspection
+  reproduced source tree `b002878...` and the predeclared dependency inventory
+  `d383be3...`; the image digest is `sha256:88696bd...`.
+- Froze 600 continuum and 800 compact/blend images with 1,400 seeds disjoint
+  from 10,453 historical seeds in 37 manifests. The unchanged power model
+  retains a 0.908176 conservative joint lower bound against the 0.90 gate.
+- Composed new checksum-bound confirmation runners, a two-resource-lane
+  launcher, bounded compiler, registry, evaluator, and strict protocol view.
+  The closed launchers and compilers remain byte-identical. The pending
+  decision rejects before container inspection or private staging.
+- Ran the non-scientific, network-disabled real-container resource probe on
+  the six-CPU/16 GB Podman VM. Released PyBDSF+Hebog, master+Hebog, and released
+  PyBDSF+Aegean overlapped with ratios 0.673, 0.698, and 0.506 of their isolated
+  time sums while returning the same deterministic digest. Four PyBDSF cores
+  and one companion core were retained.
+- After verifying retained closed analysis `b6c77b87...` and decision
+  `1d8c2577...`, permanently removed only the approved 46 GiB raw successor
+  campaign directory. Available host space is approximately 81.5 GiB;
+  no container cleanup was needed.
+- Technical preflight review `4d5cb1...` binds the exact population,
+  candidate and reference runtimes, programs, unchanged gates, parity evidence,
+  storage state, and one-look rule. Campaign and staging outputs remain absent.
+
+**Validation:** 139 focused campaign, compiler, evaluator, population, and
+historical-immutability tests passed. `just check` passed Ruff, Pyright, 1,168
+tests, and four expected xfails. The strict documentation build and mandatory
+pre-commit hooks pass. The final freezer reproduced all three checked-in
+records byte-for-byte in temporary storage, and the exact rebuilt runtime
+reproduced its bound source and dependency checksums without network access.
+
+**Decision:** the corrected candidate is technically ready for exact-identity
+approval and a no-write preflight. This preparation creates no confirmation
+science or runtime claim and does not open Step 3, optimization, or
+qualification.
+
+**Immediate next step:** obtain Gemma Danks's approval bound to review
+`4d5cb1...` and the four exact image digests, refresh the decision-dependent
+hash chain, commit it, and run the no-write 1,400-input/7,000-run preflight.

@@ -1,0 +1,28 @@
+{
+  "analysis_compiler": {
+    "path": "scripts/validation/compile_phase5_external_confirmation_campaign.py",
+    "sha256": "bdfc0820ac8398ae577ed2c5dccd12aef14d6a853207b4e9622038c43f9f0f07",
+    "status": "frozen-before-campaign-output"
+  },
+  "base_evaluation_path": "config/contracts/phase-5-external-successor-evaluation.json",
+  "base_evaluation_sha256": "02a2e11b765eb41f2788e1603773919172c7640f3770715773ab335f6271adc6",
+  "closed_campaign_reuse_authorized": false,
+  "compiler_accelerator": {
+    "path": "src/hebog/validation/external_campaign_compilation.py",
+    "sha256": "bb3c5c2fc278ad52a528e7eb1a630792e772004ce5435068b6678759a7be2d0b",
+    "status": "exact-parity-reviewed-before-campaign-output"
+  },
+  "contract_id": "phase-5-external-confirmation-evaluation",
+  "endpoint_registry": {
+    "path": "config/contracts/phase-5-external-confirmation-endpoint-registry.json",
+    "sha256": "2afd53d4354bed8fa3b60ebdebc94d99913cdd3b0623dfca697004b966a50ce4",
+    "status": "frozen-before-campaign-output"
+  },
+  "evaluator_path": "scripts/validation/evaluate_phase5_external_confirmation_decision.py",
+  "evaluator_sha256": "43c62aa5cbea6918c1993dc6563167e9c869d0e7936d6116b7cdbb1e502d6ce4",
+  "one_look_rule": "one-terminal-look-no-tuning-rescoring-reconfirmation-or-adaptive-sample-size",
+  "protocol_path": "config/contracts/phase-5-external-confirmation-comparison.json",
+  "protocol_sha256": "f9105d922e4972c63b811b59cd3bb9e1f196490f2f20e9f6914b0f0d07ef65d2",
+  "schema_version": 1,
+  "status": "frozen-before-campaign-output"
+}

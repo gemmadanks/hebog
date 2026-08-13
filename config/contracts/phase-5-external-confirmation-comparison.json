@@ -1,0 +1,28 @@
+{
+  "base_protocol_path": "config/contracts/phase-5-external-successor-comparison.json",
+  "base_protocol_sha256": "9eaf49d70a7dbae6dbb5c7bc17dcd3de542ca2886f6a7367550248110dcf82ea",
+  "closed_campaign_reuse_authorized": false,
+  "contract_id": "phase-5-external-confirmation-comparison",
+  "execution_authorized": false,
+  "optimization_authorized": false,
+  "population_contract_path": "config/contracts/phase-5-external-confirmation-population.json",
+  "population_contract_sha256": "c346549df25c8b7d7bdadc6791e590d0333c08d918bd9c530b27042025444768",
+  "populations": [
+    {
+      "image_count": 600,
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-external-confirmation-continuum.json",
+      "manifest_sha256": "6f4118de01331bb19a8b56402a07dd168f617d22c94c8774d499eeb180793874"
+    },
+    {
+      "image_count": 800,
+      "lane": "compact-blend",
+      "manifest": "config/datasets/phase-5-external-confirmation-compact-blend.json",
+      "manifest_sha256": "1ef6561a4bc87d2197f940f7a605f723663aa49052a9bffc5ca32249aa6808f8"
+    }
+  ],
+  "qualification_opened": false,
+  "schema_version": 1,
+  "status": "frozen-before-external-output",
+  "step_three_authorized": false
+}

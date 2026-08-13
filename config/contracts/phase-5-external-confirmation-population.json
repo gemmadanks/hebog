@@ -1,0 +1,158 @@
+{
+  "closed_campaign_policy": "diagnostic-history-not-pooled-rescored-or-reused",
+  "contract_id": "phase-5-external-confirmation-population",
+  "execution_authorized": false,
+  "finder_output_generated": false,
+  "finder_output_opened": false,
+  "generator": {
+    "relative_path": "scripts/validation/freeze_phase5_external_confirmation_population.py",
+    "sha256": "116def5f63ce295ec2b8c33f4cbe13dd4e23f620c1840991064276c7f42461bc"
+  },
+  "population_audit": {
+    "historical_manifest_count": 37,
+    "historical_registry_sha256": "2b85c8eb52e04057a67b74480ea665256ffb507f1114316cb2f0dab871a7ece7",
+    "historical_seed_count": 10453,
+    "new_seed_count": 1400,
+    "seed_disjoint": true
+  },
+  "populations": [
+    {
+      "image_count": 600,
+      "independent_unit": "noise-seed-image",
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-external-confirmation-continuum.json",
+      "manifest_sha256": "6f4118de01331bb19a8b56402a07dd168f617d22c94c8774d499eeb180793874",
+      "role": "regression"
+    },
+    {
+      "image_count": 800,
+      "independent_unit": "noise-seed-image",
+      "lane": "compact-blend",
+      "manifest": "config/datasets/phase-5-external-confirmation-compact-blend.json",
+      "manifest_sha256": "1ef6561a4bc87d2197f940f7a605f723663aa49052a9bffc5ca32249aa6808f8",
+      "role": "regression"
+    }
+  ],
+  "power_audit": {
+    "assumption_failure": "observed-variance-above-bound-makes-comparison-underpowered",
+    "combined_familywise_power_lower_bound": 0.9081757791446857,
+    "compact_familywise_power_lower_bound": 0.9097837457955092,
+    "compact_realization_count": 800,
+    "compact_reference_count": 3,
+    "compact_reviewed_contract_sha256": "28bb37393792f8fc4cd829e9fecfc5edb6b1e77a2a3d50df586f37f33ba39eb4",
+    "compact_single_reference_familywise_power_lower_bound": 0.9699279152651697,
+    "confidence_level": 0.95,
+    "continuum_assumptions": [
+      {
+        "comparison_count": 70,
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "reliability",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "position-median",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.003,
+        "planning_paired_standard_deviation": 0.03,
+        "practical_regression_margin": 0.01
+      },
+      {
+        "comparison_count": 56,
+        "metric_family": "mask-precision",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 56,
+        "metric_family": "mask-recall",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 56,
+        "metric_family": "mask-iou",
+        "planning_expected_regression": -0.01,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.005,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02
+      },
+      {
+        "comparison_count": 70,
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": -0.005,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02
+      }
+    ],
+    "continuum_familywise_power_lower_bound": 0.9983920333491765,
+    "continuum_realization_count": 600,
+    "method": "cluster-normal-planning-plus-conservative-union-lower-bound",
+    "minimum_joint_power": 0.9
+  },
+  "power_reuse_basis": "same-reviewed-geometries-endpoints-margins-and-sample-sizes",
+  "predecessor_population": {
+    "relative_path": "config/contracts/phase-5-external-successor-population.json",
+    "sha256": "8056bbc7e124230f63b2d8c8f3f6a0d217b4bfabcb45e02c261936eda763b34b"
+  },
+  "qualification_opened": false,
+  "schema_version": 1,
+  "source_binding": {
+    "candidate_commit": "ee69ebae316e79b793c410d36c94fb3e0121908d",
+    "candidate_review": {
+      "relative_path": "config/contracts/phase-5-corrective-a-review.json",
+      "sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+    },
+    "container_image_digest": "sha256:88696bd96844d5d28022ce21185b731b2d78183192db53991e8b04e556dfcbf3",
+    "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+    "science_kernel": {
+      "relative_path": "src/hebog/validation/external_successor_compiler.py",
+      "sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55"
+    },
+    "source_tree_sha256": "b002878831c5f00fbe15c7b1d5a34abcee773aa35457b6fb2d56acef050fc942"
+  },
+  "status": "power-audited-before-finder-output"
+}

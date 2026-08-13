@@ -543,3 +543,29 @@ reduced preparation from 34.21 to 27.47 seconds. The closed launcher and
 compiler remain checksum-bound historical artifacts; new wrappers must bind
 these accelerators and pass parity and bounded-concurrency review before the
 next one-look approval.
+
+## Frozen confirmation after the prospective correction
+
+The next confirmation retains the same 600 continuum images, 800 compact/blend
+images, four external-reference legs, endpoint matrix, confidence rules, and
+absolute-first failure policy. Its 1,400 seeds are disjoint from all 10,453
+seeds in the 37 earlier manifests, and its recomputed conservative joint-power
+lower bound is 0.908176. Neither closed campaign nor the corrective development
+measurements are pooled into this confirmation.
+
+The checksum-bound launcher declares exactly two serial resource lanes: every
+four-core PyBDSF invocation runs in one lane, while Hebog and Aegean run in the
+one-core companion lane. Every finder invocation still receives a fresh,
+network-disabled container and isolated output directory. On the six-CPU,
+16 GB Podman VM, a non-scientific deterministic workload demonstrated overlap
+ratios of 0.673 for released PyBDSF with Hebog, 0.698 for pinned master with
+Hebog, and 0.506 for released PyBDSF with Aegean. These ratios validate the
+resource schedule only and are not source-finding or campaign-speed evidence.
+
+The compiler composition retains state only for the current image and uses the
+reviewed grouped-label pass. All captured observations remained exact across
+the 20-image, three-finder parity slice. Technical review `4d5cb1...` binds
+the population, candidate source and image, three reference images, runners,
+launcher, compiler, evaluator, registry, unchanged gates, and one-look rule.
+The campaign remains unopened and execution remains unauthorized until Gemma
+Danks approves that exact review and runtime set.

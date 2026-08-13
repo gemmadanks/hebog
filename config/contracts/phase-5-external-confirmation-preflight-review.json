@@ -1,0 +1,142 @@
+{
+  "authorization": {
+    "execution_decision_path": "config/contracts/phase-5-external-confirmation-execution-decision.json",
+    "execution_decision_sha256": "5fd727c3d8b522ff11d6c1c757beb82dc6e8fe398004d785f08025d20177def2",
+    "named_review": "pending",
+    "next_action": "obtain-named-approval-bound-to-this-review-and-the-exact-four-runtime-identities"
+  },
+  "closed_campaign_reuse_authorized": false,
+  "execution_authorized": false,
+  "execution_concurrency": 2,
+  "gates": {
+    "absolute_and_paired_change_count": 0,
+    "base_evaluation_path": "config/contracts/phase-5-external-successor-evaluation.json",
+    "base_evaluation_sha256": "02a2e11b765eb41f2788e1603773919172c7640f3770715773ab335f6271adc6",
+    "decision_rule": "absolute-first-every-applicable-noninferiority-gate-no-compensation",
+    "failure_policy": "absolute-first-retain-denominator-incomplete-reference-fails-closed",
+    "one_look_rule": "one-terminal-look-no-tuning-rescoring-reconfirmation-or-adaptive-sample-size",
+    "phase_five_scientific_gates_sha256": "cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b",
+    "phase_four_metric_registry_sha256": "f1bcbbb6d1d216bdc5271c45a1e64789b1c8928a98bd4927f7e707d0318dd0b5",
+    "phase_four_scientific_gates_sha256": "39a6d0c6c0d10f3c91d8db7d63a6c6173680387d62895af28b331f118f568233"
+  },
+  "one_look_opened": false,
+  "population": {
+    "binding_run_count": 5000,
+    "combined_familywise_power_lower_bound": 0.9081757791446857,
+    "compact_blend_image_count": 800,
+    "compact_manifest_sha256": "1ef6561a4bc87d2197f940f7a605f723663aa49052a9bffc5ca32249aa6808f8",
+    "continuum_image_count": 600,
+    "continuum_manifest_sha256": "6f4118de01331bb19a8b56402a07dd168f617d22c94c8774d499eeb180793874",
+    "historical_manifest_count": 37,
+    "historical_seed_count": 10453,
+    "historical_seed_overlap_count": 0,
+    "image_count": 1400,
+    "minimum_joint_power": 0.9,
+    "population_contract_path": "config/contracts/phase-5-external-confirmation-population.json",
+    "population_contract_sha256": "c346549df25c8b7d7bdadc6791e590d0333c08d918bd9c530b27042025444768",
+    "terminal_run_count": 7000
+  },
+  "protocol": {
+    "compiler_accelerator_path": "src/hebog/validation/external_campaign_compilation.py",
+    "compiler_accelerator_sha256": "bb3c5c2fc278ad52a528e7eb1a630792e772004ce5435068b6678759a7be2d0b",
+    "compiler_path": "scripts/validation/compile_phase5_external_confirmation_campaign.py",
+    "compiler_sha256": "bdfc0820ac8398ae577ed2c5dccd12aef14d6a853207b4e9622038c43f9f0f07",
+    "endpoint_registry_path": "config/contracts/phase-5-external-confirmation-endpoint-registry.json",
+    "endpoint_registry_sha256": "2afd53d4354bed8fa3b60ebdebc94d99913cdd3b0623dfca697004b966a50ce4",
+    "evaluation_contract_path": "config/contracts/phase-5-external-confirmation-evaluation.json",
+    "evaluation_contract_sha256": "8e302b413c7a14dcc5e4e368809d80013c206aa531a6cf5e598762c49e0bdae3",
+    "evaluator_path": "scripts/validation/evaluate_phase5_external_confirmation_decision.py",
+    "evaluator_sha256": "43c62aa5cbea6918c1993dc6563167e9c869d0e7936d6116b7cdbb1e502d6ce4",
+    "launcher_path": "scripts/benchmark/run_phase5_external_confirmation_campaign.py",
+    "launcher_sha256": "e08d74771daaa9e98b75b4f93f0e267db6ae54bba81d840aacae7ca6b5c8c68e",
+    "protocol_path": "config/contracts/phase-5-external-confirmation-comparison.json",
+    "protocol_sha256": "f9105d922e4972c63b811b59cd3bb9e1f196490f2f20e9f6914b0f0d07ef65d2",
+    "protocol_verifier_path": "scripts/validation/phase5_external_confirmation_protocol.py",
+    "protocol_verifier_sha256": "45e8e1747379adb6c6292f306e3a7b7807cf98377f4fab6bd1ab1e6904140803",
+    "runtime_probe_path": "scripts/validation/preflight_phase5_external_confirmation_runtime.py",
+    "runtime_probe_sha256": "bb2a7a4397b67c3c41e49b216e22822af4c476d4c325c279c5f50ecb398f2c92",
+    "science_kernel_path": "src/hebog/validation/external_successor_compiler.py",
+    "science_kernel_sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55",
+    "terminal_compiler_sha256": "7a0558916ac003b71a781337dc710c99c359899c4d77f88486c1c206916b43f6",
+    "terminal_evaluator_sha256": "df99e10a6fbbe7c4c1b9826c88b0d11908500c817e30aea7750bfc9d920cadab",
+    "terminal_launcher_sha256": "9eb832e96c862327467ae700db8e7b59165f14f05c823f1783ccf696ecd2125c"
+  },
+  "pybdsf_ncores": 4,
+  "review_id": "phase-5-external-confirmation-preflight-review",
+  "reviewed_at": "2026-08-13",
+  "runners": {
+    "aegean_sha256": "37b716055e9f14a9287708e5352bec14dd5b8c8899bbf73f7b2f477cfc3a3263",
+    "hebog_sha256": "d2b3bfce1fbfab1e95d2adb1df5fe18a11819b85ba131342d91ca66e721420f8",
+    "pybdsf_sha256": "0e224725709796e05f147ccfff2c8d480a3ec93bbffd59a95bea3be9cf4295c8"
+  },
+  "runtime": {
+    "aegean": {
+      "container_image_digest": "sha256:b496d2907c13d083e7c87eda61a6a40057f92b5cb6e605330bcb1b6db27158b8",
+      "dependency_inventory_sha256": "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
+      "image_id": "1477da698e0ed8cc0a215da0d0d1c4b3090ab9b7dd88de46da44360d6bdd7dcb",
+      "source_revision": "bb04f50a3ec117d180a79260c6a5c844f1d8dbbc"
+    },
+    "hebog": {
+      "container_image_digest": "sha256:88696bd96844d5d28022ce21185b731b2d78183192db53991e8b04e556dfcbf3",
+      "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+      "image_id": "262fe2ace73079340539bfe1dd63306311ce4d4b67c8168f319f8944b4cbe9d2",
+      "source_revision": "ee69ebae316e79b793c410d36c94fb3e0121908d",
+      "source_tree_sha256": "b002878831c5f00fbe15c7b1d5a34abcee773aa35457b6fb2d56acef050fc942"
+    },
+    "pinned-pybdsf-master": {
+      "container_image_digest": "sha256:192964b32d50a6e960cf3710013ffa92d782ecf43a4d6def4309a7cb10911e73",
+      "dependency_inventory_sha256": "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
+      "image_id": "b2c79f317bc19819875ea686772518eb1ca8394e24b53c1b8983bdafcf75455a",
+      "source_revision": "c70103be3ae9ae9908286f144e6ce956acc0ce5c"
+    },
+    "platform": "linux/arm64",
+    "released-pybdsf": {
+      "container_image_digest": "sha256:72454074489d5ed0d0ed08781ec11411a3e25ccf75e3378a924152176fa15b37",
+      "dependency_inventory_sha256": "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+      "image_id": "387149981a5f8ae91119d265615049e9fe8f8a991483d933ca7fe4b62414a9fb",
+      "source_revision": "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc"
+    }
+  },
+  "schema_version": 1,
+  "status": "technically-reviewed-awaiting-named-execution-approval",
+  "technical_review": {
+    "campaign_output_absent": true,
+    "closed_raw_campaign_deleted_after-retained-evidence-verification": true,
+    "compiler_acceleration": {
+      "after_seconds": 27.47,
+      "before_seconds": 34.21,
+      "captured_endpoint_observations_equal": true,
+      "finder_count": 3,
+      "image_count": 20,
+      "speedup": 1.25
+    },
+    "container_identity_check": "pass-exact-four-linux-arm64-digests",
+    "dependency_inventory_check": "pass",
+    "execution_projection": {
+      "closed_serial_finder_hours": 5.722,
+      "projected_two-lane_critical_hours": 3.476,
+      "scientific_or_campaign_runtime_claim": false
+    },
+    "historical_program_identity_check": "pass-byte-identical-closed-launchers-and-compilers",
+    "host_available_bytes": 87482363904,
+    "host_storage_status": "pass-approximately-81.5-gib-available",
+    "pending_decision_rejects_before_container_inspection_or_staging": true,
+    "retained_closed_analysis_sha256": "b6c77b87a48a84e89eab48eddd5fa501ba9a4e11d8dceaf2e9dcaeaa51ac65a0",
+    "retained_closed_decision_sha256": "1d8c2577bcd70e29ee27cd3cc3a1b0154b007cb1b6cce767743aacbe42093788",
+    "runtime_probe": {
+      "fresh_containers": true,
+      "host_cpu_count": 6,
+      "network_disabled": true,
+      "pair_overlap_ratios": {
+        "pinned-pybdsf-master+hebog": 0.6980117909510986,
+        "released-pybdsf+aegean": 0.5060464177200085,
+        "released-pybdsf+hebog": 0.673085503847683
+      },
+      "resource_budget": "four-cpu-pybdsf-plus-one-cpu-companion",
+      "scientific_evidence": false,
+      "status": "pass"
+    },
+    "source_tree_check": "pass-network-disabled-runtime-equals-bound-checkout",
+    "staging_output_absent": true
+  }
+}
