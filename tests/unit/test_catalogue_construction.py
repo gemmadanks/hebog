@@ -27,6 +27,8 @@ from hebog.data_models.fitting import (
     FailedCompactGaussianFit,
     FittedGaussianPixelParameters,
     GaussianFitDiagnostics,
+    GaussianFitUncertainty,
+    UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
@@ -192,6 +194,38 @@ def test_shard_keeps_island_source_and_component_records_distinct() -> None:
         assert source.spectral_model.reference_frequency_hz == 150_000_000.0
 
 
+def test_unresolved_source_keeps_fitted_total_on_gaussian_component() -> None:
+    """Rapthor source flux does not overwrite like-product Gaussian flux."""
+    island_fit = _island_fit()
+    fit = island_fit.region_fits[0]
+    assert isinstance(fit, ValidCompactGaussianFit)
+    uncertain = replace(
+        fit,
+        uncertainty=GaussianFitUncertainty(
+            amplitude_error_jy_per_beam=0.01,
+            centroid_covariance_xx_pixels_squared=0.04,
+            centroid_covariance_xy_pixels_squared=0.0,
+            centroid_covariance_yy_pixels_squared=0.04,
+            integrated_flux_error_jy=0.02,
+        ),
+    )
+    shard = build_compact_catalogue_shard(
+        (replace(island_fit, region_fits=(uncertain,)),),
+        _metadata(),
+        deconvolution_relative_tolerance=1e-10,
+        extension_significance_sigma=2.0,
+    )
+
+    source = shard.sources[0]
+    component = shard.gaussian_components[0]
+    assert source.flux.integrated_flux_jy == (
+        source.flux.peak_flux_jy_per_beam
+    )
+    assert component.flux.integrated_flux_jy > (
+        component.flux.peak_flux_jy_per_beam
+    )
+
+
 def test_shard_reuses_one_celestial_wcs_for_all_records(
     mocker: MockerFixture,
 ) -> None:
@@ -290,10 +324,8 @@ def test_empty_shard_reduction_has_zero_depth_and_records() -> None:
     assert reduction.shard.record_count == 0
 
 
-def test_complete_catalogue_rejects_fit_omission_and_phase_five_deferral() -> (
-    None
-):
-    """Incomplete compact results cannot masquerade as normal catalogues."""
+def test_failed_fit_retains_moment_source_and_rejects_deferral() -> None:
+    """Measured detections survive a fit failure without invented Gaussian."""
     island_fit = _island_fit()
     valid = island_fit.region_fits[0]
     assert isinstance(valid, ValidCompactGaussianFit)
@@ -308,23 +340,27 @@ def test_complete_catalogue_rejects_fit_omission_and_phase_five_deferral() -> (
         _metadata(),
         deconvolution_relative_tolerance=1e-10,
     )
-    assert shard.omissions == (
-        CompactCatalogueOmission(
-            object_id=failed.moment.target.object_id,
-            reason="fit-non-convergence",
-        ),
+    assert not shard.omissions
+    assert not shard.gaussian_components
+    assert len(shard.sources) == 1
+    source = shard.sources[0]
+    assert source.position.right_ascension_degrees < 180.0
+    assert source.position.declination_degrees == pytest.approx(-30.0)
+    assert source.flux.integrated_flux_jy == pytest.approx(0.03)
+    assert source.fitted_shape is None
+    assert source.quality_flags == (
+        "fit-non-convergence",
+        "fitted-shape-unavailable",
+        "moment-measurement",
     )
-
-    with pytest.raises(
-        IncompleteCompactCatalogueError, match="1 fit omission"
-    ):
-        complete_compact_catalogue(
-            catalogue_id="compact-reference",
-            metadata=_metadata(),
-            shards=(shard,),
-            deferred_island_ids=(),
-            config=_config(),
-        )
+    completed = complete_compact_catalogue(
+        catalogue_id="compact-reference",
+        metadata=_metadata(),
+        shards=(shard,),
+        deferred_island_ids=(),
+        config=_config(),
+    )
+    assert completed.catalogue.sources == shard.sources
     with pytest.raises(IncompleteCompactCatalogueError, match="1 deferred"):
         complete_compact_catalogue(
             catalogue_id="compact-reference",
@@ -333,6 +369,33 @@ def test_complete_catalogue_rejects_fit_omission_and_phase_five_deferral() -> (
             deferred_island_ids=("island-00002",),
             config=_config(),
         )
+
+
+def test_unavailable_fit_retains_finite_moment_photometry() -> None:
+    """A fit-ineligible measured region remains a source without a Gaussian."""
+    island_fit = _island_fit()
+    valid = island_fit.region_fits[0]
+    assert isinstance(valid, ValidCompactGaussianFit)
+    unavailable = UnavailableCompactGaussianFit(
+        moment=valid.moment,
+        reason="underdetermined-region",
+        quality_flags=("fit-unavailable",),
+    )
+
+    shard = build_compact_catalogue_shard(
+        (replace(island_fit, region_fits=(unavailable,)),),
+        _metadata(),
+        deconvolution_relative_tolerance=1e-10,
+    )
+
+    assert not shard.omissions
+    assert not shard.gaussian_components
+    assert shard.sources[0].quality_flags == (
+        "fit-unavailable",
+        "fitted-shape-unavailable",
+        "moment-measurement",
+        "underdetermined-region",
+    )
 
 
 def test_invalid_island_measurement_is_an_explicit_shard_omission() -> None:

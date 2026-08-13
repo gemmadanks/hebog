@@ -951,6 +951,37 @@ def test_local_rms_interpolation_preserves_explicit_unavailability() -> None:
     assert np.isnan(actual)
 
 
+def test_fit_uses_owned_region_rms_when_centroid_rms_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A missing centroid sample retains measured region noise explicitly."""
+    compact = _gaussian_input()
+    expected = float(
+        np.mean(
+            compact.rms[np.asarray(compact.region_labels) == 1],
+            dtype=np.float64,
+        )
+    )
+
+    def unavailable_local_rms(
+        _compact: object,
+        _centroid: tuple[float, float],
+    ) -> float:
+        return float("nan")
+
+    monkeypatch.setattr(
+        fitting_algorithm,
+        "_local_rms_at_centroid",
+        unavailable_local_rms,
+    )
+
+    result = _fit(compact)
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.parameters.local_rms_jy_per_beam == pytest.approx(expected)
+    assert "local-rms-region-mean-fallback" in result.quality_flags
+
+
 def test_context_fit_samples_rms_relative_to_the_retained_array() -> None:
     """Expanded fit context does not shift the local-RMS coordinate frame."""
     compact = _gaussian_input(centroid_xy=(28.25, 17.5))

@@ -503,3 +503,24 @@ of 450 PyBDSF endpoint decisions and 135 of 143 applicable Aegean decisions;
 the non-passes concentrate in position tails versus PyBDSF and integrated-flux
 tails versus Aegean. This campaign may guide prospective corrections but must
 not be rescored, tuned, or reused as confirmation evidence.
+
+## Prospective correction after the failed successor
+
+The closed successor was then used only as development evidence. Hebog now
+executes continuum and compact lanes independently, so compact fitting cannot
+discard a valid continuum segmentation. Missing centroid RMS support falls
+back to the finite owned-region RMS with an explicit quality flag. A region
+with finite moment photometry but no acceptable Gaussian retains an explicitly
+flagged source row and no fabricated Gaussian component.
+
+The compact comparison boundary now emits the fitted-Gaussian component
+catalogue required by the protocol. This keeps the Gaussian integral for the
+PyBDSF/Aegean like-product comparison while preserving Rapthor's reviewed
+peak-as-total convention on the distinct source record. A full 800-image
+development rerun selected the existing free-only, selected-model Gaussian
+policy: every image completed; the four formerly failing PyBDSF position point
+estimates and seven Aegean flux point estimates moved to the favourable side;
+and the marginally resolved fitted-axis p95 improved from `0.20472` to
+`0.17292`, compared with Aegean's `0.19026`. These numbers are diagnostic, not
+a rescore of decision `1d8c2577...`; new seed-disjoint evidence remains
+mandatory before Step 3 can open.

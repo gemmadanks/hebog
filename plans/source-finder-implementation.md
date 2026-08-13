@@ -1567,7 +1567,7 @@ comparison.**
          because the 61 Hebog continuum failures remain in the denominator,
          and compact also fails. Step 3, optimization, and qualification stay
          closed. The campaign is diagnostic history, not pooled evidence.
-   - [ ] Correct the prospectively observed failure classes before any new
+   - [x] Correct the prospectively observed failure classes before any new
          external evidence. First isolate usable continuum segment products
          from compact-catalogue failure, make local-RMS unavailability an
          explicit non-fatal measurement disposition (60 failures: 59 in
@@ -1578,6 +1578,27 @@ comparison.**
          only for diagnosis/development, require bounded regression fixtures
          and the full internal scientific suite, and freeze new seed-disjoint
          evidence before reconsidering Step 3.
+         Completed prospectively after closing decision `1d8c2577...`:
+         continuum and compact modes now publish independent lane-owned
+         products; an unavailable centroid RMS uses the already finite owned-
+         region RMS with `local-rms-region-mean-fallback`; and a fit failure
+         with finite moment photometry retains a source row with explicit
+         `moment-measurement`/`fitted-shape-unavailable` flags while emitting
+         no Gaussian. All 61 formerly failing exact inputs then completed.
+         The compact comparison now emits fitted-Gaussian rows rather than
+         Rapthor source rows, preserving the fitted total while the internal
+         source keeps peak-as-total. A complete 800-image development rerun
+         selected the independently supported free-only, selected-model
+         Gaussian policy: all 800 completed, all formerly failed PyBDSF
+         position and Aegean flux point estimates moved to the favourable
+         side, and the Aegean marginal fitted-axis tail improved from 0.20472
+         to 0.17292 versus 0.19026. These are development results on the
+         closed population, not a rescore or promotion claim.
+   - [ ] Freeze a new seed-disjoint successor population, candidate/runtime
+         identities, and unchanged external gates before requesting another
+         one-look execution. The closed campaigns and corrective development
+         results remain ineligible as confirmation evidence; Step 3,
+         optimization, qualification, and runtime interpretation stay closed.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

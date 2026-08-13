@@ -10,6 +10,7 @@ from astropy.wcs import WCS
 from hebog.algorithms.astrometry import (
     celestial_wcs_from_metadata,
     compact_geometry_at_pixel,
+    local_tangent_plane_transform,
     transform_compact_gaussian_fit,
 )
 from hebog.config import CompactCatalogueConfig
@@ -20,6 +21,7 @@ from hebog.data_models.catalogue_construction import (
     CompletedCompactCatalogue,
 )
 from hebog.data_models.catalogues import (
+    FluxMeasurement,
     GaussianComponent,
     Island,
     SourceCandidate,
@@ -28,10 +30,13 @@ from hebog.data_models.catalogues import (
 )
 from hebog.data_models.fitting import (
     CompactIslandFitResult,
+    FailedCompactGaussianFit,
+    UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
 from hebog.data_models.images import ImageMetadata
 from hebog.data_models.measurement import (
+    ShapeUnavailableMomentMeasurement,
     UnavailableMomentMeasurement,
     ValidMomentMeasurement,
 )
@@ -204,7 +209,7 @@ def _associated_records(  # noqa: PLR0913
         source_id=source_id,
         island_id=fit.moment.target.island_id,
         position=transformed.position,
-        flux=transformed.flux,
+        flux=transformed.fitted_flux,
         spectral_model=spectrum,
         fitted_shape=transformed.fitted_shape,
         deconvolved_shape=transformed.deconvolved_shape,
@@ -214,6 +219,63 @@ def _associated_records(  # noqa: PLR0913
         quality_flags=transformed.quality_flags,
     )
     return source, component
+
+
+def _moment_source_record(
+    fit: FailedCompactGaussianFit | UnavailableCompactGaussianFit,
+    metadata: ImageMetadata,
+    celestial_wcs: WCS,
+) -> SourceCandidate:
+    """Retain measured region photometry when no Gaussian is publishable."""
+    moment = fit.moment
+    if isinstance(moment, ValidMomentMeasurement):
+        position_xy = moment.initializer.centroid_xy
+    elif isinstance(moment, ShapeUnavailableMomentMeasurement):
+        position_xy = (
+            float(moment.photometry.peak_position_xy[0]),
+            float(moment.photometry.peak_position_xy[1]),
+        )
+    else:
+        raise ValueError("moment source requires finite region photometry")
+    transform = local_tangent_plane_transform(
+        metadata,
+        position_xy,
+        celestial_wcs=celestial_wcs,
+    )
+    region_id = moment.target.object_id
+    return SourceCandidate(
+        source_id=f"source-{region_id}",
+        island_id=moment.target.island_id,
+        position=transform.position,
+        flux=FluxMeasurement(
+            peak_flux_jy_per_beam=(
+                moment.photometry.peak_brightness_jy_per_beam
+            ),
+            peak_flux_error_jy_per_beam=None,
+            integrated_flux_jy=(
+                moment.photometry.owned_pixel_integrated_flux_jy
+            ),
+            integrated_flux_error_jy=None,
+            local_rms_jy_per_beam=(moment.photometry.local_rms_jy_per_beam),
+        ),
+        spectral_model=SpectralModel(
+            kind="reference-frequency-only",
+            reference_frequency_hz=metadata.reference_frequency_hz,
+            coefficients=(),
+        ),
+        fitted_shape=None,
+        deconvolved_shape=None,
+        quality_flags=tuple(
+            sorted(
+                {
+                    *fit.quality_flags,
+                    fit.reason,
+                    "fitted-shape-unavailable",
+                    "moment-measurement",
+                }
+            )
+        ),
+    )
 
 
 def build_compact_catalogue_shard(
@@ -238,12 +300,17 @@ def build_compact_catalogue_shard(
             islands.append(island)
         for fit in result.region_fits:
             if not isinstance(fit, ValidCompactGaussianFit):
-                omissions.append(
-                    CompactCatalogueOmission(
-                        object_id=fit.moment.target.object_id,
-                        reason=fit.reason,
+                if isinstance(fit.moment, UnavailableMomentMeasurement):
+                    omissions.append(
+                        CompactCatalogueOmission(
+                            object_id=fit.moment.target.object_id,
+                            reason=fit.reason,
+                        )
                     )
-                )
+                else:
+                    sources.append(
+                        _moment_source_record(fit, metadata, celestial_wcs)
+                    )
                 continue
             source, component = _associated_records(
                 fit,

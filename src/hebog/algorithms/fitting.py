@@ -1352,6 +1352,13 @@ def _valid_fit_result(
     if axes_swapped:
         sigma_first, sigma_second = sigma_second, sigma_first
         theta += 0.5 * pi
+    local_rms = _local_rms_at_centroid(
+        compact,
+        (float(center_x), float(center_y)),
+    )
+    local_rms_region_mean_fallback = not isfinite(local_rms) or local_rms <= 0
+    if local_rms_region_mean_fallback:
+        local_rms = context.moment.photometry.local_rms_jy_per_beam
     fitted_parameters = FittedGaussianPixelParameters(
         amplitude_jy_per_beam=float(amplitude),
         centroid_xy=(float(center_x), float(center_y)),
@@ -1364,10 +1371,7 @@ def _valid_fit_result(
             minor_sigma_pixels=float(sigma_second),
             geometry=geometry,
         ),
-        local_rms_jy_per_beam=_local_rms_at_centroid(
-            compact,
-            (float(center_x), float(center_y)),
-        ),
+        local_rms_jy_per_beam=local_rms,
     )
     uncertainty = _formal_uncertainty(
         candidate.optimizer_parameters,
@@ -1420,6 +1424,10 @@ def _valid_fit_result(
                 is not None,
             ),
             ("bounded-context-position", position_estimate is not None),
+            (
+                "local-rms-region-mean-fallback",
+                local_rms_region_mean_fallback,
+            ),
         )
         if selected
     )

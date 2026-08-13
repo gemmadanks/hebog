@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
+from typing import Literal
 
 import numpy as np
 
@@ -423,10 +424,18 @@ def diagnose_phase_four_realization(  # noqa: PLR0913
     outlier_thresholds: CatalogueOutlierThresholds,
     position_angle_minimum_axis_ratio: float,
     maximum_separation_beams: float = 0.5,
+    catalogue_semantics: Literal[
+        "rapthor-source",
+        "fitted-gaussian-component",
+    ] = "rapthor-source",
 ) -> CampaignRealizationDiagnostic:
     """Build complete source and group diagnostics for one shared image."""
     raw_candidate = tuple(candidate)
-    canonical_candidate = canonicalize_phase_four_catalogue(raw_candidate)
+    canonical_candidate = (
+        canonicalize_phase_four_catalogue(raw_candidate)
+        if catalogue_semantics == "rapthor-source"
+        else raw_candidate
+    )
     metadata = synthetic_image_metadata(dataset)
     truth = tuple(
         _association_truth_source(group, recipe, dataset)

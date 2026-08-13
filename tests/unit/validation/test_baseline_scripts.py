@@ -1355,78 +1355,27 @@ def test_phase5_external_freezer_refuses_existing_output(
         namespace["main"]()
 
 
-def test_phase5_external_successor_freezer_binds_powered_population() -> None:
-    """Step 2C-PF freezes new seeds and current pre-results identities."""
+def test_closed_successor_freezer_rejects_the_corrected_source_tree() -> None:
+    """The historical one-look freezer cannot bind corrected implementation."""
     root = Path(__file__).parents[3]
     namespace = _validation_script(
         "freeze_phase5_external_successor_population.py"
     )
 
-    continuum_document, compact_document, freeze_document = namespace[
-        "_documents"
-    ](
-        continuum_template_path=(
-            root / "config/datasets/phase-5-external-continuum.json"
-        ),
-        compact_template_path=(
-            root / "config/datasets/phase-5-external-compact-blend.json"
-        ),
-        dataset_directory=root / "config/datasets",
-        prior_protocol_path=(
-            root / "config/contracts/phase-5-external-comparison.json"
-        ),
-        repository_root=root,
-    )
-    continuum = DatasetManifest.model_validate(continuum_document)
-    compact = DatasetManifest.model_validate(compact_document)
-    continuum_seeds = {
-        recipe.seed
-        for dataset in continuum.datasets
-        for recipe in iter_dataset_recipes(dataset)
-    }
-    compact_seeds = {
-        recipe.seed
-        for dataset in compact.datasets
-        for recipe in iter_dataset_recipes(dataset)
-    }
-
-    assert len(continuum_seeds) == 600
-    assert len(compact_seeds) == 800
-    assert continuum_seeds.isdisjoint(compact_seeds)
-    assert min(continuum_seeds) == 2026820001
-    assert max(compact_seeds) == 2026830800
-    assert freeze_document["population_audit"]["new_seed_count"] == 1400
-    assert freeze_document["population_audit"]["seed_disjoint"] is True
-    assert (
-        freeze_document["power_audit"]["combined_familywise_power_lower_bound"]
-        >= 0.9
-    )
-    assert freeze_document["source_binding"]["candidate_commit"] == (
-        "c1f7eb0bdf5e8581e0024f0f7469c2908a22a594"
-    )
-    assert (
-        freeze_document["source_binding"]["science_kernel"]["relative_path"]
-        == "src/hebog/validation/external_successor_compiler.py"
-    )
-    assert freeze_document["execution_authorized"] is False
-    assert freeze_document["finder_output_opened"] is False
-    assert continuum_document == json.loads(
-        (
-            root / "config/datasets/phase-5-external-successor-continuum.json"
-        ).read_text(encoding="utf-8")
-    )
-    assert compact_document == json.loads(
-        (
-            root / "config/datasets/"
-            "phase-5-external-successor-compact-blend.json"
-        ).read_text(encoding="utf-8")
-    )
-    assert freeze_document == json.loads(
-        (
-            root / "config/contracts/"
-            "phase-5-external-successor-population.json"
-        ).read_text(encoding="utf-8")
-    )
+    with pytest.raises(ValueError, match="candidate source tree changed"):
+        namespace["_documents"](
+            continuum_template_path=(
+                root / "config/datasets/phase-5-external-continuum.json"
+            ),
+            compact_template_path=(
+                root / "config/datasets/phase-5-external-compact-blend.json"
+            ),
+            dataset_directory=root / "config/datasets",
+            prior_protocol_path=(
+                root / "config/contracts/phase-5-external-comparison.json"
+            ),
+            repository_root=root,
+        )
 
 
 def test_phase5_external_successor_freezer_refuses_overwrite(
@@ -1673,6 +1622,58 @@ def test_phase5_external_pybdsf_allows_fitless_native_islands() -> None:
             gaussians,
             labels,
         )
+
+
+@pytest.mark.parametrize(
+    ("lane", "expected"),
+    (("continuum", "segment"), ("compact-blend", "compact")),
+)
+def test_phase5_hebog_runner_separates_scientific_product_lanes(
+    lane: str,
+    expected: str,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A compact failure cannot suppress an independent continuum product."""
+    namespace = _script("run_phase5_external_hebog.py")
+    run_hebog = namespace["_run_hebog"]
+    calls: list[str] = []
+
+    def finder_lane(_authorized: object) -> str:
+        return lane
+
+    def product(name: str) -> Callable[..., dict[str, Path]]:
+        def run(*_args: object, **_kwargs: object) -> dict[str, Path]:
+            calls.append(name)
+            return {f"{name}-product": tmp_path / name}
+
+        return run
+
+    monkeypatch.setitem(
+        run_hebog.__globals__,
+        "_finder_lane",
+        finder_lane,
+    )
+    monkeypatch.setitem(
+        run_hebog.__globals__,
+        "_run_continuum_products",
+        product("segment"),
+    )
+    monkeypatch.setitem(
+        run_hebog.__globals__,
+        "_run_compact_products",
+        product("compact"),
+    )
+
+    actual = run_hebog(
+        SimpleNamespace(),
+        SimpleNamespace(),
+        Path("review.json"),
+        tmp_path,
+    )
+
+    assert calls == [expected]
+    assert set(actual) == {f"{expected}-product"}
 
 
 def test_phase5_external_aegean_runner_freezes_cli(tmp_path: Path) -> None:

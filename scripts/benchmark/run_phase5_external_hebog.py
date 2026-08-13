@@ -9,7 +9,7 @@ import argparse
 import importlib.metadata
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import cast
+from typing import Literal, cast
 
 import numpy as np
 from astropy.io import fits
@@ -26,7 +26,7 @@ from hebog.validation.external_runners import (
     file_sha256,
 )
 from hebog.validation.hebog_campaign import (
-    hebog_campaign_configuration,
+    corrected_hebog_campaign_configuration,
     process_hebog_image,
 )
 from hebog.validation.phase_five_filter_review import (
@@ -70,13 +70,28 @@ def _dataset(
     return matches[0]
 
 
-def _run_hebog(
+def _finder_lane(
+    authorized: AuthorizedExternalRun,
+) -> Literal["continuum", "compact-blend"]:
+    """Resolve one lane from the checksum-bound population manifest."""
+    matches = tuple(
+        population.lane
+        for population in authorized.protocol.populations
+        if population.manifest_sha256
+        == authorized.input_bundle.manifest_sha256
+    )
+    if len(matches) != 1:
+        raise ValueError("Hebog external population lane is not unique")
+    return matches[0]
+
+
+def _run_continuum_products(
     authorized: AuthorizedExternalRun,
     dataset: DatasetRecord,
     base_review_path: Path,
     staging: Path,
 ) -> dict[str, Path]:
-    """Emit compact and extended products from the exact shared FITS input."""
+    """Emit extended products without depending on compact fitting."""
     review = load_phase_five_corrective_a_review(base_review_path)
     image_path = authorized.artifact_path("image")
     image = load_fits_plane(image_path)
@@ -108,20 +123,9 @@ def _run_hebog(
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         beam_minor_fwhm_pixels=beam.minor_fwhm_pixels,
     )
-    with TemporaryDirectory(prefix="hebog-phase5-external-compact-") as work:
-        compact_sources = process_hebog_image(
-            image,
-            dataset,
-            Path(work),
-            generation_id=(
-                f"{dataset.identifier}-{authorized.input_bundle.seed}"
-            ),
-        )
-    compact_path = staging / "compact_catalogue.json"
     segment_path = staging / "segment_catalogue.json"
     label_path = staging / "segment_labels.fits"
     mask_path = staging / "segment_mask.fits"
-    write_comparison_catalogue(compact_path, compact_sources)
     write_comparison_catalogue(segment_path, segment_sources)
     fits.PrimaryHDU(
         data=detection.component_labels[np.newaxis, np.newaxis, :, :],
@@ -134,11 +138,48 @@ def _run_hebog(
         header=header,
     ).writeto(mask_path)
     return {
-        "compact-catalogue-json": compact_path,
         "segment-catalogue-json": segment_path,
         "segment-labels-fits": label_path,
         "segment-mask-fits": mask_path,
     }
+
+
+def _run_compact_products(
+    authorized: AuthorizedExternalRun,
+    dataset: DatasetRecord,
+    staging: Path,
+) -> dict[str, Path]:
+    """Emit compact products without running the continuum branch."""
+    image = load_fits_plane(authorized.artifact_path("image"))
+    with TemporaryDirectory(prefix="hebog-phase5-external-compact-") as work:
+        compact_sources = process_hebog_image(
+            image,
+            dataset,
+            Path(work),
+            generation_id=(
+                f"{dataset.identifier}-{authorized.input_bundle.seed}"
+            ),
+        )
+    compact_path = staging / "compact_catalogue.json"
+    write_comparison_catalogue(compact_path, compact_sources)
+    return {"compact-catalogue-json": compact_path}
+
+
+def _run_hebog(
+    authorized: AuthorizedExternalRun,
+    dataset: DatasetRecord,
+    base_review_path: Path,
+    staging: Path,
+) -> dict[str, Path]:
+    """Emit only the products belonging to the authorized science lane."""
+    if _finder_lane(authorized) == "continuum":
+        return _run_continuum_products(
+            authorized,
+            dataset,
+            base_review_path,
+            staging,
+        )
+    return _run_compact_products(authorized, dataset, staging)
 
 
 def main() -> None:
@@ -180,7 +221,7 @@ def main() -> None:
     configuration = {
         "candidate": authorized.protocol.candidate,
         "candidate_position": authorized.protocol.candidate_position,
-        "compact_branch": hebog_campaign_configuration(),
+        "compact_branch": corrected_hebog_campaign_configuration(),
         "multiscale_review": base_review.model_dump(mode="json"),
     }
     observed_version = importlib.metadata.version("hebog")

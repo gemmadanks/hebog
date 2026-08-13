@@ -7273,3 +7273,42 @@ be rescored or reused as confirmation.
 compact-fit omission, and independent continuum-product publication; then
 improve the compact position and flux failures before freezing new
 seed-disjoint evidence.
+
+## 2026-08-13 — Completed the successor corrective development cycle
+
+**Plan phase:** Phase 5, Step 2C-PF — prospective post-failure correction
+
+- Split the Hebog external runner by checksum-bound science lane. Continuum
+  runs now publish only segment catalogue/labels/mask; compact runs publish
+  only the compact catalogue. A compact failure can no longer discard valid
+  continuum products.
+- Added explicit completeness behavior: a centroid without RMS interpolation
+  support uses its finite owned-region RMS and records
+  `local-rms-region-mean-fallback`; a failed/unavailable Gaussian with finite
+  moment photometry retains a source row flagged `moment-measurement` and
+  `fitted-shape-unavailable`, without inventing a Gaussian. All 61 exact inputs
+  that failed the closed successor then completed with finite catalogues.
+- Separated source and fitted-Gaussian flux semantics. The source retains the
+  reviewed Rapthor peak-as-total convention when unresolved; the component
+  retains its fitted total. The external compact product now contains
+  Gaussian-component rows, matching the frozen PyBDSF/Aegean comparison
+  scope.
+- On a 100-image stratified ablation, selected the already-supported
+  free-only, selected-model Gaussian policy. The complete 800-image closed-
+  population development rerun completed every image. Compared with the
+  closed candidate, position median/p95 improved from `0.02313/0.07590` to
+  `0.02040/0.06922`; SNR-15 improved from `0.03049/0.07901` to
+  `0.02689/0.06761`; marginal fitted-axis p95 improved from `0.20472` to
+  `0.17292`; and overall fitted-component flux p95 improved from `0.41212` to
+  `0.19665`. All formerly failing PyBDSF position and Aegean flux/axis point
+  estimates moved to the favourable side. This is development evidence, not
+  a campaign rescore or interval-level pass.
+
+**Validation:** 187 focused scientific/runner tests passed; the full internal
+coverage lane passed 1,270 tests with four expected xfails at 94.05% coverage;
+all 27 equivalence tests passed; and `just check` passed 1,140 tests with four
+expected xfails.
+
+**Decision:** the corrective implementation is ready for new seed-disjoint
+evidence. Decision `1d8c2577...` remains failed; Step 3, runtime interpretation,
+optimization, and qualification remain closed.

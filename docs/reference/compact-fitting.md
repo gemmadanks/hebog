@@ -117,6 +117,17 @@ fitted peak and peak error. The raw fitted total remains available to governed
 unresolved-association diagnostics before that individual-row
 canonicalization.
 
+The source and Gaussian-component flux records are deliberately distinct.
+An unresolved source retains the Rapthor-facing peak-as-total convention,
+while its Gaussian component retains the infinite-plane fitted total for
+like-product component comparisons and downstream fit diagnostics. A finite
+moment measurement whose nonlinear fit is unavailable remains a source with
+an explicit `moment-measurement` and `fitted-shape-unavailable` disposition;
+it does not create a Gaussian component. If the fitted centroid lacks local
+RMS interpolation support, the fit records the already measured finite
+owned-region RMS and `local-rms-region-mean-fallback` instead of publishing a
+NaN or failing the complete catalogue.
+
 Invalid moments and regions with fewer than seven owned pixels return a typed
 unavailable fit. Exhausted iterations and scientifically invalid fitted
 parameters return a typed failed fit that retains the moment initializer and

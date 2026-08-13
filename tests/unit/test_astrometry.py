@@ -430,6 +430,12 @@ def test_extension_requires_two_sigma_flux_ratio_significance() -> None:
     assert result.flux.integrated_flux_error_jy == (
         result.flux.peak_flux_error_jy_per_beam
     )
+    assert result.fitted_flux.integrated_flux_jy > (
+        result.fitted_flux.peak_flux_jy_per_beam
+    )
+    assert result.fitted_flux.integrated_flux_error_jy != (
+        result.fitted_flux.peak_flux_error_jy_per_beam
+    )
 
 
 def test_default_extension_policy_requires_five_sigma() -> None:
@@ -504,6 +510,9 @@ def test_geometrically_unresolved_fit_remains_unresolved() -> None:
     assert result.quality_flags.count("unresolved") == 1
     assert "extension-not-significant" not in result.quality_flags
     assert result.flux.integrated_flux_jy == result.flux.peak_flux_jy_per_beam
+    assert result.fitted_flux.integrated_flux_jy != (
+        result.fitted_flux.peak_flux_jy_per_beam
+    )
 
 
 def test_significant_extension_retains_fitted_total_flux_and_shape() -> None:

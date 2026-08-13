@@ -535,27 +535,29 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
         significance_sigma=deconvolution_axis_significance_sigma,
         relative_tolerance=deconvolution_relative_tolerance,
     )
-    if deconvolution.status == "unresolved":
-        reported_integrated_flux = parameters.amplitude_jy_per_beam
-        reported_integrated_flux_error = (
-            uncertainty.amplitude_error_jy_per_beam
-            if uncertainty is not None
-            else None
-        )
-    else:
-        reported_integrated_flux = integrated_flux
-        reported_integrated_flux_error = integrated_flux_error
-    flux = FluxMeasurement(
+    fitted_flux = FluxMeasurement(
         peak_flux_jy_per_beam=parameters.amplitude_jy_per_beam,
         peak_flux_error_jy_per_beam=(
             uncertainty.amplitude_error_jy_per_beam
             if uncertainty is not None
             else None
         ),
-        integrated_flux_jy=reported_integrated_flux,
-        integrated_flux_error_jy=reported_integrated_flux_error,
+        integrated_flux_jy=integrated_flux,
+        integrated_flux_error_jy=integrated_flux_error,
         local_rms_jy_per_beam=parameters.local_rms_jy_per_beam,
     )
+    if deconvolution.status == "unresolved":
+        flux = FluxMeasurement(
+            peak_flux_jy_per_beam=fitted_flux.peak_flux_jy_per_beam,
+            peak_flux_error_jy_per_beam=(
+                fitted_flux.peak_flux_error_jy_per_beam
+            ),
+            integrated_flux_jy=fitted_flux.peak_flux_jy_per_beam,
+            integrated_flux_error_jy=(fitted_flux.peak_flux_error_jy_per_beam),
+            local_rms_jy_per_beam=fitted_flux.local_rms_jy_per_beam,
+        )
+    else:
+        flux = fitted_flux
     flags = set(fit.quality_flags)
     flags.add("shape-uncertainty-unavailable")
     flags.update(deconvolution.quality_flags)
@@ -565,6 +567,7 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
         pixel_fit=fit,
         position=_position_with_errors(transform, fit),
         flux=flux,
+        fitted_flux=fitted_flux,
         fitted_shape=fitted_shape,
         deconvolution_status=deconvolution.status,
         deconvolved_shape=deconvolution.shape,

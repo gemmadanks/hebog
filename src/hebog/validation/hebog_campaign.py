@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import TypeAlias
 
@@ -159,9 +160,39 @@ def phase_four_candidate_configs() -> tuple[
     )
 
 
-def hebog_campaign_configuration() -> dict[str, object]:
-    """Return the complete candidate policy used for evidence identity."""
+def phase_five_corrected_candidate_configs() -> tuple[
+    DetectionStageConfig,
+    CompactDeblendConfig,
+    CompactMomentConfig,
+    CompactGaussianFitConfig,
+    CompactCatalogueConfig,
+]:
+    """Return the prospective post-campaign compact correction."""
     detection, deblend, moment, fit, catalogue = phase_four_candidate_configs()
+    return (
+        detection,
+        deblend,
+        moment,
+        replace(
+            fit,
+            model_selection="free-only",
+            position_estimator="selected-model",
+        ),
+        catalogue,
+    )
+
+
+def _campaign_configuration(
+    configs: tuple[
+        DetectionStageConfig,
+        CompactDeblendConfig,
+        CompactMomentConfig,
+        CompactGaussianFitConfig,
+        CompactCatalogueConfig,
+    ],
+) -> dict[str, object]:
+    """Serialize one complete candidate policy for evidence identity."""
+    detection, deblend, moment, fit, catalogue = configs
     coarse = detection.background_rms.coarse
     adaptive = detection.background_rms.adaptive
     assert adaptive is not None
@@ -267,6 +298,16 @@ def hebog_campaign_configuration() -> dict[str, object]:
     }
 
 
+def hebog_campaign_configuration() -> dict[str, object]:
+    """Return the exact historical Phase 4 candidate policy."""
+    return _campaign_configuration(phase_four_candidate_configs())
+
+
+def corrected_hebog_campaign_configuration() -> dict[str, object]:
+    """Return the prospective post-campaign candidate policy."""
+    return _campaign_configuration(phase_five_corrected_candidate_configs())
+
+
 def _shape(shape: GaussianShape | None) -> CatalogueEllipse | None:
     """Translate one internal ellipse to the comparison record."""
     if shape is None:
@@ -285,7 +326,8 @@ def _comparison_sources(
     catalogue: SourceCatalogue,
     metadata: ImageMetadata,
 ) -> tuple[CatalogueSource, ...]:
-    """Translate the internal catalogue without adapter round trips."""
+    """Translate like-product Gaussian components for external comparison."""
+    sources_by_id = {source.source_id: source for source in catalogue.sources}
     component_counts = {
         source.source_id: sum(
             component.source_id == source.source_id
@@ -295,70 +337,76 @@ def _comparison_sources(
     }
     return tuple(
         CatalogueSource(
-            identifier=source.source_id,
-            right_ascension_degrees=source.position.right_ascension_degrees,
-            declination_degrees=source.position.declination_degrees,
-            peak_flux_jy_per_beam=source.flux.peak_flux_jy_per_beam,
-            integrated_flux_jy=source.flux.integrated_flux_jy,
+            identifier=component.gaussian_component_id,
+            right_ascension_degrees=(
+                component.position.right_ascension_degrees
+            ),
+            declination_degrees=component.position.declination_degrees,
+            peak_flux_jy_per_beam=(component.flux.peak_flux_jy_per_beam),
+            integrated_flux_jy=component.flux.integrated_flux_jy,
             association_integrated_flux_jy=(
                 source.association_aperture_integrated_flux_jy
                 if source.association_aperture_integrated_flux_jy is not None
                 else (
-                    source.flux.peak_flux_jy_per_beam
-                    * source.fitted_shape.major_fwhm_degrees
-                    * source.fitted_shape.minor_fwhm_degrees
+                    component.flux.peak_flux_jy_per_beam
+                    * component.fitted_shape.major_fwhm_degrees
+                    * component.fitted_shape.minor_fwhm_degrees
                     / (
                         metadata.beam.major_fwhm_degrees
                         * metadata.beam.minor_fwhm_degrees
                     )
-                    if source.fitted_shape is not None
-                    else None
                 )
             ),
             right_ascension_error_degrees=(
-                source.position.right_ascension_error_degrees
+                component.position.right_ascension_error_degrees
             ),
             declination_error_degrees=(
-                source.position.declination_error_degrees
+                component.position.declination_error_degrees
             ),
             peak_flux_error_jy_per_beam=(
-                source.flux.peak_flux_error_jy_per_beam
+                component.flux.peak_flux_error_jy_per_beam
             ),
-            integrated_flux_error_jy=source.flux.integrated_flux_error_jy,
-            fitted_shape=_shape(source.fitted_shape),
-            deconvolved_shape=_shape(source.deconvolved_shape),
+            integrated_flux_error_jy=(component.flux.integrated_flux_error_jy),
+            fitted_shape=_shape(component.fitted_shape),
+            deconvolved_shape=_shape(component.deconvolved_shape),
             deconvolved_major_fwhm_degrees=(
-                source.deconvolved_major_fwhm_degrees
+                component.deconvolved_major_fwhm_degrees
             ),
             deconvolution_status=(
                 "resolved"
-                if source.deconvolved_shape is not None
+                if component.deconvolved_shape is not None
                 else "major-axis-only"
-                if source.deconvolved_major_fwhm_degrees is not None
+                if component.deconvolved_major_fwhm_degrees is not None
                 else "unresolved"
-                if "unresolved" in source.quality_flags
+                if "unresolved" in component.quality_flags
                 else "unavailable"
             ),
-            island_identifier=source.island_id,
+            island_identifier=component.island_id,
             component_count=component_counts[source.source_id],
-            quality_flags=source.quality_flags,
+            quality_flags=component.quality_flags,
         )
-        for source in catalogue.sources
+        for component in catalogue.gaussian_components
+        for source in (sources_by_id[component.source_id],)
     )
 
 
-def _process_hebog_source(
+def _process_hebog_source(  # noqa: PLR0913
     source: _SyntheticImageSource | _ArrayImageSource,
     dataset: DatasetRecord,
     directory: Path,
     *,
     shape_yx: tuple[int, int],
     generation_id: str,
+    configs: tuple[
+        DetectionStageConfig,
+        CompactDeblendConfig,
+        CompactMomentConfig,
+        CompactGaussianFitConfig,
+        CompactCatalogueConfig,
+    ],
 ) -> tuple[CatalogueSource, ...]:
     """Run the frozen bounded compact branch over one window source."""
-    detection_config, deblend, moment, fit, catalogue_config = (
-        phase_four_candidate_configs()
-    )
+    detection_config, deblend, moment, fit, catalogue_config = configs
     metadata = synthetic_image_metadata(dataset)
     manifest = plan_image_partitions(
         image_shape_yx=shape_yx,
@@ -418,6 +466,7 @@ def process_hebog_recipe(
         directory,
         shape_yx=recipe.shape_yx,
         generation_id=f"{dataset.identifier}-{recipe.seed}",
+        configs=phase_four_candidate_configs(),
     )
 
 
@@ -437,4 +486,5 @@ def process_hebog_image(
         directory,
         shape_yx=dataset.recipe.shape_yx,
         generation_id=generation_id,
+        configs=phase_five_corrected_candidate_configs(),
     )

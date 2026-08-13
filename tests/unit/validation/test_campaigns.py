@@ -112,6 +112,72 @@ def test_association_uses_fitted_total_before_canonicalization() -> None:
     assert blend.integrated_flux_fractional_difference == 0.0
 
 
+def test_gaussian_component_view_retains_fitted_total_flux() -> None:
+    """Like-product comparison does not apply Rapthor source semantics."""
+    dataset = load_dataset_manifest(
+        _ROOT / "config/datasets/phase-4-regression.json"
+    ).datasets[1]
+    recipe = iter_dataset_recipes(dataset)[0]
+    group = next(
+        item
+        for item in dataset.association_truth_groups
+        if item.resolution_class == "individually-resolvable"
+    )
+    truth = _association_truth_source(group, recipe, dataset)
+    candidate = replace(
+        truth,
+        identifier="candidate-component",
+        deconvolution_status="unresolved",
+        deconvolved_shape=None,
+        deconvolved_major_fwhm_degrees=None,
+        quality_flags=("unresolved",),
+        peak_flux_jy_per_beam=0.5 * truth.integrated_flux_jy,
+    )
+
+    source_view = diagnose_phase_four_realization(
+        dataset,
+        recipe,
+        (candidate,),
+        implementation_identifier="hebog",
+        outlier_thresholds=CatalogueOutlierThresholds(
+            position_beams=0.5,
+            peak_flux_fractional_difference=1.0,
+            integrated_flux_fractional_difference=1.0,
+            fitted_axis_fractional_difference=1.0,
+            deconvolved_axis_fractional_difference=1.0,
+        ),
+        position_angle_minimum_axis_ratio=1.1,
+    )
+    component_view = diagnose_phase_four_realization(
+        dataset,
+        recipe,
+        (candidate,),
+        implementation_identifier="hebog",
+        outlier_thresholds=CatalogueOutlierThresholds(
+            position_beams=0.5,
+            peak_flux_fractional_difference=1.0,
+            integrated_flux_fractional_difference=1.0,
+            fitted_axis_fractional_difference=1.0,
+            deconvolved_axis_fractional_difference=1.0,
+        ),
+        position_angle_minimum_axis_ratio=1.1,
+        catalogue_semantics="fitted-gaussian-component",
+    )
+
+    source_pair = next(
+        item for item in source_view.source_pairs if item.decision == "matched"
+    )
+    component_pair = next(
+        item
+        for item in component_view.source_pairs
+        if item.decision == "matched"
+    )
+    assert source_pair.integrated_flux_fractional_difference == pytest.approx(
+        -0.5
+    )
+    assert component_pair.integrated_flux_fractional_difference == 0.0
+
+
 def test_source_diagnostics_do_not_union_conflicting_shape_strata() -> None:
     """One source receives only its governed extension classification."""
     dataset = load_dataset_manifest(
@@ -173,6 +239,20 @@ def test_external_array_source_returns_owned_bounded_windows() -> None:
     assert not second.valid_pixels[1, 1]
 
 
+def test_external_compact_configuration_uses_selected_model_position() -> None:
+    """Like-product compact results use their fitted Gaussian directly."""
+    fit = hebog_campaign.phase_five_corrected_candidate_configs()[3]
+
+    assert fit.position_estimator == "selected-model"
+    assert fit.model_selection == "free-only"
+    assert hebog_campaign.phase_four_candidate_configs()[
+        3
+    ].position_estimator == ("bounded-context-free")
+    assert hebog_campaign.phase_four_candidate_configs()[
+        3
+    ].model_selection == ("beam-or-free")
+
+
 def test_external_compact_entry_validates_shape_before_processing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -191,13 +271,14 @@ def test_external_compact_entry_validates_shape_before_processing(
 
     observed: dict[str, object] = {}
 
-    def fake_process(
+    def fake_process(  # noqa: PLR0913
         source: object,
         selected_dataset: object,
         directory: Path,
         *,
         shape_yx: tuple[int, int],
         generation_id: str,
+        configs: object,
     ) -> tuple[CatalogueSource, ...]:
         observed.update(
             source=source,
@@ -205,6 +286,7 @@ def test_external_compact_entry_validates_shape_before_processing(
             directory=directory,
             shape_yx=shape_yx,
             generation_id=generation_id,
+            configs=configs,
         )
         return ()
 
@@ -222,3 +304,6 @@ def test_external_compact_entry_validates_shape_before_processing(
     )
     assert observed["shape_yx"] == dataset.recipe.shape_yx
     assert observed["generation_id"] == "external-unit-test"
+    assert observed["configs"] == (
+        hebog_campaign.phase_five_corrected_candidate_configs()
+    )
