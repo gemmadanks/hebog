@@ -569,3 +569,9 @@ the population, candidate source and image, three reference images, runners,
 launcher, compiler, evaluator, registry, unchanged gates, and one-look rule.
 The campaign remains unopened and execution remains unauthorized until Gemma
 Danks approves that exact review and runtime set.
+
+Gemma Danks approved review `4d5cb1...` and the four exact runtime identities
+on 2026-08-13. Decision `5d456b9...` authorizes one no-write preflight and, if
+that passes, one complete terminal campaign using exactly two resource lanes
+and four PyBDSF cores. The approval does not open partial results, Step 3,
+optimization, or qualification.

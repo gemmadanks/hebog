@@ -24,8 +24,8 @@ def _script(relative_path: str) -> dict[str, Any]:
     return runpy.run_path(str(_ROOT / relative_path))
 
 
-def test_confirmation_loaders_bind_fresh_powered_population() -> None:
-    """The pending campaign exposes only 1,400 globally new images."""
+def test_confirmation_loaders_bind_approved_powered_population() -> None:
+    """The approved campaign exposes only 1,400 globally new images."""
     module = _script(
         "scripts/validation/phase5_external_confirmation_protocol.py"
     )
@@ -48,10 +48,12 @@ def test_confirmation_loaders_bind_fresh_powered_population() -> None:
         600,
         800,
     )
-    assert decision.execution_authorized is False
+    assert decision.execution_authorized is True
     assert decision.execution_concurrency == 2
     assert decision.pybdsf_ncores == 4
-    assert decision.preflight_review_sha256 == "pending"
+    assert decision.preflight_review_sha256 == (
+        "4d5cb1eb28f7d62d0982ec7ee109ff846741fdd199ab62c279ab7d39a6e848f2"
+    )
     assert freeze["population_audit"]["seed_disjoint"] is True
     assert freeze["population_audit"]["historical_seed_count"] == 10453
     assert freeze["power_audit"]["combined_familywise_power_lower_bound"] > 0.9

@@ -1607,11 +1607,15 @@ comparison.**
          and all three reference images. Campaign and staging outputs remain
          absent; Step 3, optimization, qualification, and runtime
          interpretation remain closed.
-   - [ ] Obtain named approval bound to preflight review `4d5cb1...` and the
-         exact four runtime identities. Refresh only the decision-dependent
-         checksum chain, commit it, then run the complete 1,400-input/7,000-run
-         no-write preflight. Do not materialize a confirmation image unless
-         the preflight passes and public/private output paths remain absent.
+   - [x] Obtain named approval bound to preflight review `4d5cb1...` and the
+         exact four runtime identities. Gemma Danks approved these identities
+         on 2026-08-13. Decision `5d456b9...` authorizes only one terminal
+         comparison with two execution lanes and four PyBDSF cores; Step 3,
+         optimization, and qualification remain closed. Refresh only the
+         decision-dependent checksum chain, commit it, then run the complete
+         1,400-input/7,000-run no-write preflight. Do not materialize a
+         confirmation image unless the preflight passes and public/private
+         output paths remain absent.
    - [ ] Execute the approved confirmation once with exactly two resource
          lanes and no partial-result inspection. Require approximately 60 GiB
          storage headroom; about 81.5 GiB was available at technical review.

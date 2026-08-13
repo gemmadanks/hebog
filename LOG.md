@@ -7399,3 +7399,26 @@ qualification.
 **Immediate next step:** obtain Gemma Danks's approval bound to review
 `4d5cb1...` and the four exact image digests, refresh the decision-dependent
 hash chain, commit it, and run the no-write 1,400-input/7,000-run preflight.
+
+## 2026-08-13 — Approved the corrected external confirmation
+
+**Plan phase:** Phase 5, Step 2C-PF — exact-identity authorization
+
+- Gemma Danks explicitly approved preflight review `4d5cb1...` and its four
+  exact Linux/arm64 image digests on 2026-08-13.
+- Decision `5d456b9...` now authorizes one terminal 1,400-input/7,000-run
+  confirmation with exactly two resource lanes and four PyBDSF cores. The
+  named review contains the full approved review SHA-256; the strict loader
+  rejects an omitted, changed, or unapproved review.
+- Refreshed only the decision-dependent endpoint-registry and evaluation
+  checksum chain. The population, manifests, runners, launcher, compiler,
+  evaluator, gates, reference set, one-look rule, and runtime identities are
+  unchanged. One-look, Step 3, optimization, and qualification flags remain
+  false.
+
+**Decision:** authorization is sufficient for the complete no-write preflight,
+not direct publication or partial-result inspection.
+
+**Immediate next step:** commit this authorization, run the exact no-write
+preflight, and launch only if both public output and private staging remain
+absent.

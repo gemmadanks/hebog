@@ -15,7 +15,7 @@
   "contract_id": "phase-5-external-confirmation-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-confirmation-endpoint-registry.json",
-    "sha256": "2afd53d4354bed8fa3b60ebdebc94d99913cdd3b0623dfca697004b966a50ce4",
+    "sha256": "074c908d5267d4970c67e5a18e0e56c18e664ec212bc6107eb6b2457aef02a45",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_confirmation_decision.py",
