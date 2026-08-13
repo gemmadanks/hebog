@@ -1615,7 +1615,9 @@ comparison.**
          decision-dependent checksum chain, commit it, then run the complete
          1,400-input/7,000-run no-write preflight. Do not materialize a
          confirmation image unless the preflight passes and public/private
-         output paths remain absent.
+         output paths remain absent. The exact preflight passed request
+         `73b93ee...`; both paths remained absent and approximately 80 GiB of
+         host storage was available immediately afterward.
    - [ ] Execute the approved confirmation once with exactly two resource
          lanes and no partial-result inspection. Require approximately 60 GiB
          storage headroom; about 81.5 GiB was available at technical review.

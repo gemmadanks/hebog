@@ -7422,3 +7422,26 @@ not direct publication or partial-result inspection.
 **Immediate next step:** commit this authorization, run the exact no-write
 preflight, and launch only if both public output and private staging remain
 absent.
+
+## 2026-08-13 — Passed the corrected confirmation no-write preflight
+
+**Plan phase:** Phase 5, Step 2C-PF — complete request expansion
+
+- Ran the committed launcher against the exact four approved images with
+  `--preflight-only`. Canonical request `73b93ee...` expanded exactly 1,400
+  inputs and 7,000 finder runs with execution concurrency two and four PyBDSF
+  cores.
+- The public `external-confirmation-comparison` directory and decision-derived
+  private staging directory were absent before and after preflight. No image
+  was materialized and no finder product or scientific result was generated or
+  opened.
+- Approximately 80 GiB remained available immediately after the preflight,
+  above the reviewed approximate 60 GiB campaign headroom requirement.
+
+**Decision:** the approved one-look may now execute exactly once without
+partial-result inspection. Step 3, optimization, and qualification remain
+closed.
+
+**Immediate next step:** commit the preflight record, start the terminal
+campaign, monitor only operational progress, then compile and evaluate the
+sealed result before interpreting runtime.

@@ -575,3 +575,7 @@ on 2026-08-13. Decision `5d456b9...` authorizes one no-write preflight and, if
 that passes, one complete terminal campaign using exactly two resource lanes
 and four PyBDSF cores. The approval does not open partial results, Step 3,
 optimization, or qualification.
+
+The exact no-write preflight passed canonical request `73b93ee...`, expanding
+all 1,400 inputs and 7,000 runs against the four approved images. Both the
+public output and decision-derived private staging paths remained absent.
