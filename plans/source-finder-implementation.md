@@ -962,6 +962,13 @@ candidate-specific optimization, and qualification remain blocked; no
 external non-inferiority, multiscale equivalence, or complete runtime claim is
 approved. The campaign may inform failure diagnosis but may not be rescored,
 tuned, or reused as confirmation.
+The seed-disjoint Step 2C-PF successor is also closed: campaign `6446705f...`
+compiled to analysis `b6c77b87...` and decision `1d8c2577...`, again `fail`.
+Its 61 Hebog continuum failures make all 143 continuum endpoints
+indeterminate, while compact misses 9 of 450 PyBDSF and 8 of 143 applicable
+Aegean comparisons. Step 3 remains closed pending prospective runner-
+completeness, compact-astrometry, and flux corrections followed by new
+seed-disjoint evidence.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1540,7 +1547,7 @@ comparison.**
          once and atomically published sealed campaign `6446705...`: all 1,400
          inputs and 7,000 runs verified, with 6,939 successes and 61 typed
          failures. No partial scientific product was opened.
-   - [ ] Compile the sealed successor campaign and run the unchanged evaluator
+   - [x] Compile the sealed successor campaign and run the unchanged evaluator
          before interpreting runtime. The first compiler attempt failed closed
          before writing analysis because the composed terminal verifier knew
          only the closed campaign's approval vocabulary; after that mapping
@@ -1555,10 +1562,22 @@ comparison.**
          failed closed before decision output because it read the minimal
          successor registry directly instead of using its existing strict
          loader for the inherited 158-endpoint matrix. Regression-test and
-         commit that final composition correction, then evaluate. Step 3 opens
-         only if the new
-         campaign passes every unchanged absolute and applicable paired gate;
-         the closed campaign is diagnostic history, not pooled evidence.
+         commit that final composition correction, then evaluate. Decision
+         `1d8c2577...` is `fail`: all 143 continuum endpoints are indeterminate
+         because the 61 Hebog continuum failures remain in the denominator,
+         and compact also fails. Step 3, optimization, and qualification stay
+         closed. The campaign is diagnostic history, not pooled evidence.
+   - [ ] Correct the prospectively observed failure classes before any new
+         external evidence. First isolate usable continuum segment products
+         from compact-catalogue failure, make local-RMS unavailability an
+         explicit non-fatal measurement disposition (60 failures: 59 in
+         geometry 4 and one in geometry 2), and correct the single compact-fit
+         omission without inventing measurements. Then improve the compact
+         position tails that failed 9 of 450 PyBDSF comparisons and the flux-
+         dominated 8 of 143 Aegean-applicable failures. Use the closed campaign
+         only for diagnosis/development, require bounded regression fixtures
+         and the full internal scientific suite, and freeze new seed-disjoint
+         evidence before reconsidering Step 3.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

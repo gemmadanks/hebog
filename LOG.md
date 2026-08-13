@@ -7242,3 +7242,34 @@ interpretation. It is not a rescore, campaign rerun, or additional look.
 **Immediate next step:** validate and commit the evaluator correction and
 refreshed hash chain, rerun the unchanged evaluator, then inspect scientific
 gate outcomes before runtime.
+
+## 2026-08-13 — Closed the successor campaign as failed
+
+**Plan phase:** Phase 5, Step 2C-PF — terminal decision and failure diagnosis
+
+- After commit `838da9e`, the unchanged evaluator completed in seconds and
+  atomically published decision `1d8c2577...` as `fail`. Compact status is
+  `fail`; all 143 binding continuum endpoints are `indeterminate`. Step 3,
+  optimization, and qualification remain false/closed.
+- All 61 retained execution failures are Hebog continuum legs. Sixty are
+  `FluxMeasurement` validation errors caused by a NaN local RMS: 59 in
+  continuum geometry 4 and one in geometry 2. The remaining geometry-2 leg
+  has one omitted compact fit. Because the frozen runner constructs compact
+  and segment products in one transaction, a compact-catalogue error also
+  suppresses otherwise usable continuum labels and masks.
+- Compact evidence is broadly close but does not meet the conjunctive gate.
+  The PyBDSF comparison passes 441 of 450 decisions; its nine failures are
+  position median/tail endpoints near the 0.002/0.005-beam margins across
+  marginally resolved, unresolved, SNR-10, and SNR-15 strata. The applicable
+  Aegean comparison passes 135 of 143 decisions; its eight failures comprise
+  one SNR-15 position tail, six integrated-flux median/tail endpoints, and one
+  marginally resolved fitted-axis tail.
+
+**Decision:** the result is a valid failed external campaign, not evidence for
+Step 3 or a runtime claim. It may inform prospective development but may not
+be rescored or reused as confirmation.
+
+**Immediate next step:** add bounded regressions for local-RMS unavailability,
+compact-fit omission, and independent continuum-product publication; then
+improve the compact position and flux failures before freezing new
+seed-disjoint evidence.

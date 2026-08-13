@@ -490,3 +490,16 @@ now uses the same strict successor-registry loader already used to validate the
 contract. No endpoint, gate, campaign datum, or compiled scientific value
 changed, and the scientific decision remains unopened pending validation and
 commit of this final metadata correction.
+
+After that correction was committed, the unchanged evaluator published
+decision `1d8c2577...` as `fail`. All 143 binding continuum endpoints are
+indeterminate and compact also fails; Step 3, optimization, and qualification
+remain closed. All 61 execution failures are Hebog continuum legs: 60 reject a
+NaN local RMS (59 in continuum geometry 4 and one in geometry 2), and one
+geometry-2 leg contains a compact-fit omission. Because the frozen runner
+publishes compact and continuum products transactionally, these failures also
+discard otherwise usable segment products. The compact comparison passed 441
+of 450 PyBDSF endpoint decisions and 135 of 143 applicable Aegean decisions;
+the non-passes concentrate in position tails versus PyBDSF and integrated-flux
+tails versus Aegean. This campaign may guide prospective corrections but must
+not be rescored, tuned, or reused as confirmation evidence.

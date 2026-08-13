@@ -305,7 +305,7 @@ def test_successor_review_records_terminal_campaign_and_correction() -> None:
     )
 
     assert review["status"] == (
-        "analysis-compiled-evaluator-composition-correction-before-decision"
+        "terminal-scientific-decision-fail-step-three-closed"
     )
     assert review["execution_authorized"] is True
     assert review["one_look_opened"] is True
@@ -336,6 +336,21 @@ def test_successor_review_records_terminal_campaign_and_correction() -> None:
         ]
         is True
     )
+    assert review["terminal_decision"] == {
+        "compact_status": "fail",
+        "continuum_binding_endpoint_count": 143,
+        "continuum_indeterminate_endpoint_count": 143,
+        "decision_path": (
+            "benchmark-results/phase-5/external-successor-decision.json"
+        ),
+        "decision_sha256": (
+            "1d8c2577bcd70e29ee27cd3cc3a1b0154b007cb1b6cce767743aacbe42093788"
+        ),
+        "optimization_authorized": False,
+        "qualification_opened": False,
+        "status": "fail",
+        "step_three_authorized": False,
+    }
     assert len(review["technical_review"]["preflight_request_sha256"]) == 64
     assert review["runtime"]["hebog"]["container_image_digest"] == (
         "sha256:d0c1319072c3716811ed51452fe83d92be8f8d2b62a11795678f31037b7b1f68"
