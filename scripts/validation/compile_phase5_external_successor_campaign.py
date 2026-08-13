@@ -36,10 +36,30 @@ _SUCCESSOR_REGISTRY_PATH = (
     _ROOT
     / "config/contracts/phase-5-external-successor-endpoint-registry.json"
 )
+_SUCCESSOR_DECISION_PATH = (
+    _ROOT
+    / "config/contracts/phase-5-external-successor-execution-decision.json"
+)
 _TERMINAL = runpy.run_path(str(_TERMINAL_COMPILER_PATH))
+_TERMINAL_JSON_OBJECT = _TERMINAL["_json_object"]
 _HELPERS = runpy.run_path(
     str(_ROOT / "scripts/validation/phase5_external_successor_protocol.py")
 )
+
+
+def _successor_json_object(path: Path) -> dict[str, Any]:
+    """Adapt only reviewed successor approval names to the closed verifier."""
+    document = cast(dict[str, Any], _TERMINAL_JSON_OBJECT(path))
+    if path.resolve() != _SUCCESSOR_DECISION_PATH.resolve():
+        return document
+    decision = _HELPERS["load_successor_execution_decision"](path)
+    if decision.execution_authorized is not True:
+        raise ValueError("successor execution decision is not approved")
+    return {
+        **document,
+        "decision_id": "phase-5-external-execution-decision",
+        "decision": "authorize-one-terminal-external-comparison",
+    }
 
 
 def _candidate_objects(
@@ -101,6 +121,7 @@ def load_successor_composition(
 def _configured_terminal() -> dict[str, Any]:
     """Install the two reviewed successor science seams."""
     globals_ = _TERMINAL["compile_terminal_analysis"].__globals__
+    globals_["_json_object"] = _successor_json_object
     globals_["load_endpoint_registry"] = load_successor_composition
     globals_["_candidate_objects"] = _candidate_objects
     globals_["measure_continuum_image"] = measure_continuum_image

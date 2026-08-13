@@ -7126,3 +7126,49 @@ the terminal one-look has not opened.
 **Immediate next step:** restore at least 60 GiB free space, recheck the four
 local image identities and output-path absence, then execute the approved
 successor campaign exactly once without inspecting partial results.
+
+## 2026-08-13 — Sealed the successor campaign and corrected compilation
+
+**Plan phase:** Phase 5, Step 2C-PF — terminal execution and pre-analysis
+technical correction
+
+- Removed the obsolete closed campaign, then diagnosed why host free space
+  remained at 45 GiB: the idle Podman VM retained 53,197 deleted file handles.
+  Stopping it released the blocks and raised free space to 81 GiB. Restarting
+  in the attached governed session preserved all approved images and made the
+  exact no-write preflight reproduce request `931df412...` once more.
+- Executed that request exactly once without inspecting partial inputs or
+  finder products. The launcher verified all 1,400 common inputs and all 7,000
+  finder runs before atomically publishing terminal manifest `6446705f...`.
+  It records 6,939 successful and 61 typed failed runs, status
+  `terminal-raw-results-sealed`, and a 10 h 29 min execution interval. The VM
+  stopped cleanly after publication.
+- The first checksum-bound successor compiler attempt failed closed before
+  creating analysis: its reused byte-identical terminal request verifier knew
+  only `phase-5-external-execution-decision` and
+  `authorize-one-terminal-external-comparison`, while the separately reviewed
+  successor decision deliberately uses successor-specific names. No
+  scientific outcome was compiled or opened.
+- Added a regression test that failed on that exact mismatch. The composed
+  compiler now validates the successor decision with its strict loader and
+  maps only its decision ID and approval value into the terminal verifier's
+  compatibility view. The terminal compiler `7a055891...`, science kernel
+  `8e38de3...`, campaign, endpoints, gates, reference scopes, and decision
+  logic remain unchanged. The corrected successor compiler is `51a434da...`,
+  endpoint registry `545a7ac...`, and evaluation contract `ae6a96d...`.
+
+**Validation:** the new regression test first failed for the intended approval
+name mismatch, then passed after the compatibility view was installed. All 84
+focused successor, launcher, compiler, and evaluator tests pass; Ruff and the
+configured Pyright environment pass. Full branch-aware coverage passes 1,261
+tests with 4 expected failures and remains 94.08%. Strict documentation builds;
+`just check` passes Ruff, Pyright, 1,131 tests, and 4 expected failures.
+
+**Decision:** this is a transparent fail-closed technical correction after
+raw terminal publication and before any analysis output, not a scientific
+change or campaign rerun. Commit and validate the correction before invoking
+the write-once compiler again.
+
+**Immediate next step:** run the complete focused successor and inherited
+compiler/evaluator suites, commit the correction and refreshed hash chain,
+then compile and evaluate the unchanged sealed campaign exactly once.

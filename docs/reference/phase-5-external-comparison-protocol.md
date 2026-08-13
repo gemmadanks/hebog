@@ -454,3 +454,25 @@ claim bitwise reproduction of the missing OCI objects. The renewed review
 accepted all four bound digests and inventories, the launcher's no-write
 preflight passed, and the resulting sealed campaign is now closed as
 `select-neither`.
+
+### Successor terminal execution
+
+The seed-disjoint successor used Hebog commit `c1f7eb0...`, source tree
+`d50be758...`, and Linux/arm64 image digest `sha256:d0c1319...`, alongside the
+three reconstructed references above. Gemma Danks approved those exact four
+runtime identities and preflight review `200d107...`. Canonical request
+`931df412...` then completed once and atomically published terminal manifest
+`6446705f...`: all 1,400 inputs and all 7,000 finder runs verified, with 6,939
+successes and 61 typed failures. No partial scientific product was opened.
+
+The first checksum-bound successor compiler invocation failed closed before
+writing analysis because the composed terminal request verifier recognized
+only the closed campaign's approval names. The corrective composition first
+validates the complete successor decision through its strict loader, then maps
+only the successor decision ID and approval value to their terminal-verifier
+equivalents. No campaign, product, science kernel, endpoint, threshold,
+confidence rule, reference scope, or evaluator changed. The corrected
+successor compiler is `51a434da...`, the refreshed endpoint registry is
+`545a7ac...`, and the evaluation contract is `ae6a96d...`; the byte-identical
+terminal compiler remains `7a055891...`. Analysis and scientific decision
+remain unopened until this technical correction is committed and validated.

@@ -1533,11 +1533,22 @@ comparison.**
          Danks approved review `200d107...` and the exact four-runtime set on
          2026-08-12. Request `931df41...` passed with exactly 1,400 inputs and
          7,000 runs; both terminal and private staging paths remained absent.
-   - [ ] Restore at least the reviewed approximate 60 GiB campaign storage
+   - [x] Restore at least the reviewed approximate 60 GiB campaign storage
          headroom, then execute the approved successor one-look exactly once.
-         The post-preflight host has 49 GiB free, so execution remains closed
-         on storage safety despite the valid authorization and preflight.
-         Step 3 opens only if the new
+         Restarting the idle Podman VM released deleted closed-campaign blocks
+         and raised free space to 81 GiB. Request `931df41...` then completed
+         once and atomically published sealed campaign `6446705...`: all 1,400
+         inputs and 7,000 runs verified, with 6,939 successes and 61 typed
+         failures. No partial scientific product was opened.
+   - [ ] Compile the sealed successor campaign and run the unchanged evaluator
+         before interpreting runtime. The first compiler attempt failed closed
+         before writing analysis because the composed terminal verifier knew
+         only the closed campaign's approval vocabulary. Regression-test and
+         commit a compatibility view that maps only the already-validated
+         successor decision ID/value to their terminal equivalents; keep the
+         terminal compiler, science kernel, endpoint set, gates, and campaign
+         unchanged. Then run the write-once compiler and evaluator. Step 3
+         opens only if the new
          campaign passes every unchanged absolute and applicable paired gate;
          the closed campaign is diagnostic history, not pooled evidence.
 

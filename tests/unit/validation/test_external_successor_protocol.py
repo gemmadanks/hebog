@@ -110,6 +110,35 @@ def test_successor_composition_binds_closed_mechanics_and_new_kernel() -> None:
     )
 
 
+def test_successor_compiler_maps_named_approval_to_terminal_view() -> None:
+    """The composition adapts approval vocabulary, not governed content."""
+    module = _script(
+        "scripts/validation/compile_phase5_external_successor_campaign.py"
+    )
+    terminal = module["_configured_terminal"]()
+    decision_path = (
+        _ROOT
+        / "config/contracts/phase-5-external-successor-execution-decision.json"
+    )
+
+    actual = json.loads(decision_path.read_text(encoding="utf-8"))
+    compatible = terminal["_validate_campaign_request_identity"].__globals__[
+        "_json_object"
+    ](decision_path)
+
+    assert actual["decision_id"] == (
+        "phase-5-external-successor-execution-decision"
+    )
+    assert actual["decision"] == (
+        "authorize-one-terminal-successor-comparison"
+    )
+    assert compatible == {
+        **actual,
+        "decision_id": "phase-5-external-execution-decision",
+        "decision": "authorize-one-terminal-external-comparison",
+    }
+
+
 def test_successor_evaluator_recomputes_unchanged_gates() -> None:
     """The composed evaluator accepts no changed scientific threshold."""
     module = _script(
@@ -199,10 +228,8 @@ def test_successor_launcher_expands_the_complete_frozen_population() -> None:
     assert len({item.seed for item in inputs}) == 1400
 
 
-def test_successor_freeze_records_named_approval_and_no_write_preflight() -> (
-    None
-):
-    """The review binds the approved identities and exact preflight request."""
+def test_successor_review_records_terminal_campaign_and_correction() -> None:
+    """The review binds terminal evidence and the pre-analysis correction."""
     review = json.loads(
         (
             _ROOT / "config/contracts/"
@@ -210,13 +237,26 @@ def test_successor_freeze_records_named_approval_and_no_write_preflight() -> (
         ).read_text(encoding="utf-8")
     )
 
-    assert review["status"] == "approved-no-write-preflight-passed"
+    assert review["status"] == (
+        "terminal-sealed-compiler-correction-before-analysis"
+    )
     assert review["execution_authorized"] is True
-    assert review["one_look_opened"] is False
+    assert review["one_look_opened"] is True
     assert review["closed_campaign_reuse_authorized"] is False
     assert review["population"]["image_count"] == 1400
     assert review["population"]["terminal_run_count"] == 7000
     assert review["technical_review"]["preflight_status"] == "pass-no-write"
+    assert review["technical_review"]["campaign_status"] == (
+        "terminal-raw-results-sealed"
+    )
+    assert review["technical_review"]["campaign_successful_run_count"] == 6939
+    assert review["technical_review"]["campaign_failed_run_count"] == 61
+    assert (
+        review["technical_review"][
+            "analysis_output_absent_after_failed_attempt"
+        ]
+        is True
+    )
     assert len(review["technical_review"]["preflight_request_sha256"]) == 64
     assert review["runtime"]["hebog"]["container_image_digest"] == (
         "sha256:d0c1319072c3716811ed51452fe83d92be8f8d2b62a11795678f31037b7b1f68"
