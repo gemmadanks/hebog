@@ -524,3 +524,22 @@ and the marginally resolved fitted-axis p95 improved from `0.20472` to
 `0.17292`, compared with Aegean's `0.19026`. These numbers are diagnostic, not
 a rescore of decision `1d8c2577...`; new seed-disjoint evidence remains
 mandatory before Step 3 can open.
+
+The next campaign retains the same 600-continuum/800-compact population size,
+reference set, endpoint matrix, and gates. Prospective runtime work is limited
+to result-neutral mechanics. A two-lane scheduler keeps every four-core PyBDSF
+run serial in one lane and every Hebog/Aegean run serial in a companion lane;
+each finder invocation still receives a fresh container and isolated output
+directory. The closed campaign recorded 5.722 hours inside finder processes,
+compared with a 3.476-hour critical resource lane under this schedule. This is
+a development projection, not a campaign or product-speed claim.
+
+Compilation may reuse immutable input planes, injected truth, and the FITS
+header across the three finder interpretations of one image, then discard that
+state before the next image. Native support centroids use one grouped label
+pass instead of rescanning the complete plane for every label. An exact
+20-image closed-product comparison retained every endpoint observation and
+reduced preparation from 34.21 to 27.47 seconds. The closed launcher and
+compiler remain checksum-bound historical artifacts; new wrappers must bind
+these accelerators and pass parity and bounded-concurrency review before the
+next one-look approval.

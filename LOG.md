@@ -7312,3 +7312,43 @@ expected xfails.
 **Decision:** the corrective implementation is ready for new seed-disjoint
 evidence. Decision `1d8c2577...` remains failed; Step 3, runtime interpretation,
 optimization, and qualification remain closed.
+
+## 2026-08-13 — Prepared result-neutral acceleration for the next campaign
+
+**Plan phase:** Phase 5, Step 2C-PF — pre-freeze runtime preparation
+
+- Retained the powered 600-continuum/800-compact design, all references,
+  endpoints, gates, four PyBDSF cores, and fresh-container isolation. The
+  closed run spanned 10.49 hours and recorded 5.722 finder-hours. On the
+  six-CPU Podman VM, partitioning the unchanged run matrix into one serial
+  PyBDSF lane and one serial Hebog/Aegean lane has a 3.476-hour finder critical
+  path, versus 5.722 hours serial. This is a development projection only.
+- Added a fail-closed two-lane scheduler using the standard-library executor.
+  A failure stops either lane from starting further work, while an already
+  active invocation may finish and remains resumable. The prospective request
+  model accepts exactly two lanes, not an unbounded worker count.
+- Measured closed-campaign verification separately at 312.03 seconds cold and
+  137.70–140.10 seconds warm. Retained full artifact verification because it
+  is material but not the approximately five-hour compiler bottleneck.
+- Added prospective compiler seams that retain finder-invariant image, mean,
+  RMS, truth-label, and header state for one image only, and calculate all
+  native support centroids in one grouped plane pass. Across an exact
+  20-image/three-finder slice, all captured endpoint observations were equal;
+  preparation improved from 34.21 to 27.47 seconds (1.25×). The complete
+  no-bootstrap historical preparation baseline was 994.91 seconds.
+- Preserved the closed successor launcher, compiler, registry, evaluator, and
+  review byte-for-byte. The new helpers are not campaign authority until a
+  prospective wrapper, registry, request, runtime, and parity review are
+  frozen and receive named approval.
+
+**Validation:** 29 focused scheduler, accelerator, and
+historical-immutability tests passed. `just check` passed with 1,159 tests and
+four expected xfails; all 130 integration and 27 equivalence tests passed;
+strict documentation built successfully. Branch-aware coverage passed with
+1,289 tests, four expected xfails, 94.09% project coverage, and 100% statement
+and branch coverage in both new production modules. The exact-product
+benchmark was read-only and generated no new campaign evidence.
+
+**Immediate next step:** compose the helpers into new prospective wrappers,
+run the bounded real-container concurrency and full observation-parity matrix,
+then freeze the same-size seed-disjoint campaign identities.

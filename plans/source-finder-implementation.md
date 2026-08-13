@@ -1599,6 +1599,24 @@ comparison.**
          one-look execution. The closed campaigns and corrective development
          results remain ineligible as confirmation evidence; Step 3,
          optimization, qualification, and runtime interpretation stay closed.
+         Retain the same powered 600-continuum/800-compact design for direct
+         comparability. Before the freeze, compose the prospective bounded
+         execution and compilation accelerators into new checksum-bound
+         wrappers without modifying the closed successor programs. The next
+         request must declare exactly two execution lanes: all four-core
+         PyBDSF legs remain serial in one lane while Hebog/Aegean legs remain
+         serial in the companion lane. This fits the measured six-CPU VM and
+         preserves fresh-container isolation. The closed campaign recorded
+         5.722 finder-hours; the two resource-lane critical sum is 3.476 hours,
+         a development projection rather than a new campaign wall-time claim.
+         The prospective compiler may reuse only finder-invariant input/truth
+         state for the current image and replace repeated per-label plane
+         scans with an exactly equivalent grouped pass. On an exact 20-image
+         closed-product slice, every captured endpoint observation remained
+         equal while preparation improved from 34.21 to 27.47 seconds
+         (1.25×). Require a bounded real-container concurrency matrix, full
+         observation parity, and the new registry/request/compiler identity
+         checks before named execution approval.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
