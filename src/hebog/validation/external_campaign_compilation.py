@@ -114,7 +114,7 @@ class SharedContinuumImageCompiler:
         header = cast(fits.Header, fits.getheader(image_path))
         return truth, truth_labels, header
 
-    def __call__(  # noqa: PLR0913, PLR0917
+    def __call__(  # noqa: PLR0913
         self,
         verified: Any,
         campaign_input: Any,
