@@ -7205,3 +7205,40 @@ not a scientific change, rescore, campaign rerun, or additional look.
 
 **Immediate next step:** validate and commit the correction, then invoke the
 write-once compiler and unchanged evaluator without inspecting runtime first.
+
+## 2026-08-13 — Compiled the successor analysis and corrected evaluation
+
+**Plan phase:** Phase 5, Step 2C-PF — terminal scientific compilation and
+pre-decision evaluator correction
+
+- Invoked the committed write-once compiler against sealed campaign
+  `6446705f...`. It completed after approximately five hours and atomically
+  published analysis `b6c77b87...` at 2026-08-13 13:27:16 UTC. The identity
+  and population audit validate 1,400 images, 5,000 binding runs, 4,939
+  successes, and all 61 typed failures retained in the denominator. The 143
+  binding and 15 diagnostic continuum endpoints compiled; runtime was not
+  interpreted before the scientific decision.
+- The first evaluator invocation failed closed before creating a decision with
+  `external continuum endpoint registry is absent`. The successor registry is
+  deliberately minimal and inherits the exact frozen 158-endpoint matrix from
+  the closed registry through `load_successor_endpoint_registry`; the entry
+  point had loaded the raw JSON instead of calling that already-reviewed
+  strict loader.
+- Added a regression test that failed for the missing compatibility view. The
+  evaluator now consumes the strict inherited registry view. No analysis
+  value, endpoint, threshold, confidence rule, reference scope, or terminal
+  evaluator changed. The decision output remains absent.
+
+**Validation:** the focused regression failed first on the missing loader and
+then passed; all 86 focused successor and inherited compiler/evaluator tests
+pass. Full branch-aware coverage passes 1,263 tests with 4 expected failures
+and remains 94.08%. Strict documentation builds, and `just check` passes Ruff,
+Pyright, 1,133 tests, and 4 expected failures.
+
+**Decision:** this is a final fail-closed metadata-composition correction after
+analysis publication but before any scientific decision output or endpoint
+interpretation. It is not a rescore, campaign rerun, or additional look.
+
+**Immediate next step:** validate and commit the evaluator correction and
+refreshed hash chain, rerun the unchanged evaluator, then inspect scientific
+gate outcomes before runtime.

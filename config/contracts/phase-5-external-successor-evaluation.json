@@ -18,7 +18,7 @@
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_successor_decision.py",
-  "evaluator_sha256": "8a8a194c37f78773546406f68987f9a1aa8342eb9ae02e288e2284cec1d106e8",
+  "evaluator_sha256": "f6fc4db4fa3175c6fcbe7ff88fcb6f4ea72b655d25f670d8964cc568bb391cbb",
   "one_look_rule": "one-terminal-look-no-tuning-rescoring-reconfirmation-or-adaptive-sample-size",
   "phase_five_scientific_gates_path": "config/contracts/phase-5-scientific-gates.json",
   "phase_five_scientific_gates_sha256": "cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b",

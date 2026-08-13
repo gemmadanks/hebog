@@ -478,4 +478,15 @@ confidence rule, reference scope, or evaluator changed. The corrected
 successor compiler is `2fd78b60...`, the refreshed endpoint registry is
 `99a79e5e...`, and the evaluation contract is `d69dd830...`; the byte-identical
 terminal compiler remains `7a055891...`. Analysis and scientific decision
-remain unopened until this technical correction is committed and validated.
+remained unopened until this technical correction was committed and validated.
+
+The corrected compiler then completed in approximately five hours and
+atomically published analysis `b6c77b87...`, covering all 1,400 images and all
+5,000 binding runs while retaining 61 typed failures. The first evaluator
+invocation failed closed before decision output because its entry point loaded
+the deliberately minimal successor registry directly; the immutable evaluator
+requires the inherited 158-endpoint policy matrix. The evaluator composition
+now uses the same strict successor-registry loader already used to validate the
+contract. No endpoint, gate, campaign datum, or compiled scientific value
+changed, and the scientific decision remains unopened pending validation and
+commit of this final metadata correction.

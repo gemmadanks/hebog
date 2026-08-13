@@ -203,6 +203,17 @@ def evaluate_successor_analysis(
     )
 
 
+def load_successor_registry(contract: dict[str, Any]) -> dict[str, Any]:
+    """Return the strictly validated inherited endpoint-policy view."""
+    registry_identity = cast(dict[str, Any], contract["endpoint_registry"])
+    return cast(
+        dict[str, Any],
+        _HELPERS["load_successor_endpoint_registry"](
+            _ROOT / cast(str, registry_identity["path"])
+        ),
+    )
+
+
 def _parse_args() -> argparse.Namespace:
     """Parse the successor analysis and write-once decision path."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -224,10 +235,7 @@ def main() -> None:
         Path(__file__),
     )
     analysis = _HELPERS["json_object"](arguments.analysis)
-    registry_identity = cast(dict[str, Any], contract["endpoint_registry"])
-    registry = _HELPERS["json_object"](
-        _ROOT / cast(str, registry_identity["path"])
-    )
+    registry = load_successor_registry(contract)
     combined, endpoints, compact_status = evaluate_successor_analysis(
         analysis,
         contract,

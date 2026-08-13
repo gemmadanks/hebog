@@ -1550,7 +1550,13 @@ comparison.**
          protocol compatibility view and map only the already-validated
          decision names. Keep the terminal compiler, science kernel, endpoint
          set, gates, and campaign unchanged, then run the write-once compiler
-         and evaluator. Step 3 opens only if the new
+         and evaluator. The corrected compiler produced analysis `b6c77b87...`
+         after approximately five hours. The first evaluator attempt then
+         failed closed before decision output because it read the minimal
+         successor registry directly instead of using its existing strict
+         loader for the inherited 158-endpoint matrix. Regression-test and
+         commit that final composition correction, then evaluate. Step 3 opens
+         only if the new
          campaign passes every unchanged absolute and applicable paired gate;
          the closed campaign is diagnostic history, not pooled evidence.
 

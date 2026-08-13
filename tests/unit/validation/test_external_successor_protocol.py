@@ -201,6 +201,38 @@ def test_successor_evaluator_recomputes_unchanged_gates() -> None:
     }
 
 
+def test_successor_evaluator_reuses_reviewed_registry_compatibility_view() -> (
+    None
+):
+    """The evaluator inherits the frozen endpoint matrix strictly."""
+    module = _script(
+        "scripts/validation/evaluate_phase5_external_successor_decision.py"
+    )
+    contract = module["load_successor_evaluation_contract"](
+        _ROOT / "config/contracts/phase-5-external-successor-evaluation.json",
+        _ROOT
+        / "scripts/validation/evaluate_phase5_external_successor_decision.py",
+    )
+    registry_path = (
+        _ROOT
+        / "config/contracts/phase-5-external-successor-endpoint-registry.json"
+    )
+
+    actual = json.loads(registry_path.read_text(encoding="utf-8"))
+    compatible = module["load_successor_registry"](contract)
+    expected = module["_HELPERS"]["load_successor_endpoint_registry"](
+        registry_path
+    )
+
+    assert "continuum" not in actual
+    assert compatible == expected
+    assert compatible["expanded_continuum_counts"] == {
+        "binding": 143,
+        "report_only": 15,
+        "total": 158,
+    }
+
+
 def test_successor_launcher_rejects_pending_authorization_before_inspection(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -273,7 +305,7 @@ def test_successor_review_records_terminal_campaign_and_correction() -> None:
     )
 
     assert review["status"] == (
-        "terminal-sealed-compiler-composition-correction-before-analysis"
+        "analysis-compiled-evaluator-composition-correction-before-decision"
     )
     assert review["execution_authorized"] is True
     assert review["one_look_opened"] is True
@@ -288,12 +320,21 @@ def test_successor_review_records_terminal_campaign_and_correction() -> None:
     assert review["technical_review"]["campaign_failed_run_count"] == 61
     assert (
         review["technical_review"][
-            "analysis_output_absent_after_failed_attempt"
+            "analysis_output_absent_after_failed_compiler_attempts"
         ]
         is True
     )
     assert review["technical_review"]["compiler_second_attempt"] == (
         "failed-closed-successor-protocol-omits-inherited-reference-set"
+    )
+    assert review["technical_review"]["analysis_sha256"] == (
+        "b6c77b87a48a84e89eab48eddd5fa501ba9a4e11d8dceaf2e9dcaeaa51ac65a0"
+    )
+    assert (
+        review["technical_review"][
+            "decision_output_absent_after_failed_evaluator_attempt"
+        ]
+        is True
     )
     assert len(review["technical_review"]["preflight_request_sha256"]) == 64
     assert review["runtime"]["hebog"]["container_image_digest"] == (
