@@ -467,12 +467,15 @@ successes and 61 typed failures. No partial scientific product was opened.
 
 The first checksum-bound successor compiler invocation failed closed before
 writing analysis because the composed terminal request verifier recognized
-only the closed campaign's approval names. The corrective composition first
-validates the complete successor decision through its strict loader, then maps
-only the successor decision ID and approval value to their terminal-verifier
+only the closed campaign's approval names. After that correction was committed,
+the second invocation also failed closed before output: the deliberately
+minimal successor protocol inherits its reference runtimes from the closed
+protocol rather than duplicating them. The composition now uses the same
+strictly validated protocol compatibility view as the reviewed launcher and
+maps only the successor decision ID and approval value to their terminal
 equivalents. No campaign, product, science kernel, endpoint, threshold,
 confidence rule, reference scope, or evaluator changed. The corrected
-successor compiler is `51a434da...`, the refreshed endpoint registry is
-`545a7ac...`, and the evaluation contract is `ae6a96d...`; the byte-identical
+successor compiler is `2fd78b60...`, the refreshed endpoint registry is
+`99a79e5e...`, and the evaluation contract is `d69dd830...`; the byte-identical
 terminal compiler remains `7a055891...`. Analysis and scientific decision
 remain unopened until this technical correction is committed and validated.

@@ -36,6 +36,9 @@ _SUCCESSOR_REGISTRY_PATH = (
     _ROOT
     / "config/contracts/phase-5-external-successor-endpoint-registry.json"
 )
+_SUCCESSOR_PROTOCOL_PATH = (
+    _ROOT / "config/contracts/phase-5-external-successor-comparison.json"
+)
 _SUCCESSOR_DECISION_PATH = (
     _ROOT
     / "config/contracts/phase-5-external-successor-execution-decision.json"
@@ -48,7 +51,10 @@ _HELPERS = runpy.run_path(
 
 
 def _successor_json_object(path: Path) -> dict[str, Any]:
-    """Adapt only reviewed successor approval names to the closed verifier."""
+    """Return the reviewed successor views used by the closed verifier."""
+    if path.resolve() == _SUCCESSOR_PROTOCOL_PATH.resolve():
+        protocol = _HELPERS["load_successor_protocol"](path)
+        return cast(dict[str, Any], protocol.model_dump(mode="json"))
     document = cast(dict[str, Any], _TERMINAL_JSON_OBJECT(path))
     if path.resolve() != _SUCCESSOR_DECISION_PATH.resolve():
         return document

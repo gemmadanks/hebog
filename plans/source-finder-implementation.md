@@ -1543,12 +1543,14 @@ comparison.**
    - [ ] Compile the sealed successor campaign and run the unchanged evaluator
          before interpreting runtime. The first compiler attempt failed closed
          before writing analysis because the composed terminal verifier knew
-         only the closed campaign's approval vocabulary. Regression-test and
-         commit a compatibility view that maps only the already-validated
-         successor decision ID/value to their terminal equivalents; keep the
-         terminal compiler, science kernel, endpoint set, gates, and campaign
-         unchanged. Then run the write-once compiler and evaluator. Step 3
-         opens only if the new
+         only the closed campaign's approval vocabulary; after that mapping
+         was committed, the second attempt also failed closed because the
+         minimal successor protocol inherits rather than duplicates the
+         closed reference set. Reuse the launcher's strictly validated
+         protocol compatibility view and map only the already-validated
+         decision names. Keep the terminal compiler, science kernel, endpoint
+         set, gates, and campaign unchanged, then run the write-once compiler
+         and evaluator. Step 3 opens only if the new
          campaign passes every unchanged absolute and applicable paired gate;
          the closed campaign is diagnostic history, not pooled evidence.
 

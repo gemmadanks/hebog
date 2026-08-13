@@ -7172,3 +7172,36 @@ the write-once compiler again.
 **Immediate next step:** run the complete focused successor and inherited
 compiler/evaluator suites, commit the correction and refreshed hash chain,
 then compile and evaluate the unchanged sealed campaign exactly once.
+
+## 2026-08-13 — Reused the reviewed successor protocol view
+
+**Plan phase:** Phase 5, Step 2C-PF — second pre-analysis compiler correction
+
+- The second write-once compiler attempt failed closed before creating an
+  output because the terminal request verifier read `references` from the
+  deliberately minimal successor protocol. That protocol inherits the exact
+  closed-protocol reference set through the launcher's strict compatibility
+  loader instead of duplicating it.
+- Added a regression test that reproduced the missing inherited-reference
+  view. The compiler now calls the same strict successor protocol loader used
+  by the reviewed launcher, while retaining the separately tested decision-
+  vocabulary mapping. The terminal compiler, sealed campaign, science kernel,
+  endpoints, thresholds, confidence rules, and reference identities remain
+  unchanged.
+- Refreshed the checksum chain to compiler `2fd78b60...`, endpoint registry
+  `99a79e5e...`, and evaluation contract `d69dd830...`. Analysis and decision
+  outputs remain absent.
+
+**Validation:** the new regression test failed first on the raw minimal
+protocol and passed after the reviewed compatibility view was installed. All
+85 focused successor and inherited compiler/evaluator tests pass. Full
+branch-aware coverage passes 1,262 tests with 4 expected failures and remains
+94.08%; the three Dask tests that cannot bind sockets in the sandbox pass in
+the permission-matched run. Strict documentation builds, and `just check`
+passes Ruff, Pyright, 1,132 tests, and 4 expected failures.
+
+**Decision:** this is a second transparent metadata-composition correction,
+not a scientific change, rescore, campaign rerun, or additional look.
+
+**Immediate next step:** validate and commit the correction, then invoke the
+write-once compiler and unchanged evaluator without inspecting runtime first.

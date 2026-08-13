@@ -139,6 +139,41 @@ def test_successor_compiler_maps_named_approval_to_terminal_view() -> None:
     }
 
 
+def test_successor_compiler_reuses_reviewed_protocol_compatibility_view() -> (
+    None
+):
+    """The compiler inherits references through the launcher's strict view."""
+    module = _script(
+        "scripts/validation/compile_phase5_external_successor_campaign.py"
+    )
+    terminal = module["_configured_terminal"]()
+    protocol_path = (
+        _ROOT / "config/contracts/phase-5-external-successor-comparison.json"
+    )
+
+    actual = json.loads(protocol_path.read_text(encoding="utf-8"))
+    compatible = terminal["_validate_campaign_request_identity"].__globals__[
+        "_json_object"
+    ](protocol_path)
+    expected = module["_HELPERS"]["load_successor_protocol"](
+        protocol_path
+    ).model_dump(mode="json")
+
+    assert "references" not in actual
+    assert compatible == expected
+    assert tuple(item["finder_id"] for item in compatible["references"]) == (
+        "released-pybdsf",
+        "pinned-pybdsf-master",
+        "aegean",
+    )
+    assert tuple(
+        item["image_count"] for item in compatible["populations"]
+    ) == (
+        600,
+        800,
+    )
+
+
 def test_successor_evaluator_recomputes_unchanged_gates() -> None:
     """The composed evaluator accepts no changed scientific threshold."""
     module = _script(
@@ -238,7 +273,7 @@ def test_successor_review_records_terminal_campaign_and_correction() -> None:
     )
 
     assert review["status"] == (
-        "terminal-sealed-compiler-correction-before-analysis"
+        "terminal-sealed-compiler-composition-correction-before-analysis"
     )
     assert review["execution_authorized"] is True
     assert review["one_look_opened"] is True
@@ -256,6 +291,9 @@ def test_successor_review_records_terminal_campaign_and_correction() -> None:
             "analysis_output_absent_after_failed_attempt"
         ]
         is True
+    )
+    assert review["technical_review"]["compiler_second_attempt"] == (
+        "failed-closed-successor-protocol-omits-inherited-reference-set"
     )
     assert len(review["technical_review"]["preflight_request_sha256"]) == 64
     assert review["runtime"]["hebog"]["container_image_digest"] == (

@@ -1,7 +1,7 @@
 {
   "analysis_compiler": {
     "path": "scripts/validation/compile_phase5_external_successor_campaign.py",
-    "sha256": "51a434daf1838b1d633ac3e2dec52543894ea947a54508dee8a96fcc6d3d7142",
+    "sha256": "2fd78b605a293165adf3df041074cae6e12144a7240dcdd915011ce45e9a77a2",
     "status": "frozen-before-campaign-output"
   },
   "astrometry_follow_up_path": "config/contracts/phase-5-astrometry-follow-up-review.json",
@@ -14,7 +14,7 @@
   "contract_id": "phase-5-external-successor-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-successor-endpoint-registry.json",
-    "sha256": "545a7ac0058a09e9006a3c02047e9b0788d41a59fb438ff064db37bee5eda8df",
+    "sha256": "99a79e5e625e1df755045339189d5b4e65905ffef91ba8ee6a9cf8e3b9854869",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_successor_decision.py",

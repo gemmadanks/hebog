@@ -4,7 +4,7 @@
     "execution_decision_path": "config/contracts/phase-5-external-successor-execution-decision.json",
     "execution_decision_sha256": "12925d0586e684a825e0c2e6a384c366ca1982701027508888e5aa7f145dade9",
     "named_review": "Gemma Danks, 2026-08-12, approved successor preflight review sha256:200d1076aae8e8339d25b15619df5ff263794a24f03935062974a1611a0cd247 and exact four-runtime identities",
-    "next_action": "compile-the-sealed-campaign-with-the-reviewed-approval-vocabulary-adapter-then-run-the-unchanged-evaluator"
+    "next_action": "compile-the-sealed-campaign-with-the-reviewed-successor-compatibility-views-then-run-the-unchanged-evaluator"
   },
   "closed_campaign_reuse_authorized": false,
   "execution_authorized": true,
@@ -34,11 +34,11 @@
   },
   "protocol": {
     "compiler_path": "scripts/validation/compile_phase5_external_successor_campaign.py",
-    "compiler_sha256": "51a434daf1838b1d633ac3e2dec52543894ea947a54508dee8a96fcc6d3d7142",
+    "compiler_sha256": "2fd78b605a293165adf3df041074cae6e12144a7240dcdd915011ce45e9a77a2",
     "endpoint_registry_path": "config/contracts/phase-5-external-successor-endpoint-registry.json",
-    "endpoint_registry_sha256": "545a7ac0058a09e9006a3c02047e9b0788d41a59fb438ff064db37bee5eda8df",
+    "endpoint_registry_sha256": "99a79e5e625e1df755045339189d5b4e65905ffef91ba8ee6a9cf8e3b9854869",
     "evaluation_contract_path": "config/contracts/phase-5-external-successor-evaluation.json",
-    "evaluation_contract_sha256": "ae6a96d218596e9227242b8a520c6990ba19df8d9779e8b140d33712f62ec21a",
+    "evaluation_contract_sha256": "d69dd83092a0aed7158615d8d6daa397c4f8ab745e791563614125dfc9339528",
     "evaluator_path": "scripts/validation/evaluate_phase5_external_successor_decision.py",
     "evaluator_sha256": "8a8a194c37f78773546406f68987f9a1aa8342eb9ae02e288e2284cec1d106e8",
     "launcher_path": "scripts/benchmark/run_phase5_external_successor_campaign.py",
@@ -85,7 +85,7 @@
     }
   },
   "schema_version": 1,
-  "status": "terminal-sealed-compiler-correction-before-analysis",
+  "status": "terminal-sealed-compiler-composition-correction-before-analysis",
   "technical_review": {
     "analysis_output_absent_after_failed_attempt": true,
     "campaign_data_opened": true,
@@ -94,9 +94,11 @@
     "campaign_status": "terminal-raw-results-sealed",
     "campaign_storage_safety_status": "passed-at-81-gib-before-terminal-execution",
     "campaign_successful_run_count": 6939,
-    "compiler_correction": "map-only-the-validated-successor-decision-id-and-decision-vocabulary-to-the-byte-identical-terminal-verifier-view",
+    "compiler_correction": "reuse-the-strict-launcher-protocol-compatibility-view-and-map-only-the-validated-successor-decision-vocabulary-for-the-byte-identical-terminal-verifier",
     "compiler_first_attempt": "failed-closed-external-execution-decision-is-not-approved",
+    "compiler_first_correction_sha256": "51a434daf1838b1d633ac3e2dec52543894ea947a54508dee8a96fcc6d3d7142",
     "compiler_original_sha256": "c3981833d7f9125f9bf676753ba6fa2f3d1847f354dfa948aad9a6eb2fdca0e3",
+    "compiler_second_attempt": "failed-closed-successor-protocol-omits-inherited-reference-set",
     "complete_population_expansion": "1400-inputs-7000-runs",
     "container_identity_check": "pass",
     "dependency_inventory_check": "pass",
