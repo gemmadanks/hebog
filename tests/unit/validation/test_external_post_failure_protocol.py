@@ -69,8 +69,8 @@ def test_post_failure_population_builder_freezes_approved_design() -> None:
     assert freeze["execution_authorized"] is False
 
 
-def test_post_failure_protocol_binds_pending_population() -> None:
-    """The fresh protocol is valid while its one-look remains closed."""
+def test_post_failure_protocol_binds_approved_population() -> None:
+    """The fresh protocol binds the separately approved terminal look."""
     module = _script(
         "scripts/validation/phase5_external_post_failure_protocol.py"
     )
@@ -104,8 +104,11 @@ def test_post_failure_protocol_binds_pending_population() -> None:
     assert decision.hebog_container_image_digest == (
         "sha256:4341ec7946b737613178d407af5e26a2ec28e7aca6ffe40bf90abf879aeb9061"
     )
-    assert decision.execution_authorized is False
-    assert decision.preflight_review_sha256 == "pending"
+    assert decision.execution_authorized is True
+    assert decision.preflight_review_sha256 == (
+        "835abe1c116c92fe45c3aa9960d70e8d4d4782b9beb5c7d3ce616b10d14410cd"
+    )
+    assert decision.preflight_review_sha256 in decision.named_review
     assert decision.pybdsf_ncores == 4
     assert decision.execution_concurrency == 2
 
@@ -296,6 +299,11 @@ def test_preflight_review_rejects_authorization_drift_while_pending(
     decision_identity["sha256"] = "0" * 64
     globals_ = helpers["load_post_failure_preflight_review"].__globals__
     monkeypatch.setitem(globals_, "json_object", lambda _path: review)
+    monkeypatch.setitem(
+        globals_,
+        "authorization_has_transitioned",
+        lambda _root: False,
+    )
 
     with pytest.raises(ValueError, match="preflight artifact changed"):
         helpers["load_post_failure_preflight_review"](review_path)

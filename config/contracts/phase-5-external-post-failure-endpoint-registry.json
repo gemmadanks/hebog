@@ -11,7 +11,7 @@
   "continuum_manifest_path": "config/datasets/phase-5-external-post-failure-continuum.json",
   "continuum_manifest_sha256": "4ce811e8aebc26b858473eb4473abba1b3bb5a916acb2ee6b645441723322e77",
   "execution_decision_path": "config/contracts/phase-5-external-post-failure-execution-decision.json",
-  "execution_decision_sha256": "16c9b59022de85ecdafb7452b8da3c7175e2fa0e39f338bfd3ff59485841001a",
+  "execution_decision_sha256": "ab04e7fb3648918ae005db1895182a2df9d8c6758a93b2a99a1f72ceeddfe990",
   "launcher_path": "scripts/benchmark/run_phase5_external_post_failure_campaign.py",
   "launcher_sha256": "82c53da33505ed0d395e13445265cef7482634b82b6ce6a53b409276f886f05b",
   "observable_compiler_path": "src/hebog/validation/post_failure_truth.py",

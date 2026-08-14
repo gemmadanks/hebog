@@ -7896,3 +7896,30 @@ no remaining actionable issue.
 **Immediate next step:** obtain named approval of review `835abe1c...` and the
 unchanged four runtime digests, then change only the authorization-dependent
 chain, commit it separately, and run the complete no-write preflight.
+
+## 2026-08-14 — Bound the refreshed post-failure execution approval
+
+**Plan phase:** Phase 5, post-Step 2C-PF exact-identity authorization
+
+- Gemma Danks approved technical preflight review `835abe1c...`, its exact
+  four rebuilt OCI identities, and the unchanged 2,400-image, 12,000-run,
+  two-lane program with four PyBDSF cores and the terminal one-look rule.
+- Changed only the authorization-dependent chain. The execution decision now
+  authorizes one terminal post-failure comparison and embeds the full review
+  checksum; the endpoint registry and evaluation contract now bind the new
+  decision and registry checksums. All scientific, population, runner,
+  resource, output, and qualification settings remain unchanged.
+
+**Decision:** authorization is sufficient to run the complete no-write
+preflight from the immutable authorization commit. Campaign output may be
+created only if that exact preflight passes.
+
+**Validation:** all 17 focused post-failure protocol tests pass. Final
+branch-aware coverage passes 1,351 tests with four expected xfails at 94.21%;
+`just check` passes 1,221 tests with four expected xfails. The strict
+documentation build and mandatory hooks pass, and the final code review found
+no actionable issue.
+
+**Immediate next step:** validate and commit this authorization, create its
+immutable execution checkout, run the no-write preflight, and launch the
+single terminal campaign only on success.

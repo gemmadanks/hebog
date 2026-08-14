@@ -1711,13 +1711,15 @@ comparison.**
          and validates the live approved chain independently. Refreshed review
          `835abe1c...` is technically ready; no campaign output or scientific
          product was opened.
-   - [ ] Obtain separate named approval bound to refreshed review
+   - [x] Obtain separate named approval bound to refreshed review
          `835abe1c...` and its four new OCI digests. Approval must retain 2,400
          images, 12,000 runs, two resource lanes, four PyBDSF cores, the frozen
          science and one-look rules, and execution from an immutable clean
-         checkout.
-         Then refresh the decision-dependent hash chain, run the complete
-         no-write preflight, and only afterward execute one terminal look.
+         checkout. Gemma Danks approved that exact review and identity set on
+         2026-08-14. The execution decision and dependent registry/evaluation
+         hashes now bind the approval without changing the reviewed program.
+         Run the complete no-write preflight from the resulting immutable
+         commit, and only after it passes execute one terminal look.
    - [ ] Treat the running campaign and continued development as isolated
          lanes. Monitor only process health, aggregate progress, storage, and
          terminal publication; never open or summarize partial scientific
