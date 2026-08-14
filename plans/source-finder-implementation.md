@@ -1683,14 +1683,29 @@ comparison.**
          compact, and 0.90205 joint. Review record
          `31ca691...` is reproducible from the closed analysis and does not
          authorize evidence reuse or execution.
-   - [ ] Obtain named scientific approval of the post-failure pre-review,
-         then implement and freeze fresh seed-disjoint evidence. Extend
-         observable-domain truth to each group's centroid and support
-         metadata, bind a new runner/compiler without modifying the closed
-         programs, retain all absolute and non-inferiority gates, and preserve
-         endpoint-specific variance failure, failure-denominator, and
-         one-look rules. Require a separate exact-identity execution decision
-         before opening Step 3 or interpreting runtime.
+   - [x] Obtain named scientific approval of the post-failure pre-review,
+         then implement and freeze fresh seed-disjoint evidence. Gemma Danks
+         approved implementation and freezing on 2026-08-14. The new truth
+         boundary measures flux, centroid, labels, and support metadata on one
+         finder-independent valid domain. The frozen population contains
+         1,600 Continuum and 800 compact images, all 2,400 seeds are globally
+         disjoint, and all 226 endpoint/reference variance priors recompute.
+         New runner, compiler, and evaluator identities retain every absolute,
+         non-inferiority, failure-denominator, excess-variance, and one-look
+         rule without changing a closed program. The exact candidate runtime
+         reproduces source tree `864d8f2...`; the network-disabled two-lane
+         resource probe passes.
+   - [ ] Resolve the post-failure operational preflight and obtain separate
+         exact-identity execution approval. The scaled 2,400-image/12,000-run
+         campaign requires 120 GiB free headroom; review records 30.88 GiB and
+         therefore rejects approval despite complete identities and absent
+         output paths. Preserve the closed confirmation data by moving it only
+         to verified external storage, or reclaim other approved local data;
+         retain the four bound runtime images. Refresh the storage-only review,
+         obtain named approval of that exact checksum, run the complete
+         no-write preflight, and only then execute one terminal look. Step 3,
+         optimization, qualification, and runtime interpretation remain
+         closed.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

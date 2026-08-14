@@ -1,0 +1,40 @@
+{
+  "analysis_compiler": {
+    "path": "scripts/validation/compile_phase5_external_post_failure_campaign.py",
+    "sha256": "e442f6586993d95a942a80af4e45fbf5b50448b434d5c0a244d78fb333b679b8",
+    "status": "frozen-before-campaign-output"
+  },
+  "base_evaluation_path": "config/contracts/phase-5-external-confirmation-evaluation.json",
+  "base_evaluation_sha256": "7b5300acbf5ed04d5cf8fe6fa2f53062b3ee9c13671a4f23b05e1f4b1e6a88d3",
+  "closed_campaign_reuse_authorized": false,
+  "compiler_accelerator": {
+    "path": "src/hebog/validation/external_campaign_compilation.py",
+    "sha256": "bb3c5c2fc278ad52a528e7eb1a630792e772004ce5435068b6678759a7be2d0b",
+    "status": "result-neutral-bounded-acceleration"
+  },
+  "contract_id": "phase-5-external-post-failure-evaluation",
+  "endpoint_registry": {
+    "path": "config/contracts/phase-5-external-post-failure-endpoint-registry.json",
+    "sha256": "8e8334e19677052ea6d27e46c91e18e13c98c8c665a4eb96e27d2ad804ef9c8c",
+    "status": "frozen-before-campaign-output"
+  },
+  "evaluator_path": "scripts/validation/evaluate_phase5_external_post_failure_decision.py",
+  "evaluator_sha256": "7612746bda483c82d0e7e72a7f49bb8283f8ae6c03d26bd18508184dbda7169a",
+  "observable_compiler": {
+    "path": "src/hebog/validation/post_failure_truth.py",
+    "sha256": "b217118219d32f4f934ced25d6ea64e97b034ccb8b1ab59f3a4da425070bd02c",
+    "status": "finder-independent-observable-truth"
+  },
+  "observable_measurement": {
+    "path": "src/hebog/validation/observable_truth.py",
+    "sha256": "c2cf4de902d39f582fe2393f0cab955cdc480d52ec04eaf8d9b91b30e336aab9",
+    "status": "finder-independent-observable-truth"
+  },
+  "one_look_rule": "one-terminal-look-no-tuning-rescoring-reconfirmation-or-adaptive-sample-size",
+  "population_contract_path": "config/contracts/phase-5-external-post-failure-population.json",
+  "population_contract_sha256": "42c3d07c2aeb74caf00f6e888a9cf3c6cecda3f05decb820db7e18cb646d87fd",
+  "protocol_path": "config/contracts/phase-5-external-post-failure-comparison.json",
+  "protocol_sha256": "a616da88f497a4c003a289ad3a6f667c24873eafc62a9711ae182d5f259ffdf5",
+  "schema_version": 1,
+  "status": "frozen-before-campaign-output"
+}

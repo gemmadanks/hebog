@@ -1,0 +1,28 @@
+{
+  "base_protocol_path": "config/contracts/phase-5-external-confirmation-comparison.json",
+  "base_protocol_sha256": "f9105d922e4972c63b811b59cd3bb9e1f196490f2f20e9f6914b0f0d07ef65d2",
+  "closed_campaign_reuse_authorized": false,
+  "contract_id": "phase-5-external-post-failure-comparison",
+  "execution_authorized": false,
+  "optimization_authorized": false,
+  "population_contract_path": "config/contracts/phase-5-external-post-failure-population.json",
+  "population_contract_sha256": "42c3d07c2aeb74caf00f6e888a9cf3c6cecda3f05decb820db7e18cb646d87fd",
+  "populations": [
+    {
+      "image_count": 1600,
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-external-post-failure-continuum.json",
+      "manifest_sha256": "4ce811e8aebc26b858473eb4473abba1b3bb5a916acb2ee6b645441723322e77"
+    },
+    {
+      "image_count": 800,
+      "lane": "compact-blend",
+      "manifest": "config/datasets/phase-5-external-post-failure-compact-blend.json",
+      "manifest_sha256": "8c39320199bdca5fccb478599da286fad9ae0a2bec5fbd2fecfe595cabc49e48"
+    }
+  ],
+  "qualification_opened": false,
+  "schema_version": 1,
+  "status": "frozen-before-external-output",
+  "step_three_authorized": false
+}

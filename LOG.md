@@ -7670,3 +7670,51 @@ which raise changed-file coverage to 100%.
 manifests with all 226 exact endpoint/reference priors, then bind the new
 runner, compiler, evaluator, and pending no-write preflight identities. A
 separate exact-identity approval remains required before execution.
+
+## 2026-08-14 — Froze the approved post-failure evidence boundary
+
+**Plan phase:** Phase 5, post-Step 2C-PF fresh external evidence
+
+- Froze 1,600 Continuum images as 400 new seeds over each of four reviewed
+  geometries and 800 new compact/blend images. All 2,400 seeds are disjoint
+  from 11,853 seeds in 39 historical manifests. Population contract
+  `42c3d07...` contains all 226 endpoint/reference priors and independently
+  recomputes the 1,550 minimum, selected 1,600 count, 0.992270 Continuum power,
+  and 0.902054 joint lower bound.
+- Bound candidate commit `63e4b58...`, source tree `864d8f2...`, the observable
+  truth modules, the prospective science runner, all three external wrappers,
+  the 2,400-input/12,000-run two-lane launcher, compiler, and endpoint-specific
+  evaluator. Absolute gates, non-inferiority margins, failure denominators,
+  exact excess-variance failure, and the one-look rule are inherited without
+  modifying any closed program or product.
+- Built the candidate from a clean archive of `63e4b58...` with the pinned
+  Phase 5 Containerfile. Image digest `sha256:4a7bc975...` reproduces source
+  tree `864d8f2...` and dependency inventory `d383be3...` in a network-disabled
+  check. The retained four-PyBDSF-core/two-resource-lane probe passed across
+  both PyBDSF references and Aegean; it is operational evidence only.
+- Prepared a fail-closed preflight review with public and private outputs
+  absent. The scaled campaign has a conservative 120 GiB free-space floor,
+  but only 30.88 GiB was available. Named execution approval is therefore not
+  recommended and cannot be accepted by the loader. Podman reports 32.17 GB
+  reclaimable images and an unused 4.67 GB `vscode` volume; the repository's
+  46 GB closed confirmation campaign must be preserved or moved to verified
+  external storage rather than deleted. No cleanup was performed.
+
+**Decision:** implementation and pre-results freezing are complete. Campaign
+execution, the no-write preflight, Step 3, optimization, qualification, and
+runtime interpretation remain closed pending storage remediation, a refreshed
+ready review, and separate named approval bound to its exact checksum.
+
+**Validation:** the focused prospective protocol, compiler, evaluator, and
+manifest-inventory suite passes 42 tests. A red-green regression proves that a
+review cannot declare storage ready when its recorded free-space observation
+is below the 120 GiB floor. Repository branch-aware coverage passes 1,343
+tests with four expected xfails at 94.21%; all 27 equivalence tests pass;
+`just check` passes 1,214 tests with four expected xfails; and the strict
+documentation build succeeds. Final Ruff, Pyright, hook, and identity checks
+are clean.
+
+**Immediate next step:** obtain approval for scoped local cleanup or move the
+closed confirmation data to verified external storage, reach 120 GiB free,
+refresh only the operational preflight review and dependent approval checksum,
+then request the separate one-look authorization.

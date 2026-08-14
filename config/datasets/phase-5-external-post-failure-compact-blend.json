@@ -1,0 +1,2185 @@
+{
+  "datasets": [
+    {
+      "association_group_strata": [
+        {
+          "group_identifiers": [
+            "blend-00001",
+            "blend-00002",
+            "blend-00003",
+            "blend-00004",
+            "blend-00005",
+            "blend-00006"
+          ],
+          "identifier": "unresolved-blend"
+        },
+        {
+          "group_identifiers": [
+            "blend-00001",
+            "blend-00003",
+            "blend-00005"
+          ],
+          "identifier": "blend-equal-flux"
+        },
+        {
+          "group_identifiers": [
+            "blend-00002",
+            "blend-00004",
+            "blend-00006"
+          ],
+          "identifier": "blend-two-to-one-flux"
+        }
+      ],
+      "association_truth_groups": [
+        {
+          "identifier": "source-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04006606365375239,
+          "reference_position_xy": [
+            55.0,
+            60.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            0
+          ]
+        },
+        {
+          "identifier": "source-00002",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04006606365375239,
+          "reference_position_xy": [
+            155.0,
+            60.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            1
+          ]
+        },
+        {
+          "identifier": "source-00003",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04006606365375239,
+          "reference_position_xy": [
+            255.0,
+            60.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            2
+          ]
+        },
+        {
+          "identifier": "source-00004",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04006606365375239,
+          "reference_position_xy": [
+            355.0,
+            60.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            3
+          ]
+        },
+        {
+          "identifier": "source-00005",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04006606365375239,
+          "reference_position_xy": [
+            455.0,
+            60.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            4
+          ]
+        },
+        {
+          "identifier": "source-00006",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04006606365375239,
+          "reference_position_xy": [
+            55.0,
+            150.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            5
+          ]
+        },
+        {
+          "identifier": "source-00007",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04006606365375239,
+          "reference_position_xy": [
+            155.0,
+            150.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            6
+          ]
+        },
+        {
+          "identifier": "source-00008",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04089220263853195,
+          "reference_position_xy": [
+            255.0,
+            150.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            7
+          ]
+        },
+        {
+          "identifier": "source-00009",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04298671358116034,
+          "reference_position_xy": [
+            355.0,
+            150.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            8
+          ]
+        },
+        {
+          "identifier": "source-00010",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.048191780898247355,
+          "reference_position_xy": [
+            455.0,
+            150.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            9
+          ]
+        },
+        {
+          "identifier": "source-00011",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.04006606365375239,
+          "reference_position_xy": [
+            1.4,
+            256.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            10
+          ]
+        },
+        {
+          "identifier": "source-00012",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.057407601548065304,
+          "reference_position_xy": [
+            510.0,
+            256.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            11
+          ]
+        },
+        {
+          "identifier": "source-00013",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.06009909548062859,
+          "reference_position_xy": [
+            55.0,
+            200.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            12
+          ]
+        },
+        {
+          "identifier": "source-00014",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.06009909548062859,
+          "reference_position_xy": [
+            155.0,
+            200.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            13
+          ]
+        },
+        {
+          "identifier": "source-00015",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.06009909548062859,
+          "reference_position_xy": [
+            255.0,
+            200.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            14
+          ]
+        },
+        {
+          "identifier": "source-00016",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.06009909548062859,
+          "reference_position_xy": [
+            355.0,
+            200.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            15
+          ]
+        },
+        {
+          "identifier": "source-00017",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.06009909548062859,
+          "reference_position_xy": [
+            455.0,
+            200.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            16
+          ]
+        },
+        {
+          "identifier": "source-00018",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.06009909548062859,
+          "reference_position_xy": [
+            55.0,
+            250.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            17
+          ]
+        },
+        {
+          "identifier": "source-00019",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.06009909548062859,
+          "reference_position_xy": [
+            155.0,
+            250.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            18
+          ]
+        },
+        {
+          "identifier": "source-00020",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.09341702700072538,
+          "reference_position_xy": [
+            255.0,
+            250.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            19
+          ]
+        },
+        {
+          "identifier": "source-00021",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10141723636809681,
+          "reference_position_xy": [
+            355.0,
+            250.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            20
+          ]
+        },
+        {
+          "identifier": "source-00022",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.1099184894268708,
+          "reference_position_xy": [
+            455.0,
+            250.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            21
+          ]
+        },
+        {
+          "identifier": "source-00023",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.06009909548062859,
+          "reference_position_xy": [
+            256.0,
+            1.2
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            22
+          ]
+        },
+        {
+          "identifier": "source-00024",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.13013506817088158,
+          "reference_position_xy": [
+            256.0,
+            510.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            23
+          ]
+        },
+        {
+          "identifier": "source-00025",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.100165159134381,
+          "reference_position_xy": [
+            55.0,
+            320.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            24
+          ]
+        },
+        {
+          "identifier": "source-00026",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.100165159134381,
+          "reference_position_xy": [
+            155.0,
+            320.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            25
+          ]
+        },
+        {
+          "identifier": "source-00027",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.100165159134381,
+          "reference_position_xy": [
+            255.0,
+            320.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            26
+          ]
+        },
+        {
+          "identifier": "source-00028",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.100165159134381,
+          "reference_position_xy": [
+            355.0,
+            320.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            27
+          ]
+        },
+        {
+          "identifier": "source-00029",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.100165159134381,
+          "reference_position_xy": [
+            455.0,
+            320.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            28
+          ]
+        },
+        {
+          "identifier": "source-00030",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.100165159134381,
+          "reference_position_xy": [
+            55.0,
+            370.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            29
+          ]
+        },
+        {
+          "identifier": "source-00031",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.100165159134381,
+          "reference_position_xy": [
+            155.0,
+            370.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            30
+          ]
+        },
+        {
+          "identifier": "source-00032",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.3456713471154929,
+          "reference_position_xy": [
+            255.0,
+            370.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            31
+          ]
+        },
+        {
+          "identifier": "source-00033",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.3815003530773502,
+          "reference_position_xy": [
+            355.0,
+            370.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            32
+          ]
+        },
+        {
+          "identifier": "source-00034",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.39709363507892637,
+          "reference_position_xy": [
+            455.0,
+            370.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            33
+          ]
+        },
+        {
+          "identifier": "source-00035",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.100165159134381,
+          "reference_position_xy": [
+            1.4,
+            1.4
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            34
+          ]
+        },
+        {
+          "identifier": "source-00036",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.40378151756341624,
+          "reference_position_xy": [
+            510.0,
+            1.4
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            35
+          ]
+        },
+        {
+          "identifier": "source-00037",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.200330318268762,
+          "reference_position_xy": [
+            55.0,
+            430.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            36
+          ]
+        },
+        {
+          "identifier": "source-00038",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.200330318268762,
+          "reference_position_xy": [
+            155.0,
+            430.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            37
+          ]
+        },
+        {
+          "identifier": "source-00039",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.200330318268762,
+          "reference_position_xy": [
+            255.0,
+            430.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            38
+          ]
+        },
+        {
+          "identifier": "source-00040",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.200330318268762,
+          "reference_position_xy": [
+            355.0,
+            430.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            39
+          ]
+        },
+        {
+          "identifier": "source-00041",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.200330318268762,
+          "reference_position_xy": [
+            455.0,
+            430.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            40
+          ]
+        },
+        {
+          "identifier": "source-00042",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.200330318268762,
+          "reference_position_xy": [
+            55.0,
+            480.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            41
+          ]
+        },
+        {
+          "identifier": "source-00043",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.200330318268762,
+          "reference_position_xy": [
+            155.0,
+            480.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            42
+          ]
+        },
+        {
+          "identifier": "source-00044",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.8344845177751398,
+          "reference_position_xy": [
+            255.0,
+            480.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            43
+          ]
+        },
+        {
+          "identifier": "source-00045",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.905607831233607,
+          "reference_position_xy": [
+            355.0,
+            480.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            44
+          ]
+        },
+        {
+          "identifier": "source-00046",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.0051870360154183,
+          "reference_position_xy": [
+            455.0,
+            480.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            45
+          ]
+        },
+        {
+          "identifier": "source-00047",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.200330318268762,
+          "reference_position_xy": [
+            1.4,
+            510.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            46
+          ]
+        },
+        {
+          "identifier": "source-00048",
+          "reference_integrated_brightness_jy_pixels_per_beam": 1.1173042657473873,
+          "reference_position_xy": [
+            510.0,
+            510.0
+          ],
+          "resolution_class": "individually-resolvable",
+          "source_indices": [
+            47
+          ]
+        },
+        {
+          "identifier": "blend-00001",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10817837186513145,
+          "reference_position_xy": [
+            105.00000000000001,
+            105.00000000000001
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            48,
+            49
+          ]
+        },
+        {
+          "identifier": "blend-00002",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10817837186513146,
+          "reference_position_xy": [
+            205.23472873763038,
+            104.90036356223523
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            50,
+            51
+          ]
+        },
+        {
+          "identifier": "blend-00003",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10817837186513145,
+          "reference_position_xy": [
+            305.0,
+            105.00000000000001
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            52,
+            53
+          ]
+        },
+        {
+          "identifier": "blend-00004",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10817837186513146,
+          "reference_position_xy": [
+            404.77988813095106,
+            104.48144893255511
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            54,
+            55
+          ]
+        },
+        {
+          "identifier": "blend-00005",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10817837186513145,
+          "reference_position_xy": [
+            105.00000000000001,
+            285.0
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            56,
+            57
+          ]
+        },
+        {
+          "identifier": "blend-00006",
+          "reference_integrated_brightness_jy_pixels_per_beam": 0.10817837186513146,
+          "reference_position_xy": [
+            405.2010100445676,
+            284.5024826812859
+          ],
+          "resolution_class": "unresolved-blend",
+          "source_indices": [
+            58,
+            59
+          ]
+        }
+      ],
+      "beam": {
+        "major_fwhm_pixels": 5.2,
+        "minor_fwhm_pixels": 3.4,
+        "position_angle_degrees": 67.0
+      },
+      "classification_strata": [
+        {
+          "identifier": "shape-unresolved",
+          "source_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            10,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            22,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            34,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            46
+          ]
+        },
+        {
+          "identifier": "shape-clear-resolved",
+          "source_indices": [
+            31,
+            32,
+            33,
+            35,
+            43,
+            44,
+            45,
+            47
+          ]
+        },
+        {
+          "identifier": "shape-marginal-resolved",
+          "source_indices": [
+            7,
+            8,
+            9,
+            11,
+            19,
+            20,
+            21,
+            23
+          ]
+        }
+      ],
+      "expected_statistics": {
+        "background_jy_per_beam": -0.00023,
+        "finite_fraction": 0.998931884765625,
+        "noise_rms_jy_per_beam": 0.0002
+      },
+      "identifier": "phase5-external-post-failure-compact-blend-512",
+      "noise_realization_seeds": [
+        2026870002,
+        2026870003,
+        2026870004,
+        2026870005,
+        2026870006,
+        2026870007,
+        2026870008,
+        2026870009,
+        2026870010,
+        2026870011,
+        2026870012,
+        2026870013,
+        2026870014,
+        2026870015,
+        2026870016,
+        2026870017,
+        2026870018,
+        2026870019,
+        2026870020,
+        2026870021,
+        2026870022,
+        2026870023,
+        2026870024,
+        2026870025,
+        2026870026,
+        2026870027,
+        2026870028,
+        2026870029,
+        2026870030,
+        2026870031,
+        2026870032,
+        2026870033,
+        2026870034,
+        2026870035,
+        2026870036,
+        2026870037,
+        2026870038,
+        2026870039,
+        2026870040,
+        2026870041,
+        2026870042,
+        2026870043,
+        2026870044,
+        2026870045,
+        2026870046,
+        2026870047,
+        2026870048,
+        2026870049,
+        2026870050,
+        2026870051,
+        2026870052,
+        2026870053,
+        2026870054,
+        2026870055,
+        2026870056,
+        2026870057,
+        2026870058,
+        2026870059,
+        2026870060,
+        2026870061,
+        2026870062,
+        2026870063,
+        2026870064,
+        2026870065,
+        2026870066,
+        2026870067,
+        2026870068,
+        2026870069,
+        2026870070,
+        2026870071,
+        2026870072,
+        2026870073,
+        2026870074,
+        2026870075,
+        2026870076,
+        2026870077,
+        2026870078,
+        2026870079,
+        2026870080,
+        2026870081,
+        2026870082,
+        2026870083,
+        2026870084,
+        2026870085,
+        2026870086,
+        2026870087,
+        2026870088,
+        2026870089,
+        2026870090,
+        2026870091,
+        2026870092,
+        2026870093,
+        2026870094,
+        2026870095,
+        2026870096,
+        2026870097,
+        2026870098,
+        2026870099,
+        2026870100,
+        2026870101,
+        2026870102,
+        2026870103,
+        2026870104,
+        2026870105,
+        2026870106,
+        2026870107,
+        2026870108,
+        2026870109,
+        2026870110,
+        2026870111,
+        2026870112,
+        2026870113,
+        2026870114,
+        2026870115,
+        2026870116,
+        2026870117,
+        2026870118,
+        2026870119,
+        2026870120,
+        2026870121,
+        2026870122,
+        2026870123,
+        2026870124,
+        2026870125,
+        2026870126,
+        2026870127,
+        2026870128,
+        2026870129,
+        2026870130,
+        2026870131,
+        2026870132,
+        2026870133,
+        2026870134,
+        2026870135,
+        2026870136,
+        2026870137,
+        2026870138,
+        2026870139,
+        2026870140,
+        2026870141,
+        2026870142,
+        2026870143,
+        2026870144,
+        2026870145,
+        2026870146,
+        2026870147,
+        2026870148,
+        2026870149,
+        2026870150,
+        2026870151,
+        2026870152,
+        2026870153,
+        2026870154,
+        2026870155,
+        2026870156,
+        2026870157,
+        2026870158,
+        2026870159,
+        2026870160,
+        2026870161,
+        2026870162,
+        2026870163,
+        2026870164,
+        2026870165,
+        2026870166,
+        2026870167,
+        2026870168,
+        2026870169,
+        2026870170,
+        2026870171,
+        2026870172,
+        2026870173,
+        2026870174,
+        2026870175,
+        2026870176,
+        2026870177,
+        2026870178,
+        2026870179,
+        2026870180,
+        2026870181,
+        2026870182,
+        2026870183,
+        2026870184,
+        2026870185,
+        2026870186,
+        2026870187,
+        2026870188,
+        2026870189,
+        2026870190,
+        2026870191,
+        2026870192,
+        2026870193,
+        2026870194,
+        2026870195,
+        2026870196,
+        2026870197,
+        2026870198,
+        2026870199,
+        2026870200,
+        2026870201,
+        2026870202,
+        2026870203,
+        2026870204,
+        2026870205,
+        2026870206,
+        2026870207,
+        2026870208,
+        2026870209,
+        2026870210,
+        2026870211,
+        2026870212,
+        2026870213,
+        2026870214,
+        2026870215,
+        2026870216,
+        2026870217,
+        2026870218,
+        2026870219,
+        2026870220,
+        2026870221,
+        2026870222,
+        2026870223,
+        2026870224,
+        2026870225,
+        2026870226,
+        2026870227,
+        2026870228,
+        2026870229,
+        2026870230,
+        2026870231,
+        2026870232,
+        2026870233,
+        2026870234,
+        2026870235,
+        2026870236,
+        2026870237,
+        2026870238,
+        2026870239,
+        2026870240,
+        2026870241,
+        2026870242,
+        2026870243,
+        2026870244,
+        2026870245,
+        2026870246,
+        2026870247,
+        2026870248,
+        2026870249,
+        2026870250,
+        2026870251,
+        2026870252,
+        2026870253,
+        2026870254,
+        2026870255,
+        2026870256,
+        2026870257,
+        2026870258,
+        2026870259,
+        2026870260,
+        2026870261,
+        2026870262,
+        2026870263,
+        2026870264,
+        2026870265,
+        2026870266,
+        2026870267,
+        2026870268,
+        2026870269,
+        2026870270,
+        2026870271,
+        2026870272,
+        2026870273,
+        2026870274,
+        2026870275,
+        2026870276,
+        2026870277,
+        2026870278,
+        2026870279,
+        2026870280,
+        2026870281,
+        2026870282,
+        2026870283,
+        2026870284,
+        2026870285,
+        2026870286,
+        2026870287,
+        2026870288,
+        2026870289,
+        2026870290,
+        2026870291,
+        2026870292,
+        2026870293,
+        2026870294,
+        2026870295,
+        2026870296,
+        2026870297,
+        2026870298,
+        2026870299,
+        2026870300,
+        2026870301,
+        2026870302,
+        2026870303,
+        2026870304,
+        2026870305,
+        2026870306,
+        2026870307,
+        2026870308,
+        2026870309,
+        2026870310,
+        2026870311,
+        2026870312,
+        2026870313,
+        2026870314,
+        2026870315,
+        2026870316,
+        2026870317,
+        2026870318,
+        2026870319,
+        2026870320,
+        2026870321,
+        2026870322,
+        2026870323,
+        2026870324,
+        2026870325,
+        2026870326,
+        2026870327,
+        2026870328,
+        2026870329,
+        2026870330,
+        2026870331,
+        2026870332,
+        2026870333,
+        2026870334,
+        2026870335,
+        2026870336,
+        2026870337,
+        2026870338,
+        2026870339,
+        2026870340,
+        2026870341,
+        2026870342,
+        2026870343,
+        2026870344,
+        2026870345,
+        2026870346,
+        2026870347,
+        2026870348,
+        2026870349,
+        2026870350,
+        2026870351,
+        2026870352,
+        2026870353,
+        2026870354,
+        2026870355,
+        2026870356,
+        2026870357,
+        2026870358,
+        2026870359,
+        2026870360,
+        2026870361,
+        2026870362,
+        2026870363,
+        2026870364,
+        2026870365,
+        2026870366,
+        2026870367,
+        2026870368,
+        2026870369,
+        2026870370,
+        2026870371,
+        2026870372,
+        2026870373,
+        2026870374,
+        2026870375,
+        2026870376,
+        2026870377,
+        2026870378,
+        2026870379,
+        2026870380,
+        2026870381,
+        2026870382,
+        2026870383,
+        2026870384,
+        2026870385,
+        2026870386,
+        2026870387,
+        2026870388,
+        2026870389,
+        2026870390,
+        2026870391,
+        2026870392,
+        2026870393,
+        2026870394,
+        2026870395,
+        2026870396,
+        2026870397,
+        2026870398,
+        2026870399,
+        2026870400,
+        2026870401,
+        2026870402,
+        2026870403,
+        2026870404,
+        2026870405,
+        2026870406,
+        2026870407,
+        2026870408,
+        2026870409,
+        2026870410,
+        2026870411,
+        2026870412,
+        2026870413,
+        2026870414,
+        2026870415,
+        2026870416,
+        2026870417,
+        2026870418,
+        2026870419,
+        2026870420,
+        2026870421,
+        2026870422,
+        2026870423,
+        2026870424,
+        2026870425,
+        2026870426,
+        2026870427,
+        2026870428,
+        2026870429,
+        2026870430,
+        2026870431,
+        2026870432,
+        2026870433,
+        2026870434,
+        2026870435,
+        2026870436,
+        2026870437,
+        2026870438,
+        2026870439,
+        2026870440,
+        2026870441,
+        2026870442,
+        2026870443,
+        2026870444,
+        2026870445,
+        2026870446,
+        2026870447,
+        2026870448,
+        2026870449,
+        2026870450,
+        2026870451,
+        2026870452,
+        2026870453,
+        2026870454,
+        2026870455,
+        2026870456,
+        2026870457,
+        2026870458,
+        2026870459,
+        2026870460,
+        2026870461,
+        2026870462,
+        2026870463,
+        2026870464,
+        2026870465,
+        2026870466,
+        2026870467,
+        2026870468,
+        2026870469,
+        2026870470,
+        2026870471,
+        2026870472,
+        2026870473,
+        2026870474,
+        2026870475,
+        2026870476,
+        2026870477,
+        2026870478,
+        2026870479,
+        2026870480,
+        2026870481,
+        2026870482,
+        2026870483,
+        2026870484,
+        2026870485,
+        2026870486,
+        2026870487,
+        2026870488,
+        2026870489,
+        2026870490,
+        2026870491,
+        2026870492,
+        2026870493,
+        2026870494,
+        2026870495,
+        2026870496,
+        2026870497,
+        2026870498,
+        2026870499,
+        2026870500,
+        2026870501,
+        2026870502,
+        2026870503,
+        2026870504,
+        2026870505,
+        2026870506,
+        2026870507,
+        2026870508,
+        2026870509,
+        2026870510,
+        2026870511,
+        2026870512,
+        2026870513,
+        2026870514,
+        2026870515,
+        2026870516,
+        2026870517,
+        2026870518,
+        2026870519,
+        2026870520,
+        2026870521,
+        2026870522,
+        2026870523,
+        2026870524,
+        2026870525,
+        2026870526,
+        2026870527,
+        2026870528,
+        2026870529,
+        2026870530,
+        2026870531,
+        2026870532,
+        2026870533,
+        2026870534,
+        2026870535,
+        2026870536,
+        2026870537,
+        2026870538,
+        2026870539,
+        2026870540,
+        2026870541,
+        2026870542,
+        2026870543,
+        2026870544,
+        2026870545,
+        2026870546,
+        2026870547,
+        2026870548,
+        2026870549,
+        2026870550,
+        2026870551,
+        2026870552,
+        2026870553,
+        2026870554,
+        2026870555,
+        2026870556,
+        2026870557,
+        2026870558,
+        2026870559,
+        2026870560,
+        2026870561,
+        2026870562,
+        2026870563,
+        2026870564,
+        2026870565,
+        2026870566,
+        2026870567,
+        2026870568,
+        2026870569,
+        2026870570,
+        2026870571,
+        2026870572,
+        2026870573,
+        2026870574,
+        2026870575,
+        2026870576,
+        2026870577,
+        2026870578,
+        2026870579,
+        2026870580,
+        2026870581,
+        2026870582,
+        2026870583,
+        2026870584,
+        2026870585,
+        2026870586,
+        2026870587,
+        2026870588,
+        2026870589,
+        2026870590,
+        2026870591,
+        2026870592,
+        2026870593,
+        2026870594,
+        2026870595,
+        2026870596,
+        2026870597,
+        2026870598,
+        2026870599,
+        2026870600,
+        2026870601,
+        2026870602,
+        2026870603,
+        2026870604,
+        2026870605,
+        2026870606,
+        2026870607,
+        2026870608,
+        2026870609,
+        2026870610,
+        2026870611,
+        2026870612,
+        2026870613,
+        2026870614,
+        2026870615,
+        2026870616,
+        2026870617,
+        2026870618,
+        2026870619,
+        2026870620,
+        2026870621,
+        2026870622,
+        2026870623,
+        2026870624,
+        2026870625,
+        2026870626,
+        2026870627,
+        2026870628,
+        2026870629,
+        2026870630,
+        2026870631,
+        2026870632,
+        2026870633,
+        2026870634,
+        2026870635,
+        2026870636,
+        2026870637,
+        2026870638,
+        2026870639,
+        2026870640,
+        2026870641,
+        2026870642,
+        2026870643,
+        2026870644,
+        2026870645,
+        2026870646,
+        2026870647,
+        2026870648,
+        2026870649,
+        2026870650,
+        2026870651,
+        2026870652,
+        2026870653,
+        2026870654,
+        2026870655,
+        2026870656,
+        2026870657,
+        2026870658,
+        2026870659,
+        2026870660,
+        2026870661,
+        2026870662,
+        2026870663,
+        2026870664,
+        2026870665,
+        2026870666,
+        2026870667,
+        2026870668,
+        2026870669,
+        2026870670,
+        2026870671,
+        2026870672,
+        2026870673,
+        2026870674,
+        2026870675,
+        2026870676,
+        2026870677,
+        2026870678,
+        2026870679,
+        2026870680,
+        2026870681,
+        2026870682,
+        2026870683,
+        2026870684,
+        2026870685,
+        2026870686,
+        2026870687,
+        2026870688,
+        2026870689,
+        2026870690,
+        2026870691,
+        2026870692,
+        2026870693,
+        2026870694,
+        2026870695,
+        2026870696,
+        2026870697,
+        2026870698,
+        2026870699,
+        2026870700,
+        2026870701,
+        2026870702,
+        2026870703,
+        2026870704,
+        2026870705,
+        2026870706,
+        2026870707,
+        2026870708,
+        2026870709,
+        2026870710,
+        2026870711,
+        2026870712,
+        2026870713,
+        2026870714,
+        2026870715,
+        2026870716,
+        2026870717,
+        2026870718,
+        2026870719,
+        2026870720,
+        2026870721,
+        2026870722,
+        2026870723,
+        2026870724,
+        2026870725,
+        2026870726,
+        2026870727,
+        2026870728,
+        2026870729,
+        2026870730,
+        2026870731,
+        2026870732,
+        2026870733,
+        2026870734,
+        2026870735,
+        2026870736,
+        2026870737,
+        2026870738,
+        2026870739,
+        2026870740,
+        2026870741,
+        2026870742,
+        2026870743,
+        2026870744,
+        2026870745,
+        2026870746,
+        2026870747,
+        2026870748,
+        2026870749,
+        2026870750,
+        2026870751,
+        2026870752,
+        2026870753,
+        2026870754,
+        2026870755,
+        2026870756,
+        2026870757,
+        2026870758,
+        2026870759,
+        2026870760,
+        2026870761,
+        2026870762,
+        2026870763,
+        2026870764,
+        2026870765,
+        2026870766,
+        2026870767,
+        2026870768,
+        2026870769,
+        2026870770,
+        2026870771,
+        2026870772,
+        2026870773,
+        2026870774,
+        2026870775,
+        2026870776,
+        2026870777,
+        2026870778,
+        2026870779,
+        2026870780,
+        2026870781,
+        2026870782,
+        2026870783,
+        2026870784,
+        2026870785,
+        2026870786,
+        2026870787,
+        2026870788,
+        2026870789,
+        2026870790,
+        2026870791,
+        2026870792,
+        2026870793,
+        2026870794,
+        2026870795,
+        2026870796,
+        2026870797,
+        2026870798,
+        2026870799,
+        2026870800
+      ],
+      "provenance": "The approved post-failure comparison reuses only reviewed geometry, beam, WCS, truth, endpoints, and gates. Every noise seed is disjoint from all historical manifests; no finder output, score, or decision is reused.",
+      "purpose": "Fresh approved post-failure compact/blend comparison.",
+      "recipe": {
+        "background": -0.00023,
+        "generator": "hebog.synthetic.gaussian-noise",
+        "generator_version": 3,
+        "invalid_rectangles": [
+          {
+            "x_start": 246,
+            "x_stop": 266,
+            "y_start": 112,
+            "y_stop": 126
+          }
+        ],
+        "noise_correlation": {
+          "major_fwhm_pixels": 5.2,
+          "minor_fwhm_pixels": 3.4,
+          "position_angle_degrees": 67.0,
+          "truncation_sigma": 4.0
+        },
+        "noise_rms": 0.0002,
+        "noise_rms_fractional_gradient_xy": [
+          -0.12,
+          0.19
+        ],
+        "seed": 2026870001,
+        "shape_yx": [
+          512,
+          512
+        ],
+        "sources": [
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 55.0,
+            "y_pixel": 60.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 155.0,
+            "y_pixel": 60.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 255.0,
+            "y_pixel": 60.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 355.0,
+            "y_pixel": 60.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 455.0,
+            "y_pixel": 60.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 55.0,
+            "y_pixel": 150.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 155.0,
+            "y_pixel": 150.0
+          },
+          {
+            "major_sigma_pixels": 2.251968385153949,
+            "minor_sigma_pixels": 1.4450016764762204,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 255.0,
+            "y_pixel": 150.0
+          },
+          {
+            "major_sigma_pixels": 2.3261028971835613,
+            "minor_sigma_pixels": 1.4706030335117384,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 69.63746731097004,
+            "x_pixel": 355.0,
+            "y_pixel": 150.0
+          },
+          {
+            "major_sigma_pixels": 2.3906267449831082,
+            "minor_sigma_pixels": 1.604173500203153,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 75.82031871860347,
+            "x_pixel": 455.0,
+            "y_pixel": 150.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 1.4,
+            "y_pixel": 256.0
+          },
+          {
+            "major_sigma_pixels": 2.417241842519693,
+            "minor_sigma_pixels": 1.8899026561406425,
+            "peak_flux_jy_per_beam": 0.002,
+            "rotation_degrees_counterclockwise_from_x": 81.94978621381776,
+            "x_pixel": 510.0,
+            "y_pixel": 256.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 55.0,
+            "y_pixel": 200.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 155.0,
+            "y_pixel": 200.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 255.0,
+            "y_pixel": 200.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 355.0,
+            "y_pixel": 200.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 455.0,
+            "y_pixel": 200.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 55.0,
+            "y_pixel": 250.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 155.0,
+            "y_pixel": 250.0
+          },
+          {
+            "major_sigma_pixels": 2.23921922741065,
+            "minor_sigma_pixels": 2.2132389471764,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 6.688207805501122,
+            "x_pixel": 255.0,
+            "y_pixel": 250.0
+          },
+          {
+            "major_sigma_pixels": 2.721892236194832,
+            "minor_sigma_pixels": 1.9766952646720404,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 30.37305752078305,
+            "x_pixel": 355.0,
+            "y_pixel": 250.0
+          },
+          {
+            "major_sigma_pixels": 3.125380384119473,
+            "minor_sigma_pixels": 1.86580712099032,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 45.96613412422911,
+            "x_pixel": 455.0,
+            "y_pixel": 250.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 256.0,
+            "y_pixel": 1.2
+          },
+          {
+            "major_sigma_pixels": 3.449375964028778,
+            "minor_sigma_pixels": 2.00148660559517,
+            "peak_flux_jy_per_beam": 0.003,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 256.0,
+            "y_pixel": 510.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 55.0,
+            "y_pixel": 320.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 155.0,
+            "y_pixel": 320.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 255.0,
+            "y_pixel": 320.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 355.0,
+            "y_pixel": 320.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 455.0,
+            "y_pixel": 320.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 55.0,
+            "y_pixel": 370.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 155.0,
+            "y_pixel": 370.0
+          },
+          {
+            "major_sigma_pixels": 4.109217555010019,
+            "minor_sigma_pixels": 2.6776534871749287,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 123.27927103561184,
+            "x_pixel": 255.0,
+            "y_pixel": 370.0
+          },
+          {
+            "major_sigma_pixels": 4.229069959376602,
+            "minor_sigma_pixels": 2.871443015452688,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 158.28953730566636,
+            "x_pixel": 355.0,
+            "y_pixel": 370.0
+          },
+          {
+            "major_sigma_pixels": 4.533069628912518,
+            "minor_sigma_pixels": 2.7883716804192087,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 13.562870366901905,
+            "x_pixel": 455.0,
+            "y_pixel": 370.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 1.4,
+            "y_pixel": 1.4
+          },
+          {
+            "major_sigma_pixels": 4.863290832817946,
+            "minor_sigma_pixels": 2.6428123120133504,
+            "peak_flux_jy_per_beam": 0.005,
+            "rotation_degrees_counterclockwise_from_x": 38.40074901345838,
+            "x_pixel": 510.0,
+            "y_pixel": 1.4
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 55.0,
+            "y_pixel": 430.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 155.0,
+            "y_pixel": 430.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 255.0,
+            "y_pixel": 430.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 355.0,
+            "y_pixel": 430.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 455.0,
+            "y_pixel": 430.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 55.0,
+            "y_pixel": 480.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 155.0,
+            "y_pixel": 480.0
+          },
+          {
+            "major_sigma_pixels": 5.136227504568641,
+            "minor_sigma_pixels": 2.5857954270801744,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 255.0,
+            "y_pixel": 480.0
+          },
+          {
+            "major_sigma_pixels": 5.316782713076596,
+            "minor_sigma_pixels": 2.71088683931107,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 81.86022977087785,
+            "x_pixel": 355.0,
+            "y_pixel": 480.0
+          },
+          {
+            "major_sigma_pixels": 5.445678877100887,
+            "minor_sigma_pixels": 2.9377509971523246,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 102.26883650769179,
+            "x_pixel": 455.0,
+            "y_pixel": 480.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 66.99999999999999,
+            "x_pixel": 1.4,
+            "y_pixel": 510.0
+          },
+          {
+            "major_sigma_pixels": 5.550662954720233,
+            "minor_sigma_pixels": 3.2036623063221126,
+            "peak_flux_jy_per_beam": 0.01,
+            "rotation_degrees_counterclockwise_from_x": 126.84464405238347,
+            "x_pixel": 510.0,
+            "y_pixel": 510.0
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0027,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 104.54284457966754,
+            "y_pixel": 103.92300932146064
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0027,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 105.45715542033246,
+            "y_pixel": 106.07699067853936
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0036000000000000003,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 205.70418621289113,
+            "y_pixel": 104.70109068670571
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0018,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 204.29581378710887,
+            "y_pixel": 105.29890931329429
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0027,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 305.4899619836337,
+            "y_pixel": 103.78730153563446
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0027,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 304.5100380163663,
+            "y_pixel": 106.21269846436554
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0036000000000000003,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 404.33966439285314,
+            "y_pixel": 103.44434679766537
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0018,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 405.66033560714686,
+            "y_pixel": 106.55565320233463
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0027,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 106.25188660069531,
+            "y_pixel": 284.4686056652546
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0027,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 103.74811339930469,
+            "y_pixel": 285.5313943347454
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0036000000000000003,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 405.60303013370304,
+            "y_pixel": 283.5074480438578
+          },
+          {
+            "major_sigma_pixels": 2.2082366807488496,
+            "minor_sigma_pixels": 1.4438470604896323,
+            "peak_flux_jy_per_beam": 0.0018,
+            "rotation_degrees_counterclockwise_from_x": 67.0,
+            "x_pixel": 404.39696986629696,
+            "y_pixel": 286.4925519561422
+          }
+        ]
+      },
+      "recipe_sha256": "a98a73c225b3cbe2d4241b799fa80a090c786c56bd19cfd00368744d122031d7",
+      "redistribution": "generated-locally",
+      "role": "regression",
+      "validation_strata": [
+        {
+          "identifier": "snr-10",
+          "source_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "identifier": "snr-15",
+          "source_indices": [
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ]
+        },
+        {
+          "identifier": "snr-25",
+          "source_indices": [
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ]
+        },
+        {
+          "identifier": "snr-50",
+          "source_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        {
+          "identifier": "edge",
+          "source_indices": [
+            10,
+            11,
+            22,
+            23,
+            34,
+            35,
+            46,
+            47
+          ]
+        }
+      ],
+      "wcs": {
+        "frame": "icrs",
+        "pixel_scale_degrees_xy": [
+          -0.00021,
+          0.00031
+        ],
+        "reference_pixel_xy": [
+          255.5,
+          255.5
+        ],
+        "reference_sky_degrees": [
+          214.7,
+          -47.3
+        ],
+        "rotation_degrees_counterclockwise": 28.0
+      }
+    }
+  ],
+  "manifest_id": "phase-5-external-post-failure-compact-blend",
+  "schema_version": 2
+}
