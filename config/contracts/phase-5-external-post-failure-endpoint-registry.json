@@ -23,7 +23,7 @@
   "protocol_path": "config/contracts/phase-5-external-post-failure-comparison.json",
   "protocol_sha256": "a616da88f497a4c003a289ad3a6f667c24873eafc62a9711ae182d5f259ffdf5",
   "protocol_verifier_path": "scripts/validation/phase5_external_post_failure_protocol.py",
-  "protocol_verifier_sha256": "83edc7f117785cc943f5a8f8bcb37651a53e082727afa222da369603e86aa2fc",
+  "protocol_verifier_sha256": "5b1f3c84e8569beaada7b6e1fe1255c58d7e16a075462995df0426e74fe067f7",
   "registry_id": "phase-5-external-post-failure-endpoint-registry",
   "schema_version": 1,
   "status": "frozen-before-campaign-output"

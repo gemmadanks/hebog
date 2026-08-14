@@ -114,6 +114,13 @@ _PYBDSF_NCORES = 4
 _EXECUTION_CONCURRENCY = 2
 _MINIMUM_AVAILABLE_GIB = 120.0
 _GIB_ROUNDING_TOLERANCE = 0.5e-6
+_APPROVAL_DEPENDENT_ARTIFACTS = frozenset(
+    {
+        "config/contracts/phase-5-external-post-failure-execution-decision.json",
+        "config/contracts/phase-5-external-post-failure-endpoint-registry.json",
+        "config/contracts/phase-5-external-post-failure-evaluation.json",
+    }
+)
 
 
 def file_sha256(path: Path) -> str:
@@ -392,6 +399,24 @@ def require_exact_runtime_images(document: dict[str, Any]) -> None:
         raise ValueError("post-failure runtime image identity changed")
 
 
+def authorization_has_transitioned(root: Path) -> bool:
+    """Distinguish the governed approval transition from artifact drift."""
+    decision_path = (
+        root / "config/contracts/"
+        "phase-5-external-post-failure-execution-decision.json"
+    )
+    decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    if not isinstance(decision, dict):
+        raise ValueError("post-failure authorization state is invalid")
+    status = decision.get("status")
+    if status not in {
+        "awaiting-named-execution-approval",
+        "reviewed-before-external-output",
+    }:
+        raise ValueError("post-failure authorization state is invalid")
+    return status == "reviewed-before-external-output"
+
+
 def load_post_failure_preflight_review(path: Path) -> dict[str, Any]:
     """Validate identities and readiness without opening science."""
     document = json_object(path)
@@ -483,6 +508,7 @@ def load_post_failure_preflight_review(path: Path) -> dict[str, Any]:
     if not isinstance(identities, list) or not identities:
         raise ValueError("post-failure preflight identities are absent")
     root = path.resolve().parents[2]
+    authorization_transitioned = authorization_has_transitioned(root)
     for identity in identities:
         if not isinstance(identity, dict):
             raise ValueError("post-failure preflight identity is malformed")
@@ -493,11 +519,12 @@ def load_post_failure_preflight_review(path: Path) -> dict[str, Any]:
         )
         relative = identity.get("relative_path")
         expected = identity.get("sha256")
+        if not isinstance(relative, str) or not isinstance(expected, str):
+            raise ValueError("post-failure preflight artifact changed")
         if (
-            not isinstance(relative, str)
-            or not isinstance(expected, str)
-            or file_sha256(root / relative) != expected
-        ):
+            relative not in _APPROVAL_DEPENDENT_ARTIFACTS
+            or not authorization_transitioned
+        ) and file_sha256(root / relative) != expected:
             raise ValueError("post-failure preflight artifact changed")
     return document
 

@@ -15,7 +15,7 @@
   "contract_id": "phase-5-external-post-failure-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-post-failure-endpoint-registry.json",
-    "sha256": "88afc77bafe14a492f9047df790ab711f2d5784604a0ade94009904beb38989f",
+    "sha256": "4235be8584f0b80f1fb5da0a5e45549c9885c6ee9a5b641b8094e0e5f27ba082",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_post_failure_decision.py",

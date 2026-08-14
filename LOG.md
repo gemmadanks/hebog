@@ -7860,3 +7860,39 @@ review found no remaining actionable issue.
 review checksum into the execution decision and dependent registry/evaluation
 chain, commit that authorization separately, then run the complete no-write
 preflight.
+
+## 2026-08-14 — Repaired the post-failure approval transition
+
+**Plan phase:** Phase 5, post-Step 2C-PF exact-identity authorization
+
+- Gemma Danks approved technical review `29343e37...` and its four rebuilt
+  runtime digests. Before changing authorization or creating staging, the
+  transition exposed a circular checksum dependency: the review required the
+  pending decision checksum while the approved decision had to require the
+  review checksum. No valid immutable approved pair could satisfy both checks.
+- Added an explicit asymmetric transition boundary. While authorization is
+  pending, the decision, registry, and evaluation files must match the exact
+  checksums captured by the review. After the decision enters the only valid
+  approved state, the immutable review retains those pending snapshots while
+  the strict decision, registry, and evaluation loaders validate the new live
+  chain and its review binding independently.
+- Added regressions proving that pending artifact drift is rejected and that
+  the reviewed snapshot survives only the governed approval transition. The
+  runtime IDs, dependency inventories, population, programs, science policy,
+  one-look rule, resource limits, output absence, and storage observation did
+  not change.
+
+**Decision:** review `29343e37...` is superseded because the verifier identity
+changed to repair the fail-closed transition. Refreshed technical review
+`835abe1c...` requires a new named approval. Execution remains unauthorized;
+no no-write preflight, staging directory, or campaign product was created.
+
+**Validation:** all 17 focused post-failure protocol tests pass. Final
+branch-aware coverage passes 1,351 tests with four expected xfails at 94.21%;
+`just check` passes 1,221 tests with four expected xfails. The strict
+documentation build and mandatory hooks pass, and the final code review found
+no remaining actionable issue.
+
+**Immediate next step:** obtain named approval of review `835abe1c...` and the
+unchanged four runtime digests, then change only the authorization-dependent
+chain, commit it separately, and run the complete no-write preflight.

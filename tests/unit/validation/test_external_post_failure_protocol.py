@@ -240,6 +240,113 @@ def test_preflight_review_rejects_changed_runtime_identity(
         helpers["load_post_failure_preflight_review"](review_path)
 
 
+def test_preflight_review_retains_pending_authorization_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Approval-dependent files may change without changing the review."""
+    helpers = _script(
+        "scripts/validation/phase5_external_post_failure_protocol.py"
+    )
+    review_path = (
+        _ROOT / "config/contracts/"
+        "phase-5-external-post-failure-preflight-review.json"
+    )
+    approval_dependent = {
+        "config/contracts/phase-5-external-post-failure-execution-decision.json",
+        "config/contracts/phase-5-external-post-failure-endpoint-registry.json",
+        "config/contracts/phase-5-external-post-failure-evaluation.json",
+    }
+    original_sha256 = helpers["file_sha256"]
+
+    def transitioned_sha256(path: Path) -> str:
+        if path.relative_to(_ROOT).as_posix() in approval_dependent:
+            return "0" * 64
+        return original_sha256(path)
+
+    globals_ = helpers["load_post_failure_preflight_review"].__globals__
+    monkeypatch.setitem(globals_, "file_sha256", transitioned_sha256)
+    monkeypatch.setitem(
+        globals_,
+        "authorization_has_transitioned",
+        lambda _root: True,
+    )
+
+    review = helpers["load_post_failure_preflight_review"](review_path)
+
+    assert review["status"] == "ready-for-named-execution-approval"
+
+
+def test_preflight_review_rejects_authorization_drift_while_pending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Approval-dependent files remain exact before the transition."""
+    helpers = _script(
+        "scripts/validation/phase5_external_post_failure_protocol.py"
+    )
+    review_path = (
+        _ROOT / "config/contracts/"
+        "phase-5-external-post-failure-preflight-review.json"
+    )
+    review = deepcopy(helpers["json_object"](review_path))
+    decision_identity = next(
+        item
+        for item in review["identity_artifacts"]
+        if item["relative_path"].endswith("execution-decision.json")
+    )
+    decision_identity["sha256"] = "0" * 64
+    globals_ = helpers["load_post_failure_preflight_review"].__globals__
+    monkeypatch.setitem(globals_, "json_object", lambda _path: review)
+
+    with pytest.raises(ValueError, match="preflight artifact changed"):
+        helpers["load_post_failure_preflight_review"](review_path)
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        ("awaiting-named-execution-approval", False),
+        ("reviewed-before-external-output", True),
+    ],
+)
+def test_authorization_transition_recognizes_only_governed_states(
+    monkeypatch: pytest.MonkeyPatch,
+    status: str,
+    expected: bool,
+) -> None:
+    """The cycle breaker distinguishes the two valid decision states."""
+    helpers = _script(
+        "scripts/validation/phase5_external_post_failure_protocol.py"
+    )
+    globals_ = helpers["authorization_has_transitioned"].__globals__
+    monkeypatch.setattr(
+        globals_["json"],
+        "loads",
+        lambda _value: {"status": status},
+    )
+
+    assert helpers["authorization_has_transitioned"](_ROOT) is expected
+
+
+@pytest.mark.parametrize("decision", [[], {"status": "invalid"}])
+def test_authorization_transition_rejects_invalid_state(
+    monkeypatch: pytest.MonkeyPatch,
+    decision: object,
+) -> None:
+    """Malformed or unknown decision states cannot bypass review checks."""
+    helpers = _script(
+        "scripts/validation/phase5_external_post_failure_protocol.py"
+    )
+    globals_ = helpers["authorization_has_transitioned"].__globals__
+    monkeypatch.setattr(
+        globals_["json"],
+        "loads",
+        lambda _value: decision,
+    )
+
+    with pytest.raises(ValueError, match="authorization state"):
+        helpers["authorization_has_transitioned"](_ROOT)
+
+
 def test_post_failure_launcher_rejects_pending_before_inspection(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

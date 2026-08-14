@@ -1704,10 +1704,15 @@ comparison.**
          reproduced the frozen Hebog source tree and all four dependency
          inventories. A fresh network-disabled two-lane probe passed, dangling
          build layers were removed, and 142.80 GiB is now free against the
-         120 GiB floor. Refreshed review `29343e37...` is technically ready;
-         no campaign output or scientific product was opened.
+         120 GiB floor. The first ready review exposed a circular checksum
+         dependency between its pending decision snapshot and the approved
+         decision. A fail-closed transition rule now validates the pending
+         files before approval, preserves that immutable snapshot afterward,
+         and validates the live approved chain independently. Refreshed review
+         `835abe1c...` is technically ready; no campaign output or scientific
+         product was opened.
    - [ ] Obtain separate named approval bound to refreshed review
-         `29343e37...` and its four new OCI digests. Approval must retain 2,400
+         `835abe1c...` and its four new OCI digests. Approval must retain 2,400
          images, 12,000 runs, two resource lanes, four PyBDSF cores, the frozen
          science and one-look rules, and execution from an immutable clean
          checkout.
