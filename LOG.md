@@ -7506,3 +7506,40 @@ sequencing deviation, not a science change or additional look.
 
 **Immediate next step:** commit the byte-identical correction, then record and
 validate the already-sealed scientific decision without rescoring it.
+
+## 2026-08-14 — Closed the external confirmation with a scientific failure
+
+**Plan phase:** Phase 5, Step 2C-PF — terminal confirmation decision
+
+- Sealed campaign `ffd6de4...` contains all 1,400 fresh inputs and 7,000
+  successful finder runs; no binding leg is failed or unavailable. It ran for
+  6 h 28 min with two resource lanes. This duration is operational context,
+  not comparative performance evidence.
+- The checksum-bound compiler completed in approximately 4 h 51 min and
+  atomically published analysis `cf14518...`. The unchanged evaluator then
+  published decision `70c17ba...`. Scientific outcomes were inspected before
+  any runtime interpretation.
+- Continuum has 86 passing, 30 failing, and 27 underpowered binding endpoints.
+  Twenty-nine failures are absolute integrated-flux gates: all 15 median
+  strata and 14 of 15 p95 strata. Overall mask precision passes its absolute
+  gate but fails paired non-inferiority to both PyBDSF references. The 27
+  underpowered endpoints pass their absolute gates but exceed the
+  predeclared paired-variance bounds; they cannot compensate for failures.
+- Compact now passes all 450 applicable comparisons against released PyBDSF
+  and pinned `master`. Against Aegean, 130 of 143 binding comparisons pass and
+  13 fail: six fitted-position-angle medians, one fitted-position-angle p95,
+  two integrated-flux medians, and four integrated-flux p95 endpoints.
+
+**Decision:** `fail`. Step 3, optimization, qualification, and runtime
+comparison remain closed. The campaign may not be rescored or reused as
+confirmation, and no speedup claim is authorized.
+
+**Validation:** the evaluator completed without changing its frozen decision
+logic. The analysis records compiler `9f4fd09...`, and the decision records
+analysis `cf14518...` and evaluation contract `7b5300a...`. Focused validation
+and the mandatory repository hooks pass before the evaluation commit.
+
+**Immediate next step:** obtain human scientific review of the sealed failure
+before choosing a new prospective candidate or proceeding with the independent
+Rapthor-profile question in Step 2D. Any new candidate requires a revised
+pre-results plan and fresh evidence; this campaign cannot be tuned or rescored.

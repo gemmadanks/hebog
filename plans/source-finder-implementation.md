@@ -968,7 +968,12 @@ Its 61 Hebog continuum failures make all 143 continuum endpoints
 indeterminate, while compact misses 9 of 450 PyBDSF and 8 of 143 applicable
 Aegean comparisons. Step 3 remains closed pending prospective runner-
 completeness, compact-astrometry, and flux corrections followed by new
-seed-disjoint evidence.
+seed-disjoint evidence. Those prospective corrections completed all 7,000
+runs in fresh confirmation campaign `ffd6de4...`, but decision `70c17ba...`
+still fails. Compact now passes all 450 PyBDSF comparisons but misses 13
+Aegean integrated-flux/position-angle endpoints; Continuum fails 29 absolute
+integrated-flux endpoints and mask-precision non-inferiority. Step 3,
+optimization, qualification, and runtime comparison remain closed.
 
 **Goal:** provide a trusted general continuum profile that recovers and
 measures extended and cross-scale emission without recursively rerunning the
@@ -1618,11 +1623,13 @@ comparison.**
          output paths remain absent. The exact preflight passed request
          `73b93ee...`; both paths remained absent and approximately 80 GiB of
          host storage was available immediately afterward.
-   - [ ] Execute the approved confirmation once with exactly two resource
+   - [x] Execute the approved confirmation once with exactly two resource
          lanes and no partial-result inspection. Require approximately 60 GiB
          storage headroom; about 81.5 GiB was available at technical review.
-         Monitor operational progress only until the terminal manifest seals.
-   - [ ] Compile the sealed campaign with the parity-reviewed bounded
+         Campaign `ffd6de4...` sealed all 1,400 inputs and 7,000 successful
+         finder runs in 6 h 28 min. Private staging closed, and no partial
+         scientific product was opened.
+   - [x] Compile the sealed campaign with the parity-reviewed bounded
          accelerators, run the unchanged evaluator before interpreting
          runtime, and record the scientific decision. A pass may open Step 3;
          a fail closes this candidate without rescoring or adaptive follow-up.
@@ -1633,6 +1640,19 @@ comparison.**
          only in the confirmation compiler view, regression-test and commit
          that composition correction, then retry without changing campaign
          data, science kernels, endpoints, or gates.
+         The retry then exposed a second result-neutral mismatch: the
+         historical verifier expected compact and continuum Hebog products in
+         every lane. The confirmation view now validates the exact lane-owned
+         product sets while retaining unchanged reference validation.
+         Analysis `cf14518...` and decision `70c17ba...` are sealed. The
+         decision is `fail`: 29 of 143 binding Continuum endpoints fail the
+         absolute integrated-flux gates, mask precision fails paired
+         non-inferiority, and 27 otherwise absolute-passing endpoints are
+         underpowered under the predeclared variance rule. Compact passes all
+         450 PyBDSF comparisons but fails 13 of 143 Aegean-binding comparisons,
+         concentrated in integrated flux and fitted position angle. Step 3,
+         optimization, qualification, and runtime comparison remain closed;
+         the 6 h 28 min campaign duration is operational context only.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
