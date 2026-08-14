@@ -1668,15 +1668,29 @@ comparison.**
          regression diagnostics pass the existing absolute science gates and
          materially reduce the failed quantities; this is prospective
          evidence only.
-   - [ ] Obtain scientific pre-review of the post-failure candidate, then
-         freeze fresh seed-disjoint evidence. Re-estimate and predeclare the
-         paired-variance planning bounds from the independent closed campaign
-         and increase or restructure the continuum population until the
-         unchanged 0.90 power requirement is met; do not merely reuse the
-         former 600-image calculation whose variance assumptions failed.
-         Bind a new runner/compiler that uses observable-domain truth, retain
-         all absolute and non-inferiority gates, and require a new one-look
-         decision before opening Step 3 or interpreting runtime.
+   - [x] Complete the technical scientific pre-review of the post-failure
+         candidate and redesign its prospective power audit from the
+         independent closed campaign. The review recommends the corrected
+         candidate for fresh evidence, subject to named approval. Replace the
+         coarse family/count calculation with all 226 exact paired binding
+         endpoint/reference assumptions, retain each old family variance as a
+         floor, inflate the closed endpoint variance by 25%, and retain only
+         half of a favourable closed difference while planning an
+         unfavourable difference at equality. The exact minimum is 1,550
+         Continuum images; select 1,600, balanced as 400 fresh seeds over each
+         of four geometries. With the unchanged 800-image compact lane, the
+         conservative familywise lower bounds are 0.99227 Continuum, 0.90978
+         compact, and 0.90205 joint. Review record
+         `31ca691...` is reproducible from the closed analysis and does not
+         authorize evidence reuse or execution.
+   - [ ] Obtain named scientific approval of the post-failure pre-review,
+         then implement and freeze fresh seed-disjoint evidence. Extend
+         observable-domain truth to each group's centroid and support
+         metadata, bind a new runner/compiler without modifying the closed
+         programs, retain all absolute and non-inferiority gates, and preserve
+         endpoint-specific variance failure, failure-denominator, and
+         one-look rules. Require a separate exact-identity execution decision
+         before opening Step 3 or interpreting runtime.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

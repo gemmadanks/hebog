@@ -7591,3 +7591,56 @@ not modified or rescored.
 bounded regression evidence. Step 3, optimization, qualification, and runtime
 interpretation remain closed pending scientific pre-review and fresh
 seed-disjoint external evidence.
+
+## 2026-08-14 — Completed the post-failure scientific pre-review
+
+**Plan phase:** Phase 5, post-Step 2C-PF scientific and power review
+
+- Reviewed the prospective Continuum aperture photometry, sub-beam mask
+  opening, observable-domain truth boundary, and compact beam-or-free
+  measurement against the closed failure classes and established source-finder
+  practice. The candidate is scientifically credible for a fresh comparison,
+  but its regression diagnostics are not external equivalence evidence.
+- Identified that observable-domain truth must include each group's centroid
+  and support metadata as well as integrated flux. The new compiler must keep
+  that truth independent of finder detections before fresh identities are
+  frozen.
+- Replaced the former coarse planning abstraction in the prospective review.
+  The old table assigned nominal counts by family, including report-only
+  position median, whereas the sealed compiler produced 226 paired binding
+  endpoint/reference comparisons with strongly heterogeneous variance.
+- Added a pure endpoint-specific power planner and reproducible review script.
+  Each new variance bound is the larger of the old family floor and 1.25 times
+  the independent closed endpoint standard deviation. The planning
+  alternative retains half of a favourable closed difference and treats an
+  unfavourable difference as equality.
+- The mathematical minimum is 1,550 Continuum images. The review recommends
+  1,600, balanced as 400 fresh seeds over four geometries, plus the existing
+  800-image compact lane. The conservative lower bounds are 0.992270
+  Continuum, 0.909784 compact, and 0.902054 joint. Under these guarded
+  assumptions, the former 600-image Continuum population would provide only
+  0.187276 joint power.
+- Generated ignored machine-readable review
+  `benchmark-results/phase-5/post-failure-power-pre-review.json` with SHA-256
+  `31ca691e1c5fc7ca905e0ad874906533ed55b7a4746c68543457951264aba07d`.
+  Closed analysis `cf14518...`, population `c346549...`, campaign products,
+  compilers, and decision were not changed or rescored.
+
+**Decision:** recommend named scientific approval of the candidate and revised
+population design. Approval would authorize implementation and freezing only;
+execution still requires a later exact-identity preflight and one-look
+decision. Step 3, optimization, qualification, and runtime interpretation
+remain closed.
+
+**Validation:** 20 focused power-planning tests pass with 100% line and branch
+coverage for the new module. The branch-aware repository coverage run passes
+1,312 tests with four expected xfails at 93.93% overall; the subsequent
+failure-path additions only increase coverage. All 27 equivalence tests pass,
+`just check` passes 1,196 tests with four expected xfails, and the strict
+documentation build and mandatory repository hooks pass. Ruff and Pyright
+report no errors.
+
+**Immediate next step:** obtain named approval of the pre-review. If approved,
+implement observable centroid/support truth, freeze fresh manifests and exact
+endpoint priors, bind new immutable runner/compiler identities, and prepare a
+separate execution preflight without opening scientific products.
