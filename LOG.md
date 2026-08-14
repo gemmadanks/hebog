@@ -7472,3 +7472,37 @@ a campaign rerun, additional look, scientific change, or gate change.
 **Immediate next step:** validate and commit the corrected compiler composition,
 then retry write-once compilation and run the evaluator before interpreting
 runtime.
+
+## 2026-08-14 — Corrected confirmation product-role verification
+
+**Plan phase:** Phase 5, Step 2C-PF — second pre-analysis composition
+correction
+
+- The retried compiler passed request validation but failed closed before
+  creating analysis because the historical verifier expected Hebog's compact
+  and continuum artifacts in every successful run. The prospective runner
+  deliberately emits only the products owned by each lane: three segment
+  products for continuum and one compact catalogue for compact/blend.
+- Added a regression that first reproduced the extra compact-product
+  expectation. The confirmation-only verifier now validates the exact
+  lane-specific Hebog product sets and delegates all reference product sets
+  to the unchanged historical verifier. The campaign, artifacts, science
+  kernels, endpoints, thresholds, and evaluator are unchanged.
+- Refreshed the checksum chain to compiler `9f4fd09...`, endpoint registry
+  `e9a6482...`, and evaluation contract `7b5300a...`. Analysis and decision
+  outputs were absent when the correction was made.
+
+**Validation:** the new regression failed for the intended extra-product
+expectation and passed after installing the lane-specific verifier. The two
+focused confirmation compiler tests and Ruff pass. The mandatory formatter
+would otherwise reflow two already-executed lines and change the compiler
+checksum, so this exact frozen evidence program is excluded from formatting;
+lint, type checking, and tests remain mandatory.
+
+**Deviation:** the exact checksum-bound correction was compiled before its
+local commit was created. No file changed between compilation and the commit;
+the analysis records the same `9f4fd09...` compiler identity. This is a
+sequencing deviation, not a science change or additional look.
+
+**Immediate next step:** commit the byte-identical correction, then record and
+validate the already-sealed scientific decision without rescoring it.

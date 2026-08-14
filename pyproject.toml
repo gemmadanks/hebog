@@ -79,6 +79,10 @@ line-length = 79
 src = ["src", "tests"]
 extend-exclude = ["benchmark-results"]
 
+[tool.ruff.format]
+# Preserve the checksum-bound compiler that produced sealed evidence.
+exclude = ["scripts/validation/compile_phase5_external_confirmation_campaign.py"]
+
 [tool.ruff.lint]
 select = [
     "ARG",

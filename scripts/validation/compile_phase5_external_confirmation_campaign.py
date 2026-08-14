@@ -38,6 +38,9 @@ _DECISION_PATH = (
 _SUCCESSOR = runpy.run_path(str(_SUCCESSOR_COMPILER_PATH))
 _TERMINAL = _SUCCESSOR["_TERMINAL"]
 _TERMINAL_JSON_OBJECT = _TERMINAL["_json_object"]
+_TERMINAL_EXPECTED_ARTIFACT_ROLES = _TERMINAL[
+    "_expected_artifact_roles"
+]
 _HELPERS = runpy.run_path(
     str(_ROOT / "scripts/validation/phase5_external_confirmation_protocol.py")
 )
@@ -76,6 +79,23 @@ def load_confirmation_composition(
     return cast(dict[str, Any], registry)
 
 
+def _confirmation_expected_artifact_roles(run: Any) -> frozenset[str]:
+    """Return the native products emitted by each confirmation lane."""
+    if run.finder_id != "hebog":
+        return cast(
+            frozenset[str], _TERMINAL_EXPECTED_ARTIFACT_ROLES(run)
+        )
+    if run.lane == "continuum":
+        return frozenset(
+            {
+                "segment-catalogue-json",
+                "segment-labels-fits",
+                "segment-mask-fits",
+            }
+        )
+    return frozenset({"compact-catalogue-json"})
+
+
 def _configured_terminal() -> dict[str, Any]:
     """Install confirmed science and result-neutral compiler seams."""
     terminal = _SUCCESSOR["_configured_terminal"]()
@@ -84,6 +104,9 @@ def _configured_terminal() -> dict[str, Any]:
     globals_["load_endpoint_registry"] = load_confirmation_composition
     globals_["CampaignRequest"] = concurrent_campaign_request_model(
         globals_["CampaignRequest"]
+    )
+    globals_["_expected_artifact_roles"] = (
+        _confirmation_expected_artifact_roles
     )
     install_continuum_accelerators(globals_)
     return cast(dict[str, Any], terminal)

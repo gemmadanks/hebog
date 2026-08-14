@@ -228,6 +228,30 @@ def test_confirmation_compiler_installs_bounded_accelerators() -> None:
     ) == (2,)
 
 
+def test_confirmation_compiler_verifies_lane_specific_hebog_products() -> None:
+    """The verifier accepts only products emitted by each Hebog lane."""
+    module = _script(
+        "scripts/validation/compile_phase5_external_confirmation_campaign.py"
+    )
+    terminal = module["_configured_terminal"]()
+    expected_roles = terminal["compile_terminal_analysis"].__globals__[
+        "_expected_artifact_roles"
+    ]
+
+    assert expected_roles(
+        SimpleNamespace(finder_id="hebog", lane="continuum")
+    ) == frozenset(
+        {
+            "segment-catalogue-json",
+            "segment-labels-fits",
+            "segment-mask-fits",
+        }
+    )
+    assert expected_roles(
+        SimpleNamespace(finder_id="hebog", lane="compact-blend")
+    ) == frozenset({"compact-catalogue-json"})
+
+
 def test_confirmation_historical_programs_remain_immutable() -> None:
     """The new composition cannot rewrite any closed campaign authority."""
     expected = {
