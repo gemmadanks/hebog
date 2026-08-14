@@ -1,18 +1,112 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownVariableType=false
 """Pure measurement kernels for irregular extended emission."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
+from scipy.ndimage import binary_opening, distance_transform_edt
 
 SegmentPositionUnavailableReason = Literal[
     "empty-finite-support",
     "nonpositive-segment-flux",
 ]
 _IMAGE_DIMENSIONS = 2
+_SUB_BEAM_OPENING_WIDTH_PIXELS = 3
+
+
+def _segment_label_plane(
+    component_labels: npt.ArrayLike,
+) -> npt.NDArray[np.int64]:
+    """Return one exact non-negative integer segment-label plane."""
+    values = np.asarray(component_labels)
+    if values.ndim != _IMAGE_DIMENSIONS or not np.issubdtype(
+        values.dtype,
+        np.integer,
+    ):
+        raise ValueError(
+            "component labels must be a two-dimensional integer label plane"
+        )
+    if np.any(values < 0):
+        raise ValueError("component labels must be non-negative")
+    return np.asarray(values, dtype=np.int64)
+
+
+def clean_detected_segment_labels(
+    component_labels: npt.ArrayLike,
+) -> npt.NDArray[np.int32]:
+    """Remove sub-beam protrusions while preserving segment identities.
+
+    A three-by-three binary opening is deliberately smaller than the sampled
+    restoring beams supported by the source-finder contracts. It suppresses
+    single-pixel flood-threshold excursions without growing, merging, or
+    relabelling accepted emission.
+    """
+    labels = _segment_label_plane(component_labels)
+    retained = binary_opening(
+        labels > 0,
+        structure=np.ones(
+            (
+                _SUB_BEAM_OPENING_WIDTH_PIXELS,
+                _SUB_BEAM_OPENING_WIDTH_PIXELS,
+            ),
+            dtype=np.bool_,
+        ),
+    )
+    return np.where(retained, labels, 0).astype(np.int32, copy=False)
+
+
+def expand_detected_segment_labels(
+    component_labels: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    *,
+    radius_pixels: int,
+) -> npt.NDArray[np.int32]:
+    """Build unique nearest-segment apertures on observable pixels.
+
+    Expansion recovers original-pixel source wings omitted by the detection
+    threshold. The input is one bounded measurement plane or tile. Where
+    apertures overlap, each pixel belongs to its nearest accepted support, so
+    close segments cannot double-count flux.
+    """
+    labels = _segment_label_plane(component_labels)
+    valid = np.asarray(valid_pixels)
+    if (
+        valid.ndim != _IMAGE_DIMENSIONS
+        or valid.shape != labels.shape
+        or valid.dtype != np.bool_
+    ):
+        raise ValueError(
+            "component labels and valid pixels must be aligned "
+            "two-dimensional planes"
+        )
+    if isinstance(radius_pixels, bool) or radius_pixels < 0:
+        raise ValueError("radius_pixels must be a non-negative integer")
+    if not np.any(labels > 0):
+        return np.zeros(labels.shape, dtype=np.int32)
+    distances, nearest_indices = cast(
+        tuple[
+            npt.NDArray[np.float64],
+            npt.NDArray[np.int32],
+        ],
+        distance_transform_edt(
+            labels == 0,
+            return_distances=True,
+            return_indices=True,
+        ),
+    )
+    nearest_labels = labels[tuple(nearest_indices)]
+    expanded = np.where(
+        (distances <= radius_pixels) & valid,
+        nearest_labels,
+        0,
+    )
+    return np.asarray(expanded, dtype=np.int32)
 
 
 @dataclass(frozen=True, slots=True)

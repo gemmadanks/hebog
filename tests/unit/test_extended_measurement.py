@@ -9,8 +9,88 @@ import numpy.typing as npt
 import pytest
 
 from hebog.algorithms.extended_measurement import (
+    clean_detected_segment_labels,
+    expand_detected_segment_labels,
     measure_detected_segment_position,
 )
+
+
+def test_segment_cleanup_removes_only_sub_beam_protrusions() -> None:
+    """A three-pixel opening removes one-pixel noise without relabelling."""
+    labels = np.zeros((9, 11), dtype=np.int32)
+    labels[2:7, 2:7] = 4
+    labels[4, 7:10] = 4
+    labels[2:7, 8:11] = 9
+
+    cleaned = clean_detected_segment_labels(labels)
+
+    assert np.all(cleaned[2:7, 2:7] == 4)
+    assert np.all(cleaned[2:7, 8:11] == 9)
+    assert np.all(cleaned[4, 7:8] == 0)
+    assert set(np.unique(cleaned)) == {0, 4, 9}
+
+
+def test_expanded_segment_labels_assign_overlap_to_nearest_support() -> None:
+    """Measurement apertures are bounded, valid, and never double-counted."""
+    labels = np.zeros((7, 9), dtype=np.int32)
+    labels[3, 2] = 3
+    labels[3, 6] = 8
+    valid = np.ones(labels.shape, dtype=np.bool_)
+    valid[3, 4] = False
+
+    expanded = expand_detected_segment_labels(
+        labels,
+        valid,
+        radius_pixels=2,
+    )
+
+    assert expanded[3, 2] == 3
+    assert expanded[3, 6] == 8
+    assert expanded[3, 3] == 3
+    assert expanded[3, 5] == 8
+    assert expanded[3, 4] == 0
+    assert expanded[0, 0] == 0
+
+
+def test_segment_label_transforms_reject_ambiguous_planes() -> None:
+    """Morphology and aperture ownership require exact label contracts."""
+    with pytest.raises(ValueError, match="integer label"):
+        clean_detected_segment_labels(np.ones((3, 3), dtype=np.float64))
+    negative = np.zeros((3, 3), dtype=np.int32)
+    negative[1, 1] = -1
+    with pytest.raises(ValueError, match="non-negative"):
+        clean_detected_segment_labels(negative)
+    with pytest.raises(ValueError, match="aligned"):
+        expand_detected_segment_labels(
+            np.ones((3, 3), dtype=np.int32),
+            np.ones((2, 3), dtype=np.bool_),
+            radius_pixels=2,
+        )
+    with pytest.raises(ValueError, match="non-negative integer"):
+        expand_detected_segment_labels(
+            np.ones((3, 3), dtype=np.int32),
+            np.ones((3, 3), dtype=np.bool_),
+            radius_pixels=-1,
+        )
+    with pytest.raises(ValueError, match="non-negative integer"):
+        expand_detected_segment_labels(
+            np.ones((3, 3), dtype=np.int32),
+            np.ones((3, 3), dtype=np.bool_),
+            radius_pixels=True,
+        )
+    with pytest.raises(ValueError, match="aligned"):
+        expand_detected_segment_labels(
+            np.ones((3, 3), dtype=np.int32),
+            np.ones((3, 3), dtype=np.int8),
+            radius_pixels=1,
+        )
+
+    empty = expand_detected_segment_labels(
+        np.zeros((3, 3), dtype=np.int32),
+        np.ones((3, 3), dtype=np.bool_),
+        radius_pixels=1,
+    )
+    assert not empty.any()
 
 
 def test_detected_segment_position_uses_only_original_supported_pixels() -> (

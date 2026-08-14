@@ -18,6 +18,9 @@ from hebog.validation.external_successor_compiler import (
     measure_continuum_image,
     native_support_objects,
 )
+from hebog.validation.observable_truth import (
+    observable_truth_integrated_flux_jy,
+)
 
 _ROOT = Path(__file__).parents[3]
 _TERMINAL_COMPILER = (
@@ -78,6 +81,59 @@ def _source(identifier: str, island_identifier: str) -> CatalogueSource:
         association_integrated_flux_jy=3.0,
         island_identifier=island_identifier,
     )
+
+
+def test_observable_truth_flux_excludes_masked_and_off_image_signal() -> None:
+    """Edge truth is normalized to the valid pixels a finder can observe."""
+    signal = np.asarray(
+        (
+            (1.0, 2.0, 3.0),
+            (4.0, 5.0, 6.0),
+        ),
+        dtype=np.float64,
+    )
+    valid = np.asarray(
+        (
+            (False, True, True),
+            (False, True, False),
+        ),
+        dtype=np.bool_,
+    )
+
+    actual = observable_truth_integrated_flux_jy(
+        signal,
+        valid,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+    )
+
+    beam_area_pixels = 2.0 * np.pi / (8.0 * np.log(2.0)) * 2.0
+    assert actual == pytest.approx((2.0 + 3.0 + 5.0) / beam_area_pixels)
+
+
+def test_observable_truth_flux_rejects_unmeasurable_domains() -> None:
+    """Prospective truth cannot silently publish a zero or invalid flux."""
+    with pytest.raises(ValueError, match="aligned two-dimensional"):
+        observable_truth_integrated_flux_jy(
+            np.ones((2, 2), dtype=np.float64),
+            np.ones((2, 1), dtype=np.bool_),
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="positive observable"):
+        observable_truth_integrated_flux_jy(
+            -np.ones((2, 2), dtype=np.float64),
+            np.ones((2, 2), dtype=np.bool_),
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="beam axes"):
+        observable_truth_integrated_flux_jy(
+            np.ones((2, 2), dtype=np.float64),
+            np.ones((2, 2), dtype=np.bool_),
+            beam_major_fwhm_pixels=float("nan"),
+            beam_minor_fwhm_pixels=1.0,
+        )
 
 
 def test_native_support_objects_include_fitless_labels() -> None:

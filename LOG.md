@@ -7543,3 +7543,51 @@ and the mandatory repository hooks pass before the evaluation commit.
 before choosing a new prospective candidate or proceeding with the independent
 Rapthor-profile question in Step 2D. Any new candidate requires a revised
 pre-results plan and fresh evidence; this campaign cannot be tuned or rescored.
+
+## 2026-08-14 — Implemented prospective confirmation-failure corrections
+
+**Plan phase:** Phase 5, post-Step 2C-PF prospective correction
+
+- Traced 29 Continuum flux failures to a product-boundary regression: the
+  catalogue summed only the exact three-sigma detection support even though
+  the reviewed measurement used original residual pixels beyond that support.
+  Added bounded four-beam measurement apertures with nearest-segment ownership
+  so close sources cannot double-count pixels; exact-support centroids remain
+  unchanged. Also added the prospective observable-domain truth normalizer,
+  because one edge source exposes only 71.97% of its full injected flux.
+- Added a three-by-three sub-beam opening to the prospective Continuum runner.
+  On 10 development images, mean precision/recall/IoU changed from
+  `0.89470/0.92623/0.83516` to `0.92462/0.91396/0.85052`. The single selected
+  policy then achieved `0.91778/0.90964/0.84104` on the 100-image regression
+  set. Exact-support flux median/p95 errors of `0.18798/0.36973` became
+  `0.04979/0.17304` with the corrected aperture across 600 regression source
+  measurements, passing the existing `0.10/0.25` absolute gates.
+- Replaced the Phase 5 compact free-only fit with the existing beam-or-free
+  selection while retaining selected-model position. On 23 development
+  images, fitted-position-angle median/p95 improved from `1.8479/8.6490` to
+  `0.7790/8.3376` degrees, with unresolved median error falling from `2.1641`
+  to `0.00017` degrees. A development-only aperture ablation selected the
+  standard low-variance 1.5-sigma corrected aperture, reducing association
+  flux median/p95 from `0.04601/0.23432` at three sigma to
+  `0.03589/0.18339`.
+- The selected compact policy was run once on the 100-image Phase 4R
+  regression population: position-angle median/p95 was `0.71624/8.96084`
+  degrees and association-flux median/p95 was `0.03712/0.18053`. This supports
+  the correction but is not an external-comparator pass claim.
+- The 27 underpowered Continuum endpoints are a protocol-design issue rather
+  than an algorithm failure: observed paired standard deviations exceeded
+  the predeclared planning bounds even though their absolute gates passed.
+  The next protocol must use the independent closed result to predeclare
+  realistic variance bounds and power a fresh population accordingly.
+
+**Validation:** 125 focused correction and historical-identity tests pass; all
+27 equivalence tests pass; branch-aware coverage passes 1,306 tests with four
+expected xfails at 94.10%; `just check` passes 1,176 tests with four expected
+xfails; and the strict documentation build passes. The closed campaign,
+compiler, analysis, decision, and checksum-bound historical source files were
+not modified or rescored.
+
+**Decision:** the failure classes now have a prospective implementation and
+bounded regression evidence. Step 3, optimization, qualification, and runtime
+interpretation remain closed pending scientific pre-review and fresh
+seed-disjoint external evidence.

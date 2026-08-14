@@ -175,8 +175,9 @@ def phase_five_corrected_candidate_configs() -> tuple[
         moment,
         replace(
             fit,
-            model_selection="free-only",
+            model_selection="beam-or-free",
             position_estimator="selected-model",
+            association_aperture_radius_sigma=1.5,
         ),
         catalogue,
     )

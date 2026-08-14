@@ -28,6 +28,7 @@ from hebog.validation.datasets import (
     iter_dataset_recipes,
     load_dataset_manifest,
 )
+from hebog.validation.phase_five_filter_review import ThresholdFilterResult
 from hebog.validation.phase_four_analysis import ratio_values, truth_sets
 from hebog.validation.products import load_aegean_catalogue
 
@@ -1674,6 +1675,30 @@ def test_phase5_hebog_runner_separates_scientific_product_lanes(
 
     assert calls == [expected]
     assert set(actual) == {f"{expected}-product"}
+
+
+def test_post_failure_hebog_runner_cleans_segment_products() -> None:
+    """The prospective wrapper changes mask support without relabelling."""
+    namespace = _script("run_phase5_post_failure_hebog.py")
+    labels = np.zeros((9, 9), dtype=np.int32)
+    labels[2:7, 2:7] = 4
+    labels[4, 7] = 4
+    detection = ThresholdFilterResult(
+        combined_snr=np.zeros(labels.shape, dtype=np.float64),
+        retained_mask=labels > 0,
+        component_labels=labels,
+        component_count=1,
+    )
+
+    cleaned = namespace["_cleaned_detection"](lambda: detection)
+
+    assert cleaned.component_count == 1
+    assert cleaned.component_labels[4, 7] == 0
+    assert np.all(cleaned.component_labels[2:7, 2:7] == 4)
+    np.testing.assert_array_equal(
+        cleaned.retained_mask,
+        cleaned.component_labels > 0,
+    )
 
 
 def test_phase5_external_aegean_runner_freezes_cli(tmp_path: Path) -> None:

@@ -287,10 +287,10 @@ def test_aegean_support_proxy_is_island_grouped_and_deterministic(
     assert first[0, 0] == 0
 
 
-def test_hebog_segment_catalogue_measures_original_pixels_and_round_trips(
+def test_hebog_segment_catalogue_measures_original_aperture_and_round_trips(
     tmp_path: Path,
 ) -> None:
-    """Extended output retains its exact segment identity and sky position."""
+    """Extended flux recovers wings while position retains exact identity."""
     header = fits.Header()
     header["NAXIS"] = 2
     header["NAXIS1"] = 21
@@ -324,10 +324,10 @@ def test_hebog_segment_catalogue_measures_original_pixels_and_round_trips(
     assert sources[0].identifier == "hebog-segment-4"
     assert sources[0].right_ascension_degrees == pytest.approx(10.0)
     assert sources[0].declination_degrees == pytest.approx(-30.0)
-    support_flux = float(np.sum(image[labels == 4], dtype=np.float64))
+    observable_flux = float(np.sum(image, dtype=np.float64))
     beam_area_pixels = 2.0 * np.pi / (8.0 * np.log(2.0)) * 3.0 * 2.0
     assert sources[0].integrated_flux_jy == pytest.approx(
-        support_flux / beam_area_pixels
+        observable_flux / beam_area_pixels
     )
 
 
@@ -419,12 +419,16 @@ def test_hebog_segment_catalogue_rejects_invalid_planes_and_beam() -> None:
         )
 
 
-def test_hebog_segment_catalogue_measures_only_accepted_support() -> None:
-    """Negative pixels outside a segment cannot change its catalogue flux."""
-    image = np.full((21, 21), -1.0, dtype=np.float64)
+def test_hebog_segment_catalogue_uses_signed_original_aperture_pixels() -> (
+    None
+):
+    """Flux includes observable wings without moving the exact centroid."""
+    image = np.zeros((21, 21), dtype=np.float64)
     labels = np.zeros((21, 21), dtype=np.int32)
     labels[9:12, 9:12] = 4
     image[labels == 4] = 1.0
+    image[8:13, 8:13] += 0.25
+    image[10, 13:16] = 0.5
     header = fits.Header()
     header["CTYPE1"] = "RA---SIN"
     header["CTYPE2"] = "DEC--SIN"
@@ -447,7 +451,41 @@ def test_hebog_segment_catalogue_measures_only_accepted_support() -> None:
 
     beam_area_pixels = 2.0 * np.pi / (8.0 * np.log(2.0)) * 3.0 * 2.0
     assert sources[0].integrated_flux_jy == pytest.approx(
-        9.0 / beam_area_pixels
+        float(np.sum(image, dtype=np.float64)) / beam_area_pixels
+    )
+    assert sources[0].right_ascension_degrees == pytest.approx(10.0)
+    assert sources[0].declination_degrees == pytest.approx(-30.0)
+
+
+def test_hebog_segment_apertures_do_not_double_count_close_sources() -> None:
+    """Nearest-support ownership partitions overlapping flux apertures."""
+    image = np.ones((13, 13), dtype=np.float64)
+    labels = np.zeros((13, 13), dtype=np.int32)
+    labels[6, 4] = 1
+    labels[6, 8] = 2
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 7.0
+    header["CRPIX2"] = 7.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+
+    sources = build_hebog_segment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+    )
+
+    beam_area_pixels = 2.0 * np.pi / (8.0 * np.log(2.0)) * 2.0
+    assert sum(source.integrated_flux_jy for source in sources) == (
+        pytest.approx(image.size / beam_area_pixels)
     )
 
 

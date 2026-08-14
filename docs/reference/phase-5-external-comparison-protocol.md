@@ -588,3 +588,27 @@ The prospective compiler now installs the same strict two-lane request model
 already used by the launcher. This changes request deserialization only; raw
 campaign data, science kernels, endpoint definitions, gates, and the immutable
 historical verifier remain unchanged.
+
+## Post-confirmation candidate
+
+Decision `70c17ba...` closed the confirmation as a scientific failure. Its
+products and compiler remain historical evidence and are not rescored. The
+prospective replacement corrects four independently diagnosed effects:
+
+- continuum flux is summed from signed original residual pixels in a bounded
+  four-beam aperture, with overlapping apertures assigned to the nearest
+  accepted segment rather than double-counted;
+- continuum positions remain tied to exact accepted support, while a
+  three-pixel opening removes only sub-beam flood-mask protrusions;
+- future edge and masked-source truth uses only valid observable-domain flux;
+  and
+- compact measurements use the existing beam-or-free Gaussian selection with
+  selected-model position and a 1.5-sigma aperture-corrected association flux.
+
+The 1.5-sigma compact aperture is in the background-limited Gaussian
+signal-to-noise regime; its model-fraction correction retains total-flux
+semantics. The continuum aperture measures original pixels, not wavelet
+coefficients, and uniquely partitions close-source overlaps. These choices
+are candidate changes, not amendments to the closed decision. A new
+seed-disjoint, variance-aware protocol and one-look result are required before
+Step 3 can open.

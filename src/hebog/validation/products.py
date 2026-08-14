@@ -11,6 +11,7 @@ import json
 from collections import Counter
 from dataclasses import asdict
 from datetime import datetime
+from math import ceil
 from pathlib import Path, PurePosixPath
 from typing import Literal, Self, TypeAlias, cast
 
@@ -21,6 +22,7 @@ from astropy.wcs import WCS
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from hebog.algorithms.extended_measurement import (
+    expand_detected_segment_labels,
     measure_detected_segment_position,
 )
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
@@ -805,6 +807,11 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
     ):
         raise ValueError("Hebog segment beam axes must be positive")
     residual = np.where(valid, image - background, np.nan)
+    measurement_labels = expand_detected_segment_labels(
+        labels,
+        valid & np.isfinite(residual),
+        radius_pixels=ceil(4.0 * beam_major_fwhm_pixels),
+    )
     beam_area_pixels = (
         2.0
         * np.pi
@@ -821,7 +828,13 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         estimate = measure_detected_segment_position(residual, support)
         if not estimate.available or estimate.centroid_xy is None:
             continue
-        integrated_flux = estimate.integrated_weight / beam_area_pixels
+        measurement_support = measurement_labels == label_value
+        integrated_weight = float(
+            np.sum(residual[measurement_support], dtype=np.float64)
+        )
+        if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
+            continue
+        integrated_flux = integrated_weight / beam_area_pixels
         peak_flux = float(np.max(residual[support]))
         right_ascension, declination = celestial_wcs.all_pix2world(
             [estimate.centroid_xy],

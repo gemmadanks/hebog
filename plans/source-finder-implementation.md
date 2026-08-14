@@ -1653,6 +1653,30 @@ comparison.**
          concentrated in integrated flux and fitted position angle. Step 3,
          optimization, qualification, and runtime comparison remain closed;
          the 6 h 28 min campaign duration is operational context only.
+   - [x] Diagnose the sealed confirmation failures and implement a prospective
+         post-failure candidate without rescoring the campaign. Continuum
+         catalogue flux had regressed from the reviewed original-pixel
+         aperture to the exact three-sigma detection support, systematically
+         truncating source wings; the compiler also compared edge sources
+         with injected flux outside the observable domain. Restore bounded
+         four-beam original-pixel photometry with unique nearest-segment
+         ownership, retain exact-support astrometry, normalize future truth to
+         valid observable pixels, and apply a three-pixel sub-beam opening to
+         remove flood-mask protrusions. For compact sources, select the
+         existing beam-or-free model with selected-model position and a
+         1.5-sigma aperture-corrected association flux. Development and
+         regression diagnostics pass the existing absolute science gates and
+         materially reduce the failed quantities; this is prospective
+         evidence only.
+   - [ ] Obtain scientific pre-review of the post-failure candidate, then
+         freeze fresh seed-disjoint evidence. Re-estimate and predeclare the
+         paired-variance planning bounds from the independent closed campaign
+         and increase or restructure the continuum population until the
+         unchanged 0.90 power requirement is met; do not merely reuse the
+         former 600-image calculation whose variance assumptions failed.
+         Bind a new runner/compiler that uses observable-domain truth, retain
+         all absolute and non-inferiority gates, and require a new one-look
+         decision before opening Step 3 or interpreting runtime.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

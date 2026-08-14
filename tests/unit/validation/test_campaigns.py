@@ -239,12 +239,13 @@ def test_external_array_source_returns_owned_bounded_windows() -> None:
     assert not second.valid_pixels[1, 1]
 
 
-def test_external_compact_configuration_uses_selected_model_position() -> None:
-    """Like-product compact results use their fitted Gaussian directly."""
+def test_external_compact_configuration_uses_low_variance_hybrid_fit() -> None:
+    """Unresolved shapes and association flux avoid needless free variance."""
     fit = hebog_campaign.phase_five_corrected_candidate_configs()[3]
 
     assert fit.position_estimator == "selected-model"
-    assert fit.model_selection == "free-only"
+    assert fit.model_selection == "beam-or-free"
+    assert fit.association_aperture_radius_sigma == pytest.approx(1.5)
     assert hebog_campaign.phase_four_candidate_configs()[
         3
     ].position_estimator == ("bounded-context-free")
