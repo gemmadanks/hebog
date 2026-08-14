@@ -579,3 +579,12 @@ optimization, or qualification.
 The exact no-write preflight passed canonical request `73b93ee...`, expanding
 all 1,400 inputs and 7,000 runs against the four approved images. Both the
 public output and decision-derived private staging paths remained absent.
+
+The campaign subsequently sealed all 1,400 inputs and 7,000 finder runs at
+manifest `ffd6de4...`. The first write-once compiler attempt failed before
+analysis output because the composed verifier retained the historical
+`execution_concurrency=1` request model and rejected the approved value two.
+The prospective compiler now installs the same strict two-lane request model
+already used by the launcher. This changes request deserialization only; raw
+campaign data, science kernels, endpoint definitions, gates, and the immutable
+historical verifier remain unchanged.

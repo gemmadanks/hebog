@@ -1,7 +1,7 @@
 {
   "analysis_compiler": {
     "path": "scripts/validation/compile_phase5_external_confirmation_campaign.py",
-    "sha256": "bdfc0820ac8398ae577ed2c5dccd12aef14d6a853207b4e9622038c43f9f0f07",
+    "sha256": "9371c3bb77bb5cfc9dd9d9a26f02e9e4f229719acad95c68786d75566ec1b2ec",
     "status": "frozen-before-campaign-output"
   },
   "base_evaluation_path": "config/contracts/phase-5-external-successor-evaluation.json",
@@ -15,7 +15,7 @@
   "contract_id": "phase-5-external-confirmation-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-confirmation-endpoint-registry.json",
-    "sha256": "074c908d5267d4970c67e5a18e0e56c18e664ec212bc6107eb6b2457aef02a45",
+    "sha256": "fc84d6f0bae73fb3c63cfd66bce35c151dd0d27f1ef9cad089b804f42b65bea7",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_confirmation_decision.py",

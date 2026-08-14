@@ -1626,6 +1626,13 @@ comparison.**
          accelerators, run the unchanged evaluator before interpreting
          runtime, and record the scientific decision. A pass may open Step 3;
          a fail closes this candidate without rescoring or adaptive follow-up.
+         Campaign `ffd6de4...` sealed all 1,400 inputs and 7,000 runs. The
+         first compiler attempt failed closed before analysis because its
+         historical verifier still parsed the approved two-lane request as a
+         one-lane request. Install the existing strict two-lane request model
+         only in the confirmation compiler view, regression-test and commit
+         that composition correction, then retry without changing campaign
+         data, science kernels, endpoints, or gates.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

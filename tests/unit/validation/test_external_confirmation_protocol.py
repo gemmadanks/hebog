@@ -10,7 +10,7 @@ import json
 import runpy
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, get_args
 
 import pytest
 
@@ -221,6 +221,11 @@ def test_confirmation_compiler_installs_bounded_accelerators() -> None:
         .__name__
         == "linear_native_support_objects"
     )
+    assert get_args(
+        compiler_globals["CampaignRequest"]
+        .model_fields["execution_concurrency"]
+        .annotation
+    ) == (2,)
 
 
 def test_confirmation_historical_programs_remain_immutable() -> None:

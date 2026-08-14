@@ -13,6 +13,9 @@ import runpy
 from pathlib import Path
 from typing import Any, cast
 
+from hebog.validation.campaign_parallel import (
+    concurrent_campaign_request_model,
+)
 from hebog.validation.external_campaign_compilation import (
     install_continuum_accelerators,
 )
@@ -79,6 +82,9 @@ def _configured_terminal() -> dict[str, Any]:
     globals_ = terminal["compile_terminal_analysis"].__globals__
     globals_["_json_object"] = _confirmation_json_object
     globals_["load_endpoint_registry"] = load_confirmation_composition
+    globals_["CampaignRequest"] = concurrent_campaign_request_model(
+        globals_["CampaignRequest"]
+    )
     install_continuum_accelerators(globals_)
     return cast(dict[str, Any], terminal)
 

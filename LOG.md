@@ -7445,3 +7445,30 @@ closed.
 **Immediate next step:** commit the preflight record, start the terminal
 campaign, monitor only operational progress, then compile and evaluate the
 sealed result before interpreting runtime.
+
+## 2026-08-14 — Sealed the confirmation and corrected request verification
+
+**Plan phase:** Phase 5, Step 2C-PF — terminal campaign and pre-analysis
+composition correction
+
+- The approved two-lane campaign atomically published terminal manifest
+  `ffd6de4...` after verifying all 1,400 inputs and 7,000 finder results. The
+  private staging directory closed. No partial scientific product was opened.
+- The first committed compiler attempt failed closed before creating analysis:
+  its composed historical verifier parsed `campaign-request.json` through the
+  original `execution_concurrency=1` model and rejected the approved value two.
+  Analysis and decision outputs remain absent, and verification stopped before
+  reading a raw scientific artifact.
+- Added a regression that first reproduced the one-versus-two literal failure.
+  The confirmation-only compiler view now installs the same strict two-lane
+  request model already used to create the canonical request. The closed
+  verifier, campaign, science kernels, endpoint matrix, gates, and evaluator
+  are unchanged. Corrected compiler `9371c3b...` and its dependent registry and
+  evaluation hashes remain write-once analysis authority.
+
+**Decision:** this is a result-neutral request-deserialization correction, not
+a campaign rerun, additional look, scientific change, or gate change.
+
+**Immediate next step:** validate and commit the corrected compiler composition,
+then retry write-once compilation and run the evaluator before interpreting
+runtime.
