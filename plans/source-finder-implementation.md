@@ -1699,14 +1699,22 @@ comparison.**
          exact-identity execution approval. The scaled 2,400-image/12,000-run
          campaign requires 120 GiB free headroom; review records 30.88 GiB and
          therefore rejects approval despite complete identities and absent
-         output paths. Preserve the closed confirmation data by moving it only
-         to verified external storage, or reclaim other approved local data;
-         retain the four bound runtime images. Refresh the storage-only review,
-         obtain named approval of that exact checksum, run the complete
-         no-write preflight, and only then execute one terminal look. Run it
-         from an immutable clean checkout pinned to the approved execution
-         commit so later development cannot change a source, runner, compiler,
-         or contract visible to the campaign.
+         output paths. The project owner subsequently approved disposal of the
+         closed campaign's raw FITS products after the campaign-to-analysis-to-
+         decision hash chain was verified. Exactly 26,200 FITS files (45.5 GiB
+         logical) were removed; the request, terminal manifest, 1,400 input
+         records, 7,000 result records, compiled analysis, decision, power
+         review, hashes, and runtime identities remain. This deliberately
+         relinquishes raw recompilation and artifact-level audit of that failed
+         campaign. The running Podman VM still holds most deleted files open,
+         so host availability is about 41 GiB until those descriptors close;
+         retain the four bound runtime images and continue approved storage
+         remediation. Refresh the storage-only review only after 120 GiB is
+         genuinely available, obtain named approval of that exact checksum,
+         run the complete no-write preflight, and only then execute one
+         terminal look. Run it from an immutable clean checkout pinned to the
+         approved execution commit so later development cannot change a
+         source, runner, compiler, or contract visible to the campaign.
    - [ ] Treat the running campaign and continued development as isolated
          lanes. Monitor only process health, aggregate progress, storage, and
          terminal publication; never open or summarize partial scientific

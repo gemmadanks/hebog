@@ -7779,3 +7779,37 @@ by this audit.
 **Immediate next step:** obtain a preservation destination for the closed
 campaign and explicit approval for the scoped cache and post-build dangling-
 image cleanup.
+
+## 2026-08-14 — Removed superseded raw confirmation FITS evidence
+
+**Plan phase:** Phase 5, post-Step 2C-PF operational preparation
+
+- The project owner approved removing the raw FITS products from the sealed
+  failed confirmation campaign. Before deletion, the terminal campaign hash
+  `ffd6de4...` matched analysis `cf14518...`, whose hash matched failed
+  decision `70c17ba...`.
+- Removed exactly 26,200 `.fits` files beneath
+  `benchmark-results/phase-5/external-confirmation-comparison`, totaling
+  48,869,447,040 logical bytes (45.5 GiB). No other path or file type was
+  removed. The directory now occupies about 147 MiB.
+- Retained the canonical request, terminal campaign manifest, 1,400
+  `input.json` records, 7,000 `result.json` records, compiled analysis,
+  decision, power review, checksums, and exact program and runtime identities.
+  Raw artifact recompilation and artifact-level scientific audit of this
+  failed campaign are no longer possible locally.
+- The Podman Apple Virtualization process still holds approximately 40.3 GB
+  of the deleted campaign files open through the shared mount. Host free space
+  therefore rose only from about 34 GiB to 41 GiB and remains below the frozen
+  120 GiB campaign floor. The files will not release their remaining physical
+  blocks until those descriptors close; no VM, container, or unrelated build
+  was interrupted.
+
+**Decision:** the compact governed evidence is sufficient for provenance and
+the fresh campaign does not consume the removed FITS products. Storage remains
+blocked until the Podman-held descriptors close and further approved cleanup
+reaches the 120 GiB floor.
+
+**Immediate next step:** allow the active Podman work to finish or obtain
+approval to stop and restart the Podman machine, verify the released space,
+then continue scoped cache or image cleanup as needed before refreshing the
+storage-only preflight review.
