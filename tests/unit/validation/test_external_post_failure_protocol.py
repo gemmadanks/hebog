@@ -87,6 +87,23 @@ def test_post_failure_protocol_binds_pending_population() -> None:
         1600,
         800,
     )
+    assert {
+        item.finder_id: item.container_image_digest
+        for item in protocol.references
+    } == {
+        "released-pybdsf": (
+            "sha256:c6dca91f0b32fd217460a5a2332e42a99fe68e6f1c11431af092e6be53e98bb8"
+        ),
+        "pinned-pybdsf-master": (
+            "sha256:81fc680669bbf92dcac9b68be8d7a18e6b30a0826b0e2e7b63c05f81f1f304ca"
+        ),
+        "aegean": (
+            "sha256:738591844996e672e8679a5f4b9233a1bd7bc06698af4aef69b4efff7f3b1551"
+        ),
+    }
+    assert decision.hebog_container_image_digest == (
+        "sha256:4341ec7946b737613178d407af5e26a2ec28e7aca6ffe40bf90abf879aeb9061"
+    )
     assert decision.execution_authorized is False
     assert decision.preflight_review_sha256 == "pending"
     assert decision.pybdsf_ncores == 4
@@ -155,8 +172,8 @@ def test_post_failure_registry_and_evaluation_bind_exact_priors() -> None:
     )
 
 
-def test_storage_blocked_review_cannot_be_approved() -> None:
-    """Identity readiness cannot override the predeclared storage floor."""
+def test_storage_ready_review_can_be_approved() -> None:
+    """The exact review becomes approvable only above the storage floor."""
     helpers = _script(
         "scripts/validation/phase5_external_post_failure_protocol.py"
     )
@@ -167,9 +184,9 @@ def test_storage_blocked_review_cannot_be_approved() -> None:
     review = helpers["load_post_failure_preflight_review"](review_path)
     review_sha256 = helpers["file_sha256"](review_path)
 
-    assert review["storage"]["passed"] is False
-    assert review["named_execution_approval_recommended"] is False
-    with pytest.raises(ValueError, match="approved post-failure review"):
+    assert review["storage"]["passed"] is True
+    assert review["named_execution_approval_recommended"] is True
+    assert (
         helpers["post_failure_preflight_review_sha256"](
             {
                 "preflight_review_sha256": review_sha256,
@@ -178,6 +195,8 @@ def test_storage_blocked_review_cannot_be_approved() -> None:
             _ROOT,
             pending=False,
         )
+        == review_sha256
+    )
 
 
 def test_preflight_review_recomputes_storage_readiness(
@@ -192,13 +211,32 @@ def test_preflight_review_recomputes_storage_readiness(
         "phase-5-external-post-failure-preflight-review.json"
     )
     review = deepcopy(helpers["json_object"](review_path))
-    review["status"] = "ready-for-named-execution-approval"
-    review["storage"]["passed"] = True
-    review["named_execution_approval_recommended"] = True
+    review["storage"]["observed_available_gib"] = 30.0
+    review["storage"]["observed_available_kib"] = 31_457_280
     globals_ = helpers["load_post_failure_preflight_review"].__globals__
     monkeypatch.setitem(globals_, "json_object", lambda _path: review)
 
     with pytest.raises(ValueError, match="storage observation"):
+        helpers["load_post_failure_preflight_review"](review_path)
+
+
+def test_preflight_review_rejects_changed_runtime_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Named approval cannot bind a substituted runtime image."""
+    helpers = _script(
+        "scripts/validation/phase5_external_post_failure_protocol.py"
+    )
+    review_path = (
+        _ROOT / "config/contracts/"
+        "phase-5-external-post-failure-preflight-review.json"
+    )
+    review = deepcopy(helpers["json_object"](review_path))
+    review["runtime_images"][0]["digest"] = f"sha256:{'0' * 64}"
+    globals_ = helpers["load_post_failure_preflight_review"].__globals__
+    monkeypatch.setitem(globals_, "json_object", lambda _path: review)
+
+    with pytest.raises(ValueError, match="runtime image identity"):
         helpers["load_post_failure_preflight_review"](review_path)
 
 

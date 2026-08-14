@@ -1695,26 +1695,24 @@ comparison.**
          rule without changing a closed program. The exact candidate runtime
          reproduces source tree `864d8f2...`; the network-disabled two-lane
          resource probe passes.
-   - [ ] Resolve the post-failure operational preflight and obtain separate
-         exact-identity execution approval. The scaled 2,400-image/12,000-run
-         campaign requires 120 GiB free headroom; review records 30.88 GiB and
-         therefore rejects approval despite complete identities and absent
-         output paths. The project owner subsequently approved disposal of the
-         closed campaign's raw FITS products after the campaign-to-analysis-to-
-         decision hash chain was verified. Exactly 26,200 FITS files (45.5 GiB
-         logical) were removed; the request, terminal manifest, 1,400 input
-         records, 7,000 result records, compiled analysis, decision, power
-         review, hashes, and runtime identities remain. This deliberately
-         relinquishes raw recompilation and artifact-level audit of that failed
-         campaign. The running Podman VM still holds most deleted files open,
-         so host availability is about 41 GiB until those descriptors close;
-         retain the four bound runtime images and continue approved storage
-         remediation. Refresh the storage-only review only after 120 GiB is
-         genuinely available, obtain named approval of that exact checksum,
-         run the complete no-write preflight, and only then execute one
-         terminal look. Run it from an immutable clean checkout pinned to the
-         approved execution commit so later development cannot change a
-         source, runner, compiler, or contract visible to the campaign.
+   - [x] Resolve the post-failure operational block and reconstruct the four
+         missing runtimes without stopping the active Rapthor devcontainer.
+         The approved removal of 26,200 superseded FITS files relinquished raw
+         recompilation of the failed campaign but retained its compact request,
+         terminal manifest, records, analysis, decision, and identity chain.
+         After the held descriptors closed, rebuilt Linux/arm64 images
+         reproduced the frozen Hebog source tree and all four dependency
+         inventories. A fresh network-disabled two-lane probe passed, dangling
+         build layers were removed, and 142.80 GiB is now free against the
+         120 GiB floor. Refreshed review `29343e37...` is technically ready;
+         no campaign output or scientific product was opened.
+   - [ ] Obtain separate named approval bound to refreshed review
+         `29343e37...` and its four new OCI digests. Approval must retain 2,400
+         images, 12,000 runs, two resource lanes, four PyBDSF cores, the frozen
+         science and one-look rules, and execution from an immutable clean
+         checkout.
+         Then refresh the decision-dependent hash chain, run the complete
+         no-write preflight, and only afterward execute one terminal look.
    - [ ] Treat the running campaign and continued development as isolated
          lanes. Monitor only process health, aggregate progress, storage, and
          terminal publication; never open or summarize partial scientific

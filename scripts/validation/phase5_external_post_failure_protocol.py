@@ -58,11 +58,37 @@ _IMPLEMENTATION_COMMIT = "63e4b5886a3f5acb75125d258f5b71c13ca4eeaf"
 _SOURCE_TREE_SHA256 = (
     "864d8f2b06cc8c561c8d1f7e2b2f9a511baa5e170b91150bf4c6fa5255002d75"
 )
-_HEBOG_IMAGE_DIGEST = (
-    "sha256:4a7bc97509845f08c9d272ffe21d834eba8c9e54aaf2c291945e1cae56057970"
+_RUNTIME_IMAGES = (
+    (
+        "hebog",
+        "3f579507eafbff9ae0193e869f3f2cfbda83bf40668755857ca36c0027cfebfd",
+        "sha256:4341ec7946b737613178d407af5e26a2ec28e7aca6ffe40bf90abf879aeb9061",
+        "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+    ),
+    (
+        "released-pybdsf",
+        "d63070b376ada2e8175dbcaeb64b0d462a3d064c416549c961ce789b26afd0da",
+        "sha256:c6dca91f0b32fd217460a5a2332e42a99fe68e6f1c11431af092e6be53e98bb8",
+        "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+    ),
+    (
+        "pinned-pybdsf-master",
+        "3186a4b5ad49d049dd657875b213550a7e8f4ae73db4f4ef7037510058741d43",
+        "sha256:81fc680669bbf92dcac9b68be8d7a18e6b30a0826b0e2e7b63c05f81f1f304ca",
+        "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
+    ),
+    (
+        "aegean",
+        "d3a84d4175c45e8cd22e03f6d20ffb0e0b5590908ef0317fcb1fa8c562c70ca5",
+        "sha256:738591844996e672e8679a5f4b9233a1bd7bc06698af4aef69b4efff7f3b1551",
+        "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
+    ),
 )
-_HEBOG_INVENTORY_SHA256 = (
-    "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2"
+_HEBOG_IMAGE_DIGEST = _RUNTIME_IMAGES[0][2]
+_HEBOG_INVENTORY_SHA256 = _RUNTIME_IMAGES[0][3]
+_REFERENCE_IMAGE_DIGESTS = tuple(
+    (finder_id, digest)
+    for finder_id, _image_id, digest, _inventory in _RUNTIME_IMAGES[1:]
 )
 _CANDIDATE_REVIEW_SHA256 = (
     "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
@@ -251,13 +277,31 @@ def load_post_failure_protocol(
     ):
         raise ValueError("post-failure protocol population changed")
     base = _CONFIRMATION_HELPERS["load_confirmation_protocol"](base_path)
+    reference_digests = dict(_REFERENCE_IMAGE_DIGESTS)
+    if tuple(item.finder_id for item in base.references) != tuple(
+        reference_digests
+    ):
+        raise ValueError("post-failure reference order changed")
+    compatible_references = tuple(
+        item.model_copy(
+            update={
+                "container_image_digest": reference_digests[item.finder_id]
+            }
+        )
+        for item in base.references
+    )
     compatible = tuple(
         old.model_copy(update=new)
         for old, new in zip(base.populations, populations, strict=True)
     )
     return cast(
         PhaseFiveExternalComparisonProtocol,
-        base.model_copy(update={"populations": compatible}),
+        base.model_copy(
+            update={
+                "references": compatible_references,
+                "populations": compatible,
+            }
+        ),
     )
 
 
@@ -315,6 +359,39 @@ def post_failure_preflight_review_sha256(
     return value
 
 
+def require_exact_runtime_images(document: dict[str, Any]) -> None:
+    """Reject a substituted image, digest, or dependency inventory."""
+    runtime_images = document.get("runtime_images")
+    if not isinstance(runtime_images, list):
+        raise ValueError("post-failure runtime image identity changed")
+    for runtime_image in runtime_images:
+        if not isinstance(runtime_image, dict):
+            raise ValueError("post-failure runtime image identity changed")
+        require_exact_keys(
+            runtime_image,
+            frozenset(
+                {
+                    "dependency_inventory_sha256",
+                    "digest",
+                    "finder_id",
+                    "image_id",
+                }
+            ),
+            description="post-failure runtime image",
+        )
+    observed = tuple(
+        (
+            item["finder_id"],
+            item["image_id"],
+            item["digest"],
+            item["dependency_inventory_sha256"],
+        )
+        for item in runtime_images
+    )
+    if observed != _RUNTIME_IMAGES:
+        raise ValueError("post-failure runtime image identity changed")
+
+
 def load_post_failure_preflight_review(path: Path) -> dict[str, Any]:
     """Validate identities and readiness without opening science."""
     document = json_object(path)
@@ -356,6 +433,7 @@ def load_post_failure_preflight_review(path: Path) -> dict[str, Any]:
         or document.get("scientific_products_opened") is not False
     ):
         raise ValueError("post-failure preflight review state is invalid")
+    require_exact_runtime_images(document)
     storage = document.get("storage")
     output_paths = document.get("output_paths")
     if not isinstance(storage, dict) or not isinstance(output_paths, dict):

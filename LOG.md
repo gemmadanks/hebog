@@ -7813,3 +7813,50 @@ reaches the 120 GiB floor.
 approval to stop and restart the Podman machine, verify the released space,
 then continue scoped cache or image cleanup as needed before refreshing the
 storage-only preflight review.
+
+## 2026-08-14 — Reconstructed the post-failure campaign runtimes
+
+**Plan phase:** Phase 5, post-Step 2C-PF operational preparation
+
+- Preserved the active Rapthor devcontainer throughout reconstruction. Built
+  four fresh Linux/arm64 images from the frozen artifacts and a clean archive
+  of candidate commit `63e4b58...`. Their new immutable digests are Hebog
+  `sha256:4341ec7...`, released PyBDSF `sha256:c6dca91...`, pinned PyBDSF
+  master `sha256:81fc680...`, and Aegean `sha256:7385918...`.
+- Network-disabled checks reproduced Hebog source tree `864d8f2...` and the
+  frozen dependency inventories `d383be3...`, `8211043...`, `83574dd...`, and
+  `346c1f3...`. Package versions remain Hebog 0.6.0, PyBDSF 1.14.1, PyBDSF
+  1.14.2.dev40+gc70103be3, and AegeanTools 2.3.5. The new OCI identities are a
+  build-provenance change, not a scientific change.
+- The committed network-disabled resource probe passed with identical output
+  across isolated and paired runs. The largest overlap ratio was 0.66873 for
+  the frozen two-lane budget of four PyBDSF cores plus one companion core.
+- Removed only six dangling reconstruction images and trimmed freed VM blocks.
+  Host availability is 149,734,052 KiB (142.797520 GiB), above the frozen
+  120 GiB floor; the Podman VM has 65 GiB free. Public and private post-failure
+  campaign paths remain absent, and the Rapthor container remains running. The
+  verified 19 MiB temporary reconstruction context was then removed.
+- Added a prospective digest override in the post-failure wrapper so the
+  closed protocol, artifact versions and checksums, dependency inventories,
+  science settings, populations, and gates stay unchanged while the rebuilt
+  OCI identities are bound. Its loader now rejects any substituted image ID,
+  digest, or inventory. Refreshed preflight review `29343e37...` passes the
+  storage and operational checks and recommends exact-identity approval.
+
+**Decision:** the no-write preflight and campaign remain unauthorized. The
+pending execution decision still fails closed and requires Gemma Danks's named
+approval of review `29343e37...` and its four exact image digests before any
+campaign output may be created.
+
+**Validation:** all 11 focused post-failure protocol tests pass, including the
+new rebuilt-reference binding, runtime-substitution rejection,
+storage-readiness recomputation, and pending-authorization rejection. Final
+branch-aware coverage passes 1,345 tests with four expected xfails at 94.21%;
+all 27 equivalence tests pass; `just check` passes 1,215 tests with four
+expected xfails; and the strict documentation build passes. The final code
+review found no remaining actionable issue.
+
+**Immediate next step:** obtain exact-identity approval, bind the approved
+review checksum into the execution decision and dependent registry/evaluation
+chain, commit that authorization separately, then run the complete no-write
+preflight.

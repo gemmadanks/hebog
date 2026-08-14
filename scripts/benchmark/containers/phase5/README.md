@@ -94,3 +94,30 @@ is `sha256:d0c1319072c3716811ed51452fe83d92be8f8d2b62a11795678f31037b7b1f68`.
 Network-disabled checks inside it reproduce source tree `d50be758...` and
 dependency inventory `d383be3...`. These identities are pending named
 execution approval; they do not authorize the successor one-look.
+
+## Post-failure campaign reconstruction
+
+On 2026-08-14 the missing runtimes for the approved post-failure candidate
+were rebuilt while the Rapthor devcontainer remained active. Hebog was built
+from a clean archive of `63e4b5886a3f5acb75125d258f5b71c13ca4eeaf` using
+the same definition and explicit revision/phase labels:
+
+```console
+podman build --platform linux/arm64 \
+  --file Containerfile.hebog \
+  --label org.opencontainers.image.revision=63e4b5886a3f5acb75125d258f5b71c13ca4eeaf \
+  --label org.hebog.phase=5-external-post-failure-reconstruction \
+  --tag localhost/hebog:phase5-external-post-failure-63e4b58-reconstructed .
+```
+
+| Runtime | Image ID | Image digest |
+| --- | --- | --- |
+| Hebog | `3f579507eafbff9ae0193e869f3f2cfbda83bf40668755857ca36c0027cfebfd` | `sha256:4341ec7946b737613178d407af5e26a2ec28e7aca6ffe40bf90abf879aeb9061` |
+| PyBDSF 1.14.1 | `d63070b376ada2e8175dbcaeb64b0d462a3d064c416549c961ce789b26afd0da` | `sha256:c6dca91f0b32fd217460a5a2332e42a99fe68e6f1c11431af092e6be53e98bb8` |
+| PyBDSF master | `3186a4b5ad49d049dd657875b213550a7e8f4ae73db4f4ef7037510058741d43` | `sha256:81fc680669bbf92dcac9b68be8d7a18e6b30a0826b0e2e7b63c05f81f1f304ca` |
+| AegeanTools 2.3.5 | `d3a84d4175c45e8cd22e03f6d20ffb0e0b5590908ef0317fcb1fa8c562c70ca5` | `sha256:738591844996e672e8679a5f4b9233a1bd7bc06698af4aef69b4efff7f3b1551` |
+
+The candidate source-tree hash remains `864d8f2b...`; all dependency inventory
+hashes match the frozen values above. The changed OCI identities arise from a
+new build and require a new named execution approval. They are not evidence of
+a scientific change or authorization to open the one-look campaign.
