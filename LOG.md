@@ -7749,3 +7749,33 @@ campaign identity, evidence, or scientific product changed.
 **Immediate next step:** resolve storage and obtain exact-identity campaign
 authorization. Once the immutable campaign is launched, begin the isolated
 Step 2D preparation and Step 3 analytic/TDD development lane.
+
+## 2026-08-14 — Audited post-failure campaign storage remediation
+
+**Plan phase:** Phase 5, post-Step 2C-PF operational preparation
+
+- Host free space is 31 GiB against the frozen 120 GiB campaign floor. The
+  sealed confirmation campaign remains the only material Hebog target at
+  45.7 GiB; its inputs and results occupy 18.8 and 26.9 GiB respectively. No
+  external volume is mounted, so it cannot yet be moved to verified external
+  storage.
+- Podman reports 377 images using 39.84 GB, of which 39.83 GB is marked
+  reclaimable. Two unrelated VS Code devcontainer builds for Rapthor and
+  `ska-sdp-ical` are active and generated another 2.31 GB during the audit.
+  They also reference the nominally unlinked 4.67 GB `vscode` volume. No
+  build, image, container, or volume was interrupted or removed.
+- Reconstructable development caches offer approximately 30 GiB without
+  touching project data: Poetry 21.9 GiB, uv 6.25 GiB, pip 1.28 GiB, and
+  pre-commit 0.93 GiB. Cache deletion would require explicit approval and may
+  require later network downloads.
+
+**Decision:** storage remains blocked. The preferred recovery is to finish or
+stop the unrelated builds, move the sealed 45.7 GiB campaign to a verified
+external volume, approve the listed cache cleanup, and prune only dangling
+Podman intermediates while retaining the four bound runtime images. This is
+expected to exceed 120 GiB; none of those destructive actions is authorized
+by this audit.
+
+**Immediate next step:** obtain a preservation destination for the closed
+campaign and explicit approval for the scoped cache and post-build dangling-
+image cleanup.
