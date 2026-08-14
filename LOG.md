@@ -7644,3 +7644,29 @@ report no errors.
 implement observable centroid/support truth, freeze fresh manifests and exact
 endpoint priors, bind new immutable runner/compiler identities, and prepare a
 separate execution preflight without opening scientific products.
+
+## 2026-08-14 — Implemented the approved observable-truth boundary
+
+**Plan phase:** Phase 5, post-Step 2C-PF evidence implementation
+
+- Gemma Danks approved the post-failure scientific pre-review and revised
+  population design. The approval authorizes implementation and freezing, not
+  campaign execution.
+- Added a finder-independent truth compiler that measures integrated flux,
+  flux-weighted centroid, label ownership, and declared/observable support on
+  one common valid-pixel domain. It publishes per-group support counts and
+  fractions for later sealed-analysis audit and cannot consume a finder
+  product.
+- The prospective boundary rejects empty, duplicated, missing, mistyped,
+  unobservable, non-positive, and overlapping truth supports. The immutable
+  closed campaign compiler and products remain unchanged.
+
+**Validation:** 31 focused tests pass with 100% line and branch coverage for
+both prospective truth modules. Repository branch-aware coverage passes 1,332
+tests with four expected xfails at 94.15% before the final failure-path tests,
+which raise changed-file coverage to 100%.
+
+**Immediate next step:** freeze the 1,600 fresh Continuum and 800 fresh compact
+manifests with all 226 exact endpoint/reference priors, then bind the new
+runner, compiler, evaluator, and pending no-write preflight identities. A
+separate exact-identity approval remains required before execution.

@@ -19,7 +19,13 @@ from hebog.validation.external_successor_compiler import (
     native_support_objects,
 )
 from hebog.validation.observable_truth import (
+    measure_observable_truth,
     observable_truth_integrated_flux_jy,
+)
+from hebog.validation.post_failure_truth import (
+    ObservableTruthPlanes,
+    ObservableTruthSpecification,
+    compile_observable_truth,
 )
 
 _ROOT = Path(__file__).parents[3]
@@ -132,6 +138,243 @@ def test_observable_truth_flux_rejects_unmeasurable_domains() -> None:
             np.ones((2, 2), dtype=np.float64),
             np.ones((2, 2), dtype=np.bool_),
             beam_major_fwhm_pixels=float("nan"),
+            beam_minor_fwhm_pixels=1.0,
+        )
+
+
+def test_observable_truth_uses_one_valid_domain_for_position_and_support() -> (
+    None
+):
+    """Flux, centroid, and support metadata share the observable domain."""
+    signal = np.asarray(
+        (
+            (1.0, 2.0, 3.0),
+            (4.0, 5.0, 6.0),
+        ),
+        dtype=np.float64,
+    )
+    declared_support = np.asarray(
+        (
+            (True, True, False),
+            (True, True, False),
+        ),
+        dtype=np.bool_,
+    )
+    valid = np.asarray(
+        (
+            (False, True, True),
+            (False, True, False),
+        ),
+        dtype=np.bool_,
+    )
+
+    measurement = measure_observable_truth(
+        signal,
+        declared_support,
+        valid,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+    )
+
+    beam_area_pixels = np.pi / (2.0 * np.log(2.0))
+    assert measurement.integrated_flux_jy == pytest.approx(
+        (2.0 + 3.0 + 5.0) / beam_area_pixels
+    )
+    assert measurement.centroid_xy == pytest.approx((1.0, 5.0 / 7.0))
+    assert measurement.declared_support_pixel_count == 4
+    assert measurement.observable_support_pixel_count == 2
+    assert measurement.observable_support_fraction == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize(
+    ("declared_support", "valid", "message"),
+    (
+        (
+            np.ones((2, 2), dtype=np.int32),
+            np.ones((2, 2), dtype=np.bool_),
+            "boolean support",
+        ),
+        (
+            np.zeros((2, 2), dtype=np.bool_),
+            np.ones((2, 2), dtype=np.bool_),
+            "declared support",
+        ),
+        (
+            np.ones((2, 2), dtype=np.bool_),
+            np.zeros((2, 2), dtype=np.bool_),
+            "observable support",
+        ),
+    ),
+)
+def test_observable_truth_rejects_invalid_support_domains(
+    declared_support: np.ndarray,
+    valid: np.ndarray,
+    message: str,
+) -> None:
+    """Truth support metadata cannot be empty, mistyped, or unobservable."""
+    with pytest.raises(ValueError, match=message):
+        measure_observable_truth(
+            np.ones((2, 2), dtype=np.float64),
+            declared_support,
+            valid,
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+
+
+def test_observable_truth_rejects_invalid_signal_and_support_flux() -> None:
+    """Centroid truth requires a 2-D signal and positive support weights."""
+    with pytest.raises(ValueError, match="aligned two-dimensional"):
+        measure_observable_truth(
+            np.ones((2, 2, 1), dtype=np.float64),
+            np.ones((2, 2), dtype=np.bool_),
+            np.ones((2, 2), dtype=np.bool_),
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="support must have positive"):
+        measure_observable_truth(
+            np.asarray(((-1.0, -1.0), (3.0, 3.0)), dtype=np.float64),
+            np.asarray(((True, True), (False, False)), dtype=np.bool_),
+            np.ones((2, 2), dtype=np.bool_),
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+
+
+def test_truth_compilation_publishes_observable_support_metadata() -> None:
+    """The prospective compiler labels and records the exact truth domain."""
+    specifications = (
+        ObservableTruthSpecification(
+            identifier="edge-source",
+            catalogue_role="astronomical-source",
+            strata=("edge", "overall"),
+        ),
+        ObservableTruthSpecification(
+            identifier="artifact",
+            catalogue_role="artifact",
+            strata=("overall",),
+        ),
+    )
+    planes = {
+        "edge-source": ObservableTruthPlanes(
+            signal_jy_per_beam=np.asarray(
+                ((1.0, 2.0, 0.0), (3.0, 4.0, 0.0)),
+                dtype=np.float64,
+            ),
+            declared_support=np.asarray(
+                ((True, True, False), (True, True, False)),
+                dtype=np.bool_,
+            ),
+        ),
+        "artifact": ObservableTruthPlanes(
+            signal_jy_per_beam=np.asarray(
+                ((0.0, 0.0, 5.0), (0.0, 0.0, 6.0)),
+                dtype=np.float64,
+            ),
+            declared_support=np.asarray(
+                ((False, False, True), (False, False, True)),
+                dtype=np.bool_,
+            ),
+        ),
+    }
+    valid = np.asarray(
+        ((False, True, True), (False, True, True)),
+        dtype=np.bool_,
+    )
+
+    compilation = compile_observable_truth(
+        specifications,
+        planes,
+        valid,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+    )
+
+    assert tuple(item.identifier for item in compilation.objects) == (
+        "edge-source",
+        "artifact",
+    )
+    assert compilation.objects[0].centre_xy == pytest.approx((1.0, 2.0 / 3.0))
+    assert compilation.objects[1].centre_xy == pytest.approx((2.0, 6.0 / 11.0))
+    assert compilation.label_plane.tolist() == [[0, 1, 2], [0, 1, 2]]
+    assert compilation.label_plane.flags.writeable is False
+    assert compilation.supports[0].declared_pixel_count == 4
+    assert compilation.supports[0].observable_pixel_count == 2
+    assert compilation.supports[0].observable_fraction == pytest.approx(0.5)
+
+
+def test_truth_compilation_rejects_mismatched_and_overlapping_groups() -> None:
+    """Truth compilation rejects missing identity or double ownership."""
+    specification = ObservableTruthSpecification(
+        identifier="source",
+        catalogue_role="astronomical-source",
+        strata=("overall",),
+    )
+    truth_planes = ObservableTruthPlanes(
+        signal_jy_per_beam=np.ones((2, 2), dtype=np.float64),
+        declared_support=np.ones((2, 2), dtype=np.bool_),
+    )
+    valid = np.ones((2, 2), dtype=np.bool_)
+
+    with pytest.raises(ValueError, match="differ"):
+        compile_observable_truth(
+            (specification,),
+            {"other": truth_planes},
+            valid,
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="overlap"):
+        compile_observable_truth(
+            (
+                specification,
+                ObservableTruthSpecification(
+                    identifier="source-2",
+                    catalogue_role="astronomical-source",
+                    strata=("overall",),
+                ),
+            ),
+            {"source": truth_planes, "source-2": truth_planes},
+            valid,
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+
+
+def test_truth_compilation_rejects_invalid_population_boundaries() -> None:
+    """Truth population identity and valid-domain type fail closed."""
+    specification = ObservableTruthSpecification(
+        identifier="source",
+        catalogue_role="astronomical-source",
+        strata=("overall",),
+    )
+    truth_planes = ObservableTruthPlanes(
+        signal_jy_per_beam=np.ones((2, 2), dtype=np.float64),
+        declared_support=np.ones((2, 2), dtype=np.bool_),
+    )
+    with pytest.raises(ValueError, match="must not be empty"):
+        compile_observable_truth(
+            (),
+            {},
+            np.ones((2, 2), dtype=np.bool_),
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="identifiers must be unique"):
+        compile_observable_truth(
+            (specification, specification),
+            {"source": truth_planes},
+            np.ones((2, 2), dtype=np.bool_),
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="valid pixels"):
+        compile_observable_truth(
+            (specification,),
+            {"source": truth_planes},
+            np.ones((2, 2), dtype=np.int32),
+            beam_major_fwhm_pixels=2.0,
             beam_minor_fwhm_pixels=1.0,
         )
 
