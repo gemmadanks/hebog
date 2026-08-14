@@ -1703,11 +1703,33 @@ comparison.**
          to verified external storage, or reclaim other approved local data;
          retain the four bound runtime images. Refresh the storage-only review,
          obtain named approval of that exact checksum, run the complete
-         no-write preflight, and only then execute one terminal look. Step 3,
-         optimization, qualification, and runtime interpretation remain
-         closed.
+         no-write preflight, and only then execute one terminal look. Run it
+         from an immutable clean checkout pinned to the approved execution
+         commit so later development cannot change a source, runner, compiler,
+         or contract visible to the campaign.
+   - [ ] Treat the running campaign and continued development as isolated
+         lanes. Monitor only process health, aggregate progress, storage, and
+         terminal publication; never open or summarize partial scientific
+         products. Continue Steps 2D and 3--5 in a separate development
+         checkout using only analytic, development, and existing regression
+         evidence. Do not change the frozen population, candidate runtime,
+         runner, compiler, evaluator, endpoint policy, or execution checkout.
+         Avoid performance benchmarks and other resource-heavy controlled
+         runs on the campaign host; execute them only on isolated resources or
+         after the terminal campaign seals.
+   - [ ] Compile and evaluate the sealed terminal campaign before inspecting
+         runtime. A pass permits the parallel Step 3 work to become the active
+         production candidate. A fail retains that work as experimental and
+         requires scientific review before promotion. Qualification, external
+         equivalence claims, PyBDSF fallback removal, and production cutover
+         remain closed in either lane until their existing gates pass.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
+
+   Preparation may proceed before or during the isolated campaign. Execute a
+   controlled Rapthor probe concurrently only on separate resources; it must
+   neither consume campaign products nor affect the campaign host's resource
+   envelope.
 
    - [ ] Freeze the Rapthor revision, LSMTool filtering implementation, input
          checksums, released and pinned-`master` PyBDSF configurations, and
@@ -1730,8 +1752,14 @@ comparison.**
          the PyBDSF fallback until Phase 7 acceptance passes, and do not claim
          general extended-source equivalence from Rapthor agreement.
 
-3. **Implement scale detection and extended-island measurement after Steps
-   2C-H and 2C-P pass.**
+3. **Develop scale detection and extended-island measurement after Step 2C-H;
+   promote it only after Step 2C-P passes.**
+
+   Development may begin in the isolated lane after the immutable campaign is
+   launched. Until its sealed decision passes, use only analytic, development,
+   and existing regression fixtures; do not open qualification data, tune from
+   campaign products, claim external equivalence, or merge the work into the
+   campaign execution checkout.
 
    - [ ] Detect significant residual emission at every configured scale from
          shared à trous smoothings and calibrated local noise. Reconstruct

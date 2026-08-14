@@ -7718,3 +7718,34 @@ are clean.
 closed confirmation data to verified external storage, reach 120 GiB free,
 refresh only the operational preflight review and dependent approval checksum,
 then request the separate one-look authorization.
+
+## 2026-08-14 — Authorized isolated development during confirmation
+
+**Plan phase:** Phase 5, post-Step 2C-PF parallel execution policy
+
+- Separated the future immutable confirmation execution from continued Phase 5
+  development. The campaign must run from a clean checkout pinned to its
+  approved execution commit and may expose only operational progress until its
+  terminal products seal.
+- Authorized Step 2D preparation and development-only Steps 3--5 in a separate
+  checkout using analytic, development, and existing regression evidence.
+  Partial campaign products, qualification data, candidate-specific
+  performance claims, frozen campaign programs, and the execution checkout
+  remain outside that lane.
+- Resource-heavy probes and benchmarks may not contend with the campaign host.
+  A sealed scientific pass may promote the parallel work to the active
+  candidate; a failure keeps it experimental pending scientific review. The
+  PyBDSF fallback, qualification, external-equivalence claim, and production
+  cutover gates are unchanged.
+
+**Decision:** useful implementation work may continue while the evidence
+campaign runs without weakening the one-look boundary or treating prospective
+development as confirmation evidence.
+
+**Validation:** the strict documentation build passes. `just check` passes
+Ruff, Pyright, 1,214 tests, and four expected xfails; no production code,
+campaign identity, evidence, or scientific product changed.
+
+**Immediate next step:** resolve storage and obtain exact-identity campaign
+authorization. Once the immutable campaign is launched, begin the isolated
+Step 2D preparation and Step 3 analytic/TDD development lane.
