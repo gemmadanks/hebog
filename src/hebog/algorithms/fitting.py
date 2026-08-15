@@ -871,7 +871,8 @@ def _with_rejected_model(
 def _significantly_extended(
     candidate: _FitCandidate,
     beam_covariance: tuple[float, float, float],
-    config: CompactGaussianFitConfig,
+    *,
+    significance_sigma: float,
 ) -> bool:
     """Apply the reviewed data-only log-area extension significance rule."""
     covariance = candidate.covariance
@@ -890,8 +891,7 @@ def _significantly_extended(
     return bool(
         isfinite(log_area_variance)
         and log_area_variance > 0
-        and log_area_ratio
-        > config.extension_significance_sigma * np.sqrt(log_area_variance)
+        and log_area_ratio > significance_sigma * np.sqrt(log_area_variance)
     )
 
 
@@ -914,7 +914,11 @@ def _free_fallback_reason(
         return "free-model-bound-contact"
     if not _identifiable(candidate, config):
         return "free-model-ill-conditioned"
-    if not _significantly_extended(candidate, beam_covariance, config):
+    if not _significantly_extended(
+        candidate,
+        beam_covariance,
+        significance_sigma=config.extension_significance_sigma,
+    ):
         return "free-model-not-significantly-extended"
     return None
 
@@ -1926,6 +1930,11 @@ def fit_compact_gaussian(
         free
         if fallback_reason == "free-model-not-significantly-extended"
         and selected.diagnostics.model_identity != "free-elliptical"
+        and _significantly_extended(
+            free,
+            beam_covariance,
+            significance_sigma=(config.component_extension_significance_sigma),
+        )
         else None
     )
     return _selected_fit_result(

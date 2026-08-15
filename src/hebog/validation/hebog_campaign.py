@@ -177,6 +177,7 @@ def phase_five_corrected_candidate_configs() -> tuple[
             fit,
             model_selection="beam-or-free",
             position_estimator="selected-model",
+            component_extension_significance_sigma=1.5,
             association_aperture_radius_sigma=1.5,
         ),
         catalogue,
@@ -198,7 +199,7 @@ def _campaign_configuration(
     adaptive = detection.background_rms.adaptive
     assert adaptive is not None
     statistics = coarse.statistics
-    return {
+    configuration: dict[str, object] = {
         "adaptive_rms": {
             "candidate_threshold_sigma": adaptive.candidate_threshold_sigma,
             "influence_radius_pixels": adaptive.influence_radius_pixels,
@@ -297,6 +298,16 @@ def _campaign_configuration(
         },
         "tile_core_shape_yx": [128, 128],
     }
+    if (
+        fit.component_extension_significance_sigma
+        != fit.extension_significance_sigma
+    ):
+        fitting = configuration["fitting"]
+        assert isinstance(fitting, dict)
+        fitting["component_extension_significance_sigma"] = (
+            fit.component_extension_significance_sigma
+        )
+    return configuration
 
 
 def hebog_campaign_configuration() -> dict[str, object]:

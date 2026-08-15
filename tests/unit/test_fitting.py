@@ -327,11 +327,7 @@ def test_beam_shaped_edge_and_corner_sources_use_constrained_fit(
     assert result.parameters.minor_sigma_pixels == pytest.approx(axes[1])
     assert not result.diagnostics.parameters_at_bound
     assert "beam-constrained-fit" in result.quality_flags
-    assert result.gaussian_component_fit is not None
-    assert (
-        result.gaussian_component_fit.diagnostics.model_identity
-        == "free-elliptical"
-    )
+    assert result.gaussian_component_fit is None
     assert isinstance(
         result.association_aperture,
         AssociationAperturePhotometry,
@@ -342,6 +338,55 @@ def test_beam_shaped_edge_and_corner_sources_use_constrained_fit(
         rel=1e-6,
     )
     assert 0.0 < result.association_aperture.visible_model_fraction <= 1.0
+
+
+def test_component_uses_lower_significance_whole_ellipse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Marginal component evidence retains every parameter from one fit."""
+    observed_thresholds: list[float] = []
+
+    def significant_at_component_threshold(
+        candidate: object,
+        beam_covariance: object,
+        *,
+        significance_sigma: float,
+    ) -> bool:
+        del candidate, beam_covariance
+        observed_thresholds.append(significance_sigma)
+        return significance_sigma <= 2.0
+
+    monkeypatch.setattr(
+        fitting_algorithm,
+        "_significantly_extended",
+        significant_at_component_threshold,
+    )
+
+    def never_preferred(*_args: object) -> bool:
+        return False
+
+    monkeypatch.setattr(
+        fitting_algorithm,
+        "_free_preferred_by_bic",
+        never_preferred,
+    )
+    result = _fit(
+        _gaussian_input(sigma_axes=(1.7, 0.8)),
+        config=_fit_config(
+            model_selection="beam-or-free",
+            extension_significance_sigma=5.0,
+            component_extension_significance_sigma=2.0,
+        ),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(result, ValidCompactGaussianFit)
+    assert result.diagnostics.model_identity == "beam-constrained"
+    assert result.gaussian_component_fit is not None
+    assert result.gaussian_component_fit.diagnostics.model_identity == (
+        "free-elliptical"
+    )
+    assert observed_thresholds == [5.0, 2.0]
 
 
 def test_clear_extended_source_retains_free_elliptical_fit() -> None:
@@ -1176,6 +1221,17 @@ def test_aperture_photometry_rejects_invalid_evidence(
         ({"maximum_background_offset_sigma": 0.0}, "background_offset"),
         ({"context_margin_pixels": -1}, "context_margin"),
         ({"extension_significance_sigma": 0.0}, "extension_significance"),
+        (
+            {"component_extension_significance_sigma": 0.0},
+            "component_extension_significance",
+        ),
+        (
+            {
+                "extension_significance_sigma": 2.0,
+                "component_extension_significance_sigma": 3.0,
+            },
+            "cannot exceed extension_significance",
+        ),
         (
             {"maximum_information_condition_number": 1.0},
             "information_condition",

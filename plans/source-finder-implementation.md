@@ -1769,6 +1769,15 @@ comparison.**
          that passes position, flux, fitted-axis, and fitted-position-angle
          requirements together; do not solve one family by republishing a
          representation already known to fail another.
+         The predeclared 20-image crossover review now selects a prospective
+         whole-model component boundary at 1.5-sigma log-area significance,
+         while retaining the five-sigma source boundary. Marginal fitted-axis
+         p95 is 0.1686 and unresolved fitted-position-angle p95 is 1.0224
+         degrees on that fixed slice, versus 0.1665/4.9716 for free-only
+         publication. A diagonal-weighted alternative was inferior for
+         marginal axes and compact position/flux. The value is locked before
+         the full replay and remains development-only until every cumulative
+         endpoint below passes.
    - [ ] Produce a machine-readable cumulative regression ledger before the
          next freeze. Re-run the chosen compact candidate on the complete
          viewed 800-image diagnostic population with fitted-Gaussian-component

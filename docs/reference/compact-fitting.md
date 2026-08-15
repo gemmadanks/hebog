@@ -78,12 +78,19 @@ at the independently measured intensity-weighted moment centroid and finally
 uses the beam model or reports failure. The selected and rejected model
 identities, exact bound parameters, bound distances, condition number, visible
 footprint, retained geometry, and fallback reason remain auditable.
-When a valid free ellipse is rejected only because extension is not
-significant, Hebog now retains that independent ellipse for the
-`GaussianComponent` product. The lower-variance selected model continues to
-define the `SourceCandidate`. This preserves source stability without turning
-a beam-constrained source decision into an Aegean/PyBDSF fitted-component
-shape.
+Gaussian-component publication applies a second, explicit whole-model test.
+The source keeps the conservative five-sigma selection needed by Rapthor. A
+free component rejected at that boundary is nevertheless published when its
+log-area extension exceeds 1.5 standard errors; otherwise the complete
+restoring-beam ellipse is published. Axes, angle, centroid, and fitted total
+always come from the same selected fit. This avoids both the variance of a
+free angle for beam-like objects and the scientifically incoherent alternative
+of mixing free axes with a beam angle. PyBDSF and Aegean likewise represent a
+Gaussian component as one fitted ellipse; Hebog's explicit low-information
+beam fallback is recorded in diagnostics rather than disguised as a free fit.
+The 1.5-sigma component boundary was selected prospectively on the fixed
+viewed development slice and must pass the complete cumulative regression
+ledger before a fresh campaign can be frozen.
 
 The association aperture is an explicit configurable radius, currently three
 Gaussian sigmas. Hebog uses the lower-variance restoring-beam ellipse when it

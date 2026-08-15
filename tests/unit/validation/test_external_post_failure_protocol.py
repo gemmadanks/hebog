@@ -25,6 +25,62 @@ def _script(relative_path: str) -> dict[str, Any]:
     return runpy.run_path(str(_ROOT / relative_path))
 
 
+def test_cumulative_ledger_marks_only_like_basis_pass_losses() -> None:
+    """A status history stays visible without inventing a regression."""
+    module = _script(
+        "scripts/validation/review_phase5_cumulative_regressions.py"
+    )
+    transitions = module["_transition_rows"](
+        {"kept": "pass", "lost": "pass", "gained": "fail"},
+        {"kept": "pass", "lost": "fail", "gained": "pass"},
+        left_id="closed",
+        right_id="current",
+        comparable=True,
+    )
+
+    assert [item["endpoint_id"] for item in transitions] == [
+        "gained",
+        "lost",
+    ]
+    assert all(item["like_semantics_and_population"] for item in transitions)
+    assert module["_regressions"](
+        {"kept": "pass", "lost": "pass", "already-failed": "fail"},
+        {"kept": "pass", "lost": "underpowered", "already-failed": "pass"},
+    ) == ("lost",)
+
+
+def test_cumulative_candidate_identity_binds_component_threshold() -> None:
+    """The replay identity changes with the explicit whole-model policy."""
+    module = _script(
+        "scripts/validation/review_phase5_cumulative_regressions.py"
+    )
+    configuration = module["corrected_hebog_campaign_configuration"]()
+
+    assert configuration["fitting"][
+        "component_extension_significance_sigma"
+    ] == pytest.approx(1.5)
+    assert len(module["_candidate_configuration_sha256"]()) == 64
+
+
+def test_cumulative_replay_separates_closed_and_candidate_source_ids() -> None:
+    """Closed verification cannot mistake the prospective tree for history."""
+    module = _script(
+        "scripts/validation/review_phase5_cumulative_regressions.py"
+    )
+    helpers = _script(
+        "scripts/validation/phase5_external_post_failure_protocol.py"
+    )
+
+    module["_install_historical_source_view"]({"_HELPERS": helpers})
+
+    loader_globals = helpers["load_post_failure_population"].__globals__
+    assert (
+        loader_globals["source_tree_sha256"](_ROOT)
+        == helpers["_SOURCE_TREE_SHA256"]
+    )
+    assert source_tree_sha256(_ROOT) != helpers["_SOURCE_TREE_SHA256"]
+
+
 def test_post_failure_population_builder_freezes_approved_design(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -15,10 +15,13 @@ region ID, and all output is sorted by those IDs rather than executor
 completion order.
 
 Source and component models may deliberately differ. The source retains the
-reviewed beam-or-free selection and Rapthor flux semantics. When model
-selection rejects an otherwise valid free ellipse only because extension is
-not significant, the Gaussian component retains that independently fitted
-ellipse and fitted total for like-product PyBDSF/Aegean comparison.
+reviewed five-sigma beam-or-free selection and Rapthor flux semantics. A
+Gaussian component uses the complete free ellipse only when the same log-area
+evidence exceeds its explicit 1.5-sigma component boundary; otherwise it uses
+the complete beam-constrained ellipse. The component retains the fitted total
+of whichever whole model it publishes for like-product PyBDSF/Aegean
+comparison. It never combines axes from one fit with position angle from
+another.
 
 The worker stage emits one `CompactCatalogueShard` per existing coarse batch;
 it does not create one scheduler task per fit or source. Shards combine through

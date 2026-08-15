@@ -8067,3 +8067,46 @@ review against `CODE_REVIEW.md` found no actionable issue.
 retain the beam-or-free position-angle stability and independent-fit axis/flux
 accuracy, then implement and evaluate the selected option against the complete
 cumulative ledger before any campaign freeze or power audit.
+
+## 2026-08-15 — Selected a conjunctive compact component candidate
+
+**Plan phase:** Phase 5, cumulative-regression remediation
+
+- Reviewed the Gaussian-component conventions documented by PyBDSF and
+  Aegean. Both expose one complete fitted ellipse; neither supports combining
+  axes from one model with the position angle of another. Rejected that mixed
+  representation and retained an auditable whole-model choice.
+- Evaluated correlated-GLS component significance thresholds from 1.0 through
+  5.0 plus a diagonal-weighted alternative on the same 20 evenly spaced,
+  already viewed compact images used by the regression audit. The threshold
+  was selected before opening the complete replay.
+- Locked a 1.5-sigma log-area boundary for Gaussian components while keeping
+  the five-sigma source boundary. On the fixed slice, marginal fitted-axis p95
+  is 0.16857 and unresolved fitted-position-angle p95 is 1.02244 degrees.
+  Free-only publication measured 0.16647/4.9716, while a two-sigma boundary
+  measured 0.18293/0.00026. The selected boundary therefore retains most of
+  the axis improvement without republishing the known unresolved-angle
+  failure. The diagonal estimator was worse for marginal axes, position, and
+  flux.
+- Added an explicit validated component threshold, whole-fit publication, and
+  a restartable cumulative-regression runner. The runner re-verifies the
+  sealed 2,400-image campaign, replays the prospective candidate, evaluates
+  all 593 applicable compact and 143 Continuum endpoints with unchanged
+  PyBDSF/Aegean gates, records every historical status transition, and deletes
+  its transient large products only after atomic ledger publication.
+
+**Decision:** the 1.5-sigma policy is the single prospective candidate for the
+complete viewed replay. It is not authorized for a fresh campaign and will not
+be changed in response to the 800-image/1,600-image cumulative result.
+
+**Validation:** 157 focused fitting, configuration-identity, historical
+protocol, and cumulative-ledger tests pass. One real compact image and one real
+Continuum image completed the new product boundary; the historic normalizer
+finds exactly 593 compact and 143 Continuum decisions in each of the four
+retained external campaigns. Branch-aware coverage passes 1,369 tests with
+four expected xfails at 94.27%; all 27 equivalence tests pass; `just check`
+passes Ruff, Pyright, 1,240 tests, and four expected xfails; and the strict
+documentation build passes. The complete cumulative replay remains next.
+
+**Immediate next step:** complete project validation, commit the locked
+candidate, then run the full cumulative ledger from that immutable revision.
