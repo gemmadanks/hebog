@@ -7923,3 +7923,49 @@ no actionable issue.
 **Immediate next step:** validate and commit this authorization, create its
 immutable execution checkout, run the no-write preflight, and launch the
 single terminal campaign only on success.
+
+## 2026-08-15 — Post-failure external campaign failed its scientific gates
+
+**Plan phase:** Phase 5, post-Step 2C-PF terminal external decision
+
+- The complete no-write preflight passed from immutable checkout `211dff6...`,
+  and the approved one-look campaign sealed all 12,000 requested runs across
+  2,400 fresh images with no run failure. The public campaign manifest is
+  `benchmark-results/phase-5/external-post-failure-comparison/campaign.json`
+  with SHA-256 `c16dc48...`; its private staging directory was atomically
+  removed. Monitoring opened no partial scientific product.
+- The committed frozen compiler produced
+  `external-post-failure-analysis.json` with SHA-256 `ecd6bd7...`; the frozen
+  evaluator produced `external-post-failure-decision.json` with SHA-256
+  `2dd0bcc...`. Scientific outcomes were interpreted before any runtime data.
+- The terminal decision is `fail`. Compact science fails one released-PyBDSF
+  binding for the S/N-15 integrated-flux 95th percentile and seven Aegean
+  bindings, predominantly integrated-flux tails. Of 143 Continuum endpoints,
+  122 pass, 17 fail, and four are underpowered. Thirteen absolute
+  integrated-flux 95th-percentile endpoints exceed their gate, three absolute
+  position-tail endpoints fail, and overall mask precision misses the pinned
+  PyBDSF-master non-inferiority margin by 0.000799 at the upper confidence
+  bound. The four underpowered median-flux endpoints pass their absolute gates
+  but exceed their predeclared paired-variance bounds.
+- Runtime was inspected only after the scientific decision and remains
+  diagnostic because promotion and optimization are unauthorized. Continuum
+  median wall time is 0.7798 s for Hebog versus 3.7980 s for released PyBDSF
+  and 4.2938 s for pinned PyBDSF master. On the compact lane it is 2.0254 s
+  for Hebog versus 0.9664 s and 0.9573 s respectively; Aegean is 3.3089 s.
+  The complete campaign elapsed 48,090.5 s (13 h 21 min 30.5 s).
+
+**Decision:** Step 3 promotion, optimization, qualification, external
+equivalence claims, PyBDSF fallback removal, and production cutover remain
+closed. Parallel scale-development work remains experimental and may use only
+analytic, development, and existing regression evidence. The Rapthor
+devcontainer remains intentionally stopped.
+
+**Validation:** all 17 focused post-failure protocol tests pass. The required
+branch-aware coverage suite passes; `just check` passes Ruff, Pyright, 1,221
+tests, and four expected xfails; and the strict documentation build passes.
+The final documentation-only review found no actionable code issue.
+
+**Immediate next step:** perform a named scientific failure review using the
+sealed diagnostics, reproduce the causes outside the campaign, and predeclare
+any prospective correction and fresh seed-disjoint evidence boundary. Do not
+rescore or reopen this one-look campaign.

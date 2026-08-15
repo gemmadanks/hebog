@@ -1720,22 +1720,31 @@ comparison.**
          hashes now bind the approval without changing the reviewed program.
          Run the complete no-write preflight from the resulting immutable
          commit, and only after it passes execute one terminal look.
-   - [ ] Treat the running campaign and continued development as isolated
-         lanes. Monitor only process health, aggregate progress, storage, and
-         terminal publication; never open or summarize partial scientific
-         products. Continue Steps 2D and 3--5 in a separate development
-         checkout using only analytic, development, and existing regression
-         evidence. Do not change the frozen population, candidate runtime,
-         runner, compiler, evaluator, endpoint policy, or execution checkout.
-         Avoid performance benchmarks and other resource-heavy controlled
-         runs on the campaign host; execute them only on isolated resources or
-         after the terminal campaign seals.
-   - [ ] Compile and evaluate the sealed terminal campaign before inspecting
-         runtime. A pass permits the parallel Step 3 work to become the active
-         production candidate. A fail retains that work as experimental and
-         requires scientific review before promotion. Qualification, external
-         equivalence claims, PyBDSF fallback removal, and production cutover
-         remain closed in either lane until their existing gates pass.
+   - [x] Keep campaign execution isolated from continued development. The
+         immutable `211dff6...` checkout completed all 12,000 runs, and
+         monitoring remained limited to operational state until atomic
+         terminal publication. No partial scientific product was opened or
+         summarized, and the frozen population, runtimes, programs, endpoint
+         policy, and execution checkout did not change.
+   - [x] Compile and evaluate the sealed terminal campaign before inspecting
+         runtime. The frozen decision fails: compact science fails; of 143
+         Continuum endpoints, 122 pass, 17 fail, and four are underpowered.
+         Integrated-flux tails dominate the Continuum failures, with smaller
+         position-tail and PyBDSF-master mask-precision failures. Compact
+         science fails one released-PyBDSF flux-tail binding and seven Aegean
+         bindings, chiefly integrated-flux tails. Diagnostic runtime medians
+         were inspected only afterward: Hebog is faster on Continuum but
+         slower than both PyBDSF references on the compact lane. Runtime does
+         not override the scientific result. Step 3 promotion, optimization,
+         qualification, external-equivalence claims, PyBDSF fallback removal,
+         and production cutover remain closed.
+   - [ ] Complete a named post-campaign scientific failure review before the
+         next algorithm change. Trace the compact flux-tail failures and the
+         Continuum flux, position-tail, mask-precision, and excess-variance
+         outcomes through the sealed diagnostics, then reproduce each cause
+         with analytic or development evidence. Predeclare any prospective
+         correction and fresh seed-disjoint confirmation boundary; do not
+         adaptively rescore or reopen this one-look campaign.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
