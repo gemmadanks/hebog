@@ -1754,14 +1754,41 @@ comparison.**
          0.9112/0.9075/0.8335, worst flux p95 is 0.1533, and worst position
          p95 is 0.4669. These are regression results, not external evidence.
          See the [post-campaign failure review](../docs/reference/phase-5-post-campaign-failure-review.md).
+   - [ ] Resolve the cumulative compact regression before freezing another
+         external campaign. The successor free-only component improved
+         position, flux, and marginal fitted-axis results but the confirmation
+         candidate then failed seven Aegean fitted-position-angle endpoints.
+         Beam-or-free publication repaired all seven in the post-failure
+         campaign but put marginal fitted-axis p95 back on the failing side.
+         The post-campaign independent free component repairs the axis tail,
+         yet a 20-image evenly spaced diagnostic projects the same seven
+         position-angle failures again: overall fitted-position-angle median
+         is 1.145 degrees versus Aegean's 0.475 degrees, and unresolved p95 is
+         4.972 versus 0.814 degrees. Treat the present candidate as
+         development-only. Select one scientifically coherent component model
+         that passes position, flux, fitted-axis, and fitted-position-angle
+         requirements together; do not solve one family by republishing a
+         representation already known to fail another.
+   - [ ] Produce a machine-readable cumulative regression ledger before the
+         next freeze. Re-run the chosen compact candidate on the complete
+         viewed 800-image diagnostic population with fitted-Gaussian-component
+         semantics and evaluate all PyBDSF and Aegean endpoints together.
+         Re-run the complete Continuum regression matrix and explicitly retain
+         the formerly passing filament flux tail plus shell/tile-corner
+         position tails, mask precision, recall, and IoU. Any endpoint that
+         was previously passing under the same truth and product semantics
+         must remain passing; semantic or population changes must be shown in
+         a separate column rather than presented as an algorithm improvement.
+         Record every historic fail-to-pass and pass-to-fail transition and
+         require named scientific review of any deliberate trade-off.
    - [ ] Freeze and approve a fresh seed-disjoint post-correction external
-         comparison. Retain all prior absolute, paired, failure-denominator,
-         excess-variance, and one-look rules; bind component semantics and all
-         four corrected science settings. Use at least 1,600 Continuum and 800
-         compact images unless a conservative exact-endpoint power audit
-         justifies another count. Obtain separate named scientific approval
-         before execution; Step 3 remains closed until every binding endpoint
-         passes.
+         comparison only after the cumulative ledger passes. Retain all prior
+         absolute, paired, failure-denominator, excess-variance, and one-look
+         rules; bind component semantics and all corrected science settings.
+         Use at least 1,600 Continuum and 800 compact images unless a
+         conservative exact-endpoint power audit justifies another count.
+         Obtain separate named scientific approval before execution; Step 3
+         remains closed until every binding endpoint passes.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

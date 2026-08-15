@@ -54,19 +54,58 @@ recall, and IoU together. The denoised position alone regressed
 compact-dominated mixed sources; the concentration switch restored original
 weighting for that population and removed the regression.
 
+## Cumulative campaign regression audit
+
+A chronological audit of all Phase 5 evidence found that the external compact
+corrections have not yet converged monotonically:
+
+| Transition | Improvements retained | Passing result lost |
+| --- | --- | --- |
+| Successor to confirmation | Eleven PyBDSF/Aegean position and fitted-axis decisions moved from fail to pass. | Seven Aegean fitted-position-angle decisions moved from pass to fail after selecting a free-only component. |
+| Confirmation to post-failure | All seven fitted-position-angle decisions returned to pass with beam-or-free publication. Twenty-four of 27 underpowered Continuum decisions became passing, and 13 Continuum failures became passing. | The Aegean marginal fitted-axis p95 and released-PyBDSF S/N-15 integrated-flux p95 moved from pass to fail. One formerly passing Continuum filament flux tail also failed on the larger population. |
+| Post-failure to current development candidate | Fitted-component semantics repair the compact flux error; the independent free ellipse improves the marginal fitted-axis tail. The Continuum development replay repairs the observed flux and position tails. | The free component also republishes the position-angle behaviour responsible for the seven confirmation failures. |
+
+The last point is confirmed independently of the campaign decisions. A
+diagnostic rerun of the current code on 20 evenly spaced images from the sealed
+post-failure compact population used only temporary products and treated the
+population as viewed development evidence. Marginal fitted-axis p95 improved
+from 0.172 to 0.166. However, overall fitted-position-angle median changed from
+effectively zero in the closed beam-or-free product to 1.145 degrees, while
+Aegean measured 0.475 degrees. Unresolved fitted-position-angle p95 was 4.972
+degrees versus Aegean's 0.814 degrees. Those differences exceed the unchanged
+0.5-degree median and 1.0-degree p95 non-inferiority margins and reproduce the
+same seven failed endpoint strata seen in confirmation. This is a regression
+diagnostic, not a rescore of the closed campaign.
+
+The internal Phase 5 sequence does not show the same oscillation. The paired
+filter and three corrective reviews all rejected their candidates rather than
+promoting and later losing a pass. The separately reviewed extended-position
+follow-up passed both its 80-image development matrix and its 400-image
+one-look confirmation. The current denoised-position change must nevertheless
+retain that complete position matrix in the cumulative ledger because it
+changes the confirmed estimator.
+
 ## Decision and next evidence
 
-The causes are sufficiently reproduced to retain these implementations as the
-next prospective candidate. They are not sufficient to claim non-inferiority.
-The next external evidence must:
+The current implementation remains useful development evidence, but it is not
+ready to freeze as the next external candidate. First select a scientifically
+coherent Gaussian-component model that passes position, flux, fitted-axis, and
+fitted-position-angle requirements simultaneously. Then produce a
+machine-readable cumulative ledger on the complete viewed compact and
+Continuum regression populations. The ledger must show every historical
+pass-to-fail and fail-to-pass transition and must separate algorithm changes
+from truth, catalogue-semantics, compiler, and population changes.
+
+Only after that ledger has no unapproved regression may the next external
+evidence:
 
 1. use seeds disjoint from all development and closed external populations;
 2. retain every absolute, paired non-inferiority, failure-denominator,
    excess-variance, and one-look rule from the failed campaign;
 3. compare compact Gaussian components with PyBDSF Gaussian catalogues and
    Aegean components, without Rapthor source canonicalization;
-4. bind the 1.5-beam aperture, multiscale boundary refinement, concentration
-   threshold, source/component model split, and exact runtime identities;
+4. bind the reviewed aperture, multiscale boundary refinement, concentration
+   threshold, source/component model, and exact runtime identities;
 5. use no fewer than the previous 1,600 Continuum and 800 compact images until
    a conservative exact-endpoint power audit justifies another count; and
 6. obtain a separate named scientific approval before the one-look execution.

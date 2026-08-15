@@ -8022,3 +8022,48 @@ prospective tree; no closed authority was rebound. The final review against
 **Immediate next step:** complete full validation and local review, then freeze
 a fresh seed-disjoint post-correction population and exact power audit only
 after separate scientific approval.
+
+## 2026-08-15 — Audited cumulative Phase 5 campaign regressions
+
+**Plan phase:** Phase 5, pre-freeze cumulative regression review
+
+- Reviewed the complete chronological Phase 5 evidence set: filter selection,
+  paired/corrective reviews, astrometry development and confirmation, and all
+  four terminal external campaign analyses and decisions. The internal filter
+  sequence did not lose an accepted candidate: paired and corrective reviews
+  rejected their candidates, while the separately governed segment-position
+  follow-up passed both development and one-look confirmation.
+- The external compact sequence does contain a repeated trade. From successor
+  to confirmation, 11 PyBDSF/Aegean decisions moved from fail to pass but seven
+  Aegean fitted-position-angle decisions moved from pass to fail. The
+  post-failure beam-or-free policy restored all seven, but marginal fitted-axis
+  p95 and one released-PyBDSF S/N-15 flux tail moved back to fail. Continuum
+  improved from 86/143 to 122/143 passing endpoints, but one formerly passing
+  filament flux p95 and three formerly underpowered shell/tile position tails
+  became failures on the larger, observable-truth population.
+- Tested the present component split on 20 evenly spaced images from the
+  sealed 800-image post-failure compact population, using transient outputs
+  only and fitted-component semantics. Marginal fitted-axis p95 improved from
+  0.1719 to 0.1665, but overall fitted-position-angle median changed from
+  0.00020 to 1.1452 degrees versus Aegean's 0.4751. Unresolved p95 changed from
+  0.00024 to 4.9716 degrees versus Aegean's 0.8144. This projects the exact
+  seven position-angle endpoint failures already observed in confirmation;
+  the current candidate is therefore not ready for another external freeze.
+
+**Decision:** block the next seed-disjoint campaign until one coherent compact
+component model passes position, flux, fitted-axis, and fitted-position-angle
+requirements together. Require a machine-readable cumulative regression
+ledger on the complete viewed 800-image compact population and full Continuum
+regression matrix. The ledger must preserve prior passes under like semantics,
+show all status transitions, and isolate algorithm effects from compiler,
+truth, catalogue-semantics, and population changes. Any deliberate trade-off
+requires named scientific approval.
+
+**Validation:** the strict documentation build passes. `just check` passes
+Ruff, Pyright, 1,234 tests, and four expected xfails. The documentation-only
+review against `CODE_REVIEW.md` found no actionable issue.
+
+**Immediate next step:** pre-review component-model alternatives that can
+retain the beam-or-free position-angle stability and independent-fit axis/flux
+accuracy, then implement and evaluate the selected option against the complete
+cumulative ledger before any campaign freeze or power audit.
