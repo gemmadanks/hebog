@@ -78,6 +78,12 @@ at the independently measured intensity-weighted moment centroid and finally
 uses the beam model or reports failure. The selected and rejected model
 identities, exact bound parameters, bound distances, condition number, visible
 footprint, retained geometry, and fallback reason remain auditable.
+When a valid free ellipse is rejected only because extension is not
+significant, Hebog now retains that independent ellipse for the
+`GaussianComponent` product. The lower-variance selected model continues to
+define the `SourceCandidate`. This preserves source stability without turning
+a beam-constrained source decision into an Aegean/PyBDSF fitted-component
+shape.
 
 The association aperture is an explicit configurable radius, currently three
 Gaussian sigmas. Hebog uses the lower-variance restoring-beam ellipse when it

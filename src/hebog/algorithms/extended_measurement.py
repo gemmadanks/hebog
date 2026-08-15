@@ -6,11 +6,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import ceil, isfinite
+from numbers import Integral
 from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
-from scipy.ndimage import binary_opening, distance_transform_edt
+from scipy.ndimage import (
+    binary_dilation,
+    binary_opening,
+    convolve,
+    distance_transform_edt,
+)
 
 SegmentPositionUnavailableReason = Literal[
     "empty-finite-support",
@@ -18,6 +25,10 @@ SegmentPositionUnavailableReason = Literal[
 ]
 _IMAGE_DIMENSIONS = 2
 _SUB_BEAM_OPENING_WIDTH_PIXELS = 3
+_MULTISCALE_CORE_MINIMUM_NEIGHBORS = 5
+_MULTISCALE_BOUNDARY_MINIMUM_SNR = 6.0
+_MULTISCALE_RECOVERY_RADIUS_BEAMS = 0.5
+_NEIGHBORHOOD_PIXEL_COUNT = 9
 
 
 def _segment_label_plane(
@@ -59,6 +70,96 @@ def clean_detected_segment_labels(
         ),
     )
     return np.where(retained, labels, 0).astype(np.int32, copy=False)
+
+
+def refine_multiscale_segment_labels(  # noqa: PLR0913
+    component_labels: npt.ArrayLike,
+    combined_snr: npt.ArrayLike,
+    significant_multiscale_support: npt.ArrayLike,
+    *,
+    beam_major_fwhm_pixels: float,
+    core_minimum_neighbors: int = _MULTISCALE_CORE_MINIMUM_NEIGHBORS,
+    boundary_minimum_snr: float = _MULTISCALE_BOUNDARY_MINIMUM_SNR,
+    recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
+) -> npt.NDArray[np.int32]:
+    """Refine noisy flood boundaries with calibrated multiscale evidence.
+
+    Dense opened support remains without an additional significance test.
+    Sparse boundary pixels remain only at high combined S/N, while adjacent
+    significant à trous support may recover coherent emission omitted by the
+    original-pixel flood. Recovered pixels inherit the nearest original
+    segment identity, preserving deterministic ownership without merging or
+    relabelling sources.
+    """
+    labels = _segment_label_plane(component_labels)
+    snr = np.asarray(combined_snr)
+    multiscale_support = np.asarray(significant_multiscale_support)
+    if (
+        snr.ndim != _IMAGE_DIMENSIONS
+        or snr.shape != labels.shape
+        or not np.issubdtype(snr.dtype, np.number)
+        or np.issubdtype(snr.dtype, np.complexfloating)
+    ):
+        raise ValueError(
+            "component labels and combined SNR must be aligned real "
+            "two-dimensional planes"
+        )
+    if (
+        multiscale_support.ndim != _IMAGE_DIMENSIONS
+        or multiscale_support.shape != labels.shape
+    ):
+        raise ValueError(
+            "component labels and multiscale support must be aligned "
+            "two-dimensional planes"
+        )
+    if multiscale_support.dtype != np.bool_:
+        raise ValueError("significant multiscale support must be boolean")
+    if not isfinite(beam_major_fwhm_pixels) or beam_major_fwhm_pixels <= 0:
+        raise ValueError("beam major FWHM must be finite and positive")
+    if (
+        isinstance(core_minimum_neighbors, bool)
+        or not isinstance(core_minimum_neighbors, Integral)
+        or not 1 <= core_minimum_neighbors <= _NEIGHBORHOOD_PIXEL_COUNT
+    ):
+        raise ValueError("core minimum neighbors must be an integer in [1, 9]")
+    if not isfinite(boundary_minimum_snr) or boundary_minimum_snr <= 0:
+        raise ValueError("boundary minimum SNR must be finite and positive")
+    if not isfinite(recovery_radius_beams) or recovery_radius_beams < 0:
+        raise ValueError("recovery radius must be finite and non-negative")
+    cleaned = clean_detected_segment_labels(labels)
+    cleaned_support = cleaned > 0
+    if not np.any(cleaned_support):
+        return cleaned
+    neighbor_count = convolve(
+        cleaned_support.astype(np.int8),
+        np.ones((3, 3), dtype=np.int8),
+        mode="constant",
+        cval=0,
+    )
+    dense_core = cleaned_support & (neighbor_count >= core_minimum_neighbors)
+    high_confidence_boundary = cleaned_support & (
+        np.asarray(snr, dtype=np.float64) >= boundary_minimum_snr
+    )
+    recovery_radius_pixels = ceil(
+        recovery_radius_beams * beam_major_fwhm_pixels
+    )
+    nearby = (
+        binary_dilation(cleaned_support, iterations=recovery_radius_pixels)
+        if recovery_radius_pixels > 0
+        else cleaned_support
+    )
+    recovered = multiscale_support & nearby
+    retained = dense_core | high_confidence_boundary | recovered
+    _, nearest_indices = cast(
+        tuple[npt.NDArray[np.float64], npt.NDArray[np.int32]],
+        distance_transform_edt(
+            ~cleaned_support,
+            return_distances=True,
+            return_indices=True,
+        ),
+    )
+    nearest_labels = cleaned[tuple(nearest_indices)]
+    return np.where(retained, nearest_labels, 0).astype(np.int32, copy=False)
 
 
 def expand_detected_segment_labels(

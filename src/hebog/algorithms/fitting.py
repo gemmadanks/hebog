@@ -30,6 +30,7 @@ from hebog.data_models.fitting import (
     CompactGaussianFitResult,
     FailedCompactGaussianFit,
     FittedGaussianPixelParameters,
+    GaussianComponentFit,
     GaussianFitDiagnostics,
     GaussianFitUncertainty,
     GaussianPositionEstimate,
@@ -1659,6 +1660,7 @@ def _selected_fit_result(
     context: _FitPublicationContext,
     candidate: _FitCandidate,
     position_estimate: GaussianPositionEstimate | None = None,
+    component_candidate: _FitCandidate | None = None,
 ) -> CompactGaussianFitResult:
     """Publish or explicitly fail one scientifically selected candidate."""
     moment = context.moment
@@ -1680,7 +1682,25 @@ def _selected_fit_result(
             diagnostics=candidate.diagnostics,
             quality_flags=("fit-invalid-result", *flags),
         )
-    return _valid_fit_result(context, candidate, position_estimate)
+    selected = _valid_fit_result(context, candidate, position_estimate)
+    if component_candidate is None:
+        return selected
+    if (
+        not component_candidate.success
+        or not _numerically_valid(component_candidate, context.config)
+        or not _identifiable(component_candidate, context.config)
+    ):
+        return selected
+    component = _valid_fit_result(context, component_candidate)
+    return replace(
+        selected,
+        gaussian_component_fit=GaussianComponentFit(
+            parameters=component.parameters,
+            uncertainty=component.uncertainty,
+            diagnostics=component.diagnostics,
+            quality_flags=component.quality_flags,
+        ),
+    )
 
 
 def fit_compact_gaussian(
@@ -1902,4 +1922,15 @@ def fit_compact_gaussian(
         if retain_free
         else _with_rejected_model(constrained, free)
     )
-    return _selected_fit_result(publication, selected, position_estimate)
+    component_candidate = (
+        free
+        if fallback_reason == "free-model-not-significantly-extended"
+        and selected.diagnostics.model_identity != "free-elliptical"
+        else None
+    )
+    return _selected_fit_result(
+        publication,
+        selected,
+        position_estimate,
+        component_candidate,
+    )

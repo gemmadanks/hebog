@@ -1738,13 +1738,30 @@ comparison.**
          not override the scientific result. Step 3 promotion, optimization,
          qualification, external-equivalence claims, PyBDSF fallback removal,
          and production cutover remain closed.
-   - [ ] Complete a named post-campaign scientific failure review before the
-         next algorithm change. Trace the compact flux-tail failures and the
-         Continuum flux, position-tail, mask-precision, and excess-variance
-         outcomes through the sealed diagnostics, then reproduce each cause
-         with analytic or development evidence. Predeclare any prospective
-         correction and fresh seed-disjoint confirmation boundary; do not
-         adaptively rescore or reopen this one-look campaign.
+   - [x] Complete the named post-campaign scientific failure review and
+         implement its prospective corrections without rescoring the sealed
+         campaign. Compact flux tails were caused by applying Rapthor source
+         canonicalization to Gaussian components; future compilation now has
+         an explicit fitted-component diagnostic boundary. Retain the
+         beam-or-free model for sources but preserve an available independent
+         free ellipse for the Gaussian component. For Continuum, replace the
+         noise-dominated four-beam aperture with 1.5-beam nearest-owned
+         photometry, refine attached three-sigma boundary excursions using
+         dense support plus calibrated residual-B3 evidence, and use the B3
+         reconstruction for diffuse positions while keeping original weights
+         above a fixed peak-to-mean ratio of 3.0. On the complete existing
+         80-image development replay, mean mask precision/recall/IoU are
+         0.9112/0.9075/0.8335, worst flux p95 is 0.1533, and worst position
+         p95 is 0.4669. These are regression results, not external evidence.
+         See the [post-campaign failure review](../docs/reference/phase-5-post-campaign-failure-review.md).
+   - [ ] Freeze and approve a fresh seed-disjoint post-correction external
+         comparison. Retain all prior absolute, paired, failure-denominator,
+         excess-variance, and one-look rules; bind component semantics and all
+         four corrected science settings. Use at least 1,600 Continuum and 800
+         compact images unless a conservative exact-endpoint power audit
+         justifies another count. Obtain separate named scientific approval
+         before execution; Step 3 remains closed until every binding endpoint
+         passes.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
@@ -2175,6 +2192,14 @@ now requires direct non-inferiority against both exact PyBDSF references and,
 for its applicable compact/Gaussian scope, Aegean before Step 3. Step 2D
 separately decides only whether Rapthor uses the `compact` or `continuum`
 profile.
+
+The terminal post-failure comparison also failed. Its named failure review
+retains the community-standard residual B3 approach but corrects product
+semantics and measurement variance prospectively: Gaussian-component rather
+than Rapthor-source compact comparison, distinct source and fitted-component
+models, a 1.5-beam original-pixel flux aperture, multiscale boundary evidence,
+and a concentration-selected denoised position plane. None is promoted until
+a fresh seed-disjoint external comparison passes the unchanged gates.
 
 Resolve the remaining decisions through the ordered Phase 5 evidence gates;
 do not select from convenience or PyBDSF implementation detail alone:

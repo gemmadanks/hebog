@@ -22,6 +22,7 @@ from astropy.wcs import WCS
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from hebog.algorithms.extended_measurement import (
+    DetectedSegmentPosition,
     expand_detected_segment_labels,
     measure_detected_segment_position,
 )
@@ -765,22 +766,17 @@ def load_comparison_catalogue(path: Path) -> tuple[CatalogueSource, ...]:
     return result
 
 
-def build_hebog_segment_catalogue(  # noqa: PLR0913
+def _validated_hebog_segment_planes(
     image_jy_per_beam: npt.ArrayLike,
     background_jy_per_beam: npt.ArrayLike,
     valid_pixels: npt.ArrayLike,
     component_labels: npt.ArrayLike,
-    header: fits.Header,
-    *,
-    beam_major_fwhm_pixels: float,
-    beam_minor_fwhm_pixels: float,
-) -> tuple[CatalogueSource, ...]:
-    """Measure catalogue rows for physically measurable blind segments.
-
-    Labels remain the authoritative record of every accepted detection.
-    Segments without a finite positive signed-flux measurement therefore stay
-    in the label/mask products but do not receive an invented catalogue row.
-    """
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.int64],
+]:
+    """Return aligned residual, validity, and exact segment labels."""
     image = np.asarray(image_jy_per_beam, dtype=np.float64)
     background = np.asarray(background_jy_per_beam, dtype=np.float64)
     valid = np.asarray(valid_pixels, dtype=np.bool_)
@@ -794,11 +790,95 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         )
     if np.any(label_values < 0):
         raise ValueError("component labels must be non-negative")
-    labels = np.asarray(label_values, dtype=np.int64)
     if image.shape != background.shape or image.shape != valid.shape:
         raise ValueError("Hebog segment planes must share one shape")
-    if labels.shape != image.shape:
+    if label_values.shape != image.shape:
         raise ValueError("Hebog segment labels must match the image")
+    return (
+        np.where(valid, image - background, np.nan),
+        valid,
+        np.asarray(label_values, dtype=np.int64),
+    )
+
+
+def _validated_position_signal(
+    position_signal_jy_per_beam: npt.ArrayLike | None,
+    *,
+    shape: tuple[int, ...],
+    valid_pixels: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.float64] | None:
+    """Return one optional aligned real denoised measurement plane."""
+    if position_signal_jy_per_beam is None:
+        return None
+    position_values = np.asarray(position_signal_jy_per_beam)
+    if (
+        position_values.ndim != _PLANE_DIMENSIONS
+        or position_values.shape != shape
+        or not np.issubdtype(position_values.dtype, np.number)
+        or np.issubdtype(position_values.dtype, np.complexfloating)
+    ):
+        raise ValueError(
+            "Hebog segment position signal must be an aligned real "
+            "two-dimensional plane"
+        )
+    return np.where(
+        valid_pixels,
+        np.asarray(position_values, dtype=np.float64),
+        np.nan,
+    )
+
+
+def _segment_position(
+    residual: npt.NDArray[np.float64],
+    denoised_position_signal: npt.NDArray[np.float64] | None,
+    support: npt.NDArray[np.bool_],
+    *,
+    maximum_peak_to_mean_ratio: float,
+) -> DetectedSegmentPosition:
+    """Select original or denoised weights from measured concentration."""
+    selected = residual
+    if denoised_position_signal is not None:
+        direct_weights = residual[support]
+        if direct_weights.size:
+            direct_mean = float(np.mean(direct_weights, dtype=np.float64))
+            peak_to_mean = (
+                float(np.max(direct_weights)) / direct_mean
+                if np.isfinite(direct_mean) and direct_mean > 0.0
+                else np.inf
+            )
+            if peak_to_mean <= maximum_peak_to_mean_ratio:
+                selected = denoised_position_signal
+    estimate = measure_detected_segment_position(selected, support)
+    if not estimate.available and denoised_position_signal is not None:
+        return measure_detected_segment_position(residual, support)
+    return estimate
+
+
+def build_hebog_segment_catalogue(  # noqa: PLR0913
+    image_jy_per_beam: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    component_labels: npt.ArrayLike,
+    header: fits.Header,
+    *,
+    beam_major_fwhm_pixels: float,
+    beam_minor_fwhm_pixels: float,
+    measurement_aperture_radius_beams: float = 4.0,
+    position_signal_jy_per_beam: npt.ArrayLike | None = None,
+    denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
+) -> tuple[CatalogueSource, ...]:
+    """Measure catalogue rows for physically measurable blind segments.
+
+    Labels remain the authoritative record of every accepted detection.
+    Segments without a finite positive signed-flux measurement therefore stay
+    in the label/mask products but do not receive an invented catalogue row.
+    """
+    residual, valid, labels = _validated_hebog_segment_planes(
+        image_jy_per_beam,
+        background_jy_per_beam,
+        valid_pixels,
+        component_labels,
+    )
     if (
         not np.isfinite(beam_major_fwhm_pixels)
         or not np.isfinite(beam_minor_fwhm_pixels)
@@ -806,11 +886,31 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         or beam_minor_fwhm_pixels <= 0.0
     ):
         raise ValueError("Hebog segment beam axes must be positive")
-    residual = np.where(valid, image - background, np.nan)
+    if (
+        not np.isfinite(measurement_aperture_radius_beams)
+        or measurement_aperture_radius_beams <= 0.0
+    ):
+        raise ValueError(
+            "Hebog segment measurement aperture radius must be positive"
+        )
+    if (
+        not np.isfinite(denoised_position_maximum_peak_to_mean_ratio)
+        or denoised_position_maximum_peak_to_mean_ratio <= 1.0
+    ):
+        raise ValueError(
+            "Hebog segment denoised-position peak-to-mean ratio must exceed 1"
+        )
+    position_signal = _validated_position_signal(
+        position_signal_jy_per_beam,
+        shape=residual.shape,
+        valid_pixels=valid,
+    )
     measurement_labels = expand_detected_segment_labels(
         labels,
         valid & np.isfinite(residual),
-        radius_pixels=ceil(4.0 * beam_major_fwhm_pixels),
+        radius_pixels=ceil(
+            measurement_aperture_radius_beams * beam_major_fwhm_pixels
+        ),
     )
     beam_area_pixels = (
         2.0
@@ -825,7 +925,14 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         int(item) for item in np.unique(labels) if item > 0
     ):
         support = (labels == label_value) & valid & np.isfinite(residual)
-        estimate = measure_detected_segment_position(residual, support)
+        estimate = _segment_position(
+            residual,
+            position_signal,
+            support,
+            maximum_peak_to_mean_ratio=(
+                denoised_position_maximum_peak_to_mean_ratio
+            ),
+        )
         if not estimate.available or estimate.centroid_xy is None:
             continue
         measurement_support = measurement_labels == label_value

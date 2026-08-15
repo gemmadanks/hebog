@@ -15,6 +15,7 @@ from typing import Any, get_args
 import pytest
 
 from hebog.validation.datasets import DatasetManifest, iter_dataset_recipes
+from hebog.validation.external_runners import source_tree_sha256
 
 _ROOT = Path(__file__).parents[3]
 
@@ -24,10 +25,18 @@ def _script(relative_path: str) -> dict[str, Any]:
     return runpy.run_path(str(_ROOT / relative_path))
 
 
-def test_post_failure_population_builder_freezes_approved_design() -> None:
+def test_post_failure_population_builder_freezes_approved_design(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The approved 1,600/800 design retains every exact paired prior."""
     module = _script(
         "scripts/validation/freeze_phase5_external_post_failure_population.py"
+    )
+    globals_ = module["build_post_failure_documents"].__globals__
+    monkeypatch.setitem(
+        globals_,
+        "source_tree_sha256",
+        lambda _root: module["_CANDIDATE_SOURCE_TREE_SHA256"],
     )
 
     continuum, compact, freeze = module["build_post_failure_documents"](
@@ -69,10 +78,18 @@ def test_post_failure_population_builder_freezes_approved_design() -> None:
     assert freeze["execution_authorized"] is False
 
 
-def test_post_failure_protocol_binds_approved_population() -> None:
+def test_post_failure_protocol_binds_approved_population(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The fresh protocol binds the separately approved terminal look."""
     module = _script(
         "scripts/validation/phase5_external_post_failure_protocol.py"
+    )
+    globals_ = module["load_post_failure_population"].__globals__
+    monkeypatch.setitem(
+        globals_,
+        "source_tree_sha256",
+        lambda _root: module["_SOURCE_TREE_SHA256"],
     )
     protocol = module["load_post_failure_protocol"](
         _ROOT
@@ -111,6 +128,7 @@ def test_post_failure_protocol_binds_approved_population() -> None:
     assert decision.preflight_review_sha256 in decision.named_review
     assert decision.pybdsf_ncores == 4
     assert decision.execution_concurrency == 2
+    assert decision.source_tree_sha256 != source_tree_sha256(_ROOT)
 
 
 def test_post_failure_seeds_are_disjoint_from_all_history() -> None:
@@ -134,10 +152,18 @@ def test_post_failure_seeds_are_disjoint_from_all_history() -> None:
     assert post_failure.isdisjoint(historical)
 
 
-def test_post_failure_registry_and_evaluation_bind_exact_priors() -> None:
+def test_post_failure_registry_and_evaluation_bind_exact_priors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The compiler/evaluator chain retains all gates and exact priors."""
     helpers = _script(
         "scripts/validation/phase5_external_post_failure_protocol.py"
+    )
+    globals_ = helpers["load_post_failure_population"].__globals__
+    monkeypatch.setitem(
+        globals_,
+        "source_tree_sha256",
+        lambda _root: helpers["_SOURCE_TREE_SHA256"],
     )
     registry = helpers["load_post_failure_endpoint_registry"](
         _ROOT / "config/contracts/"
@@ -145,6 +171,15 @@ def test_post_failure_registry_and_evaluation_bind_exact_priors() -> None:
     )
     evaluator = _script(
         "scripts/validation/evaluate_phase5_external_post_failure_decision.py"
+    )
+    evaluator_helpers = evaluator["_HELPERS"]
+    evaluator_globals = evaluator_helpers[
+        "load_post_failure_population"
+    ].__globals__
+    monkeypatch.setitem(
+        evaluator_globals,
+        "source_tree_sha256",
+        lambda _root: evaluator_helpers["_SOURCE_TREE_SHA256"],
     )
     contract = evaluator["load_post_failure_evaluation_contract"](
         _ROOT
@@ -388,12 +423,21 @@ def test_post_failure_launcher_rejects_pending_before_inspection(
     assert not (tmp_path / "campaign").exists()
 
 
-def test_post_failure_request_matrix_has_exact_scaled_counts() -> None:
+def test_post_failure_request_matrix_has_exact_scaled_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Manifest expansion yields 2,400 inputs and 12,000 governed runs."""
     launcher = _script(
         "scripts/benchmark/run_phase5_external_post_failure_campaign.py"
     )
-    protocol = launcher["_HELPERS"]["load_post_failure_protocol"](
+    helpers = launcher["_HELPERS"]
+    globals_ = helpers["load_post_failure_population"].__globals__
+    monkeypatch.setitem(
+        globals_,
+        "source_tree_sha256",
+        lambda _root: helpers["_SOURCE_TREE_SHA256"],
+    )
+    protocol = helpers["load_post_failure_protocol"](
         _ROOT
         / "config/contracts/phase-5-external-post-failure-comparison.json"
     )

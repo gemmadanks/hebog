@@ -7969,3 +7969,56 @@ The final documentation-only review found no actionable code issue.
 sealed diagnostics, reproduce the causes outside the campaign, and predeclare
 any prospective correction and fresh seed-disjoint evidence boundary. Do not
 rescore or reopen this one-look campaign.
+
+## 2026-08-15 — Corrected the post-campaign scientific failure causes
+
+**Plan phase:** Phase 5, post-Step 2C-PF scientific failure review
+
+- Completed the named failure review requested by Gemma Danks without
+  recompiling, rescoring, or changing the sealed post-failure campaign. The
+  compact flux failures came from applying Rapthor source canonicalization to
+  fitted Gaussian components: unresolved fitted totals were replaced by peak
+  flux. A 38,400-match diagnostic component view reduced overall absolute
+  integrated-flux p95 from 0.4132 to 0.1598 and S/N-15 p95 from 0.5305 to
+  0.1453. Future compilers have an explicit fitted-component diagnostic seam.
+- Preserved the low-variance beam-or-free source result while retaining an
+  available independently fitted free ellipse for the Gaussian-component
+  product. This corrects the marginal fitted-axis comparison without changing
+  Rapthor source semantics.
+- Traced the Continuum flux tails to an unbiased but noisy four-beam aperture.
+  Added an explicit 1.5-major-beam original-pixel aperture with deterministic
+  nearest-segment ownership. Traced the mask-precision miss to attached
+  one-/two-pixel three-sigma boundary excursions and replaced the coarse
+  opening with dense-core, high-S/N, and adjacent residual-B3 support.
+- Kept the residual-B3 reconstruction as an explicit denoised position plane.
+  A morphology-neutral peak-to-mean rule uses it for diffuse segments at or
+  below 3.0 and retains original weights for compact-dominated segments. Pure
+  denoised weighting fixed shells but regressed mixed sources; the final rule
+  removed that regression. The estimator falls back to original weights when
+  denoised position is unavailable.
+- On the complete existing 80-image/480-source development replay with the
+  exact observable-domain truth semantics, the connected candidate achieved
+  mean mask precision 0.911157, recall 0.907452, and IoU 0.833532. Worst
+  integrated-flux p95 was 0.153219; worst position p95 was 0.466808 and
+  overall position p95 was 0.294543. This viewed regression population is not
+  seed-disjoint confirmation evidence.
+
+**Decision:** retain the corrected implementation as a prospective candidate.
+The closed result remains `fail`; Step 3, qualification, equivalence claims,
+fallback removal, and production cutover remain blocked. A fresh external
+comparison must retain the complete prior gate set and use no fewer than 1,600
+Continuum and 800 compact images unless a conservative endpoint-level power
+audit justifies a different count.
+
+**Validation:** 115 focused fitting, catalogue, measurement, and prospective
+science tests pass. Branch-aware coverage passes 1,364 tests with four
+expected xfails at 94.26%. All 27 equivalence tests pass. `just check` passes
+Ruff, Pyright, 1,234 tests, and four expected xfails. The strict documentation
+build passes. Historical protocol regressions validate the frozen source hash
+inside their historical loader view and assert that it differs from the
+prospective tree; no closed authority was rebound. The final review against
+`CODE_REVIEW.md` found no actionable issue.
+
+**Immediate next step:** complete full validation and local review, then freeze
+a fresh seed-disjoint post-correction population and exact power audit only
+after separate scientific approval.

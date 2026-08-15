@@ -26,6 +26,7 @@ from hebog.data_models.fitting import (
     CompactIslandFitResult,
     FailedCompactGaussianFit,
     FittedGaussianPixelParameters,
+    GaussianComponentFit,
     GaussianFitDiagnostics,
     GaussianFitUncertainty,
     UnavailableCompactGaussianFit,
@@ -223,6 +224,45 @@ def test_unresolved_source_keeps_fitted_total_on_gaussian_component() -> None:
     )
     assert component.flux.integrated_flux_jy > (
         component.flux.peak_flux_jy_per_beam
+    )
+
+
+def test_gaussian_component_uses_its_independent_free_ellipse() -> None:
+    """A source fallback cannot overwrite the fitted-component morphology."""
+    island_fit = _island_fit()
+    fit = island_fit.region_fits[0]
+    assert isinstance(fit, ValidCompactGaussianFit)
+    component_parameters = replace(
+        fit.parameters,
+        major_sigma_pixels=2.8,
+        minor_sigma_pixels=1.2,
+        integrated_flux_jy=0.025,
+    )
+    component_fit = GaussianComponentFit(
+        parameters=component_parameters,
+        uncertainty=None,
+        diagnostics=replace(
+            fit.diagnostics,
+            model_identity="free-elliptical",
+        ),
+        quality_flags=(),
+    )
+    selected = replace(fit, gaussian_component_fit=component_fit)
+
+    shard = build_compact_catalogue_shard(
+        (replace(island_fit, region_fits=(selected,)),),
+        _metadata(),
+        deconvolution_relative_tolerance=1e-10,
+    )
+
+    source = shard.sources[0]
+    component = shard.gaussian_components[0]
+    assert component.fitted_shape.major_fwhm_degrees > (
+        source.fitted_shape.major_fwhm_degrees  # type: ignore[union-attr]
+    )
+    assert component.flux.integrated_flux_jy > (source.flux.integrated_flux_jy)
+    assert component.flux.peak_flux_jy_per_beam == (
+        component_parameters.amplitude_jy_per_beam
     )
 
 

@@ -163,6 +163,16 @@ class GaussianFitDiagnostics:
 
 
 @dataclass(frozen=True, slots=True)
+class GaussianComponentFit:
+    """Independent free ellipse retained for component-catalogue semantics."""
+
+    parameters: FittedGaussianPixelParameters
+    uncertainty: GaussianFitUncertainty | None
+    diagnostics: GaussianFitDiagnostics
+    quality_flags: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class ValidCompactGaussianFit:
     """A converged fit retaining its independent moment oracle."""
 
@@ -173,6 +183,7 @@ class ValidCompactGaussianFit:
     quality_flags: tuple[str, ...]
     position_estimate: GaussianPositionEstimate | None = None
     association_aperture: AssociationAperturePhotometry | None = None
+    gaussian_component_fit: GaussianComponentFit | None = None
     status: Literal["valid"] = "valid"
 
 

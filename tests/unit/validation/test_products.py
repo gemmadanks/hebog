@@ -417,6 +417,28 @@ def test_hebog_segment_catalogue_rejects_invalid_planes_and_beam() -> None:
             beam_major_fwhm_pixels=0.0,
             beam_minor_fwhm_pixels=1.0,
         )
+    negative = np.ones((3, 3), dtype=np.int32)
+    negative[0, 0] = -1
+    with pytest.raises(ValueError, match="non-negative"):
+        build_hebog_segment_catalogue(
+            image,
+            np.zeros_like(image),
+            valid,
+            negative,
+            header,
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="match the image"):
+        build_hebog_segment_catalogue(
+            image,
+            np.zeros_like(image),
+            valid,
+            np.ones((2, 3), dtype=np.int32),
+            header,
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+        )
 
 
 def test_hebog_segment_catalogue_uses_signed_original_aperture_pixels() -> (
@@ -455,6 +477,213 @@ def test_hebog_segment_catalogue_uses_signed_original_aperture_pixels() -> (
     )
     assert sources[0].right_ascension_degrees == pytest.approx(10.0)
     assert sources[0].declination_degrees == pytest.approx(-30.0)
+
+
+def test_hebog_segment_catalogue_accepts_reviewed_measurement_aperture() -> (
+    None
+):
+    """A prospective aperture excludes noise-dominated distant pixels."""
+    image = np.zeros((25, 25), dtype=np.float64)
+    labels = np.zeros((25, 25), dtype=np.int32)
+    labels[11:14, 11:14] = 1
+    image[labels == 1] = 1.0
+    image[12, 19] = 4.0
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 13.0
+    header["CRPIX2"] = 13.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+
+    reviewed = build_hebog_segment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=3.0,
+        beam_minor_fwhm_pixels=2.0,
+        measurement_aperture_radius_beams=1.5,
+    )
+    historical = build_hebog_segment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=3.0,
+        beam_minor_fwhm_pixels=2.0,
+    )
+
+    assert reviewed[0].integrated_flux_jy < (historical[0].integrated_flux_jy)
+
+    with pytest.raises(ValueError, match="aperture radius"):
+        build_hebog_segment_catalogue(
+            image,
+            np.zeros_like(image),
+            np.ones_like(image, dtype=np.bool_),
+            labels,
+            header,
+            beam_major_fwhm_pixels=3.0,
+            beam_minor_fwhm_pixels=2.0,
+            measurement_aperture_radius_beams=0.0,
+        )
+
+
+def test_hebog_segment_catalogue_accepts_denoised_position_signal() -> None:
+    """Multiscale position weights do not alter original-pixel photometry."""
+    image = np.zeros((9, 9), dtype=np.float64)
+    labels = np.zeros((9, 9), dtype=np.int32)
+    labels[3:6, 3:6] = 1
+    image[labels == 1] = 1.0
+    image[4, 5] = 3.0
+    position_signal = np.zeros_like(image)
+    position_signal[4, 4] = 3.0
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 5.0
+    header["CRPIX2"] = 5.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+
+    source = build_hebog_segment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=3.0,
+        beam_minor_fwhm_pixels=2.0,
+        position_signal_jy_per_beam=position_signal,
+    )[0]
+
+    assert source.right_ascension_degrees == pytest.approx(10.0)
+    assert source.declination_degrees == pytest.approx(-30.0)
+    beam_area_pixels = 2.0 * np.pi / (8.0 * np.log(2.0)) * 3.0 * 2.0
+    assert source.integrated_flux_jy == pytest.approx(
+        float(np.sum(image)) / beam_area_pixels
+    )
+
+    with pytest.raises(ValueError, match="position signal"):
+        build_hebog_segment_catalogue(
+            image,
+            np.zeros_like(image),
+            np.ones_like(image, dtype=np.bool_),
+            labels,
+            header,
+            beam_major_fwhm_pixels=3.0,
+            beam_minor_fwhm_pixels=2.0,
+            position_signal_jy_per_beam=position_signal[:-1],
+        )
+
+
+def test_compact_dominated_segment_keeps_original_position_weights() -> None:
+    """A high peak-to-mean ratio bypasses the diffuse denoised estimator."""
+    image = np.zeros((9, 9), dtype=np.float64)
+    labels = np.zeros((9, 9), dtype=np.int32)
+    labels[3:6, 3:6] = 1
+    image[labels == 1] = 1.0
+    image[4, 5] = 10.0
+    position_signal = np.zeros_like(image)
+    position_signal[4, 3] = 5.0
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 5.0
+    header["CRPIX2"] = 5.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    arguments = (
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+    )
+    keywords = {
+        "beam_major_fwhm_pixels": 3.0,
+        "beam_minor_fwhm_pixels": 2.0,
+    }
+
+    original = build_hebog_segment_catalogue(*arguments, **keywords)[0]
+    hybrid = build_hebog_segment_catalogue(
+        *arguments,
+        **keywords,
+        position_signal_jy_per_beam=position_signal,
+    )[0]
+
+    assert hybrid.right_ascension_degrees == (original.right_ascension_degrees)
+    assert hybrid.declination_degrees == original.declination_degrees
+
+    with pytest.raises(ValueError, match="peak-to-mean"):
+        build_hebog_segment_catalogue(
+            *arguments,
+            **keywords,
+            position_signal_jy_per_beam=position_signal,
+            denoised_position_maximum_peak_to_mean_ratio=1.0,
+        )
+
+
+def test_unavailable_denoised_position_falls_back_to_original() -> None:
+    """A non-positive reconstruction cannot remove a measurable segment."""
+    image = np.ones((7, 7), dtype=np.float64)
+    labels = np.zeros((7, 7), dtype=np.int32)
+    labels[2:5, 2:5] = 1
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 4.0
+    header["CRPIX2"] = 4.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    arguments = (
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+    )
+    keywords = {
+        "beam_major_fwhm_pixels": 3.0,
+        "beam_minor_fwhm_pixels": 2.0,
+    }
+
+    original = build_hebog_segment_catalogue(*arguments, **keywords)
+    fallback = build_hebog_segment_catalogue(
+        *arguments,
+        **keywords,
+        position_signal_jy_per_beam=np.zeros_like(image),
+    )
+
+    assert fallback == original
+
+
+def test_denoised_position_allows_an_invalid_only_segment() -> None:
+    """Invalid native support remains mask-only without a reduction error."""
+    labels = np.ones((3, 3), dtype=np.int32)
+
+    sources = build_hebog_segment_catalogue(
+        np.full(labels.shape, np.nan),
+        np.full(labels.shape, np.nan),
+        np.zeros(labels.shape, dtype=np.bool_),
+        labels,
+        fits.Header(),
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+        position_signal_jy_per_beam=np.zeros(labels.shape),
+    )
+
+    assert sources == ()
 
 
 def test_hebog_segment_apertures_do_not_double_count_close_sources() -> None:

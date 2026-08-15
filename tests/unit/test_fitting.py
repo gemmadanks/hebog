@@ -327,6 +327,11 @@ def test_beam_shaped_edge_and_corner_sources_use_constrained_fit(
     assert result.parameters.minor_sigma_pixels == pytest.approx(axes[1])
     assert not result.diagnostics.parameters_at_bound
     assert "beam-constrained-fit" in result.quality_flags
+    assert result.gaussian_component_fit is not None
+    assert (
+        result.gaussian_component_fit.diagnostics.model_identity
+        == "free-elliptical"
+    )
     assert isinstance(
         result.association_aperture,
         AssociationAperturePhotometry,

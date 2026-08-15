@@ -14,6 +14,12 @@ reconciled parent island. Source and component IDs derive from the global
 region ID, and all output is sorted by those IDs rather than executor
 completion order.
 
+Source and component models may deliberately differ. The source retains the
+reviewed beam-or-free selection and Rapthor flux semantics. When model
+selection rejects an otherwise valid free ellipse only because extension is
+not significant, the Gaussian component retains that independently fitted
+ellipse and fitted total for like-product PyBDSF/Aegean comparison.
+
 The worker stage emits one `CompactCatalogueShard` per existing coarse batch;
 it does not create one scheduler task per fit or source. Shards combine through
 deterministic pairwise levels, so fan-in is two and reported reduction depth is

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 
 from astropy.wcs import WCS
 
@@ -178,6 +179,28 @@ def _associated_records(  # noqa: PLR0913
         ),
         celestial_wcs=celestial_wcs,
     )
+    component_pixel_fit = fit
+    if fit.gaussian_component_fit is not None:
+        component_fit = fit.gaussian_component_fit
+        component_pixel_fit = replace(
+            fit,
+            parameters=component_fit.parameters,
+            uncertainty=component_fit.uncertainty,
+            diagnostics=component_fit.diagnostics,
+            quality_flags=component_fit.quality_flags,
+            association_aperture=None,
+            gaussian_component_fit=None,
+        )
+    transformed_component = transform_compact_gaussian_fit(
+        component_pixel_fit,
+        metadata,
+        deconvolution_relative_tolerance=deconvolution_relative_tolerance,
+        extension_significance_sigma=extension_significance_sigma,
+        deconvolution_axis_significance_sigma=(
+            deconvolution_axis_significance_sigma
+        ),
+        celestial_wcs=celestial_wcs,
+    )
     region_id = fit.moment.target.object_id
     source_id = f"source-{region_id}"
     gaussian_component_id = f"gaussian-{region_id}"
@@ -208,15 +231,15 @@ def _associated_records(  # noqa: PLR0913
         gaussian_component_id=gaussian_component_id,
         source_id=source_id,
         island_id=fit.moment.target.island_id,
-        position=transformed.position,
-        flux=transformed.fitted_flux,
+        position=transformed_component.position,
+        flux=transformed_component.fitted_flux,
         spectral_model=spectrum,
-        fitted_shape=transformed.fitted_shape,
-        deconvolved_shape=transformed.deconvolved_shape,
+        fitted_shape=transformed_component.fitted_shape,
+        deconvolved_shape=transformed_component.deconvolved_shape,
         deconvolved_major_fwhm_degrees=(
-            transformed.deconvolved_major_fwhm_degrees
+            transformed_component.deconvolved_major_fwhm_degrees
         ),
-        quality_flags=transformed.quality_flags,
+        quality_flags=transformed_component.quality_flags,
     )
     return source, component
 
