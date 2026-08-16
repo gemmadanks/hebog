@@ -1800,13 +1800,21 @@ comparison.**
          exact OCI runtimes, and pending execution decision are checksum
          bound. A network-disabled runtime probe passes. No finder product has
          been generated or opened and execution remains unauthorized.
-   - [ ] Restore the predeclared 126-GiB storage headroom, repeat the no-write
-         operational review, and return the unchanged exact identities for a
-         separate named one-look execution decision. The frozen review records
-         37.88 GiB available and therefore does not recommend execution. Retain
-         every absolute, paired, failure-denominator, excess-variance, power,
-         component-semantics, and one-look rule. Step 3 remains closed until
-         every binding endpoint passes.
+   - [x] Restore the predeclared 126-GiB storage headroom and repeat the
+         no-write operational review. After user cleanup removed the four local
+         campaign images, reconstruct them from the pinned artifacts and clean
+         candidate archive, then bind their replacement OCI identities. The
+         rebuilt images reproduce source tree `a549143b...` and all four frozen
+         dependency inventories; the network-disabled two-lane probe passes.
+         Review `30eb5576...` records 127.63 GiB available after reconstruction,
+         absent public/private output paths, and remains result neutral.
+   - [ ] Obtain a separate named one-look approval bound to review
+         `30eb5576...` and the four replacement OCI identities. Only then
+         authorize the pending decision, run the complete no-write preflight,
+         and execute the terminal campaign. Retain every absolute, paired,
+         failure-denominator, excess-variance, power, component-semantics, and
+         one-look rule. Step 3 remains closed until every binding endpoint
+         passes.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

@@ -11,7 +11,7 @@
   "continuum_manifest_path": "config/datasets/phase-5-external-post-correction-continuum.json",
   "continuum_manifest_sha256": "3bf2af93f71939c80035c8db7760e5435a8e40764e3af24c94bb009713ea7913",
   "execution_decision_path": "config/contracts/phase-5-external-post-correction-execution-decision.json",
-  "execution_decision_sha256": "baf54953d8987d2f96595cd085fb6b4578749d66fc10fe7cd0baa8c6b90cf5d9",
+  "execution_decision_sha256": "4971620fb6146c7a9707a0f3fb2769cc8f92e57cb95797cb1fc490a09cfbed82",
   "launcher_path": "scripts/benchmark/run_phase5_external_post_correction_campaign.py",
   "launcher_sha256": "6bfe966c6d373e7f3e4bd204cf43c8452133c55107b95d73d61b0208ad711fa2",
   "observable_compiler_path": "src/hebog/validation/post_failure_truth.py",
@@ -23,7 +23,7 @@
   "protocol_path": "config/contracts/phase-5-external-post-correction-comparison.json",
   "protocol_sha256": "5737aef15b8f1d49d6ee4d58f12646190b837ed1f17ed2210dfe616f3f196c49",
   "protocol_verifier_path": "scripts/validation/phase5_external_post_correction_protocol.py",
-  "protocol_verifier_sha256": "963e8c0b91a60c74d5817eb06e8dc44c016b3f23af964929dd098b3f66f8648f",
+  "protocol_verifier_sha256": "95fe7868b670664fb7c13c8dc6d2c1073216353b715a69979bddd73d8be562c2",
   "registry_id": "phase-5-external-post-correction-endpoint-registry",
   "schema_version": 1,
   "status": "frozen-before-campaign-output"

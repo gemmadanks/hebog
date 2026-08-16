@@ -130,7 +130,7 @@ def test_post_correction_protocol_is_pending_and_exactly_scaled() -> None:
     assert decision.execution_concurrency == 2
     assert decision.pybdsf_ncores == 4
     assert decision.hebog_container_image_digest == (
-        "sha256:7f6a44e9d14100dfd9a72428f24a607d31fcc25d960ad4324212c298a4ca73d4"
+        "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1"
     )
     with pytest.raises(ValueError, match="not authorized"):
         _script(
@@ -155,9 +155,7 @@ def test_post_correction_review_binds_programs_and_four_runtimes() -> None:
         "phase-5-external-post-correction-preflight-review.json"
     )
 
-    assert review["status"] == (
-        "identities-frozen-storage-blocked-before-named-execution-approval"
-    )
+    assert review["status"] == "ready-for-named-execution-approval"
     assert review["execution_authorized"] is False
     assert review["scientific_products_opened"] is False
     assert review["population"] == {
@@ -178,9 +176,10 @@ def test_post_correction_review_binds_programs_and_four_runtimes() -> None:
         "a549143b6475e75f7463c834e891c005a0660c2de9f4a0a3556c18bb9d39541d"
     )
     assert review["authorization"]["required_next_decision"] == (
-        "restore-storage-headroom-before-named-one-look-review"
+        "named-one-look-approval-bound-to-this-review-and-four-runtimes"
     )
-    assert review["storage"]["passed"] is False
+    assert review["storage"]["passed"] is True
+    assert review["storage"]["observed_available_gib"] >= 126.0
 
 
 def test_post_correction_compiler_and_evaluator_bind_powered_population() -> (

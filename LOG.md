@@ -8248,3 +8248,40 @@ tests, and four expected xfails; the strict documentation build passes.
 closed raw campaign, restore at least 126 GiB available without changing any
 frozen identity, and refresh only the observational preflight review before
 returning the exact one-look execution decision for approval.
+
+## 2026-08-16 — Restored post-correction campaign readiness
+
+**Plan phase:** Phase 5, post-correction operational preflight
+
+- Confirmed 127.63 GiB available after runtime reconstruction, exceeding the
+  predeclared 126-GiB floor. Both the public campaign directory and its private
+  write-once staging directory remain absent; no scientific campaign product
+  was generated or opened.
+- Reconstructed all four deleted Linux/arm64 runtimes from the pinned BDSF and
+  Aegean artifacts and the clean `dfc3e25...` Hebog archive. The replacement
+  image IDs are Hebog `e519dc15...`, released PyBDSF `43a65138...`, pinned
+  master `0360fbbf...`, and Aegean `9e79e24b...`. Network-disabled checks
+  reproduce Hebog source tree `a549143b...` and dependency inventories
+  `d383be3a...`, `8211043e...`, `83574dd4...`, and `346c1f32...`.
+- The committed non-scientific two-lane probe passes for every pairing with
+  identical output `f1a8008c...`; the largest overlap ratio is 0.694. Refreshed
+  only the runtime-bound helper, pending decision, registry, evaluation, and
+  preflight identities. Population, science protocol, candidate, thresholds,
+  power, runners, compiler, evaluator behavior, and one-look rule are
+  unchanged. Preflight review `30eb5576...` is now
+  `ready-for-named-execution-approval` while execution remains unauthorized.
+
+**Decision:** the operational block is cleared, but rebuilding necessarily
+created new OCI identities because the base package layers are not bitwise
+reproducible. The pending decision still fails closed. A separate named
+one-look approval must explicitly bind review `30eb5576...` and these four
+replacement runtimes before authorization or campaign output may begin.
+
+**Validation:** the focused post-correction suite passes seven tests after a
+test-first identity/readiness update. Branch-aware coverage passes 1,385 tests
+with four expected xfails at 94.28%. `just check` passes Ruff, Pyright, 1,255
+tests, and four expected xfails. The strict documentation build passes.
+
+**Immediate next step:** return review `30eb5576...` and the four replacement
+OCI identities for separate named one-look approval. Do not authorize or run
+the campaign before that approval and a fresh complete no-write preflight.

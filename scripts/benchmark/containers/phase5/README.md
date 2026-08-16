@@ -121,3 +121,29 @@ The candidate source-tree hash remains `864d8f2b...`; all dependency inventory
 hashes match the frozen values above. The changed OCI identities arise from a
 new build and require a new named execution approval. They are not evidence of
 a scientific change or authorization to open the one-look campaign.
+
+## Post-correction campaign reconstruction
+
+On 2026-08-16 all four runtimes were reconstructed after local cleanup removed
+the previously frozen images. Hebog was rebuilt from the clean archive of
+`dfc3e25e635f4f6710558e483fa5a525ba904661` with explicit labels:
+
+```console
+podman build --platform linux/arm64 \
+  --file Containerfile.hebog \
+  --label org.opencontainers.image.revision=dfc3e25e635f4f6710558e483fa5a525ba904661 \
+  --label org.hebog.phase=5-external-post-correction-reconstruction \
+  --tag localhost/hebog:phase5-external-post-correction-dfc3e25 .
+```
+
+| Runtime | Image ID | Image digest |
+| --- | --- | --- |
+| Hebog | `e519dc15b846dec7ac00a6cada7684d0c0b2615490dd6688ac4c6cdf5f3021ca` | `sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1` |
+| PyBDSF 1.14.1 | `43a6513865a597285dc1bf473e27fc69fdd86fb143c35a24144eb6c1152bb36e` | `sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198` |
+| PyBDSF master | `0360fbbfe42fe13aea1559f5603e4fcf4c51c84f7ad5fd201ba8fd76a88df087` | `sha256:0e6d932416479bb7d7763fe2e025ea9fbbd0d0548a6f156b2cdd881766690c75` |
+| AegeanTools 2.3.5 | `9e79e24b2460596a57a8ebba5c3987fa636886631579ef333ad46b801b3a86b8` | `sha256:dcac8e646ff5ea6d11d314c5c7a51fb0c3ca710165934ad2ddf0ac3f999131b0` |
+
+Network-disabled checks reproduce source tree `a549143b...` and every frozen
+dependency inventory. The non-scientific two-lane probe also passes. The new
+OCI identities replace the deleted local builds and require a new named
+one-look approval; they do not change or open the scientific program.

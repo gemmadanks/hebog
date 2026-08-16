@@ -15,7 +15,7 @@
   "contract_id": "phase-5-external-post-correction-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-post-correction-endpoint-registry.json",
-    "sha256": "f1dc921a172fee56fc760931b4656f38ece7a2cf210007d102ee00917700cd2b",
+    "sha256": "54969bf7c872497d27ba447ad5929d1a6bbeb1ebe84644563d73b33a6ce9e24c",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_post_correction_decision.py",

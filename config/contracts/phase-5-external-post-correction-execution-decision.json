@@ -6,7 +6,7 @@
   "decision_id": "phase-5-external-post-correction-execution-decision",
   "execution_authorized": false,
   "execution_concurrency": 2,
-  "hebog_container_image_digest": "sha256:7f6a44e9d14100dfd9a72428f24a607d31fcc25d960ad4324212c298a4ca73d4",
+  "hebog_container_image_digest": "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1",
   "hebog_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
   "implementation_commit": "dfc3e25e635f4f6710558e483fa5a525ba904661",
   "named_review": "pending",
