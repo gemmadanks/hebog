@@ -8200,3 +8200,51 @@ passes. The final `CODE_REVIEW.md` review found no actionable issue.
 candidate and powered design before freezing fresh external identities. Do not
 execute the fresh campaign until those identities return for a separate named
 one-look approval.
+
+## 2026-08-16 — Froze powered post-correction external identities
+
+**Plan phase:** Phase 5, fresh external freeze
+
+- Gemma Danks approved candidate `dfc3e25...` and the exact powered design for
+  freezing on 2026-08-16. The write-once population contract `f1fec27a...`
+  binds source tree `a549143b...`, configuration `0e5dde51...`, cumulative
+  ledger `7ffd6364...`, power review `d68163f5...`, 1,688 Continuum images,
+  and 800 compact images. Its audit finds all 2,488 fresh seeds disjoint from
+  14,253 checked-in historical and 280 reserved development seeds.
+- Froze the two population manifests, comparison protocol, three finder
+  runners, two-lane launcher, endpoint registry, terminal compiler, evaluator,
+  and a pending execution decision. The design contains 12,440 terminal runs
+  and 8,264 binding runs, retains two resource lanes and four PyBDSF cores,
+  and preserves the one-look rule and all existing science gates. The launcher
+  rejects the pending decision before creating campaign state.
+- Built the Hebog runtime from a clean archive of the approved revision. Its
+  image ID is `6dc0ae8e...`, digest is `sha256:7f6a44e9...`, dependency
+  inventory is `d383be3a...`, and a network-disabled source-tree check returns
+  `a549143b...`. The exact released-PyBDSF, pinned-master, and Aegean runtimes
+  remain bound. A network-disabled non-scientific probe passes for both
+  two-image resource lanes; its largest pairwise shared-layer ratio is 0.633.
+- The no-write operational review records 37.88 GiB available against the
+  predeclared 126-GiB minimum. It therefore remains
+  `identities-frozen-storage-blocked-before-named-execution-approval` and does
+  not recommend the separate one-look decision. The 106-GiB closed
+  post-failure campaign is the main recoverable storage consumer, but no
+  evidence was deleted without explicit authorization. Both public and private
+  post-correction output paths remain absent; no finder product was generated
+  or opened.
+
+**Decision:** the scientific population, programs, configurations, and
+runtimes are frozen and may not change without a new review. Execution is not
+authorized. Restore storage headroom and repeat the no-write operational review
+before requesting the separate named one-look approval.
+
+**Validation:** 30 focused fresh and inherited protocol tests pass, covering
+population disjointness, approval and power binding, pending authorization,
+program/runtime identities, compiler/evaluator composition, canonical review
+evidence, and write-once behavior. Branch-aware coverage passes 1,385 tests
+with four expected xfails at 94.28%. `just check` passes Ruff, Pyright, 1,255
+tests, and four expected xfails; the strict documentation build passes.
+
+**Immediate next step:** obtain explicit retention/cleanup direction for the
+closed raw campaign, restore at least 126 GiB available without changing any
+frozen identity, and refresh only the observational preflight review before
+returning the exact one-look execution decision for approval.

@@ -1,0 +1,40 @@
+{
+  "analysis_compiler": {
+    "path": "scripts/validation/compile_phase5_external_post_correction_campaign.py",
+    "sha256": "9779107169ec427409223dc061a3dec08e508443b11bcbd6004f92f19e35d3e7",
+    "status": "frozen-before-campaign-output"
+  },
+  "base_evaluation_path": "config/contracts/phase-5-external-post-failure-evaluation.json",
+  "base_evaluation_sha256": "45901f8ca4526fdc1007d26d891e409306565e749bad2b959181a9929ff73016",
+  "closed_campaign_reuse_authorized": false,
+  "compiler_accelerator": {
+    "path": "src/hebog/validation/external_campaign_compilation.py",
+    "sha256": "bb3c5c2fc278ad52a528e7eb1a630792e772004ce5435068b6678759a7be2d0b",
+    "status": "result-neutral-exact-acceleration"
+  },
+  "contract_id": "phase-5-external-post-correction-evaluation",
+  "endpoint_registry": {
+    "path": "config/contracts/phase-5-external-post-correction-endpoint-registry.json",
+    "sha256": "f1dc921a172fee56fc760931b4656f38ece7a2cf210007d102ee00917700cd2b",
+    "status": "frozen-before-campaign-output"
+  },
+  "evaluator_path": "scripts/validation/evaluate_phase5_external_post_correction_decision.py",
+  "evaluator_sha256": "2227473b57d91d063450c7d5ec132327131e89be39c89d84e20700f80c6a2110",
+  "observable_compiler": {
+    "path": "src/hebog/validation/post_failure_truth.py",
+    "sha256": "b217118219d32f4f934ced25d6ea64e97b034ccb8b1ab59f3a4da425070bd02c",
+    "status": "unchanged-observable-truth-semantics"
+  },
+  "observable_measurement": {
+    "path": "src/hebog/validation/observable_truth.py",
+    "sha256": "c2cf4de902d39f582fe2393f0cab955cdc480d52ec04eaf8d9b91b30e336aab9",
+    "status": "unchanged-observable-truth-semantics"
+  },
+  "one_look_rule": "one-terminal-look-no-tuning-rescoring-reconfirmation-or-adaptive-sample-size",
+  "population_contract_path": "config/contracts/phase-5-external-post-correction-population.json",
+  "population_contract_sha256": "f1fec27a1469073cc59ffcc65bce02954ed4f0825f2381aeb0387bdf0b9a803a",
+  "protocol_path": "config/contracts/phase-5-external-post-correction-comparison.json",
+  "protocol_sha256": "5737aef15b8f1d49d6ee4d58f12646190b837ed1f17ed2210dfe616f3f196c49",
+  "schema_version": 1,
+  "status": "frozen-before-campaign-output"
+}

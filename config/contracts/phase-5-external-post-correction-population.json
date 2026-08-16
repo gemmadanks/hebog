@@ -1,0 +1,2337 @@
+{
+  "candidate": {
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "revision": "dfc3e25e635f4f6710558e483fa5a525ba904661",
+    "source_tree_sha256": "a549143b6475e75f7463c834e891c005a0660c2de9f4a0a3556c18bb9d39541d"
+  },
+  "closed_campaign_policy": "development-regression-history-not-pooled-rescored-or-reused",
+  "contract_id": "phase-5-external-post-correction-population",
+  "evidence": {
+    "cumulative_ledger_path": "benchmark-results/phase-5/cumulative-regression-ledger-post-correction.json",
+    "cumulative_ledger_sha256": "7ffd636482438c92462a0f15e00ff6759ae875d7b6ebab50bc1c8a3a9cf35be2",
+    "power_review_path": "benchmark-results/phase-5/post-correction-power-review.json",
+    "power_review_sha256": "d68163f545d02f88433602a7b1ccd3f480aefafa7e30aa786bb9201bdadaa63d"
+  },
+  "execution_authorized": false,
+  "finder_output_generated": false,
+  "finder_output_opened": false,
+  "generator": {
+    "relative_path": "scripts/validation/freeze_phase5_external_post_correction_population.py",
+    "sha256": "db60eefece34f5e9aed290ad747f9ac35e0dd652b5db3cfbc73f4070bc90450f"
+  },
+  "next_action": "freeze-program-runtime-identities-for-named-one-look-review",
+  "optimization_authorized": false,
+  "population_audit": {
+    "historical_manifest_count": 41,
+    "historical_registry_sha256": "e1e5cc2db8f322e7814ab99bb439692f54c3568b41d53ef1671a1ba3dad83b02",
+    "historical_seed_count": 14253,
+    "new_seed_count": 2488,
+    "reserved_development_seed_count": 280,
+    "seed_disjoint": true
+  },
+  "populations": [
+    {
+      "image_count": 1688,
+      "independent_unit": "noise-seed-image",
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-external-post-correction-continuum.json",
+      "manifest_sha256": "3bf2af93f71939c80035c8db7760e5435a8e40764e3af24c94bb009713ea7913",
+      "role": "regression"
+    },
+    {
+      "image_count": 800,
+      "independent_unit": "noise-seed-image",
+      "lane": "compact-blend",
+      "manifest": "config/datasets/phase-5-external-post-correction-compact-blend.json",
+      "manifest_sha256": "9ae3642fdbaa1bf7e867ef5faa1ae29274a4ece74b7cf95d6610e0b86c74cafc",
+      "role": "regression"
+    }
+  ],
+  "power_audit": {
+    "advantage_retention": 0.5,
+    "combined_familywise_power_lower_bound": 0.9050838380514572,
+    "compact_familywise_power_lower_bound": 0.9097837457955092,
+    "compact_realization_count": 800,
+    "continuum_familywise_power_lower_bound": 0.995300092255948,
+    "continuum_realizations_per_geometry": 422,
+    "geometry_count": 4,
+    "method": "endpoint-reference-cluster-normal-planning-plus-conservative-union-lower-bound",
+    "minimum_continuum_realization_count": 1532,
+    "minimum_joint_power": 0.9,
+    "paired_assumptions": [
+      {
+        "closed_paired_standard_deviation": 0.009431366998631674,
+        "closed_positive_regression": -0.0006249999999999867,
+        "endpoint_id": "continuum--completeness--overall",
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.00031249999999999334,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0035714285714285726,
+        "closed_positive_regression": -8.928571428568066e-05,
+        "endpoint_id": "continuum--completeness--overall",
+        "metric_family": "completeness",
+        "planning_expected_regression": -4.464285714284033e-05,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--above-compact-deblend-limit",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--above-compact-deblend-limit",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--image-edge",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--image-edge",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--invalid-pixels",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--invalid-pixels",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-artifact",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-artifact",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.06601956899042169,
+        "closed_positive_regression": -0.004375000000000018,
+        "endpoint_id": "continuum--completeness--morphology-curved-filament",
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.002187500000000009,
+        "planning_paired_standard_deviation": 0.08252446123802712,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.025,
+        "closed_positive_regression": -0.0006249999999999867,
+        "endpoint_id": "continuum--completeness--morphology-curved-filament",
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.00031249999999999334,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-diffuse",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-diffuse",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-filament",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-filament",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-mixed-compact-extended",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-mixed-compact-extended",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-shell",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--morphology-shell",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--scale-1-beam",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--scale-1-beam",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.022006522996807235,
+        "closed_positive_regression": -0.0014583333333334503,
+        "endpoint_id": "continuum--completeness--scale-2-beam",
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.0007291666666667251,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.008333333333333335,
+        "closed_positive_regression": -0.00020833333333347692,
+        "endpoint_id": "continuum--completeness--scale-2-beam",
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.00010416666666673846,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.01320391379808434,
+        "closed_positive_regression": -0.0008750000000000702,
+        "endpoint_id": "continuum--completeness--scale-4-beam",
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.0004375000000000351,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.004999999999999998,
+        "closed_positive_regression": -0.00012500000000004174,
+        "endpoint_id": "continuum--completeness--scale-4-beam",
+        "metric_family": "completeness",
+        "planning_expected_regression": -6.250000000002087e-05,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--tile-boundary",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--tile-boundary",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--tile-corner",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--completeness--tile-corner",
+        "metric_family": "completeness",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.011003261498403614,
+        "closed_positive_regression": -0.0007291666666665586,
+        "endpoint_id": "continuum--completeness--varying-noise",
+        "metric_family": "completeness",
+        "planning_expected_regression": -0.0003645833333332793,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.004166666666666667,
+        "closed_positive_regression": -0.00010416666666657193,
+        "endpoint_id": "continuum--completeness--varying-noise",
+        "metric_family": "completeness",
+        "planning_expected_regression": -5.2083333333285964e-05,
+        "planning_paired_standard_deviation": 0.08,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07768859178338576,
+        "closed_positive_regression": -0.4161693347502171,
+        "endpoint_id": "continuum--reliability--overall",
+        "metric_family": "reliability",
+        "planning_expected_regression": -0.20808466737510856,
+        "planning_paired_standard_deviation": 0.0971107397292322,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07102087175991749,
+        "closed_positive_regression": -0.4571262665541159,
+        "endpoint_id": "continuum--reliability--overall",
+        "metric_family": "reliability",
+        "planning_expected_regression": -0.22856313327705796,
+        "planning_paired_standard_deviation": 0.08877608969989687,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.09477685481317015,
+        "closed_positive_regression": -0.13179591555861464,
+        "endpoint_id": "continuum--integrated-flux-median--overall",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.06589795777930732,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.1228455288986363,
+        "closed_positive_regression": -0.23544873926003307,
+        "endpoint_id": "continuum--integrated-flux-median--overall",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.11772436963001653,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07661731689881501,
+        "closed_positive_regression": -0.754629218616552,
+        "endpoint_id": "continuum--integrated-flux-median--above-compact-deblend-limit",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.377314609308276,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0790456433461132,
+        "closed_positive_regression": -0.75707958032436,
+        "endpoint_id": "continuum--integrated-flux-median--above-compact-deblend-limit",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.37853979016218,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.11406741329911928,
+        "closed_positive_regression": -0.10184324297933955,
+        "endpoint_id": "continuum--integrated-flux-median--image-edge",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.05092162148966978,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.16265279966617446,
+        "closed_positive_regression": -0.250821323239785,
+        "endpoint_id": "continuum--integrated-flux-median--image-edge",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.1254106616198925,
+        "planning_paired_standard_deviation": 0.20331599958271807,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.208705420870804,
+        "closed_positive_regression": -0.05141524307579649,
+        "endpoint_id": "continuum--integrated-flux-median--invalid-pixels",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.025707621537898247,
+        "planning_paired_standard_deviation": 0.260881776088505,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.22398224857819296,
+        "closed_positive_regression": -0.061607962747190326,
+        "endpoint_id": "continuum--integrated-flux-median--invalid-pixels",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.030803981373595163,
+        "planning_paired_standard_deviation": 0.2799778107227412,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.32324681708442426,
+        "closed_positive_regression": -0.6724050855192713,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-curved-filament",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.3362025427596356,
+        "planning_paired_standard_deviation": 0.40405852135553033,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.3218347140918293,
+        "closed_positive_regression": -0.6741938435207431,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-curved-filament",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.33709692176037154,
+        "planning_paired_standard_deviation": 0.4022933926147866,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.06281248256872721,
+        "closed_positive_regression": -0.11564456404468473,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-diffuse",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.05782228202234237,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.14946250454105595,
+        "closed_positive_regression": -0.15738193347690574,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-diffuse",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.07869096673845287,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.10587238077520421,
+        "closed_positive_regression": -0.03368651818863677,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-filament",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.016843259094318386,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.1061342077887784,
+        "closed_positive_regression": -0.03401918919328484,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-filament",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.01700959459664242,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.208705420870804,
+        "closed_positive_regression": -0.05141524307579649,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-mixed-compact-extended",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.025707621537898247,
+        "planning_paired_standard_deviation": 0.260881776088505,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.22398224857819296,
+        "closed_positive_regression": -0.061607962747190326,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-mixed-compact-extended",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.030803981373595163,
+        "planning_paired_standard_deviation": 0.2799778107227412,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07661731689881501,
+        "closed_positive_regression": -0.754629218616552,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-shell",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.377314609308276,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0790456433461132,
+        "closed_positive_regression": -0.75707958032436,
+        "endpoint_id": "continuum--integrated-flux-median--morphology-shell",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.37853979016218,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.208705420870804,
+        "closed_positive_regression": -0.05141524307579649,
+        "endpoint_id": "continuum--integrated-flux-median--scale-1-beam",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.025707621537898247,
+        "planning_paired_standard_deviation": 0.260881776088505,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.22398224857819296,
+        "closed_positive_regression": -0.061607962747190326,
+        "endpoint_id": "continuum--integrated-flux-median--scale-1-beam",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.030803981373595163,
+        "planning_paired_standard_deviation": 0.2799778107227412,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.16958269824809472,
+        "closed_positive_regression": -0.11319064301996169,
+        "endpoint_id": "continuum--integrated-flux-median--scale-2-beam",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.056595321509980846,
+        "planning_paired_standard_deviation": 0.2119783728101184,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.18567486249274553,
+        "closed_positive_regression": -0.12528248644174517,
+        "endpoint_id": "continuum--integrated-flux-median--scale-2-beam",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.06264124322087258,
+        "planning_paired_standard_deviation": 0.23209357811593193,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.14592296995064882,
+        "closed_positive_regression": -0.18945069943972825,
+        "endpoint_id": "continuum--integrated-flux-median--scale-4-beam",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.09472534971986413,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.16494508653782672,
+        "closed_positive_regression": -0.372207408311052,
+        "endpoint_id": "continuum--integrated-flux-median--scale-4-beam",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.186103704155526,
+        "planning_paired_standard_deviation": 0.2061813581722834,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.06520810206196792,
+        "closed_positive_regression": -0.5484064261953676,
+        "endpoint_id": "continuum--integrated-flux-median--tile-boundary",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.2742032130976838,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.06644875744034039,
+        "closed_positive_regression": -0.5520993508850186,
+        "endpoint_id": "continuum--integrated-flux-median--tile-boundary",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.2760496754425093,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07661731689881501,
+        "closed_positive_regression": -0.754629218616552,
+        "endpoint_id": "continuum--integrated-flux-median--tile-corner",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.377314609308276,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0790456433461132,
+        "closed_positive_regression": -0.75707958032436,
+        "endpoint_id": "continuum--integrated-flux-median--tile-corner",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.37853979016218,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.09477685481317015,
+        "closed_positive_regression": -0.13179591555861464,
+        "endpoint_id": "continuum--integrated-flux-median--varying-noise",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.06589795777930732,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.1228455288986363,
+        "closed_positive_regression": -0.23544873926003307,
+        "endpoint_id": "continuum--integrated-flux-median--varying-noise",
+        "metric_family": "integrated-flux-median",
+        "planning_expected_regression": -0.11772436963001653,
+        "planning_paired_standard_deviation": 0.2,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.23736995922600496,
+        "closed_positive_regression": -0.6766003627691929,
+        "endpoint_id": "continuum--integrated-flux-p95--overall",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.33830018138459644,
+        "planning_paired_standard_deviation": 0.2967124490325062,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.25976969137547884,
+        "closed_positive_regression": -0.686052060880015,
+        "endpoint_id": "continuum--integrated-flux-p95--overall",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3430260304400075,
+        "planning_paired_standard_deviation": 0.32471211421934854,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07661731689881501,
+        "closed_positive_regression": -0.7073251159667984,
+        "endpoint_id": "continuum--integrated-flux-p95--above-compact-deblend-limit",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3536625579833992,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0790456433461132,
+        "closed_positive_regression": -0.7579310494908653,
+        "endpoint_id": "continuum--integrated-flux-p95--above-compact-deblend-limit",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.37896552474543266,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.11406741329911928,
+        "closed_positive_regression": -0.23342098150644658,
+        "endpoint_id": "continuum--integrated-flux-p95--image-edge",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.11671049075322329,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.16265279966617446,
+        "closed_positive_regression": -0.3688289380509517,
+        "endpoint_id": "continuum--integrated-flux-p95--image-edge",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.18441446902547584,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.208705420870804,
+        "closed_positive_regression": -0.39412851715766406,
+        "endpoint_id": "continuum--integrated-flux-p95--invalid-pixels",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.19706425857883203,
+        "planning_paired_standard_deviation": 0.260881776088505,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.22398224857819296,
+        "closed_positive_regression": -0.4391391966854028,
+        "endpoint_id": "continuum--integrated-flux-p95--invalid-pixels",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.2195695983427014,
+        "planning_paired_standard_deviation": 0.2799778107227412,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.32324681708442426,
+        "closed_positive_regression": -0.6562155256832716,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-curved-filament",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3281077628416358,
+        "planning_paired_standard_deviation": 0.40405852135553033,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.3218347140918293,
+        "closed_positive_regression": -0.6711557300125062,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-curved-filament",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3355778650062531,
+        "planning_paired_standard_deviation": 0.4022933926147866,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.08317409903704738,
+        "closed_positive_regression": -0.23261666072565995,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-diffuse",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.11630833036282998,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.23556532971543725,
+        "closed_positive_regression": -0.38506415429675284,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-diffuse",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.19253207714837642,
+        "planning_paired_standard_deviation": 0.29445666214429655,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.10587238077520421,
+        "closed_positive_regression": -0.1546313664740202,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-filament",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.0773156832370101,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.1061342077887784,
+        "closed_positive_regression": -0.16365509634374603,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-filament",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.08182754817187302,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.208705420870804,
+        "closed_positive_regression": -0.39412851715766406,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-mixed-compact-extended",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.19706425857883203,
+        "planning_paired_standard_deviation": 0.260881776088505,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.22398224857819296,
+        "closed_positive_regression": -0.4391391966854028,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-mixed-compact-extended",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.2195695983427014,
+        "planning_paired_standard_deviation": 0.2799778107227412,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07661731689881501,
+        "closed_positive_regression": -0.7073251159667984,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-shell",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3536625579833992,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0790456433461132,
+        "closed_positive_regression": -0.7579310494908653,
+        "endpoint_id": "continuum--integrated-flux-p95--morphology-shell",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.37896552474543266,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.208705420870804,
+        "closed_positive_regression": -0.39412851715766406,
+        "endpoint_id": "continuum--integrated-flux-p95--scale-1-beam",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.19706425857883203,
+        "planning_paired_standard_deviation": 0.260881776088505,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.22398224857819296,
+        "closed_positive_regression": -0.4391391966854028,
+        "endpoint_id": "continuum--integrated-flux-p95--scale-1-beam",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.2195695983427014,
+        "planning_paired_standard_deviation": 0.2799778107227412,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.2957982020335282,
+        "closed_positive_regression": -0.6122025608577986,
+        "endpoint_id": "continuum--integrated-flux-p95--scale-2-beam",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3061012804288993,
+        "planning_paired_standard_deviation": 0.3697477525419102,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.29669787425541944,
+        "closed_positive_regression": -0.6176140078773573,
+        "endpoint_id": "continuum--integrated-flux-p95--scale-2-beam",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.30880700393867866,
+        "planning_paired_standard_deviation": 0.3708723428192743,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.2522040493824272,
+        "closed_positive_regression": -0.681776556090233,
+        "endpoint_id": "continuum--integrated-flux-p95--scale-4-beam",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3408882780451165,
+        "planning_paired_standard_deviation": 0.31525506172803397,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.2758476018278781,
+        "closed_positive_regression": -0.6936454148819601,
+        "endpoint_id": "continuum--integrated-flux-p95--scale-4-beam",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.34682270744098004,
+        "planning_paired_standard_deviation": 0.34480950228484764,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07177767067100366,
+        "closed_positive_regression": -0.697840205941033,
+        "endpoint_id": "continuum--integrated-flux-p95--tile-boundary",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3489201029705165,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07435611611179835,
+        "closed_positive_regression": -0.7144596908719862,
+        "endpoint_id": "continuum--integrated-flux-p95--tile-boundary",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3572298454359931,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07661731689881501,
+        "closed_positive_regression": -0.7073251159667984,
+        "endpoint_id": "continuum--integrated-flux-p95--tile-corner",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3536625579833992,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0790456433461132,
+        "closed_positive_regression": -0.7579310494908653,
+        "endpoint_id": "continuum--integrated-flux-p95--tile-corner",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.37896552474543266,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.23736995922600496,
+        "closed_positive_regression": -0.6766003627691929,
+        "endpoint_id": "continuum--integrated-flux-p95--varying-noise",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.33830018138459644,
+        "planning_paired_standard_deviation": 0.2967124490325062,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.25976969137547884,
+        "closed_positive_regression": -0.686052060880015,
+        "endpoint_id": "continuum--integrated-flux-p95--varying-noise",
+        "metric_family": "integrated-flux-p95",
+        "planning_expected_regression": -0.3430260304400075,
+        "planning_paired_standard_deviation": 0.32471211421934854,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.6345839241958173,
+        "closed_positive_regression": -3.8123653180988195,
+        "endpoint_id": "continuum--position-p95--overall",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -1.9061826590494098,
+        "planning_paired_standard_deviation": 0.7932299052447717,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.6360333382939948,
+        "closed_positive_regression": -3.810269782606863,
+        "endpoint_id": "continuum--position-p95--overall",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -1.9051348913034316,
+        "planning_paired_standard_deviation": 0.7950416728674935,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.801736323322824,
+        "closed_positive_regression": -4.5839994350212665,
+        "endpoint_id": "continuum--position-p95--above-compact-deblend-limit",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -2.2919997175106332,
+        "planning_paired_standard_deviation": 1.00217040415353,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.8014199589549709,
+        "closed_positive_regression": -4.583494028643992,
+        "endpoint_id": "continuum--position-p95--above-compact-deblend-limit",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -2.291747014321996,
+        "planning_paired_standard_deviation": 1.0017749486937135,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.20889068059367047,
+        "closed_positive_regression": -0.576975034747998,
+        "endpoint_id": "continuum--position-p95--image-edge",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.288487517373999,
+        "planning_paired_standard_deviation": 0.2611133507420881,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.09395345325948054,
+        "closed_positive_regression": -0.08916225742644995,
+        "endpoint_id": "continuum--position-p95--image-edge",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.04458112871322498,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.09946401145526873,
+        "closed_positive_regression": -0.0292277709420089,
+        "endpoint_id": "continuum--position-p95--invalid-pixels",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.01461388547100445,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.08747669691455985,
+        "closed_positive_regression": -0.026011052190301143,
+        "endpoint_id": "continuum--position-p95--invalid-pixels",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.013005526095150571,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.2832391434248078,
+        "closed_positive_regression": -0.9708949395440405,
+        "endpoint_id": "continuum--position-p95--morphology-curved-filament",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.48544746977202025,
+        "planning_paired_standard_deviation": 0.3540489292810098,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.2804429876205365,
+        "closed_positive_regression": -0.9532575555597274,
+        "endpoint_id": "continuum--position-p95--morphology-curved-filament",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.4766287777798637,
+        "planning_paired_standard_deviation": 0.3505537345256706,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.19236583111805627,
+        "closed_positive_regression": -0.439174725999499,
+        "endpoint_id": "continuum--position-p95--morphology-diffuse",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.2195873629997495,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.08147659985788053,
+        "closed_positive_regression": -0.05673514974889832,
+        "endpoint_id": "continuum--position-p95--morphology-diffuse",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.02836757487444916,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.19163216135710037,
+        "closed_positive_regression": -0.23830426852573652,
+        "endpoint_id": "continuum--position-p95--morphology-filament",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.11915213426286826,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.19161604070174904,
+        "closed_positive_regression": -0.23830426852573652,
+        "endpoint_id": "continuum--position-p95--morphology-filament",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.11915213426286826,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.09946401145526873,
+        "closed_positive_regression": -0.0292277709420089,
+        "endpoint_id": "continuum--position-p95--morphology-mixed-compact-extended",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.01461388547100445,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.08747669691455985,
+        "closed_positive_regression": -0.026011052190301143,
+        "endpoint_id": "continuum--position-p95--morphology-mixed-compact-extended",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.013005526095150571,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.801736323322824,
+        "closed_positive_regression": -4.5839994350212665,
+        "endpoint_id": "continuum--position-p95--morphology-shell",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -2.2919997175106332,
+        "planning_paired_standard_deviation": 1.00217040415353,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.8014199589549709,
+        "closed_positive_regression": -4.583494028643992,
+        "endpoint_id": "continuum--position-p95--morphology-shell",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -2.291747014321996,
+        "planning_paired_standard_deviation": 1.0017749486937135,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.09946401145526873,
+        "closed_positive_regression": -0.0292277709420089,
+        "endpoint_id": "continuum--position-p95--scale-1-beam",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.01461388547100445,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.08747669691455985,
+        "closed_positive_regression": -0.026011052190301143,
+        "endpoint_id": "continuum--position-p95--scale-1-beam",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.013005526095150571,
+        "planning_paired_standard_deviation": 0.25,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.26163834581469514,
+        "closed_positive_regression": -0.9001883035408443,
+        "endpoint_id": "continuum--position-p95--scale-2-beam",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.45009415177042217,
+        "planning_paired_standard_deviation": 0.3270479322683689,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.25406386609190745,
+        "closed_positive_regression": -0.8966532247716009,
+        "endpoint_id": "continuum--position-p95--scale-2-beam",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -0.44832661238580046,
+        "planning_paired_standard_deviation": 0.3175798326148843,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.667239841681453,
+        "closed_positive_regression": -3.9009217082373846,
+        "endpoint_id": "continuum--position-p95--scale-4-beam",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -1.9504608541186923,
+        "planning_paired_standard_deviation": 0.8340498021018162,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.6684839138267924,
+        "closed_positive_regression": -3.9000383898868742,
+        "endpoint_id": "continuum--position-p95--scale-4-beam",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -1.9500191949434371,
+        "planning_paired_standard_deviation": 0.8356048922834904,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.7588813396026661,
+        "closed_positive_regression": -4.007459084702698,
+        "endpoint_id": "continuum--position-p95--tile-boundary",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -2.003729542351349,
+        "planning_paired_standard_deviation": 0.9486016745033327,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.7585832180595954,
+        "closed_positive_regression": -4.007459084702698,
+        "endpoint_id": "continuum--position-p95--tile-boundary",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -2.003729542351349,
+        "planning_paired_standard_deviation": 0.9482290225744943,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.801736323322824,
+        "closed_positive_regression": -4.5839994350212665,
+        "endpoint_id": "continuum--position-p95--tile-corner",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -2.2919997175106332,
+        "planning_paired_standard_deviation": 1.00217040415353,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.8014199589549709,
+        "closed_positive_regression": -4.583494028643992,
+        "endpoint_id": "continuum--position-p95--tile-corner",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -2.291747014321996,
+        "planning_paired_standard_deviation": 1.0017749486937135,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.6345839241958173,
+        "closed_positive_regression": -3.8123653180988195,
+        "endpoint_id": "continuum--position-p95--varying-noise",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -1.9061826590494098,
+        "planning_paired_standard_deviation": 0.7932299052447717,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.6360333382939948,
+        "closed_positive_regression": -3.810269782606863,
+        "endpoint_id": "continuum--position-p95--varying-noise",
+        "metric_family": "position-p95",
+        "planning_expected_regression": -1.9051348913034316,
+        "planning_paired_standard_deviation": 0.7950416728674935,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.09808242856430605,
+        "closed_positive_regression": -0.3436607142857142,
+        "endpoint_id": "continuum--duplicate-fraction--overall",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.1718303571428571,
+        "planning_paired_standard_deviation": 0.12260303570538256,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.08888707578196638,
+        "closed_positive_regression": -0.4038392857142857,
+        "endpoint_id": "continuum--duplicate-fraction--overall",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.20191964285714284,
+        "planning_paired_standard_deviation": 0.11110884472745797,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--duplicate-fraction--above-compact-deblend-limit",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.03,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--duplicate-fraction--above-compact-deblend-limit",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.03,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07883414085028295,
+        "closed_positive_regression": -0.00625,
+        "endpoint_id": "continuum--duplicate-fraction--image-edge",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.003125,
+        "planning_paired_standard_deviation": 0.09854267606285369,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.08265593976077028,
+        "closed_positive_regression": -0.006875,
+        "endpoint_id": "continuum--duplicate-fraction--image-edge",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.0034375,
+        "planning_paired_standard_deviation": 0.10331992470096285,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.13568324773096258,
+        "closed_positive_regression": -0.01875,
+        "endpoint_id": "continuum--duplicate-fraction--invalid-pixels",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.009375,
+        "planning_paired_standard_deviation": 0.16960405966370323,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.1288433535581,
+        "closed_positive_regression": -0.016875,
+        "endpoint_id": "continuum--duplicate-fraction--invalid-pixels",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.0084375,
+        "planning_paired_standard_deviation": 0.161054191947625,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.4771187236136979,
+        "closed_positive_regression": -0.35,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-artifact",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.175,
+        "planning_paired_standard_deviation": 0.5963984045171223,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.45419273582455866,
+        "closed_positive_regression": -0.709375,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-artifact",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.3546875,
+        "planning_paired_standard_deviation": 0.5677409197806983,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.2898210614409937,
+        "closed_positive_regression": -0.9075,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-curved-filament",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.45375,
+        "planning_paired_standard_deviation": 0.3622763268012421,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.18224740930634462,
+        "closed_positive_regression": -0.965625,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-curved-filament",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.4828125,
+        "planning_paired_standard_deviation": 0.22780926163293078,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.09727315218026207,
+        "closed_positive_regression": -0.0196875,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-diffuse",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.00984375,
+        "planning_paired_standard_deviation": 0.12159144022532759,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.10368446866889937,
+        "closed_positive_regression": -0.0225,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-diffuse",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.01125,
+        "planning_paired_standard_deviation": 0.12960558583612422,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.28627123416821876,
+        "closed_positive_regression": -0.09,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-filament",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.045,
+        "planning_paired_standard_deviation": 0.35783904271027345,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.28627123416821876,
+        "closed_positive_regression": -0.09,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-filament",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.045,
+        "planning_paired_standard_deviation": 0.35783904271027345,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.13568324773096258,
+        "closed_positive_regression": -0.01875,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-mixed-compact-extended",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.009375,
+        "planning_paired_standard_deviation": 0.16960405966370323,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.1288433535581,
+        "closed_positive_regression": -0.016875,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-mixed-compact-extended",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.0084375,
+        "planning_paired_standard_deviation": 0.161054191947625,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-shell",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.03,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--duplicate-fraction--morphology-shell",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.03,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.25021488575954026,
+        "closed_positive_regression": -0.184375,
+        "endpoint_id": "continuum--duplicate-fraction--scale-1-beam",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.0921875,
+        "planning_paired_standard_deviation": 0.31276860719942534,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.23661725783253876,
+        "closed_positive_regression": -0.363125,
+        "endpoint_id": "continuum--duplicate-fraction--scale-1-beam",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.1815625,
+        "planning_paired_standard_deviation": 0.29577157229067347,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.13787791320346904,
+        "closed_positive_regression": -0.33875,
+        "endpoint_id": "continuum--duplicate-fraction--scale-2-beam",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.169375,
+        "planning_paired_standard_deviation": 0.1723473915043363,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.11894131469829267,
+        "closed_positive_regression": -0.3575,
+        "endpoint_id": "continuum--duplicate-fraction--scale-2-beam",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.17875,
+        "planning_paired_standard_deviation": 0.14867664337286585,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07537430051573545,
+        "closed_positive_regression": -0.39312500000000006,
+        "endpoint_id": "continuum--duplicate-fraction--scale-4-beam",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.19656250000000003,
+        "planning_paired_standard_deviation": 0.09421787564466931,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.061823448923308884,
+        "closed_positive_regression": -0.40549999999999997,
+        "endpoint_id": "continuum--duplicate-fraction--scale-4-beam",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.20274999999999999,
+        "planning_paired_standard_deviation": 0.07727931115413611,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.14313561708410935,
+        "closed_positive_regression": -0.545,
+        "endpoint_id": "continuum--duplicate-fraction--tile-boundary",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.2725,
+        "planning_paired_standard_deviation": 0.1789195213551367,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.14313561708410935,
+        "closed_positive_regression": -0.545,
+        "endpoint_id": "continuum--duplicate-fraction--tile-boundary",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.2725,
+        "planning_paired_standard_deviation": 0.1789195213551367,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--duplicate-fraction--tile-corner",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.03,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--duplicate-fraction--tile-corner",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.03,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0764057536294666,
+        "closed_positive_regression": -0.3426041666666667,
+        "endpoint_id": "continuum--duplicate-fraction--varying-noise",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.17130208333333335,
+        "planning_paired_standard_deviation": 0.09550719203683325,
+        "practical_regression_margin": 0.01,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.06796602215931617,
+        "closed_positive_regression": -0.3529166666666667,
+        "endpoint_id": "continuum--duplicate-fraction--varying-noise",
+        "metric_family": "duplicate-fraction",
+        "planning_expected_regression": -0.17645833333333336,
+        "planning_paired_standard_deviation": 0.08495752769914522,
+        "practical_regression_margin": 0.01,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0226947954184409,
+        "closed_positive_regression": 0.04070013666559236,
+        "endpoint_id": "continuum--mask-precision--overall",
+        "metric_family": "mask-precision",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.03179720807720787,
+        "closed_positive_regression": 0.04783967947818146,
+        "endpoint_id": "continuum--mask-precision--overall",
+        "metric_family": "mask-precision",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.02762546373099371,
+        "closed_positive_regression": -0.08941937305129766,
+        "endpoint_id": "continuum--mask-recall--overall",
+        "metric_family": "mask-recall",
+        "planning_expected_regression": -0.04470968652564883,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.03567187662114044,
+        "closed_positive_regression": -0.10076856184426897,
+        "endpoint_id": "continuum--mask-recall--overall",
+        "metric_family": "mask-recall",
+        "planning_expected_regression": -0.05038428092213448,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.021887176300986914,
+        "closed_positive_regression": -0.04927844640483969,
+        "endpoint_id": "continuum--mask-iou--overall",
+        "metric_family": "mask-iou",
+        "planning_expected_regression": -0.024639223202419847,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0209767294578621,
+        "closed_positive_regression": -0.05615089191589995,
+        "endpoint_id": "continuum--mask-iou--overall",
+        "metric_family": "mask-iou",
+        "planning_expected_regression": -0.028075445957949974,
+        "planning_paired_standard_deviation": 0.15,
+        "practical_regression_margin": 0.05,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.05575460082142727,
+        "closed_positive_regression": -0.272142857142857,
+        "endpoint_id": "continuum--split-fraction--overall",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.1360714285714285,
+        "planning_paired_standard_deviation": 0.06969325102678409,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.056521909873708184,
+        "closed_positive_regression": -0.2724999999999999,
+        "endpoint_id": "continuum--split-fraction--overall",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.13624999999999995,
+        "planning_paired_standard_deviation": 0.07065238734213523,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--split-fraction--above-compact-deblend-limit",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--split-fraction--above-compact-deblend-limit",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--split-fraction--image-edge",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--split-fraction--image-edge",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.04327418149705608,
+        "closed_positive_regression": -0.001875,
+        "endpoint_id": "continuum--split-fraction--invalid-pixels",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.0009375,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.04327418149705608,
+        "closed_positive_regression": -0.001875,
+        "endpoint_id": "continuum--split-fraction--invalid-pixels",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.0009375,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.34709551575994596,
+        "closed_positive_regression": -0.86,
+        "endpoint_id": "continuum--split-fraction--morphology-artifact",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.43,
+        "planning_paired_standard_deviation": 0.43386939469993246,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.34709551575994596,
+        "closed_positive_regression": -0.86,
+        "endpoint_id": "continuum--split-fraction--morphology-artifact",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.43,
+        "planning_paired_standard_deviation": 0.43386939469993246,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.20178998860123687,
+        "closed_positive_regression": -0.0425,
+        "endpoint_id": "continuum--split-fraction--morphology-curved-filament",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.02125,
+        "planning_paired_standard_deviation": 0.2522374857515461,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.20736893733779874,
+        "closed_positive_regression": -0.045,
+        "endpoint_id": "continuum--split-fraction--morphology-curved-filament",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.0225,
+        "planning_paired_standard_deviation": 0.25921117167224844,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0125,
+        "closed_positive_regression": -0.0003125,
+        "endpoint_id": "continuum--split-fraction--morphology-diffuse",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.00015625,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0125,
+        "closed_positive_regression": -0.0003125,
+        "endpoint_id": "continuum--split-fraction--morphology-diffuse",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.00015625,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--split-fraction--morphology-filament",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--split-fraction--morphology-filament",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.04327418149705608,
+        "closed_positive_regression": -0.001875,
+        "endpoint_id": "continuum--split-fraction--morphology-mixed-compact-extended",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.0009375,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.04327418149705608,
+        "closed_positive_regression": -0.001875,
+        "endpoint_id": "continuum--split-fraction--morphology-mixed-compact-extended",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.0009375,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--split-fraction--morphology-shell",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--split-fraction--morphology-shell",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.17437208666851098,
+        "closed_positive_regression": -0.4309375,
+        "endpoint_id": "continuum--split-fraction--scale-1-beam",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.21546875,
+        "planning_paired_standard_deviation": 0.21796510833563873,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.17437208666851098,
+        "closed_positive_regression": -0.4309375,
+        "endpoint_id": "continuum--split-fraction--scale-1-beam",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.21546875,
+        "planning_paired_standard_deviation": 0.21796510833563873,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.06966839021061312,
+        "closed_positive_regression": -0.014791666666666665,
+        "endpoint_id": "continuum--split-fraction--scale-2-beam",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.007395833333333332,
+        "planning_paired_standard_deviation": 0.0870854877632664,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.07145819069818647,
+        "closed_positive_regression": -0.015624999999999998,
+        "endpoint_id": "continuum--split-fraction--scale-2-beam",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.007812499999999999,
+        "planning_paired_standard_deviation": 0.0893227383727331,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.04207263144192171,
+        "closed_positive_regression": -0.20900000000000002,
+        "endpoint_id": "continuum--split-fraction--scale-4-beam",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.10450000000000001,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.04313830166649086,
+        "closed_positive_regression": -0.20950000000000002,
+        "endpoint_id": "continuum--split-fraction--scale-4-beam",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.10475000000000001,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -0.5,
+        "endpoint_id": "continuum--split-fraction--tile-boundary",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.25,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -0.5,
+        "endpoint_id": "continuum--split-fraction--tile-boundary",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.25,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--split-fraction--tile-corner",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": -1.0,
+        "endpoint_id": "continuum--split-fraction--tile-corner",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.5,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.03506052620160143,
+        "closed_positive_regression": -0.17416666666666664,
+        "endpoint_id": "continuum--split-fraction--varying-noise",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.08708333333333332,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.03594858472207572,
+        "closed_positive_regression": -0.1745833333333333,
+        "endpoint_id": "continuum--split-fraction--varying-noise",
+        "metric_family": "split-fraction",
+        "planning_expected_regression": -0.08729166666666666,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--overall",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--overall",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--above-compact-deblend-limit",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--above-compact-deblend-limit",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--image-edge",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--image-edge",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--invalid-pixels",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--invalid-pixels",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-artifact",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-artifact",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-curved-filament",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-curved-filament",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-diffuse",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-diffuse",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-filament",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-filament",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-mixed-compact-extended",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-mixed-compact-extended",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-shell",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--morphology-shell",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--scale-1-beam",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--scale-1-beam",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--scale-2-beam",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--scale-2-beam",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--scale-4-beam",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--scale-4-beam",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--tile-boundary",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--tile-boundary",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--tile-corner",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--tile-corner",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--varying-noise",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "released-pybdsf"
+      },
+      {
+        "closed_paired_standard_deviation": 0.0,
+        "closed_positive_regression": 0.0,
+        "endpoint_id": "continuum--merge-fraction--varying-noise",
+        "metric_family": "merge-fraction",
+        "planning_expected_regression": 0.0,
+        "planning_paired_standard_deviation": 0.06,
+        "practical_regression_margin": 0.02,
+        "reference_id": "pinned-pybdsf-master"
+      }
+    ],
+    "paired_comparison_count": 226,
+    "population_safety_factor": 1.1,
+    "selected_continuum_realization_count": 1688,
+    "variance_inflation": 1.25
+  },
+  "qualification_opened": false,
+  "schema_version": 1,
+  "scientific_approval": {
+    "approved_on": "2026-08-16",
+    "reviewer": "Gemma Danks",
+    "scope": "candidate-and-powered-design-for-freezing-fresh-external-identities-only"
+  },
+  "status": "scientifically-approved-and-frozen-before-output",
+  "step_three_authorized": false
+}

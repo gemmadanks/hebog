@@ -436,6 +436,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-external-continuum",
         "phase-5-external-post-failure-compact-blend",
         "phase-5-external-post-failure-continuum",
+        "phase-5-external-post-correction-compact-blend",
+        "phase-5-external-post-correction-continuum",
         "phase-5-external-successor-compact-blend",
         "phase-5-external-successor-continuum",
         "phase-5-qualification",
@@ -454,6 +456,10 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-external-continuum": DatasetRole.REGRESSION,
         "phase-5-external-post-failure-compact-blend": DatasetRole.REGRESSION,
         "phase-5-external-post-failure-continuum": DatasetRole.REGRESSION,
+        "phase-5-external-post-correction-compact-blend": (
+            DatasetRole.REGRESSION
+        ),
+        "phase-5-external-post-correction-continuum": DatasetRole.REGRESSION,
         "phase-5-external-successor-compact-blend": DatasetRole.REGRESSION,
         "phase-5-external-successor-continuum": DatasetRole.REGRESSION,
         "phase-5-regression": DatasetRole.REGRESSION,
@@ -470,6 +476,7 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
                 "phase-5-external-compact-blend",
                 "phase-5-external-confirmation-compact-blend",
                 "phase-5-external-post-failure-compact-blend",
+                "phase-5-external-post-correction-compact-blend",
                 "phase-5-external-successor-compact-blend",
             }
             else 3
@@ -522,6 +529,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-external-confirmation-compact-blend": 800,
         "phase-5-external-post-failure-continuum": 1600,
         "phase-5-external-post-failure-compact-blend": 800,
+        "phase-5-external-post-correction-continuum": 1688,
+        "phase-5-external-post-correction-compact-blend": 800,
     }
     assert {
         manifest_id: sum(
@@ -638,6 +647,15 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
             "4377ed5b065c040c98c0fde632a1247d8feb43a46e902219d7d628fd573bc001",
             "1e2189b24e8a3fd09b7ff7cb6d445da0f25ef658333308ef24df6d84830fd422",
             "5c2604a24c2eb003dbdb20c184325f36f1a0da667406a439a59d1fa3559d0cf4",
+        ),
+        "phase-5-external-post-correction-compact-blend": (
+            "c1a151ca3ec21fd43c74607b0b928f7e86b59add83a03dd5b57daaa66e527c56",
+        ),
+        "phase-5-external-post-correction-continuum": (
+            "589a530ae61378b3c0c7f73f22ba70fd77905dc08f136e639346bfc67d6afd0c",
+            "ffa7301398aa93fd7658a618f1767c64def33dce88f5f3af75145f9d65e47809",
+            "af652ed1364c37670fc9de6c32ff35007832ab2509b6d1c30c41b150ca92fc55",
+            "b2de71628220c817aceb6a28705d29e9ae737b30d4c7998a3b4674655e82c393",
         ),
         "phase-5-external-successor-compact-blend": (
             "ef4a73f33a7997eec3c5f14cc4f1effa3156ffabccfaec9b472a9279f153c779",

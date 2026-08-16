@@ -1791,15 +1791,22 @@ comparison.**
          geometry) plus 800 compact realizations. Its conservative Continuum,
          compact, and combined familywise lower bounds are 0.99530, 0.90978,
          and 0.90508 against the 0.90 joint minimum.
-   - [ ] Freeze and approve a fresh seed-disjoint post-correction external
-         comparison only after the cumulative ledger passes. Retain all prior
-         absolute, paired, failure-denominator, excess-variance, and one-look
-         rules; bind component semantics and all corrected science settings.
-         Obtain named scientific approval of the candidate and the reviewed
-         1,688-Continuum/800-compact power design before freezing fresh seeds,
-         configurations, program identities, or runtimes. Return the frozen
-         exact identities for a separate one-look execution decision. Step 3
-         remains closed until every binding endpoint passes.
+   - [x] Freeze the fresh seed-disjoint post-correction comparison after named
+         scientific approval of candidate `dfc3e25...` and the reviewed
+         1,688-Continuum/800-compact powered design. Contract `f1fec27a...`
+         binds 2,488 new images, 12,440 terminal runs, all corrected science,
+         and a global audit against 14,253 historical plus 280 reserved
+         development seeds. The protocol, runners, compiler, evaluator, four
+         exact OCI runtimes, and pending execution decision are checksum
+         bound. A network-disabled runtime probe passes. No finder product has
+         been generated or opened and execution remains unauthorized.
+   - [ ] Restore the predeclared 126-GiB storage headroom, repeat the no-write
+         operational review, and return the unchanged exact identities for a
+         separate named one-look execution decision. The frozen review records
+         37.88 GiB available and therefore does not recommend execution. Retain
+         every absolute, paired, failure-denominator, excess-variance, power,
+         component-semantics, and one-look rule. Step 3 remains closed until
+         every binding endpoint passes.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
