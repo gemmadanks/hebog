@@ -8159,3 +8159,44 @@ review against `CODE_REVIEW.md` found no actionable issue.
 **Immediate next step:** validate and commit the locked corrections, run the
 complete cumulative replay from that immutable revision, then prepare the
 exact power and named scientific freeze review.
+
+## 2026-08-16 — Passed cumulative science and powered the fresh design
+
+**Plan phase:** Phase 5, post-correction cumulative and power review
+
+- Completed all 2,400 development replays from immutable revision
+  `dfc3e25...` and atomically published write-once cumulative ledger
+  `7ffd6364...`. It binds source tree `a549143b...`, configuration
+  `0e5dde51...`, sealed campaign `c16dc486...`, and the exact reusable closed
+  baseline ledger `f6a92d39...`; the latter matches its predeclared SHA-256.
+- Evaluated science before power. The compact fitted-component view passes all
+  450 PyBDSF and 143 applicable Aegean comparisons. Continuum has 134 passes,
+  nine favourable underpowered comparisons, no failures or indeterminate
+  results, and every absolute gate passes. Neither compact nor Continuum has
+  a like-semantics pass-to-nonpass regression, so
+  `cumulative_science_regression_ready` is true.
+- Ran the committed endpoint-level power review without changing the locked
+  science. Review `d68163f5...` retains 226 paired assumptions, a 1.25 variance
+  inflation, 50% advantage retention, and a 10% population safety factor. The
+  theoretical minimum is 1,532 Continuum realizations; the balanced selected
+  design is 1,688 (422 per geometry) plus 800 compact realizations. The
+  conservative Continuum, compact, and combined familywise power lower bounds
+  are 0.995300, 0.909784, and 0.905084 against the 0.90 joint minimum.
+
+**Decision:** the candidate and powered design are ready for named scientific
+freeze review. No fresh population identity has been frozen, execution is not
+authorized, and Step 3 remains closed. The next required decision is named
+scientific approval of this exact candidate and 1,688-Continuum/800-compact
+design before fresh seeds, configurations, programs, and runtimes are frozen;
+the resulting identities require a separate one-look execution decision.
+
+**Validation:** 43 focused cumulative-protocol and power tests pass.
+Branch-aware coverage passes 1,378 tests with four expected xfails at 94.28%,
+including 100% coverage of the power module. `just check` passes Ruff,
+Pyright, 1,248 tests, and four expected xfails. The strict documentation build
+passes. The final `CODE_REVIEW.md` review found no actionable issue.
+
+**Immediate next step:** obtain named scientific approval of the exact
+candidate and powered design before freezing fresh external identities. Do not
+execute the fresh campaign until those identities return for a separate named
+one-look approval.

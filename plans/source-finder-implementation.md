@@ -1754,31 +1754,16 @@ comparison.**
          0.9112/0.9075/0.8335, worst flux p95 is 0.1533, and worst position
          p95 is 0.4669. These are regression results, not external evidence.
          See the [post-campaign failure review](../docs/reference/phase-5-post-campaign-failure-review.md).
-   - [ ] Resolve the cumulative compact regression before freezing another
-         external campaign. The successor free-only component improved
-         position, flux, and marginal fitted-axis results but the confirmation
-         candidate then failed seven Aegean fitted-position-angle endpoints.
-         Beam-or-free publication repaired all seven in the post-failure
-         campaign but put marginal fitted-axis p95 back on the failing side.
-         The post-campaign independent free component repairs the axis tail,
-         yet a 20-image evenly spaced diagnostic projects the same seven
-         position-angle failures again: overall fitted-position-angle median
-         is 1.145 degrees versus Aegean's 0.475 degrees, and unresolved p95 is
-         4.972 versus 0.814 degrees. Treat the present candidate as
-         development-only. Select one scientifically coherent component model
-         that passes position, flux, fitted-axis, and fitted-position-angle
-         requirements together; do not solve one family by republishing a
-         representation already known to fail another.
-         The predeclared 20-image crossover review now selects a prospective
-         whole-model component boundary at 1.5-sigma log-area significance,
-         while retaining the five-sigma source boundary. Marginal fitted-axis
-         p95 is 0.1686 and unresolved fitted-position-angle p95 is 1.0224
-         degrees on that fixed slice, versus 0.1665/4.9716 for free-only
-         publication. A diagonal-weighted alternative was inferior for
-         marginal axes and compact position/flux. The value is locked before
-         the full replay and remains development-only until every cumulative
-         endpoint below passes.
-   - [ ] Produce a machine-readable cumulative regression ledger before the
+   - [x] Resolve the cumulative compact regression before freezing another
+         external campaign. A predeclared 20-image crossover selected one
+         scientifically coherent whole-model component boundary at 1.5-sigma
+         log-area significance while retaining the five-sigma source
+         boundary. The corrected complete replay from immutable revision
+         `dfc3e25...` passes the compact view and loses no previously passing
+         like-semantics compact endpoint. The selected model and subsequent
+         point-calibration correction remain development evidence until the
+         fresh external comparison passes.
+   - [x] Produce a machine-readable cumulative regression ledger before the
          next freeze. Re-run the chosen compact candidate on the complete
          viewed 800-image diagnostic population with fitted-Gaussian-component
          semantics and evaluate all PyBDSF and Aegean endpoints together.
@@ -1790,25 +1775,30 @@ comparison.**
          a separate column rather than presented as an algorithm improvement.
          Record every historic fail-to-pass and pass-to-fail transition and
          require named scientific review of any deliberate trade-off.
-         The first complete ledger (`f6a92d39...`) rejected revision
-         `f1001c1...`: all 593 compact reference comparisons passed, but three
-         compact fitted-total uncertainty-bias intervals failed; Continuum had
-         132 passes, one absolute failure, ten underpowered comparisons, and
-         two pass-to-nonpass position regressions. Seed-disjoint development
-         then rejected global uncertainty scaling and unrestricted B3
-         positions. It selected the smallest all-gate compact point correction
-         (0.075 formal sigma, 200 images) and direct-plus-B3 first-moment signal
-         (all 15 position endpoints pass, 80 images). Re-run the complete
-         ledger once on these locked settings. Treat favourable underpowered
-         comparisons as a prospective sample-size obligation, not permission
-         to retune science.
+         The first complete ledger (`f6a92d39...`) identified three compact
+         uncertainty-bias failures, one Continuum absolute failure, and two
+         like-semantics Continuum regressions. Seed-disjoint development then
+         selected the smallest all-gate compact point correction (0.075 formal
+         sigma) and direct-plus-B3 position signal. The write-once corrected
+         ledger (`7ffd6364...`) binds revision `dfc3e25...`, its source and
+         configuration hashes, the sealed campaign, and the exact closed
+         baseline. All 593 applicable compact reference comparisons pass;
+         Continuum records 134 passes, nine favourable underpowered
+         comparisons, no failures, every absolute gate passing, and no
+         like-semantics regression. `cumulative_science_regression_ready` is
+         true. The committed power review (`d68163f5...`) covers 226 paired
+         assumptions and selects 1,688 Continuum realizations (422 per
+         geometry) plus 800 compact realizations. Its conservative Continuum,
+         compact, and combined familywise lower bounds are 0.99530, 0.90978,
+         and 0.90508 against the 0.90 joint minimum.
    - [ ] Freeze and approve a fresh seed-disjoint post-correction external
          comparison only after the cumulative ledger passes. Retain all prior
          absolute, paired, failure-denominator, excess-variance, and one-look
          rules; bind component semantics and all corrected science settings.
-         Use at least 1,600 Continuum and 800 compact images unless a
-         conservative exact-endpoint power audit justifies another count.
-         Obtain separate named scientific approval before execution; Step 3
+         Obtain named scientific approval of the candidate and the reviewed
+         1,688-Continuum/800-compact power design before freezing fresh seeds,
+         configurations, program identities, or runtimes. Return the frozen
+         exact identities for a separate one-look execution decision. Step 3
          remains closed until every binding endpoint passes.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
