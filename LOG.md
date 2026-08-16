@@ -8315,3 +8315,39 @@ strict documentation build passes.
 immutable execution checkout, run the no-write preflight, and launch the
 single terminal campaign only on success. Monitor operational state hourly and
 evaluate only after the terminal campaign is sealed.
+
+## 2026-08-16 — Corrected stale reference identities before campaign output
+
+**Plan phase:** Phase 5, post-correction no-write preflight correction
+
+- Ran the authorized complete no-write preflight from detached immutable
+  commit `d28a090...`. It failed before request publication or campaign-state
+  creation because the inherited post-failure protocol still exposed the
+  deleted released-PyBDSF, pinned-master, and Aegean digests. The live images
+  matched review `30eb5576...`; the execution adapter did not.
+- Added a focused regression assertion for all three reference digests and
+  changed only the post-correction protocol projection to overlay the exact
+  rebuilt identities already recorded in `_RUNTIME_IMAGES`. Candidate source,
+  dependency inventories, source revisions, populations, configurations,
+  endpoints, thresholds, runners, compiler/evaluator behavior, and resource
+  policy are unchanged.
+- Refreshed the fail-closed identity chain. Verifier `6888ac86...`, pending
+  decision `4971620f...`, registry `2f22a932...`, evaluation `c0b69503...`, and
+  corrected review `88df5916...` now agree. The review records 128.02 GiB
+  available and absent public/private campaign paths. Execution is unauthorized
+  again because the verifier checksum changed after the prior named approval.
+
+**Decision:** this was an operational identity-plumbing defect caught by the
+mandatory no-write gate, not scientific evidence. No finder output was
+generated or opened and the one-look remains unopened. Review `30eb5576...`
+cannot authorize the changed verifier; renewed approval must bind corrected
+review `88df5916...` and the same four runtime identities.
+
+**Validation:** the new reference-digest assertion failed against all three
+stale inherited digests, then the focused seven-test suite passed after the
+minimal projection fix. Branch-aware coverage passes 1,385 tests with four
+expected xfails at 94.28%. `just check` passes Ruff, Pyright, 1,255 tests, and
+four expected xfails. The strict documentation build passes.
+
+**Immediate next step:** complete validation and commit the corrected
+fail-closed review, then obtain renewed one-look approval for `88df5916...`.

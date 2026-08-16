@@ -108,8 +108,8 @@ def test_post_correction_freeze_binds_approval_science_and_power() -> None:
     assert freeze["execution_authorized"] is False
 
 
-def test_post_correction_protocol_is_approved_and_exactly_scaled() -> None:
-    """Named approval binds the exact review without opening the look."""
+def test_post_correction_protocol_is_pending_and_exactly_scaled() -> None:
+    """Corrected identities remain fail-closed pending renewed approval."""
     helpers = _script(
         "scripts/validation/phase5_external_post_correction_protocol.py"
     )
@@ -126,21 +126,28 @@ def test_post_correction_protocol_is_approved_and_exactly_scaled() -> None:
         1688,
         800,
     )
-    assert decision.execution_authorized is True
+    assert {
+        item.finder_id: item.container_image_digest
+        for item in protocol.references
+    } == {
+        "released-pybdsf": (
+            "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198"
+        ),
+        "pinned-pybdsf-master": (
+            "sha256:0e6d932416479bb7d7763fe2e025ea9fbbd0d0548a6f156b2cdd881766690c75"
+        ),
+        "aegean": (
+            "sha256:dcac8e646ff5ea6d11d314c5c7a51fb0c3ca710165934ad2ddf0ac3f999131b0"
+        ),
+    }
+    assert decision.execution_authorized is False
     assert decision.execution_concurrency == 2
     assert decision.pybdsf_ncores == 4
     assert decision.hebog_container_image_digest == (
         "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1"
     )
-    assert decision.preflight_review_sha256 == (
-        "30eb5576c56410381cdc9628aebbb5d711930970f023eac623e5fce62cb3059b"
-    )
-    assert decision.named_review == (
-        "Gemma Danks, 2026-08-16, approved Phase 5 post-correction one-look "
-        "execution bound to preflight review sha256:30eb5576c56410381cdc9628"
-        "aebbb5d711930970f023eac623e5fce62cb3059b and its exact four-runtime "
-        "identities"
-    )
+    assert decision.preflight_review_sha256 == "pending"
+    assert decision.named_review == "pending"
 
 
 def test_post_correction_review_binds_programs_and_four_runtimes() -> None:

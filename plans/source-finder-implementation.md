@@ -1819,6 +1819,20 @@ comparison.**
          Run the complete no-write preflight from the immutable authorization
          commit, launch only if it passes, and keep Step 3 closed until every
          binding endpoint passes.
+   - [x] Diagnose the first authorized no-write preflight failure without
+         creating campaign state. Detached commit `d28a090...` rejected the
+         released-PyBDSF digest because the post-correction protocol inherited
+         the deleted post-failure reference digests even though review
+         `30eb5576...` bound their replacements. Add a regression test and
+         project the exact reviewed PyBDSF/Aegean digests through the protocol
+         loader. No population, endpoint, threshold, runner, candidate, or
+         scientific behavior changed and the one-look remains unopened.
+   - [ ] Obtain renewed one-look approval bound to corrected preflight review
+         `88df5916...`, verifier `6888ac86...`, and the unchanged four rebuilt
+         runtime identities. The decision is fail-closed again. After approval,
+         refresh only the authorization-dependent chain, validate and commit
+         it, repeat the complete no-write preflight from a new immutable
+         checkout, and launch only on success.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 

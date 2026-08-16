@@ -105,6 +105,11 @@ _RUNTIME_IMAGES = (
         "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
     ),
 )
+_REFERENCE_IMAGE_DIGESTS = tuple(
+    (finder_id, digest)
+    for finder_id, _image_id, digest, _inventory in _RUNTIME_IMAGES
+    if finder_id != "hebog"
+)
 _HEBOG_IMAGE_DIGEST = _RUNTIME_IMAGES[0][2]
 _HEBOG_INVENTORY_SHA256 = _RUNTIME_IMAGES[0][3]
 _RUNNER_PATHS = (
@@ -380,13 +385,31 @@ def load_post_correction_protocol(
         raise ValueError("post-correction protocol population changed")
     _install_historical_source_view()
     base = _BASE["load_post_failure_protocol"](base_path)
+    reference_digests = dict(_REFERENCE_IMAGE_DIGESTS)
+    if tuple(item.finder_id for item in base.references) != tuple(
+        reference_digests
+    ):
+        raise ValueError("post-correction reference order changed")
+    compatible_references = tuple(
+        item.model_copy(
+            update={
+                "container_image_digest": reference_digests[item.finder_id]
+            }
+        )
+        for item in base.references
+    )
     compatible = tuple(
         old.model_copy(update=new)
         for old, new in zip(base.populations, populations, strict=True)
     )
     return cast(
         PhaseFiveExternalComparisonProtocol,
-        base.model_copy(update={"populations": compatible}),
+        base.model_copy(
+            update={
+                "references": compatible_references,
+                "populations": compatible,
+            }
+        ),
     )
 
 

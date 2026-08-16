@@ -21,11 +21,11 @@
     },
     {
       "relative_path": "config/contracts/phase-5-external-post-correction-endpoint-registry.json",
-      "sha256": "54969bf7c872497d27ba447ad5929d1a6bbeb1ebe84644563d73b33a6ce9e24c"
+      "sha256": "2f22a9326f1ae7c344a36799cbdcd648df51e89c8a06cecaa560f693a1ca8d5b"
     },
     {
       "relative_path": "config/contracts/phase-5-external-post-correction-evaluation.json",
-      "sha256": "f13934cf7e2e8f34fced914020c3aea2630289d7c0bb2c8cacacaf83a2a4493c"
+      "sha256": "c0b69503f109807a8ee5ecfbe738d79b837365b2edf49e35aea5306630d3bd09"
     },
     {
       "relative_path": "config/datasets/phase-5-external-post-correction-continuum.json",
@@ -41,7 +41,7 @@
     },
     {
       "relative_path": "scripts/validation/phase5_external_post_correction_protocol.py",
-      "sha256": "95fe7868b670664fb7c13c8dc6d2c1073216353b715a69979bddd73d8be562c2"
+      "sha256": "6888ac86647df36c2b2d82b8daeee4c541bb7a132c0be4eb2b1f4d2147a902dd"
     },
     {
       "relative_path": "scripts/validation/compile_phase5_external_post_correction_campaign.py",
@@ -158,8 +158,8 @@
   "status": "ready-for-named-execution-approval",
   "storage": {
     "minimum_available_gib": 126.0,
-    "observed_available_gib": 127.62513732910156,
-    "observed_available_kib": 133824656,
+    "observed_available_gib": 128.02132415771484,
+    "observed_available_kib": 134240088,
     "passed": true,
     "scaling_basis": "prior-120-gib-2400-image-floor-plus-88-continuum-images-rounded-up"
   }
