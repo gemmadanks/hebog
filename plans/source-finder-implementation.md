@@ -1790,6 +1790,18 @@ comparison.**
          a separate column rather than presented as an algorithm improvement.
          Record every historic fail-to-pass and pass-to-fail transition and
          require named scientific review of any deliberate trade-off.
+         The first complete ledger (`f6a92d39...`) rejected revision
+         `f1001c1...`: all 593 compact reference comparisons passed, but three
+         compact fitted-total uncertainty-bias intervals failed; Continuum had
+         132 passes, one absolute failure, ten underpowered comparisons, and
+         two pass-to-nonpass position regressions. Seed-disjoint development
+         then rejected global uncertainty scaling and unrestricted B3
+         positions. It selected the smallest all-gate compact point correction
+         (0.075 formal sigma, 200 images) and direct-plus-B3 first-moment signal
+         (all 15 position endpoints pass, 80 images). Re-run the complete
+         ledger once on these locked settings. Treat favourable underpowered
+         comparisons as a prospective sample-size obligation, not permission
+         to retune science.
    - [ ] Freeze and approve a fresh seed-disjoint post-correction external
          comparison only after the cumulative ledger passes. Retain all prior
          absolute, paired, failure-denominator, excess-variance, and one-look

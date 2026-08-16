@@ -520,6 +520,15 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
         if uncertainty is not None
         else None
     )
+    if uncertainty is not None and integrated_flux_error is not None:
+        integrated_flux -= (
+            uncertainty.integrated_flux_bias_correction_sigma
+            * integrated_flux_error
+        )
+        if integrated_flux <= 0.0:
+            raise ValueError(
+                "integrated-flux bias correction produced non-positive flux"
+            )
     deconvolution = _extension_classification(
         geometric_deconvolution,
         fit,
@@ -563,6 +572,8 @@ def transform_compact_gaussian_fit(  # noqa: PLR0913
     flags.update(deconvolution.quality_flags)
     if uncertainty is None:
         flags.add("position-flux-uncertainty-unavailable")
+    elif uncertainty.integrated_flux_bias_correction_sigma > 0.0:
+        flags.add("fitted-integrated-flux-bias-corrected")
     return CelestialCompactGaussianFit(
         pixel_fit=fit,
         position=_position_with_errors(transform, fit),

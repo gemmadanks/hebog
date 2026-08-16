@@ -8110,3 +8110,52 @@ documentation build passes. The complete cumulative replay remains next.
 
 **Immediate next step:** complete project validation, commit the locked
 candidate, then run the full cumulative ledger from that immutable revision.
+
+## 2026-08-16 — Rejected the first cumulative replay and locked corrections
+
+**Plan phase:** Phase 5, cumulative-regression remediation
+
+- Completed the full viewed 800-image compact and 1,600-image Continuum replay
+  from revision `f1001c1...`. Ledger SHA-256 `f6a92d39...` is `fail`. Every
+  one of 450 PyBDSF and 143 applicable Aegean compact comparisons passes, so
+  the 1.5-sigma whole-model boundary resolves the earlier component-model
+  oscillation. Three compact absolute fitted-total uncertainty-bias intervals
+  fail. Continuum has 132 passes, one absolute failure, ten underpowered
+  endpoints, and two pass-to-nonpass position comparisons: image-edge and
+  filled diffuse against pinned PyBDSF master.
+- Rejected a global compact uncertainty multiplier on 200 seed-disjoint
+  development images (seeds 2026880001--2026880200). No predeclared factor
+  passed coverage, bias, and dispersion together. A fitted-total point
+  correction of 0.075 formal sigma is the smallest of 0, 0.05, 0.075, and 0.1
+  to pass all 15 calibration gates; 0.05 still fails edge bias. The selected
+  edge interval is [-0.00513, 0.14578] and the formal error is unchanged.
+- Compared original, residual-B3, and direct-plus-residual-B3 position signals
+  on 80 seed-disjoint Continuum images across the four governed geometries
+  (seeds beginning 2026890001, 2026891001, 2026892001, and 2026893001).
+  Unrestricted B3 fails with a worst 0.53288-beam p95 upper bound. The
+  direct-plus-B3 first moment passes every position endpoint with a worst
+  0.45618-beam bound; original pixels remain the flux measurement and the
+  concentration safeguard remains unchanged. All 280 development seeds are
+  disjoint from every checked-in dataset manifest.
+- Added exact fitted-total calibration evidence to the scheduler-safe fit,
+  applies it only at catalogue transformation, and marks corrected products.
+  Added the regularized direct-plus-B3 position plane. The cumulative runner
+  now records raw endpoint analysis for exact power planning, distinguishes a
+  scientifically clean but underpowered result from an algorithm failure, and
+  can reuse only the exact checksum-bound closed component compile.
+
+**Decision:** lock both corrections before the next complete cumulative replay.
+No external population is frozen and no execution is authorized. A passing
+science ledger with underpowered favourable pairs must be followed by a new
+endpoint-level power review and larger seed-disjoint population, not by more
+algorithm changes.
+
+**Validation:** 164 focused scientific and historical-protocol tests pass;
+branch-aware coverage passes 1,377 tests with four expected xfails at 94.27%;
+all 27 equivalence tests pass; `just check` passes Ruff, Pyright, 1,248 tests,
+and four expected xfails; and the strict documentation build passes. The final
+review against `CODE_REVIEW.md` found no actionable issue.
+
+**Immediate next step:** validate and commit the locked corrections, run the
+complete cumulative replay from that immutable revision, then prepare the
+exact power and named scientific freeze review.

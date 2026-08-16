@@ -34,6 +34,7 @@ class GaussianFitUncertainty:
     centroid_covariance_xy_pixels_squared: float
     centroid_covariance_yy_pixels_squared: float
     integrated_flux_error_jy: float
+    integrated_flux_bias_correction_sigma: float = 0.0
     amplitude_integrated_flux_covariance_jy_squared_per_beam: float | None = (
         None
     )

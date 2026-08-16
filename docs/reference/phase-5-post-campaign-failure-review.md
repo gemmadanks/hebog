@@ -112,3 +112,35 @@ evidence:
 
 The closed result remains `fail`; Step 3 remains blocked pending that fresh
 decision.
+
+## Cumulative replay and prospective correction
+
+The complete 800-compact/1,600-Continuum cumulative replay at revision
+`f1001c1...` did not reveal another compact reference trade: all 450 PyBDSF
+and 143 applicable Aegean component comparisons passed. It did, however,
+reject campaign readiness. Three compact absolute fitted-total uncertainty
+bias intervals failed, and unrestricted B3 position weighting changed the
+previously passing image-edge and filled-diffuse Continuum comparisons to
+failures. Ten otherwise favourable Continuum comparisons were underpowered.
+
+Two new seed-disjoint development reviews were therefore completed without
+reopening any campaign population:
+
+- On 200 compact realizations, a global uncertainty multiplier was rejected
+  because it repaired bias by producing over-coverage. A 0.075-sigma
+  fitted-total point correction was the smallest predeclared correction that
+  passed all 15 coverage, bias, and dispersion gates. The limiting edge-bias
+  interval was [-0.0051, 0.1458] against [-0.15, 0.15].
+- On 80 Continuum realizations, unrestricted B3 weighting failed with a worst
+  0.5329-beam position-p95 upper bound. A same-unit sum of the direct residual
+  and its B3 reconstruction passed every position endpoint, with a worst
+  0.4562-beam bound. The existing peak-to-mean concentration safeguard still
+  retains direct weighting for compact-dominated segments.
+
+The Continuum estimator is one weighted first moment over a regularized signal
+plane. It is not the equal combination of two independently estimated
+centroids rejected in Step 2C-A, and it uses neither injected morphology labels
+nor campaign outcomes. The next full cumulative replay must retain every
+previous pass. If only favourable paired comparisons remain underpowered, an
+exact prospective power review must increase the fresh population before any
+one-look approval; further algorithm tuning is not justified by power alone.

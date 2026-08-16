@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+# pyright: reportMissingTypeStubs=false
 # pyright: reportPrivateUsage=false
 # pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownLambdaType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
 """Re-evaluate the prospective candidate on every viewed Phase 5 image."""
@@ -70,6 +72,9 @@ _HISTORIC_PREFIXES = (
     "external-confirmation",
     "external-post-failure",
 )
+_CLOSED_COMPONENT_BASELINE_LEDGER_SHA256 = (
+    "f6a92d394dc1f41000a923de5e395411d275113040f9920a12743b3a6d446ab9"
+)
 
 
 def _canonical_json_bytes(value: object) -> bytes:
@@ -106,7 +111,8 @@ def _candidate_configuration_sha256() -> str:
                     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
                 ),
                 "position_policy": (
-                    "residual-b3-at-or-below-peak-to-mean-3-otherwise-original"
+                    "direct-plus-residual-b3-at-or-below-peak-to-mean-3-"
+                    "otherwise-original"
                 ),
                 "support_policy": "refined-residual-b3-multiscale-boundary",
             },
@@ -490,6 +496,55 @@ def _compile_compact_views(
     return cast(dict[str, Any], closed), cast(dict[str, Any], current)
 
 
+def _compile_current_compact_view(
+    compiler_globals: dict[str, Any],
+    prospective: Any,
+    registry: dict[str, Any],
+) -> dict[str, Any]:
+    """Compile only the prospective fitted-component view."""
+    original = compiler_globals["_compact_realization"]
+    catalogue_loader = compiler_globals["_compact_catalogue"]
+
+    def component_view(*args: object, **kwargs: object) -> Any:
+        return _fitted_component_realization(
+            original,
+            catalogue_loader,
+            *args,
+            **kwargs,
+        )
+
+    compiler_globals["_compact_realization"] = component_view
+    try:
+        current = compiler_globals["compile_compact_campaign"](
+            prospective,
+            registry,
+            _ROOT,
+        )
+    finally:
+        compiler_globals["_compact_realization"] = original
+    return cast(dict[str, Any], current)
+
+
+def _load_closed_component_baseline(
+    path: Path,
+    *,
+    campaign_sha256: str,
+) -> tuple[dict[str, Any], str]:
+    """Load the exact prior closed-component compile by bound identity."""
+    sha256 = file_sha256(path)
+    if sha256 != _CLOSED_COMPONENT_BASELINE_LEDGER_SHA256:
+        raise ValueError("closed component baseline ledger identity changed")
+    document = json.loads(path.read_text(encoding="utf-8"))
+    if document.get("sealed_campaign_sha256") != campaign_sha256:
+        raise ValueError("closed component baseline campaign identity changed")
+    if document.get("catalogue_semantics") != "fitted-gaussian-component":
+        raise ValueError("closed component baseline semantics changed")
+    baseline = document.get("closed_post_failure_component_baseline")
+    if not isinstance(baseline, dict):
+        raise ValueError("closed component baseline is unavailable")
+    return cast(dict[str, Any], baseline), sha256
+
+
 def _evaluate_continuum(
     endpoints: tuple[Any, ...],
     evaluator: dict[str, Any],
@@ -601,6 +656,29 @@ def _regressions(
     )
 
 
+def _cumulative_readiness(
+    *,
+    compact_status: str,
+    continuum_decisions: tuple[Any, ...],
+    compact_regressions: tuple[str, ...],
+    continuum_regressions: tuple[str, ...],
+) -> tuple[str, bool]:
+    """Separate scientific regression readiness from prospective power."""
+    decision_statuses = {item.status for item in continuum_decisions}
+    science_ready = (
+        compact_status == "pass"
+        and all(item.absolute_passed is True for item in continuum_decisions)
+        and decision_statuses <= {"pass", "underpowered"}
+        and not compact_regressions
+        and not continuum_regressions
+    )
+    if not science_ready:
+        return "fail", False
+    if "underpowered" in decision_statuses:
+        return "pass-pending-power-review", True
+    return "pass", True
+
+
 def _parse_args() -> argparse.Namespace:
     """Parse the sealed development source and write-once ledger paths."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -608,6 +686,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--scratch", required=True, type=Path)
     parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument(
+        "--closed-component-baseline-ledger",
+        type=Path,
+        help="Exact prior ledger whose closed component compile is reusable.",
+    )
     return parser.parse_args()
 
 
@@ -680,12 +763,26 @@ def main() -> None:  # noqa: PLR0915
     continuum, continuum_diagnostics = compiler_globals[
         "compile_continuum_campaign"
     ](prospective, registry, _ROOT)
-    closed_compact, current_compact = _compile_compact_views(
-        compiler_globals,
-        verified,
-        prospective,
-        registry,
-    )
+    baseline_ledger_sha256 = None
+    if arguments.closed_component_baseline_ledger is None:
+        closed_compact, current_compact = _compile_compact_views(
+            compiler_globals,
+            verified,
+            prospective,
+            registry,
+        )
+    else:
+        closed_compact, baseline_ledger_sha256 = (
+            _load_closed_component_baseline(
+                arguments.closed_component_baseline_ledger,
+                campaign_sha256=verified.campaign_sha256,
+            )
+        )
+        current_compact = _compile_current_compact_view(
+            compiler_globals,
+            prospective,
+            registry,
+        )
     evaluator = runpy.run_path(str(_EVALUATOR_PATH))
     _install_historical_source_view(evaluator)
     continuum_decisions = _evaluate_continuum(continuum, evaluator)
@@ -746,22 +843,16 @@ def main() -> None:  # noqa: PLR0915
         status: sum(item.status == status for item in continuum_decisions)
         for status in ("pass", "fail", "underpowered", "indeterminate")
     }
-    ready = (
-        current_compact["status"] == "pass"
-        and continuum_counts
-        == {
-            "pass": len(continuum_decisions),
-            "fail": 0,
-            "underpowered": 0,
-            "indeterminate": 0,
-        }
-        and not compact_regressions
-        and not continuum_regressions
+    status, science_ready = _cumulative_readiness(
+        compact_status=cast(str, current_compact["status"]),
+        continuum_decisions=continuum_decisions,
+        compact_regressions=compact_regressions,
+        continuum_regressions=continuum_regressions,
     )
     ledger = {
         "schema_version": 1,
         "ledger_id": "phase-5-cumulative-regression-ledger",
-        "status": "pass" if ready else "fail",
+        "status": status,
         "captured_at": datetime.now(UTC).isoformat(),
         "evidence_role": "viewed-development-regression",
         "sealed_campaign_sha256": verified.campaign_sha256,
@@ -774,7 +865,9 @@ def main() -> None:  # noqa: PLR0915
         "historic_views": list(historic),
         "historic_status_transitions": transitions,
         "closed_post_failure_component_baseline": closed_compact,
+        "closed_component_baseline_ledger_sha256": baseline_ledger_sha256,
         "prospective_compact": current_compact,
+        "prospective_continuum_analysis": [asdict(item) for item in continuum],
         "prospective_continuum_endpoints": current_continuum_rows,
         "prospective_continuum_diagnostics": [
             asdict(item) for item in continuum_diagnostics
@@ -782,7 +875,12 @@ def main() -> None:  # noqa: PLR0915
         "prospective_continuum_status_counts": continuum_counts,
         "like_semantics_compact_regressions": list(compact_regressions),
         "like_semantics_continuum_regressions": list(continuum_regressions),
-        "all_required_endpoints_pass": ready,
+        "cumulative_science_regression_ready": science_ready,
+        "all_required_endpoints_pass": status == "pass",
+        "prospective_power_review_required": (
+            status == "pass-pending-power-review"
+        ),
+        "fresh_campaign_freeze_ready": status == "pass",
         "fresh_campaign_execution_authorized": False,
         "step_three_authorized": False,
     }

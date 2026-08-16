@@ -10,6 +10,7 @@ from typing import Literal
 _MINIMUM_RMS_SAMPLES = 2
 _MINIMUM_SHAPE_PIXELS = 3
 _MINIMUM_GAUSSIAN_FIT_PIXELS = 7
+_MAXIMUM_INTEGRATED_FLUX_BIAS_CORRECTION_SIGMA = 0.5
 
 
 @dataclass(frozen=True, slots=True)
@@ -316,6 +317,7 @@ class CompactGaussianFitConfig:
     context_margin_pixels: int = 8
     extension_significance_sigma: float = 5.0
     component_extension_significance_sigma: float = 5.0
+    integrated_flux_bias_correction_sigma: float = 0.0
     maximum_information_condition_number: float = 1e8
     background_model: Literal["fitted-offset", "fixed-zero"] = "fitted-offset"
     pixel_support: Literal["bounded-context", "owned-region"] = (
@@ -427,6 +429,16 @@ class CompactGaussianFitConfig:
                 "extension_significance_sigma must be finite and positive"
             )
         self._validate_component_selection_policy()
+        if (
+            not isfinite(self.integrated_flux_bias_correction_sigma)
+            or not 0.0
+            <= self.integrated_flux_bias_correction_sigma
+            < _MAXIMUM_INTEGRATED_FLUX_BIAS_CORRECTION_SIGMA
+        ):
+            raise ValueError(
+                "integrated_flux_bias_correction_sigma must be finite and "
+                "in [0, 0.5)"
+            )
         if (
             not isfinite(self.maximum_information_condition_number)
             or self.maximum_information_condition_number <= 1

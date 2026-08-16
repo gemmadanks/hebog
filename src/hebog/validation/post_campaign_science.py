@@ -35,7 +35,7 @@ CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS = 1.5
 
 @dataclass(frozen=True, slots=True)
 class PostCampaignCandidateProducts:
-    """Refined detection plus the denoised position-measurement signal."""
+    """Refined detection plus regularized position-measurement signal."""
 
     detection: ThresholdFilterResult
     position_signal_jy_per_beam: npt.NDArray[np.float64]
@@ -73,7 +73,7 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: PhaseFiveCorrectiveAReview,
 ) -> PostCampaignCandidateProducts:
-    """Evaluate refined support and retain its denoised position signal."""
+    """Evaluate support and combine direct and denoised position weights."""
     prepared = prepare_scale_filter_inputs(
         image_jy_per_beam,
         valid_pixels,
@@ -101,7 +101,10 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
             reconstruction.support_mask,
             beam,
         ),
-        position_signal_jy_per_beam=(atrous.reconstructed_signal_jy_per_beam),
+        position_signal_jy_per_beam=(
+            prepared.residual_jy_per_beam
+            + atrous.reconstructed_signal_jy_per_beam
+        ),
     )
 
 

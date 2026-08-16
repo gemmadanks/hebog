@@ -510,6 +510,7 @@ def _formal_uncertainty(  # noqa: PLR0913
     *,
     model_identity: _ModelIdentity,
     axes_swapped: bool,
+    integrated_flux_bias_correction_sigma: float,
 ) -> GaussianFitUncertainty | None:
     """Return position/flux errors for one free or beam-constrained model."""
     if covariance is None:
@@ -566,6 +567,9 @@ def _formal_uncertainty(  # noqa: PLR0913
         centroid_covariance_xy_pixels_squared=float(covariance[1, 2]),
         centroid_covariance_yy_pixels_squared=variances[2],
         integrated_flux_error_jy=float(np.sqrt(variances[3])),
+        integrated_flux_bias_correction_sigma=(
+            integrated_flux_bias_correction_sigma
+        ),
         amplitude_integrated_flux_covariance_jy_squared_per_beam=(
             amplitude_integrated_covariance
         ),
@@ -1385,6 +1389,9 @@ def _valid_fit_result(
         geometry,
         model_identity=candidate.diagnostics.model_identity,
         axes_swapped=axes_swapped,
+        integrated_flux_bias_correction_sigma=(
+            context.config.integrated_flux_bias_correction_sigma
+        ),
     )
     flags = tuple(
         flag

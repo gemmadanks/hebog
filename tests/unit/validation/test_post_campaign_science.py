@@ -70,9 +70,10 @@ def test_candidate_products_reuse_atrous_detection_and_position_signal(
     reconstruction = SimpleNamespace(
         support_mask=np.ones(labels.shape, dtype=np.bool_)
     )
+    direct_signal = np.full(labels.shape, 1.5)
     mocker.patch(
         "hebog.validation.post_campaign_science.prepare_scale_filter_inputs",
-        return_value=object(),
+        return_value=SimpleNamespace(residual_jy_per_beam=direct_signal),
     )
     corrective = mocker.patch(
         "hebog.validation.post_campaign_science._corrective_results",
@@ -97,7 +98,10 @@ def test_candidate_products_reuse_atrous_detection_and_position_signal(
         review=review,  # type: ignore[arg-type]
     )
 
-    assert products.position_signal_jy_per_beam is position_signal
+    np.testing.assert_array_equal(
+        products.position_signal_jy_per_beam,
+        direct_signal + position_signal,
+    )
     assert products.detection.component_count == 1
     assert corrective.call_args.kwargs["family"] == "residual-b3-atrous"
     assert reconstruct.call_args.kwargs == {

@@ -178,6 +178,7 @@ def phase_five_corrected_candidate_configs() -> tuple[
             model_selection="beam-or-free",
             position_estimator="selected-model",
             component_extension_significance_sigma=1.5,
+            integrated_flux_bias_correction_sigma=0.075,
             association_aperture_radius_sigma=1.5,
         ),
         catalogue,
@@ -306,6 +307,12 @@ def _campaign_configuration(
         assert isinstance(fitting, dict)
         fitting["component_extension_significance_sigma"] = (
             fit.component_extension_significance_sigma
+        )
+    if fit.integrated_flux_bias_correction_sigma != 0.0:
+        fitting = configuration["fitting"]
+        assert isinstance(fitting, dict)
+        fitting["integrated_flux_bias_correction_sigma"] = (
+            fit.integrated_flux_bias_correction_sigma
         )
     return configuration
 

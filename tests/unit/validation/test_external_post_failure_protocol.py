@@ -59,7 +59,95 @@ def test_cumulative_candidate_identity_binds_component_threshold() -> None:
     assert configuration["fitting"][
         "component_extension_significance_sigma"
     ] == pytest.approx(1.5)
+    assert configuration["fitting"][
+        "integrated_flux_bias_correction_sigma"
+    ] == pytest.approx(0.075)
     assert len(module["_candidate_configuration_sha256"]()) == 64
+
+
+def test_cumulative_readiness_separates_science_from_power_follow_up() -> None:
+    """Favourable underpowered pairs trigger power planning, not retuning."""
+    module = _script(
+        "scripts/validation/review_phase5_cumulative_regressions.py"
+    )
+    decisions = (
+        SimpleNamespace(status="pass", absolute_passed=True),
+        SimpleNamespace(status="underpowered", absolute_passed=True),
+    )
+
+    status, science_ready = module["_cumulative_readiness"](
+        compact_status="pass",
+        continuum_decisions=decisions,
+        compact_regressions=(),
+        continuum_regressions=(),
+    )
+
+    assert status == "pass-pending-power-review"
+    assert science_ready is True
+    assert module["_cumulative_readiness"](
+        compact_status="pass",
+        continuum_decisions=(
+            SimpleNamespace(status="fail", absolute_passed=False),
+        ),
+        compact_regressions=(),
+        continuum_regressions=(),
+    ) == ("fail", False)
+
+
+def test_cumulative_replay_reuses_only_exact_closed_component_baseline(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An expensive closed compile may be reused only by bound identity."""
+    module = _script(
+        "scripts/validation/review_phase5_cumulative_regressions.py"
+    )
+    path = tmp_path / "baseline.json"
+    path.write_text(
+        '{"sealed_campaign_sha256":"campaign",'
+        '"catalogue_semantics":"fitted-gaussian-component",'
+        '"closed_post_failure_component_baseline":{"status":"pass"}}\n'
+    )
+    loader = module["_load_closed_component_baseline"]
+    monkeypatch.setitem(
+        loader.__globals__,
+        "file_sha256",
+        lambda _path: module["_CLOSED_COMPONENT_BASELINE_LEDGER_SHA256"],
+    )
+
+    baseline, sha256 = loader(path, campaign_sha256="campaign")
+
+    assert baseline == {"status": "pass"}
+    assert sha256 == module["_CLOSED_COMPONENT_BASELINE_LEDGER_SHA256"]
+    with pytest.raises(ValueError, match="campaign identity"):
+        loader(path, campaign_sha256="different")
+
+
+def test_post_correction_power_review_adds_a_balanced_safety_buffer() -> None:
+    """The next one-look is not sized exactly at the theoretical boundary."""
+    module = _script(
+        "scripts/validation/review_phase5_post_correction_power.py"
+    )
+
+    assert module["_selected_realization_count"](1000) == 1600
+    assert module["_selected_realization_count"](1550) == 1708
+    assert module["_selected_realization_count"](1600) == 1760
+    with pytest.raises(ValueError, match="positive"):
+        module["_selected_realization_count"](0)
+    assert (
+        module["_sha256"](
+            _ROOT
+            / "config/contracts/phase-5-external-confirmation-population.json"
+        )
+        == module["_CONFIRMATION_POPULATION_SHA256"]
+    )
+    assert (
+        module["_sha256"](
+            _ROOT
+            / "config/contracts/phase-5-external-post-failure-population.json"
+        )
+        == module["_POST_FAILURE_POPULATION_SHA256"]
+    )
 
 
 def test_cumulative_replay_separates_closed_and_candidate_source_ids() -> None:

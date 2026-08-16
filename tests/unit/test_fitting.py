@@ -389,6 +389,42 @@ def test_component_uses_lower_significance_whole_ellipse(
     assert observed_thresholds == [5.0, 2.0]
 
 
+def test_integrated_flux_bias_calibration_is_component_specific() -> None:
+    """Calibration records a fitted-total correction without changing fit."""
+    compact = _gaussian_input(amplitude=5.0, sigma_axes=(3.8, 2.4))
+    baseline = _fit(
+        compact,
+        config=_fit_config(integrated_flux_bias_correction_sigma=0.0),
+        geometry=_beam_geometry(),
+    )
+    calibrated = _fit(
+        compact,
+        config=_fit_config(integrated_flux_bias_correction_sigma=0.075),
+        geometry=_beam_geometry(),
+    )
+
+    assert isinstance(baseline, ValidCompactGaussianFit)
+    assert isinstance(calibrated, ValidCompactGaussianFit)
+    assert baseline.parameters == calibrated.parameters
+    assert baseline.uncertainty is not None
+    assert calibrated.uncertainty is not None
+    assert calibrated.uncertainty.integrated_flux_error_jy == pytest.approx(
+        baseline.uncertainty.integrated_flux_error_jy
+    )
+    assert baseline.uncertainty.integrated_flux_bias_correction_sigma == 0.0
+    assert calibrated.uncertainty.integrated_flux_bias_correction_sigma == (
+        pytest.approx(0.075)
+    )
+    assert (
+        calibrated.uncertainty.amplitude_error_jy_per_beam
+        == baseline.uncertainty.amplitude_error_jy_per_beam
+    )
+    assert (
+        calibrated.uncertainty.shape_parameter_covariance
+        == baseline.uncertainty.shape_parameter_covariance
+    )
+
+
 def test_clear_extended_source_retains_free_elliptical_fit() -> None:
     """A high-information extension remains free rather than beam-forced."""
     compact = _gaussian_input(amplitude=5.0, sigma_axes=(3.8, 2.4))
@@ -1224,6 +1260,14 @@ def test_aperture_photometry_rejects_invalid_evidence(
         (
             {"component_extension_significance_sigma": 0.0},
             "component_extension_significance",
+        ),
+        (
+            {"integrated_flux_bias_correction_sigma": -0.01},
+            "integrated_flux_bias_correction_sigma",
+        ),
+        (
+            {"integrated_flux_bias_correction_sigma": 0.5},
+            "integrated_flux_bias_correction_sigma",
         ),
         (
             {

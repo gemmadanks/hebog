@@ -253,6 +253,63 @@ def test_transform_uses_xy_centers_east_of_north_and_local_flux_area() -> None:
     assert "shape-uncertainty-unavailable" in result.quality_flags
 
 
+def test_transform_applies_integrated_flux_bias_correction() -> None:
+    """A recorded calibration shifts total flux without changing its error."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.0005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.09,
+        integrated_flux_error_jy=0.001,
+        integrated_flux_bias_correction_sigma=0.075,
+    )
+    uncorrected = transform_compact_gaussian_fit(
+        _fit(
+            uncertainty=replace(
+                uncertainty,
+                integrated_flux_bias_correction_sigma=0.0,
+            )
+        ),
+        _metadata(),
+    )
+
+    corrected = transform_compact_gaussian_fit(
+        _fit(uncertainty=uncertainty),
+        _metadata(),
+    )
+    uncorrected_error = uncorrected.fitted_flux.integrated_flux_error_jy
+    assert uncorrected_error is not None
+
+    assert corrected.fitted_flux.integrated_flux_error_jy == pytest.approx(
+        uncorrected_error
+    )
+    assert corrected.fitted_flux.integrated_flux_jy == pytest.approx(
+        uncorrected.fitted_flux.integrated_flux_jy - 0.075 * uncorrected_error
+    )
+    assert corrected.fitted_flux.peak_flux_jy_per_beam == (
+        uncorrected.fitted_flux.peak_flux_jy_per_beam
+    )
+    assert "fitted-integrated-flux-bias-corrected" in (corrected.quality_flags)
+
+
+def test_transform_rejects_non_positive_bias_corrected_flux() -> None:
+    """A malformed external fit cannot publish a non-positive total."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.0005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.09,
+        integrated_flux_error_jy=0.1,
+        integrated_flux_bias_correction_sigma=0.49,
+    )
+
+    with pytest.raises(ValueError, match="non-positive flux"):
+        transform_compact_gaussian_fit(
+            _fit(uncertainty=uncertainty),
+            _metadata(),
+        )
+
+
 def test_covariance_beam_deconvolution_matches_aligned_analytic_truth() -> (
     None
 ):

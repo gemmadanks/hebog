@@ -246,6 +246,7 @@ def test_external_compact_configuration_uses_low_variance_hybrid_fit() -> None:
     assert fit.position_estimator == "selected-model"
     assert fit.model_selection == "beam-or-free"
     assert fit.component_extension_significance_sigma == pytest.approx(1.5)
+    assert fit.integrated_flux_bias_correction_sigma == pytest.approx(0.075)
     assert fit.association_aperture_radius_sigma == pytest.approx(1.5)
     assert hebog_campaign.phase_four_candidate_configs()[
         3

@@ -148,6 +148,26 @@ diagnostics. Unknown values are never encoded as zero. A normal catalogue may
 only be built when every admitted compact region has a valid fit and there are
 no Phase 5 deferrals.
 
+## Integrated-flux uncertainty calibration
+
+The correlated-GLS covariance remains the formal one-sigma uncertainty. The
+Phase 5 external component profile additionally applies a 0.075-sigma
+downward correction to the fitted Gaussian total before celestial catalogue
+publication. It leaves the fitted amplitude, axes, angle, centroid, formal
+error, and covariance unchanged and adds the
+`fitted-integrated-flux-bias-corrected` quality flag. The correction is
+explicit in the campaign configuration; the pipeline-neutral default is zero.
+
+This follows the standard practice of reporting calibrated Gaussian-fit
+uncertainties while keeping the correction distinguishable from the formal
+covariance. PyBDSF documents Gaussian parameter errors based on Condon (1997),
+including the lower-variance fixed-shape case. Hebog does not claim that its
+GLS covariance is the same implementation. Its small point correction was
+selected on seed-disjoint injected truth after a global error multiplier was
+rejected for causing over-coverage. See
+[Condon (1997)](https://adsabs.harvard.edu/pdf/1997PASP..109..166C) and the
+[PyBDSF processing reference](https://pybdsf.readthedocs.io/en/latest/process_image.html).
+
 The Phase 4 configuration aligns the detection and deblending minima with
 this seven-pixel fit requirement. If a prominent watershed peak initially
 owns fewer pixels, its basin is merged across its strongest shared saddle
