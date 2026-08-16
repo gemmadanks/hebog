@@ -108,8 +108,8 @@ def test_post_correction_freeze_binds_approval_science_and_power() -> None:
     assert freeze["execution_authorized"] is False
 
 
-def test_post_correction_protocol_is_pending_and_exactly_scaled() -> None:
-    """Frozen identities do not silently authorize the terminal look."""
+def test_post_correction_protocol_is_approved_and_exactly_scaled() -> None:
+    """Named approval binds the exact review without opening the look."""
     helpers = _script(
         "scripts/validation/phase5_external_post_correction_protocol.py"
     )
@@ -126,23 +126,21 @@ def test_post_correction_protocol_is_pending_and_exactly_scaled() -> None:
         1688,
         800,
     )
-    assert decision.execution_authorized is False
+    assert decision.execution_authorized is True
     assert decision.execution_concurrency == 2
     assert decision.pybdsf_ncores == 4
     assert decision.hebog_container_image_digest == (
         "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1"
     )
-    with pytest.raises(ValueError, match="not authorized"):
-        _script(
-            "scripts/benchmark/run_phase5_external_post_correction_campaign.py"
-        )["preflight_post_correction_campaign"](
-            repository_root=_ROOT,
-            output=(
-                _ROOT / "benchmark-results/phase-5/"
-                "external-post-correction-comparison"
-            ),
-            images={},
-        )
+    assert decision.preflight_review_sha256 == (
+        "30eb5576c56410381cdc9628aebbb5d711930970f023eac623e5fce62cb3059b"
+    )
+    assert decision.named_review == (
+        "Gemma Danks, 2026-08-16, approved Phase 5 post-correction one-look "
+        "execution bound to preflight review sha256:30eb5576c56410381cdc9628"
+        "aebbb5d711930970f023eac623e5fce62cb3059b and its exact four-runtime "
+        "identities"
+    )
 
 
 def test_post_correction_review_binds_programs_and_four_runtimes() -> None:

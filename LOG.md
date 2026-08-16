@@ -8285,3 +8285,33 @@ tests, and four expected xfails. The strict documentation build passes.
 **Immediate next step:** return review `30eb5576...` and the four replacement
 OCI identities for separate named one-look approval. Do not authorize or run
 the campaign before that approval and a fresh complete no-write preflight.
+
+## 2026-08-16 — Bound the post-correction one-look approval
+
+**Plan phase:** Phase 5, post-correction exact-identity authorization
+
+- Gemma Danks explicitly approved the Phase 5 post-correction one-look
+  execution bound to preflight review `30eb5576...` and its exact four rebuilt
+  runtime identities. The approval retains the 2,488-image, 12,440-run,
+  two-lane design, four PyBDSF cores, all frozen science gates, and the terminal
+  one-look rule.
+- Changed only the authorization-dependent chain. Decision `222eb298...` now
+  authorizes one terminal post-correction comparison and embeds the complete
+  review checksum. The endpoint registry and evaluation contract bind the new
+  decision and registry identities. Candidate, population, configurations,
+  runners, compiler/evaluator behavior, resource policy, qualification state,
+  and scientific thresholds are unchanged; `one_look_opened` remains false.
+
+**Decision:** authorization is sufficient to run the complete no-write
+preflight from the immutable authorization commit. Campaign output may be
+created only if that exact preflight passes.
+
+**Validation:** the test-first focused authorization suite passes seven tests.
+Branch-aware coverage passes 1,385 tests with four expected xfails at 94.28%.
+`just check` passes Ruff, Pyright, 1,255 tests, and four expected xfails. The
+strict documentation build passes.
+
+**Immediate next step:** validate and commit the authorization, create its
+immutable execution checkout, run the no-write preflight, and launch the
+single terminal campaign only on success. Monitor operational state hourly and
+evaluate only after the terminal campaign is sealed.

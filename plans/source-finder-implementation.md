@@ -1808,13 +1808,17 @@ comparison.**
          dependency inventories; the network-disabled two-lane probe passes.
          Review `30eb5576...` records 127.63 GiB available after reconstruction,
          absent public/private output paths, and remains result neutral.
-   - [ ] Obtain a separate named one-look approval bound to review
+   - [x] Obtain a separate named one-look approval bound to review
          `30eb5576...` and the four replacement OCI identities. Only then
          authorize the pending decision, run the complete no-write preflight,
          and execute the terminal campaign. Retain every absolute, paired,
          failure-denominator, excess-variance, power, component-semantics, and
-         one-look rule. Step 3 remains closed until every binding endpoint
-         passes.
+         one-look rule. Gemma Danks approved the bound one-look execution on
+         2026-08-16. Decision `222eb298...` and the dependent registry and
+         evaluation hashes now bind that approval without opening the look.
+         Run the complete no-write preflight from the immutable authorization
+         commit, launch only if it passes, and keep Step 3 closed until every
+         binding endpoint passes.
 
 2D. **Determine the Rapthor profile without narrowing community science.**
 
