@@ -108,8 +108,8 @@ def test_post_correction_freeze_binds_approval_science_and_power() -> None:
     assert freeze["execution_authorized"] is False
 
 
-def test_post_correction_protocol_is_pending_and_exactly_scaled() -> None:
-    """Corrected identities remain fail-closed pending renewed approval."""
+def test_post_correction_protocol_is_authorized_and_exactly_scaled() -> None:
+    """Renewed approval authorizes only the corrected one-look protocol."""
     helpers = _script(
         "scripts/validation/phase5_external_post_correction_protocol.py"
     )
@@ -140,14 +140,22 @@ def test_post_correction_protocol_is_pending_and_exactly_scaled() -> None:
             "sha256:dcac8e646ff5ea6d11d314c5c7a51fb0c3ca710165934ad2ddf0ac3f999131b0"
         ),
     }
-    assert decision.execution_authorized is False
+    assert decision.execution_authorized is True
     assert decision.execution_concurrency == 2
     assert decision.pybdsf_ncores == 4
     assert decision.hebog_container_image_digest == (
         "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1"
     )
-    assert decision.preflight_review_sha256 == "pending"
-    assert decision.named_review == "pending"
+    assert decision.preflight_review_sha256 == (
+        "88df5916827fa5ee47a43a8bb69966831a1ec1541c37e24568c062fce73ae774"
+    )
+    assert decision.named_review == (
+        "Gemma Danks, 2026-08-16, approved corrected Phase 5 post-correction "
+        "one-look execution bound to preflight review "
+        "sha256:"
+        "88df5916827fa5ee47a43a8bb69966831a1ec1541c37e24568c062fce73ae774 "
+        "and its exact four-runtime identities"
+    )
 
 
 def test_post_correction_review_binds_programs_and_four_runtimes() -> None:

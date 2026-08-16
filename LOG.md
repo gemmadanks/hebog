@@ -8351,3 +8351,34 @@ four expected xfails. The strict documentation build passes.
 
 **Immediate next step:** complete validation and commit the corrected
 fail-closed review, then obtain renewed one-look approval for `88df5916...`.
+
+## 2026-08-16 — Bound the corrected post-correction one-look approval
+
+**Plan phase:** Phase 5, corrected post-correction exact-identity authorization
+
+- Gemma Danks explicitly approved the corrected Phase 5 one-look execution
+  bound to preflight review `88df5916...` and the unchanged four rebuilt
+  runtime identities. The approval retains the 2,488-image, 12,440-run,
+  two-lane powered design, execution concurrency two, four PyBDSF cores, all
+  frozen science gates, and the terminal one-look rule.
+- Changed only the authorization-dependent chain after a test-first failure
+  confirmed that the prior decision was still fail-closed. Decision
+  `829c3b8f...` authorizes one terminal comparison and embeds the complete
+  corrected review checksum. Registry `7fdb10c9...` and evaluation
+  `039877ff...` bind the new decision and registry identities. Candidate,
+  population, configurations, runtimes, runners, compiler/evaluator behavior,
+  resource policy, qualification state, and scientific thresholds are
+  unchanged; `one_look_opened` remains false.
+
+**Decision:** the renewed approval is sufficient to run the complete no-write
+preflight from the immutable authorization commit. Campaign state may be
+created only if that exact preflight passes.
+
+**Validation:** the focused authorization assertion failed for the intended
+pending-decision reason before the contract update, then all seven focused
+post-correction protocol tests passed.
+
+**Immediate next step:** complete repository validation, commit this narrow
+authorization transition, create a new immutable execution checkout, and run
+the complete no-write preflight. Launch the one terminal campaign only on
+success, monitor operational state hourly, and evaluate only after sealing.
