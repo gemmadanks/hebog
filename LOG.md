@@ -8382,3 +8382,139 @@ post-correction protocol tests passed.
 authorization transition, create a new immutable execution checkout, and run
 the complete no-write preflight. Launch the one terminal campaign only on
 success, monitor operational state hourly, and evaluate only after sealing.
+
+## 2026-08-17 — Evaluate terminal post-correction comparison (blocked)
+
+**Plan phase:** Phase 5, post-correction terminal decision
+
+- Complete no-write preflight from immutable review `88df5916...` and the approved
+  immutable authorization chain passed. The terminal campaign sealed with 2,488 inputs
+  and 12,440 runs from immutable campaign checkout `da2792ddd9...`.
+- The committed write-once analysis artifact is
+  `benchmark-results/phase-5/external-post-correction-analysis.json` with SHA
+  `46dab5a12ab2818f3da7d03d15abe2369cef693660c49424928ea4e15b9d2cff`.
+- The committed evaluator produced
+  `benchmark-results/phase-5/external-post-correction-decision.json` with terminal
+  decision id `phase-5-external-post-correction-terminal-decision`, SHA
+  `e00f0520c662cb590dc1262a1ebaa956f315178be5359c5fd686ab9359ecaffc`, and
+  status `fail`.
+- Continuum has 129 passes and 14 failures: 13 integrated-flux p95 absolute-
+  gate failures and one `continuum--mask-precision--overall` paired comparison
+  regression against pinned PyBDSF master. Compact passed all 450 PyBDSF
+  comparisons but failed six binding Aegean integrated-flux comparisons, so
+  its terminal status is also `fail`.
+
+**Decision:** this terminal campaign is a hard fail and scientifically blocks
+optimization or candidate-specific tuning from this result. Preserve the fail-closed
+artifacts and require named remediation approval before any re-run strategy.
+
+**Validation:** protocol-focused tests pass (`7 passed`). Branch-aware coverage
+and focused Python checks were run once the campaign result existed: 1389 selected
+unit/integration tests passed with total coverage 94.24%; 3 integration tests
+failed because this environment cannot start a local Dask scheduler (`PermissionError:
+[Errno 1] Operation not permitted` binding sockets). `just check`-equivalent
+with local `.venv` also fails (`pyright` import/type resolution in this runtime
+path). `mkdocs build --strict` passed. `pre-commit` failed only on `uv-lock`
+from `/Users/gemma.danks/.cache/uv/sdists-v9/.git` permission.
+
+**Immediate next step:** retain the closed decision as the high-integrity record,
+separate compiler-measurement defects from candidate science failures, and use
+only prospective development and regression evidence before requesting a new
+named approval path.
+
+## 2026-08-20 — Review interrupted Phase 5 closeout and staged remediation
+
+**Plan phase:** Phase 5, post-correction recovery planning
+
+- Reverified the terminal campaign, analysis, and decision identities. The
+  campaign and write-once analysis completed successfully; the interrupted
+  work was the subsequent closeout and remediation, not raw execution or
+  scientific compilation.
+- Reviewed the staged remediation. It changes the checksum-bound historical
+  compiler from `7a055891...` to `ff890dfd...`, which breaks the inherited
+  protocol chain. Focused compiler/protocol validation produced 28 passes,
+  seven failures, and four setup errors, all failures/errors rooted in the
+  changed historical identity.
+- The staged support-flux changes are bypassed by the successor measurement
+  kernel used by the post-correction campaign and do not address the compact
+  lane. The valid-region mask correction agrees with the frozen metric
+  definition but requires a new prospective composition and regression tests.
+
+**Decision:** do not commit or bind the staged compiler change. Preserve closed
+programs byte-for-byte, correct the historical campaign record, and add an
+ordered prospective recovery gate before Step 3.
+
+**Immediate next step:** restore and verify the historical compiler identity,
+then complete the named failure review and test-first prospective measurement
+composition defined in Step 2C-PC.
+
+## 2026-08-20 — Condensed the authoritative source-finder plan
+
+**Plan phase:** Cross-phase plan maintenance
+
+- Replaced campaign-by-campaign chronology and repeated implementation rules
+  with a forward-only plan. Detailed evidence, immutable identities, rejected
+  candidates, and execution deviations remain in this log and the reviewed
+  machine-readable contracts.
+- Reduced `plans/source-finder-implementation.md` from 2,382 lines and 20,502
+  words to 601 lines and 4,352 words. The condensed plan retains the current
+  terminal campaign result, Step 2C-PC recovery order, Phase 5 exit gate,
+  scientific and performance thresholds, dataset/test obligations,
+  architecture boundaries, Phases 6--8, principal risks, and definition of
+  done.
+- Updated four historical documentation links whose former plan headings were
+  removed or renamed. Phase 0 review links now target the condensed scientific
+  gate and dataset sections; Phase 4/4R records link to durable execution
+  history instead of a removed historical plan milestone.
+
+**Decision:** keep the plan short enough to guide current work and use
+`LOG.md`, reviewed records, and contracts as the detailed historical and exact
+evidence sources. Add chronology to the log, not back into the plan.
+
+**Validation:** `git diff --check` and `just docs-build` pass. Full repository
+validation remains deliberately blocked by the separately staged rejected
+historical-compiler edit; restoring its exact identity is the next task.
+
+**Immediate next step:** execute the first unchecked Step 2C-PC task: restore
+historical compiler identity `7a055891...` and verify the inherited evidence
+chain before prospective remediation.
+
+## 2026-08-20 — Restore the compiler and isolate the campaign composition defect
+
+**Plan phase:** Phase 5, Step 2C-PC recovery
+
+- Restored `scripts/validation/compile_phase5_external_campaign.py`
+  byte-for-byte to historical SHA-256 `7a055891...`. The rejected staged
+  support-flux and valid-mask edits are no longer present; the sealed campaign,
+  analysis, and decision remain unchanged.
+- Re-ran the complete inherited compiler/protocol suite: all 39 tests pass.
+- Audited all 2,488 successful Hebog run records. Every run uses the expected
+  source revision `dfc3e25...` but reports configuration SHA `72d5d5c1...`,
+  not the approved candidate configuration `0e5dde51...`.
+- Traced the continuum runner. It emitted catalogue flux through the historical
+  four-beam default instead of the approved 1.5-beam aperture, omitted the
+  regularized position signal, and retained the earlier cleanup rather than
+  the reviewed residual-B3 boundary refinement.
+- Traced the compact compiler. It used the default Rapthor-source
+  canonicalization instead of the approved fitted-Gaussian-component view;
+  this directly explains why the six failures are all Aegean integrated-flux
+  comparisons while the cumulative component view passed.
+- Inspected the declared invalid rectangle in all 1,688 Hebog label products
+  and both modes of both PyBDSF references. No product contains a positive
+  invalid-region label, so valid-domain clipping is required prospective
+  contract hardening but cannot explain or repair the mask-precision failure.
+
+**Decision:** the closed campaign remains a terminal `fail`, but it did not
+execute the candidate composition that had been approved. Do not tune the
+algorithm from this population. Prepare a prospective runner/compiler that
+enforces the approved composition and configuration identity, then repeat the
+complete cumulative regression replay before considering fresh evidence.
+
+**Validation:** historical compiler SHA is exact; 39 focused compiler and
+protocol tests pass. The recovery pre-review is recorded in
+`docs/reference/phase-5-post-campaign-failure-review.md` and awaits named
+approval.
+
+**Immediate next step:** obtain named approval of the recovery pre-review,
+then implement the exact candidate adapter and prospective compiler with
+test-first composition and fail-closed identity checks.

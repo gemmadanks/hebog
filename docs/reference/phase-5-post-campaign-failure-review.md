@@ -144,3 +144,67 @@ nor campaign outcomes. The next full cumulative replay must retain every
 previous pass. If only favourable paired comparisons remain underpowered, an
 exact prospective power review must increase the fresh population before any
 one-look approval; further algorithm tuning is not justified by power alone.
+
+## Post-correction campaign recovery pre-review
+
+### Status and boundary
+
+This 2026-08-20 addendum is the Step 2C-PC pre-review of the terminal
+post-correction failure. It is pending named approval by Gemma Danks. It may
+support prospective implementation and viewed-development regression work,
+but it does not rescore the closed campaign, authorize a fresh campaign, open
+Step 3, or alter a scientific gate.
+
+The historical compiler has been restored byte-for-byte to SHA-256
+`7a0558916ac003b71a781337dc710c99c359899c4d77f88486c1c206916b43f6`.
+All 39 inherited compiler and protocol tests pass. The sealed campaign,
+analysis, and decision remain unchanged at SHAs `9483abb0...`, `46dab5a12...`,
+and `e00f0520...` respectively.
+
+### Root-cause attribution
+
+The terminal result is a valid failure of the products and compiler that ran,
+but those products did not implement the candidate composition approved for
+the campaign:
+
+| Failure family | Evidence | Attribution |
+| --- | --- | --- |
+| Candidate identity | Every one of the 2,488 Hebog runs reports configuration SHA `72d5d5c1...`; the approved candidate configuration is `0e5dde51...`. The source revision is the expected `dfc3e25...`, so the discrepancy is behavioural composition rather than source identity. | Execution identity and fail-closed verification defect. |
+| Thirteen Continuum integrated-flux p95 tails | The approved cumulative candidate measured original pixels in a 1.5-major-beam nearest-owned aperture. The campaign wrapper called the historical catalogue builder with its four-beam default, so the reviewed aperture never reached the emitted catalogue. | Candidate product translation defect, not evidence against the reviewed photometry algorithm. |
+| Overall Continuum mask precision | The absolute precision gate passed at 0.9100, but the pinned-master paired upper confidence limit was 0.05107 against a 0.05 margin. The wrapper retained the earlier sub-beam cleanup rather than the approved residual-B3 multiscale boundary refinement. | Candidate product-generation composition defect. |
+| Valid-region mask handling | Direct inspection found zero positive labels in the declared invalid rectangle for all 1,688 Hebog products and for all controlled and operational released/master PyBDSF products. Clipping to the valid domain would not repair the observed mask result. | Prospective compiler-contract hardening; not a cause of this failure. |
+| Six compact/Aegean integrated-flux comparisons | The compiler invoked `diagnose_phase_four_realization` with its default Rapthor-source canonicalization. The approved comparison required `fitted-gaussian-component` semantics. The complete cumulative component view at the same candidate revision passed all 450 PyBDSF and 143 applicable Aegean comparisons. | Compiler measurement-semantics defect. |
+
+The frozen matcher is not implicated: completeness, association precision and
+recall passed, and the same matcher passed the cumulative like-component view.
+The campaign must nevertheless remain a terminal `fail`; a corrected compiler
+cannot be used to reinterpret its closed result.
+
+### Recommended recovery
+
+1. Build one shared prospective Hebog product adapter that invokes the full
+   approved post-campaign product function, passes the 1.5-beam aperture and
+   regularized position signal to catalogue measurement, and serializes the
+   exact approved configuration. Reject a run whose reported configuration
+   SHA differs from the approved candidate SHA.
+2. Compose a new prospective compiler without editing historical programs.
+   Its compact path must use fitted-Gaussian-component semantics. Its
+   Continuum path must apply the valid-pixel domain symmetrically to every
+   finder while keeping catalogue photometry separate from native support
+   topology.
+3. Add test-first normal, duplicate, merged-support, invalid-pixel,
+   all-reference parity, configuration-mismatch, and closed-identity cases.
+   Tests must fail if a wrapper silently falls back to historical defaults.
+4. Replay the complete viewed cumulative matrix using the exact future runner
+   and compiler composition. Require the approved candidate configuration
+   SHA, no like-semantics regression, and all scientific gates; do not tune
+   from the closed fresh population.
+5. Recompute endpoint power and obtain separate named approval of the exact
+   candidate, compiler/evaluator, population, and runtime identities before
+   freezing any new seed-disjoint one-look campaign.
+
+No new source-finding algorithm change is recommended at this point. The
+first scientific question is whether the already reviewed candidate passes
+when it is actually executed and measured as approved. Algorithm tuning is
+justified only if the corrected cumulative replay exposes a reproducible
+candidate-science failure on permitted development evidence.

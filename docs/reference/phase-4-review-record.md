@@ -1137,8 +1137,9 @@ decision. It is not an algorithm-selection or threshold-tuning dataset.
   isolate endpoint missingness while leaving this decision unchanged.
 
 The recommended disposition is to acknowledge Phase 4 as terminally not
-passed and authorize the separately governed
-[Phase 4R recovery milestone](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#phase-4r-compact-measurement-scientific-recovery).
+passed and authorize the separately governed Phase 4R recovery milestone
+recorded in the durable
+[execution history](https://github.com/gemmadanks/hebog/blob/main/LOG.md).
 Its implementation choice must come from analytic and independently seeded
 development/regression evidence. The first candidates are a data-selected
 beam-constrained/free nested fit, parameter-specific validity and
