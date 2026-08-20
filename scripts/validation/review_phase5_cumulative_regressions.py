@@ -29,22 +29,23 @@ from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.contracts import load_phase_five_corrective_a_review
 from hebog.validation.datasets import DatasetRecord
+from hebog.validation.external_recovery_compiler import (
+    install_recovery_compiler_seams,
+    require_candidate_configuration,
+)
 from hebog.validation.external_runners import (
     ExternalRunArtifact,
     file_sha256,
     source_tree_sha256,
 )
 from hebog.validation.hebog_campaign import (
-    corrected_hebog_campaign_configuration,
     process_hebog_image,
 )
-from hebog.validation.post_campaign_science import (
-    CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
-    diagnose_compact_component_realization,
-    evaluate_post_campaign_candidate_products,
+from hebog.validation.post_correction_recovery import (
+    build_post_correction_continuum_products,
+    post_correction_candidate_configuration,
 )
 from hebog.validation.products import (
-    build_hebog_segment_catalogue,
     load_fits_plane,
     write_comparison_catalogue,
 )
@@ -103,20 +104,7 @@ def _git_revision() -> str:
 def _candidate_configuration_sha256() -> str:
     """Bind compact and Continuum prospective science settings together."""
     return canonical_sha256(
-        {
-            "compact": corrected_hebog_campaign_configuration(),
-            "continuum": {
-                "base_review_sha256": file_sha256(_BASE_REVIEW_PATH),
-                "measurement_aperture_radius_beams": (
-                    CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
-                ),
-                "position_policy": (
-                    "direct-plus-residual-b3-at-or-below-peak-to-mean-3-"
-                    "otherwise-original"
-                ),
-                "support_policy": "refined-residual-b3-multiscale-boundary",
-            },
-        }
+        post_correction_candidate_configuration(_BASE_REVIEW_PATH)
     )
 
 
@@ -192,40 +180,24 @@ def _write_continuum_products(
     image = load_fits_plane(image_path)
     mean = load_fits_plane(mean_path)
     rms = load_fits_plane(rms_path)
-    valid = np.isfinite(image) & np.isfinite(mean) & np.isfinite(rms)
-    if np.any(np.isfinite(image) != valid):
-        raise ValueError("external mean/RMS validity differs from image")
     beam = BeamShapePixels(
         dataset.beam.major_fwhm_pixels,
         dataset.beam.minor_fwhm_pixels,
         dataset.beam.position_angle_degrees,
     )
-    products = evaluate_post_campaign_candidate_products(
+    header = cast(fits.Header, fits.getheader(image_path))
+    products = build_post_correction_continuum_products(
         image,
-        valid,
         mean,
         rms,
+        header,
         beam=beam,
         review=load_phase_five_corrective_a_review(_BASE_REVIEW_PATH),
-    )
-    header = cast(fits.Header, fits.getheader(image_path))
-    catalogue = build_hebog_segment_catalogue(
-        image,
-        mean,
-        valid,
-        products.detection.component_labels,
-        header,
-        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
-        beam_minor_fwhm_pixels=beam.minor_fwhm_pixels,
-        measurement_aperture_radius_beams=(
-            CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
-        ),
-        position_signal_jy_per_beam=products.position_signal_jy_per_beam,
     )
     catalogue_path = output / "segment_catalogue.json"
     labels_path = output / "segment_labels.fits"
     mask_path = output / "segment_mask.fits"
-    write_comparison_catalogue(catalogue_path, catalogue)
+    write_comparison_catalogue(catalogue_path, products.catalogue)
     fits.PrimaryHDU(
         data=products.detection.component_labels[np.newaxis, np.newaxis, :, :],
         header=header,
@@ -428,36 +400,16 @@ def _prospective_campaign(
     return replace(verified, runs=runs)
 
 
-def _fitted_component_realization(  # noqa: PLR0913
-    original: Any,
-    catalogue_loader: Any,
-    run: Any,
-    dataset: Any,
-    recipe: Any,
-    *,
-    implementation_identifier: str,
-    outlier_thresholds: Any,
-    position_angle_minimum_axis_ratio: float,
-) -> Any:
-    """Compile every compact finder with like-product component semantics."""
-    if run.result.status != "success":
-        return original(
-            run,
-            dataset,
-            recipe,
-            implementation_identifier=implementation_identifier,
-            outlier_thresholds=outlier_thresholds,
-            position_angle_minimum_axis_ratio=(
-                position_angle_minimum_axis_ratio
-            ),
-        )
-    return diagnose_compact_component_realization(
-        dataset,
-        recipe,
-        catalogue_loader(run),
-        implementation_identifier=implementation_identifier,
-        outlier_thresholds=outlier_thresholds,
-        position_angle_minimum_axis_ratio=position_angle_minimum_axis_ratio,
+def _install_prospective_compiler(
+    compiler_globals: dict[str, Any],
+    prospective: Any,
+    configuration_sha256: str,
+) -> None:
+    """Bind one viewed-development replay to the approved composition."""
+    require_candidate_configuration(prospective, configuration_sha256)
+    install_recovery_compiler_seams(
+        compiler_globals,
+        expected_candidate_configuration_sha256=configuration_sha256,
     )
 
 
@@ -468,31 +420,16 @@ def _compile_compact_views(
     registry: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Compile closed and prospective products under one component boundary."""
-    original = compiler_globals["_compact_realization"]
-    catalogue_loader = compiler_globals["_compact_catalogue"]
-
-    def component_view(*args: object, **kwargs: object) -> Any:
-        return _fitted_component_realization(
-            original,
-            catalogue_loader,
-            *args,
-            **kwargs,
-        )
-
-    compiler_globals["_compact_realization"] = component_view
-    try:
-        closed = compiler_globals["compile_compact_campaign"](
-            verified,
-            registry,
-            _ROOT,
-        )
-        current = compiler_globals["compile_compact_campaign"](
-            prospective,
-            registry,
-            _ROOT,
-        )
-    finally:
-        compiler_globals["_compact_realization"] = original
+    closed = compiler_globals["compile_compact_campaign"](
+        verified,
+        registry,
+        _ROOT,
+    )
+    current = compiler_globals["compile_compact_campaign"](
+        prospective,
+        registry,
+        _ROOT,
+    )
     return cast(dict[str, Any], closed), cast(dict[str, Any], current)
 
 
@@ -502,26 +439,11 @@ def _compile_current_compact_view(
     registry: dict[str, Any],
 ) -> dict[str, Any]:
     """Compile only the prospective fitted-component view."""
-    original = compiler_globals["_compact_realization"]
-    catalogue_loader = compiler_globals["_compact_catalogue"]
-
-    def component_view(*args: object, **kwargs: object) -> Any:
-        return _fitted_component_realization(
-            original,
-            catalogue_loader,
-            *args,
-            **kwargs,
-        )
-
-    compiler_globals["_compact_realization"] = component_view
-    try:
-        current = compiler_globals["compile_compact_campaign"](
-            prospective,
-            registry,
-            _ROOT,
-        )
-    finally:
-        compiler_globals["_compact_realization"] = original
+    current = compiler_globals["compile_compact_campaign"](
+        prospective,
+        registry,
+        _ROOT,
+    )
     return cast(dict[str, Any], current)
 
 
@@ -759,6 +681,11 @@ def main() -> None:  # noqa: PLR0915
         configuration_sha256=configuration,
         revision=revision,
         compiler_globals=compiler_globals,
+    )
+    _install_prospective_compiler(
+        compiler_globals,
+        prospective,
+        configuration,
     )
     continuum, continuum_diagnostics = compiler_globals[
         "compile_continuum_campaign"

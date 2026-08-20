@@ -363,19 +363,19 @@ must be restored before new evidence work.
 - [x] Restore historical compiler SHA `7a055891...` and verify the complete
       inherited identity chain. Preserve the sealed campaign, analysis, and
       decision unchanged.
-- [ ] Obtain named approval for the 2026-08-20 recovery pre-review. It
+- [x] Obtain named approval for the 2026-08-20 recovery pre-review. It
       attributes the failures to an unbound candidate configuration, omitted
       Continuum product settings, and Rapthor-source compact compilation; the
       valid-region rule is a no-effect contract gap on this population.
-- [ ] Implement the already reviewed candidate in one prospective product
+- [x] Implement the already reviewed candidate in one prospective product
       adapter: refined residual-B3 support, 1.5-beam nearest-owned photometry,
       regularized position weights, and the exact approved configuration SHA.
-- [ ] Implement a new prospective compiler composition with fitted-component
+- [x] Implement a new prospective compiler composition with fitted-component
       compact semantics, symmetric valid-domain masks, and fail-closed
       candidate-configuration verification. Add test-first normal, duplicate,
       merged-support, invalid-pixel, all-reference-parity, and identity cases.
       Keep source photometry distinct from support/island topology.
-- [ ] Make no new algorithm correction unless the correctly composed
+- [x] Make no new algorithm correction unless the correctly composed
       candidate fails permitted development evidence. Do not weaken gates or
       change governed truth.
 - [ ] Produce a cumulative Phase 4/5 regression ledger and require no

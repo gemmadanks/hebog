@@ -150,10 +150,10 @@ one-look approval; further algorithm tuning is not justified by power alone.
 ### Status and boundary
 
 This 2026-08-20 addendum is the Step 2C-PC pre-review of the terminal
-post-correction failure. It is pending named approval by Gemma Danks. It may
-support prospective implementation and viewed-development regression work,
-but it does not rescore the closed campaign, authorize a fresh campaign, open
-Step 3, or alter a scientific gate.
+post-correction failure. Gemma Danks approved its recommendations on
+2026-08-20. The approval covers prospective implementation and
+viewed-development regression work; it does not rescore the closed campaign,
+authorize a fresh campaign, open Step 3, or alter a scientific gate.
 
 The historical compiler has been restored byte-for-byte to SHA-256
 `7a0558916ac003b71a781337dc710c99c359899c4d77f88486c1c206916b43f6`.
@@ -208,3 +208,14 @@ first scientific question is whether the already reviewed candidate passes
 when it is actually executed and measured as approved. Algorithm tuning is
 justified only if the corrected cumulative replay exposes a reproducible
 candidate-science failure on permitted development evidence.
+
+The approved implementation now routes candidate configuration, refined
+Continuum support, 1.5-beam photometry, and regularized position weighting
+through one product adapter. A separate prospective compiler composition
+enforces the candidate hash, fitted-component compact semantics, and one
+symmetric valid-pixel domain for Hebog and both PyBDSF references. The viewed
+cumulative replay consumes those shared seams; historical campaign programs
+and closed evidence remain unchanged. Its focused normal, topology,
+invalidity, reference-parity, failure, and identity contracts pass with 100%
+branch-aware coverage of the new modules. The next permitted action is the
+complete cumulative replay, not a fresh campaign.

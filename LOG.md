@@ -8518,3 +8518,39 @@ approval.
 **Immediate next step:** obtain named approval of the recovery pre-review,
 then implement the exact candidate adapter and prospective compiler with
 test-first composition and fail-closed identity checks.
+
+## 2026-08-20 — Implement the approved Phase 5 recovery composition
+
+**Plan phase:** Phase 5, Step 2C-PC recovery
+
+- Gemma Danks approved the recovery pre-review and its recommendations for
+  prospective implementation and viewed-development regression work. The
+  approval does not authorize a fresh campaign or reinterpret closed evidence.
+- Added one shared candidate-product adapter that reconstructs approved
+  configuration SHA `0e5dde51...` and carries refined residual-B3 support,
+  1.5-beam nearest-owned photometry, and regularized position weights through
+  the emitted Continuum catalogue.
+- Added a prospective compiler composition that rejects any Hebog run with a
+  different configuration identity, uses fitted-Gaussian-component semantics
+  for compact comparisons, retains comparison failures in the denominator,
+  and applies the valid-pixel domain symmetrically to Hebog and both PyBDSF
+  references.
+- Refactored the viewed cumulative replay to consume the shared adapter and
+  compiler seams instead of maintaining a second candidate composition.
+  Checksum-bound historical campaign programs and closed evidence were not
+  changed.
+
+**Decision:** keep the reviewed candidate scientifically unchanged. The next
+evidence step is a complete viewed cumulative replay using this exact product
+and compiler composition; only a reproducible development-evidence failure can
+reopen algorithm correction.
+
+**Validation:** 104 focused recovery, compiler, and inherited protocol tests
+pass. `just coverage` passes with 1,403 tests, four expected failures, 94.34%
+project coverage, and 100% line and branch coverage for both new modules.
+`just check` passes with 1,273 unit/doctest cases plus clean Ruff and Pyright;
+the strict documentation build also passes.
+
+**Immediate next step:** complete repository handoff validation, commit this
+composition locally, then run the complete cumulative regression replay and
+require no like-semantics regression before any power or fresh-campaign review.

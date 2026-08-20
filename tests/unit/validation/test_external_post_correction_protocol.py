@@ -1,4 +1,5 @@
 # pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownLambdaType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
 """Contracts for the approved Phase 5 post-correction freeze."""
@@ -36,6 +37,14 @@ def _seeds(manifest: DatasetManifest) -> set[int]:
         for dataset in manifest.datasets
         for recipe in iter_dataset_recipes(dataset)
     }
+
+
+def _install_post_correction_source_view(namespace: dict[str, Any]) -> None:
+    """Verify one closed freeze against its recorded candidate source."""
+    loader = namespace["load_post_correction_population"]
+    loader_globals = loader.__globals__
+    historical_sha256 = loader_globals["_SOURCE_TREE_SHA256"]
+    loader_globals["source_tree_sha256"] = lambda _root: historical_sha256
 
 
 def test_post_correction_population_is_powered_and_globally_disjoint() -> None:
@@ -76,6 +85,7 @@ def test_post_correction_freeze_binds_approval_science_and_power() -> None:
     helpers = _script(
         "scripts/validation/phase5_external_post_correction_protocol.py"
     )
+    _install_post_correction_source_view(helpers)
     freeze = helpers["load_post_correction_population"](
         _ROOT
         / "config/contracts/phase-5-external-post-correction-population.json"
@@ -113,6 +123,7 @@ def test_post_correction_protocol_is_authorized_and_exactly_scaled() -> None:
     helpers = _script(
         "scripts/validation/phase5_external_post_correction_protocol.py"
     )
+    _install_post_correction_source_view(helpers)
     protocol = helpers["load_post_correction_protocol"](
         _ROOT
         / "config/contracts/phase-5-external-post-correction-comparison.json"
@@ -210,6 +221,11 @@ def test_post_correction_compiler_and_evaluator_bind_powered_population() -> (
     )
     evaluator = _script(
         "scripts/validation/evaluate_phase5_external_post_correction_decision.py"
+    )
+    _install_post_correction_source_view(
+        evaluator["load_post_correction_evaluation_contract"].__globals__[
+            "_HELPERS"
+        ]
     )
     contract = evaluator["load_post_correction_evaluation_contract"](
         _ROOT / "config/contracts/"

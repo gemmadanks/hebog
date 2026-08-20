@@ -54,7 +54,9 @@ def test_cumulative_candidate_identity_binds_component_threshold() -> None:
     module = _script(
         "scripts/validation/review_phase5_cumulative_regressions.py"
     )
-    configuration = module["corrected_hebog_campaign_configuration"]()
+    configuration = module["post_correction_candidate_configuration"](
+        module["_BASE_REVIEW_PATH"]
+    )["compact"]
 
     assert configuration["fitting"][
         "component_extension_significance_sigma"
