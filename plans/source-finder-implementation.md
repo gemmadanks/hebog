@@ -378,8 +378,14 @@ must be restored before new evidence work.
 - [x] Make no new algorithm correction unless the correctly composed
       candidate fails permitted development evidence. Do not weaken gates or
       change governed truth.
+- [x] Bind a restartable viewed-reference reconstruction after approved raw
+      cleanup removed the old products: retain the exact 1,600/800 viewed
+      population and protocol, use equivalent rebuilt PyBDSF/Aegean runtimes,
+      execute no historical Hebog leg, and label the result development-only.
 - [ ] Produce a cumulative Phase 4/5 regression ledger and require no
-      like-semantics pass-to-fail regression.
+      like-semantics pass-to-fail regression. Generate the approved Hebog
+      products through the shared adapter only; a fresh campaign remains
+      unauthorized.
 - [ ] Recompute exact endpoint power, obtain named review of the candidate,
       population, compiler/evaluator composition, and runtime identities, then
       freeze one fresh seed-disjoint campaign.

@@ -201,7 +201,7 @@ class RecoveryContinuumImageCompiler:
             header=header,
         )
 
-    def __call__(  # noqa: PLR0913, PLR0917
+    def __call__(  # noqa: PLR0913
         self,
         verified: Any,
         campaign_input: Any,

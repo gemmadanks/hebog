@@ -8554,3 +8554,42 @@ the strict documentation build also passes.
 **Immediate next step:** complete repository handoff validation, commit this
 composition locally, then run the complete cumulative regression replay and
 require no like-semantics regression before any power or fresh-campaign review.
+
+## 2026-08-20 — Bind reconstruction of the viewed reference evidence
+
+**Plan phase:** Phase 5, Step 2C-PC recovery
+
+- Confirmed that approved cleanup had removed the raw inputs and finder
+  products needed by the viewed replay while preserving the sealed campaign,
+  request, analysis, and decision. Gemma Danks explicitly confirmed permanent
+  removal of the obsolete post-correction raw `inputs/` and `results/` trees;
+  available host storage increased to 133 GiB.
+- Added a development-only, restartable reconstruction boundary for the exact
+  1,600 Continuum and 800 compact viewed population. It materializes the bound
+  inputs, runs only the released/master PyBDSF and Aegean reference legs, and
+  seals checksum sets atomically. It cannot run the obsolete historical Hebog
+  candidate or authorize a fresh campaign.
+- Bound the equivalent rebuilt reference images by OCI ID, digest, dependency
+  inventory, reference source, four-core PyBDSF policy, and checksum-verified
+  wrapper. The original viewed protocol, request SHA `7ba9be1b...`, and sealed
+  campaign SHA `c16dc486...` remain unchanged and identify the population.
+- Extended the cumulative replay to accept the sealed reference
+  reconstruction and synthesize Hebog products only through the shared
+  recovery adapter at candidate revision `c184acf...` and configuration
+  `0e5dde51...`. The ledger separately records the recovery execution checkout
+  and reconstructed-reference manifest identity.
+
+**Decision:** reconstructed references are permitted only because their
+scientific package/source/dependency identities match the deleted runtimes;
+their changed OCI digests remain explicit. This is viewed development evidence,
+not a replacement or rescore of the closed campaign.
+
+**Validation:** the new contracts were developed from three failing tests.
+The focused recovery, cumulative, and inherited protocol suite passes all 51
+tests. `just coverage` passes with 1,406 tests, four expected failures, and
+94.34% branch-aware project coverage; `just check` passes 1,276 quick tests,
+and focused Pyright, strict docs, and the final pre-commit suite pass.
+
+**Immediate next step:** finish repository validation and commit the recovery
+boundary, run its no-write preflight, then launch and monitor the complete
+viewed reconstruction followed by the write-once cumulative ledger.

@@ -1,0 +1,58 @@
+{
+  "candidate_configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+  "candidate_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+  "candidate_revision": "c184acf7f55f936442285835b4601a6ac193fe2a",
+  "candidate_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+  "decision_id": "phase-5-viewed-recovery-execution-decision",
+  "execution_authorized": true,
+  "execution_concurrency": 2,
+  "fresh_campaign_execution_authorized": false,
+  "materializer_runtime": {
+    "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+    "digest": "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1",
+    "finder_id": "hebog",
+    "image_id": "e519dc15b846dec7ac00a6cada7684d0c0b2615490dd6688ac4c6cdf5f3021ca"
+  },
+  "named_review": "Gemma Danks approved the Phase 5 recovery pre-review and confirmed the complete viewed cumulative regression replay; this authorizes only reconstruction of the already-viewed development references and does not authorize a fresh campaign.",
+  "one_look_opened": false,
+  "optimization_authorized": false,
+  "original_campaign_sha256": "c16dc486464e09dd729f4a90eb1d586bfd6c2eecc04bda1a41b3b209c2ae091a",
+  "original_request_sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4",
+  "protocol_path": "config/contracts/phase-5-external-post-failure-comparison.json",
+  "protocol_sha256": "a616da88f497a4c003a289ad3a6f667c24873eafc62a9711ae182d5f259ffdf5",
+  "pybdsf_ncores": 4,
+  "qualification_opened": false,
+  "reference_runtimes": [
+    {
+      "dependency_inventory_sha256": "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+      "digest": "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198",
+      "finder_id": "released-pybdsf",
+      "image_id": "43a6513865a597285dc1bf473e27fc69fdd86fb143c35a24144eb6c1152bb36e"
+    },
+    {
+      "dependency_inventory_sha256": "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
+      "digest": "sha256:0e6d932416479bb7d7763fe2e025ea9fbbd0d0548a6f156b2cdd881766690c75",
+      "finder_id": "pinned-pybdsf-master",
+      "image_id": "0360fbbfe42fe13aea1559f5603e4fcf4c51c84f7ad5fd201ba8fd76a88df087"
+    },
+    {
+      "dependency_inventory_sha256": "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
+      "digest": "sha256:dcac8e646ff5ea6d11d314c5c7a51fb0c3ca710165934ad2ddf0ac3f999131b0",
+      "finder_id": "aegean",
+      "image_id": "9e79e24b2460596a57a8ebba5c3987fa636886631579ef333ad46b801b3a86b8"
+    }
+  ],
+  "runners": [
+    {
+      "relative_path": "scripts/benchmark/run_phase5_viewed_recovery_pybdsf.py",
+      "sha256": "799c406ed79052202bf47ad7992a5542abdd6eb83904e2b238bcb04c48f9a087"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_viewed_recovery_aegean.py",
+      "sha256": "8ba8c19051268704e77c27e6aed2fa912ad2ad86b396176d15c9215cb16616a2"
+    }
+  ],
+  "schema_version": 1,
+  "status": "approved-viewed-development-recovery",
+  "step_three_authorized": false
+}

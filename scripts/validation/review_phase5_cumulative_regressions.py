@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # pyright: reportMissingTypeStubs=false
+# pyright: reportMissingImports=false
 # pyright: reportPrivateUsage=false
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownLambdaType=false
@@ -15,11 +16,12 @@ import runpy
 import shutil
 import subprocess
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import asdict, replace
+from dataclasses import asdict, is_dataclass, replace
 from datetime import UTC, datetime
 from itertools import pairwise
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from typing import Any, cast
 
 import numpy as np
@@ -67,6 +69,14 @@ _EVALUATION_PATH = (
     _ROOT / "config/contracts/phase-5-external-post-failure-evaluation.json"
 )
 _BASE_REVIEW_PATH = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
+_VIEWED_REQUEST_PATH = (
+    _ROOT / "benchmark-results/phase-5/external-post-failure-comparison/"
+    "campaign-request.json"
+)
+_VIEWED_RECOVERY_SCRIPT = (
+    _ROOT / "scripts/validation/reconstruct_phase5_viewed_references.py"
+)
+_CANDIDATE_REVISION = "c184acf7f55f936442285835b4601a6ac193fe2a"
 _HISTORIC_PREFIXES = (
     "external-source-finder",
     "external-successor",
@@ -370,34 +380,56 @@ def _prospective_campaign(
     revision: str,
     compiler_globals: dict[str, Any],
 ) -> Any:
-    """Replace only Hebog product handles in the verified campaign view."""
+    """Install only current Hebog products in the verified reference view."""
     runs = dict(verified.runs)
     verified_run_type = compiler_globals["VerifiedRun"]
+    requests = {
+        (item.input_id, item.finder_id, item.mode): item
+        for item in verified.request.runs
+    }
     for campaign_input in verified.request.inputs:
         key = (campaign_input.input_id, "hebog", "candidate")
-        closed = verified.runs[key]
         directory = scratch / "products" / campaign_input.input_id
         artifacts = tuple(
             ExternalRunArtifact.model_validate(item)
             for item in _artifact_records(directory)
         )
-        runtime = closed.result.runtime.model_copy(
-            update={"source_revision": revision}
-        )
-        result = closed.result.model_copy(
-            update={
-                "runtime": runtime,
-                "configuration_sha256": configuration_sha256,
-                "wall_seconds": 0.0,
-                "artifacts": artifacts,
-            }
-        )
+        closed = verified.runs.get(key)
+        if closed is None:
+            runtime = SimpleNamespace(source_revision=revision)
+            result = SimpleNamespace(
+                status="success",
+                failure=None,
+                finder_id="hebog",
+                mode="candidate",
+                seed=campaign_input.seed,
+                runtime=runtime,
+                configuration_sha256=configuration_sha256,
+                wall_seconds=0.0,
+                artifacts=artifacts,
+            )
+            request = requests[key]
+        else:
+            runtime = closed.result.runtime.model_copy(
+                update={"source_revision": revision}
+            )
+            result = closed.result.model_copy(
+                update={
+                    "runtime": runtime,
+                    "configuration_sha256": configuration_sha256,
+                    "wall_seconds": 0.0,
+                    "artifacts": artifacts,
+                }
+            )
+            request = closed.request
         runs[key] = verified_run_type(
-            request=closed.request,
+            request=request,
             result=result,
             directory=directory,
         )
-    return replace(verified, runs=runs)
+    if is_dataclass(verified):
+        return replace(cast(Any, verified), runs=runs)
+    return SimpleNamespace(**{**vars(verified), "runs": runs})
 
 
 def _install_prospective_compiler(
@@ -604,7 +636,9 @@ def _cumulative_readiness(
 def _parse_args() -> argparse.Namespace:
     """Parse the sealed development source and write-once ledger paths."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--campaign", required=True, type=Path)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--campaign", type=Path)
+    source.add_argument("--reference-reconstruction", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--scratch", required=True, type=Path)
     parser.add_argument("--workers", type=int, default=2)
@@ -635,11 +669,23 @@ def main() -> None:  # noqa: PLR0915
         _REGISTRY_PATH,
         _COMPILER_PATH,
     )
-    verified = compiler_globals["verify_terminal_campaign"](
-        arguments.campaign,
-        registry,
-        _ROOT,
-    )
+    if arguments.campaign is not None:
+        verified = compiler_globals["verify_terminal_campaign"](
+            arguments.campaign,
+            registry,
+            _ROOT,
+        )
+    else:
+        request_model = compiler_globals["CampaignRequest"]
+        original_request = request_model.model_validate_json(
+            _VIEWED_REQUEST_PATH.read_text(encoding="utf-8")
+        )
+        reconstruction = runpy.run_path(str(_VIEWED_RECOVERY_SCRIPT))
+        verified = reconstruction["verify_viewed_reference_reconstruction"](
+            arguments.reference_reconstruction,
+            original_request=original_request,
+            verified_run_type=compiler_globals["VerifiedRun"],
+        )
     compact_datasets, _ = compiler_globals["_dataset_maps"](
         _ROOT / registry["compact_manifest_path"]
     )
@@ -649,7 +695,7 @@ def main() -> None:  # noqa: PLR0915
     datasets = {**compact_datasets, **continuum_datasets}
     configuration = _candidate_configuration_sha256()
     source_sha256 = source_tree_sha256(_ROOT)
-    revision = _git_revision()
+    execution_revision = _git_revision()
     tasks = _candidate_tasks(
         verified,
         datasets,
@@ -679,7 +725,7 @@ def main() -> None:  # noqa: PLR0915
         verified,
         arguments.scratch,
         configuration_sha256=configuration,
-        revision=revision,
+        revision=_CANDIDATE_REVISION,
         compiler_globals=compiler_globals,
     )
     _install_prospective_compiler(
@@ -783,7 +829,11 @@ def main() -> None:  # noqa: PLR0915
         "captured_at": datetime.now(UTC).isoformat(),
         "evidence_role": "viewed-development-regression",
         "sealed_campaign_sha256": verified.campaign_sha256,
-        "candidate_revision": revision,
+        "reference_reconstruction_sha256": getattr(
+            verified, "reference_reconstruction_sha256", None
+        ),
+        "candidate_revision": _CANDIDATE_REVISION,
+        "replay_execution_revision": execution_revision,
         "candidate_source_tree_sha256": source_sha256,
         "candidate_configuration_sha256": configuration,
         "transient_candidate_product_set_sha256": product_identity,
