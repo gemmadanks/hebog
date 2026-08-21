@@ -107,6 +107,8 @@ known-first-party = ["hebog"]
 "notebooks/**" = ["PLC0415", "PLR0913", "PLR0917", "PLR1711"]
 # The accelerator must match the checksum-bound terminal callback signature.
 "src/hebog/validation/external_campaign_compilation.py" = ["PLR0917"]
+# The recovery compiler must match the checksum-bound terminal callback.
+"src/hebog/validation/external_recovery_compiler.py" = ["PLR0917"]
 # This terminal evidence compiler is checksum-bound to the sealed campaign.
 "scripts/validation/compile_phase5_external_campaign.py" = ["PLR0917"]
 "tests/**" = ["PLR2004"]

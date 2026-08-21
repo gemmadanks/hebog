@@ -7,6 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from hebog.validation.external_runners import source_tree_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -124,11 +126,12 @@ def test_prospective_campaign_can_fill_an_absent_historical_candidate(
         runs={},
     )
 
+    candidate_revision = module["_CANDIDATE_REVISION"]
     prospective = module["_prospective_campaign"](
         verified,
         tmp_path,
         configuration_sha256="c" * 64,
-        revision="a" * 40,
+        revision=candidate_revision,
         compiler_globals={"VerifiedRun": SimpleNamespace},
     )
 
@@ -136,4 +139,26 @@ def test_prospective_campaign_can_fill_an_absent_historical_candidate(
     assert run.request is run_request
     assert run.result.status == "success"
     assert run.result.configuration_sha256 == "c" * 64
-    assert run.result.runtime.source_revision == "a" * 40
+    assert run.result.runtime.source_revision == candidate_revision
+    assert hash(run.result.runtime)
+    assert run.result.runtime.name == "hebog"
+    assert run.result.runtime.version == "0.6.0"
+    assert run.result.runtime.container_image_digest == (
+        "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1"
+    )
+    assert run.result.runtime.dependency_inventory_sha256 == (
+        "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2"
+    )
+
+
+def test_viewed_candidate_runtime_rejects_an_unapproved_revision() -> None:
+    """A synthetic candidate result cannot invent a runtime revision."""
+    module = _script(
+        "scripts/validation/review_phase5_cumulative_regressions.py"
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="viewed candidate runtime identity changed",
+    ):
+        module["_candidate_runtime_identity"]("a" * 40)

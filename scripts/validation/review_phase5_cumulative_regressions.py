@@ -37,6 +37,7 @@ from hebog.validation.external_recovery_compiler import (
 )
 from hebog.validation.external_runners import (
     ExternalRunArtifact,
+    ExternalRuntimeIdentity,
     file_sha256,
     source_tree_sha256,
 )
@@ -76,7 +77,11 @@ _VIEWED_REQUEST_PATH = (
 _VIEWED_RECOVERY_SCRIPT = (
     _ROOT / "scripts/validation/reconstruct_phase5_viewed_references.py"
 )
+_VIEWED_RECOVERY_DECISION_PATH = (
+    _ROOT / "config/contracts/phase-5-viewed-recovery-execution-decision.json"
+)
 _CANDIDATE_REVISION = "c184acf7f55f936442285835b4601a6ac193fe2a"
+_CANDIDATE_VERSION = "0.6.0"
 _HISTORIC_PREFIXES = (
     "external-source-finder",
     "external-successor",
@@ -387,6 +392,7 @@ def _prospective_campaign(
         (item.input_id, item.finder_id, item.mode): item
         for item in verified.request.runs
     }
+    candidate_runtime: ExternalRuntimeIdentity | None = None
     for campaign_input in verified.request.inputs:
         key = (campaign_input.input_id, "hebog", "candidate")
         directory = scratch / "products" / campaign_input.input_id
@@ -396,14 +402,15 @@ def _prospective_campaign(
         )
         closed = verified.runs.get(key)
         if closed is None:
-            runtime = SimpleNamespace(source_revision=revision)
+            if candidate_runtime is None:
+                candidate_runtime = _candidate_runtime_identity(revision)
             result = SimpleNamespace(
                 status="success",
                 failure=None,
                 finder_id="hebog",
                 mode="candidate",
                 seed=campaign_input.seed,
-                runtime=runtime,
+                runtime=candidate_runtime,
                 configuration_sha256=configuration_sha256,
                 wall_seconds=0.0,
                 artifacts=artifacts,
@@ -430,6 +437,33 @@ def _prospective_campaign(
     if is_dataclass(verified):
         return replace(cast(Any, verified), runs=runs)
     return SimpleNamespace(**{**vars(verified), "runs": runs})
+
+
+def _candidate_runtime_identity(revision: str) -> ExternalRuntimeIdentity:
+    """Bind a reconstructed candidate to the reviewed recovery runtime."""
+    decision = json.loads(
+        _VIEWED_RECOVERY_DECISION_PATH.read_text(encoding="utf-8")
+    )
+    materializer = decision.get("materializer_runtime")
+    if (
+        decision.get("candidate_revision") != revision
+        or not isinstance(materializer, dict)
+        or materializer.get("finder_id") != "hebog"
+    ):
+        raise ValueError("viewed candidate runtime identity changed")
+    container_digest = materializer.get("digest")
+    dependency_inventory = materializer.get("dependency_inventory_sha256")
+    if not isinstance(container_digest, str) or not isinstance(
+        dependency_inventory, str
+    ):
+        raise ValueError("viewed candidate runtime identity changed")
+    return ExternalRuntimeIdentity(
+        name="hebog",
+        version=_CANDIDATE_VERSION,
+        source_revision=revision,
+        container_image_digest=container_digest,
+        dependency_inventory_sha256=dependency_inventory,
+    )
 
 
 def _install_prospective_compiler(

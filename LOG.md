@@ -8593,3 +8593,37 @@ and focused Pyright, strict docs, and the final pre-commit suite pass.
 **Immediate next step:** finish repository validation and commit the recovery
 boundary, run its no-write preflight, then launch and monitor the complete
 viewed reconstruction followed by the write-once cumulative ledger.
+
+## 2026-08-21 — Correct the viewed replay runtime record
+
+**Plan phase:** Phase 5, Step 2C-PC recovery
+
+- Sealed the viewed reference reconstruction with all 2,400 inputs and 9,600
+  checksum-verified reference runs. The first cumulative process stopped
+  before candidate work because the app sandbox denied the host semaphore
+  capability check; the exact approved command was restarted outside that
+  sandbox.
+- Completed all 2,400 restartable Hebog candidate products through the shared
+  recovery adapter. Compilation then stopped before publishing a ledger
+  because the reconstructed view's synthetic Hebog runtime was an unhashable,
+  incomplete `SimpleNamespace`; the compact compiler correctly requires one
+  immutable runtime identity per implementation.
+- Replaced only that provenance record with `ExternalRuntimeIdentity`, bound
+  to candidate revision `c184acf...`, Hebog version `0.6.0`, and the exact
+  materializer digest and dependency inventory in the approved viewed-recovery
+  decision. Candidate products, scientific settings, compiler policy, gates,
+  reconstructed references, and the write-once ledger path are unchanged.
+
+**Decision:** treat both stops as execution-boundary defects, not scientific
+results. Preserve and re-verify the complete 7.9 GiB restartable candidate
+product set; no partial science was interpreted and no atomic ledger exists.
+
+**Validation:** the new runtime-shape assertion failed first on the unhashable
+namespace. The corrected test plus the focused recovery and compiler suite
+passes all 58 tests. `just coverage` passes with 1,407 tests, four expected
+failures, and 94.34% branch-aware project coverage; `just check` passes 1,277
+quick tests, and focused Pyright and the strict documentation build pass.
+
+**Immediate next step:** complete repository validation, commit this
+provenance-only correction, and resume the same write-once cumulative replay
+from its identity-verified candidate shards.
