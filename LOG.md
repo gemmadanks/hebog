@@ -8860,3 +8860,31 @@ are retained, but permanent deletion requires explicit approval.
 **Immediate next step:** obtain cleanup approval or user-provided storage,
 verify the 126 GiB floor, then resume the same immutable campaign and monitor
 only operational state until it seals.
+
+## 2026-08-22 — Remove viewed-reconstruction raw evidence
+
+**Plan phase:** Phase 5, Step 2C-PC recovery execution
+
+- Gemma Danks explicitly approved permanent deletion of the completed
+  development-only viewed reconstruction's `inputs/` and `results/` trees.
+  Both trees are absent after deletion. `recovery.json`,
+  `recovery-request.json`, `recovery-open-state.json`, and `progress.log`
+  remain intact; the compiled cumulative ledger and power evidence remain in
+  their separate Phase 5 paths.
+- Host free space increased from 28 GiB to 67 GiB. The 42-GiB input and 55-GiB
+  result directory sizes included APFS-shared blocks, so deleting them did not
+  release their summed apparent allocation. No large deleted file remains held
+  open. The complete remaining Phase 5 tree is about 400 MiB and the preserved
+  recovery staging tree remains about 199 MiB with 3 inputs and 0 results.
+- The principal remaining allocations observed read-only are the 100-GiB
+  Podman machine disk, which contains the exact frozen campaign images, and an
+  unrelated 38-GiB `Projects/sdp` tree. Ordinary user caches total about
+  11 GiB and are insufficient alone to reach the governed floor.
+
+**Decision:** do not resume below the predeclared 126-GiB floor and do not
+install campaign monitoring before a campaign process exists. Preserve the
+same immutable checkout, request, and restartable staging namespace.
+
+**Immediate next step:** free at least 59 GiB more without pruning the exact
+four runtime images, verify the storage audit, resume the existing request with
+`--resume`, and then install hourly operational monitoring.

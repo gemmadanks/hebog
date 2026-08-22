@@ -410,7 +410,11 @@ must be restored before new evidence work.
       audit, and resume the same `fa3134b...` / `7a44ba52...` staging namespace.
       The identity preflight passed as request `4c53dc39...`, but launch was
       stopped after 3 inputs and 0 results when only 28 GiB was observed. Do not
-      create a second campaign request or change any frozen identity.
+      create a second campaign request or change any frozen identity. Approved
+      cleanup permanently removed the development-only viewed reconstruction's
+      42-GiB `inputs/` and 55-GiB `results/` while retaining its four provenance
+      records, but APFS released only enough unique blocks to reach 67 GiB free;
+      the campaign therefore remains paused pending at least 59 GiB more.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.
