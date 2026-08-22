@@ -406,15 +406,17 @@ must be restored before new evidence work.
       decision now authorizes exactly one comparison while leaving the look
       unopened. Run the complete no-write preflight from the immutable
       authorization commit; execute and evaluate only if every identity holds.
-- [ ] Restore at least 126 GiB host headroom, rerun the omitted no-write storage
+- [x] Restore at least 126 GiB host headroom, rerun the omitted no-write storage
       audit, and resume the same `fa3134b...` / `7a44ba52...` staging namespace.
       The identity preflight passed as request `4c53dc39...`, but launch was
       stopped after 3 inputs and 0 results when only 28 GiB was observed. Do not
       create a second campaign request or change any frozen identity. Approved
       cleanup permanently removed the development-only viewed reconstruction's
       42-GiB `inputs/` and 55-GiB `results/` while retaining its four provenance
-      records, but APFS released only enough unique blocks to reach 67 GiB free;
-      the campaign therefore remains paused pending at least 59 GiB more.
+      records. Trimming the Podman guest then reduced its host allocation from
+      about 98 GiB to 31 GiB and restored 134 GiB host headroom. All four exact
+      images reverified and the same request resumed in managed session 83019;
+      hourly operational monitoring is active without partial-science access.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

@@ -8888,3 +8888,30 @@ same immutable checkout, request, and restartable staging namespace.
 **Immediate next step:** free at least 59 GiB more without pruning the exact
 four runtime images, verify the storage audit, resume the existing request with
 `--resume`, and then install hourly operational monitoring.
+
+## 2026-08-22 — Resume the frozen recovery campaign
+
+**Plan phase:** Phase 5, Step 2C-PC recovery execution
+
+- Filesystem trimming reduced the physical AppleHV Podman disk allocation from
+  about 98 GiB to 31 GiB without deleting or rebuilding any runtime image.
+  Host free space reached 134 GiB and passed the predeclared 126-GiB floor.
+- Reverified immutable checkout `fa3134bd383f...`, absent terminal manifest,
+  and the exact image IDs and repo digests for Hebog, released PyBDSF, pinned
+  PyBDSF master, and Aegean. No duplicate recovery campaign process existed.
+- Resumed approved preflight request `4c53dc39...` with `--resume` in the same
+  private `7a44ba52...` staging namespace. Managed session 83019 was active at
+  the initial check, with 10 aggregate inputs, zero results, 134 GiB host
+  headroom, and no public terminal campaign manifest.
+- Installed hourly heartbeat `monitor-phase-5-recovery-campaign`. While the
+  campaign is open it may inspect only process health, aggregate counts,
+  progress output, disk headroom, and terminal-manifest presence; it may not
+  inspect or compile partial science.
+
+**Decision:** the exact authorized one-look campaign is open. Preserve the
+write-once namespace and frozen identities; do not start a duplicate process or
+evaluate before the terminal campaign seals.
+
+**Immediate next step:** monitor operationally each hour. On successful seal,
+verify the frozen protocol, compile and evaluate exactly once, interpret science
+before runtime, update durable records, validate, review, and commit locally.
