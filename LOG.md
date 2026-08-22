@@ -8627,3 +8627,40 @@ quick tests, and focused Pyright and the strict documentation build pass.
 **Immediate next step:** complete repository validation, commit this
 provenance-only correction, and resume the same write-once cumulative replay
 from its identity-verified candidate shards.
+
+## 2026-08-22 — Pass the complete viewed cumulative science replay
+
+**Plan phase:** Phase 5, Step 2C-PC recovery
+
+- Published the write-once viewed-development cumulative ledger after
+  re-verifying all 2,400 candidate shards. Ledger SHA-256 is
+  `a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9`.
+- Verified the full identity chain: sealed viewed population
+  `c16dc486...`, reference reconstruction `69c66e0b...`, exact closed-component
+  baseline `f6a92d39...`, candidate revision `c184acf...`, recovery execution
+  revision `53f745f...`, candidate source tree `b4176ce3...`, configuration
+  `0e5dde51...`, and transient product-set identity `03f69ad2...`.
+- Compact science passes. The PyBDSF compact decision passes and all 143
+  binding fitted-component Aegean comparisons pass; there are no compact
+  failure reasons and no like-semantics compact regression.
+- All 143 Continuum absolute gates pass. Of the paired endpoints, 134 pass and
+  nine are `underpowered`; none fail or become indeterminate, and there is no
+  like-semantics Continuum regression. The nine outcomes are integrated-flux
+  median or p95 strata whose absolute values remain within their frozen 10%
+  or 25% limits but whose observed paired variance exceeds a planning bound.
+
+**Decision:** the correctly composed candidate is scientifically regression
+ready (`cumulative_science_regression_ready=true`). The ledger is
+`pass-pending-power-review`, not a failure: exact endpoint power must be
+reviewed before a fresh campaign can be frozen. Fresh execution, Step 3, and
+qualification remain unauthorized.
+
+**Validation:** 58 focused recovery/compiler tests pass. `just coverage`
+passes 1,407 tests with four expected failures and 94.34% branch-aware
+coverage; `just check` passes 1,277 quick tests, and the strict documentation
+build and final pre-commit suite pass.
+
+**Immediate next step:** recompute exact endpoint power for the nine
+underpowered Continuum outcomes, then obtain named review of the candidate,
+population, compiler/evaluator composition, and four runtime identities before
+freezing any fresh seed-disjoint campaign.
