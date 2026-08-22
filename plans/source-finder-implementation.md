@@ -406,6 +406,11 @@ must be restored before new evidence work.
       decision now authorizes exactly one comparison while leaving the look
       unopened. Run the complete no-write preflight from the immutable
       authorization commit; execute and evaluate only if every identity holds.
+- [ ] Restore at least 126 GiB host headroom, rerun the omitted no-write storage
+      audit, and resume the same `fa3134b...` / `7a44ba52...` staging namespace.
+      The identity preflight passed as request `4c53dc39...`, but launch was
+      stopped after 3 inputs and 0 results when only 28 GiB was observed. Do not
+      create a second campaign request or change any frozen identity.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

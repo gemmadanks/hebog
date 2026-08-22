@@ -8826,3 +8826,37 @@ against `CODE_REVIEW.md` found no actionable issue.
 **Immediate next step:** commit the narrow authorization transition, create its
 immutable checkout, run the complete no-write preflight, and launch the one
 terminal campaign only on success.
+
+## 2026-08-22 — Pause recovery launch at the omitted storage gate
+
+**Plan phase:** Phase 5, Step 2C-PC recovery execution
+
+- Created detached immutable checkout `fa3134bd383f...` and ran the approved
+  preflight-only launcher against the exact four frozen images. Program,
+  runtime, population, and request verification passed with request SHA-256
+  `4c53dc39a7f02673a7c316cb814d8947f161eb417f192b077c1aa8b241093230`,
+  2,488 images, and 12,440 planned runs.
+- The recovery launcher inherited an identity-only preflight and omitted the
+  governed 126 GiB host-storage floor. Immediately after launch, the external
+  operational audit found only 28 GiB free. The managed process was interrupted
+  before exhaustion after 3 materialized inputs and 0 results; the terminal
+  public manifest is absent. Restartable staging is
+  `benchmark-results/phase-5/.external-recovery-comparison.phase5-external-7a44ba52eb3e.staging`
+  and occupies about 199 MiB.
+- Read-only storage review found 42 GiB of inputs and 55 GiB of reference
+  results under the completed development-only
+  `viewed-reference-reconstruction`. Its cumulative ledger `a45303df...`, power
+  review `bbfab3a0...`, and small recovery/request/progress records are already
+  preserved. Podman reports 13.34 GB of images and 4.67 GB of volumes as
+  reclaimable, but the exact four campaign images must not be pruned.
+
+**Decision:** keep the same authorized request and staging namespace; do not
+start a second campaign. Resume with `--resume` only after a fresh read-only
+audit observes at least 126 GiB host headroom. Deleting the reconstructed
+reference `inputs/` and `results/` is the largest scientifically safe cleanup
+provided its four small provenance records and compiled ledger/power evidence
+are retained, but permanent deletion requires explicit approval.
+
+**Immediate next step:** obtain cleanup approval or user-provided storage,
+verify the 126 GiB floor, then resume the same immutable campaign and monitor
+only operational state until it seals.
