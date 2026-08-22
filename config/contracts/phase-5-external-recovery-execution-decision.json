@@ -1,0 +1,41 @@
+{
+  "candidate_configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+  "candidate_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+  "cumulative_ledger_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "decision": "await-named-one-look-approval",
+  "decision_id": "phase-5-external-recovery-execution-decision",
+  "execution_authorized": false,
+  "execution_concurrency": 2,
+  "hebog_container_image_digest": "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1",
+  "hebog_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+  "identity_review_path": "config/contracts/phase-5-external-recovery-identity-review.json",
+  "identity_review_sha256": "pending",
+  "implementation_commit": "c184acf7f55f936442285835b4601a6ac193fe2a",
+  "named_review": "pending",
+  "next_action": "obtain-named-one-look-approval-before-no-write-preflight",
+  "one_look_opened": false,
+  "optimization_authorized": false,
+  "population_contract_sha256": "c2a4ac5b9763f2451fd07a18440b76ff3d5705dd2e56dd4273475efbe0423220",
+  "power_review_sha256": "bbfab3a0781c8a12083190d8c591152d5c461a45824bab6cba39e770915af9fc",
+  "protocol_sha256": "717afa1e4901ffed2885910e47d5bb3d55d7246e4aa73d89dc75cd855eedebb1",
+  "pybdsf_ncores": 4,
+  "qualification_opened": false,
+  "runners": [
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_recovery_hebog.py",
+      "sha256": "eff59d97836593e35f74f4c44b6a1f64f84bd114d3cd6e298db565a15bd921ef"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_recovery_pybdsf.py",
+      "sha256": "b823d17a6832c7c2503bd39a8e32d747a43f940009ea96a748d81ead3dfeaa11"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_recovery_aegean.py",
+      "sha256": "29951a72c0bde43de1ffd3de24d6efb56905e0f21766aa6a6630cb2e07d0eaf7"
+    }
+  ],
+  "schema_version": 1,
+  "source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+  "status": "awaiting-named-execution-approval",
+  "step_three_authorized": false
+}

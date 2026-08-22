@@ -393,11 +393,15 @@ must be restored before new evidence work.
       realizations (422 per geometry) plus 800 compact realizations; its
       conservative combined familywise power lower bound is 0.90508 against
       the required 0.90.
-- [ ] Obtain named scientific approval of candidate `c184acf...` / source
-      `b4176ce3...` / configuration `0e5dde51...`, the powered seed-disjoint
-      population, the prospective recovery compiler/evaluator composition,
-      and the four runtime identities in recovery decision `b35f4a81...`.
-      Only then freeze fresh identities; this approval does not execute them.
+- [x] Obtain named scientific approval of candidate `c184acf...` / source
+      `b4176ce3...` / configuration `0e5dde51...`, then freeze the powered
+      seed-disjoint population, prospective recovery compiler/evaluator, and
+      four approved runtimes without execution. The new namespace is exact and
+      pending; identity review SHA is `5bdf4f46...`.
+- [ ] Obtain a separate named one-look approval bound to identity review
+      `5bdf4f46...` and its four runtimes. Only after that transition may the
+      complete no-write preflight run; execute and evaluate the one-look only
+      if preflight passes without changing any frozen identity.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

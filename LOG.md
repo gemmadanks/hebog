@@ -8705,3 +8705,49 @@ final pre-commit suite pass. Code review found no actionable issue.
 stated freeze boundary. After approval, update and verify the fresh freeze and
 program identities without executing the campaign, then present the separate
 one-look execution decision.
+
+## 2026-08-22 — Freeze the fresh Phase 5 recovery identities
+
+**Plan phase:** Phase 5, Step 2C-PC recovery
+
+- Gemma Danks gave named scientific approval of candidate `c184acf...`, source
+  tree `b4176ce3...`, configuration `0e5dde51...`, the powered 1,688/800
+  design, the prospective recovery composition, and the four runtimes in
+  recovery decision `b35f4a81...`. The approval explicitly permits identity
+  freezing only and does not authorize execution.
+- Created a new recovery namespace rather than altering the closed
+  post-correction contracts. Its 1,688 Continuum seeds occupy four new
+  422-image blocks beginning `2026920001`, `2026921001`, `2026922001`, and
+  `2026923001`; its 800 compact seeds begin `2026930001`. All 2,488 are
+  disjoint from the 16,741 seeds in 43 checked-in historical manifests.
+- Bound population `c2a4ac5b...`, comparison `717afa1e...`, pending execution
+  decision `67b8deef...`, endpoint registry `5754aa43...`, and evaluation
+  contract `b2d0a88e...`. The new Hebog runner emits the shared approved
+  1.5-beam/refined-residual-B3/regularized-position product composition and
+  exact candidate configuration; the terminal compiler installs the
+  fitted-component compact and symmetric-valid-domain seams proven by the
+  cumulative replay.
+- Published identity review
+  `config/contracts/phase-5-external-recovery-identity-review.json`, SHA-256
+  `5bdf4f46f33fc47d1fed787ec29cf56147fe03b49bf9d33442980edeca70c13a`.
+  It binds 17 program/data artifacts and the exact Hebog, released PyBDSF,
+  pinned-master PyBDSF, and Aegean runtime identities. Both public and private
+  recovery output paths are absent; no scientific product was generated or
+  opened.
+
+**Decision:** the scientific and program freeze is complete, but the one-look
+remains closed. The execution decision is pending, `execution_authorized` is
+false, and the launcher rejects both preflight and execution until a separate
+named approval is bound to identity review `5bdf4f46...` and its four exact
+runtimes. Step 3 and qualification remain unauthorized.
+
+**Validation:** the population test first failed because the recovery freezer
+did not exist. Five focused recovery-freeze tests and the complete 53-test
+recovery/historical protocol suite now pass; focused Ruff and Pyright are
+clean. `just coverage` passes 1,413 tests with four expected failures and
+94.34% branch-aware coverage; `just check` passes 1,283 quick tests with four
+expected failures. The strict documentation build and final pre-commit suite
+also pass. Review against `CODE_REVIEW.md` found no actionable issue.
+
+**Immediate next step:** request the separate named one-look execution approval.
+Do not run the no-write preflight or campaign before that approval.

@@ -1,0 +1,133 @@
+{
+  "authorization": {
+    "execution_decision_path": "config/contracts/phase-5-external-recovery-execution-decision.json",
+    "execution_decision_sha256": "67b8deef1dd60d1ab51dda9ccc77eaaa28b9eb7bc7fbf53c8a3dd8728596af2e",
+    "named_review": "pending",
+    "required_next_decision": "named-one-look-approval-bound-to-this-review-and-four-runtimes"
+  },
+  "execution_authorized": false,
+  "identity_artifacts": [
+    {
+      "relative_path": "config/contracts/phase-5-external-recovery-population.json",
+      "sha256": "c2a4ac5b9763f2451fd07a18440b76ff3d5705dd2e56dd4273475efbe0423220"
+    },
+    {
+      "relative_path": "config/contracts/phase-5-external-recovery-comparison.json",
+      "sha256": "717afa1e4901ffed2885910e47d5bb3d55d7246e4aa73d89dc75cd855eedebb1"
+    },
+    {
+      "relative_path": "config/contracts/phase-5-external-recovery-execution-decision.json",
+      "sha256": "67b8deef1dd60d1ab51dda9ccc77eaaa28b9eb7bc7fbf53c8a3dd8728596af2e"
+    },
+    {
+      "relative_path": "config/contracts/phase-5-external-recovery-endpoint-registry.json",
+      "sha256": "5754aa4375df44f5834f285b8419540bc5786b98b9f6bf1b4585ad6c58873f83"
+    },
+    {
+      "relative_path": "config/contracts/phase-5-external-recovery-evaluation.json",
+      "sha256": "b2d0a88ef52131131a9382fdb609de7c41c9984eee48547978f83914710d9276"
+    },
+    {
+      "relative_path": "config/datasets/phase-5-external-recovery-continuum.json",
+      "sha256": "d10f43874d5f2cf045a87b5f13e5cff8a29e74bc989dbfd113748a61403441b1"
+    },
+    {
+      "relative_path": "config/datasets/phase-5-external-recovery-compact-blend.json",
+      "sha256": "57b09825d62bb7a8732dbb25bed4d45f623f191a1b969fd48fed121090f4c85a"
+    },
+    {
+      "relative_path": "scripts/validation/freeze_phase5_external_recovery_population.py",
+      "sha256": "0a0309eafede412f92e973d50082ef621791bbf1e5e2cb23c11e35922f442114"
+    },
+    {
+      "relative_path": "scripts/validation/phase5_external_recovery_protocol.py",
+      "sha256": "07020a6e2603e2db1da5b0d8552fe157bc3e9991f78882126d18d1dd23b75adb"
+    },
+    {
+      "relative_path": "scripts/validation/compile_phase5_external_recovery_campaign.py",
+      "sha256": "9d1ec0af26d0eac6bf6fb339844ba242e363cb86521d92bb532bf32bbd91087d"
+    },
+    {
+      "relative_path": "scripts/validation/evaluate_phase5_external_recovery_decision.py",
+      "sha256": "fc17d820931989e78049a3615220553d130fb02920ad7708d74ca8b0dd451bce"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_recovery_campaign.py",
+      "sha256": "638f0ec2731ab71e2f87ab41720392bec128900cc706213324917ee52dad1975"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_recovery_hebog.py",
+      "sha256": "eff59d97836593e35f74f4c44b6a1f64f84bd114d3cd6e298db565a15bd921ef"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_recovery_pybdsf.py",
+      "sha256": "b823d17a6832c7c2503bd39a8e32d747a43f940009ea96a748d81ead3dfeaa11"
+    },
+    {
+      "relative_path": "scripts/benchmark/run_phase5_external_recovery_aegean.py",
+      "sha256": "29951a72c0bde43de1ffd3de24d6efb56905e0f21766aa6a6630cb2e07d0eaf7"
+    },
+    {
+      "relative_path": "src/hebog/validation/post_correction_recovery.py",
+      "sha256": "9343e0696426a0e8aff6022fdf88c6b6118147d362f15ed00f39374abafd71e6"
+    },
+    {
+      "relative_path": "src/hebog/validation/external_recovery_compiler.py",
+      "sha256": "ab690dda67126e8cc1eeec57f426c73ee5244ba33922d1af6f4e8d5a5c07e0f6"
+    }
+  ],
+  "implementation": {
+    "candidate_revision": "c184acf7f55f936442285835b4601a6ac193fe2a",
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc"
+  },
+  "output_paths": {
+    "both_absent": true,
+    "private_staging": "benchmark-results/phase-5/.external-recovery-comparison.staging",
+    "public_campaign": "benchmark-results/phase-5/external-recovery-comparison"
+  },
+  "population": {
+    "binding_run_count": 8264,
+    "compact_blend_image_count": 800,
+    "continuum_image_count": 1688,
+    "image_count": 2488,
+    "terminal_run_count": 12440
+  },
+  "resource_policy": {
+    "execution_concurrency": 2,
+    "hebog_cores": 1,
+    "other_companion_cores": 1,
+    "pybdsf_ncores": 4
+  },
+  "review_id": "phase-5-external-recovery-identity-review",
+  "reviewed_on": "2026-08-22",
+  "runtime_images": [
+    {
+      "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+      "digest": "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1",
+      "finder_id": "hebog",
+      "image_id": "e519dc15b846dec7ac00a6cada7684d0c0b2615490dd6688ac4c6cdf5f3021ca"
+    },
+    {
+      "dependency_inventory_sha256": "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+      "digest": "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198",
+      "finder_id": "released-pybdsf",
+      "image_id": "43a6513865a597285dc1bf473e27fc69fdd86fb143c35a24144eb6c1152bb36e"
+    },
+    {
+      "dependency_inventory_sha256": "83574dd4c15d79f3cf2ac52fb8aa7b5bd2ff323c93343b2f1337eec938e8bf99",
+      "digest": "sha256:0e6d932416479bb7d7763fe2e025ea9fbbd0d0548a6f156b2cdd881766690c75",
+      "finder_id": "pinned-pybdsf-master",
+      "image_id": "0360fbbfe42fe13aea1559f5603e4fcf4c51c84f7ad5fd201ba8fd76a88df087"
+    },
+    {
+      "dependency_inventory_sha256": "346c1f32b0d78ce1d22f6d6ff20787a102d8491c14432865465596c9f41ba909",
+      "digest": "sha256:dcac8e646ff5ea6d11d314c5c7a51fb0c3ca710165934ad2ddf0ac3f999131b0",
+      "finder_id": "aegean",
+      "image_id": "9e79e24b2460596a57a8ebba5c3987fa636886631579ef333ad46b801b3a86b8"
+    }
+  ],
+  "schema_version": 1,
+  "scientific_products_opened": false,
+  "status": "ready-for-named-execution-approval"
+}

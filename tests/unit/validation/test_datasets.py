@@ -438,6 +438,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-external-post-failure-continuum",
         "phase-5-external-post-correction-compact-blend",
         "phase-5-external-post-correction-continuum",
+        "phase-5-external-recovery-compact-blend",
+        "phase-5-external-recovery-continuum",
         "phase-5-external-successor-compact-blend",
         "phase-5-external-successor-continuum",
         "phase-5-qualification",
@@ -460,6 +462,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
             DatasetRole.REGRESSION
         ),
         "phase-5-external-post-correction-continuum": DatasetRole.REGRESSION,
+        "phase-5-external-recovery-compact-blend": DatasetRole.REGRESSION,
+        "phase-5-external-recovery-continuum": DatasetRole.REGRESSION,
         "phase-5-external-successor-compact-blend": DatasetRole.REGRESSION,
         "phase-5-external-successor-continuum": DatasetRole.REGRESSION,
         "phase-5-regression": DatasetRole.REGRESSION,
@@ -477,6 +481,7 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
                 "phase-5-external-confirmation-compact-blend",
                 "phase-5-external-post-failure-compact-blend",
                 "phase-5-external-post-correction-compact-blend",
+                "phase-5-external-recovery-compact-blend",
                 "phase-5-external-successor-compact-blend",
             }
             else 3
@@ -531,6 +536,8 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-external-post-failure-compact-blend": 800,
         "phase-5-external-post-correction-continuum": 1688,
         "phase-5-external-post-correction-compact-blend": 800,
+        "phase-5-external-recovery-continuum": 1688,
+        "phase-5-external-recovery-compact-blend": 800,
     }
     assert {
         manifest_id: sum(
@@ -656,6 +663,15 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
             "ffa7301398aa93fd7658a618f1767c64def33dce88f5f3af75145f9d65e47809",
             "af652ed1364c37670fc9de6c32ff35007832ab2509b6d1c30c41b150ca92fc55",
             "b2de71628220c817aceb6a28705d29e9ae737b30d4c7998a3b4674655e82c393",
+        ),
+        "phase-5-external-recovery-compact-blend": (
+            "6b574ff757e8f85736b5513f38d8d68b5189b112757c93f26c1de8fc77b85ab6",
+        ),
+        "phase-5-external-recovery-continuum": (
+            "d9956c8c74aa18825ba5ead78839453e317e2c0627c845aca6346dc0af407a71",
+            "39554fac34b1a07c29026dece2e3f56a5368c1e8ec48350fbfa2c2aad1f67415",
+            "1fd42a71ade6964742c56f68cba88f34d026d0d5b384b4f885fa5a3f717ce40a",
+            "f7926ddd5d5054f88a0ff06761c1ee496de7ae1158b1123ea6cd049cec3c1f19",
         ),
         "phase-5-external-successor-compact-blend": (
             "ef4a73f33a7997eec3c5f14cc4f1effa3156ffabccfaec9b472a9279f153c779",

@@ -1,0 +1,35 @@
+{
+  "analysis_compiler": {
+    "path": "scripts/validation/compile_phase5_external_recovery_campaign.py",
+    "sha256": "9d1ec0af26d0eac6bf6fb339844ba242e363cb86521d92bb532bf32bbd91087d",
+    "status": "frozen-before-campaign-output"
+  },
+  "base_evaluation_path": "config/contracts/phase-5-external-post-correction-evaluation.json",
+  "base_evaluation_sha256": "039877ffe244a5ea44281463d115f482f92927a8ea4762f38a8a99612631f124",
+  "candidate_adapter": {
+    "path": "src/hebog/validation/post_correction_recovery.py",
+    "sha256": "9343e0696426a0e8aff6022fdf88c6b6118147d362f15ed00f39374abafd71e6",
+    "status": "approved-recovery-candidate-composition"
+  },
+  "closed_campaign_reuse_authorized": false,
+  "compiler_accelerator": {
+    "path": "src/hebog/validation/external_recovery_compiler.py",
+    "sha256": "ab690dda67126e8cc1eeec57f426c73ee5244ba33922d1af6f4e8d5a5c07e0f6",
+    "status": "approved-fitted-component-and-symmetric-mask-composition"
+  },
+  "contract_id": "phase-5-external-recovery-evaluation",
+  "endpoint_registry": {
+    "path": "config/contracts/phase-5-external-recovery-endpoint-registry.json",
+    "sha256": "5754aa4375df44f5834f285b8419540bc5786b98b9f6bf1b4585ad6c58873f83",
+    "status": "frozen-before-campaign-output"
+  },
+  "evaluator_path": "scripts/validation/evaluate_phase5_external_recovery_decision.py",
+  "evaluator_sha256": "fc17d820931989e78049a3615220553d130fb02920ad7708d74ca8b0dd451bce",
+  "one_look_rule": "one-terminal-look-no-tuning-rescoring-reconfirmation-or-adaptive-sample-size",
+  "population_contract_path": "config/contracts/phase-5-external-recovery-population.json",
+  "population_contract_sha256": "c2a4ac5b9763f2451fd07a18440b76ff3d5705dd2e56dd4273475efbe0423220",
+  "protocol_path": "config/contracts/phase-5-external-recovery-comparison.json",
+  "protocol_sha256": "717afa1e4901ffed2885910e47d5bb3d55d7246e4aa73d89dc75cd855eedebb1",
+  "schema_version": 1,
+  "status": "frozen-before-campaign-output"
+}
