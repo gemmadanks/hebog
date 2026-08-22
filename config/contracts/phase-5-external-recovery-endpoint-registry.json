@@ -13,7 +13,7 @@
   "continuum_manifest_path": "config/datasets/phase-5-external-recovery-continuum.json",
   "continuum_manifest_sha256": "d10f43874d5f2cf045a87b5f13e5cff8a29e74bc989dbfd113748a61403441b1",
   "execution_decision_path": "config/contracts/phase-5-external-recovery-execution-decision.json",
-  "execution_decision_sha256": "67b8deef1dd60d1ab51dda9ccc77eaaa28b9eb7bc7fbf53c8a3dd8728596af2e",
+  "execution_decision_sha256": "7a44ba52eb3e5daac1c40a234e80f422608e81d379587e06239c591c265f7e50",
   "launcher_path": "scripts/benchmark/run_phase5_external_recovery_campaign.py",
   "launcher_sha256": "638f0ec2731ab71e2f87ab41720392bec128900cc706213324917ee52dad1975",
   "population_contract_path": "config/contracts/phase-5-external-recovery-population.json",

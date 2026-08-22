@@ -125,8 +125,8 @@ def test_recovery_freezer_builds_approved_fresh_population() -> None:
         assert path.read_text(encoding="utf-8") == encoded
 
 
-def test_frozen_recovery_chain_is_exact_and_pending() -> None:
-    """Every approved identity is frozen without opening the one-look."""
+def test_frozen_recovery_chain_is_exact_and_authorized() -> None:
+    """Named approval authorizes only the exact unopened one-look."""
     helpers = _script(
         "scripts/validation/phase5_external_recovery_protocol.py"
     )
@@ -155,8 +155,14 @@ def test_frozen_recovery_chain_is_exact_and_pending() -> None:
         1688,
         800,
     )
-    assert decision.execution_authorized is False
-    assert decision.identity_review_sha256 == "pending"
+    assert decision.execution_authorized is True
+    assert decision.identity_review_sha256 == _RECOVERY_REVIEW_SHA256
+    assert decision.named_review == (
+        "Gemma Danks, 2026-08-22, approved corrected Phase 5 recovery "
+        "one-look execution bound to identity review sha256:"
+        f"{_RECOVERY_REVIEW_SHA256} and its unchanged exact four runtime "
+        "identities"
+    )
     assert registry["candidate_adapter_path"] == (
         "src/hebog/validation/post_correction_recovery.py"
     )
@@ -347,15 +353,40 @@ def test_recovery_evaluator_binds_powered_population() -> None:
     assert len(contract["endpoint_power_priors"]) == 226
 
 
-def test_recovery_launcher_rejects_pending_execution(
+def test_recovery_launcher_accepts_exact_authorized_execution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Freezing identities does not authorize preflight or execution."""
+    """The approved launcher reaches unchanged campaign mechanics."""
     launcher = _script(
         "scripts/benchmark/run_phase5_external_recovery_campaign.py"
     )
     output = tmp_path / "campaign"
+    observed: dict[str, Any] = {}
+
+    def configured(registry_path: Path) -> dict[str, Any]:
+        observed["registry_path"] = registry_path
+
+        def run(arguments: object) -> None:
+            observed["arguments"] = arguments
+
+        return {"_run": run}
+
+    main_globals = launcher["main"].__globals__
+    monkeypatch.setitem(
+        main_globals,
+        "_configure_terminal_launcher",
+        configured,
+    )
+
+    def arguments(**kwargs: Any) -> dict[str, Any]:
+        return kwargs
+
+    monkeypatch.setitem(
+        main_globals,
+        "_arguments",
+        arguments,
+    )
     monkeypatch.setattr(
         "sys.argv",
         [
@@ -373,7 +404,15 @@ def test_recovery_launcher_rejects_pending_execution(
         ],
     )
 
-    with pytest.raises(ValueError, match="execution is not authorized"):
-        launcher["main"]()
+    launcher["main"]()
 
+    arguments = observed["arguments"]
+    assert isinstance(arguments, dict)
+    assert arguments["output"] == output
+    assert arguments["images"] == {
+        "hebog": "hebog",
+        "released-pybdsf": "released",
+        "pinned-pybdsf-master": "master",
+        "aegean": "aegean",
+    }
     assert not output.exists()

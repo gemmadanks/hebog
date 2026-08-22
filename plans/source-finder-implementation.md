@@ -400,11 +400,12 @@ must be restored before new evidence work.
       was superseded before preflight because its verifier could not represent
       the approved state; corrected pending review `8aaaca74...` adds only the
       fail-closed authorization transition and keeps all science identities.
-- [ ] Obtain a separate named one-look approval bound to identity review
+- [x] Obtain a separate named one-look approval bound to identity review
       `8aaaca74...` and its four runtimes. Approval of superseded review
-      `5bdf4f46...` cannot carry across the verifier change. Only after the new
-      transition may the complete no-write preflight run; execute and evaluate
-      the one-look only if preflight passes without changing any identity.
+      `5bdf4f46...` did not carry across the verifier change. The corrected
+      decision now authorizes exactly one comparison while leaving the look
+      unopened. Run the complete no-write preflight from the immutable
+      authorization commit; execute and evaluate only if every identity holds.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

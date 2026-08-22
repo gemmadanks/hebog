@@ -20,7 +20,7 @@
   "contract_id": "phase-5-external-recovery-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-external-recovery-endpoint-registry.json",
-    "sha256": "52bd44a649e380379fc08a30547e64c207eb5062b801f624263d1d49aa98d463",
+    "sha256": "9486e21024dcb653bdcfe842cf9a90b307c1b2bb73ee83e297e8ad1a3c022b67",
     "status": "frozen-before-campaign-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_external_recovery_decision.py",

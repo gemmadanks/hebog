@@ -8793,3 +8793,36 @@ actionable issue.
 **Immediate next step:** commit the corrected fail-closed identity package
 locally, then request renewed approval bound to review `8aaaca74...` and its
 exact four runtimes.
+
+## 2026-08-22 — Bind the corrected recovery one-look approval
+
+**Plan phase:** Phase 5, Step 2C-PC exact-identity authorization
+
+- Gemma Danks explicitly approved corrected identity review `8aaaca74...`, its
+  unchanged four runtime identities, and transition of exact pending decision
+  `67b8deef...`. The approval authorizes the complete no-write preflight and
+  conditional execution only if no frozen identity changes.
+- Changed only the authorization-dependent chain. Decision `7a44ba52...` now
+  embeds the complete corrected review SHA, records the named approval, and
+  authorizes one terminal recovery comparison. Registry `9486e210...` and
+  evaluation `9ef1a4f6...` bind that decision and registry respectively.
+- Candidate `c184acf...`, source `b4176ce3...`, configuration `0e5dde51...`,
+  population `c2a4ac5b...`, comparison `717afa1e...`, verifier `690e2f2a...`,
+  seeds, science gates, runners, compiler/evaluator behavior, resource policy,
+  and all four runtime identities are unchanged. `one_look_opened` remains
+  false; no preflight request, campaign state, or scientific product exists.
+
+**Decision:** the corrected approval is sufficient for the complete no-write
+preflight from the immutable authorization commit. Campaign state may be
+created only if that exact preflight passes without an identity change.
+
+**Validation:** the authorization assertion failed first for the intended
+pending-decision reason, then all seven focused recovery tests pass. `just
+coverage` passes 1,415 tests with four expected failures at 94.34% branch-aware
+coverage; `just check` passes 1,285 quick tests with four expected failures,
+and the strict documentation build and final pre-commit suite pass. Review
+against `CODE_REVIEW.md` found no actionable issue.
+
+**Immediate next step:** commit the narrow authorization transition, create its
+immutable checkout, run the complete no-write preflight, and launch the one
+terminal campaign only on success.
