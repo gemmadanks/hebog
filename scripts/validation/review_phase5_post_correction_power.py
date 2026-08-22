@@ -7,7 +7,7 @@ import argparse
 import hashlib
 import json
 import subprocess
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from math import ceil
 from pathlib import Path
 from typing import cast
@@ -27,11 +27,34 @@ _CONFIRMATION_POPULATION = (
 _POST_FAILURE_POPULATION = (
     _ROOT / "config/contracts/phase-5-external-post-failure-population.json"
 )
+_VIEWED_RECOVERY_DECISION = (
+    _ROOT / "config/contracts/phase-5-viewed-recovery-execution-decision.json"
+)
+_REFERENCE_RECONSTRUCTION = (
+    _ROOT
+    / "benchmark-results/phase-5/viewed-reference-reconstruction/recovery.json"
+)
+_CLOSED_COMPONENT_BASELINE_LEDGER = (
+    _ROOT / "benchmark-results/phase-5/cumulative-regression-ledger.json"
+)
+_SEALED_CAMPAIGN = (
+    _ROOT
+    / "benchmark-results"
+    / "phase-5"
+    / "external-post-failure-comparison"
+    / "campaign.json"
+)
 _CONFIRMATION_POPULATION_SHA256 = (
     "c346549df25c8b7d7bdadc6791e590d0333c08d918bd9c530b27042025444768"
 )
 _POST_FAILURE_POPULATION_SHA256 = (
     "42c3d07c2aeb74caf00f6e888a9cf3c6cecda3f05decb820db7e18cb646d87fd"
+)
+_VIEWED_RECOVERY_DECISION_SHA256 = (
+    "b35f4a811827df8960c22484193e9198d547bbb0e588e5b215d1f8d9ed66865f"
+)
+_CLOSED_COMPONENT_BASELINE_LEDGER_SHA256 = (
+    "f6a92d394dc1f41000a923de5e395411d275113040f9920a12743b3a6d446ab9"
 )
 _VARIANCE_INFLATION = 1.25
 _ADVANTAGE_RETENTION = 0.5
@@ -40,6 +63,16 @@ _POPULATION_SAFETY_NUMERATOR = 11
 _POPULATION_SAFETY_DENOMINATOR = 10
 _GEOMETRY_COUNT = 4
 _MINIMUM_CONTINUUM_COUNT = 1600
+_GIT_SHA1_LENGTH = 40
+
+
+@dataclass(frozen=True)
+class _RecoveryEvidenceIdentities:
+    """Exact recovery evidence identities required by the power review."""
+
+    campaign_sha256: str
+    reference_reconstruction_sha256: str
+    closed_baseline_sha256: str
 
 
 def _sha256(path: Path) -> str:
@@ -87,12 +120,14 @@ def _selected_realization_count(minimum_count: int) -> int:
     return ceil(buffered / _GEOMETRY_COUNT) * _GEOMETRY_COUNT
 
 
-def _validate_ledger(
-    ledger: dict[str, object],
-    *,
-    root: Path,
-) -> list[dict[str, object]]:
-    """Require the clean candidate and a regression-ready science view."""
+def _require_equal(actual: object, expected: object, message: str) -> None:
+    """Fail closed when one governed identity differs."""
+    if actual != expected:
+        raise ValueError(message)
+
+
+def _require_science_ready(ledger: dict[str, object]) -> None:
+    """Require the cumulative science and regression gates to pass."""
     if ledger.get("status") not in {"pass", "pass-pending-power-review"}:
         raise ValueError("cumulative ledger has not passed scientific review")
     if ledger.get("cumulative_science_regression_ready") is not True:
@@ -101,10 +136,55 @@ def _validate_ledger(
         raise ValueError("compact cumulative regressions remain")
     if ledger.get("like_semantics_continuum_regressions") != []:
         raise ValueError("Continuum cumulative regressions remain")
-    if ledger.get("candidate_revision") != _git_revision(root):
-        raise ValueError("cumulative candidate revision differs from checkout")
-    if ledger.get("candidate_source_tree_sha256") != source_tree_sha256(root):
-        raise ValueError("cumulative candidate source identity changed")
+
+
+def _validate_ledger(
+    ledger: dict[str, object],
+    *,
+    root: Path,
+    recovery_decision: dict[str, object],
+    evidence: _RecoveryEvidenceIdentities,
+) -> list[dict[str, object]]:
+    """Require approved identities and a regression-ready science view."""
+    _require_science_ready(ledger)
+    candidate_keys = (
+        "candidate_revision",
+        "candidate_source_tree_sha256",
+        "candidate_configuration_sha256",
+    )
+    if any(
+        ledger.get(key) != recovery_decision.get(key) for key in candidate_keys
+    ):
+        raise ValueError("candidate differs from approved recovery decision")
+    if ledger.get("sealed_campaign_sha256") != evidence.campaign_sha256 or (
+        recovery_decision.get("original_campaign_sha256")
+        != evidence.campaign_sha256
+    ):
+        raise ValueError("sealed campaign differs from recovery decision")
+    _require_equal(
+        ledger.get("reference_reconstruction_sha256"),
+        evidence.reference_reconstruction_sha256,
+        "viewed reference reconstruction identity changed",
+    )
+    _require_equal(
+        ledger.get("closed_component_baseline_ledger_sha256"),
+        evidence.closed_baseline_sha256,
+        "closed component baseline identity changed",
+    )
+    _require_equal(
+        ledger.get("candidate_source_tree_sha256"),
+        source_tree_sha256(root),
+        "cumulative candidate source identity changed",
+    )
+    replay_revision = ledger.get("replay_execution_revision")
+    if not isinstance(replay_revision, str) or (
+        len(replay_revision) != _GIT_SHA1_LENGTH
+        or any(
+            character not in "0123456789abcdef"
+            for character in replay_revision
+        )
+    ):
+        raise ValueError("cumulative replay execution revision is invalid")
     endpoints = ledger.get("prospective_continuum_analysis")
     if not isinstance(endpoints, list) or not endpoints:
         raise ValueError("cumulative ledger lacks raw Continuum analysis")
@@ -120,12 +200,33 @@ def build_review(
 ) -> dict[str, object]:
     """Build an exact endpoint-level fresh-population power review."""
     root = repository_root.resolve()
+    review_execution_revision = _git_revision(root)
     if _sha256(_CONFIRMATION_POPULATION) != (_CONFIRMATION_POPULATION_SHA256):
         raise ValueError("governed Continuum family assumptions changed")
     if _sha256(_POST_FAILURE_POPULATION) != (_POST_FAILURE_POPULATION_SHA256):
         raise ValueError("governed post-failure power policy changed")
+    if _sha256(_VIEWED_RECOVERY_DECISION) != (
+        _VIEWED_RECOVERY_DECISION_SHA256
+    ):
+        raise ValueError("approved viewed recovery decision changed")
+    evidence = _RecoveryEvidenceIdentities(
+        campaign_sha256=_sha256(_SEALED_CAMPAIGN),
+        reference_reconstruction_sha256=_sha256(_REFERENCE_RECONSTRUCTION),
+        closed_baseline_sha256=_sha256(_CLOSED_COMPONENT_BASELINE_LEDGER),
+    )
+    if (
+        evidence.closed_baseline_sha256
+        != _CLOSED_COMPONENT_BASELINE_LEDGER_SHA256
+    ):
+        raise ValueError("closed component baseline ledger changed")
+    recovery_decision = _json_object(_VIEWED_RECOVERY_DECISION)
     ledger = _json_object(cumulative_ledger_path)
-    endpoints = _validate_ledger(ledger, root=root)
+    endpoints = _validate_ledger(
+        ledger,
+        root=root,
+        recovery_decision=recovery_decision,
+        evidence=evidence,
+    )
     confirmation = _json_object(_CONFIRMATION_POPULATION)
     post_failure = _json_object(_POST_FAILURE_POPULATION)
     confirmation_power = cast(dict[str, object], confirmation["power_audit"])
@@ -157,7 +258,7 @@ def build_review(
         raise ValueError("buffered fresh population remains underpowered")
     return {
         "schema_version": 1,
-        "review_id": "phase-5-post-correction-power-review",
+        "review_id": "phase-5-viewed-recovery-power-review",
         "status": "ready-for-named-scientific-freeze-review",
         "cumulative_ledger": {
             "path": str(cumulative_ledger_path.relative_to(root)),
@@ -169,6 +270,16 @@ def build_review(
             "candidate_configuration_sha256": ledger[
                 "candidate_configuration_sha256"
             ],
+            "replay_execution_revision": ledger["replay_execution_revision"],
+            "review_execution_revision": review_execution_revision,
+            "recovery_decision_sha256": _VIEWED_RECOVERY_DECISION_SHA256,
+            "reference_reconstruction_sha256": (
+                evidence.reference_reconstruction_sha256
+            ),
+            "sealed_campaign_sha256": evidence.campaign_sha256,
+            "closed_component_baseline_ledger_sha256": (
+                evidence.closed_baseline_sha256
+            ),
         },
         "planning": {
             "method": (

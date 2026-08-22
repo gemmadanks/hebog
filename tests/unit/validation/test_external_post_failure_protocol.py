@@ -152,6 +152,106 @@ def test_post_correction_power_review_adds_a_balanced_safety_buffer() -> None:
     )
 
 
+def test_recovery_power_review_separates_candidate_and_replay_identities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Power review binds the candidate without relabelling its wrapper."""
+    module = _script(
+        "scripts/validation/review_phase5_post_correction_power.py"
+    )
+    candidate_revision = "c" * 40
+    replay_revision = "d" * 40
+    source_sha256 = "e" * 64
+    configuration_sha256 = "f" * 64
+    campaign_sha256 = "1" * 64
+    reference_sha256 = "2" * 64
+    baseline_sha256 = "3" * 64
+    endpoint = {"endpoint_id": "continuum--metric--overall"}
+    decision = {
+        "candidate_revision": candidate_revision,
+        "candidate_source_tree_sha256": source_sha256,
+        "candidate_configuration_sha256": configuration_sha256,
+        "original_campaign_sha256": campaign_sha256,
+    }
+    ledger = {
+        "status": "pass-pending-power-review",
+        "cumulative_science_regression_ready": True,
+        "like_semantics_compact_regressions": [],
+        "like_semantics_continuum_regressions": [],
+        "candidate_revision": candidate_revision,
+        "replay_execution_revision": replay_revision,
+        "candidate_source_tree_sha256": source_sha256,
+        "candidate_configuration_sha256": configuration_sha256,
+        "sealed_campaign_sha256": campaign_sha256,
+        "reference_reconstruction_sha256": reference_sha256,
+        "closed_component_baseline_ledger_sha256": baseline_sha256,
+        "prospective_continuum_analysis": [endpoint],
+    }
+    validate = module["_validate_ledger"]
+    evidence = module["_RecoveryEvidenceIdentities"](
+        campaign_sha256=campaign_sha256,
+        reference_reconstruction_sha256=reference_sha256,
+        closed_baseline_sha256=baseline_sha256,
+    )
+    monkeypatch.setitem(
+        validate.__globals__,
+        "source_tree_sha256",
+        lambda _root: source_sha256,
+    )
+
+    endpoints = validate(
+        ledger,
+        root=_ROOT,
+        recovery_decision=decision,
+        evidence=evidence,
+    )
+
+    assert endpoints == [endpoint]
+    assert ledger["candidate_revision"] != ledger["replay_execution_revision"]
+    changed = dict(ledger, candidate_revision="a" * 40)
+    with pytest.raises(ValueError, match="approved recovery decision"):
+        validate(
+            changed,
+            root=_ROOT,
+            recovery_decision=decision,
+            evidence=evidence,
+        )
+    identity_failures = (
+        ("sealed_campaign_sha256", "9" * 64, "sealed campaign"),
+        (
+            "reference_reconstruction_sha256",
+            "9" * 64,
+            "reference reconstruction",
+        ),
+        (
+            "closed_component_baseline_ledger_sha256",
+            "9" * 64,
+            "closed component baseline",
+        ),
+        ("replay_execution_revision", "not-a-revision", "replay execution"),
+    )
+    for key, changed_value, message in identity_failures:
+        with pytest.raises(ValueError, match=message):
+            validate(
+                dict(ledger, **{key: changed_value}),
+                root=_ROOT,
+                recovery_decision=decision,
+                evidence=evidence,
+            )
+    monkeypatch.setitem(
+        validate.__globals__,
+        "source_tree_sha256",
+        lambda _root: "9" * 64,
+    )
+    with pytest.raises(ValueError, match="candidate source identity"):
+        validate(
+            ledger,
+            root=_ROOT,
+            recovery_decision=decision,
+            evidence=evidence,
+        )
+
+
 def test_cumulative_replay_separates_closed_and_candidate_source_ids() -> None:
     """Closed verification cannot mistake the prospective tree for history."""
     module = _script(
