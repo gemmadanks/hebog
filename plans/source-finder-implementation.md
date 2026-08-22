@@ -385,11 +385,19 @@ must be restored before new evidence work.
 - [x] Produce a cumulative Phase 4/5 regression ledger and require no
       like-semantics pass-to-fail regression. The complete viewed replay has
       zero compact or Continuum regressions: compact passes, all 143 Continuum
-      absolute gates pass, and nine paired endpoints await power review. A
-      fresh campaign remains unauthorized.
-- [ ] Recompute exact endpoint power, obtain named review of the candidate,
-      population, compiler/evaluator composition, and runtime identities, then
-      freeze one fresh seed-disjoint campaign.
+      absolute gates pass, and the nine underpowered paired endpoints feed the
+      completed prospective power review. A fresh campaign remains
+      unauthorized.
+- [x] Recompute exact endpoint power. The write-once recovery review
+      `bbfab3a0...` binds all 226 comparisons and selects 1,688 Continuum
+      realizations (422 per geometry) plus 800 compact realizations; its
+      conservative combined familywise power lower bound is 0.90508 against
+      the required 0.90.
+- [ ] Obtain named scientific approval of candidate `c184acf...` / source
+      `b4176ce3...` / configuration `0e5dde51...`, the powered seed-disjoint
+      population, the prospective recovery compiler/evaluator composition,
+      and the four runtime identities in recovery decision `b35f4a81...`.
+      Only then freeze fresh identities; this approval does not execute them.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

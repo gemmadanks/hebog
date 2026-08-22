@@ -8664,3 +8664,44 @@ build and final pre-commit suite pass.
 underpowered Continuum outcomes, then obtain named review of the candidate,
 population, compiler/evaluator composition, and four runtime identities before
 freezing any fresh seed-disjoint campaign.
+
+## 2026-08-22 — Complete the viewed-recovery power review
+
+**Plan phase:** Phase 5, Step 2C-PC recovery
+
+- Corrected the power reviewer’s provenance boundary: candidate revision
+  `c184acf...` remains the scientific identity, while replay revision
+  `53f745f...` and review revision `3981d7f...` are recorded separately. The
+  reviewer now also fails closed on recovery decision `b35f4a81...`, sealed
+  campaign `c16dc486...`, reconstructed references `69c66e0b...`, exact
+  closed baseline `f6a92d39...`, source tree `b4176ce3...`, and configuration
+  `0e5dde51...`.
+- Published write-once review
+  `benchmark-results/phase-5/viewed-recovery-power-review.json`, SHA-256
+  `bbfab3a0781c8a12083190d8c591152d5c461a45824bab6cba39e770915af9fc`.
+  Its unchanged approved method covers all 226 endpoint/reference pairs with
+  1.25 variance inflation, 50% retained advantage, and a 10% population safety
+  buffer.
+- The theoretical Continuum minimum is 1,532; the balanced selection is 1,688
+  images, 422 for each of four geometries, plus the governed 800 compact
+  images. Continuum, compact, and combined conservative familywise power lower
+  bounds are 0.995300, 0.909784, and 0.905084 respectively, so the combined
+  result exceeds the required 0.90.
+
+**Decision:** power is ready for named scientific freeze review. No fresh
+population or program identity was frozen, and execution, Step 3, and
+qualification remain unauthorized. The named boundary must cover the approved
+candidate, the 1,688/800 population, the prospective recovery
+compiler/evaluator composition, and the four runtime identities already bound
+by recovery decision `b35f4a81...`.
+
+**Validation:** the provenance regression test failed first, then the focused
+49-test recovery/protocol suite passed. `just coverage` passes 1,408 tests with
+four expected failures and 94.34% branch-aware coverage; `just check` passes
+1,278 quick tests, and Ruff, Pyright, the strict documentation build, and the
+final pre-commit suite pass. Code review found no actionable issue.
+
+**Immediate next step:** obtain Gemma Danks’s named scientific approval of the
+stated freeze boundary. After approval, update and verify the fresh freeze and
+program identities without executing the campaign, then present the separate
+one-look execution decision.
