@@ -8915,3 +8915,34 @@ evaluate before the terminal campaign seals.
 **Immediate next step:** monitor operationally each hour. On successful seal,
 verify the frozen protocol, compile and evaluate exactly once, interpret science
 before runtime, update durable records, validate, review, and commit locally.
+
+## 2026-08-22 — Stop recovery execution at runner import failure
+
+**Plan phase:** Phase 5, Step 2C-PC recovery execution
+
+- Managed session 83019 verified all 2,488 common inputs, then failed during
+  the first Hebog candidate invocation. The write-once infrastructure log
+  records `ModuleNotFoundError` for
+  `hebog.validation.post_correction_recovery`; the terminal public manifest is
+  absent. Aggregate operational state is 2,488 inputs and one completed
+  reference result. No partial scientific product was opened or interpreted.
+- The failure is an execution-composition defect, not a scientific result. The
+  prospective recovery runner imports the approved module from the mounted
+  source tree, but the shared container command sets
+  `PYTHONPATH=/repository/src` only for non-Hebog finders. The frozen Hebog
+  image predates that prospective module, so Python searched the installed
+  image package and failed before candidate execution.
+- Host storage remained healthy at 105 GiB after complete input materialization
+  and the Podman raw disk remained 31 GiB. Storage and runtime-image identity
+  were not the cause.
+
+**Decision:** preserve the failed staging namespace and its infrastructure log;
+do not overwrite, compile, score, or resume it. A minimal recovery-only runner
+environment correction changes the frozen execution composition and therefore
+requires regression coverage, a new immutable identity chain, and renewed
+named one-look approval before any corrected execution.
+
+**Immediate next step:** add a failing command-level test that requires the
+recovery Hebog runner to import the approved mounted source while leaving the
+base campaign unchanged, implement the narrow composition fix, validate and
+review it, then present fresh identities for approval. Do not tune science.
