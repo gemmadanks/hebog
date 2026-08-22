@@ -8751,3 +8751,45 @@ also pass. Review against `CODE_REVIEW.md` found no actionable issue.
 
 **Immediate next step:** request the separate named one-look execution approval.
 Do not run the no-write preflight or campaign before that approval.
+
+## 2026-08-22 — Correct the recovery authorization transition before preflight
+
+**Plan phase:** Phase 5, Step 2C-PC recovery authorization
+
+- Gemma Danks approved one-look execution bound to identity review
+  `5bdf4f46...` and its four exact runtimes, authorizing the complete no-write
+  preflight and conditional execution only without an identity change.
+- The attempted authorization transition stopped before preflight because the
+  frozen recovery verifier accepted only the pending decision. Updating the
+  decision alone would fail verification, while changing the verifier after
+  approval would violate the approved identity boundary. No preflight request,
+  staging directory, campaign state, or scientific product was created.
+- Added test-first dual pending/approved decision validation and explicit
+  preservation of the pre-authorization review across changes to only the
+  decision, registry, and evaluation contracts. Candidate `c184acf...`, source
+  `b4176ce3...`, configuration `0e5dde51...`, population `c2a4ac5b...`,
+  comparison `717afa1e...`, pending decision `67b8deef...`, all seeds, science
+  gates, runners, compiler/evaluator behavior, and four runtimes are unchanged.
+- Cascaded only the corrected verifier `690e2f2a...` through registry
+  `52bd44a6...` and evaluation `9411a9f5...`. Replacement identity review
+  `8aaaca742f782f94cbcccbcc53a0a396459ccc5902e46c519a675933a79d6c63`
+  remains `ready-for-named-execution-approval`; the decision remains pending,
+  `execution_authorized` is false, and `one_look_opened` is false.
+
+**Decision:** review `5bdf4f46...` is superseded without having opened the
+one-look. Its approval cannot authorize the changed verifier. The corrected
+review and unchanged four runtimes require renewed named approval before the
+no-write preflight or campaign may run.
+
+**Validation:** both new authorization-transition tests failed for their
+intended pending-only and review-revalidation reasons, then pass. The focused
+seven-test recovery suite and 56-test recovery/historical protocol suite pass;
+focused Ruff and Pyright are clean. `just coverage` passes 1,415 tests with
+four expected failures at 94.34% branch-aware coverage; `just check` passes
+1,285 quick tests with four expected failures, and the strict documentation
+build and final pre-commit suite pass. Review against `CODE_REVIEW.md` found no
+actionable issue.
+
+**Immediate next step:** commit the corrected fail-closed identity package
+locally, then request renewed approval bound to review `8aaaca74...` and its
+exact four runtimes.

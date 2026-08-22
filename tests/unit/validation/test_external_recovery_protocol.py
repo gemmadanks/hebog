@@ -17,6 +17,9 @@ from hebog.validation.post_correction_recovery import (
 )
 
 _ROOT = Path(__file__).parents[3]
+_RECOVERY_REVIEW_SHA256 = (
+    "8aaaca742f782f94cbcccbcc53a0a396459ccc5902e46c519a675933a79d6c63"
+)
 
 
 def _script(relative_path: str) -> dict[str, Any]:
@@ -164,9 +167,127 @@ def test_frozen_recovery_chain_is_exact_and_pending() -> None:
     assert review["scientific_products_opened"] is False
     assert len(review["runtime_images"]) == 4
     assert len(review["identity_artifacts"]) == 17
-    assert hashlib.sha256(review_path.read_bytes()).hexdigest() == (
-        "5bdf4f46f33fc47d1fed787ec29cf56147fe03b49bf9d33442980edeca70c13a"
+    assert (
+        hashlib.sha256(review_path.read_bytes()).hexdigest()
+        == _RECOVERY_REVIEW_SHA256
     )
+
+
+def test_recovery_verifier_accepts_exact_named_authorization(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The frozen verifier can transition without changing its own identity."""
+    helpers = _script(
+        "scripts/validation/phase5_external_recovery_protocol.py"
+    )
+    decision_path = (
+        _ROOT
+        / "config/contracts/phase-5-external-recovery-execution-decision.json"
+    )
+    document = json.loads(decision_path.read_text(encoding="utf-8"))
+    review_sha256 = _RECOVERY_REVIEW_SHA256
+    named_review = (
+        "Gemma Danks, 2026-08-22, approved Phase 5 recovery one-look "
+        f"execution bound to identity review sha256:{review_sha256} and its "
+        "exact four runtime identities"
+    )
+    document.update(
+        {
+            "decision": "authorize-one-terminal-recovery-comparison",
+            "execution_authorized": True,
+            "identity_review_sha256": review_sha256,
+            "named_review": named_review,
+            "next_action": (
+                "run-complete-no-write-preflight-before-terminal-execution"
+            ),
+            "status": "reviewed-before-external-output",
+        }
+    )
+    temporary_decision = (
+        tmp_path
+        / "config/contracts/phase-5-external-recovery-execution-decision.json"
+    )
+    temporary_decision.parent.mkdir(parents=True)
+    temporary_decision.write_text(json.dumps(document), encoding="utf-8")
+    expected_hashes = {
+        document["identity_review_path"]: review_sha256,
+        "config/contracts/phase-5-external-recovery-comparison.json": (
+            document["protocol_sha256"]
+        ),
+        **{
+            item["relative_path"]: item["sha256"]
+            for item in document["runners"]
+        },
+    }
+
+    def frozen_sha256(path: Path) -> str:
+        return expected_hashes[str(path.relative_to(tmp_path))]
+
+    loader = helpers["load_recovery_execution_decision"]
+    monkeypatch.setitem(loader.__globals__, "file_sha256", frozen_sha256)
+
+    def approved_review(_path: Path) -> dict[str, str]:
+        return {"status": "ready-for-named-execution-approval"}
+
+    monkeypatch.setitem(
+        loader.__globals__,
+        "load_recovery_identity_review",
+        approved_review,
+    )
+
+    decision = loader(temporary_decision)
+
+    assert decision.execution_authorized is True
+    assert decision.identity_review_sha256 == review_sha256
+    assert decision.named_review == named_review
+
+
+def test_recovery_review_preserves_pre_authorization_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Approval changes only the three authorization-dependent artifacts."""
+    helpers = _script(
+        "scripts/validation/phase5_external_recovery_protocol.py"
+    )
+    review_path = (
+        _ROOT
+        / "config/contracts/phase-5-external-recovery-identity-review.json"
+    )
+    decision_path = (
+        _ROOT
+        / "config/contracts/phase-5-external-recovery-execution-decision.json"
+    )
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    decision["status"] = "reviewed-before-external-output"
+    temporary_review = tmp_path / review_path.relative_to(_ROOT)
+    temporary_decision = tmp_path / decision_path.relative_to(_ROOT)
+    temporary_review.parent.mkdir(parents=True)
+    temporary_review.write_text(json.dumps(review), encoding="utf-8")
+    temporary_decision.write_text(json.dumps(decision), encoding="utf-8")
+    frozen = {
+        item["relative_path"]: item["sha256"]
+        for item in review["identity_artifacts"]
+    }
+    authorization_dependent = {
+        "config/contracts/phase-5-external-recovery-execution-decision.json",
+        "config/contracts/phase-5-external-recovery-endpoint-registry.json",
+        "config/contracts/phase-5-external-recovery-evaluation.json",
+    }
+
+    def frozen_sha256(path: Path) -> str:
+        relative = str(path.relative_to(tmp_path))
+        assert relative not in authorization_dependent
+        return frozen[relative]
+
+    loader = helpers["load_recovery_identity_review"]
+    monkeypatch.setitem(loader.__globals__, "file_sha256", frozen_sha256)
+
+    loaded = loader(temporary_review)
+
+    assert loaded["review_id"] == review["review_id"]
 
 
 def test_recovery_runner_and_compiler_install_proven_composition(

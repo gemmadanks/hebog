@@ -21,7 +21,7 @@
   "protocol_path": "config/contracts/phase-5-external-recovery-comparison.json",
   "protocol_sha256": "717afa1e4901ffed2885910e47d5bb3d55d7246e4aa73d89dc75cd855eedebb1",
   "protocol_verifier_path": "scripts/validation/phase5_external_recovery_protocol.py",
-  "protocol_verifier_sha256": "07020a6e2603e2db1da5b0d8552fe157bc3e9991f78882126d18d1dd23b75adb",
+  "protocol_verifier_sha256": "690e2f2a11c57ddd8bd0ecd79950a1b7e2539637f7587e9b4073d21e4de06eea",
   "registry_id": "phase-5-external-recovery-endpoint-registry",
   "schema_version": 1,
   "status": "frozen-before-campaign-output"

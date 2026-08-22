@@ -396,12 +396,15 @@ must be restored before new evidence work.
 - [x] Obtain named scientific approval of candidate `c184acf...` / source
       `b4176ce3...` / configuration `0e5dde51...`, then freeze the powered
       seed-disjoint population, prospective recovery compiler/evaluator, and
-      four approved runtimes without execution. The new namespace is exact and
-      pending; identity review SHA is `5bdf4f46...`.
+      four approved runtimes without execution. Initial review `5bdf4f46...`
+      was superseded before preflight because its verifier could not represent
+      the approved state; corrected pending review `8aaaca74...` adds only the
+      fail-closed authorization transition and keeps all science identities.
 - [ ] Obtain a separate named one-look approval bound to identity review
-      `5bdf4f46...` and its four runtimes. Only after that transition may the
-      complete no-write preflight run; execute and evaluate the one-look only
-      if preflight passes without changing any frozen identity.
+      `8aaaca74...` and its four runtimes. Approval of superseded review
+      `5bdf4f46...` cannot carry across the verifier change. Only after the new
+      transition may the complete no-write preflight run; execute and evaluate
+      the one-look only if preflight passes without changing any identity.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

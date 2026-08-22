@@ -337,7 +337,7 @@ class RecoveryRunnerArtifact:
 
 @dataclass(frozen=True, slots=True)
 class RecoveryExecutionDecision:
-    """Pending authorization view consumed by campaign mechanics."""
+    """Pending or approved authorization consumed by campaign mechanics."""
 
     protocol_sha256: str
     candidate_review_sha256: str
@@ -350,15 +350,38 @@ class RecoveryExecutionDecision:
     runners: tuple[RecoveryRunnerArtifact, ...]
     identity_review_sha256: str
     named_review: str
-    execution_authorized: Literal[False]
+    execution_authorized: bool
     one_look_opened: Literal[False]
     step_three_authorized: Literal[False]
     optimization_authorized: Literal[False]
     qualification_opened: Literal[False]
 
 
+def _identity_review_binding(
+    document: dict[str, Any],
+    root: Path,
+    *,
+    pending: bool,
+) -> str:
+    """Validate the pending or exact approved identity review binding."""
+    value = document.get("identity_review_sha256")
+    if pending:
+        if value != "pending":
+            raise ValueError("pending recovery review binding changed")
+        return "pending"
+    review = load_recovery_identity_review(root / _IDENTITY_REVIEW)
+    if (
+        not isinstance(value, str)
+        or value != file_sha256(root / _IDENTITY_REVIEW)
+        or value not in cast(str, document.get("named_review"))
+        or review.get("status") != "ready-for-named-execution-approval"
+    ):
+        raise ValueError("approved recovery review binding changed")
+    return value
+
+
 def load_recovery_execution_decision(path: Path) -> RecoveryExecutionDecision:
-    """Validate the pending recovery one-look decision."""
+    """Validate pending or named recovery one-look authorization."""
     document = json_object(path)
     required = frozenset(
         {
@@ -391,11 +414,12 @@ def load_recovery_execution_decision(path: Path) -> RecoveryExecutionDecision:
         }
     )
     require_exact_keys(document, required, description="recovery decision")
+    pending = document.get("status") == "awaiting-named-execution-approval"
+    approved = document.get("status") == "reviewed-before-external-output"
     if (
         document.get("schema_version") != 1
         or document.get("decision_id") != _DECISION_ID
-        or document.get("status") != "awaiting-named-execution-approval"
-        or document.get("decision") != "await-named-one-look-approval"
+        or pending == approved
         or document.get("implementation_commit") != _CANDIDATE_REVISION
         or document.get("source_tree_sha256") != _SOURCE_TREE_SHA256
         or document.get("candidate_configuration_sha256")
@@ -411,23 +435,41 @@ def load_recovery_execution_decision(path: Path) -> RecoveryExecutionDecision:
         or document.get("pybdsf_ncores") != _PYBDSF_NCORES
         or document.get("execution_concurrency") != _EXECUTION_CONCURRENCY
         or document.get("identity_review_path") != _IDENTITY_REVIEW
-        or document.get("identity_review_sha256") != "pending"
-        or document.get("named_review") != "pending"
-        or document.get("next_action")
-        != "obtain-named-one-look-approval-before-no-write-preflight"
-        or document.get("execution_authorized") is not False
         or document.get("one_look_opened") is not False
         or document.get("step_three_authorized") is not False
         or document.get("optimization_authorized") is not False
         or document.get("qualification_opened") is not False
     ):
         raise ValueError("recovery decision identity is invalid")
+    expected_state = (
+        (
+            "await-named-one-look-approval",
+            False,
+            "pending",
+            "obtain-named-one-look-approval-before-no-write-preflight",
+        )
+        if pending
+        else (
+            "authorize-one-terminal-recovery-comparison",
+            True,
+            document.get("named_review"),
+            "run-complete-no-write-preflight-before-terminal-execution",
+        )
+    )
+    if (
+        document.get("decision"),
+        document.get("execution_authorized"),
+        document.get("named_review"),
+        document.get("next_action"),
+    ) != expected_state:
+        raise ValueError("recovery authorization state is invalid")
     root = path.resolve().parents[2]
     protocol_path = (
         root / "config/contracts/phase-5-external-recovery-comparison.json"
     )
     if document.get("protocol_sha256") != file_sha256(protocol_path):
         raise ValueError("recovery decision protocol changed")
+    review_sha256 = _identity_review_binding(document, root, pending=pending)
     runners = document.get("runners")
     if not isinstance(runners, list):
         raise ValueError("recovery runner identities are absent")
@@ -456,9 +498,9 @@ def load_recovery_execution_decision(path: Path) -> RecoveryExecutionDecision:
         pybdsf_ncores=_PYBDSF_NCORES,
         execution_concurrency=_EXECUTION_CONCURRENCY,
         runners=records,
-        identity_review_sha256="pending",
-        named_review="pending",
-        execution_authorized=False,
+        identity_review_sha256=review_sha256,
+        named_review=cast(str, document["named_review"]),
+        execution_authorized=cast(bool, document["execution_authorized"]),
         one_look_opened=False,
         step_three_authorized=False,
         optimization_authorized=False,
@@ -533,6 +575,21 @@ def load_recovery_endpoint_registry(path: Path) -> dict[str, Any]:
     return compatible
 
 
+def _authorization_transitioned(root: Path) -> bool:
+    """Return whether the pending decision received named approval."""
+    decision = json_object(
+        root
+        / "config/contracts/phase-5-external-recovery-execution-decision.json"
+    )
+    status = decision.get("status")
+    if status not in {
+        "awaiting-named-execution-approval",
+        "reviewed-before-external-output",
+    }:
+        raise ValueError("recovery authorization state is invalid")
+    return status == "reviewed-before-external-output"
+
+
 def load_recovery_identity_review(path: Path) -> dict[str, Any]:
     """Validate frozen programs and four runtimes without authorizing them."""
     document = json_object(path)
@@ -586,16 +643,22 @@ def load_recovery_identity_review(path: Path) -> dict[str, Any]:
     if not isinstance(identities, list) or not identities:
         raise ValueError("recovery program identities are absent")
     root = path.resolve().parents[2]
+    transitioned = _authorization_transitioned(root)
+    approval_dependent = {
+        "config/contracts/phase-5-external-recovery-execution-decision.json",
+        "config/contracts/phase-5-external-recovery-endpoint-registry.json",
+        "config/contracts/phase-5-external-recovery-evaluation.json",
+    }
     for identity in identities:
         if not isinstance(identity, dict):
             raise ValueError("recovery program identity is malformed")
         relative = identity.get("relative_path")
         expected = identity.get("sha256")
+        if not isinstance(relative, str) or not isinstance(expected, str):
+            raise ValueError("recovery program identity changed")
         if (
-            not isinstance(relative, str)
-            or not isinstance(expected, str)
-            or file_sha256(root / relative) != expected
-        ):
+            relative not in approval_dependent or not transitioned
+        ) and file_sha256(root / relative) != expected:
             raise ValueError("recovery program identity changed")
     return document
 

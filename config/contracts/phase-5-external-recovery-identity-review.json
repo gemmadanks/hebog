@@ -21,11 +21,11 @@
     },
     {
       "relative_path": "config/contracts/phase-5-external-recovery-endpoint-registry.json",
-      "sha256": "5754aa4375df44f5834f285b8419540bc5786b98b9f6bf1b4585ad6c58873f83"
+      "sha256": "52bd44a649e380379fc08a30547e64c207eb5062b801f624263d1d49aa98d463"
     },
     {
       "relative_path": "config/contracts/phase-5-external-recovery-evaluation.json",
-      "sha256": "b2d0a88ef52131131a9382fdb609de7c41c9984eee48547978f83914710d9276"
+      "sha256": "9411a9f5a34b8cc71d5ed04f56f4f709ca238cc487a6f3369ba60698434b4e92"
     },
     {
       "relative_path": "config/datasets/phase-5-external-recovery-continuum.json",
@@ -41,7 +41,7 @@
     },
     {
       "relative_path": "scripts/validation/phase5_external_recovery_protocol.py",
-      "sha256": "07020a6e2603e2db1da5b0d8552fe157bc3e9991f78882126d18d1dd23b75adb"
+      "sha256": "690e2f2a11c57ddd8bd0ecd79950a1b7e2539637f7587e9b4073d21e4de06eea"
     },
     {
       "relative_path": "scripts/validation/compile_phase5_external_recovery_campaign.py",
