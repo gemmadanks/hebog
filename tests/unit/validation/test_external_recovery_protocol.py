@@ -332,6 +332,59 @@ def test_recovery_runner_and_compiler_install_proven_composition(
     assert isinstance(observed["terminal_globals"], dict)
 
 
+def test_recovery_podman_wrapper_exposes_only_approved_hebog_source() -> None:
+    """The resume amendment changes only the failed Hebog invocation."""
+    wrapper = _script(
+        "scripts/benchmark/run_phase5_external_recovery_podman.py"
+    )
+    image = (
+        "sha256:e519dc15b846dec7ac00a6cada7684d0"
+        "c0b2615490dd6688ac4c6cdf5f3021ca"
+    )
+    runner = (
+        "/repository/scripts/benchmark/run_phase5_external_recovery_hebog.py"
+    )
+    base = (
+        "run",
+        "--rm",
+        "--network=none",
+        "--entrypoint",
+        "python3",
+        image,
+        runner,
+    )
+
+    assert wrapper["amend_podman_arguments"](base) == (
+        *base[:-2],
+        "--env",
+        "PYTHONPATH=/repository/src",
+        *base[-2:],
+    )
+    assert wrapper["amend_podman_arguments"](
+        (*base[:-1], "/repository/scripts/materialize.py")
+    ) == (*base[:-1], "/repository/scripts/materialize.py")
+    assert wrapper["amend_podman_arguments"](
+        (*base[:-2], "sha256:" + "4" * 64, runner)
+    ) == (*base[:-2], "sha256:" + "4" * 64, runner)
+    assert wrapper["amend_podman_arguments"](("image", "inspect", image)) == (
+        "image",
+        "inspect",
+        image,
+    )
+    with pytest.raises(
+        ValueError,
+        match="recovery source environment is ambiguous",
+    ):
+        wrapper["amend_podman_arguments"](
+            (
+                *base[:-2],
+                "--env",
+                "PYTHONPATH=/unexpected",
+                *base[-2:],
+            )
+        )
+
+
 def test_recovery_evaluator_binds_powered_population() -> None:
     """The frozen evaluator retains all powered endpoint priors."""
     evaluator = _script(

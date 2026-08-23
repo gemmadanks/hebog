@@ -417,16 +417,22 @@ must be restored before new evidence work.
       about 98 GiB to 31 GiB and restored 134 GiB host headroom. All four exact
       images reverified and the same request resumed in managed session 83019;
       hourly operational monitoring is active without partial-science access.
-- [ ] Correct and re-freeze the recovery runner composition before any retry.
+- [x] Correct the recovery runner composition without creating another campaign.
       The resumed process verified all 2,488 inputs but failed on the first
       Hebog invocation before candidate execution because the recovery script
       imports `hebog.validation.post_correction_recovery` from the approved
       source tree while the container command deliberately omitted
       `PYTHONPATH=/repository/src`. One reference result completed, no Hebog
       result or terminal manifest exists, and no partial science was inspected.
-      Bind the minimal recovery-only environment fix with a failing command
-      test, preserve the failed staging evidence, and obtain renewed exact-
-      identity approval before opening a corrected request.
+      A recovery-only Podman delegate now injects that path solely for the exact
+      frozen Hebog image and runner; command tests prove materialization,
+      references, and other images are unchanged, and a network-isolated import
+      smoke test resolves the approved module from the immutable checkout.
+- [ ] Bind the delegate to request `4c53dc39...`, infrastructure log
+      `91e3db30...`, its implementation commit and checksum, and the preserved
+      staging namespace. Obtain exact named approval for this operational
+      amendment, then resume only the 12,439 missing runs in the existing
+      campaign. Do not create a new request, population, or campaign.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

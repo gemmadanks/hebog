@@ -8946,3 +8946,33 @@ named one-look approval before any corrected execution.
 recovery Hebog runner to import the approved mounted source while leaving the
 base campaign unchanged, implement the narrow composition fix, validate and
 review it, then present fresh identities for approval. Do not tune science.
+
+## 2026-08-23 — Repair the existing recovery campaign source path
+
+**Plan phase:** Phase 5, Step 2C-PC recovery execution
+
+- The requested recovery is explicitly limited to the already-open campaign;
+  no second campaign, request, population, input set, or staging namespace may
+  be created. The existing 2,488 common inputs and one completed reference
+  result remain immutable and unopened.
+- Added a host-side Podman delegate that inserts exactly
+  `--env PYTHONPATH=/repository/src` only when the exact frozen Hebog image
+  invokes `run_phase5_external_recovery_hebog.py`. It delegates image
+  inspection, materialization, all references, other images, and other commands
+  unchanged, and rejects an ambiguous duplicate source environment.
+- The command-level regression test first failed because the delegate did not
+  exist, then passed. The focused recovery and unchanged base-launcher suites
+  pass 20 tests; focused Ruff and Pyright are clean. A network-isolated,
+  read-only smoke invocation in the exact frozen image resolves
+  `post_correction_recovery.py` from the immutable `fa3134b...` checkout and
+  does not execute a finder or inspect science.
+
+**Decision:** treat the correction as a checksum-bound operational amendment
+to the existing request. It restores access to the already approved source tree
+and changes no scientific code, configuration, image, input, result, resource
+policy, or gate. Preserve the failed infrastructure log and require exact named
+approval of the amendment before resuming the missing runs.
+
+**Immediate next step:** validate and commit the delegate, write a pending
+amendment review bound to its commit/checksum, request exact approval, then
+resume and evaluate only the existing campaign.
