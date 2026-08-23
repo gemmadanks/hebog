@@ -434,10 +434,13 @@ must be restored before new evidence work.
       Pending resume review `a8d30ee9...` records zero completed Hebog results,
       one unopened reference result, unchanged science, and sufficient adjusted
       storage headroom; it cannot authorize itself.
-- [ ] Obtain exact named approval of pending resume review `a8d30ee9...`, then
-      resume only the 12,439 missing runs in the existing campaign and evaluate
-      it after terminal sealing. Do not create a new request, population, or
-      campaign.
+- [x] Obtain exact named approval of pending resume review `a8d30ee9...`.
+      Authorization decision `de2aec16...` permits only request `4c53dc39...`
+      to resume through delegate commit `c88e7c25...`; it forbids a second
+      campaign and any science change.
+- [ ] Run the no-write state/identity preflight, resume only the 12,439 missing
+      runs in that existing campaign, and evaluate exactly once after terminal
+      sealing.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

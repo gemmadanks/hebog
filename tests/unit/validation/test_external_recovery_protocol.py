@@ -443,6 +443,45 @@ def test_existing_campaign_resume_review_binds_exact_pending_amendment() -> (
     )
 
 
+def test_existing_campaign_resume_decision_binds_exact_approval() -> None:
+    """Named approval permits only the preserved campaign to resume."""
+    decision = json.loads(
+        (
+            _ROOT
+            / "config/contracts/phase-5-external-recovery-resume-decision.json"
+        ).read_text(encoding="utf-8")
+    )
+    review_path = _ROOT / decision["resume_review"]["path"]
+    delegate_path = _ROOT / decision["delegate"]["path"]
+
+    assert hashlib.sha256(review_path.read_bytes()).hexdigest() == (
+        "a8d30ee956567af0688d8d66cff9058ba57bad8b7be66cee39c5049a88cbc95a"
+    )
+    assert decision["resume_review"]["sha256"] == (
+        "a8d30ee956567af0688d8d66cff9058ba57bad8b7be66cee39c5049a88cbc95a"
+    )
+    assert decision["status"] == "reviewed-before-existing-campaign-resume"
+    assert decision["execution_authorized"] is True
+    assert decision["second_campaign_authorized"] is False
+    assert decision["scientific_changes_authorized"] is False
+    assert decision["delegate"]["commit"] == (
+        "c88e7c25a95a665773d1ec0f46a1842cbd3b3356"
+    )
+    assert (
+        hashlib.sha256(delegate_path.read_bytes()).hexdigest()
+        == (decision["delegate"]["sha256"])
+    )
+    assert decision["existing_campaign"]["request_sha256"] == (
+        "4c53dc39a7f02673a7c316cb814d8947f161eb417f192b077c1aa8b241093230"
+    )
+    assert decision["existing_campaign"]["remaining_run_count"] == 12439
+    assert decision["named_review"]["reviewer"] == "Gemma Danks"
+    assert (
+        "does not authorize a second campaign"
+        in (decision["named_review"]["approval"])
+    )
+
+
 def test_recovery_evaluator_binds_powered_population() -> None:
     """The frozen evaluator retains all powered endpoint priors."""
     evaluator = _script(

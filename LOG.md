@@ -9005,3 +9005,28 @@ partial product may be inspected.
 **Immediate next step:** obtain exact named approval of `a8d30ee9...`, transition
 only the amendment authorization, run a no-write identity/storage preflight,
 then resume and monitor the existing campaign through evaluation.
+
+## 2026-08-23 — Authorize only the existing recovery campaign resume
+
+**Plan phase:** Phase 5, Step 2C-PC recovery execution
+
+- Gemma Danks approved pending resume review `a8d30ee9...` and delegate commit
+  `c88e7c25...`, authorizing only existing request `4c53dc39...` to resume and
+  be evaluated after sealing. The approval explicitly forbids a second
+  campaign.
+- Recorded immutable authorization decision
+  `config/contracts/phase-5-external-recovery-resume-decision.json`, SHA-256
+  `de2aec16a3fc5943b434a9a7fb3fc2c9c12d871f9e3eed5f6fd161595043c70d`.
+  It binds the approved review, delegate checksum, original execution decision,
+  preserved staging/terminal paths, and 12,439 missing runs; science changes
+  remain unauthorized.
+- Two focused review/decision tests pass and verify the review and delegate
+  checksums, exact request, remaining-run count, and no-second-campaign bound.
+
+**Decision:** the amendment is authorized but execution has not yet resumed.
+The next command must be a no-write preflight against the preserved campaign;
+any request, identity, or state drift closes the authorization.
+
+**Immediate next step:** validate and commit this authorization transition,
+then run the exact no-write preflight and resume only the existing staging
+namespace if it passes unchanged.
