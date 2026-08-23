@@ -438,9 +438,11 @@ must be restored before new evidence work.
       Authorization decision `de2aec16...` permits only request `4c53dc39...`
       to resume through delegate commit `c88e7c25...`; it forbids a second
       campaign and any science change.
-- [ ] Run the no-write state/identity preflight, resume only the 12,439 missing
-      runs in that existing campaign, and evaluate exactly once after terminal
-      sealing.
+- [ ] Complete the existing-campaign resume and evaluate exactly once after
+      terminal sealing. The no-write preflight reproduced request
+      `4c53dc39...` with 2,488 inputs and 12,440 runs; managed session 51323 is
+      now resuming only the preserved 12,439 missing runs through delegate
+      `36a420a1...`, with hourly operational monitoring and no partial scoring.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

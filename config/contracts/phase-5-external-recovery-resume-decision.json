@@ -6,6 +6,7 @@
     "path": "scripts/benchmark/run_phase5_external_recovery_podman.py",
     "sha256": "36a420a1849f36257c33ab28203ee7cc7b8bfa7fd7354605bf3bad828b1cf4e5"
   },
+  "execution_authorized": true,
   "existing_campaign": {
     "execution_decision_sha256": "7a44ba52eb3e5daac1c40a234e80f422608e81d379587e06239c591c265f7e50",
     "remaining_run_count": 12439,
@@ -13,7 +14,6 @@
     "staging_directory": "benchmark-results/phase-5/.external-recovery-comparison.phase5-external-7a44ba52eb3e.staging",
     "terminal_directory": "benchmark-results/phase-5/external-recovery-comparison"
   },
-  "execution_authorized": true,
   "named_review": {
     "approval": "I approve the Phase 5 existing-campaign resume amendment bound to review SHA-256 a8d30ee956567af0688d8d66cff9058ba57bad8b7be66cee39c5049a88cbc95a and delegate commit c88e7c25a95a665773d1ec0f46a1842cbd3b3356. This authorizes resuming only existing request 4c53dc39a7f02673a7c316cb814d8947f161eb417f192b077c1aa8b241093230, followed by evaluation after it seals; it does not authorize a second campaign.",
     "reviewed_on": "2026-08-23",

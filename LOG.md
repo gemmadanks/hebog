@@ -9030,3 +9030,36 @@ any request, identity, or state drift closes the authorization.
 **Immediate next step:** validate and commit this authorization transition,
 then run the exact no-write preflight and resume only the existing staging
 namespace if it passes unchanged.
+
+## 2026-08-23 — Resume only the existing recovery request
+
+**Plan phase:** Phase 5, Step 2C-PC recovery execution
+
+- Committed the named authorization transition as `b5810cb...`; its immutable
+  checkout preserves decision SHA `de2aec16...`, approved review
+  `a8d30ee9...`, and delegate SHA `36a420a1...`.
+- After launch, the mandatory JSON hook sorted one decision key in the active
+  branch copy, producing SHA `cd6a6652...` without changing any value. The
+  executed identity remains immutable checkout `b5810cb...` / decision
+  `de2aec16...`; the hook-only normalization is not a new authorization.
+- The read-only state audit reverified original execution commit `fa3134b...`,
+  request `4c53dc39...`, open state `f322a07c...`, failure log `91e3db30...`,
+  all four exact image IDs/digests, 2,488 inputs, one unopened reference result,
+  zero Hebog results, absent failed output directory, and absent terminal
+  manifest. Host headroom was 104 GiB; the Podman guest had 68 GiB free.
+- The complete no-write launcher preflight passed with the unchanged request,
+  2,488-image population, and 12,440-run design. Managed session 51323 then
+  resumed the preserved private staging namespace with `--resume` and the
+  checksum-bound delegate; no new request or campaign was created.
+- Installed hourly automation
+  `monitor-phase-5-existing-recovery-campaign`. While open it may inspect only
+  operational health/counts/progress/disk/terminal presence. Compilation and
+  evaluation remain prohibited until terminal sealing.
+
+**Decision:** the authorized existing-campaign recovery is active. Preserve
+the immutable execution and amendment checkouts and do not start another
+campaign.
+
+**Immediate next step:** monitor hourly. When the terminal manifest seals,
+verify it, compile and evaluate exactly once, interpret science before runtime,
+then update, validate, review, and commit the terminal decision.
