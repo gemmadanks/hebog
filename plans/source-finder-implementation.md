@@ -428,11 +428,16 @@ must be restored before new evidence work.
       frozen Hebog image and runner; command tests prove materialization,
       references, and other images are unchanged, and a network-isolated import
       smoke test resolves the approved module from the immutable checkout.
-- [ ] Bind the delegate to request `4c53dc39...`, infrastructure log
-      `91e3db30...`, its implementation commit and checksum, and the preserved
-      staging namespace. Obtain exact named approval for this operational
-      amendment, then resume only the 12,439 missing runs in the existing
-      campaign. Do not create a new request, population, or campaign.
+- [x] Bind the delegate to request `4c53dc39...`, infrastructure log
+      `91e3db30...`, implementation commit `c88e7c25...`, delegate SHA
+      `36a420a1...`, the exact images, and the preserved staging namespace.
+      Pending resume review `a8d30ee9...` records zero completed Hebog results,
+      one unopened reference result, unchanged science, and sufficient adjusted
+      storage headroom; it cannot authorize itself.
+- [ ] Obtain exact named approval of pending resume review `a8d30ee9...`, then
+      resume only the 12,439 missing runs in the existing campaign and evaluate
+      it after terminal sealing. Do not create a new request, population, or
+      campaign.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

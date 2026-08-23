@@ -385,6 +385,64 @@ def test_recovery_podman_wrapper_exposes_only_approved_hebog_source() -> None:
         )
 
 
+def test_existing_campaign_resume_review_binds_exact_pending_amendment() -> (
+    None
+):
+    """The source-path repair cannot authorize itself or drift science."""
+    review_path = (
+        _ROOT / "config/contracts/phase-5-external-recovery-resume-review.json"
+    )
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    delegate_path = _ROOT / review["correction"]["delegate_path"]
+
+    assert review["status"] == (
+        "ready-for-named-existing-campaign-resume-approval"
+    )
+    assert review["authorization"]["execution_authorized"] is False
+    assert review["authorization"]["named_review"] is None
+    assert review["existing_campaign"] == {
+        "completed_hebog_result_count": 0,
+        "completed_result_count": 1,
+        "execution_decision_sha256": (
+            "7a44ba52eb3e5daac1c40a234e80f422608e81d379587e06239c591c265f7e50"
+        ),
+        "input_count": 2488,
+        "open_state_sha256": (
+            "f322a07ca3c33697e9d72990ad45f0a53d74c7648975e6fdb34a44b6be09eb99"
+        ),
+        "public_terminal_manifest": "absent",
+        "request_sha256": (
+            "4c53dc39a7f02673a7c316cb814d8947f161eb417f192b077c1aa8b241093230"
+        ),
+        "run_count": 12440,
+        "staging_directory": (
+            "benchmark-results/phase-5/.external-recovery-comparison."
+            "phase5-external-7a44ba52eb3e.staging"
+        ),
+        "terminal_directory": (
+            "benchmark-results/phase-5/external-recovery-comparison"
+        ),
+    }
+    assert review["failure"]["candidate_execution_started"] is False
+    assert review["frozen_science"] == {
+        "candidate_revision": "c184acf7f55f936442285835b4601a6ac193fe2a",
+        "candidate_source_tree_sha256": (
+            "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc"
+        ),
+        "configuration_sha256": (
+            "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94"
+        ),
+        "inputs_changed": False,
+        "population_changed": False,
+        "runtime_images_changed": False,
+        "science_or_gates_changed": False,
+    }
+    assert (
+        hashlib.sha256(delegate_path.read_bytes()).hexdigest()
+        == (review["correction"]["delegate_sha256"])
+    )
+
+
 def test_recovery_evaluator_binds_powered_population() -> None:
     """The frozen evaluator retains all powered endpoint priors."""
     evaluator = _script(

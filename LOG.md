@@ -8976,3 +8976,32 @@ approval of the amendment before resuming the missing runs.
 **Immediate next step:** validate and commit the delegate, write a pending
 amendment review bound to its commit/checksum, request exact approval, then
 resume and evaluate only the existing campaign.
+
+## 2026-08-23 — Bind the existing-campaign resume amendment
+
+**Plan phase:** Phase 5, Step 2C-PC recovery execution
+
+- Froze pending review
+  `config/contracts/phase-5-external-recovery-resume-review.json`, SHA-256
+  `a8d30ee956567af0688d8d66cff9058ba57bad8b7be66cee39c5049a88cbc95a`.
+  It binds delegate commit `c88e7c25...`, tree `87e4347e...`, delegate SHA
+  `36a420a1...`, existing request `4c53dc39...`, open state `f322a07c...`,
+  failure log `91e3db30...`, all four runtime identities, the approved candidate
+  source/configuration, and the exact private and terminal paths.
+- Operational facts remain 2,488 inputs, one unopened reference result, zero
+  Hebog results, and no terminal manifest. The complete inputs occupy an
+  apparent 44 GiB; 104 GiB host space remains against the conservative adjusted
+  82-GiB continuation floor derived from the original 126-GiB preflight floor.
+- The review records Gemma Danks's instruction to repair and evaluate this
+  existing campaign without creating another, but remains
+  `execution_authorized=false` with no named exact-review approval. Its tests
+  require the fixed request, unchanged science flags, and delegate checksum.
+
+**Decision:** the operational repair is ready for exact review. Approval must
+name review SHA `a8d30ee9...`; only then may the existing request resume through
+the checksum-bound delegate. No completed result may be overwritten and no
+partial product may be inspected.
+
+**Immediate next step:** obtain exact named approval of `a8d30ee9...`, transition
+only the amendment authorization, run a no-write identity/storage preflight,
+then resume and monitor the existing campaign through evaluation.
