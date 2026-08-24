@@ -195,6 +195,12 @@ _INVALID_PHASE_FIVE_MULTISCALE_MUTATIONS: tuple[
         ),
         "tile equality matrix",
     ),
+    (
+        lambda payload: payload["bounded_execution"][
+            "resource_evidence"
+        ].update(maximum_filter_evaluation_bytes=1),
+        "bounded resource evidence",
+    ),
     (_duplicate_scientific_basis, "basis links must be unique"),
     (_use_insecure_scientific_basis, "must use HTTPS"),
 )
@@ -217,6 +223,22 @@ _INVALID_PHASE_FIVE_GATE_MUTATIONS: tuple[
         "both PyBDSF references",
     ),
 )
+
+
+def _assert_phase_five_resource_evidence(
+    resources: contract_models.PhaseFiveBoundedResourceEvidence,
+) -> None:
+    """Check the exact reviewed 256-core structural resource evidence."""
+    assert resources.tile_core_shape_yx == (256, 256)
+    assert resources.widest_read_shape_yx == (324, 324)
+    assert resources.widest_read_pixel_count == 104_976
+    assert resources.filter_core_retained_array_bytes == 12_058_624
+    assert resources.detection_core_retained_array_bytes == 3_604_480
+    assert resources.maximum_matched_filter_workspace_bytes == 16_057_904
+    assert resources.maximum_atrous_workspace_bytes == 18_484_096
+    assert resources.maximum_filter_evaluation_bytes == 26_298_000
+    assert resources.boundary_summary_array_bytes_per_tile == 20_480
+    assert resources.published_product_shards_per_tile == 8
 
 
 def test_checked_in_performance_matrix_covers_curve_and_workloads() -> None:
@@ -390,7 +412,7 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
 
     assert contract.status == "reviewed-development"
-    assert contract.schema_version == 7
+    assert contract.schema_version == 8
     assert contract.scales.reference == "restoring-beam-major-fwhm"
     assert contract.scales.configured_orders == (1, 2, 3)
     assert contract.scales.nominal_fwhm_multipliers == (1.0, 2.0, 4.0)
@@ -483,7 +505,10 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
         "product-materialization",
     )
     assert contract.bounded_execution.byte_evidence == (
-        "required-before-step-5-completion"
+        "exact-retained-payload-and-conservative-filter-peak-reviewed"
+    )
+    _assert_phase_five_resource_evidence(
+        contract.bounded_execution.resource_evidence
     )
     assert contract.bounded_execution.response_persistence == (
         "recompute-after-compact-topology-no-image-sized-response-bank"

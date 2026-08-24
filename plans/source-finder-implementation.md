@@ -349,11 +349,9 @@ overall mask-precision regression UCL 0.04940 against the pinned-master 0.05
 margin; keep both as explicit regression watchpoints. Five compact
 truth-absolute diagnostics remain outside stronger report-only envelopes, but
 they are not binding gates and all reference comparisons pass. This campaign
-contains no runtime-performance gate and supports no speed claim. Steps 3 and
-4 and the first three bounded-execution tasks are complete; the retained-byte,
-workspace, summary, shard, and graph-size audit is next. Phase 5 qualification,
-incremental performance, independent acceptance, and the later Rapthor cutover
-remain outstanding.
+contains no runtime-performance gate and supports no speed claim. Steps 3, 4,
+and 5 are complete. Phase 5 qualification, incremental performance,
+independent acceptance, and the later Rapthor cutover remain outstanding.
 
 ## 7. Delivery plan
 
@@ -578,8 +576,20 @@ remain outstanding.
       global topology IDs. For one partition, one/all-tile batches, reversed
       completion, identical retry, SerialExecutor, and one-/two-worker Dask
       publish the exact same checksummed generation bytes.
-- [ ] Record bounded retained bytes, workspaces, summaries, shards, and graph
-      size; exercise SerialExecutor and the existing executor path.
+- [x] Record bounded retained bytes, workspaces, summaries, shards, and graph
+      size; exercise SerialExecutor and the existing executor path. Exact
+      ndarray-payload accounting for the reviewed five-pixel beam and
+      256-square core records a 26,298,000-byte conservative filter peak,
+      12,058,624 retained filter-core bytes, and 3,604,480 retained detection
+      bytes. Each tile contributes two topology summaries, three scale
+      summaries, 20,480 boundary-array bytes, and eight checksummed product
+      shards. A two-pass graph has
+      `2 * ceil(partitions / maximum_tiles_per_batch)` coarse tasks; Serial and
+      one-/two-worker existing-client Dask return identical evidence. At the
+      3,000-square anchor with batch size 16 this is 144 tiles, 2.81 MiB of
+      boundary arrays, and 18 tasks. The 100,000-square projection makes the
+      already planned distributed hierarchical reduction in Phase 6 mandatory
+      before extreme-scale qualification.
 
 #### 6. Qualify Phase 5
 

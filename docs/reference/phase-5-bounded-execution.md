@@ -2,7 +2,7 @@
 
 ## Status
 
-The first three Phase 5 Step 5 tasks are complete. Hebog derives every
+Phase 5 Step 5 is complete. Hebog derives every
 stage-specific read halo from implemented scientific policy before image tasks
 are allocated, and the promoted multiscale detection path has a deterministic
 one-tile/many-tile equality oracle plus a production Serial/Dask execution
@@ -11,9 +11,8 @@ not strictly smaller than one quarter of that core, when a worst-case interior
 read exceeds the global task-pixel limit, or when extended measurement exceeds
 its tighter stage-specific limit.
 
-This remains a bounded-execution development review. It does not complete
-Step 5: measured retained-byte, workspace, summary, shard, and graph-size
-evidence remain open.
+This is bounded-execution development evidence, not qualification or a runtime
+claim. Extreme-scale scheduler reduction remains a Phase 6 responsibility.
 
 ## Derivation
 
@@ -59,9 +58,7 @@ oversized beam therefore fails geometry admission before that allocation.
 
 Extended measurement uses the smaller of the global limit and its own
 `maximum_task_pixels`. Every other stage uses the global limit. Pixel limits
-are the pre-allocation guard, not a byte-level performance claim. The final
-Step 5 audit must still record peak retained bytes and workspace planes under
-SerialExecutor and the existing executor path.
+are the pre-allocation guard; the exact byte evidence is recorded below.
 
 ## One-tile/many-tile equality evidence
 
@@ -128,15 +125,62 @@ the same FFT tolerance. The two-pass design adds bounded recomputation whose
 runtime impact must be measured against the 6-second incremental budget; it
 does not authorize a performance claim.
 
-Machine-readable policy is frozen in schema 7 of
-`config/contracts/phase-5-multiscale.json`, SHA-256
-`4307a43c2904c885705c72c45e801dedc74f86ae4570852ca122485f85177e3f`.
+## Structural resource evidence
+
+The stage records exact owned NumPy payload bytes at its worker-local
+checkpoints, the conservative kernel workspace estimates supplied by the
+implemented filters, every compact boundary summary, every checksummed product
+shard, and the number and maximum width of coarse executor tasks. Python object
+overhead, allocator fragmentation, process RSS, transfer, and spill are not
+invented from these structural counters; the controlled performance lane must
+measure them separately.
+
+For the reviewed five-pixel-major beam and 256-by-256 core, the widest
+interior read is 324-by-324, or 104,976 pixels. The exact evidence is:
+
+| Quantity | Bytes or count |
+| --- | ---: |
+| Retained filter-core arrays | 12,058,624 bytes |
+| Retained detection-evidence arrays | 3,604,480 bytes |
+| Matched-filter kernel workspace | 16,057,904 bytes |
+| Residual-B3 kernel workspace | 18,484,096 bytes |
+| Conservative complete filter-evaluation peak | 26,298,000 bytes |
+| Topology summaries per tile | 2 |
+| Scale summaries per tile | 3 |
+| Boundary-label payload per tile across both passes | 20,480 bytes |
+| Published product shards per tile | 8 |
+
+The implementation copies the matched-filter core and releases its full read
+responses before evaluating residual B3. It also releases source, background,
+and RMS read windows after preparing the independent residual inputs. These
+lifetimes make the recorded peak an implementation bound rather than the sum
+of two unnecessarily co-resident response banks.
+
+With `P` partitions and a configured maximum `B` tiles per batch, the graph
+contains `2 * ceil(P / B)` coarse tasks in two waves, and its maximum width is
+`ceil(P / B)`. There are no per-pixel, per-window, or per-island tasks. Serial,
+reverse-order, retry, and one-/two-worker existing-client Dask execution report
+the same structural evidence for a common batch size.
+
+At the 3,000-square Phase 5 anchor, 256-square cores give 144 partitions. With
+`B = 16`, the two-pass graph has 18 tasks, publishes 1,152 shards, and returns
+2,949,120 boundary-array bytes (2.81 MiB) in total; the largest task retains at
+most 196,608 boundary-array bytes and 128 shard identities. This is safely
+bounded for the local qualification anchor. A 100,000-square image at the same
+core size would have 152,881 partitions and about 2.92 GiB of boundary arrays.
+That projection is intentionally not called extreme-scale readiness: it makes
+the Phase 6 distributed hierarchical reduction and scheduler-load evidence a
+hard prerequisite for the 100,000-square qualification.
+
+Machine-readable policy is frozen in schema 8 of
+`config/contracts/phase-5-multiscale.json`. The checksum is recorded in the
+Phase 5 contract reference.
 
 ## Review decision
 
-The two-pass execution boundary is sufficient for the current three-scale
+The two-pass execution and structural resource boundary is sufficient for the
 Rapthor profile and is consistent with the implemented kernels, topology
 reconciliation, and immutable Zarr generation contract. It changes no
 scientific threshold, association rule, compact output, or recovery-campaign
-result. Proceed to the retained-byte, workspace, summary, shard, and graph-size
-audit. Qualification and runtime claims remain closed.
+result. Phase 5 Step 5 is complete. Proceed to qualification and incremental
+performance; those claims remain closed until their separate gates pass.

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from math import ceil
 from pathlib import Path
 from typing import TypeVar
 
@@ -436,9 +437,59 @@ def test_multiscale_stage_is_batch_order_retry_and_executor_invariant(
         assert result.executor_task_count > 0
         assert result.maximum_read_pixel_count > 0
         assert result.maximum_workspace_bytes > 0
+        assert result.maximum_retained_array_bytes > 0
+        assert result.maximum_worker_bytes >= (
+            result.maximum_retained_array_bytes
+        )
+        assert result.maximum_worker_bytes >= result.maximum_workspace_bytes
+        assert result.topology_summary_count == 2 * len(manifest.tiles)
+        assert result.scale_summary_count == 3 * len(manifest.tiles)
+        assert result.boundary_summary_array_bytes > 0
+        assert result.maximum_task_summary_array_bytes > 0
+        assert result.published_product_shard_count == (
+            len(phase_five_multiscale_product_names()) * len(manifest.tiles)
+        )
+        assert result.maximum_task_product_shard_count > 0
         _assert_science_identity_equal(
             _science_identity(result, source),
             expected_identity,
+        )
+
+    for (name, _, batch_size), (result, _) in zip(
+        variants,
+        outputs[: len(variants)],
+        strict=True,
+    ):
+        batch_count = ceil(len(manifest.tiles) / batch_size)
+        assert result.executor_task_count == 2 * batch_count, name
+        assert result.maximum_graph_width == batch_count, name
+        assert result.maximum_batch_partition_count == min(
+            batch_size,
+            len(manifest.tiles),
+        )
+        assert result.maximum_task_product_shard_count <= (
+            len(phase_five_multiscale_product_names()) * batch_size
+        )
+
+    batch_two_reference = outputs[2][0]
+    for result, _ in outputs[3:]:
+        assert result.maximum_graph_width == (
+            batch_two_reference.maximum_graph_width
+        )
+        assert result.maximum_retained_array_bytes == (
+            batch_two_reference.maximum_retained_array_bytes
+        )
+        assert result.maximum_worker_bytes == (
+            batch_two_reference.maximum_worker_bytes
+        )
+        assert result.boundary_summary_array_bytes == (
+            batch_two_reference.boundary_summary_array_bytes
+        )
+        assert result.maximum_task_summary_array_bytes == (
+            batch_two_reference.maximum_task_summary_array_bytes
+        )
+        assert result.published_product_shard_count == (
+            batch_two_reference.published_product_shard_count
         )
 
 

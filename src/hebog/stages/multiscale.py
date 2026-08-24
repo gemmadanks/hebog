@@ -120,9 +120,18 @@ class PhaseFiveMultiscaleStageResult:
     scale_islands_by_order: tuple[tuple[DetectedIsland, ...], ...]
     partition_count: int
     executor_task_count: int
+    maximum_graph_width: int
     maximum_batch_partition_count: int
     maximum_read_pixel_count: int
     maximum_workspace_bytes: int
+    maximum_retained_array_bytes: int
+    maximum_worker_bytes: int
+    topology_summary_count: int
+    scale_summary_count: int
+    boundary_summary_array_bytes: int
+    maximum_task_summary_array_bytes: int
+    published_product_shard_count: int
+    maximum_task_product_shard_count: int
     reconciliation_round_count: int
 
 
@@ -146,6 +155,9 @@ class _TopologyBatchResult:
     detection_summaries: tuple[LocalIslandTileSummary, ...]
     maximum_read_pixel_count: int
     maximum_workspace_bytes: int
+    maximum_retained_array_bytes: int
+    maximum_worker_bytes: int
+    summary_array_bytes: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,6 +189,9 @@ class _PublicationBatchResult:
     scale_summaries_by_order: tuple[tuple[LocalIslandTileSummary, ...], ...]
     maximum_read_pixel_count: int
     maximum_workspace_bytes: int
+    maximum_retained_array_bytes: int
+    maximum_worker_bytes: int
+    summary_array_bytes: int
 
 
 def phase_five_multiscale_product_names() -> tuple[str, ...]:
@@ -220,13 +235,15 @@ def _evaluate_tile(  # noqa: PLR0913
         "rms",
         partition.read_bounds,
     )
+    prepared = prepare_scale_filter_inputs(
+        window.values,
+        window.valid_pixels,
+        background,
+        rms,
+    )
+    del window, background, rms
     result = evaluate_phase_five_filter_tile(
-        prepare_scale_filter_inputs(
-            window.values,
-            window.valid_pixels,
-            background,
-            rms,
-        ),
+        prepared,
         partition=partition,
         image_shape_yx=image_shape_yx,
         beam=beam,
@@ -279,6 +296,28 @@ def _workspace_bytes(result: PhaseFiveFilterTileResult) -> int:
     )
 
 
+def _summary_array_bytes(summary: LocalIslandTileSummary) -> int:
+    """Return exact boundary-label payload retained by one summary."""
+    labels = summary.boundary_labels
+    return sum(
+        array.nbytes
+        for array in (labels.top, labels.bottom, labels.left, labels.right)
+    )
+
+
+def _tile_array_bytes(tile: LocalIslandTile) -> int:
+    """Return exact label and boundary payload retained by one local tile."""
+    return tile.labels.nbytes + _summary_array_bytes(tile.compact_summary())
+
+
+def _product_array_bytes(
+    products: tuple[tuple[str, npt.NDArray[np.generic]], ...],
+) -> int:
+    """Return unique ndarray payload retained by one publication record."""
+    arrays = {id(values): values for _, values in products}
+    return sum(values.nbytes for values in arrays.values())
+
+
 def _scan_topology_batch(  # noqa: PLR0913
     batch: _PartitionBatch,
     *,
@@ -293,6 +332,9 @@ def _scan_topology_batch(  # noqa: PLR0913
     detection_summaries: list[LocalIslandTileSummary] = []
     maximum_read_pixels = 0
     maximum_workspace_bytes = 0
+    maximum_retained_array_bytes = 0
+    maximum_worker_bytes = 0
+    summary_array_bytes = 0
     for partition in batch.partitions:
         result, evidence = _evaluate_tile(
             partition,
@@ -306,8 +348,27 @@ def _scan_topology_batch(  # noqa: PLR0913
             evidence,
             image_shape_yx=image_shape_yx,
         )
+        retained_array_bytes = (
+            summary_array_bytes
+            + result.retained_array_bytes
+            + evidence.retained_array_bytes
+            + _tile_array_bytes(reconstruction)
+            + _tile_array_bytes(direct_detection)
+        )
+        maximum_retained_array_bytes = max(
+            maximum_retained_array_bytes,
+            retained_array_bytes,
+        )
+        maximum_worker_bytes = max(
+            maximum_worker_bytes,
+            summary_array_bytes + result.maximum_filter_evaluation_bytes,
+            retained_array_bytes,
+        )
         reconstruction_summaries.append(reconstruction.compact_summary())
         detection_summaries.append(direct_detection.compact_summary())
+        summary_array_bytes += _summary_array_bytes(
+            reconstruction_summaries[-1]
+        ) + _summary_array_bytes(detection_summaries[-1])
         maximum_read_pixels = max(
             maximum_read_pixels,
             result.read_pixel_count,
@@ -321,6 +382,9 @@ def _scan_topology_batch(  # noqa: PLR0913
         detection_summaries=tuple(detection_summaries),
         maximum_read_pixel_count=maximum_read_pixels,
         maximum_workspace_bytes=maximum_workspace_bytes,
+        maximum_retained_array_bytes=maximum_retained_array_bytes,
+        maximum_worker_bytes=maximum_worker_bytes,
+        summary_array_bytes=summary_array_bytes,
     )
 
 
@@ -410,6 +474,9 @@ def _publish_batch(  # noqa: PLR0913
     scale_summaries: list[list[LocalIslandTileSummary]] = [[], [], []]
     maximum_read_pixels = 0
     maximum_workspace_bytes = 0
+    maximum_retained_array_bytes = 0
+    maximum_worker_bytes = 0
+    summary_array_bytes = 0
     for request in batch.requests:
         result, evidence = _evaluate_tile(
             request.partition,
@@ -422,6 +489,17 @@ def _publish_batch(  # noqa: PLR0913
         reconstruction, direct_detection = _label_topology(
             evidence,
             image_shape_yx=image_shape_yx,
+        )
+        labelled_retained_bytes = (
+            summary_array_bytes
+            + result.retained_array_bytes
+            + evidence.retained_array_bytes
+            + _tile_array_bytes(reconstruction)
+            + _tile_array_bytes(direct_detection)
+        )
+        maximum_retained_array_bytes = max(
+            maximum_retained_array_bytes,
+            labelled_retained_bytes,
         )
         reconstruction_mask = np.asarray(
             apply_tile_label_mapping(
@@ -439,11 +517,28 @@ def _publish_batch(  # noqa: PLR0913
             > 0,
             dtype=np.bool_,
         )
+        del reconstruction, direct_detection
         products, scale_masks = _publication_products(
             result,
             evidence,
             reconstruction_mask=reconstruction_mask,
             retained_mask=retained_mask,
+        )
+        product_retained_bytes = (
+            summary_array_bytes
+            + result.retained_array_bytes
+            + evidence.retained_array_bytes
+            + _product_array_bytes(products)
+        )
+        maximum_retained_array_bytes = max(
+            maximum_retained_array_bytes,
+            product_retained_bytes,
+        )
+        maximum_worker_bytes = max(
+            maximum_worker_bytes,
+            summary_array_bytes + result.maximum_filter_evaluation_bytes,
+            labelled_retained_bytes,
+            product_retained_bytes,
         )
         chunks.extend(
             sink.write_chunk(
@@ -466,7 +561,23 @@ def _publish_batch(  # noqa: PLR0913
                 request.partition,
                 image_shape_yx=image_shape_yx,
             )
+            scale_retained_bytes = product_retained_bytes + _tile_array_bytes(
+                scale_tile
+            )
+            maximum_retained_array_bytes = max(
+                maximum_retained_array_bytes,
+                scale_retained_bytes,
+            )
+            maximum_worker_bytes = max(
+                maximum_worker_bytes,
+                scale_retained_bytes,
+            )
             scale_summaries[index].append(scale_tile.compact_summary())
+            added_summary_bytes = _summary_array_bytes(
+                scale_summaries[index][-1]
+            )
+            summary_array_bytes += added_summary_bytes
+            product_retained_bytes += added_summary_bytes
         maximum_read_pixels = max(
             maximum_read_pixels,
             result.read_pixel_count,
@@ -482,6 +593,9 @@ def _publish_batch(  # noqa: PLR0913
         ),
         maximum_read_pixel_count=maximum_read_pixels,
         maximum_workspace_bytes=maximum_workspace_bytes,
+        maximum_retained_array_bytes=maximum_retained_array_bytes,
+        maximum_worker_bytes=maximum_worker_bytes,
+        summary_array_bytes=summary_array_bytes,
     )
 
 
@@ -541,7 +655,7 @@ def _validate_stage_inputs(
         )
 
 
-def run_phase_five_multiscale_stage(  # noqa: PLR0913, PLR0917
+def run_phase_five_multiscale_stage(  # noqa: PLR0913
     source: _WindowReadable,
     background_rms_source: _CompletedProductSource,
     manifest: PartitionManifest,
@@ -667,13 +781,15 @@ def run_phase_five_multiscale_stage(  # noqa: PLR0913, PLR0917
         for scale_index in range(len(_SCALE_ORDERS))
     )
     all_results = (*topology_results, *publication_results)
+    batch_counts = (len(partition_batches), len(publication_batches))
     return PhaseFiveMultiscaleStageResult(
         generation=generation,
         detection_islands=detection_islands,
         reconstruction_islands=reconstruction.islands,
         scale_islands_by_order=scale_islands,
         partition_count=len(manifest.tiles),
-        executor_task_count=len(partition_batches) + len(publication_batches),
+        executor_task_count=sum(batch_counts),
+        maximum_graph_width=max(batch_counts),
         maximum_batch_partition_count=max(
             len(batch.partitions) for batch in partition_batches
         ),
@@ -682,6 +798,24 @@ def run_phase_five_multiscale_stage(  # noqa: PLR0913, PLR0917
         ),
         maximum_workspace_bytes=max(
             result.maximum_workspace_bytes for result in all_results
+        ),
+        maximum_retained_array_bytes=max(
+            result.maximum_retained_array_bytes for result in all_results
+        ),
+        maximum_worker_bytes=max(
+            result.maximum_worker_bytes for result in all_results
+        ),
+        topology_summary_count=2 * len(manifest.tiles),
+        scale_summary_count=len(_SCALE_ORDERS) * len(manifest.tiles),
+        boundary_summary_array_bytes=sum(
+            result.summary_array_bytes for result in all_results
+        ),
+        maximum_task_summary_array_bytes=max(
+            result.summary_array_bytes for result in all_results
+        ),
+        published_product_shard_count=len(generation.chunks),
+        maximum_task_product_shard_count=max(
+            len(result.product_chunks) for result in publication_results
         ),
         reconciliation_round_count=max(
             reconstruction.reduction_round_count,

@@ -21,7 +21,7 @@
   },
   "bounded_execution": {
     "batch_policy": "executor-granularity-only-with-unchanged-pixel-ownership",
-    "byte_evidence": "required-before-step-5-completion",
+    "byte_evidence": "exact-retained-payload-and-conservative-filter-peak-reviewed",
     "compact_context_halo": "ceil-half-beam-major",
     "complete_plane_assembly": "small-deterministic-test-oracle-only-never-production",
     "core_policy": "shared-nonoverlapping-core-with-stage-specific-read-halos",
@@ -48,6 +48,30 @@
     "matched_filter_halo": "actual-four-sigma-kernel-radius-at-one-two-four-beams",
     "product_identity_policy": "exact-within-partition-and-stable-global-topology-across-partitions",
     "residual_atrous_halo": "cumulative-b3-halos-two-six-fourteen-pixels",
+    "resource_evidence": {
+      "boundary_summary_array_bytes_per_tile": 20480,
+      "detection_core_retained_array_bytes": 3604480,
+      "filter_core_retained_array_bytes": 12058624,
+      "graph_task_formula": "two-times-ceiling-partitions-over-maximum-tiles-per-batch",
+      "maximum_atrous_workspace_bytes": 18484096,
+      "maximum_filter_evaluation_bytes": 26298000,
+      "maximum_graph_width_formula": "ceiling-partitions-over-maximum-tiles-per-batch",
+      "maximum_matched_filter_workspace_bytes": 16057904,
+      "payload_scope": "exact-ndarray-payload-and-conservative-kernel-workspace",
+      "profile": "five-pixel-major-beam-256-square-core",
+      "published_product_shards_per_tile": 8,
+      "scale_summaries_per_tile": 3,
+      "tile_core_shape_yx": [
+        256,
+        256
+      ],
+      "topology_summaries_per_tile": 2,
+      "widest_read_pixel_count": 104976,
+      "widest_read_shape_yx": [
+        324,
+        324
+      ]
+    },
     "response_persistence": "recompute-after-compact-topology-no-image-sized-response-bank",
     "retry_policy": "idempotent-checksummed-owned-core-writes",
     "scheduler_results": "compact-boundary-summaries-chunk-identities-and-scalars-only",
@@ -115,7 +139,7 @@
     ],
     "reference": "restoring-beam-major-fwhm"
   },
-  "schema_version": 7,
+  "schema_version": 8,
   "scientific_basis": [
     "https://doi.org/10.1017/pasa.2018.3",
     "https://doi.org/10.1093/mnras/stv1866",

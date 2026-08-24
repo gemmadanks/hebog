@@ -9807,3 +9807,48 @@ runtime gate; this task makes no performance, memory, or qualification claim.
 
 **Immediate next step:** record bounded retained bytes, workspaces, summaries,
 shards, and graph size under `SerialExecutor` and the existing executor path.
+
+## 2026-08-24 — Complete Phase 5 bounded-resource evidence
+
+**Plan phase:** Phase 5, Step 5 — bounded deterministic execution
+
+- Confirmed the TDD red state: the new structural contract failed because the
+  filter and stage results did not expose retained-array, complete-worker,
+  summary, shard, or graph evidence.
+- Added exact owned-ndarray payload accounting at filter, detection, topology,
+  and publication checkpoints. Kernel workspace remains the conservative
+  algorithm estimate; `maximum_worker_bytes` records the larger complete
+  filter-evaluation or retained stage checkpoint without presenting Python
+  object overhead, allocator fragmentation, RSS, transfer, or spill as known.
+- Reduced avoidable retention before measuring it. The filter seam now copies
+  and releases the matched-filter read responses before evaluating residual
+  B3, and the stage releases source/background/RMS windows after preparing
+  independent residual inputs. Scientific outputs and checksums remain
+  unchanged.
+- For the reviewed five-pixel-major beam and 256-square core, recorded a
+  324-square/104,976-pixel widest read, 12,058,624 retained filter-core bytes,
+  3,604,480 retained detection bytes, 16,057,904 matched-filter workspace
+  bytes, 18,484,096 residual-B3 workspace bytes, and a 26,298,000-byte
+  conservative complete filter peak.
+- Each tile returns two topology and three scale summaries containing 20,480
+  boundary-array bytes in total and publishes eight product shards. The graph
+  has `2 * ceil(partitions / maximum_tiles_per_batch)` tasks and maximum width
+  `ceil(partitions / maximum_tiles_per_batch)`. Serial, reverse completion,
+  identical retry, and one-/two-worker existing-client Dask agree for a common
+  batch size.
+- At the 3,000-square anchor, 256-square cores and batch size 16 project to 144
+  partitions, 18 coarse tasks, 1,152 shards, and 2.81 MiB total boundary-array
+  payload. The same core at 100,000 square projects to 152,881 partitions and
+  2.92 GiB of boundary arrays, so Phase 6 distributed hierarchical reduction
+  remains mandatory before the extreme-scale claim.
+- The focused Phase 5 scientific, executor, resource, and contract suite passes
+  184 tests. The complete branch-aware run passes 1,641 tests with 44
+  deselected and four expected failures at 94.90% coverage. The fast handoff
+  suite passes Ruff, Pyright, doctests, and 1,491 tests with 194 deselected and
+  four expected failures; the strict documentation build also passes.
+
+**Decision:** Phase 5 Step 5 is complete. This structural audit does not claim
+RSS, transfer/spill, runtime, qualification, or 100,000-square readiness.
+
+**Immediate next step:** audit every accepted Phase 5 development defect for a
+deterministic regression fixture before qualification.

@@ -114,6 +114,16 @@ class PhaseFiveFilterTileResult:
     matched_filter: ScaleFilterBankResult
     atrous_result: ResidualAtrousResult
     read_pixel_count: int
+    maximum_filter_evaluation_bytes: int
+
+    @property
+    def retained_array_bytes(self) -> int:
+        """Return exact owned ndarray payload retained by this core result."""
+        return (
+            _prepared_array_bytes(self.prepared_inputs)
+            + _scale_response_array_bytes(self.matched_filter.responses)
+            + _residual_atrous_array_bytes(self.atrous_result)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,6 +140,64 @@ class PhaseFiveDetectionTileEvidence:
     reconstruction_seeds: npt.NDArray[np.bool_]
     detection_membership: npt.NDArray[np.bool_]
     detection_seeds: npt.NDArray[np.bool_]
+
+    @property
+    def retained_array_bytes(self) -> int:
+        """Return exact owned ndarray payload retained for local topology."""
+        return sum(
+            array.nbytes
+            for array in (
+                self.direct_snr,
+                self.matched_maximum_snr,
+                self.atrous_maximum_snr,
+                *self.atrous_scale_snrs,
+                *self.significant_scale_masks,
+                self.reconstruction_membership,
+                self.reconstruction_seeds,
+                self.detection_membership,
+                self.detection_seeds,
+            )
+        )
+
+
+def _prepared_array_bytes(prepared: PreparedScaleInputs) -> int:
+    """Return exact retained payload for one prepared image record."""
+    return sum(
+        array.nbytes
+        for array in (
+            prepared.residual_jy_per_beam,
+            prepared.rms_jy_per_beam,
+            prepared.scientifically_valid,
+        )
+    )
+
+
+def _scale_response_array_bytes(
+    responses: tuple[ScaleFilterResponse, ...],
+) -> int:
+    """Return exact retained payload for aligned scale responses."""
+    return sum(
+        array.nbytes
+        for response in responses
+        for array in (
+            response.response_jy_per_beam,
+            response.effective_rms_jy_per_beam,
+            response.valid_support_fraction,
+            response.scientifically_valid,
+        )
+    )
+
+
+def _residual_atrous_array_bytes(result: ResidualAtrousResult) -> int:
+    """Return exact retained payload for one residual B3 result."""
+    return _scale_response_array_bytes(result.responses) + sum(
+        array.nbytes
+        for array in (
+            result.reconstructed_signal_jy_per_beam,
+            result.coarse_smoothing_jy_per_beam,
+            result.scientifically_valid,
+        )
+    )
 
 
 def _validate_task_limit(maximum_task_pixels: int) -> None:
@@ -245,10 +313,9 @@ def _core_response(
 def _immutable_array(
     values: npt.NDArray[_ArrayScalar],
 ) -> npt.NDArray[_ArrayScalar]:
-    """Return one owned immutable local scientific field."""
-    result = np.array(values, copy=True)
-    result.setflags(write=False)
-    return result
+    """Freeze one already-owned local scientific field without another copy."""
+    values.setflags(write=False)
+    return values
 
 
 def derive_phase_five_detection_tile_evidence(
@@ -354,22 +421,6 @@ def evaluate_phase_five_filter_tile(
         required_halo_pixels=required_halo,
         read_shape_yx=read_shape_yx,
     )
-    matched_read = evaluate_scale_filter_bank(
-        prepared_read,
-        build_scale_filter_bank(
-            beam,
-            family="beam-aware-matched-filter",
-            scales=_FROZEN_SCALES,
-            truncation_sigma=_FROZEN_FILTER_TRUNCATION_SIGMA,
-            noise_correlation=beam,
-        ),
-        minimum_support_fraction=minimum_support_fraction,
-    )
-    atrous_read = evaluate_residual_atrous(
-        prepared_read,
-        build_residual_atrous_plan(beam, noise_correlation=beam),
-        minimum_support_fraction=minimum_support_fraction,
-    )
     prepared_core = PreparedScaleInputs(
         residual_jy_per_beam=_core_copy(
             prepared_read.residual_jy_per_beam,
@@ -384,6 +435,24 @@ def evaluate_phase_five_filter_tile(
             partition,
         ),
     )
+    prepared_read_bytes = _prepared_array_bytes(prepared_read)
+    prepared_core_bytes = _prepared_array_bytes(prepared_core)
+    matched_read = evaluate_scale_filter_bank(
+        prepared_read,
+        build_scale_filter_bank(
+            beam,
+            family="beam-aware-matched-filter",
+            scales=_FROZEN_SCALES,
+            truncation_sigma=_FROZEN_FILTER_TRUNCATION_SIGMA,
+            noise_correlation=beam,
+        ),
+        minimum_support_fraction=minimum_support_fraction,
+    )
+    maximum_filter_evaluation_bytes = (
+        prepared_read_bytes
+        + prepared_core_bytes
+        + matched_read.maximum_workspace_bytes
+    )
     matched_core = ScaleFilterBankResult(
         family=matched_read.family,
         responses=tuple(
@@ -394,6 +463,28 @@ def evaluate_phase_five_filter_tile(
         temporary_plane_count=matched_read.temporary_plane_count,
         maximum_workspace_bytes=matched_read.maximum_workspace_bytes,
     )
+    maximum_filter_evaluation_bytes = max(
+        maximum_filter_evaluation_bytes,
+        prepared_read_bytes
+        + prepared_core_bytes
+        + _scale_response_array_bytes(matched_read.responses)
+        + _scale_response_array_bytes(matched_core.responses),
+    )
+    del matched_read
+    atrous_read = evaluate_residual_atrous(
+        prepared_read,
+        build_residual_atrous_plan(beam, noise_correlation=beam),
+        minimum_support_fraction=minimum_support_fraction,
+    )
+    matched_core_bytes = _scale_response_array_bytes(matched_core.responses)
+    maximum_filter_evaluation_bytes = max(
+        maximum_filter_evaluation_bytes,
+        prepared_read_bytes
+        + prepared_core_bytes
+        + matched_core_bytes
+        + atrous_read.maximum_workspace_bytes,
+    )
+    del prepared_read
     atrous_core = ResidualAtrousResult(
         family="residual-b3-atrous",
         responses=tuple(
@@ -416,6 +507,13 @@ def evaluate_phase_five_filter_tile(
         temporary_plane_count=atrous_read.temporary_plane_count,
         maximum_workspace_bytes=atrous_read.maximum_workspace_bytes,
     )
+    maximum_filter_evaluation_bytes = max(
+        maximum_filter_evaluation_bytes,
+        prepared_core_bytes
+        + matched_core_bytes
+        + _residual_atrous_array_bytes(atrous_read)
+        + _residual_atrous_array_bytes(atrous_core),
+    )
     return PhaseFiveFilterTileResult(
         partition=partition,
         prepared_inputs=prepared_core,
@@ -423,6 +521,7 @@ def evaluate_phase_five_filter_tile(
         atrous_result=atrous_core,
         read_pixel_count=partition.read_bounds.shape_yx[0]
         * partition.read_bounds.shape_yx[1],
+        maximum_filter_evaluation_bytes=maximum_filter_evaluation_bytes,
     )
 
 

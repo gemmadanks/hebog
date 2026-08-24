@@ -321,7 +321,7 @@ and hash-bound.
 
 | Document | SHA-256 |
 | --- | --- |
-| Multiscale contract | `4307a43c2904c885705c72c45e801dedc74f86ae4570852ca122485f85177e3f` |
+| Multiscale contract | `7e79935d4870223d9448efb8c98407de63ecb148d98a4b8f5ef5c684cf55c5fe` |
 | Filter-selection decision | `38c2340c1e49a30178dd866bcb587f8f0bcd9cfc00e76bb496e6e93da5ed4e46` |
 | Paired filter-review protocol | `749d2393c485239bea6a897beaeb4a97b0b8ab7d8aff851646e43e857b4c993d` |
 | Scientific gates | `cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b` |

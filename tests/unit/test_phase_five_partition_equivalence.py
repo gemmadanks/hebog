@@ -641,6 +641,65 @@ def test_filter_tile_returns_owned_immutable_core_evidence() -> None:
     assert all(array.shape == tile.core_bounds.shape_yx for array in arrays)
     assert all(not array.flags.writeable for array in arrays)
     assert all(array.base is None for array in arrays)
+    assert result.retained_array_bytes == 184 * np.prod(
+        tile.core_bounds.shape_yx
+    )
+    assert result.maximum_filter_evaluation_bytes >= (
+        result.retained_array_bytes
+    )
+
+    evidence = derive_phase_five_detection_tile_evidence(result, _config())
+    evidence_arrays = (
+        evidence.direct_snr,
+        evidence.matched_maximum_snr,
+        evidence.atrous_maximum_snr,
+        *evidence.atrous_scale_snrs,
+        *evidence.significant_scale_masks,
+        evidence.reconstruction_membership,
+        evidence.reconstruction_seeds,
+        evidence.detection_membership,
+        evidence.detection_seeds,
+    )
+    assert all(not array.flags.writeable for array in evidence_arrays)
+    assert evidence.retained_array_bytes == 55 * np.prod(
+        tile.core_bounds.shape_yx
+    )
+
+
+def test_reviewed_256_core_records_exact_filter_memory_evidence() -> None:
+    """The five-pixel beam profile stays below one bounded worker budget."""
+    beam = BeamShapePixels(5.0, 4.0, 13.0)
+    manifest = plan_image_partitions(
+        image_shape_yx=(768, 768),
+        tile_core_shape_yx=(256, 256),
+        halo_yx=(34, 34),
+    )
+    tile = manifest.tiles[4]
+    shape = tile.read_bounds.shape_yx
+    zeros = np.zeros(shape, dtype=np.float64)
+    prepared = prepare_scale_filter_inputs(
+        zeros,
+        np.ones(shape, dtype=np.bool_),
+        zeros,
+        np.ones(shape, dtype=np.float64),
+    )
+
+    result = evaluate_phase_five_filter_tile(
+        prepared,
+        partition=tile,
+        image_shape_yx=manifest.image_shape_yx,
+        beam=beam,
+        minimum_support_fraction=_SUPPORT_FRACTION,
+    )
+    evidence = derive_phase_five_detection_tile_evidence(result, _config())
+
+    assert tile.read_bounds.shape_yx == (324, 324)
+    assert result.read_pixel_count == 104_976
+    assert result.retained_array_bytes == 12_058_624
+    assert evidence.retained_array_bytes == 3_604_480
+    assert result.matched_filter.maximum_workspace_bytes == 16_057_904
+    assert result.atrous_result.maximum_workspace_bytes == 18_484_096
+    assert result.maximum_filter_evaluation_bytes == 26_298_000
 
 
 def test_filter_tile_rejects_incomplete_interior_halo() -> None:

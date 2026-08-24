@@ -844,6 +844,59 @@ class PhaseFiveCombinedCatalogueContract(_ContractModel):
     scheduler_state: Literal["forbidden"]
 
 
+class PhaseFiveBoundedResourceEvidence(_ContractModel):
+    """Exact structural evidence for the reviewed 256-core profile."""
+
+    profile: Literal["five-pixel-major-beam-256-square-core"]
+    tile_core_shape_yx: tuple[int, int]
+    widest_read_shape_yx: tuple[int, int]
+    widest_read_pixel_count: int = Field(ge=1)
+    filter_core_retained_array_bytes: int = Field(ge=1)
+    detection_core_retained_array_bytes: int = Field(ge=1)
+    maximum_matched_filter_workspace_bytes: int = Field(ge=1)
+    maximum_atrous_workspace_bytes: int = Field(ge=1)
+    maximum_filter_evaluation_bytes: int = Field(ge=1)
+    topology_summaries_per_tile: int = Field(ge=1)
+    scale_summaries_per_tile: int = Field(ge=1)
+    boundary_summary_array_bytes_per_tile: int = Field(ge=1)
+    published_product_shards_per_tile: int = Field(ge=1)
+    graph_task_formula: Literal[
+        "two-times-ceiling-partitions-over-maximum-tiles-per-batch"
+    ]
+    maximum_graph_width_formula: Literal[
+        "ceiling-partitions-over-maximum-tiles-per-batch"
+    ]
+    payload_scope: Literal[
+        "exact-ndarray-payload-and-conservative-kernel-workspace"
+    ]
+
+    @model_validator(mode="after")
+    def validate_reviewed_profile(self) -> Self:
+        """Keep the implemented and reviewed resource profile exact."""
+        expected = {
+            "tile_core_shape_yx": (256, 256),
+            "widest_read_shape_yx": (324, 324),
+            "widest_read_pixel_count": 104_976,
+            "filter_core_retained_array_bytes": 12_058_624,
+            "detection_core_retained_array_bytes": 3_604_480,
+            "maximum_matched_filter_workspace_bytes": 16_057_904,
+            "maximum_atrous_workspace_bytes": 18_484_096,
+            "maximum_filter_evaluation_bytes": 26_298_000,
+            "topology_summaries_per_tile": 2,
+            "scale_summaries_per_tile": 3,
+            "boundary_summary_array_bytes_per_tile": 20_480,
+            "published_product_shards_per_tile": 8,
+        }
+        if any(
+            getattr(self, name) != value for name, value in expected.items()
+        ):
+            raise ValueError(
+                "Phase 5 bounded resource evidence must match the reviewed "
+                "256-core profile"
+            )
+        return self
+
+
 class PhaseFiveBoundedExecutionContract(_ContractModel):
     """Reviewed stage halos and pre-allocation admission semantics."""
 
@@ -877,7 +930,10 @@ class PhaseFiveBoundedExecutionContract(_ContractModel):
     task_admission: Literal[
         "worst-interior-read-within-global-and-stage-pixel-caps"
     ]
-    byte_evidence: Literal["required-before-step-5-completion"]
+    byte_evidence: Literal[
+        "exact-retained-payload-and-conservative-filter-peak-reviewed"
+    ]
+    resource_evidence: PhaseFiveBoundedResourceEvidence
     tile_result_ownership: Literal[
         "owned-immutable-core-arrays-without-halo-read-retention"
     ]
@@ -973,7 +1029,7 @@ class PhaseFiveBoundedExecutionContract(_ContractModel):
 class PhaseFiveMultiscaleContract(_ContractModel):
     """Versioned Phase 5 scale, ownership, and failure semantics."""
 
-    schema_version: Literal[7]
+    schema_version: Literal[8]
     contract_id: Literal["phase-5-multiscale"]
     status: Literal["reviewed-development"]
     scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]
