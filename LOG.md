@@ -9104,3 +9104,27 @@ exact approval.
 **Immediate next step:** complete coverage and repository validation, commit
 the amendment, then freeze a pending review bound to its commit/checksum and
 the existing analysis for named approval.
+
+## 2026-08-24 — Freeze the recovery evaluator amendment review
+
+**Plan phase:** Phase 5, Step 2C-PC recovery evaluation
+
+- Committed the fail-closed evaluation adapter as `147e193...`, tree
+  `b98f9d97...`, evaluator SHA `406c36a0...`. The frozen evaluator remains
+  byte-identical at `fc17d820...` and its frozen contract remains
+  `9ef1a4f6...`.
+- Created pending review
+  `config/contracts/phase-5-external-recovery-evaluation-amendment-review.json`,
+  SHA-256
+  `0b6a98d95d8bb696c2f2597bdf0b42cccf81ec430936b37b54c8e6ce0e86e551`.
+  It binds campaign `4d881a41...`, analysis `198fe6ff...`, the absent decision,
+  both accelerator identities, and the exact adapter implementation. It
+  records `execution_authorized=false` with no named review.
+
+**Decision:** the existing analysis is technically ready for an evaluation-only
+identity amendment, but remains unopened by a successful scorer. No campaign,
+compiler, analysis, endpoint, gate, or science value changes are authorized.
+
+**Immediate next step:** obtain exact named approval of pending review
+`0b6a98d9...`. Only then create the separate authorization decision and invoke
+the amendment once against existing analysis `198fe6ff...`.

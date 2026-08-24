@@ -441,15 +441,17 @@ must be restored before new evidence work.
 - [x] Complete the existing-campaign resume, terminal verification, and frozen
       compilation. Campaign `4d881a41...` sealed all 2,488 inputs and 12,440
       runs; write-once analysis `198fe6ff...` compiled successfully.
-- [ ] Repair the terminal evaluator composition without changing science. The
+- [x] Repair the terminal evaluator composition without changing science. The
       frozen evaluator stopped before scoring or output because it passed the
       recovery-seam identity where the inherited evaluator requires the base
       accelerator recorded by the analysis. A separate fail-closed adapter
-      preserves both identities and forbids campaign or analysis reruns; freeze
-      it for renewed named review before evaluating the existing analysis.
-- [ ] After exact approval, evaluate analysis `198fe6ff...` once through the
-      amendment and interpret science before runtime. Do not overwrite the
-      analysis, rerun the campaign, or alter any gate or endpoint.
+      at commit `147e193...` preserves both identities and forbids campaign or
+      analysis reruns. Pending review `0b6a98d9...` binds the unchanged evidence
+      and cannot authorize itself.
+- [ ] Obtain exact named approval of pending review `0b6a98d9...`; then evaluate
+      analysis `198fe6ff...` once through the amendment and interpret science
+      before runtime. Do not overwrite the analysis, rerun the campaign, or
+      alter any gate or endpoint.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

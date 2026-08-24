@@ -653,6 +653,74 @@ def test_recovery_evaluation_amendment_requires_exact_authorization(
         )
 
 
+def test_recovery_evaluation_amendment_review_is_pending_and_exact() -> None:
+    """The correction binds evidence but cannot authorize itself."""
+    review = json.loads(
+        (
+            _ROOT / "config/contracts/"
+            "phase-5-external-recovery-evaluation-amendment-review.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert review["status"] == (
+        "ready-for-named-recovery-evaluation-amendment-approval"
+    )
+    scope = "evaluate-existing-analysis-once-no-campaign-or-analysis-rerun"
+    assert review["authorization"] == {
+        "execution_authorized": False,
+        "named_review": None,
+        "requested_by": "Gemma Danks",
+        "requested_on": "2026-08-24",
+        "scope": scope,
+    }
+    assert review["failure"] == {
+        "decision_output_written": False,
+        "failed_evaluator_path": (
+            "scripts/validation/evaluate_phase5_external_recovery_decision.py"
+        ),
+        "reason": (
+            "recovery-seam-identity-passed-to-inherited-base-accelerator-check"
+        ),
+        "science_scoring_started": False,
+    }
+    assert review["scientific_scope"] == {
+        "analysis_changed": False,
+        "campaign_changed": False,
+        "endpoints_or_gates_changed": False,
+        "population_changed": False,
+        "runtime_results_changed": False,
+    }
+    for path_key, sha_key in (
+        ("evaluator_path", "evaluator_sha256"),
+        ("frozen_evaluator_path", "frozen_evaluator_sha256"),
+        ("evaluation_contract_path", "evaluation_contract_sha256"),
+        ("recovery_compiler_seam_path", "recovery_compiler_seam_sha256"),
+    ):
+        identity = (
+            review["amendment"]
+            if path_key == "evaluator_path"
+            else review["frozen_composition"]
+        )
+        assert (
+            hashlib.sha256(
+                (_ROOT / identity[path_key]).read_bytes()
+            ).hexdigest()
+            == identity[sha_key]
+        )
+    evidence = review["preserved_evidence"]
+    for path_key, sha_key in (
+        ("analysis_path", "analysis_sha256"),
+        ("campaign_path", "campaign_sha256"),
+    ):
+        assert (
+            hashlib.sha256(
+                (_ROOT / evidence[path_key]).read_bytes()
+            ).hexdigest()
+            == evidence[sha_key]
+        )
+    assert not (_ROOT / evidence["decision_path"]).exists()
+
+
 def test_recovery_launcher_accepts_exact_authorized_execution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
