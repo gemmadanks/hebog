@@ -29,25 +29,34 @@ scientific partition ownership.
 
 ## Current status
 
-The technical implementation is complete through the experimental compact
-catalogue path: FITS/WCS ingestion, bounded partitioning, adaptive background
-and RMS estimation, detection, deblending, Gaussian measurement, sky/beam
-transforms, catalogue construction, serial/Dask execution, and Zarr products
-are implemented and tested.
+The compact single-scale Phase 4 milestone is complete. FITS/WCS ingestion,
+bounded partitioning, adaptive background and RMS estimation, detection,
+deblending, Gaussian measurement, sky/beam transforms, compact catalogue
+construction, serial/Dask execution, and Zarr products are implemented and
+tested.
 
-Compact scientific qualification has not passed. The terminal Phase 4R
-replacement campaign completed 600/600 Hebog images and passed 446/450
-dual-reference comparisons plus 106/107 absolute gates, but failed
-catastrophic-outlier comparisons and one SNR-10 declination-uncertainty-bias
-gate. The result is preserved without post-inspection tuning. The Phase 4
-performance matrix was therefore not eligible to run, and Hebog is not yet a
-qualified Rapthor replacement. Multiscale and extended-emission work remains
-Phase 5 scope.
+The fresh 800-image Phase 4U qualification passed all 77 binding absolute
+gates, all 20 paired non-inferiority endpoints against each of released
+PyBDSF and pinned PyBDSF `master`, and all five stronger-Hebog envelopes. A
+complete optimized-candidate replay preserved that result, and the controlled
+incremental compact matrix passed its component budgets. Earlier failed
+campaigns remain immutable historical evidence rather than being rescored.
+
+Phase 5 is active, not complete. Its latest recovery comparison passed all
+143 Continuum absolute gates, all 226 powered Continuum comparisons
+against the two PyBDSF references, and all applicable compact PyBDSF/Aegean
+gates. Remaining work includes full multiscale implementation, the stable
+top-level pipeline, real-residual and independent review, Rapthor integration
+and matched runtime evidence, and production-scale distributed qualification.
+Hebog is therefore not yet a production-ready or default Rapthor backend.
 
 Start with the [quick start](tutorials/index.md), read the
 [architecture](explanation/index.md) and
 [quality attributes](explanation/quality-attributes.md), review the
 [native-code assessment](explanation/native-code-assessment.md), then see the
-[Phase 0 baseline results](reference/phase-0-baseline-results.md), the complete
+[Phase 0 baseline results](reference/phase-0-baseline-results.md), the
+[Phase 4 release-readiness record](reference/phase-4-release-readiness.md), the
+[Phase 4U qualification result](reference/phase-4u-qualification-protocol.md),
+the complete
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 and [execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md).

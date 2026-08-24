@@ -23,6 +23,7 @@ uv run hebog --version
 ```
 
 The scientific `find_sources` API intentionally raises `NotImplementedError`
-until the baseline and equivalence harness in the
-[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-is complete.
+until the remaining multiscale, product-completion, and orchestration stages
+can satisfy the complete public result contract. The qualified compact
+capabilities are currently exercised through the stage APIs described in the
+[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).

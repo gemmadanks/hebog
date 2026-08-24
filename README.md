@@ -43,8 +43,10 @@ Hebog is not rebuilding every PyBDSF feature. It is implementing the narrower
 source-finding path used by Rapthor, while keeping that scientific capability
 usable by other workflows.
 
-The implementation is technically complete through the experimental compact
-catalogue path in Phase 4. In practical terms, Hebog can now:
+The compact single-scale Phase 4 milestone is complete. The independently
+frozen Phase 4U qualification passed, the optimized candidate preserved that
+result in a complete regression replay, and the incremental compact component
+matrix passed its budgets. In practical terms, Hebog can now:
 
 - read and partition radio images without loading a large image onto one
   machine;
@@ -75,7 +77,8 @@ measurement/fitting is 0.178--0.758 seconds and catalogue materialisation is
 0.037--0.041 seconds across successful profiles, inside the separate
 2.0-second allocations.
 
-The historical Phase 4 and Phase 4R release gates were not met. Phase 4R
+Earlier Phase 4 campaigns remain useful, immutable failure evidence; they are
+not the current milestone decision. Phase 4R
 repaired the evidence evaluator, introduced data-only beam/free model
 selection, correlated-noise fitting, analytic truncated-edge centroid
 correction, and a no-compensation registry of 35 scientific and robustness
@@ -148,6 +151,14 @@ radio-astronomy review, controlled real-residual evidence, complete Rapthor
 end-to-end comparison, and production scalability evidence remain required
 before Hebog replaces PyBDSF by default.
 
+The subsequent Phase 5 recovery comparison also passed its current science
+gate: all 143 Continuum absolute gates and all 226 powered Continuum
+comparisons against released PyBDSF and pinned PyBDSF `master` passed. The
+compact regression passed all 77 binding absolute gates, all 450 PyBDSF
+comparisons, and all 143 applicable Aegean comparisons. This opens the next
+multiscale implementation step; it does not complete Phase 5 or establish a
+runtime claim.
+
 The remaining work includes:
 
 - recovering extended or multiscale emission;
@@ -155,14 +166,13 @@ The remaining work includes:
 - proving end-to-end catalogue and filtering equivalence and speed; and
 - qualifying out-of-core execution on production-scale multi-node clusters.
 
-A useful mental model is that Hebog can now locate, outline, fit, and catalogue
-ordinary compact objects and unresolved compact blends, and can serialize the
-part of that catalogue used by Rapthor's image diagnostics. It cannot yet
-recover the full range of extended or multiscale emission, nor run as
-Rapthor's complete source-finder backend. By planned capability, this is
-roughly three-quarters through the Rapthor-specific reimplementation;
-multiscale recovery, workflow integration, performance, and scale
-qualification remain scientifically significant.
+A useful mental model is that the compact foundation is qualified: Hebog can
+locate, outline, fit, and catalogue ordinary compact objects and unresolved
+compact blends, and serialize the catalogue view used by Rapthor's image
+diagnostics. It cannot yet recover the full range of extended or multiscale
+emission, nor run as Rapthor's complete source-finder backend. Multiscale
+completion, workflow integration, performance, and scale qualification remain
+scientifically significant.
 
 Hebog is therefore a functioning compact-source detector, but it is not yet a
 drop-in PyBDSF replacement or production-ready Rapthor backend. Named human
@@ -171,7 +181,9 @@ measurement contract, followed by the observable-group and noisy-source
 amendments. The post-failure extension/flux addendum was approved on
 2026-08-03. See the
 [Phase 4 scientific review record](docs/reference/phase-4-review-record.md) and
-[Phase 4 release-readiness record](docs/reference/phase-4-release-readiness.md)
+[Phase 4 release-readiness record](docs/reference/phase-4-release-readiness.md),
+with the terminal passing population in the
+[Phase 4U qualification protocol](docs/reference/phase-4u-qualification-protocol.md),
 for the held-out findings, ordered recovery work, evidence, and remaining
 limitations.
 
@@ -248,7 +260,7 @@ graph and resource budget.
 ## Development setup
 
 Python 3.12 through 3.14 is supported. Python 3.11 users must remain on Hebog
-0.2.x or upgrade Python before adopting the next release.
+0.2.x or upgrade Python before adopting a current release.
 
 Hebog is still pre-production and does not guarantee backward compatibility
 between `0.x` releases. Development prioritizes the cleanest current API,

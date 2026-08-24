@@ -6,13 +6,13 @@ immutable Pydantic records, reject unknown fields and unsupported versions,
 and serialize to canonical JSON for restart metadata and cross-process
 exchange.
 
-These Phase 1 schemas are versioned but remain provisional until the Phase 0
-human scientific sign-off is recorded. That review approves the meaning and
-fitness of the schema; automated round-trip and compatibility tests remain the
-evidence for individual outputs. A later semantic change requires a new schema
-version and updated current documentation; it must not silently reinterpret
-persisted data. Before `1.0`, stale development products may be rejected and
-recreated rather than supported through legacy readers or migration code.
+The Phase 0 named scientific sign-off approved the schema meanings on
+2026-08-02. Automated round-trip and compatibility tests remain the evidence
+for individual outputs. The schemas are still pre-`1.0`: a later semantic
+change requires a new schema version and updated current documentation, and
+must not silently reinterpret persisted data. Stale development products may
+be rejected and recreated rather than supported through legacy readers or
+migration code.
 
 ## Source catalogue schema version 2
 

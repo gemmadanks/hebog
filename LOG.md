@@ -9188,3 +9188,34 @@ not close Phase 5, remove the PyBDSF fallback, or authorize production cutover.
 **Immediate next step:** begin Step 3 with residual-scale detection and frozen
 scale-specific scientific rules while preserving the compact regression gate
 and the two narrow Continuum watchpoints.
+
+## 2026-08-24 — Refresh release documentation after Phase 4 closure
+
+**Plan phase:** Phase 4 release documentation
+
+- Updated the README and documentation homepage to identify Phase 4U as the
+  passing compact single-scale qualification, distinguish the immutable failed
+  campaigns from the current milestone decision, and summarize the passing
+  optimized replay and component-performance evidence.
+- Added the current Phase 5 recovery science result without presenting Phase 5
+  as complete or making a runtime claim. The public `find_sources` boundary,
+  real-residual review, Rapthor integration, end-to-end performance, and
+  production-scale qualification remain explicit limitations.
+- Corrected the Phase 4R paired-protocol and Phase 4T confirmation status text
+  from pre-opening language to their terminal failed dispositions, removed
+  duplicated protocol text, and completed the Phase 4 reference navigation.
+- Updated the native-code assessment to reflect the implemented and qualified
+  compact kernels, the internal-schema reference to reflect completed Phase 0
+  sign-off, and the quick start to describe the actual remaining public-pipeline
+  boundary.
+- `just docs-build` passes strictly and `just check` passes Ruff, Pyright, and
+  1,292 unit/doctest cases with four expected failures. Release Please remains
+  responsible for the version and release notes; no release-managed version
+  file was changed.
+
+**Decision:** the release-facing documentation now describes Phase 4 as
+complete while retaining the narrower pre-production claim and current Phase 5
+boundary.
+
+**Immediate next step:** complete final documentation review and pre-commit,
+then merge for the Release Please-managed release.

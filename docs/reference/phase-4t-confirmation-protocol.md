@@ -1,7 +1,11 @@
 # Phase 4T compact confirmation protocol
 
-**Status:** expert-reviewed, frozen, and unopened on 2026-08-05. No candidate
-or reference image has been generated and no implementation result exists.
+**Status:** opened exactly once and failed on 2026-08-05. All three
+implementations completed the 800-image population; Hebog passed both sets of
+20 paired endpoints and 76/77 binding absolute gates, but its unresolved-group
+total-flux tail exceeded the unchanged absolute limit. The terminal result is
+preserved without rounding or rescoring. Phase 4U is the separately governed
+later candidate that passed.
 
 Phase 4T is a separately named confirmatory study after the immutable Phase 4S
 failure. It does not rescore or replace Phase 4S. It asks whether Hebog passes
