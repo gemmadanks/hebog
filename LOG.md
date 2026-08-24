@@ -9151,3 +9151,40 @@ permitted.
 
 **Immediate next step:** commit the authorization boundary, invoke the amended
 evaluator once, and interpret scientific outcomes before runtime.
+
+## 2026-08-24 — Pass the Phase 5 recovery science gate
+
+**Plan phase:** Phase 5, Step 2C-PC recovery evaluation
+
+- From clean authorization commit `fb63e51...`, invoked the approved amendment
+  exactly once against existing analysis `198fe6ff...`. It wrote terminal
+  decision SHA-256
+  `cd3eacfbbc236ca1578712fed0e4a28d38cd26d7703882258af5ff44d22e6425`;
+  amendment provenance records authorization `5103aedc...`, review
+  `0b6a98d9...`, and adapter `406c36a0...`.
+- The terminal campaign decision is `pass`: all 144 expected binding endpoints
+  passed, comprising the compact decision and 143 Continuum endpoints.
+- Continuum passed all 143 absolute gates and all 226 powered paired
+  comparisons, split evenly as 113 against released PyBDSF and 113 against
+  pinned PyBDSF master. The narrowest absolute clearance is overall mask recall
+  0.9010345 against 0.90. The narrowest paired clearance is overall mask
+  precision against pinned master: upper confidence limit 0.0494025 against
+  the 0.05 practical-regression margin.
+- Compact passed all 77 binding absolute gates, all 450 paired PyBDSF
+  comparisons, and all 143 applicable Aegean binding comparisons. The six
+  earlier Aegean integrated-flux failures are resolved under the corrected
+  fitted-component composition. Five compact truth-absolute diagnostics still
+  miss stronger report-only envelopes for median position, median/p95 peak
+  flux, p95 integrated flux, and p95 fitted axis; none is a binding failure.
+- The frozen recovery decision contains no runtime-performance gate. Science
+  was interpreted first and passed; no raw timing is promoted into a speed
+  claim. Phase 5 incremental performance remains in Step 6 and complete
+  Rapthor dual-PyBDSF performance remains Phase 7.
+
+**Decision:** Step 2C-PC passes and Step 3 may open. The campaign and analysis
+remain write-once, closed-campaign reuse is unauthorized, and this result does
+not close Phase 5, remove the PyBDSF fallback, or authorize production cutover.
+
+**Immediate next step:** begin Step 3 with residual-scale detection and frozen
+scale-specific scientific rules while preserving the compact regression gate
+and the two narrow Continuum watchpoints.

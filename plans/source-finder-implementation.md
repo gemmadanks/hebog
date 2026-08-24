@@ -333,26 +333,25 @@ photometry, morphology-independent support, and separate compact versus
 irregular-source astrometry semantics. Detailed experiment chronology and all
 closed campaign identities remain in `LOG.md`.
 
-The latest immutable post-correction campaign is the current promotion gate:
+The recovery campaign is now the terminal Step 2C-PC promotion evidence:
 
 | Evidence | Result |
 | --- | --- |
-| Execution checkout | `da2792ddd9...` |
-| Sealed campaign | 2,488 inputs; all 12,440 runs successful; SHA `9483abb0...` |
-| Analysis | write-once SHA `46dab5a12...` |
-| Decision | terminal `fail`; SHA `e00f0520...` |
-| Continuum | 129/143 pass; 13 integrated-flux-p95 absolute failures against the frozen 25% limits; one overall mask-precision failure against pinned master |
-| Compact | all 450 PyBDSF comparisons pass; six binding Aegean integrated-flux comparisons fail |
+| Candidate | `c184acf7f...`; source `b4176ce3...`; configuration `0e5dde51...` |
+| Sealed campaign | 2,488 inputs; all 12,440 runs successful; SHA `4d881a41...` |
+| Analysis | write-once SHA `198fe6ff...` |
+| Decision | terminal `pass`; SHA `cd3eacfb...` |
+| Continuum | 143/143 absolute gates and 226/226 powered comparisons pass: 113 against each PyBDSF reference |
+| Compact | 77/77 binding absolute gates, 450/450 PyBDSF comparisons, and 143/143 applicable Aegean comparisons pass |
 
-No endpoint was underpowered. Step 3, qualification, optimization from the
-closed result, equivalence claims, fallback removal, and production cutover
-remain blocked. The campaign may inform a prospective failure review but may
-not be rescored or reused as confirmation.
-
-The post-campaign remediation review rejected an in-place edit to historical
-compiler SHA `7a055891...`: it breaks the frozen identity chain and does not
-repair the science path used by the latest campaign. The historical compiler
-must be restored before new evidence work.
+The closest Continuum gates are overall mask recall 0.90103 against 0.90 and
+overall mask-precision regression UCL 0.04940 against the pinned-master 0.05
+margin; keep both as explicit regression watchpoints. Five compact
+truth-absolute diagnostics remain outside stronger report-only envelopes, but
+they are not binding gates and all reference comparisons pass. This campaign
+contains no runtime-performance gate and supports no speed claim. Step 3 is
+open; Phase 5 qualification, incremental performance, independent acceptance,
+and the later Rapthor cutover remain outstanding.
 
 ## 7. Delivery plan
 
@@ -452,12 +451,16 @@ must be restored before new evidence work.
       Authorization decision `5103aedc...` permits the amendment to evaluate
       existing analysis `198fe6ff...` exactly once; it forbids campaign
       re-execution, analysis recompilation, and science or gate changes.
-- [ ] Evaluate analysis `198fe6ff...` once through the approved amendment and
-      interpret science before runtime. Do not overwrite the analysis, rerun
-      the campaign, or alter any gate or endpoint.
-- [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
-      and Aegean gate passes. A fresh failure is terminal and cannot be
-      rescored.
+- [x] Evaluate analysis `198fe6ff...` once through the approved amendment.
+      Terminal decision `cd3eacfb...` is `pass`: all 143 Continuum absolute
+      gates, all 226 Continuum PyBDSF comparisons, all 77 compact binding
+      absolute gates, all 450 compact PyBDSF comparisons, and all 143
+      applicable compact Aegean comparisons pass. No campaign or analysis was
+      rerun and no gate or endpoint changed.
+- [x] Open Step 3 because every applicable absolute, released/master PyBDSF,
+      and Aegean gate passed. Retain the two narrow Continuum margins as
+      regression watchpoints; this decision does not close Phase 5 or make a
+      runtime claim.
 
 #### 2D. Determine the Rapthor profile
 
