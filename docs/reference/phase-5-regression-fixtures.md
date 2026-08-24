@@ -41,4 +41,3 @@ Before the final one-look qualification opens:
    and evaluator semantics recorded by the registry; and
 4. a terminal failure remains terminal. The registry may diagnose a later
    failure but cannot authorize rescoring or tuning from qualification data.
-

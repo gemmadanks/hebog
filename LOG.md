@@ -9884,3 +9884,54 @@ development defect now has a checked-in deterministic regression fixture.
 
 **Immediate next step:** re-run the complete Phase 4 compact regression and
 stronger-Hebog envelopes before preparing the untouched Phase 5 qualification.
+
+## 2026-08-24 — Pass the complete Phase 4 compact regression
+
+**Plan phase:** Phase 5, Step 6 — qualification preparation
+
+- Ran current Hebog revision `58074cc3f12d8c82507ac74868ec62ca67422572`
+  on all 800 untouched Phase 4U compact realizations with eight local workers.
+  All realizations succeeded in 372.16 seconds. The candidate shard SHA-256 is
+  `7a6f0204104a9f2e86253c345a0aa60b438106df387b8fc5c51353090ce4ccc3`.
+- Compiled the candidate with the retained exact released-PyBDSF shard
+  `75fa0a3a53ae4a7c63ffb2cac63213c04380eab3160622d93dfe1c00f78ea23b`
+  and pinned-master shard
+  `4c9563f0fe8687da3a4d5370c39fbbcb8579483a8911d4f3a123da2a1b4a6f49`.
+  The complete campaign file SHA-256 is
+  `dea8b3889c145c07f006841574ae605bbf8d54b3c8e1c93e2f9a5dc77bdefb32`.
+- Diagnosed two exit-137 evaluator terminations before any write-once decision
+  appeared. Loading one 90-MiB implementation shard expands to about 10.4 GiB
+  of validated Python/Pydantic objects; co-resident loading of the three-shard
+  278-MiB campaign exceeded the host process-memory envelope. This was an
+  evaluation-resource defect, not a failed or partial scientific decision.
+- Added a bounded evaluator that verifies the exact campaign and shard file
+  hashes, validates and reduces each implementation in an isolated child
+  process, then applies the unchanged paired BCa, absolute-gate, and
+  stronger-Hebog functions to compact numerical summaries. The checksum-bound
+  compact decision engine, including its 50,000-resample SciPy batch, remains
+  byte-for-byte unchanged.
+- The terminal decision SHA-256 is
+  `43381c51a583e8993bd47ea2c8d557c4315c78200d574a237e51958a1ce100a0`.
+  It passes all 20 paired endpoints against released PyBDSF, all 20 against
+  pinned PyBDSF master, all 77 governed absolute gates, and all five named
+  stronger-Hebog envelopes. Fourteen raw median observations remain
+  report-only as frozen; there are no failed or indeterminate governed gates,
+  endpoint failures, implementation failures, or aggregate failure reasons.
+- The bounded module has 98% focused branch-aware coverage. The complete
+  branch-aware suite passes 1,658 tests with 44 deselected and four expected
+  failures at 94.98% coverage. The fast handoff suite passes Ruff, Pyright,
+  doctests, and 1,508 tests with 194 deselected and four expected failures;
+  the strict documentation build also passes.
+- Reproduced the complete decision through the final adapter while preserving
+  the checksum-bound compact engine byte-for-byte. After excluding only the
+  expected new `captured_at` timestamp, the retained and reproduced decision
+  documents have the identical canonical SHA-256
+  `52493104429a95da38875b3a87eb8ce983bae56c2bee38f8344eaa98e1d10954`.
+
+**Decision:** the complete Phase 4 compact regression remains green on the
+current Phase 5 implementation. The bounded evaluator changes only evaluation
+memory lifetime and does not authorize a new campaign or qualification look.
+
+**Immediate next step:** validate and commit the bounded evaluator, bind its
+accepted resource defect to the regression-fixture registry, then continue
+the remaining Phase 5 documentation and pre-qualification preparation.

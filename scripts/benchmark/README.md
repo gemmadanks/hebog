@@ -465,6 +465,17 @@ python scripts/validation/evaluate_phase4_qualification.py \
   --output benchmark-results/<campaign>-decision.json
 ```
 
+When a complete compiled campaign cannot fit as one validated Pydantic object,
+use `scripts/validation/evaluate_phase4_bounded_shards.py`. Supply the compiled
+campaign and its file SHA-256, then the candidate, released-PyBDSF, and
+pinned-master shards in that order with their exact file SHA-256 values. The
+script validates and reduces each shard in a separate process, releases its
+large object graph, and applies the same paired BCa, absolute-gate, and
+stronger-Hebog decision functions to the bounded numerical summaries. It
+refuses changed hashes and an existing output; this is a memory-bounded
+evaluation of the same fixed evidence, not permission to rerun or rescore a
+campaign.
+
 The evaluator refuses to overwrite an existing decision. A secondary
 PyBDSF-master failure is retained under `record-and-continue`; a Hebog or
 released-PyBDSF failure fails primary qualification without deleting the seed.

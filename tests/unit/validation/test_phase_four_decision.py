@@ -37,6 +37,7 @@ from hebog.validation.datasets import (
 from hebog.validation.evidence import (
     AssociationPairDiagnostic,
     CampaignFailure,
+    CampaignImplementationEvidence,
     CampaignImplementationIdentity,
     CampaignRealizationDiagnostic,
     CatastrophicMetricDiagnostic,
@@ -57,6 +58,15 @@ from hebog.validation.evidence import (
     write_evidence,
 )
 from hebog.validation.phase_four_analysis import count_row
+from hebog.validation.phase_four_bounded import (
+    PhaseFourImplementationSummary,
+    evaluate_phase_four_qualification_summaries,
+    implementation_analysis_inputs,
+    load_implementation_summary,
+    paired_endpoint_decisions_from_inputs,
+    summarize_phase_four_implementation,
+    write_implementation_summary,
+)
 from hebog.validation.phase_four_decision import (
     EndpointStatistic,
     distribution_gate_decisions,
@@ -723,6 +733,256 @@ def test_candidate_failure_is_retained_and_fails_closed() -> None:
     assert decision.absolute_gates == ()
 
 
+def _bounded_synthetic_inputs() -> tuple[
+    ScientificCampaignEvidence,
+    DatasetRecord,
+    PairedNoninferiorityContract,
+    PhaseFourScientificGates,
+    str,
+    tuple[PhaseFourImplementationSummary, ...],
+]:
+    """Return a complete campaign and its bounded implementation summaries."""
+    campaign, dataset, protocol, gates, configuration = (
+        _synthetic_campaign_inputs()
+    )
+    shards = tuple(
+        CampaignImplementationEvidence(
+            schema_version=1,
+            evidence_type="scientific-campaign-implementation",
+            run_id=f"bounded-{implementation.identifier}",
+            captured_at=campaign.captured_at,
+            status=campaign.status,
+            dataset=campaign.dataset,
+            configuration_sha256=campaign.configuration_sha256,
+            comparison_protocol_sha256=(campaign.comparison_protocol_sha256),
+            implementation=implementation,
+            wall_seconds=1.0,
+            realizations=tuple(
+                item
+                for item in campaign.realizations
+                if item.implementation_identifier == implementation.identifier
+            ),
+        )
+        for implementation in campaign.implementations
+    )
+    summaries = tuple(
+        summarize_phase_four_implementation(
+            shard,
+            dataset,
+            gates,
+            source_shard_sha256=_SHA256,
+        )
+        for shard in shards
+    )
+    return campaign, dataset, protocol, gates, configuration, summaries
+
+
+def test_bounded_summaries_match_the_in_memory_qualification() -> None:
+    """Sequential implementation summaries preserve the one-look result."""
+    campaign, dataset, protocol, gates, configuration, summaries = (
+        _bounded_synthetic_inputs()
+    )
+    captured_at = datetime(2026, 8, 4, tzinfo=UTC)
+
+    expected = evaluate_phase_four_qualification(
+        campaign,
+        dataset,
+        protocol,
+        gates,
+        scientific_contract_set_sha256=configuration,
+        captured_at=captured_at,
+    )
+    actual = evaluate_phase_four_qualification_summaries(
+        summaries,
+        dataset,
+        protocol,
+        gates,
+        scientific_contract_set_sha256=configuration,
+        source_campaign_run_id=campaign.run_id,
+        source_campaign_sha256=expected.source_campaign_sha256,
+        captured_at=captured_at,
+    )
+
+    assert actual == expected
+
+
+def test_bounded_summary_round_trip_is_write_once(tmp_path: Path) -> None:
+    """Bounded summaries serialize atomically and refuse replacement."""
+    *_, summaries = _bounded_synthetic_inputs()
+    path = tmp_path / "summary.json"
+
+    write_implementation_summary(path, summaries[0])
+
+    assert load_implementation_summary(path) == summaries[0]
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        write_implementation_summary(path, summaries[0])
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    (
+        ({"seeds": (2, 1)}, "seeds must be unique and sorted"),
+        ({"failed_seeds": (999,)}, "failed seeds must be a subset"),
+        ({"counts": {}}, "binary endpoint set is incomplete"),
+        ({"blends": {}}, "blend endpoint set is incomplete"),
+        ({"uncertainties": ()}, "arrays and seeds differ"),
+    ),
+)
+def test_bounded_summary_rejects_incomplete_state(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    """Corrupt bounded state fails before any scientific decision."""
+    *_, summaries = _bounded_synthetic_inputs()
+    payload = summaries[0].model_dump(mode="json")
+    payload.update(update)
+
+    with pytest.raises(ValueError, match=message):
+        PhaseFourImplementationSummary.model_validate(payload)
+
+
+def test_reference_summary_rejects_absolute_gates() -> None:
+    """Only the candidate may carry absolute-science gate decisions."""
+    *_, summaries = _bounded_synthetic_inputs()
+    payload = summaries[1].model_dump(mode="json")
+    payload["absolute_gates"] = [
+        item.model_dump(mode="json") for item in summaries[0].absolute_gates
+    ]
+
+    with pytest.raises(ValueError, match="reference summary"):
+        PhaseFourImplementationSummary.model_validate(payload)
+
+
+def test_bounded_evaluator_rejects_provenance_drift() -> None:
+    """Every bounded provenance field fails closed before resampling."""
+    campaign, dataset, protocol, gates, configuration, summaries = (
+        _bounded_synthetic_inputs()
+    )
+    arguments: dict[str, Any] = {
+        "scientific_contract_set_sha256": configuration,
+        "source_campaign_run_id": campaign.run_id,
+        "source_campaign_sha256": _SHA256,
+    }
+
+    with pytest.raises(ValueError, match="exactly three"):
+        evaluate_phase_four_qualification_summaries(
+            summaries[:2], dataset, protocol, gates, **arguments
+        )
+    with pytest.raises(ValueError, match="requires qualification"):
+        evaluate_phase_four_qualification_summaries(
+            summaries,
+            dataset.model_copy(update={"role": DatasetRole.DEVELOPMENT}),
+            protocol,
+            gates,
+            **arguments,
+        )
+    with pytest.raises(ValueError, match="realization counts differ"):
+        evaluate_phase_four_qualification_summaries(
+            summaries,
+            dataset,
+            protocol.model_copy(update={"realization_count": 999}),
+            gates,
+            **arguments,
+        )
+    with pytest.raises(ValueError, match="requires reviewed contracts"):
+        evaluate_phase_four_qualification_summaries(
+            summaries,
+            dataset,
+            protocol.model_copy(update={"status": "draft"}),
+            gates,
+            **arguments,
+        )
+    changed_arguments: dict[str, Any] = {
+        **arguments,
+        "scientific_contract_set_sha256": "b" * 64,
+    }
+    with pytest.raises(ValueError, match="contract set changed"):
+        evaluate_phase_four_qualification_summaries(
+            summaries,
+            dataset,
+            protocol,
+            gates,
+            **changed_arguments,
+        )
+    changed_seeds = summaries[1].model_copy(update={"seeds": (999,)})
+    with pytest.raises(ValueError, match="seed populations differ"):
+        evaluate_phase_four_qualification_summaries(
+            (summaries[0], changed_seeds, summaries[2]),
+            dataset,
+            protocol,
+            gates,
+            **arguments,
+        )
+    changed_dataset = summaries[1].model_copy(
+        update={
+            "dataset": summaries[1].dataset.model_copy(
+                update={"identifier": "changed-dataset"}
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="governed dataset differ"):
+        evaluate_phase_four_qualification_summaries(
+            (summaries[0], changed_dataset, summaries[2]),
+            dataset,
+            protocol,
+            gates,
+            **arguments,
+        )
+    changed_protocol = summaries[1].model_copy(
+        update={"comparison_protocol_sha256": "b" * 64}
+    )
+    with pytest.raises(ValueError, match="paired protocol changed"):
+        evaluate_phase_four_qualification_summaries(
+            (summaries[0], changed_protocol, summaries[2]),
+            dataset,
+            protocol,
+            gates,
+            **arguments,
+        )
+    changed_gates = summaries[1].model_copy(
+        update={"scientific_gates_sha256": "b" * 64}
+    )
+    with pytest.raises(ValueError, match="scientific gates changed"):
+        evaluate_phase_four_qualification_summaries(
+            (summaries[0], changed_gates, summaries[2]),
+            dataset,
+            protocol,
+            gates,
+            **arguments,
+        )
+    wrong_identity = summaries[1].model_copy(
+        update={
+            "implementation": summaries[1].implementation.model_copy(
+                update={"identifier": "unexpected-reference"}
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="unexpected implementations"):
+        evaluate_phase_four_qualification_summaries(
+            (summaries[0], wrong_identity, summaries[2]),
+            dataset,
+            protocol,
+            gates,
+            **arguments,
+        )
+    wrong_role = summaries[0].model_copy(
+        update={
+            "implementation": summaries[0].implementation.model_copy(
+                update={"role": "reference"}
+            ),
+            "absolute_gates": (),
+        }
+    )
+    with pytest.raises(ValueError, match="implementation roles differ"):
+        evaluate_phase_four_qualification_summaries(
+            (wrong_role, summaries[1], summaries[2]),
+            dataset,
+            protocol,
+            gates,
+            **arguments,
+        )
+
+
 def test_exact_equal_endpoint_passes_with_its_point_interval() -> None:
     """Exact equality passes when zero lies inside the practical margin."""
     campaign, dataset, protocol, _, _ = _synthetic_campaign_inputs()
@@ -750,6 +1010,104 @@ def test_exact_equal_endpoint_passes_with_its_point_interval() -> None:
     assert completeness.reference_value == 1.0
     assert completeness.positive_regression == 0.0
     assert completeness.upper_confidence_limit == 0.0
+
+
+def test_paired_endpoint_summaries_preserve_the_complete_decision() -> None:
+    """Bounded implementation summaries retain every paired endpoint."""
+    campaign, dataset, protocol, _, _ = _synthetic_campaign_inputs()
+    candidate = tuple(
+        item
+        for item in campaign.realizations
+        if item.implementation_identifier == "hebog"
+    )
+    reference = tuple(
+        item
+        for item in campaign.realizations
+        if item.implementation_identifier == "pybdsf-release"
+    )
+
+    expected = paired_endpoint_decisions(
+        candidate,
+        reference,
+        dataset,
+        protocol,
+    )
+    actual = paired_endpoint_decisions_from_inputs(
+        implementation_analysis_inputs(candidate, dataset),
+        implementation_analysis_inputs(reference, dataset),
+        realization_count=len(candidate),
+        all_realizations_succeeded=True,
+        contract=protocol,
+    )
+
+    assert actual == expected
+
+
+def test_paired_endpoint_summaries_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Empty, failed, and invalid bounded inputs remain indeterminate."""
+    _, _, protocol, _, _, summaries = _bounded_synthetic_inputs()
+    inputs = summaries[0].analysis_inputs()
+
+    empty = paired_endpoint_decisions_from_inputs(
+        inputs,
+        inputs,
+        realization_count=0,
+        all_realizations_succeeded=True,
+        contract=protocol,
+    )
+    failed = paired_endpoint_decisions_from_inputs(
+        inputs,
+        inputs,
+        realization_count=len(summaries[0].seeds),
+        all_realizations_succeeded=False,
+        contract=protocol,
+    )
+
+    def invalid_interval(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise ValueError("invalid summary")
+
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_bounded.paired_bca_upper_limits",
+        invalid_interval,
+    )
+    invalid = paired_endpoint_decisions_from_inputs(
+        inputs,
+        inputs,
+        realization_count=len(summaries[0].seeds),
+        all_realizations_succeeded=True,
+        contract=protocol,
+    )
+
+    def nonfinite_interval(
+        statistic: EndpointStatistic,
+        *,
+        realization_count: int,
+        resampling: object,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        del resampling
+        point = statistic(np.arange(realization_count, dtype=np.int64))
+        return point, np.full_like(point, np.nan)
+
+    monkeypatch.setattr(
+        "hebog.validation.phase_four_bounded.paired_bca_upper_limits",
+        nonfinite_interval,
+    )
+    nonfinite = paired_endpoint_decisions_from_inputs(
+        inputs,
+        inputs,
+        realization_count=len(summaries[0].seeds),
+        all_realizations_succeeded=True,
+        contract=protocol,
+    )
+
+    assert all(item.status == "indeterminate" for item in empty)
+    assert all(item.status == "indeterminate" for item in failed)
+    assert all(item.status == "indeterminate" for item in invalid)
+    assert all(item.status == "indeterminate" for item in nonfinite)
+    assert all(item.candidate_value is not None for item in nonfinite)
 
 
 def test_missing_source_only_affects_eligible_endpoint_populations(

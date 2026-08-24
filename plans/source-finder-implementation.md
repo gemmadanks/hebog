@@ -603,8 +603,15 @@ independent acceptance, and the later Rapthor cutover remain outstanding.
       scope, stratified by morphology, scale, SNR, edge, blend, and background.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
-- [ ] Re-run the complete Phase 4 compact regression and stronger-Hebog
-      envelopes.
+- [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
+      envelopes. Current Hebog completed all 800 untouched Phase 4U compact
+      realizations with no failures. The frozen 50,000-resample one-sided BCa
+      decision passes all 20 endpoints against released PyBDSF, all 20 against
+      pinned PyBDSF master, all 77 absolute gates, and all five stronger-Hebog
+      envelopes. The 90-MiB shards expand to roughly 10.4 GiB each as validated
+      Pydantic objects, so a tested bounded evaluator now reduces each exact,
+      hash-bound shard in an isolated process before applying the unchanged
+      scientific decision functions.
 - [ ] Open the frozen final Phase 5 qualification exactly once through the
       reviewed evaluator; retain a terminal failure without rescoring.
 - [ ] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
