@@ -69,8 +69,10 @@ generation or compact catalogue products.
 
 ## Current boundary
 
-This milestone establishes measurement semantics and bounded execution; it
-does not itself alter association or publish a combined catalogue. Downstream
-Step 4 kernels now reconcile adjacent-scale exact supports and record
-many-to-many compact spatial context while preserving separate identities.
-Stable combined identities and catalogue publication remain open.
+This milestone establishes measurement semantics and its bounded execution.
+Step 4 now reconciles adjacent-scale exact supports, records many-to-many
+compact spatial context, derives stable combined identities, and publishes
+the combined products. The Phase 5
+[bounded-execution halo review](phase-5-bounded-execution.md) derives the
+measurement halo through the same helper used here; tile/executor invariance
+and byte-level execution evidence remain open Step 5 work.

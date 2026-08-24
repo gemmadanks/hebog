@@ -27,6 +27,18 @@ _IMAGE_DIMENSIONS = 2
 _COMPACT_CONTEXT_RADIUS_BEAMS = 0.5
 
 
+def compact_context_halo_pixels(beam_major_fwhm_pixels: float) -> int:
+    """Return the reviewed half-major-beam context radius in pixels."""
+    if (
+        isinstance(beam_major_fwhm_pixels, bool)
+        or not isinstance(beam_major_fwhm_pixels, Real)
+        or not isfinite(beam_major_fwhm_pixels)
+        or beam_major_fwhm_pixels <= 0
+    ):
+        raise ValueError("beam major FWHM must be finite and positive")
+    return ceil(_COMPACT_CONTEXT_RADIUS_BEAMS * beam_major_fwhm_pixels)
+
+
 @dataclass(frozen=True, slots=True)
 class ScaleDetectionPlane:
     """One bounded exact-support label plane and its local label records.
@@ -587,13 +599,7 @@ def associate_compact_source_context(
     support recovery. The dilation creates graph evidence only: neither exact
     support nor compact/extended pixel ownership is changed.
     """
-    if (
-        isinstance(beam_major_fwhm_pixels, bool)
-        or not isinstance(beam_major_fwhm_pixels, Real)
-        or not isfinite(beam_major_fwhm_pixels)
-        or beam_major_fwhm_pixels <= 0
-    ):
-        raise ValueError("beam major FWHM must be finite and positive")
+    dilation_iterations = compact_context_halo_pixels(beam_major_fwhm_pixels)
     ordered_planes, _ = _validate_context_inputs(
         planes,
         associations,
@@ -604,9 +610,6 @@ def associate_compact_source_context(
     owner_labels, association_labels = _association_owner_labels(
         ordered_planes,
         associations,
-    )
-    dilation_iterations = ceil(
-        _COMPACT_CONTEXT_RADIUS_BEAMS * beam_major_fwhm_pixels
     )
     contextualized: list[CrossScaleAssociation] = []
     all_edges: list[CompactExtendedContextEdge] = []

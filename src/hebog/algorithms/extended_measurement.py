@@ -45,6 +45,58 @@ _NEIGHBORHOOD_PIXEL_COUNT = 9
 _FWHM_FROM_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
 
 
+def multiscale_recovery_radius_pixels(
+    beam_major_fwhm_pixels: float,
+    *,
+    recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
+) -> int:
+    """Return the reviewed coherent-support recovery radius in pixels."""
+    if (
+        isinstance(beam_major_fwhm_pixels, bool)
+        or not isfinite(beam_major_fwhm_pixels)
+        or beam_major_fwhm_pixels <= 0
+    ):
+        raise ValueError("beam major FWHM must be finite and positive")
+    if (
+        isinstance(recovery_radius_beams, bool)
+        or not isfinite(recovery_radius_beams)
+        or recovery_radius_beams < 0
+    ):
+        raise ValueError("recovery radius must be finite and non-negative")
+    return ceil(recovery_radius_beams * beam_major_fwhm_pixels)
+
+
+def segment_refinement_halo_pixels(
+    beam_major_fwhm_pixels: float,
+    *,
+    recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
+) -> int:
+    """Return the halo covering opening and multiscale support recovery."""
+    opening_radius_pixels = _SUB_BEAM_OPENING_WIDTH_PIXELS // 2
+    return max(
+        opening_radius_pixels,
+        multiscale_recovery_radius_pixels(
+            beam_major_fwhm_pixels,
+            recovery_radius_beams=recovery_radius_beams,
+        ),
+    )
+
+
+def extended_measurement_halo_pixels(
+    config: ExtendedEmissionMeasurementConfig,
+    *,
+    beam_major_fwhm_pixels: float,
+) -> int:
+    """Return the configured nearest-owned photometry radius in pixels."""
+    if (
+        isinstance(beam_major_fwhm_pixels, bool)
+        or not isfinite(beam_major_fwhm_pixels)
+        or beam_major_fwhm_pixels <= 0
+    ):
+        raise ValueError("beam major FWHM must be finite and positive")
+    return ceil(config.aperture_radius_beams * beam_major_fwhm_pixels)
+
+
 def _segment_label_plane(
     component_labels: npt.ArrayLike,
 ) -> npt.NDArray[np.int64]:
@@ -128,8 +180,6 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
         )
     if multiscale_support.dtype != np.bool_:
         raise ValueError("significant multiscale support must be boolean")
-    if not isfinite(beam_major_fwhm_pixels) or beam_major_fwhm_pixels <= 0:
-        raise ValueError("beam major FWHM must be finite and positive")
     if (
         isinstance(core_minimum_neighbors, bool)
         or not isinstance(core_minimum_neighbors, Integral)
@@ -138,8 +188,10 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
         raise ValueError("core minimum neighbors must be an integer in [1, 9]")
     if not isfinite(boundary_minimum_snr) or boundary_minimum_snr <= 0:
         raise ValueError("boundary minimum SNR must be finite and positive")
-    if not isfinite(recovery_radius_beams) or recovery_radius_beams < 0:
-        raise ValueError("recovery radius must be finite and non-negative")
+    recovery_radius_pixels = multiscale_recovery_radius_pixels(
+        beam_major_fwhm_pixels,
+        recovery_radius_beams=recovery_radius_beams,
+    )
     cleaned = clean_detected_segment_labels(labels)
     cleaned_support = cleaned > 0
     if not np.any(cleaned_support):
@@ -153,9 +205,6 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     dense_core = cleaned_support & (neighbor_count >= core_minimum_neighbors)
     high_confidence_boundary = cleaned_support & (
         np.asarray(snr, dtype=np.float64) >= boundary_minimum_snr
-    )
-    recovery_radius_pixels = ceil(
-        recovery_radius_beams * beam_major_fwhm_pixels
     )
     nearby = (
         binary_dilation(cleaned_support, iterations=recovery_radius_pixels)
@@ -994,9 +1043,9 @@ def _measurement_from_aggregate(
     image_shape_yx: tuple[int, int],
 ) -> ExtendedEmissionMeasurementResult:
     """Apply availability semantics to one complete scalar aggregate."""
-    radius_pixels = ceil(
-        config.aperture_radius_beams
-        * geometry.restoring_beam_major_fwhm_pixels
+    radius_pixels = extended_measurement_halo_pixels(
+        config,
+        beam_major_fwhm_pixels=(geometry.restoring_beam_major_fwhm_pixels),
     )
     truncation = _truncation(
         aggregate.target,

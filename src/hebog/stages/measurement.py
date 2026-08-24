@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import partial
-from math import ceil
 from typing import Protocol
 
 import numpy as np
@@ -20,6 +19,7 @@ from hebog.algorithms.extended_measurement import (
     ExtendedEmissionTileTarget,
     combine_extended_emission_partials,
     expand_detected_segment_labels,
+    extended_measurement_halo_pixels,
     measure_extended_emission_tile,
 )
 from hebog.algorithms.measurement import measure_compact_moments
@@ -238,9 +238,9 @@ def _measure_extended_request(
         raise ValueError("extended shard support disagrees with accepted mask")
     barrier_label = len(request.targets) + 1
     labels[accepted_window & (labels == 0)] = barrier_label
-    aperture_radius_pixels = ceil(
-        config.aperture_radius_beams
-        * geometry.restoring_beam_major_fwhm_pixels
+    aperture_radius_pixels = extended_measurement_halo_pixels(
+        config,
+        beam_major_fwhm_pixels=(geometry.restoring_beam_major_fwhm_pixels),
     )
     aperture_labels = expand_detected_segment_labels(
         labels,
@@ -326,9 +326,9 @@ def _plan_extended_requests(
     """Plan bounded cores with only nearby array-free membership shards."""
     targets = _measurement_targets(islands)
     target_items = tuple(zip(targets, islands, strict=True))
-    radius_pixels = ceil(
-        config.aperture_radius_beams
-        * geometry.restoring_beam_major_fwhm_pixels
+    radius_pixels = extended_measurement_halo_pixels(
+        config,
+        beam_major_fwhm_pixels=(geometry.restoring_beam_major_fwhm_pixels),
     )
     requests: list[_ExtendedMeasurementTileRequest] = []
     for partition in manifest.tiles:

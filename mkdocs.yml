@@ -94,6 +94,7 @@ nav:
       - Phase 5 post-failure scientific pre-review: reference/phase-5-post-failure-pre-review.md
       - Phase 5 post-campaign failure review: reference/phase-5-post-campaign-failure-review.md
       - Phase 5 association pre-review: reference/phase-5-association-pre-review.md
+      - Phase 5 bounded-execution halo review: reference/phase-5-bounded-execution.md
       - Compact deblending: reference/compact-deblending.md
       - Extended-emission measurement: reference/extended-emission-measurement.md
       - Compact moment measurement: reference/compact-measurement.md

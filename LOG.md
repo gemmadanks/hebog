@@ -9654,3 +9654,47 @@ qualification, incremental performance, or production readiness.
 **Immediate next step:** begin Step 5 by deriving and reviewing every
 stage-specific halo and rejecting configurations that cannot meet the bounded
 memory contract.
+
+## 2026-08-24 — Derive and admit every Phase 5 stage halo
+
+**Plan phase:** Phase 5, Step 5 — bounded deterministic execution
+
+- Confirmed the TDD red state before implementation: the halo-planning test
+  module failed collection because the Phase 5 execution planner did not
+  exist.
+- Added one allocation-free pre-execution plan over the shared deterministic
+  tile core. It derives the actual four-sigma matched-filter radii, cumulative
+  residual-B3 radii, three-pixel-opening plus half-beam refinement radius,
+  half-beam compact-context radius, and reviewed 1.5-beam measurement radius.
+  Labelling, cross-scale association, combined reconciliation, and final
+  materialization explicitly require zero additional image halo after their
+  preceding reconciliation boundaries.
+- Reused the exact radius helpers in the scientific kernels and scheduler-
+  facing measurement stage, removing independent `ceil` formulas. Matched-
+  filter admission does not allocate a Gaussian kernel, so an oversized beam
+  or core fails before that potentially large allocation.
+- Added fail-closed quarter-core geometry admission and worst-case interior
+  read admission against the global task-pixel limit and the tighter extended-
+  measurement cap. The Phase 5 profile rejects an aperture other than the
+  approved 1.5 beams rather than silently changing recovery-campaign
+  photometry.
+- Advanced the reviewed development contract to schema 5, SHA-256
+  `89b9c1d013af64f5fc99f96a1946bb6416d927232227eeb4a50f2ee1e0259734`,
+  and recorded the complete derivation and remaining evidence boundary in the
+  reference documentation. No threshold, source relationship, compact output,
+  or recovery-campaign result changed.
+- The affected scientific, integration, and contract suite passes 228 tests;
+  the dedicated planning suite passes 17 tests with 100% line and branch
+  coverage for the new module. The complete branch-aware project run passes
+  1,621 tests with 44 deselected and four expected failures at 94.84% total
+  coverage. The fast handoff suite passes Ruff, Pyright, doctests, and 1,482
+  tests with 183 deselected and four expected failures. The strict
+  documentation build also passes.
+
+**Decision:** the first Phase 5 Step 5 checklist item is complete. Pixel
+admission establishes the pre-allocation memory guard but is not the later
+byte-level execution evidence and makes no runtime claim.
+
+**Immediate next step:** prove one-tile/many-tile equality across edges,
+corners, rectangular cores, invalid regions, the largest scale, and shifted
+partition origins.

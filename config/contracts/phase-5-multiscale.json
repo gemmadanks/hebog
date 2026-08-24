@@ -19,6 +19,23 @@
     "same_scale_merge": "only-through-adjacent-scale-connected-path",
     "tile_policy": "global-identity-independent-of-local-labels"
   },
+  "bounded_execution": {
+    "byte_evidence": "required-before-step-5-completion",
+    "compact_context_halo": "ceil-half-beam-major",
+    "core_policy": "shared-nonoverlapping-core-with-stage-specific-read-halos",
+    "extended_measurement_halo": "ceil-one-point-five-beam-major",
+    "geometry_admission": "every-halo-strictly-below-quarter-core",
+    "matched_filter_halo": "actual-four-sigma-kernel-radius-at-one-two-four-beams",
+    "residual_atrous_halo": "cumulative-b3-halos-two-six-fourteen-pixels",
+    "segment_refinement_halo": "max-one-pixel-opening-and-ceil-half-beam-major",
+    "task_admission": "worst-interior-read-within-global-and-stage-pixel-caps",
+    "zero_image_halo_stages": [
+      "segment-labelling",
+      "cross-scale-association",
+      "combined-reconciliation",
+      "product-materialization"
+    ]
+  },
   "combined_catalogue": {
     "catalogue_schema": "source-catalogue-version-3-with-continuum-diagnostics-version-2",
     "compact_only": "byte-identical-when-no-multiscale-evidence",
@@ -72,7 +89,7 @@
     ],
     "reference": "restoring-beam-major-fwhm"
   },
-  "schema_version": 4,
+  "schema_version": 5,
   "scientific_basis": [
     "https://doi.org/10.1017/pasa.2018.3",
     "https://doi.org/10.1093/mnras/stv1866",

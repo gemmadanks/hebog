@@ -844,10 +844,57 @@ class PhaseFiveCombinedCatalogueContract(_ContractModel):
     scheduler_state: Literal["forbidden"]
 
 
+class PhaseFiveBoundedExecutionContract(_ContractModel):
+    """Reviewed stage halos and pre-allocation admission semantics."""
+
+    core_policy: Literal[
+        "shared-nonoverlapping-core-with-stage-specific-read-halos"
+    ]
+    matched_filter_halo: Literal[
+        "actual-four-sigma-kernel-radius-at-one-two-four-beams"
+    ]
+    residual_atrous_halo: Literal[
+        "cumulative-b3-halos-two-six-fourteen-pixels"
+    ]
+    segment_refinement_halo: Literal[
+        "max-one-pixel-opening-and-ceil-half-beam-major"
+    ]
+    compact_context_halo: Literal["ceil-half-beam-major"]
+    extended_measurement_halo: Literal["ceil-one-point-five-beam-major"]
+    zero_image_halo_stages: tuple[
+        Literal[
+            "segment-labelling",
+            "cross-scale-association",
+            "combined-reconciliation",
+            "product-materialization",
+        ],
+        ...,
+    ]
+    geometry_admission: Literal["every-halo-strictly-below-quarter-core"]
+    task_admission: Literal[
+        "worst-interior-read-within-global-and-stage-pixel-caps"
+    ]
+    byte_evidence: Literal["required-before-step-5-completion"]
+
+    @model_validator(mode="after")
+    def validate_zero_halo_stages(self) -> Self:
+        """Keep record-only and reconciled zero-read stages canonical."""
+        if self.zero_image_halo_stages != (
+            "segment-labelling",
+            "cross-scale-association",
+            "combined-reconciliation",
+            "product-materialization",
+        ):
+            raise ValueError(
+                "Phase 5 zero-image-halo stages must be canonical"
+            )
+        return self
+
+
 class PhaseFiveMultiscaleContract(_ContractModel):
     """Versioned Phase 5 scale, ownership, and failure semantics."""
 
-    schema_version: Literal[4]
+    schema_version: Literal[5]
     contract_id: Literal["phase-5-multiscale"]
     status: Literal["reviewed-development"]
     scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]
@@ -857,6 +904,7 @@ class PhaseFiveMultiscaleContract(_ContractModel):
     association: PhaseFiveAssociationContract
     failures: PhaseFiveFailureContract
     combined_catalogue: PhaseFiveCombinedCatalogueContract
+    bounded_execution: PhaseFiveBoundedExecutionContract
     detection_threshold: Literal[
         "source-finder-detection-threshold-on-scale-normalized-response"
     ]

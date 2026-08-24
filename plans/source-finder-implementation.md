@@ -549,8 +549,14 @@ Rapthor cutover remain outstanding.
 
 #### 5. Prove bounded deterministic execution
 
-- [ ] Derive and review every stage halo; reject configurations that cannot
-      meet the memory contract.
+- [x] Derive and review every stage halo; reject configurations that cannot
+      meet the memory contract. Allocation-free planning derives the actual
+      matched-filter radii, cumulative residual-B3 support, refinement,
+      compact-context, and 1.5-beam measurement halos; reconciled record-only
+      stages require zero image halo. Every stage must preserve the strict
+      quarter-core guardrail and fit its worst-case interior read within the
+      global and any tighter stage task-pixel cap. Byte-level workspace
+      evidence remains the final Step 5 task.
 - [ ] Prove one-tile/many-tile equality across edges, corners, rectangular
       tiles, invalid regions, largest scales, and multiple partition origins.
 - [ ] Prove partition, batch, worker-count, completion-order, retry, and

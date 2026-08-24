@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import pairwise
+from itertools import accumulate, pairwise
 from math import ceil, isfinite, sqrt
 from typing import Literal, TypeVar, cast
 
@@ -271,8 +271,11 @@ def _build_smoothing_kernel(
     truncation_sigma: float,
 ) -> ScaleSmoothingKernel:
     """Build one L1-normalized smoothing component."""
-    major_sigma = beam.major_fwhm_pixels * width_beams * _FWHM_TO_SIGMA
-    halo_pixels = ceil(truncation_sigma * major_sigma)
+    halo_pixels = scale_smoothing_halo_pixels(
+        beam,
+        width_beams=width_beams,
+        truncation_sigma=truncation_sigma,
+    )
     values = _elliptical_gaussian(
         beam,
         width_beams=width_beams,
@@ -284,6 +287,30 @@ def _build_smoothing_kernel(
         halo_pixels=halo_pixels,
         values=_read_only(values),
     )
+
+
+def scale_smoothing_halo_pixels(
+    beam: BeamShapePixels,
+    *,
+    width_beams: float,
+    truncation_sigma: float,
+) -> int:
+    """Return one Gaussian filter radius without allocating its kernel."""
+    if not isfinite(width_beams) or width_beams <= 0:
+        raise ValueError("scale width must be finite and positive")
+    if not isfinite(truncation_sigma) or not (
+        _MINIMUM_TRUNCATION_SIGMA
+        <= truncation_sigma
+        <= _MAXIMUM_TRUNCATION_SIGMA
+    ):
+        raise ValueError("truncation_sigma must be finite and within [3, 8]")
+    major_sigma = beam.major_fwhm_pixels * width_beams * _FWHM_TO_SIGMA
+    return ceil(truncation_sigma * major_sigma)
+
+
+def residual_atrous_scale_halos_pixels() -> tuple[int, ...]:
+    """Return cumulative radii for the frozen dyadic B3 sequence."""
+    return tuple(accumulate(2 * dilation for dilation in (1, 2, 4)))
 
 
 def _centre_pad(
@@ -372,9 +399,15 @@ def build_residual_atrous_plan(
     base_kernel = np.asarray([1.0, 4.0, 6.0, 4.0, 1.0], dtype=np.float64)
     base_kernel /= 16.0
     previous_smoothing = np.ones((1, 1), dtype=np.float64)
-    cumulative_halo = 0
     scales: list[ResidualAtrousScale] = []
-    for scale_order, dilation_pixels in enumerate((1, 2, 4), start=1):
+    for scale_order, (dilation_pixels, cumulative_halo) in enumerate(
+        zip(
+            (1, 2, 4),
+            residual_atrous_scale_halos_pixels(),
+            strict=True,
+        ),
+        start=1,
+    ):
         sparse = _dilated_b3_kernel(base_kernel, dilation_pixels)
         stage_kernel = np.outer(sparse, sparse)
         current_smoothing = fftconvolve(
@@ -382,7 +415,6 @@ def build_residual_atrous_plan(
             stage_kernel,
             mode="full",
         )
-        cumulative_halo += 2 * dilation_pixels
         previous_padded = _centre_pad(
             previous_smoothing,
             halo_pixels=cumulative_halo,

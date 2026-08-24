@@ -183,6 +183,12 @@ _INVALID_PHASE_FIVE_MULTISCALE_MUTATIONS: tuple[
         ),
         "relationship vocabulary",
     ),
+    (
+        lambda payload: payload["bounded_execution"].update(
+            zero_image_halo_stages=["product-materialization"]
+        ),
+        "zero-image-halo stages",
+    ),
     (_duplicate_scientific_basis, "basis links must be unique"),
     (_use_insecure_scientific_basis, "must use HTTPS"),
 )
@@ -378,7 +384,7 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
 
     assert contract.status == "reviewed-development"
-    assert contract.schema_version == 4
+    assert contract.schema_version == 5
     assert contract.scales.reference == "restoring-beam-major-fwhm"
     assert contract.scales.configured_orders == (1, 2, 3)
     assert contract.scales.nominal_fwhm_multipliers == (1.0, 2.0, 4.0)
@@ -442,6 +448,21 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
     assert contract.combined_catalogue.provenance == (
         "diagnostics-version-2-per-extended-source-scale-and-support"
+    )
+    assert contract.bounded_execution.matched_filter_halo == (
+        "actual-four-sigma-kernel-radius-at-one-two-four-beams"
+    )
+    assert contract.bounded_execution.residual_atrous_halo == (
+        "cumulative-b3-halos-two-six-fourteen-pixels"
+    )
+    assert contract.bounded_execution.zero_image_halo_stages == (
+        "segment-labelling",
+        "cross-scale-association",
+        "combined-reconciliation",
+        "product-materialization",
+    )
+    assert contract.bounded_execution.byte_evidence == (
+        "required-before-step-5-completion"
     )
     assert contract.qualification_policy == "freeze-before-result-inspection"
     assert contract.development_review == "ai-scientific-review-recorded"
