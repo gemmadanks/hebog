@@ -45,8 +45,8 @@ returns the exact same `CompletedCompactCatalogue` object. Consequently its
 islands, sources, Gaussian components, identities, values, canonical JSON,
 and reduction evidence cannot be reordered or recomputed.
 
-Any `contains-compact` or `mixed-projection` relationship, or any scale record
-that names a compact source, raises
+Any `contains-compact-support` or `overlaps-compact-support` relationship
+raises
 `CompactAssociationDecisionRequiredError`. Such evidence must pass through the
 governed Step 4 ownership and association rules before it can affect a
 combined catalogue. The same no-op catalogue produces byte-identical Rapthor

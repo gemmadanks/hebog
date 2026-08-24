@@ -508,11 +508,14 @@ and the later Rapthor cutover remain outstanding.
 
 #### 4. Reconcile scales and construct products
 
-- [ ] Define deterministic compact/extended overlap, ownership, split/merge,
-      and duplicate-suppression rules before implementation. The technical
-      pre-review proposes adjacent-scale exact-support reconciliation and a
-      shared-island/separate-source compact context; named approval is pending
-      before the machine contract or implementation changes.
+- [x] Define deterministic compact/extended overlap, ownership, split/merge,
+      and duplicate-suppression rules before implementation. Named approval on
+      2026-08-24 froze contract schema 2: adjacent-scale exact-support graph
+      reconciliation, shared-island/separate-source compact context,
+      compact-first pixel ownership, one extended row per association, and
+      fail-closed ambiguity. The bounded serial association kernel now derives
+      stable associations independently of plane and local-label order; compact
+      context and combined construction remain below.
 - [ ] Preserve physically distinct compact components embedded in or projected
       on extended emission while merging fragments of one extended object.
 - [ ] Derive stable island, source, and compatibility-component identities from

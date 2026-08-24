@@ -1,8 +1,7 @@
 # Phase 5 compact/extended association pre-review
 
-**Status:** technical scientific pre-review complete; named approval is
-required before changing the machine-readable contract or implementing the
-Step 4 catalogue path.
+**Status:** approved on 2026-08-24 and frozen in the machine-readable Phase 5
+contract schema 2.
 
 This review defines the proposed overlap, ownership, split/merge, and
 duplicate-suppression rules for Phase 5 Step 4. It does not implement a
@@ -203,10 +202,16 @@ gate plus the Phase 5 completeness, reliability, duplicate, split, merge,
 mask, flux, position, and Rapthor-decision gates. No threshold may be tuned on
 the unopened qualification population.
 
-## Approval boundary
+## Approval and implementation boundary
 
-Approval of this pre-review would authorize updating the machine-readable
-Phase 5 association contract and starting test-first Step 4 implementation.
-It would not authorize qualification, a PyBDSF-equivalence claim, Rapthor
-cutover, or removal of the fallback. Independent radio-astronomy review
-remains required before a stable production default.
+The named approval authorized updating the machine-readable Phase 5
+association contract and starting test-first Step 4 implementation. The first
+bounded kernel now reconciles exact supports across adjacent scales, derives
+stable identities from canonical contributing detection identities, and is
+invariant to plane and local-label order. It emits only `extended-only`
+associations: compact-context reconciliation and combined catalogue
+construction remain separate fail-closed tasks.
+
+The approval did not authorize qualification, a PyBDSF-equivalence claim,
+Rapthor cutover, or removal of the fallback. Independent radio-astronomy
+review remains required before a stable production default.

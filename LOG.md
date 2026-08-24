@@ -9442,3 +9442,45 @@ named approval; implementation and qualification remain closed.
 **Immediate next step:** obtain named approval of the Phase 5 association
 pre-review, then update the machine-readable contract and begin test-first
 cross-scale association implementation.
+
+## 2026-08-24 — Freeze and implement cross-scale association
+
+**Plan phase:** Phase 5, Step 4 — reconcile scales and construct products
+
+- Received named approval of the compact/extended association pre-review and
+  froze its rules in `phase-5-multiscale.json` schema 2. The contract now names
+  exact adjacent-scale overlap, same-scale merging only through an adjacent
+  path, shared-island/separate-source compact context, compact-first ownership,
+  one extended row per association, compact-echo suppression, and fail-closed
+  ambiguity.
+- Replaced the provisional physical-sounding relationship values with the
+  explicit spatial vocabulary `extended-only`, `contains-compact-support`, and
+  `overlaps-compact-support`. Non-extended relationships require compact
+  identities, while `extended-only` forbids them.
+- Added a bounded scheduler-independent association kernel over immutable
+  per-scale exact-support label planes. It validates global bounds, origins,
+  support counts, canonical pixels, scale membership, shapes, and unique
+  detection identities before creating vectorized adjacent-scale overlap
+  edges.
+- Stable association IDs derive from canonical contributing detection IDs;
+  representative ordering follows SNR, calibrated response, support fraction,
+  scale, pixel, and detection ID. Same-scale fragments remain distinct unless
+  connected through accepted adjacent-scale support.
+- Confirmed the required red state before implementation: the new analytic
+  test module failed collection because the association module did not exist.
+  After implementation, 225 focused association, schema, preservation, and
+  contract tests plus 11 Rapthor-catalogue integration tests pass; the new
+  kernel has 100% line and branch coverage, and focused Ruff and Pyright pass.
+- The final branch-aware project coverage run passes with 1,500 tests, 44
+  deselected, four expected failures, and 94.62% total coverage; the new
+  association module remains at 100% line and branch coverage.
+- The final fast handoff suite passes Ruff formatting and linting, Pyright,
+  doctests, and 1,369 tests with 178 deselected and four expected failures;
+  the strict documentation build also passes.
+
+**Decision:** the first Step 4 checklist item is complete. The kernel publishes
+only `extended-only` associations, so this increment cannot alter compact
+objects or claim a combined catalogue.
+
+**Immediate next step:** implement the approved many-to-many compact-context
+graph while preserving separate compact and extended source identities.

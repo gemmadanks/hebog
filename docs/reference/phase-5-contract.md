@@ -8,9 +8,11 @@ boundary are implemented. Step 4 association and combined-product rules,
 bounded-execution proof, optimization, and untouched qualification remain
 open; this contract does not yet establish production multiscale equivalence.
 
-The proposed Step 4 policy is recorded in the
+The approved Step 4 policy is recorded in the
 [compact/extended association pre-review](phase-5-association-pre-review.md).
-It is not part of the frozen machine contract until named approval.
+Named approval on 2026-08-24 froze it in machine contract schema 2. The
+bounded adjacent-scale association kernel is implemented; compact-context
+reconciliation and combined catalogue construction remain open.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image

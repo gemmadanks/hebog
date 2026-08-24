@@ -94,10 +94,10 @@ class CrossScaleAssociation(_MultiscaleModel):
     contributing_scale_orders: tuple[int, ...] = Field(min_length=1)
     relationship: Literal[
         "extended-only",
-        "contains-compact",
-        "mixed-projection",
+        "contains-compact-support",
+        "overlaps-compact-support",
     ]
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
 
     @field_validator("scale_detection_ids", "compact_source_ids")
     @classmethod
@@ -124,12 +124,14 @@ class CrossScaleAssociation(_MultiscaleModel):
             sorted(set(self.contributing_scale_orders))
         ) or any(order < 1 for order in self.contributing_scale_orders):
             raise ValueError("contributing scale orders must be canonical")
-        if (
-            self.relationship == "contains-compact"
-            and not self.compact_source_ids
-        ):
+        has_compact_context = self.relationship != "extended-only"
+        if has_compact_context and not self.compact_source_ids:
             raise ValueError(
-                "contains-compact association requires a compact source"
+                "compact-support association requires a compact source"
+            )
+        if not has_compact_context and self.compact_source_ids:
+            raise ValueError(
+                "extended-only association cannot name a compact source"
             )
         return self
 

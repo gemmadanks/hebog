@@ -379,16 +379,20 @@ def test_unassociated_scale_evidence_preserves_exact_compact_catalogue() -> (
 @pytest.mark.parametrize(
     ("relationship", "compact_source_ids"),
     [
-        ("contains-compact", ("source-island-00001-region-00001",)),
-        ("mixed-projection", ()),
-        ("extended-only", ("source-island-00001-region-00001",)),
+        (
+            "contains-compact-support",
+            ("source-island-00001-region-00001",),
+        ),
+        (
+            "overlaps-compact-support",
+            ("source-island-00001-region-00001",),
+        ),
     ],
 )
 def test_compact_touching_evidence_requires_step_four_association(
     relationship: Literal[
-        "extended-only",
-        "contains-compact",
-        "mixed-projection",
+        "contains-compact-support",
+        "overlaps-compact-support",
     ],
     compact_source_ids: tuple[str, ...],
 ) -> None:

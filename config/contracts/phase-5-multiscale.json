@@ -1,9 +1,22 @@
 {
   "association": {
-    "ambiguous_policy": "typed-unresolved-association",
-    "compact_policy": "preserve-isolated-compact-measurement-without-multiscale-evidence",
-    "duplicate_policy": "one-selected-representation-retain-all-contributing-scales",
-    "identity": "canonical-global-overlap-flux-and-scale-provenance",
+    "ambiguous_policy": "typed-omission-and-publication-ineligible",
+    "compact_context": "shared-island-separate-source-many-to-many",
+    "compact_context_edge": "reference-inside-or-exact-overlap-or-half-beam-adjacency",
+    "compact_echo": "suppress-without-independent-one-beam-positive-finite-residual",
+    "compact_policy": "preserve-every-accepted-phase-4-compact-object",
+    "cross_scale_edge": "adjacent-configured-scales-with-exact-valid-support-overlap",
+    "duplicate_policy": "one-extended-source-per-association-retain-all-scale-provenance",
+    "identity": "sha256-of-canonical-scale-detection-identities",
+    "pixel_ownership": "compact-first-then-nearest-exact-extended-support",
+    "policy_review": "phase-5-association-pre-review-approved-2026-08-24",
+    "relationships": [
+      "extended-only",
+      "contains-compact-support",
+      "overlaps-compact-support"
+    ],
+    "representative_order": "descending-snr-response-support-then-ascending-scale-pixel-id",
+    "same_scale_merge": "only-through-adjacent-scale-connected-path",
     "tile_policy": "global-identity-independent-of-local-labels"
   },
   "combined_catalogue": {
@@ -51,7 +64,7 @@
     ],
     "reference": "restoring-beam-major-fwhm"
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "scientific_basis": [
     "https://doi.org/10.1017/pasa.2018.3",
     "https://doi.org/10.1093/mnras/stv1866",

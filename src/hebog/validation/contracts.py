@@ -748,15 +748,54 @@ class PhaseFiveValidityContract(_ContractModel):
 class PhaseFiveAssociationContract(_ContractModel):
     """Cross-scale identity and compact-association meanings."""
 
-    identity: Literal["canonical-global-overlap-flux-and-scale-provenance"]
+    identity: Literal["sha256-of-canonical-scale-detection-identities"]
+    cross_scale_edge: Literal[
+        "adjacent-configured-scales-with-exact-valid-support-overlap"
+    ]
+    same_scale_merge: Literal["only-through-adjacent-scale-connected-path"]
+    representative_order: Literal[
+        "descending-snr-response-support-then-ascending-scale-pixel-id"
+    ]
+    relationships: tuple[
+        Literal[
+            "extended-only",
+            "contains-compact-support",
+            "overlaps-compact-support",
+        ],
+        ...,
+    ]
+    compact_context: Literal["shared-island-separate-source-many-to-many"]
+    compact_context_edge: Literal[
+        "reference-inside-or-exact-overlap-or-half-beam-adjacency"
+    ]
+    pixel_ownership: Literal[
+        "compact-first-then-nearest-exact-extended-support"
+    ]
     duplicate_policy: Literal[
-        "one-selected-representation-retain-all-contributing-scales"
+        "one-extended-source-per-association-retain-all-scale-provenance"
     ]
-    compact_policy: Literal[
-        "preserve-isolated-compact-measurement-without-multiscale-evidence"
+    compact_policy: Literal["preserve-every-accepted-phase-4-compact-object"]
+    compact_echo: Literal[
+        "suppress-without-independent-one-beam-positive-finite-residual"
     ]
-    ambiguous_policy: Literal["typed-unresolved-association"]
+    ambiguous_policy: Literal["typed-omission-and-publication-ineligible"]
     tile_policy: Literal["global-identity-independent-of-local-labels"]
+    policy_review: Literal[
+        "phase-5-association-pre-review-approved-2026-08-24"
+    ]
+
+    @model_validator(mode="after")
+    def validate_relationships(self) -> Self:
+        """Require the approved spatial vocabulary in canonical order."""
+        if self.relationships != (
+            "extended-only",
+            "contains-compact-support",
+            "overlaps-compact-support",
+        ):
+            raise ValueError(
+                "Phase 5 relationship vocabulary must be canonical"
+            )
+        return self
 
 
 class PhaseFiveFailureContract(_ContractModel):
@@ -787,7 +826,7 @@ class PhaseFiveCombinedCatalogueContract(_ContractModel):
 class PhaseFiveMultiscaleContract(_ContractModel):
     """Versioned Phase 5 scale, ownership, and failure semantics."""
 
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     contract_id: Literal["phase-5-multiscale"]
     status: Literal["reviewed-development"]
     scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]

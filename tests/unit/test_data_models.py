@@ -495,7 +495,7 @@ def test_multiscale_records_are_scheduler_safe_and_fail_closed() -> None:
         compact_source_ids=("source-0001",),
         selected_scale_detection_id=detection.detection_id,
         contributing_scale_orders=(2,),
-        relationship="contains-compact",
+        relationship="contains-compact-support",
     )
     measurement = domain_models.ExtendedEmissionMeasurement(
         association_id=association.association_id,
@@ -609,8 +609,16 @@ def test_scale_detection_rejects_invalid_geometry(
         ({"association_id": "bad ID"}, "domain identifier"),
         ({"contributing_scale_orders": (2, 1)}, "canonical"),
         (
-            {"relationship": "contains-compact"},
+            {"relationship": "contains-compact-support"},
             "requires a compact source",
+        ),
+        (
+            {"relationship": "overlaps-compact-support"},
+            "requires a compact source",
+        ),
+        (
+            {"compact_source_ids": ("source-0001",)},
+            "cannot name a compact source",
         ),
     ],
 )

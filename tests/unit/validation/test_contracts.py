@@ -167,6 +167,22 @@ _INVALID_PHASE_FIVE_MULTISCALE_MUTATIONS: tuple[
         ),
         "filter candidates",
     ),
+    (
+        lambda payload: payload["association"].update(
+            cross_scale_edge="centroid-distance"
+        ),
+        "cross_scale_edge",
+    ),
+    (
+        lambda payload: payload["association"].update(
+            relationships=[
+                "overlaps-compact-support",
+                "extended-only",
+                "contains-compact-support",
+            ]
+        ),
+        "relationship vocabulary",
+    ),
     (_duplicate_scientific_basis, "basis links must be unique"),
     (_use_insecure_scientific_basis, "must use HTTPS"),
 )
@@ -362,7 +378,7 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
 
     assert contract.status == "reviewed-development"
-    assert contract.schema_version == 1
+    assert contract.schema_version == 2
     assert contract.scales.reference == "restoring-beam-major-fwhm"
     assert contract.scales.configured_orders == (1, 2, 3)
     assert contract.scales.nominal_fwhm_multipliers == (1.0, 2.0, 4.0)
@@ -374,7 +390,30 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     assert contract.validity.minimum_support_fraction == 0.5
     assert contract.failures.incomplete_catalogue == "publication-forbidden"
     assert contract.association.identity == (
-        "canonical-global-overlap-flux-and-scale-provenance"
+        "sha256-of-canonical-scale-detection-identities"
+    )
+    assert contract.association.cross_scale_edge == (
+        "adjacent-configured-scales-with-exact-valid-support-overlap"
+    )
+    assert contract.association.same_scale_merge == (
+        "only-through-adjacent-scale-connected-path"
+    )
+    assert contract.association.relationships == (
+        "extended-only",
+        "contains-compact-support",
+        "overlaps-compact-support",
+    )
+    assert contract.association.compact_context == (
+        "shared-island-separate-source-many-to-many"
+    )
+    assert contract.association.pixel_ownership == (
+        "compact-first-then-nearest-exact-extended-support"
+    )
+    assert contract.association.compact_echo == (
+        "suppress-without-independent-one-beam-positive-finite-residual"
+    )
+    assert contract.association.policy_review == (
+        "phase-5-association-pre-review-approved-2026-08-24"
     )
     assert contract.combined_catalogue.compact_only == (
         "byte-identical-when-no-multiscale-evidence"
