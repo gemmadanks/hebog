@@ -206,11 +206,15 @@ the unopened qualification population.
 
 The named approval authorized updating the machine-readable Phase 5
 association contract and starting test-first Step 4 implementation. The first
-bounded kernel now reconciles exact supports across adjacent scales, derives
-stable identities from canonical contributing detection identities, and is
-invariant to plane and local-label order. It emits only `extended-only`
-associations: compact-context reconciliation and combined catalogue
-construction remain separate fail-closed tasks.
+bounded kernel reconciles exact supports across adjacent scales and derives
+stable identities from canonical contributing detection identities. The
+second builds the approved many-to-many compact context from exact bounded
+supports, a nearest-pixel compact reference position, and the half-beam
+adjacency dilation. It retains per-edge relationships, never merges source or
+association identities, and is invariant to input and local-label order.
+Conflicting extended support ownership and incomplete provenance fail closed.
+Stable combined island/source/component identities and catalogue construction
+remain separate tasks.
 
 The approval did not authorize qualification, a PyBDSF-equivalence claim,
 Rapthor cutover, or removal of the fallback. Independent radio-astronomy

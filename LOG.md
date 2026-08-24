@@ -9484,3 +9484,47 @@ objects or claim a combined catalogue.
 
 **Immediate next step:** implement the approved many-to-many compact-context
 graph while preserving separate compact and extended source identities.
+
+## 2026-08-24 — Implement compact/extended spatial context
+
+**Plan phase:** Phase 5, Step 4 — reconcile scales and construct products
+
+- Added strict scheduler-safe compact-support and per-edge context records.
+  The bounded input plane validates exact source counts, bounds, parent Phase
+  4 island identities, image-plane reference positions, and immutable label
+  storage before association.
+- Implemented the approved many-to-many context graph over reconciled extended
+  supports. A compact edge requires reference containment, exact overlap, or
+  the frozen half-major-beam dilation. Containment is retained per edge; an
+  association with mixed edge types uses the conservative aggregate overlap
+  relationship without discarding exact edge evidence.
+- Preserved every compact source ID and every extended association ID.
+  Multiple compact components may share one extended association, and one
+  compact source may contextualize several distinct extended associations,
+  without merging or suppressing either side. Context dilation never grows
+  scientific support or changes compact-first pixel ownership.
+- Added fail-closed checks for missing, duplicated, pre-contextualized, or
+  scale-inconsistent associations; misaligned compact support; and conflicting
+  exact ownership between extended associations. Stable IDs order equivalent
+  evidence but never resolve a scientific contradiction.
+- The final review replaced a provisional full boolean mask per detection with
+  one integer association-owner plane plus one transient association support.
+  Memory therefore remains proportional to bounded tile area rather than
+  detection count multiplied by tile area.
+- Confirmed the TDD red state before implementation: the analytic test module
+  failed collection because the compact-context API did not exist. The final
+  focused association and schema suite passes 144 tests with 100% line and
+  branch coverage in both changed production modules; the complete affected
+  unit set passes 167 tests, and focused Ruff and Pyright also pass. The final
+  branch-aware project run passes 1,539 tests with 44 deselected and four
+  expected failures at 94.69% total coverage. The fast handoff suite passes
+  Ruff, Pyright, doctests, and 1,405 tests with 178 deselected and four
+  expected failures; the strict documentation build also passes.
+
+**Decision:** the second Step 4 checklist item is complete. This increment
+provides spatial grouping evidence only; it makes no physical-host claim and
+does not yet construct combined islands or catalogue rows.
+
+**Immediate next step:** derive stable combined island, source, and
+compatibility-component identities from the canonical compact-context graph,
+independent of tile and task order.

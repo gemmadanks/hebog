@@ -69,7 +69,8 @@ generation or compact catalogue products.
 
 ## Current boundary
 
-This milestone establishes measurement semantics and bounded execution. It
-does not associate duplicate scale detections, decide whether compact sources
-are embedded in extended emission, or publish a combined catalogue. Those are
-Step 4 responsibilities.
+This milestone establishes measurement semantics and bounded execution; it
+does not itself alter association or publish a combined catalogue. Downstream
+Step 4 kernels now reconcile adjacent-scale exact supports and record
+many-to-many compact spatial context while preserving separate identities.
+Stable combined identities and catalogue publication remain open.

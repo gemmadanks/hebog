@@ -4,15 +4,17 @@
 and cross-finder gate, and Phase 5 Step 3 is complete. Compact Gaussian
 astrometry remains unchanged; bounded multiscale detection, deferred-island
 completion, original-pixel extended measurement, and the compact-preservation
-boundary are implemented. Step 4 association and combined-product rules,
-bounded-execution proof, optimization, and untouched qualification remain
-open; this contract does not yet establish production multiscale equivalence.
+boundary are implemented. Step 4 adjacent-scale and compact-context
+association are also implemented. Stable combined identities, product
+construction, bounded-execution proof, optimization, and untouched
+qualification remain open; this contract does not yet establish production
+multiscale equivalence.
 
 The approved Step 4 policy is recorded in the
 [compact/extended association pre-review](phase-5-association-pre-review.md).
 Named approval on 2026-08-24 froze it in machine contract schema 2. The
-bounded adjacent-scale association kernel is implemented; compact-context
-reconciliation and combined catalogue construction remain open.
+bounded adjacent-scale and compact-context kernels are implemented; combined
+identity and catalogue construction remain open.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -76,6 +78,11 @@ The machine-readable meanings are in
 - Duplicate detections retain every contributing scale but select one
   catalogue representation. Isolated compact measurements remain unchanged
   when no multiscale evidence changes their association.
+- Compact context is an array-free many-to-many edge set between accepted
+  Phase 4 source identities and reconciled extended identities. Reference
+  containment, exact support overlap, and the frozen half-major-beam context
+  dilation provide spatial evidence only; no edge merges, suppresses, or
+  relabels either source. Conflicting exact extended ownership fails closed.
 - The pre-association preservation boundary recognizes only `extended-only`
   evidence with no compact source identities as non-altering. It returns the
   exact completed compact object. Any compact-touching or ambiguous relation
@@ -85,15 +92,18 @@ The machine-readable meanings are in
   or deferred island requires one terminal disposition, and any incomplete
   result forbids catalogue publication.
 
-The internal records are `ScaleDetection`, `CrossScaleAssociation`,
+The internal records include `ScaleDetection`, `CompactSourceSupport`,
+`CrossScaleAssociation`, `CompactExtendedContextEdge`,
 `ExtendedEmissionMeasurement`, `MultiscaleOmission`,
 `CombinedIslandDisposition`, and `CombinedCatalogueState`.
-`ExtendedEmissionMeasurement` is version 2: it distinguishes the
+`CrossScaleAssociation` is version 2 and uses the approved explicit spatial
+relationship vocabulary. `ExtendedEmissionMeasurement` is version 2: it
+distinguishes the
 detection-conditioned segment centroid from the brightest original pixel,
 denies a host-position claim, and keeps position uncertainty unavailable until
-support selection is calibrated. The other records remain version 1. All are
-strict, immutable, scheduler-safe records; they contain no arrays, files,
-clients, or mutable execution state.
+support selection is calibrated. The other records remain version 1. All
+records are strict, immutable, and scheduler safe; bounded label planes remain
+worker-local inputs and never enter result records.
 
 ## Frozen datasets
 

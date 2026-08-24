@@ -84,6 +84,34 @@ class ScaleDetection(_MultiscaleModel):
         return self
 
 
+class CompactSourceSupport(_MultiscaleModel):
+    """One accepted Phase 4 source and its exact image-plane support."""
+
+    source_id: str
+    island_id: str
+    support_pixel_count: int = Field(ge=1)
+    bounds_yx: tuple[int, int, int, int]
+    reference_position_yx: tuple[float, float]
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def validate_support(self) -> Self:
+        """Require stable identities, finite position, and valid bounds."""
+        _require_identifier(self.source_id, field_name="source ID")
+        _require_identifier(self.island_id, field_name="island ID")
+        y_start, y_stop, x_start, x_stop = self.bounds_yx
+        if min(self.bounds_yx) < 0 or y_start >= y_stop or x_start >= x_stop:
+            raise ValueError("compact source bounds must be increasing")
+        if not all(
+            isfinite(value) and value >= 0
+            for value in self.reference_position_yx
+        ):
+            raise ValueError(
+                "compact reference position must be finite and non-negative"
+            )
+        return self
+
+
 class CrossScaleAssociation(_MultiscaleModel):
     """Deterministic association of scale and optional compact detections."""
 
@@ -133,6 +161,28 @@ class CrossScaleAssociation(_MultiscaleModel):
             raise ValueError(
                 "extended-only association cannot name a compact source"
             )
+        return self
+
+
+class CompactExtendedContextEdge(_MultiscaleModel):
+    """One spatial edge retaining separate compact and extended identities."""
+
+    association_id: str
+    compact_source_id: str
+    relationship: Literal[
+        "contains-compact-support",
+        "overlaps-compact-support",
+    ]
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def validate_edge(self) -> Self:
+        """Require stable identities on both sides of the context edge."""
+        _require_identifier(self.association_id, field_name="association ID")
+        _require_identifier(
+            self.compact_source_id,
+            field_name="compact source ID",
+        )
         return self
 
 

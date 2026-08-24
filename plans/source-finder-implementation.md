@@ -514,10 +514,14 @@ and the later Rapthor cutover remain outstanding.
       reconciliation, shared-island/separate-source compact context,
       compact-first pixel ownership, one extended row per association, and
       fail-closed ambiguity. The bounded serial association kernel now derives
-      stable associations independently of plane and local-label order; compact
-      context and combined construction remain below.
-- [ ] Preserve physically distinct compact components embedded in or projected
-      on extended emission while merging fragments of one extended object.
+      stable associations independently of plane and local-label order;
+      combined identity and construction remain below.
+- [x] Preserve physically distinct compact components embedded in or projected
+      on extended emission while merging fragments of one extended object. A
+      bounded many-to-many context graph retains every accepted Phase 4 source
+      ID and every reconciled extended association ID, records containment and
+      overlap per edge, uses only exact support or the frozen half-beam context
+      dilation, and fails closed on conflicting extended ownership.
 - [ ] Derive stable island, source, and compatibility-component identities from
       global reconciled properties, independent of tiles and task order.
 - [ ] Merge bounded shards hierarchically and publish only when every accepted

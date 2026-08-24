@@ -239,16 +239,22 @@ catalogue schema. `ScaleDetection` describes one finite,
 beam-normalized response and retains its global bounds, valid-support
 fraction, normalized peak response, significance, and contributing scale. A
 `CrossScaleAssociation` canonically joins scale detections and, when present,
-one compact source. It records the selected detection explicitly rather than
-letting task or scale iteration order choose a catalogue representation.
+any number of spatially related compact sources. It records the selected
+detection explicitly rather than letting task or scale iteration order choose
+a catalogue representation. `CompactSourceSupport` binds one immutable Phase
+4 source and parent island identity to exact bounded support metadata and an
+image-plane reference position. `CompactExtendedContextEdge` retains the
+per-source containment or overlap relation when one extended association has
+several different compact relationships.
 
 `ExtendedEmissionMeasurement` schema version 2 stores a detected-segment flux
 centroid and brightest original-pixel coordinate as distinct fields. It
 explicitly records that neither is a host position. Its position covariance is
 unavailable until nonlinear segment-selection uncertainty has a validated
 per-source approximation; flux-uncertainty availability remains independent.
-It also stores association-level flux and beam-normalized extent. The other
-five Phase 5 records remain at schema version 1.
+It also stores association-level flux and beam-normalized extent.
+`CrossScaleAssociation` is schema version 2; the remaining Phase 5 records are
+schema version 1.
 `MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
 support, measurement, or association. `CombinedIslandDisposition` gives every
 accepted or deferred island exactly one terminal state. Finally,
@@ -256,11 +262,19 @@ accepted or deferred island exactly one terminal state. Finally,
 publication eligibility false whenever an omission or incomplete disposition
 remains.
 
-All six records are strict, immutable, and scheduler safe. They contain only
+All records are strict, immutable, and scheduler safe. They contain only
 small scalar values and canonical identifiers: worker-local arrays, open
 files, WCS objects, executor clients, and task state remain outside the
 schema. These records freeze meanings for development; they do not yet claim
 that the Phase 5 combined catalogue algorithm is implemented.
+
+`associate_compact_source_context` consumes aligned bounded scale and compact
+label planes, validates complete one-owner association provenance, and emits
+only annotated associations plus canonical context edges. Reference positions
+are mapped to the nearest integer pixel centre; adjacency uses the reviewed
+ceiling of half the restoring-beam major FWHM. The dilation is graph context,
+not measurement support. Distinct compact sources and distinct extended
+associations therefore remain distinct even in a many-to-many component.
 
 Before that combined algorithm exists,
 `preserve_unassociated_compact_catalogue` is the explicit no-op seam. It
