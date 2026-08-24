@@ -9573,3 +9573,38 @@ qualification.
 **Immediate next step:** merge bounded combined shards hierarchically and
 allow publication only after every accepted or deferred island has exactly one
 terminal disposition.
+
+## 2026-08-24 — Gate combined catalogue completion on terminal state
+
+**Plan phase:** Phase 5, Step 4 — reconcile scales and construct products
+
+- Advanced `CombinedCatalogueState` to schema 2 with explicit disjoint,
+  canonical accepted- and deferred-island populations. Missing dispositions
+  are now observable in an inspectable incomplete state and make publication
+  ineligible alongside omissions and failed dispositions.
+- Added strict scheduler-safe combined-catalogue shards, pairwise reduction
+  evidence, and a completed-state wrapper. The canonical fan-in-two reducer is
+  invariant to shard and completion order, records its depth and maximum input
+  shard size, and supports a scientifically empty image without inventing an
+  object.
+- Added a fail-closed completion boundary with an explicit positive cap over
+  every final in-memory state record. Duplicate or conflicting ownership,
+  duplicate or unknown terminal evidence, missing dispositions, omissions,
+  failed outcomes, and cap overflow all stop before product publication.
+- Confirmed the TDD red state before implementation: the analytic reducer test
+  module failed collection because the combined-catalogue reduction module did
+  not exist. The focused reducer suite now passes 16 tests with 100% line and
+  branch coverage in the new algorithm module; the complete schema and reducer
+  unit set passes 97 tests, with focused Ruff and Pyright also passing. The
+  branch-aware project run passes 1,581 tests with 44 deselected and four
+  expected failures at 94.77% total coverage; a direct completed-wrapper test
+  covers its fail-closed validator. The fast handoff suite passes Ruff,
+  Pyright, doctests, and 1,447 tests with 178 deselected and four expected
+  failures. The strict documentation build also passes.
+
+**Decision:** the fourth Step 4 checklist item is complete. The reducer proves
+terminal-state completeness only; it does not construct catalogue rows or
+publish catalogue, mask, RMS, provenance, diagnostic, or Rapthor products.
+
+**Immediate next step:** materialise those combined products from the completed
+state while proving byte-identical compact-only output.

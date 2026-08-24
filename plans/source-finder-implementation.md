@@ -530,8 +530,12 @@ and the later Rapthor cutover remain outstanding.
       source ID. Irregular extended sources deliberately have zero Gaussian
       components rather than publishing an unfitted compatibility Gaussian;
       machine contract schema 3 freezes these identity rules.
-- [ ] Merge bounded shards hierarchically and publish only when every accepted
-      or deferred island has a terminal disposition.
+- [x] Merge bounded shards hierarchically and publish only when every accepted
+      or deferred island has a terminal disposition. Canonical fan-in-two
+      reduction records depth and maximum input-shard size under an explicit
+      final-state record cap. State schema 2 carries disjoint accepted and
+      deferred identity sets; missing dispositions, omissions, failed states,
+      duplicate ownership, and unknown terminal evidence all block completion.
 - [ ] Materialise the combined catalogue, mask, RMS, provenance, diagnostics,
       and Rapthor compatibility view without changing compact-only output.
 

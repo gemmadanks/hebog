@@ -388,14 +388,20 @@ class CombinedCatalogueState(_MultiscaleModel):
     """Bounded reconciliation state for one complete catalogue decision."""
 
     catalogue_id: str
+    accepted_island_ids: tuple[str, ...]
+    deferred_island_ids: tuple[str, ...]
     dispositions: tuple[CombinedIslandDisposition, ...]
     omissions: tuple[MultiscaleOmission, ...]
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
 
     @model_validator(mode="after")
     def validate_state(self) -> Self:
-        """Require canonical unique dispositions and omissions."""
+        """Require canonical required identities and terminal evidence."""
         _require_identifier(self.catalogue_id, field_name="catalogue ID")
+        required_ids = _validate_required_island_ids(
+            self.accepted_island_ids,
+            self.deferred_island_ids,
+        )
         disposition_ids = tuple(item.island_id for item in self.dispositions)
         omission_ids = tuple(item.object_id for item in self.omissions)
         _require_canonical_identifiers(
@@ -406,11 +412,120 @@ class CombinedCatalogueState(_MultiscaleModel):
             omission_ids,
             field_name="omission object IDs",
         )
+        if not set(disposition_ids).issubset(required_ids):
+            raise ValueError("disposition names an unknown required island")
         return self
+
+    @property
+    def missing_disposition_ids(self) -> tuple[str, ...]:
+        """Return accepted or deferred islands without terminal evidence."""
+        disposition_ids = {item.island_id for item in self.dispositions}
+        return tuple(
+            sorted(
+                {
+                    *self.accepted_island_ids,
+                    *self.deferred_island_ids,
+                }
+                - disposition_ids
+            )
+        )
 
     @property
     def publication_eligible(self) -> bool:
         """Return whether every island has a non-failed terminal outcome."""
-        return not self.omissions and all(
-            item.status != "failed" for item in self.dispositions
+        return (
+            not self.omissions
+            and not self.missing_disposition_ids
+            and all(item.status != "failed" for item in self.dispositions)
         )
+
+
+def _validate_required_island_ids(
+    accepted_island_ids: tuple[str, ...],
+    deferred_island_ids: tuple[str, ...],
+) -> set[str]:
+    """Require canonical disjoint accepted and deferred ownership."""
+    _require_canonical_identifiers(
+        accepted_island_ids,
+        field_name="accepted island IDs",
+    )
+    _require_canonical_identifiers(
+        deferred_island_ids,
+        field_name="deferred island IDs",
+    )
+    accepted = set(accepted_island_ids)
+    deferred = set(deferred_island_ids)
+    if accepted & deferred:
+        raise ValueError("accepted and deferred island IDs must be disjoint")
+    return accepted | deferred
+
+
+class CombinedCatalogueShard(_MultiscaleModel):
+    """One bounded canonical shard of terminal catalogue evidence."""
+
+    accepted_island_ids: tuple[str, ...]
+    deferred_island_ids: tuple[str, ...]
+    dispositions: tuple[CombinedIslandDisposition, ...]
+    omissions: tuple[MultiscaleOmission, ...]
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def validate_shard(self) -> Self:
+        """Require canonical shard-local ownership and evidence."""
+        required_ids = _validate_required_island_ids(
+            self.accepted_island_ids,
+            self.deferred_island_ids,
+        )
+        disposition_ids = tuple(item.island_id for item in self.dispositions)
+        omission_ids = tuple(item.object_id for item in self.omissions)
+        _require_canonical_identifiers(
+            disposition_ids,
+            field_name="disposition island IDs",
+        )
+        _require_canonical_identifiers(
+            omission_ids,
+            field_name="omission object IDs",
+        )
+        if not set(disposition_ids).issubset(required_ids):
+            raise ValueError("disposition names an unknown required island")
+        return self
+
+    @property
+    def record_count(self) -> int:
+        """Return all small records admitted to final in-memory state."""
+        return (
+            len(self.accepted_island_ids)
+            + len(self.deferred_island_ids)
+            + len(self.dispositions)
+            + len(self.omissions)
+        )
+
+
+class CombinedCatalogueReduction(_MultiscaleModel):
+    """Canonical pairwise reduction and bounded-fan-in evidence."""
+
+    shard: CombinedCatalogueShard
+    input_shard_count: int = Field(ge=0)
+    reduction_depth: int = Field(ge=0)
+    maximum_input_shard_record_count: int = Field(ge=0)
+    schema_version: Literal[1] = 1
+
+
+class CompletedCombinedCatalogueState(_MultiscaleModel):
+    """Publication-eligible state plus its bounded reduction evidence."""
+
+    state: CombinedCatalogueState
+    shard_count: int = Field(ge=0)
+    reduction_depth: int = Field(ge=0)
+    maximum_shard_record_count: int = Field(ge=0)
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def validate_completion(self) -> Self:
+        """Forbid an incomplete state from masquerading as completed."""
+        if not self.state.publication_eligible:
+            raise ValueError(
+                "completed combined catalogue state must be publication "
+                "eligible"
+            )
+        return self

@@ -529,6 +529,8 @@ def test_multiscale_records_are_scheduler_safe_and_fail_closed() -> None:
     )
     state = domain_models.CombinedCatalogueState(
         catalogue_id="catalogue-0001",
+        accepted_island_ids=("island-0001",),
+        deferred_island_ids=(),
         dispositions=(disposition,),
         omissions=(omission,),
     )
@@ -723,6 +725,8 @@ def test_complete_multiscale_state_is_publication_eligible() -> None:
     )
     state = domain_models.CombinedCatalogueState(
         catalogue_id="catalogue-0001",
+        accepted_island_ids=("island-0001",),
+        deferred_island_ids=(),
         dispositions=(disposition,),
         omissions=(),
     )
@@ -757,6 +761,8 @@ def test_multiscale_omissions_and_state_require_canonical_identifiers() -> (
     with pytest.raises(ValidationError, match="unique and canonical"):
         domain_models.CombinedCatalogueState(
             catalogue_id="catalogue-0001",
+            accepted_island_ids=("island-0001", "island-0002"),
+            deferred_island_ids=(),
             dispositions=dispositions,
             omissions=(),
         )

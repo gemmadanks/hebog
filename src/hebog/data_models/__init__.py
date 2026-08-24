@@ -13,11 +13,14 @@ from hebog.data_models.catalogues import (
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.images import CelestialWcs, ImageMetadata, RestoringBeam
 from hebog.data_models.multiscale import (
+    CombinedCatalogueReduction,
+    CombinedCatalogueShard,
     CombinedCatalogueState,
     CombinedIslandDisposition,
     CombinedIslandIdentity,
     CompactExtendedContextEdge,
     CompactSourceSupport,
+    CompletedCombinedCatalogueState,
     CrossScaleAssociation,
     ExtendedEmissionMeasurement,
     ExtendedSourceIdentity,
@@ -39,11 +42,14 @@ from hebog.data_models.source_finding import (
 
 __all__ = [
     "CelestialWcs",
+    "CombinedCatalogueReduction",
+    "CombinedCatalogueShard",
     "CombinedCatalogueState",
     "CombinedIslandDisposition",
     "CombinedIslandIdentity",
     "CompactExtendedContextEdge",
     "CompactSourceSupport",
+    "CompletedCombinedCatalogueState",
     "CrossScaleAssociation",
     "ExtendedEmissionMeasurement",
     "ExtendedSourceIdentity",

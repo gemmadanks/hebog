@@ -218,7 +218,10 @@ from canonical compact-island and association membership and one stable source
 identity per extended association. It preserves every compact source and
 Gaussian identity. Irregular extended sources have zero Gaussian compatibility
 components rather than an invented fit. Combined catalogue row construction
-and publication remain separate tasks.
+remains a separate task. The fourth increment implements canonical fan-in-two
+terminal-state reduction and blocks completion unless dispositions exactly
+cover the explicit accepted and deferred island sets without omissions or
+failures.
 
 The approval did not authorize qualification, a PyBDSF-equivalence claim,
 Rapthor cutover, or removal of the fallback. Independent radio-astronomy

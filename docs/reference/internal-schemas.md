@@ -234,7 +234,7 @@ catalogue columns retain their reviewed peak/integrated component semantics.
 
 ## Phase 5 multiscale records
 
-Phase 5 introduces ten internal records without changing the published
+Phase 5 introduces thirteen internal records without changing the published
 catalogue schema. `ScaleDetection` describes one finite,
 beam-normalized response and retains its global bounds, valid-support
 fraction, normalized peak response, significance, and contributing scale. A
@@ -262,8 +262,9 @@ explicitly records that neither is a host position. Its position covariance is
 unavailable until nonlinear segment-selection uncertainty has a validated
 per-source approximation; flux-uncertainty availability remains independent.
 It also stores association-level flux and beam-normalized extent.
-`CrossScaleAssociation` and `ExtendedEmissionMeasurement` are schema version
-2; the remaining Phase 5 records are schema version 1.
+`CrossScaleAssociation`, `ExtendedEmissionMeasurement`, and
+`CombinedCatalogueState` are schema version 2; the remaining Phase 5 records
+are schema version 1.
 `MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
 support, measurement, or association. `CombinedIslandDisposition` gives every
 accepted or deferred island exactly one terminal state. Finally,
@@ -271,12 +272,28 @@ accepted or deferred island exactly one terminal state. Finally,
 publication eligibility false whenever an omission or incomplete disposition
 remains.
 
+`CombinedCatalogueState` carries the disjoint canonical sets of accepted and
+deferred island IDs, so absence of a disposition is observable rather than
+indistinguishable from completeness. `CombinedCatalogueShard` is one bounded
+coarse-task result. Shards reduce in canonical fan-in-two levels to
+`CombinedCatalogueReduction`, which records depth and maximum input-shard
+size. `CompletedCombinedCatalogueState` can contain only a publication-
+eligible state and retains that reduction evidence. The completion boundary
+also applies an explicit positive cap to all final in-memory state records.
+
 All records are strict, immutable, and scheduler safe. They contain only
 small scalar values and canonical identifiers: worker-local arrays, open
 files, WCS objects, executor clients, and task state remain outside the
 schema. These records freeze meanings for development. Combined identity
 derivation is implemented, but catalogue row construction and publication are
 not.
+
+`reduce_combined_catalogue_shards` sorts only scientifically equivalent
+records; duplicate accepted ownership, accepted/deferred overlap, duplicate
+terminal evidence, or an unknown disposition fails validation rather than
+being resolved by order. `complete_combined_catalogue_state` accepts an empty
+scientific image but rejects any missing terminal disposition, omission,
+failed disposition, or state-record-cap overflow before product publication.
 
 `associate_compact_source_context` consumes aligned bounded scale and compact
 label planes, validates complete one-owner association provenance, and emits

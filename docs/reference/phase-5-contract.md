@@ -5,18 +5,19 @@ and cross-finder gate, and Phase 5 Step 3 is complete. Compact Gaussian
 astrometry remains unchanged; bounded multiscale detection, deferred-island
 completion, original-pixel extended measurement, and the compact-preservation
 boundary are implemented. Step 4 adjacent-scale association, compact context,
-and stable combined identities are also implemented. Product construction,
-bounded-execution proof, optimization, and untouched qualification remain
-open; this contract does not yet establish production multiscale equivalence.
+stable combined identities, and bounded terminal-state reduction are also
+implemented. Catalogue row and product construction, bounded-execution proof,
+optimization, and untouched qualification remain open; this contract does not
+yet establish production multiscale equivalence.
 
 The approved Step 4 policy is recorded in the
 [compact/extended association pre-review](phase-5-association-pre-review.md).
 Named approval on 2026-08-24 froze the association rules in schema 2. Schema 3
 adds the implemented combined-island, extended-source, and zero-extended-
 Gaussian identity rules without changing that approved association policy.
-The bounded adjacent-scale and compact-context kernels and deterministic
-combined identity derivation are implemented; catalogue construction remains
-open.
+The bounded adjacent-scale and compact-context kernels, deterministic combined
+identity derivation, and terminal-state reduction are implemented; catalogue
+row and product construction remain open.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -104,20 +105,29 @@ The machine-readable meanings are in
   measurements and ambiguous associations are typed omissions. Every accepted
   or deferred island requires one terminal disposition, and any incomplete
   result forbids catalogue publication.
+- Terminal state carries separate canonical accepted- and deferred-island ID
+  sets. Pairwise fan-in-two reduction is independent of shard order and records
+  its depth and maximum input-shard size. Completion additionally requires an
+  explicit positive in-memory record cap; missing dispositions, omissions,
+  failed dispositions, duplicate ownership, or unknown terminal evidence
+  block every downstream publication path.
 
 The internal records include `ScaleDetection`, `CompactSourceSupport`,
 `CrossScaleAssociation`, `CompactExtendedContextEdge`,
 `CombinedIslandIdentity`, `ExtendedSourceIdentity`,
 `ExtendedEmissionMeasurement`, `MultiscaleOmission`,
-`CombinedIslandDisposition`, and `CombinedCatalogueState`.
+`CombinedIslandDisposition`, `CombinedCatalogueShard`,
+`CombinedCatalogueReduction`, `CombinedCatalogueState`, and
+`CompletedCombinedCatalogueState`.
 `CrossScaleAssociation` is version 2 and uses the approved explicit spatial
 relationship vocabulary. `ExtendedEmissionMeasurement` is version 2: it
 distinguishes the
 detection-conditioned segment centroid from the brightest original pixel,
 denies a host-position claim, and keeps position uncertainty unavailable until
-support selection is calibrated. The other records remain version 1. All
-records are strict, immutable, and scheduler safe; bounded label planes remain
-worker-local inputs and never enter result records.
+support selection is calibrated. `CombinedCatalogueState` is version 2 so the
+required accepted and deferred island populations are explicit. The remaining
+records are version 1. All records are strict, immutable, and scheduler safe;
+bounded label planes remain worker-local inputs and never enter result records.
 
 ## Frozen datasets
 
