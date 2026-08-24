@@ -9698,3 +9698,52 @@ byte-level execution evidence and makes no runtime claim.
 **Immediate next step:** prove one-tile/many-tile equality across edges,
 corners, rectangular cores, invalid regions, the largest scale, and shifted
 partition origins.
+
+## 2026-08-24 — Prove Phase 5 one-tile/many-tile science equality
+
+**Plan phase:** Phase 5, Step 5 — bounded deterministic execution
+
+- Confirmed the TDD red state before implementation: the new equality module
+  failed collection because the core-only Phase 5 filter-tile result and
+  evaluator did not exist.
+- Added a bounded local filtering seam over the exact clipped halo. It runs the
+  frozen 1-, 2-, and 4-beam matched-filter bank and three-level residual B3
+  transform, then returns owned immutable core copies without retaining the
+  halo-read allocation. Incomplete halos, mismatched prepared records, and
+  reads that disagree with partition geometry fail before filter workspaces
+  are allocated.
+- Reused the established Phase 3 side/corner summaries to reconcile adjacent-
+  scale reconstruction, original-residual islands, and residual/
+  reconstruction segment association. The deterministic small-image oracle
+  alone assembles complete planes; that operation remains forbidden in
+  production and is not an executor implementation.
+- Proved the complete promoted scientific path for one tile versus rectangular
+  88-by-96 cores at origins `(0, 0)` and `(43, 47)`. The matrix includes
+  sources on both partition corners, top and bottom-right image edges, invalid
+  holes, and the four-beam scale. Masks, labels, island topology and integer
+  properties are exact; matched/B3 responses, effective RMS, visible support,
+  combined SNR, and the position signal agree within `2e-13` FFT round-off.
+- The proof exposed a planning omission rather than a science defect: the
+  already approved three-beam dilation that groups original-residual and
+  reconstructed support was not listed as a separate halo stage. The planner
+  now derives its `ceil(3 * beam_major_fwhm_pixels)` halo; no threshold,
+  candidate configuration, campaign result, or Step 4 association rule
+  changed.
+- Advanced the reviewed development contract to schema 6, SHA-256
+  `a6d3fd3cf1b89dede72e28c9ea08f9e88673766acc2b2d4715264799c6d46643`,
+  freezing core ownership, the missing segment-association halo, the complete
+  equality matrix, and the test-only complete-plane boundary.
+- The affected scientific, topology, integration, and contract suite passes
+  243 tests. The dedicated execution and equality suites pass 22 tests with
+  100% line and branch coverage for `phase_five_execution.py`. The complete
+  branch-aware project run passes 1,627 tests with 44 deselected and four
+  expected failures at 94.86% total coverage. The fast handoff suite passes
+  Ruff, Pyright, doctests, and 1,488 tests with 183 deselected and four
+  expected failures; the strict documentation build also passes.
+
+**Decision:** the second Phase 5 Step 5 checklist item is complete. This proof
+establishes partitioned scientific equality, not scheduling, retry, executor,
+memory, graph-size, qualification, or runtime evidence.
+
+**Immediate next step:** prove partition, batch, worker-count, completion-order,
+retry, and executor invariance for science and product identities.

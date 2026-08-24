@@ -552,13 +552,21 @@ Rapthor cutover remain outstanding.
 - [x] Derive and review every stage halo; reject configurations that cannot
       meet the memory contract. Allocation-free planning derives the actual
       matched-filter radii, cumulative residual-B3 support, refinement,
-      compact-context, and 1.5-beam measurement halos; reconciled record-only
-      stages require zero image halo. Every stage must preserve the strict
-      quarter-core guardrail and fit its worst-case interior read within the
-      global and any tighter stage task-pixel cap. Byte-level workspace
-      evidence remains the final Step 5 task.
-- [ ] Prove one-tile/many-tile equality across edges, corners, rectangular
+      three-beam segment association, compact-context, and 1.5-beam
+      measurement halos; reconciled record-only stages require zero image
+      halo. Every stage must preserve the strict quarter-core guardrail and
+      fit its worst-case interior read within the global and any tighter stage
+      task-pixel cap. Byte-level workspace evidence remains the final Step 5
+      task.
+- [x] Prove one-tile/many-tile equality across edges, corners, rectangular
       tiles, invalid regions, largest scales, and multiple partition origins.
+      The core-only filtering seam returns owned immutable arrays, while the
+      existing bounded side/corner summaries reconcile reconstruction,
+      residual-island, and segment-association topology. A small deterministic
+      oracle proves identical masks, labels, island properties, final segment
+      refinement, position signal, and matched/B3 responses for one tile and
+      88-by-96 cores at origins `(0, 0)` and `(43, 47)`. Complete-plane
+      assembly is test-only and remains forbidden in production.
 - [ ] Prove partition, batch, worker-count, completion-order, retry, and
       executor invariance for science and product identities.
 - [ ] Record bounded retained bytes, workspaces, summaries, shards, and graph

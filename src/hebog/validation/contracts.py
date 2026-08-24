@@ -856,6 +856,9 @@ class PhaseFiveBoundedExecutionContract(_ContractModel):
     residual_atrous_halo: Literal[
         "cumulative-b3-halos-two-six-fourteen-pixels"
     ]
+    segment_association_halo: Literal[
+        "ceil-three-beam-major-residual-reconstruction-dilation"
+    ]
     segment_refinement_halo: Literal[
         "max-one-pixel-opening-and-ceil-half-beam-major"
     ]
@@ -875,6 +878,27 @@ class PhaseFiveBoundedExecutionContract(_ContractModel):
         "worst-interior-read-within-global-and-stage-pixel-caps"
     ]
     byte_evidence: Literal["required-before-step-5-completion"]
+    tile_result_ownership: Literal[
+        "owned-immutable-core-arrays-without-halo-read-retention"
+    ]
+    equality_oracle: Literal[
+        "one-tile-and-reviewed-many-tile-multiscale-science-equality"
+    ]
+    equality_matrix: tuple[
+        Literal[
+            "image-edges",
+            "tile-edges-and-corners",
+            "rectangular-cores",
+            "invalid-regions",
+            "four-beam-scale",
+            "origin-zero",
+            "shifted-origin",
+        ],
+        ...,
+    ]
+    complete_plane_assembly: Literal[
+        "small-deterministic-test-oracle-only-never-production"
+    ]
 
     @model_validator(mode="after")
     def validate_zero_halo_stages(self) -> Self:
@@ -890,11 +914,26 @@ class PhaseFiveBoundedExecutionContract(_ContractModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def validate_equality_matrix(self) -> Self:
+        """Keep every reviewed one-tile/many-tile case explicit."""
+        if self.equality_matrix != (
+            "image-edges",
+            "tile-edges-and-corners",
+            "rectangular-cores",
+            "invalid-regions",
+            "four-beam-scale",
+            "origin-zero",
+            "shifted-origin",
+        ):
+            raise ValueError("Phase 5 tile equality matrix must be canonical")
+        return self
+
 
 class PhaseFiveMultiscaleContract(_ContractModel):
     """Versioned Phase 5 scale, ownership, and failure semantics."""
 
-    schema_version: Literal[5]
+    schema_version: Literal[6]
     contract_id: Literal["phase-5-multiscale"]
     status: Literal["reviewed-development"]
     scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]

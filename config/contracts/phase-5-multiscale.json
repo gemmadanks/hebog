@@ -22,13 +22,26 @@
   "bounded_execution": {
     "byte_evidence": "required-before-step-5-completion",
     "compact_context_halo": "ceil-half-beam-major",
+    "complete_plane_assembly": "small-deterministic-test-oracle-only-never-production",
     "core_policy": "shared-nonoverlapping-core-with-stage-specific-read-halos",
+    "equality_matrix": [
+      "image-edges",
+      "tile-edges-and-corners",
+      "rectangular-cores",
+      "invalid-regions",
+      "four-beam-scale",
+      "origin-zero",
+      "shifted-origin"
+    ],
+    "equality_oracle": "one-tile-and-reviewed-many-tile-multiscale-science-equality",
     "extended_measurement_halo": "ceil-one-point-five-beam-major",
     "geometry_admission": "every-halo-strictly-below-quarter-core",
     "matched_filter_halo": "actual-four-sigma-kernel-radius-at-one-two-four-beams",
     "residual_atrous_halo": "cumulative-b3-halos-two-six-fourteen-pixels",
+    "segment_association_halo": "ceil-three-beam-major-residual-reconstruction-dilation",
     "segment_refinement_halo": "max-one-pixel-opening-and-ceil-half-beam-major",
     "task_admission": "worst-interior-read-within-global-and-stage-pixel-caps",
+    "tile_result_ownership": "owned-immutable-core-arrays-without-halo-read-retention",
     "zero_image_halo_stages": [
       "segment-labelling",
       "cross-scale-association",
@@ -89,7 +102,7 @@
     ],
     "reference": "restoring-beam-major-fwhm"
   },
-  "schema_version": 5,
+  "schema_version": 6,
   "scientific_basis": [
     "https://doi.org/10.1017/pasa.2018.3",
     "https://doi.org/10.1093/mnras/stv1866",

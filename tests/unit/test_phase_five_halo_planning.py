@@ -20,6 +20,8 @@ from hebog.algorithms.multiscale_association import (
 )
 from hebog.algorithms.phase_five_execution import (
     derive_phase_five_halo_plan,
+    scale_filter_halo_pixels,
+    segment_association_halo_pixels,
 )
 from hebog.config import ExtendedEmissionMeasurementConfig
 
@@ -57,6 +59,7 @@ def test_halo_plan_derives_every_stage_from_implemented_science() -> None:
         "matched-filter-seed",
         "residual-b3-atrous",
         "segment-labelling",
+        "segment-association",
         "segment-refinement",
         "cross-scale-association",
         "compact-context",
@@ -67,6 +70,7 @@ def test_halo_plan_derives_every_stage_from_implemented_science() -> None:
     by_name = {stage.stage_name: stage for stage in plan.stages}
     assert by_name["matched-filter-seed"].scale_halos_pixels == (9, 17, 34)
     assert by_name["residual-b3-atrous"].scale_halos_pixels == (2, 6, 14)
+    assert by_name["segment-association"].halo_yx == (15, 15)
     assert by_name["segment-refinement"].halo_yx == (3, 3)
     assert by_name["compact-context"].halo_yx == (3, 3)
     assert by_name["extended-measurement"].halo_yx == (8, 8)
@@ -106,6 +110,8 @@ def test_allocation_free_halo_helpers_match_kernel_policies() -> None:
         for width in (1.0, 2.0, 4.0)
     ) == (9, 17, 34)
     assert residual_atrous_scale_halos_pixels() == (2, 6, 14)
+    assert scale_filter_halo_pixels(_beam()) == 34
+    assert segment_association_halo_pixels(_beam()) == 15
     assert segment_refinement_halo_pixels(5.0) == 3
     assert compact_context_halo_pixels(5.0) == 3
     assert (

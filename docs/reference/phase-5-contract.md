@@ -6,11 +6,12 @@ astrometry remains unchanged; bounded multiscale detection, deferred-island
 completion, original-pixel extended measurement, and the compact-preservation
 boundary are implemented. Step 4 adjacent-scale association, compact context,
 stable combined identities, bounded terminal-state reduction, and final
-product construction are also implemented. The first Step 5 task now derives
-and admits every stage-specific halo; tile equality, executor invariance,
-byte-level execution evidence, optimization, and untouched qualification
-remain open. This contract does not yet establish production multiscale
-equivalence.
+product construction are also implemented. The first two Step 5 tasks now
+derive and admit every stage-specific halo and prove complete one-tile/many-
+tile scientific equality across the reviewed boundary matrix. Executor
+invariance, byte-level execution evidence, optimization, and untouched
+qualification remain open. This contract does not yet establish production
+multiscale equivalence.
 
 The approved Step 4 policy is recorded in the
 [compact/extended association pre-review](phase-5-association-pre-review.md).
@@ -20,8 +21,10 @@ Gaussian identity rules without changing that approved association policy.
 Schema 4 adds the implemented catalogue-row, mask, RMS-reuse, provenance,
 diagnostics, and Rapthor-view semantics. Schema 5 adds the reviewed
 stage-specific halo formulas and fail-closed geometry and task-pixel
-admission. The [bounded-execution halo review](phase-5-bounded-execution.md)
-records the derivation and remaining evidence boundary. The bounded
+admission. Schema 6 adds the core-only tile-filter ownership boundary, the
+three-beam segment-association halo, and the reviewed one-tile/many-tile
+equality matrix. The [bounded-execution review](phase-5-bounded-execution.md)
+records the derivation, proof, and remaining evidence boundary. The bounded
 adjacent-scale and compact-context kernels, deterministic combined identity
 derivation, terminal-state reduction, and final product construction are
 implemented.
@@ -318,7 +321,7 @@ and hash-bound.
 
 | Document | SHA-256 |
 | --- | --- |
-| Multiscale contract | `89b9c1d013af64f5fc99f96a1946bb6416d927232227eeb4a50f2ee1e0259734` |
+| Multiscale contract | `a6d3fd3cf1b89dede72e28c9ea08f9e88673766acc2b2d4715264799c6d46643` |
 | Filter-selection decision | `38c2340c1e49a30178dd866bcb587f8f0bcd9cfc00e76bb496e6e93da5ed4e46` |
 | Paired filter-review protocol | `749d2393c485239bea6a897beaeb4a97b0b8ab7d8aff851646e43e857b4c993d` |
 | Scientific gates | `cbf467f517af40be798eb4cfbf68315b7b5a11f96688af51973730f7b9cef70b` |
