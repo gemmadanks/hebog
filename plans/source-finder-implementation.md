@@ -522,8 +522,14 @@ and the later Rapthor cutover remain outstanding.
       ID and every reconciled extended association ID, records containment and
       overlap per edge, uses only exact support or the frozen half-beam context
       dilation, and fails closed on conflicting extended ownership.
-- [ ] Derive stable island, source, and compatibility-component identities from
+- [x] Derive stable island, source, and compatibility-component identities from
       global reconciled properties, independent of tiles and task order.
+      Compact-only islands and all Phase 4 source/Gaussian IDs remain exact;
+      mixed and extended islands hash canonical compact-island and association
+      membership, while each association has one context-independent extended
+      source ID. Irregular extended sources deliberately have zero Gaussian
+      components rather than publishing an unfitted compatibility Gaussian;
+      machine contract schema 3 freezes these identity rules.
 - [ ] Merge bounded shards hierarchically and publish only when every accepted
       or deferred island has a terminal disposition.
 - [ ] Materialise the combined catalogue, mask, RMS, provenance, diagnostics,

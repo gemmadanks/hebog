@@ -106,6 +106,7 @@ def _compact_plane(
                     max(x_pixels) + 1,
                 ),
                 reference_position_yx=reference_position_yx,
+                gaussian_component_ids=(f"gaussian-{source_id}",),
             )
         )
     return CompactSourcePlane(
@@ -723,6 +724,7 @@ def test_compact_source_support_rejects_invalid_geometry(
         "support_pixel_count": 1,
         "bounds_yx": (0, 1, 0, 1),
         "reference_position_yx": (0.0, 0.0),
+        "gaussian_component_ids": ("gaussian-alpha",),
     }
     fields.update(update)
 

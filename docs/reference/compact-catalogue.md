@@ -54,6 +54,12 @@ FITS output. Phase 2 RMS and the Phase 4 accepted mask remain immutable
 read-only inputs to the bounded multiscale stages rather than products this
 boundary can replace.
 
+The subsequent combined-identity stage still preserves every compact source
+and Gaussian-component ID. A compact-only graph component also keeps its exact
+Phase 4 island ID. Spatial context may place compact and extended sources in a
+new combined island, but it never relabels the compact objects or fabricates a
+Gaussian component for an irregular extended source.
+
 ## Rapthor compatibility FITS
 
 The adapter writes exactly the eight fields read directly by the pinned

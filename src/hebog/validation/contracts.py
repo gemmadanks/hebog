@@ -816,6 +816,16 @@ class PhaseFiveCombinedCatalogueContract(_ContractModel):
         "source-catalogue-version-2-plus-scale-provenance"
     ]
     compact_only: Literal["byte-identical-when-no-multiscale-evidence"]
+    island_identity: Literal[
+        "compact-only-exact-otherwise-sha256-of-compact-islands-and-"
+        "associations"
+    ]
+    source_identity: Literal[
+        "one-extended-source-sha256-of-association-independent-of-context"
+    ]
+    component_identity: Literal[
+        "preserve-compact-gaussians-and-create-no-extended-gaussian"
+    ]
     disposition_requirement: Literal[
         "every-accepted-or-deferred-island-has-one-terminal-disposition"
     ]
@@ -826,7 +836,7 @@ class PhaseFiveCombinedCatalogueContract(_ContractModel):
 class PhaseFiveMultiscaleContract(_ContractModel):
     """Versioned Phase 5 scale, ownership, and failure semantics."""
 
-    schema_version: Literal[2]
+    schema_version: Literal[3]
     contract_id: Literal["phase-5-multiscale"]
     status: Literal["reviewed-development"]
     scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]

@@ -213,8 +213,12 @@ supports, a nearest-pixel compact reference position, and the half-beam
 adjacency dilation. It retains per-edge relationships, never merges source or
 association identities, and is invariant to input and local-label order.
 Conflicting extended support ownership and incomplete provenance fail closed.
-Stable combined island/source/component identities and catalogue construction
-remain separate tasks.
+The third implementation increment derives stable combined-island identities
+from canonical compact-island and association membership and one stable source
+identity per extended association. It preserves every compact source and
+Gaussian identity. Irregular extended sources have zero Gaussian compatibility
+components rather than an invented fit. Combined catalogue row construction
+and publication remain separate tasks.
 
 The approval did not authorize qualification, a PyBDSF-equivalence claim,
 Rapthor cutover, or removal of the fallback. Independent radio-astronomy

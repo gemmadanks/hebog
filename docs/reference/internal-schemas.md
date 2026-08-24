@@ -234,7 +234,7 @@ catalogue columns retain their reviewed peak/integrated component semantics.
 
 ## Phase 5 multiscale records
 
-Phase 5 introduces six internal records without changing the published
+Phase 5 introduces ten internal records without changing the published
 catalogue schema. `ScaleDetection` describes one finite,
 beam-normalized response and retains its global bounds, valid-support
 fraction, normalized peak response, significance, and contributing scale. A
@@ -247,14 +247,23 @@ image-plane reference position. `CompactExtendedContextEdge` retains the
 per-source containment or overlap relation when one extended association has
 several different compact relationships.
 
+`CombinedIslandIdentity` is the array-free connected-component result. A
+compact-only component keeps its original Phase 4 island ID; a mixed or
+extended component uses a namespaced SHA-256 identity over canonical compact
+island and extended-association membership. It also retains the exact compact
+source and Gaussian-component IDs. `ExtendedSourceIdentity` assigns one
+stable source ID to each association independently of its island context.
+Its Gaussian-component list is constrained to be empty: irregular segment
+photometry is not represented as an unperformed Gaussian fit.
+
 `ExtendedEmissionMeasurement` schema version 2 stores a detected-segment flux
 centroid and brightest original-pixel coordinate as distinct fields. It
 explicitly records that neither is a host position. Its position covariance is
 unavailable until nonlinear segment-selection uncertainty has a validated
 per-source approximation; flux-uncertainty availability remains independent.
 It also stores association-level flux and beam-normalized extent.
-`CrossScaleAssociation` is schema version 2; the remaining Phase 5 records are
-schema version 1.
+`CrossScaleAssociation` and `ExtendedEmissionMeasurement` are schema version
+2; the remaining Phase 5 records are schema version 1.
 `MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
 support, measurement, or association. `CombinedIslandDisposition` gives every
 accepted or deferred island exactly one terminal state. Finally,
@@ -265,8 +274,9 @@ remains.
 All records are strict, immutable, and scheduler safe. They contain only
 small scalar values and canonical identifiers: worker-local arrays, open
 files, WCS objects, executor clients, and task state remain outside the
-schema. These records freeze meanings for development; they do not yet claim
-that the Phase 5 combined catalogue algorithm is implemented.
+schema. These records freeze meanings for development. Combined identity
+derivation is implemented, but catalogue row construction and publication are
+not.
 
 `associate_compact_source_context` consumes aligned bounded scale and compact
 label planes, validates complete one-owner association provenance, and emits
@@ -276,12 +286,18 @@ ceiling of half the restoring-beam major FWHM. The dilation is graph context,
 not measurement support. Distinct compact sources and distinct extended
 associations therefore remain distinct even in a many-to-many component.
 
-Before that combined algorithm exists,
+Before combined catalogue construction exists,
 `preserve_unassociated_compact_catalogue` is the explicit no-op seam. It
 returns the same `CompletedCompactCatalogue` only for `extended-only`
 associations with no compact identities. Compact-touching and ambiguous
 relationships raise a typed Step 4 decision error, so pre-association evidence
 cannot silently reconstruct or mutate Phase 4 catalogue records.
+
+`derive_combined_identities` validates complete agreement between association
+summaries and per-edge context evidence before deriving any hash. It groups
+Phase 4 islands and extended associations by graph connectivity, not by input,
+tile, task, or completion order. Duplicate identities, unknown relationships,
+missing edges, and contradictory aggregate relationships fail closed.
 
 ## Compatibility
 

@@ -4,17 +4,19 @@
 and cross-finder gate, and Phase 5 Step 3 is complete. Compact Gaussian
 astrometry remains unchanged; bounded multiscale detection, deferred-island
 completion, original-pixel extended measurement, and the compact-preservation
-boundary are implemented. Step 4 adjacent-scale and compact-context
-association are also implemented. Stable combined identities, product
-construction, bounded-execution proof, optimization, and untouched
-qualification remain open; this contract does not yet establish production
-multiscale equivalence.
+boundary are implemented. Step 4 adjacent-scale association, compact context,
+and stable combined identities are also implemented. Product construction,
+bounded-execution proof, optimization, and untouched qualification remain
+open; this contract does not yet establish production multiscale equivalence.
 
 The approved Step 4 policy is recorded in the
 [compact/extended association pre-review](phase-5-association-pre-review.md).
-Named approval on 2026-08-24 froze it in machine contract schema 2. The
-bounded adjacent-scale and compact-context kernels are implemented; combined
-identity and catalogue construction remain open.
+Named approval on 2026-08-24 froze the association rules in schema 2. Schema 3
+adds the implemented combined-island, extended-source, and zero-extended-
+Gaussian identity rules without changing that approved association policy.
+The bounded adjacent-scale and compact-context kernels and deterministic
+combined identity derivation are implemented; catalogue construction remains
+open.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -83,6 +85,17 @@ The machine-readable meanings are in
   containment, exact support overlap, and the frozen half-major-beam context
   dilation provide spatial evidence only; no edge merges, suppresses, or
   relabels either source. Conflicting exact extended ownership fails closed.
+- A compact-only graph component keeps its exact Phase 4 island, source, and
+  Gaussian-component identities. A mixed or extended graph component derives
+  its island ID from canonical compact-island and association membership.
+  Each extended association derives one source ID from its association ID, so
+  a change in spatial context can change grouping without relabelling the
+  extended source.
+- An irregular extended source has zero Gaussian compatibility components.
+  Hebog does not claim that a segment was fitted by inventing a Gaussian.
+  Compact Gaussian components remain exact, and the Rapthor view can consume
+  the extended `SourceCandidate` row directly because it materialises source
+  rows rather than requiring one component per source.
 - The pre-association preservation boundary recognizes only `extended-only`
   evidence with no compact source identities as non-altering. It returns the
   exact completed compact object. Any compact-touching or ambiguous relation
@@ -94,6 +107,7 @@ The machine-readable meanings are in
 
 The internal records include `ScaleDetection`, `CompactSourceSupport`,
 `CrossScaleAssociation`, `CompactExtendedContextEdge`,
+`CombinedIslandIdentity`, `ExtendedSourceIdentity`,
 `ExtendedEmissionMeasurement`, `MultiscaleOmission`,
 `CombinedIslandDisposition`, and `CombinedCatalogueState`.
 `CrossScaleAssociation` is version 2 and uses the approved explicit spatial

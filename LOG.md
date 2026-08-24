@@ -9528,3 +9528,48 @@ does not yet construct combined islands or catalogue rows.
 **Immediate next step:** derive stable combined island, source, and
 compatibility-component identities from the canonical compact-context graph,
 independent of tile and task order.
+
+## 2026-08-24 — Derive stable combined catalogue identities
+
+**Plan phase:** Phase 5, Step 4 — reconcile scales and construct products
+
+- Added strict array-free records for combined island membership and extended
+  source identities. Compact source support now carries the canonical Phase 4
+  Gaussian IDs needed to preserve component identity through composition;
+  callers must supply that provenance explicitly rather than receiving an
+  empty default.
+- Advanced the strict Phase 5 development contract to schema 3 so the
+  compact-only island preservation, mixed/extended island hash inputs,
+  context-independent extended source identity, and zero-extended-Gaussian
+  policy cannot drift during the remaining construction tasks.
+- Implemented deterministic connected-component derivation over Phase 4 island
+  nodes and extended-association nodes. Compact-only islands retain their exact
+  Phase 4 ID; mixed and extended islands hash canonical compact-island and
+  association membership, independently of input, tile, task, or completion
+  order.
+- Preserved every compact source and Gaussian ID and derived one stable source
+  ID per extended association independently of spatial context. Irregular
+  extended sources deliberately have zero Gaussian compatibility components;
+  the Rapthor view consumes source rows and does not require a fabricated fit.
+- Fail-closed validation rejects duplicate compact, Gaussian, association, or
+  edge identities; unknown references; missing edges; and contradictory
+  association summaries before any identity is derived.
+- Confirmed the TDD red state before implementation: the new analytic module
+  failed collection because the combined-identity module did not exist. The
+  final focused suite passes 25 tests, with 100% line and branch coverage in
+  the identity module. The complete affected schema, contract, association,
+  context, and Rapthor adapter suite passes 278 tests.
+- The branch-aware project run passes 1,565 tests with 44 deselected and four
+  expected failures at 94.75% total coverage; the identity and multiscale
+  data-model modules are both at 100%, and strict loader tests exercise the
+  declarative contract change. The fast handoff suite passes Ruff, Pyright,
+  doctests, and 1,431 tests with 178 deselected and four expected failures. The
+  strict documentation build also passes.
+
+**Decision:** the third Step 4 checklist item is complete. Identity derivation
+does not construct catalogue rows, publish products, or authorize
+qualification.
+
+**Immediate next step:** merge bounded combined shards hierarchically and
+allow publication only after every accepted or deferred island has exactly one
+terminal disposition.

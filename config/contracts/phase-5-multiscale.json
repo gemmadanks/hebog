@@ -22,9 +22,12 @@
   "combined_catalogue": {
     "catalogue_schema": "source-catalogue-version-2-plus-scale-provenance",
     "compact_only": "byte-identical-when-no-multiscale-evidence",
+    "component_identity": "preserve-compact-gaussians-and-create-no-extended-gaussian",
     "disposition_requirement": "every-accepted-or-deferred-island-has-one-terminal-disposition",
+    "island_identity": "compact-only-exact-otherwise-sha256-of-compact-islands-and-associations",
     "reduction": "bounded-canonical-shards-and-pairwise-tree",
-    "scheduler_state": "forbidden"
+    "scheduler_state": "forbidden",
+    "source_identity": "one-extended-source-sha256-of-association-independent-of-context"
   },
   "contract_id": "phase-5-multiscale",
   "detection_threshold": "source-finder-detection-threshold-on-scale-normalized-response",
@@ -64,7 +67,7 @@
     ],
     "reference": "restoring-beam-major-fwhm"
   },
-  "schema_version": 2,
+  "schema_version": 3,
   "scientific_basis": [
     "https://doi.org/10.1017/pasa.2018.3",
     "https://doi.org/10.1093/mnras/stv1866",

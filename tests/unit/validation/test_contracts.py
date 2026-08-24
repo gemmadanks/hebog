@@ -378,7 +378,7 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
 
     assert contract.status == "reviewed-development"
-    assert contract.schema_version == 2
+    assert contract.schema_version == 3
     assert contract.scales.reference == "restoring-beam-major-fwhm"
     assert contract.scales.configured_orders == (1, 2, 3)
     assert contract.scales.nominal_fwhm_multipliers == (1.0, 2.0, 4.0)
@@ -417,6 +417,16 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
     assert contract.combined_catalogue.compact_only == (
         "byte-identical-when-no-multiscale-evidence"
+    )
+    assert contract.combined_catalogue.island_identity == (
+        "compact-only-exact-otherwise-sha256-of-compact-islands-and-"
+        "associations"
+    )
+    assert contract.combined_catalogue.source_identity == (
+        "one-extended-source-sha256-of-association-independent-of-context"
+    )
+    assert contract.combined_catalogue.component_identity == (
+        "preserve-compact-gaussians-and-create-no-extended-gaussian"
     )
     assert contract.qualification_policy == "freeze-before-result-inspection"
     assert contract.development_review == "ai-scientific-review-recorded"

@@ -92,7 +92,21 @@ class CompactSourceSupport(_MultiscaleModel):
     support_pixel_count: int = Field(ge=1)
     bounds_yx: tuple[int, int, int, int]
     reference_position_yx: tuple[float, float]
+    gaussian_component_ids: tuple[str, ...]
     schema_version: Literal[1] = 1
+
+    @field_validator("gaussian_component_ids")
+    @classmethod
+    def validate_component_ids(
+        cls,
+        identifiers: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Require canonical retained Phase 4 component identities."""
+        _require_canonical_identifiers(
+            identifiers,
+            field_name="Gaussian component IDs",
+        )
+        return identifiers
 
     @model_validator(mode="after")
     def validate_support(self) -> Self:
@@ -183,6 +197,71 @@ class CompactExtendedContextEdge(_MultiscaleModel):
             self.compact_source_id,
             field_name="compact source ID",
         )
+        return self
+
+
+class CombinedIslandIdentity(_MultiscaleModel):
+    """Stable membership identities for one combined graph component."""
+
+    island_id: str
+    compact_island_ids: tuple[str, ...]
+    compact_source_ids: tuple[str, ...]
+    association_ids: tuple[str, ...]
+    extended_source_ids: tuple[str, ...]
+    gaussian_component_ids: tuple[str, ...]
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def validate_membership(self) -> Self:
+        """Require canonical complete source and association membership."""
+        _require_identifier(self.island_id, field_name="combined island ID")
+        identity_fields = (
+            (self.compact_island_ids, "compact island IDs"),
+            (self.compact_source_ids, "compact source IDs"),
+            (self.association_ids, "association IDs"),
+            (self.extended_source_ids, "extended source IDs"),
+            (self.gaussian_component_ids, "Gaussian component IDs"),
+        )
+        for identifiers, field_name in identity_fields:
+            _require_canonical_identifiers(
+                identifiers,
+                field_name=field_name,
+            )
+        if not self.compact_island_ids and not self.association_ids:
+            raise ValueError(
+                "combined identity requires a compact island or association"
+            )
+        if bool(self.compact_island_ids) != bool(self.compact_source_ids):
+            raise ValueError(
+                "compact island and source membership must both be present"
+            )
+        if len(self.association_ids) != len(self.extended_source_ids):
+            raise ValueError(
+                "combined identity requires one extended source per "
+                "association"
+            )
+        if self.gaussian_component_ids and not self.compact_source_ids:
+            raise ValueError(
+                "Gaussian components require retained compact sources"
+            )
+        return self
+
+
+class ExtendedSourceIdentity(_MultiscaleModel):
+    """One stable irregular source identity derived from an association."""
+
+    association_id: str
+    island_id: str
+    source_id: str
+    gaussian_component_ids: tuple[str, ...] = Field(default=(), max_length=0)
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def validate_identity(self) -> Self:
+        """Require stable association, island, and source identities."""
+        _require_identifier(self.association_id, field_name="association ID")
+        _require_identifier(self.island_id, field_name="combined island ID")
+        _require_identifier(self.source_id, field_name="extended source ID")
         return self
 
 
