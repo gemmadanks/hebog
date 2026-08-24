@@ -16,6 +16,7 @@ _REQUIRED_DEFECT_IDS = frozenset(
         "candidate-composition-binding",
         "compact-component-compiler-semantics",
         "compact-component-specific-bias",
+        "compact-evaluator-memory-lifetime",
         "compact-independent-free-ellipse",
         "compact-source-component-separation",
         "continuum-multiscale-refinement",

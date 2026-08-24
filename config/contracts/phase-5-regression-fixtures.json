@@ -183,6 +183,18 @@
         "tests/unit/validation/test_external_recovery_protocol.py::test_recovery_evaluation_amendment_requires_exact_authorization"
       ],
       "root_cause": "The frozen evaluator passed the recovery compiler identity into inherited validation that required the base accelerator recorded by the analysis."
+    },
+    {
+      "accepted_fix_revision": "c97736c",
+      "category": "runtime-provenance",
+      "id": "compact-evaluator-memory-lifetime",
+      "invariant": "Exact hash-bound implementation shards are reduced in isolated processes before the unchanged checksum-bound compact decision engine evaluates bounded summaries with result parity.",
+      "regression_tests": [
+        "tests/unit/validation/test_phase_four_decision.py::test_bounded_summaries_match_the_in_memory_qualification",
+        "tests/unit/validation/test_phase_four_decision.py::test_bounded_evaluator_rejects_provenance_drift",
+        "tests/unit/validation/test_phase_four_bounded.py::test_canonical_evidence_file_hash_ignores_presentation_whitespace"
+      ],
+      "root_cause": "Materializing all three large compact-regression shards as one validated Pydantic campaign exceeded the host process-memory envelope before any scientific decision was written."
     }
   ],
   "phase": 5,

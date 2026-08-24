@@ -25,9 +25,9 @@ closed campaigns nor substitutes viewed development cases for untouched data.
 | Numerical science | 8 | Mask and edge normalization, original-pixel photometry, reviewed aperture, residual-B3 refinement and position weighting, component bias, and irregular-source locations remain explicit and tested. |
 | Product semantics | 3 | Fitless detections survive, source and Gaussian-component records remain distinct, and valid independent component ellipses are retained. |
 | Campaign composition | 3 | The exact candidate composition, fitted-component compiler semantics, and symmetric valid domain fail closed on drift. |
-| Runtime provenance | 3 | The frozen source path, reconstructed runtime, and both evaluator accelerator identities remain bound without changing scientific products. |
+| Runtime provenance | 4 | The frozen source path, reconstructed runtime, evaluator accelerator identities, and bounded compact-evaluation lifetime remain bound without changing scientific products. |
 
-The 17 entries deliberately describe root causes rather than every failed
+The 18 entries deliberately describe root causes rather than every failed
 endpoint. Several endpoints can share one defect, while one invariant can need
 multiple analytic fixtures to cover its normal, boundary, and failure paths.
 

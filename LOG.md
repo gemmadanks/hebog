@@ -9935,3 +9935,20 @@ memory lifetime and does not authorize a new campaign or qualification look.
 **Immediate next step:** validate and commit the bounded evaluator, bind its
 accepted resource defect to the regression-fixture registry, then continue
 the remaining Phase 5 documentation and pre-qualification preparation.
+
+## 2026-08-24 — Bind the compact evaluator memory defect
+
+**Plan phase:** Phase 5, Step 6 — qualification preparation
+
+- Added `compact-evaluator-memory-lifetime` as the fourth runtime-provenance
+  root cause in registry schema 1, accepted by revision `c97736c`.
+- Bound the defect to deterministic exact-result, provenance-drift, and
+  streaming canonical-hash tests. The registry now contains 18 accepted root
+  causes and 34 unique pytest functions across its four defect families; the
+  complete registered lane expands to and passes 36 collected cases.
+
+**Decision:** every accepted Phase 5 defect remains bound to a permanent
+fixture after the compact-regression evaluation fix.
+
+**Immediate next step:** update the user-facing Phase 5 demonstration and
+method/readiness documentation without overstating unfinished qualification.
