@@ -9386,3 +9386,31 @@ closed.
 multiscale evidence does not change association, then define the Step 4
 compact/extended ownership and duplicate-suppression rules before implementing
 combined catalogue publication.
+
+## 2026-08-24 — Preserve non-associated Phase 4 compact products exactly
+
+**Plan phase:** Phase 5, Step 3 — multiscale science
+
+- Added a narrow fail-closed preservation boundary between pre-association
+  multiscale evidence and the completed compact catalogue. Only
+  `extended-only` relationships with no compact source identities are
+  non-altering; the function returns the original `CompletedCompactCatalogue`
+  object rather than reconstructing any Phase 4 record.
+- A compact source identity, `contains-compact` relationship, or ambiguous
+  `mixed-projection` relationship raises
+  `CompactAssociationDecisionRequiredError`. This prevents Step 3 from
+  silently making the ownership, split/merge, or duplicate-suppression choice
+  reserved for Step 4.
+- TDD first recorded the absent boundary. Focused unit coverage now proves
+  exact object, catalogue, canonical-JSON, reduction-evidence, empty-catalogue,
+  and fail-closed behavior. Integration coverage proves that the preserved
+  catalogue produces byte-identical Rapthor FITS products.
+
+**Decision:** Phase 5 Step 3 is complete. Its multiscale algorithms can detect,
+complete, and measure extended evidence without changing an unaffected Phase 4
+compact result. This is not a combined-catalogue decision and does not
+authorize Step 4 publication or qualification.
+
+**Immediate next step:** pre-review and freeze deterministic Step 4
+compact/extended overlap, ownership, split/merge, and duplicate-suppression
+rules before implementing combined catalogue construction.

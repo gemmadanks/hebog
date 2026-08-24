@@ -500,8 +500,11 @@ and the later Rapthor cutover remain outstanding.
       statistics, use regularized direct-plus-B3 positions with the reviewed
       compact safeguard when supplied, and type flux uncertainty, shape
       availability, and edge/invalid truncation without inventing errors.
-- [ ] Preserve compact Phase 4 products exactly when multiscale evidence does
-      not alter their association.
+- [x] Preserve compact Phase 4 products exactly when multiscale evidence does
+      not alter their association. The no-op boundary accepts only
+      `extended-only` evidence with no compact source identities, returns the
+      same completed compact object, and reproduces identical Rapthor FITS
+      bytes; compact-touching or ambiguous evidence fails closed for Step 4.
 
 #### 4. Reconcile scales and construct products
 

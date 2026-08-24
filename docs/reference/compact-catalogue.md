@@ -36,6 +36,24 @@ any compact result was omitted, or any Phase 5 multiscale island was deferred.
 An explicitly incomplete stage result retains those reasons for inspection but
 cannot masquerade as a successful `find_sources` result.
 
+## Phase 5 preservation boundary
+
+Phase 5 pre-association work does not rebuild a completed Phase 4 compact
+catalogue. `preserve_unassociated_compact_catalogue` accepts only
+`extended-only` scale associations that contain no compact source identity and
+returns the exact same `CompletedCompactCatalogue` object. Consequently its
+islands, sources, Gaussian components, identities, values, canonical JSON,
+and reduction evidence cannot be reordered or recomputed.
+
+Any `contains-compact` or `mixed-projection` relationship, or any scale record
+that names a compact source, raises
+`CompactAssociationDecisionRequiredError`. Such evidence must pass through the
+governed Step 4 ownership and association rules before it can affect a
+combined catalogue. The same no-op catalogue produces byte-identical Rapthor
+FITS output. Phase 2 RMS and the Phase 4 accepted mask remain immutable
+read-only inputs to the bounded multiscale stages rather than products this
+boundary can replace.
+
 ## Rapthor compatibility FITS
 
 The adapter writes exactly the eight fields read directly by the pinned

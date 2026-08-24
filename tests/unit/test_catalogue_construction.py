@@ -19,6 +19,10 @@ from hebog.algorithms.catalogue import (
     complete_compact_catalogue,
     reduce_compact_catalogue_shards,
 )
+from hebog.algorithms.compact_preservation import (
+    CompactAssociationDecisionRequiredError,
+    preserve_unassociated_compact_catalogue,
+)
 from hebog.config import CompactCatalogueConfig
 from hebog.data_models.catalogue_construction import CompactCatalogueOmission
 from hebog.data_models.fitting import (
@@ -41,6 +45,7 @@ from hebog.data_models.measurement import (
     UnavailableMomentMeasurement,
     ValidMomentMeasurement,
 )
+from hebog.data_models.multiscale import CrossScaleAssociation
 
 
 def _metadata() -> ImageMetadata:
@@ -326,6 +331,115 @@ def test_canonical_catalogue_is_invariant_to_shard_and_record_order() -> None:
     )
     assert catalogue.reduction_depth == 0
     assert catalogue.maximum_shard_record_count == 2
+
+
+def test_unassociated_scale_evidence_preserves_exact_compact_catalogue() -> (
+    None
+):
+    """Extended-only evidence cannot reconstruct any Phase 4 record."""
+    metadata = _metadata()
+    shard = build_compact_catalogue_shard(
+        (_island_fit(),),
+        metadata,
+        deconvolution_relative_tolerance=1e-10,
+    )
+    compact = complete_compact_catalogue(
+        catalogue_id="compact-reference",
+        metadata=metadata,
+        shards=(shard,),
+        deferred_island_ids=(),
+        config=_config(),
+    )
+    original_bytes = compact.catalogue.canonical_json_bytes()
+    association = CrossScaleAssociation(
+        association_id="scale-association-0001",
+        scale_detection_ids=("scale-detection-0001",),
+        compact_source_ids=(),
+        selected_scale_detection_id="scale-detection-0001",
+        contributing_scale_orders=(1,),
+        relationship="extended-only",
+    )
+
+    preserved = preserve_unassociated_compact_catalogue(
+        compact,
+        associations=(association,),
+    )
+
+    assert preserved is compact
+    assert preserved.catalogue is compact.catalogue
+    assert preserved.catalogue.canonical_json_bytes() == original_bytes
+    assert preserved.shard_count == compact.shard_count
+    assert preserved.reduction_depth == compact.reduction_depth
+    assert (
+        preserved.maximum_shard_record_count
+        == compact.maximum_shard_record_count
+    )
+
+
+@pytest.mark.parametrize(
+    ("relationship", "compact_source_ids"),
+    [
+        ("contains-compact", ("source-island-00001-region-00001",)),
+        ("mixed-projection", ()),
+        ("extended-only", ("source-island-00001-region-00001",)),
+    ],
+)
+def test_compact_touching_evidence_requires_step_four_association(
+    relationship: Literal[
+        "extended-only",
+        "contains-compact",
+        "mixed-projection",
+    ],
+    compact_source_ids: tuple[str, ...],
+) -> None:
+    """The preservation seam cannot silently apply a Step 4 decision."""
+    metadata = _metadata()
+    compact = complete_compact_catalogue(
+        catalogue_id="compact-reference",
+        metadata=metadata,
+        shards=(
+            build_compact_catalogue_shard(
+                (_island_fit(),),
+                metadata,
+                deconvolution_relative_tolerance=1e-10,
+            ),
+        ),
+        deferred_island_ids=(),
+        config=_config(),
+    )
+    association = CrossScaleAssociation(
+        association_id="scale-association-0001",
+        scale_detection_ids=("scale-detection-0001",),
+        compact_source_ids=compact_source_ids,
+        selected_scale_detection_id="scale-detection-0001",
+        contributing_scale_orders=(1,),
+        relationship=relationship,
+    )
+
+    with pytest.raises(
+        CompactAssociationDecisionRequiredError,
+        match="Step 4 association decision",
+    ):
+        preserve_unassociated_compact_catalogue(
+            compact,
+            associations=(association,),
+        )
+
+
+def test_empty_multiscale_evidence_preserves_empty_compact_catalogue() -> None:
+    """The no-op boundary covers a scientifically empty compact result."""
+    compact = complete_compact_catalogue(
+        catalogue_id="compact-empty",
+        metadata=_metadata(),
+        shards=(),
+        deferred_island_ids=(),
+        config=_config(),
+    )
+
+    assert (
+        preserve_unassociated_compact_catalogue(compact, associations=())
+        is compact
+    )
 
 
 def test_shards_are_combined_by_a_bounded_canonical_tree() -> None:

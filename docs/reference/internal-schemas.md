@@ -262,6 +262,13 @@ files, WCS objects, executor clients, and task state remain outside the
 schema. These records freeze meanings for development; they do not yet claim
 that the Phase 5 combined catalogue algorithm is implemented.
 
+Before that combined algorithm exists,
+`preserve_unassociated_compact_catalogue` is the explicit no-op seam. It
+returns the same `CompletedCompactCatalogue` only for `extended-only`
+associations with no compact identities. Compact-touching and ambiguous
+relationships raise a typed Step 4 decision error, so pre-association evidence
+cannot silently reconstruct or mutate Phase 4 catalogue records.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as

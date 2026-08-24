@@ -1,15 +1,12 @@
 # Phase 5 multiscale contract and development review
 
-**Status:** reviewed through the Step 2C-H rejection and the Step 2C-HR fresh
-development pass. Compact Gaussian astrometry remains unchanged; irregular
-extended emission has an explicit detected-segment centroid and separate peak
-contract. All 60 development endpoints passed, and Gemma Danks authorized its
-one-look confirmation after named scientific review on 2026-08-09. All 60
-confirmation endpoints then passed on 400 images and 2,400 eligible groups.
-The confirmation population is closed. The fresh Step 2C-P protocol is now
-frozen, but its execution, Step 3, optimization, and qualification remain
-blocked until the runners and matcher are implemented and separately
-reviewed; this contract does not establish multiscale equivalence.
+**Status:** the external recovery decision passed every applicable absolute
+and cross-finder gate, and Phase 5 Step 3 is complete. Compact Gaussian
+astrometry remains unchanged; bounded multiscale detection, deferred-island
+completion, original-pixel extended measurement, and the compact-preservation
+boundary are implemented. Step 4 association and combined-product rules,
+bounded-execution proof, optimization, and untouched qualification remain
+open; this contract does not yet establish production multiscale equivalence.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
@@ -73,6 +70,10 @@ The machine-readable meanings are in
 - Duplicate detections retain every contributing scale but select one
   catalogue representation. Isolated compact measurements remain unchanged
   when no multiscale evidence changes their association.
+- The pre-association preservation boundary recognizes only `extended-only`
+  evidence with no compact source identities as non-altering. It returns the
+  exact completed compact object. Any compact-touching or ambiguous relation
+  fails closed until Step 4 makes the governed association decision.
 - Unsupported scales fail at configuration validation. Unavailable
   measurements and ambiguous associations are typed omissions. Every accepted
   or deferred island requires one terminal disposition, and any incomplete
