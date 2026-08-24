@@ -9128,3 +9128,26 @@ compiler, analysis, endpoint, gate, or science value changes are authorized.
 **Immediate next step:** obtain exact named approval of pending review
 `0b6a98d9...`. Only then create the separate authorization decision and invoke
 the amendment once against existing analysis `198fe6ff...`.
+
+## 2026-08-24 — Authorize the recovery evaluator amendment
+
+**Plan phase:** Phase 5, Step 2C-PC recovery evaluation
+
+- Gemma Danks approved the exact pending evaluator-amendment review
+  `0b6a98d95d8bb696c2f2597bdf0b42cccf81ec430936b37b54c8e6ce0e86e551`
+  and requested completion of the evaluation.
+- Authorization decision SHA-256
+  `5103aedcd2678edc9ff6efd8b9865426db5a320e0bf65e8cab49a7586b81220c`
+  binds adapter commit `147e193...`, adapter SHA `406c36a0...`, existing
+  analysis `198fe6ff...`, frozen evaluator `fc17d820...`, and frozen contract
+  `9ef1a4f6...`.
+- The decision authorizes exactly one evaluation of the existing analysis. It
+  explicitly forbids campaign re-execution, analysis recompilation, and any
+  science or gate change.
+
+**Decision:** the evaluation-only amendment is now exactly authorized. The
+campaign and compiled analysis remain immutable and no second campaign is
+permitted.
+
+**Immediate next step:** commit the authorization boundary, invoke the amended
+evaluator once, and interpret scientific outcomes before runtime.

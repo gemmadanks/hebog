@@ -1,0 +1,36 @@
+{
+  "amendment_review": {
+    "path": "config/contracts/phase-5-external-recovery-evaluation-amendment-review.json",
+    "sha256": "0b6a98d95d8bb696c2f2597bdf0b42cccf81ec430936b37b54c8e6ce0e86e551"
+  },
+  "analysis": {
+    "path": "benchmark-results/phase-5/external-recovery-analysis.json",
+    "sha256": "198fe6ff63ade465872976e6897bf69e7e70f415fd04889937367410c5e3d53a"
+  },
+  "analysis_recompilation_authorized": false,
+  "campaign_reexecution_authorized": false,
+  "decision_id": "phase-5-external-recovery-evaluation-amendment-decision",
+  "evaluator": {
+    "path": "scripts/validation/evaluate_phase5_external_recovery_amendment.py",
+    "sha256": "406c36a0e1db33e4ef6eac22bc07e7cd1088c0d05e6f208abe57ad43419f84c0"
+  },
+  "execution_authorized": true,
+  "frozen_contract": {
+    "path": "config/contracts/phase-5-external-recovery-evaluation.json",
+    "sha256": "9ef1a4f63282347fe53d29680030a5add6c0ec5a0dd840d217805dbfa7eb7c2a"
+  },
+  "frozen_evaluator": {
+    "path": "scripts/validation/evaluate_phase5_external_recovery_decision.py",
+    "sha256": "fc17d820931989e78049a3615220553d130fb02920ad7708d74ca8b0dd451bce"
+  },
+  "named_review": {
+    "approval": "I approve, please complete the evaluation. This response approves evaluator-amendment review SHA-256 0b6a98d95d8bb696c2f2597bdf0b42cccf81ec430936b37b54c8e6ce0e86e551 and adapter implementation commit 147e193522a6d15d3e7cb06b34515b5563c92701 presented immediately before it.",
+    "reviewed_on": "2026-08-24",
+    "reviewer": "Gemma Danks",
+    "user_response": "I approve, please complete the evaluation."
+  },
+  "output_path": "benchmark-results/phase-5/external-recovery-decision.json",
+  "schema_version": 1,
+  "science_or_gates_changed": false,
+  "status": "reviewed-before-recovery-evaluation-amendment"
+}

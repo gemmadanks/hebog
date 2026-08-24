@@ -448,10 +448,13 @@ must be restored before new evidence work.
       at commit `147e193...` preserves both identities and forbids campaign or
       analysis reruns. Pending review `0b6a98d9...` binds the unchanged evidence
       and cannot authorize itself.
-- [ ] Obtain exact named approval of pending review `0b6a98d9...`; then evaluate
-      analysis `198fe6ff...` once through the amendment and interpret science
-      before runtime. Do not overwrite the analysis, rerun the campaign, or
-      alter any gate or endpoint.
+- [x] Obtain exact named approval of pending review `0b6a98d9...`.
+      Authorization decision `5103aedc...` permits the amendment to evaluate
+      existing analysis `198fe6ff...` exactly once; it forbids campaign
+      re-execution, analysis recompilation, and science or gate changes.
+- [ ] Evaluate analysis `198fe6ff...` once through the approved amendment and
+      interpret science before runtime. Do not overwrite the analysis, rerun
+      the campaign, or alter any gate or endpoint.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

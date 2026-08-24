@@ -718,7 +718,33 @@ def test_recovery_evaluation_amendment_review_is_pending_and_exact() -> None:
             ).hexdigest()
             == evidence[sha_key]
         )
-    assert not (_ROOT / evidence["decision_path"]).exists()
+    assert evidence["decision_state"] == "absent"
+
+
+def test_recovery_evaluation_amendment_has_exact_named_authorization() -> None:
+    """The approved amendment permits only the existing analysis evaluation."""
+    amendment = _script(
+        "scripts/validation/evaluate_phase5_external_recovery_amendment.py"
+    )
+    authorization_path = (
+        _ROOT / "config/contracts/"
+        "phase-5-external-recovery-evaluation-amendment-decision.json"
+    )
+
+    authorization = amendment["load_amendment_authorization"](
+        authorization_path,
+        _ROOT / "scripts/validation/"
+        "evaluate_phase5_external_recovery_amendment.py",
+        _ROOT,
+    )
+
+    assert authorization["execution_authorized"] is True
+    assert authorization["campaign_reexecution_authorized"] is False
+    assert authorization["analysis_recompilation_authorized"] is False
+    assert authorization["science_or_gates_changed"] is False
+    assert authorization["named_review"]["user_response"] == (
+        "I approve, please complete the evaluation."
+    )
 
 
 def test_recovery_launcher_accepts_exact_authorized_execution(
