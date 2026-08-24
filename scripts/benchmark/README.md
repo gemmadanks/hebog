@@ -281,6 +281,41 @@ establishes Hebog's component curve; existing PyBDSF figures cover Rapthor's
 complete filter step and therefore cannot support a matched speedup claim for
 this narrower boundary.
 
+## Phase 5 incremental multiscale matrix
+
+`run_phase5_matrix.py` measures the complete incremental Phase 5 stage after
+the Phase 2 background and RMS generation has been prepared. The frozen
+protocol in `config/benchmarks/phase-5-performance.json` covers 256, 512,
+1,024, and 3,000 pixels with sparse, normal, and extended morphology. Each
+cell performs one warm-up and five measured repetitions of both multiscale
+passes, global topology reconciliation, and atomic Zarr publication:
+
+```console
+uv run python scripts/benchmark/run_phase5_matrix.py \
+  --output-directory benchmark-results/phase-5/incremental-multiscale
+```
+
+The primary policy uses the serial reference through 1,024 pixels and the
+existing four-worker, one-thread-per-worker Dask client at 3,000 pixels. Both
+executors are also measured at 1,024 and 3,000 pixels for every workload, so a
+crossover is observed rather than inferred from a kernel timer. The
+3,000-square primary medians must each remain within the frozen 6.0-second
+multiscale budget.
+
+The generated FITS fields use deterministic beam-correlated noise and bounded
+compact or extended source patches. Their hashes, workload classes, complete
+runtime environment, source tree, resource allocation, task count, aggregate
+process-tree RSS, retained arrays, workspaces, summaries, partitions, and
+published shards are recorded in typed evidence. Phase 2 setup time is
+retained as context but excluded from the incremental gate. A 273-pixel
+minimum nominal core admits the exact 68-pixel halo for the 10-pixel benchmark
+beam while still treating the 256-square image as one bounded tile.
+
+This is a component budget and initial reviewed Hebog curve, not a complete
+Rapthor or PyBDSF speedup claim. Later candidates must compare affected and
+adjacent cells against the retained curve before the performance policy can
+change.
+
 ## Phase 4 paired scientific campaigns
 
 `run_phase4_hebog_campaign.py` is the maintained candidate runner and

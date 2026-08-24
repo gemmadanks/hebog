@@ -1,0 +1,41 @@
+{
+  "benchmark_id": "phase-5-incremental-multiscale",
+  "budgets": {
+    "multiscale_processing_seconds": 6.0,
+    "representative_size_pixels": 3000
+  },
+  "crossover_executors": [
+    "serial",
+    "dask"
+  ],
+  "crossover_sizes_pixels": [
+    1024,
+    3000
+  ],
+  "maximum_serial_size_pixels": 1024,
+  "minimum_tile_size_pixels": 273,
+  "maximum_tiles_per_batch": 16,
+  "profiles": [
+    "sparse",
+    "normal",
+    "extended"
+  ],
+  "repetitions": 5,
+  "representative_tile_size_pixels": 1000,
+  "schema_version": 1,
+  "sizes_pixels": [
+    256,
+    512,
+    1024,
+    3000
+  ],
+  "status": "frozen",
+  "threads_per_worker": 1,
+  "warmups": 1,
+  "workers": 4,
+  "workload_classes": {
+    "extended": "dense-or-extended",
+    "normal": "normal",
+    "sparse": "empty-or-sparse"
+  }
+}

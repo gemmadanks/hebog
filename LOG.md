@@ -9982,3 +9982,40 @@ scientific and performance gates close.
 **Immediate next step:** implement and run the controlled Phase 5 incremental
 benchmark preparation across 256, 512, 1,024, and 3,000-square anchors and any
 measured crossover neighbourhoods.
+
+## 2026-08-24 — Prepare the Phase 5 incremental performance matrix
+
+**Plan phase:** Phase 5, Step 6 — incremental performance
+
+- Added a frozen schema-1 matrix spanning 256, 512, 1,024, and 3,000 pixels
+  across sparse, normal, and extended workloads, one warm-up, five measured
+  repetitions, four one-thread Dask workers, and the 6.0-second representative
+  stage budget.
+- Added both serial and Dask probes at 1,024 and 3,000 pixels. The primary
+  policy remains serial through 1,024 and Dask at 3,000 until the measured
+  crossover report is reviewed.
+- The measured boundary is the complete two-pass multiscale stage after one
+  prepared Phase 2 background/RMS generation: filtering, bounded topology
+  summaries, global reconciliation, recomputation, and atomic eight-product
+  Zarr publication are included. Phase 2 setup remains recorded but excluded.
+- The deterministic generator uses beam-correlated noise plus compact or
+  extended bounded source patches. Typed per-cell evidence binds input,
+  source-tree, configuration, dependencies, resources, timing dispersion,
+  aggregate process-tree RSS, graph/task geometry, workspaces, retained
+  arrays, summaries, and output shards.
+- The exact 68-pixel filter halo of the 10-pixel benchmark beam requires a
+  nominal core greater than 272 pixels. The protocol therefore freezes a
+  273-pixel minimum core; a 256-square image remains one tile and never gains
+  an undersized halo.
+- Eight focused protocol, rejection, generator, WCS/beam, and budget tests
+  pass. A complete 64-square serial smoke run completed one warm-up plus five
+  measurements and produced valid typed evidence, consistent task counts, and
+  bounded product metadata.
+
+**Decision:** the measurement protocol and harness are ready for the first
+controlled Phase 5 incremental curve. No budget or crossover conclusion is
+recorded before that curve runs.
+
+**Immediate next step:** validate and commit the harness, then execute the
+matrix from that immutable revision and interpret the scientific-structure
+evidence before its runtime decision.
