@@ -509,7 +509,10 @@ and the later Rapthor cutover remain outstanding.
 #### 4. Reconcile scales and construct products
 
 - [ ] Define deterministic compact/extended overlap, ownership, split/merge,
-      and duplicate-suppression rules before implementation.
+      and duplicate-suppression rules before implementation. The technical
+      pre-review proposes adjacent-scale exact-support reconciliation and a
+      shared-island/separate-source compact context; named approval is pending
+      before the machine contract or implementation changes.
 - [ ] Preserve physically distinct compact components embedded in or projected
       on extended emission while merging fragments of one extended object.
 - [ ] Derive stable island, source, and compatibility-component identities from

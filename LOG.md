@@ -9414,3 +9414,31 @@ authorize Step 4 publication or qualification.
 **Immediate next step:** pre-review and freeze deterministic Step 4
 compact/extended overlap, ownership, split/merge, and duplicate-suppression
 rules before implementing combined catalogue construction.
+
+## 2026-08-24 — Complete the Step 4 association technical pre-review
+
+**Plan phase:** Phase 5, Step 4 — reconcile scales and construct products
+
+- Reviewed the existing recovery evidence, accepted-compact exclusion,
+  nearest-support measurement ownership, provisional multiscale schemas, and
+  external duplicate/split/merge semantics before proposing catalogue rules.
+- Compared the design with primary PyBDSF, Aegean, CAESAR, and ProFound
+  sources. The recommended shared-island/separate-source hierarchy follows
+  familiar overlap reconciliation while avoiding an unsupported physical host
+  inference from one Stokes-I image.
+- Proposed exact adjacent-scale support edges, graph-component fragment
+  reconciliation, representative ordering, half-beam compact context,
+  many-to-many spatial context, compact barriers, one extended row per
+  association, compact-echo suppression, fail-closed ambiguity, and terminal
+  disposition rules. No qualification result or new threshold was inspected.
+- Recorded the required analytic, topology, failure, compact-preservation, and
+  executor-invariance tests. No production schema, machine-readable contract,
+  scientific output, or publication path changed in this pre-review.
+
+**Decision:** technical pre-review is complete and recommends approval. The
+first Step 4 checklist item remains open until the proposed policy receives
+named approval; implementation and qualification remain closed.
+
+**Immediate next step:** obtain named approval of the Phase 5 association
+pre-review, then update the machine-readable contract and begin test-first
+cross-scale association implementation.

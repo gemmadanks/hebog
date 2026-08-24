@@ -8,6 +8,10 @@ boundary are implemented. Step 4 association and combined-product rules,
 bounded-execution proof, optimization, and untouched qualification remain
 open; this contract does not yet establish production multiscale equivalence.
 
+The proposed Step 4 policy is recorded in the
+[compact/extended association pre-review](phase-5-association-pre-review.md).
+It is not part of the frozen machine contract until named approval.
+
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
 measurement. Steps 2C through 2C-HR evaluated and confirmed its explicit
