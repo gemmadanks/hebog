@@ -899,6 +899,30 @@ class PhaseFiveBoundedExecutionContract(_ContractModel):
     complete_plane_assembly: Literal[
         "small-deterministic-test-oracle-only-never-production"
     ]
+    response_persistence: Literal[
+        "recompute-after-compact-topology-no-image-sized-response-bank"
+    ]
+    scheduler_results: Literal[
+        "compact-boundary-summaries-chunk-identities-and-scalars-only"
+    ]
+    batch_policy: Literal[
+        "executor-granularity-only-with-unchanged-pixel-ownership"
+    ]
+    retry_policy: Literal["idempotent-checksummed-owned-core-writes"]
+    executor_invariance_matrix: tuple[
+        Literal[
+            "partition",
+            "batch",
+            "worker-count",
+            "completion-order",
+            "retry",
+            "serial-and-existing-dask",
+        ],
+        ...,
+    ]
+    product_identity_policy: Literal[
+        "exact-within-partition-and-stable-global-topology-across-partitions"
+    ]
 
     @model_validator(mode="after")
     def validate_zero_halo_stages(self) -> Self:
@@ -929,11 +953,27 @@ class PhaseFiveBoundedExecutionContract(_ContractModel):
             raise ValueError("Phase 5 tile equality matrix must be canonical")
         return self
 
+    @model_validator(mode="after")
+    def validate_executor_invariance_matrix(self) -> Self:
+        """Keep every reviewed scheduling dimension explicit."""
+        if self.executor_invariance_matrix != (
+            "partition",
+            "batch",
+            "worker-count",
+            "completion-order",
+            "retry",
+            "serial-and-existing-dask",
+        ):
+            raise ValueError(
+                "Phase 5 executor invariance matrix must be canonical"
+            )
+        return self
+
 
 class PhaseFiveMultiscaleContract(_ContractModel):
     """Versioned Phase 5 scale, ownership, and failure semantics."""
 
-    schema_version: Literal[6]
+    schema_version: Literal[7]
     contract_id: Literal["phase-5-multiscale"]
     status: Literal["reviewed-development"]
     scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]

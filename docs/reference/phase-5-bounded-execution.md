@@ -2,17 +2,17 @@
 
 ## Status
 
-The first two Phase 5 Step 5 tasks are complete. Hebog derives every
+The first three Phase 5 Step 5 tasks are complete. Hebog derives every
 stage-specific read halo from implemented scientific policy before image tasks
 are allocated, and the promoted multiscale detection path has a deterministic
-one-tile/many-tile equality oracle. The reviewed Rapthor profile rejects a
-shared tile core when any halo is not strictly smaller than one quarter of that
-core, when a worst-case interior read exceeds the global task-pixel limit, or
-when extended measurement exceeds its tighter stage-specific limit.
+one-tile/many-tile equality oracle plus a production Serial/Dask execution
+path. The reviewed Rapthor profile rejects a shared tile core when any halo is
+not strictly smaller than one quarter of that core, when a worst-case interior
+read exceeds the global task-pixel limit, or when extended measurement exceeds
+its tighter stage-specific limit.
 
 This remains a bounded-execution development review. It does not complete
-Step 5: executor, batch, worker-count, completion-order, and retry invariance,
-plus measured retained-byte, workspace, summary, shard, and graph-size
+Step 5: measured retained-byte, workspace, summary, shard, and graph-size
 evidence remain open.
 
 ## Derivation
@@ -84,21 +84,59 @@ exact; finite filter values use a `2e-13` relative and absolute tolerance for
 FFT round-off.
 
 The complete planes assembled by this test are a deliberately small serial
-oracle only. Production execution may retain core-local arrays or persist
-them through the approved chunk-addressable store, but it may not gather a
-large image on a worker or scheduler. The next Step 5 task will connect this
-scientific boundary to the executor and prove invariance across scheduling and
-retry choices.
+oracle only. Production execution retains response arrays only within a
+bounded worker task and persists the accepted products described below; it may
+not gather a large image on a worker or scheduler.
 
-Machine-readable policy is frozen in schema 6 of
-`config/contracts/phase-5-multiscale.json`.
+## Executor and product invariance evidence
+
+The production multiscale stage uses two bounded passes. The first evaluates
+the filters, labels only core-local adjacent-scale and original-residual
+membership, drops its label cores, and returns side/corner summaries plus
+scalar workspace evidence. Hierarchical reconciliation determines accepted
+global reconstruction and residual components. The second pass recomputes the
+same bounded filters, applies the immutable global label mappings, and writes
+only eight accepted products: combined SNR, reconstructed and position
+signals, retained and reconstruction masks, and three accepted significant-
+scale masks. This recomputation is deliberate: Hebog does not persist the
+matched-filter and B3 response bank across the image.
+
+Workers return only compact summaries, checksummed `ProductChunk` identities,
+and scalar execution evidence. The generation is published only after every
+expected owner/product pair validates. Identical retries are idempotent;
+missing, conflicting, or duplicated product chunks fail through the existing
+Zarr generation contract.
+
+The deterministic execution matrix covers one- and all-tile batches, an
+intermediate batch size, reverse completion order, an identical retry of every
+task, `SerialExecutor`, and existing-client Dask with one and two workers. For
+one partition, every variant publishes byte-identical canonical generation
+manifests, chunk checksums, masks, and global topology identities. A one-tile
+and rectangular many-tile comparison reproduces exact accepted masks and
+topology IDs; finite response-derived products retain the reviewed `2e-13`
+tolerance. Chunk manifests necessarily differ across partitions because chunk
+bounds are part of their identity, so the cross-partition invariant is the
+logical science product and reconciled global identity rather than a false
+claim that different storage layouts have the same bytes. The shifted-origin
+science case remains covered by the preceding storage-independent oracle;
+Zarr chunk ownership itself is canonically zero-origin.
+
+The one-tile execution also reproduces the promoted serial residual-B3 oracle:
+combined SNR, reconstructed signal, position signal, accepted residual and
+reconstruction masks, and accepted per-scale support agree exactly or within
+the same FFT tolerance. The two-pass design adds bounded recomputation whose
+runtime impact must be measured against the 6-second incremental budget; it
+does not authorize a performance claim.
+
+Machine-readable policy is frozen in schema 7 of
+`config/contracts/phase-5-multiscale.json`, SHA-256
+`4307a43c2904c885705c72c45e801dedc74f86ae4570852ca122485f85177e3f`.
 
 ## Review decision
 
-The formulas and equality matrix are sufficient for the current three-scale
-Rapthor profile and are consistent with the implemented kernels and existing
-partition topology. This task made the already frozen three-beam segment-
-association dilation explicit in planning; it did not change a scientific
-threshold, association rule, compact output, or recovery-campaign result.
-Proceed to executor and scheduling invariance. Qualification and runtime claims
-remain closed.
+The two-pass execution boundary is sufficient for the current three-scale
+Rapthor profile and is consistent with the implemented kernels, topology
+reconciliation, and immutable Zarr generation contract. It changes no
+scientific threshold, association rule, compact output, or recovery-campaign
+result. Proceed to the retained-byte, workspace, summary, shard, and graph-size
+audit. Qualification and runtime claims remain closed.

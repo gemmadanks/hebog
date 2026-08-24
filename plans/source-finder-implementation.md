@@ -350,9 +350,10 @@ margin; keep both as explicit regression watchpoints. Five compact
 truth-absolute diagnostics remain outside stronger report-only envelopes, but
 they are not binding gates and all reference comparisons pass. This campaign
 contains no runtime-performance gate and supports no speed claim. Steps 3 and
-4 are complete; bounded deterministic execution is next. Phase 5
-qualification, incremental performance, independent acceptance, and the later
-Rapthor cutover remain outstanding.
+4 and the first three bounded-execution tasks are complete; the retained-byte,
+workspace, summary, shard, and graph-size audit is next. Phase 5 qualification,
+incremental performance, independent acceptance, and the later Rapthor cutover
+remain outstanding.
 
 ## 7. Delivery plan
 
@@ -567,8 +568,16 @@ Rapthor cutover remain outstanding.
       refinement, position signal, and matched/B3 responses for one tile and
       88-by-96 cores at origins `(0, 0)` and `(43, 47)`. Complete-plane
       assembly is test-only and remains forbidden in production.
-- [ ] Prove partition, batch, worker-count, completion-order, retry, and
-      executor invariance for science and product identities.
+- [x] Prove partition, batch, worker-count, completion-order, retry, and
+      executor invariance for science and product identities. The production
+      stage performs an array-free topology pass, reconciles bounded side and
+      corner summaries, then recomputes the bounded filters to publish only
+      accepted science products; it never persists an image-sized response
+      bank or returns science arrays through the executor. One-/many-tile
+      products retain the existing `2e-13` FFT tolerance and exact masks plus
+      global topology IDs. For one partition, one/all-tile batches, reversed
+      completion, identical retry, SerialExecutor, and one-/two-worker Dask
+      publish the exact same checksummed generation bytes.
 - [ ] Record bounded retained bytes, workspaces, summaries, shards, and graph
       size; exercise SerialExecutor and the existing executor path.
 

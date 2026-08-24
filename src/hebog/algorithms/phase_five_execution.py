@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 from math import ceil
 from numbers import Integral
 from typing import Literal, TypeVar
@@ -22,6 +23,7 @@ from hebog.algorithms.multiscale import (
     ScaleFilterResponse,
     build_residual_atrous_plan,
     build_scale_filter_bank,
+    calibrated_scale_snrs,
     evaluate_residual_atrous,
     evaluate_scale_filter_bank,
     residual_atrous_scale_halos_pixels,
@@ -30,7 +32,10 @@ from hebog.algorithms.multiscale import (
 from hebog.algorithms.multiscale_association import (
     compact_context_halo_pixels,
 )
-from hebog.config import ExtendedEmissionMeasurementConfig
+from hebog.config import (
+    ExtendedEmissionMeasurementConfig,
+    ResidualMultiscaleDetectionConfig,
+)
 from hebog.data_models.partitioning import PartitionManifest, TilePartition
 
 PhaseFiveStageName = Literal[
@@ -109,6 +114,22 @@ class PhaseFiveFilterTileResult:
     matched_filter: ScaleFilterBankResult
     atrous_result: ResidualAtrousResult
     read_pixel_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class PhaseFiveDetectionTileEvidence:
+    """Core-local fields that precede global topology reconciliation."""
+
+    partition: TilePartition
+    direct_snr: npt.NDArray[np.float64]
+    matched_maximum_snr: npt.NDArray[np.float64]
+    atrous_maximum_snr: npt.NDArray[np.float64]
+    atrous_scale_snrs: tuple[npt.NDArray[np.float64], ...]
+    significant_scale_masks: tuple[npt.NDArray[np.bool_], ...]
+    reconstruction_membership: npt.NDArray[np.bool_]
+    reconstruction_seeds: npt.NDArray[np.bool_]
+    detection_membership: npt.NDArray[np.bool_]
+    detection_seeds: npt.NDArray[np.bool_]
 
 
 def _validate_task_limit(maximum_task_pixels: int) -> None:
@@ -218,6 +239,89 @@ def _core_response(
             response.scientifically_valid,
             partition,
         ),
+    )
+
+
+def _immutable_array(
+    values: npt.NDArray[_ArrayScalar],
+) -> npt.NDArray[_ArrayScalar]:
+    """Return one owned immutable local scientific field."""
+    result = np.array(values, copy=True)
+    result.setflags(write=False)
+    return result
+
+
+def derive_phase_five_detection_tile_evidence(
+    result: PhaseFiveFilterTileResult,
+    config: ResidualMultiscaleDetectionConfig,
+) -> PhaseFiveDetectionTileEvidence:
+    """Derive local masks and seeds before bounded global reconciliation.
+
+    No connected component is accepted here because support may cross any
+    number of tile boundaries. Adjacent-scale membership and seed values are
+    point-local; the stage reconciles their compact side/corner summaries.
+    """
+    prepared = result.prepared_inputs
+    shape = prepared.residual_jy_per_beam.shape
+    minimum_support = config.minimum_scale_support_fraction
+    matched_scale_snrs = calibrated_scale_snrs(
+        result.matched_filter.responses,
+        minimum_support_fraction=minimum_support,
+    )
+    atrous_scale_snrs = calibrated_scale_snrs(
+        result.atrous_result.responses,
+        minimum_support_fraction=minimum_support,
+    )
+    matched_maximum = np.maximum.reduce(matched_scale_snrs)
+    atrous_maximum = np.maximum.reduce(atrous_scale_snrs)
+    direct_snr = np.full(shape, -np.inf, dtype=np.float64)
+    np.divide(
+        prepared.residual_jy_per_beam,
+        prepared.rms_jy_per_beam,
+        out=direct_snr,
+        where=prepared.scientifically_valid,
+    )
+    significant = tuple(
+        np.asarray(
+            scale_snr >= config.island_threshold_sigma,
+            dtype=np.bool_,
+        )
+        for scale_snr in atrous_scale_snrs
+    )
+    reconstruction_membership = np.logical_or.reduce(
+        tuple(
+            current & following for current, following in pairwise(significant)
+        )
+    )
+    reconstruction_seeds = reconstruction_membership & (
+        atrous_maximum >= config.detection_threshold_sigma
+    )
+    detection_membership = prepared.scientifically_valid & (
+        direct_snr >= config.island_threshold_sigma
+    )
+    combined_seed_snr = np.maximum(matched_maximum, direct_snr)
+    np.maximum(
+        combined_seed_snr,
+        atrous_maximum,
+        out=combined_seed_snr,
+        where=reconstruction_membership,
+    )
+    detection_seeds = detection_membership & (
+        combined_seed_snr >= config.detection_threshold_sigma
+    )
+    return PhaseFiveDetectionTileEvidence(
+        partition=result.partition,
+        direct_snr=_immutable_array(direct_snr),
+        matched_maximum_snr=_immutable_array(matched_maximum),
+        atrous_maximum_snr=_immutable_array(atrous_maximum),
+        atrous_scale_snrs=atrous_scale_snrs,
+        significant_scale_masks=tuple(
+            _immutable_array(mask) for mask in significant
+        ),
+        reconstruction_membership=_immutable_array(reconstruction_membership),
+        reconstruction_seeds=_immutable_array(reconstruction_seeds),
+        detection_membership=_immutable_array(detection_membership),
+        detection_seeds=_immutable_array(detection_seeds),
     )
 
 

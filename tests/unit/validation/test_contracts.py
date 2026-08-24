@@ -390,7 +390,7 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
 
     assert contract.status == "reviewed-development"
-    assert contract.schema_version == 6
+    assert contract.schema_version == 7
     assert contract.scales.reference == "restoring-beam-major-fwhm"
     assert contract.scales.configured_orders == (1, 2, 3)
     assert contract.scales.nominal_fwhm_multipliers == (1.0, 2.0, 4.0)
@@ -484,6 +484,23 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
     assert contract.bounded_execution.byte_evidence == (
         "required-before-step-5-completion"
+    )
+    assert contract.bounded_execution.response_persistence == (
+        "recompute-after-compact-topology-no-image-sized-response-bank"
+    )
+    assert contract.bounded_execution.scheduler_results == (
+        "compact-boundary-summaries-chunk-identities-and-scalars-only"
+    )
+    assert contract.bounded_execution.executor_invariance_matrix == (
+        "partition",
+        "batch",
+        "worker-count",
+        "completion-order",
+        "retry",
+        "serial-and-existing-dask",
+    )
+    assert contract.bounded_execution.product_identity_policy == (
+        "exact-within-partition-and-stable-global-topology-across-partitions"
     )
     assert contract.qualification_policy == "freeze-before-result-inspection"
     assert contract.development_review == "ai-scientific-review-recorded"

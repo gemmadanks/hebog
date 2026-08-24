@@ -842,24 +842,11 @@ def reconstruct_significant_atrous(
         raise ValueError(
             "à trous responses require canonical adjacent scale orders"
         )
-    shape = result.responses[0].response_jy_per_beam.shape
-    scale_snrs: list[npt.NDArray[np.float64]] = []
-    for response in result.responses:
-        scale_snr = np.full(shape, -np.inf, dtype=np.float64)
-        scale_validity = (
-            response.scientifically_valid
-            & (response.valid_support_fraction >= minimum_support_fraction)
-            & np.isfinite(response.response_jy_per_beam)
-            & np.isfinite(response.effective_rms_jy_per_beam)
-            & (response.effective_rms_jy_per_beam > 0)
-        )
-        np.divide(
-            response.response_jy_per_beam,
-            response.effective_rms_jy_per_beam,
-            out=scale_snr,
-            where=scale_validity,
-        )
-        scale_snrs.append(scale_snr)
+    scale_snrs = calibrated_scale_snrs(
+        result.responses,
+        minimum_support_fraction=minimum_support_fraction,
+    )
+    shape = scale_snrs[0].shape
     significant = tuple(
         _read_only(np.asarray(item >= island_sigma, dtype=np.bool_))
         for item in scale_snrs
@@ -898,14 +885,21 @@ def reconstruct_significant_atrous(
     )
 
 
-def _maximum_calibrated_scale_snr(
-    shape: tuple[int, int],
+def calibrated_scale_snrs(
     responses: tuple[ScaleFilterResponse, ...],
     *,
     minimum_support_fraction: float,
-) -> npt.NDArray[np.float64]:
-    """Combine scale evidence only where noise and support are available."""
-    combined = np.full(shape, -np.inf, dtype=np.float64)
+) -> tuple[npt.NDArray[np.float64], ...]:
+    """Return immutable calibrated SNR planes for aligned scale responses."""
+    if not responses:
+        raise ValueError("scale responses must not be empty")
+    if (
+        not isfinite(minimum_support_fraction)
+        or not 0 < minimum_support_fraction <= 1
+    ):
+        raise ValueError("minimum support fraction must be within (0, 1]")
+    shape = responses[0].response_jy_per_beam.shape
+    scale_snrs: list[npt.NDArray[np.float64]] = []
     for response in responses:
         arrays = (
             response.response_jy_per_beam,
@@ -914,7 +908,7 @@ def _maximum_calibrated_scale_snr(
             response.scientifically_valid,
         )
         if any(array.shape != shape for array in arrays):
-            raise ValueError("scale responses must match the residual shape")
+            raise ValueError("scale responses must have the same shape")
         scale_validity = (
             response.scientifically_valid
             & (response.valid_support_fraction >= minimum_support_fraction)
@@ -929,8 +923,24 @@ def _maximum_calibrated_scale_snr(
             out=scale_snr,
             where=scale_validity,
         )
-        np.maximum(combined, scale_snr, out=combined)
-    return combined
+        scale_snrs.append(_read_only(scale_snr))
+    return tuple(scale_snrs)
+
+
+def _maximum_calibrated_scale_snr(
+    shape: tuple[int, int],
+    responses: tuple[ScaleFilterResponse, ...],
+    *,
+    minimum_support_fraction: float,
+) -> npt.NDArray[np.float64]:
+    """Combine scale evidence only where noise and support are available."""
+    scale_snrs = calibrated_scale_snrs(
+        responses,
+        minimum_support_fraction=minimum_support_fraction,
+    )
+    if scale_snrs[0].shape != shape:
+        raise ValueError("scale responses must match the residual shape")
+    return np.maximum.reduce(scale_snrs)
 
 
 def detect_residual_multiscale_islands(
@@ -999,15 +1009,7 @@ def detect_residual_multiscale_islands(
     seed_labels = seed_labels[seed_labels > 0]
     retained = np.isin(raw_labels, seed_labels)
 
-    minimum_island_pixels = max(
-        1,
-        ceil(
-            config.minimum_island_area_beams
-            * _GAUSSIAN_BEAM_AREA_FACTOR
-            * beam.major_fwhm_pixels
-            * beam.minor_fwhm_pixels
-        ),
-    )
+    minimum_island_pixels = minimum_residual_island_pixels(beam, config)
     label_count = int(np.max(raw_labels)) + 1
     retained_counts = np.bincount(raw_labels[retained], minlength=label_count)
     accepted = retained_counts >= minimum_island_pixels
@@ -1028,6 +1030,22 @@ def detect_residual_multiscale_islands(
         component_count=int(np.count_nonzero(np.unique(component_labels) > 0)),
         minimum_island_pixels=minimum_island_pixels,
         reconstruction=reconstruction,
+    )
+
+
+def minimum_residual_island_pixels(
+    beam: BeamShapePixels,
+    config: ResidualMultiscaleDetectionConfig,
+) -> int:
+    """Return the promoted one-beam residual-island area floor."""
+    return max(
+        1,
+        ceil(
+            config.minimum_island_area_beams
+            * _GAUSSIAN_BEAM_AREA_FACTOR
+            * beam.major_fwhm_pixels
+            * beam.minor_fwhm_pixels
+        ),
     )
 
 

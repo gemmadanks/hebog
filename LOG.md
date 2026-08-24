@@ -9747,3 +9747,63 @@ memory, graph-size, qualification, or runtime evidence.
 
 **Immediate next step:** prove partition, batch, worker-count, completion-order,
 retry, and executor invariance for science and product identities.
+
+## 2026-08-24 — Prove Phase 5 executor and product invariance
+
+**Plan phase:** Phase 5, Step 5 — bounded deterministic execution
+
+- Confirmed the TDD red state before implementation: the new integration
+  contract failed collection because no Phase 5 multiscale stage existed.
+  During implementation review, rejected an initial response-bank persistence
+  draft before commit because 30 image-plane products would contradict the
+  frozen no-image-sized-response-bank decision and scale poorly at the
+  100,000-square target.
+- Added the production two-pass multiscale stage over the existing executor and
+  Zarr generation boundaries. Pass one evaluates only bounded halo reads and
+  returns compact side/corner summaries for adjacent-scale reconstruction and
+  original-residual support. After hierarchical global reconciliation, pass
+  two recomputes the bounded filters, applies immutable global label mappings,
+  and returns only compact scale summaries, checksummed chunk identities, and
+  scalar execution evidence. No scientific plane crosses the executor.
+- Published only eight accepted products: combined SNR, reconstructed signal,
+  direct-plus-reconstructed position signal, retained residual mask,
+  reconstruction mask, and three accepted significant-scale masks. Missing or
+  conflicting work remains governed by the existing exact-chunk-set and atomic
+  generation contracts; identical writes are retry-idempotent.
+- Extracted the one-beam residual-island floor without changing its formula and
+  consolidated calibrated scale-SNR derivation so the serial oracle, local
+  topology pass, and publication pass cannot drift. The one-tile stage exactly
+  reproduces the promoted serial retained/reconstruction masks and scale
+  support; combined SNR and signal products agree within `2e-13`.
+- Proved exact generation-manifest, chunk-checksum, mask, and topology identity
+  for one-tile and all-tile batches, an intermediate batch size, reverse
+  completion order, identical retry of every task, `SerialExecutor`, and
+  existing-client Dask with one and two workers. One-tile versus rectangular
+  many-tile execution retains exact masks and global topology IDs and the
+  existing `2e-13` finite-value tolerance. Different partitions deliberately
+  have different chunk manifests because ownership bounds are part of chunk
+  identity; the invariant across partitions is the logical science and stable
+  reconciled identity. Shifted-origin science remains covered by the preceding
+  storage-independent oracle because Zarr ownership is canonically
+  zero-origin.
+- Advanced the reviewed development contract to schema 7, SHA-256
+  `4307a43c2904c885705c72c45e801dedc74f86ae4570852ca122485f85177e3f`,
+  freezing two-pass recomputation, array-free scheduler results, batch and
+  retry semantics, the complete executor matrix, and the honest distinction
+  between same-partition byte identity and cross-partition scientific
+  identity. No threshold, association rule, compact result, or closed campaign
+  evidence changed.
+- The focused scientific, topology, executor, and contract suite passes 182
+  tests. Dedicated branch coverage passes 34 tests with 100% coverage for
+  `phase_five_execution.py`, 98% for the multiscale stage, and 99% combined.
+  The complete branch-aware project run passes 1,639 tests with 44 deselected
+  and four expected failures at 94.88% total coverage. The fast handoff suite
+  passes Ruff, Pyright, doctests, and 1,489 tests with 194 deselected and four
+  expected failures; the strict documentation build also passes.
+
+**Decision:** the third Phase 5 Step 5 checklist item is complete. The two-pass
+recomputation avoids a response bank but has not yet passed the incremental
+runtime gate; this task makes no performance, memory, or qualification claim.
+
+**Immediate next step:** record bounded retained bytes, workspaces, summaries,
+shards, and graph size under `SerialExecutor` and the existing executor path.

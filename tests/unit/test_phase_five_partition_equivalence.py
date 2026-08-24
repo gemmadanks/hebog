@@ -31,6 +31,7 @@ from hebog.algorithms.multiscale import (
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.phase_five_execution import (
     PhaseFiveFilterTileResult,
+    derive_phase_five_detection_tile_evidence,
     evaluate_phase_five_filter_tile,
     scale_filter_halo_pixels,
     segment_association_halo_pixels,
@@ -707,6 +708,31 @@ def test_filter_tile_rejects_read_shape_outside_partition_bounds() -> None:
             beam=_beam(),
             minimum_support_fraction=_SUPPORT_FRACTION,
         )
+
+
+def test_detection_tile_evidence_rejects_misaligned_scale_response() -> None:
+    """Local detection fields require every calibrated core to align."""
+    manifest = _manifest(core_yx=(88, 96))
+    result = _evaluate_filter_tile(manifest.tiles[0], manifest)
+    first = result.matched_filter.responses[0]
+    malformed = replace(
+        result,
+        matched_filter=replace(
+            result.matched_filter,
+            responses=(
+                replace(
+                    first,
+                    effective_rms_jy_per_beam=(
+                        first.effective_rms_jy_per_beam[:-1]
+                    ),
+                ),
+                *result.matched_filter.responses[1:],
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="same shape"):
+        derive_phase_five_detection_tile_evidence(malformed, _config())
 
 
 def test_phase_five_science_is_one_tile_many_tile_equal() -> None:
