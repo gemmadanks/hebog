@@ -503,6 +503,156 @@ def test_recovery_evaluator_binds_powered_population() -> None:
     assert len(contract["endpoint_power_priors"]) == 226
 
 
+def test_recovery_evaluation_amendment_preserves_both_accelerators(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The amendment keeps recovery provenance and base compatibility."""
+    amendment = _script(
+        "scripts/validation/evaluate_phase5_external_recovery_amendment.py"
+    )
+    recovery_accelerator = {"sha256": "recovery-seam"}
+    inherited_accelerator = {"sha256": "recorded-base-accelerator"}
+    contract = {"compiler_accelerator": recovery_accelerator}
+    observed: dict[str, Any] = {}
+
+    def evaluate(
+        analysis: dict[str, Any],
+        compatible_contract: dict[str, Any],
+        registry: dict[str, Any],
+    ) -> tuple[str, tuple[()], str]:
+        observed["analysis"] = analysis
+        observed["contract"] = compatible_contract
+        observed["registry"] = registry
+        return "combined", (), "compact"
+
+    monkeypatch.setitem(
+        amendment["evaluate_amended_recovery_analysis"].__globals__,
+        "_BASE_EVALUATE",
+        evaluate,
+    )
+    result = amendment["evaluate_amended_recovery_analysis"](
+        {
+            "analysis_id": "phase-5-external-recovery-terminal-science",
+            "compiler_accelerator_sha256": "recorded-base-accelerator",
+        },
+        contract,
+        {"registry": "unchanged"},
+        inherited_accelerator,
+    )
+
+    assert result == ("combined", (), "compact")
+    assert observed["analysis"]["analysis_id"] == (
+        "phase-5-external-post-correction-terminal-science"
+    )
+    assert observed["contract"]["compiler_accelerator"] == (
+        inherited_accelerator
+    )
+    assert observed["registry"] == {"registry": "unchanged"}
+    assert contract["compiler_accelerator"] == recovery_accelerator
+
+    with pytest.raises(
+        ValueError,
+        match="analysis compiler accelerator differs from inherited identity",
+    ):
+        amendment["evaluate_amended_recovery_analysis"](
+            {
+                "analysis_id": "phase-5-external-recovery-terminal-science",
+                "compiler_accelerator_sha256": "different",
+            },
+            contract,
+            {},
+            inherited_accelerator,
+        )
+
+
+def test_recovery_evaluation_amendment_requires_exact_authorization(
+    tmp_path: Path,
+) -> None:
+    """The amended evaluator cannot authorize itself or another campaign."""
+    amendment = _script(
+        "scripts/validation/evaluate_phase5_external_recovery_amendment.py"
+    )
+    identities: dict[str, dict[str, str]] = {}
+    analysis_relative = (
+        "benchmark-results/phase-5/external-recovery-analysis.json"
+    )
+    paths = {
+        "amendment_review": (
+            "config/contracts/"
+            "phase-5-external-recovery-evaluation-amendment-review.json"
+        ),
+        "analysis": analysis_relative,
+        "evaluator": (
+            "scripts/validation/evaluate_phase5_external_recovery_amendment.py"
+        ),
+        "frozen_contract": (
+            "config/contracts/phase-5-external-recovery-evaluation.json"
+        ),
+        "frozen_evaluator": (
+            "scripts/validation/evaluate_phase5_external_recovery_decision.py"
+        ),
+    }
+    for key, relative in paths.items():
+        artifact = tmp_path / relative
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text(f"{key}\n", encoding="utf-8")
+        identities[key] = {
+            "path": relative,
+            "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+        }
+    review_sha256 = identities["amendment_review"]["sha256"]
+    authorization = {
+        "amendment_review": identities["amendment_review"],
+        "analysis": identities["analysis"],
+        "analysis_recompilation_authorized": False,
+        "campaign_reexecution_authorized": False,
+        "decision_id": (
+            "phase-5-external-recovery-evaluation-amendment-decision"
+        ),
+        "evaluator": identities["evaluator"],
+        "execution_authorized": True,
+        "frozen_contract": identities["frozen_contract"],
+        "frozen_evaluator": identities["frozen_evaluator"],
+        "named_review": {
+            "approval": f"I approve review {review_sha256}",
+            "reviewer": "Gemma Danks",
+        },
+        "output_path": (
+            "benchmark-results/phase-5/external-recovery-decision.json"
+        ),
+        "schema_version": 1,
+        "science_or_gates_changed": False,
+        "status": "reviewed-before-recovery-evaluation-amendment",
+    }
+    authorization_path = tmp_path / "authorization.json"
+    authorization_path.write_text(
+        json.dumps(authorization),
+        encoding="utf-8",
+    )
+
+    loaded = amendment["load_amendment_authorization"](
+        authorization_path,
+        tmp_path / paths["evaluator"],
+        tmp_path,
+    )
+
+    assert loaded == authorization
+    authorization["campaign_reexecution_authorized"] = True
+    authorization_path.write_text(
+        json.dumps(authorization),
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        ValueError,
+        match="evaluation amendment is not exactly authorized",
+    ):
+        amendment["load_amendment_authorization"](
+            authorization_path,
+            tmp_path / paths["evaluator"],
+            tmp_path,
+        )
+
+
 def test_recovery_launcher_accepts_exact_authorized_execution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

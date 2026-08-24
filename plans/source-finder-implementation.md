@@ -438,11 +438,18 @@ must be restored before new evidence work.
       Authorization decision `de2aec16...` permits only request `4c53dc39...`
       to resume through delegate commit `c88e7c25...`; it forbids a second
       campaign and any science change.
-- [ ] Complete the existing-campaign resume and evaluate exactly once after
-      terminal sealing. The no-write preflight reproduced request
-      `4c53dc39...` with 2,488 inputs and 12,440 runs; managed session 51323 is
-      now resuming only the preserved 12,439 missing runs through delegate
-      `36a420a1...`, with hourly operational monitoring and no partial scoring.
+- [x] Complete the existing-campaign resume, terminal verification, and frozen
+      compilation. Campaign `4d881a41...` sealed all 2,488 inputs and 12,440
+      runs; write-once analysis `198fe6ff...` compiled successfully.
+- [ ] Repair the terminal evaluator composition without changing science. The
+      frozen evaluator stopped before scoring or output because it passed the
+      recovery-seam identity where the inherited evaluator requires the base
+      accelerator recorded by the analysis. A separate fail-closed adapter
+      preserves both identities and forbids campaign or analysis reruns; freeze
+      it for renewed named review before evaluating the existing analysis.
+- [ ] After exact approval, evaluate analysis `198fe6ff...` once through the
+      amendment and interpret science before runtime. Do not overwrite the
+      analysis, rerun the campaign, or alter any gate or endpoint.
 - [ ] Open Step 3 only if every applicable absolute, released/master PyBDSF,
       and Aegean gate passes. A fresh failure is terminal and cannot be
       rescored.

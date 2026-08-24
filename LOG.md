@@ -9063,3 +9063,44 @@ campaign.
 **Immediate next step:** monitor hourly. When the terminal manifest seals,
 verify it, compile and evaluate exactly once, interpret science before runtime,
 then update, validate, review, and commit the terminal decision.
+
+## 2026-08-24 — Stop at the frozen recovery evaluator identity defect
+
+**Plan phase:** Phase 5, Step 2C-PC recovery evaluation
+
+- The resumed existing campaign exited successfully after re-verifying all
+  2,488 inputs and 12,440 runs. It atomically published campaign SHA-256
+  `4d881a412980e5dfa58d57e18c1e1ca706606724fa745605df554d9302627c83`.
+- The frozen compiler verified the complete campaign before reading science
+  and atomically published analysis SHA-256
+  `198fe6ff63ade465872976e6897bf69e7e70f415fd04889937367410c5e3d53a`.
+- The frozen evaluator then stopped before scoring or writing a decision with
+  `post-failure compiled analysis identity changed`. The analysis correctly
+  records inherited base accelerator `bb3c5c2f...`, while the merged recovery
+  contract supplies recovery-seam identity `ab690dda...` to an inherited check
+  that expects the base identity. Every other member of that fail-closed check
+  matches; `external-recovery-decision.json` remains absent.
+- Added a separate prospective evaluator amendment rather than modifying the
+  frozen evaluator or contract. It validates named authorization, the existing
+  analysis, frozen evaluator/contract, and amendment review; preserves the
+  recovery-seam identity for provenance; substitutes only the verified base
+  accelerator identity at the inherited compatibility boundary; and refuses
+  campaign re-execution, analysis recompilation, science changes, or output
+  overwrite.
+- The focused adapter regression first failed because the amendment did not
+  exist, then passed. Authorization normal/failure tests and the complete
+  12-test recovery protocol suite pass; focused Ruff and Pyright are clean.
+- `just coverage` passes 1,420 tests with 44 deselected, four expected failures,
+  and 94.34% branch-aware project coverage. `just check` passes 1,290 tests
+  with 174 deselected and four expected failures; the strict documentation
+  build also passes.
+
+**Decision:** this is an evaluation-composition defect, not a scientific
+failure. Preserve campaign `4d881a41...`, analysis `198fe6ff...`, the failed
+evaluator invocation, and the absent decision. Do not rerun the campaign,
+compiler, frozen evaluator, or score through the amendment without renewed
+exact approval.
+
+**Immediate next step:** complete coverage and repository validation, commit
+the amendment, then freeze a pending review bound to its commit/checksum and
+the existing analysis for named approval.
