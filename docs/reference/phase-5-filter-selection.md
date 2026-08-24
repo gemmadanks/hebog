@@ -65,6 +65,13 @@ These rules are configuration-visible but reject unreviewed topology modes.
 The three-beam association used by the promotion comparator remains separate:
 deterministic cross-scale and compact/extended association belongs to Step 4.
 
+Compact-planner deferrals are also no longer an unbounded handoff. Phase 5
+relabels the immutable accepted mask in separately configured bounded cores,
+reconciles only compact summaries and boundary labels, and records exact
+array-free membership shards. This preserves the compact parent identity and
+lets the following original-pixel measurement stage process one shard tile at
+a time without gathering an arbitrarily large island.
+
 ## Completed independent astrometry confirmation
 
 Step 2C-A froze a seed-disjoint 100-image confirmation manifest before

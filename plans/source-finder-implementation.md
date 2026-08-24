@@ -488,8 +488,11 @@ and the later Rapthor cutover remain outstanding.
       production policy uses adjacent scales, eight-neighbour 3-sigma growth
       on original valid residual pixels, normalized support of at least 0.5,
       and a one-beam floor with a direct 5-sigma seed exception.
-- [ ] Complete compact-deferred islands through a bounded partitioned path;
-      no task may own an arbitrarily large island.
+- [x] Complete compact-deferred islands through a bounded partitioned path;
+      no task may own an arbitrarily large island. The published accepted mask
+      is relabelled in independently bounded zero-halo cores, reconciled from
+      compact boundary summaries, and bound to canonical array-free shards;
+      exact membership is reconstructed from only one shard tile at a time.
 - [ ] Measure extended flux, position, shape, background, and available
       uncertainty from original pixels with explicit unavailable/truncation
       semantics.

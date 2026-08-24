@@ -18,7 +18,9 @@ from distributed import Client
 from hebog.algorithms.deblending import (
     CompactDeblendResult,
     CompactIslandPixels,
+    DeferredDeblendIsland,
     deblend_compact_island,
+    extract_deferred_island_shard_membership,
 )
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
@@ -28,6 +30,7 @@ from hebog.config import (
     CompactDeblendConfig,
     CompactGaussianFitConfig,
     CompactMomentConfig,
+    DeferredIslandCompletionConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
     SourceFinderConfig,
@@ -43,6 +46,7 @@ from hebog.stages.deblending import (
     WorkerLocalRegionBatch,
     run_compact_deblend_stage,
     run_compact_region_stage,
+    run_deferred_island_completion_stage,
 )
 from hebog.stages.detection import (
     DetectionStageConfig,
@@ -579,6 +583,129 @@ def test_region_stage_preserves_deferrals_without_reading_pixels(
     assert result.maximum_processor_array_bytes == 0
 
 
+def test_deferred_islands_complete_through_bounded_partitioned_membership(
+    tmp_path: Path,
+) -> None:
+    """Every compact deferral receives exact bounded support for Phase 5."""
+    detection_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(12, 14),
+        halo_yx=(0, 0),
+    )
+    detection, sink = _run(
+        tmp_path / "deferred-completion.zarr",
+        detection_manifest,
+        SerialExecutor(),
+    )
+    compact = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        detection,
+        replace(_deblend_config(), maximum_compact_island_pixels=1),
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    completion_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+        partition_origin_yx=(3, 2),
+    )
+    config = DeferredIslandCompletionConfig(maximum_tile_pixels=42)
+
+    completed = run_deferred_island_completion_stage(
+        detection,
+        compact.deferred_islands,
+        completion_manifest,
+        config=config,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    retried = run_deferred_island_completion_stage(
+        detection,
+        compact.deferred_islands,
+        completion_manifest,
+        config=config,
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+
+    assert retried == completed
+    assert tuple(item.island for item in completed.islands) == (
+        detection.islands
+    )
+    assert completed.planned_tile_count == len(completion_manifest.tiles)
+    assert completed.maximum_task_pixels <= config.maximum_tile_pixels
+    assert completed.reconciliation_round_count > 0
+    reconstructed = np.zeros(_image().shape, dtype=np.bool_)
+    for item in completed.islands:
+        for shard in item.shards:
+            membership = extract_deferred_island_shard_membership(
+                shard,
+                sink.read_completed_window(
+                    "source-filtering-mask",
+                    shard.partition.core_bounds,
+                ),
+            )
+            bounds = shard.partition.core_bounds
+            reconstructed[
+                bounds.y_start : bounds.y_stop,
+                bounds.x_start : bounds.x_stop,
+            ] |= membership
+    np.testing.assert_array_equal(
+        reconstructed,
+        _read_plane(sink, detection, "source-filtering-mask"),
+    )
+
+    no_work = run_deferred_island_completion_stage(
+        detection,
+        (),
+        completion_manifest,
+        config=DeferredIslandCompletionConfig(maximum_tile_pixels=1),
+        executor=SerialExecutor(),
+        sink=sink,
+    )
+    assert no_work.planned_tile_count == 0
+    assert no_work.islands == ()
+    with pytest.raises(ValueError, match="tile exceeds"):
+        run_deferred_island_completion_stage(
+            detection,
+            compact.deferred_islands,
+            completion_manifest,
+            config=DeferredIslandCompletionConfig(maximum_tile_pixels=41),
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+    wrong_shape = plan_image_partitions(
+        image_shape_yx=(12, 14),
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+    )
+    with pytest.raises(ValueError, match="match the detection image"):
+        run_deferred_island_completion_stage(
+            detection,
+            compact.deferred_islands,
+            wrong_shape,
+            config=config,
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+    halo_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(1, 1),
+    )
+    with pytest.raises(ValueError, match="zero halo"):
+        run_deferred_island_completion_stage(
+            detection,
+            compact.deferred_islands,
+            halo_manifest,
+            config=config,
+            executor=SerialExecutor(),
+            sink=sink,
+        )
+
+
 @pytest.mark.parametrize(
     ("failure", "message"),
     [
@@ -648,6 +775,25 @@ def test_compact_deblend_stage_rejects_a_different_generation(
             detection,
             _deblend_config(),
             processor=_measure_exact_memberships,
+            executor=SerialExecutor(),
+            sink=different_sink,
+        )
+    completion_manifest = plan_image_partitions(
+        image_shape_yx=_image().shape,
+        tile_core_shape_yx=(6, 7),
+        halo_yx=(0, 0),
+    )
+    with pytest.raises(ValueError, match="does not match"):
+        run_deferred_island_completion_stage(
+            detection,
+            (
+                DeferredDeblendIsland(
+                    detection.islands[0],
+                    "island-pixel-limit",
+                ),
+            ),
+            completion_manifest,
+            config=DeferredIslandCompletionConfig(maximum_tile_pixels=42),
             executor=SerialExecutor(),
             sink=different_sink,
         )
@@ -790,6 +936,35 @@ def test_dask_and_serial_detection_products_are_identical(
             executor=DaskExecutor(client),
             sink=dask_sink,
         )
+        deferred_config = replace(
+            _deblend_config(),
+            maximum_compact_island_pixels=1,
+        )
+        dask_deferred = run_compact_region_stage(
+            _ArrayImageSource(_image()),
+            dask,
+            deferred_config,
+            processor=_measure_exact_memberships,
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
+        completion_manifest = plan_image_partitions(
+            image_shape_yx=_image().shape,
+            tile_core_shape_yx=(6, 7),
+            halo_yx=(0, 0),
+            partition_origin_yx=(3, 2),
+        )
+        completion_config = DeferredIslandCompletionConfig(
+            maximum_tile_pixels=42
+        )
+        dask_completed = run_deferred_island_completion_stage(
+            dask,
+            dask_deferred.deferred_islands,
+            completion_manifest,
+            config=completion_config,
+            executor=DaskExecutor(client),
+            sink=dask_sink,
+        )
         dask_moments = run_compact_moment_stage(
             _ArrayImageSource(_image()),
             dask,
@@ -849,6 +1024,23 @@ def test_dask_and_serial_detection_products_are_identical(
         sink=serial_sink,
     )
     assert dask_regions == serial_regions
+    serial_deferred = run_compact_region_stage(
+        _ArrayImageSource(_image()),
+        serial,
+        deferred_config,
+        processor=_measure_exact_memberships,
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    serial_completed = run_deferred_island_completion_stage(
+        serial,
+        serial_deferred.deferred_islands,
+        completion_manifest,
+        config=completion_config,
+        executor=SerialExecutor(),
+        sink=serial_sink,
+    )
+    assert dask_completed == serial_completed
     serial_moments = run_compact_moment_stage(
         _ArrayImageSource(_image()),
         serial,

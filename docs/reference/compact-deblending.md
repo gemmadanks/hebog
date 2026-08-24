@@ -76,6 +76,24 @@ An island above the member-pixel or bounds-area limit is returned as a
 input to the Phase 5 partitioned/multiscale path and is never dropped or
 reported as successfully deblended.
 
+Phase 5 now completes that handoff with
+`run_deferred_island_completion_stage`. A caller supplies a zero-halo
+partition manifest and a `DeferredIslandCompletionConfig` hard pixel limit.
+The completion grid may differ from the detection/storage grid, but it must
+cover the same logical image. Each task reads and relabels exactly one
+published source-filtering-mask core. Only local component summaries and
+boundary labels return for reconciliation; no island-sized membership or
+label plane crosses the executor boundary.
+
+The reconciled global identity must reproduce the deferred parent's pixel
+count, bounds, first pixel, edge state, and canonical label. Its output is a
+tuple of array-free `DeferredIslandShard` records. A later measurement task
+can call `extract_deferred_island_shard_membership` with one shard and one
+bounded mask tile to recover exact immutable membership. The extractor checks
+the stored count, bounds, and first pixel before returning. This stage does
+not run a global watershed or claim extended-source photometry; original-pixel
+measurement is the next Phase 5 task.
+
 The compact kernel's memory is bounded by one admitted batch. Its Python loops
 iterate markers, sparse basin adjacencies, or island records—not image pixels.
 All source windows in one batch share one validated FITS open. Zarr product

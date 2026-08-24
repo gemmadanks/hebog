@@ -9299,3 +9299,42 @@ recovery evidence, opening qualification, or making a runtime claim.
 **Immediate next step:** implement bounded partitioned completion for
 compact-deferred islands so no task owns an arbitrarily large island, while
 preserving the frozen segmentation policy and compact regression products.
+
+## 2026-08-24 — Complete compact deferrals with bounded membership shards
+
+**Plan phase:** Phase 5, Step 3 — multiscale science
+
+- Added `DeferredIslandCompletionConfig` with an explicit hard per-task pixel
+  limit and a scheduler-independent partitioning boundary for every
+  `DeferredDeblendIsland` produced by the compact planner.
+- The completion stage relabels the immutable published
+  source-filtering-mask in caller-supplied zero-halo cores. Each task owns one
+  bounded tile; only local summaries and boundary labels return for the
+  existing deterministic reconciliation, so no complete deferred island or
+  image-sized label plane crosses the executor boundary.
+- Added canonical array-free `DeferredIslandShard` and
+  `PartitionedDeferredIsland` records. Their count, bounds, first pixel,
+  parent identity, local labels, order, and hard tile admission fail closed.
+  Exact immutable membership can be reconstructed and verified from one shard
+  plus one bounded mask tile for the following original-pixel measurement
+  stage.
+- Analytic tests cover multiple rectangular grids, shifted partition origins,
+  disconnected components sharing a tile, result-order invariance, exact
+  reconstruction, malformed records, incomplete reconciliation, and hard
+  bounds. Integration tests cover compact-planner handoff, deterministic
+  retry, independently partitioned reads, zero-work behavior, generation and
+  manifest failures, and Serial/Dask equivalence.
+- The complete affected compact/deferred suite passes 78 tests. `just coverage`
+  passes 1,452 tests with four expected failures at 94.43% project
+  coverage; the changed deblending algorithm and stage reach 97% and 95%.
+  `just check` passes Ruff, Pyright, 1,321 tests, and four expected failures;
+  `just docs-build` passes strictly.
+
+**Decision:** the third Step 3 item is complete. This closes the unbounded
+compact-deferral handoff but does not perform a global watershed, extended
+photometry, cross-scale association, or catalogue publication.
+
+**Immediate next step:** measure deferred and multiscale extended emission
+from original background-subtracted pixels through the bounded shards, with
+explicit flux, position, shape, uncertainty-availability, and truncation
+semantics while preserving unaffected Phase 4 compact products.

@@ -13,9 +13,17 @@ import numpy as np
 import numpy.typing as npt
 from scipy import ndimage
 
-from hebog.algorithms.reconciliation import DetectedIsland
-from hebog.config import CompactDeblendConfig
-from hebog.data_models.partitioning import ImageBounds
+from hebog.algorithms.labelling import (
+    LocalIslandSummary,
+    LocalIslandTileSummary,
+)
+from hebog.algorithms.reconciliation import DetectedIsland, ReconciledIslands
+from hebog.config import CompactDeblendConfig, DeferredIslandCompletionConfig
+from hebog.data_models.partitioning import (
+    ImageBounds,
+    PartitionManifest,
+    TilePartition,
+)
 
 _EIGHT_CONNECTIVITY = np.ones((3, 3), dtype=np.bool_)
 _TOPOGRAPHY_MAXIMUM = np.iinfo(np.uint16).max
@@ -44,6 +52,98 @@ class CompactDeblendPlan:
 
     batches: tuple[CompactDeblendBatch, ...]
     deferred_islands: tuple[DeferredDeblendIsland, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class DeferredIslandShard:
+    """One bounded tile-local fragment of a compact-deferred island."""
+
+    island_id: str
+    partition: TilePartition
+    local_labels: tuple[int, ...]
+    pixel_count: int
+    bounds: ImageBounds
+    first_pixel_yx: tuple[int, int]
+
+    def __post_init__(self) -> None:
+        """Require canonical labels and topology inside the owned tile."""
+        if (
+            not self.local_labels
+            or self.local_labels != tuple(sorted(set(self.local_labels)))
+            or any(label_value < 1 for label_value in self.local_labels)
+        ):
+            raise ValueError(
+                "deferred shard labels must be positive canonical"
+            )
+        core = self.partition.core_bounds
+        core_pixels = core.shape_yx[0] * core.shape_yx[1]
+        if not 0 < self.pixel_count <= core_pixels:
+            raise ValueError("deferred shard pixel count exceeds its tile")
+        if not core.contains(self.bounds):
+            raise ValueError("deferred shard bounds must lie inside its tile")
+        y_pixel, x_pixel = self.first_pixel_yx
+        if not (
+            self.bounds.y_start <= y_pixel < self.bounds.y_stop
+            and self.bounds.x_start <= x_pixel < self.bounds.x_stop
+        ):
+            raise ValueError("deferred shard first pixel must lie in bounds")
+
+
+@dataclass(frozen=True, slots=True)
+class PartitionedDeferredIsland:
+    """Complete exact support ownership without an island-sized array."""
+
+    island: DetectedIsland
+    reason: Literal["island-pixel-limit", "bounds-pixel-limit"]
+    shards: tuple[DeferredIslandShard, ...]
+
+    def __post_init__(self) -> None:
+        """Bind canonical bounded shards to the reconciled parent topology."""
+        if not self.shards:
+            raise ValueError("partitioned deferred island requires shards")
+        ordered = tuple(
+            sorted(
+                self.shards,
+                key=lambda shard: (
+                    shard.partition.tile_y_index,
+                    shard.partition.tile_x_index,
+                ),
+            )
+        )
+        if self.shards != ordered:
+            raise ValueError("deferred island shards must be canonical")
+        if any(shard.island_id != self.island.island_id for shard in ordered):
+            raise ValueError("deferred shard parent identity disagrees")
+        if self.pixel_count != self.island.pixel_count:
+            raise ValueError("deferred shard membership disagrees with island")
+        aggregate_bounds = ImageBounds(
+            min(shard.bounds.y_start for shard in ordered),
+            max(shard.bounds.y_stop for shard in ordered),
+            min(shard.bounds.x_start for shard in ordered),
+            max(shard.bounds.x_stop for shard in ordered),
+        )
+        if aggregate_bounds != self.island.bounds:
+            raise ValueError("deferred shard bounds disagree with island")
+        if min(shard.first_pixel_yx for shard in ordered) != (
+            self.island.first_pixel_yx
+        ):
+            raise ValueError(
+                "deferred shard first pixel disagrees with island"
+            )
+
+    @property
+    def pixel_count(self) -> int:
+        """Return the exact total owned membership."""
+        return sum(shard.pixel_count for shard in self.shards)
+
+    @property
+    def maximum_shard_pixels(self) -> int:
+        """Return the largest tile core admitted to one membership task."""
+        return max(
+            shard.partition.core_bounds.shape_yx[0]
+            * shard.partition.core_bounds.shape_yx[1]
+            for shard in self.shards
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -214,6 +314,193 @@ def extract_island_membership(
     membership = np.asarray(labels == selected_label, dtype=np.bool_)
     if int(np.count_nonzero(membership)) != island.pixel_count:
         raise ValueError("connected mask membership disagrees with island")
+    membership.setflags(write=False)
+    return membership
+
+
+def _summary_bounds(
+    summaries: tuple[LocalIslandSummary, ...],
+) -> ImageBounds:
+    """Return aggregate bounds for objects exposing bounded topology."""
+    return ImageBounds(
+        min(summary.bounds.y_start for summary in summaries),
+        max(summary.bounds.y_stop for summary in summaries),
+        min(summary.bounds.x_start for summary in summaries),
+        max(summary.bounds.x_stop for summary in summaries),
+    )
+
+
+def _same_island_topology(
+    first: DetectedIsland,
+    second: DetectedIsland,
+) -> bool:
+    """Compare identity and membership facts independent of response peaks."""
+    return (
+        first.island_id == second.island_id
+        and first.global_label == second.global_label
+        and first.pixel_count == second.pixel_count
+        and first.bounds == second.bounds
+        and first.first_pixel_yx == second.first_pixel_yx
+        and first.touches_image_edge == second.touches_image_edge
+    )
+
+
+def _validate_deferred_partition_inputs(
+    manifest: PartitionManifest,
+    tiles: tuple[LocalIslandTileSummary, ...],
+    reconciliation: ReconciledIslands,
+    deferred_islands: tuple[DeferredDeblendIsland, ...],
+    config: DeferredIslandCompletionConfig,
+) -> dict[str, LocalIslandTileSummary]:
+    """Validate bounded canonical inputs before constructing any shard."""
+    if any(
+        tile.core_bounds.shape_yx[0] * tile.core_bounds.shape_yx[1]
+        > config.maximum_tile_pixels
+        for tile in manifest.tiles
+    ):
+        raise ValueError("deferred completion tile exceeds its hard bound")
+    tiles_by_id = {tile.partition.tile_id: tile for tile in tiles}
+    expected_tile_ids = {tile.tile_id for tile in manifest.tiles}
+    if len(tiles_by_id) != len(tiles) or set(tiles_by_id) != expected_tile_ids:
+        raise ValueError("deferred completion tiles must be canonical")
+    if any(
+        tiles_by_id[partition.tile_id].partition != partition
+        for partition in manifest.tiles
+    ):
+        raise ValueError("deferred completion tile partition is not canonical")
+    mapping_ids = tuple(
+        mapping.tile_id for mapping in reconciliation.tile_mappings
+    )
+    if (
+        len(set(mapping_ids)) != len(mapping_ids)
+        or set(mapping_ids) != expected_tile_ids
+    ):
+        raise ValueError("deferred reconciliation must cover every tile")
+    if len({item.island.island_id for item in deferred_islands}) != len(
+        deferred_islands
+    ):
+        raise ValueError("deferred island identities must be unique")
+    reconciled_by_id = {
+        island.island_id: island for island in reconciliation.islands
+    }
+    for deferred in deferred_islands:
+        reconciled = reconciled_by_id.get(deferred.island.island_id)
+        if reconciled is None or not _same_island_topology(
+            deferred.island,
+            reconciled,
+        ):
+            raise ValueError("deferred parent is not the reconciled island")
+    return tiles_by_id
+
+
+def partition_deferred_islands(
+    manifest: PartitionManifest,
+    tiles: tuple[LocalIslandTileSummary, ...],
+    reconciliation: ReconciledIslands,
+    deferred_islands: tuple[DeferredDeblendIsland, ...],
+    config: DeferredIslandCompletionConfig,
+) -> tuple[PartitionedDeferredIsland, ...]:
+    """Bind exact deferred membership to canonical bounded tile shards."""
+    tiles_by_id = _validate_deferred_partition_inputs(
+        manifest,
+        tiles,
+        reconciliation,
+        deferred_islands,
+        config,
+    )
+
+    completed: list[PartitionedDeferredIsland] = []
+    for deferred in sorted(
+        deferred_islands,
+        key=lambda item: (item.island.global_label, item.island.island_id),
+    ):
+        island = deferred.island
+        shards: list[DeferredIslandShard] = []
+        for partition in manifest.tiles:
+            tile = tiles_by_id[partition.tile_id]
+            mapping = reconciliation.mapping_for_tile(partition.tile_id)
+            local_labels = tuple(
+                local_label
+                for local_label, global_label in zip(
+                    mapping.local_labels,
+                    mapping.global_labels,
+                    strict=True,
+                )
+                if global_label == island.global_label
+            )
+            if not local_labels:
+                continue
+            summaries_by_label = {
+                summary.local_label: summary for summary in tile.islands
+            }
+            if any(
+                local_label not in summaries_by_label
+                for local_label in local_labels
+            ):
+                raise ValueError(
+                    "deferred reconciliation label is absent from its tile"
+                )
+            selected = tuple(
+                summaries_by_label[local_label] for local_label in local_labels
+            )
+            shards.append(
+                DeferredIslandShard(
+                    island_id=island.island_id,
+                    partition=partition,
+                    local_labels=local_labels,
+                    pixel_count=sum(item.pixel_count for item in selected),
+                    bounds=_summary_bounds(selected),
+                    first_pixel_yx=min(
+                        item.first_pixel_yx for item in selected
+                    ),
+                )
+            )
+        completed.append(
+            PartitionedDeferredIsland(
+                island=island,
+                reason=deferred.reason,
+                shards=tuple(shards),
+            )
+        )
+    return tuple(completed)
+
+
+def extract_deferred_island_shard_membership(
+    shard: DeferredIslandShard,
+    accepted_mask: npt.ArrayLike,
+) -> npt.NDArray[np.bool_]:
+    """Select one exact deferred fragment from a bounded accepted-mask tile."""
+    mask = np.asarray(accepted_mask)
+    if mask.shape != shard.partition.core_bounds.shape_yx:
+        raise ValueError("deferred mask must match its tile core")
+    if not np.issubdtype(mask.dtype, np.bool_):
+        raise TypeError("deferred mask must be boolean")
+    raw_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage.label(mask, structure=_EIGHT_CONNECTIVITY),
+    )
+    membership = np.isin(raw_labels, shard.local_labels)
+    positions = np.argwhere(membership)
+    if positions.size == 0:
+        raise ValueError("deferred shard membership is absent")
+    bounds = shard.partition.core_bounds
+    observed_bounds = ImageBounds(
+        bounds.y_start + int(np.min(positions[:, 0])),
+        bounds.y_start + int(np.max(positions[:, 0])) + 1,
+        bounds.x_start + int(np.min(positions[:, 1])),
+        bounds.x_start + int(np.max(positions[:, 1])) + 1,
+    )
+    observed_first = (
+        int(positions[0, 0]) + bounds.y_start,
+        int(positions[0, 1]) + bounds.x_start,
+    )
+    if (
+        int(np.count_nonzero(membership)) != shard.pixel_count
+        or observed_bounds != shard.bounds
+        or observed_first != shard.first_pixel_yx
+    ):
+        raise ValueError("deferred shard membership disagrees with summary")
+    membership = np.asarray(membership, dtype=np.bool_)
     membership.setflags(write=False)
     return membership
 

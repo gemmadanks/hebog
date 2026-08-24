@@ -344,6 +344,22 @@ class CompactDeblendConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class DeferredIslandCompletionConfig:
+    """Hard bound for one compact-deferred membership tile."""
+
+    maximum_tile_pixels: int
+
+    def __post_init__(self) -> None:
+        """Require an explicit positive per-task pixel admission limit."""
+        if (
+            isinstance(self.maximum_tile_pixels, bool)
+            or not isinstance(self.maximum_tile_pixels, Integral)
+            or self.maximum_tile_pixels < 1
+        ):
+            raise ValueError("maximum_tile_pixels must be a positive integer")
+
+
+@dataclass(frozen=True, slots=True)
 class CompactMomentConfig:
     """Numerical availability policy for compact moment ellipses."""
 

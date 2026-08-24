@@ -17,14 +17,30 @@ from hebog.algorithms.deblending import (
     CompactIslandPixels,
     DeblendedRegion,
     DeferredDeblendIsland,
+    PartitionedDeferredIsland,
     deblend_compact_island,
     extract_island_membership,
+    partition_deferred_islands,
     plan_compact_deblend_batches,
 )
-from hebog.algorithms.detection import normalize_residual
-from hebog.algorithms.reconciliation import DetectedIsland
-from hebog.config import CompactDeblendConfig
-from hebog.data_models.partitioning import ImageBounds
+from hebog.algorithms.detection import (
+    DetectionThresholdMasks,
+    normalize_residual,
+)
+from hebog.algorithms.labelling import (
+    LocalIslandTileSummary,
+    label_detection_tile,
+)
+from hebog.algorithms.reconciliation import (
+    DetectedIsland,
+    reconcile_candidate_tiles,
+)
+from hebog.config import CompactDeblendConfig, DeferredIslandCompletionConfig
+from hebog.data_models.partitioning import (
+    ImageBounds,
+    PartitionManifest,
+    TilePartition,
+)
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
@@ -61,6 +77,17 @@ class CompactDeblendStageResult:
     deferred_islands: tuple[DeferredDeblendIsland, ...]
     planned_batch_count: int
     admitted_bounds_pixel_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class DeferredIslandCompletionStageResult:
+    """Exact compact-deferred support plus bounded execution evidence."""
+
+    islands: tuple[PartitionedDeferredIsland, ...]
+    planned_tile_count: int
+    maximum_task_pixels: int
+    boundary_label_count: int
+    reconciliation_round_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -408,6 +435,39 @@ def _deblend_batch(
     )
 
 
+def _label_deferred_mask_tile(
+    partition: TilePartition,
+    *,
+    sink: ZarrProductSink,
+    config: DeferredIslandCompletionConfig,
+    image_shape_yx: tuple[int, int],
+) -> LocalIslandTileSummary:
+    """Reconstruct bounded accepted topology from one published mask core."""
+    bounds = partition.core_bounds
+    tile_pixels = bounds.shape_yx[0] * bounds.shape_yx[1]
+    if tile_pixels > config.maximum_tile_pixels:
+        raise ValueError("deferred completion tile exceeds its hard bound")
+    accepted = np.asarray(
+        sink.read_completed_window("source-filtering-mask", bounds)
+    )
+    if accepted.shape != bounds.shape_yx:
+        raise ValueError("deferred mask must match its tile core")
+    if accepted.dtype != np.dtype(np.bool_):
+        raise TypeError("deferred mask must be boolean")
+    accepted = np.asarray(accepted, dtype=np.bool_)
+    normalized = np.asarray(accepted, dtype=np.float64)
+    return label_detection_tile(
+        DetectionThresholdMasks(
+            normalized_residual=normalized,
+            island_membership=accepted,
+            detection_seeds=accepted,
+            valid_pixel_count=accepted.size,
+        ),
+        partition,
+        image_shape_yx=image_shape_yx,
+    ).compact_summary()
+
+
 def _process_region_batch(  # noqa: PLR0913
     batch: CompactDeblendBatch,
     *,
@@ -482,6 +542,82 @@ def run_compact_deblend_stage(
         admitted_bounds_pixel_count=sum(
             batch.estimated_pixel_count for batch in plan.batches
         ),
+    )
+
+
+def run_deferred_island_completion_stage(  # noqa: PLR0913
+    detection: DetectionStageResult,
+    deferred_islands: tuple[DeferredDeblendIsland, ...],
+    manifest: PartitionManifest,
+    *,
+    config: DeferredIslandCompletionConfig,
+    executor: Executor,
+    sink: ZarrProductSink,
+) -> DeferredIslandCompletionStageResult:
+    """Complete compact deferrals as exact bounded membership shards.
+
+    Every executor task owns one configured tile core. Only local summaries
+    and boundary labels return for deterministic global reconciliation; exact
+    membership is reconstructed later from one shard and one mask tile.
+    """
+    generation = detection.generation
+    if (
+        generation.partition_manifest != sink.manifest
+        or generation.generation_id != sink.generation_id
+    ):
+        raise ValueError(
+            "deferred completion sink does not match detection generation"
+        )
+    if manifest.image_shape_yx != sink.manifest.image_shape_yx:
+        raise ValueError(
+            "deferred completion manifest must match the detection image"
+        )
+    if manifest.halo_yx != (0, 0):
+        raise ValueError("deferred completion manifest must use zero halo")
+    if not deferred_islands:
+        return DeferredIslandCompletionStageResult(
+            islands=(),
+            planned_tile_count=0,
+            maximum_task_pixels=0,
+            boundary_label_count=0,
+            reconciliation_round_count=0,
+        )
+    if any(
+        tile.core_bounds.shape_yx[0] * tile.core_bounds.shape_yx[1]
+        > config.maximum_tile_pixels
+        for tile in manifest.tiles
+    ):
+        raise ValueError("deferred completion tile exceeds its hard bound")
+    label_tile = partial(
+        _label_deferred_mask_tile,
+        sink=sink,
+        config=config,
+        image_shape_yx=manifest.image_shape_yx,
+    )
+    summaries = tuple(executor.map_batches(label_tile, manifest.tiles))
+    reconciliation = reconcile_candidate_tiles(manifest, summaries)
+    islands = partition_deferred_islands(
+        manifest,
+        summaries,
+        reconciliation,
+        deferred_islands,
+        config,
+    )
+    return DeferredIslandCompletionStageResult(
+        islands=islands,
+        planned_tile_count=len(manifest.tiles),
+        maximum_task_pixels=max(
+            tile.core_bounds.shape_yx[0] * tile.core_bounds.shape_yx[1]
+            for tile in manifest.tiles
+        ),
+        boundary_label_count=sum(
+            summary.boundary_labels.top.size
+            + summary.boundary_labels.bottom.size
+            + summary.boundary_labels.left.size
+            + summary.boundary_labels.right.size
+            for summary in summaries
+        ),
+        reconciliation_round_count=reconciliation.reduction_round_count,
     )
 
 
