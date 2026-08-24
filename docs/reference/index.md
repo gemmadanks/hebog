@@ -27,6 +27,7 @@ Related project references:
 - [Phase 5 scale-filter selection](phase-5-filter-selection.md)
 - [Phase 5 astrometry technical pre-review](phase-5-astrometry-pre-review.md)
 - [Compact deblending](compact-deblending.md)
+- [Extended-emission measurement](extended-emission-measurement.md)
 - [Compact moment measurement](compact-measurement.md)
 - [Compact Gaussian fitting](compact-fitting.md)
 - [Compact astrometry and beam deconvolution](compact-astrometry.md)
@@ -107,6 +108,10 @@ Related project references:
 ## Residual multiscale detection
 
 ::: hebog.algorithms.multiscale
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.extended_measurement
     options:
       show_symbol_type_toc: true
 

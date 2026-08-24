@@ -90,9 +90,10 @@ count, bounds, first pixel, edge state, and canonical label. Its output is a
 tuple of array-free `DeferredIslandShard` records. A later measurement task
 can call `extract_deferred_island_shard_membership` with one shard and one
 bounded mask tile to recover exact immutable membership. The extractor checks
-the stored count, bounds, and first pixel before returning. This stage does
-not run a global watershed or claim extended-source photometry; original-pixel
-measurement is the next Phase 5 task.
+the stored count, bounds, and first pixel before returning. The following
+[extended-emission measurement](extended-emission-measurement.md) stage now
+uses those shards for bounded original-pixel photometry. This completion stage
+itself does not run a global watershed or claim a final associated source.
 
 The compact kernel's memory is bounded by one admitted batch. Its Python loops
 iterate markers, sparse basin adjacencies, or island records—not image pixels.

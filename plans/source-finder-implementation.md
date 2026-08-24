@@ -493,9 +493,13 @@ and the later Rapthor cutover remain outstanding.
       is relabelled in independently bounded zero-halo cores, reconciled from
       compact boundary summaries, and bound to canonical array-free shards;
       exact membership is reconstructed from only one shard tile at a time.
-- [ ] Measure extended flux, position, shape, background, and available
+- [x] Measure extended flux, position, shape, background, and available
       uncertainty from original pixels with explicit unavailable/truncation
-      semantics.
+      semantics. Bounded tasks apply the promoted 1.5-major-beam nearest-owned
+      aperture, preserve compact supports as barriers, reduce only scalar
+      statistics, use regularized direct-plus-B3 positions with the reviewed
+      compact safeguard when supplied, and type flux uncertainty, shape
+      availability, and edge/invalid truncation without inventing errors.
 - [ ] Preserve compact Phase 4 products exactly when multiscale evidence does
       not alter their association.
 

@@ -9338,3 +9338,51 @@ photometry, cross-scale association, or catalogue publication.
 from original background-subtracted pixels through the bounded shards, with
 explicit flux, position, shape, uncertainty-availability, and truncation
 semantics while preserving unaffected Phase 4 compact products.
+
+## 2026-08-24 — Measure extended emission through bounded original-pixel tasks
+
+**Plan phase:** Phase 5, Step 3 — multiscale science
+
+- Added immutable pre-association records for extended targets, physical
+  geometry, aperture photometry, moment shape, truncation, uncertainty
+  availability, and typed whole-measurement failure. Invalid identifiers,
+  geometry, counts, covariance, positions, and availability combinations fail
+  closed.
+- Implemented a pure tile reducer and canonical scalar combiner. Integrated
+  flux uses original background-subtracted pixels in the promoted
+  1.5-major-beam nearest-owned aperture; peak brightness and moment shape use
+  exact original-pixel support; prepared background and RMS are reused; and
+  flux error uses the correlated-beam approximation. Edge and invalid-pixel
+  truncation remain distinct and observable.
+- Preserved the successful recovery estimator rather than substituting a new
+  position policy. Multiscale targets can supply the regularized direct-plus-B3
+  position plane, with the reviewed peak-to-mean compact safeguard and direct
+  fallback. Compact-deferred targets explicitly record direct-original
+  weighting until multiscale association supplies regularized evidence.
+- Added a bounded scheduler-independent stage over canonical deferred-island
+  shards. Each task reads one core plus the required aperture halo, treats all
+  other accepted compact support as an ownership barrier, enforces a hard
+  complete-window pixel ceiling, and returns only array-free scalar evidence.
+  Equivalent rectangular/shifted grids, retry, and Serial/Dask execution are
+  invariant; the published detection generation and accepted mask remain
+  unchanged.
+- Added analytic and integration coverage for original-pixel values,
+  nearest-owned apertures, regularized/direct position selection, correlated
+  uncertainty, isotropic and singular shapes, typed unavailability,
+  truncation, malformed evidence, compact barriers, hard admission,
+  generation/manifest/shard failures, and executor/partition invariance. The
+  complete affected suite passes 146 tests. `just coverage` passes 1,467 tests
+  with four expected failures at 94.48%, above the previous 94.43% project
+  baseline; the new measurement records reach 100% and the extended kernel
+  reaches 96%. `just check` passes Ruff, Pyright, 1,334 tests, and four
+  expected failures; `just docs-build` passes strictly.
+
+**Decision:** the fourth Step 3 item is complete. These records are not a
+combined source catalogue: Step 4 still owns cross-scale duplicate suppression
+and compact/extended association, and final Phase 5 qualification remains
+closed.
+
+**Immediate next step:** prove and retain exact Phase 4 compact products when
+multiscale evidence does not change association, then define the Step 4
+compact/extended ownership and duplicate-suppression rules before implementing
+combined catalogue publication.

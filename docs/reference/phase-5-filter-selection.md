@@ -72,6 +72,15 @@ array-free membership shards. This preserves the compact parent identity and
 lets the following original-pixel measurement stage process one shard tile at
 a time without gathering an arbitrarily large island.
 
+That bounded measurement stage now applies the promoted 1.5-major-beam
+nearest-owned aperture to original background-subtracted pixels, with other
+accepted supports acting as barriers. Flux uncertainty uses prepared local RMS
+and correlated beam area; truncation and unavailable position/shape
+uncertainties are explicit. The pure tile kernel accepts the recovery
+candidate's regularized direct-plus-B3 position plane and retains direct
+weighting for compact-concentrated or invalid regularized support. Cross-scale
+association and combined catalogue publication remain Step 4 work.
+
 ## Completed independent astrometry confirmation
 
 Step 2C-A froze a seed-disjoint 100-image confirmation manifest before

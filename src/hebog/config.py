@@ -360,6 +360,54 @@ class DeferredIslandCompletionConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class ExtendedEmissionMeasurementConfig:
+    """Governed original-pixel aperture and bounded-work policy."""
+
+    aperture_radius_beams: float
+    maximum_task_pixels: int
+    minimum_shape_pixels: int
+    covariance_relative_tolerance: float
+    denoised_position_maximum_peak_to_mean_ratio: float
+
+    def __post_init__(self) -> None:
+        """Require the reviewed aperture and explicit numerical limits."""
+        if (
+            not isfinite(self.aperture_radius_beams)
+            or self.aperture_radius_beams <= 0
+        ):
+            raise ValueError(
+                "aperture_radius_beams must be finite and positive"
+            )
+        if (
+            isinstance(self.maximum_task_pixels, bool)
+            or not isinstance(self.maximum_task_pixels, Integral)
+            or self.maximum_task_pixels < 1
+        ):
+            raise ValueError("maximum_task_pixels must be a positive integer")
+        if (
+            isinstance(self.minimum_shape_pixels, bool)
+            or not isinstance(self.minimum_shape_pixels, Integral)
+            or self.minimum_shape_pixels < _MINIMUM_SHAPE_PIXELS
+        ):
+            raise ValueError("minimum_shape_pixels must be an integer >= 3")
+        if (
+            not isfinite(self.covariance_relative_tolerance)
+            or not 0 < self.covariance_relative_tolerance < 1
+        ):
+            raise ValueError(
+                "covariance_relative_tolerance must be finite and in (0, 1)"
+            )
+        if (
+            not isfinite(self.denoised_position_maximum_peak_to_mean_ratio)
+            or self.denoised_position_maximum_peak_to_mean_ratio <= 1
+        ):
+            raise ValueError(
+                "denoised_position_maximum_peak_to_mean_ratio must be finite "
+                "and greater than 1"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class CompactMomentConfig:
     """Numerical availability policy for compact moment ellipses."""
 

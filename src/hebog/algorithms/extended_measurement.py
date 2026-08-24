@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import ceil, isfinite
+from math import atan2, ceil, degrees, fsum, hypot, isfinite, log, sqrt
 from numbers import Integral
 from typing import Literal, cast
 
@@ -19,6 +19,19 @@ from scipy.ndimage import (
     distance_transform_edt,
 )
 
+from hebog.config import ExtendedEmissionMeasurementConfig
+from hebog.data_models.measurement import (
+    ExtendedEmissionMeasurementResult,
+    ExtendedEmissionPhotometry,
+    ExtendedEmissionTarget,
+    ExtendedMeasurementGeometry,
+    ExtendedMeasurementTruncation,
+    ExtendedMomentShape,
+    MeasuredExtendedEmission,
+    UnavailableExtendedEmission,
+)
+from hebog.data_models.partitioning import TilePartition
+
 SegmentPositionUnavailableReason = Literal[
     "empty-finite-support",
     "nonpositive-segment-flux",
@@ -29,6 +42,7 @@ _MULTISCALE_CORE_MINIMUM_NEIGHBORS = 5
 _MULTISCALE_BOUNDARY_MINIMUM_SNR = 6.0
 _MULTISCALE_RECOVERY_RADIUS_BEAMS = 0.5
 _NEIGHBORHOOD_PIXEL_COUNT = 9
+_FWHM_FROM_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
 
 
 def _segment_label_plane(
@@ -309,4 +323,794 @@ def measure_detected_segment_position(
         support_pixel_count=support_pixel_count,
         integrated_weight=integrated_weight,
         unavailable_reason=None,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ExtendedEmissionTileTarget:
+    """One task-local positive label bound to a global measurement target."""
+
+    local_label: int
+    target: ExtendedEmissionTarget
+
+    def __post_init__(self) -> None:
+        """Require a positive task-local label."""
+        if (
+            isinstance(self.local_label, bool)
+            or not isinstance(self.local_label, Integral)
+            or self.local_label < 1
+        ):
+            raise ValueError("extended tile target label must be positive")
+
+
+@dataclass(frozen=True, slots=True)
+class ExtendedEmissionTilePartial:
+    """Array-free sufficient statistics from one non-overlapping tile core."""
+
+    target: ExtendedEmissionTarget
+    support_pixel_count: int
+    invalid_support_pixel_count: int
+    support_weight: float
+    support_x_weight: float
+    support_y_weight: float
+    support_xx_weight: float
+    support_xy_weight: float
+    support_yy_weight: float
+    peak_brightness_jy_per_beam: float | None
+    peak_position_yx: tuple[int, int] | None
+    regularized_position_requested: bool
+    invalid_regularized_support_pixel_count: int
+    regularized_support_weight: float
+    regularized_support_x_weight: float
+    regularized_support_y_weight: float
+    regularized_peak_signal_jy_per_beam: float | None
+    regularized_peak_position_yx: tuple[int, int] | None
+    aperture_pixel_count: int
+    observable_aperture_pixel_count: int
+    aperture_signal_sum_jy_per_beam: float
+    aperture_background_sum_jy_per_beam: float
+    aperture_rms_squared_sum: float
+
+    def __post_init__(self) -> None:
+        """Require non-negative counts and paired peak availability."""
+        counts = (
+            self.support_pixel_count,
+            self.invalid_support_pixel_count,
+            self.invalid_regularized_support_pixel_count,
+            self.aperture_pixel_count,
+            self.observable_aperture_pixel_count,
+        )
+        if any(value < 0 for value in counts):
+            raise ValueError("extended partial counts must be non-negative")
+        if self.invalid_support_pixel_count > self.support_pixel_count:
+            raise ValueError("invalid support count exceeds exact support")
+        if (
+            self.invalid_regularized_support_pixel_count
+            > self.support_pixel_count
+        ):
+            raise ValueError(
+                "invalid regularized-position count exceeds exact support"
+            )
+        if self.observable_aperture_pixel_count > self.aperture_pixel_count:
+            raise ValueError("observable aperture count exceeds its aperture")
+        if (self.peak_brightness_jy_per_beam is None) != (
+            self.peak_position_yx is None
+        ):
+            raise ValueError("extended partial peak availability disagrees")
+        if (self.regularized_peak_signal_jy_per_beam is None) != (
+            self.regularized_peak_position_yx is None
+        ):
+            raise ValueError(
+                "regularized-position partial peak availability disagrees"
+            )
+        if not self.regularized_position_requested and (
+            self.invalid_regularized_support_pixel_count
+            or self.regularized_support_weight
+            or self.regularized_support_x_weight
+            or self.regularized_support_y_weight
+            or self.regularized_peak_signal_jy_per_beam is not None
+        ):
+            raise ValueError(
+                "unrequested regularized-position evidence must be empty"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class ExtendedEmissionTilePlanes:
+    """Worker-local original pixels and aligned ownership label cores."""
+
+    residual_jy_per_beam: npt.ArrayLike
+    background_jy_per_beam: npt.ArrayLike
+    rms_jy_per_beam: npt.ArrayLike
+    valid_pixels: npt.ArrayLike
+    support_labels: npt.ArrayLike
+    aperture_labels: npt.ArrayLike
+    regularized_position_signal_jy_per_beam: npt.ArrayLike | None = None
+
+
+def _validated_extended_tile_arrays(
+    planes: ExtendedEmissionTilePlanes,
+    partition: TilePartition,
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.int32],
+    npt.NDArray[np.int32],
+    npt.NDArray[np.float64] | None,
+]:
+    """Validate aligned worker-owned original-pixel measurement planes."""
+    residual = np.asarray(planes.residual_jy_per_beam)
+    background = np.asarray(planes.background_jy_per_beam)
+    rms = np.asarray(planes.rms_jy_per_beam)
+    valid = np.asarray(planes.valid_pixels)
+    support = np.asarray(planes.support_labels)
+    aperture = np.asarray(planes.aperture_labels)
+    arrays = (residual, background, rms, valid, support, aperture)
+    if any(array.ndim != _IMAGE_DIMENSIONS for array in arrays) or any(
+        array.shape != partition.core_bounds.shape_yx for array in arrays
+    ):
+        raise ValueError(
+            "extended measurement planes must match the two-dimensional core"
+        )
+    if any(
+        array.dtype != np.dtype(np.float64)
+        for array in (residual, background, rms)
+    ):
+        raise TypeError("extended physical measurement planes must be float64")
+    if valid.dtype != np.dtype(np.bool_):
+        raise TypeError("extended measurement validity must be boolean")
+    if any(array.dtype != np.dtype(np.int32) for array in (support, aperture)):
+        raise TypeError("extended measurement labels must be int32")
+    if np.any(support < 0) or np.any(aperture < 0):
+        raise ValueError("extended measurement labels must be non-negative")
+    if np.any((support > 0) & (support != aperture)):
+        raise ValueError(
+            "extended exact support must retain aperture ownership"
+        )
+    regularized: npt.NDArray[np.float64] | None = None
+    if planes.regularized_position_signal_jy_per_beam is not None:
+        position_values = np.asarray(
+            planes.regularized_position_signal_jy_per_beam
+        )
+        if position_values.ndim != _IMAGE_DIMENSIONS or (
+            position_values.shape != partition.core_bounds.shape_yx
+        ):
+            raise ValueError(
+                "regularized position signal must match the task core"
+            )
+        if position_values.dtype != np.dtype(np.float64):
+            raise TypeError("regularized position signal must be float64")
+        regularized = position_values
+    return residual, background, rms, valid, support, aperture, regularized
+
+
+def _regularized_position_statistics(
+    signal: npt.NDArray[np.float64] | None,
+    exact_support: npt.NDArray[np.bool_],
+    observable_support: npt.NDArray[np.bool_],
+    coordinate_grids_xy: tuple[
+        npt.NDArray[np.float64],
+        npt.NDArray[np.float64],
+    ],
+    origin_yx: tuple[int, int],
+) -> tuple[
+    int,
+    float,
+    float,
+    float,
+    float | None,
+    tuple[int, int] | None,
+]:
+    """Reduce one optional regularized position plane to scalar evidence."""
+    if signal is None:
+        return 0, 0.0, 0.0, 0.0, None, None
+    x_grid, y_grid = coordinate_grids_xy
+    support = observable_support & np.isfinite(signal)
+    values = signal[support]
+    invalid_count = int(np.count_nonzero(exact_support & ~support))
+    weight = float(np.sum(values, dtype=np.float64))
+    x_weight = float(np.sum(x_grid[support] * values, dtype=np.float64))
+    y_weight = float(np.sum(y_grid[support] * values, dtype=np.float64))
+    if not values.size:
+        return invalid_count, weight, x_weight, y_weight, None, None
+    peak_flat = int(np.argmax(np.where(support, signal, -np.inf)))
+    peak_y, peak_x = np.unravel_index(peak_flat, signal.shape)
+    origin_y, origin_x = origin_yx
+    return (
+        invalid_count,
+        weight,
+        x_weight,
+        y_weight,
+        float(signal[peak_y, peak_x]),
+        (int(peak_y) + origin_y, int(peak_x) + origin_x),
+    )
+
+
+def measure_extended_emission_tile(
+    planes: ExtendedEmissionTilePlanes,
+    partition: TilePartition,
+    targets: tuple[ExtendedEmissionTileTarget, ...],
+) -> tuple[ExtendedEmissionTilePartial, ...]:
+    """Reduce one bounded core to array-free extended-source statistics."""
+    residual, background, rms, valid, support, aperture, regularized = (
+        _validated_extended_tile_arrays(
+            planes,
+            partition,
+        )
+    )
+    ordered = tuple(sorted(targets, key=lambda item: item.local_label))
+    local_labels = tuple(item.local_label for item in ordered)
+    object_ids = tuple(item.target.object_id for item in ordered)
+    if (
+        targets != ordered
+        or len(set(local_labels)) != len(local_labels)
+        or len(set(object_ids)) != len(object_ids)
+    ):
+        raise ValueError("extended tile targets must be unique and canonical")
+    known_labels = set(local_labels)
+    observed_labels = {int(value) for value in np.unique(aperture)} - {0}
+    if not observed_labels.issubset(known_labels):
+        raise ValueError("extended aperture contains an unknown target label")
+
+    bounds = partition.core_bounds
+    coordinate_grids = np.indices(support.shape, dtype=np.float64)
+    y_grid = np.asarray(coordinate_grids[0], dtype=np.float64)
+    x_grid = np.asarray(coordinate_grids[1], dtype=np.float64)
+    x_grid += bounds.x_start
+    y_grid += bounds.y_start
+    scientifically_valid = (
+        valid
+        & np.isfinite(residual)
+        & np.isfinite(background)
+        & np.isfinite(rms)
+        & (rms > 0)
+    )
+    partials: list[ExtendedEmissionTilePartial] = []
+    for item in ordered:
+        exact = support == item.local_label
+        owned_aperture = aperture == item.local_label
+        if not np.any(exact) and not np.any(owned_aperture):
+            continue
+        observable_support = exact & scientifically_valid
+        observable_aperture = owned_aperture & scientifically_valid
+        support_values = residual[observable_support]
+        support_x = x_grid[observable_support]
+        support_y = y_grid[observable_support]
+        if support_values.size:
+            peak_flat = int(
+                np.argmax(np.where(observable_support, residual, -np.inf))
+            )
+            peak_y, peak_x = np.unravel_index(peak_flat, residual.shape)
+            peak_value: float | None = float(residual[peak_y, peak_x])
+            peak_position: tuple[int, int] | None = (
+                int(peak_y) + bounds.y_start,
+                int(peak_x) + bounds.x_start,
+            )
+        else:
+            peak_value = None
+            peak_position = None
+        (
+            regularized_invalid_count,
+            regularized_weight,
+            regularized_x_weight,
+            regularized_y_weight,
+            regularized_peak_value,
+            regularized_peak_position,
+        ) = _regularized_position_statistics(
+            regularized,
+            exact,
+            observable_support,
+            (x_grid, y_grid),
+            (bounds.y_start, bounds.x_start),
+        )
+        partials.append(
+            ExtendedEmissionTilePartial(
+                target=item.target,
+                support_pixel_count=int(np.count_nonzero(exact)),
+                invalid_support_pixel_count=int(
+                    np.count_nonzero(exact & ~scientifically_valid)
+                ),
+                support_weight=float(np.sum(support_values, dtype=np.float64)),
+                support_x_weight=float(
+                    np.sum(support_x * support_values, dtype=np.float64)
+                ),
+                support_y_weight=float(
+                    np.sum(support_y * support_values, dtype=np.float64)
+                ),
+                support_xx_weight=float(
+                    np.sum(
+                        support_x * support_x * support_values,
+                        dtype=np.float64,
+                    )
+                ),
+                support_xy_weight=float(
+                    np.sum(
+                        support_x * support_y * support_values,
+                        dtype=np.float64,
+                    )
+                ),
+                support_yy_weight=float(
+                    np.sum(
+                        support_y * support_y * support_values,
+                        dtype=np.float64,
+                    )
+                ),
+                peak_brightness_jy_per_beam=peak_value,
+                peak_position_yx=peak_position,
+                regularized_position_requested=regularized is not None,
+                invalid_regularized_support_pixel_count=(
+                    regularized_invalid_count
+                ),
+                regularized_support_weight=regularized_weight,
+                regularized_support_x_weight=regularized_x_weight,
+                regularized_support_y_weight=regularized_y_weight,
+                regularized_peak_signal_jy_per_beam=(regularized_peak_value),
+                regularized_peak_position_yx=regularized_peak_position,
+                aperture_pixel_count=int(np.count_nonzero(owned_aperture)),
+                observable_aperture_pixel_count=int(
+                    np.count_nonzero(observable_aperture)
+                ),
+                aperture_signal_sum_jy_per_beam=float(
+                    np.sum(residual[observable_aperture], dtype=np.float64)
+                ),
+                aperture_background_sum_jy_per_beam=float(
+                    np.sum(background[observable_aperture], dtype=np.float64)
+                ),
+                aperture_rms_squared_sum=float(
+                    np.sum(rms[observable_aperture] ** 2, dtype=np.float64)
+                ),
+            )
+        )
+    return tuple(partials)
+
+
+def _truncation(
+    target: ExtendedEmissionTarget,
+    *,
+    aperture_pixel_count: int,
+    observable_aperture_pixel_count: int,
+    aperture_radius_pixels: int,
+    image_shape_yx: tuple[int, int],
+) -> ExtendedMeasurementTruncation:
+    """Return explicit edge and invalid-pixel aperture truncation."""
+    if aperture_pixel_count < 1:
+        raise ValueError(
+            "extended target has no in-image measurement aperture"
+        )
+    fraction = observable_aperture_pixel_count / aperture_pixel_count
+    edge = (
+        target.bounds.y_start < aperture_radius_pixels
+        or target.bounds.x_start < aperture_radius_pixels
+        or image_shape_yx[0] - target.bounds.y_stop < aperture_radius_pixels
+        or image_shape_yx[1] - target.bounds.x_stop < aperture_radius_pixels
+    )
+    invalid = observable_aperture_pixel_count < aperture_pixel_count
+    status: Literal[
+        "none",
+        "image-edge",
+        "invalid-pixels",
+        "image-edge-and-invalid-pixels",
+    ]
+    if edge and invalid:
+        status = "image-edge-and-invalid-pixels"
+    elif edge:
+        status = "image-edge"
+    elif invalid:
+        status = "invalid-pixels"
+    else:
+        status = "none"
+    return ExtendedMeasurementTruncation(
+        status=status,
+        observable_aperture_fraction=fraction,
+    )
+
+
+def _unavailable_extended(
+    target: ExtendedEmissionTarget,
+    reason: Literal[
+        "non-finite-support",
+        "non-positive-support-flux",
+        "non-positive-aperture-flux",
+    ],
+    truncation: ExtendedMeasurementTruncation,
+) -> UnavailableExtendedEmission:
+    """Construct one typed unavailable original-pixel result."""
+    return UnavailableExtendedEmission(
+        target=target,
+        reason=reason,
+        truncation=truncation,
+    )
+
+
+def _extended_shape(
+    *,
+    covariance_xx: float,
+    covariance_xy: float,
+    covariance_yy: float,
+    config: ExtendedEmissionMeasurementConfig,
+) -> tuple[
+    ExtendedMomentShape | None,
+    Literal["underdetermined-support", "singular-covariance"] | None,
+]:
+    """Return one positive-definite moment ellipse or an explicit reason."""
+    trace = covariance_xx + covariance_yy
+    discriminant = hypot(covariance_xx - covariance_yy, 2 * covariance_xy)
+    major_variance = 0.5 * (trace + discriminant)
+    minor_variance = 0.5 * (trace - discriminant)
+    if (
+        not all(
+            isfinite(value)
+            for value in (
+                covariance_xx,
+                covariance_xy,
+                covariance_yy,
+                major_variance,
+                minor_variance,
+            )
+        )
+        or major_variance <= 0
+        or minor_variance
+        <= config.covariance_relative_tolerance * major_variance
+    ):
+        return None, "singular-covariance"
+    if discriminant <= config.covariance_relative_tolerance * trace:
+        angle = 0.0
+    else:
+        angle = (
+            degrees(
+                0.5 * atan2(2 * covariance_xy, covariance_xx - covariance_yy)
+            )
+            % 180.0
+        )
+    return (
+        ExtendedMomentShape(
+            covariance_xx_pixels_squared=covariance_xx,
+            covariance_xy_pixels_squared=covariance_xy,
+            covariance_yy_pixels_squared=covariance_yy,
+            major_fwhm_pixels=_FWHM_FROM_SIGMA * sqrt(major_variance),
+            minor_fwhm_pixels=_FWHM_FROM_SIGMA * sqrt(minor_variance),
+            position_angle_degrees=angle,
+        ),
+        None,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _ExtendedEmissionAggregate:
+    """Canonical scalar totals for one complete extended target."""
+
+    target: ExtendedEmissionTarget
+    support_pixel_count: int
+    invalid_support_pixel_count: int
+    support_weight: float
+    support_x_weight: float
+    support_y_weight: float
+    support_xx_weight: float
+    support_xy_weight: float
+    support_yy_weight: float
+    peak_brightness_jy_per_beam: float
+    peak_position_yx: tuple[int, int]
+    regularized_position_requested: bool
+    invalid_regularized_support_pixel_count: int
+    regularized_support_weight: float
+    regularized_support_x_weight: float
+    regularized_support_y_weight: float
+    regularized_peak_signal_jy_per_beam: float
+    regularized_peak_position_yx: tuple[int, int]
+    aperture_pixel_count: int
+    observable_aperture_pixel_count: int
+    aperture_signal_sum_jy_per_beam: float
+    aperture_background_sum_jy_per_beam: float
+    aperture_rms_squared_sum: float
+
+
+def _aggregate_extended_target(
+    target: ExtendedEmissionTarget,
+    partials: list[ExtendedEmissionTilePartial],
+) -> _ExtendedEmissionAggregate:
+    """Combine one target's scalar partials in deterministic task order."""
+    if not partials:
+        raise ValueError("extended target has no measurement partials")
+    support_count = sum(item.support_pixel_count for item in partials)
+    if support_count != target.support_pixel_count:
+        raise ValueError("extended partials disagree with target support")
+    peaks = tuple(
+        (item.peak_brightness_jy_per_beam, item.peak_position_yx)
+        for item in partials
+        if item.peak_brightness_jy_per_beam is not None
+        and item.peak_position_yx is not None
+    )
+    if not peaks:
+        peak_value, peak_position = -np.inf, (-1, -1)
+    else:
+        selected_value, selected_position = min(
+            peaks,
+            key=lambda item: (
+                -item[0],
+                item[1],
+            ),
+        )
+        peak_value = selected_value
+        peak_position = selected_position
+    regularized_peaks = tuple(
+        (
+            item.regularized_peak_signal_jy_per_beam,
+            item.regularized_peak_position_yx,
+        )
+        for item in partials
+        if item.regularized_peak_signal_jy_per_beam is not None
+        and item.regularized_peak_position_yx is not None
+    )
+    if not regularized_peaks:
+        regularized_peak_value = -np.inf
+        regularized_peak_position = (-1, -1)
+    else:
+        regularized_peak_value, regularized_peak_position = min(
+            regularized_peaks,
+            key=lambda item: (-item[0], item[1]),
+        )
+    regularized_requested = {
+        item.regularized_position_requested for item in partials
+    }
+    if len(regularized_requested) != 1:
+        raise ValueError(
+            "extended partials disagree on regularized position provenance"
+        )
+    return _ExtendedEmissionAggregate(
+        target=target,
+        support_pixel_count=support_count,
+        invalid_support_pixel_count=sum(
+            item.invalid_support_pixel_count for item in partials
+        ),
+        support_weight=fsum(item.support_weight for item in partials),
+        support_x_weight=fsum(item.support_x_weight for item in partials),
+        support_y_weight=fsum(item.support_y_weight for item in partials),
+        support_xx_weight=fsum(item.support_xx_weight for item in partials),
+        support_xy_weight=fsum(item.support_xy_weight for item in partials),
+        support_yy_weight=fsum(item.support_yy_weight for item in partials),
+        peak_brightness_jy_per_beam=peak_value,
+        peak_position_yx=peak_position,
+        regularized_position_requested=regularized_requested.pop(),
+        invalid_regularized_support_pixel_count=sum(
+            item.invalid_regularized_support_pixel_count for item in partials
+        ),
+        regularized_support_weight=fsum(
+            item.regularized_support_weight for item in partials
+        ),
+        regularized_support_x_weight=fsum(
+            item.regularized_support_x_weight for item in partials
+        ),
+        regularized_support_y_weight=fsum(
+            item.regularized_support_y_weight for item in partials
+        ),
+        regularized_peak_signal_jy_per_beam=regularized_peak_value,
+        regularized_peak_position_yx=regularized_peak_position,
+        aperture_pixel_count=sum(
+            item.aperture_pixel_count for item in partials
+        ),
+        observable_aperture_pixel_count=sum(
+            item.observable_aperture_pixel_count for item in partials
+        ),
+        aperture_signal_sum_jy_per_beam=fsum(
+            item.aperture_signal_sum_jy_per_beam for item in partials
+        ),
+        aperture_background_sum_jy_per_beam=fsum(
+            item.aperture_background_sum_jy_per_beam for item in partials
+        ),
+        aperture_rms_squared_sum=fsum(
+            item.aperture_rms_squared_sum for item in partials
+        ),
+    )
+
+
+def _aggregate_shape(
+    aggregate: _ExtendedEmissionAggregate,
+    *,
+    centroid_xy: tuple[float, float],
+    config: ExtendedEmissionMeasurementConfig,
+) -> tuple[
+    ExtendedMomentShape | None,
+    Literal["underdetermined-support", "singular-covariance"] | None,
+]:
+    """Derive one exact-support moment ellipse from scalar totals."""
+    if aggregate.support_pixel_count < config.minimum_shape_pixels:
+        return None, "underdetermined-support"
+    centroid_x, centroid_y = centroid_xy
+    return _extended_shape(
+        covariance_xx=(
+            aggregate.support_xx_weight / aggregate.support_weight
+            - centroid_x**2
+        ),
+        covariance_xy=(
+            aggregate.support_xy_weight / aggregate.support_weight
+            - centroid_x * centroid_y
+        ),
+        covariance_yy=(
+            aggregate.support_yy_weight / aggregate.support_weight
+            - centroid_y**2
+        ),
+        config=config,
+    )
+
+
+def _selected_position(
+    aggregate: _ExtendedEmissionAggregate,
+    config: ExtendedEmissionMeasurementConfig,
+) -> tuple[
+    tuple[float, float],
+    tuple[int, int],
+    Literal[
+        "direct-original-residual",
+        "regularized-direct-plus-multiscale",
+    ],
+]:
+    """Apply the reviewed compact-concentration safeguard and fallback."""
+    direct_centroid = (
+        aggregate.support_x_weight / aggregate.support_weight,
+        aggregate.support_y_weight / aggregate.support_weight,
+    )
+    direct_mean = aggregate.support_weight / aggregate.support_pixel_count
+    concentration = (
+        aggregate.peak_brightness_jy_per_beam / direct_mean
+        if isfinite(direct_mean) and direct_mean > 0
+        else np.inf
+    )
+    regularized_available = (
+        aggregate.regularized_position_requested
+        and not aggregate.invalid_regularized_support_pixel_count
+        and isfinite(aggregate.regularized_support_weight)
+        and aggregate.regularized_support_weight > 0
+        and isfinite(aggregate.regularized_peak_signal_jy_per_beam)
+    )
+    if (
+        regularized_available
+        and concentration
+        <= config.denoised_position_maximum_peak_to_mean_ratio
+    ):
+        return (
+            (
+                aggregate.regularized_support_x_weight
+                / aggregate.regularized_support_weight,
+                aggregate.regularized_support_y_weight
+                / aggregate.regularized_support_weight,
+            ),
+            aggregate.regularized_peak_position_yx,
+            "regularized-direct-plus-multiscale",
+        )
+    return (
+        direct_centroid,
+        aggregate.peak_position_yx,
+        "direct-original-residual",
+    )
+
+
+def _measurement_from_aggregate(
+    aggregate: _ExtendedEmissionAggregate,
+    geometry: ExtendedMeasurementGeometry,
+    config: ExtendedEmissionMeasurementConfig,
+    *,
+    image_shape_yx: tuple[int, int],
+) -> ExtendedEmissionMeasurementResult:
+    """Apply availability semantics to one complete scalar aggregate."""
+    radius_pixels = ceil(
+        config.aperture_radius_beams
+        * geometry.restoring_beam_major_fwhm_pixels
+    )
+    truncation = _truncation(
+        aggregate.target,
+        aperture_pixel_count=aggregate.aperture_pixel_count,
+        observable_aperture_pixel_count=(
+            aggregate.observable_aperture_pixel_count
+        ),
+        aperture_radius_pixels=radius_pixels,
+        image_shape_yx=image_shape_yx,
+    )
+    if aggregate.invalid_support_pixel_count:
+        return _unavailable_extended(
+            aggregate.target,
+            "non-finite-support",
+            truncation,
+        )
+    if not isfinite(aggregate.support_weight) or aggregate.support_weight <= 0:
+        return _unavailable_extended(
+            aggregate.target,
+            "non-positive-support-flux",
+            truncation,
+        )
+    if (
+        aggregate.observable_aperture_pixel_count < 1
+        or not isfinite(aggregate.aperture_signal_sum_jy_per_beam)
+        or aggregate.aperture_signal_sum_jy_per_beam <= 0
+    ):
+        return _unavailable_extended(
+            aggregate.target,
+            "non-positive-aperture-flux",
+            truncation,
+        )
+    shape_centroid = (
+        aggregate.support_x_weight / aggregate.support_weight,
+        aggregate.support_y_weight / aggregate.support_weight,
+    )
+    shape, shape_reason = _aggregate_shape(
+        aggregate,
+        centroid_xy=shape_centroid,
+        config=config,
+    )
+    centroid, position_peak_yx, position_weight_kind = _selected_position(
+        aggregate,
+        config,
+    )
+    observable_count = aggregate.observable_aperture_pixel_count
+    ratio = geometry.pixel_to_beam_area_ratio
+    return MeasuredExtendedEmission(
+        target=aggregate.target,
+        photometry=ExtendedEmissionPhotometry(
+            peak_brightness_jy_per_beam=(
+                aggregate.peak_brightness_jy_per_beam
+            ),
+            integrated_flux_jy=(
+                aggregate.aperture_signal_sum_jy_per_beam * ratio
+            ),
+            integrated_flux_error_jy=sqrt(
+                max(0.0, ratio * aggregate.aperture_rms_squared_sum)
+            ),
+            local_rms_jy_per_beam=sqrt(
+                aggregate.aperture_rms_squared_sum / observable_count
+            ),
+            mean_background_jy_per_beam=(
+                aggregate.aperture_background_sum_jy_per_beam
+                / observable_count
+            ),
+            aperture_pixel_count=aggregate.aperture_pixel_count,
+            observable_aperture_pixel_count=observable_count,
+        ),
+        centroid_xy=centroid,
+        peak_position_xy=(
+            position_peak_yx[1],
+            position_peak_yx[0],
+        ),
+        shape=shape,
+        shape_status="available" if shape is not None else "unavailable",
+        shape_unavailable_reason=shape_reason,
+        truncation=truncation,
+        position_weight_kind=position_weight_kind,
+    )
+
+
+def combine_extended_emission_partials(
+    targets: tuple[ExtendedEmissionTarget, ...],
+    partials: tuple[ExtendedEmissionTilePartial, ...],
+    geometry: ExtendedMeasurementGeometry,
+    config: ExtendedEmissionMeasurementConfig,
+    *,
+    image_shape_yx: tuple[int, int],
+) -> tuple[ExtendedEmissionMeasurementResult, ...]:
+    """Combine bounded tile statistics into canonical extended measurements."""
+    if min(image_shape_yx) < 1:
+        raise ValueError("extended measurement image shape must be positive")
+    if targets != tuple(
+        sorted(targets, key=lambda item: item.object_id)
+    ) or len({target.object_id for target in targets}) != len(targets):
+        raise ValueError(
+            "extended measurement targets must be unique and canonical"
+        )
+    targets_by_id = {target.object_id: target for target in targets}
+    grouped: dict[str, list[ExtendedEmissionTilePartial]] = {
+        target.object_id: [] for target in targets
+    }
+    for partial in partials:
+        expected = targets_by_id.get(partial.target.object_id)
+        if expected is None or partial.target != expected:
+            raise ValueError("extended partial belongs to an unknown target")
+        grouped[partial.target.object_id].append(partial)
+    return tuple(
+        _measurement_from_aggregate(
+            _aggregate_extended_target(target, grouped[target.object_id]),
+            geometry,
+            config,
+            image_shape_yx=image_shape_yx,
+        )
+        for target in targets
     )
