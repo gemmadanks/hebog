@@ -378,7 +378,7 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
 
     assert contract.status == "reviewed-development"
-    assert contract.schema_version == 3
+    assert contract.schema_version == 4
     assert contract.scales.reference == "restoring-beam-major-fwhm"
     assert contract.scales.configured_orders == (1, 2, 3)
     assert contract.scales.nominal_fwhm_multipliers == (1.0, 2.0, 4.0)
@@ -427,6 +427,21 @@ def test_phase_five_contract_freezes_multiscale_meanings() -> None:
     )
     assert contract.combined_catalogue.component_identity == (
         "preserve-compact-gaussians-and-create-no-extended-gaussian"
+    )
+    assert contract.combined_catalogue.extended_measurement == (
+        "original-pixel-peak-centroid-flux-and-segment-moment-extent"
+    )
+    assert contract.combined_catalogue.extent_compatibility == (
+        "major-segment-moment-extent-in-dc-maj-with-zero-extended-gaussians"
+    )
+    assert contract.combined_catalogue.mask == (
+        "blockwise-compact-or-accepted-extended-support"
+    )
+    assert contract.combined_catalogue.rms == (
+        "reuse-exact-phase-2-materialized-product"
+    )
+    assert contract.combined_catalogue.provenance == (
+        "diagnostics-version-2-per-extended-source-scale-and-support"
     )
     assert contract.qualification_policy == "freeze-before-result-inspection"
     assert contract.development_review == "ai-scientific-review-recorded"

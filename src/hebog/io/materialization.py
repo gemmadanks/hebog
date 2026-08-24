@@ -31,6 +31,8 @@ from hebog.data_models.catalogues import (
 )
 from hebog.data_models.images import ImageMetadata
 from hebog.data_models.source_finding import (
+    ContinuumSourceFindingDiagnostics,
+    DiagnosticsProduct,
     MaterializedProduct,
     ProductRole,
     SourceFindingDiagnostics,
@@ -40,6 +42,10 @@ from hebog.io.fits import FitsImageSource, InvalidFitsImageError
 
 _CONTENT_SCHEMA_VERSION = 1
 _CATALOGUE_SCHEMA_VERSION = 3
+_CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION = 2
+_DIAGNOSTICS_SCHEMA_VERSIONS = frozenset(
+    {_CONTENT_SCHEMA_VERSION, _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION}
+)
 _IMAGE_DIMENSIONS = 2
 _IMAGE_ROLES = {"rms": "RMS", "source-filtering-mask": "MASK"}
 _IMAGE_MEDIA_TYPE = "image/fits"
@@ -161,6 +167,7 @@ def _product_record(
     role: ProductRole,
     media_type: Literal["application/fits", "image/fits", "application/json"],
     scientific_status: Literal["valid", "unavailable"],
+    content_schema_version: int | None = None,
 ) -> MaterializedProduct:
     """Describe one validated, closed product file."""
     byte_count, content_sha256 = _content_identity(path)
@@ -172,9 +179,13 @@ def _product_record(
         content_sha256=content_sha256,
         scientific_status=scientific_status,
         content_schema_version=(
-            _CATALOGUE_SCHEMA_VERSION
-            if role == "source-catalogue"
-            else _CONTENT_SCHEMA_VERSION
+            content_schema_version
+            if content_schema_version is not None
+            else (
+                _CATALOGUE_SCHEMA_VERSION
+                if role == "source-catalogue"
+                else _CONTENT_SCHEMA_VERSION
+            )
         ),
     )
 
@@ -193,12 +204,18 @@ def _resolve_product_path(
             f"expected {expected_role} product role, got "
             f"{product.product_role}"
         )
-    expected_schema_version = (
-        _CATALOGUE_SCHEMA_VERSION
-        if expected_role == "source-catalogue"
-        else _CONTENT_SCHEMA_VERSION
+    expected_schema_versions = (
+        _DIAGNOSTICS_SCHEMA_VERSIONS
+        if expected_role == "diagnostics"
+        else frozenset(
+            {
+                _CATALOGUE_SCHEMA_VERSION
+                if expected_role == "source-catalogue"
+                else _CONTENT_SCHEMA_VERSION
+            }
+        )
     )
-    if product.content_schema_version != expected_schema_version:
+    if product.content_schema_version not in expected_schema_versions:
         raise UnsupportedMaterializedProductError(
             f"unsupported materialized product schema: "
             f"{product.content_schema_version}"
@@ -231,6 +248,7 @@ def _materialize(  # noqa: PLR0913
     role: ProductRole,
     media_type: Literal["application/fits", "image/fits", "application/json"],
     scientific_status: Literal["valid", "unavailable"],
+    content_schema_version: int | None = None,
 ) -> MaterializedProduct:
     """Validate a same-directory temporary file before publishing it."""
     path = Path(path)
@@ -244,6 +262,7 @@ def _materialize(  # noqa: PLR0913
             role=role,
             media_type=media_type,
             scientific_status=scientific_status,
+            content_schema_version=content_schema_version,
         )
         if path.exists():
             current = _product_record(
@@ -251,6 +270,7 @@ def _materialize(  # noqa: PLR0913
                 role=role,
                 media_type=media_type,
                 scientific_status=scientific_status,
+                content_schema_version=content_schema_version,
             )
             if (
                 current.byte_count == candidate.byte_count
@@ -266,6 +286,7 @@ def _materialize(  # noqa: PLR0913
             role=role,
             media_type=media_type,
             scientific_status=scientific_status,
+            content_schema_version=content_schema_version,
         )
     finally:
         temporary.unlink(missing_ok=True)
@@ -1155,8 +1176,13 @@ class FitsProductImageSource:
 
 def read_diagnostics_product(
     product_or_path: MaterializedProduct | Path,
-) -> SourceFindingDiagnostics:
+) -> DiagnosticsProduct:
     """Read and strictly validate canonical diagnostics JSON."""
+    recorded_schema_version = (
+        product_or_path.content_schema_version
+        if isinstance(product_or_path, MaterializedProduct)
+        else None
+    )
     path = _resolve_product_path(
         product_or_path,
         expected_role="diagnostics",
@@ -1167,12 +1193,23 @@ def read_diagnostics_product(
         if not isinstance(raw_document, dict):
             raise ValueError("diagnostics root must be an object")
         schema_version = raw_document.get("schema_version")
-        if schema_version != _CONTENT_SCHEMA_VERSION:
-            raise UnsupportedMaterializedProductError(
-                f"unsupported diagnostics content schema: {schema_version}"
+        if (
+            recorded_schema_version is not None
+            and schema_version != recorded_schema_version
+        ):
+            raise InvalidMaterializedProductError(
+                "diagnostics content schema differs from product record"
             )
-        return SourceFindingDiagnostics.from_json_bytes(payload)
+        if schema_version == _CONTENT_SCHEMA_VERSION:
+            return SourceFindingDiagnostics.from_json_bytes(payload)
+        if schema_version == _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION:
+            return ContinuumSourceFindingDiagnostics.from_json_bytes(payload)
+        raise UnsupportedMaterializedProductError(
+            f"unsupported diagnostics content schema: {schema_version}"
+        )
     except UnsupportedMaterializedProductError:
+        raise
+    except InvalidMaterializedProductError:
         raise
     except (
         OSError,
@@ -1188,7 +1225,7 @@ def read_diagnostics_product(
 
 def write_diagnostics_product(
     path: Path,
-    diagnostics: SourceFindingDiagnostics,
+    diagnostics: DiagnosticsProduct,
 ) -> MaterializedProduct:
     """Write one canonical, idempotent diagnostics JSON product."""
 
@@ -1202,4 +1239,5 @@ def write_diagnostics_product(
         role="diagnostics",
         media_type=_DIAGNOSTICS_MEDIA_TYPE,
         scientific_status="valid",
+        content_schema_version=diagnostics.schema_version,
     )

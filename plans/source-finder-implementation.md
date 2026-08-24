@@ -349,9 +349,10 @@ overall mask-precision regression UCL 0.04940 against the pinned-master 0.05
 margin; keep both as explicit regression watchpoints. Five compact
 truth-absolute diagnostics remain outside stronger report-only envelopes, but
 they are not binding gates and all reference comparisons pass. This campaign
-contains no runtime-performance gate and supports no speed claim. Step 3 is
-open; Phase 5 qualification, incremental performance, independent acceptance,
-and the later Rapthor cutover remain outstanding.
+contains no runtime-performance gate and supports no speed claim. Steps 3 and
+4 are complete; bounded deterministic execution is next. Phase 5
+qualification, incremental performance, independent acceptance, and the later
+Rapthor cutover remain outstanding.
 
 ## 7. Delivery plan
 
@@ -536,8 +537,15 @@ and the later Rapthor cutover remain outstanding.
       final-state record cap. State schema 2 carries disjoint accepted and
       deferred identity sets; missing dispositions, omissions, failed states,
       duplicate ownership, and unknown terminal evidence all block completion.
-- [ ] Materialise the combined catalogue, mask, RMS, provenance, diagnostics,
+- [x] Materialise the combined catalogue, mask, RMS, provenance, diagnostics,
       and Rapthor compatibility view without changing compact-only output.
+      Compact-only composition reuses the exact Phase 4 catalogue and RMS
+      records and reproduces identical internal-catalogue, mask, diagnostics,
+      and Rapthor FITS bytes. Mixed output retains every compact source and
+      Gaussian, adds one irregular row per accepted association, unions only
+      accepted extended support into the mask, and records scale/support
+      provenance in diagnostics schema 2. Contract schema 4 freezes the
+      original-pixel peak/flux and characteristic-extent semantics.
 
 #### 5. Prove bounded deterministic execution
 

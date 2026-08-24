@@ -5,8 +5,8 @@ and cross-finder gate, and Phase 5 Step 3 is complete. Compact Gaussian
 astrometry remains unchanged; bounded multiscale detection, deferred-island
 completion, original-pixel extended measurement, and the compact-preservation
 boundary are implemented. Step 4 adjacent-scale association, compact context,
-stable combined identities, and bounded terminal-state reduction are also
-implemented. Catalogue row and product construction, bounded-execution proof,
+stable combined identities, bounded terminal-state reduction, and final
+product construction are also implemented. Bounded-execution proof,
 optimization, and untouched qualification remain open; this contract does not
 yet establish production multiscale equivalence.
 
@@ -15,16 +15,18 @@ The approved Step 4 policy is recorded in the
 Named approval on 2026-08-24 froze the association rules in schema 2. Schema 3
 adds the implemented combined-island, extended-source, and zero-extended-
 Gaussian identity rules without changing that approved association policy.
-The bounded adjacent-scale and compact-context kernels, deterministic combined
-identity derivation, and terminal-state reduction are implemented; catalogue
-row and product construction remain open.
+Schema 4 adds the implemented catalogue-row, mask, RMS-reuse, provenance,
+diagnostics, and Rapthor-view semantics. The bounded adjacent-scale and
+compact-context kernels, deterministic combined identity derivation,
+terminal-state reduction, and final product construction are implemented.
 
 The 2026-08-08 community-practice review nominated residual B3-spline à trous
 reconstruction, morphology-independent support growth, and original-image
 measurement. Steps 2C through 2C-HR evaluated and confirmed its explicit
 detected-segment position without changing the frozen gates or opening
-qualification. The representation remains a comparison candidate, not a
-production selection, until external non-inferiority passes.
+qualification. The recovery campaign established it as the passing
+development selection. It is not a production selection until untouched
+qualification, bounded execution, performance, and independent review pass.
 
 Gemma Danks asked Codex to complete Phase 5 Step 1. Codex performed the named
 scientific and engineering review recorded here as an AI-conducted synthesis
@@ -97,6 +99,16 @@ The machine-readable meanings are in
   Compact Gaussian components remain exact, and the Rapthor view can consume
   the extended `SourceCandidate` row directly because it materialises source
   rows rather than requiring one component per source.
+- Extended rows use the detected-segment flux centroid, original-pixel peak
+  brightness and integrated flux, and local RMS. Their segment-moment major
+  extent is exposed in the Rapthor `DC_Maj` field as a characteristic extent,
+  with an explicit quality flag; it is not represented as a fitted or
+  deconvolved Gaussian ellipse.
+- The final source-filtering mask is the bounded blockwise union of the Phase
+  4 compact mask and accepted extended support. The Phase 2 RMS
+  `MaterializedProduct` is reused exactly rather than recomputed or rewritten.
+  Diagnostics schema 2 records one canonical scale/support provenance record
+  per extended source; compact-only results retain diagnostics schema 1.
 - The pre-association preservation boundary recognizes only `extended-only`
   evidence with no compact source identities as non-altering. It returns the
   exact completed compact object. Any compact-touching or ambiguous relation
@@ -258,8 +270,8 @@ Residual risks are explicit:
   threshold-dependent location of irregular emission. The new half-beam tail
   is a segment-repeatability gate and does not replace the compact 0.10/0.25
   astrometry requirement.
-- The internal records establish meanings, not a supported public API or
-  completed combined catalogue implementation.
+- The internal records and product constructors establish development
+  semantics, not a stable public API or a qualification result.
 
 The Step 2C-H human decision approved the
 [technical pre-review](phase-5-astrometry-pre-review.md). The prospective

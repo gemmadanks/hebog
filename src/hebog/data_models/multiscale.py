@@ -272,6 +272,7 @@ class ExtendedEmissionMeasurement(_MultiscaleModel):
     centroid_xy: tuple[float, float]
     centroid_kind: Literal["detected-segment-flux-centroid"]
     peak_position_xy: tuple[int, int]
+    peak_flux_jy_per_beam: float = Field(gt=0)
     host_position_claim: Literal[False]
     position_covariance_pixels_squared: None = None
     position_uncertainty_status: Literal["unavailable"]
@@ -284,7 +285,7 @@ class ExtendedEmissionMeasurement(_MultiscaleModel):
     position_angle_degrees: float
     visible_model_fraction: float = Field(gt=0, le=1)
     flux_uncertainty_status: Literal["available", "unavailable"]
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
 
     @model_validator(mode="after")
     def validate_measurement(self) -> Self:
@@ -292,6 +293,7 @@ class ExtendedEmissionMeasurement(_MultiscaleModel):
         _require_identifier(self.association_id, field_name="association ID")
         values = (
             *self.centroid_xy,
+            self.peak_flux_jy_per_beam,
             self.integrated_flux_jy,
             self.local_rms_jy_per_beam,
             self.major_extent_beams,

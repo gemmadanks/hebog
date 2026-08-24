@@ -20,12 +20,17 @@
     "tile_policy": "global-identity-independent-of-local-labels"
   },
   "combined_catalogue": {
-    "catalogue_schema": "source-catalogue-version-2-plus-scale-provenance",
+    "catalogue_schema": "source-catalogue-version-3-with-continuum-diagnostics-version-2",
     "compact_only": "byte-identical-when-no-multiscale-evidence",
     "component_identity": "preserve-compact-gaussians-and-create-no-extended-gaussian",
     "disposition_requirement": "every-accepted-or-deferred-island-has-one-terminal-disposition",
+    "extended_measurement": "original-pixel-peak-centroid-flux-and-segment-moment-extent",
+    "extent_compatibility": "major-segment-moment-extent-in-dc-maj-with-zero-extended-gaussians",
     "island_identity": "compact-only-exact-otherwise-sha256-of-compact-islands-and-associations",
+    "mask": "blockwise-compact-or-accepted-extended-support",
+    "provenance": "diagnostics-version-2-per-extended-source-scale-and-support",
     "reduction": "bounded-canonical-shards-and-pairwise-tree",
+    "rms": "reuse-exact-phase-2-materialized-product",
     "scheduler_state": "forbidden",
     "source_identity": "one-extended-source-sha256-of-association-independent-of-context"
   },
@@ -67,7 +72,7 @@
     ],
     "reference": "restoring-beam-major-fwhm"
   },
-  "schema_version": 3,
+  "schema_version": 4,
   "scientific_basis": [
     "https://doi.org/10.1017/pasa.2018.3",
     "https://doi.org/10.1093/mnras/stv1866",

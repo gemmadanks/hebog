@@ -505,6 +505,7 @@ def test_multiscale_records_are_scheduler_safe_and_fail_closed() -> None:
         host_position_claim=False,
         position_covariance_pixels_squared=None,
         position_uncertainty_status="unavailable",
+        peak_flux_jy_per_beam=0.002,
         integrated_flux_jy=0.05,
         integrated_flux_error_jy=None,
         local_rms_jy_per_beam=0.0002,
@@ -540,9 +541,91 @@ def test_multiscale_records_are_scheduler_safe_and_fail_closed() -> None:
     assert measurement.host_position_claim is False
     assert measurement.position_uncertainty_status == "unavailable"
     assert measurement.flux_uncertainty_status == "unavailable"
-    assert measurement.schema_version == 2
+    assert measurement.schema_version == 3
     assert state.publication_eligible is False
     assert pickle.loads(pickle.dumps(state)) == state
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    [
+        ({"source_id": "bad ID"}, "domain identifier"),
+        (
+            {
+                "scale_detection_ids": (
+                    "scale-detection-two",
+                    "scale-detection-one",
+                )
+            },
+            "canonical",
+        ),
+        ({"selected_scale_detection_id": "scale-detection-two"}, "selected"),
+        ({"contributing_scale_orders": ()}, "positive and canonical"),
+        ({"support_pixel_count": 0}, "positive"),
+        ({"visible_model_fraction": float("inf")}, "finite"),
+    ],
+)
+def test_source_scale_provenance_rejects_incomplete_evidence(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    """Published extended provenance is canonical and scientifically finite."""
+    payload: dict[str, object] = {
+        "source_id": "source-extended",
+        "island_id": "island-combined",
+        "association_id": "scale-association-extended",
+        "scale_detection_ids": ("scale-detection-one",),
+        "selected_scale_detection_id": "scale-detection-one",
+        "contributing_scale_orders": (1,),
+        "relationship": "extended-only",
+        "support_pixel_count": 12,
+        "visible_model_fraction": 0.9,
+    }
+    payload.update(update)
+
+    with pytest.raises(ValidationError, match=message):
+        domain_models.SourceScaleProvenance.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    [
+        ({"run_id": ""}, "must not be empty"),
+        ({"extended_source_count": 2}, "fit the source population"),
+        ({"extended_source_count": 0}, "match source provenance"),
+        ({"terminal_disposition_count": 0}, "cannot be fewer"),
+    ],
+)
+def test_continuum_diagnostics_rejects_inconsistent_populations(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    """Version-two diagnostics cannot detach provenance from populations."""
+    provenance = domain_models.SourceScaleProvenance(
+        source_id="source-extended",
+        island_id="island-combined",
+        association_id="scale-association-extended",
+        scale_detection_ids=("scale-detection-one",),
+        selected_scale_detection_id="scale-detection-one",
+        contributing_scale_orders=(1,),
+        relationship="extended-only",
+        support_pixel_count=12,
+        visible_model_fraction=0.9,
+    )
+    payload: dict[str, object] = {
+        "run_id": "run-one",
+        "source_count": 1,
+        "gaussian_component_count": 0,
+        "island_count": 1,
+        "extended_source_count": 1,
+        "terminal_disposition_count": 1,
+        "rms_scientific_status": "valid",
+        "source_provenance": (provenance,),
+    }
+    payload.update(update)
+
+    with pytest.raises(ValidationError, match=message):
+        domain_models.ContinuumSourceFindingDiagnostics.model_validate(payload)
 
 
 def test_cross_scale_association_requires_selected_detection_membership() -> (
@@ -670,6 +753,7 @@ def test_extended_measurement_rejects_invalid_science_state(
         "host_position_claim": False,
         "position_covariance_pixels_squared": None,
         "position_uncertainty_status": "unavailable",
+        "peak_flux_jy_per_beam": 0.002,
         "integrated_flux_jy": 0.05,
         "integrated_flux_error_jy": None,
         "local_rms_jy_per_beam": 0.0002,

@@ -128,6 +128,16 @@ and island counts, plus the RMS scientific status. Its population constraints
 match `SourceFinderResult`, and readers reject noncanonical JSON, unknown
 versions, and extra fields.
 
+`ContinuumSourceFindingDiagnostics` schema version 2 retains the same
+population and RMS fields and adds terminal-disposition counts plus one
+canonical `SourceScaleProvenance` record per extended source. Each provenance
+record binds the source and combined island to its association, contributing
+detections and scales, selected detection, spatial relationship, accepted
+support count, and visible-model fraction. Compact-only materialization keeps
+schema version 1 so its diagnostics bytes do not change. When a
+`MaterializedProduct` record is supplied, the reader also requires its declared
+content schema to match the canonical JSON payload.
+
 Version 2 replaces the earlier path-only `SourceFinderResult` constructor.
 The `catalogue_path`, `rms_path`, `mask_path`, and `diagnostics_path`
 properties remain available to workflow consumers, but producers must create
@@ -159,6 +169,14 @@ publishing it under the requested name. A sequential retry with identical
 bytes returns the existing product record; a retry that would replace
 different bytes fails with `MaterializedProductConflictError`. Publication
 does not weaken the separate deployment-store concurrency qualification gate.
+
+`materialize_combined_products` composes the existing atomic writers. It
+reuses the exact Phase 2 RMS `MaterializedProduct`; writes the internal
+catalogue and Rapthor compatibility view from the same combined catalogue;
+and writes the source-filtering mask as a bounded row-block union of compact
+and accepted extended support. Compact-only composition rejects an extended
+mask or provenance and reproduces the existing catalogue, mask, diagnostics,
+and Rapthor bytes.
 
 ## Phase 3 intermediate generation
 
@@ -234,8 +252,9 @@ catalogue columns retain their reviewed peak/integrated component semantics.
 
 ## Phase 5 multiscale records
 
-Phase 5 introduces thirteen internal records without changing the published
-catalogue schema. `ScaleDetection` describes one finite,
+Phase 5 adds scheduler-safe scale, association, identity, completion, and
+provenance records without adding image planes to public state.
+`ScaleDetection` describes one finite,
 beam-normalized response and retains its global bounds, valid-support
 fraction, normalized peak response, significance, and contributing scale. A
 `CrossScaleAssociation` canonically joins scale detections and, when present,
@@ -256,15 +275,16 @@ stable source ID to each association independently of its island context.
 Its Gaussian-component list is constrained to be empty: irregular segment
 photometry is not represented as an unperformed Gaussian fit.
 
-`ExtendedEmissionMeasurement` schema version 2 stores a detected-segment flux
-centroid and brightest original-pixel coordinate as distinct fields. It
+`ExtendedEmissionMeasurement` schema version 3 stores a detected-segment flux
+centroid, brightest original-pixel coordinate, and corresponding peak
+brightness as distinct fields. It
 explicitly records that neither is a host position. Its position covariance is
 unavailable until nonlinear segment-selection uncertainty has a validated
 per-source approximation; flux-uncertainty availability remains independent.
 It also stores association-level flux and beam-normalized extent.
-`CrossScaleAssociation`, `ExtendedEmissionMeasurement`, and
-`CombinedCatalogueState` are schema version 2; the remaining Phase 5 records
-are schema version 1.
+`CrossScaleAssociation` and `CombinedCatalogueState` are schema version 2;
+`ExtendedEmissionMeasurement` is schema version 3; the remaining Phase 5
+records are schema version 1.
 `MultiscaleOmission` is a typed fail-closed explanation for unavailable scale
 support, measurement, or association. `CombinedIslandDisposition` gives every
 accepted or deferred island exactly one terminal state. Finally,
@@ -284,9 +304,8 @@ also applies an explicit positive cap to all final in-memory state records.
 All records are strict, immutable, and scheduler safe. They contain only
 small scalar values and canonical identifiers: worker-local arrays, open
 files, WCS objects, executor clients, and task state remain outside the
-schema. These records freeze meanings for development. Combined identity
-derivation is implemented, but catalogue row construction and publication are
-not.
+schema. These records freeze meanings for development. Combined identity,
+catalogue-row construction, and atomic publication are implemented.
 
 `reduce_combined_catalogue_shards` sorts only scientifically equivalent
 records; duplicate accepted ownership, accepted/deferred overlap, duplicate
@@ -303,8 +322,8 @@ ceiling of half the restoring-beam major FWHM. The dilation is graph context,
 not measurement support. Distinct compact sources and distinct extended
 associations therefore remain distinct even in a many-to-many component.
 
-Before combined catalogue construction exists,
-`preserve_unassociated_compact_catalogue` is the explicit no-op seam. It
+`preserve_unassociated_compact_catalogue` remains the explicit pre-association
+no-op seam. It
 returns the same `CompletedCompactCatalogue` only for `extended-only`
 associations with no compact identities. Compact-touching and ambiguous
 relationships raise a typed Step 4 decision error, so pre-association evidence
@@ -316,11 +335,24 @@ Phase 4 islands and extended associations by graph connectivity, not by input,
 tile, task, or completion order. Duplicate identities, unknown relationships,
 missing edges, and contradictory aggregate relationships fail closed.
 
+`construct_combined_catalogue` validates exact agreement among the completed
+terminal state, combined identities, associations, measurements, and Phase 4
+catalogue before constructing any row. Compact-only composition returns the
+same `SourceCatalogue` object. Mixed composition remaps retained compact rows
+to their combined islands, adds one irregular source per association, and
+creates no extended Gaussian. Combined-island photometry sums disjoint owned
+compact and extended fluxes and support counts.
+
 ## Compatibility
 
 The internal catalogue does not define PyBDSF column names such as
 `Source_id`, `Isl_Total_flux`, or `DC_Maj`. The Rapthor catalogue adapter maps
 the internal records to the eight directly consumed compatibility fields.
+For irregular extended rows, `DC_Maj` carries the beam-scaled segment-moment
+major extent and the internal row carries `major-axis-only` and
+`segment-moment-extent` quality flags. This is a compatibility characteristic
+extent, not a Gaussian deconvolution claim; fitted and deconvolved ellipse
+fields remain null and no Gaussian-component row is fabricated.
 Astropy remains at the FITS I/O boundary; the schema models do not contain
 Astropy tables, open HDUs, NumPy image planes, or scheduler objects.
 

@@ -1,12 +1,12 @@
 # Phase 5 compact/extended association pre-review
 
-**Status:** approved on 2026-08-24 and frozen in the machine-readable Phase 5
-contract schema 2.
+**Status:** approved on 2026-08-24. The association policy was frozen in
+machine-readable contract schema 2; later schemas add implemented identity and
+product semantics without changing that policy.
 
-This review defines the proposed overlap, ownership, split/merge, and
-duplicate-suppression rules for Phase 5 Step 4. It does not implement a
-combined catalogue, open qualification data, or change the passing Phase 4
-compact products.
+This review defines the frozen overlap, ownership, split/merge, and
+duplicate-suppression rules for Phase 5 Step 4. The later implementation does
+not open qualification data or change compact-only Phase 4 products.
 
 ## Recommendation
 
@@ -217,11 +217,15 @@ The third implementation increment derives stable combined-island identities
 from canonical compact-island and association membership and one stable source
 identity per extended association. It preserves every compact source and
 Gaussian identity. Irregular extended sources have zero Gaussian compatibility
-components rather than an invented fit. Combined catalogue row construction
-remains a separate task. The fourth increment implements canonical fan-in-two
+components rather than an invented fit. The fourth increment implements
+canonical fan-in-two
 terminal-state reduction and blocks completion unless dispositions exactly
 cover the explicit accepted and deferred island sets without omissions or
-failures.
+failures. The fifth constructs combined rows and final products: compact-only
+outputs reproduce the Phase 4 catalogue, mask, diagnostics, and Rapthor bytes;
+mixed outputs retain compact rows, add irregular extended rows without
+Gaussian components, reuse the exact RMS product, union accepted support into
+the mask, and publish per-source scale/support provenance.
 
 The approval did not authorize qualification, a PyBDSF-equivalence claim,
 Rapthor cutover, or removal of the fallback. Independent radio-astronomy

@@ -813,7 +813,7 @@ class PhaseFiveCombinedCatalogueContract(_ContractModel):
     """Composition rules for compact and multiscale catalogue records."""
 
     catalogue_schema: Literal[
-        "source-catalogue-version-2-plus-scale-provenance"
+        "source-catalogue-version-3-with-continuum-diagnostics-version-2"
     ]
     compact_only: Literal["byte-identical-when-no-multiscale-evidence"]
     island_identity: Literal[
@@ -830,13 +830,24 @@ class PhaseFiveCombinedCatalogueContract(_ContractModel):
         "every-accepted-or-deferred-island-has-one-terminal-disposition"
     ]
     reduction: Literal["bounded-canonical-shards-and-pairwise-tree"]
+    extended_measurement: Literal[
+        "original-pixel-peak-centroid-flux-and-segment-moment-extent"
+    ]
+    extent_compatibility: Literal[
+        "major-segment-moment-extent-in-dc-maj-with-zero-extended-gaussians"
+    ]
+    mask: Literal["blockwise-compact-or-accepted-extended-support"]
+    rms: Literal["reuse-exact-phase-2-materialized-product"]
+    provenance: Literal[
+        "diagnostics-version-2-per-extended-source-scale-and-support"
+    ]
     scheduler_state: Literal["forbidden"]
 
 
 class PhaseFiveMultiscaleContract(_ContractModel):
     """Versioned Phase 5 scale, ownership, and failure semantics."""
 
-    schema_version: Literal[3]
+    schema_version: Literal[4]
     contract_id: Literal["phase-5-multiscale"]
     status: Literal["reviewed-development"]
     scope: Literal["mfs-stokes-i-rapthor-three-scale-profile"]

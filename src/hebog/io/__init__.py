@@ -2,6 +2,11 @@
 
 from hebog.data_models.partitioning import ImageBounds
 from hebog.io.base import ImageMetadata, ImageSource, ImageWindow
+from hebog.io.combined import (
+    CombinedProductPaths,
+    MaterializedCombinedProducts,
+    materialize_combined_products,
+)
 from hebog.io.fits import (
     FitsImageSource,
     InvalidFitsImageError,
@@ -32,6 +37,7 @@ from hebog.io.zarr import (
 )
 
 __all__ = [
+    "CombinedProductPaths",
     "FitsImageSource",
     "FitsProductImageSource",
     "ImageBounds",
@@ -42,6 +48,7 @@ __all__ = [
     "InvalidMaterializedProductError",
     "InvalidProductChunkError",
     "InvalidProductGenerationError",
+    "MaterializedCombinedProducts",
     "MaterializedProductConflictError",
     "ProductChunkConflictError",
     "ProductChunkError",
@@ -52,6 +59,7 @@ __all__ = [
     "UnsupportedMaterializedProductError",
     "ZarrProductSink",
     "celestial_wcs_from_metadata",
+    "materialize_combined_products",
     "read_catalogue_fits_product",
     "read_diagnostics_product",
     "write_catalogue_fits_product",

@@ -9,14 +9,17 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
 import pytest
 from astropy.io import fits
 
+from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
 from hebog.data_models import (
     CelestialWcs,
+    ContinuumSourceFindingDiagnostics,
     FluxMeasurement,
     GaussianComponent,
     GaussianShape,
@@ -29,13 +32,23 @@ from hebog.data_models import (
     SourceCandidate,
     SourceCatalogue,
     SourceFindingDiagnostics,
+    SourceScaleProvenance,
     SpectralModel,
 )
+from hebog.data_models.catalogue_construction import CompletedCombinedCatalogue
+from hebog.data_models.multiscale import (
+    CombinedCatalogueState,
+    CombinedIslandDisposition,
+    CompletedCombinedCatalogueState,
+)
 from hebog.io import (
+    CombinedProductPaths,
     FitsProductImageSource,
     InvalidMaterializedProductError,
     MaterializedProductConflictError,
+    ProductMaterializationError,
     UnsupportedMaterializedProductError,
+    materialize_combined_products,
     read_catalogue_fits_product,
     read_diagnostics_product,
     write_catalogue_fits_product,
@@ -123,7 +136,11 @@ def _spectrum() -> SpectralModel:
     )
 
 
-def _catalogue(*, catalogue_id: str = "catalogue-run-001") -> SourceCatalogue:
+def _catalogue(
+    *,
+    catalogue_id: str = "catalogue-run-001",
+    position_epoch: str = "J2000.0",
+) -> SourceCatalogue:
     """Return a complete internal catalogue with nullable fields."""
     island = Island(
         island_id="island-00001",
@@ -158,7 +175,7 @@ def _catalogue(*, catalogue_id: str = "catalogue-run-001") -> SourceCatalogue:
     return SourceCatalogue.create(
         catalogue_id=catalogue_id,
         coordinate_frame="icrs",
-        position_epoch="J2000.0",
+        position_epoch=position_epoch,
         reference_frequency_hz=150_000_000.0,
         islands=(island,),
         sources=(source,),
@@ -174,6 +191,73 @@ def _diagnostics(*, source_count: int = 1) -> SourceFindingDiagnostics:
         gaussian_component_count=1 if source_count else 0,
         island_count=1 if source_count else 0,
         rms_scientific_status="valid",
+    )
+
+
+def _continuum_diagnostics() -> ContinuumSourceFindingDiagnostics:
+    """Return one provenance-rich combined continuum summary."""
+    return ContinuumSourceFindingDiagnostics(
+        run_id="run-001",
+        source_count=2,
+        gaussian_component_count=1,
+        island_count=1,
+        extended_source_count=1,
+        terminal_disposition_count=1,
+        rms_scientific_status="valid",
+        source_provenance=(
+            SourceScaleProvenance(
+                source_id="source-extended",
+                island_id="island-combined",
+                association_id="scale-association-extended",
+                scale_detection_ids=("scale-detection-extended",),
+                selected_scale_detection_id="scale-detection-extended",
+                contributing_scale_orders=(2,),
+                relationship="contains-compact-support",
+                support_pixel_count=20,
+                visible_model_fraction=0.95,
+            ),
+        ),
+    )
+
+
+def _completed_combined(
+    catalogue: SourceCatalogue,
+    *,
+    provenance: tuple[SourceScaleProvenance, ...] = (),
+) -> CompletedCombinedCatalogue:
+    """Return compact-only or accepted-continuum completion evidence."""
+    island = catalogue.islands[0]
+    compact_only = not provenance
+    association_ids = () if compact_only else (provenance[0].association_id,)
+    state = CompletedCombinedCatalogueState(
+        state=CombinedCatalogueState(
+            catalogue_id=catalogue.catalogue_id,
+            accepted_island_ids=(island.island_id,),
+            deferred_island_ids=(),
+            dispositions=(
+                CombinedIslandDisposition(
+                    island_id=island.island_id,
+                    status=(
+                        "retained-compact"
+                        if compact_only
+                        else "accepted-multiscale"
+                    ),
+                    source_ids=(catalogue.sources[0].source_id,),
+                    association_ids=association_ids,
+                    reason=None,
+                ),
+            ),
+            omissions=(),
+        ),
+        shard_count=1,
+        reduction_depth=0,
+        maximum_shard_record_count=1,
+    )
+    return CompletedCombinedCatalogue(
+        catalogue=catalogue,
+        terminal_state=state,
+        source_provenance=provenance,
+        compact_only_preserved=compact_only,
     )
 
 
@@ -837,6 +921,276 @@ def test_diagnostics_round_trip_is_canonical_versioned_json(
     assert write_diagnostics_product(path, diagnostics) == product
 
 
+def test_continuum_diagnostics_round_trip_preserves_scale_provenance(
+    tmp_path: Path,
+) -> None:
+    """Version two records retain auditable scale/support provenance."""
+    path = tmp_path / "continuum-diagnostics.json"
+    diagnostics = _continuum_diagnostics()
+
+    product = write_diagnostics_product(path, diagnostics)
+
+    assert product.content_schema_version == 2
+    assert path.read_bytes() == diagnostics.canonical_json_bytes()
+    assert read_diagnostics_product(path) == diagnostics
+    assert read_diagnostics_product(product) == diagnostics
+
+
+def test_diagnostics_record_schema_must_match_payload(tmp_path: Path) -> None:
+    """Restart records cannot misdescribe otherwise valid diagnostic bytes."""
+    product = write_diagnostics_product(
+        tmp_path / "diagnostics.json",
+        _diagnostics(),
+    )
+    mislabeled = product.model_copy(update={"content_schema_version": 2})
+
+    with pytest.raises(
+        InvalidMaterializedProductError, match="product record"
+    ):
+        read_diagnostics_product(mislabeled)
+
+
+def test_compact_combined_materialization_preserves_existing_products(
+    tmp_path: Path,
+) -> None:
+    """A compact-only finalization reproduces all Phase 4 product bytes."""
+    catalogue = _catalogue(position_epoch="J2000")
+    combined = _completed_combined(catalogue)
+    metadata = _metadata()
+    mask = np.asarray(
+        [
+            [False, True, False, False],
+            [False, True, True, False],
+            [False, False, False, False],
+        ],
+        dtype=np.bool_,
+    )
+    rms = write_rms_fits_product(
+        tmp_path / "rms.fits",
+        metadata,
+        (np.full(metadata.shape_yx, 0.001, dtype=np.float32),),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    expected_catalogue = write_catalogue_fits_product(
+        tmp_path / "expected-catalogue.fits",
+        catalogue,
+    )
+    expected_mask = write_mask_fits_product(
+        tmp_path / "expected-mask.fits",
+        metadata,
+        (mask,),
+    )
+    expected_diagnostics = write_diagnostics_product(
+        tmp_path / "expected-diagnostics.json",
+        _diagnostics(),
+    )
+    expected_rapthor = write_rapthor_catalogue_fits(
+        tmp_path / "expected-rapthor.fits",
+        catalogue,
+    )
+
+    materialized = materialize_combined_products(
+        combined,
+        metadata=metadata,
+        rms_product=rms,
+        compact_mask_row_blocks=(mask,),
+        extended_mask_row_blocks=None,
+        paths=CombinedProductPaths(
+            catalogue=tmp_path / "combined-catalogue.fits",
+            mask=tmp_path / "combined-mask.fits",
+            diagnostics=tmp_path / "combined-diagnostics.json",
+            rapthor_catalogue=tmp_path / "combined-rapthor.fits",
+        ),
+        run_id="run-001",
+        wall_seconds=1.25,
+    )
+
+    assert materialized.result.rms is rms
+    assert (
+        materialized.result.catalogue.path.read_bytes()
+        == expected_catalogue.path.read_bytes()
+    )
+    assert (
+        materialized.result.mask.path.read_bytes()
+        == expected_mask.path.read_bytes()
+    )
+    assert (
+        materialized.result.diagnostics.path.read_bytes()
+        == expected_diagnostics.path.read_bytes()
+    )
+    assert (
+        materialized.rapthor_catalogue.path.read_bytes()
+        == expected_rapthor.path.read_bytes()
+    )
+
+
+def test_continuum_materialization_unions_masks_and_reuses_rms(
+    tmp_path: Path,
+) -> None:
+    """Accepted extended support augments products without rewriting RMS."""
+    catalogue = _catalogue(position_epoch="J2000")
+    provenance = (
+        _continuum_diagnostics()
+        .source_provenance[0]
+        .model_copy(
+            update={
+                "source_id": catalogue.sources[0].source_id,
+                "island_id": catalogue.islands[0].island_id,
+            }
+        ),
+    )
+    combined = _completed_combined(catalogue, provenance=provenance)
+    metadata = _metadata()
+    rms = write_rms_fits_product(
+        tmp_path / "rms.fits",
+        metadata,
+        (np.full(metadata.shape_yx, 0.001, dtype=np.float32),),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    compact_mask = np.zeros(metadata.shape_yx, dtype=np.bool_)
+    compact_mask[0, 0] = True
+    extended_mask = np.zeros(metadata.shape_yx, dtype=np.bool_)
+    extended_mask[2, 3] = True
+
+    materialized = materialize_combined_products(
+        combined,
+        metadata=metadata,
+        rms_product=rms,
+        compact_mask_row_blocks=(compact_mask,),
+        extended_mask_row_blocks=(extended_mask,),
+        paths=CombinedProductPaths(
+            catalogue=tmp_path / "catalogue.fits",
+            mask=tmp_path / "mask.fits",
+            diagnostics=tmp_path / "diagnostics.json",
+            rapthor_catalogue=tmp_path / "rapthor.fits",
+        ),
+        run_id="run-001",
+        wall_seconds=1.25,
+    )
+
+    assert materialized.result.rms is rms
+    assert materialized.result.diagnostics.content_schema_version == 2
+    np.testing.assert_array_equal(
+        FitsProductImageSource(materialized.result.mask)
+        .read_window(ImageBounds(0, 3, 0, 4))
+        .values,
+        np.logical_or(compact_mask, extended_mask),
+    )
+
+
+def test_combined_materialization_rejects_inconsistent_product_evidence(
+    tmp_path: Path,
+) -> None:
+    """Metadata, paths, provenance, and mask roles fail before publication."""
+    catalogue = _catalogue(position_epoch="J2000")
+    compact = _completed_combined(catalogue)
+    metadata = _metadata()
+    rms = write_rms_fits_product(
+        tmp_path / "rms.fits",
+        metadata,
+        (np.full(metadata.shape_yx, 0.001, dtype=np.float32),),
+        dtype=np.dtype("float32"),
+        scientific_status="valid",
+    )
+    paths = CombinedProductPaths(
+        catalogue=tmp_path / "catalogue.fits",
+        mask=tmp_path / "mask.fits",
+        diagnostics=tmp_path / "diagnostics.json",
+        rapthor_catalogue=tmp_path / "rapthor.fits",
+    )
+    compact_mask = (np.zeros(metadata.shape_yx, dtype=np.bool_),)
+
+    with pytest.raises(ValueError, match="distinct"):
+        CombinedProductPaths(
+            catalogue=paths.catalogue,
+            mask=paths.catalogue,
+            diagnostics=paths.diagnostics,
+            rapthor_catalogue=paths.rapthor_catalogue,
+        )
+    with pytest.raises(ProductMaterializationError, match="metadata"):
+        materialize_combined_products(
+            compact,
+            metadata=replace(metadata, unit="Jy/pixel"),
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    with pytest.raises(ProductMaterializationError, match="RMS plane"):
+        materialize_combined_products(
+            compact,
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=replace(paths, catalogue=rms.path),
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    with pytest.raises(ProductMaterializationError, match="extended mask"):
+        materialize_combined_products(
+            compact,
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=(
+                np.zeros(metadata.shape_yx, dtype=np.bool_),
+            ),
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    provenance = (
+        _continuum_diagnostics()
+        .source_provenance[0]
+        .model_copy(
+            update={
+                "source_id": catalogue.sources[0].source_id,
+                "island_id": catalogue.islands[0].island_id,
+            }
+        ),
+    )
+    with pytest.raises(ProductMaterializationError, match="provenance"):
+        materialize_combined_products(
+            replace(compact, source_provenance=provenance),
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    valid_continuum = _completed_combined(catalogue, provenance=provenance)
+    continuum = replace(valid_continuum, source_provenance=())
+    with pytest.raises(ProductMaterializationError, match="provenance"):
+        materialize_combined_products(
+            continuum,
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+    with pytest.raises(ProductMaterializationError, match="support masks"):
+        materialize_combined_products(
+            valid_continuum,
+            metadata=metadata,
+            rms_product=rms,
+            compact_mask_row_blocks=compact_mask,
+            extended_mask_row_blocks=None,
+            paths=paths,
+            run_id="run-001",
+            wall_seconds=0.0,
+        )
+
+
 def test_diagnostics_reader_rejects_corrupt_or_unsupported_json(
     tmp_path: Path,
 ) -> None:
@@ -857,11 +1211,18 @@ def test_diagnostics_reader_rejects_corrupt_or_unsupported_json(
     with pytest.raises(InvalidMaterializedProductError, match="canonical"):
         read_diagnostics_product(path)
 
+    path.write_text(
+        json.dumps(_continuum_diagnostics().model_dump(mode="json"), indent=2),
+        encoding="utf-8",
+    )
+    with pytest.raises(InvalidMaterializedProductError, match="canonical"):
+        read_diagnostics_product(path)
+
     with pytest.raises(InvalidMaterializedProductError, match="diagnostics"):
         read_diagnostics_product(tmp_path / "missing.json")
 
     document = _diagnostics().model_dump(mode="json")
-    document["schema_version"] = 2
+    document["schema_version"] = 3
     path.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(UnsupportedMaterializedProductError, match="schema"):
         read_diagnostics_product(path)

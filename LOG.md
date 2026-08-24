@@ -9608,3 +9608,49 @@ publish catalogue, mask, RMS, provenance, diagnostic, or Rapthor products.
 
 **Immediate next step:** materialise those combined products from the completed
 state while proving byte-identical compact-only output.
+
+## 2026-08-24 — Materialize final combined source products
+
+**Plan phase:** Phase 5, Step 4 — reconcile scales and construct products
+
+- Confirmed the TDD red state before implementation: the combined-product
+  test module failed collection because no construction module existed.
+- Added fail-closed catalogue composition over the exact completed terminal
+  state, combined identities, associations, measurements, and Phase 4 compact
+  catalogue. Compact-only composition returns the same catalogue object;
+  mixed composition retains every compact source and Gaussian, adds one
+  irregular source per accepted association, and never invents an extended
+  Gaussian component.
+- Advanced `ExtendedEmissionMeasurement` to schema 3 with original-pixel peak
+  brightness. Extended rows use detected-segment centroid, peak and integrated
+  flux, local RMS, and a flagged beam-scaled segment-moment major extent. The
+  Rapthor `DC_Maj` mapping is documented as a characteristic extent rather
+  than a Gaussian deconvolution claim.
+- Added canonical per-source scale/support provenance and diagnostics schema
+  2. Compact-only results retain diagnostics schema 1 and reproduce its bytes;
+  restart reads reject a product record whose declared diagnostics schema does
+  not match its canonical JSON payload.
+- Added final product composition through the existing atomic writers. It
+  reuses the exact Phase 2 RMS product, unions compact and accepted extended
+  mask support one bounded row block at a time, and writes the internal
+  catalogue, diagnostics, mask, and Rapthor view from one combined catalogue.
+  An integration oracle proves byte-identical compact-only catalogue, mask,
+  diagnostics, and Rapthor FITS products.
+- Advanced the reviewed development contract to schema 4 with the product,
+  provenance, RMS-reuse, mask, peak-flux, and compatibility-extent semantics.
+  Updated the plan and schema documentation without opening qualification or
+  making a runtime claim.
+- The final focused scientific, contract, and FITS suite passes 256 tests.
+  Focused branch coverage is 95% for combined catalogue construction, 100%
+  for final combined I/O, and 99% for source-finding records. The branch-aware
+  project run passes 1,603 tests with 44 deselected and four expected failures
+  at 94.82% total coverage.
+
+**Decision:** Phase 5 Step 4 is complete. Product construction satisfies the
+approved shared-island/separate-source policy and preserves compact-only
+outputs exactly; it does not establish executor invariance, final
+qualification, incremental performance, or production readiness.
+
+**Immediate next step:** begin Step 5 by deriving and reviewing every
+stage-specific halo and rejecting configurations that cannot meet the bounded
+memory contract.

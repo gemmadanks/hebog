@@ -1,5 +1,6 @@
 """Small serializable scheduler-independent domain records."""
 
+from hebog.data_models.catalogue_construction import CompletedCombinedCatalogue
 from hebog.data_models.catalogues import (
     FluxMeasurement,
     GaussianComponent,
@@ -34,10 +35,12 @@ from hebog.data_models.partitioning import (
 )
 from hebog.data_models.products import ProductChunk
 from hebog.data_models.source_finding import (
+    ContinuumSourceFindingDiagnostics,
     MaterializedProduct,
     SourceFinderRequest,
     SourceFinderResult,
     SourceFindingDiagnostics,
+    SourceScaleProvenance,
 )
 
 __all__ = [
@@ -49,7 +52,9 @@ __all__ = [
     "CombinedIslandIdentity",
     "CompactExtendedContextEdge",
     "CompactSourceSupport",
+    "CompletedCombinedCatalogue",
     "CompletedCombinedCatalogueState",
+    "ContinuumSourceFindingDiagnostics",
     "CrossScaleAssociation",
     "ExtendedEmissionMeasurement",
     "ExtendedSourceIdentity",
@@ -72,6 +77,7 @@ __all__ = [
     "SourceFinderRequest",
     "SourceFinderResult",
     "SourceFindingDiagnostics",
+    "SourceScaleProvenance",
     "SpectralModel",
     "TilePartition",
 ]
