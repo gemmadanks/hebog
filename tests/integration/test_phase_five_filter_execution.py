@@ -295,13 +295,13 @@ def _run(
         _ArrayImageSource(image, valid),
         background_source,
         manifest,
-        PhaseFiveMultiscaleStageConfig(
+        config=PhaseFiveMultiscaleStageConfig(
             beam=_beam(),
             detection=_detection_config(),
             maximum_tiles_per_batch=tiles_per_batch,
         ),
-        executor,  # type: ignore[arg-type]
-        sink,
+        executor=executor,  # type: ignore[arg-type]
+        sink=sink,
     )
     return result, sink
 
@@ -639,13 +639,13 @@ def test_multiscale_stage_requires_exact_filter_halo(tmp_path: Path) -> None:
             _ArrayImageSource(image, valid),
             _background_source(tmp_path / "background"),
             manifest,
-            PhaseFiveMultiscaleStageConfig(
+            config=PhaseFiveMultiscaleStageConfig(
                 beam=_beam(),
                 detection=_detection_config(),
                 maximum_tiles_per_batch=1,
             ),
-            SerialExecutor(),
-            sink,
+            executor=SerialExecutor(),
+            sink=sink,
         )
     assert not (tmp_path / "output").exists()
 
@@ -673,13 +673,13 @@ def test_multiscale_stage_rejects_invalid_image_windows(
             _InvalidImageSource(image, valid, failure=failure),
             _background_source(tmp_path / "background"),
             manifest,
-            PhaseFiveMultiscaleStageConfig(
+            config=PhaseFiveMultiscaleStageConfig(
                 beam=_beam(),
                 detection=_detection_config(),
                 maximum_tiles_per_batch=1,
             ),
-            SerialExecutor(),
-            sink,
+            executor=SerialExecutor(),
+            sink=sink,
         )
 
 
@@ -704,9 +704,9 @@ def test_multiscale_stage_rejects_noncomposable_generations(
             _ArrayImageSource(image, valid),
             _background_source(tmp_path / "background-a"),
             manifest,
-            config,
-            SerialExecutor(),
-            wrong_sink,
+            config=config,
+            executor=SerialExecutor(),
+            sink=wrong_sink,
         )
 
     for name, background, message in (
@@ -737,9 +737,9 @@ def test_multiscale_stage_rejects_noncomposable_generations(
                 _ArrayImageSource(image, valid),
                 background,
                 manifest,
-                config,
-                SerialExecutor(),
-                sink,
+                config=config,
+                executor=SerialExecutor(),
+                sink=sink,
             )
 
 
@@ -769,11 +769,11 @@ def test_multiscale_stage_rejects_missing_executor_results(
             _ArrayImageSource(image, valid),
             _background_source(tmp_path / "background"),
             manifest,
-            PhaseFiveMultiscaleStageConfig(
+            config=PhaseFiveMultiscaleStageConfig(
                 beam=_beam(),
                 detection=_detection_config(),
                 maximum_tiles_per_batch=1,
             ),
-            executor,  # type: ignore[arg-type]
-            sink,
+            executor=executor,  # type: ignore[arg-type]
+            sink=sink,
         )

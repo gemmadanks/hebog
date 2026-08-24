@@ -25,6 +25,7 @@ Related project references:
 - [Phase 4U compact-blend qualification protocol](phase-4u-qualification-protocol.md)
 - [Phase 5 multiscale contract and development review](phase-5-contract.md)
 - [Phase 5 scale-filter selection](phase-5-filter-selection.md)
+- [Phase 5 regression fixtures](phase-5-regression-fixtures.md)
 - [Phase 5 astrometry technical pre-review](phase-5-astrometry-pre-review.md)
 - [Compact deblending](compact-deblending.md)
 - [Extended-emission measurement](extended-emission-measurement.md)

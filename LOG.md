@@ -9852,3 +9852,35 @@ RSS, transfer/spill, runtime, qualification, or 100,000-square readiness.
 
 **Immediate next step:** audit every accepted Phase 5 development defect for a
 deterministic regression fixture before qualification.
+
+## 2026-08-24 — Bind accepted Phase 5 defects to regression fixtures
+
+**Plan phase:** Phase 5, Step 6 — qualification preparation
+
+- Confirmed the TDD red state: the registry integrity test failed because no
+  machine-readable defect-to-fixture registry existed.
+- Audited the complete accepted Phase 5 history and separated endpoint
+  symptoms from 17 distinct root causes: eight numerical-science, three
+  product-semantics, three campaign-composition, and three runtime-provenance
+  defects.
+- Added registry schema 1 with the accepting revision, root cause, permanent
+  invariant, and unique deterministic pytest node IDs for every defect. A
+  structural test fails if any accepted defect, fixture file, or named test
+  function disappears.
+- Ran all 33 registered fixtures directly; every numerical, boundary,
+  composition, identity, and failure case passes. This is development
+  regression traceability and does not reopen or replace qualification.
+- Made the newly introduced six-argument multiscale stage boundary explicit:
+  scientific configuration, executor, and sink are now keyword-only. This
+  resolves the current Ruff positional-argument rule without changing stage
+  behaviour; all 11 stage integration tests pass.
+- The complete branch-aware run passes 1,645 tests with 44 deselected and four
+  expected failures at 94.90% coverage. The fast handoff suite passes Ruff,
+  Pyright, doctests, and 1,495 tests with 194 deselected and four expected
+  failures; strict documentation and all pre-commit hooks also pass.
+
+**Decision:** the first Phase 5 Step 6 item is complete. Every accepted
+development defect now has a checked-in deterministic regression fixture.
+
+**Immediate next step:** re-run the complete Phase 4 compact regression and
+stronger-Hebog envelopes before preparing the untouched Phase 5 qualification.

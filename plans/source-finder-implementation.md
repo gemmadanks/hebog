@@ -593,8 +593,11 @@ independent acceptance, and the later Rapthor cutover remain outstanding.
 
 #### 6. Qualify Phase 5
 
-- [ ] Turn every accepted development defect into a deterministic regression
-      fixture.
+- [x] Turn every accepted development defect into a deterministic regression
+      fixture. Machine registry schema 1 binds all 17 accepted numerical,
+      product, campaign-composition, and runtime-provenance root causes to 33
+      unique pytest functions. Its integrity test fails if an entry or named
+      fixture disappears; the complete registered lane passes independently.
 - [ ] Repeat the full final comparison with untouched qualification data,
       injected truth, both PyBDSF references, and Aegean over its applicable
       scope, stratified by morphology, scale, SNR, edge, blend, and background.

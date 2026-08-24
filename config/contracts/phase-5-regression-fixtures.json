@@ -1,0 +1,191 @@
+{
+  "accepted_defects": [
+    {
+      "accepted_fix_revision": "383896d",
+      "category": "numerical-science",
+      "id": "masked-filter-support-renormalization",
+      "invariant": "Masked and non-finite samples are excluded from both the signal and normalization, and insufficient support is unavailable rather than a detection.",
+      "regression_tests": [
+        "tests/unit/test_multiscale_filtering.py::test_masked_and_nan_support_is_renormalized_or_unavailable"
+      ],
+      "root_cause": "The first matched-filter comparison treated missing support as zero-valued signal, depressing normalized responses beside masks."
+    },
+    {
+      "accepted_fix_revision": "383896d",
+      "category": "numerical-science",
+      "id": "edge-filter-support-renormalization",
+      "invariant": "A source at an image boundary retains its normalized response whenever the declared minimum support is present.",
+      "regression_tests": [
+        "tests/unit/test_multiscale_filtering.py::test_image_edge_response_is_corrected_when_support_is_sufficient"
+      ],
+      "root_cause": "Zero padding reduced matched-filter response near a finite image edge and made the result depend on distance from the boundary."
+    },
+    {
+      "accepted_fix_revision": "bd11e27",
+      "category": "numerical-science",
+      "id": "extended-segment-position-semantics",
+      "invariant": "Irregular extended sources use an original-pixel signed-flux centroid and deterministic supported peak, with typed unavailability rather than compact-fit errors.",
+      "regression_tests": [
+        "tests/unit/test_extended_measurement.py::test_detected_segment_position_uses_only_original_supported_pixels",
+        "tests/unit/test_extended_measurement.py::test_detected_segment_position_reports_typed_unavailability"
+      ],
+      "root_cause": "Compact fitted-centroid semantics were initially reused for irregular extended segments whose location is a detected-support measurement."
+    },
+    {
+      "accepted_fix_revision": "c1f7eb0",
+      "category": "product-semantics",
+      "id": "fitless-detection-retention",
+      "invariant": "A legitimate detected island remains in support and topology products when no Gaussian catalogue row can be published.",
+      "regression_tests": [
+        "tests/unit/test_catalogue_construction.py::test_failed_fit_retains_moment_source_and_rejects_deferral",
+        "tests/unit/validation/test_products.py::test_hebog_unmeasurable_segment_remains_mask_only"
+      ],
+      "root_cause": "Early external-product translation dropped mask-only or moment-only detections when a Gaussian fit was unavailable."
+    },
+    {
+      "accepted_fix_revision": "5fc7bfa",
+      "category": "numerical-science",
+      "id": "continuum-original-pixel-photometry",
+      "invariant": "Continuum peak and integrated flux use signed original-image pixels and never the filtered detection response.",
+      "regression_tests": [
+        "tests/unit/validation/test_products.py::test_hebog_segment_catalogue_uses_signed_original_aperture_pixels"
+      ],
+      "root_cause": "A development compiler mixed detection-domain reconstruction with observable-domain continuum photometry."
+    },
+    {
+      "accepted_fix_revision": "c56157f",
+      "category": "numerical-science",
+      "id": "continuum-reviewed-aperture",
+      "invariant": "Continuum flux is measured in the reviewed 1.5-major-beam nearest-owned aperture without double counting adjacent sources.",
+      "regression_tests": [
+        "tests/unit/validation/test_products.py::test_hebog_segment_catalogue_accepts_reviewed_measurement_aperture",
+        "tests/unit/validation/test_products.py::test_hebog_segment_apertures_do_not_double_count_close_sources"
+      ],
+      "root_cause": "The historical four-beam aperture was unbiased but accumulated avoidable noise and a wrapper later silently restored that default."
+    },
+    {
+      "accepted_fix_revision": "c56157f",
+      "category": "numerical-science",
+      "id": "continuum-multiscale-refinement",
+      "invariant": "Residual-B3 boundary refinement updates mask, labels, support, catalogue inputs, and diagnostics as one consistent product composition.",
+      "regression_tests": [
+        "tests/unit/validation/test_post_campaign_science.py::test_external_detection_refinement_updates_all_product_fields",
+        "tests/unit/test_extended_measurement.py::test_multiscale_refinement_uses_scale_support"
+      ],
+      "root_cause": "Sub-beam cleanup and partially updated product fields caused near-threshold mask precision failures and internally inconsistent support."
+    },
+    {
+      "accepted_fix_revision": "dfc3e25",
+      "category": "numerical-science",
+      "id": "continuum-regularized-position-signal",
+      "invariant": "Extended positions use direct-plus-B3 weights, retain direct weights for compact-dominated segments, and fall back explicitly when denoised weights are unavailable.",
+      "regression_tests": [
+        "tests/unit/validation/test_post_campaign_science.py::test_candidate_products_reuse_atrous_detection_and_position_signal",
+        "tests/unit/validation/test_products.py::test_compact_dominated_segment_keeps_original_position_weights",
+        "tests/unit/validation/test_products.py::test_unavailable_denoised_position_falls_back_to_original"
+      ],
+      "root_cause": "Unrestricted B3 centroid weights improved diffuse sources but regressed compact-dominated, image-edge, and filled-diffuse position strata."
+    },
+    {
+      "accepted_fix_revision": "c56157f",
+      "category": "product-semantics",
+      "id": "compact-source-component-separation",
+      "invariant": "A source record and its Gaussian component retain their distinct fitted-total, peak, and morphology semantics.",
+      "regression_tests": [
+        "tests/unit/test_catalogue_construction.py::test_shard_keeps_island_source_and_component_records_distinct",
+        "tests/unit/test_catalogue_construction.py::test_unresolved_source_keeps_fitted_total_on_gaussian_component"
+      ],
+      "root_cause": "Rapthor source canonicalization had been applied to fitted Gaussian-component products, replacing unresolved fitted totals with peak flux."
+    },
+    {
+      "accepted_fix_revision": "86941c4",
+      "category": "product-semantics",
+      "id": "compact-independent-free-ellipse",
+      "invariant": "A valid independent free ellipse remains publishable on the Gaussian component even when the conservative source model is beam constrained.",
+      "regression_tests": [
+        "tests/unit/test_catalogue_construction.py::test_gaussian_component_uses_its_independent_free_ellipse",
+        "tests/unit/test_fitting.py::test_valid_free_fit_survives_failed_smaller_model"
+      ],
+      "root_cause": "Publishing the conservative beam-or-free source model as the component discarded an available fitted ellipse and regressed fitted-axis results."
+    },
+    {
+      "accepted_fix_revision": "dfc3e25",
+      "category": "numerical-science",
+      "id": "compact-component-specific-bias",
+      "invariant": "The reviewed fitted-total bias calibration applies only to the Gaussian-component total and rejects non-positive corrected values.",
+      "regression_tests": [
+        "tests/unit/test_fitting.py::test_integrated_flux_bias_calibration_is_component_specific",
+        "tests/unit/test_astrometry.py::test_transform_rejects_non_positive_bias_corrected_flux"
+      ],
+      "root_cause": "Compact fitted-total uncertainty and bias tails required a component-specific correction without altering source-level photometry."
+    },
+    {
+      "accepted_fix_revision": "c184acf",
+      "category": "campaign-composition",
+      "id": "compact-component-compiler-semantics",
+      "invariant": "External compact compilation always requests fitted-Gaussian-component semantics and retains typed translation failures.",
+      "regression_tests": [
+        "tests/unit/validation/test_post_correction_recovery.py::test_compact_recovery_always_uses_component_semantics",
+        "tests/unit/validation/test_post_correction_recovery.py::test_compact_recovery_retains_catalogue_translation_failures"
+      ],
+      "root_cause": "The failed post-correction compiler invoked the Phase 4 diagnostic with its Rapthor-source default instead of component semantics."
+    },
+    {
+      "accepted_fix_revision": "c184acf",
+      "category": "campaign-composition",
+      "id": "candidate-composition-binding",
+      "invariant": "One adapter binds configuration identity, residual-B3 support, reviewed aperture, regularized position weights, and product serialization and rejects any identity drift.",
+      "regression_tests": [
+        "tests/unit/validation/test_post_correction_recovery.py::test_candidate_product_adapter_connects_all_reviewed_science",
+        "tests/unit/validation/test_post_correction_recovery.py::test_candidate_configuration_must_match_every_run"
+      ],
+      "root_cause": "A one-look campaign executed the expected source revision but silently composed historical product defaults rather than the approved candidate configuration."
+    },
+    {
+      "accepted_fix_revision": "c184acf",
+      "category": "campaign-composition",
+      "id": "symmetric-valid-domain",
+      "invariant": "Hebog and every reference finder are scored on the same declared valid-pixel domain while catalogue photometry remains separate from support topology.",
+      "regression_tests": [
+        "tests/unit/validation/test_post_correction_recovery.py::test_recovery_compiler_applies_valid_domain_to_all_finders",
+        "tests/unit/validation/test_post_correction_recovery.py::test_recovery_compiler_rejects_mean_rms_validity_drift"
+      ],
+      "root_cause": "The external compiler contract did not previously prove that invalid-pixel clipping was symmetric across all finders."
+    },
+    {
+      "accepted_fix_revision": "c88e7c2",
+      "category": "runtime-provenance",
+      "id": "runtime-source-path-binding",
+      "invariant": "Only the exact approved Hebog invocation receives the immutable repository source path; reference and materialization commands are unchanged.",
+      "regression_tests": [
+        "tests/unit/validation/test_external_recovery_protocol.py::test_recovery_podman_wrapper_exposes_only_approved_hebog_source"
+      ],
+      "root_cause": "The frozen recovery image could not import the approved prospective module because its command omitted the repository source path."
+    },
+    {
+      "accepted_fix_revision": "53f745f",
+      "category": "runtime-provenance",
+      "id": "viewed-runtime-provenance",
+      "invariant": "A reconstructed reference-only replay uses the approved immutable candidate runtime record and rejects an unapproved candidate revision.",
+      "regression_tests": [
+        "tests/unit/validation/test_viewed_recovery_reconstruction.py::test_prospective_campaign_can_fill_an_absent_historical_candidate",
+        "tests/unit/validation/test_viewed_recovery_reconstruction.py::test_viewed_candidate_runtime_rejects_an_unapproved_revision"
+      ],
+      "root_cause": "Reference reconstruction supplied no historical candidate run, leaving the prospective candidate runtime record incomplete and unhashable."
+    },
+    {
+      "accepted_fix_revision": "147e193",
+      "category": "runtime-provenance",
+      "id": "evaluator-dual-accelerator-identity",
+      "invariant": "Recovery evaluation preserves both the prospective compiler-seam identity and the base accelerator identity recorded in the immutable analysis.",
+      "regression_tests": [
+        "tests/unit/validation/test_external_recovery_protocol.py::test_recovery_evaluation_amendment_preserves_both_accelerators",
+        "tests/unit/validation/test_external_recovery_protocol.py::test_recovery_evaluation_amendment_requires_exact_authorization"
+      ],
+      "root_cause": "The frozen evaluator passed the recovery compiler identity into inherited validation that required the base accelerator recorded by the analysis."
+    }
+  ],
+  "phase": 5,
+  "schema_version": 1,
+  "status": "development-regression"
+}

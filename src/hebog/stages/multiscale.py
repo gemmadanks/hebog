@@ -659,6 +659,7 @@ def run_phase_five_multiscale_stage(  # noqa: PLR0913
     source: _WindowReadable,
     background_rms_source: _CompletedProductSource,
     manifest: PartitionManifest,
+    *,
     config: PhaseFiveMultiscaleStageConfig,
     executor: Executor,
     sink: ZarrProductSink,
