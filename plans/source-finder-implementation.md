@@ -579,15 +579,18 @@ independent acceptance, and the later Rapthor cutover remain outstanding.
 - [x] Record bounded retained bytes, workspaces, summaries, shards, and graph
       size; exercise SerialExecutor and the existing executor path. Exact
       ndarray-payload accounting for the reviewed five-pixel beam and
-      256-square core records a 26,298,000-byte conservative filter peak,
-      12,058,624 retained filter-core bytes, and 3,604,480 retained detection
-      bytes. Each tile contributes two topology summaries, three scale
+      256-square core records a 26,298,000-byte conservative filter peak.
+      Bounded 12-window FITS batching raises the measured 3,000-square task
+      peak to 37,350,048 bytes with 28,890,128 retained array bytes while
+      amortising file opens. Each tile contributes two topology summaries,
+      three scale
       summaries, 20,480 boundary-array bytes, and eight checksummed product
       shards. A two-pass graph has
       `2 * ceil(partitions / maximum_tiles_per_batch)` coarse tasks; Serial and
       one-/two-worker existing-client Dask return identical evidence. At the
-      3,000-square anchor with batch size 16 this is 144 tiles, 2.81 MiB of
-      boundary arrays, and 18 tasks. The 100,000-square projection makes the
+      3,000-square anchor with batch size 12 this is 144 tiles, 2.81 MiB of
+      boundary arrays, and 24 tasks, filling three waves on four workers. The
+      100,000-square projection makes the
       already planned distributed hierarchical reduction in Phase 6 mandatory
       before extreme-scale qualification.
 
@@ -616,7 +619,12 @@ independent acceptance, and the later Rapthor cutover remain outstanding.
       reviewed evaluator; retain a terminal failure without rescoring.
 - [ ] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
-      unapproved adjacent-tier regression.
+      unapproved adjacent-tier regression. The first immutable curve remains
+      diagnostic evidence: it accidentally used a ten-pixel beam and
+      1,000-pixel cores, then failed all three representative profiles at
+      14.02--14.61 seconds. The corrected five-pixel/256-core candidate now
+      records 5.49--5.91-second four-core smoke results; its complete frozen
+      matrix must still establish the gate and adjacent anchors.
 - [x] Update schemas, method/configuration documentation, the Marimo
       demonstration, and auditable per-object scale/support provenance. The
       current demonstration executes both the qualified compact path and a

@@ -13,15 +13,15 @@
     3000
   ],
   "maximum_serial_size_pixels": 1024,
-  "minimum_tile_size_pixels": 273,
-  "maximum_tiles_per_batch": 16,
+  "maximum_tiles_per_batch": 12,
+  "minimum_tile_size_pixels": 256,
   "profiles": [
     "sparse",
     "normal",
     "extended"
   ],
   "repetitions": 5,
-  "representative_tile_size_pixels": 1000,
+  "representative_tile_size_pixels": 256,
   "schema_version": 1,
   "sizes_pixels": [
     256,

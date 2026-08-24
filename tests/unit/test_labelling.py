@@ -111,6 +111,23 @@ def test_one_tile_uses_eight_connectivity_and_global_properties() -> None:
     assert island.bounds.x_stop == 2
 
 
+def test_equal_peaks_use_first_global_pixel_in_an_offset_tile() -> None:
+    """Linear reductions retain lexicographic peak ties and global bounds."""
+    normalized = np.zeros((8, 9), dtype=np.float64)
+    normalized[5, 6:8] = 6.0
+    _, tiles = _label_tiles(normalized, tile_shape_yx=(4, 5))
+
+    summary = next(tile.islands[0] for tile in tiles if tile.islands)
+
+    assert summary.pixel_count == 2
+    assert summary.first_pixel_yx == (5, 6)
+    assert summary.peak_position_yx == (5, 6)
+    assert summary.bounds.y_start == 5
+    assert summary.bounds.y_stop == 6
+    assert summary.bounds.x_start == 6
+    assert summary.bounds.x_stop == 8
+
+
 def test_global_size_and_seed_cuts_apply_after_reconciliation() -> None:
     """A cross-fragment island is filtered only after global aggregation."""
     normalized = np.zeros((3, 6), dtype=np.float64)

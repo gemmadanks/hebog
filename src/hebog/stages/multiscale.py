@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from functools import partial
 from numbers import Integral
@@ -87,6 +88,10 @@ class _CompletedProductSource(Protocol):
         bounds: ImageBounds,
     ) -> npt.NDArray[np.generic]:
         """Read one validated bounded product window."""
+        ...
+
+    def access_session(self) -> AbstractContextManager[None]:
+        """Reuse immutable metadata within one bounded coarse task."""
         ...
 
 
@@ -199,13 +204,12 @@ def phase_five_multiscale_product_names() -> tuple[str, ...]:
     return _PHASE_FIVE_MULTISCALE_PRODUCT_NAMES
 
 
-def _read_image_window(
-    source: _WindowReadable,
+def _require_image_window(
+    window: ImageWindow,
     partition: TilePartition,
 ) -> ImageWindow:
-    """Read and validate one exact halo window before filter preparation."""
+    """Validate one exact halo window before filter preparation."""
     bounds = partition.read_bounds
-    window = source.read_window(bounds)
     if window.bounds != bounds:
         raise ValueError("image source returned different filter-read bounds")
     if (
@@ -216,6 +220,43 @@ def _read_image_window(
     return window
 
 
+def _read_image_window(
+    source: _WindowReadable,
+    partition: TilePartition,
+) -> ImageWindow:
+    """Read and validate one exact halo window."""
+    return _require_image_window(
+        source.read_window(partition.read_bounds),
+        partition,
+    )
+
+
+def _read_image_batch(
+    source: _WindowReadable,
+    partitions: tuple[TilePartition, ...],
+) -> tuple[ImageWindow, ...]:
+    """Use one optional bounded batch read or the scalar source contract."""
+    read_windows = getattr(source, "read_windows", None)
+    if read_windows is None:
+        return tuple(_read_image_window(source, item) for item in partitions)
+    windows = tuple(
+        read_windows(tuple(item.read_bounds for item in partitions))
+    )
+    if len(windows) != len(partitions):
+        raise ValueError("image source returned a different window count")
+    return tuple(
+        _require_image_window(window, partition)
+        for window, partition in zip(windows, partitions, strict=True)
+    )
+
+
+def _image_batch_bytes(windows: tuple[ImageWindow, ...]) -> int:
+    """Return exact arrays retained by one bounded source batch."""
+    return sum(
+        window.values.nbytes + window.valid_pixels.nbytes for window in windows
+    )
+
+
 def _evaluate_tile(  # noqa: PLR0913
     partition: TilePartition,
     *,
@@ -224,9 +265,14 @@ def _evaluate_tile(  # noqa: PLR0913
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
     detection: ResidualMultiscaleDetectionConfig,
+    image_window: ImageWindow | None = None,
 ) -> tuple[PhaseFiveFilterTileResult, PhaseFiveDetectionTileEvidence]:
     """Recompute one bounded filter read without persistent response banks."""
-    window = _read_image_window(source, partition)
+    window = (
+        _read_image_window(source, partition)
+        if image_window is None
+        else _require_image_window(image_window, partition)
+    )
     background = background_rms_source.read_completed_window(
         "background",
         partition.read_bounds,
@@ -327,6 +373,27 @@ def _scan_topology_batch(  # noqa: PLR0913
     beam: BeamShapePixels,
     detection: ResidualMultiscaleDetectionConfig,
 ) -> _TopologyBatchResult:
+    """Evaluate one topology batch with task-local Zarr metadata reuse."""
+    with background_rms_source.access_session():
+        return _scan_topology_batch_in_session(
+            batch,
+            source=source,
+            background_rms_source=background_rms_source,
+            image_shape_yx=image_shape_yx,
+            beam=beam,
+            detection=detection,
+        )
+
+
+def _scan_topology_batch_in_session(  # noqa: PLR0913
+    batch: _PartitionBatch,
+    *,
+    source: _WindowReadable,
+    background_rms_source: _CompletedProductSource,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+    detection: ResidualMultiscaleDetectionConfig,
+) -> _TopologyBatchResult:
     """Return compact side/corner topology without persisting responses."""
     reconstruction_summaries: list[LocalIslandTileSummary] = []
     detection_summaries: list[LocalIslandTileSummary] = []
@@ -335,7 +402,13 @@ def _scan_topology_batch(  # noqa: PLR0913
     maximum_retained_array_bytes = 0
     maximum_worker_bytes = 0
     summary_array_bytes = 0
-    for partition in batch.partitions:
+    image_windows = _read_image_batch(source, batch.partitions)
+    image_batch_bytes = _image_batch_bytes(image_windows)
+    for partition, image_window in zip(
+        batch.partitions,
+        image_windows,
+        strict=True,
+    ):
         result, evidence = _evaluate_tile(
             partition,
             source=source,
@@ -343,13 +416,15 @@ def _scan_topology_batch(  # noqa: PLR0913
             image_shape_yx=image_shape_yx,
             beam=beam,
             detection=detection,
+            image_window=image_window,
         )
         reconstruction, direct_detection = _label_topology(
             evidence,
             image_shape_yx=image_shape_yx,
         )
         retained_array_bytes = (
-            summary_array_bytes
+            image_batch_bytes
+            + summary_array_bytes
             + result.retained_array_bytes
             + evidence.retained_array_bytes
             + _tile_array_bytes(reconstruction)
@@ -361,7 +436,9 @@ def _scan_topology_batch(  # noqa: PLR0913
         )
         maximum_worker_bytes = max(
             maximum_worker_bytes,
-            summary_array_bytes + result.maximum_filter_evaluation_bytes,
+            image_batch_bytes
+            + summary_array_bytes
+            + result.maximum_filter_evaluation_bytes,
             retained_array_bytes,
         )
         reconstruction_summaries.append(reconstruction.compact_summary())
@@ -469,6 +546,29 @@ def _publish_batch(  # noqa: PLR0913
     beam: BeamShapePixels,
     detection: ResidualMultiscaleDetectionConfig,
 ) -> _PublicationBatchResult:
+    """Publish one batch with bounded source and sink metadata reuse."""
+    with background_rms_source.access_session(), sink.access_session():
+        return _publish_batch_in_session(
+            batch,
+            source=source,
+            background_rms_source=background_rms_source,
+            sink=sink,
+            image_shape_yx=image_shape_yx,
+            beam=beam,
+            detection=detection,
+        )
+
+
+def _publish_batch_in_session(  # noqa: PLR0913
+    batch: _PublicationBatch,
+    *,
+    source: _WindowReadable,
+    background_rms_source: _CompletedProductSource,
+    sink: ZarrProductSink,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+    detection: ResidualMultiscaleDetectionConfig,
+) -> _PublicationBatchResult:
     """Recompute, map global labels, and persist only accepted products."""
     chunks: list[ProductChunk] = []
     scale_summaries: list[list[LocalIslandTileSummary]] = [[], [], []]
@@ -477,7 +577,14 @@ def _publish_batch(  # noqa: PLR0913
     maximum_retained_array_bytes = 0
     maximum_worker_bytes = 0
     summary_array_bytes = 0
-    for request in batch.requests:
+    partitions = tuple(request.partition for request in batch.requests)
+    image_windows = _read_image_batch(source, partitions)
+    image_batch_bytes = _image_batch_bytes(image_windows)
+    for request, image_window in zip(
+        batch.requests,
+        image_windows,
+        strict=True,
+    ):
         result, evidence = _evaluate_tile(
             request.partition,
             source=source,
@@ -485,13 +592,15 @@ def _publish_batch(  # noqa: PLR0913
             image_shape_yx=image_shape_yx,
             beam=beam,
             detection=detection,
+            image_window=image_window,
         )
         reconstruction, direct_detection = _label_topology(
             evidence,
             image_shape_yx=image_shape_yx,
         )
         labelled_retained_bytes = (
-            summary_array_bytes
+            image_batch_bytes
+            + summary_array_bytes
             + result.retained_array_bytes
             + evidence.retained_array_bytes
             + _tile_array_bytes(reconstruction)
@@ -525,7 +634,8 @@ def _publish_batch(  # noqa: PLR0913
             retained_mask=retained_mask,
         )
         product_retained_bytes = (
-            summary_array_bytes
+            image_batch_bytes
+            + summary_array_bytes
             + result.retained_array_bytes
             + evidence.retained_array_bytes
             + _product_array_bytes(products)
@@ -536,7 +646,9 @@ def _publish_batch(  # noqa: PLR0913
         )
         maximum_worker_bytes = max(
             maximum_worker_bytes,
-            summary_array_bytes + result.maximum_filter_evaluation_bytes,
+            image_batch_bytes
+            + summary_array_bytes
+            + result.maximum_filter_evaluation_bytes,
             labelled_retained_bytes,
             product_retained_bytes,
         )

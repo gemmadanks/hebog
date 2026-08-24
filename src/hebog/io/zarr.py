@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import hashlib
 from collections import OrderedDict
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, cast
 
@@ -33,6 +34,7 @@ from hebog.data_models.products import (
 )
 
 _IMAGE_DIMENSIONS = 2
+_GENERATION_VALIDATION_TILE_ROWS = 4
 _WINDOW_CHUNK_CACHE_SIZE = 4
 _ZARR_FORMAT = 3
 _COMPLETION_KEY = ".hebog/completed-generation-v1.json"
@@ -127,6 +129,11 @@ class ZarrProductSink:
         self._root = root.resolve()
         self._manifest = manifest
         self._generation_id = generation_id
+        self._access_depth = 0
+        self._array_cache: dict[str, Any] = {}
+        self._published_generation_cache: ProductGenerationManifest | None = (
+            None
+        )
 
     @property
     def manifest(self) -> PartitionManifest:
@@ -137,6 +144,26 @@ class ZarrProductSink:
     def generation_id(self) -> str:
         """Return the immutable run identity stored with every chunk."""
         return self._generation_id
+
+    @contextmanager
+    def access_session(self) -> Generator[None]:
+        """Amortise immutable metadata opens within one bounded coarse task.
+
+        Array handles and the parsed completion record remain local to this
+        sink instance and are discarded at the outermost session boundary.
+        Chunk bytes are still read and checksum-validated on every access.
+        """
+        if self._access_depth == 0:
+            self._array_cache.clear()
+            self._published_generation_cache = None
+        self._access_depth += 1
+        try:
+            yield
+        finally:
+            self._access_depth -= 1
+            if self._access_depth == 0:
+                self._array_cache.clear()
+                self._published_generation_cache = None
 
     def initialize_product(
         self,
@@ -244,6 +271,9 @@ class ZarrProductSink:
     def _open_array(self, product_name: str) -> Any:
         """Open a pre-created product without racing metadata creation."""
         validate_product_name(product_name)
+        cached = self._array_cache.get(product_name)
+        if cached is not None:
+            return cached
         try:
             array = zarr.open_array(
                 store=LocalStore(self._root),
@@ -254,10 +284,13 @@ class ZarrProductSink:
             raise InvalidProductChunkError(
                 f"Zarr product {product_name!r} is not initialized"
             ) from error
-        return self._require_array_metadata(
+        validated = self._require_array_metadata(
             array,
             product_name=product_name,
         )
+        if self._access_depth:
+            self._array_cache[product_name] = validated
+        return validated
 
     def _require_canonical_tile(self, tile: TilePartition) -> None:
         """Reject invented records and storage-chunk misalignment."""
@@ -306,6 +339,14 @@ class ZarrProductSink:
             content_sha256=_content_sha256(values),
         )
 
+    @staticmethod
+    def _chunk_exists(array: Any, tile: TilePartition) -> bool:
+        """Return whether one canonical encoded chunk key already exists."""
+        chunk_key = array.metadata.encode_chunk_key(
+            (tile.tile_y_index, tile.tile_x_index)
+        )
+        return bool(sync((array.store_path / chunk_key).exists()))
+
     def write_chunk(
         self,
         *,
@@ -313,7 +354,12 @@ class ZarrProductSink:
         tile: TilePartition,
         values: npt.NDArray[np.generic],
     ) -> ProductChunk:
-        """Write one complete aligned chunk or accept an identical retry."""
+        """Write one aligned chunk or content-validate an existing retry.
+
+        Fresh LocalStore writes are atomic and use the required CRC32C codec.
+        Their content SHA-256 is validated in the mandatory full-generation
+        check before a completion marker can be published.
+        """
         self._require_canonical_tile(tile)
         array = self._open_array(product_name)
         normalized = np.asarray(values)
@@ -333,18 +379,19 @@ class ZarrProductSink:
             tile=tile,
             values=normalized,
         )
-        try:
-            self._read_values(array=array, tile=tile, record=record)
-        except InvalidProductChunkError as error:
-            if not isinstance(error.__cause__, ChunkNotFoundError):
-                raise ProductChunkConflictError(
-                    "published Zarr product chunk contains different values"
-                ) from error
-        else:
-            return record
+        if self._chunk_exists(array, tile):
+            try:
+                self._read_values(array=array, tile=tile, record=record)
+            except InvalidProductChunkError as error:
+                if not isinstance(error.__cause__, ChunkNotFoundError):
+                    raise ProductChunkConflictError(
+                        "published Zarr product chunk contains different "
+                        "values"
+                    ) from error
+            else:
+                return record
 
         array[_selection(tile)] = normalized
-        self._read_values(array=array, tile=tile, record=record)
         return record
 
     def read_chunk(
@@ -365,7 +412,29 @@ class ZarrProductSink:
         return self._read_values(array=array, tile=tile, record=record)
 
     @staticmethod
+    def _require_values_match_record(
+        values: npt.NDArray[np.generic],
+        record: ProductChunk,
+    ) -> npt.NDArray[np.generic]:
+        """Validate one owned array against its immutable chunk record."""
+        if (
+            values.ndim != _IMAGE_DIMENSIONS
+            or tuple(values.shape) != record.shape_yx
+            or values.dtype.str != record.dtype
+        ):
+            raise InvalidProductChunkError(
+                "Zarr product chunk array metadata disagrees with its record"
+            )
+        if _content_sha256(values) != record.content_sha256:
+            raise InvalidProductChunkError(
+                "Zarr product chunk SHA-256 disagrees with its record"
+            )
+        values.setflags(write=False)
+        return values
+
+    @classmethod
     def _read_values(
+        cls,
         *,
         array: Any,
         tile: TilePartition,
@@ -385,20 +454,48 @@ class ZarrProductSink:
             raise InvalidProductChunkError(
                 "Zarr product chunk is corrupt"
             ) from error
-        if (
-            values.ndim != _IMAGE_DIMENSIONS
-            or tuple(values.shape) != record.shape_yx
-            or values.dtype.str != record.dtype
-        ):
+        return cls._require_values_match_record(values, record)
+
+    @classmethod
+    def _read_product_block(
+        cls,
+        *,
+        array: Any,
+        tiles: tuple[TilePartition, ...],
+        records: tuple[ProductChunk, ...],
+    ) -> tuple[npt.NDArray[np.generic], ...]:
+        """Read and validate one contiguous bounded canonical tile block."""
+        first_bounds = tiles[0].core_bounds
+        last_bounds = tiles[-1].core_bounds
+        selection = (
+            slice(first_bounds.y_start, last_bounds.y_stop),
+            slice(first_bounds.x_start, last_bounds.x_stop),
+        )
+        try:
+            row = np.array(array[selection], copy=True)
+        except ChunkNotFoundError as error:
             raise InvalidProductChunkError(
-                "Zarr product chunk array metadata disagrees with its record"
-            )
-        if _content_sha256(values) != record.content_sha256:
+                "Zarr product chunk is missing"
+            ) from error
+        except (OSError, ValueError) as error:
             raise InvalidProductChunkError(
-                "Zarr product chunk SHA-256 disagrees with its record"
+                "Zarr product chunk is corrupt"
+            ) from error
+        values_by_tile: list[npt.NDArray[np.generic]] = []
+        for tile, record in zip(tiles, records, strict=True):
+            bounds = tile.core_bounds
+            values = np.ascontiguousarray(
+                row[
+                    bounds.y_start - first_bounds.y_start : bounds.y_stop
+                    - first_bounds.y_start,
+                    bounds.x_start - first_bounds.x_start : bounds.x_stop
+                    - first_bounds.x_start,
+                ]
             )
-        values.setflags(write=False)
-        return values
+            values_by_tile.append(
+                cls._require_values_match_record(values, record)
+            )
+        return tuple(values_by_tile)
 
     def _require_generation_chunks(
         self,
@@ -406,13 +503,42 @@ class ZarrProductSink:
     ) -> None:
         """Validate identity, geometry, and every referenced store chunk."""
         self._require_generation_identity(generation)
-        for chunk in generation.chunks:
-            try:
-                self.read_chunk(chunk)
-            except ProductChunkError as error:
-                raise InvalidProductGenerationError(
-                    "completion manifest references an invalid product chunk"
-                ) from error
+        tile_count = len(self._manifest.tiles)
+        tiles_per_row = (
+            self._manifest.image_shape_yx[1]
+            + self._manifest.tile_core_shape_yx[1]
+            - 1
+        ) // self._manifest.tile_core_shape_yx[1]
+        tiles_per_validation_block = (
+            tiles_per_row * _GENERATION_VALIDATION_TILE_ROWS
+        )
+        try:
+            for product_index, product_name in enumerate(
+                generation.product_names
+            ):
+                array = self._open_array(product_name)
+                product_start = product_index * tile_count
+                for row_start in range(
+                    0,
+                    tile_count,
+                    tiles_per_validation_block,
+                ):
+                    row_stop = min(
+                        row_start + tiles_per_validation_block,
+                        tile_count,
+                    )
+                    self._read_product_block(
+                        array=array,
+                        tiles=self._manifest.tiles[row_start:row_stop],
+                        records=generation.chunks[
+                            product_start + row_start : product_start
+                            + row_stop
+                        ],
+                    )
+        except ProductChunkError as error:
+            raise InvalidProductGenerationError(
+                "completion manifest references an invalid product chunk"
+            ) from error
 
     def _require_generation_identity(
         self,
@@ -446,7 +572,8 @@ class ZarrProductSink:
             raise InvalidProductGenerationError(
                 "product chunks do not form a complete generation"
             ) from error
-        self._require_generation_chunks(generation)
+        with self.access_session():
+            self._require_generation_chunks(generation)
         payload = generation.canonical_json_bytes()
         buffer = default_buffer_prototype().buffer.from_bytes(payload)
         with LocalStore(self._root) as store:
@@ -460,6 +587,8 @@ class ZarrProductSink:
 
     def _read_published_generation(self) -> ProductGenerationManifest:
         """Read and validate the immutable record without rereading chunks."""
+        if self._published_generation_cache is not None:
+            return self._published_generation_cache
         with LocalStore(self._root, read_only=True) as store:
             stored = store.get_sync(_COMPLETION_KEY)
         if stored is None:
@@ -478,12 +607,15 @@ class ZarrProductSink:
                 "published completion manifest is not canonical"
             )
         self._require_generation_identity(generation)
+        if self._access_depth:
+            self._published_generation_cache = generation
         return generation
 
     def read_generation(self) -> ProductGenerationManifest:
         """Read and fully validate the published completion manifest."""
-        generation = self._read_published_generation()
-        self._require_generation_chunks(generation)
+        with self.access_session():
+            generation = self._read_published_generation()
+            self._require_generation_chunks(generation)
         return generation
 
     def read_completed_window(
@@ -535,22 +667,58 @@ class ZarrProductSink:
                 dtype=np.dtype(first_record.dtype),
             )
             for tile_y_index in range(tile_y_start, tile_y_stop + 1):
-                for tile_x_index in range(tile_x_start, tile_x_stop + 1):
-                    tile_index = tile_y_index * tiles_per_row + tile_x_index
-                    record = generation.chunks[
-                        product_index * tile_count + tile_index
-                    ]
-                    tile = self._manifest.tiles[tile_index]
-                    values = cache.pop(tile_index, None)
-                    if values is None:
-                        values = self._read_values(
-                            array=array,
-                            tile=tile,
-                            record=record,
+                tile_indices = tuple(
+                    tile_y_index * tiles_per_row + tile_x_index
+                    for tile_x_index in range(tile_x_start, tile_x_stop + 1)
+                )
+                row_values = {
+                    tile_index: cache[tile_index]
+                    for tile_index in tile_indices
+                    if tile_index in cache
+                }
+                missing_indices = tuple(
+                    tile_index
+                    for tile_index in tile_indices
+                    if tile_index not in row_values
+                )
+                if len(missing_indices) > 1 and not row_values:
+                    missing_tiles = tuple(
+                        self._manifest.tiles[tile_index]
+                        for tile_index in missing_indices
+                    )
+                    missing_records = tuple(
+                        generation.chunks[
+                            product_index * tile_count + tile_index
+                        ]
+                        for tile_index in missing_indices
+                    )
+                    row_values.update(
+                        zip(
+                            missing_indices,
+                            self._read_product_block(
+                                array=array,
+                                tiles=missing_tiles,
+                                records=missing_records,
+                            ),
+                            strict=True,
                         )
-                        if len(cache) >= _WINDOW_CHUNK_CACHE_SIZE:
-                            cache.popitem(last=False)
+                    )
+                else:
+                    for tile_index in missing_indices:
+                        row_values[tile_index] = self._read_values(
+                            array=array,
+                            tile=self._manifest.tiles[tile_index],
+                            record=generation.chunks[
+                                product_index * tile_count + tile_index
+                            ],
+                        )
+                for tile_index in tile_indices:
+                    values = row_values[tile_index]
+                    cache.pop(tile_index, None)
+                    if len(cache) >= _WINDOW_CHUNK_CACHE_SIZE:
+                        cache.popitem(last=False)
                     cache[tile_index] = values
+                    tile = self._manifest.tiles[tile_index]
                     overlap_y_start = max(
                         bounds.y_start,
                         tile.core_bounds.y_start,

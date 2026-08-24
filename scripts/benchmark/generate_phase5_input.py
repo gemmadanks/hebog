@@ -27,8 +27,8 @@ _PROFILE_INDEX = {profile: index for index, profile in enumerate(_PROFILES)}
 _NOISE_RMS = 0.0002
 _BACKGROUND = -0.0001
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
-_BEAM_MAJOR_SIGMA_PIXELS = 10.0 / _FWHM_PER_SIGMA
-_BEAM_MINOR_SIGMA_PIXELS = 8.0 / _FWHM_PER_SIGMA
+_BEAM_MAJOR_SIGMA_PIXELS = 5.0 / _FWHM_PER_SIGMA
+_BEAM_MINOR_SIGMA_PIXELS = 4.0 / _FWHM_PER_SIGMA
 _MINIMUM_SIZE = 32
 
 
@@ -191,8 +191,8 @@ def _generate_input(
     values = _generate_values(size, profile)
     hdu = fits.PrimaryHDU(values)
     hdu.header["BUNIT"] = "Jy/beam"
-    hdu.header["BMAJ"] = 0.01
-    hdu.header["BMIN"] = 0.008
+    hdu.header["BMAJ"] = 0.005
+    hdu.header["BMIN"] = 0.004
     hdu.header["BPA"] = 0.0
     hdu.header["RESTFRQ"] = 150_000_000.0
     hdu.header["CTYPE1"] = "RA---SIN"

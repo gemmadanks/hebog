@@ -117,52 +117,40 @@ def label_detection_tile(
         ),
     )
     labels = np.asarray(raw_labels, dtype=np.int32)
-    component_indices = np.arange(1, count + 1, dtype=np.int32)
     bounds = partition.core_bounds
     image_width = image_shape_yx[1]
 
     if count:
-        pixel_counts = np.asarray(
-            ndimage.sum_labels(
-                np.ones(labels.shape, dtype=np.int64),
-                labels,
-                index=component_indices,
-            ),
+        flat_labels = labels.ravel()
+        member_indices = np.flatnonzero(flat_labels)
+        member_labels = flat_labels[member_indices]
+        member_values = masks.normalized_residual.ravel()[member_indices]
+        pixel_counts = np.bincount(
+            member_labels,
+            minlength=count + 1,
+        )[1:]
+        local_y, local_x = np.divmod(member_indices, labels.shape[1])
+        member_global_linear = np.asarray(
+            (local_y + bounds.y_start) * image_width
+            + local_x
+            + bounds.x_start,
             dtype=np.int64,
         )
-        peak_values = np.asarray(
-            ndimage.maximum(
-                masks.normalized_residual,
-                labels,
-                index=component_indices,
-            ),
-            dtype=np.float64,
-        )
-        local_y, local_x = np.indices(labels.shape, dtype=np.int64)
-        global_linear = (
-            (local_y + bounds.y_start) * image_width + local_x + bounds.x_start
-        )
-        first_linear = np.asarray(
-            ndimage.minimum(
-                global_linear,
-                labels,
-                index=component_indices,
-            ),
-            dtype=np.int64,
-        )
-        maximum_lookup = np.concatenate(([-np.inf], peak_values))
-        peak_pixels = masks.island_membership & (
-            masks.normalized_residual == maximum_lookup[labels]
-        )
+        maximum_lookup = np.full(count + 1, -np.inf, dtype=np.float64)
+        np.maximum.at(maximum_lookup, member_labels, member_values)
+        peak_values = maximum_lookup[1:]
         sentinel = np.iinfo(np.int64).max
-        peak_linear = np.asarray(
-            ndimage.minimum(
-                np.where(peak_pixels, global_linear, sentinel),
-                labels,
-                index=component_indices,
-            ),
-            dtype=np.int64,
+        first_lookup = np.full(count + 1, sentinel, dtype=np.int64)
+        np.minimum.at(first_lookup, member_labels, member_global_linear)
+        first_linear = first_lookup[1:]
+        peak_members = member_values == maximum_lookup[member_labels]
+        peak_lookup = np.full(count + 1, sentinel, dtype=np.int64)
+        np.minimum.at(
+            peak_lookup,
+            member_labels[peak_members],
+            member_global_linear[peak_members],
         )
+        peak_linear = peak_lookup[1:]
         object_slices = ndimage.find_objects(labels, max_label=count)
         first_positions = _positions_from_linear_indices(
             first_linear,

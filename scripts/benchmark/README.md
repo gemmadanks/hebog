@@ -307,9 +307,11 @@ compact or extended source patches. Their hashes, workload classes, complete
 runtime environment, source tree, resource allocation, task count, aggregate
 process-tree RSS, retained arrays, workspaces, summaries, partitions, and
 published shards are recorded in typed evidence. Phase 2 setup time is
-retained as context but excluded from the incremental gate. A 273-pixel
-minimum nominal core admits the exact 68-pixel halo for the 10-pixel benchmark
-beam while still treating the 256-square image as one bounded tile.
+retained as context but excluded from the incremental gate. The reviewed
+five-pixel benchmark beam has an exact 34-pixel filter halo, so a 256-pixel
+core satisfies the halo-admission rule and keeps the smallest image to one
+tile. A 12-tile task bound balances the 144 partitions into 12 tasks per pass
+at the 3,000-square anchor, avoiding an under-filled final four-core wave.
 
 This is a component budget and initial reviewed Hebog curve, not a complete
 Rapthor or PyBDSF speedup claim. Later candidates must compare affected and

@@ -283,6 +283,71 @@ def test_completed_windows_reuse_a_bounded_validated_chunk_cache(
     assert read_count == 1
 
 
+def test_access_session_reuses_metadata_but_revalidates_chunk_content(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One coarse task amortises opens without trusting earlier chunk bytes."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    original_open_array = zarr.open_array
+    original_read_values = sink._read_values
+    open_count = 0
+    read_count = 0
+
+    def count_open_array(*args: Any, **kwargs: Any) -> Any:
+        nonlocal open_count
+        open_count += 1
+        return original_open_array(*args, **kwargs)
+
+    def count_read_values(**kwargs: Any) -> npt.NDArray[np.generic]:
+        nonlocal read_count
+        read_count += 1
+        return original_read_values(**kwargs)
+
+    monkeypatch.setattr(zarr, "open_array", count_open_array)
+    monkeypatch.setattr(sink, "_read_values", count_read_values)
+    bounds = ImageBounds(0, 1, 0, 1)
+
+    with sink.access_session():
+        first = sink.read_completed_window("rms", bounds)
+        second = sink.read_completed_window("rms", bounds)
+
+    np.testing.assert_array_equal(first, second)
+    assert open_count == 1
+    assert read_count == 2
+
+
+def test_access_session_releases_cached_arrays_after_coarse_task(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Worker-local array handles never escape their bounded task session."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    original_open_array = zarr.open_array
+    open_count = 0
+
+    def count_open_array(*args: Any, **kwargs: Any) -> Any:
+        nonlocal open_count
+        open_count += 1
+        return original_open_array(*args, **kwargs)
+
+    monkeypatch.setattr(zarr, "open_array", count_open_array)
+    bounds = ImageBounds(0, 1, 0, 1)
+
+    with sink.access_session():
+        sink.read_completed_window("rms", bounds)
+    with sink.access_session():
+        sink.read_completed_window("rms", bounds)
+
+    assert open_count == 2
+
+
 def test_completed_window_cache_evicts_old_chunks(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -475,6 +540,40 @@ def test_identical_retry_is_idempotent_and_conflict_fails_closed(
             values=np.zeros(tile.core_bounds.shape_yx, dtype=np.float64),
         )
     np.testing.assert_array_equal(sink.read_chunk(first), _values_for(0))
+
+
+def test_first_chunk_write_defers_content_reread_until_generation_publish(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Atomic CRC writes avoid rereads while retries still check content."""
+    manifest = _manifest()
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+    original = sink._read_values
+    read_count = 0
+
+    def count_read(**kwargs: Any) -> npt.NDArray[np.generic]:
+        nonlocal read_count
+        read_count += 1
+        return original(**kwargs)
+
+    monkeypatch.setattr(sink, "_read_values", count_read)
+    tile = manifest.tiles[0]
+
+    sink.write_chunk(
+        product_name="rms",
+        tile=tile,
+        values=_values_for(0),
+    )
+    assert read_count == 0
+
+    sink.write_chunk(
+        product_name="rms",
+        tile=tile,
+        values=_values_for(0),
+    )
+    assert read_count == 1
 
 
 def test_crc32c_rejects_corrupt_stored_bytes(tmp_path: Path) -> None:
@@ -699,6 +798,33 @@ def test_generation_validation_rejects_store_corruption_before_publish(
         sink.publish_generation(product_names=("rms",), chunks=records)
     with pytest.raises(InvalidProductGenerationError, match="not published"):
         sink.read_generation()
+
+
+def test_generation_validation_reads_at_most_four_canonical_tile_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Grouped validation reduces syncs without approaching a full plane."""
+    manifest = PartitionManifest.create(
+        image_shape_yx=(15, 9),
+        tile_core_shape_yx=(3, 3),
+        halo_yx=(0, 0),
+    )
+    sink = _sink(tmp_path / "run.zarr", manifest)
+    records = _write_product(sink, manifest, "rms")
+    original = sink._read_product_block
+    block_row_counts: list[int] = []
+
+    def record_block(**kwargs: Any) -> tuple[npt.NDArray[np.generic], ...]:
+        tiles = cast(tuple[Any, ...], kwargs["tiles"])
+        block_row_counts.append(len({tile.tile_y_index for tile in tiles}))
+        return original(**kwargs)
+
+    monkeypatch.setattr(sink, "_read_product_block", record_block)
+
+    sink.publish_generation(product_names=("rms",), chunks=records)
+
+    assert block_row_counts == [4, 1]
 
 
 def test_completion_marker_is_immutable_and_run_scoped(tmp_path: Path) -> None:

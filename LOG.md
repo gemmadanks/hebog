@@ -10019,3 +10019,58 @@ recorded before that curve runs.
 **Immediate next step:** validate and commit the harness, then execute the
 matrix from that immutable revision and interpret the scientific-structure
 evidence before its runtime decision.
+
+## 2026-08-25 — Correct the Phase 5 curve and optimize bounded publication
+
+**Plan phase:** Phase 5, Step 6 — incremental performance
+
+- Retained the first immutable matrix at
+  `benchmark-results/phase-5/incremental-multiscale` as diagnostic evidence.
+  All 18 cells completed and preserved stable scientific structure, but its
+  three 3,000-square Dask medians were 14.0231, 14.6077, and 14.4626 seconds
+  against the 6.0-second budget. The protocol SHA-256 is
+  `951135d8202e4c2723a24df2f46034f76dd98256a264206a2d539b579630a1e2`.
+- Found a harness-composition defect before treating that runtime as the
+  reviewed curve: the generator and task geometry had inherited a ten-pixel
+  beam and 1,000-pixel cores, whereas the reviewed Step 5 composition is a
+  five-pixel beam with 256-pixel cores. The earlier LOG preparation statement
+  freezing a 68-pixel halo and 273-pixel minimum is therefore superseded for
+  this matrix; the corrected exact halo is 34 pixels and a 256-pixel core is
+  admissible.
+- Profiling then isolated two independent implementation costs. Sparse local
+  labels invoked SciPy's sorting reductions repeatedly, and 144-tile Zarr
+  execution reopened immutable metadata and synchronously read each chunk in
+  isolation. Linear `bincount`/`maximum.at`/`minimum.at` reductions preserve
+  global first-pixel and equal-peak tie semantics without the sort.
+- Zarr array handles and the canonical completion record are now reused only
+  within a bounded coarse-task access session and discarded afterward. Chunk
+  bytes are still checksummed whenever read. Fresh chunks use LocalStore's
+  atomic write and required CRC32C codec; their content SHA-256 is verified in
+  the mandatory complete-generation check before the immutable marker can be
+  published. Existing retries still read and content-validate before they are
+  accepted.
+- Complete-generation validation groups at most four canonical tile rows per
+  read, remaining bounded independently of image height. FITS inputs use one
+  bounded batch open, and their retained arrays are included in worker-memory
+  evidence. A 12-tile bound balances 144 partitions into 12 tasks per pass,
+  avoiding a single-task final wave on the approved four-worker executor.
+- Corrected 3,000-square normal-profile smoke runs now take 5.4939, 5.6318,
+  5.7328, and 5.9065 seconds with 144 partitions and 24 tasks. The latest run
+  records a 37,350,048-byte maximum worker payload and 28,890,128 retained
+  array bytes. These are development diagnostics, not the five-repetition
+  matrix decision.
+- The focused storage, labelling, partition-invariance, benchmark-protocol,
+  and Phase 5 execution suites pass 66 tests. The full branch-aware suite
+  passes 1,671 tests with 44 deselected and four expected failures at 94.96%
+  coverage; changed production modules retain 96--99% coverage. `just check`
+  passes Ruff, Pyright, doctests, and 1,517 tests with 198 deselected and four
+  expected failures.
+
+**Decision:** the first curve does not bind the reviewed runtime decision.
+The corrected candidate preserves science and storage safety and has adequate
+smoke headroom to justify one complete write-once corrected matrix. The
+6.0-second gate remains open until that immutable matrix is evaluated.
+
+**Immediate next step:** validate and commit this corrected candidate, run the
+complete matrix into a new output namespace, and decide science structure
+before runtime and crossover policy.

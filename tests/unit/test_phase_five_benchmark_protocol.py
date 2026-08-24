@@ -79,13 +79,15 @@ def test_phase_five_performance_protocol_covers_anchors_and_crossovers() -> (
     assert protocol.profiles == ("sparse", "normal", "extended")
     assert protocol.crossover_sizes == (1024, 3000)
     assert protocol.multiscale_budget_seconds == 6.0
-    assert protocol.minimum_tile_size == 273
+    assert protocol.minimum_tile_size == 256
+    assert protocol.representative_tile_size == 256
+    assert protocol.maximum_tiles_per_batch == 12
     assert protocol.workers == 4
     assert protocol.threads_per_worker == 1
     assert protocol.warmups == 1
     assert protocol.repetitions == 5
     assert len(cells) == 18
-    assert next(cell for cell in cells if cell.size == 256).tile_size == 273
+    assert next(cell for cell in cells if cell.size == 256).tile_size == 256
     for size in protocol.crossover_sizes:
         for profile in protocol.profiles:
             assert {
@@ -144,8 +146,8 @@ def test_phase_five_benchmark_derives_pixel_beam_from_fits(
 
     beam = _MEASUREMENT._beam_from_metadata(FitsImageSource(path))
 
-    assert beam.major_fwhm_pixels == pytest.approx(10.0, rel=1e-6)
-    assert beam.minor_fwhm_pixels == pytest.approx(8.0, rel=1e-6)
+    assert beam.major_fwhm_pixels == pytest.approx(5.0, rel=1e-6)
+    assert beam.minor_fwhm_pixels == pytest.approx(4.0, rel=1e-6)
     assert 0.0 <= beam.position_angle_degrees < 180.0
 
 
