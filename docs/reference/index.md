@@ -104,6 +104,12 @@ Related project references:
     options:
       show_symbol_type_toc: true
 
+## Residual multiscale detection
+
+::: hebog.algorithms.multiscale
+    options:
+      show_symbol_type_toc: true
+
 ::: hebog.algorithms.measurement
     options:
       show_symbol_type_toc: true

@@ -9258,3 +9258,44 @@ scientific result.
 persistence, seed/grow, normalized-support, minimum-area, edge, and
 invalid-pixel policy with analytic tests, reusing the promoted science without
 weakening the compact regression gate or the two narrow Continuum watchpoints.
+
+## 2026-08-24 — Freeze production multiscale segmentation rules
+
+**Plan phase:** Phase 5, Step 3 — multiscale science
+
+- Added `ResidualMultiscaleDetectionConfig` as the explicit production
+  boundary for thresholds, normalized scale support, beam-area filtering, and
+  the fixed topology modes promoted by the recovery campaign. It rejects
+  unreviewed connectivity, persistence, growth, edge, invalid-pixel, and
+  subarea-island semantics.
+- Added a scheduler-independent residual-island kernel that combines calibrated
+  matched-filter seed aid, persistent adjacent-scale B3 evidence, and direct
+  residual SNR; grows only eight-connected original valid 3-sigma pixels; and
+  applies the one-Gaussian-beam floor with a direct 5-sigma seed exception.
+- Made normalized support explicit in adjacent-scale reconstruction. Exact
+  half-support edge evidence is usable, support immediately below the boundary
+  is unavailable, and non-finite or invalid pixels cannot seed, grow, bridge,
+  or enter a component.
+- Routed the promoted corrective-R/A validation path through the production
+  kernel without changing its separate three-beam association behavior. The
+  historical pre-correction and matched-comparator paths remain unchanged;
+  deterministic development smoke tests retain complete detection,
+  reliability, fragmentation, mask, and analytic-endpoint passage.
+- Added analytic red-to-green tests for diagonal eight-connectivity,
+  original-residual growth, persistent scale seeds, area and direct-seed
+  disposition, exact edge-support inclusivity, invalid pixels, configuration
+  drift, mismatched tile planes, immutable outputs, and filter-family
+  provenance. Updated the scientific reference and API navigation with the
+  production policy and its Step 4 association boundary.
+- Focused multiscale and corrective validation passes 87 tests. `just coverage`
+  passes 1,441 tests with four expected failures at 94.40% project coverage;
+  the changed multiscale and configuration modules reach 98% and 99%.
+  `just check` passes Ruff, Pyright, 1,311 tests, and four expected failures;
+  `just docs-build` passes strictly.
+
+**Decision:** the second Step 3 item is complete without changing the passing
+recovery evidence, opening qualification, or making a runtime claim.
+
+**Immediate next step:** implement bounded partitioned completion for
+compact-deferred islands so no task owns an arbitrarily large island, while
+preserving the frozen segmentation policy and compact regression products.

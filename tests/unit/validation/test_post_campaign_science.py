@@ -85,7 +85,11 @@ def test_candidate_products_reuse_atrous_detection_and_position_signal(
         return_value=reconstruction,
     )
     review = SimpleNamespace(
-        matrix=SimpleNamespace(detection_sigma=5.0, island_sigma=3.0)
+        matrix=SimpleNamespace(
+            detection_sigma=5.0,
+            island_sigma=3.0,
+            support_fraction_bounds=(0.5, 1.0),
+        )
     )
     beam = BeamShapePixels(4.0, 3.0, 0.0)
 
@@ -107,6 +111,7 @@ def test_candidate_products_reuse_atrous_detection_and_position_signal(
     assert reconstruct.call_args.kwargs == {
         "detection_sigma": 5.0,
         "island_sigma": 3.0,
+        "minimum_support_fraction": review.matrix.support_fraction_bounds[0],
     }
 
 

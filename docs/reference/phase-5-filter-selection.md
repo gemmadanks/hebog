@@ -40,6 +40,31 @@ poor reference result could not excuse a Hebog absolute failure, and cost did
 not compensate for science. The passing decision opened Step 3 while retaining
 the compact regression gate and two narrow Continuum watchpoints.
 
+## Production residual segmentation policy
+
+Step 3 retains the promoted campaign semantics in
+`ResidualMultiscaleDetectionConfig` and the scheduler-independent
+`detect_residual_multiscale_islands` kernel:
+
+- the promoted profile uses a 5-sigma detection threshold and 3-sigma island
+  threshold;
+- a residual-B3 seed must persist at adjacent canonical scales, while the
+  matched filter remains only a permitted seed aid;
+- final island membership grows with eight-neighbour connectivity on original
+  valid residual pixels at or above the island threshold;
+- each scale uses its calibrated effective local RMS and normalized valid
+  support; an edge response is available at support fraction 0.5 and
+  unavailable below it;
+- invalid or non-finite pixels never seed, grow, bridge, or enter a component;
+  and
+- an island must cover at least one Gaussian restoring-beam area, rounded up
+  in pixels, unless its original residual contains a direct detection-threshold
+  seed.
+
+These rules are configuration-visible but reject unreviewed topology modes.
+The three-beam association used by the promotion comparator remains separate:
+deterministic cross-scale and compact/extended association belongs to Step 4.
+
 ## Completed independent astrometry confirmation
 
 Step 2C-A froze a seed-disjoint 100-image confirmation manifest before

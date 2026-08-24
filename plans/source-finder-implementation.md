@@ -483,8 +483,11 @@ and the later Rapthor cutover remain outstanding.
       The promoted three-scale float64 kernel now exposes immutable per-scale
       significance provenance, rejects non-finite thresholds and non-adjacent
       scale records, and retains only bounded tile-local working planes.
-- [ ] Freeze scale-specific connectivity, persistence, seed/grow, support,
-      minimum-area, edge, and invalid-pixel rules with analytic tests.
+- [x] Freeze scale-specific connectivity, persistence, seed/grow, support,
+      minimum-area, edge, and invalid-pixel rules with analytic tests. The
+      production policy uses adjacent scales, eight-neighbour 3-sigma growth
+      on original valid residual pixels, normalized support of at least 0.5,
+      and a one-beam floor with a direct 5-sigma seed exception.
 - [ ] Complete compact-deferred islands through a bounded partitioned path;
       no task may own an arbitrarily large island.
 - [ ] Measure extended flux, position, shape, background, and available

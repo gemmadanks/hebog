@@ -524,6 +524,7 @@ def test_residual_atrous_reconstruction_requires_adjacent_scale_support() -> (
         result,
         detection_sigma=5.0,
         island_sigma=3.0,
+        minimum_support_fraction=0.5,
     )
 
     assert reconstruction.support_mask[2, 2:4].all()
@@ -544,6 +545,7 @@ def test_residual_atrous_reconstruction_requires_adjacent_scale_support() -> (
             result,
             detection_sigma=3.0,
             island_sigma=3.0,
+            minimum_support_fraction=0.5,
         )
     for detection_sigma, island_sigma in ((np.nan, 3.0), (5.0, np.nan)):
         with pytest.raises(ValueError, match="finite"):
@@ -551,12 +553,21 @@ def test_residual_atrous_reconstruction_requires_adjacent_scale_support() -> (
                 result,
                 detection_sigma=detection_sigma,
                 island_sigma=island_sigma,
+                minimum_support_fraction=0.5,
             )
     with pytest.raises(ValueError, match="requires adjacent"):
         reconstruct_significant_atrous(
             replace(result, responses=(result.responses[0],)),
             detection_sigma=5.0,
             island_sigma=3.0,
+            minimum_support_fraction=0.5,
+        )
+    with pytest.raises(ValueError, match="minimum support fraction"):
+        reconstruct_significant_atrous(
+            result,
+            detection_sigma=5.0,
+            island_sigma=3.0,
+            minimum_support_fraction=0.0,
         )
     with pytest.raises(ValueError, match="canonical adjacent"):
         reconstruct_significant_atrous(
@@ -566,6 +577,7 @@ def test_residual_atrous_reconstruction_requires_adjacent_scale_support() -> (
             ),
             detection_sigma=5.0,
             island_sigma=3.0,
+            minimum_support_fraction=0.5,
         )
 
 
@@ -604,6 +616,7 @@ def test_residual_atrous_significance_uses_local_noise_and_validity() -> None:
         result,
         detection_sigma=5.0,
         island_sigma=3.0,
+        minimum_support_fraction=0.5,
     )
 
     first, second, third = reconstruction.significant_scale_masks

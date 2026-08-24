@@ -24,11 +24,13 @@ from hebog.algorithms.multiscale import (
     ScaleFilterResponse,
     build_residual_atrous_plan,
     build_scale_filter_bank,
+    detect_residual_multiscale_islands,
     evaluate_residual_atrous,
     evaluate_scale_filter_bank,
     prepare_scale_filter_inputs,
     reconstruct_significant_atrous,
 )
+from hebog.config import ResidualMultiscaleDetectionConfig
 from hebog.validation.contracts import (
     PhaseFiveCorrectiveAEstimator,
     PhaseFiveCorrectiveAReview,
@@ -918,6 +920,54 @@ def _corrective_threshold(
 ) -> ThresholdFilterResult:
     """Seed from calibrated evidence and grow only on original residual."""
     shape = prepared.residual_jy_per_beam.shape
+    if atrous is not None and isinstance(
+        review,
+        (PhaseFiveCorrectiveRReview, PhaseFiveCorrectiveAReview),
+    ):
+        detection = detect_residual_multiscale_islands(
+            prepared,
+            matched,
+            atrous,
+            beam,
+            ResidualMultiscaleDetectionConfig(
+                detection_threshold_sigma=review.matrix.detection_sigma,
+                island_threshold_sigma=review.matrix.island_sigma,
+                minimum_scale_support_fraction=(
+                    review.matrix.support_fraction_bounds[0]
+                ),
+                minimum_island_area_beams=(
+                    review.corrections.minimum_island_area_beams
+                ),
+            ),
+        )
+        association_support = binary_dilation(
+            detection.retained_mask | detection.reconstruction.support_mask,
+            iterations=ceil(
+                review.corrections.association_distance_beams
+                * beam.major_fwhm_pixels
+            ),
+        )
+        association_labels, _ = cast(
+            tuple[npt.NDArray[np.int32], int],
+            label(
+                association_support,
+                structure=np.ones((3, 3), dtype=np.int8),
+            ),
+        )
+        component_labels = np.where(
+            detection.retained_mask,
+            association_labels,
+            0,
+        ).astype(np.int32, copy=False)
+        return ThresholdFilterResult(
+            combined_snr=detection.combined_snr,
+            retained_mask=detection.retained_mask,
+            component_labels=_read_only(component_labels),
+            component_count=int(
+                np.count_nonzero(np.unique(component_labels) > 0)
+            ),
+        )
+
     combined_snr = _maximum_response_snr(shape, matched.responses)
     reconstructed_support = np.zeros(shape, dtype=np.bool_)
     if atrous is not None:
@@ -925,6 +975,9 @@ def _corrective_threshold(
             atrous,
             detection_sigma=review.matrix.detection_sigma,
             island_sigma=review.matrix.island_sigma,
+            minimum_support_fraction=(
+                review.matrix.support_fraction_bounds[0]
+            ),
         )
         reconstructed_support = reconstruction.support_mask
         atrous_snr = _maximum_response_snr(shape, atrous.responses)

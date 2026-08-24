@@ -94,6 +94,7 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
         atrous,
         detection_sigma=review.matrix.detection_sigma,
         island_sigma=review.matrix.island_sigma,
+        minimum_support_fraction=review.matrix.support_fraction_bounds[0],
     )
     return PostCampaignCandidateProducts(
         detection=refine_external_candidate_detection(

@@ -15,6 +15,8 @@ import numpy.typing as npt
 from scipy.ndimage import convolve1d, label
 from scipy.signal import fftconvolve
 
+from hebog.config import ResidualMultiscaleDetectionConfig
+
 FilterFamily = Literal[
     "beam-aware-matched-filter",
     "undecimated-wavelet",
@@ -27,6 +29,7 @@ _WAVELET_WIDTH_RATIO = sqrt(2.0)
 _MINIMUM_TRUNCATION_SIGMA = 3.0
 _MAXIMUM_TRUNCATION_SIGMA = 8.0
 _MINIMUM_ATROUS_SCALE_COUNT = 2
+_GAUSSIAN_BEAM_AREA_FACTOR = 1.1331
 _ArrayScalar = TypeVar("_ArrayScalar", bound=np.generic)
 
 
@@ -211,6 +214,18 @@ class SignificantAtrousReconstruction:
     signal_jy_per_beam: npt.NDArray[np.float64]
     support_mask: npt.NDArray[np.bool_]
     significant_scale_masks: tuple[npt.NDArray[np.bool_], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ResidualMultiscaleIslandDetection:
+    """Seeded original-residual islands under the promoted scale policy."""
+
+    combined_snr: npt.NDArray[np.float64]
+    retained_mask: npt.NDArray[np.bool_]
+    component_labels: npt.NDArray[np.int32]
+    component_count: int
+    minimum_island_pixels: int
+    reconstruction: SignificantAtrousReconstruction
 
 
 def _read_only(
@@ -774,6 +789,7 @@ def reconstruct_significant_atrous(
     *,
     detection_sigma: float,
     island_sigma: float,
+    minimum_support_fraction: float,
 ) -> SignificantAtrousReconstruction:
     """Reconstruct positive coefficients persistent at adjacent scales."""
     if not (isfinite(detection_sigma) and isfinite(island_sigma)):
@@ -782,6 +798,11 @@ def reconstruct_significant_atrous(
         raise ValueError(
             "thresholds require detection_sigma > island_sigma > 0"
         )
+    if (
+        not isfinite(minimum_support_fraction)
+        or not 0 < minimum_support_fraction <= 1
+    ):
+        raise ValueError("minimum support fraction must be within (0, 1]")
     if len(result.responses) < _MINIMUM_ATROUS_SCALE_COUNT:
         raise ValueError("à trous reconstruction requires adjacent scales")
     scale_orders = tuple(response.scale_order for response in result.responses)
@@ -793,11 +814,18 @@ def reconstruct_significant_atrous(
     scale_snrs: list[npt.NDArray[np.float64]] = []
     for response in result.responses:
         scale_snr = np.full(shape, -np.inf, dtype=np.float64)
+        scale_validity = (
+            response.scientifically_valid
+            & (response.valid_support_fraction >= minimum_support_fraction)
+            & np.isfinite(response.response_jy_per_beam)
+            & np.isfinite(response.effective_rms_jy_per_beam)
+            & (response.effective_rms_jy_per_beam > 0)
+        )
         np.divide(
             response.response_jy_per_beam,
             response.effective_rms_jy_per_beam,
             out=scale_snr,
-            where=response.scientifically_valid,
+            where=scale_validity,
         )
         scale_snrs.append(scale_snr)
     significant = tuple(
@@ -835,6 +863,139 @@ def reconstruct_significant_atrous(
         signal_jy_per_beam=_read_only(reconstructed),
         support_mask=_read_only(np.asarray(retained_support, dtype=np.bool_)),
         significant_scale_masks=significant,
+    )
+
+
+def _maximum_calibrated_scale_snr(
+    shape: tuple[int, int],
+    responses: tuple[ScaleFilterResponse, ...],
+    *,
+    minimum_support_fraction: float,
+) -> npt.NDArray[np.float64]:
+    """Combine scale evidence only where noise and support are available."""
+    combined = np.full(shape, -np.inf, dtype=np.float64)
+    for response in responses:
+        arrays = (
+            response.response_jy_per_beam,
+            response.effective_rms_jy_per_beam,
+            response.valid_support_fraction,
+            response.scientifically_valid,
+        )
+        if any(array.shape != shape for array in arrays):
+            raise ValueError("scale responses must match the residual shape")
+        scale_validity = (
+            response.scientifically_valid
+            & (response.valid_support_fraction >= minimum_support_fraction)
+            & np.isfinite(response.response_jy_per_beam)
+            & np.isfinite(response.effective_rms_jy_per_beam)
+            & (response.effective_rms_jy_per_beam > 0)
+        )
+        scale_snr = np.full(shape, -np.inf, dtype=np.float64)
+        np.divide(
+            response.response_jy_per_beam,
+            response.effective_rms_jy_per_beam,
+            out=scale_snr,
+            where=scale_validity,
+        )
+        np.maximum(combined, scale_snr, out=combined)
+    return combined
+
+
+def detect_residual_multiscale_islands(
+    prepared_inputs: PreparedScaleInputs,
+    matched_filter: ScaleFilterBankResult,
+    atrous_result: ResidualAtrousResult,
+    beam: BeamShapePixels,
+    config: ResidualMultiscaleDetectionConfig,
+) -> ResidualMultiscaleIslandDetection:
+    """Seed and grow promoted islands on original residual pixels."""
+    if matched_filter.family != "beam-aware-matched-filter":
+        raise ValueError("multiscale seed aid must be the matched filter")
+    if atrous_result.family != "residual-b3-atrous":
+        raise ValueError("multiscale representation must be residual B3")
+    shape = prepared_inputs.residual_jy_per_beam.shape
+    if (
+        prepared_inputs.rms_jy_per_beam.shape != shape
+        or prepared_inputs.scientifically_valid.shape != shape
+    ):
+        raise ValueError("prepared multiscale inputs must have the same shape")
+    reconstruction = reconstruct_significant_atrous(
+        atrous_result,
+        detection_sigma=config.detection_threshold_sigma,
+        island_sigma=config.island_threshold_sigma,
+        minimum_support_fraction=config.minimum_scale_support_fraction,
+    )
+    combined_snr = _maximum_calibrated_scale_snr(
+        shape,
+        matched_filter.responses,
+        minimum_support_fraction=config.minimum_scale_support_fraction,
+    )
+    atrous_snr = _maximum_calibrated_scale_snr(
+        shape,
+        atrous_result.responses,
+        minimum_support_fraction=config.minimum_scale_support_fraction,
+    )
+    atrous_snr[~reconstruction.support_mask] = -np.inf
+    np.maximum(combined_snr, atrous_snr, out=combined_snr)
+
+    direct_snr = np.full(shape, -np.inf, dtype=np.float64)
+    direct_validity = (
+        prepared_inputs.scientifically_valid
+        & np.isfinite(prepared_inputs.residual_jy_per_beam)
+        & np.isfinite(prepared_inputs.rms_jy_per_beam)
+        & (prepared_inputs.rms_jy_per_beam > 0)
+    )
+    np.divide(
+        prepared_inputs.residual_jy_per_beam,
+        prepared_inputs.rms_jy_per_beam,
+        out=direct_snr,
+        where=direct_validity,
+    )
+    np.maximum(combined_snr, direct_snr, out=combined_snr)
+    combined_snr[~direct_validity] = -np.inf
+
+    original_support = direct_validity & (
+        direct_snr >= config.island_threshold_sigma
+    )
+    raw_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        label(original_support, structure=np.ones((3, 3), dtype=np.int8)),
+    )
+    seed_labels = np.unique(
+        raw_labels[combined_snr >= config.detection_threshold_sigma]
+    )
+    seed_labels = seed_labels[seed_labels > 0]
+    retained = np.isin(raw_labels, seed_labels)
+
+    minimum_island_pixels = max(
+        1,
+        ceil(
+            config.minimum_island_area_beams
+            * _GAUSSIAN_BEAM_AREA_FACTOR
+            * beam.major_fwhm_pixels
+            * beam.minor_fwhm_pixels
+        ),
+    )
+    label_count = int(np.max(raw_labels)) + 1
+    retained_counts = np.bincount(raw_labels[retained], minlength=label_count)
+    accepted = retained_counts >= minimum_island_pixels
+    direct_maxima = np.full(label_count, -np.inf, dtype=np.float64)
+    np.maximum.at(direct_maxima, raw_labels.ravel(), direct_snr.ravel())
+    accepted |= direct_maxima >= config.detection_threshold_sigma
+    accepted[0] = False
+    accepted_labels = np.flatnonzero(accepted)
+    retained = np.isin(raw_labels, accepted_labels)
+    component_labels = np.where(retained, raw_labels, 0).astype(
+        np.int32,
+        copy=False,
+    )
+    return ResidualMultiscaleIslandDetection(
+        combined_snr=_read_only(combined_snr),
+        retained_mask=_read_only(np.asarray(retained, dtype=np.bool_)),
+        component_labels=_read_only(component_labels),
+        component_count=int(np.count_nonzero(np.unique(component_labels) > 0)),
+        minimum_island_pixels=minimum_island_pixels,
+        reconstruction=reconstruction,
     )
 
 

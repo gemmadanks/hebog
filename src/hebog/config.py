@@ -159,9 +159,10 @@ class SourceFinderConfig:
     Island-size cuts are likewise explicit pixel counts; a compatibility
     adapter may derive them from reviewed beam metadata before constructing
     this scheduler-independent configuration.
-    Workflow-specific background, RMS, multiscale, and filtering choices
-    belong to compatibility configuration at the adapter boundary until their
-    scientific contracts are implemented.
+    Workflow-specific background, RMS, and filtering choices belong to
+    compatibility configuration at the adapter boundary. The residual
+    multiscale segmentation policy has its own explicit configuration because
+    its area and support rules use beam rather than pixel units.
     """
 
     detection_threshold_sigma: float
@@ -202,6 +203,71 @@ class SourceFinderConfig:
                 "maximum_island_pixels must be an integer no smaller than "
                 "minimum_island_pixels"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class ResidualMultiscaleDetectionConfig:
+    """Promoted residual-B3 segmentation thresholds and topology rules."""
+
+    detection_threshold_sigma: float
+    island_threshold_sigma: float
+    minimum_scale_support_fraction: float
+    minimum_island_area_beams: float
+    connectivity: Literal["eight-neighbour"] = "eight-neighbour"
+    persistence: Literal["adjacent-scales"] = "adjacent-scales"
+    seed_growth: Literal["original-residual"] = "original-residual"
+    subarea_island_policy: Literal["retain-direct-detection-seed"] = (
+        "retain-direct-detection-seed"
+    )
+    edge_support: Literal["normalized-minimum-fraction"] = (
+        "normalized-minimum-fraction"
+    )
+    invalid_pixels: Literal["excluded"] = "excluded"
+
+    def __post_init__(self) -> None:
+        """Reject thresholds or topology outside the promoted policy."""
+        if (
+            not isfinite(self.detection_threshold_sigma)
+            or self.detection_threshold_sigma <= 0
+            or not isfinite(self.island_threshold_sigma)
+            or self.island_threshold_sigma <= 0
+            or self.island_threshold_sigma >= self.detection_threshold_sigma
+        ):
+            raise ValueError(
+                "multiscale thresholds must be finite, positive, and ordered"
+            )
+        if (
+            not isfinite(self.minimum_scale_support_fraction)
+            or not 0 < self.minimum_scale_support_fraction <= 1
+        ):
+            raise ValueError(
+                "minimum scale support fraction must be finite and in (0, 1]"
+            )
+        if (
+            not isfinite(self.minimum_island_area_beams)
+            or self.minimum_island_area_beams <= 0
+        ):
+            raise ValueError(
+                "minimum island area must be finite and positive in beams"
+            )
+        if self.connectivity != "eight-neighbour":
+            raise ValueError("multiscale connectivity must be eight-neighbour")
+        if self.persistence != "adjacent-scales":
+            raise ValueError("multiscale persistence must use adjacent-scales")
+        if self.seed_growth != "original-residual":
+            raise ValueError(
+                "multiscale seed growth must use original residual"
+            )
+        if self.subarea_island_policy != "retain-direct-detection-seed":
+            raise ValueError(
+                "subarea islands require a direct detection-threshold seed"
+            )
+        if self.edge_support != "normalized-minimum-fraction":
+            raise ValueError(
+                "edge support must use normalized minimum support"
+            )
+        if self.invalid_pixels != "excluded":
+            raise ValueError("invalid pixels must be excluded")
 
 
 @dataclass(frozen=True, slots=True)
