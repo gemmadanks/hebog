@@ -8,10 +8,11 @@ boundary are implemented. Step 4 adjacent-scale association, compact context,
 stable combined identities, bounded terminal-state reduction, and final
 product construction are also implemented. The first two Step 5 tasks now
 derive and admit every stage-specific halo and prove complete one-tile/many-
-tile scientific equality across the reviewed boundary matrix. Executor
-invariance, byte-level execution evidence, optimization, and untouched
-qualification remain open. This contract does not yet establish production
-multiscale equivalence.
+tile scientific equality across the reviewed boundary matrix. Step 5 is now
+complete: executor and retry invariance, bounded byte-level execution evidence,
+and the complete Phase 4 compact regression are also green. The controlled
+incremental performance gate and untouched qualification remain open. This
+contract does not yet establish production multiscale equivalence.
 
 The approved Step 4 policy is recorded in the
 [compact/extended association pre-review](phase-5-association-pre-review.md).

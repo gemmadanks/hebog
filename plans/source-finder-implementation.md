@@ -617,8 +617,15 @@ independent acceptance, and the later Rapthor cutover remain outstanding.
 - [ ] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression.
-- [ ] Update schemas, method/configuration documentation, Marimo demonstration,
-      readiness evidence, and auditable per-object scale/support provenance.
+- [x] Update schemas, method/configuration documentation, the Marimo
+      demonstration, and auditable per-object scale/support provenance. The
+      current demonstration executes both the qualified compact path and a
+      compact-clean extended residual whose 4-sigma direct peak is recovered
+      through the promoted matched-filter seed aid and residual-B3 scale
+      support. Documentation continues to fail closed about the unfinished
+      public orchestration and qualification boundary.
+- [ ] Publish the Phase 5 readiness record after the performance, untouched
+      qualification, Rapthor-profile, and independent-review gates close.
 - [ ] Obtain named independent radio-astronomy and engineering acceptance.
 
 Phase 5 closes only when the final implementation passes every absolute and

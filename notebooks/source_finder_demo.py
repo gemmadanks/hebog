@@ -14,15 +14,18 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Hebog compact source-finding demonstration
+    # Hebog staged source-finding demonstration
 
-    This notebook runs the experimental compact-source path implemented through
-    **Phase 4** on a small, deterministic synthetic radio image. It estimates
+    This notebook runs the qualified compact-source path from **Phase 4** and
+    the implemented multiscale scientific kernels from **Phase 5** on small,
+    deterministic synthetic radio images. The compact path estimates
     background and RMS noise, detects connected source islands, reconciles an
     island that crosses tile boundaries, deblends compact peaks, calculates
     exact-label moments, fits Gaussian components, transforms them to sky
     coordinates, deconvolves the beam, and builds a Rapthor-compatible
-    catalogue.
+    catalogue. A separate residual example shows how the Phase 5 matched-filter
+    seed aid and residual B3 à trous representation recover extended emission
+    whose brightest original pixel is below the direct detection threshold.
 
     The example uses Hebog's window-readable synthetic source and serial
     executor so it is quick and completely redistributable. Production inputs
@@ -46,6 +49,7 @@ def _():
     import hebog.adapters.rapthor_catalogue as rapthor_catalogue_adapter
     import hebog.algorithms.astrometry as astrometry_algorithms
     import hebog.algorithms.catalogue as catalogue_algorithms
+    import hebog.algorithms.multiscale as multiscale_algorithms
     import hebog.algorithms.partitioning as partitioning_algorithms
     import hebog.config as hebog_config
     import hebog.data_models as hebog_models
@@ -72,6 +76,7 @@ def _():
         measurement_models,
         measurement_stage,
         mpl_patches,
+        multiscale_algorithms,
         ndimage,
         np,
         partitioning_algorithms,
@@ -227,7 +232,7 @@ def _(demonstration_dataset, demonstration_recipe, input_image, mo, np, plt):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 2. Run the bounded Phase 3 stages
+    ## 2. Run the bounded compact stages
 
     The scientific thresholds are explicit: an island includes pixels at or
     above 3 sigma and must contain a seed strictly above 5 sigma. The
@@ -943,21 +948,207 @@ def _(mo, partition_checks, tiled_detection):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## 8. Recover an extended residual across scales
+
+    Phase 5 first removes or excludes accepted compact emission. This isolated
+    example therefore starts from a compact-clean residual containing one
+    broad Gaussian with a peak of only 4 sigma. The original residual remains
+    the measurement and mask support: multiscale responses may seed an island,
+    but they do not replace the observed pixels or invent filtered flux.
+
+    Hebog uses two deliberately separate multiscale roles:
+
+    1. a beam-aware matched-filter bank provides sensitive seed evidence; and
+    2. a three-level residual B3 à trous transform supplies persistent,
+       auditable scale support.
+
+    Seeds above 5 sigma grow through eight-connected original residual pixels
+    at or above 3 sigma. A retained scale response also needs at least 50%
+    valid filter support.
+    """)
+    return
+
+
+@app.cell
+def _(demonstration_dataset, hebog_config, multiscale_algorithms, np):
+    multiscale_shape_yx = (129, 129)
+    _y_grid, _x_grid = np.indices(multiscale_shape_yx, dtype=np.float64)
+    multiscale_rms_jy_per_beam = 0.001
+    multiscale_residual = 0.004 * np.exp(
+        -0.5
+        * (
+            np.square((_x_grid - 64.0) / 10.0)
+            + np.square((_y_grid - 64.0) / 7.0)
+        )
+    )
+    multiscale_beam = multiscale_algorithms.BeamShapePixels(
+        major_fwhm_pixels=demonstration_dataset.beam.major_fwhm_pixels,
+        minor_fwhm_pixels=demonstration_dataset.beam.minor_fwhm_pixels,
+        position_angle_degrees=(
+            demonstration_dataset.beam.position_angle_degrees
+        ),
+    )
+    _prepared_multiscale = multiscale_algorithms.prepare_scale_filter_inputs(
+        multiscale_residual,
+        np.ones(multiscale_shape_yx, dtype=np.bool_),
+        np.zeros(multiscale_shape_yx, dtype=np.float64),
+        np.full(
+            multiscale_shape_yx,
+            multiscale_rms_jy_per_beam,
+            dtype=np.float64,
+        ),
+    )
+    _matched_plan = multiscale_algorithms.build_scale_filter_bank(
+        multiscale_beam,
+        family="beam-aware-matched-filter",
+        scales=((1, 1.0), (2, 2.0), (3, 4.0)),
+        noise_correlation=multiscale_beam,
+    )
+    multiscale_matched = multiscale_algorithms.evaluate_scale_filter_bank(
+        _prepared_multiscale,
+        _matched_plan,
+        minimum_support_fraction=0.5,
+    )
+    _atrous_plan = multiscale_algorithms.build_residual_atrous_plan(
+        multiscale_beam,
+        noise_correlation=multiscale_beam,
+    )
+    multiscale_atrous = multiscale_algorithms.evaluate_residual_atrous(
+        _prepared_multiscale,
+        _atrous_plan,
+        minimum_support_fraction=0.5,
+    )
+    multiscale_detection = (
+        multiscale_algorithms.detect_residual_multiscale_islands(
+            _prepared_multiscale,
+            multiscale_matched,
+            multiscale_atrous,
+            multiscale_beam,
+            hebog_config.ResidualMultiscaleDetectionConfig(
+                detection_threshold_sigma=5.0,
+                island_threshold_sigma=3.0,
+                minimum_scale_support_fraction=0.5,
+                minimum_island_area_beams=1.0,
+            ),
+        )
+    )
+    multiscale_direct_snr = multiscale_residual / multiscale_rms_jy_per_beam
+    return (
+        multiscale_atrous,
+        multiscale_detection,
+        multiscale_direct_snr,
+        multiscale_matched,
+        multiscale_residual,
+    )
+
+
+@app.cell(hide_code=True)
+def _(
+    mo,
+    multiscale_atrous,
+    multiscale_detection,
+    multiscale_direct_snr,
+    multiscale_matched,
+    np,
+    plt,
+):
+    _figure, _axes = plt.subplots(1, 3, figsize=(13.0, 4.0))
+    _direct_artist = _axes[0].imshow(
+        multiscale_direct_snr,
+        origin="lower",
+        cmap="magma",
+        vmin=0.0,
+        vmax=5.0,
+    )
+    _axes[0].set_title("Original residual S/N")
+    _combined_artist = _axes[1].imshow(
+        multiscale_detection.combined_snr,
+        origin="lower",
+        cmap="magma",
+        vmin=0.0,
+        vmax=float(np.max(multiscale_detection.combined_snr)),
+    )
+    _axes[1].set_title("Maximum seed evidence")
+    _axes[2].imshow(
+        multiscale_detection.retained_mask,
+        origin="lower",
+        cmap="gray_r",
+        vmin=0,
+        vmax=1,
+    )
+    _axes[2].set_title("Original-pixel retained support")
+    for _axis in _axes:
+        _axis.set(xlabel="x pixel", ylabel="y pixel")
+    _figure.colorbar(_direct_artist, ax=_axes[0], shrink=0.8)
+    _figure.colorbar(_combined_artist, ax=_axes[1], shrink=0.8)
+    _figure.tight_layout()
+    _matched_peak_snrs = tuple(
+        float(
+            np.nanmax(
+                response.response_jy_per_beam
+                / response.effective_rms_jy_per_beam
+            )
+        )
+        for response in multiscale_matched.responses
+    )
+    _atrous_peak_snrs = tuple(
+        float(
+            np.nanmax(
+                response.response_jy_per_beam
+                / response.effective_rms_jy_per_beam
+            )
+        )
+        for response in multiscale_atrous.responses
+    )
+    _retained_count = int(np.count_nonzero(multiscale_detection.retained_mask))
+    _statistics = mo.hstack(
+        [
+            mo.stat(
+                label="Direct peak",
+                value=(f"{float(np.max(multiscale_direct_snr)):.2f} sigma"),
+            ),
+            mo.stat(
+                label="Matched-filter peaks (1/2/4 beams)",
+                value=" / ".join(
+                    f"{value:.2f}" for value in _matched_peak_snrs
+                ),
+            ),
+            mo.stat(
+                label="B3 peaks (levels 1/2/3)",
+                value=" / ".join(
+                    f"{value:.2f}" for value in _atrous_peak_snrs
+                ),
+            ),
+            mo.stat(
+                label="Retained support",
+                value=f"{_retained_count} pixels",
+            ),
+        ],
+        widths="equal",
+    )
+    mo.vstack([_statistics, _figure])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## What this does—and does not—demonstrate
 
-    Hebog can currently locate compact emission, reconcile it across tiles,
-    split admitted compact islands into deterministic regions, calculate
-    exact-label moments, fit Gaussian components, transform and deconvolve
-    their sky shapes, build the internal compact catalogue, and materialize the
-    eight-column FITS view used by Rapthor diagnostics. It also persists
-    restartable background, RMS, and source-mask products.
+    Hebog can currently locate compact and multiscale emission, reconcile it
+    across bounded tiles, retain exact compact catalogue products when no
+    extended evidence changes an association, measure accepted extended
+    support on original pixels, and record the contributing scales and visible
+    support. Compact Gaussian uncertainties are calibrated where the Phase 4
+    contract permits them; shape and marginally resolved flux uncertainties
+    remain explicitly report-only or unavailable rather than fabricated.
 
-    Formal position and flux errors are not yet calibrated for correlated
-    synthesized-beam noise. Sub-beam blends need a reviewed association/model
-    amendment, and extended or multiscale recovery, per-channel catalogue
-    fields, the final `filter_skymodel` decision, controlled performance, and
-    production-scale qualification remain later work. Hebog is not yet a
-    drop-in PyBDSF replacement or a production-ready Rapthor backend.
+    This notebook demonstrates scientific stages, not the final public
+    pipeline. Per-channel catalogue fields, `find_sources` orchestration, the
+    complete Rapthor `filter_skymodel` decision, the controlled incremental
+    performance gate, untouched Phase 5 qualification, and independent human
+    review remain open. Hebog is therefore not yet a drop-in PyBDSF replacement
+    or a production-ready Rapthor backend.
     """).callout(kind="warn")
     return
 

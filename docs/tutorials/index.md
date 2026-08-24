@@ -23,7 +23,19 @@ uv run hebog --version
 ```
 
 The scientific `find_sources` API intentionally raises `NotImplementedError`
-until the remaining multiscale, product-completion, and orchestration stages
-can satisfy the complete public result contract. The qualified compact
-capabilities are currently exercised through the stage APIs described in the
-[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
+until the remaining orchestration and final qualification work can satisfy the
+complete public result contract. The compact path and the bounded Phase 5
+multiscale, association, extended-measurement, provenance, and product-
+completion components are exercised through their stage and pure-kernel APIs.
+They are not yet a supported replacement for the public pipeline.
+
+Run the redistributable Marimo demonstration to inspect the current compact
+path and an extended residual recovered by the Phase 5 multiscale kernels:
+
+```console
+uv run marimo edit notebooks/source_finder_demo.py
+```
+
+The [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
+records the remaining performance, untouched qualification, Rapthor-profile,
+and independent-review gates.

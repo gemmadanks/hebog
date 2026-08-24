@@ -9952,3 +9952,33 @@ fixture after the compact-regression evaluation fix.
 
 **Immediate next step:** update the user-facing Phase 5 demonstration and
 method/readiness documentation without overstating unfinished qualification.
+
+## 2026-08-24 — Demonstrate the current Phase 5 multiscale method
+
+**Plan phase:** Phase 5, Step 6 — documentation and readiness preparation
+
+- Updated the Marimo source-finder demonstration to distinguish the qualified
+  compact Phase 4 path from the implemented but not yet finally qualified
+  Phase 5 multiscale path.
+- Added an executable compact-clean residual example with a 4-sigma direct
+  peak. The promoted beam-aware matched-filter bank provides greater than
+  5-sigma seed evidence, while residual-B3 scale support remains auditable and
+  the retained mask grows only on original residual pixels at or above the
+  3-sigma island threshold.
+- Corrected the quick start and Phase 5 contract so they no longer describe
+  multiscale, association, extended measurement, provenance, or product
+  completion as absent. They still state explicitly that public
+  `find_sources` orchestration, controlled performance, untouched
+  qualification, the Rapthor decision profile, and independent human review
+  remain open.
+- Marimo's strict checker passes, the complete notebook executes successfully
+  through a non-interactive HTML export, and the strict MkDocs build passes.
+
+**Decision:** the schema, current-method, configuration, per-object
+scale/support provenance, and interactive-demonstration part of Phase 5 Step 6
+is complete. A release-readiness record would be premature until the remaining
+scientific and performance gates close.
+
+**Immediate next step:** implement and run the controlled Phase 5 incremental
+benchmark preparation across 256, 512, 1,024, and 3,000-square anchors and any
+measured crossover neighbourhoods.
