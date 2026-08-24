@@ -9219,3 +9219,42 @@ boundary.
 
 **Immediate next step:** complete final documentation review and pre-commit,
 then merge for the Release Please-managed release.
+
+## 2026-08-24 — Complete Step 3 residual-scale detection
+
+**Plan phase:** Phase 5, Step 3 — multiscale science
+
+- Promoted the reviewed three-scale residual B3-spline à trous kernel from
+  candidate evidence into the first production Step 3 contract. The bounded
+  serial result now exposes an immutable significance mask for every scale,
+  calibrated by that scale's effective local RMS and scientific validity.
+- Froze canonical consecutive scale order and finite 5/3-sigma-compatible
+  threshold validation before adjacent-scale persistence. The reconstruction
+  still rejects isolated single-scale peaks, retains accepted coefficient
+  signal only within persistent support, and does not add a durable response
+  plane store.
+- Added analytic red-to-green coverage for varying local RMS, invalid pixels,
+  per-scale provenance, immutable masks, non-finite thresholds, non-adjacent
+  scale records, and the existing positive adjacent-scale reconstruction.
+- Updated the filter-selection reference to record the passing Step 2C-PC
+  recovery promotion and distinguish it from the untouched final
+  qualification.
+- The first production edit after the closed campaign exposed four historical
+  tests that implicitly required the live tree to remain the archived
+  candidate forever. Their positive cases now inject the exact archived hash;
+  the frozen scripts and identities are unchanged, and a deterministic test
+  confirms source drift still fails closed.
+- Focused multiscale and candidate-composition validation passes 70 tests;
+  focused recovery-protocol validation passes 19. `just coverage` passes
+  1,424 tests with four expected failures at 94.34% project coverage.
+  `just check` passes Ruff, Pyright, 1,294 tests, and four expected failures;
+  `just docs-build` passes strictly.
+
+**Decision:** the first Step 3 item is complete. This does not complete Phase
+5, open qualification, make a runtime claim, or alter the recovery campaign's
+scientific result.
+
+**Immediate next step:** freeze the production scale-specific connectivity,
+persistence, seed/grow, normalized-support, minimum-area, edge, and
+invalid-pixel policy with analytic tests, reusing the promoted science without
+weakening the compact regression gate or the two narrow Continuum watchpoints.

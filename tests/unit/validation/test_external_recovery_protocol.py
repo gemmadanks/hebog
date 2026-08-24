@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import runpy
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,15 @@ def _script(relative_path: str) -> dict[str, Any]:
     return runpy.run_path(str(_ROOT / relative_path))
 
 
+def _source_tree_identity(expected: str) -> Callable[[Path], str]:
+    """Return a typed stand-in for one archived candidate tree."""
+
+    def source_tree_sha256(_: Path) -> str:
+        return expected
+
+    return source_tree_sha256
+
+
 def _seeds(document: dict[str, object]) -> set[int]:
     """Return every realization seed in one manifest document."""
     manifest = DatasetManifest.model_validate(document)
@@ -42,8 +52,12 @@ def test_recovery_freezer_builds_approved_fresh_population() -> None:
     namespace = _script(
         "scripts/validation/freeze_phase5_external_recovery_population.py"
     )
+    build_documents = namespace["build_recovery_documents"]
+    build_documents.__globals__["source_tree_sha256"] = _source_tree_identity(
+        namespace["_CANDIDATE_SOURCE_TREE_SHA256"]
+    )
 
-    continuum, compact, freeze = namespace["build_recovery_documents"](
+    continuum, compact, freeze = build_documents(
         repository_root=_ROOT,
         continuum_template_path=(
             _ROOT
@@ -125,12 +139,44 @@ def test_recovery_freezer_builds_approved_fresh_population() -> None:
         assert path.read_text(encoding="utf-8") == encoded
 
 
+def test_recovery_freezer_rejects_source_tree_drift() -> None:
+    """The closed freezer remains fail-closed outside its candidate tree."""
+    namespace = _script(
+        "scripts/validation/freeze_phase5_external_recovery_population.py"
+    )
+    build_documents = namespace["build_recovery_documents"]
+    build_documents.__globals__["source_tree_sha256"] = _source_tree_identity(
+        "0" * 64
+    )
+
+    with pytest.raises(ValueError, match="approved recovery source tree"):
+        build_documents(
+            repository_root=_ROOT,
+            continuum_template_path=(
+                _ROOT / "config/datasets/"
+                "phase-5-external-post-correction-continuum.json"
+            ),
+            compact_template_path=(
+                _ROOT / "config/datasets/"
+                "phase-5-external-post-correction-compact-blend.json"
+            ),
+            power_review_path=(
+                _ROOT / "benchmark-results/phase-5/"
+                "viewed-recovery-power-review.json"
+            ),
+        )
+
+
 def test_frozen_recovery_chain_is_exact_and_authorized() -> None:
     """Named approval authorizes only the exact unopened one-look."""
     helpers = _script(
         "scripts/validation/phase5_external_recovery_protocol.py"
     )
-    population = helpers["load_recovery_population"](
+    load_population = helpers["load_recovery_population"]
+    load_population.__globals__["source_tree_sha256"] = _source_tree_identity(
+        helpers["_SOURCE_TREE_SHA256"]
+    )
+    population = load_population(
         _ROOT / "config/contracts/phase-5-external-recovery-population.json"
     )
     protocol = helpers["load_recovery_protocol"](
@@ -486,6 +532,10 @@ def test_recovery_evaluator_binds_powered_population() -> None:
     """The frozen evaluator retains all powered endpoint priors."""
     evaluator = _script(
         "scripts/validation/evaluate_phase5_external_recovery_decision.py"
+    )
+    load_population = evaluator["_HELPERS"]["load_recovery_population"]
+    load_population.__globals__["source_tree_sha256"] = _source_tree_identity(
+        evaluator["_HELPERS"]["_SOURCE_TREE_SHA256"]
     )
     contract = evaluator["load_recovery_evaluation_contract"](
         _ROOT / "config/contracts/phase-5-external-recovery-evaluation.json",

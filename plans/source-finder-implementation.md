@@ -477,9 +477,12 @@ and the later Rapthor cutover remain outstanding.
 
 #### 3. Complete multiscale science
 
-- [ ] Detect significant residual emission at each configured scale from
+- [x] Detect significant residual emission at each configured scale from
       shared à trous smoothings and calibrated local noise; reconstruct
       accepted adjacent-scale signal without an image-sized response bank.
+      The promoted three-scale float64 kernel now exposes immutable per-scale
+      significance provenance, rejects non-finite thresholds and non-adjacent
+      scale records, and retains only bounded tile-local working planes.
 - [ ] Freeze scale-specific connectivity, persistence, seed/grow, support,
       minimum-area, edge, and invalid-pixel rules with analytic tests.
 - [ ] Complete compact-deferred islands through a bounded partitioned path;

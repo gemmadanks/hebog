@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import cast
 
 import numpy as np
@@ -530,12 +531,91 @@ def test_residual_atrous_reconstruction_requires_adjacent_scale_support() -> (
     assert reconstruction.signal_jy_per_beam[2, 3] == pytest.approx(6.7)
     assert not reconstruction.support_mask[1, 1]
     assert reconstruction.signal_jy_per_beam[1, 1] == 0.0
+    assert tuple(
+        np.count_nonzero(mask)
+        for mask in reconstruction.significant_scale_masks
+    ) == (2, 2, 1)
+    assert all(
+        not mask.flags.writeable
+        for mask in reconstruction.significant_scale_masks
+    )
     with pytest.raises(ValueError, match="detection_sigma"):
         reconstruct_significant_atrous(
             result,
             detection_sigma=3.0,
             island_sigma=3.0,
         )
+    for detection_sigma, island_sigma in ((np.nan, 3.0), (5.0, np.nan)):
+        with pytest.raises(ValueError, match="finite"):
+            reconstruct_significant_atrous(
+                result,
+                detection_sigma=detection_sigma,
+                island_sigma=island_sigma,
+            )
+    with pytest.raises(ValueError, match="requires adjacent"):
+        reconstruct_significant_atrous(
+            replace(result, responses=(result.responses[0],)),
+            detection_sigma=5.0,
+            island_sigma=3.0,
+        )
+    with pytest.raises(ValueError, match="canonical adjacent"):
+        reconstruct_significant_atrous(
+            replace(
+                result,
+                responses=(result.responses[0], result.responses[2]),
+            ),
+            detection_sigma=5.0,
+            island_sigma=3.0,
+        )
+
+
+def test_residual_atrous_significance_uses_local_noise_and_validity() -> None:
+    """Each scale records its calibrated local threshold decision."""
+    shape = (3, 4)
+    valid = np.ones(shape, dtype=np.bool_)
+    valid[1, 3] = False
+    rms = np.ones(shape, dtype=np.float64)
+    rms[1, 2] = 2.0
+
+    def response(order: int, peak: float) -> ScaleFilterResponse:
+        values = np.zeros(shape, dtype=np.float64)
+        values[1, 1:4] = peak
+        return ScaleFilterResponse(
+            scale_order=order,
+            nominal_scale_beam_fwhm=float(2 ** (order - 1)),
+            response_jy_per_beam=values,
+            effective_rms_jy_per_beam=rms,
+            valid_support_fraction=np.ones(shape, dtype=np.float64),
+            scientifically_valid=valid,
+        )
+
+    result = ResidualAtrousResult(
+        family="residual-b3-atrous",
+        responses=(response(1, 4.0), response(2, 5.2), response(3, 0.0)),
+        reconstructed_signal_jy_per_beam=np.zeros(shape, dtype=np.float64),
+        coarse_smoothing_jy_per_beam=np.zeros(shape, dtype=np.float64),
+        scientifically_valid=valid,
+        convolution_count=12,
+        temporary_plane_count=7,
+        maximum_workspace_bytes=1,
+    )
+
+    reconstruction = reconstruct_significant_atrous(
+        result,
+        detection_sigma=5.0,
+        island_sigma=3.0,
+    )
+
+    first, second, third = reconstruction.significant_scale_masks
+    assert first[1, 1]
+    assert second[1, 1]
+    assert not first[1, 2]
+    assert not second[1, 2]
+    assert not first[1, 3]
+    assert not second[1, 3]
+    assert not third.any()
+    assert reconstruction.support_mask[1, 1]
+    assert not reconstruction.support_mask[1, 2:].any()
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,7 @@
 # pyright: reportMissingTypeStubs=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
-"""Readable one-tile serial oracle for Phase 5 scale-filter selection."""
+"""Bounded one-tile serial kernels for Phase 5 multiscale science."""
 
 from __future__ import annotations
 
@@ -206,10 +206,11 @@ class ResidualAtrousResult:
 
 @dataclass(frozen=True, slots=True)
 class SignificantAtrousReconstruction:
-    """Adjacent-scale positive signal retained around a calibrated seed."""
+    """Adjacent-scale positive signal and auditable scale detections."""
 
     signal_jy_per_beam: npt.NDArray[np.float64]
     support_mask: npt.NDArray[np.bool_]
+    significant_scale_masks: tuple[npt.NDArray[np.bool_], ...]
 
 
 def _read_only(
@@ -775,12 +776,19 @@ def reconstruct_significant_atrous(
     island_sigma: float,
 ) -> SignificantAtrousReconstruction:
     """Reconstruct positive coefficients persistent at adjacent scales."""
+    if not (isfinite(detection_sigma) and isfinite(island_sigma)):
+        raise ValueError("à trous thresholds must be finite")
     if detection_sigma <= island_sigma or island_sigma <= 0:
         raise ValueError(
             "thresholds require detection_sigma > island_sigma > 0"
         )
     if len(result.responses) < _MINIMUM_ATROUS_SCALE_COUNT:
         raise ValueError("à trous reconstruction requires adjacent scales")
+    scale_orders = tuple(response.scale_order for response in result.responses)
+    if scale_orders != tuple(range(1, len(result.responses) + 1)):
+        raise ValueError(
+            "à trous responses require canonical adjacent scale orders"
+        )
     shape = result.responses[0].response_jy_per_beam.shape
     scale_snrs: list[npt.NDArray[np.float64]] = []
     for response in result.responses:
@@ -792,7 +800,10 @@ def reconstruct_significant_atrous(
             where=response.scientifically_valid,
         )
         scale_snrs.append(scale_snr)
-    significant = tuple(item >= island_sigma for item in scale_snrs)
+    significant = tuple(
+        _read_only(np.asarray(item >= island_sigma, dtype=np.bool_))
+        for item in scale_snrs
+    )
     adjacent_support = np.logical_or.reduce(
         tuple(
             current & following for current, following in pairwise(significant)
@@ -823,6 +834,7 @@ def reconstruct_significant_atrous(
     return SignificantAtrousReconstruction(
         signal_jy_per_beam=_read_only(reconstructed),
         support_mask=_read_only(np.asarray(retained_support, dtype=np.bool_)),
+        significant_scale_masks=significant,
     )
 
 

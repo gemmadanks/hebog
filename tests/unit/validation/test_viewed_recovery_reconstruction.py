@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import runpy
+from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
-
-from hebog.validation.external_runners import source_tree_sha256
 
 _ROOT = Path(__file__).parents[3]
 _REFERENCE_DIGESTS = {
@@ -29,17 +28,30 @@ def _script(relative_path: str) -> dict[str, Any]:
     return runpy.run_path(str(_ROOT / relative_path))
 
 
+def _source_tree_identity(expected: str) -> Callable[[Path], str]:
+    """Return a typed stand-in for one archived candidate tree."""
+
+    def source_tree_sha256(_: Path) -> str:
+        return expected
+
+    return source_tree_sha256
+
+
 def test_viewed_recovery_reuses_population_but_rebinds_reference_images() -> (
     None
 ):
     """The development replay keeps all viewed seeds and current references."""
     module = _script("scripts/validation/phase5_viewed_recovery_protocol.py")
+    load_decision = module["load_viewed_recovery_execution_decision"]
+    load_decision.__globals__["source_tree_sha256"] = _source_tree_identity(
+        module["_CANDIDATE_SOURCE_TREE_SHA256"]
+    )
 
     protocol = module["load_viewed_recovery_protocol"](
         _ROOT
         / "config/contracts/phase-5-external-post-failure-comparison.json"
     )
-    decision = module["load_viewed_recovery_execution_decision"](
+    decision = load_decision(
         _ROOT
         / "config/contracts/phase-5-viewed-recovery-execution-decision.json"
     )
@@ -56,7 +68,9 @@ def test_viewed_recovery_reuses_population_but_rebinds_reference_images() -> (
     } == _REFERENCE_DIGESTS
     assert decision.execution_authorized is True
     assert decision.fresh_campaign_execution_authorized is False
-    assert decision.source_tree_sha256 == source_tree_sha256(_ROOT)
+    assert (
+        decision.source_tree_sha256 == module["_CANDIDATE_SOURCE_TREE_SHA256"]
+    )
 
 
 def test_viewed_recovery_filters_only_reference_legs() -> None:

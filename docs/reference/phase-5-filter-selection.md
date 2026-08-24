@@ -1,44 +1,44 @@
 # Phase 5 scale-filter selection
 
-**Status:** Steps 2B--2C-HR are complete. The residual-B3 candidate's explicit
-detected-segment position passed its one-look 400-image confirmation, but no
-production representation is selected. The Step 2C-P external-comparison
-protocol is frozen; execution, Step 3, candidate-specific optimization, and
-qualification remain blocked until its runners and matcher are implemented
-and reviewed. This is not multiscale equivalence, complete Rapthor
-performance, or production-readiness evidence.
+**Status:** The Step 2C-PC recovery campaign passed and promoted the residual
+B3-spline à trous representation into production Step 3. The first Step 3
+item now freezes calibrated per-scale significance and adjacent-scale
+reconstruction in the bounded serial kernel. Final qualification, complete
+Rapthor performance, and production readiness remain open.
 
 The 2026-08-08 community-practice review identified a residual B3-spline
 à trous reconstruction with morphology-independent support and
-original-image measurement as the corrective Step 2C candidate. The existing
-matched filter remained a comparator and possible known-template compact aid;
-neither family is authorized for extended-source production work.
+original-image measurement as the corrective Step 2C candidate. The recovery
+decision subsequently selected it for Step 3. The existing matched filter
+remains a governed comparator and possible known-template compact aid, not the
+extended-emission representation.
 
-The completed comparisons used the frozen development and regression roles.
-The qualification manifest and all qualification results remained unopened.
+The early corrective comparisons used the frozen development and regression
+roles. The later external recovery campaign used a fresh powered population;
+the final qualification data remain untouched.
 
-## External comparison still required
+## Completed external promotion comparison
 
-The `paired` results in Steps 2B through 2C-A compare the Hebog matched-filter,
-wavelet, and residual-B3 candidates with each other. They did not execute
-PyBDSF or Aegean and therefore provide no external non-inferiority evidence.
+The Step 2C-PC recovery campaign sealed all 2,488 inputs and 12,440 finder
+runs. Its terminal decision passed all 143 Continuum absolute gates, all 226
+Continuum comparisons split evenly between released and pinned-master PyBDSF,
+all 77 compact binding absolute gates, all 450 compact PyBDSF comparisons, and
+all 143 applicable compact Aegean comparisons.
 
-Before production implementation in Step 3, Step 2C-P must run its now-frozen
-fresh source-finder comparison. Released PyBDSF used by Rapthor and pinned
-PyBDSF `master`, both with the governed residual à trous profile, are binding
-comparators for all applicable compact and extended catalogue, mask, flux,
-astrometry, duplicate, and topology metrics. A maintained Aegean release is
-binding for compact, blended, and Gaussian-like catalogue metrics. Its
-diffuse, filament, shell, extended-mask, and multiscale-provenance results are
-diagnostic because those products are outside Aegean's compact/Gaussian design.
+The sealed campaign SHA-256 is `4d881a412980e5dfa58d57e18c1e1ca706606724fa745605df554d9302627c83`;
+the write-once analysis SHA-256 is
+`198fe6ff63ade465872976e6897bf69e7e70f415fd04889937367410c5e3d53a`,
+and terminal passing decision SHA-256 is
+`cd3eacfbbc236ca1578712fed0e4a28d38cd26d7703882258af5ff44d22e6425`.
+This is promotion evidence for production implementation, not the untouched
+qualification comparison required to close Phase 5.
 
-Hebog must first pass every unchanged absolute injected-truth gate, then be
-non-inferior to both PyBDSF references across their applicable full-continuum
-scope and to Aegean across its applicable catalogue scope. A poor reference
-result cannot excuse a Hebog absolute failure, and cost cannot compensate for
-a scientific failure. Step 3 is authorized only after this comparison and the
-independent human astrometry review both pass. The closed Step 2C-A population
-will not be reused, and qualification remains unopened.
+The promotion rule required every unchanged absolute injected-truth gate,
+then non-inferiority to both PyBDSF references across their applicable
+full-continuum scope and to Aegean across its applicable catalogue scope. A
+poor reference result could not excuse a Hebog absolute failure, and cost did
+not compensate for science. The passing decision opened Step 3 while retaining
+the compact regression gate and two narrow Continuum watchpoints.
 
 ## Completed independent astrometry confirmation
 
@@ -336,12 +336,12 @@ development evidence is
 `919e19345028c16496f4b18199266d82d4e7b604ce865743b20d38c7ebd5c1d8`;
 its reviewed summary is the committed astrometry selection decision.
 
-None of these records establishes production extended measurements,
-cross-tile reconciliation, real-residual behaviour, PyBDSF equivalence, or
-complete `filter_skymodel` speedup. The later Step 2C-HR one-look study
-confirmed the detected-segment position, and the Step 2C-P external protocol
-is now frozen. Step 3 remains blocked until the matcher and runners are
-implemented, hash-bound, executed once, and the external non-inferiority
-decision passes. The separate compact-only Rapthor probe selects only that
-workflow's explicit profile and cannot establish general multiscale
-equivalence.
+The recovery result establishes the external promotion gate but not production
+extended measurements, cross-tile reconciliation, real-residual behaviour,
+final qualification, or complete `filter_skymodel` speedup. Step 3 is now in
+progress: calibrated scale detection and adjacent reconstruction are complete;
+the remaining segmentation rules, bounded deferred-island completion,
+original-pixel measurement, reconciliation, and deterministic execution must
+still pass before qualification. The separate compact-only Rapthor probe can
+select only that workflow's explicit profile and cannot establish general
+multiscale equivalence.
