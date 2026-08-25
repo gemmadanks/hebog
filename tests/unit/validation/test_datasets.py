@@ -434,6 +434,7 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-external-confirmation-continuum",
         "phase-5-external-compact-blend",
         "phase-5-external-continuum",
+        "phase-5-final-qualification-continuum",
         "phase-5-external-post-failure-compact-blend",
         "phase-5-external-post-failure-continuum",
         "phase-5-external-post-correction-compact-blend",
@@ -456,6 +457,7 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-external-confirmation-continuum": DatasetRole.REGRESSION,
         "phase-5-external-compact-blend": DatasetRole.REGRESSION,
         "phase-5-external-continuum": DatasetRole.REGRESSION,
+        "phase-5-final-qualification-continuum": DatasetRole.QUALIFICATION,
         "phase-5-external-post-failure-compact-blend": DatasetRole.REGRESSION,
         "phase-5-external-post-failure-continuum": DatasetRole.REGRESSION,
         "phase-5-external-post-correction-compact-blend": (
@@ -538,6 +540,7 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         "phase-5-external-post-correction-compact-blend": 800,
         "phase-5-external-recovery-continuum": 1688,
         "phase-5-external-recovery-compact-blend": 800,
+        "phase-5-final-qualification-continuum": 1688,
     }
     assert {
         manifest_id: sum(
@@ -590,6 +593,17 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
         group.crosses_tile_corner
         and group.compact_deblend_disposition == "deferred-extended"
         for group in qualification_dataset.multiscale_truth_groups
+    )
+    final_qualification = manifests[
+        "phase-5-final-qualification-continuum"
+    ].datasets
+    assert len(final_qualification) == 4
+    assert {
+        len(iter_dataset_recipes(dataset)) for dataset in final_qualification
+    } == {422}
+    assert all(
+        "named scientific approval" in dataset.provenance.lower()
+        for dataset in final_qualification
     )
     assert {
         manifest_id: tuple(
@@ -645,6 +659,12 @@ def test_phase_five_freezes_multiscale_truth_and_untouched_qualification() -> (
             "0638cc7a27e6e00d978c6234f538494d745399e82de41486bea8612aef8670f1",
             "684d6dc90793f034f9ac5a2743303d0645486fd00f85e2b69e865f6b65e01d7e",
             "75dfa8b8c8c537c294900be5a55174b343e731500902332c0abcb6da34c65ca5",
+        ),
+        "phase-5-final-qualification-continuum": (
+            "ca15445d04a7290022aa3a58808f886cdcbea557792f5a035383735fba0d0e33",
+            "bb71359495c28e6e62ded91e6734b61051bb4ff87e3eab4c7da0e2c3de15d5e3",
+            "ae28addc1f4021b0d3e06b98a0b77a9de0bab9398d161d514777803a1c491db3",
+            "055d20485bab1b2d626f7f75395776e7583ce9b4867db7cf262d61bbd069a453",
         ),
         "phase-5-external-post-failure-compact-blend": (
             "fb709fafa2f5a49b4f813802f363b73c755d84b630e3e1277edda0c7edec33bd",

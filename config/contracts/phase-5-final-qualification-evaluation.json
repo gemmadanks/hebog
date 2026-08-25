@@ -1,0 +1,25 @@
+{
+  "analysis_compiler": {
+    "path": "scripts/validation/compile_phase5_final_qualification_campaign.py",
+    "sha256": "c2b7f3ac3b072ba1c250cd27c917495cab3ba517cfb86a9102d06c763b66b165",
+    "status": "frozen-before-qualification-output"
+  },
+  "base_evaluation_path": "config/contracts/phase-5-external-recovery-evaluation.json",
+  "base_evaluation_sha256": "9ef1a4f63282347fe53d29680030a5add6c0ec5a0dd840d217805dbfa7eb7c2a",
+  "closed_compact_evidence_only": true,
+  "contract_id": "phase-5-final-qualification-evaluation",
+  "endpoint_registry": {
+    "path": "config/contracts/phase-5-final-qualification-endpoint-registry.json",
+    "sha256": "acea39f1dbfac8d14878655e297d5579b1860ca8c69e4f8f89d5dfa77728d07c",
+    "status": "frozen-before-qualification-output"
+  },
+  "evaluator_path": "scripts/validation/evaluate_phase5_final_qualification_decision.py",
+  "evaluator_sha256": "558e29574287aef6bee348fb37c329b7dab2f115ff42c481d3a1019d3f713560",
+  "one_look_rule": "one-terminal-look-no-tuning-rescoring-reconfirmation-or-adaptive-sample-size",
+  "population_contract_path": "config/contracts/phase-5-final-qualification-population.json",
+  "population_contract_sha256": "4a52f55114962d24d6371b166d393c3421a74156fa1c48305931fb39a631e5ac",
+  "protocol_path": "config/contracts/phase-5-final-qualification-comparison.json",
+  "protocol_sha256": "f850ec57dad81066f28f1d4bb2e2f0420979ac1dd6f679b1e9e718c800e9ac79",
+  "schema_version": 1,
+  "status": "frozen-before-qualification-output"
+}

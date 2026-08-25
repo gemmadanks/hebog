@@ -1,0 +1,40 @@
+{
+  "acquisition": {
+    "path": "benchmark-results/phase-5/public-comparison-acquisition/acquisition.json",
+    "sha256": "a74e60de95debcc53bdf43d4f6046a6f74befe8a85e849a5b0105f2ecb0bd0ce"
+  },
+  "acquisition_implementation": {
+    "path": "scripts/validation/acquire_phase5_public_artifacts.py",
+    "sha256": "dc467167e322cc71abd74af3a975aafd52dd9c2a6c012e314b378f2ae200a29d"
+  },
+  "amendment_id": "phase-5-public-comparison-decision-serialization-amendment",
+  "authorization": {
+    "acquisition_authorized": true,
+    "cutout_selection_authorized": false,
+    "cutover_authorized": false,
+    "execution_authorized": false,
+    "qualification_opened": false,
+    "scientific_products_opened": false
+  },
+  "canonical_decision_sha256": "d5762063e438bf30bf15206e86e4602fdf52ba4b12ba9b88af6a8be853431138",
+  "canonicalization": {
+    "changed_fields": [],
+    "operation": "sort-object-keys-two-space-indent-terminal-newline",
+    "semantic_json_object_changed": false,
+    "trigger": "required-pre-commit-pretty-format-json-hook"
+  },
+  "decision_path": "config/contracts/phase-5-public-comparison-scientific-decision.json",
+  "formatter_configuration": {
+    "path": ".pre-commit-config.yaml",
+    "sha256": "8c6c490241f53711a8e4be0f4c2a3e32322e0243c0d67b94acec5fc9f6f5bdc1"
+  },
+  "historical_approved_decision_sha256": "7bfd3866240d4300bf53758ef5b8cc1342620fa63447862feb2e112a109f2b45",
+  "named_review": {
+    "approved_on": "2026-08-25",
+    "reviewer": "Gemma Danks",
+    "scope": "serialization-only-provenance-repair-no-scientific-scope-change"
+  },
+  "next_action": "validate-canonical-decision-semantics-against-sealed-acquisition-before-schema-review",
+  "schema_version": 1,
+  "status": "serialization-only-no-semantic-change"
+}

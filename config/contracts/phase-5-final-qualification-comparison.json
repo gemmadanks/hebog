@@ -1,0 +1,23 @@
+{
+  "base_protocol_path": "config/contracts/phase-5-external-recovery-comparison.json",
+  "base_protocol_sha256": "717afa1e4901ffed2885910e47d5bb3d55d7246e4aa73d89dc75cd855eedebb1",
+  "candidate_configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+  "closed_compact_evidence_only": true,
+  "contract_id": "phase-5-final-qualification-comparison",
+  "cutover_authorized": false,
+  "execution_authorized": false,
+  "optimization_authorized": false,
+  "population_contract_path": "config/contracts/phase-5-final-qualification-population.json",
+  "population_contract_sha256": "4a52f55114962d24d6371b166d393c3421a74156fa1c48305931fb39a631e5ac",
+  "populations": [
+    {
+      "image_count": 1688,
+      "lane": "continuum",
+      "manifest": "config/datasets/phase-5-final-qualification-continuum.json",
+      "manifest_sha256": "7c67127e828a92bc100299cf9ffecd13851e485c4be9e95866e2d0827ebb80df"
+    }
+  ],
+  "qualification_opened": false,
+  "schema_version": 1,
+  "status": "frozen-before-qualification-output"
+}

@@ -10291,3 +10291,93 @@ compact regression.
 **Immediate next step:** validate and commit the audit boundary. Then request
 named scientific approval before freezing any replacement qualification
 identity; execution requires a separate later one-look approval.
+
+## 2026-08-25 — Freeze the final Phase 5 qualification population
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Recorded Gemma Danks's named approval of a 1,688-image Continuum population,
+  balanced as 422 fresh seeds over four reviewed geometries, and of binding
+  the already closed Phase 4U/current compact evidence rather than running a
+  new compact lane. No closed result is pooled or rescored.
+- Froze manifest SHA-256 `7c67127e...` and population-contract SHA-256
+  `4a52f551...` at candidate `9062664...`, source-tree SHA-256 `e4307246...`,
+  configuration SHA-256 `0e5dde51...`, power-review SHA-256 `bbfab3a0...`, and
+  design-audit SHA-256 `9b0fcb89...`. Execution, finder output, and
+  qualification opening remain false.
+- Corrected a historical recovery test that tried to regenerate an old freeze
+  against the evolving dataset registry. It now verifies the immutable closed
+  population SHA while separately testing current manifest generation, so a
+  legitimate future dataset cannot masquerade as recovery-evidence drift.
+
+**Decision:** the replacement population identity is frozen and unopened. A
+reviewed runner/compiler/evaluator/runtime composition and a separate named
+one-look execution approval are still required.
+
+## 2026-08-25 — Acquire and inspect the public Phase 5 evidence schemas
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Recorded named acquisition-only approval in decision SHA-256 `7bfd3866...`
+  and downloaded all seven exact SDC1/Hydra artifacts: 15,053,995,875 bytes in
+  total. Terminal acquisition SHA-256 `a74e60de...` verifies every file's
+  source size and SHA-256; the ignored raw products remain outside Git.
+- Added a restartable, range-verified acquisition command and a schema-only
+  inspector. Schema review SHA-256 `409318f5...` binds inspector SHA-256
+  `074e4df9...`, the 32,768-square SDC1 image/truth/submission layouts, the
+  matched 3,600-square Hydra deep/shallow images, and ten published catalogues
+  for Aegean, Caesar, ProFound, PyBDSF, and Selavy.
+- Made the proposed eight-tile truth-only selector exact: 2,048-square aligned
+  tiles, mean primary beam at least 0.5, official size conversions, apparent
+  flux and convolved peak SNR, deterministic empty-tile values, fixed stratum
+  order, and global `(y, x)` tie-breaking. SDC1 population classification is
+  report-only; no unverified numeric class mapping is asserted.
+- Recorded the procedural deviation transparently: headers and five truth rows
+  from already complete exact-sized files were viewed while the final Hydra
+  archive was still downloading, before the aggregate record sealed. No image
+  pixels, finder products, or catalogue distributions were viewed, and those
+  values did not inform the proposal. Formal inspection was rerun only after
+  all source hashes sealed.
+- The mandatory JSON formatter subsequently changed only object-key order and
+  whitespace in the acquisition decision. Approved serialization amendment
+  SHA-256 `243d1680...` retains historical decision SHA-256 `7bfd3866...`,
+  binds canonical SHA-256 `d5762063...`, and verifies the same seven requests
+  and closed scientific flags against terminal acquisition `a74e60de...`.
+
+**Decision:** acquisition and schema preparation are complete, but cut-out
+selection and finder execution stay closed. The exact schema/selection
+amendment requires named scientific approval; then adapters and a write-once
+selected population may be implemented without opening final qualification.
+
+## 2026-08-25 — Freeze the final qualification execution composition
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Implemented the checksum-bound final protocol, pending execution decision,
+  endpoint registry, launcher, finder wrappers, compiler, evaluator, and
+  identity review without producing a campaign request, materialising an
+  image, running preflight, or opening qualification science.
+- The exact matrix has 1,688 Continuum inputs, 8,440 total runs, and 5,064
+  binding candidate/operational runs. The two PyBDSF controlled-background
+  legs remain diagnostic. The already passing compact decisions stay separate
+  and are bound without pooling or rescoring, so Aegean's exact runtime is
+  retained in the four-image review but its final wrapper rejects fresh runs.
+- Built the immutable Hebog runtime from candidate `9062664...`: image ID
+  `e7f1ce9e...`, digest `sha256:132f1c3d...`, and dependency inventory
+  `d383be3a...`. The released PyBDSF, pinned-master PyBDSF, and Aegean runtime
+  identities are unchanged. Identity review SHA-256 `42ad6237...` binds all
+  prospective programs and runtimes.
+- Added fail-closed tests for population scale, program identities, the
+  non-executable Aegean boundary, pending-launch rejection, closed compact
+  evidence, evaluator population, and an exact future named-approval
+  transition. The no-data compiler/evaluator composition smoke test succeeds.
+
+**Decision:** final qualification preparation is complete, but execution is
+not authorized. Do not run even the no-write preflight until a separate named
+approval explicitly binds identity review `42ad6237...` and its four runtime
+identities. Public cut-out selection, the restricted-input Rapthor profile,
+and independent radio-astronomy/engineering review remain separate open gates.
+
+**Immediate next step:** complete repository validation and commit this frozen
+pre-results package. Then request the separate exact-identity qualification
+execution approval; no campaign or public finder execution is implied.

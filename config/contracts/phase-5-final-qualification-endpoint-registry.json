@@ -1,0 +1,38 @@
+{
+  "base_registry_path": "config/contracts/phase-5-external-recovery-endpoint-registry.json",
+  "base_registry_sha256": "9486e21024dcb653bdcfe842cf9a90b307c1b2bb73ee83e297e8ad1a3c022b67",
+  "candidate_adapter_path": "src/hebog/validation/post_correction_recovery.py",
+  "candidate_adapter_sha256": "9343e0696426a0e8aff6022fdf88c6b6118147d362f15ed00f39374abafd71e6",
+  "closed_compact_evidence": [
+    {
+      "path": "benchmark-results/phase-4u/qualification-decision.json",
+      "sha256": "309ab639cafc5c8aafb75bc85e9b8d531def3e7c51ea424561bb399dc53795f0"
+    },
+    {
+      "path": "benchmark-results/phase-5/phase-4-compact-regression-58074cc-decision.json",
+      "sha256": "43381c51a583e8993bd47ea2c8d557c4315c78200d574a237e51958a1ce100a0"
+    }
+  ],
+  "closed_compact_evidence_only": true,
+  "compiler_accelerator_path": "src/hebog/validation/external_recovery_compiler.py",
+  "compiler_accelerator_sha256": "ab690dda67126e8cc1eeec57f426c73ee5244ba33922d1af6f4e8d5a5c07e0f6",
+  "compiler_path": "scripts/validation/compile_phase5_final_qualification_campaign.py",
+  "compiler_sha256": "c2b7f3ac3b072ba1c250cd27c917495cab3ba517cfb86a9102d06c763b66b165",
+  "continuum_manifest_path": "config/datasets/phase-5-final-qualification-continuum.json",
+  "continuum_manifest_sha256": "7c67127e828a92bc100299cf9ffecd13851e485c4be9e95866e2d0827ebb80df",
+  "evaluator_path": "scripts/validation/evaluate_phase5_final_qualification_decision.py",
+  "evaluator_sha256": "558e29574287aef6bee348fb37c329b7dab2f115ff42c481d3a1019d3f713560",
+  "execution_decision_path": "config/contracts/phase-5-final-qualification-execution-decision.json",
+  "execution_decision_sha256": "78ad2ab784dfd61a4460c6daff871d73ef1e302649729875e10cc8f54751c0c8",
+  "launcher_path": "scripts/benchmark/run_phase5_final_qualification_campaign.py",
+  "launcher_sha256": "03773670477e5a4f383a22214597ea77ab1a0b0631ce1c146de2dccee818cc9e",
+  "population_contract_path": "config/contracts/phase-5-final-qualification-population.json",
+  "population_contract_sha256": "4a52f55114962d24d6371b166d393c3421a74156fa1c48305931fb39a631e5ac",
+  "protocol_path": "config/contracts/phase-5-final-qualification-comparison.json",
+  "protocol_sha256": "f850ec57dad81066f28f1d4bb2e2f0420979ac1dd6f679b1e9e718c800e9ac79",
+  "protocol_verifier_path": "scripts/validation/phase5_final_qualification_protocol.py",
+  "protocol_verifier_sha256": "7cdfcad81b60567f1f1536c66da564f34d7acaa2c6cea694453f97dfc7605461",
+  "registry_id": "phase-5-final-qualification-endpoint-registry",
+  "schema_version": 1,
+  "status": "frozen-before-qualification-output"
+}

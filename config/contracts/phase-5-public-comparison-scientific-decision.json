@@ -1,0 +1,71 @@
+{
+  "acquisition_authorized": true,
+  "artifact_checksums_frozen": false,
+  "artifact_requests": [
+    {
+      "dataset_id": "askap-emu-pilot-hydra-2x2",
+      "expected_bytes": 51845760,
+      "filename": "emu_pilot_sample_2x2deg.fits",
+      "identifier": "deep-image",
+      "source_url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.fits"
+    },
+    {
+      "dataset_id": "askap-emu-pilot-hydra-2x2",
+      "expected_bytes": 9978742534,
+      "filename": "emu_pilot_sample_2x2deg.hydra.tar.gz",
+      "identifier": "hydra-archive",
+      "source_url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.hydra.tar.gz"
+    },
+    {
+      "dataset_id": "askap-emu-pilot-hydra-2x2",
+      "expected_bytes": 103685760,
+      "filename": "emu_pilot_sample_2x2deg.shallow.fits",
+      "identifier": "shallow-image",
+      "source_url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.shallow.fits"
+    },
+    {
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "expected_bytes": 4294981440,
+      "filename": "SKAMid_B2_1000h_v3.fits",
+      "identifier": "image",
+      "source_url": "https://owncloud.ia2.inaf.it/index.php/s/GsxoTyv1zrdRTu4/download"
+    },
+    {
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "expected_bytes": 395816771,
+      "filename": "SDC1_submissions.tgz",
+      "identifier": "official-submissions",
+      "source_url": "https://owncloud.ia2.inaf.it/index.php/s/xdeXBymC32og1ol/download"
+    },
+    {
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "expected_bytes": 279360,
+      "filename": "PrimaryBeam_B2.fits",
+      "identifier": "primary-beam",
+      "source_url": "https://owncloud.ia2.inaf.it/index.php/s/tVGse9GaLBQmntc/download"
+    },
+    {
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "expected_bytes": 228644250,
+      "filename": "True_1400_v2.txt",
+      "identifier": "truth-catalogue",
+      "source_url": "https://owncloud.ia2.inaf.it/index.php/s/J2WFVTsFevJBHKj/download"
+    }
+  ],
+  "cutout_selection_authorized": false,
+  "cutover_authorized": false,
+  "decision_id": "phase-5-public-comparison-scientific-decision",
+  "execution_authorized": false,
+  "named_review": {
+    "approved_on": "2026-08-25",
+    "reviewer": "Gemma Danks",
+    "scope": "sdc1-hydra-acquisition-and-post-acquisition-freeze-preparation-only-no-scientific-execution"
+  },
+  "next_action": "acquire-and-sha256-bind-all-seven-artifacts-before-schema-inspection-and-cutout-amendment",
+  "pre_review_contract_path": "config/contracts/phase-5-public-comparison.json",
+  "pre_review_contract_sha256": "ad412c20e312173861364ef053f08eb700615ad27e11cce26fe088d8e7b03425",
+  "qualification_opened": false,
+  "schema_version": 1,
+  "scientific_products_opened": false,
+  "status": "scientifically-approved-for-acquisition-before-output"
+}

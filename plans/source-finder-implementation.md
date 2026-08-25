@@ -618,15 +618,26 @@ outstanding.
       scope, stratified by morphology, scale, SNR, edge, blend, and background.
       A no-science audit found that the untouched 400-image, one-geometry
       manifest is below the current 1,532-image power minimum. Preserve it
-      unopened; the recommended replacement is 1,688 fresh Continuum images,
-      balanced as 422 over four geometries, pending named scientific approval.
+      unopened. Named approval on 2026-08-25 froze 1,688 fresh Continuum
+      qualification images, balanced as 422 over four geometries, and bound
+      the closed Phase 4U/current compact evidence without pooling or a fresh
+      compact lane. The final runner/compiler/evaluator/runtime composition is
+      frozen by identity review `42ad6237...`; execution remains unauthorized.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
       The pre-acquisition review now recommends a truth-bearing SKA SDC1
       1.4-GHz lane and the real ASKAP EMU Pilot Hydra deep/shallow lane. The
       exact public URLs, roles, metrics, five scoped Hydra comparators, and
-      no-finder-as-truth policy are machine validated. Named scientific review,
-      source checksums, exact truth-only SDC1 cut-out formulas, adapters, and
+      no-finder-as-truth policy are machine validated. Named scientific review
+      approved acquisition on 2026-08-25 and froze seven exact requests
+      totalling 15.05 GB. Acquisition SHA `a74e60de...` verifies all source
+      checksums. Schema review SHA `409318f5...` records exact SDC1/Hydra
+      shapes, WCS, units, catalogue layouts, and the truth-only eight-tile
+      formula proposal without opening pixels or finder products. It also
+      binds serialization-only amendment `243d1680...`, which preserves the
+      sealed decision hash while validating the formatter-canonical decision
+      as scientifically unchanged. Named approval of the separate
+      schema/selection proposal, adapters, the selected population, and
       execution remain outstanding; qualification stays unopened.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
@@ -637,11 +648,13 @@ outstanding.
       Pydantic objects, so a tested bounded evaluator now reduces each exact,
       hash-bound shard in an isolated process before applying the unchanged
       scientific decision functions.
-- [ ] After separate named approvals, freeze and open the replacement final
-      Phase 5 qualification exactly once through its reviewed evaluator;
-      retain a terminal failure without rescoring. The pre-opening design
-      audit is `replacement-design-required` and authorizes neither freeze nor
-      execution.
+- [x] Implement and freeze the final runner/compiler/evaluator/runtime
+      composition. Identity review `42ad6237...` binds candidate `9062664...`,
+      source `e4307246...`, configuration `0e5dde51...`, four exact runtime
+      images, 1,688 inputs, 8,440 total runs, 5,064 binding runs, and the
+      closed compact decisions without pooling or rescoring. The next gate is
+      a separate named execution approval followed by the complete no-write
+      preflight; neither has occurred.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:

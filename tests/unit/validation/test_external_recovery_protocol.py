@@ -12,6 +12,7 @@ from typing import Any
 import pytest
 
 from hebog.validation.datasets import DatasetManifest, iter_dataset_recipes
+from hebog.validation.external_runners import file_sha256
 from hebog.validation.post_correction_recovery import (
     build_post_correction_continuum_products,
     post_correction_candidate_configuration_sha256,
@@ -110,7 +111,7 @@ def test_recovery_freezer_builds_approved_fresh_population() -> None:
     assert freeze["execution_authorized"] is False
     assert freeze["finder_output_generated"] is False
     assert freeze["finder_output_opened"] is False
-    expected = (
+    expected_manifests = (
         (
             continuum,
             _ROOT / "config/datasets/phase-5-external-recovery-continuum.json",
@@ -120,13 +121,8 @@ def test_recovery_freezer_builds_approved_fresh_population() -> None:
             _ROOT
             / "config/datasets/phase-5-external-recovery-compact-blend.json",
         ),
-        (
-            freeze,
-            _ROOT
-            / "config/contracts/phase-5-external-recovery-population.json",
-        ),
     )
-    for document, path in expected:
+    for document, path in expected_manifests:
         encoded = (
             json.dumps(
                 document,
@@ -137,6 +133,13 @@ def test_recovery_freezer_builds_approved_fresh_population() -> None:
             + "\n"
         )
         assert path.read_text(encoding="utf-8") == encoded
+
+    frozen_population = (
+        _ROOT / "config/contracts/phase-5-external-recovery-population.json"
+    )
+    assert file_sha256(frozen_population) == (
+        "c2a4ac5b9763f2451fd07a18440b76ff3d5705dd2e56dd4273475efbe0423220"
+    )
 
 
 def test_recovery_freezer_rejects_source_tree_drift() -> None:

@@ -1,8 +1,9 @@
 # Phase 5 public comparison pre-review
 
-**Status:** proposed before human review, data acquisition, checksum freeze,
-or execution. This review does not open the untouched Phase 5 qualification
-population and does not authorize a public-data run or backend cutover.
+**Status:** acquisition and checksum freeze completed on 2026-08-25. The exact
+post-acquisition schema and selection amendment awaits named scientific
+review; cut-out selection, finder execution, qualification, and cutover remain
+unauthorized.
 
 ## Recommendation
 
@@ -25,6 +26,35 @@ The machine-readable recommendation is
 artifact but deliberately contains no artifact checksum: every download must
 be SHA-256 bound before cut-out selection or finder execution. The contract
 therefore remains execution-disabled.
+
+The named approval and exact seven direct-download requests are frozen in
+`config/contracts/phase-5-public-comparison-scientific-decision.json`. That
+record authorizes acquisition only and binds 15,053,995,875 expected bytes;
+all scientific execution flags remain false.
+
+The terminal acquisition record has SHA-256 `a74e60de...`: all seven files
+match their exact byte sizes and source SHA-256 values. The checked schema
+review has SHA-256 `409318f5...` and binds inspector SHA-256 `074e4df9...`.
+It records a 32,768-square, 0.6-arcsec-beam SDC1 image and its 12-column truth
+schema, nine applicable submitted catalogues, matched 3,600-square Hydra
+deep/shallow images, and ten published catalogues across Aegean, Caesar,
+ProFound, PyBDSF, and Selavy. The inspector read headers, table schemas, and
+archive layout only; it did not read image pixels, catalogue distributions,
+or finder products.
+
+A procedural deviation is retained in the machine record: while the final
+Hydra archive was still downloading, headers and the first five truth rows of
+already complete exact-sized files were inspected before the aggregate record
+sealed. No pixel arrays, finder products, or catalogue distributions were
+inspected, and observed values did not inform the proposed formulas. The
+deviation is not concealed or treated as approval to select cut-outs.
+
+The repository's required JSON formatter later canonicalized the acquisition
+decision's object-key order and whitespace. Serialization amendment SHA-256
+`243d1680...` retains the historically approved byte hash `7bfd3866...`, binds
+the canonical byte hash `d5762063...`, and validates that all seven requests
+and every authorization flag are unchanged. It neither reopens the sealed
+acquisition nor grants scientific execution authority.
 
 ## Why these datasets
 
@@ -97,11 +127,16 @@ finder is executed:
    membership, selection attributes, and cut-out SHA-256 values in a
    write-once population record.
 
-The acquisition implementation must translate the qualitative stratum names
-above into exact units and formulas from the downloaded SDC1 schema and put
-those formulas in a reviewed amendment before it may create the population.
-If the public files or columns do not match the documented release, it fails
-before any candidate execution. Selection may not depend on a Hebog product.
+The pending amendment now makes the formulas exact. Truth membership uses
+centroid WCS coordinates and half-open tile bounds. SDC1 size codes are
+converted to Gaussian FWHM with `2.355/5`, identity, or `sqrt(2)`; apparent
+flux includes bilinearly interpolated primary-beam response. Peak SNR uses the
+convolved Gaussian area, the FITS 0.6-arcsec beam, and the published
+73-nJy/beam 1400-MHz/1000-hour noise. Empty-tile fractions and dynamic range
+are zero, closest-pair separation is infinite below two sources, and all ties
+use increasing global tile `(y, x)`. The official population class remains a
+report-only code because Hebog does not classify sources. Selection still may
+not begin until named review accepts this amendment.
 
 ## ASKAP/Hydra execution
 
@@ -133,15 +168,18 @@ URLs, source and cut-out hashes, exact software/configuration identities,
 metric definitions, compact summaries, and reproducible commands. Before
 execution, the implementation must add and validate:
 
-- a write-once acquisition and population manifest;
-- explicit SDC1 column/unit mappings and exact cut-out ranking formulas;
+- ~~a write-once acquisition manifest and checksum freeze;~~ complete;
+- ~~explicit SDC1 column/unit mappings and exact ranking proposal;~~ complete,
+  pending named scientific approval;
+- a write-once selected cut-out population manifest;
 - a finder-neutral SDC1 association adapter;
 - a Hydra catalogue adapter that preserves native finder and island identity;
 - result population and checksum verification; and
 - a terminal evaluator that keeps qualification and cutover false.
 
-Named scientific review must approve this dataset selection and the exact
-post-acquisition amendment. Independent radio-astronomy review must then
+Named scientific review has approved this dataset selection. A further named
+review must approve the exact post-acquisition schema and selection amendment.
+Independent radio-astronomy review must then
 interpret the completed evidence before the Phase 5 readiness record can
 pass. Neither approval authorizes opening the untouched qualification
 population; that remains a separate one-look decision.

@@ -12,8 +12,11 @@ tile scientific equality across the reviewed boundary matrix. Step 5 is now
 complete: executor and retry invariance, bounded byte-level execution evidence,
 and the complete Phase 4 compact regression are also green. The controlled
 incremental performance gate passes. Untouched qualification, the Rapthor
-workflow-profile experiment, and independent acceptance remain open. This
-contract does not yet establish production multiscale equivalence.
+workflow-profile experiment, public evidence, and independent acceptance
+remain open. The final qualification population and complete prospective
+execution/evaluation composition are frozen, but no one-look execution is
+authorized. This contract does not yet establish production multiscale
+equivalence.
 
 The approved Step 4 policy is recorded in the
 [compact/extended association pre-review](phase-5-association-pre-review.md).
@@ -212,6 +215,7 @@ production algorithm to a Gaussian decomposition.
 | `phase-5-astrometry-follow-up-development.json` | development | 80 | Fresh geometry and noise validation of the detected-segment position. |
 | `phase-5-astrometry-follow-up-confirmation.json` | regression confirmation | 400 | Sealed one-look confirmation, unauthorized pending development and human review. |
 | `phase-5-qualification.json` | qualification | 400 | Untouched but superseded one-geometry design; do not open because the current prospective power audit requires a larger replacement. |
+| `phase-5-final-qualification-continuum.json` | final qualification | 1,688 | Approved seed-disjoint replacement, balanced as 422 images over four geometries; population and exact runner/compiler/evaluator/runtime composition frozen but not opened or execution-authorized. |
 
 Each image contains diffuse, filamentary, curved-filament, shell,
 mixed compact/extended, and artifact truth, plus an image-edge object. The
@@ -298,9 +302,13 @@ bootstrap intervals with 10,000 resamples, retained failure denominators, and
 one terminal opening. The later endpoint-specific prospective audit requires
 at least 1,532 Continuum realizations and selects a balanced 1,688-image,
 four-geometry design. The 400-image manifest therefore remains unopened and
-superseded. A replacement may be frozen only under a new identity after named
-scientific approval; see the
+superseded. Named approval on 2026-08-25 froze the replacement under a new
+identity without authorizing execution; see the
 [qualification design pre-review](phase-5-qualification-pre-review.md).
+The complete prospective matrix is 8,440 runs, of which 5,064
+candidate/operational runs are binding. Closed compact results remain separate
+and are checksum-bound without pooling or rescoring; Aegean therefore has no
+fresh Continuum run.
 
 ## Review decision
 

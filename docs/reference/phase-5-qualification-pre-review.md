@@ -2,9 +2,12 @@
 
 **Decision:** do not open the checked-in 400-image Phase 5 qualification
 manifest. It remains untouched, but it is too small and too narrow for the
-current endpoint-specific power requirement. A fresh, four-geometry
-replacement must receive named scientific approval before its identities are
-frozen. This review neither freezes nor executes that replacement.
+current endpoint-specific power requirement. Named scientific approval on
+2026-08-25 selected the closed compact evidence and froze a fresh,
+four-geometry replacement. Execution and qualification opening remain false.
+The final runner/compiler/evaluator composition and exact four runtime
+identities are now frozen under identity-review SHA-256 `42ad6237...`; this
+preparation is not an execution approval.
 
 ## Evidence
 
@@ -42,6 +45,24 @@ does not generate or inspect an image, truth result, source-finder output, or
 qualification statistic. Its terminal status is
 `replacement-design-required` and every execution/opening flag is false.
 
+The approved replacement manifest is
+`config/datasets/phase-5-final-qualification-continuum.json`, SHA-256
+`7c67127e828a92bc100299cf9ffecd13851e485c4be9e95866e2d0827ebb80df`.
+The population freeze is
+`config/contracts/phase-5-final-qualification-population.json`, SHA-256
+`4a52f55114962d24d6371b166d393c3421a74156fa1c48305931fb39a631e5ac`.
+It binds candidate revision `9062664...`, four sets of 422 fresh seeds, and
+the passing closed Phase 4U qualification/current compact regression without
+pooling or rescoring them.
+
+The prospective run contains 1,688 Continuum inputs and 8,440 runs: Hebog,
+released PyBDSF operational and controlled-background, and pinned-master
+PyBDSF operational and controlled-background for every image. The 5,064
+candidate/operational runs are binding. Aegean's scientifically applicable
+compact scope is already closed, so its exact runtime remains one of the four
+reviewed identities but its final runner fails closed rather than scheduling
+a fresh or scientifically inapplicable Continuum leg.
+
 ## Recommended replacement
 
 Freeze a new qualification-role continuum population with:
@@ -65,19 +86,19 @@ and none of its seeds is reused. This makes the qualification identity and
 its four-way balance unambiguous.
 
 The compact Phase 4U qualification and current complete compact regression
-remain separate passing evidence. Before freezing the replacement, scientific
-review must decide whether the final one-look repeats a fresh 800-image compact
-lane or binds those closed compact results. That choice affects campaign
-power, runtime, and identity and must not be inferred here.
+remain separate passing evidence. Scientific review selected those closed
+records, so no fresh 800-image compact lane is required. They remain
+independently hash-bound and are not pooled with the final Continuum result.
 
 ## Required sequence
 
-1. Obtain named scientific approval of the 1,688-image/four-geometry continuum
-   design and the compact-evidence choice.
-2. Freeze the replacement manifest, candidate source/configuration, exact
-   finder runtimes, compiler, evaluator, endpoint registry, and power audit.
+1. ~~Obtain named scientific approval and freeze the replacement population.~~
+   Completed on 2026-08-25 without opening qualification.
+2. ~~Implement and freeze the final candidate runner, compiler, evaluator,
+   endpoint registry, and exact finder runtime identities.~~ Completed under
+   identity-review SHA-256 `42ad6237...`; execution remains false.
 3. Produce a no-write preflight review and obtain a separate named one-look
-   execution approval bound to every identity.
+   execution approval bound to review `42ad6237...` and every runtime identity.
 4. Execute once, evaluate absolute science before comparisons and runtime, and
    retain a terminal failure without tuning or rescoring.
 5. Only after qualification, public evidence, the Rapthor profile, and

@@ -41,9 +41,29 @@ three-scale meaning, failure and association semantics, absolute truth gates,
 paired PyBDSF non-inferiority margins, and one-look statistical design before
 filter selection. Phase 5 dataset schema version 3 adds analytic morphology
 groups and scale-, edge-, tile-, invalid-pixel-, and artefact-aware strata.
-The 400-image qualification manifest is frozen and must remain unopened until
-the independent pre-opening power audit passes; development and regression
-seeds are disjoint from it.
+The original 400-image qualification manifest remains frozen and unopened,
+but the independent power audit superseded it. Named scientific approval on
+2026-08-25 froze `datasets/phase-5-final-qualification-continuum.json`: 1,688
+fresh qualification images balanced over four geometries. Its population
+contract binds the closed compact evidence and keeps execution and
+qualification opening false. The final comparison protocol, pending execution
+decision, endpoint registry, compiler, evaluator, runners, and four exact
+runtime images are frozen by
+`contracts/phase-5-final-qualification-identity-review.json` (SHA-256
+`42ad6237...`). The matrix has 1,688 inputs, 8,440 total runs, and 5,064
+binding candidate/operational runs. Aegean is retained as the exact compact
+reference identity but has no fresh Continuum leg.
+
+The public-comparison contracts keep acquisition separate from science.
+`phase-5-public-comparison-scientific-decision.json` authorizes only the seven
+SDC1/Hydra downloads. `phase-5-public-comparison-schema-review.json` binds the
+verified source checksums, observed headers and catalogue schemas, and the
+proposed truth-only SDC1 tile formulas. It remains pending named scientific
+review and authorizes neither cut-out selection nor finder execution.
+`phase-5-public-comparison-decision-serialization-amendment.json` preserves
+the acquisition decision's historically approved byte hash while binding its
+formatter-canonical bytes and unchanged semantic requests; it grants no new
+scientific authority.
 
 `datasets/phase-5-external-successor-continuum.json` and
 `datasets/phase-5-external-successor-compact-blend.json` are the write-once
