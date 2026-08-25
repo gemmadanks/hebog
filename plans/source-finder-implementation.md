@@ -616,6 +616,10 @@ outstanding.
 - [ ] Repeat the full final comparison with untouched qualification data,
       injected truth, both PyBDSF references, and Aegean over its applicable
       scope, stratified by morphology, scale, SNR, edge, blend, and background.
+      A no-science audit found that the untouched 400-image, one-geometry
+      manifest is below the current 1,532-image power minimum. Preserve it
+      unopened; the recommended replacement is 1,688 fresh Continuum images,
+      balanced as 422 over four geometries, pending named scientific approval.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
       The pre-acquisition review now recommends a truth-bearing SKA SDC1
@@ -633,8 +637,11 @@ outstanding.
       Pydantic objects, so a tested bounded evaluator now reduces each exact,
       hash-bound shard in an isolated process before applying the unchanged
       scientific decision functions.
-- [ ] Open the frozen final Phase 5 qualification exactly once through the
-      reviewed evaluator; retain a terminal failure without rescoring.
+- [ ] After separate named approvals, freeze and open the replacement final
+      Phase 5 qualification exactly once through its reviewed evaluator;
+      retain a terminal failure without rescoring. The pre-opening design
+      audit is `replacement-design-required` and authorizes neither freeze nor
+      execution.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:

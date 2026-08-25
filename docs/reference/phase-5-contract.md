@@ -211,7 +211,7 @@ production algorithm to a Gaussian decomposition.
 | `phase-5-corrective-a-confirmation.json` | regression confirmation | 100 | One-look seed-disjoint confirmation of the frozen Step 2C-A estimator. |
 | `phase-5-astrometry-follow-up-development.json` | development | 80 | Fresh geometry and noise validation of the detected-segment position. |
 | `phase-5-astrometry-follow-up-confirmation.json` | regression confirmation | 400 | Sealed one-look confirmation, unauthorized pending development and human review. |
-| `phase-5-qualification.json` | qualification | 400 | Untouched one-look population spanning every governed stratum. |
+| `phase-5-qualification.json` | qualification | 400 | Untouched but superseded one-geometry design; do not open because the current prospective power audit requires a larger replacement. |
 
 Each image contains diffuse, filamentary, curved-filament, shell,
 mixed compact/extended, and artifact truth, plus an image-edge object. The
@@ -292,13 +292,15 @@ margins:
 | Split- or merge-fraction increase | 0.02 |
 | Rapthor decision-disagreement increase | 0.005 |
 
-The frozen design requires at least 400 independent noise-image
+The original frozen design required at least 400 independent noise-image
 realizations, a 90% minimum joint power target, whole-image fixed-seed
 bootstrap intervals with 10,000 resamples, retained failure denominators, and
-one terminal opening. Independent development/regression estimates must pass
-the pre-opening power audit before qualification results are generated. If
-they do not, this population remains unopened and any replacement design must
-be frozen under a new identity rather than silently changing this manifest.
+one terminal opening. The later endpoint-specific prospective audit requires
+at least 1,532 Continuum realizations and selects a balanced 1,688-image,
+four-geometry design. The 400-image manifest therefore remains unopened and
+superseded. A replacement may be frozen only under a new identity after named
+scientific approval; see the
+[qualification design pre-review](phase-5-qualification-pre-review.md).
 
 ## Review decision
 

@@ -10248,6 +10248,8 @@ untouched qualification population.
   removed Selavy context, missing artifacts, or cross-lane compensation. The
   proposal keeps human review, checksum freeze, execution, untouched
   qualification, and cutover false.
+- The mandatory JSON hook normalized the contract's key order without changing
+  its semantics; the resulting proposed contract SHA-256 is `ad412c20...`.
 
 **Decision:** recommend SDC1 plus ASKAP/Hydra. Do not add a third survey merely
 to increase finder count; add one later only if independent review identifies
@@ -10257,3 +10259,35 @@ a material frequency, instrument, or morphology gap.
 dataset and role selection. After approval, acquire and hash the public files,
 freeze exact SDC1 cut-out formulas and populations, and implement the adapters
 without opening the untouched qualification population.
+
+## 2026-08-25 — Audit the untouched Phase 5 qualification design
+
+**Plan phase:** Phase 5, Step 6 — pre-opening qualification readiness
+
+- Confirmed with a no-science audit that the checked-in qualification manifest
+  SHA-256 `40f1d0cf...` contains 400 realizations of one beam/WCS geometry. No
+  qualification image, finder product, or scientific result was generated or
+  inspected.
+- Bound the already reviewed recovery power record SHA-256 `bbfab3a0...` and
+  its 226 continuum paired comparisons. It requires at least 1,532 continuum
+  realizations and selects 1,688, balanced as 422 over four geometries. Its
+  combined familywise power lower bound is 0.90508 against the 0.90 minimum.
+- Added a pure pre-opening audit and write-once command. It rejects a viewed
+  qualification flag, changed power-review identity/status, inconsistent
+  geometry balance, invalid candidate identities, inadequate prospective
+  familywise power, and output replacement.
+- Published ignored audit
+  `benchmark-results/phase-5/qualification-design-audit.json`, SHA-256
+  `9b0fcb89...`. Its status is `replacement-design-required`; it explicitly
+  preserves the current manifest unopened and keeps replacement freeze,
+  execution, and qualification opening false.
+
+**Decision:** do not execute the 400-image manifest. Recommend a fresh,
+seed-disjoint, four-geometry 1,688-image continuum replacement. Named
+scientific review must also decide whether the final one-look repeats a fresh
+800-image compact lane or binds the closed Phase 4U qualification and current
+compact regression.
+
+**Immediate next step:** validate and commit the audit boundary. Then request
+named scientific approval before freezing any replacement qualification
+identity; execution requires a separate later one-look approval.
