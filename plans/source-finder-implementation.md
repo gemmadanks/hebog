@@ -618,6 +618,12 @@ outstanding.
       scope, stratified by morphology, scale, SNR, edge, blend, and background.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
+      The pre-acquisition review now recommends a truth-bearing SKA SDC1
+      1.4-GHz lane and the real ASKAP EMU Pilot Hydra deep/shallow lane. The
+      exact public URLs, roles, metrics, five scoped Hydra comparators, and
+      no-finder-as-truth policy are machine validated. Named scientific review,
+      source checksums, exact truth-only SDC1 cut-out formulas, adapters, and
+      execution remain outstanding; qualification stays unopened.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

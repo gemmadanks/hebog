@@ -96,6 +96,7 @@ nav:
       - Phase 5 association pre-review: reference/phase-5-association-pre-review.md
       - Phase 5 bounded-execution halo review: reference/phase-5-bounded-execution.md
       - Phase 5 regression fixtures: reference/phase-5-regression-fixtures.md
+      - Phase 5 public comparison pre-review: reference/phase-5-public-comparison-pre-review.md
       - Compact deblending: reference/compact-deblending.md
       - Extended-emission measurement: reference/extended-emission-measurement.md
       - Compact moment measurement: reference/compact-measurement.md

@@ -1421,6 +1421,163 @@ class PhaseFiveRapthorMembershipEvidence(_ContractModel):
         return self
 
 
+class PhaseFivePublicArtifact(_ContractModel):
+    """One authoritative public input or published comparison product."""
+
+    identifier: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    filename: str = Field(min_length=1)
+    source_url: str = Field(pattern=r"^https://")
+    role: Literal[
+        "image",
+        "primary-beam",
+        "truth-catalogue",
+        "shallow-image",
+        "published-comparison-archive",
+    ]
+    checksum_policy: Literal["sha256-before-selection-or-execution"]
+
+
+class PhaseFivePublicDataset(_ContractModel):
+    """One scoped public comparison lane and its scientific role."""
+
+    dataset_id: Literal[
+        "ska-sdc1-mid-band2-1000h",
+        "askap-emu-pilot-hydra-2x2",
+    ]
+    telescope_family: Literal["simulated-ska-mid", "askap"]
+    evidence_role: Literal["truth-bearing-challenge", "real-survey-diagnostic"]
+    redistribution_policy: Literal[
+        "public-research-use-with-skao-acknowledgement",
+        "public-cirada-cadc-publication-artifacts",
+    ]
+    truth_policy: Literal[
+        "official-revealed-truth", "no-astronomical-ground-truth"
+    ]
+    selection_policy: Literal[
+        "eight-truth-selected-nonoverlapping-2048-square-cutouts",
+        "complete-published-deep-and-shallow-two-degree-field",
+    ]
+    artifacts: tuple[PhaseFivePublicArtifact, ...] = Field(min_length=1)
+    comparators: tuple[str, ...]
+    binding_metrics: tuple[str, ...]
+    diagnostic_metrics: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_canonical_collections(self) -> Self:
+        """Require stable, duplicate-free artifact and metric populations."""
+        for label, values in (
+            (
+                "artifact identifiers",
+                tuple(item.identifier for item in self.artifacts),
+            ),
+            ("comparators", self.comparators),
+            ("binding metrics", self.binding_metrics),
+            ("diagnostic metrics", self.diagnostic_metrics),
+        ):
+            if tuple(sorted(set(values))) != values:
+                raise ValueError(f"public dataset {label} must be canonical")
+        return self
+
+
+class PhaseFivePublicDecisionPolicy(_ContractModel):
+    """Non-compensating interpretation of public comparison evidence."""
+
+    absolute_truth_rule: Literal[
+        "apply-frozen-phase-five-gates-only-where-sdc1-semantics-match"
+    ]
+    real_survey_rule: Literal[
+        "report-deep-shallow-stability-and-each-finder-separately"
+    ]
+    official_score_rule: Literal[
+        "report-only-because-hebog-does-not-classify-source-populations"
+    ]
+    finder_vote_as_truth: Literal[False]
+    cross_finder_compensation: Literal[False]
+    cross_lane_compensation: Literal[False]
+    missing_artifact_policy: Literal["fail-before-execution"]
+    review_rule: Literal[
+        "independent-radio-astronomy-review-required-before-readiness"
+    ]
+
+
+class PhaseFivePublicComparisonContract(_ContractModel):
+    """Pre-acquisition protocol for public multi-telescope evidence."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-public-comparison"]
+    status: Literal["proposed-before-human-review-and-acquisition"]
+    datasets: tuple[PhaseFivePublicDataset, ...]
+    cutout_freeze_rule: Literal[
+        "freeze-source-sha256-pixel-bounds-wcs-beam-and-truth-membership-before-hebog"
+    ]
+    result_rule: Literal[
+        "publish-stratified-machine-readable-results-and-unmatched-audit"
+    ]
+    decision: PhaseFivePublicDecisionPolicy
+    human_scientific_review_complete: Literal[False]
+    artifact_checksums_frozen: Literal[False]
+    execution_authorized: Literal[False]
+    qualification_opened: Literal[False]
+    cutover_authorized: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_datasets(self) -> Self:
+        """Freeze two complementary lanes and their exact evidence roles."""
+        observed = tuple(
+            (
+                dataset.dataset_id,
+                dataset.telescope_family,
+                dataset.evidence_role,
+                dataset.truth_policy,
+                tuple(item.identifier for item in dataset.artifacts),
+                dataset.comparators,
+            )
+            for dataset in self.datasets
+        )
+        expected = (
+            (
+                "ska-sdc1-mid-band2-1000h",
+                "simulated-ska-mid",
+                "truth-bearing-challenge",
+                "official-revealed-truth",
+                (
+                    "image",
+                    "official-submissions",
+                    "primary-beam",
+                    "truth-catalogue",
+                ),
+                ("official-sdc1-submissions",),
+            ),
+            (
+                "askap-emu-pilot-hydra-2x2",
+                "askap",
+                "real-survey-diagnostic",
+                "no-astronomical-ground-truth",
+                ("deep-image", "hydra-archive", "shallow-image"),
+                ("aegean", "caesar", "profound", "pybdsf", "selavy"),
+            ),
+        )
+        if observed != expected:
+            raise ValueError(
+                "public comparison requires canonical public datasets"
+            )
+        if self.datasets[0].binding_metrics != (
+            "astrometry",
+            "catalogue-completeness",
+            "catalogue-reliability",
+            "duplicate-fraction",
+            "integrated-flux-error",
+            "major-minor-axis-error",
+            "merge-fraction",
+        ):
+            raise ValueError("SDC1 binding metrics must remain canonical")
+        if self.datasets[1].binding_metrics:
+            raise ValueError(
+                "real-survey finder comparisons cannot be binding"
+            )
+        return self
+
+
 class PhaseFiveFilterSelection(_ContractModel):
     """Reviewed development decision for the Phase 5 filter representation."""
 
@@ -3977,6 +4134,15 @@ def load_phase_five_rapthor_profile(
 ) -> PhaseFiveRapthorProfileContract:
     """Load the frozen Phase 5 Rapthor profile-selection protocol."""
     return PhaseFiveRapthorProfileContract.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_public_comparison(
+    path: Path,
+) -> PhaseFivePublicComparisonContract:
+    """Load the proposed Phase 5 public multi-telescope protocol."""
+    return PhaseFivePublicComparisonContract.model_validate_json(
         path.read_text(encoding="utf-8")
     )
 

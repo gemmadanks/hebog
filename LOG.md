@@ -10223,3 +10223,37 @@ component population, then execute pinned LSMTool for all four lanes.
 **Immediate next step:** validate and commit this evidence seam, then freeze a
 reproducible public/challenge comparison protocol without opening the final
 untouched qualification population.
+
+## 2026-08-25 — Pre-review the public multi-telescope comparison
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Reviewed the official SKA SDC1 release, scoring boundary, and results paper,
+  plus the CIRADA Hydra release and Hydra I/II comparison papers. The smallest
+  complementary design is the truth-bearing 1.4-GHz, 1000-hour simulated
+  SKA-MID lane and the real ASKAP EMU Pilot deep/shallow two-degree lane.
+- Added a proposed machine-readable contract with the exact public source
+  URLs and evidence roles. SDC1 uses official revealed truth for semantically
+  matching Phase 5 catalogue gates; its classification-dependent official
+  score is report-only because Hebog does not classify source populations.
+- Scoped the ASKAP archive's Aegean, Caesar, ProFound, PyBDSF, and Selavy
+  products as separate diagnostics. The real field has no astronomical truth,
+  so deep/shallow stability and cross-finder differences cannot establish or
+  rescue an absolute science pass.
+- Froze the intended no-compensation policy and a pre-Hebog selection boundary
+  for eight disjoint SDC1 cut-outs. Exact column mappings, units, ranking
+  formulas, source and cut-out SHA-256 values, and adapters remain deliberately
+  absent until the public artifacts are acquired and inspected under review.
+- Added contract tests that reject missing telescope lanes, truth-role drift,
+  removed Selavy context, missing artifacts, or cross-lane compensation. The
+  proposal keeps human review, checksum freeze, execution, untouched
+  qualification, and cutover false.
+
+**Decision:** recommend SDC1 plus ASKAP/Hydra. Do not add a third survey merely
+to increase finder count; add one later only if independent review identifies
+a material frequency, instrument, or morphology gap.
+
+**Immediate next step:** obtain named scientific review of this proposed
+dataset and role selection. After approval, acquire and hash the public files,
+freeze exact SDC1 cut-out formulas and populations, and implement the adapters
+without opening the untouched qualification population.

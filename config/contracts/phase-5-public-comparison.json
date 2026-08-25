@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "contract_id": "phase-5-public-comparison",
+  "status": "proposed-before-human-review-and-acquisition",
+  "datasets": [
+    {
+      "dataset_id": "ska-sdc1-mid-band2-1000h",
+      "telescope_family": "simulated-ska-mid",
+      "evidence_role": "truth-bearing-challenge",
+      "redistribution_policy": "public-research-use-with-skao-acknowledgement",
+      "truth_policy": "official-revealed-truth",
+      "selection_policy": "eight-truth-selected-nonoverlapping-2048-square-cutouts",
+      "artifacts": [
+        {
+          "identifier": "image",
+          "filename": "SKAMid_B2_1000h_v3.fits",
+          "source_url": "https://owncloud.ia2.inaf.it/index.php/s/GsxoTyv1zrdRTu4",
+          "role": "image",
+          "checksum_policy": "sha256-before-selection-or-execution"
+        },
+        {
+          "identifier": "official-submissions",
+          "filename": "SDC1_submissions.tgz",
+          "source_url": "https://owncloud.ia2.inaf.it/index.php/s/xdeXBymC32og1ol",
+          "role": "published-comparison-archive",
+          "checksum_policy": "sha256-before-selection-or-execution"
+        },
+        {
+          "identifier": "primary-beam",
+          "filename": "PrimaryBeam_B2.fits",
+          "source_url": "https://owncloud.ia2.inaf.it/index.php/s/tVGse9GaLBQmntc",
+          "role": "primary-beam",
+          "checksum_policy": "sha256-before-selection-or-execution"
+        },
+        {
+          "identifier": "truth-catalogue",
+          "filename": "True_1400_v2.txt",
+          "source_url": "https://owncloud.ia2.inaf.it/index.php/s/J2WFVTsFevJBHKj",
+          "role": "truth-catalogue",
+          "checksum_policy": "sha256-before-selection-or-execution"
+        }
+      ],
+      "comparators": [
+        "official-sdc1-submissions"
+      ],
+      "binding_metrics": [
+        "astrometry",
+        "catalogue-completeness",
+        "catalogue-reliability",
+        "duplicate-fraction",
+        "integrated-flux-error",
+        "major-minor-axis-error",
+        "merge-fraction"
+      ],
+      "diagnostic_metrics": [
+        "official-sdc1-score",
+        "source-population-classification"
+      ]
+    },
+    {
+      "dataset_id": "askap-emu-pilot-hydra-2x2",
+      "telescope_family": "askap",
+      "evidence_role": "real-survey-diagnostic",
+      "redistribution_policy": "public-cirada-cadc-publication-artifacts",
+      "truth_policy": "no-astronomical-ground-truth",
+      "selection_policy": "complete-published-deep-and-shallow-two-degree-field",
+      "artifacts": [
+        {
+          "identifier": "deep-image",
+          "filename": "emu_pilot_sample_2x2deg.fits",
+          "source_url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.fits",
+          "role": "image",
+          "checksum_policy": "sha256-before-selection-or-execution"
+        },
+        {
+          "identifier": "hydra-archive",
+          "filename": "emu_pilot_sample_2x2deg.hydra.tar.gz",
+          "source_url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.hydra.tar.gz",
+          "role": "published-comparison-archive",
+          "checksum_policy": "sha256-before-selection-or-execution"
+        },
+        {
+          "identifier": "shallow-image",
+          "filename": "emu_pilot_sample_2x2deg.shallow.fits",
+          "source_url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/files/vault/cirada/continuum/mboyce/hydra_paper/emu_2x2/emu_pilot_sample_2x2deg.shallow.fits",
+          "role": "shallow-image",
+          "checksum_policy": "sha256-before-selection-or-execution"
+        }
+      ],
+      "comparators": [
+        "aegean",
+        "caesar",
+        "profound",
+        "pybdsf",
+        "selavy"
+      ],
+      "binding_metrics": [],
+      "diagnostic_metrics": [
+        "catalogue-overlap-by-finder",
+        "deep-shallow-completeness-surrogate",
+        "deep-shallow-reliability-surrogate",
+        "flux-ratio-by-source-complexity",
+        "position-offset-by-source-complexity",
+        "residual-summary-by-finder",
+        "unmatched-component-audit"
+      ]
+    }
+  ],
+  "cutout_freeze_rule": "freeze-source-sha256-pixel-bounds-wcs-beam-and-truth-membership-before-hebog",
+  "result_rule": "publish-stratified-machine-readable-results-and-unmatched-audit",
+  "decision": {
+    "absolute_truth_rule": "apply-frozen-phase-five-gates-only-where-sdc1-semantics-match",
+    "real_survey_rule": "report-deep-shallow-stability-and-each-finder-separately",
+    "official_score_rule": "report-only-because-hebog-does-not-classify-source-populations",
+    "finder_vote_as_truth": false,
+    "cross_finder_compensation": false,
+    "cross_lane_compensation": false,
+    "missing_artifact_policy": "fail-before-execution",
+    "review_rule": "independent-radio-astronomy-review-required-before-readiness"
+  },
+  "human_scientific_review_complete": false,
+  "artifact_checksums_frozen": false,
+  "execution_authorized": false,
+  "qualification_opened": false,
+  "cutover_authorized": false
+}
