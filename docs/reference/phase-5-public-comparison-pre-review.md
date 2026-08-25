@@ -169,20 +169,26 @@ metric definitions, compact summaries, and reproducible commands. Before
 execution, the implementation must add and validate:
 
 - ~~a write-once acquisition manifest and checksum freeze;~~ complete;
-- ~~explicit SDC1 column/unit mappings and exact ranking proposal;~~ complete,
-  pending named scientific approval;
-- a write-once selected cut-out population manifest;
-- a finder-neutral SDC1 association adapter;
-- a Hydra catalogue adapter that preserves native finder and island identity;
+- ~~explicit SDC1 column/unit mappings and exact ranking proposal;~~ complete
+  and approved by schema/selection review `409318f5...`;
+- ~~a write-once selected cut-out population manifest;~~ complete as terminal
+  population `0a7c2b18...`, with 32 admitted and eight selected tiles;
+- ~~a finder-neutral SDC1 association adapter;~~ complete;
+- ~~a Hydra catalogue adapter that preserves native finder and island
+  identity;~~ complete;
 - result population and checksum verification; and
 - a terminal evaluator that keeps qualification and cutover false.
 
-Named scientific review has approved this dataset selection. A further named
-review must approve the exact post-acquisition schema and selection amendment.
-Independent radio-astronomy review must then
-interpret the completed evidence before the Phase 5 readiness record can
-pass. Neither approval authorizes opening the untouched qualification
-population; that remains a separate one-look decision.
+Named scientific review has approved the dataset, exact post-acquisition
+schema, selection formulas, adapters, and one selected population. The sole
+official truth row with a non-finite centroid (ID `32397377`) cannot satisfy
+half-open tile membership and is recorded explicitly as excluded. All seven
+source identities, eight FITS checksums, truth memberships, disjointness, and
+implementation hashes verify. A separate frozen public finder protocol and
+named execution approval are still required. Independent radio-astronomy
+review must interpret the completed public evidence before the Phase 5
+readiness record can pass; public selection did not authorize qualification,
+cutover, or release.
 
 ## Decision
 

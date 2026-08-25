@@ -10402,3 +10402,58 @@ execution approval; no campaign or public finder execution is implied.
 **Immediate next step:** validate and commit the authorization transition,
 create an immutable execution checkout from that commit, and run the complete
 no-write preflight. Start the one campaign only if it passes unchanged.
+
+## 2026-08-25 — Pass final qualification preflight without opening science
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Created immutable execution checkout
+  `/private/tmp/hebog-phase5-final-qualification-execution-1d584fb` from exact
+  authorization commit `1d584fb...`; an ignored evidence symlink supplies the
+  already checksum-bound compact decisions without altering the hashed source
+  tree.
+- The complete no-write preflight passed as request SHA-256 `eebb6d79...` for
+  all 1,688 inputs and 8,440 runs. Identity review `42ad6237...`, approved
+  decision `0c098922...`, and all four runtime image IDs/digests remained
+  unchanged. No terminal or staging campaign directory was created.
+- Host free space is 46 GiB. The like-sized closed recovery campaign used
+  about 102 GiB for its Continuum inputs and results, so launching now would
+  predictably fail for storage rather than test the frozen science.
+
+**Decision:** preflight satisfies the approved identity gate, but do not open
+the one-look campaign until sufficient space is available. The exact proposed
+cleanup is the closed external-recovery campaign's 44-GiB `inputs` and 67-GiB
+`results`, retaining its manifests, compiler analysis, and terminal decision;
+permanent deletion still requires explicit approval.
+
+## 2026-08-25 — Seal the approved public comparison population
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Recorded Gemma Danks's named approval of schema review SHA-256
+  `409318f5...` in selection decision SHA-256 `d60fb645...`. The decision
+  permits the SDC1/Hydra adapters and one write-once selected population, but
+  keeps finder execution, qualification, cutover, and release false.
+- Implemented pure SDC1 size, apparent-SNR, tile-attribute, and deterministic
+  eight-stratum selection functions. Added a unit-safe Hydra adapter for the
+  published Aegean, Caesar, ProFound, PyBDSF, and Selavy schemas while
+  preserving native finder, island, and component identities.
+- The first selector process stopped before image pixels or selection because
+  it found the official truth table's one non-finite centroid. ID `32397377`
+  has finite remaining fields but `NaN` `ra_cent,dec_cent`; it cannot satisfy
+  the approved half-open WCS membership rule. The adapter now admits only that
+  exact known exclusion and rejects any changed non-finite population. The
+  empty failed staging directory was removed before resuming.
+- Terminal population SHA-256 `0a7c2b18...` was then created exactly once. Of
+  256 aligned candidates, 32 met the every-pixel mean-primary-beam threshold;
+  eight unique tiles were selected in the approved order. The terminal uses
+  153 MiB and binds selector `0ddbc656...` and adapter `3a3aa7c3...`.
+- Independent verifier `6f315f69...` rehashed all 15.05 GB of seven public
+  inputs, verified all eight FITS checksums and truth memberships, confirmed
+  the selected populations are disjoint, and rejected any unbound terminal
+  file. Durable registry SHA-256 `df3a9088...` retains the compact evidence.
+
+**Decision:** public acquisition, adapters, and selected-population creation
+are complete without finder output. The next public gate is a separately
+reviewed finder runner/compiler/evaluator composition and named execution
+approval; this work did not open qualification or authorize cutover/release.

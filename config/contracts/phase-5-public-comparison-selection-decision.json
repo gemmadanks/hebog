@@ -1,0 +1,19 @@
+{
+  "adapter_implementation_authorized": true,
+  "cutout_selection_authorized": true,
+  "cutover_authorized": false,
+  "decision_id": "phase-5-public-comparison-selection-decision",
+  "finder_execution_authorized": false,
+  "named_review": {
+    "approved_on": "2026-08-25",
+    "reviewer": "Gemma Danks",
+    "scope": "approved-sdc1-hydra-schema-adapters-and-one-write-once-selected-population-no-finder-execution"
+  },
+  "next_action": "implement-adapters-and-create-one-write-once-selected-population-before-separate-execution-review",
+  "qualification_opened": false,
+  "schema_review_path": "config/contracts/phase-5-public-comparison-schema-review.json",
+  "schema_review_sha256": "409318f58cafe259b4347953051ef8dddcf2308f041e8145e4199f7ad281eed8",
+  "schema_version": 1,
+  "scientific_products_opened": false,
+  "status": "reviewed-before-public-selection"
+}

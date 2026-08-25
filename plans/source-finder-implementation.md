@@ -624,7 +624,12 @@ outstanding.
       compact lane. The final runner/compiler/evaluator/runtime composition is
       frozen by identity review `42ad6237...`. Named one-look approval on
       2026-08-25 authorizes the no-write preflight and conditional execution
-      only if every identity remains unchanged; no result is open yet.
+      only if every identity remains unchanged. Preflight passed from immutable
+      authorization commit `1d584fb...` with request `eebb6d79...`, all 1,688
+      inputs and 8,440 runs, and the exact four runtime identities unchanged.
+      The campaign remains unopened because 46 GiB of host space is below the
+      approximately 102 GiB observed requirement; execution waits for approved
+      cleanup of closed raw evidence, not a scientific or identity change.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
       The pre-acquisition review now recommends a truth-bearing SKA SDC1
@@ -638,9 +643,14 @@ outstanding.
       formula proposal without opening pixels or finder products. It also
       binds serialization-only amendment `243d1680...`, which preserves the
       sealed decision hash while validating the formatter-canonical decision
-      as scientifically unchanged. Named approval of the separate
-      schema/selection proposal, adapters, the selected population, and
-      execution remain outstanding; qualification stays unopened.
+      as scientifically unchanged. Named schema/selection review
+      `409318f5...` authorized adapters and one population, but no finder run.
+      The SDC1/Hydra adapters are implemented and terminal population
+      `0a7c2b18...` selects eight unique 2,048-square strata from 32 admitted
+      tiles; all source, FITS, truth-membership, and implementation bindings
+      verify. Official truth ID `32397377`, the sole non-finite centroid, is
+      explicitly excluded by the approved membership rule. Public finder
+      execution still requires its own frozen protocol and named approval.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
@@ -654,10 +664,10 @@ outstanding.
       composition. Identity review `42ad6237...` binds candidate `9062664...`,
       source `e4307246...`, configuration `0e5dde51...`, four exact runtime
       images, 1,688 inputs, 8,440 total runs, 5,064 binding runs, and the
-      closed compact decisions without pooling or rescoring. The next gate is
-      the complete no-write preflight from the immutable authorization commit.
-      Named execution approval was recorded on 2026-08-25, but preflight and
-      execution have not yet occurred.
+      closed compact decisions without pooling or rescoring. Named approval
+      was recorded and the complete no-write preflight passed unchanged as
+      request `eebb6d79...`. The single campaign may start after sufficient
+      disk is made available; it has not yet executed or opened science.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:
