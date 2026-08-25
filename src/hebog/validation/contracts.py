@@ -48,6 +48,20 @@ _PHASE_FIVE_REQUIRED_STRATA = {
     "tile-corner",
     "varying-noise",
 }
+_PHASE_FIVE_RAPTHOR_SAFETY_STRATA = {
+    "apparent-sky",
+    "bright-component",
+    "crowded",
+    "edge",
+    "extended-associated",
+    "masked-or-invalid-neighbour",
+    "sparse",
+    "true-sky",
+}
+_PHASE_FIVE_RAPTHOR_MINIMUM_AGREEMENT = 0.995
+_PHASE_FIVE_RAPTHOR_THRESHOLD_PIXEL_SIGMA = 5.0
+_PHASE_FIVE_RAPTHOR_THRESHOLD_ISLAND_SIGMA = 3.0
+_PHASE_FIVE_RAPTHOR_ADAPTIVE_THRESHOLD = 75.0
 
 
 class _ContractModel(BaseModel):
@@ -1165,6 +1179,136 @@ class PhaseFiveScientificGates(_ContractModel):
             raise ValueError(
                 "Phase 5 governed strata must be complete and canonical"
             )
+        return self
+
+
+class PhaseFiveRapthorSoftware(_ContractModel):
+    """Exact workflow software used by the profile comparison."""
+
+    rapthor_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    lsmtool_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    lsmtool_source_finding_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    starting_revisions_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class PhaseFiveRapthorRealInputs(_ContractModel):
+    """Checksums for the restricted representative Rapthor dataset."""
+
+    dataset_id: Literal["rapthor-representative-3000"]
+    role: Literal["regression"]
+    inventory_path: Literal[
+        "config/baselines/phase-0-representative-dataset.json"
+    ]
+    inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    flat_noise_image_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    true_sky_image_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    true_skymodel_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    apparent_skymodel_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    vertices_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    beam_measurement_set_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    availability: Literal["controlled-runner-required"]
+
+
+class PhaseFiveRapthorPybdsfConfiguration(_ContractModel):
+    """Exact science configuration shared by both PyBDSF references."""
+
+    source_finder: Literal["bdsf"]
+    threshold_pixel_sigma: float = Field(gt=0)
+    threshold_island_sigma: float = Field(gt=0)
+    threshold_type: Literal["hard"]
+    mean_map: Literal["zero"]
+    rms_map: Literal[True]
+    adaptive_rms_box: Literal[True]
+    adaptive_threshold: float = Field(gt=0)
+    rms_box: tuple[Literal[150], Literal[50]]
+    rms_box_bright: tuple[Literal[35], Literal[7]]
+    atrous_do: Literal[True]
+    atrous_jmax: Literal[3]
+    filter_by_mask: Literal[True]
+    ncores: Literal[15]
+
+    @model_validator(mode="after")
+    def validate_configuration(self) -> Self:
+        """Keep the traced Rapthor science thresholds exact."""
+        if (
+            self.threshold_pixel_sigma
+            != _PHASE_FIVE_RAPTHOR_THRESHOLD_PIXEL_SIGMA
+            or self.threshold_island_sigma
+            != _PHASE_FIVE_RAPTHOR_THRESHOLD_ISLAND_SIGMA
+            or self.adaptive_threshold
+            != _PHASE_FIVE_RAPTHOR_ADAPTIVE_THRESHOLD
+        ):
+            raise ValueError("Rapthor PyBDSF thresholds must remain exact")
+        return self
+
+
+class PhaseFiveRapthorPybdsfReference(_ContractModel):
+    """One exact current-behaviour comparison implementation."""
+
+    identifier: Literal[
+        "released-pybdsf-used-by-rapthor",
+        "pinned-pybdsf-master",
+    ]
+    version: str = Field(min_length=1)
+    commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    configuration: PhaseFiveRapthorPybdsfConfiguration
+
+
+class PhaseFiveRapthorProfileDecisionContract(_ContractModel):
+    """Fail-closed component-membership profile selection rule."""
+
+    component_identity: Literal[
+        "input-scope-plus-name-before-filtering-and-grouping"
+    ]
+    filtering_operation: Literal[
+        "exact-lsmtool-sector-clip-mask-select-group-and-name-transfer"
+    ]
+    required_safety_strata: tuple[str, ...] = Field(min_length=1)
+    minimum_agreement: float = Field(ge=0, le=1)
+    empty_stratum_policy: Literal["incomplete-default-continuum"]
+    selection_rule: Literal[
+        "compact-only-if-overall-and-every-safety-stratum-pass"
+    ]
+    reference_rule: Literal[
+        "report-both-pybdsf-references-without-cross-reference-compensation"
+    ]
+
+    @model_validator(mode="after")
+    def validate_decision(self) -> Self:
+        """Keep the reviewed threshold and safety coverage exact."""
+        if self.minimum_agreement != _PHASE_FIVE_RAPTHOR_MINIMUM_AGREEMENT:
+            raise ValueError("Rapthor profile agreement must remain 0.995")
+        if self.required_safety_strata != tuple(
+            sorted(_PHASE_FIVE_RAPTHOR_SAFETY_STRATA)
+        ):
+            raise ValueError("Rapthor profile safety strata must be canonical")
+        return self
+
+
+class PhaseFiveRapthorProfileContract(_ContractModel):
+    """Frozen pre-results protocol for choosing a Rapthor science profile."""
+
+    schema_version: Literal[1]
+    contract_id: Literal["phase-5-rapthor-profile"]
+    status: Literal["frozen-pre-results"]
+    profiles: tuple[Literal["compact", "continuum"], ...]
+    software: PhaseFiveRapthorSoftware
+    real_inputs: PhaseFiveRapthorRealInputs
+    references: tuple[PhaseFiveRapthorPybdsfReference, ...]
+    decision: PhaseFiveRapthorProfileDecisionContract
+    qualification_opened: Literal[False]
+    cutover_authorized: Literal[False]
+
+    @model_validator(mode="after")
+    def validate_composition(self) -> Self:
+        """Require both profiles and both exact reference configurations."""
+        if self.profiles != ("compact", "continuum"):
+            raise ValueError("Rapthor profiles must be compact then continuum")
+        if tuple(item.identifier for item in self.references) != (
+            "released-pybdsf-used-by-rapthor",
+            "pinned-pybdsf-master",
+        ):
+            raise ValueError("Rapthor profile requires both PyBDSF references")
         return self
 
 
@@ -3715,6 +3859,15 @@ def load_phase_five_scientific_gates(
 ) -> PhaseFiveScientificGates:
     """Load reviewed Phase 5 absolute and paired scientific gates."""
     return PhaseFiveScientificGates.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+
+def load_phase_five_rapthor_profile(
+    path: Path,
+) -> PhaseFiveRapthorProfileContract:
+    """Load the frozen Phase 5 Rapthor profile-selection protocol."""
+    return PhaseFiveRapthorProfileContract.model_validate_json(
         path.read_text(encoding="utf-8")
     )
 

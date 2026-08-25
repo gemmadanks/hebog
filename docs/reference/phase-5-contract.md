@@ -11,7 +11,8 @@ derive and admit every stage-specific halo and prove complete one-tile/many-
 tile scientific equality across the reviewed boundary matrix. Step 5 is now
 complete: executor and retry invariance, bounded byte-level execution evidence,
 and the complete Phase 4 compact regression are also green. The controlled
-incremental performance gate and untouched qualification remain open. This
+incremental performance gate passes. Untouched qualification, the Rapthor
+workflow-profile experiment, and independent acceptance remain open. This
 contract does not yet establish production multiscale equivalence.
 
 The approved Step 4 policy is recorded in the
@@ -62,6 +63,29 @@ comparison must match by governed overlap, sky position, and flux.
 None of these paths may modify the RMS product: every scale reuses the Phase 2
 background and RMS, and a multiscale-only change leaves RMS status and bytes
 unchanged.
+
+## Frozen Rapthor profile comparison
+
+`config/contracts/phase-5-rapthor-profile.json` freezes the workflow-profile
+experiment before its results exist. It binds the restricted real 3,000-pixel
+input checksums, Rapthor commit `b1a64674...`, LSMTool commit `3adf3d6f...` and
+module hash, and released and pinned-master PyBDSF under the same traced hard
+5/3-sigma, three-scale configuration. The current host retains the inventory
+but not the restricted inputs, so execution requires their checksum-verified
+restoration on the controlled runner.
+
+Both Hebog masks must pass through the exact pinned LSMTool sector clipping,
+mask selection, island grouping, bright-source merge, and apparent-sky name
+transfer. Hebog does not independently reproduce those operations. The
+resulting retained/rejected decisions are compared by pre-filter input scope
+and component `Name`. Compact is eligible only when overall agreement and
+each non-empty true-sky, apparent-sky, bright, extended, edge, invalid/masked,
+sparse, and crowded safety lane reach 99.5%. A missing lane, changed component
+population, or lower agreement retains the safer continuum profile and keeps
+the evidence incomplete. Both PyBDSF references are reported without
+cross-reference or cross-stratum compensation. This selects only Rapthor's
+workflow profile; it cannot narrow general-community continuum support or
+authorize backend cutover.
 
 ## Frozen scientific meanings
 

@@ -467,12 +467,17 @@ outstanding.
 
 #### 2D. Determine the Rapthor profile
 
-- [ ] Freeze the Rapthor/LSMTool revision, real input checksums, both PyBDSF
+- [x] Freeze the Rapthor/LSMTool revision, real input checksums, both PyBDSF
       configurations, and predeclared decision strata.
 - [ ] Feed Hebog compact and qualified continuum masks through the same
       filtering logic; compare retained/rejected true, apparent, and bright
       sky-model components, including extended, edge, masked, sparse, and
-      crowded cases.
+      crowded cases. Contract schema 1 and the fail-closed comparator are
+      implemented: they require exact pre-filter component identities and
+      strata, invoke rather than reproduce the pinned LSMTool operation, and
+      forbid overall agreement from compensating for a failed safety lane.
+      Restore the restricted real inputs on the controlled runner and freeze
+      the exact component population before results are inspected.
 - [ ] Select `compact` only if at least 99.5% agreement and every safety
       stratum pass; otherwise select `continuum`.
 - [ ] Treat this as a workflow-profile decision only. It cannot narrow the

@@ -10153,3 +10153,39 @@ gate and does not replace untouched scientific qualification.
 **Immediate next step:** validate and commit the reviewed performance decision,
 then complete remaining pre-qualification work without opening the untouched
 one-look dataset before named approval.
+
+## 2026-08-25 — Freeze the Rapthor profile comparison boundary
+
+**Plan phase:** Phase 5, Step 2D — Rapthor workflow profile
+
+- Confirmed the intended test-first failure: the new Step 2D test could not
+  import a profile contract or decision comparator before implementation.
+- Added frozen schema 1 binding Rapthor commit `b1a64674...`, LSMTool commit
+  `3adf3d6f...` and source-finding SHA-256 `eccb93f1...`, the real
+  `rapthor-representative-3000` inventory and all six individual input hashes,
+  and both exact PyBDSF references. Both references use the same traced hard
+  5/3-sigma, zero-mean, adaptive-RMS, three-scale, mask-filtering configuration
+  and the Rapthor 15-core request.
+- Froze eight required component-decision lanes: true sky, apparent sky,
+  bright components, extended-associated, edge, masked/invalid-neighbour,
+  sparse, and crowded. Compact must reach 0.995 agreement overall and within
+  every lane; PyBDSF references and strata cannot compensate for one another.
+- Implemented a scheduler- and LSMTool-independent binary comparator over the
+  exact post-filter membership records. It rejects duplicate or changed
+  component identities and strata, reports every disagreement, and defaults
+  to continuum with incomplete status if a required lane is empty. The runner
+  must invoke the exact pinned LSMTool filtering operation rather than copy its
+  sector clipping, mask lookup, grouping, bright merge, or name transfer.
+- The inventory remains checked in, but the restricted real FITS, sky-model,
+  vertices, and Measurement Set inputs are no longer present on this host.
+  Consequently no profile result was generated and no selection is claimed.
+
+**Decision:** Step 2D identity/configuration/stratum freezing is complete, as
+is the pure fail-closed comparison seam. The experiment remains pre-results;
+restore and checksum-verify the controlled inputs, freeze the exact component
+population, and execute both Hebog profiles through pinned LSMTool before
+selecting compact or continuum.
+
+**Immediate next step:** validate and commit the pre-results protocol and
+comparator. Then prepare the controlled-runner materialization/decision runner
+without opening the untouched Phase 5 qualification population.

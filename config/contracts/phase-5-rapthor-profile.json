@@ -1,0 +1,92 @@
+{
+  "contract_id": "phase-5-rapthor-profile",
+  "cutover_authorized": false,
+  "decision": {
+    "component_identity": "input-scope-plus-name-before-filtering-and-grouping",
+    "empty_stratum_policy": "incomplete-default-continuum",
+    "filtering_operation": "exact-lsmtool-sector-clip-mask-select-group-and-name-transfer",
+    "minimum_agreement": 0.995,
+    "reference_rule": "report-both-pybdsf-references-without-cross-reference-compensation",
+    "required_safety_strata": [
+      "apparent-sky",
+      "bright-component",
+      "crowded",
+      "edge",
+      "extended-associated",
+      "masked-or-invalid-neighbour",
+      "sparse",
+      "true-sky"
+    ],
+    "selection_rule": "compact-only-if-overall-and-every-safety-stratum-pass"
+  },
+  "profiles": [
+    "compact",
+    "continuum"
+  ],
+  "qualification_opened": false,
+  "real_inputs": {
+    "apparent_skymodel_sha256": "4f2060ce9e43bdae3fefc0ba6893a9551fd68fafd7a7cf51376c08d1523c27d8",
+    "availability": "controlled-runner-required",
+    "beam_measurement_set_sha256": "e3ca488a860454bd9bfdd114a6ac93a45993e3dd3a5bb385fcb6e523a664626b",
+    "dataset_id": "rapthor-representative-3000",
+    "flat_noise_image_sha256": "6c3d136b4c0719098e6dac687852ca6b05a1314620c836704dd225310b58642d",
+    "inventory_path": "config/baselines/phase-0-representative-dataset.json",
+    "inventory_sha256": "6be250200b7e3171b57d078ca93009f0e5cf35e2a550f3b769e4702d84fb2482",
+    "role": "regression",
+    "true_sky_image_sha256": "71fe0398218b51ca62b7066204450d2ac6c2d3aeaea8b04dcb54ab7a38842160",
+    "true_skymodel_sha256": "e30abab9324ce1248de2b48a1a89793507f7ffa2e8d095c23c9a94d999aa3f64",
+    "vertices_sha256": "12bee2128613e6096de6b330ee76be7bd041ce2a0798643112c6ad30130e9874"
+  },
+  "references": [
+    {
+      "commit": "1b6e0a04ba6327bc1ce3f576928fe58b81d8c1cc",
+      "configuration": {
+        "adaptive_rms_box": true,
+        "adaptive_threshold": 75.0,
+        "atrous_do": true,
+        "atrous_jmax": 3,
+        "filter_by_mask": true,
+        "mean_map": "zero",
+        "ncores": 15,
+        "rms_box": [150, 50],
+        "rms_box_bright": [35, 7],
+        "rms_map": true,
+        "source_finder": "bdsf",
+        "threshold_island_sigma": 3.0,
+        "threshold_pixel_sigma": 5.0,
+        "threshold_type": "hard"
+      },
+      "identifier": "released-pybdsf-used-by-rapthor",
+      "version": "1.14.1"
+    },
+    {
+      "commit": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
+      "configuration": {
+        "adaptive_rms_box": true,
+        "adaptive_threshold": 75.0,
+        "atrous_do": true,
+        "atrous_jmax": 3,
+        "filter_by_mask": true,
+        "mean_map": "zero",
+        "ncores": 15,
+        "rms_box": [150, 50],
+        "rms_box_bright": [35, 7],
+        "rms_map": true,
+        "source_finder": "bdsf",
+        "threshold_island_sigma": 3.0,
+        "threshold_pixel_sigma": 5.0,
+        "threshold_type": "hard"
+      },
+      "identifier": "pinned-pybdsf-master",
+      "version": "1.14.2.dev40+gc70103be3"
+    }
+  ],
+  "schema_version": 1,
+  "software": {
+    "lsmtool_commit": "3adf3d6f1f8c03db34e13a45a752f6f6dd7d7f4a",
+    "lsmtool_source_finding_sha256": "eccb93f128f7be0659e0bb8a433a49e80291661d38f6f4002b5c75fe50dc35d2",
+    "rapthor_commit": "b1a64674b1022476cf052fc2d06ee3b16f031ecd",
+    "starting_revisions_sha256": "1db78b906ccff749a40edd196c48918588a2e98cfff1099e9a18b7524d9743de"
+  },
+  "status": "frozen-pre-results"
+}
