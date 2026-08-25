@@ -622,9 +622,15 @@ independent acceptance, and the later Rapthor cutover remain outstanding.
       unapproved adjacent-tier regression. The first immutable curve remains
       diagnostic evidence: it accidentally used a ten-pixel beam and
       1,000-pixel cores, then failed all three representative profiles at
-      14.02--14.61 seconds. The corrected five-pixel/256-core candidate now
-      records 5.49--5.91-second four-core smoke results; its complete frozen
-      matrix must still establish the gate and adjacent anchors.
+      14.02--14.61 seconds. The first corrected matrix preserved identical
+      Serial/Dask science structure and located the crossover between 1,024
+      and 3,000 pixels, but its 6.58--6.81-second representative medians are
+      invalid for the budget decision: the 5-ms RSS monitor repeatedly walked
+      the complete process tree and raised the same controlled run from
+      5.49--5.91 seconds to 6.92 seconds. A snapshotted 50-ms aggregate-RSS
+      monitor restores a 5.72-second diagnostic while retaining memory
+      evidence. Preserve both superseded curves; a fresh immutable matrix with
+      the corrected monitor must establish the gate and adjacent anchors.
 - [x] Update schemas, method/configuration documentation, the Marimo
       demonstration, and auditable per-object scale/support provenance. The
       current demonstration executes both the qualified compact path and a

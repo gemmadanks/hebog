@@ -10074,3 +10074,42 @@ smoke headroom to justify one complete write-once corrected matrix. The
 **Immediate next step:** validate and commit this corrected candidate, run the
 complete matrix into a new output namespace, and decide science structure
 before runtime and crossover policy.
+
+## 2026-08-25 — Reject a measurement-perturbed Phase 5 curve
+
+**Plan phase:** Phase 5, Step 6 — incremental performance
+
+- Ran the complete corrected write-once matrix at candidate `af1526b` into
+  `benchmark-results/phase-5/incremental-multiscale-corrected`. All 18 cells
+  completed. The terminal summary SHA-256 is
+  `055f6dee9784ded174af1a386c703ba59a2b7a26e053ddc4bad477ab147e2dde`;
+  its protocol SHA-256 is
+  `a581fc4226b9d0dc5fb20ae74ae272b9b4fe66df9901c3c5e9ebf8f50dcd3fea`.
+- Interpreted science before runtime. Serial and Dask have identical detection,
+  reconstruction, and per-scale island counts for all six crossover cells,
+  and every cell is stable across repetitions. Serial is 35.7--44.4% faster
+  at 1,024 pixels; Dask is 4.10--4.33 times faster at 3,000 pixels, placing the
+  measured crossover strictly between those anchors.
+- The formal 3,000-square Dask medians were 6.7771, 6.5787, and 6.8092 seconds,
+  so the uncorrected terminal budget decision properly records all three
+  profiles as failures against 6.0 seconds. Peak aggregate sampled RSS was
+  1.67--1.74 GB; all runs retained 144 partitions, 24 tasks, and the reviewed
+  37,350,048-byte maximum worker payload.
+- Diagnosed the disagreement with the 5.49--5.91-second smoke curve as a
+  benchmark-instrumentation defect. The RSS thread performed recursive process
+  discovery plus per-process RSS reads every 5 ms. On the same normal-profile
+  input and candidate it increased one controlled run to 6.9189 seconds.
+- Corrected the monitor to snapshot the already-started controlled driver/Dask
+  process tree once and sample those handles every 50 ms. A focused regression
+  proves descendant discovery occurs once. The same controlled run now takes
+  5.7175 seconds while recording 1,718,255,616 bytes of aggregate sampled RSS.
+  No scientific, storage, executor, gate, or workload identity changed.
+
+**Decision:** preserve the terminal failed matrix, but do not use its perturbed
+wall times for the runtime gate. This is an observation defect, not permission
+to erase a result or tune science. A new output namespace and immutable harness
+revision are required for the first valid corrected curve.
+
+**Immediate next step:** validate and commit the monitor correction, then run
+the complete write-once matrix from that immutable revision and decide science
+structure before runtime.

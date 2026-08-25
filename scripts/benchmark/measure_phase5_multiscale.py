@@ -67,6 +67,7 @@ Result_co = TypeVar("Result_co", covariant=True)
 
 _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * np.log(2.0))
 _MINIMUM_REPETITIONS = 5
+_RSS_SAMPLE_INTERVAL_SECONDS = 0.05
 _DEPENDENCIES = (
     "astropy",
     "distributed",
@@ -134,19 +135,20 @@ class _CountingExecutor:
 
 
 class _ResidentMemorySampler:
-    """Sample portable aggregate process-tree RSS during one stage."""
+    """Sample aggregate RSS for one stable, already-started process tree."""
 
     def __init__(self) -> None:
         self._peak_bytes = 0
         self._stop = threading.Event()
         self._process = psutil.Process()
+        self._processes: tuple[psutil.Process, ...] = ()
         self._thread = threading.Thread(target=self._sample, daemon=True)
 
     def _current_bytes(self) -> int:
-        total = int(self._process.memory_info().rss)
-        for child in self._process.children(recursive=True):
+        total = 0
+        for process in self._processes:
             try:
-                total += int(child.memory_info().rss)
+                total += int(process.memory_info().rss)
             except (psutil.AccessDenied, psutil.NoSuchProcess):
                 continue
         return total
@@ -154,10 +156,17 @@ class _ResidentMemorySampler:
     def _sample(self) -> None:
         while not self._stop.is_set():
             self._peak_bytes = max(self._peak_bytes, self._current_bytes())
-            self._stop.wait(0.005)
+            self._stop.wait(_RSS_SAMPLE_INTERVAL_SECONDS)
 
     def start(self) -> None:
         """Start process-level resident-memory sampling."""
+        # The controlled runner starts all Dask workers before measurement.
+        # Resolving descendants once avoids making process-tree discovery part
+        # of the stage timing while retaining aggregate driver/worker RSS.
+        self._processes = (
+            self._process,
+            *self._process.children(recursive=True),
+        )
         self._peak_bytes = self._current_bytes()
         self._thread.start()
 
@@ -471,7 +480,10 @@ def main() -> None:  # noqa: PLR0915
         "dependencies": dependencies,
         "machine": platform.machine(),
         "platform": platform.platform(),
-        "peak_rss_scope": "driver process tree sampled every 5 ms",
+        "peak_rss_scope": (
+            "stable driver process tree sampled every "
+            f"{_RSS_SAMPLE_INTERVAL_SECONDS * 1000:g} ms"
+        ),
         "python": platform.python_version(),
         "worker_isolation": (
             "process" if args.executor == ExecutorKind.DASK.value else "none"

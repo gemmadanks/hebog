@@ -151,6 +151,40 @@ def test_phase_five_benchmark_derives_pixel_beam_from_fits(
     assert 0.0 <= beam.position_angle_degrees < 180.0
 
 
+def test_phase_five_rss_sampler_resolves_process_tree_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """High-rate RSS observations do not repeatedly discover descendants."""
+
+    class MemoryProcess:
+        def __init__(self, rss: int) -> None:
+            self.rss = rss
+
+        def memory_info(self) -> SimpleNamespace:
+            return SimpleNamespace(rss=self.rss)
+
+    class DriverProcess(MemoryProcess):
+        def __init__(self) -> None:
+            super().__init__(rss=20)
+            self.children_calls = 0
+            self.child = MemoryProcess(rss=30)
+
+        def children(self, *, recursive: bool) -> list[MemoryProcess]:
+            assert recursive
+            self.children_calls += 1
+            return [self.child]
+
+    driver = DriverProcess()
+    monkeypatch.setattr(_MEASUREMENT.psutil, "Process", lambda: driver)
+
+    sampler = _MEASUREMENT._ResidentMemorySampler()
+    sampler.start()
+    peak_bytes = sampler.stop()
+
+    assert peak_bytes == 50
+    assert driver.children_calls == 1
+
+
 def test_phase_five_budget_decision_gates_every_representative_profile() -> (
     None
 ):
