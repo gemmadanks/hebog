@@ -10189,3 +10189,37 @@ selecting compact or continuum.
 **Immediate next step:** validate and commit the pre-results protocol and
 comparator. Then prepare the controlled-runner materialization/decision runner
 without opening the untouched Phase 5 qualification population.
+
+## 2026-08-25 — Complete the Rapthor profile evidence seam
+
+**Plan phase:** Phase 5, Step 2D — Rapthor workflow profile
+
+- Confirmed the intended test-first failure because neither the normalized
+  membership evidence model nor the terminal evaluator existed.
+- Split the controlled evidence into a pre-results component population and a
+  post-filter membership result. The population freezes canonical component
+  identifiers and safety strata before any profile result is available; the
+  result binds that exact file by SHA-256 and requires complete compact,
+  continuum, released-PyBDSF, and pinned-master lanes over the same identities.
+- The mandatory JSON hook normalized the still-pre-results profile contract;
+  its final byte identity is
+  `2c50fb185c9a9721bf7f4959a406c7cbdce5315c447cd854c8291389e21711e3`.
+  No population or membership result existed under its earlier formatting.
+- Added a pure four-lane evaluator. Compact selection depends only on the
+  qualified continuum comparison and the frozen 99.5% conjunctive gate. Four
+  profile-versus-reference comparisons are always reported, but cannot rescue
+  a failed compact-versus-continuum lane.
+- Added a write-once terminal command that rejects contract, population,
+  software, restricted-input, filtering-operation, or lane drift. Its output
+  explicitly leaves untouched qualification unopened and Phase 7 cutover
+  unauthorized. Focused tests cover complete selection, non-compensation,
+  changed populations, changed contract identity, and overwrite refusal.
+
+**Decision:** the Hebog-side Step 2D materialization and evaluation boundary is
+complete. No workflow profile is selected because the restricted inputs remain
+absent; the controlled runner must restore and verify them, freeze the exact
+component population, then execute pinned LSMTool for all four lanes.
+
+**Immediate next step:** validate and commit this evidence seam, then freeze a
+reproducible public/challenge comparison protocol without opening the final
+untouched qualification population.

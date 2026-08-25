@@ -11,6 +11,20 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
 
+ProfileLaneIdentifier = Literal[
+    "compact",
+    "continuum",
+    "released-pybdsf-used-by-rapthor",
+    "pinned-pybdsf-master",
+]
+
+_LANE_IDENTIFIERS: tuple[ProfileLaneIdentifier, ...] = (
+    "compact",
+    "continuum",
+    "released-pybdsf-used-by-rapthor",
+    "pinned-pybdsf-master",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class ComponentDecision:
@@ -57,6 +71,39 @@ class RapthorProfileDecision:
     missing_strata: tuple[str, ...]
     failed_strata: tuple[str, ...]
     disagreement_identifiers: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ComponentDecisionLane:
+    """One complete post-LSMTool profile or reference population."""
+
+    identifier: ProfileLaneIdentifier
+    components: tuple[ComponentDecision, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ReferenceAgreement:
+    """Pairwise workflow membership agreement with one reference."""
+
+    profile_identifier: Literal["compact", "continuum"]
+    reference_identifier: Literal[
+        "released-pybdsf-used-by-rapthor",
+        "pinned-pybdsf-master",
+    ]
+    complete: bool
+    overall: Agreement
+    strata: tuple[StratumAgreement, ...]
+    missing_strata: tuple[str, ...]
+    failed_strata: tuple[str, ...]
+    disagreement_identifiers: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RapthorProfileEvidenceDecision:
+    """Terminal selection plus non-compensating reference comparisons."""
+
+    selection: RapthorProfileDecision
+    reference_comparisons: tuple[ReferenceAgreement, ...]
 
 
 def _index_decisions(
@@ -166,4 +213,59 @@ def decide_rapthor_profile(
         missing_strata=tuple(missing),
         failed_strata=tuple(failed),
         disagreement_identifiers=disagreements,
+    )
+
+
+def decide_rapthor_profile_evidence(
+    lanes: Iterable[ComponentDecisionLane],
+    *,
+    required_strata: Iterable[str],
+    minimum_agreement: float,
+) -> RapthorProfileEvidenceDecision:
+    """Evaluate the exact four controlled-runner membership lanes.
+
+    The compact selection is based only on its agreement with the qualified
+    continuum profile. Released and pinned-master PyBDSF comparisons are
+    always reported independently and cannot compensate for that decision.
+    """
+    supplied = tuple(lanes)
+    if tuple(item.identifier for item in supplied) != _LANE_IDENTIFIERS:
+        raise ValueError("profile evidence requires four canonical lanes")
+    indexed = {item.identifier: item.components for item in supplied}
+    canonical_strata = tuple(required_strata)
+    selection = decide_rapthor_profile(
+        indexed["continuum"],
+        indexed["compact"],
+        required_strata=canonical_strata,
+        minimum_agreement=minimum_agreement,
+    )
+    comparisons: list[ReferenceAgreement] = []
+    for profile_identifier in ("compact", "continuum"):
+        for reference_identifier in (
+            "released-pybdsf-used-by-rapthor",
+            "pinned-pybdsf-master",
+        ):
+            comparison = decide_rapthor_profile(
+                indexed[profile_identifier],
+                indexed[reference_identifier],
+                required_strata=canonical_strata,
+                minimum_agreement=minimum_agreement,
+            )
+            comparisons.append(
+                ReferenceAgreement(
+                    profile_identifier=profile_identifier,
+                    reference_identifier=reference_identifier,
+                    complete=comparison.complete,
+                    overall=comparison.overall,
+                    strata=comparison.strata,
+                    missing_strata=comparison.missing_strata,
+                    failed_strata=comparison.failed_strata,
+                    disagreement_identifiers=(
+                        comparison.disagreement_identifiers
+                    ),
+                )
+            )
+    return RapthorProfileEvidenceDecision(
+        selection=selection,
+        reference_comparisons=tuple(comparisons),
     )

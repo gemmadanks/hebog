@@ -87,6 +87,26 @@ cross-reference or cross-stratum compensation. This selects only Rapthor's
 workflow profile; it cannot narrow general-community continuum support or
 authorize backend cutover.
 
+The controlled run has two write-once boundaries. Before any mask result is
+examined, it freezes `phase-5-rapthor-profile-components` with the canonical
+pre-filter component identifiers and safety strata. After the exact pinned
+LSMTool operation has run, it seals
+`phase-5-rapthor-profile-membership` with four complete binary lanes in this
+order: compact, continuum, released PyBDSF, and pinned-master PyBDSF. The
+terminal evaluator rejects changed contract, software, real-input, population,
+lane, or filtering identities and refuses to overwrite an existing decision:
+
+```bash
+uv run python scripts/validation/evaluate_phase5_rapthor_profile.py \
+  --population benchmark-results/phase-5/rapthor-profile-population.json \
+  --evidence benchmark-results/phase-5/rapthor-profile-membership.json \
+  --output benchmark-results/phase-5/rapthor-profile-decision.json
+```
+
+The output records the compact-versus-continuum selection and four independent
+profile-versus-reference reports. It always leaves qualification unopened and
+backend cutover unauthorized.
+
 ## Frozen scientific meanings
 
 The machine-readable meanings are in
@@ -346,6 +366,7 @@ and hash-bound.
 
 | Document | SHA-256 |
 | --- | --- |
+| Rapthor-profile contract | `2c50fb185c9a9721bf7f4959a406c7cbdce5315c447cd854c8291389e21711e3` |
 | Multiscale contract | `7e79935d4870223d9448efb8c98407de63ecb148d98a4b8f5ef5c684cf55c5fe` |
 | Filter-selection decision | `38c2340c1e49a30178dd866bcb587f8f0bcd9cfc00e76bb496e6e93da5ed4e46` |
 | Paired filter-review protocol | `749d2393c485239bea6a897beaeb4a97b0b8ab7d8aff851646e43e857b4c993d` |

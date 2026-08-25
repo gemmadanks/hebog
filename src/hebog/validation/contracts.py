@@ -62,6 +62,12 @@ _PHASE_FIVE_RAPTHOR_MINIMUM_AGREEMENT = 0.995
 _PHASE_FIVE_RAPTHOR_THRESHOLD_PIXEL_SIGMA = 5.0
 _PHASE_FIVE_RAPTHOR_THRESHOLD_ISLAND_SIGMA = 3.0
 _PHASE_FIVE_RAPTHOR_ADAPTIVE_THRESHOLD = 75.0
+_PHASE_FIVE_RAPTHOR_EVIDENCE_LANES = (
+    "compact",
+    "continuum",
+    "released-pybdsf-used-by-rapthor",
+    "pinned-pybdsf-master",
+)
 
 
 class _ContractModel(BaseModel):
@@ -1309,6 +1315,109 @@ class PhaseFiveRapthorProfileContract(_ContractModel):
             "pinned-pybdsf-master",
         ):
             raise ValueError("Rapthor profile requires both PyBDSF references")
+        return self
+
+
+class PhaseFiveRapthorPopulationComponent(_ContractModel):
+    """One pre-results sky-model component and its safety strata."""
+
+    identifier: str = Field(min_length=1)
+    strata: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_strata(self) -> Self:
+        """Require canonical non-empty strata."""
+        if (
+            any(not item for item in self.strata)
+            or tuple(sorted(set(self.strata))) != self.strata
+        ):
+            raise ValueError("component strata must be canonical")
+        return self
+
+
+class PhaseFiveRapthorComponentPopulation(_ContractModel):
+    """Exact pre-results component population frozen on the runner."""
+
+    schema_version: Literal[1]
+    population_id: Literal["phase-5-rapthor-profile-components"]
+    status: Literal["frozen-pre-results"]
+    contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    dataset_id: Literal["rapthor-representative-3000"]
+    software: PhaseFiveRapthorSoftware
+    verified_real_inputs: PhaseFiveRapthorRealInputs
+    components: tuple[PhaseFiveRapthorPopulationComponent, ...] = Field(
+        min_length=1
+    )
+
+    @model_validator(mode="after")
+    def validate_components(self) -> Self:
+        """Keep component identities unique and canonical before results."""
+        identifiers = tuple(item.identifier for item in self.components)
+        if tuple(sorted(set(identifiers))) != identifiers:
+            raise ValueError("component identities must be canonical")
+        return self
+
+
+class PhaseFiveRapthorMembershipComponent(_ContractModel):
+    """One post-filter binary decision for a frozen component."""
+
+    identifier: str = Field(min_length=1)
+    retained: bool
+
+
+class PhaseFiveRapthorMembershipLane(_ContractModel):
+    """One exact Hebog profile or PyBDSF reference decision lane."""
+
+    identifier: Literal[
+        "compact",
+        "continuum",
+        "released-pybdsf-used-by-rapthor",
+        "pinned-pybdsf-master",
+    ]
+    components: tuple[PhaseFiveRapthorMembershipComponent, ...] = Field(
+        min_length=1
+    )
+
+    @model_validator(mode="after")
+    def validate_components(self) -> Self:
+        """Require every lane to publish one canonical binary population."""
+        identifiers = tuple(item.identifier for item in self.components)
+        if tuple(sorted(set(identifiers))) != identifiers:
+            raise ValueError("membership identifiers must be canonical")
+        return self
+
+
+class PhaseFiveRapthorMembershipEvidence(_ContractModel):
+    """Sealed four-lane output of the exact pinned LSMTool operation."""
+
+    schema_version: Literal[1]
+    evidence_id: Literal["phase-5-rapthor-profile-membership"]
+    status: Literal["sealed"]
+    contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    population_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    dataset_id: Literal["rapthor-representative-3000"]
+    software: PhaseFiveRapthorSoftware
+    verified_real_inputs: PhaseFiveRapthorRealInputs
+    filtering_operation: Literal[
+        "exact-lsmtool-sector-clip-mask-select-group-and-name-transfer"
+    ]
+    lanes: tuple[PhaseFiveRapthorMembershipLane, ...]
+
+    @model_validator(mode="after")
+    def validate_lanes(self) -> Self:
+        """Require all exact lanes over one unchanged component population."""
+        if tuple(item.identifier for item in self.lanes) != (
+            _PHASE_FIVE_RAPTHOR_EVIDENCE_LANES
+        ):
+            raise ValueError(
+                "membership evidence requires four canonical lanes"
+            )
+        populations = {
+            tuple(component.identifier for component in lane.components)
+            for lane in self.lanes
+        }
+        if len(populations) != 1:
+            raise ValueError("membership component population differs by lane")
         return self
 
 

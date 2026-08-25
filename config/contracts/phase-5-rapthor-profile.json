@@ -48,8 +48,14 @@
         "filter_by_mask": true,
         "mean_map": "zero",
         "ncores": 15,
-        "rms_box": [150, 50],
-        "rms_box_bright": [35, 7],
+        "rms_box": [
+          150,
+          50
+        ],
+        "rms_box_bright": [
+          35,
+          7
+        ],
         "rms_map": true,
         "source_finder": "bdsf",
         "threshold_island_sigma": 3.0,
@@ -69,8 +75,14 @@
         "filter_by_mask": true,
         "mean_map": "zero",
         "ncores": 15,
-        "rms_box": [150, 50],
-        "rms_box_bright": [35, 7],
+        "rms_box": [
+          150,
+          50
+        ],
+        "rms_box_bright": [
+          35,
+          7
+        ],
         "rms_map": true,
         "source_finder": "bdsf",
         "threshold_island_sigma": 3.0,
