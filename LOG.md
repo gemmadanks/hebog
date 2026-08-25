@@ -10113,3 +10113,43 @@ revision are required for the first valid corrected curve.
 **Immediate next step:** validate and commit the monitor correction, then run
 the complete write-once matrix from that immutable revision and decide science
 structure before runtime.
+
+## 2026-08-25 — Pass the Phase 5 incremental performance curve
+
+**Plan phase:** Phase 5, Step 6 — incremental performance
+
+- Ran the complete 18-cell write-once matrix from clean immutable commit
+  `1f7a4ae0670a564ded16397f4c2c3054f93654b3` into
+  `benchmark-results/phase-5/incremental-multiscale-instrumentation-corrected`.
+  Every evidence document binds the unchanged production source-tree SHA-256
+  `70481c51cff50b92e4ece9ce5bd2d85d6399285ac9ac2eff76398f381597b246`.
+  The atomic summary SHA-256 is
+  `980e24c21591a2af1187767ff179d9199b3c0dd61f7edbdd389871e218cc7d80`;
+  the protocol SHA-256 remains
+  `a581fc4226b9d0dc5fb20ae74ae272b9b4fe66df9901c3c5e9ebf8f50dcd3fea`.
+- Interpreted science first. At both 1,024 and 3,000 pixels, every sparse,
+  normal, and extended Serial/Dask pair has identical detection,
+  reconstruction, and per-scale island counts. The harness also required each
+  cell's structure to remain stable across its warm-up and five measured runs.
+- All representative four-worker Dask medians pass the frozen 6.0-second
+  budget: sparse 5.6711 seconds, normal 5.5770 seconds, and extended 5.6427
+  seconds. Their observed ranges are respectively 5.4624--5.7183,
+  5.4180--5.6059, and 5.5591--5.7570 seconds. Maximum sampled aggregate RSS is
+  1,727,070,208 bytes; every representative run records 144 partitions, 24
+  tasks, and a 37,350,048-byte maximum worker payload.
+- The complete crossover decision supports the existing prospective policy.
+  At 1,024 pixels Serial medians are 1.1429--1.1846 seconds and are 1.49--1.69
+  times faster than Dask. At 3,000 pixels Dask is 3.35--3.43 times faster than
+  Serial, whose medians are 19.0193--19.1316 seconds. No compatible earlier
+  reviewed curve exists for an adjacent-tier regression test; this is now the
+  immutable comparison baseline for later performance changes.
+
+**Decision:** the Phase 5 incremental performance item passes. Retain Serial
+through the 1,024-pixel anchor and Dask at the 3,000-pixel anchor; any finer
+crossover selection or later performance change requires prospective evidence
+against this exact curve. This result is not the complete Rapthor wall-time
+gate and does not replace untouched scientific qualification.
+
+**Immediate next step:** validate and commit the reviewed performance decision,
+then complete remaining pre-qualification work without opening the untouched
+one-look dataset before named approval.

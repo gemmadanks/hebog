@@ -350,8 +350,11 @@ margin; keep both as explicit regression watchpoints. Five compact
 truth-absolute diagnostics remain outside stronger report-only envelopes, but
 they are not binding gates and all reference comparisons pass. This campaign
 contains no runtime-performance gate and supports no speed claim. Steps 3, 4,
-and 5 are complete. Phase 5 qualification, incremental performance,
-independent acceptance, and the later Rapthor cutover remain outstanding.
+and 5 are complete. The separately reviewed incremental curve passes its
+6.0-second budget for every representative workload and confirms Serial below
+the measured 1,024--3,000-pixel crossover and Dask above it. Phase 5
+qualification, independent acceptance, and the later Rapthor cutover remain
+outstanding.
 
 ## 7. Delivery plan
 
@@ -617,20 +620,17 @@ independent acceptance, and the later Rapthor cutover remain outstanding.
       scientific decision functions.
 - [ ] Open the frozen final Phase 5 qualification exactly once through the
       reviewed evaluator; retain a terminal failure without rescoring.
-- [ ] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
+- [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
-      unapproved adjacent-tier regression. The first immutable curve remains
-      diagnostic evidence: it accidentally used a ten-pixel beam and
-      1,000-pixel cores, then failed all three representative profiles at
-      14.02--14.61 seconds. The first corrected matrix preserved identical
-      Serial/Dask science structure and located the crossover between 1,024
-      and 3,000 pixels, but its 6.58--6.81-second representative medians are
-      invalid for the budget decision: the 5-ms RSS monitor repeatedly walked
-      the complete process tree and raised the same controlled run from
-      5.49--5.91 seconds to 6.92 seconds. A snapshotted 50-ms aggregate-RSS
-      monitor restores a 5.72-second diagnostic while retaining memory
-      evidence. Preserve both superseded curves; a fresh immutable matrix with
-      the corrected monitor must establish the gate and adjacent anchors.
+      unapproved adjacent-tier regression. Preserve the two superseded curves:
+      one used the wrong beam/core composition and one was perturbed by a 5-ms
+      process-tree monitor. The first valid reviewed curve, summary SHA
+      `980e24c2...`, binds commit `1f7a4ae...`, preserves exact Serial/Dask
+      scientific structure, and passes sparse/normal/extended 3,000-square
+      medians at 5.6711/5.5770/5.6427 seconds. Serial is 1.49--1.69 times faster
+      at 1,024; Dask is 3.35--3.43 times faster at 3,000, so retain the frozen
+      Serial-through-1,024/Dask-at-3,000 policy. This curve is the baseline for
+      later adjacent-tier regression decisions.
 - [x] Update schemas, method/configuration documentation, the Marimo
       demonstration, and auditable per-object scale/support provenance. The
       current demonstration executes both the qualified compact path and a
