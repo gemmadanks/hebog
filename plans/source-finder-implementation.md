@@ -622,7 +622,9 @@ outstanding.
       qualification images, balanced as 422 over four geometries, and bound
       the closed Phase 4U/current compact evidence without pooling or a fresh
       compact lane. The final runner/compiler/evaluator/runtime composition is
-      frozen by identity review `42ad6237...`; execution remains unauthorized.
+      frozen by identity review `42ad6237...`. Named one-look approval on
+      2026-08-25 authorizes the no-write preflight and conditional execution
+      only if every identity remains unchanged; no result is open yet.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
       The pre-acquisition review now recommends a truth-bearing SKA SDC1
@@ -653,8 +655,9 @@ outstanding.
       source `e4307246...`, configuration `0e5dde51...`, four exact runtime
       images, 1,688 inputs, 8,440 total runs, 5,064 binding runs, and the
       closed compact decisions without pooling or rescoring. The next gate is
-      a separate named execution approval followed by the complete no-write
-      preflight; neither has occurred.
+      the complete no-write preflight from the immutable authorization commit.
+      Named execution approval was recorded on 2026-08-25, but preflight and
+      execution have not yet occurred.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:

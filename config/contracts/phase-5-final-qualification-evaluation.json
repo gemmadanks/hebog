@@ -10,7 +10,7 @@
   "contract_id": "phase-5-final-qualification-evaluation",
   "endpoint_registry": {
     "path": "config/contracts/phase-5-final-qualification-endpoint-registry.json",
-    "sha256": "acea39f1dbfac8d14878655e297d5579b1860ca8c69e4f8f89d5dfa77728d07c",
+    "sha256": "c34b51a9485898f2d91df48739c5ba4399469870ea8e3d988704c3d897d57f58",
     "status": "frozen-before-qualification-output"
   },
   "evaluator_path": "scripts/validation/evaluate_phase5_final_qualification_decision.py",

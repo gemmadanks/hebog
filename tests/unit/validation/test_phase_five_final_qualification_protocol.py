@@ -44,8 +44,8 @@ def test_final_qualification_protocol_binds_only_unopened_continuum() -> None:
     assert protocol.qualification_opened is False
 
 
-def test_final_qualification_pending_decision_binds_four_runtimes() -> None:
-    """The exact runtime review cannot authorize itself."""
+def test_final_qualification_approved_decision_binds_four_runtimes() -> None:
+    """Named approval binds the unchanged exact runtime review."""
     helpers = _helpers()
     decision = helpers["load_final_qualification_execution_decision"](
         _ROOT / "config/contracts/"
@@ -56,7 +56,10 @@ def test_final_qualification_pending_decision_binds_four_runtimes() -> None:
         / "config/contracts/phase-5-final-qualification-identity-review.json"
     )
 
-    assert decision.execution_authorized is False
+    assert decision.execution_authorized is True
+    assert decision.identity_review_sha256 == (
+        "42ad623779c381ae69532af1cdc3e9063f7229154f28209e2c1da36199280197"
+    )
     assert decision.qualification_opened is False
     assert decision.pybdsf_ncores == 4
     assert decision.execution_concurrency == 2
@@ -190,8 +193,9 @@ def test_final_qualification_registry_binds_program_composition() -> None:
 
 def test_final_qualification_programs_load_without_opening_science(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Program identities validate while the unopened launcher blocks."""
+    """Approved preflight delegates once without opening science in-unit."""
     compiler = runpy.run_path(
         str(
             _ROOT / "scripts/validation/"
@@ -246,17 +250,31 @@ def test_final_qualification_programs_load_without_opening_science(
         request_model.model_fields["execution_concurrency"].annotation
         == Literal[2]
     )
-    with pytest.raises(
-        ValueError, match="final qualification execution is not authorized"
-    ):
-        launcher["preflight_final_qualification"](
-            repository_root=_ROOT,
-            output=tmp_path / "must-not-exist",
-            images={
-                "hebog": "unused",
-                "released-pybdsf": "unused",
-                "pinned-pybdsf-master": "unused",
-                "aegean": "unused",
-            },
-        )
+    observed: list[Any] = []
+
+    def run_preflight(arguments: Any) -> None:
+        observed.append(arguments)
+
+    def configured_preflight(_path: Path) -> dict[str, Any]:
+        return {"_run": run_preflight}
+
+    preflight = launcher["preflight_final_qualification"]
+    monkeypatch.setitem(
+        preflight.__globals__,
+        "_configure_terminal_launcher",
+        configured_preflight,
+    )
+    preflight(
+        repository_root=_ROOT,
+        output=tmp_path / "must-not-exist",
+        images={
+            "hebog": "unused",
+            "released-pybdsf": "unused",
+            "pinned-pybdsf-master": "unused",
+            "aegean": "unused",
+        },
+    )
+    assert len(observed) == 1
+    assert observed[0].preflight_only is True
+    assert observed[0].resume is False
     assert not (tmp_path / "must-not-exist").exists()

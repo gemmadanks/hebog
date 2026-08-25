@@ -10381,3 +10381,24 @@ and independent radio-astronomy/engineering review remain separate open gates.
 **Immediate next step:** complete repository validation and commit this frozen
 pre-results package. Then request the separate exact-identity qualification
 execution approval; no campaign or public finder execution is implied.
+
+## 2026-08-25 — Authorize the final Phase 5 qualification one-look
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Gemma Danks explicitly approved one terminal qualification execution bound
+  to identity review SHA-256 `42ad6237...` and its unchanged four runtime
+  identities. The approval permits the complete no-write preflight and
+  execution only if that preflight passes without an identity change; it does
+  not permit tuning, rescoring, rerunning, cutover, or release.
+- Transitioned only the approval-dependent decision, registry checksum, and
+  evaluation checksum. Frozen identity review `42ad6237...`, candidate
+  `9062664...`, population, programs, thresholds, and runtime identities are
+  byte-for-byte unchanged. The approved decision SHA-256 is `0c098922...` and
+  the dependent endpoint-registry SHA-256 is `c34b51a9...`.
+- Qualification remains unopened. No preflight request, staging directory,
+  campaign product, or scientific output has been created or inspected.
+
+**Immediate next step:** validate and commit the authorization transition,
+create an immutable execution checkout from that commit, and run the complete
+no-write preflight. Start the one campaign only if it passes unchanged.

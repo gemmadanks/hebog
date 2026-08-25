@@ -23,7 +23,7 @@
   "evaluator_path": "scripts/validation/evaluate_phase5_final_qualification_decision.py",
   "evaluator_sha256": "558e29574287aef6bee348fb37c329b7dab2f115ff42c481d3a1019d3f713560",
   "execution_decision_path": "config/contracts/phase-5-final-qualification-execution-decision.json",
-  "execution_decision_sha256": "78ad2ab784dfd61a4460c6daff871d73ef1e302649729875e10cc8f54751c0c8",
+  "execution_decision_sha256": "0c0989222c41ede47e7861833d9d6074b2aed5bdf9850aaea1e1c8898d7f1ee3",
   "launcher_path": "scripts/benchmark/run_phase5_final_qualification_campaign.py",
   "launcher_sha256": "03773670477e5a4f383a22214597ea77ab1a0b0631ce1c146de2dccee818cc9e",
   "population_contract_path": "config/contracts/phase-5-final-qualification-population.json",
