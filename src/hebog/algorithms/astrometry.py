@@ -55,12 +55,23 @@ def local_tangent_plane_transform(
     """Return the ICRS center and local east/north pixel Jacobian."""
     if metadata.celestial_wcs.coordinate_frame.lower() != "icrs":
         raise ValueError("compact astrometry requires an ICRS celestial WCS")
-    x, y = position_xy
     wcs = (
         celestial_wcs
         if celestial_wcs is not None
         else celestial_wcs_from_metadata(metadata)
     )
+    return local_tangent_plane_transform_from_wcs(wcs, position_xy)
+
+
+def local_tangent_plane_transform_from_wcs(
+    celestial_wcs: WCS,
+    position_xy: tuple[float, float],
+) -> LocalTangentPlaneTransform:
+    """Return the ICRS tangent transform from an explicit celestial WCS."""
+    if not celestial_wcs.has_celestial:
+        raise ValueError("astrometry requires a celestial WCS")
+    x, y = position_xy
+    wcs = celestial_wcs.celestial
     center = wcs.pixel_to_world(x, y).icrs
     step = _FINITE_DIFFERENCE_STEP_PIXELS
     columns: list[tuple[float, float]] = []
@@ -87,6 +98,46 @@ def local_tangent_plane_transform(
             declination_error_degrees=None,
         ),
         jacobian_degrees_per_pixel=jacobian,
+    )
+
+
+def moment_equivalent_gaussian_shape(
+    covariance_pixels_squared: npt.ArrayLike,
+    transform: LocalTangentPlaneTransform,
+) -> GaussianShape:
+    """Transform one positive pixel moment covariance into a sky ellipse."""
+    covariance = np.asarray(covariance_pixels_squared, dtype=np.float64)
+    if covariance.shape != (_SHAPE_AXIS_PARAMETER_COUNT,) * 2 or not np.all(
+        np.isfinite(covariance)
+    ):
+        raise ValueError("moment covariance must be one finite 2-by-2 matrix")
+    if not np.allclose(covariance, covariance.T, rtol=0.0, atol=1e-14):
+        raise ValueError("moment covariance must be symmetric")
+    eigenvalues = np.linalg.eigvalsh(covariance)
+    if float(np.min(eigenvalues)) <= 0.0:
+        raise ValueError("moment covariance must be positive definite")
+    jacobian = np.asarray(
+        transform.jacobian_degrees_per_pixel,
+        dtype=np.float64,
+    )
+    sky_covariance = jacobian @ covariance @ jacobian.T
+    sky_eigenvalues = np.linalg.eigvalsh(sky_covariance)
+    if (
+        not np.all(np.isfinite(sky_covariance))
+        or float(np.min(sky_eigenvalues)) <= 0.0
+    ):
+        raise ValueError("transformed moment covariance must be positive")
+    shape = _shape_from_sky_covariance(sky_covariance)
+    position_angle = shape.position_angle_degrees
+    if np.isclose(position_angle, 180.0, rtol=0.0, atol=1e-6):
+        position_angle = 0.0
+    return GaussianShape(
+        major_fwhm_degrees=shape.major_fwhm_degrees,
+        minor_fwhm_degrees=shape.minor_fwhm_degrees,
+        position_angle_degrees=position_angle,
+        major_fwhm_error_degrees=None,
+        minor_fwhm_error_degrees=None,
+        position_angle_error_degrees=None,
     )
 
 

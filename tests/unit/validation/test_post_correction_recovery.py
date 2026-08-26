@@ -37,9 +37,16 @@ from hebog.validation.post_correction_recovery import (
     post_correction_candidate_configuration,
     post_correction_candidate_configuration_sha256,
 )
+from hebog.validation.public_finder_correction import (
+    build_public_finder_correction_continuum_products,
+    public_finder_correction_candidate_configuration,
+)
 
 _ROOT = Path(__file__).parents[3]
 _REVIEW = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
+_PUBLIC_CORRECTION = (
+    _ROOT / "config/contracts/phase-5-public-finder-correction.json"
+)
 _APPROVED_CONFIGURATION_SHA256 = (
     "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94"
 )
@@ -63,6 +70,33 @@ def test_candidate_configuration_reconstructs_approved_identity() -> None:
     assert canonical_sha256(configuration) == _APPROVED_CONFIGURATION_SHA256
     assert post_correction_candidate_configuration_sha256(_REVIEW) == (
         _APPROVED_CONFIGURATION_SHA256
+    )
+
+
+def test_public_correction_configuration_changes_only_owned_support() -> None:
+    """The prospective identity retains every unrelated reviewed setting."""
+    base = post_correction_candidate_configuration(_REVIEW)
+    corrected = public_finder_correction_candidate_configuration(
+        _REVIEW,
+        _PUBLIC_CORRECTION,
+    )
+
+    assert corrected["compact"] == base["compact"]
+    continuum = cast(dict[str, object], corrected["continuum"])
+    assert (
+        continuum["base_review_sha256"]
+        == cast(dict[str, object], base["continuum"])["base_review_sha256"]
+    )
+    assert continuum["measurement_aperture_radius_beams"] == 1.5
+    assert (
+        continuum["position_policy"]
+        == cast(dict[str, object], base["continuum"])["position_policy"]
+    )
+    assert continuum["support_policy"] == (
+        "direct-seed-nearest-owner-half-beam-multiscale-recovery"
+    )
+    assert continuum["shape_policy"] == (
+        "exact-owner-positive-residual-moment-equivalent"
     )
 
 
@@ -127,6 +161,60 @@ def test_candidate_product_adapter_connects_all_reviewed_science(
     }
 
 
+def test_public_correction_adapter_uses_seeded_detection_and_moment_shapes(
+    mocker: MockerFixture,
+) -> None:
+    """The new candidate composes only the approved prospective seams."""
+    shape = (5, 6)
+    image = np.ones(shape, dtype=np.float64)
+    mean = np.zeros(shape, dtype=np.float64)
+    rms = np.ones(shape, dtype=np.float64)
+    labels = np.ones(shape, dtype=np.int32)
+    detection = ThresholdFilterResult(
+        combined_snr=np.ones(shape),
+        retained_mask=labels > 0,
+        component_labels=labels,
+        component_count=1,
+    )
+    position_signal = np.full(shape, 2.0)
+    evaluate = mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "evaluate_public_finder_correction_candidate_products",
+        return_value=SimpleNamespace(
+            detection=detection,
+            position_signal_jy_per_beam=position_signal,
+        ),
+    )
+    catalogue = (cast(Any, SimpleNamespace(identifier="source")),)
+    measure = mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "build_hebog_segment_moment_catalogue",
+        return_value=catalogue,
+    )
+    beam = BeamShapePixels(4.0, 3.0, 12.0)
+    review = cast(Any, SimpleNamespace())
+
+    products = build_public_finder_correction_continuum_products(
+        image,
+        mean,
+        rms,
+        fits.Header(),
+        beam=beam,
+        review=review,
+    )
+
+    assert products.detection is detection
+    assert products.catalogue is catalogue
+    assert evaluate.call_args.kwargs == {"beam": beam, "review": review}
+    assert measure.call_args.args[:4] == (
+        image,
+        mean,
+        products.valid_pixels,
+        labels,
+    )
+    assert measure.call_args.kwargs["measurement_aperture_radius_beams"] == 1.5
+
+
 def test_candidate_product_adapter_rejects_misaligned_validity() -> None:
     """Mean/RMS invalidity cannot silently differ from the input image."""
     image = np.ones((3, 3), dtype=np.float64)
@@ -147,6 +235,16 @@ def test_candidate_product_adapter_rejects_misaligned_validity() -> None:
         build_post_correction_continuum_products(
             image,
             np.ones((2, 3), dtype=np.float64),
+            np.ones((3, 3), dtype=np.float64),
+            fits.Header(),
+            beam=BeamShapePixels(4.0, 3.0, 0.0),
+            review=cast(Any, SimpleNamespace()),
+        )
+
+    with pytest.raises(ValueError, match="validity differs"):
+        build_public_finder_correction_continuum_products(
+            image,
+            mean,
             np.ones((3, 3), dtype=np.float64),
             fits.Header(),
             beam=BeamShapePixels(4.0, 3.0, 0.0),

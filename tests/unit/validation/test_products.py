@@ -13,10 +13,12 @@ import numpy as np
 import pytest
 from astropy.io import fits
 from astropy.table import Table
+from pytest_mock import MockerFixture
 
 from hebog.validation.products import (
     aegean_support_label_plane,
     build_hebog_segment_catalogue,
+    build_hebog_segment_moment_catalogue,
     load_aegean_catalogue,
     load_comparison_catalogue,
     load_pybdsf_catalogue,
@@ -329,6 +331,225 @@ def test_hebog_segment_catalogue_measures_original_aperture_and_round_trips(
     assert sources[0].integrated_flux_jy == pytest.approx(
         observable_flux / beam_area_pixels
     )
+
+
+def test_hebog_segment_moment_catalogue_publishes_sky_shape_and_round_trips(
+    tmp_path: Path,
+) -> None:
+    """Exact owner moments become an honest WCS-aware public ellipse."""
+    header = fits.Header()
+    header["NAXIS"] = 2
+    header["NAXIS1"] = 41
+    header["NAXIS2"] = 41
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["RADESYS"] = "ICRS"
+    header["CRPIX1"] = 21.0
+    header["CRPIX2"] = 21.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 2.0 / 3600.0
+    header["BMAJ"] = 2.0 / 3600.0
+    header["BMIN"] = 1.0 / 3600.0
+    header["BPA"] = 0.0
+    yy, xx = np.indices((41, 41), dtype=np.float64)
+    image = np.exp(
+        -0.5 * (((xx - 20.0) / 3.0) ** 2 + ((yy - 20.0) / 2.0) ** 2)
+    )
+    labels = np.ones(image.shape, dtype=np.int32)
+
+    sources = build_hebog_segment_moment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=0.5,
+        measurement_aperture_radius_beams=1.5,
+    )
+    path = tmp_path / "moment-shapes.json"
+    write_comparison_catalogue(path, sources)
+
+    source = sources[0]
+    assert source.fitted_shape is not None
+    assert source.fitted_shape.major_fwhm_degrees * 3600.0 == pytest.approx(
+        2.0 * np.sqrt(2.0 * np.log(2.0)) * 4.0,
+        rel=2e-6,
+    )
+    assert source.fitted_shape.minor_fwhm_degrees * 3600.0 == pytest.approx(
+        2.0 * np.sqrt(2.0 * np.log(2.0)) * 3.0,
+        rel=2e-6,
+    )
+    assert source.fitted_shape.position_angle_degrees == pytest.approx(0.0)
+    assert source.deconvolution_status == "resolved"
+    assert source.deconvolved_shape is not None
+    assert "segment-moment-equivalent-shape" in source.quality_flags
+    assert source.fitted_shape.major_fwhm_error_degrees is None
+    assert load_comparison_catalogue(path) == sources
+
+
+def test_hebog_moment_catalogue_reports_singular_shape_unavailable() -> None:
+    """A line-like segment does not acquire a fabricated circular ellipse."""
+    image = np.zeros((7, 7), dtype=np.float64)
+    labels = np.zeros(image.shape, dtype=np.int32)
+    labels[3, 2:5] = 4
+    image[labels == 4] = 1.0
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["RADESYS"] = "ICRS"
+    header["CRPIX1"] = 4.0
+    header["CRPIX2"] = 4.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["BMAJ"] = 2.0 / 3600.0
+    header["BMIN"] = 1.0 / 3600.0
+    header["BPA"] = 0.0
+
+    source = build_hebog_segment_moment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        labels,
+        header,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+    )[0]
+
+    assert source.fitted_shape is None
+    assert source.deconvolution_status == "unavailable"
+    assert source.deconvolved_shape is None
+    assert source.quality_flags == (
+        "segment-moment-equivalent-shape",
+        "shape-unavailable",
+    )
+
+
+@pytest.mark.parametrize(
+    ("beam_major_arcseconds", "beam_minor_arcseconds", "beam_pa", "status"),
+    (
+        (
+            2.0 * np.sqrt(2.0 * np.log(2.0)) * 3.1,
+            2.0 * np.sqrt(2.0 * np.log(2.0)) * 2.1,
+            90.0,
+            "unresolved",
+        ),
+        (
+            2.0 * np.sqrt(2.0 * np.log(2.0)) * 2.0,
+            2.0 * np.sqrt(2.0 * np.log(2.0)) * 2.0,
+            0.0,
+            "major-axis-only",
+        ),
+    ),
+)
+def test_hebog_moment_catalogue_preserves_partial_deconvolution_states(
+    beam_major_arcseconds: float,
+    beam_minor_arcseconds: float,
+    beam_pa: float,
+    status: str,
+) -> None:
+    """Beam subtraction distinguishes unresolved and one-axis shapes."""
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["RADESYS"] = "ICRS"
+    header["CRPIX1"] = 21.0
+    header["CRPIX2"] = 21.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["BMAJ"] = beam_major_arcseconds / 3600.0
+    header["BMIN"] = beam_minor_arcseconds / 3600.0
+    header["BPA"] = beam_pa
+    yy, xx = np.indices((41, 41), dtype=np.float64)
+    image = np.exp(
+        -0.5 * (((xx - 20.0) / 3.0) ** 2 + ((yy - 20.0) / 2.0) ** 2)
+    )
+
+    source = build_hebog_segment_moment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        np.ones(image.shape, dtype=np.int32),
+        header,
+        beam_major_fwhm_pixels=3.0,
+        beam_minor_fwhm_pixels=2.0,
+    )[0]
+
+    assert source.deconvolution_status == status
+    assert status in source.quality_flags
+
+
+def test_hebog_moment_catalogue_marks_missing_beam_shape_unavailable() -> None:
+    """Missing beam metadata cannot fabricate deconvolution evidence."""
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["RADESYS"] = "ICRS"
+    header["CRPIX1"] = 3.0
+    header["CRPIX2"] = 3.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    image = np.ones((5, 5), dtype=np.float64)
+
+    source = build_hebog_segment_moment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        np.ones(image.shape, dtype=np.int32),
+        header,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+    )[0]
+
+    assert source.fitted_shape is None
+    assert source.deconvolution_status == "unavailable"
+    assert "shape-unavailable" in source.quality_flags
+
+
+def test_hebog_moment_catalogue_marks_transform_failure_unavailable(
+    mocker: MockerFixture,
+) -> None:
+    """A failed local sky transform cannot fabricate a pixel-space shape."""
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["RADESYS"] = "ICRS"
+    header["CRPIX1"] = 3.0
+    header["CRPIX2"] = 3.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["BMAJ"] = 2.0 / 3600.0
+    header["BMIN"] = 1.0 / 3600.0
+    header["BPA"] = 0.0
+    mocker.patch(
+        "hebog.validation.products.local_tangent_plane_transform_from_wcs",
+        side_effect=ValueError("singular transform"),
+    )
+    image = np.ones((5, 5), dtype=np.float64)
+
+    source = build_hebog_segment_moment_catalogue(
+        image,
+        np.zeros_like(image),
+        np.ones_like(image, dtype=np.bool_),
+        np.ones(image.shape, dtype=np.int32),
+        header,
+        beam_major_fwhm_pixels=2.0,
+        beam_minor_fwhm_pixels=1.0,
+    )[0]
+
+    assert source.fitted_shape is None
+    assert source.deconvolution_status == "unavailable"
+    assert "shape-unavailable" in source.quality_flags
 
 
 def test_aegean_products_reject_schema_and_association_drift(

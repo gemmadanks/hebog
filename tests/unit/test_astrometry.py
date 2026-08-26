@@ -16,6 +16,8 @@ from hebog.algorithms.astrometry import (
     compact_geometry_at_pixel,
     deconvolve_gaussian_shapes,
     local_tangent_plane_transform,
+    local_tangent_plane_transform_from_wcs,
+    moment_equivalent_gaussian_shape,
     transform_compact_gaussian_fit,
 )
 from hebog.data_models.astrometry import CelestialCompactGaussianFit
@@ -206,6 +208,57 @@ def test_local_jacobian_handles_signed_unequal_rotated_wcs_and_ra_wrap() -> (
         [[correlation[0], correlation[1]], [correlation[1], correlation[2]]]
     )
     assert np.linalg.det(covariance) > 0
+
+
+def test_moment_shape_uses_explicit_local_wcs_covariance() -> None:
+    """A non-square local Jacobian maps pixel moments into sky axes."""
+    transform = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
+
+    shape = moment_equivalent_gaussian_shape(
+        np.diag((9.0, 4.0)),
+        transform,
+    )
+
+    assert shape.major_fwhm_degrees == pytest.approx(
+        3.0 * _FWHM_PER_SIGMA * 0.001
+    )
+    assert shape.minor_fwhm_degrees == pytest.approx(
+        2.0 * _FWHM_PER_SIGMA * 0.001
+    )
+
+
+def test_moment_shape_preserves_a_circular_covariance() -> None:
+    """An isotropic moment remains circular under a square local WCS."""
+    transform = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
+
+    shape = moment_equivalent_gaussian_shape(np.eye(2) * 4.0, transform)
+
+    assert shape.major_fwhm_degrees == pytest.approx(
+        2.0 * _FWHM_PER_SIGMA * 0.001
+    )
+    assert shape.minor_fwhm_degrees == pytest.approx(shape.major_fwhm_degrees)
+
+
+@pytest.mark.parametrize(
+    "covariance",
+    (
+        np.ones(3),
+        np.asarray(((1.0, np.nan), (np.nan, 1.0))),
+        np.asarray(((1.0, 0.5), (0.0, 1.0))),
+        np.asarray(((1.0, 0.0), (0.0, 0.0))),
+    ),
+)
+def test_moment_shape_rejects_ambiguous_covariance(
+    covariance: np.ndarray,
+) -> None:
+    """Malformed or singular moments never become catalogue ellipses."""
+    transform = local_tangent_plane_transform(_metadata(), (50.0, 40.0))
+
+    with pytest.raises(ValueError, match="moment covariance"):
+        moment_equivalent_gaussian_shape(covariance, transform)
+
+    with pytest.raises(ValueError, match="celestial WCS"):
+        local_tangent_plane_transform_from_wcs(WCS(), (0.0, 0.0))
 
 
 def test_transform_uses_xy_centers_east_of_north_and_local_flux_area() -> None:

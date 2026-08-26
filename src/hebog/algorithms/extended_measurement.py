@@ -5,10 +5,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from math import atan2, ceil, degrees, fsum, hypot, isfinite, log, sqrt
 from numbers import Integral
-from typing import Literal, cast
+from typing import Literal, Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -17,6 +18,9 @@ from scipy.ndimage import (
     binary_opening,
     convolve,
     distance_transform_edt,
+)
+from scipy.spatial import (
+    cKDTree,  # pyright: ignore[reportAttributeAccessIssue]
 )
 
 from hebog.config import ExtendedEmissionMeasurementConfig
@@ -43,6 +47,19 @@ _MULTISCALE_BOUNDARY_MINIMUM_SNR = 6.0
 _MULTISCALE_RECOVERY_RADIUS_BEAMS = 0.5
 _NEIGHBORHOOD_PIXEL_COUNT = 9
 _FWHM_FROM_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
+
+
+class _NearestSeedTree(Protocol):
+    """Narrow typed boundary around SciPy's optional-stub KD tree."""
+
+    def query(
+        self,
+        points: npt.NDArray[np.int64],
+        *,
+        k: int,
+    ) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+        """Return distances and point indices for each query row."""
+        ...
 
 
 def multiscale_recovery_radius_pixels(
@@ -223,6 +240,204 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     )
     nearest_labels = cleaned[tuple(nearest_indices)]
     return np.where(retained, nearest_labels, 0).astype(np.int32, copy=False)
+
+
+def _canonical_seed_ranks(
+    seed_labels: npt.NDArray[np.int64],
+    canonical_seed_references_yx: Mapping[int, tuple[int, int]] | None,
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+    """Return each seed pixel's owner rank and labels ordered globally."""
+    flat_labels = seed_labels.ravel()
+    flat_positions = np.flatnonzero(flat_labels > 0)
+    positive_labels = flat_labels[flat_positions]
+    unique_labels, inverse = np.unique(positive_labels, return_inverse=True)
+    if canonical_seed_references_yx is None:
+        first_positions = np.full(
+            unique_labels.size,
+            flat_labels.size,
+            dtype=np.int64,
+        )
+        np.minimum.at(first_positions, inverse, flat_positions)
+        canonical_order = np.argsort(first_positions, kind="stable")
+    else:
+        expected_labels = {int(label) for label in unique_labels}
+        if not expected_labels.issubset(canonical_seed_references_yx):
+            raise ValueError(
+                "canonical seed references must identify every local owner"
+            )
+        references: list[tuple[int, int]] = []
+        for label in unique_labels:
+            reference = canonical_seed_references_yx[int(label)]
+            if len(reference) != _IMAGE_DIMENSIONS or any(
+                (
+                    isinstance(coordinate, bool)
+                    or not isinstance(coordinate, Integral)
+                    or coordinate < 0
+                )
+                for coordinate in reference
+            ):
+                raise ValueError(
+                    "canonical seed references must be non-negative y-x "
+                    "integer pairs"
+                )
+            references.append(reference)
+        if len(set(references)) != len(references):
+            raise ValueError("canonical seed references must be unique")
+        canonical_order = np.lexsort(
+            (
+                np.asarray([item[1] for item in references]),
+                np.asarray([item[0] for item in references]),
+            )
+        )
+    rank_by_unique = np.empty(unique_labels.size, dtype=np.int64)
+    rank_by_unique[canonical_order] = np.arange(unique_labels.size)
+    return rank_by_unique[inverse], unique_labels[canonical_order]
+
+
+def _nearest_canonical_seed_ranks(
+    tree: _NearestSeedTree,
+    candidate_points_yx: npt.NDArray[np.int64],
+    seed_ranks: npt.NDArray[np.int64],
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.int64]]:
+    """Find exact nearest owners with global-identity tie resolution."""
+    seed_count = seed_ranks.size
+    neighbor_count = min(8, seed_count)
+    distances, indices = tree.query(candidate_points_yx, k=neighbor_count)
+    distances = np.asarray(distances, dtype=np.float64).reshape(
+        candidate_points_yx.shape[0], neighbor_count
+    )
+    indices = np.asarray(indices, dtype=np.int64).reshape(
+        candidate_points_yx.shape[0], neighbor_count
+    )
+    minimum_distances = distances[:, 0]
+    tied = np.isclose(
+        distances,
+        minimum_distances[:, np.newaxis],
+        rtol=0.0,
+        atol=np.finfo(np.float64).eps * 16.0,
+    )
+    sentinel = np.iinfo(np.int64).max
+    owner_ranks = np.min(
+        np.where(tied, seed_ranks[indices], sentinel),
+        axis=1,
+    )
+    pending = (
+        tied[:, -1]
+        if neighbor_count < seed_count
+        else np.zeros(candidate_points_yx.shape[0], dtype=np.bool_)
+    )
+    while np.any(pending):
+        neighbor_count = min(seed_count, neighbor_count * 2)
+        pending_indices = np.flatnonzero(pending)
+        pending_distances, pending_neighbors = tree.query(
+            candidate_points_yx[pending_indices],
+            k=neighbor_count,
+        )
+        pending_distances = np.asarray(
+            pending_distances, dtype=np.float64
+        ).reshape(pending_indices.size, neighbor_count)
+        pending_neighbors = np.asarray(
+            pending_neighbors, dtype=np.int64
+        ).reshape(pending_indices.size, neighbor_count)
+        pending_ties = np.isclose(
+            pending_distances,
+            minimum_distances[pending_indices, np.newaxis],
+            rtol=0.0,
+            atol=np.finfo(np.float64).eps * 16.0,
+        )
+        owner_ranks[pending_indices] = np.min(
+            np.where(
+                pending_ties,
+                seed_ranks[pending_neighbors],
+                sentinel,
+            ),
+            axis=1,
+        )
+        pending[:] = False
+        if neighbor_count < seed_count:
+            pending[pending_indices] = pending_ties[:, -1]
+    return minimum_distances, owner_ranks
+
+
+def assign_seeded_multiscale_support(  # noqa: PLR0913
+    component_labels: npt.ArrayLike,
+    significant_multiscale_support: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    *,
+    beam_major_fwhm_pixels: float,
+    recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
+    canonical_seed_references_yx: (
+        Mapping[int, tuple[int, int]] | None
+    ) = None,
+) -> npt.NDArray[np.int32]:
+    """Attach bounded multiscale support without merging direct seed owners.
+
+    Positive input labels are authoritative direct-residual source identities.
+    Eligible support is assigned to the nearest exact seed pixel. Equal
+    distances use the owner whose globally row-major seed reference appears
+    first, independently of task-local label integers or completion order.
+    Tiled callers must pass the global reference pixel of every owner present
+    in the tile; a complete-plane call can derive those references directly.
+    """
+    labels = _segment_label_plane(component_labels)
+    significant = np.asarray(significant_multiscale_support)
+    valid = np.asarray(valid_pixels)
+    if (
+        significant.ndim != _IMAGE_DIMENSIONS
+        or significant.shape != labels.shape
+        or significant.dtype != np.bool_
+    ):
+        raise ValueError(
+            "component labels and significant multiscale support must be "
+            "aligned boolean two-dimensional planes"
+        )
+    if (
+        valid.ndim != _IMAGE_DIMENSIONS
+        or valid.shape != labels.shape
+        or valid.dtype != np.bool_
+    ):
+        raise ValueError(
+            "component labels and valid pixels must be aligned boolean "
+            "two-dimensional planes"
+        )
+    if np.any((labels > 0) & ~valid):
+        raise ValueError("direct seed pixels must be scientifically valid")
+    if (
+        isinstance(beam_major_fwhm_pixels, bool)
+        or not isfinite(beam_major_fwhm_pixels)
+        or beam_major_fwhm_pixels <= 0.0
+    ):
+        raise ValueError("beam major FWHM must be finite and positive")
+    if (
+        isinstance(recovery_radius_beams, bool)
+        or not isfinite(recovery_radius_beams)
+        or recovery_radius_beams < 0.0
+    ):
+        raise ValueError("recovery radius must be finite and non-negative")
+    output = np.asarray(labels, dtype=np.int32).copy()
+    seed_points = np.column_stack(np.nonzero(labels > 0))
+    if not seed_points.size:
+        return output
+    candidate_points = np.column_stack(
+        np.nonzero(significant & valid & (labels == 0))
+    )
+    if not candidate_points.size:
+        return output
+    seed_ranks, labels_by_rank = _canonical_seed_ranks(
+        labels,
+        canonical_seed_references_yx,
+    )
+    distances, owner_ranks = _nearest_canonical_seed_ranks(
+        cast(_NearestSeedTree, cKDTree(seed_points)),
+        np.asarray(candidate_points, dtype=np.int64),
+        seed_ranks,
+    )
+    eligible = distances <= (recovery_radius_beams * beam_major_fwhm_pixels)
+    eligible_points = candidate_points[eligible]
+    output[eligible_points[:, 0], eligible_points[:, 1]] = labels_by_rank[
+        owner_ranks[eligible]
+    ].astype(np.int32, copy=False)
+    return output
 
 
 def expand_detected_segment_labels(

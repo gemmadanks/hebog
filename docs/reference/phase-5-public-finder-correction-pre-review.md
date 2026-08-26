@@ -1,5 +1,9 @@
 # Phase 5 public-finder correction pre-review
 
+The approved fixture-only implementation is documented in the
+[public-finder correction implementation](phase-5-public-finder-correction-implementation.md).
+That later work does not alter this pre-review or authorize execution.
+
 **Status:** ready for named scientific and engineering approval of
 implementation and fixture-only validation. This review is non-executable: it
 does not authorize implementation, cumulative replay, execution on the viewed

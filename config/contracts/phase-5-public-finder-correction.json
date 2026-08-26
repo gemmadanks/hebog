@@ -1,0 +1,75 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "base_candidate": {
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "corrective_a_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+    "final_qualification_decision_sha256": "d4db4d7f240faf4c7d841b4586208a33fd81d13228a1215cebb75ddd11e63416",
+    "revision": "90626641c8705ba9d55fdea02a705983528b8aa0",
+    "source_tree_sha256": "e4307246efa7db3ec941b3906f8ce443404b8b84cdc78aa89881e738850cdf8a"
+  },
+  "contract_id": "phase-5-public-finder-correction",
+  "implementation_authorization": {
+    "path": "config/contracts/phase-5-public-finder-correction-implementation-decision.json",
+    "sha256": "8ade048d992cb72e0b086134bdb582257034f06644c2dab7d0667f3c0a3ee280"
+  },
+  "public_shape": {
+    "beam_deconvolution": "local-east-north-covariance-subtraction",
+    "deconvolution_relative_tolerance": 1e-10,
+    "fitted_shape": "positive-original-residual-flux-weighted-second-central-moment-on-exact-owner-support",
+    "position_angle": "degrees-east-of-north-half-open-zero-to-180",
+    "provenance_flag": "segment-moment-equivalent-shape",
+    "shape_states": [
+      "resolved",
+      "major-axis-only",
+      "unresolved",
+      "unavailable"
+    ],
+    "uncertainties": "unavailable-support-selection-not-propagated",
+    "wcs_transform": "local-finite-difference-east-north-jacobian"
+  },
+  "schema_version": 1,
+  "sdc1_adapter": {
+    "classification_available": false,
+    "core_fraction_available": false,
+    "executable": false,
+    "global_score_eligible": false,
+    "mapped_dimensions": [
+      "centroid-position-degrees",
+      "deconvolved-gaussian-fwhm-arcseconds",
+      "apparent-integrated-flux-jy"
+    ],
+    "size_code": 2,
+    "unavailable_or_major_axis_only_policy": "reject-before-scorer-boundary",
+    "unresolved_policy": "explicit-zero-intrinsic-axes-with-no-position-angle"
+  },
+  "seeded_ownership": {
+    "authoritative_seed_plane": "accepted-original-residual-connected-components-before-association-dilation",
+    "direct_seed_pixels_immutable": true,
+    "distance": "exact-euclidean-pixel-distance-to-direct-seed-support",
+    "maximum_recovery_radius_beams": 0.5,
+    "owner_rule": "nearest-direct-seed-support",
+    "partition_contract": "every halo task receives the canonical global reference of each owner present in that task",
+    "source_count_can_decrease": false,
+    "tie_break": "minimum-global-row-major-seed-reference-independent-of-label-integer",
+    "validity": "invalid-pixels-remain-unowned"
+  },
+  "status": "implemented-fixture-only-not-executable",
+  "unchanged_base_science": {
+    "background_and_rms": true,
+    "detection_and_island_thresholds": true,
+    "integrated_flux_and_aperture": true,
+    "minimum_island_area": true,
+    "photometric_calibration": true,
+    "position_policy": true,
+    "runtime_composition": true
+  }
+}

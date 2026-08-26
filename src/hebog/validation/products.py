@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime
 from math import ceil
 from pathlib import Path, PurePosixPath
@@ -21,11 +21,18 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from hebog.algorithms.astrometry import (
+    deconvolve_gaussian_shapes,
+    local_tangent_plane_transform_from_wcs,
+    moment_equivalent_gaussian_shape,
+)
 from hebog.algorithms.extended_measurement import (
     DetectedSegmentPosition,
     expand_detected_segment_labels,
     measure_detected_segment_position,
 )
+from hebog.data_models.catalogues import GaussianShape
+from hebog.data_models.images import RestoringBeam
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
 from hebog.validation.evidence import DatasetIdentity, SoftwareIdentity
 
@@ -35,6 +42,7 @@ _PLANE_DIMENSIONS = 2
 _ARCSECONDS_PER_DEGREE = 3600.0
 _FWHM_TO_SIGMA = 1.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
 _AEGEAN_SUPPORT_SIGMAS = 3.0
+_MINIMUM_MOMENT_PIXELS = 3
 _AEGEAN_COMPONENT_COLUMNS = {
     "island",
     "source",
@@ -959,6 +967,191 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
                 deconvolution_status="unavailable",
                 island_identifier=identifier,
                 component_count=1,
+            )
+        )
+    return tuple(output)
+
+
+def _catalogue_ellipse(shape: GaussianShape) -> CatalogueEllipse:
+    """Translate one validated Gaussian-like shape into comparison units."""
+    return CatalogueEllipse(
+        major_fwhm_degrees=shape.major_fwhm_degrees,
+        minor_fwhm_degrees=shape.minor_fwhm_degrees,
+        position_angle_degrees=shape.position_angle_degrees,
+    )
+
+
+def _segment_pixel_moment_covariance(
+    residual_jy_per_beam: npt.NDArray[np.float64],
+    support: npt.NDArray[np.bool_],
+) -> tuple[tuple[float, float], npt.NDArray[np.float64]] | None:
+    """Return a positive centroid and exact-support covariance."""
+    positive = (
+        support
+        & np.isfinite(residual_jy_per_beam)
+        & (residual_jy_per_beam > 0.0)
+    )
+    if int(np.count_nonzero(positive)) < _MINIMUM_MOMENT_PIXELS:
+        return None
+    weights = residual_jy_per_beam[positive]
+    weight = float(np.sum(weights, dtype=np.float64))
+    if not np.isfinite(weight) or weight <= 0.0:
+        return None
+    y_pixels, x_pixels = np.nonzero(positive)
+    centroid_x = float(np.sum(x_pixels * weights, dtype=np.float64) / weight)
+    centroid_y = float(np.sum(y_pixels * weights, dtype=np.float64) / weight)
+    delta_x = x_pixels - centroid_x
+    delta_y = y_pixels - centroid_y
+    covariance = np.asarray(
+        (
+            (
+                np.sum(weights * delta_x * delta_x, dtype=np.float64) / weight,
+                np.sum(weights * delta_x * delta_y, dtype=np.float64) / weight,
+            ),
+            (
+                np.sum(weights * delta_x * delta_y, dtype=np.float64) / weight,
+                np.sum(weights * delta_y * delta_y, dtype=np.float64) / weight,
+            ),
+        ),
+        dtype=np.float64,
+    )
+    if (
+        not np.all(np.isfinite(covariance))
+        or float(np.linalg.det(covariance)) <= 0.0
+    ):
+        return None
+    return (centroid_x, centroid_y), covariance
+
+
+def _moment_shape_fields(
+    residual_jy_per_beam: npt.NDArray[np.float64],
+    support: npt.NDArray[np.bool_],
+    celestial_wcs: WCS,
+    beam: RestoringBeam,
+) -> dict[str, object]:
+    """Return comparison fields for one moment-equivalent owner shape."""
+    moment = _segment_pixel_moment_covariance(
+        residual_jy_per_beam,
+        support,
+    )
+    provenance = "segment-moment-equivalent-shape"
+    if moment is None:
+        return {
+            "fitted_shape": None,
+            "deconvolved_shape": None,
+            "deconvolved_major_fwhm_degrees": None,
+            "deconvolution_status": "unavailable",
+            "quality_flags": (provenance, "shape-unavailable"),
+        }
+    centroid_xy, covariance = moment
+    try:
+        transform = local_tangent_plane_transform_from_wcs(
+            celestial_wcs,
+            centroid_xy,
+        )
+        fitted = moment_equivalent_gaussian_shape(covariance, transform)
+        deconvolution = deconvolve_gaussian_shapes(
+            fitted,
+            beam,
+            relative_tolerance=1e-10,
+        )
+    except (TypeError, ValueError, np.linalg.LinAlgError):
+        return {
+            "fitted_shape": None,
+            "deconvolved_shape": None,
+            "deconvolved_major_fwhm_degrees": None,
+            "deconvolution_status": "unavailable",
+            "quality_flags": (provenance, "shape-unavailable"),
+        }
+    flags = {provenance}
+    if deconvolution.status in {"major-axis-only", "unresolved"}:
+        flags.update(deconvolution.quality_flags)
+    return {
+        "fitted_shape": _catalogue_ellipse(fitted),
+        "deconvolved_shape": (
+            _catalogue_ellipse(deconvolution.shape)
+            if deconvolution.shape is not None
+            else None
+        ),
+        "deconvolved_major_fwhm_degrees": (
+            deconvolution.major_axis_fwhm_degrees
+        ),
+        "deconvolution_status": deconvolution.status,
+        "quality_flags": tuple(sorted(flags)),
+    }
+
+
+def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
+    image_jy_per_beam: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    component_labels: npt.ArrayLike,
+    header: fits.Header,
+    *,
+    beam_major_fwhm_pixels: float,
+    beam_minor_fwhm_pixels: float,
+    measurement_aperture_radius_beams: float = 4.0,
+    position_signal_jy_per_beam: npt.ArrayLike | None = None,
+    denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
+) -> tuple[CatalogueSource, ...]:
+    """Publish exact-support moment shapes without changing photometry."""
+    sources = build_hebog_segment_catalogue(
+        image_jy_per_beam,
+        background_jy_per_beam,
+        valid_pixels,
+        component_labels,
+        header,
+        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+        beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
+        measurement_aperture_radius_beams=measurement_aperture_radius_beams,
+        position_signal_jy_per_beam=position_signal_jy_per_beam,
+        denoised_position_maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+    )
+    residual, valid, labels = _validated_hebog_segment_planes(
+        image_jy_per_beam,
+        background_jy_per_beam,
+        valid_pixels,
+        component_labels,
+    )
+    celestial_wcs = WCS(header, relax=True).celestial
+    try:
+        beam = RestoringBeam(
+            major_fwhm_degrees=cast(float, header["BMAJ"]),
+            minor_fwhm_degrees=cast(float, header["BMIN"]),
+            position_angle_degrees=cast(float, header["BPA"]),
+        )
+    except (KeyError, TypeError, ValueError):
+        return tuple(
+            replace(
+                source,
+                quality_flags=(
+                    "segment-moment-equivalent-shape",
+                    "shape-unavailable",
+                ),
+            )
+            for source in sources
+        )
+    by_identifier = {source.identifier: source for source in sources}
+    output: list[CatalogueSource] = []
+    for label_value in sorted(
+        int(item) for item in np.unique(labels) if item > 0
+    ):
+        identifier = f"hebog-segment-{label_value}"
+        source = by_identifier.get(identifier)
+        if source is None:
+            continue
+        support = (labels == label_value) & valid
+        output.append(
+            replace(
+                source,
+                **_moment_shape_fields(
+                    residual,
+                    support,
+                    celestial_wcs,
+                    beam,
+                ),
             )
         )
     return tuple(output)

@@ -725,6 +725,19 @@ separately approved prospective development response.
       implementation approval, exact non-executable identities, a separately
       approved complete cumulative replay, and fresh held-out qualification
       are all still required.
+- [x] Implement the approved public-finder correction on fixture evidence only.
+      Decision `8ade048d...` binds pre-review `3e02aff3...` and authorizes no
+      execution. The prospective path preserves accepted direct-residual seeds,
+      assigns half-beam reconstructed support by exact nearest ownership with a
+      global-position tie break, and leaves the historical three-beam union
+      reproducible. Catalogue rows now publish WCS-aware moment-equivalent
+      observed shapes and explicit beam-deconvolution states without changing
+      thresholds, RMS, area, position, aperture, or flux. The in-memory SDC1
+      adapter exposes only position, size, and apparent flux; classification,
+      core fraction, and the official global score remain unavailable. Viewed
+      SDC1/Hydra products and the closed cumulative ledger were not opened.
+      Freeze exact non-executable identities next, then obtain separate named
+      approval before any cumulative replay or viewed-development execution.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

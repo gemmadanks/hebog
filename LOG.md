@@ -10881,3 +10881,59 @@ approval. Fresh qualification remains a third boundary.
 **Immediate next step:** request named scientific and engineering approval of
 the exact pre-review for implementation and fixture-only validation. Do not
 run the cumulative replay or any public finder.
+
+## 2026-08-26 — Implement the public-finder correction on fixtures only
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Recorded named decision `8ade048d...`, which binds correction pre-review
+  `3e02aff3...` and authorizes only fixture-scale implementation. Prospective
+  contract `f0ddd4d5...` keeps cumulative replay, viewed-data execution, a new
+  campaign, fresh qualification, tuning, rescoring, cutover, and release
+  explicitly closed.
+- Added seeded multiscale ownership that keeps every direct residual pixel and
+  label authoritative. Eligible significant support is attached only within
+  the pre-reviewed half-major-beam radius by exact nearest-seed distance.
+  Exact ties use a canonical global row-major owner reference rather than a
+  label integer; tiled callers must carry that reference map into halo tasks.
+  The closed three-beam connected-union implementation remains byte-for-byte
+  unchanged.
+- Added positive-original-residual moment-equivalent shapes on each exact
+  owner support. Pixel covariance is mapped through the local east/north WCS
+  Jacobian and beam-deconvolved into explicit resolved, major-axis-only,
+  unresolved, or unavailable states. Existing centroid, aperture, peak flux,
+  integrated flux, thresholds, RMS, and minimum-area policies do not change.
+- Added an in-memory SDC1 source-finding adapter for position, deconvolved
+  FWHM, angle, and apparent integrated flux only. It has no I/O, scorer,
+  compiler, evaluator, campaign, or command entry point. Classification and
+  core fraction remain absent, and records are explicitly ineligible for an
+  official global score.
+- Scientific review tightened the partition contract after identifying that
+  tile-local seed order alone is insufficient when an owner's first global
+  seed lies outside a halo. Analytic and local-Dask fixtures now prove exact
+  global-reference, relabelling, executor, and partition invariance. Other
+  fixtures cover diffuse bridges, one-source wings, high-order ties, invalid
+  pixels, WCS moments, every deconvolution state, serialization, and adapter
+  failure boundaries.
+- The pre-commit formatter attempted to reorder one key in the approved
+  pre-review. The file was restored to exact SHA `3e02aff3...`; its formatter
+  configuration is independently checksum-bound by an earlier acquisition
+  amendment and also remains unchanged. New JSON records were formatted
+  explicitly. The final full hook run therefore skips only this irreconcilable
+  formatter invocation while retaining JSON syntax validation and every other
+  hook.
+
+**Decision:** the fixture implementation is ready for an exact non-executable
+identity review. It has not been replayed against the closed cumulative ledger
+or run on viewed SDC1/Hydra evidence. Those actions still require a separate
+named approval, and fresh held-out qualification remains a later boundary.
+
+**Validation:** 118 focused analytic and executor tests pass; focused Ruff and
+Pyright pass. `just coverage` passes 1,796 tests with four expected xfails and
+95.06% total branch-aware coverage. The prospective adapter has 100% line and
+branch coverage and the ownership module has 99%. All frozen recovery,
+external protocol, and final-qualification identity tests remain green.
+
+**Immediate next step:** create and review exact non-executable implementation
+identities. Do not run the cumulative replay, open corrected viewed products,
+or authorize qualification.

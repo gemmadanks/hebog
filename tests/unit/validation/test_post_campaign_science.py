@@ -15,6 +15,7 @@ from hebog.validation.post_campaign_science import (
     diagnose_compact_component_realization,
     evaluate_post_campaign_candidate_detection,
     evaluate_post_campaign_candidate_products,
+    evaluate_public_finder_correction_candidate_products,
     refine_external_candidate_detection,
 )
 
@@ -115,6 +116,69 @@ def test_candidate_products_reuse_atrous_detection_and_position_signal(
     }
 
 
+def test_public_correction_owns_bridge_from_pre_union_direct_seeds(
+    mocker: MockerFixture,
+) -> None:
+    """The prospective path cannot inherit the historical connected union."""
+    labels = np.zeros((7, 11), dtype=np.int32)
+    labels[3, 1] = 9
+    labels[3, 9] = 2
+    combined_snr = np.full(labels.shape, 6.0)
+    support = np.zeros(labels.shape, dtype=np.bool_)
+    support[3, 1:10] = True
+    direct_detection = SimpleNamespace(
+        combined_snr=combined_snr,
+        retained_mask=labels > 0,
+        component_labels=labels,
+        component_count=2,
+        reconstruction=SimpleNamespace(support_mask=support),
+    )
+    direct_signal = np.full(labels.shape, 1.0)
+    prepared = SimpleNamespace(
+        residual_jy_per_beam=direct_signal,
+        scientifically_valid=np.ones(labels.shape, dtype=np.bool_),
+    )
+    atrous = SimpleNamespace(
+        reconstructed_signal_jy_per_beam=np.full(labels.shape, 0.5)
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science.prepare_scale_filter_inputs",
+        return_value=prepared,
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science._corrective_results",
+        return_value=(object(), atrous, object()),
+    )
+    detect = mocker.patch(
+        "hebog.validation.post_campaign_science."
+        "detect_residual_multiscale_islands",
+        return_value=direct_detection,
+    )
+    review = SimpleNamespace(
+        matrix=SimpleNamespace(
+            detection_sigma=5.0,
+            island_sigma=3.0,
+            support_fraction_bounds=(0.5, 1.0),
+        ),
+        corrections=SimpleNamespace(minimum_island_area_beams=0.25),
+    )
+
+    products = evaluate_public_finder_correction_candidate_products(
+        np.ones(labels.shape),
+        np.ones(labels.shape, dtype=np.bool_),
+        np.zeros(labels.shape),
+        np.ones(labels.shape),
+        beam=BeamShapePixels(16.0, 12.0, 0.0),
+        review=review,  # type: ignore[arg-type]
+    )
+
+    assert products.detection.component_count == 2
+    assert products.detection.component_labels[3, 1] == 9
+    assert products.detection.component_labels[3, 9] == 2
+    assert products.detection.component_labels[3, 5] == 9
+    assert detect.call_count == 1
+
+
 def test_candidate_products_require_atrous_evidence(
     mocker: MockerFixture,
 ) -> None:
@@ -144,6 +208,31 @@ def test_candidate_products_require_atrous_evidence(
             np.ones(labels.shape, dtype=np.bool_),
             np.zeros(labels.shape),
             np.ones(labels.shape),
+            beam=BeamShapePixels(4.0, 3.0, 0.0),
+            review=review,  # type: ignore[arg-type]
+        )
+
+
+def test_public_correction_requires_atrous_evidence(
+    mocker: MockerFixture,
+) -> None:
+    """Seed ownership cannot proceed without the reviewed B3 evidence."""
+    mocker.patch(
+        "hebog.validation.post_campaign_science.prepare_scale_filter_inputs",
+        return_value=object(),
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science._corrective_results",
+        return_value=(object(), None, object()),
+    )
+    review = SimpleNamespace(matrix=SimpleNamespace())
+
+    with pytest.raises(RuntimeError, match="public-finder correction"):
+        evaluate_public_finder_correction_candidate_products(
+            np.ones((3, 3)),
+            np.ones((3, 3), dtype=np.bool_),
+            np.zeros((3, 3)),
+            np.ones((3, 3)),
             beam=BeamShapePixels(4.0, 3.0, 0.0),
             review=review,  # type: ignore[arg-type]
         )

@@ -10,10 +10,13 @@ import numpy as np
 import numpy.typing as npt
 
 from hebog.algorithms.extended_measurement import (
+    assign_seeded_multiscale_support,
     refine_multiscale_segment_labels,
 )
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
+    ResidualMultiscaleDetectionConfig,
+    detect_residual_multiscale_islands,
     prepare_scale_filter_inputs,
     reconstruct_significant_atrous,
 )
@@ -102,6 +105,72 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
             reconstruction.support_mask,
             beam,
         ),
+        position_signal_jy_per_beam=(
+            prepared.residual_jy_per_beam
+            + atrous.reconstructed_signal_jy_per_beam
+        ),
+    )
+
+
+def evaluate_public_finder_correction_candidate_products(  # noqa: PLR0913
+    image_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    rms_jy_per_beam: npt.ArrayLike,
+    *,
+    beam: BeamShapePixels,
+    review: PhaseFiveCorrectiveAReview,
+) -> PostCampaignCandidateProducts:
+    """Evaluate direct seeds and attach support without connected unions."""
+    prepared = prepare_scale_filter_inputs(
+        image_jy_per_beam,
+        valid_pixels,
+        background_jy_per_beam,
+        rms_jy_per_beam,
+    )
+    matched, atrous, _ = _corrective_results(
+        prepared,
+        beam,
+        review,
+        family="residual-b3-atrous",
+    )
+    if atrous is None:
+        raise RuntimeError(
+            "public-finder correction requires residual B3 evidence"
+        )
+    direct_detection = detect_residual_multiscale_islands(
+        prepared,
+        matched,
+        atrous,
+        beam,
+        ResidualMultiscaleDetectionConfig(
+            detection_threshold_sigma=review.matrix.detection_sigma,
+            island_threshold_sigma=review.matrix.island_sigma,
+            minimum_scale_support_fraction=(
+                review.matrix.support_fraction_bounds[0]
+            ),
+            minimum_island_area_beams=(
+                review.corrections.minimum_island_area_beams
+            ),
+        ),
+    )
+    labels = assign_seeded_multiscale_support(
+        direct_detection.component_labels,
+        direct_detection.reconstruction.support_mask,
+        prepared.scientifically_valid,
+        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
+    )
+    retained = np.asarray(labels > 0, dtype=np.bool_)
+    labels.setflags(write=False)
+    retained.setflags(write=False)
+    detection = ThresholdFilterResult(
+        combined_snr=direct_detection.combined_snr,
+        retained_mask=retained,
+        component_labels=labels,
+        component_count=int(np.count_nonzero(np.unique(labels) > 0)),
+    )
+    return PostCampaignCandidateProducts(
+        detection=detection,
         position_signal_jy_per_beam=(
             prepared.residual_jy_per_beam
             + atrous.reconstructed_signal_jy_per_beam

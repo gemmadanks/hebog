@@ -9,11 +9,259 @@ import numpy.typing as npt
 import pytest
 
 from hebog.algorithms.extended_measurement import (
+    assign_seeded_multiscale_support,
     clean_detected_segment_labels,
     expand_detected_segment_labels,
     measure_detected_segment_position,
     refine_multiscale_segment_labels,
 )
+
+
+def test_seeded_multiscale_ownership_cannot_merge_a_diffuse_bridge() -> None:
+    """Two direct seeds stay distinct even when scale support joins them."""
+    seeds = np.zeros((9, 13), dtype=np.int32)
+    seeds[4, 2] = 9
+    seeds[4, 10] = 3
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[3:6, 2:11] = True
+    valid = np.ones(seeds.shape, dtype=np.bool_)
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        valid,
+        beam_major_fwhm_pixels=16.0,
+    )
+
+    assert owned[4, 2] == 9
+    assert owned[4, 10] == 3
+    assert owned[4, 6] == 9
+    assert set(np.unique(owned)) == {0, 3, 9}
+
+
+def test_seeded_multiscale_ownership_recovers_wings_without_new_identity() -> (
+    None
+):
+    """One direct seed receives bounded wings and no synthetic source."""
+    seeds = np.zeros((9, 9), dtype=np.int32)
+    seeds[4, 4] = 7
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[2:7, 2:7] = True
+    valid = np.ones(seeds.shape, dtype=np.bool_)
+    valid[4, 6] = False
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        valid,
+        beam_major_fwhm_pixels=4.0,
+    )
+
+    assert set(np.unique(owned)) == {0, 7}
+    assert owned[2, 4] == 7
+    assert owned[4, 6] == 0
+    assert owned[2, 2] == 0
+
+
+def test_seeded_multiscale_ownership_clips_cleanly_at_image_edge() -> None:
+    """An edge seed owns only finite in-image support within the radius."""
+    seeds = np.zeros((4, 4), dtype=np.int32)
+    seeds[0, 0] = 5
+    support = np.ones(seeds.shape, dtype=np.bool_)
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        support,
+        np.ones(seeds.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=4.0,
+    )
+
+    assert owned[0, 0] == 5
+    assert owned[0, 2] == 5
+    assert owned[2, 0] == 5
+    assert owned[2, 2] == 0
+
+
+def test_seeded_multiscale_tie_uses_global_seed_identity_not_label_value() -> (
+    None
+):
+    """Relabelling task-local integers cannot change a bisector owner."""
+    significant = np.zeros((5, 7), dtype=np.bool_)
+    significant[2, 1:6] = True
+    valid = np.ones(significant.shape, dtype=np.bool_)
+
+    first = np.zeros(significant.shape, dtype=np.int32)
+    first[2, 1] = 40
+    first[2, 5] = 2
+    second = np.zeros(significant.shape, dtype=np.int32)
+    second[2, 1] = 3
+    second[2, 5] = 80
+
+    first_owned = assign_seeded_multiscale_support(
+        first,
+        significant,
+        valid,
+        beam_major_fwhm_pixels=8.0,
+    )
+    second_owned = assign_seeded_multiscale_support(
+        second,
+        significant,
+        valid,
+        beam_major_fwhm_pixels=8.0,
+    )
+
+    assert first_owned[2, 3] == 40
+    assert second_owned[2, 3] == 3
+    np.testing.assert_array_equal(
+        first_owned == first_owned[2, 1],
+        second_owned == second_owned[2, 1],
+    )
+
+
+def test_seeded_multiscale_tie_considers_every_equidistant_seed() -> None:
+    """A high-order lattice tie still selects the first global identity."""
+    seeds = np.zeros((13, 13), dtype=np.int32)
+    centre_yx = (6, 6)
+    offsets = (
+        (-5, 0),
+        (-4, -3),
+        (-4, 3),
+        (-3, -4),
+        (-3, 4),
+        (0, -5),
+        (0, 5),
+        (3, -4),
+        (3, 4),
+        (4, -3),
+        (4, 3),
+        (5, 0),
+    )
+    for index, (offset_y, offset_x) in enumerate(offsets, start=1):
+        seeds[
+            centre_yx[0] + offset_y,
+            centre_yx[1] + offset_x,
+        ] = 100 - index
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[centre_yx] = True
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        np.ones(seeds.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=10.0,
+    )
+
+    assert owned[centre_yx] == seeds[1, 6]
+
+
+def test_seeded_multiscale_tie_uses_carried_global_reference() -> None:
+    """A tile-local first pixel cannot replace the frozen global owner."""
+    labels = np.zeros((3, 7), dtype=np.int32)
+    labels[1, 1] = 40
+    labels[1, 5] = 2
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[1, 1:6] = True
+
+    owned = assign_seeded_multiscale_support(
+        labels,
+        significant,
+        np.ones(labels.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=8.0,
+        canonical_seed_references_yx={40: (10, 10), 2: (0, 20)},
+    )
+
+    assert owned[1, 3] == 2
+
+
+def test_seeded_multiscale_ownership_rejects_invalid_contracts() -> None:
+    """Ownership never infers alignment, validity, beam, or radius."""
+    labels = np.zeros((3, 3), dtype=np.int32)
+    labels[1, 1] = 1
+    support = np.ones(labels.shape, dtype=np.bool_)
+    valid = np.ones(labels.shape, dtype=np.bool_)
+
+    with pytest.raises(ValueError, match="significant multiscale support"):
+        assign_seeded_multiscale_support(
+            labels,
+            support[:-1],
+            valid,
+            beam_major_fwhm_pixels=2.0,
+        )
+    with pytest.raises(ValueError, match="valid pixels"):
+        assign_seeded_multiscale_support(
+            labels,
+            support,
+            valid.astype(np.int8),
+            beam_major_fwhm_pixels=2.0,
+        )
+    invalid_seed = valid.copy()
+    invalid_seed[1, 1] = False
+    with pytest.raises(ValueError, match="seed pixels"):
+        assign_seeded_multiscale_support(
+            labels,
+            support,
+            invalid_seed,
+            beam_major_fwhm_pixels=2.0,
+        )
+    with pytest.raises(ValueError, match="beam major"):
+        assign_seeded_multiscale_support(
+            labels,
+            support,
+            valid,
+            beam_major_fwhm_pixels=np.nan,
+        )
+    with pytest.raises(ValueError, match="recovery radius"):
+        assign_seeded_multiscale_support(
+            labels,
+            support,
+            valid,
+            beam_major_fwhm_pixels=2.0,
+            recovery_radius_beams=-0.1,
+        )
+
+    with pytest.raises(ValueError, match="every local owner"):
+        assign_seeded_multiscale_support(
+            labels,
+            support,
+            valid,
+            beam_major_fwhm_pixels=2.0,
+            canonical_seed_references_yx={},
+        )
+
+    with pytest.raises(ValueError, match="non-negative"):
+        assign_seeded_multiscale_support(
+            labels,
+            support,
+            valid,
+            beam_major_fwhm_pixels=2.0,
+            canonical_seed_references_yx={1: (-1, 0)},
+        )
+
+    two_labels = labels.copy()
+    two_labels[0, 0] = 2
+    with pytest.raises(ValueError, match="must be unique"):
+        assign_seeded_multiscale_support(
+            two_labels,
+            support,
+            valid,
+            beam_major_fwhm_pixels=2.0,
+            canonical_seed_references_yx={1: (0, 0), 2: (0, 0)},
+        )
+
+    empty = assign_seeded_multiscale_support(
+        np.zeros(labels.shape, dtype=np.int32),
+        support,
+        valid,
+        beam_major_fwhm_pixels=2.0,
+    )
+    no_candidates = assign_seeded_multiscale_support(
+        labels,
+        np.zeros(labels.shape, dtype=np.bool_),
+        valid,
+        beam_major_fwhm_pixels=2.0,
+    )
+    assert not empty.any()
+    np.testing.assert_array_equal(no_candidates, labels)
 
 
 def test_segment_cleanup_removes_only_sub_beam_protrusions() -> None:
