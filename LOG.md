@@ -11253,3 +11253,26 @@ records add no scientific execution path.
 review `e3abbe9c...`, then provide at least 120 GiB host headroom before its
 complete no-write preflight. Do not start it, the replay, or public execution
 before those conditions are met.
+
+## 2026-08-26 — Authorize one exact reference reconstruction
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Gemma Danks approved one reconstruction bound to non-executable pre-review
+  `e3abbe9c...`, historical producer commit `a000db4...`, reconstruction
+  program `81faad48...`, historical decision `b35f4a81...`, and all four
+  retained runtime identities. Decision `cc22c773...` retains the exact
+  approval and limits execution to 2,400 inputs, 9,600 PyBDSF/Aegean reference
+  runs, and zero candidate runs in the new write-once namespace.
+- The authorization requires a complete no-write identity/runtime/path
+  preflight and at least 120 GiB host headroom. After deleting the closed final
+  qualification raw inputs/results, the host currently reports only about
+  76 GiB available, so the storage condition is not yet met.
+- The cumulative replay, viewed SDC1/Hydra execution, another campaign, fresh
+  qualification, optimization, tuning, rescoring, cutover, and release remain
+  explicitly false.
+
+**Immediate next step:** validate and commit the authorization, create the
+clean historical checkout, and run the complete no-write preflight. Do not
+create staging or execute reconstruction unless the observed host headroom is
+at least 120 GiB and every identity remains exact.

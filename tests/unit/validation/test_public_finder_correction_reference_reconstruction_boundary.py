@@ -20,6 +20,10 @@ _PRE_REVIEW = (
     _ROOT / "config/contracts/phase-5-public-finder-correction-reference-"
     "reconstruction-pre-review.json"
 )
+_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-correction-reference-"
+    "reconstruction-decision.json"
+)
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -116,3 +120,91 @@ def test_reconstruction_uses_new_write_once_namespace() -> None:
     )
     assert not (_ROOT / prospective["output_path"]).exists()
     assert not (_ROOT / prospective["staging_path"]).exists()
+
+
+def test_named_approval_authorizes_only_one_reference_reconstruction() -> None:
+    """The exact approval opens no replay or later lifecycle action."""
+    decision = _load(_DECISION)
+
+    assert decision["status"] == (
+        "approved-before-reference-reconstruction-preflight"
+    )
+    assert decision["pre_review"] == {
+        "path": str(_PRE_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_PRE_REVIEW),
+    }
+    authorization = decision["authorization"]
+    assert authorization["complete_no_write_preflight_authorized"] is True
+    assert authorization["reference_reconstruction_authorized"] is True
+    assert {
+        value
+        for key, value in authorization.items()
+        if key
+        not in {
+            "complete_no_write_preflight_authorized",
+            "reference_reconstruction_authorized",
+        }
+    } == {False}
+    assert decision["preconditions"] == {
+        "complete_no_write_preflight_required": True,
+        "identities_must_remain_exact": True,
+        "maximum_reconstruction_executions": 1,
+        "minimum_host_available_gib": 120,
+        "output_and_staging_must_be_absent": True,
+    }
+
+
+def test_named_approval_binds_historical_program_population_and_runtimes() -> (
+    None
+):
+    """Every approved reconstruction identity matches retained evidence."""
+    decision = _load(_DECISION)
+    producer = decision["historical_producer"]
+
+    assert producer["decision"]["sha256"] == file_sha256(
+        _ROOT / producer["decision"]["path"]
+    )
+    content = subprocess.check_output(
+        (
+            "git",
+            "show",
+            f"{producer['commit']}:{producer['program']['path']}",
+        ),
+        cwd=_ROOT,
+    )
+    assert hashlib.sha256(content).hexdigest() == producer["program"]["sha256"]
+    assert decision["population"] == {
+        "candidate_run_count": 0,
+        "input_count": 2400,
+        "reference_run_count": 9600,
+        "retained_request": {
+            "path": (
+                "benchmark-results/phase-5/viewed-reference-reconstruction/"
+                "recovery-request.json"
+            ),
+            "sha256": file_sha256(
+                _ROOT
+                / "benchmark-results/phase-5/viewed-reference-reconstruction/"
+                "recovery-request.json"
+            ),
+        },
+    }
+    retained = _load(
+        _ROOT / decision["population"]["retained_request"]["path"]
+    )["images"]
+    approved = {
+        item["finder_id"]: item for item in decision["runtime_identities"]
+    }
+    assert set(approved) == set(retained)
+    for finder_id, runtime in retained.items():
+        assert approved[finder_id]["image"] == runtime["image"]
+        assert approved[finder_id]["image_id"] == runtime["image_id"]
+        assert approved[finder_id]["digest"] == runtime["digest"]
+
+
+def test_approved_reconstruction_paths_remain_write_once() -> None:
+    """Approval is invalid once either prospective path exists."""
+    execution = _load(_DECISION)["prospective_execution"]
+
+    assert not (_ROOT / execution["output_path"]).exists()
+    assert not (_ROOT / execution["staging_path"]).exists()

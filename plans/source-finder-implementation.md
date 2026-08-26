@@ -799,8 +799,13 @@ separately approved prospective development response.
       reconstruction pre-review `e3abbe9c...` binds historical producer commit
       `a000db4...`, all four retained runtimes, 2,400 inputs, 9,600 reference
       runs, a new write-once namespace, and the 120-GiB storage precondition.
-- [ ] Obtain separate named approval for the exact reference reconstruction,
-      provide at least 120 GiB host headroom, rebuild and verify the missing
+- [x] Obtain separate named approval for the exact reference reconstruction.
+      Decision `cc22c773...` binds pre-review `e3abbe9c...`, historical
+      producer `a000db4...`, program `81faad48...`, decision `b35f4a81...`,
+      all four runtime identities, 2,400 inputs, 9,600 reference runs, zero
+      candidate runs, and one new write-once namespace. It authorizes only the
+      complete no-write preflight and one conditional reconstruction.
+- [ ] Provide at least 120 GiB host headroom, rebuild and verify the missing
       per-image reference evidence without any candidate run, then freeze the
       new terminal identity. Update and re-verify the correction consumer,
       obtain a new one-replay approval, and require
