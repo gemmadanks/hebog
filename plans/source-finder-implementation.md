@@ -661,6 +661,13 @@ outstanding.
       verify. Official truth ID `32397377`, the sole non-finite centroid, is
       explicitly excluded by the approved membership rule. Public finder
       execution still requires its own frozen protocol and named approval.
+      No-science execution pre-review `476265e1...` now recommends ten Hebog
+      runs, candidate-owned background/RMS estimation, haloed SDC1 core
+      execution, nine non-compensating SDC1 absolute endpoint families, and
+      non-binding per-finder Hydra diagnostics. It authorizes nothing. Named
+      implementation approval is required before creating the prospective
+      programs or freezing exact identities; execution requires a second
+      approval.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

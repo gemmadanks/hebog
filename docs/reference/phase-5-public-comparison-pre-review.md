@@ -1,8 +1,9 @@
 # Phase 5 public comparison pre-review
 
-**Status:** acquisition and checksum freeze completed on 2026-08-25. The exact
-post-acquisition schema and selection amendment awaits named scientific
-review; cut-out selection, finder execution, qualification, and cutover remain
+**Status:** acquisition, schema review, adapter implementation, and the exact
+selected population completed on 2026-08-25. A no-science public-finder
+execution pre-review is now ready for named implementation review. Finder
+execution, compilation, evaluation, tuning, cutover, and release remain
 unauthorized.
 
 ## Recommendation
@@ -189,6 +190,67 @@ named execution approval are still required. Independent radio-astronomy
 review must interpret the completed public evidence before the Phase 5
 readiness record can pass; public selection did not authorize qualification,
 cutover, or release.
+
+## Public finder execution pre-review
+
+The no-science execution pre-review is
+`config/contracts/phase-5-public-finder-execution-pre-review.json`, SHA-256
+`476265e1b4e4ef1356f62a1b31ce4eb4ba3db995c84feddd8134da94bdb5ce4a`.
+It binds the passing final-qualification candidate and runtime to selected
+population `0a7c2b18...`, but authorizes no implementation or execution.
+
+The recommended program has ten Hebog runs: eight selected SDC1 output cores
+and the complete Hydra deep and shallow images. It reuses the published SDC1
+truth and Hydra finder catalogues; it does not rerun the comparison finders.
+Hebog must estimate its own background and RMS with the frozen candidate
+configuration. Each SDC1 run reads its frozen stage-specific halo from the
+parent image, while candidate and truth admission remain bound to the selected
+half-open output core.
+
+SDC1 is the only binding truth lane. It uses maximum-cardinality association,
+then matched flux, then separation, with a maximum separation of half the
+0.6-arcsecond restoring beam. Truth requires a finite centroid in the output
+core and apparent peak signal-to-noise ratio of at least five after the
+approved primary-beam attenuation. Halo truth may explain a core candidate
+but cannot contribute to completeness. Candidate admission is by centroid in
+the output core. The overall population and every one of the eight selected
+strata must pass independently; compensation between strata is forbidden.
+
+| Binding SDC1 endpoint | Limit |
+| --- | ---: |
+| Completeness | at least 0.90 |
+| Reliability | at least 0.95 |
+| Duplicate fraction | at most 0.02 |
+| Merge fraction | at most 0.10 |
+| Median absolute integrated-flux error | at most 0.10 |
+| 95th-percentile absolute integrated-flux error | at most 0.25 |
+| Absolute mean x and y position offsets | at most 0.10 beam |
+| 95th-percentile radial position error | at most 0.50 beam |
+
+Axis and position-angle errors remain diagnostics because Phase 5 has no
+frozen axis-error limit. The Hydra lane is also non-binding: it reports exact
+pairwise overlap, position, flux-ratio, and unmatched-candidate diagnostics
+for Hebog deep versus shallow, Hebog versus each published finder at each
+depth, and each published finder deep versus shallow. Missing native fields
+remain explicit, and the evaluator must not invent a Hebog residual proxy.
+
+Two named approval boundaries remain:
+
+1. approve implementation and validation of the protocol, runner, compiler,
+   and evaluator, then freeze their exact non-executable identities; and
+2. separately approve those exact identities before one public finder
+   campaign, compilation, and evaluation.
+
+Suggested first approval:
+
+> I approve the Phase 5 public finder execution pre-review SHA-256
+> `476265e1b4e4ef1356f62a1b31ce4eb4ba3db995c84feddd8134da94bdb5ce4a`
+> and its recommendations. This authorizes implementation and validation of
+> the public protocol, Hebog runner, compiler, and evaluator, followed by
+> freezing exact non-executable identities against selected population
+> `0a7c2b18...` and the qualified Hebog runtime. It does not authorize finder
+> execution, compilation or evaluation of public results, optimization,
+> tuning, rescoring, cutover, or release.
 
 ## Decision
 

@@ -10653,3 +10653,39 @@ review against `CODE_REVIEW.md` found no actionable issue.
 **Immediate next step:** validate and commit this terminal evidence record,
 then prepare the public/challenge finder execution composition without opening
 another campaign or implying production cutover.
+
+## 2026-08-26 — Pre-review the public finder execution boundary
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Added no-science execution pre-review `476265e1...`. It binds selected
+  population `0a7c2b18...`, registry `df3a9088...`, schema review
+  `409318f5...`, passing final-qualification decision `d4db4d7f...`, candidate
+  `9062664...`, configuration `0e5dde51...`, and the qualified Hebog runtime.
+- The design runs Hebog on eight selected SDC1 output cores and the complete
+  Hydra deep and shallow images. It does not rerun published comparison
+  finders. Candidate-owned background/RMS estimation and haloed SDC1 reads are
+  explicit.
+- SDC1 association, core admission, absolute gates, and non-compensating
+  overall and per-stratum decisions are exact. Axis and position-angle errors
+  remain diagnostic because Phase 5 has no frozen axis-error limit.
+- Hydra remains non-binding and records exact per-finder, per-depth overlap,
+  position, flux-ratio, and unmatched audits. It neither pools finder
+  semantics nor invents a Hebog residual proxy.
+- The contract test first failed because the pre-review was absent, then
+  passed after the record was added. All authorization flags remain false. No
+  public pixels, finder products, or catalogues were opened.
+
+**Decision:** request named approval for implementation, testing, and exact
+identity freezing only. A second approval of those identities is required
+before any finder execution, compilation, or evaluation.
+
+**Validation:** all 24 focused public-comparison tests pass. `just check`
+passes formatting, Ruff, Pyright, doctests, 1,589 tests, and four expected
+xfails. The strict documentation build passes. Final review against
+`CODE_REVIEW.md` found no actionable issue. Coverage was not rerun because
+this boundary adds no production code or control flow.
+
+**Immediate next step:** validate and commit this non-executable review. Do
+not implement or execute the prospective programs until named approval is
+recorded.

@@ -1,0 +1,238 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "compiler_implementation_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "finder_execution_authorized": false,
+    "optimization_authorized": false,
+    "protocol_implementation_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "runner_implementation_authorized": false,
+    "tuning_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "final_qualification_decision_sha256": "d4db4d7f240faf4c7d841b4586208a33fd81d13228a1215cebb75ddd11e63416",
+    "revision": "90626641c8705ba9d55fdea02a705983528b8aa0",
+    "source_tree_sha256": "e4307246efa7db3ec941b3906f8ce443404b8b84cdc78aa89881e738850cdf8a"
+  },
+  "execution_design": {
+    "background_and_rms": {
+      "adaptive_candidate_threshold_sigma": 75.0,
+      "adaptive_influence_radius_pixels": 75.0,
+      "adaptive_step_yx": [
+        7,
+        7
+      ],
+      "adaptive_transition_width_pixels": 20.0,
+      "adaptive_window_shape_yx": [
+        35,
+        35
+      ],
+      "coarse_step_yx": [
+        50,
+        50
+      ],
+      "coarse_window_shape_yx": [
+        150,
+        150
+      ],
+      "policy": "frozen-candidate-background-stage-no-supplied-truth-maps",
+      "statistics": {
+        "clipping_sigma": 3.0,
+        "maximum_iterations": 6,
+        "minimum_valid_pixels": 10
+      }
+    },
+    "hydra_input": "complete-published-deep-and-shallow-images-no-crop",
+    "output_roles": [
+      "segment-catalogue-json",
+      "segment-labels-fits",
+      "segment-mask-fits",
+      "background-fits",
+      "rms-fits"
+    ],
+    "published_finder_reruns": false,
+    "request_count": 1,
+    "restartable": true,
+    "sdc1_input": "selected-2048-square-output-core-with-frozen-stage-specific-source-halo",
+    "terminal_manifest_write_once": true
+  },
+  "hydra": {
+    "binding_metrics": [],
+    "case_audit": "per-comparison-ten-highest-snr-unmatched-on-each-side-and-ten-largest-positive-flux-ratio-outliers-with-native-id-ties",
+    "comparisons": [
+      "hebog-deep-versus-hebog-shallow",
+      "hebog-deep-versus-each-published-deep-finder",
+      "hebog-shallow-versus-each-published-shallow-finder",
+      "published-deep-versus-shallow-within-each-finder"
+    ],
+    "deep_shallow_rule": "shallow-detection-threshold-applied-to-deep-proxy-population-per-finder",
+    "diagnostic_metrics": [
+      "catalogue-overlap",
+      "deep-shallow-completeness-surrogate",
+      "deep-shallow-reliability-surrogate",
+      "position-offset-beams",
+      "integrated-flux-ratio",
+      "unmatched-component-audit",
+      "available-published-residual-summaries"
+    ],
+    "finder_vote_as_truth": false,
+    "matching": {
+      "assignment": "maximum-cardinality-then-matched-flux-then-separation",
+      "beam": "geometric-mean-restoring-beam-from-published-image-header",
+      "maximum_separation_beams": 0.5
+    },
+    "missing_metric_policy": "record-unavailable-with-exact-missing-field-or-product-reason",
+    "published_finders": [
+      "aegean",
+      "caesar",
+      "profound",
+      "pybdsf",
+      "selavy"
+    ],
+    "residual_policy": "published-residual-fields-are-reported-only-where-native-semantics-are-documented-no-hebog-residual-proxy-is-invented",
+    "truth_policy": "no-astronomical-ground-truth"
+  },
+  "population": {
+    "hebog_run_count": 10,
+    "hydra_image_count": 2,
+    "sdc1_tile_count": 8,
+    "selected_population_sha256": "0a7c2b18d96ee47277072528949c5a64239f0c3053d5e7b33c03b36c194b7824"
+  },
+  "prospective_outputs": {
+    "analysis": "benchmark-results/phase-5/public-finder-analysis.json",
+    "campaign": "benchmark-results/phase-5/public-finder-comparison",
+    "decision": "benchmark-results/phase-5/public-finder-decision.json"
+  },
+  "prospective_programs": [
+    "scripts/validation/phase5_public_finder_protocol.py",
+    "scripts/benchmark/run_phase5_public_finder_campaign.py",
+    "scripts/benchmark/run_phase5_public_finder_hebog.py",
+    "scripts/validation/compile_phase5_public_finder_campaign.py",
+    "scripts/validation/evaluate_phase5_public_finder_decision.py"
+  ],
+  "required_approval_sequence": [
+    "named-scientific-and-engineering-approval-of-this-pre-review-for-implementation-only",
+    "validated-prospective-programs-and-pending-execution-decision",
+    "exact-identity-review-binding-programs-runtime-population-and-absent-outputs",
+    "separate-named-one-look-execution-approval",
+    "complete-no-write-preflight",
+    "one-campaign-one-compilation-one-evaluation"
+  ],
+  "review_id": "phase-5-public-finder-execution-pre-review",
+  "reviewed_on": "2026-08-26",
+  "runtime": {
+    "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+    "digest": "sha256:132f1c3da7f353edc642e9bc2e6108aff8a1dbf6f9a5556f50144db864114363",
+    "finder_id": "hebog",
+    "image_id": "e7f1ce9e9b26f6e29a14e75833bcec52e56b95ce58102f2905c3623f9902632c"
+  },
+  "schema_version": 1,
+  "sdc1": {
+    "binding_metric_limits": {
+      "absolute-mean-offset-x": {
+        "at_most": 0.1
+      },
+      "absolute-mean-offset-y": {
+        "at_most": 0.1
+      },
+      "completeness": {
+        "at_least": 0.9
+      },
+      "duplicate-fraction": {
+        "at_most": 0.02
+      },
+      "integrated-flux-median": {
+        "at_most": 0.1
+      },
+      "integrated-flux-p95": {
+        "at_most": 0.25
+      },
+      "merge-fraction": {
+        "at_most": 0.1
+      },
+      "position-p95": {
+        "at_most": 0.5
+      },
+      "reliability": {
+        "at_least": 0.95
+      }
+    },
+    "binding_populations": "overall-and-each-of-eight-preselected-tile-strata-no-cross-stratum-compensation",
+    "candidate_admission": "candidate-centroid-inside-selected-output-core",
+    "diagnostic_metrics": [
+      "major-axis-fractional-error",
+      "minor-axis-fractional-error",
+      "position-angle-error-when-defined",
+      "official-sdc1-score",
+      "official-population-classification",
+      "each-submitted-catalogue-separately",
+      "apparent-peak-snr-strata",
+      "truth-size-code-strata"
+    ],
+    "duplicate_merge_rule": "eligible-association-graph-degrees-before-primary-assignment",
+    "flux_definition": "absolute-fractional-error-against-primary-beam-attenuated-integrated-truth-flux",
+    "guard_truth_rule": "truth-centroids-in-materialized-halo-may-explain-core-candidates-but-never-enter-completeness",
+    "matching": {
+      "assignment": "maximum-cardinality-then-matched-flux-then-separation",
+      "beam_fwhm_arcsec": 0.6,
+      "maximum_separation_beams": 0.5
+    },
+    "shape_gate_policy": "diagnostic-only-because-no-frozen-phase-five-axis-error-limit-exists",
+    "truth_admission": "finite-approved-columns-centroid-inside-selected-output-core-and-apparent-peak-snr-at-least-5",
+    "truth_flux_policy": "bilinear-primary-beam-response-at-truth-centroid-before-flux-and-snr-scoring"
+  },
+  "status": "ready-for-named-public-finder-protocol-implementation-review",
+  "terminal_decision_rule": "pass-only-if-all-sdc1-binding-endpoints-pass-all-ten-hebog-runs-succeed-and-complete-hydra-diagnostics-are-present",
+  "tracked_identities": [
+    {
+      "path": "config/contracts/phase-5-public-comparison.json",
+      "sha256": "ad412c20e312173861364ef053f08eb700615ad27e11cce26fe088d8e7b03425"
+    },
+    {
+      "path": "config/contracts/phase-5-public-comparison-schema-review.json",
+      "sha256": "409318f58cafe259b4347953051ef8dddcf2308f041e8145e4199f7ad281eed8"
+    },
+    {
+      "path": "config/contracts/phase-5-public-comparison-selection-decision.json",
+      "sha256": "d60fb6454ffc93c240d06e2e40888e1a4d378bc242057276f63a6d82238f565b"
+    },
+    {
+      "path": "config/contracts/phase-5-public-comparison-selected-population.json",
+      "sha256": "df3a9088e68d4f2ba9ac1332a82ad8645f194466d3da5ae724c76494f630f1f4"
+    },
+    {
+      "path": "config/contracts/phase-5-final-qualification-population.json",
+      "sha256": "4a52f55114962d24d6371b166d393c3421a74156fa1c48305931fb39a631e5ac"
+    },
+    {
+      "path": "config/contracts/phase-5-final-qualification-identity-review.json",
+      "sha256": "42ad623779c381ae69532af1cdc3e9063f7229154f28209e2c1da36199280197"
+    },
+    {
+      "path": "config/contracts/phase-5-external-evaluation.json",
+      "sha256": "fc3e9ed3d4272c67d95dcec968aeecd0c3f1a530a2e7bde1083f382884b86bea"
+    },
+    {
+      "path": "src/hebog/validation/public_comparison.py",
+      "sha256": "3a3aa7c3118ebb7189e9bbc0363ee3eb04b4baf5f3c0fc08b95fc63a9369beac"
+    }
+  ],
+  "untracked_terminal_evidence": [
+    {
+      "path": "benchmark-results/phase-5/public-comparison-acquisition/acquisition.json",
+      "sha256": "a74e60de95debcc53bdf43d4f6046a6f74befe8a85e849a5b0105f2ecb0bd0ce"
+    },
+    {
+      "path": "benchmark-results/phase-5/public-comparison-selection/population.json",
+      "sha256": "0a7c2b18d96ee47277072528949c5a64239f0c3053d5e7b33c03b36c194b7824"
+    },
+    {
+      "path": "benchmark-results/phase-5/final-qualification-decision.json",
+      "sha256": "d4db4d7f240faf4c7d841b4586208a33fd81d13228a1215cebb75ddd11e63416"
+    }
+  ]
+}
