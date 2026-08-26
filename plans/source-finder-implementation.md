@@ -741,13 +741,21 @@ separately approved prospective development response.
       correction contract `f0ddd4d5...`, closed cumulative baseline
       `a45303df...`, and the still-closed viewed population. It records that no
       replay ledger or corrected viewed products exist and authorizes nothing.
-- [ ] Obtain named approval bound to correction identity review `e2121fb8...`
-      for one complete cumulative replay only. Interpret compact and Continuum
-      science before any public diagnostics and require
-      `cumulative_science_regression_ready=true` with no like-semantics
-      regression. Execution on viewed SDC1/Hydra evidence, a new campaign,
+- [x] Obtain named approval bound to correction identity review `e2121fb8...`
+      for one complete cumulative replay only. No-write preflight rejected the
+      composition before execution: bound program `5d41d31e...` still selects
+      revision `c184acf7...`, base configuration `0e5dde51...`, and the old
+      Continuum builder. The approved correction is `b1d59e5...` with complete
+      configuration `65c8876d...`. No scratch, product, or ledger was created.
+- [ ] Obtain named implementation approval for replay-repair pre-review
+      `e198df12...`; then add and fixture/no-write validate one wrapper that
+      changes only the candidate revision, complete correction configuration,
+      corrected Continuum builder, and explicit source-overlay provenance.
+      Freeze replacement identities and obtain another named approval before
+      the replay. Require `cumulative_science_regression_ready=true` with no
+      like-semantics regression. Viewed SDC1/Hydra execution, a new campaign,
       fresh qualification, tuning, rescoring, cutover, and release remain
-      separate closed boundaries.
+      closed.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

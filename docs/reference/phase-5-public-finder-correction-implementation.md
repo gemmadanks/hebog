@@ -12,6 +12,14 @@ baseline `a45303df...`. Every authorization flag in that review is false. The
 next permitted boundary is a separate named approval for one complete
 cumulative replay only; it does not include viewed-data execution.
 
+That named replay approval was received, but its no-write preflight rejected
+the frozen composition before execution. The bound replay program still
+selects candidate `c184acf7...`, the base-only configuration, and the old
+Continuum builder rather than candidate `b1d59e5...` and correction
+configuration `65c8876d...`. No products were opened or created. Repair
+pre-review `e198df12...` recommends a minimal separately reviewed wrapper;
+neither its implementation nor the replay is currently authorized.
+
 The implementation is governed by correction pre-review SHA-256
 `3e02aff3...` and the named implementation decision in
 `config/contracts/phase-5-public-finder-correction-implementation-decision.json`.

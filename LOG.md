@@ -10979,3 +10979,46 @@ and candidate `b1d59e5...` before running the complete 800-compact/1,600-
 Continuum replay against baseline `a45303df...`. Interpret compact and
 Continuum science before any later public diagnostics and require no
 like-semantics regression.
+
+## 2026-08-26 — Reject the correction replay before execution
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Gemma Danks supplied the exact named cumulative-replay approval bound to
+  identity review `e2121fb8...`, candidate `b1d59e5...`, and baseline
+  `a45303df...`. Decision `bf955638...` retains the exact approval and records
+  that every excluded lifecycle action remains unauthorized.
+- No-write preflight found that the review-bound program `5d41d31e...`
+  hardcodes revision `c184acf7...`, calls
+  `post_correction_candidate_configuration`, writes Continuum products with
+  `build_post_correction_continuum_products`, and rejects another revision at
+  its inherited runtime seam. It would not execute candidate `b1d59e5...`.
+- Independently computed the full correction configuration as `65c8876d...`.
+  Identity review `e2121fb8...` incorrectly recorded the unchanged base
+  `0e5dde51...` as the candidate configuration. The error is in the freeze and
+  replay composition, not the implemented correction science.
+- Failed closed before starting a replay process, creating scratch or candidate
+  products, or opening any scientific product. The write-once correction
+  ledger remains absent. The prior approval cannot transfer to a changed
+  program or replacement identity.
+- Published non-executable repair pre-review `e198df12...`. It preserves the
+  historical replay and all population, compact, compiler, evaluator,
+  endpoint, gate, baseline, and viewed-public-data boundaries. It recommends
+  one minimal wrapper selecting only the approved revision, complete correction
+  configuration, corrected Continuum builder, and explicit source-overlay
+  provenance.
+
+**Validation:** eight focused identity and repair-preflight tests pass,
+including execution of the real frozen module seams. Focused Ruff and Pyright
+pass. `just check` passes 1,649 tests with 199 deselected and four expected
+xfails, and the strict documentation build passes. No production code changed,
+so coverage was not rerun for this pre-review-only change.
+
+**Decision:** cumulative replay remains closed. Implementing the wrapper and
+freezing replacement identities require named approval of pre-review
+`e198df12...`; the replay itself will still require a later exact-identity
+approval.
+
+**Immediate next step:** request the limited replay-repair implementation
+approval. Do not run the cumulative replay, open viewed SDC1/Hydra products,
+start a campaign, or authorize qualification.

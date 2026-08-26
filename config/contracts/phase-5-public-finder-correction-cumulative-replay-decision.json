@@ -1,0 +1,54 @@
+{
+  "approval": {
+    "approved_on": "2026-08-26",
+    "exact_approval": "I approve the Phase 5 public-finder correction cumulative replay bound to identity review SHA-256 e2121fb82fb27a9f73153a2be2c6afbb8113e7bc1a7460500f369c6c490a503b and candidate b1d59e5aaf778a5fed4ea662afeba2ee100424ff against closed baseline a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9. This authorizes exactly one complete 800-compact/1,600-Continuum cumulative replay. It does not authorize execution on viewed SDC1/Hydra data, a new campaign, fresh qualification, tuning, rescoring, cutover, or release.",
+    "reviewer": "Gemma Danks"
+  },
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": true,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "bound_replay": {
+    "baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "candidate_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+    "output": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+    "program_sha256": "5d41d31ee79cd0d6d203cd774267fd504d06fe7662768486f99c31a7902b8a3f"
+  },
+  "decision_id": "phase-5-public-finder-correction-cumulative-replay-decision",
+  "identity_review": {
+    "path": "config/contracts/phase-5-public-finder-correction-identity-review.json",
+    "sha256": "e2121fb82fb27a9f73153a2be2c6afbb8113e7bc1a7460500f369c6c490a503b"
+  },
+  "preflight": {
+    "candidate_products_created": false,
+    "checked_on": "2026-08-26",
+    "execution_process_started": false,
+    "failure_stage": "no-write-candidate-composition-validation",
+    "observations": [
+      "the frozen replay program hardcodes candidate revision c184acf7f55f936442285835b4601a6ac193fe2a rather than approved candidate b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+      "the frozen replay program computes the pre-correction configuration through post_correction_candidate_configuration",
+      "the frozen replay program writes Continuum products through build_post_correction_continuum_products rather than the approved public-finder correction builder",
+      "the frozen replay runtime reconstruction rejects any revision other than c184acf7f55f936442285835b4601a6ac193fe2a"
+    ],
+    "output_state": "absent",
+    "root_cause": "the identity review bound an unchanged historical replay program without verifying that its hardcoded candidate composition selected the newly approved correction",
+    "scientific_products_opened": false,
+    "scratch_created": false,
+    "write_once_output_created": false
+  },
+  "schema_version": 1,
+  "status": "approved-but-preflight-rejected-before-execution",
+  "transfer_policy": {
+    "authorization_consumed_by_execution": false,
+    "authorization_transferable_to_changed_program": false,
+    "execution_eligible": false,
+    "replacement_identity_review_required": true
+  }
+}
