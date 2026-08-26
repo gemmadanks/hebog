@@ -30,6 +30,12 @@ _IMPLEMENTATION_DECISION = (
     / "config/contracts/phase-5-public-finder-implementation-decision.json"
 )
 _PROTOCOL = _ROOT / "config/contracts/phase-5-public-finder-protocol.json"
+_IDENTITY_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-identity-review.json"
+)
+_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-execution-decision.json"
+)
 _PROTOCOL_SCRIPT = (
     _ROOT / "scripts/validation/phase5_public_finder_protocol.py"
 )
@@ -314,6 +320,31 @@ def test_protocol_is_exact_and_non_executable() -> None:
     )
     assert protocol["case_count"] == 10
     assert "execution_authorized" not in protocol
+
+
+def test_exact_identity_review_keeps_public_execution_closed() -> None:
+    """The frozen programs and outputs remain pending a second approval."""
+    helpers = runpy.run_path(str(_PROTOCOL_SCRIPT))
+    review = json.loads(_IDENTITY_REVIEW.read_text(encoding="utf-8"))
+    decision = helpers["load_public_finder_execution_decision"](
+        _EXECUTION_DECISION
+    )
+
+    assert review["implementation_commit"] == (
+        "3d234c5d414a002824db513a37b3fe8322aedaf2"
+    )
+    assert review["outputs_absent_at_review"] is True
+    assert review["execution_authorized"] is False
+    assert review["compilation_authorized"] is False
+    assert review["evaluation_authorized"] is False
+    assert set(review["prohibited_authorizations"].values()) == {False}
+    assert decision["status"] == "pending-named-one-look-approval"
+    assert decision["named_review"] is None
+    assert decision["execution_authorized"] is False
+    assert decision["finder_execution_authorized"] is False
+    assert decision["campaign_execution_authorized"] is False
+    assert decision["compilation_authorized"] is False
+    assert decision["evaluation_authorized"] is False
 
 
 def test_pending_campaign_preflight_rejects_before_external_work(

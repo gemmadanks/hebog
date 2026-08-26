@@ -266,6 +266,7 @@ def load_public_finder_execution_decision(  # noqa: C901
         or not isinstance(protocol_identity, dict)
         or not isinstance(review_identity, dict)
         or document.get("campaign_execution_authorized") is not authorized
+        or document.get("finder_execution_authorized") is not authorized
         or document.get("compilation_authorized") is not authorized
         or document.get("evaluation_authorized") is not authorized
         or document.get("optimization_authorized") is not False

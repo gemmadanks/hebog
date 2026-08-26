@@ -1,10 +1,11 @@
 # Phase 5 public comparison pre-review
 
-**Status:** acquisition, schema review, adapter implementation, and the exact
-selected population completed on 2026-08-25. A no-science public-finder
-execution pre-review is now ready for named implementation review. Finder
-execution, compilation, evaluation, tuning, cutover, and release remain
-unauthorized.
+**Status:** acquisition, schema review, adapter implementation, the exact
+selected population, and the public-finder execution composition are
+complete. Identity review `19b6296f...` freezes the validated programs and
+qualified runtime. The pending decision `d307c1ea...` authorizes nothing;
+finder execution, compilation, evaluation, tuning, cutover, and release
+remain unauthorized.
 
 ## Recommendation
 
@@ -128,7 +129,7 @@ finder is executed:
    membership, selection attributes, and cut-out SHA-256 values in a
    write-once population record.
 
-The pending amendment now makes the formulas exact. Truth membership uses
+The approved formulas are exact. Truth membership uses
 centroid WCS coordinates and half-open tile bounds. SDC1 size codes are
 converted to Gaussian FWHM with `2.355/5`, identity, or `sqrt(2)`; apparent
 flux includes bilinearly interpolated primary-beam response. Peak SNR uses the
@@ -136,8 +137,9 @@ convolved Gaussian area, the FITS 0.6-arcsec beam, and the published
 73-nJy/beam 1400-MHz/1000-hour noise. Empty-tile fractions and dynamic range
 are zero, closest-pair separation is infinite below two sources, and all ties
 use increasing global tile `(y, x)`. The official population class remains a
-report-only code because Hebog does not classify sources. Selection still may
-not begin until named review accepts this amendment.
+report-only code because Hebog does not classify sources. Named review
+accepted these mappings before selection, and terminal population
+`0a7c2b18...` seals the eight resulting tiles.
 
 ## ASKAP/Hydra execution
 
@@ -177,8 +179,10 @@ execution, the implementation must add and validate:
 - ~~a finder-neutral SDC1 association adapter;~~ complete;
 - ~~a Hydra catalogue adapter that preserves native finder and island
   identity;~~ complete;
-- result population and checksum verification; and
-- a terminal evaluator that keeps qualification and cutover false.
+- ~~result population and checksum verification;~~ implemented and tested
+  against synthetic terminal bundles; no public finder results exist; and
+- ~~a terminal evaluator that keeps qualification and cutover false;~~
+  implemented and tested without evaluating public evidence.
 
 Named scientific review has approved the dataset, exact post-acquisition
 schema, selection formulas, adapters, and one selected population. The sole
@@ -186,18 +190,20 @@ official truth row with a non-finite centroid (ID `32397377`) cannot satisfy
 half-open tile membership and is recorded explicitly as excluded. All seven
 source identities, eight FITS checksums, truth memberships, disjointness, and
 implementation hashes verify. A separate frozen public finder protocol and
-named execution approval are still required. Independent radio-astronomy
-review must interpret the completed public evidence before the Phase 5
-readiness record can pass; public selection did not authorize qualification,
-cutover, or release.
+its programs are now bound by identity review `19b6296f...`. A separate named
+execution approval is still required. Independent radio-astronomy review must
+interpret the completed public evidence before the Phase 5 readiness record
+can pass; public selection and implementation did not authorize
+qualification, cutover, or release.
 
-## Public finder execution pre-review
+## Public finder execution boundary
 
 The no-science execution pre-review is
 `config/contracts/phase-5-public-finder-execution-pre-review.json`, SHA-256
 `476265e1b4e4ef1356f62a1b31ce4eb4ba3db995c84feddd8134da94bdb5ce4a`.
 It binds the passing final-qualification candidate and runtime to selected
-population `0a7c2b18...`, but authorizes no implementation or execution.
+population `0a7c2b18...`. Named review authorized implementation and exact
+identity freezing, but no execution.
 
 The recommended program has ten Hebog runs: eight selected SDC1 output cores
 and the complete Hydra deep and shallow images. It reuses the published SDC1
@@ -207,14 +213,17 @@ configuration. Each SDC1 run reads its frozen stage-specific halo from the
 parent image, while candidate and truth admission remain bound to the selected
 half-open output core.
 
-SDC1 is the only binding truth lane. It uses maximum-cardinality association,
-then matched flux, then separation, with a maximum separation of half the
-0.6-arcsecond restoring beam. Truth requires a finite centroid in the output
-core and apparent peak signal-to-noise ratio of at least five after the
-approved primary-beam attenuation. Halo truth may explain a core candidate
-but cannot contribute to completeness. Candidate admission is by centroid in
-the output core. The overall population and every one of the eight selected
-strata must pass independently; compensation between strata is forbidden.
+SDC1 is the only binding truth lane. Its sparse eligible-edge graph uses
+maximum-cardinality association, then nine-decimal quantized absolute
+log-flux cost, then separation and stable identifiers, with a maximum
+separation of half the 0.6-arcsecond restoring beam. Binding core truth is
+assigned before guard truth on the same eligible graph. Truth requires a
+finite centroid in the output core and apparent peak signal-to-noise ratio of
+at least five after the approved primary-beam attenuation. Halo truth may
+explain a remaining core candidate but cannot contribute to completeness.
+Candidate admission is by centroid in the output core. The overall population
+and every one of the eight selected strata must pass independently;
+compensation between strata is forbidden.
 
 | Binding SDC1 endpoint | Limit |
 | --- | ---: |
@@ -227,30 +236,34 @@ strata must pass independently; compensation between strata is forbidden.
 | Absolute mean x and y position offsets | at most 0.10 beam |
 | 95th-percentile radial position error | at most 0.50 beam |
 
-Axis and position-angle errors remain diagnostics because Phase 5 has no
-frozen axis-error limit. The Hydra lane is also non-binding: it reports exact
-pairwise overlap, position, flux-ratio, and unmatched-candidate diagnostics
-for Hebog deep versus shallow, Hebog versus each published finder at each
-depth, and each published finder deep versus shallow. Missing native fields
-remain explicit, and the evaluator must not invent a Hebog residual proxy.
+SDC1 shape diagnostics compare intrinsic truth with Hebog's deconvolved
+Gaussian axes. Position angle uses the reviewed axial conversion and excludes
+near-circular truth below axis ratio 1.1. Axis and position-angle errors remain
+diagnostics because Phase 5 has no frozen axis-error limit. The Hydra lane is
+also non-binding: it reports exact pairwise overlap, position, flux-ratio, and
+unmatched-candidate diagnostics for Hebog deep versus shallow, Hebog versus
+each published finder at each depth, and each published finder deep versus
+shallow. Missing native fields and incompatible classification or official
+score semantics remain explicit, and the evaluator must not invent a Hebog
+residual proxy.
 
-Two named approval boundaries remain:
+The first of two named approval boundaries is complete:
 
-1. approve implementation and validation of the protocol, runner, compiler,
-   and evaluator, then freeze their exact non-executable identities; and
-2. separately approve those exact identities before one public finder
-   campaign, compilation, and evaluation.
+1. implementation and validation of the protocol, runner, compiler, and
+   evaluator are committed as `3d234c5d...`; identity review `19b6296f...`
+   freezes their exact non-executable composition; and
+2. one separate named approval of that exact review is still required before
+   one public finder campaign, one compilation, and one evaluation.
 
-Suggested first approval:
+Suggested remaining approval:
 
-> I approve the Phase 5 public finder execution pre-review SHA-256
-> `476265e1b4e4ef1356f62a1b31ce4eb4ba3db995c84feddd8134da94bdb5ce4a`
-> and its recommendations. This authorizes implementation and validation of
-> the public protocol, Hebog runner, compiler, and evaluator, followed by
-> freezing exact non-executable identities against selected population
-> `0a7c2b18...` and the qualified Hebog runtime. It does not authorize finder
-> execution, compilation or evaluation of public results, optimization,
-> tuning, rescoring, cutover, or release.
+> I approve the Phase 5 public finder one-look execution bound to identity
+> review SHA-256
+> `19b6296f811109e40fc696a8ecacd76948151aaf9c9e76eb7fb1de14cb11b968`
+> and its exact qualified Hebog runtime. This authorizes the complete no-write
+> preflight and, only if it passes without an identity change, one public
+> finder campaign, one compilation, and one evaluation. It does not authorize
+> optimization, tuning, rescoring, cutover, or release.
 
 ## Decision
 

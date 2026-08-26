@@ -10689,3 +10689,38 @@ this boundary adds no production code or control flow.
 **Immediate next step:** validate and commit this non-executable review. Do
 not implement or execute the prospective programs until named approval is
 recorded.
+
+## 2026-08-26 — Freeze exact public-finder identities
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Implemented and validated the public protocol, ten-case Hebog campaign and
+  runtime boundary, SDC1/Hydra compiler, and terminal evaluator in local
+  commit `3d234c5d...`. The implementation uses sparse deterministic
+  association, binding-core truth before guard truth, deconvolved SDC1 shape
+  diagnostics, and explicit non-binding Hydra semantics.
+- Froze non-executable identity review SHA-256 `19b6296f...` against selected
+  population `0a7c2b18...`, passing qualification decision `d4db4d7f...`,
+  candidate `9062664...`, configuration `0e5dde51...`, the qualified Hebog
+  runtime, five exact programs, and one exact absent output namespace.
+  Pending decision SHA-256 `d307c1ea...` keeps finder and campaign execution,
+  compilation, evaluation, optimization, tuning, rescoring, cutover, and
+  release false.
+- Confirmed that the campaign, analysis, and decision outputs do not exist.
+  No public finder, compiler, or evaluator was invoked. All 20 focused
+  protocol tests pass; the branch-aware suite passes 1,763 tests with four
+  expected xfails and 95.01% coverage.
+
+**Decision:** the implementation-and-freeze authorization is complete. The
+public one-look remains closed until a separate named approval binds exact
+identity review `19b6296f...`; that later approval may not authorize tuning,
+rescoring, cutover, or release.
+
+**Validation:** `just check` passes formatting, Ruff, Pyright, doctests, 1,609
+tests, and four expected xfails. The strict documentation build and final
+pre-commit suite pass. Review against `CODE_REVIEW.md` found no actionable
+issue.
+
+**Immediate next step:** obtain the named one-look approval, then run the
+complete no-write preflight. Execute, compile, and evaluate exactly once only
+if every identity remains unchanged.

@@ -1,0 +1,24 @@
+{
+  "campaign_execution_authorized": false,
+  "compilation_authorized": false,
+  "cutover_authorized": false,
+  "decision_id": "phase-5-public-finder-execution-decision",
+  "evaluation_authorized": false,
+  "execution_authorized": false,
+  "finder_execution_authorized": false,
+  "identity_review": {
+    "path": "config/contracts/phase-5-public-finder-identity-review.json",
+    "sha256": "19b6296f811109e40fc696a8ecacd76948151aaf9c9e76eb7fb1de14cb11b968"
+  },
+  "named_review": null,
+  "optimization_authorized": false,
+  "protocol": {
+    "path": "config/contracts/phase-5-public-finder-protocol.json",
+    "sha256": "f29100bea8396df945672f97e6eeb63f7ec6a4acef3cd8e8eef4a9058788e6df"
+  },
+  "release_authorized": false,
+  "rescoring_authorized": false,
+  "schema_version": 1,
+  "status": "pending-named-one-look-approval",
+  "tuning_authorized": false
+}

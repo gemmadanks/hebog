@@ -664,10 +664,17 @@ outstanding.
       No-science execution pre-review `476265e1...` now recommends ten Hebog
       runs, candidate-owned background/RMS estimation, haloed SDC1 core
       execution, nine non-compensating SDC1 absolute endpoint families, and
-      non-binding per-finder Hydra diagnostics. It authorizes nothing. Named
-      implementation approval is required before creating the prospective
-      programs or freezing exact identities; execution requires a second
-      approval.
+      non-binding per-finder Hydra diagnostics. Named implementation review
+      authorized only implementation and identity freezing. The validated
+      protocol, runner, compiler, evaluator, sparse association, deconvolved
+      SDC1 shape diagnostics, and fail-closed authorization boundary are
+      committed as `3d234c5d...`. Identity review `19b6296f...` freezes those
+      programs, the selected population, passing candidate and qualified
+      runtime, and exact absent output namespace. Pending decision
+      `d307c1ea...` keeps finder execution, compilation, evaluation,
+      optimization, tuning, rescoring, cutover, and release false. A separate
+      named approval of review `19b6296f...` is the next gate; no public finder
+      result exists.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
