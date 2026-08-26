@@ -10523,3 +10523,38 @@ optimization, tuning, rescoring, cutover, or release.
 That approval may permit implementation, tests, and freezing exact repair
 identities only. A separate later exact-identity approval is required before
 the repair may compile and evaluate sealed campaign `4badb8e1...` once.
+
+## 2026-08-26 — Implement the final-qualification evaluation repair
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Recorded Gemma Danks's named approval of pre-review `8cff6163...` in a
+  separate implementation decision. The decision authorizes implementation,
+  validation, and exact-identity freezing only; compilation, evaluation,
+  campaign reexecution, optimization, tuning, rescoring, cutover, and release
+  remain false.
+- Added a fail-closed repair compiler that installs the complete final
+  protocol, decision, registry, request, and result aliases at the inherited
+  recovery compatibility seam before calling the byte-exact frozen compiler.
+  It accepts only a later named authorization bound to campaign `4badb8e1...`,
+  the repair programs, their identity review, absent write-once outputs, and
+  unchanged scientific scope.
+- Added a matching repair evaluator that validates an exact repair-provenance
+  record before delegating all scientific scoring to the byte-exact frozen
+  evaluator. Neither wrapper contains a second endpoint compiler, gate, or
+  decision implementation.
+- The regression exercises the actual JSON adapter that failed: it selects
+  `load_final_qualification_execution_decision`, loads the approved decision
+  and registry, retains exactly 1,688 images and 8,440 runs, and rejects a
+  recovery-shaped decision. Synthetic tests also reject changed programs,
+  evidence, outputs, campaign reruns, tuning, rescoring, and science changes.
+  Focused validation passes 13 tests; no campaign input/result was opened and
+  both terminal output paths remain absent.
+
+**Decision:** the evaluation-only repair implementation is ready for exact
+identity freezing. This implementation is not authority to compile or score
+the campaign.
+
+**Immediate next step:** commit the validated implementation, then freeze a
+pending checksummed repair review against that commit and the existing sealed
+campaign. Obtain a second named approval before invoking either wrapper.
