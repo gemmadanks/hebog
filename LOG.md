@@ -10724,3 +10724,25 @@ issue.
 **Immediate next step:** obtain the named one-look approval, then run the
 complete no-write preflight. Execute, compile, and evaluate exactly once only
 if every identity remains unchanged.
+
+## 2026-08-26 — Authorize the public-finder one-look
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Gemma Danks approved exact identity review `19b6296f...` and the qualified
+  Hebog runtime. Authorization decision SHA-256 `a9330407...` binds the
+  approval verbatim and opens the complete no-write preflight plus one
+  campaign, one compilation, and one evaluation only if every identity is
+  unchanged.
+- Optimization, tuning, rescoring, cutover, and release remain false. The
+  public campaign, analysis, and decision outputs remain absent. All 20
+  focused public protocol tests pass, including the exact positive authority
+  and prohibited-action boundary.
+
+**Decision:** commit the named authorization before preflight so execution is
+bound to an immutable repository state. Do not create campaign state unless
+the complete preflight passes.
+
+**Immediate next step:** validate and commit authorization decision
+`a9330407...`, then run the exact no-write preflight against the qualified
+local Hebog image and frozen public evidence.

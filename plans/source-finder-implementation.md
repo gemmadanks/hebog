@@ -671,10 +671,12 @@ outstanding.
       committed as `3d234c5d...`. Identity review `19b6296f...` freezes those
       programs, the selected population, passing candidate and qualified
       runtime, and exact absent output namespace. Pending decision
-      `d307c1ea...` keeps finder execution, compilation, evaluation,
-      optimization, tuning, rescoring, cutover, and release false. A separate
-      named approval of review `19b6296f...` is the next gate; no public finder
-      result exists.
+      `d307c1ea...` kept every action false. Named approval on 2026-08-26 is
+      recorded as decision `a9330407...` and authorizes the complete no-write
+      preflight and, only if every identity remains unchanged, one public
+      finder campaign, one compilation, and one evaluation. Optimization,
+      tuning, rescoring, cutover, and release remain unauthorized; no public
+      finder result exists yet.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

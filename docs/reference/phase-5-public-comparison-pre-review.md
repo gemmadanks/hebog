@@ -3,8 +3,9 @@
 **Status:** acquisition, schema review, adapter implementation, the exact
 selected population, and the public-finder execution composition are
 complete. Identity review `19b6296f...` freezes the validated programs and
-qualified runtime. The pending decision `d307c1ea...` authorizes nothing;
-finder execution, compilation, evaluation, tuning, cutover, and release
+qualified runtime. Named decision `a9330407...` authorizes the complete
+no-write preflight and, only if it passes unchanged, one finder campaign, one
+compilation, and one evaluation. Tuning, rescoring, cutover, and release
 remain unauthorized.
 
 ## Recommendation
@@ -247,15 +248,16 @@ shallow. Missing native fields and incompatible classification or official
 score semantics remain explicit, and the evaluator must not invent a Hebog
 residual proxy.
 
-The first of two named approval boundaries is complete:
+Both named approval boundaries are complete:
 
 1. implementation and validation of the protocol, runner, compiler, and
    evaluator are committed as `3d234c5d...`; identity review `19b6296f...`
    freezes their exact non-executable composition; and
-2. one separate named approval of that exact review is still required before
-   one public finder campaign, one compilation, and one evaluation.
+2. decision `a9330407...` records Gemma Danks's separate approval of that
+   exact review before one public finder campaign, one compilation, and one
+   evaluation.
 
-Suggested remaining approval:
+Recorded execution approval:
 
 > I approve the Phase 5 public finder one-look execution bound to identity
 > review SHA-256
@@ -264,6 +266,10 @@ Suggested remaining approval:
 > preflight and, only if it passes without an identity change, one public
 > finder campaign, one compilation, and one evaluation. It does not authorize
 > optimization, tuning, rescoring, cutover, or release.
+
+The next action is the complete no-write preflight. Execution may start only
+if it confirms that the protocol, selected population, programs, output
+namespace, and qualified runtime are unchanged.
 
 ## Decision
 

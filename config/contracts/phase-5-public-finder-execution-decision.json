@@ -1,16 +1,20 @@
 {
-  "campaign_execution_authorized": false,
-  "compilation_authorized": false,
+  "campaign_execution_authorized": true,
+  "compilation_authorized": true,
   "cutover_authorized": false,
   "decision_id": "phase-5-public-finder-execution-decision",
-  "evaluation_authorized": false,
-  "execution_authorized": false,
-  "finder_execution_authorized": false,
+  "evaluation_authorized": true,
+  "execution_authorized": true,
+  "finder_execution_authorized": true,
   "identity_review": {
     "path": "config/contracts/phase-5-public-finder-identity-review.json",
     "sha256": "19b6296f811109e40fc696a8ecacd76948151aaf9c9e76eb7fb1de14cb11b968"
   },
-  "named_review": null,
+  "named_review": {
+    "approval": "I approve the Phase 5 public finder one-look execution bound to identity review SHA-256 19b6296f811109e40fc696a8ecacd76948151aaf9c9e76eb7fb1de14cb11b968 and its exact qualified Hebog runtime. This authorizes the complete no-write preflight and, only if it passes without an identity change, one public finder campaign, one compilation, and one evaluation. It does not authorize optimization, tuning, rescoring, cutover, or release.",
+    "reviewed_on": "2026-08-26",
+    "reviewer": "Gemma Danks"
+  },
   "optimization_authorized": false,
   "protocol": {
     "path": "config/contracts/phase-5-public-finder-protocol.json",
@@ -19,6 +23,6 @@
   "release_authorized": false,
   "rescoring_authorized": false,
   "schema_version": 1,
-  "status": "pending-named-one-look-approval",
+  "status": "reviewed-before-public-one-look",
   "tuning_authorized": false
 }

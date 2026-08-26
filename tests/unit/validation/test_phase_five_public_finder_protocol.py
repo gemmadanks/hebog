@@ -322,8 +322,8 @@ def test_protocol_is_exact_and_non_executable() -> None:
     assert "execution_authorized" not in protocol
 
 
-def test_exact_identity_review_keeps_public_execution_closed() -> None:
-    """The frozen programs and outputs remain pending a second approval."""
+def test_exact_identity_review_authorizes_only_the_public_one_look() -> None:
+    """Named approval opens the one-look but no later lifecycle action."""
     helpers = runpy.run_path(str(_PROTOCOL_SCRIPT))
     review = json.loads(_IDENTITY_REVIEW.read_text(encoding="utf-8"))
     decision = helpers["load_public_finder_execution_decision"](
@@ -338,13 +338,18 @@ def test_exact_identity_review_keeps_public_execution_closed() -> None:
     assert review["compilation_authorized"] is False
     assert review["evaluation_authorized"] is False
     assert set(review["prohibited_authorizations"].values()) == {False}
-    assert decision["status"] == "pending-named-one-look-approval"
-    assert decision["named_review"] is None
-    assert decision["execution_authorized"] is False
-    assert decision["finder_execution_authorized"] is False
-    assert decision["campaign_execution_authorized"] is False
-    assert decision["compilation_authorized"] is False
-    assert decision["evaluation_authorized"] is False
+    assert decision["status"] == "reviewed-before-public-one-look"
+    assert decision["named_review"]["reviewer"] == "Gemma Danks"
+    assert decision["execution_authorized"] is True
+    assert decision["finder_execution_authorized"] is True
+    assert decision["campaign_execution_authorized"] is True
+    assert decision["compilation_authorized"] is True
+    assert decision["evaluation_authorized"] is True
+    assert decision["optimization_authorized"] is False
+    assert decision["tuning_authorized"] is False
+    assert decision["rescoring_authorized"] is False
+    assert decision["cutover_authorized"] is False
+    assert decision["release_authorized"] is False
 
 
 def test_pending_campaign_preflight_rejects_before_external_work(
