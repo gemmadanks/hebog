@@ -710,12 +710,21 @@ separately approved prospective development response.
       public shape characterization, and Hydra deep-image overmerging. Matched
       SDC1 flux is within the frozen limits above SNR 20, so photometry is not
       the first correction target. Phase 5 remains closed.
-- [ ] Prospectively pre-review seeded-island ownership, fitted/deconvolved
+- [x] Prospectively pre-review seeded-island ownership, fitted/deconvolved
       public shapes, and an official-source-finding SDC1 adapter with null-
-      catalogue and submitted-team calibration. Treat the now-viewed SDC1 and
-      Hydra products only as development/regression evidence. Require TDD,
-      complete cumulative regression replay, fresh held-out qualification,
-      and separate named approval before any new public execution.
+      catalogue and submitted-team calibration. Pre-review
+      `3e02aff3...` preserves original-residual
+      seed identities, assigns eligible half-beam multiscale support by stable
+      nearest ownership, and keeps association edges separate from pixel and
+      catalogue identity. It specifies moment-equivalent observed covariance,
+      local-WCS transformation, honest beam-deconvolution states, and an
+      isolated official source-finding scorer without claiming the unavailable
+      classification score. Threshold, RMS, minimum-area, aperture, flux, and
+      public-gate changes are excluded from the correction. The now-viewed
+      SDC1 and Hydra products remain development/regression evidence. Named
+      implementation approval, exact non-executable identities, a separately
+      approved complete cumulative replay, and fresh held-out qualification
+      are all still required.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

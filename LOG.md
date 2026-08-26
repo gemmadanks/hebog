@@ -10838,3 +10838,46 @@ held-out qualification before proposing another one-look.
 
 **Immediate next step:** obtain named approval for a no-execution scientific
 correction pre-review. Do not tune, rescore, rerun, cut over, or release.
+
+## 2026-08-26 — Pre-review the public-finder science correction
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Completed prospective pre-review
+  `3e02aff3...` against terminal scientific
+  review `320f57f5...`, qualified base candidate `9062664...`, final decision
+  `d4db4d7f...`, viewed public population `0a7c2b18...`, and exact closed
+  cumulative baseline `a45303df...`. No terminal evidence or historical
+  contract changed.
+- The smallest candidate correction retains original-residual accepted labels
+  as authoritative seeds and attaches only significant support within the
+  already reviewed half-beam recovery radius. Nearest exact seed support owns
+  each recovered pixel; canonical global seed identity breaks ties. Context
+  edges may retain physical association evidence but cannot merge pixels or
+  catalogue rows. The historical three-beam connected-union branch remains
+  unchanged for evidence reproduction.
+- Public shapes use existing exact-support flux moments. Pixel covariance is
+  transformed through the local WCS Jacobian, expressed as an observed
+  moment-equivalent FWHM ellipse, and beam-deconvolved with explicit resolved,
+  major-axis-only, unresolved, or unavailable states. A canonical quality flag
+  prevents this estimator being represented as a nonlinear Gaussian fit.
+- The redesigned SDC1 boundary is source-finding only. It recommends an
+  isolated pinned official scorer, a frozen null catalogue, identical selected
+  cores for all nine applicable published submissions, and SNR/morphology
+  curves. Hebog still lacks population and core-fraction classification, so an
+  official global score remains unavailable.
+- The test-first matrix covers diffuse bridges, genuine single extended
+  sources, ownership ties, blends, edges, invalid pixels, analytic covariance,
+  WCS rotation, deconvolution states, serial/Dask and partition invariance, and
+  catalogue round trips. Threshold, RMS, minimum area, aperture, flux, gate,
+  and runtime changes are forbidden in the same correction.
+
+**Decision:** the pre-review is non-executable and authorizes nothing. Viewed
+SDC1/Hydra products remain development/regression evidence. Implementation and
+fixture-only validation require named approval; cumulative replay and any
+viewed-data execution require a later exact identity review and separate named
+approval. Fresh qualification remains a third boundary.
+
+**Immediate next step:** request named scientific and engineering approval of
+the exact pre-review for implementation and fixture-only validation. Do not
+run the cumulative replay or any public finder.

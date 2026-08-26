@@ -303,7 +303,9 @@ No item below is authorized by this review.
 ## Decision
 
 The scientific failure review is complete. Phase 5 remains open, and the
-current terminal decision remains `fail`. The next governed task is a
-prospective pre-review for the seeded-island ownership and public-catalogue
-shape work. No campaign should be rerun and no gate should be changed until
-that plan and the corrected public protocol have separate named approval.
+current terminal decision remains `fail`. The prospective [public-finder
+correction pre-review](phase-5-public-finder-correction-pre-review.md) now
+defines seeded-island ownership, moment-equivalent public shapes, and the
+source-finding-only SDC1 adapter. It authorizes nothing by itself. No campaign
+should be rerun and no gate should be changed until implementation and later
+execution boundaries have separate named approval.

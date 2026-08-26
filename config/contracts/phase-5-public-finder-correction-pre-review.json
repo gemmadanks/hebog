@@ -1,0 +1,168 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_implementation_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "sealed_decision_rescoring_authorized": false,
+    "sdc1_adapter_implementation_authorized": false,
+    "shape_implementation_authorized": false,
+    "threshold_tuning_authorized": false
+  },
+  "base_candidate": {
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "final_qualification_decision_sha256": "d4db4d7f240faf4c7d841b4586208a33fd81d13228a1215cebb75ddd11e63416",
+    "revision": "90626641c8705ba9d55fdea02a705983528b8aa0",
+    "source_tree_sha256": "e4307246efa7db3ec941b3906f8ce443404b8b84cdc78aa89881e738850cdf8a"
+  },
+  "binding_evidence": {
+    "cumulative_regression_baseline": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    "public_analysis_sha256": "975978fbc0351184ac0f80706afbe211a1f7d6fce9f10bb7b49eea242bb5aeee",
+    "public_campaign_sha256": "42abb896b452ee9143156b88ad46ea21033e63dbd8060185242ffa10c30b0c71",
+    "public_decision_sha256": "954077e9af7bcd34d42d2a273a08dbd7aa8cdd43427c6aa28ec3de5d74465e3a",
+    "public_scientific_review_sha256": "320f57f556f2b1e9ed7ecd8b7f7bd48558dad25e7bf80d9d6a5ad4e0a50a08f6",
+    "selected_public_population_sha256": "0a7c2b18d96ee47277072528949c5a64239f0c3053d5e7b33c03b36c194b7824"
+  },
+  "candidate_change_control": {
+    "allowed_science_changes_after_separate_approval": [
+      "preserve accepted direct residual seed labels as authoritative source identities",
+      "attach nearby significant multiscale support by deterministic nearest-seed ownership without merging seed identities",
+      "publish moment-equivalent observed and beam-deconvolved shape records with explicit provenance and unavailable states"
+    ],
+    "forbidden_same_change": [
+      "background or RMS algorithm changes",
+      "detection or island threshold changes",
+      "minimum island area changes",
+      "measurement aperture or integrated-flux changes",
+      "photometric calibration changes",
+      "public gate changes",
+      "classification or core-fraction inference",
+      "runtime optimization"
+    ],
+    "historical_contracts_immutable": true,
+    "historical_outputs_immutable": true
+  },
+  "implementation_seams": [
+    {
+      "path": "src/hebog/validation/phase_five_filter_review.py",
+      "role": "retain the historical three-beam connected-union path unchanged and expose the pre-union direct detection only through a new prospective path",
+      "sha256": "06cd8a0dfb39a23840f336023d49ab382468c5089993553c380babe89b301dcf"
+    },
+    {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "role": "reuse deterministic nearest-owner multiscale recovery and moment measurement",
+      "sha256": "6462e8bdb69f998dc142816d94459e3f1e6a596cf18dff85d407e6e97e04248b"
+    },
+    {
+      "path": "src/hebog/algorithms/multiscale_association.py",
+      "role": "retain association edges as provenance without changing exact pixel or source ownership",
+      "sha256": "84a66a9ce6500a44c37c241e25606720755c8501e29dfb9249c52325775daad9"
+    },
+    {
+      "path": "src/hebog/algorithms/astrometry.py",
+      "role": "reuse local tangent-plane covariance transformation and beam deconvolution",
+      "sha256": "2951d2db6a1b6ffb456c207c67393e47289dde55c61d5e2caa9b42a0c1ee7df6"
+    },
+    {
+      "path": "src/hebog/validation/products.py",
+      "role": "publish canonical shape records and explicit measurement-kind flags",
+      "sha256": "cb15b8d8d566994d005f2754b787c9c91b528c4ca10b047e6c090f05d896c431"
+    }
+  ],
+  "prospective_design": {
+    "public_shape_record": {
+      "deconvolution": "subtract restoring-beam covariance in the local east-north tangent plane and retain resolved, major-axis-only, unresolved, and unavailable as distinct states",
+      "fitted_shape": "flux-weighted second-central-moment ellipse on exact original-residual owner support transformed through the local WCS Jacobian",
+      "invalid_policy": "record unavailable for underdetermined support, non-positive weight, singular covariance, invalid WCS, or non-identifiable deconvolution; never invent a circular shape",
+      "position_angle": "degrees east of north in the half-open interval zero to 180",
+      "provenance_flag": "segment-moment-equivalent-shape",
+      "uncertainty_policy": "unavailable until a separately reviewed correlated-noise covariance estimator exists"
+    },
+    "sdc1_source_finding_adapter": {
+      "classification_score_available": false,
+      "core_fraction_available": false,
+      "dependency_policy": "pin and isolate the official scorer for validation; do not copy it or add it to the Hebog runtime",
+      "matching_dimensions": [
+        "position",
+        "size",
+        "integrated-flux"
+      ],
+      "null_control": "freeze the official randomized-catalogue configuration and random seed before corrected public products are opened",
+      "published_team_calibration": "evaluate all nine applicable 1.4-GHz 1000-hour submissions on the identical selected cores and truth admission",
+      "reporting": [
+        "source-finding score components",
+        "chance-match-adjusted association diagnostics",
+        "completeness and reliability versus apparent peak SNR",
+        "flux and shape errors versus SNR and morphology",
+        "each submitted team separately"
+      ],
+      "scope": "source-finding characterization only; never label the result an official global SDC1 score"
+    },
+    "seeded_island_ownership": {
+      "association_edges": "may record spatial or cross-scale context but cannot merge pixel ownership or catalogue rows",
+      "authoritative_seed_plane": "accepted connected components of original residual pixels before association dilation",
+      "direct_seed_invariant": "every accepted direct seed pixel retains its original stable owner",
+      "legacy_three_beam_union": "removed only from the prospective candidate path",
+      "owner_rule": "minimum Euclidean distance to exact accepted seed support with ties resolved by canonical global seed identity",
+      "recovered_support": "significant adjacent-scale support within 0.5 restoring-beam major FWHM of accepted seed support",
+      "source_count_invariant": "multiscale recovery alone cannot reduce the number of accepted direct seed identities"
+    }
+  },
+  "required_sequence": [
+    "named scientific and engineering approval of this exact pre-review for implementation and fixture-only validation",
+    "test-first implementation with historical contracts and terminal outputs unchanged",
+    "focused analytic, property, serial, Dask, and catalogue round-trip validation",
+    "exact non-executable candidate and viewed-development protocol identity review",
+    "separate named approval for the complete cumulative replay and any execution on viewed SDC1 or Hydra data",
+    "science-first review requiring no like-semantics regression before public diagnostics",
+    "prospective public-protocol calibration using viewed data only",
+    "new held-out qualification design, identity freeze, and separate execution approval"
+  ],
+  "review_id": "phase-5-public-finder-correction-pre-review",
+  "reviewed_on": "2026-08-26",
+  "scientific_gates": {
+    "analytic_ownership": [
+      "two accepted seeds remain distinct when significant diffuse support bridges them",
+      "one accepted seed may recover nearby coherent multiscale support without creating another identity",
+      "every eligible recovered pixel has exactly one deterministic owner",
+      "task order, retry, worker count, tile shape, and partition origin cannot change ownership"
+    ],
+    "cumulative_replay": "require cumulative_science_regression_ready true against the exact closed recovery ledger with no like-semantics compact, Continuum, boundary, mask, blend, or measurement regression",
+    "public_development": "SDC1 and Hydra are viewed development/regression evidence and cannot qualify the corrected candidate",
+    "shape": [
+      "analytic Gaussian covariance and WCS rotation are recovered in noiseless fixtures",
+      "beam convolution and deconvolution preserve resolved, one-axis, unresolved, and unavailable states",
+      "non-square pixels, rotated WCS, image edges, invalid pixels, and degenerate support fail honestly",
+      "catalogue serialization preserves degrees, position-angle convention, provenance flags, and absent uncertainties"
+    ]
+  },
+  "status": "ready-for-named-public-correction-implementation-review",
+  "test_first_matrix": {
+    "integration": [
+      "serial and Dask equivalence",
+      "one-tile and many-tile equivalence",
+      "catalogue JSON and canonical SourceCatalogue round trips",
+      "complete public adapter schema validation without public finder execution"
+    ],
+    "property": [
+      "adding eligible recovered support cannot merge or delete direct seed identities",
+      "relabeling local seed integers cannot change stable global ownership",
+      "WCS transformations preserve positive ordered shape eigenvalues"
+    ],
+    "unit": [
+      "diffuse bridge between two accepted seeds",
+      "single extended source with one direct seed and multiscale wings",
+      "equidistant ownership tie",
+      "close blend and multi-component island",
+      "edge and invalid-pixel clipping",
+      "elliptical, circular, unresolved, major-axis-only, and singular shapes"
+    ]
+  }
+}
