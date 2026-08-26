@@ -17,8 +17,12 @@ the frozen composition before execution. The bound replay program still
 selects candidate `c184acf7...`, the base-only configuration, and the old
 Continuum builder rather than candidate `b1d59e5...` and correction
 configuration `65c8876d...`. No products were opened or created. Repair
-pre-review `e198df12...` recommends a minimal separately reviewed wrapper;
-neither its implementation nor the replay is currently authorized.
+pre-review `e198df12...` recommended a minimal separately reviewed wrapper.
+Gemma Danks approved wrapper implementation and fixture/no-write validation;
+decision `83d14670...` records that limited authorization. The wrapper is now
+implemented and validated, but it has no execution decision and cannot start
+the replay. Replacement exact identities and another named approval remain
+required.
 
 The implementation is governed by correction pre-review SHA-256
 `3e02aff3...` and the named implementation decision in
@@ -122,10 +126,14 @@ No test or command in this implementation opens sealed public products or the
 closed cumulative ledger. The exact non-executable identities are frozen by
 review `e2121fb8...`; the prospective replay output and corrected viewed
 campaign, analysis, and decision were all absent at review time. One complete
-cumulative replay requires a named approval bound to that exact review. Any
-execution on viewed public data requires a later executable protocol freeze
-and separate approval. Fresh held-out qualification remains a distinct
-boundary after those reviews.
+cumulative replay was approved against that review but rejected by no-write
+preflight because the historical program selected the older candidate. The
+repair wrapper now selects correction configuration `65c8876d...` while
+checksum-binding the historical program and unchanged compilation/evaluation
+machinery. It remains fail-closed until a replacement identity review and
+separate named approval exist. Any execution on viewed public data requires a
+later executable protocol freeze and separate approval. Fresh held-out
+qualification remains a distinct boundary after those reviews.
 
 The focused fixture suite passes 118 tests. The branch-aware repository suite
 passes 1,796 tests with four expected xfails and 95.06% total coverage. The

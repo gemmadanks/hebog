@@ -11022,3 +11022,45 @@ approval.
 **Immediate next step:** request the limited replay-repair implementation
 approval. Do not run the cumulative replay, open viewed SDC1/Hydra products,
 start a campaign, or authorize qualification.
+
+## 2026-08-26 — Implement the correction cumulative-replay wrapper
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Recorded named implementation decision `83d14670...`, binding repair
+  pre-review `e198df12...`. It authorizes only the minimal wrapper,
+  fixture/no-write validation, and replacement identity freezing; cumulative
+  replay and all later execution or release actions remain false.
+- Added a fail-closed wrapper around historical replay `5d41d31e...`. It
+  selects candidate `b1d59e5...`, source tree `2de6564e...`, complete
+  correction configuration `65c8876d...`, and
+  `build_public_finder_correction_continuum_products`. Compact generation and
+  the historical compiler, evaluator, endpoints, and gates remain the exact
+  delegated objects.
+- Added a spawned-worker seam so Python 3.14/macOS `spawn` workers install the
+  same correction composition instead of re-importing the historical builder.
+  Ledger-only provenance distinguishes the exact source overlay from inherited
+  compatibility container `sha256:1a83f649...`; candidate shard marker bytes
+  retain the historical schema.
+- Before scientific input access the wrapper now requires a separate exact
+  execution decision, clean checkout, approved source/configuration/contracts,
+  `uv.lock`, historical program, compiler, evaluator, reference verifier,
+  endpoint/evaluation contracts, viewed request, reconstructed-reference
+  terminal record, closed baseline, and absent scratch/output. No execution
+  decision, scratch, replay output, or viewed public-data access exists.
+
+**Validation:** 52 focused wrapper, correction, product, and recovery tests
+pass. The local Dask correction integration passes outside the app's
+loopback-socket sandbox. Focused Ruff and Pyright pass. The wrapper tests prove
+missing authorization fails before the frozen replay loads, candidate and
+environment drift fail closed, correction seams replace only the approved
+composition, and source-overlay provenance is added only to the terminal
+ledger. `just coverage` passes 1,823 tests with four expected xfails and
+95.07% total branch-aware coverage.
+
+**Decision:** the repair implementation is ready for a replacement exact,
+non-executable identity freeze. The replay remains unauthorized.
+
+**Immediate next step:** validate and commit this wrapper, then freeze its
+exact commit, program, evidence, runtime, output, and scratch identities. Do
+not run the replay or open viewed SDC1/Hydra products.

@@ -90,3 +90,33 @@ the wrapper and freezing replacement exact identities:
 > `a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9`.
 > It does not authorize the replay, execution on viewed SDC1/Hydra data, a new
 > campaign, fresh qualification, tuning, rescoring, cutover, or release.
+
+## Implementation status
+
+Gemma Danks approved the exact request above on 2026-08-26. Implementation
+decision SHA-256 `83d14670...` records that implementation, fixture/no-write
+validation, and replacement identity freezing are allowed while replay and
+all later lifecycle actions remain false.
+
+The implemented wrapper checksum-verifies the unchanged historical replay,
+then replaces only the candidate revision, complete correction configuration,
+corrected Continuum builder, and candidate runtime provenance. Spawned workers
+install the same correction builder explicitly, so macOS process spawning
+cannot fall back to the historical builder. Compact generation and the frozen
+compiler, evaluator, endpoint, and gate objects remain unchanged.
+
+Authorization is deliberately absent. Before any future scientific input
+access, the wrapper requires an exact separately approved execution decision,
+a clean checkout, candidate source tree `2de6564e...`, dependency lock,
+correction/base contracts, historical replay, compiler, evaluator, reference
+verifier, endpoint registry, evaluation contract, reconstructed-reference
+terminal record, original request, closed baseline, absent scratch, and absent
+write-once output. The inherited container is recorded only as a compatibility
+dependency reference; the correction is explicitly an exact source overlay
+and is not claimed to be baked into that image.
+
+Fixture and no-write tests exercise the real wrapper seams and fail closed on
+missing authorization and identity drift. No replay, viewed public-data read,
+campaign, compilation, evaluation, tuning, rescoring, cutover, or release was
+performed. A replacement non-executable identity review and another named
+approval are still required before replay.

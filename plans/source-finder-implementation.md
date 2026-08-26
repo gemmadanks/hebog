@@ -747,15 +747,21 @@ separately approved prospective development response.
       revision `c184acf7...`, base configuration `0e5dde51...`, and the old
       Continuum builder. The approved correction is `b1d59e5...` with complete
       configuration `65c8876d...`. No scratch, product, or ledger was created.
-- [ ] Obtain named implementation approval for replay-repair pre-review
-      `e198df12...`; then add and fixture/no-write validate one wrapper that
-      changes only the candidate revision, complete correction configuration,
-      corrected Continuum builder, and explicit source-overlay provenance.
-      Freeze replacement identities and obtain another named approval before
-      the replay. Require `cumulative_science_regression_ready=true` with no
-      like-semantics regression. Viewed SDC1/Hydra execution, a new campaign,
-      fresh qualification, tuning, rescoring, cutover, and release remain
-      closed.
+- [x] Implement the approved cumulative-replay repair without executing it.
+      Decision `83d14670...` binds pre-review `e198df12...`. The minimal
+      wrapper checksum-verifies and delegates to historical replay
+      `5d41d31e...`, selecting only candidate `b1d59e5...`, complete correction
+      configuration `65c8876d...`, the corrected Continuum builder, and an
+      explicit source-overlay runtime record. It preserves compact generation,
+      compiler/evaluator programs, endpoints, gates, reconstructed references,
+      and closed baseline `a45303df...`. Authorization, source, dependency,
+      population, program, output, and scratch drift fail before scientific
+      input access; no execution decision or replay output exists.
+- [ ] Freeze the replacement replay identities and obtain another named
+      approval before running it. Require
+      `cumulative_science_regression_ready=true` with no like-semantics
+      regression. Viewed SDC1/Hydra execution, a new campaign, fresh
+      qualification, tuning, rescoring, cutover, and release remain closed.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

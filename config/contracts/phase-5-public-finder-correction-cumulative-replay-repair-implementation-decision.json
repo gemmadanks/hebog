@@ -1,0 +1,25 @@
+{
+  "approved_on": "2026-08-26",
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fixture_and_no_write_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "identity_freeze_authorized": true,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-correction-cumulative-replay-repair-implementation-decision",
+  "exact_approval": "I approve the Phase 5 public-finder correction cumulative-replay repair pre-review SHA-256 e198df128900bf991c979764fc67dbda8a9b0a682be30f92bf70703122c1f162 and its recommendations. This authorizes implementation and fixture/no-write validation of the minimal replay wrapper and freezing replacement exact identities for candidate b1d59e5aaf778a5fed4ea662afeba2ee100424ff, correction configuration 65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0, and closed baseline a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9. It does not authorize the replay, execution on viewed SDC1/Hydra data, a new campaign, fresh qualification, tuning, rescoring, cutover, or release.",
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-repair-pre-review.json",
+    "sha256": "e198df128900bf991c979764fc67dbda8a9b0a682be30f92bf70703122c1f162"
+  },
+  "reviewer": "Gemma Danks",
+  "status": "authorized-for-replay-repair-implementation-and-freeze"
+}
