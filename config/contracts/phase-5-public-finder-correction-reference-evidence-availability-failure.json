@@ -1,0 +1,77 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "reference_reconstruction_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-correction-reference-evidence-availability-failure",
+  "failed_no_write_verifications": [
+    {
+      "evidence_product_opened": false,
+      "execution_checkout_revision": "9a93a41c988cb2e746fa890388576a6bf8642375",
+      "failure": "viewed recovery candidate source changed",
+      "failure_stage": "historical-producer-source-verification",
+      "replay_output_created": false,
+      "replay_scratch_created": false
+    },
+    {
+      "evidence_product_opened": false,
+      "execution_checkout_revision": "c5fa6eee67a41e46643492204787171310e99a87",
+      "failure": "missing reconstructed input bundle",
+      "failure_stage": "first-reconstructed-input-open",
+      "first_missing_path": "inputs/continuum/phase5-external-post-failure-continuum-1-1024/seed-2026860001/input.json",
+      "producer_and_consumer_source_checks_passed": true,
+      "replay_output_created": false,
+      "replay_scratch_created": false
+    }
+  ],
+  "implementation": {
+    "commit": "c5fa6eee67a41e46643492204787171310e99a87",
+    "tree": "85d557d567596a1b99395d79383f7906f19c78da",
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_correction_cumulative_regressions.py",
+      "sha256": "b2240e558f83ec77006cec8dd6f69a8ad5489e14db87756086ab3df4cfd6b285"
+    }
+  },
+  "preserved_evidence": {
+    "cleanup_commit": "fe92da13677e782341a1eb643c45ffdcae046287",
+    "inputs_directory_absent": true,
+    "progress": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction/progress.log",
+      "sha256": "833424c582ca48e1c58cd3f4c83effec24172d1b4afc269f8644930a122e5d82"
+    },
+    "recovery": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction/recovery.json",
+      "sha256": "69c66e0b87c08a7b6b99e6d252c3a798d9133622b7903e8d746dd9c0f0f4f42d"
+    },
+    "recovery_open_state": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction/recovery-open-state.json",
+      "sha256": "0f93574ee3a55cb119c79edebb325cca4a900185ebe4a4e9bf2ec7a8a0b0ddcf"
+    },
+    "recovery_request": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction/recovery-request.json",
+      "sha256": "1e5adfc2f2cca98e622b4605be9dc2a2707dfb7a4e5c1ab55999b0a2b14dc63d"
+    },
+    "results_directory_absent": true
+  },
+  "replay_state": {
+    "output_absent": true,
+    "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+    "prospective_scratch_absent": true,
+    "prospective_scratch_path": "/private/tmp/hebog-phase5-public-finder-correction-reference-repair-b1d59e5"
+  },
+  "schema_version": 1,
+  "scientific_outcome": {
+    "candidate_products_created": 0,
+    "reference_products_verified": 0,
+    "result_available": false
+  },
+  "status": "blocked-by-approved-reference-evidence-cleanup"
+}

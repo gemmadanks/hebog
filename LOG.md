@@ -11209,3 +11209,47 @@ finder evidence were executed.
 **Immediate next step:** finish the normal handoff checks and commit the
 repair, then run the approved complete no-write verification from that clean
 immutable commit. Do not freeze executable identities or run a replay first.
+
+## 2026-08-26 — Stop at deleted reconstructed-reference evidence
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Committed the provenance repair in `9a93a41...` and corrected the real
+  `runpy` globals seam in `c5fa6ee...`. The first immutable check stopped at
+  the source guard; the corrected check passed both historical-producer and
+  corrected-consumer source identities.
+- Complete no-write verification then stopped before verifying its first
+  product because `viewed-reference-reconstruction/inputs` and `results` are
+  absent. Their permanent deletion was explicitly approved and recorded in
+  cleanup commit `fe92da1...`; only the small terminal, request, open-state,
+  and progress records were retained. The cumulative replay requires those
+  per-image bundles and reference catalogues and cannot validly substitute the
+  aggregate closed ledger.
+- Failure record `2ae63e0a...` binds both immutable attempts, repair commit and
+  wrapper, retained evidence, approved cleanup, and absent output/scratch. It
+  records zero candidate products, zero verified reference products, and no
+  scientific outcome.
+- Non-executable pre-review `e3abbe9c...` recommends rebuilding the evidence
+  from historical producer checkout `a000db4...` and the exact retained four
+  runtime images: 2,400 inputs, 9,600 PyBDSF/Aegean runs, and zero candidate
+  runs. It requires the program's 120-GiB storage floor and a new write-once
+  terminal namespace; the retained historical seal must not be overwritten.
+  The host currently has about 53 GiB available.
+
+**Decision:** do not freeze replay identities against an incomplete evidence
+directory and do not reconstruct under the provenance-repair approval. The
+repair approval covers no-write verification and identity freezing only; a
+full reference reconstruction is a separate substantial execution requiring
+named approval. Viewed SDC1/Hydra, replay, campaign, qualification, tuning,
+rescoring, cutover, and release remain unauthorized.
+
+**Validation:** 37 focused boundary, wrapper, and governance tests pass. The
+corrected production seam passes focused Ruff and Pyright, full coverage
+(1,838 passed, four expected xfails, 95.07%), `just check` (1,683 passed, four
+expected xfails), strict docs, and final pre-commit before commit. The new
+records add no scientific execution path.
+
+**Immediate next step:** obtain named approval bound to reconstruction pre-
+review `e3abbe9c...`, then provide at least 120 GiB host headroom before its
+complete no-write preflight. Do not start it, the replay, or public execution
+before those conditions are met.

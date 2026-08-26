@@ -790,9 +790,20 @@ separately approved prospective development response.
       first immutable no-write attempt exposed `runpy.run_path`'s copied return
       namespace; wrapper `b2240e55...` now patches the verifier function's
       actual globals, with a regression fixture matching that behaviour.
-- [ ] Commit the validated repair, run complete no-write verification from its
-      clean immutable checkout, freeze replacement identities, and obtain a
-      new one-replay approval. Then require
+- [x] Commit the validated repair and attempt complete no-write verification
+      from clean immutable checkouts. Commit `c5fa6ee...` passes both producer
+      and consumer source guards, but verification then stops at the first
+      reconstructed input because the approved 2026-08-22 cleanup permanently
+      deleted both raw trees. Availability failure `2ae63e0a...` records zero
+      verified products and absent replay output/scratch. Non-executable
+      reconstruction pre-review `e3abbe9c...` binds historical producer commit
+      `a000db4...`, all four retained runtimes, 2,400 inputs, 9,600 reference
+      runs, a new write-once namespace, and the 120-GiB storage precondition.
+- [ ] Obtain separate named approval for the exact reference reconstruction,
+      provide at least 120 GiB host headroom, rebuild and verify the missing
+      per-image reference evidence without any candidate run, then freeze the
+      new terminal identity. Update and re-verify the correction consumer,
+      obtain a new one-replay approval, and require
       `cumulative_science_regression_ready=true` with no like-semantics
       regression. Viewed SDC1/Hydra execution, a new campaign, fresh
       qualification, tuning, rescoring, cutover, and release remain closed.
