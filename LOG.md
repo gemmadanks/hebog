@@ -11170,3 +11170,36 @@ false.
 
 **Immediate next step:** obtain named implementation approval bound to pre-
 review `d169ab9a...`. Do not implement, freeze, or rerun it beforehand.
+
+## 2026-08-26 — Implement the reference-consumer provenance repair
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Recorded Gemma Danks's approval in decision `76477b31...`, bound to
+  non-executable pre-review `d169ab9a...` and failure record `37836fea...`.
+  It authorizes only implementation, complete no-write reference validation,
+  and replacement identity freezing; another replay and every later lifecycle
+  action remain false.
+- Added the missing producer/consumer seam to wrapper `6f383435...`.
+  Historical source `b4176ce3...` is visible only to the two frozen checks
+  that validate who produced the sealed reference reconstruction. Corrected
+  candidate revision `b1d59e5...` and source `2de6564e...` remain active for
+  candidate generation, product provenance, compilation, and evaluation.
+- Complete reconstructed-reference verification now runs after exact
+  authorization and common identity validation but before the historical main
+  can create scratch. The historical main receives only that already verified
+  in-memory view; all other `runpy` consumers are delegated unchanged.
+- Future execution must use a new decision, new identity review, and new
+  scratch path. The consumed decision and closed empty failure scratch cannot
+  authorize or seed a later replay.
+
+**Validation:** the required test-first regression failed because the scoped
+producer seam did not exist. After implementation, 34 focused wrapper and
+governance tests and 91 broader correction/recovery tests pass; focused Ruff
+and Pyright pass. `just coverage` passes 1,838 tests with four expected xfails
+and 95.07% total branch-aware coverage. No scientific products or public
+finder evidence were executed.
+
+**Immediate next step:** finish the normal handoff checks and commit the
+repair, then run the approved complete no-write verification from that clean
+immutable commit. Do not freeze executable identities or run a replay first.

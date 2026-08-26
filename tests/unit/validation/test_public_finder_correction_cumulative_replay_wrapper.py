@@ -27,6 +27,16 @@ _PRE_REVIEW = (
     _ROOT / "config/contracts/"
     "phase-5-public-finder-correction-cumulative-replay-repair-pre-review.json"
 )
+_REFERENCE_REPAIR_PRE_REVIEW = (
+    _ROOT / "config/contracts/"
+    "phase-5-public-finder-correction-cumulative-replay-reference-"
+    "provenance-repair-pre-review.json"
+)
+_REFERENCE_REPAIR_IMPLEMENTATION_DECISION = (
+    _ROOT / "config/contracts/"
+    "phase-5-public-finder-correction-cumulative-replay-reference-"
+    "provenance-repair-implementation-decision.json"
+)
 
 
 def _arguments(tmp_path: Path) -> Namespace:
@@ -39,6 +49,16 @@ def _arguments(tmp_path: Path) -> Namespace:
         workers=2,
         closed_component_baseline_ledger=tmp_path / "baseline.json",
     )
+
+
+def _reference_repair_arguments(tmp_path: Path) -> Namespace:
+    """Return the approved non-executable repair verification invocation."""
+    arguments = _arguments(tmp_path)
+    arguments.scratch = Path(
+        "/private/tmp/hebog-phase5-public-finder-correction-reference-repair-"
+        "b1d59e5"
+    )
+    return arguments
 
 
 def test_named_repair_approval_authorizes_no_replay() -> None:
@@ -61,6 +81,204 @@ def test_named_repair_approval_authorizes_no_replay() -> None:
     assert (
         decision["authorization"]["public_development_execution_authorized"]
         is False
+    )
+
+
+def test_named_reference_repair_approval_authorizes_no_replay() -> None:
+    """The latest approval permits repair and no-write verification only."""
+    decision = json.loads(
+        _REFERENCE_REPAIR_IMPLEMENTATION_DECISION.read_text(encoding="utf-8")
+    )
+
+    assert decision["pre_review"] == {
+        "path": str(_REFERENCE_REPAIR_PRE_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REFERENCE_REPAIR_PRE_REVIEW),
+    }
+    authorization = decision["authorization"]
+    assert authorization["implementation_authorized"] is True
+    assert authorization["identity_freeze_authorized"] is True
+    assert (
+        authorization["complete_no_write_reference_verification_authorized"]
+        is True
+    )
+    assert authorization["cumulative_replay_authorized"] is False
+    assert authorization["public_development_execution_authorized"] is False
+
+
+def test_reference_repair_decision_matches_the_no_write_scope(
+    tmp_path: Path,
+) -> None:
+    """The implementation decision validates only its prospective scratch."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    decision = json.loads(
+        _REFERENCE_REPAIR_IMPLEMENTATION_DECISION.read_text(encoding="utf-8")
+    )
+
+    wrapper["_validate_reference_repair_implementation_decision"](
+        decision,
+        _reference_repair_arguments(tmp_path),
+    )
+
+    decision["scope"][
+        "historical_reconstruction_producer_source_tree_sha256"
+    ] = "0" * 64
+    with pytest.raises(ValueError, match="scope changed"):
+        wrapper["_validate_reference_repair_implementation_decision"](
+            decision,
+            _reference_repair_arguments(tmp_path),
+        )
+
+
+def test_reference_producer_view_is_scoped_to_both_frozen_source_checks() -> (
+    None
+):
+    """Historical producer identity must not replace candidate identity."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+
+    def ambient_source(_root: object) -> str:
+        return "ambient-consumer-source"
+
+    protocol_globals: dict[str, Any] = {
+        "source_tree_sha256": ambient_source,
+    }
+    exec(
+        "def load_decision(_path):\n    return source_tree_sha256(None)\n",
+        protocol_globals,
+    )
+    reconstruction: dict[str, Any] = {
+        "_helpers": lambda: {
+            "load_viewed_recovery_execution_decision": protocol_globals[
+                "load_decision"
+            ]
+        },
+        "source_tree_sha256": ambient_source,
+    }
+    exec(
+        "def verify():\n"
+        "    producer = _helpers()[\n"
+        "        'load_viewed_recovery_execution_decision'\n"
+        "    ](None)\n"
+        "    return producer, source_tree_sha256(None)\n",
+        reconstruction,
+    )
+
+    wrapper["_install_reference_producer_view"](reconstruction)
+
+    expected = (
+        "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc"
+    )
+    assert reconstruction["verify"]() == (expected, expected)
+    runtime = wrapper["_candidate_runtime_identity"](
+        "b1d59e5aaf778a5fed4ea662afeba2ee100424ff"
+    )
+    assert runtime.source_revision == (
+        "b1d59e5aaf778a5fed4ea662afeba2ee100424ff"
+    )
+
+
+def test_authorized_replay_verifies_references_before_frozen_main(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A verifier failure must occur before historical scratch creation."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    globals_ = wrapper["run_authorized_replay"].__globals__
+    events: list[str] = []
+    verified = object()
+    frozen = {"main": lambda: events.append("main")}
+
+    def authorize(
+        _arguments: Namespace,
+        _decision: Path,
+    ) -> dict[str, object]:
+        events.append("authorize")
+        return {}
+
+    def verify(_arguments: Namespace) -> object:
+        events.append("verify")
+        return verified
+
+    def load() -> dict[str, Any]:
+        events.append("load")
+        return frozen
+
+    monkeypatch.setitem(
+        globals_,
+        "_authorize_replay",
+        authorize,
+    )
+    monkeypatch.setitem(
+        globals_,
+        "_verify_reference_reconstruction",
+        verify,
+    )
+    monkeypatch.setitem(
+        globals_,
+        "_load_frozen_replay",
+        load,
+    )
+
+    def install(
+        _frozen: dict[str, Any],
+        _provenance: dict[str, object],
+        *,
+        verified_reference: object,
+    ) -> None:
+        assert verified_reference is verified
+        events.append("install")
+
+    monkeypatch.setitem(globals_, "_install_repair_composition", install)
+
+    wrapper["run_authorized_replay"](
+        _arguments(tmp_path),
+        execution_decision_path=tmp_path / "decision.json",
+    )
+
+    assert events == ["authorize", "verify", "load", "install", "main"]
+
+
+def test_reference_runpy_reuses_verified_view_only_for_bound_script() -> None:
+    """Other historical runpy consumers remain byte-for-byte delegated."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    verified = object()
+
+    class Delegate:
+        def run_path(
+            self,
+            path_name: str,
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> dict[str, Any]:
+            if (
+                Path(path_name).resolve()
+                != wrapper["_REFERENCE_VERIFIER"].resolve()
+            ):
+                return {"delegated_path": path_name}
+
+            def load_decision(_path: object) -> str:
+                return "unused"
+
+            def ambient_source(_root: object) -> str:
+                return "ambient"
+
+            def unverified(*_args: Any, **_kwargs: Any) -> str:
+                return "unverified"
+
+            return {
+                "_helpers": lambda: {
+                    "load_viewed_recovery_execution_decision": load_decision
+                },
+                "source_tree_sha256": ambient_source,
+                "verify_viewed_reference_reconstruction": unverified,
+            }
+
+    proxy = wrapper["_ReferenceProducerRunpy"](Delegate(), verified)
+    other = proxy.run_path("scripts/validation/another_program.py")
+    reconstruction = proxy.run_path(str(wrapper["_REFERENCE_VERIFIER"]))
+
+    assert other == {"delegated_path": "scripts/validation/another_program.py"}
+    assert (
+        reconstruction["verify_viewed_reference_reconstruction"]() is verified
     )
 
 
@@ -186,6 +404,9 @@ def test_wrapper_refuses_absent_execution_decision_before_loading_replay(
         "evaluation_contract_sha256",
         "evaluator_sha256",
         "reference_reconstruction_sha256",
+        "reference_reconstruction_producer_source_tree_sha256",
+        "reference_repair_implementation_decision_sha256",
+        "reference_repair_pre_review_sha256",
         "reference_verifier_sha256",
         "viewed_request_sha256",
     ),

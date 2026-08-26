@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -65,10 +66,25 @@ _REPAIR_IDENTITY_REVIEW = (
     / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
     "repair-review.json"
 )
+_REFERENCE_REPAIR_PRE_REVIEW = (
+    _ROOT
+    / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
+    "reference-provenance-repair-pre-review.json"
+)
+_REFERENCE_REPAIR_IMPLEMENTATION_DECISION = (
+    _ROOT
+    / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
+    "reference-provenance-repair-implementation-decision.json"
+)
+_REFERENCE_REPAIR_IDENTITY_REVIEW = (
+    _ROOT
+    / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
+    "reference-provenance-repair-review.json"
+)
 _EXECUTION_DECISION = (
     _ROOT
     / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
-    "execution-decision.json"
+    "reference-provenance-repair-execution-decision.json"
 )
 _DEPENDENCY_LOCK = _ROOT / "uv.lock"
 _CANDIDATE_REVISION = "b1d59e5aaf778a5fed4ea662afeba2ee100424ff"
@@ -114,8 +130,20 @@ _FROZEN_REPLAY_SHA256 = (
 _IMPLEMENTATION_DECISION_SHA256 = (
     "83d14670abac952ce0d0e873cc8c3bdd37b971dddcbfc285c07594184863c75e"
 )
+_REPAIR_IDENTITY_REVIEW_SHA256 = (
+    "5e5bf04abfb11fe0833fdaefec23291ad7a2ee32c52b1fd68687d4f3fadb7cd5"
+)
 _REFERENCE_RECONSTRUCTION_SHA256 = (
     "69c66e0b87c08a7b6b99e6d252c3a798d9133622b7903e8d746dd9c0f0f4f42d"
+)
+_REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256 = (
+    "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc"
+)
+_REFERENCE_REPAIR_PRE_REVIEW_SHA256 = (
+    "d169ab9a8f040a78ac5995de6ae488444b42270895e103c7ce9dd67671ece02d"
+)
+_REFERENCE_REPAIR_IMPLEMENTATION_DECISION_SHA256 = (
+    "76477b31d8fb1392be45c97d60fa30f5e2e29c36dd2c8e88966f3eb311a6f352"
 )
 _COMPATIBILITY_CONTAINER_DIGEST = (
     "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1"
@@ -193,6 +221,76 @@ def _install_static_science_seams(frozen: dict[str, Any]) -> None:
     )
 
 
+def _historical_reconstruction_source_tree(_root: Path) -> str:
+    """Return the immutable source identity that produced the references."""
+    return _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256
+
+
+def _install_reference_producer_view(
+    reconstruction: dict[str, Any],
+) -> None:
+    """Scope the historical producer identity to both verifier checks."""
+    original_helpers = reconstruction.get("_helpers")
+    if not callable(original_helpers):
+        raise ValueError("reference reconstruction helper seam changed")
+
+    def helpers() -> dict[str, Any]:
+        namespace_value = original_helpers()
+        if not isinstance(namespace_value, dict):
+            raise ValueError("reference reconstruction helper seam changed")
+        namespace = cast(dict[str, Any], namespace_value)
+        loader = namespace.get("load_viewed_recovery_execution_decision")
+        if not callable(loader) or not hasattr(loader, "__globals__"):
+            raise ValueError("reference reconstruction helper seam changed")
+        loader_globals = loader.__globals__
+        loader_globals["source_tree_sha256"] = (
+            _historical_reconstruction_source_tree
+        )
+        return namespace
+
+    reconstruction["_helpers"] = helpers
+    reconstruction["source_tree_sha256"] = (
+        _historical_reconstruction_source_tree
+    )
+
+
+class _ReferenceProducerRunpy:
+    """Delegate runpy while exposing one already verified reference view."""
+
+    def __init__(self, delegate: Any, verified: Any | None) -> None:
+        self._delegate = delegate
+        self._verified = verified
+
+    def run_path(
+        self,
+        path_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Patch only the frozen reconstruction verifier namespace."""
+        namespace_value = self._delegate.run_path(
+            path_name,
+            *args,
+            **kwargs,
+        )
+        if not isinstance(namespace_value, dict):
+            raise ValueError("frozen runpy namespace changed")
+        namespace = cast(dict[str, Any], namespace_value)
+        if Path(path_name).resolve() != _REFERENCE_VERIFIER.resolve():
+            return namespace
+        _install_reference_producer_view(namespace)
+        if self._verified is not None:
+            verified = self._verified
+
+            def return_verified(*_args: Any, **_kwargs: Any) -> Any:
+                return verified
+
+            namespace["verify_viewed_reference_reconstruction"] = (
+                return_verified
+            )
+        return namespace
+
+
 def _generate_candidate_product(task: dict[str, object]) -> str:
     """Install the correction seams in each spawned candidate worker."""
     frozen = _load_frozen_replay()
@@ -203,10 +301,16 @@ def _generate_candidate_product(task: dict[str, object]) -> str:
 def _install_repair_composition(
     frozen: dict[str, Any],
     provenance: dict[str, object],
+    *,
+    verified_reference: Any | None = None,
 ) -> None:
     """Compose the approved repair around unchanged frozen machinery."""
     _install_static_science_seams(frozen)
     frozen["_generate_candidate_product"] = _generate_candidate_product
+    frozen["runpy"] = _ReferenceProducerRunpy(
+        frozen["runpy"],
+        verified_reference,
+    )
     original_serializer = frozen["_canonical_json_bytes"]
 
     def serialize(value: object) -> bytes:
@@ -249,6 +353,15 @@ def _expected_execution_fields(
         "historical_replay_sha256": _FROZEN_REPLAY_SHA256,
         "implementation_decision_sha256": _IMPLEMENTATION_DECISION_SHA256,
         "reference_reconstruction_sha256": (_REFERENCE_RECONSTRUCTION_SHA256),
+        "reference_reconstruction_producer_source_tree_sha256": (
+            _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256
+        ),
+        "reference_repair_pre_review_sha256": (
+            _REFERENCE_REPAIR_PRE_REVIEW_SHA256
+        ),
+        "reference_repair_implementation_decision_sha256": (
+            _REFERENCE_REPAIR_IMPLEMENTATION_DECISION_SHA256
+        ),
         "compatibility_container_digest": _COMPATIBILITY_CONTAINER_DIGEST,
         "compatibility_dependency_inventory_sha256": (
             _COMPATIBILITY_DEPENDENCY_INVENTORY_SHA256
@@ -296,22 +409,26 @@ def _validate_execution_decision(
         raise ValueError("cumulative replay authorization boundary changed")
     if any(prohibited.values()):
         raise ValueError("cumulative replay authorization boundary changed")
-    review_value = document.get("repair_identity_review")
+    review_value = document.get("reference_repair_identity_review")
     review = (
         cast(dict[object, object], review_value)
         if isinstance(review_value, dict)
         else None
     )
     if review is None or review.get("path") != str(
-        _REPAIR_IDENTITY_REVIEW.relative_to(_ROOT)
+        _REFERENCE_REPAIR_IDENTITY_REVIEW.relative_to(_ROOT)
     ):
-        raise ValueError("cumulative replay repair review identity changed")
+        raise ValueError(
+            "cumulative replay reference repair review identity changed"
+        )
     review_sha256 = review.get("sha256")
     if (
         not isinstance(review_sha256, str)
         or len(review_sha256) != _SHA256_HEX_LENGTH
     ):
-        raise ValueError("cumulative replay repair review identity changed")
+        raise ValueError(
+            "cumulative replay reference repair review identity changed"
+        )
 
 
 def _git_revision() -> str:
@@ -336,51 +453,44 @@ def _require_file_identity(path: Path, expected: str, label: str) -> None:
         raise ValueError(f"cumulative replay {label} identity changed")
 
 
-def _authorize_replay(
+def _require_common_replay_identities(
     arguments: argparse.Namespace,
-    execution_decision_path: Path,
-) -> dict[str, object]:
-    """Validate authorization and identities before scientific input access."""
-    if not execution_decision_path.is_file():
-        raise ValueError("cumulative replay is not authorized")
-    document_value = json.loads(
-        execution_decision_path.read_text(encoding="utf-8")
-    )
-    if not isinstance(document_value, dict):
-        raise ValueError("cumulative replay is not authorized")
-    document = cast(dict[str, object], document_value)
-    _validate_execution_decision(document, arguments)
+) -> str:
+    """Verify every shared source, program, evidence, and write-once bound."""
     execution_revision = _git_revision()
     if source_tree_sha256(_ROOT) != _CANDIDATE_SOURCE_TREE_SHA256:
         raise ValueError("cumulative replay candidate source tree changed")
     if _candidate_configuration_sha256() != _CANDIDATE_CONFIGURATION_SHA256:
         raise ValueError("cumulative replay candidate configuration changed")
-    _require_file_identity(
-        _BASE_REVIEW,
-        _BASE_REVIEW_SHA256,
-        "base review",
-    )
-    _require_file_identity(
-        _CORRECTION_CONTRACT,
-        _CORRECTION_CONTRACT_SHA256,
-        "correction contract",
-    )
-    _require_file_identity(
-        _DEPENDENCY_LOCK,
-        _DEPENDENCY_LOCK_SHA256,
-        "dependency lock",
-    )
-    _require_file_identity(
-        _IMPLEMENTATION_DECISION,
-        _IMPLEMENTATION_DECISION_SHA256,
-        "implementation decision",
-    )
-    _require_file_identity(
-        _FROZEN_REPLAY,
-        _FROZEN_REPLAY_SHA256,
-        "historical program",
-    )
     for path, expected, label in (
+        (_BASE_REVIEW, _BASE_REVIEW_SHA256, "base review"),
+        (
+            _CORRECTION_CONTRACT,
+            _CORRECTION_CONTRACT_SHA256,
+            "correction contract",
+        ),
+        (_DEPENDENCY_LOCK, _DEPENDENCY_LOCK_SHA256, "dependency lock"),
+        (
+            _IMPLEMENTATION_DECISION,
+            _IMPLEMENTATION_DECISION_SHA256,
+            "implementation decision",
+        ),
+        (
+            _REPAIR_IDENTITY_REVIEW,
+            _REPAIR_IDENTITY_REVIEW_SHA256,
+            "predecessor repair review",
+        ),
+        (
+            _REFERENCE_REPAIR_PRE_REVIEW,
+            _REFERENCE_REPAIR_PRE_REVIEW_SHA256,
+            "reference repair pre-review",
+        ),
+        (
+            _REFERENCE_REPAIR_IMPLEMENTATION_DECISION,
+            _REFERENCE_REPAIR_IMPLEMENTATION_DECISION_SHA256,
+            "reference repair implementation decision",
+        ),
+        (_FROZEN_REPLAY, _FROZEN_REPLAY_SHA256, "historical program"),
         (_COMPILER, _COMPILER_SHA256, "compiler"),
         (_EVALUATOR, _EVALUATOR_SHA256, "evaluator"),
         (
@@ -395,27 +505,155 @@ def _authorize_replay(
             "evaluation contract",
         ),
         (_VIEWED_REQUEST, _VIEWED_REQUEST_SHA256, "viewed request"),
+        (
+            arguments.reference_reconstruction / "recovery.json",
+            _REFERENCE_RECONSTRUCTION_SHA256,
+            "reference reconstruction",
+        ),
+        (
+            arguments.closed_component_baseline_ledger,
+            _CLOSED_BASELINE_SHA256,
+            "closed baseline",
+        ),
     ):
         _require_file_identity(path, expected, label)
-    recovery = arguments.reference_reconstruction / "recovery.json"
-    _require_file_identity(
-        recovery,
-        _REFERENCE_RECONSTRUCTION_SHA256,
-        "reference reconstruction",
-    )
-    _require_file_identity(
-        arguments.closed_component_baseline_ledger,
-        _CLOSED_BASELINE_SHA256,
-        "closed baseline",
-    )
-    review = cast(dict[str, str], document["repair_identity_review"])
-    _require_file_identity(
-        _REPAIR_IDENTITY_REVIEW,
-        review["sha256"],
-        "repair review",
-    )
     if arguments.output.exists() or arguments.scratch.exists():
         raise ValueError("cumulative replay write-once output state changed")
+    return execution_revision
+
+
+def _validate_reference_repair_implementation_decision(
+    document: dict[str, object],
+    arguments: argparse.Namespace,
+) -> None:
+    """Validate the named repair approval without authorizing a replay."""
+    if document.get("status") != (
+        "reviewed-before-reference-provenance-repair-implementation"
+    ):
+        raise ValueError("reference provenance repair is not authorized")
+    authorization_value = document.get("authorization")
+    authorization = (
+        cast(dict[object, object], authorization_value)
+        if isinstance(authorization_value, dict)
+        else None
+    )
+    expected_authorization = {
+        "campaign_execution_authorized": False,
+        "complete_no_write_reference_verification_authorized": True,
+        "cumulative_replay_authorized": False,
+        "cutover_authorized": False,
+        "fresh_qualification_authorized": False,
+        "identity_freeze_authorized": True,
+        "implementation_authorized": True,
+        "optimization_authorized": False,
+        "public_development_execution_authorized": False,
+        "release_authorized": False,
+        "rescoring_authorized": False,
+        "tuning_authorized": False,
+    }
+    if authorization != expected_authorization:
+        raise ValueError("reference provenance repair boundary changed")
+    pre_review = document.get("pre_review")
+    if pre_review != {
+        "path": str(_REFERENCE_REPAIR_PRE_REVIEW.relative_to(_ROOT)),
+        "sha256": _REFERENCE_REPAIR_PRE_REVIEW_SHA256,
+    }:
+        raise ValueError("reference provenance repair pre-review changed")
+    scope_value = document.get("scope")
+    scope = (
+        cast(dict[object, object], scope_value)
+        if isinstance(scope_value, dict)
+        else None
+    )
+    if scope is None or (
+        scope.get("candidate_source_tree_sha256")
+        != _CANDIDATE_SOURCE_TREE_SHA256
+        or scope.get("historical_reconstruction_producer_source_tree_sha256")
+        != _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256
+        or scope.get("prospective_scratch_path") != str(arguments.scratch)
+        or scope.get("required_result")
+        != "validated-non-executable-repair-and-replacement-identity-review"
+    ):
+        raise ValueError("reference provenance repair scope changed")
+
+
+def _verify_reference_reconstruction(arguments: argparse.Namespace) -> Any:
+    """Fully verify sealed references under their producer source identity."""
+    frozen = _load_frozen_replay()
+    compiler = runpy.run_path(str(_COMPILER))
+    frozen["_install_historical_source_view"](compiler)
+    terminal = compiler["_configured_terminal"]()
+    compiler_globals = terminal["compile_terminal_analysis"].__globals__
+    request_model = compiler_globals["CampaignRequest"]
+    original_request = request_model.model_validate_json(
+        _VIEWED_REQUEST.read_text(encoding="utf-8")
+    )
+    reconstruction = runpy.run_path(str(_REFERENCE_VERIFIER))
+    _install_reference_producer_view(reconstruction)
+    return reconstruction["verify_viewed_reference_reconstruction"](
+        arguments.reference_reconstruction,
+        original_request=original_request,
+        verified_run_type=compiler_globals["VerifiedRun"],
+    )
+
+
+def verify_reference_repair(
+    arguments: argparse.Namespace,
+    *,
+    implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Run the authorized complete no-write reference verification."""
+    if not implementation_decision_path.is_file():
+        raise ValueError("reference provenance repair is not authorized")
+    value = json.loads(
+        implementation_decision_path.read_text(encoding="utf-8")
+    )
+    if not isinstance(value, dict):
+        raise ValueError("reference provenance repair is not authorized")
+    _validate_reference_repair_implementation_decision(
+        cast(dict[str, object], value),
+        arguments,
+    )
+    execution_revision = _require_common_replay_identities(arguments)
+    verified = _verify_reference_reconstruction(arguments)
+    return {
+        "status": "pass",
+        "execution_checkout_revision": execution_revision,
+        "candidate_consumer_source_tree_sha256": (
+            _CANDIDATE_SOURCE_TREE_SHA256
+        ),
+        "reference_producer_source_tree_sha256": (
+            _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256
+        ),
+        "reference_reconstruction_sha256": (
+            verified.reference_reconstruction_sha256
+        ),
+        "verified_input_count": len(verified.inputs),
+        "verified_reference_run_count": len(verified.runs),
+    }
+
+
+def _authorize_replay(
+    arguments: argparse.Namespace,
+    execution_decision_path: Path,
+) -> dict[str, object]:
+    """Validate authorization and identities before scientific input access."""
+    if not execution_decision_path.is_file():
+        raise ValueError("cumulative replay is not authorized")
+    document_value = json.loads(
+        execution_decision_path.read_text(encoding="utf-8")
+    )
+    if not isinstance(document_value, dict):
+        raise ValueError("cumulative replay is not authorized")
+    document = cast(dict[str, object], document_value)
+    _validate_execution_decision(document, arguments)
+    execution_revision = _require_common_replay_identities(arguments)
+    review = cast(dict[str, str], document["reference_repair_identity_review"])
+    _require_file_identity(
+        _REFERENCE_REPAIR_IDENTITY_REVIEW,
+        review["sha256"],
+        "reference repair review",
+    )
     return {
         "candidate_source_overlay_revision": _CANDIDATE_REVISION,
         "candidate_source_tree_sha256": _CANDIDATE_SOURCE_TREE_SHA256,
@@ -431,7 +669,16 @@ def _authorize_replay(
         "dependency_lock_sha256": _DEPENDENCY_LOCK_SHA256,
         "historical_replay_sha256": _FROZEN_REPLAY_SHA256,
         "wrapper_sha256": file_sha256(Path(__file__)),
-        "repair_identity_review_sha256": review["sha256"],
+        "reference_repair_identity_review_sha256": review["sha256"],
+        "reference_repair_pre_review_sha256": (
+            _REFERENCE_REPAIR_PRE_REVIEW_SHA256
+        ),
+        "reference_repair_implementation_decision_sha256": (
+            _REFERENCE_REPAIR_IMPLEMENTATION_DECISION_SHA256
+        ),
+        "reference_reconstruction_producer_source_tree_sha256": (
+            _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256
+        ),
         "execution_decision_sha256": file_sha256(execution_decision_path),
         "execution_checkout_revision": execution_revision,
         "runtime_binding": {
@@ -453,8 +700,13 @@ def run_authorized_replay(
 ) -> None:
     """Delegate once to the frozen replay after complete authorization."""
     provenance = _authorize_replay(arguments, execution_decision_path)
+    verified_reference = _verify_reference_reconstruction(arguments)
     frozen = _load_frozen_replay()
-    _install_repair_composition(frozen, provenance)
+    _install_repair_composition(
+        frozen,
+        provenance,
+        verified_reference=verified_reference,
+    )
     frozen["_parse_args"] = lambda: arguments
     frozen["main"]()
 

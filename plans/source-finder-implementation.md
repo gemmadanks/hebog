@@ -780,12 +780,16 @@ separately approved prospective development response.
       preserves every science and evidence byte, requires both verifier-layer
       fixtures plus a complete no-write verification before identity freeze,
       and authorizes nothing.
-- [ ] Obtain named approval of pre-review `d169ab9a...`, implement and validate
-      only the minimal provenance repair, freeze replacement identities, and
-      obtain a new one-replay approval. The repair must keep historical
-      reconstruction producer source `b4176ce3...` separate from corrected
-      candidate source `2de6564e...` and add a composed no-write regression.
-      Then require
+- [x] Obtain named approval of pre-review `d169ab9a...` and implement only the
+      minimal reference-consumer provenance repair. Decision `76477b31...`
+      authorizes implementation, non-executable identity freezing, and one
+      complete no-write reference verification, but no replay. Wrapper
+      `6f383435...` scopes historical producer source `b4176ce3...` to the two
+      frozen verifier checks, preserves candidate source `2de6564e...`
+      everywhere else, and verifies references before scratch creation.
+- [ ] Commit the validated repair, run complete no-write verification from its
+      clean immutable checkout, freeze replacement identities, and obtain a
+      new one-replay approval. Then require
       `cumulative_science_regression_ready=true` with no like-semantics
       regression. Viewed SDC1/Hydra execution, a new campaign, fresh
       qualification, tuning, rescoring, cutover, and release remain closed.

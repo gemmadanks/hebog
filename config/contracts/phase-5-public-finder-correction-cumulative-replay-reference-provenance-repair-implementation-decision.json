@@ -1,0 +1,38 @@
+{
+  "approval": {
+    "approved_on": "2026-08-26",
+    "exact_approval": "I approve, please continue and complete the work required to close phase 5.",
+    "reviewer": "Gemma Danks"
+  },
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "complete_no_write_reference_verification_authorized": true,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "identity_freeze_authorized": true,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-correction-cumulative-replay-reference-provenance-repair-implementation-decision",
+  "failed_execution": {
+    "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-execution-failure.json",
+    "sha256": "37836fea7d15de1d2832f52079161d63f3cc8407edb708d6cf3f8fbb52c5341d"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-reference-provenance-repair-pre-review.json",
+    "sha256": "d169ab9a8f040a78ac5995de6ae488444b42270895e103c7ce9dd67671ece02d"
+  },
+  "schema_version": 1,
+  "scope": {
+    "candidate_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+    "historical_reconstruction_producer_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "prospective_scratch_path": "/private/tmp/hebog-phase5-public-finder-correction-reference-repair-b1d59e5",
+    "required_result": "validated-non-executable-repair-and-replacement-identity-review"
+  },
+  "status": "reviewed-before-reference-provenance-repair-implementation"
+}
