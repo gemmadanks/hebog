@@ -1,0 +1,271 @@
+{
+  "background_and_rms_policy": "frozen-qualified-candidate-estimates-from-image-no-truth-maps",
+  "candidate": {
+    "configuration_sha256": "0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94",
+    "revision": "90626641c8705ba9d55fdea02a705983528b8aa0",
+    "source_tree_sha256": "e4307246efa7db3ec941b3906f8ce443404b8b84cdc78aa89881e738850cdf8a"
+  },
+  "case_count": 10,
+  "contract_id": "phase-5-public-finder-protocol",
+  "hydra": {
+    "beam": "geometric-mean-restoring-beam-from-each-published-image-header",
+    "binding": false,
+    "cases": [
+      {
+        "case_id": "hydra-deep",
+        "depth": "deep",
+        "source_identifier": "deep-image",
+        "source_sha256": "03c649bb93c9c55c80bf0c40306947e691ba064f5491ee3c41c06eaa0b7431ce"
+      },
+      {
+        "case_id": "hydra-shallow",
+        "depth": "shallow",
+        "source_identifier": "shallow-image",
+        "source_sha256": "3df6d718f2b79c8eb0668402e919ef3eb8bab435266ec89727e4f64c657e4a34"
+      }
+    ],
+    "comparison_matrix": [
+      "hebog-deep-versus-hebog-shallow",
+      "hebog-deep-versus-each-published-deep-finder",
+      "hebog-shallow-versus-each-published-shallow-finder",
+      "published-deep-versus-shallow-within-each-finder"
+    ],
+    "deep_shallow_rule": "minimum-finite-peak-snr-observed-in-each-shallow-catalogue-applied-to-that-finders-deep-proxy-population",
+    "finder_vote_as_truth": false,
+    "match_audit": "ten-highest-snr-unmatched-per-side-and-ten-largest-positive-log-flux-ratio-primary-matches-with-stable-identifiers",
+    "missing_metric_policy": "record-unavailable-with-exact-missing-field-or-product-reason",
+    "published_finders": [
+      "aegean",
+      "caesar",
+      "profound",
+      "pybdsf",
+      "selavy"
+    ],
+    "truth_policy": "no-astronomical-ground-truth"
+  },
+  "implementation_decision": {
+    "path": "config/contracts/phase-5-public-finder-implementation-decision.json",
+    "sha256": "46216d4a93ecbbba1b66fad7d7dea049e6e34774a4b5cea44ca176318f67b349"
+  },
+  "matching": {
+    "assignment": "maximum-cardinality-then-minimum-summed-nine-decimal-quantized-absolute-natural-log-integrated-flux-ratio-then-minimum-summed-separation-then-sorted-identifiers",
+    "flux_cost_decimal_places": 9,
+    "maximum_separation_beams": 0.5
+  },
+  "output_roles": [
+    "segment-catalogue-json",
+    "segment-labels-fits",
+    "segment-mask-fits",
+    "background-fits",
+    "rms-fits"
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-execution-pre-review.json",
+    "sha256": "476265e1b4e4ef1356f62a1b31ce4eb4ba3db995c84feddd8134da94bdb5ce4a"
+  },
+  "published_finder_reruns": false,
+  "runtime": {
+    "dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+    "digest": "sha256:132f1c3da7f353edc642e9bc2e6108aff8a1dbf6f9a5556f50144db864114363",
+    "finder_id": "hebog",
+    "image_id": "e7f1ce9e9b26f6e29a14e75833bcec52e56b95ce58102f2905c3623f9902632c"
+  },
+  "schema_version": 1,
+  "sdc1": {
+    "beam_fwhm_arcsec": 0.6,
+    "binding_metric_limits": {
+      "absolute-mean-offset-x": {
+        "at_most": 0.1
+      },
+      "absolute-mean-offset-y": {
+        "at_most": 0.1
+      },
+      "completeness": {
+        "at_least": 0.9
+      },
+      "duplicate-fraction": {
+        "at_most": 0.02
+      },
+      "integrated-flux-median": {
+        "at_most": 0.1
+      },
+      "integrated-flux-p95": {
+        "at_most": 0.25
+      },
+      "merge-fraction": {
+        "at_most": 0.1
+      },
+      "position-p95": {
+        "at_most": 0.5
+      },
+      "reliability": {
+        "at_least": 0.95
+      }
+    },
+    "binding_populations": "overall-and-each-selected-stratum-without-compensation",
+    "candidate_admission": "centroid-inside-selected-half-open-output-core",
+    "diagnostics": {
+      "apparent_peak_snr_bins_half_open": [
+        [
+          5.0,
+          8.0
+        ],
+        [
+          8.0,
+          10.0
+        ],
+        [
+          10.0,
+          20.0
+        ],
+        [
+          20.0,
+          50.0
+        ],
+        [
+          50.0,
+          null
+        ]
+      ],
+      "official_population_classification": "unavailable-because-hebog-does-not-classify-source-populations",
+      "official_sdc1_score": "unavailable-because-the-full-official-score-requires-source-population-classification",
+      "position_angle_mapping": "sdc1-clockwise-from-west-to-hebog-east-of-north-axial-degrees-is-modulo-180-of-sdc1-minus-90",
+      "position_angle_minimum_truth_axis_ratio": 1.1,
+      "published_submission_count": 9,
+      "published_submission_policy": "record-each-approved-member-as-unavailable-because-the-frozen-schema-review-did-not-establish-semantic-submission-column-mappings",
+      "shape_comparison": "intrinsic-truth-versus-candidate-deconvolved-gaussian",
+      "shape_gate": "report-only",
+      "truth_size_codes": [
+        1,
+        2,
+        3
+      ]
+    },
+    "duplicate_fraction": "truth-nodes-with-more-than-one-eligible-edge-divided-by-admitted-truth-count",
+    "guard_assignment_priority": "binding-core-truth-primary-assignment-before-guard-truth-on-remaining-candidates-with-one-shared-eligible-edge-graph",
+    "halo_pixels_yx": [
+      75,
+      75
+    ],
+    "merge_fraction": "candidate-nodes-with-more-than-one-eligible-edge-divided-by-admitted-candidate-count",
+    "primary_beam_sha256": "2f066a7808c062510a8892169e11693cc40648b80d71f314e1c237c7953bc5a3",
+    "source_image_sha256": "51593b6c4da779efdd08d97eae44649cd1c226b1f07010b93bc0636ae194dc10",
+    "strata": [
+      {
+        "bounds_xy_half_open": [
+          20480,
+          22528,
+          12288,
+          14336
+        ],
+        "image_sha256": "ea5df565b5da39893b770f1145612688ceadd857d8f4b815b027e38bee2ca689",
+        "stratum": "sparse",
+        "tile_id": "y06-x10",
+        "truth_sha256": "440c010bf32123162ec345629d2b525d94604a3e5c6a1b4cb88452d89dedc87b"
+      },
+      {
+        "bounds_xy_half_open": [
+          18432,
+          20480,
+          12288,
+          14336
+        ],
+        "image_sha256": "e29d37ba3fa655faff0952103151fd6ccc42179fd2b049a96009bb09219a23cb",
+        "stratum": "ordinary",
+        "tile_id": "y06-x09",
+        "truth_sha256": "bffd63f36364807236794258062ccb1c9cae2c8e18847c18b7ea661bf798969f"
+      },
+      {
+        "bounds_xy_half_open": [
+          16384,
+          18432,
+          16384,
+          18432
+        ],
+        "image_sha256": "d244392a277337552f17e8bd9a88db588f2c23930024a3d9f67991ab727bf546",
+        "stratum": "crowded",
+        "tile_id": "y08-x08",
+        "truth_sha256": "7a108337169d052e54a30d01b0519d7c8eb7cf15a27d259eb4e74e2e0c367613"
+      },
+      {
+        "bounds_xy_half_open": [
+          12288,
+          14336,
+          10240,
+          12288
+        ],
+        "image_sha256": "a20fe0edd4b663966cf8a7f19a67d0048137c71b9cd878d32176e48b835405b1",
+        "stratum": "resolved",
+        "tile_id": "y05-x06",
+        "truth_sha256": "6bf5d4d721b73673c01ff5eb772f773037963957934ce3fd1e793bb46dc52752"
+      },
+      {
+        "bounds_xy_half_open": [
+          14336,
+          16384,
+          10240,
+          12288
+        ],
+        "image_sha256": "77a4a3552b768b40fcc2b0144427e51e6d2415444936ec6c90e9fb372e3e0901",
+        "stratum": "close-pair",
+        "tile_id": "y05-x07",
+        "truth_sha256": "81840b46bced3edf23ab2b8af20cb8df7347c777caf745b49c9b2c998a0e5a74"
+      },
+      {
+        "bounds_xy_half_open": [
+          16384,
+          18432,
+          14336,
+          16384
+        ],
+        "image_sha256": "8703aca1c901875726e7ea0ab16fb6b27322ffd1b27a909d2e83016b89d9c5b6",
+        "stratum": "high-dynamic-range",
+        "tile_id": "y07-x08",
+        "truth_sha256": "54c761012f0f2f14d46b48035bf138470dab8ff516562416cb7dc603f529abb2"
+      },
+      {
+        "bounds_xy_half_open": [
+          16384,
+          18432,
+          18432,
+          20480
+        ],
+        "image_sha256": "ebe8d889ec2b35c10d01c6ab8863d8076ab1b420fbbcab70220e51940229a6a6",
+        "stratum": "low-apparent-SNR",
+        "tile_id": "y09-x08",
+        "truth_sha256": "39d57f2a183c9607f9a005a424bef86e5bbbe9138b72f85df570c9e7535e4a5b"
+      },
+      {
+        "bounds_xy_half_open": [
+          10240,
+          12288,
+          18432,
+          20480
+        ],
+        "image_sha256": "af57ebb68f63c8355c693e33616d3a814437a2bd738bcaa66d3743e5793b3a12",
+        "stratum": "primary-beam-boundary",
+        "tile_id": "y09-x05",
+        "truth_sha256": "918195b129412b5df7d02eb4028070bab67333757efb4862d35cd5d5ca051974"
+      }
+    ],
+    "truth_admission": "finite-approved-fields-centroid-inside-core-and-apparent-peak-snr-at-least-five",
+    "truth_flux_policy": "bilinear-primary-beam-response-at-truth-centroid"
+  },
+  "selected_population": {
+    "path": "benchmark-results/phase-5/public-comparison-selection/population.json",
+    "registry_path": "config/contracts/phase-5-public-comparison-selected-population.json",
+    "registry_sha256": "df3a9088e68d4f2ba9ac1332a82ad8645f194466d3da5ae724c76494f630f1f4",
+    "sha256": "0a7c2b18d96ee47277072528949c5a64239f0c3053d5e7b33c03b36c194b7824"
+  },
+  "source_evidence": {
+    "acquisition": {
+      "path": "benchmark-results/phase-5/public-comparison-acquisition/acquisition.json",
+      "sha256": "a74e60de95debcc53bdf43d4f6046a6f74befe8a85e849a5b0105f2ecb0bd0ce"
+    },
+    "schema_review": {
+      "path": "config/contracts/phase-5-public-comparison-schema-review.json",
+      "sha256": "409318f58cafe259b4347953051ef8dddcf2308f041e8145e4199f7ad281eed8"
+    }
+  },
+  "status": "implemented-and-frozen-before-public-finder-execution"
+}

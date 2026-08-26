@@ -14,10 +14,13 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from math import atan2, cos, isfinite, log, radians, sin, sqrt
 from typing import Literal, TypeAlias
 
 import numpy as np
 import numpy.typing as npt
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import min_weight_full_bipartite_matching
 from scipy.spatial import cKDTree
 
 FloatArray: TypeAlias = npt.NDArray[np.float64]
@@ -31,6 +34,8 @@ _SDC1_NOISE_JY_PER_BEAM = 73e-9
 _LOW_SNR_MINIMUM = 5.0
 _LOW_SNR_MAXIMUM = 8.0
 _PAIR_MINIMUM_SOURCES = 2
+_MATCH_FLUX_DECIMAL_PLACES = 9
+_POSITION_ANGLE_MINIMUM_AXIS_RATIO = 1.1
 _SELECTION_STRATA = (
     "sparse",
     "ordinary",
@@ -100,6 +105,81 @@ class HydraComponent:
     major_axis_arcsec: float
     minor_axis_arcsec: float
     position_angle_deg: float
+
+
+@dataclass(frozen=True, slots=True)
+class PublicCatalogueComponent:
+    """Minimal finder-neutral component used by the public comparisons."""
+
+    identifier: str
+    right_ascension_degrees: float
+    declination_degrees: float
+    integrated_flux_jy: float
+    peak_signal_to_noise: float | None = None
+    major_axis_arcsec: float | None = None
+    minor_axis_arcsec: float | None = None
+    position_angle_degrees: float | None = None
+
+    def __post_init__(self) -> None:
+        """Reject ambiguous identifiers and non-physical core values."""
+        if not self.identifier:
+            raise ValueError("public catalogue identifier must not be empty")
+        required = (
+            self.right_ascension_degrees,
+            self.declination_degrees,
+            self.integrated_flux_jy,
+        )
+        if not all(isfinite(value) for value in required):
+            raise ValueError("public catalogue core values must be finite")
+        if self.integrated_flux_jy <= 0.0:
+            raise ValueError(
+                "public catalogue integrated flux must be positive"
+            )
+        optional = (
+            self.peak_signal_to_noise,
+            self.major_axis_arcsec,
+            self.minor_axis_arcsec,
+            self.position_angle_degrees,
+        )
+        if any(
+            value is not None and not isfinite(value) for value in optional
+        ):
+            raise ValueError("public catalogue optional values must be finite")
+        if (
+            self.peak_signal_to_noise is not None
+            and self.peak_signal_to_noise < 0
+        ):
+            raise ValueError(
+                "public catalogue signal-to-noise must be non-negative"
+            )
+        for axis in (self.major_axis_arcsec, self.minor_axis_arcsec):
+            if axis is not None and axis < 0.0:
+                raise ValueError("public catalogue axes must be non-negative")
+
+
+@dataclass(frozen=True, slots=True)
+class PublicCatalogueAssociation:
+    """One primary or eligible public-catalogue association."""
+
+    left_identifier: str
+    right_identifier: str
+    separation_beams: float
+    offset_x_beams: float
+    offset_y_beams: float
+    integrated_flux_ratio: float
+    absolute_log_flux_ratio: float
+
+
+@dataclass(frozen=True, slots=True)
+class PublicCatalogueAssociationReport:
+    """Deterministic eligible graph and its primary one-to-one assignment."""
+
+    primary_associations: tuple[PublicCatalogueAssociation, ...]
+    eligible_associations: tuple[PublicCatalogueAssociation, ...]
+    unmatched_left_identifiers: tuple[str, ...]
+    unmatched_right_identifiers: tuple[str, ...]
+    left_identifiers_with_multiple_edges: tuple[str, ...]
+    right_identifiers_with_multiple_edges: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -248,6 +328,13 @@ def apparent_peak_snr(
         / convolved_area
         / _SDC1_NOISE_JY_PER_BEAM
     )
+
+
+def sdc1_position_angle_degrees(position_angle_degrees: float) -> float:
+    """Convert SDC1 clockwise-from-west angles to Hebog axial degrees."""
+    if not isfinite(position_angle_degrees):
+        raise ValueError("SDC1 position angle must be finite")
+    return (position_angle_degrees - 90.0) % 180.0
 
 
 def build_public_tile_attributes(
@@ -475,3 +562,553 @@ def adapt_hydra_columns(
             )
         )
     return tuple(records)
+
+
+def _spherical_offsets_arcsec(
+    left: PublicCatalogueComponent,
+    right: PublicCatalogueComponent,
+) -> tuple[float, float, float]:
+    """Return signed tangent offsets and exact great-circle separation."""
+    left_ra = radians(left.right_ascension_degrees)
+    right_ra = radians(right.right_ascension_degrees)
+    left_dec = radians(left.declination_degrees)
+    right_dec = radians(right.declination_degrees)
+    delta_ra = atan2(sin(right_ra - left_ra), cos(right_ra - left_ra))
+    delta_dec = right_dec - left_dec
+    haversine = sin(delta_dec / 2.0) ** 2
+    haversine += cos(left_dec) * cos(right_dec) * sin(delta_ra / 2.0) ** 2
+    haversine = min(1.0, max(0.0, haversine))
+    separation = 2.0 * atan2(sqrt(haversine), sqrt(1.0 - haversine))
+    arcseconds_per_radian = 180.0 * 3600.0 / np.pi
+    mean_dec = (left_dec + right_dec) / 2.0
+    return (
+        delta_ra * cos(mean_dec) * arcseconds_per_radian,
+        delta_dec * arcseconds_per_radian,
+        separation * arcseconds_per_radian,
+    )
+
+
+def _unique_components(
+    components: Sequence[PublicCatalogueComponent],
+    *,
+    role: str,
+) -> tuple[PublicCatalogueComponent, ...]:
+    """Sort one side of a comparison and require stable unique IDs."""
+    ordered = tuple(sorted(components, key=lambda item: item.identifier))
+    identifiers = tuple(item.identifier for item in ordered)
+    if len(set(identifiers)) != len(identifiers):
+        raise ValueError(f"public {role} catalogue identifiers must be unique")
+    return ordered
+
+
+def _unit_sphere_coordinates(
+    components: Sequence[PublicCatalogueComponent],
+) -> FloatArray:
+    """Project catalogue coordinates onto the three-dimensional unit sphere."""
+    if not components:
+        return np.empty((0, 3), dtype=np.float64)
+    right_ascension = np.deg2rad(
+        [item.right_ascension_degrees for item in components]
+    )
+    declination = np.deg2rad([item.declination_degrees for item in components])
+    cos_declination = np.cos(declination)
+    return np.column_stack(
+        (
+            cos_declination * np.cos(right_ascension),
+            cos_declination * np.sin(right_ascension),
+            np.sin(declination),
+        )
+    ).astype(np.float64, copy=False)
+
+
+def associate_public_catalogues(  # noqa: PLR0915
+    left_components: Sequence[PublicCatalogueComponent],
+    right_components: Sequence[PublicCatalogueComponent],
+    *,
+    beam_fwhm_arcsec: float,
+    maximum_separation_beams: float,
+) -> PublicCatalogueAssociationReport:
+    """Associate two catalogues with the approved deterministic objective.
+
+    The assignment first maximizes cardinality. Among maximum-cardinality
+    assignments it minimizes the summed absolute natural-log integrated-flux
+    ratio rounded to nine decimal places, then summed angular separation,
+    with sorted identifiers providing the final deterministic tie order.
+    """
+    if not isfinite(beam_fwhm_arcsec) or beam_fwhm_arcsec <= 0.0:
+        raise ValueError("public comparison beam must be finite and positive")
+    if (
+        not isfinite(maximum_separation_beams)
+        or maximum_separation_beams <= 0.0
+    ):
+        raise ValueError(
+            "public comparison radius must be finite and positive"
+        )
+    left = _unique_components(left_components, role="left")
+    right = _unique_components(right_components, role="right")
+    eligible: dict[tuple[int, int], PublicCatalogueAssociation] = {}
+    maximum_flux_units = 0
+    maximum_separation_radians = radians(
+        maximum_separation_beams * beam_fwhm_arcsec / 3600.0
+    )
+    chord_radius = 2.0 * sin(maximum_separation_radians / 2.0)
+    right_tree = cKDTree(_unit_sphere_coordinates(right)) if right else None
+    neighbours = (
+        right_tree.query_ball_point(
+            _unit_sphere_coordinates(left),
+            chord_radius,
+        )
+        if right_tree is not None
+        else [[] for _item in left]
+    )
+    for left_index, (left_item, right_indices) in enumerate(
+        zip(left, neighbours, strict=True)
+    ):
+        for right_index in sorted(right_indices):
+            right_item = right[right_index]
+            offset_x, offset_y, separation_arcsec = _spherical_offsets_arcsec(
+                left_item,
+                right_item,
+            )
+            separation_beams = separation_arcsec / beam_fwhm_arcsec
+            if separation_beams > maximum_separation_beams:
+                continue
+            flux_ratio = (
+                right_item.integrated_flux_jy / left_item.integrated_flux_jy
+            )
+            flux_cost = abs(log(flux_ratio))
+            flux_units = round(flux_cost * 10**_MATCH_FLUX_DECIMAL_PLACES)
+            maximum_flux_units = max(maximum_flux_units, flux_units)
+            eligible[(left_index, right_index)] = PublicCatalogueAssociation(
+                left_identifier=left_item.identifier,
+                right_identifier=right_item.identifier,
+                separation_beams=separation_beams,
+                offset_x_beams=offset_x / beam_fwhm_arcsec,
+                offset_y_beams=offset_y / beam_fwhm_arcsec,
+                integrated_flux_ratio=flux_ratio,
+                absolute_log_flux_ratio=flux_cost,
+            )
+
+    left_count = len(left)
+    right_count = len(right)
+    primary_indices: set[tuple[int, int]] = set()
+    if left_count:
+        maximum_matches = min(left_count, right_count)
+        separation_scale = maximum_matches * maximum_separation_beams + 1.0
+        maximum_edge_cost = maximum_flux_units
+        maximum_edge_cost += maximum_separation_beams / separation_scale + 1.0
+        unmatched_penalty = maximum_matches * maximum_edge_cost + 1.0
+        row_values: list[int] = []
+        column_values: list[int] = []
+        cost_values: list[float] = []
+        for (left_index, right_index), association in eligible.items():
+            flux_units = round(
+                association.absolute_log_flux_ratio
+                * 10**_MATCH_FLUX_DECIMAL_PLACES
+            )
+            cost = flux_units + association.separation_beams / separation_scale
+            row_values.append(left_index)
+            column_values.append(right_index)
+            cost_values.append(max(float(np.nextafter(0.0, 1.0)), cost))
+        for left_index in range(left_count):
+            row_values.append(left_index)
+            column_values.append(right_count + left_index)
+            cost_values.append(unmatched_penalty)
+        costs = coo_matrix(
+            (cost_values, (row_values, column_values)),
+            shape=(left_count, right_count + left_count),
+            dtype=np.float64,
+        ).tocsr()
+        row_indices, column_indices = min_weight_full_bipartite_matching(costs)
+        primary_indices = {
+            (int(row), int(column))
+            for row, column in zip(row_indices, column_indices, strict=True)
+            if (int(row), int(column)) in eligible
+        }
+
+    primary = tuple(
+        eligible[index]
+        for index in sorted(
+            primary_indices,
+            key=lambda item: (
+                eligible[item].left_identifier,
+                eligible[item].right_identifier,
+            ),
+        )
+    )
+    eligible_records = tuple(
+        sorted(
+            eligible.values(),
+            key=lambda item: (item.left_identifier, item.right_identifier),
+        )
+    )
+    matched_left = {item.left_identifier for item in primary}
+    matched_right = {item.right_identifier for item in primary}
+    left_degrees = {
+        item.identifier: sum(
+            association.left_identifier == item.identifier
+            for association in eligible_records
+        )
+        for item in left
+    }
+    right_degrees = {
+        item.identifier: sum(
+            association.right_identifier == item.identifier
+            for association in eligible_records
+        )
+        for item in right
+    }
+    return PublicCatalogueAssociationReport(
+        primary_associations=primary,
+        eligible_associations=eligible_records,
+        unmatched_left_identifiers=tuple(
+            item.identifier
+            for item in left
+            if item.identifier not in matched_left
+        ),
+        unmatched_right_identifiers=tuple(
+            item.identifier
+            for item in right
+            if item.identifier not in matched_right
+        ),
+        left_identifiers_with_multiple_edges=tuple(
+            identifier
+            for identifier, degree in left_degrees.items()
+            if degree > 1
+        ),
+        right_identifiers_with_multiple_edges=tuple(
+            identifier
+            for identifier, degree in right_degrees.items()
+            if degree > 1
+        ),
+    )
+
+
+def associate_truth_with_guard(
+    binding_truth_components: Sequence[PublicCatalogueComponent],
+    guard_truth_components: Sequence[PublicCatalogueComponent],
+    candidate_components: Sequence[PublicCatalogueComponent],
+    *,
+    beam_fwhm_arcsec: float,
+    maximum_separation_beams: float,
+) -> PublicCatalogueAssociationReport:
+    """Associate binding truth before guard without changing the edge graph."""
+    binding_identifiers = {
+        item.identifier for item in binding_truth_components
+    }
+    guard_identifiers = {item.identifier for item in guard_truth_components}
+    if binding_identifiers.intersection(guard_identifiers):
+        raise ValueError(
+            "binding and guard truth identifiers must be disjoint"
+        )
+    all_truth = (*binding_truth_components, *guard_truth_components)
+    graph = associate_public_catalogues(
+        all_truth,
+        candidate_components,
+        beam_fwhm_arcsec=beam_fwhm_arcsec,
+        maximum_separation_beams=maximum_separation_beams,
+    )
+    binding = associate_public_catalogues(
+        binding_truth_components,
+        candidate_components,
+        beam_fwhm_arcsec=beam_fwhm_arcsec,
+        maximum_separation_beams=maximum_separation_beams,
+    )
+    candidate_by_identifier = {
+        item.identifier: item for item in candidate_components
+    }
+    remaining_candidates = tuple(
+        candidate_by_identifier[identifier]
+        for identifier in binding.unmatched_right_identifiers
+    )
+    guard = associate_public_catalogues(
+        guard_truth_components,
+        remaining_candidates,
+        beam_fwhm_arcsec=beam_fwhm_arcsec,
+        maximum_separation_beams=maximum_separation_beams,
+    )
+    primary = tuple(
+        sorted(
+            (*binding.primary_associations, *guard.primary_associations),
+            key=lambda item: (item.left_identifier, item.right_identifier),
+        )
+    )
+    matched_left = {item.left_identifier for item in primary}
+    matched_right = {item.right_identifier for item in primary}
+    return PublicCatalogueAssociationReport(
+        primary_associations=primary,
+        eligible_associations=graph.eligible_associations,
+        unmatched_left_identifiers=tuple(
+            identifier
+            for identifier in (
+                *binding.unmatched_left_identifiers,
+                *guard.unmatched_left_identifiers,
+            )
+            if identifier not in matched_left
+        ),
+        unmatched_right_identifiers=tuple(
+            item.identifier
+            for item in _unique_components(
+                candidate_components,
+                role="candidate",
+            )
+            if item.identifier not in matched_right
+        ),
+        left_identifiers_with_multiple_edges=(
+            graph.left_identifiers_with_multiple_edges
+        ),
+        right_identifiers_with_multiple_edges=(
+            graph.right_identifiers_with_multiple_edges
+        ),
+    )
+
+
+def _percentile(values: Sequence[float], percentile: float) -> float | None:
+    """Return one deterministic linear percentile or explicit absence."""
+    if not values:
+        return None
+    return float(
+        np.percentile(np.asarray(values), percentile, method="linear")
+    )
+
+
+def summarize_truth_association(
+    report: PublicCatalogueAssociationReport,
+    truth_components: Sequence[PublicCatalogueComponent],
+    candidate_components: Sequence[PublicCatalogueComponent],
+    *,
+    binding_truth_identifiers: frozenset[str] | None = None,
+) -> dict[str, float | int | None]:
+    """Calculate the complete binding SDC1 endpoint family."""
+    binding_truth = (
+        frozenset(item.identifier for item in truth_components)
+        if binding_truth_identifiers is None
+        else binding_truth_identifiers
+    )
+    known_truth = {item.identifier for item in truth_components}
+    if not binding_truth.issubset(known_truth):
+        raise ValueError(
+            "binding truth identifiers must exist in the catalogue"
+        )
+    truth_count = len(binding_truth)
+    candidate_count = len(candidate_components)
+    binding_associations = tuple(
+        item
+        for item in report.primary_associations
+        if item.left_identifier in binding_truth
+    )
+    matched_count = len(binding_associations)
+    reliable_candidate_count = len(
+        {item.right_identifier for item in report.primary_associations}
+    )
+    flux_errors = tuple(
+        abs(item.integrated_flux_ratio - 1.0) for item in binding_associations
+    )
+    radial_offsets = tuple(
+        item.separation_beams for item in binding_associations
+    )
+    x_offsets = tuple(item.offset_x_beams for item in binding_associations)
+    y_offsets = tuple(item.offset_y_beams for item in binding_associations)
+    return {
+        "truth_count": truth_count,
+        "candidate_count": candidate_count,
+        "matched_count": matched_count,
+        "completeness": matched_count / truth_count if truth_count else None,
+        "reliability": (
+            reliable_candidate_count / candidate_count
+            if candidate_count
+            else None
+        ),
+        "duplicate-fraction": (
+            len(
+                binding_truth.intersection(
+                    report.left_identifiers_with_multiple_edges
+                )
+            )
+            / truth_count
+            if truth_count
+            else None
+        ),
+        "merge-fraction": (
+            len(report.right_identifiers_with_multiple_edges) / candidate_count
+            if candidate_count
+            else None
+        ),
+        "integrated-flux-median": _percentile(flux_errors, 50.0),
+        "integrated-flux-p95": _percentile(flux_errors, 95.0),
+        "absolute-mean-offset-x": (
+            abs(float(np.mean(x_offsets))) if x_offsets else None
+        ),
+        "absolute-mean-offset-y": (
+            abs(float(np.mean(y_offsets))) if y_offsets else None
+        ),
+        "position-p95": _percentile(radial_offsets, 95.0),
+    }
+
+
+def summarize_shape_diagnostics(
+    report: PublicCatalogueAssociationReport,
+    left_components: Sequence[PublicCatalogueComponent],
+    right_components: Sequence[PublicCatalogueComponent],
+    *,
+    included_left_identifiers: frozenset[str] | None = None,
+) -> dict[str, float | int | None]:
+    """Summarize non-binding fitted-size and orientation diagnostics."""
+    left = {item.identifier: item for item in left_components}
+    right = {item.identifier: item for item in right_components}
+    major_errors: list[float] = []
+    minor_errors: list[float] = []
+    position_angle_errors: list[float] = []
+    for association in report.primary_associations:
+        if (
+            included_left_identifiers is not None
+            and association.left_identifier not in included_left_identifiers
+        ):
+            continue
+        left_item = left[association.left_identifier]
+        right_item = right[association.right_identifier]
+        if (
+            left_item.major_axis_arcsec is not None
+            and left_item.major_axis_arcsec > 0.0
+            and right_item.major_axis_arcsec is not None
+        ):
+            major_errors.append(
+                abs(
+                    right_item.major_axis_arcsec / left_item.major_axis_arcsec
+                    - 1.0
+                )
+            )
+        if (
+            left_item.minor_axis_arcsec is not None
+            and left_item.minor_axis_arcsec > 0.0
+            and right_item.minor_axis_arcsec is not None
+        ):
+            minor_errors.append(
+                abs(
+                    right_item.minor_axis_arcsec / left_item.minor_axis_arcsec
+                    - 1.0
+                )
+            )
+        if (
+            left_item.position_angle_degrees is not None
+            and right_item.position_angle_degrees is not None
+            and left_item.major_axis_arcsec is not None
+            and left_item.major_axis_arcsec > 0.0
+            and left_item.minor_axis_arcsec is not None
+            and (
+                left_item.minor_axis_arcsec == 0.0
+                or left_item.major_axis_arcsec / left_item.minor_axis_arcsec
+                >= _POSITION_ANGLE_MINIMUM_AXIS_RATIO
+            )
+        ):
+            difference = (
+                right_item.position_angle_degrees
+                - left_item.position_angle_degrees
+            )
+            position_angle_errors.append(
+                abs((difference + 90.0) % 180.0 - 90.0)
+            )
+    return {
+        "major-axis-count": len(major_errors),
+        "major-axis-fractional-error-median": _percentile(major_errors, 50.0),
+        "major-axis-fractional-error-p95": _percentile(major_errors, 95.0),
+        "minor-axis-count": len(minor_errors),
+        "minor-axis-fractional-error-median": _percentile(minor_errors, 50.0),
+        "minor-axis-fractional-error-p95": _percentile(minor_errors, 95.0),
+        "position-angle-count": len(position_angle_errors),
+        "position-angle-absolute-error-median-deg": _percentile(
+            position_angle_errors, 50.0
+        ),
+        "position-angle-absolute-error-p95-deg": _percentile(
+            position_angle_errors, 95.0
+        ),
+    }
+
+
+def _unmatched_audit(
+    identifiers: Sequence[str],
+    components: Sequence[PublicCatalogueComponent],
+) -> list[dict[str, float | str | None]]:
+    """Return at most ten stable highest-SNR unmatched records."""
+    selected = set(identifiers)
+    records = [item for item in components if item.identifier in selected]
+    records.sort(
+        key=lambda item: (
+            -(
+                item.peak_signal_to_noise
+                if item.peak_signal_to_noise is not None
+                else -1.0
+            ),
+            item.identifier,
+        )
+    )
+    return [
+        {
+            "identifier": item.identifier,
+            "peak_signal_to_noise": item.peak_signal_to_noise,
+        }
+        for item in records[:10]
+    ]
+
+
+def summarize_hydra_association(
+    report: PublicCatalogueAssociationReport,
+    left_components: Sequence[PublicCatalogueComponent],
+    right_components: Sequence[PublicCatalogueComponent],
+) -> dict[str, object]:
+    """Calculate complete non-binding Hydra comparison diagnostics."""
+    left_count = len(left_components)
+    right_count = len(right_components)
+    matched_count = len(report.primary_associations)
+    smaller_count = min(left_count, right_count)
+    separations = tuple(
+        item.separation_beams for item in report.primary_associations
+    )
+    flux_ratios = tuple(
+        item.integrated_flux_ratio for item in report.primary_associations
+    )
+    positive_outliers = sorted(
+        (
+            item
+            for item in report.primary_associations
+            if item.integrated_flux_ratio > 1.0
+        ),
+        key=lambda item: (
+            -log(item.integrated_flux_ratio),
+            item.left_identifier,
+            item.right_identifier,
+        ),
+    )
+    return {
+        "binding": False,
+        "left_count": left_count,
+        "right_count": right_count,
+        "matched_count": matched_count,
+        "overlap": matched_count / smaller_count if smaller_count else None,
+        "left_recovery_surrogate": (
+            matched_count / left_count if left_count else None
+        ),
+        "right_recovery_surrogate": (
+            matched_count / right_count if right_count else None
+        ),
+        "position-median-beams": _percentile(separations, 50.0),
+        "position-p95-beams": _percentile(separations, 95.0),
+        "integrated-flux-ratio-median": _percentile(flux_ratios, 50.0),
+        "integrated-flux-ratio-p95": _percentile(flux_ratios, 95.0),
+        "left_unmatched_highest_snr": _unmatched_audit(
+            report.unmatched_left_identifiers,
+            left_components,
+        ),
+        "right_unmatched_highest_snr": _unmatched_audit(
+            report.unmatched_right_identifiers,
+            right_components,
+        ),
+        "largest-positive-flux-ratio-outliers": [
+            {
+                "left_identifier": item.left_identifier,
+                "right_identifier": item.right_identifier,
+                "integrated_flux_ratio": item.integrated_flux_ratio,
+            }
+            for item in positive_outliers[:10]
+        ],
+    }
