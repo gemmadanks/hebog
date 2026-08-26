@@ -11102,3 +11102,24 @@ campaign, qualification, tuning, rescoring, cutover, or release.
 **Immediate next step:** request named replay approval bound to review
 `5e5bf04a...`, candidate `b1d59e5...`, correction configuration `65c8876d...`,
 wrapper `b4d02784...`, and baseline `a45303df...`. Do not execute beforehand.
+
+## 2026-08-26 — Authorize the replacement correction replay
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Gemma Danks approved exactly one complete two-worker 800-compact/1,600-
+  Continuum cumulative replay bound to replacement review `5e5bf04a...`,
+  candidate `b1d59e5...`, complete correction configuration `65c8876d...`,
+  wrapper `b4d02784...`, and closed baseline `a45303df...`.
+- The execution decision retains the exact approval and binds every wrapper-
+  checked source, dependency, population, historical program, contract,
+  output, scratch, and worker identity. Viewed SDC1/Hydra execution, another
+  campaign, fresh qualification, optimization, tuning, rescoring, cutover,
+  and release all remain false.
+- The decision itself creates no scratch, candidate product, replay ledger, or
+  corrected viewed-public result. A clean immutable-checkout no-write
+  preflight is still required before starting the single authorized process.
+
+**Immediate next step:** validate and commit the authorization record, then
+run the complete no-write preflight. Start the single replay only if every
+identity remains exact and both write-once paths remain absent.

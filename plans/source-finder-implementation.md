@@ -763,8 +763,13 @@ separately approved prospective development response.
       inherited dependency reference, historical programs/contracts, and
       closed baseline. The execution decision, output, scratch, and corrected
       viewed-public products are absent, and all authorization flags are false.
-- [ ] Obtain named approval bound to replacement review `5e5bf04a...` before
-      running exactly one complete cumulative replay. Require
+- [x] Obtain named approval bound to replacement review `5e5bf04a...` for
+      exactly one complete cumulative replay. The decision binds candidate
+      `b1d59e5...`, configuration `65c8876d...`, wrapper `b4d02784...`, the
+      two-worker 800-compact/1,600-Continuum composition, and closed baseline
+      `a45303df...`; all later lifecycle actions remain unauthorized.
+- [ ] Run the approved replay from a clean immutable checkout after a complete
+      no-write identity preflight. Require
       `cumulative_science_regression_ready=true` with no like-semantics
       regression. Viewed SDC1/Hydra execution, a new campaign, fresh
       qualification, tuning, rescoring, cutover, and release remain closed.

@@ -21,6 +21,11 @@ _WRAPPER = (
     _ROOT / "scripts/validation/"
     "review_phase5_public_finder_correction_cumulative_regressions.py"
 )
+_EXECUTION_DECISION = (
+    _ROOT
+    / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
+    "execution-decision.json"
+)
 
 
 def _load() -> dict[str, Any]:
@@ -176,12 +181,60 @@ def test_replacement_review_matches_wrapper_execution_fields() -> None:
     }
 
 
+def test_named_approval_binds_the_exact_replacement_composition() -> None:
+    """The execution decision exactly matches the frozen wrapper fields."""
+    review = _load()
+    execution = review["prospective_execution"]
+    decision = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
+    wrapper = runpy.run_path(str(_WRAPPER))
+    expected = wrapper["_expected_execution_fields"](
+        Namespace(
+            campaign=None,
+            reference_reconstruction=Path(
+                execution["reference_reconstruction_path"]
+            ),
+            output=Path(execution["output"]["path"]),
+            scratch=Path(execution["scratch"]["path"]),
+            workers=execution["workers"],
+            closed_component_baseline_ledger=Path(
+                review["closed_boundary"]["baseline"]["path"]
+            ),
+        )
+    )
+
+    assert decision["repair_identity_review"] == {
+        "path": str(_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REVIEW),
+    }
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    assert set(decision["prohibited_authorizations"].values()) == {False}
+    assert {field: decision[field] for field in expected} == expected
+    wrapper["_validate_execution_decision"](
+        decision,
+        Namespace(
+            campaign=None,
+            reference_reconstruction=Path(
+                execution["reference_reconstruction_path"]
+            ),
+            output=Path(execution["output"]["path"]),
+            scratch=Path(execution["scratch"]["path"]),
+            workers=execution["workers"],
+            closed_component_baseline_ledger=Path(
+                review["closed_boundary"]["baseline"]["path"]
+            ),
+        ),
+    )
+
+
 def test_replacement_write_once_and_public_outputs_are_absent() -> None:
-    """Freezing identities creates no replay or corrected viewed products."""
+    """Approval creates no replay or corrected viewed products."""
     review = _load()
     execution = review["prospective_execution"]
 
-    assert not (_ROOT / execution["execution_decision"]["path"]).exists()
+    assert _ROOT / execution["execution_decision"]["path"] == (
+        _EXECUTION_DECISION
+    )
     assert not (_ROOT / execution["output"]["path"]).exists()
     assert not Path(execution["scratch"]["path"]).exists()
     for name in (
