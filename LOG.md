@@ -11276,3 +11276,30 @@ before those conditions are met.
 clean historical checkout, and run the complete no-write preflight. Do not
 create staging or execute reconstruction unless the observed host headroom is
 at least 120 GiB and every identity remains exact.
+
+## 2026-08-26 — Stop reconstruction preflight at the storage gate
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Committed authorization as `cce40c7...` and created a clean detached
+  historical producer checkout at exact commit `a000db4...` / tree
+  `fd4bec6a...`. Program `81faad48...` and decision `b35f4a81...` match the
+  approved identities.
+- The committed `--preflight-only` path verified the retained 2,400/9,600
+  population, all four exact Podman image identities, and absent output and
+  staging. It then stopped at the governed storage check: 75.7465 GiB was
+  available against the required 120 GiB, a 44.2535-GiB shortfall.
+- No input materialization, reference runner, candidate run, staging
+  directory, or terminal output was started. The single authorized
+  reconstruction remains unconsumed. Compact preflight record SHA-256 is
+  `a2e752dc...`.
+
+**Decision:** do not weaken the declared storage floor or start a partial
+reconstruction. Retain the immutable checkout and exact images, free at least
+44.2535 GiB more, then repeat the complete no-write preflight before using the
+single execution authorization.
+
+**Immediate next step:** obtain sufficient host headroom without pruning the
+four exact runtime images or required public-comparison population, then rerun
+the no-write preflight. The cumulative replay and later Phase 5 actions remain
+closed.

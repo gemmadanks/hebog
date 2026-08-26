@@ -812,6 +812,10 @@ separately approved prospective development response.
       `cumulative_science_regression_ready=true` with no like-semantics
       regression. Viewed SDC1/Hydra execution, a new campaign, fresh
       qualification, tuning, rescoring, cutover, and release remain closed.
+      The first authorized no-write preflight passed checkout, program,
+      decision, population, all four image identities, and write-once-path
+      checks, then stopped with 75.7465 GiB available against 120 GiB. No
+      staging or execution began; at least another 44.2535 GiB is required.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

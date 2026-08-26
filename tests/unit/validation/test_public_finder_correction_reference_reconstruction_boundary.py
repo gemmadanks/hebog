@@ -24,6 +24,10 @@ _DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-correction-reference-"
     "reconstruction-decision.json"
 )
+_PREFLIGHT = (
+    _ROOT / "config/contracts/phase-5-public-finder-correction-reference-"
+    "reconstruction-preflight.json"
+)
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -208,3 +212,40 @@ def test_approved_reconstruction_paths_remain_write_once() -> None:
 
     assert not (_ROOT / execution["output_path"]).exists()
     assert not (_ROOT / execution["staging_path"]).exists()
+
+
+def test_preflight_stops_before_execution_when_storage_is_insufficient() -> (
+    None
+):
+    """A failed storage gate leaves the single execution unconsumed."""
+    preflight = _load(_PREFLIGHT)
+
+    assert preflight["status"] == "blocked-insufficient-host-storage"
+    assert preflight["authorization_decision"] == {
+        "path": str(_DECISION.relative_to(_ROOT)),
+        "sha256": file_sha256(_DECISION),
+    }
+    assert preflight["preflight_checks"] == {
+        "clean_historical_checkout": True,
+        "decision_identity_exact": True,
+        "host_storage_passed": False,
+        "output_and_staging_absent": True,
+        "population_identity_exact": True,
+        "program_identity_exact": True,
+        "runtime_image_count": 4,
+        "runtime_images_exact": True,
+    }
+    state = preflight["execution_state"]
+    assert state["authorized_execution_consumed"] is False
+    assert state["input_materializations_started"] == 0
+    assert state["reference_runs_started"] == 0
+    assert state["candidate_runs_started"] == 0
+    assert state["output_absent"] is True
+    assert state["staging_absent"] is True
+    assert not (_ROOT / state["output_path"]).exists()
+    assert not (_ROOT / state["staging_path"]).exists()
+    assert (
+        preflight["storage"]["observed_available_gib"]
+        < (preflight["storage"]["minimum_available_gib"])
+    )
+    assert set(preflight["authorization"].values()) == {False}
