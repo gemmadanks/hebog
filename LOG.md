@@ -10937,3 +10937,45 @@ external protocol, and final-qualification identity tests remain green.
 **Immediate next step:** create and review exact non-executable implementation
 identities. Do not run the cumulative replay, open corrected viewed products,
 or authorize qualification.
+
+## 2026-08-26 — Freeze public-finder correction identities
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Published non-executable identity review `e2121fb8...` for fixture-validated
+  candidate commit `b1d59e5...`, Git tree `4e16d9a0...`, and production source
+  tree `2de6564e...`. The review binds the unchanged base configuration
+  `0e5dde51...`, correction contract `f0ddd4d5...`, implementation decision
+  `8ade048d...`, and approved pre-review `3e02aff3...`.
+- Bound each changed candidate artifact and its fixture-validation identity,
+  while preserving the historical three-beam oracle `06cd8a0d...`, recovery
+  composition `9343e069...`, and association-edge seam `84a66a9c...`.
+- Bound the exact closed cumulative baseline `a45303df...` and unchanged replay
+  program `5d41d31e...`. The prospective correction ledger is absent. Corrected
+  viewed campaign, analysis, and decision products are also absent; the viewed
+  population remains development evidence and no executable viewed protocol
+  has been frozen.
+- Added focused governance regressions that require all review authorization
+  flags to remain false, verify immutable contract links, preserve the closed
+  baseline and selected-population bindings, and record absent outputs without
+  opening ignored scientific products.
+
+**Decision:** identity review `e2121fb8...` is ready for a separate named
+approval authorizing one complete cumulative replay only. It does not authorize
+viewed SDC1/Hydra execution, a new campaign, fresh qualification, tuning,
+rescoring, cutover, or release.
+
+**Validation:** all four focused identity tests and all nine fixture-only
+correction unit tests pass. The local Dask partition-invariance integration
+test passes outside the app's loopback-socket sandbox. `just check` passes
+1,645 tests with 199 deselected and four expected xfails; strict documentation
+build, focused Ruff, focused Pyright, JSON formatting, and diff hygiene pass.
+No production code changed, so the already-recorded 95.06% branch-aware
+coverage result for candidate `b1d59e5...` remains the applicable candidate
+coverage evidence and was not rerun for this records-only freeze.
+
+**Immediate next step:** obtain named approval bound to review `e2121fb8...`
+and candidate `b1d59e5...` before running the complete 800-compact/1,600-
+Continuum replay against baseline `a45303df...`. Interpret compact and
+Continuum science before any later public diagnostics and require no
+like-semantics regression.

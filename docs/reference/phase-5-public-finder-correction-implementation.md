@@ -5,6 +5,13 @@ not an executable public protocol and has not been run against viewed SDC1 or
 Hydra data. Cumulative replay, a new campaign, fresh qualification, tuning,
 rescoring, cutover, and release remain unauthorized.
 
+Exact non-executable identity review SHA-256 `e2121fb8...` binds implementation
+commit `b1d59e5...`, source tree `2de6564e...`, the unchanged base candidate
+configuration, correction contract `f0ddd4d5...`, and closed cumulative
+baseline `a45303df...`. Every authorization flag in that review is false. The
+next permitted boundary is a separate named approval for one complete
+cumulative replay only; it does not include viewed-data execution.
+
 The implementation is governed by correction pre-review SHA-256
 `3e02aff3...` and the named implementation decision in
 `config/contracts/phase-5-public-finder-correction-implementation-decision.json`.
@@ -104,10 +111,13 @@ execution when carrying the global owner-reference map. Existing Phase 5
 partition and filter-execution regressions remain green.
 
 No test or command in this implementation opens sealed public products or the
-closed cumulative ledger. The next permitted action is to freeze exact
-non-executable implementation identities. A complete cumulative replay and
-any execution on viewed public data require a later named approval. Fresh
-held-out qualification remains a separate boundary after those reviews.
+closed cumulative ledger. The exact non-executable identities are frozen by
+review `e2121fb8...`; the prospective replay output and corrected viewed
+campaign, analysis, and decision were all absent at review time. One complete
+cumulative replay requires a named approval bound to that exact review. Any
+execution on viewed public data requires a later executable protocol freeze
+and separate approval. Fresh held-out qualification remains a distinct
+boundary after those reviews.
 
 The focused fixture suite passes 118 tests. The branch-aware repository suite
 passes 1,796 tests with four expected xfails and 95.06% total coverage. The

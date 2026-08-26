@@ -736,8 +736,18 @@ separately approved prospective development response.
       adapter exposes only position, size, and apparent flux; classification,
       core fraction, and the official global score remain unavailable. Viewed
       SDC1/Hydra products and the closed cumulative ledger were not opened.
-      Freeze exact non-executable identities next, then obtain separate named
-      approval before any cumulative replay or viewed-development execution.
+      Exact non-executable identity review `e2121fb8...` now binds candidate
+      `b1d59e5...`, source tree `2de6564e...`, the unchanged base configuration,
+      correction contract `f0ddd4d5...`, closed cumulative baseline
+      `a45303df...`, and the still-closed viewed population. It records that no
+      replay ledger or corrected viewed products exist and authorizes nothing.
+- [ ] Obtain named approval bound to correction identity review `e2121fb8...`
+      for one complete cumulative replay only. Interpret compact and Continuum
+      science before any public diagnostics and require
+      `cumulative_science_regression_ready=true` with no like-semantics
+      regression. Execution on viewed SDC1/Hydra evidence, a new campaign,
+      fresh qualification, tuning, rescoring, cutover, and release remain
+      separate closed boundaries.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
