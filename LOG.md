@@ -10491,3 +10491,35 @@ real-seam regression, a corrected compiler and dependent registry/evaluator
 identities, and an exact existing-campaign evaluation amendment bound to
 campaign `4badb8e1...`. Named approval is required before the corrected
 composition may compile and evaluate that existing campaign once.
+
+## 2026-08-26 — Pre-review final-qualification evaluation repair
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Created machine pre-review SHA-256 `8cff6163...`, binding sealed campaign
+  `4badb8e1...`, request `eebb6d79...`, the 1,688/8,440 population, original
+  compiler `c2b7f3ac...`, evaluator `558e2957...`, registry `c34b51a9...`,
+  evaluation contract `4b05d792...`, approved decision `0c098922...`, and
+  identity review `42ad6237...`. Analysis and decision remain absent.
+- Selected an evaluation-only wrapper strategy. The original frozen programs
+  and evidence remain byte-exact; a prospective compiler will install the
+  complete final aliases at both inherited helper layers before delegating to
+  the frozen compiler, and a prospective evaluator will validate repair
+  provenance before delegating unchanged scientific scoring.
+- Rejected campaign reexecution, in-place edits to the frozen compiler, an ad
+  hoc global patch, and treating operational completion as a scientific pass.
+  The mandatory regression must invoke the actual JSON adapter that failed,
+  retain the 1,688/8,440 model, and prove every unauthorized scope fails
+  closed without reading raw qualification products.
+- Added a deterministic contract test for the pending review and its frozen
+  tracked identities. Focused final-qualification protocol validation passes
+  seven tests.
+
+**Decision:** the repair design is ready for named implementation review but
+authorizes no implementation, compilation, evaluation, campaign execution,
+optimization, tuning, rescoring, cutover, or release.
+
+**Immediate next step:** obtain named approval of pre-review `8cff6163...`.
+That approval may permit implementation, tests, and freezing exact repair
+identities only. A separate later exact-identity approval is required before
+the repair may compile and evaluate sealed campaign `4badb8e1...` once.

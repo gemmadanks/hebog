@@ -278,3 +278,65 @@ def test_final_qualification_programs_load_without_opening_science(
     assert observed[0].preflight_only is True
     assert observed[0].resume is False
     assert not (tmp_path / "must-not-exist").exists()
+
+
+def test_final_qualification_evaluation_repair_pre_review_is_closed() -> None:
+    """The repair proposal binds failure evidence but authorizes no action."""
+    path = (
+        _ROOT / "config/contracts/"
+        "phase-5-final-qualification-evaluation-repair-pre-review.json"
+    )
+    review = json.loads(path.read_text(encoding="utf-8"))
+
+    assert review["review_id"] == (
+        "phase-5-final-qualification-evaluation-repair-pre-review"
+    )
+    assert review["status"] == ("ready-for-named-repair-implementation-review")
+    assert review["authorization_boundary"] == {
+        "campaign_reexecution_authorized": False,
+        "compilation_authorized": False,
+        "evaluation_authorized": False,
+        "implementation_authorized": False,
+        "named_review": None,
+        "optimization_authorized": False,
+        "requested_scope": (
+            "implement-evaluation-only-repair-and-freeze-exact-identities-"
+            "no-science-access"
+        ),
+        "rescoring_authorized": False,
+        "tuning_authorized": False,
+    }
+    assert review["evidence"] == {
+        "campaign": {
+            "image_count": 1688,
+            "path": (
+                "benchmark-results/phase-5/"
+                "final-qualification-comparison/campaign.json"
+            ),
+            "request_sha256": (
+                "eebb6d793b0ee4532db2393bf06468df53dbc9521092cc8fb6e2340be7194726"
+            ),
+            "run_count": 8440,
+            "sha256": (
+                "4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08"
+            ),
+            "status": "terminal-raw-results-sealed",
+        },
+        "outputs": {
+            "analysis_path": (
+                "benchmark-results/phase-5/final-qualification-analysis.json"
+            ),
+            "analysis_state": "absent",
+            "decision_path": (
+                "benchmark-results/phase-5/final-qualification-decision.json"
+            ),
+            "decision_state": "absent",
+        },
+    }
+    assert review["failure"]["scientific_products_read"] is False
+    assert review["failure"]["write_once_output_created"] is False
+    assert set(review["scientific_scope"].values()) == {False}
+    for identity in review["frozen_composition"].values():
+        if "path" not in identity:
+            continue
+        assert file_sha256(_ROOT / identity["path"]) == identity["sha256"]

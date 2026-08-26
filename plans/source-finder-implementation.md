@@ -636,6 +636,10 @@ outstanding.
       inspect its products. A no-science repair pre-review must bind a tested
       compiler/registry/evaluator composition to this exact sealed campaign,
       followed by named approval for one compilation and evaluation only.
+      Pre-review `8cff6163...` recommends new evaluation-only compiler and
+      evaluator wrappers around the byte-exact frozen programs, with a
+      real-JSON-seam regression and two approval boundaries. It currently
+      authorizes nothing; named review is required before implementation.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
       The pre-acquisition review now recommends a truth-bearing SKA SDC1
@@ -675,7 +679,10 @@ outstanding.
       terminal verification. No analysis exists. The repair must add a
       regression that exercises the real inherited decision-loading seam,
       preserve all science and campaign identities, and obtain named approval
-      before compiling the existing sealed campaign exactly once.
+      before compiling the existing sealed campaign exactly once. Pre-review
+      `8cff6163...` rejects in-place edits, ad hoc runtime patching, and a
+      campaign rerun; it awaits implementation-only approval before exact
+      repair identities may be frozen.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:
