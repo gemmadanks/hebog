@@ -213,3 +213,8 @@ the repair programs to run. A suitable separate approval is:
 > `4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08`.
 > It does not authorize campaign reexecution, optimization, tuning,
 > rescoring, cutover, or release.
+
+Gemma Danks supplied that named approval on 2026-08-26 with the response
+"I approve, please continue." The resulting decision authorizes the repair
+compiler and evaluator exactly once against the already sealed campaign. It
+does not reopen finder execution or any excluded scope.

@@ -373,8 +373,8 @@ def test_repair_evaluator_delegates_unchanged_scoring(
     assert observed == [(analysis, contract, registry)]
 
 
-def test_repair_identity_review_is_pending_and_exact() -> None:
-    """The exact implementation is frozen but still cannot run itself."""
+def test_repair_identity_review_is_non_executable_and_exact() -> None:
+    """The exact identity review remains non-executable by itself."""
     path = (
         _ROOT / "config/contracts/"
         "phase-5-final-qualification-evaluation-repair-review.json"
@@ -424,4 +424,39 @@ def test_repair_identity_review_is_pending_and_exact() -> None:
     )
     assert not (_ROOT / review["outputs"]["analysis_path"]).exists()
     assert not (_ROOT / review["outputs"]["decision_path"]).exists()
-    assert not (_ROOT / review["authorization"]["next_decision_path"]).exists()
+
+
+def test_repair_decision_records_exact_named_authorization() -> None:
+    """The approved decision opens only one compilation and evaluation."""
+    path = (
+        _ROOT / "config/contracts/"
+        "phase-5-final-qualification-evaluation-repair-decision.json"
+    )
+    decision = json.loads(path.read_text(encoding="utf-8"))
+
+    assert decision["status"] == (
+        "reviewed-before-final-qualification-evaluation-repair"
+    )
+    assert decision["execution_authorized"] is True
+    assert decision["compilation_authorized"] is True
+    assert decision["evaluation_authorized"] is True
+    for key in (
+        "campaign_reexecution_authorized",
+        "optimization_authorized",
+        "rescoring_authorized",
+        "science_or_gates_changed",
+        "tuning_authorized",
+        "cutover_authorized",
+        "release_authorized",
+    ):
+        assert decision[key] is False
+    assert decision["repair_identity_review"]["sha256"] == (
+        "b69b2eaa4b7d00b12314e0a7d753c22843778111ac4f0d1214dc3e1a790e2305"
+    )
+    assert (
+        file_sha256(_ROOT / decision["repair_identity_review"]["path"])
+        == decision["repair_identity_review"]["sha256"]
+    )
+    assert decision["named_review"]["user_response"] == (
+        "I approve, please continue."
+    )

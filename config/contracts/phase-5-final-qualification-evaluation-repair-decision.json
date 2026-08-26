@@ -1,0 +1,44 @@
+{
+  "campaign": {
+    "path": "benchmark-results/phase-5/final-qualification-comparison/campaign.json",
+    "request_sha256": "eebb6d793b0ee4532db2393bf06468df53dbc9521092cc8fb6e2340be7194726",
+    "sha256": "4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08"
+  },
+  "campaign_reexecution_authorized": false,
+  "compilation_authorized": true,
+  "cutover_authorized": false,
+  "decision_id": "phase-5-final-qualification-evaluation-repair-decision",
+  "evaluation_authorized": true,
+  "execution_authorized": true,
+  "named_review": {
+    "approval": "I approve the Phase 5 final-qualification evaluation repair bound to identity review SHA-256 b69b2eaa4b7d00b12314e0a7d753c22843778111ac4f0d1214dc3e1a790e2305 and its exact repair and frozen identities. This authorizes exactly one compilation and one evaluation of existing sealed campaign 4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08. It does not authorize campaign reexecution, optimization, tuning, rescoring, cutover, or release.",
+    "reviewed_on": "2026-08-26",
+    "reviewer": "Gemma Danks",
+    "user_response": "I approve, please continue."
+  },
+  "optimization_authorized": false,
+  "outputs": {
+    "analysis_path": "benchmark-results/phase-5/final-qualification-analysis.json",
+    "analysis_state": "absent",
+    "decision_path": "benchmark-results/phase-5/final-qualification-decision.json",
+    "decision_state": "absent"
+  },
+  "release_authorized": false,
+  "repair_compiler": {
+    "path": "scripts/validation/compile_phase5_final_qualification_repair.py",
+    "sha256": "42ac2a96f20a305e17340afd8735e780d6fc4d293f15ea3db37e2948a98d0848"
+  },
+  "repair_evaluator": {
+    "path": "scripts/validation/evaluate_phase5_final_qualification_repair.py",
+    "sha256": "f4396a8ad366789134aca45b7f15151339d5bb3a3f4baac34bb37b9d30d71386"
+  },
+  "repair_identity_review": {
+    "path": "config/contracts/phase-5-final-qualification-evaluation-repair-review.json",
+    "sha256": "b69b2eaa4b7d00b12314e0a7d753c22843778111ac4f0d1214dc3e1a790e2305"
+  },
+  "rescoring_authorized": false,
+  "schema_version": 1,
+  "science_or_gates_changed": false,
+  "status": "reviewed-before-final-qualification-evaluation-repair",
+  "tuning_authorized": false
+}

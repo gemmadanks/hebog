@@ -10587,3 +10587,23 @@ campaign.
 `b69b2eaa...`. Only that separate approval may authorize one compilation and
 one evaluation of the existing sealed campaign; it may not authorize another
 campaign, tuning, rescoring, cutover, or release.
+
+## 2026-08-26 — Authorize one final-qualification repair evaluation
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Gemma Danks approved exact repair identity review `b69b2eaa...` and asked to
+  continue. The recorded decision binds sealed campaign `4badb8e1...`, request
+  `eebb6d79...`, repair compiler `42ac2a96...`, evaluator `f4396a8a...`, and
+  the exact pending review.
+- The decision permits one compilation and one evaluation only. Campaign
+  reexecution, optimization, tuning, rescoring, scientific or gate changes,
+  cutover, and release remain false. Analysis and decision are still absent.
+
+**Decision:** the exact repair may now transition from its no-write
+authorization check to one compilation and, only after successful atomic
+analysis publication, one evaluation.
+
+**Immediate next step:** validate and commit this authorization without
+changing either repair program, run the repair compiler once, then evaluate
+once if compilation succeeds.

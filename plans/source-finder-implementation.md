@@ -693,8 +693,12 @@ outstanding.
       Implementation commit `b6ce3cdd...` is frozen by pending identity review
       `b69b2eaa...`, which binds the exact repair programs, complete frozen
       composition, campaign/request, four runtimes, and absent outputs. Every
-      authorization flag remains false. A separate named approval of that
-      review is mandatory before the analysis or decision may be created.
+      authorization flag in the review remains false. Named approval on
+      2026-08-26 now authorizes exactly one compilation and one evaluation of
+      the existing campaign through the frozen repair identities. It still
+      forbids another campaign, optimization, tuning, rescoring, cutover, and
+      release. Validate the committed authorization, then compile and evaluate
+      once; scientific outcomes must be interpreted before runtime.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:
