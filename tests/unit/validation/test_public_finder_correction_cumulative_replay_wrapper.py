@@ -145,7 +145,7 @@ def test_reference_producer_view_is_scoped_to_both_frozen_source_checks() -> (
         "def load_decision(_path):\n    return source_tree_sha256(None)\n",
         protocol_globals,
     )
-    reconstruction: dict[str, Any] = {
+    verifier_globals: dict[str, Any] = {
         "_helpers": lambda: {
             "load_viewed_recovery_execution_decision": protocol_globals[
                 "load_decision"
@@ -159,8 +159,13 @@ def test_reference_producer_view_is_scoped_to_both_frozen_source_checks() -> (
         "        'load_viewed_recovery_execution_decision'\n"
         "    ](None)\n"
         "    return producer, source_tree_sha256(None)\n",
-        reconstruction,
+        verifier_globals,
     )
+    reconstruction = {
+        **verifier_globals,
+        "verify_viewed_reference_reconstruction": verifier_globals["verify"],
+    }
+    assert reconstruction is not reconstruction["verify"].__globals__
 
     wrapper["_install_reference_producer_view"](reconstruction)
 
@@ -261,16 +266,18 @@ def test_reference_runpy_reuses_verified_view_only_for_bound_script() -> None:
             def ambient_source(_root: object) -> str:
                 return "ambient"
 
-            def unverified(*_args: Any, **_kwargs: Any) -> str:
-                return "unverified"
-
-            return {
+            verifier_globals: dict[str, Any] = {
                 "_helpers": lambda: {
                     "load_viewed_recovery_execution_decision": load_decision
                 },
                 "source_tree_sha256": ambient_source,
-                "verify_viewed_reference_reconstruction": unverified,
             }
+            exec(
+                "def verify_viewed_reference_reconstruction(*args, **kwargs):"
+                "\n    return 'unverified'\n",
+                verifier_globals,
+            )
+            return dict(verifier_globals)
 
     proxy = wrapper["_ReferenceProducerRunpy"](Delegate(), verified)
     other = proxy.run_path("scripts/validation/another_program.py")

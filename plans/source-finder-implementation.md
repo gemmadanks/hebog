@@ -786,7 +786,10 @@ separately approved prospective development response.
       complete no-write reference verification, but no replay. Wrapper
       `6f383435...` scopes historical producer source `b4176ce3...` to the two
       frozen verifier checks, preserves candidate source `2de6564e...`
-      everywhere else, and verifies references before scratch creation.
+      everywhere else, and verifies references before scratch creation. The
+      first immutable no-write attempt exposed `runpy.run_path`'s copied return
+      namespace; wrapper `b2240e55...` now patches the verifier function's
+      actual globals, with a regression fixture matching that behaviour.
 - [ ] Commit the validated repair, run complete no-write verification from its
       clean immutable checkout, freeze replacement identities, and obtain a
       new one-replay approval. Then require

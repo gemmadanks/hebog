@@ -230,7 +230,11 @@ def _install_reference_producer_view(
     reconstruction: dict[str, Any],
 ) -> None:
     """Scope the historical producer identity to both verifier checks."""
-    original_helpers = reconstruction.get("_helpers")
+    verifier = reconstruction.get("verify_viewed_reference_reconstruction")
+    if not callable(verifier) or not hasattr(verifier, "__globals__"):
+        raise ValueError("reference reconstruction verifier seam changed")
+    verifier_globals = verifier.__globals__
+    original_helpers = verifier_globals.get("_helpers")
     if not callable(original_helpers):
         raise ValueError("reference reconstruction helper seam changed")
 
@@ -248,8 +252,8 @@ def _install_reference_producer_view(
         )
         return namespace
 
-    reconstruction["_helpers"] = helpers
-    reconstruction["source_tree_sha256"] = (
+    verifier_globals["_helpers"] = helpers
+    verifier_globals["source_tree_sha256"] = (
         _historical_reconstruction_source_tree
     )
 

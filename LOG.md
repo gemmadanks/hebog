@@ -11180,7 +11180,7 @@ review `d169ab9a...`. Do not implement, freeze, or rerun it beforehand.
   It authorizes only implementation, complete no-write reference validation,
   and replacement identity freezing; another replay and every later lifecycle
   action remain false.
-- Added the missing producer/consumer seam to wrapper `6f383435...`.
+- Added the missing producer/consumer seam to wrapper `b2240e55...`.
   Historical source `b4176ce3...` is visible only to the two frozen checks
   that validate who produced the sealed reference reconstruction. Corrected
   candidate revision `b1d59e5...` and source `2de6564e...` remain active for
@@ -11189,6 +11189,12 @@ review `d169ab9a...`. Do not implement, freeze, or rerun it beforehand.
   authorization and common identity validation but before the historical main
   can create scratch. The historical main receives only that already verified
   in-memory view; all other `runpy` consumers are delegated unchanged.
+- The first immutable no-write attempt from `9a93a41...` failed immediately at
+  the historical source guard, before any reference product was opened and
+  without creating output or scratch. The cause was `runpy.run_path` returning
+  a namespace copy while functions retain a different globals dictionary.
+  The seam now patches the verifier function's actual globals; the regression
+  fixture reproduces that separation instead of sharing one dictionary.
 - Future execution must use a new decision, new identity review, and new
   scratch path. The consumed decision and closed empty failure scratch cannot
   authorize or seed a later replay.
