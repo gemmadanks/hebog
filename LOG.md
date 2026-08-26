@@ -10746,3 +10746,48 @@ the complete preflight passes.
 **Immediate next step:** validate and commit authorization decision
 `a9330407...`, then run the exact no-write preflight against the qualified
 local Hebog image and frozen public evidence.
+
+## 2026-08-26 — Fail the terminal public-finder one-look
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- The complete no-write preflight passed against authorization commit
+  `55e6409...`, identity review `19b6296f...`, decision `a9330407...`, selected
+  population `0a7c2b18...`, and the qualified Hebog image. The single campaign
+  sealed all ten successful cases as SHA-256 `42abb896...`; no second request
+  or campaign was created.
+- The authorized compiler ran exactly once and wrote analysis SHA-256
+  `975978fb...`. The authorized evaluator ran exactly once and wrote terminal
+  decision SHA-256 `954077e9...`. Provenance binds the exact campaign,
+  protocol `f29100be...`, authorization, and identity review. The terminal
+  status is `fail`; public evidence, cutover, and release remain false.
+- Interpreted binding SDC1 science before Hydra and runtime. All nine endpoint
+  populations fail completeness, reliability, median absolute integrated-flux
+  error, and p95 absolute integrated-flux error. Overall values are 0.32463,
+  0.75598, 0.10475, and 0.30592 against gates 0.90, 0.95, 0.10, and 0.25.
+  Position offsets and p95 radial error pass, as do zero duplicates and merge
+  fraction 0.00564. All eight strata reproduce the same four failure classes.
+- All 16 non-binding Hydra diagnostics are complete. Hebog deep versus shallow
+  has 38 matches among 356 deep detections and overlap 0.10674; the shallow
+  catalogue contains 413 detections. Across Aegean, Caesar, ProFound, PyBDSF,
+  and Selavy, Hebog matches 120--153 deep and 270--302 shallow detections.
+  These products are diagnostic rather than truth and cannot compensate for
+  SDC1.
+- Runtime was read only after science: SDC1 cases took 55.76--108.88 seconds,
+  Hydra shallow 82.52 seconds, and Hydra deep 164.89 seconds. No performance
+  gate applies and no speed claim is made.
+
+**Decision:** Phase 5 public evidence and readiness remain closed. Do not tune,
+rescore, rerun, cut over, or release. Preserve the sealed evidence for an
+independent scientific failure review that attributes detection-threshold,
+background/RMS, association, and flux-measurement causes before any
+prospective correction is proposed.
+
+**Validation:** all 50 focused public-evidence tests pass. The branch-aware
+suite passes 1,763 tests with four expected xfails and 95.01% coverage.
+`just check` passes formatting, Ruff, Pyright, doctests, 1,609 tests, and four
+expected xfails. The strict documentation build passes. Review against
+`CODE_REVIEW.md` found no actionable issue.
+
+**Immediate next step:** validate and commit the terminal evidence record,
+then request independent radio-astronomy review of decision `954077e9...`.

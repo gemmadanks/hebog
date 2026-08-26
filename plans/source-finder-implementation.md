@@ -356,6 +356,18 @@ the measured 1,024--3,000-pixel crossover and Dask above it. Phase 5
 qualification, independent acceptance, and the later Rapthor cutover remain
 outstanding.
 
+The terminal public/challenge comparison is now an additional binding Phase 5
+result. Campaign `42abb896...` sealed all ten runs; analysis `975978fb...` and
+decision `954077e9...` are write-once. All nine SDC1 endpoint populations fail
+the same completeness, reliability, median-flux-error, and p95-flux-error
+gates. Overall completeness is 0.32463 and reliability 0.75598, while
+position, duplicate, and merge gates pass. The 16 non-binding Hydra
+diagnostics are complete and also expose weak Hebog deep/shallow stability.
+This supersedes the earlier expectation that passing internal qualification
+was sufficient to open public evidence. Phase 5 readiness, cutover, and
+release remain closed pending an independent scientific failure review and a
+separately approved prospective development response.
+
 ## 7. Delivery plan
 
 ### Phase 5: multiscale and extended emission
@@ -640,7 +652,7 @@ outstanding.
       closed compact records pass without pooling or rescoring, and all 5,064
       binding runs are successful. No campaign rerun, tuning, rescoring,
       cutover, or release was authorized.
-- [ ] Add public/challenge comparisons across at least two telescope families;
+- [x] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
       The pre-acquisition review now recommends a truth-bearing SKA SDC1
       1.4-GHz lane and the real ASKAP EMU Pilot Hydra deep/shallow lane. The
@@ -674,9 +686,22 @@ outstanding.
       `d307c1ea...` kept every action false. Named approval on 2026-08-26 is
       recorded as decision `a9330407...` and authorizes the complete no-write
       preflight and, only if every identity remains unchanged, one public
-      finder campaign, one compilation, and one evaluation. Optimization,
-      tuning, rescoring, cutover, and release remain unauthorized; no public
-      finder result exists yet.
+      finder campaign, one compilation, and one evaluation. The preflight
+      passed unchanged. Campaign `42abb896...` sealed all ten successful runs;
+      analysis `975978fb...` and decision `954077e9...` were each published
+      exactly once. The terminal result is `fail`: all nine SDC1 populations
+      miss completeness, reliability, median-flux-error, and p95-flux-error
+      gates. Overall values are 0.32463, 0.75598, 0.10475, and 0.30592,
+      respectively. Position, duplicate, and merge gates pass. All 16
+      non-binding Hydra diagnostics are complete, including Hebog deep/shallow
+      overlap 0.10674. Public evidence, optimization, tuning, rescoring,
+      cutover, and release remain closed.
+- [ ] Complete an independent scientific review of terminal public decision
+      `954077e9...`. Attribute the broad SDC1 detection/reliability and smaller
+      photometry failures without tuning or rescoring the sealed one-look.
+      Decide whether a prospective development correction is justified, and
+      require a separately reviewed protocol before changing science or
+      running new public evidence.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

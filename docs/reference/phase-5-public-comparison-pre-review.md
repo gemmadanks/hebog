@@ -1,12 +1,10 @@
 # Phase 5 public comparison pre-review
 
-**Status:** acquisition, schema review, adapter implementation, the exact
-selected population, and the public-finder execution composition are
-complete. Identity review `19b6296f...` freezes the validated programs and
-qualified runtime. Named decision `a9330407...` authorizes the complete
-no-write preflight and, only if it passes unchanged, one finder campaign, one
-compilation, and one evaluation. Tuning, rescoring, cutover, and release
-remain unauthorized.
+**Status:** the single public-finder one-look, compilation, and evaluation are
+complete. Terminal decision `954077e9...` is `fail`: all nine binding SDC1
+populations fail, so public evidence and Phase 5 readiness remain closed.
+Hydra diagnostics are complete but non-binding. Tuning, rescoring, cutover,
+and release remain unauthorized.
 
 ## Recommendation
 
@@ -180,10 +178,10 @@ execution, the implementation must add and validate:
 - ~~a finder-neutral SDC1 association adapter;~~ complete;
 - ~~a Hydra catalogue adapter that preserves native finder and island
   identity;~~ complete;
-- ~~result population and checksum verification;~~ implemented and tested
-  against synthetic terminal bundles; no public finder results exist; and
+- ~~result population and checksum verification;~~ complete for terminal
+  campaign `42abb896...`, with all ten result bundles verified; and
 - ~~a terminal evaluator that keeps qualification and cutover false;~~
-  implemented and tested without evaluating public evidence.
+  complete as decision `954077e9...`, with public evidence and cutover false.
 
 Named scientific review has approved the dataset, exact post-acquisition
 schema, selection formulas, adapters, and one selected population. The sole
@@ -191,11 +189,11 @@ official truth row with a non-finite centroid (ID `32397377`) cannot satisfy
 half-open tile membership and is recorded explicitly as excluded. All seven
 source identities, eight FITS checksums, truth memberships, disjointness, and
 implementation hashes verify. A separate frozen public finder protocol and
-its programs are now bound by identity review `19b6296f...`. A separate named
-execution approval is still required. Independent radio-astronomy review must
-interpret the completed public evidence before the Phase 5 readiness record
-can pass; public selection and implementation did not authorize
-qualification, cutover, or release.
+its programs are bound by identity review `19b6296f...`. Named execution
+decision `a9330407...` authorized the one completed look. Independent
+radio-astronomy review must interpret the failed public evidence before a
+prospective correction is designed; the result does not authorize tuning,
+rescoring, qualification, cutover, or release.
 
 ## Public finder execution boundary
 
@@ -267,9 +265,53 @@ Recorded execution approval:
 > finder campaign, one compilation, and one evaluation. It does not authorize
 > optimization, tuning, rescoring, cutover, or release.
 
-The next action is the complete no-write preflight. Execution may start only
-if it confirms that the protocol, selected population, programs, output
-namespace, and qualified runtime are unchanged.
+The complete no-write preflight passed with every identity unchanged. The
+campaign then sealed all ten successful runs as `42abb896...`; compilation
+and evaluation ran exactly once.
+
+## Terminal one-look result
+
+Analysis `975978fb...` and decision `954077e9...` retain the frozen science
+rules. The terminal status is `fail`, public evidence is not opened, and
+cutover and release remain false.
+
+The pooled SDC1 endpoint contains 25,201 admitted truth sources, 10,823 Hebog
+candidates, and 8,181 primary matches. Four of nine binding metrics fail:
+
+| Overall SDC1 endpoint | Observed | Gate | Result |
+| --- | ---: | ---: | --- |
+| Completeness | 0.32463 | at least 0.90 | fail |
+| Reliability | 0.75598 | at least 0.95 | fail |
+| Median absolute integrated-flux error | 0.10475 | at most 0.10 | fail |
+| 95th-percentile absolute integrated-flux error | 0.30592 | at most 0.25 | fail |
+| Duplicate fraction | 0.00000 | at most 0.02 | pass |
+| Merge fraction | 0.00564 | at most 0.10 | pass |
+| Absolute mean x/y offsets | 0.00089 / 0.00120 beam | at most 0.10 beam | pass |
+| 95th-percentile radial position error | 0.27253 beam | at most 0.50 beam | pass |
+
+Every selected stratum fails the same four metrics. Completeness spans
+0.28040--0.37966, reliability 0.69931--0.79779, median flux error
+0.10080--0.11067, and 95th-percentile flux error 0.27658--0.32434. The
+position, duplicate, and merge behaviour is consistently within its gates,
+but those passes cannot compensate for the detection and photometry failures.
+
+All 16 Hydra diagnostics compiled. They are not truth-bearing gates, but they
+reinforce the need for review: Hebog deep versus shallow matches only 38 of
+356 deep detections, for overlap 0.10674, while the shallow catalogue contains
+413 detections. Hebog matches 120--153 published deep detections and 270--302
+published shallow detections across the five finders. These finder-specific
+catalogues are not interchangeable truth, so the result is diagnostic rather
+than a second pass/fail rule.
+
+Runtime was interpreted only after science. The eight SDC1 cases took
+55.76--108.88 seconds each; Hydra shallow took 82.52 seconds and Hydra deep
+164.89 seconds. This public campaign has no performance gate and supports no
+speed claim.
+
+The next task is an independent scientific failure review that separates
+detection-threshold, background/RMS, association, and flux-measurement causes
+using the sealed evidence. It must not tune or rescore this one-look, and any
+prospective correction requires a separately reviewed development plan.
 
 ## Decision
 
