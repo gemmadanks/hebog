@@ -1,0 +1,89 @@
+{
+  "authorization_boundary": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_rerun_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "bound_execution": {
+    "candidate_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+    "candidate_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+    "candidate_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "execution_checkout_revision": "300526e79199443743768c497c4f587ab69a59c9",
+    "execution_decision": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-execution-decision.json",
+      "sha256": "addacf7a8d66dc7d1d7cfe860e733cdc53254bff09fa23164b27e98da4ae0af0"
+    },
+    "repair_identity_review": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-repair-review.json",
+      "sha256": "5e5bf04abfb11fe0833fdaefec23291ad7a2ee32c52b1fd68687d4f3fadb7cd5"
+    },
+    "workers": 2,
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_correction_cumulative_regressions.py",
+      "sha256": "b4d02784fd4e1a8ca8bff5bcc03f0e82676e55f66c9e6c5b8168fd11876e3753"
+    }
+  },
+  "failed_at": "2026-08-26T17:57:17Z",
+  "failure_id": "phase-5-public-finder-correction-cumulative-replay-execution-failure",
+  "observed_execution": {
+    "atomic_ledger_state": "absent",
+    "candidate_products_created": 0,
+    "candidate_tasks_constructed": false,
+    "exit_code": 1,
+    "failure_stage": "viewed-reference-reconstruction-producer-identity-verification",
+    "partial_scientific_products_opened": false,
+    "process_started": true,
+    "reconstructed_inputs_opened": 0,
+    "reconstructed_reference_results_opened": 0,
+    "scratch_entry_count": 0,
+    "scratch_state": "created-empty",
+    "sealed_summary_files_hashed": true
+  },
+  "preflight_gap": {
+    "complete_composed_reference_verifier_executed": false,
+    "description": "The authorization preflight checksum-verified recovery.json but did not execute the frozen reconstruction verifier through the corrected-candidate composition.",
+    "result": "The producer-versus-consumer source collision remained latent until the authorized process started."
+  },
+  "producer_consumer_collision": {
+    "consumer_candidate_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+    "producer_candidate_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "producer_execution_decision": {
+      "path": "config/contracts/phase-5-viewed-recovery-execution-decision.json",
+      "sha256": "b35f4a811827df8960c22484193e9198d547bbb0e588e5b215d1f8d9ed66865f"
+    },
+    "producer_protocol_loader": {
+      "path": "scripts/validation/phase5_viewed_recovery_protocol.py",
+      "sha256": "8b032d9a1edf1a6206313a14d286f3c992981932a9cfa6fd74e4b6cf7815112c"
+    },
+    "reference_verifier": {
+      "path": "scripts/validation/reconstruct_phase5_viewed_references.py",
+      "sha256": "81faad486ddb306e175a7ddd8c1c281a2e498cd30bb60f3e43c7b6e791cd0126"
+    },
+    "root_cause": "The frozen reference verifier validates its historical producer decision by hashing the active consumer checkout. The corrected candidate source is intentionally different from the reconstruction producer source, so valid sealed references cannot be consumed from the corrected checkout."
+  },
+  "required_next_boundary": {
+    "implementation_authorized": false,
+    "recommendation": "Pre-review a minimal reference-consumer provenance repair that keeps the reconstruction producer source identity separate from the corrected candidate source identity, validates both verifier layers on fixtures, and adds a composed no-write regression before any later replay authorization.",
+    "replacement_identity_freeze_required": true,
+    "separate_named_implementation_approval_required": true,
+    "separate_named_replay_approval_required": true
+  },
+  "schema_version": 1,
+  "scientific_outcome": {
+    "available": false,
+    "reason": "Execution failed before reference loading, candidate generation, compilation, or evaluation."
+  },
+  "status": "failed-before-reference-or-candidate-science",
+  "transfer_policy": {
+    "authorization_consumed_by_process_start": true,
+    "authorization_transferable_to_changed_wrapper": false,
+    "rerun_authorized": false
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "identity_freeze_authorized": false,
+    "implementation_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "failed_execution": {
+    "candidate_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+    "candidate_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+    "candidate_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+    "failure_record": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-execution-failure.json",
+      "sha256": "37836fea7d15de1d2832f52079161d63f3cc8407edb708d6cf3f8fbb52c5341d"
+    },
+    "original_authorization_consumed": true,
+    "output_state": "absent",
+    "scratch_entry_count": 0,
+    "scratch_path": "/private/tmp/hebog-phase5-public-finder-correction-b1d59e5",
+    "scratch_state": "closed-empty-failure-evidence"
+  },
+  "pre_review_id": "phase-5-public-finder-correction-cumulative-replay-reference-provenance-repair-pre-review",
+  "prospective_repair": {
+    "allowed_changes": [
+      "install the historical reconstruction producer source identity only inside both frozen reference-verifier source checks",
+      "keep the corrected candidate source identity active for candidate generation, product provenance, compilation, and evaluation",
+      "execute complete reference verification before creating the prospective replay scratch directory",
+      "record separate reconstruction-producer and corrected-candidate-consumer identities in terminal replay provenance",
+      "add fixture regressions for both verifier layers and one complete no-write verification of the sealed reconstruction before freezing executable identities"
+    ],
+    "design": "The wrapper must treat sealed viewed-reference reconstruction as a producer-bound immutable input. It may substitute b4176ce3... only for the two historical verifier calls that compare the reconstruction producer to ambient source_tree_sha256. Every corrected-candidate path must continue to observe source 2de6564e....",
+    "forbidden_changes": [
+      "change any reconstructed input or reference-result byte",
+      "change candidate ownership, shape, threshold, RMS, minimum-area, aperture, position, or flux behavior",
+      "change compact generation, compiler, evaluator, endpoints, gates, or the closed baseline",
+      "weaken or bypass reference request, terminal, artifact, runner, or runtime validation",
+      "reuse or delete the failed execution scratch without a later explicit decision",
+      "run a replay or viewed SDC1/Hydra finder"
+    ],
+    "historical_reconstruction_producer_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "prospective_scratch_path": "/private/tmp/hebog-phase5-public-finder-correction-reference-repair-b1d59e5"
+  },
+  "required_next_decision": "named-approval-of-this-pre-review-for-provenance-repair-implementation-and-non-executable-identity-freezing-only",
+  "required_validation": {
+    "complete_no_write_reference_verification_required_before_identity_freeze": true,
+    "fixture_fail_closed_cases": [
+      "producer source identity drift",
+      "consumer candidate source identity drift",
+      "reference decision, request, terminal, artifact, runner, or runtime drift",
+      "attempted producer-source substitution outside the verifier boundary",
+      "existing or non-empty prospective scratch",
+      "existing atomic output"
+    ],
+    "required_handoff": [
+      "focused tests",
+      "just coverage",
+      "just check",
+      "just docs-build",
+      "just pre-commit",
+      "CODE_REVIEW.md review",
+      "one local Conventional Commit without pushing"
+    ]
+  },
+  "reviewed_on": "2026-08-26",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "candidate_science_changed": false,
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "compiler_or_evaluator_changed": false,
+    "reference_evidence_changed": false,
+    "scientific_outcome_available": false
+  },
+  "status": "ready-for-named-reference-provenance-repair-implementation-approval"
+}

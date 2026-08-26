@@ -11123,3 +11123,50 @@ wrapper `b4d02784...`, and baseline `a45303df...`. Do not execute beforehand.
 **Immediate next step:** validate and commit the authorization record, then
 run the complete no-write preflight. Start the single replay only if every
 identity remains exact and both write-once paths remain absent.
+
+## 2026-08-26 — Stop the correction replay before reference science
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Committed authorization as `300526e...`. The immutable no-write preflight
+  passed candidate source `2de6564e...`, configuration `65c8876d...`, review
+  `5e5bf04a...`, wrapper `b4d02784...`, closed evidence, clean-checkout, and
+  absent-output checks. Decision `addacf7a...` bound the exact invocation.
+- The one authorized process then created the scratch directory and failed
+  before loading reconstructed inputs or reference results, constructing a
+  candidate task, or producing a candidate product. The scratch directory has
+  zero entries and the atomic ledger remains absent; no scientific outcome is
+  available.
+- Root cause is a producer/consumer provenance collision. Historical viewed-
+  reference decision `b35f4a81...` binds reconstruction producer source
+  `b4176ce3...`. Its frozen loader hashes the active repository instead of a
+  separately bound producer identity, so it rejects the intentionally changed
+  corrected candidate source `2de6564e...` as “viewed recovery candidate
+  source changed.”
+- The wrapper preflight checksum-verified the terminal reconstruction record
+  but did not execute the complete composed verifier. That left the collision
+  latent until process start. Failure record
+  `phase-5-public-finder-correction-cumulative-replay-execution-failure.json`
+  preserves the exact execution, verifier, absence, and authorization state.
+- The execution authorization is consumed and cannot transfer to a changed
+  wrapper. Hourly monitoring was deleted. No rerun, viewed SDC1/Hydra
+  execution, campaign, qualification, tuning, rescoring, cutover, or release
+  is authorized.
+
+**Decision:** correct the reference-consumer provenance seam only after a new
+pre-review and named implementation approval. Preserve every reconstruction
+byte, candidate science choice, compiler/evaluator, gate, and closed baseline.
+Freeze replacement identities and require a separate new replay approval.
+
+**Repair pre-review:** non-executable review `d169ab9a...` binds failure record
+`37836fea...` and recommends only a reference-consumer provenance seam. The
+historical producer identity may be substituted for the two frozen verifier
+source checks, while every candidate path must continue to observe corrected
+source `2de6564e...`. It requires fixture coverage for both verifier layers and
+a complete no-write verification of the sealed reconstruction before freezing
+new executable identities. A new scratch path is prospective; the closed empty
+failure scratch is neither reused nor deleted. Every authorization flag is
+false.
+
+**Immediate next step:** obtain named implementation approval bound to pre-
+review `d169ab9a...`. Do not implement, freeze, or rerun it beforehand.

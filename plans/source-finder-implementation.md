@@ -768,8 +768,24 @@ separately approved prospective development response.
       `b1d59e5...`, configuration `65c8876d...`, wrapper `b4d02784...`, the
       two-worker 800-compact/1,600-Continuum composition, and closed baseline
       `a45303df...`; all later lifecycle actions remain unauthorized.
-- [ ] Run the approved replay from a clean immutable checkout after a complete
-      no-write identity preflight. Require
+- [x] Attempt the approved replay from clean immutable commit `300526e...`.
+      Static no-write identity preflight passed, but the single process failed
+      before reference or candidate science: the frozen reconstruction
+      producer verifier expects source `b4176ce3...` and incorrectly hashes
+      the corrected consumer checkout `2de6564e...`. Scratch is empty and the
+      atomic ledger is absent; the execution approval is consumed.
+- [x] Publish non-executable reference-consumer provenance repair pre-review
+      `d169ab9a...`. It keeps historical reconstruction producer source
+      `b4176ce3...` separate from corrected candidate source `2de6564e...`,
+      preserves every science and evidence byte, requires both verifier-layer
+      fixtures plus a complete no-write verification before identity freeze,
+      and authorizes nothing.
+- [ ] Obtain named approval of pre-review `d169ab9a...`, implement and validate
+      only the minimal provenance repair, freeze replacement identities, and
+      obtain a new one-replay approval. The repair must keep historical
+      reconstruction producer source `b4176ce3...` separate from corrected
+      candidate source `2de6564e...` and add a composed no-write regression.
+      Then require
       `cumulative_science_regression_ready=true` with no like-semantics
       regression. Viewed SDC1/Hydra execution, a new campaign, fresh
       qualification, tuning, rescoring, cutover, and release remain closed.

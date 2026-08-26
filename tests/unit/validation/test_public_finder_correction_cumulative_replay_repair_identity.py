@@ -26,6 +26,16 @@ _EXECUTION_DECISION = (
     / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
     "execution-decision.json"
 )
+_EXECUTION_FAILURE = (
+    _ROOT
+    / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
+    "execution-failure.json"
+)
+_REFERENCE_REPAIR_PRE_REVIEW = (
+    _ROOT
+    / "config/contracts/phase-5-public-finder-correction-cumulative-replay-"
+    "reference-provenance-repair-pre-review.json"
+)
 
 
 def _load() -> dict[str, Any]:
@@ -227,8 +237,8 @@ def test_named_approval_binds_the_exact_replacement_composition() -> None:
     )
 
 
-def test_replacement_write_once_and_public_outputs_are_absent() -> None:
-    """Approval creates no replay or corrected viewed products."""
+def test_replacement_ledger_and_public_outputs_are_absent() -> None:
+    """The failed execution published no replay or corrected viewed product."""
     review = _load()
     execution = review["prospective_execution"]
 
@@ -236,10 +246,73 @@ def test_replacement_write_once_and_public_outputs_are_absent() -> None:
         _EXECUTION_DECISION
     )
     assert not (_ROOT / execution["output"]["path"]).exists()
-    assert not Path(execution["scratch"]["path"]).exists()
     for name in (
         "public-finder-correction-analysis.json",
         "public-finder-correction-comparison",
         "public-finder-correction-decision.json",
     ):
         assert not (_ROOT / "benchmark-results/phase-5" / name).exists()
+
+
+def test_failed_execution_consumes_approval_without_opening_science() -> None:
+    """The producer-source collision fails closed before reference science."""
+    failure = json.loads(_EXECUTION_FAILURE.read_text(encoding="utf-8"))
+
+    assert failure["status"] == "failed-before-reference-or-candidate-science"
+    assert failure["bound_execution"]["execution_decision"]["sha256"] == (
+        file_sha256(_EXECUTION_DECISION)
+    )
+    assert failure["bound_execution"]["repair_identity_review"]["sha256"] == (
+        file_sha256(_REVIEW)
+    )
+    assert failure["bound_execution"]["wrapper"]["sha256"] == file_sha256(
+        _WRAPPER
+    )
+    observed = failure["observed_execution"]
+    assert observed["process_started"] is True
+    assert observed["candidate_products_created"] == 0
+    assert observed["reconstructed_inputs_opened"] == 0
+    assert observed["reconstructed_reference_results_opened"] == 0
+    assert observed["atomic_ledger_state"] == "absent"
+    assert failure["scientific_outcome"]["available"] is False
+    assert set(failure["authorization_boundary"].values()) == {False}
+    assert failure["transfer_policy"] == {
+        "authorization_consumed_by_process_start": True,
+        "authorization_transferable_to_changed_wrapper": False,
+        "rerun_authorized": False,
+    }
+
+
+def test_reference_provenance_repair_pre_review_is_non_executable() -> None:
+    """The recommended repair preserves science and grants no execution."""
+    review = json.loads(
+        _REFERENCE_REPAIR_PRE_REVIEW.read_text(encoding="utf-8")
+    )
+
+    assert review["status"] == (
+        "ready-for-named-reference-provenance-repair-implementation-approval"
+    )
+    assert set(review["authorization"].values()) == {False}
+    assert review["failed_execution"]["failure_record"]["sha256"] == (
+        file_sha256(_EXECUTION_FAILURE)
+    )
+    assert (
+        review["failed_execution"]["original_authorization_consumed"] is True
+    )
+    assert review["scientific_boundary"] == {
+        "candidate_science_changed": False,
+        "closed_baseline_sha256": (
+            "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+        ),
+        "compiler_or_evaluator_changed": False,
+        "reference_evidence_changed": False,
+        "scientific_outcome_available": False,
+    }
+    repair = review["prospective_repair"]
+    assert repair["historical_reconstruction_producer_source_tree_sha256"] == (
+        "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc"
+    )
+    assert (
+        repair["prospective_scratch_path"]
+        != review["failed_execution"]["scratch_path"]
+    )
