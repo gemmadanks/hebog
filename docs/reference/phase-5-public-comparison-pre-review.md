@@ -308,10 +308,14 @@ Runtime was interpreted only after science. The eight SDC1 cases took
 164.89 seconds. This public campaign has no performance gate and supports no
 speed claim.
 
-The next task is an independent scientific failure review that separates
-detection-threshold, background/RMS, association, and flux-measurement causes
-using the sealed evidence. It must not tune or rescore this one-look, and any
-prospective correction requires a separately reviewed development plan.
+The independent [public-finder scientific
+review](phase-5-public-finder-scientific-review.md) is complete. It preserves
+the terminal fail but finds that this position-only stress test is not an
+official SDC1 score and its absolute limits were not calibrated against
+submitted teams. It also identifies a genuine Hebog defect: three-beam
+multiscale association bridges deep Hydra islands, collapsing source identity.
+The next task is a prospective, separately approved correction pre-review; no
+tuning, rescoring, or rerun is implied.
 
 ## Decision
 

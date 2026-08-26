@@ -1,0 +1,176 @@
+{
+  "binding_evidence": {
+    "analysis_sha256": "975978fbc0351184ac0f80706afbe211a1f7d6fce9f10bb7b49eea242bb5aeee",
+    "campaign_sha256": "42abb896b452ee9143156b88ad46ea21033e63dbd8060185242ffa10c30b0c71",
+    "decision_sha256": "954077e9af7bcd34d42d2a273a08dbd7aa8cdd43427c6aa28ec3de5d74465e3a",
+    "execution_decision_sha256": "a9330407a5c9d5af9bbc73e9dbbf1f32092f6ef9dc4655568f6d46c6832d89d6",
+    "identity_review_sha256": "19b6296f811109e40fc696a8ecacd76948151aaf9c9e76eb7fb1de14cb11b968",
+    "protocol_sha256": "f29100bea8396df945672f97e6eeb63f7ec6a4acef3cd8e8eef4a9058788e6df"
+  },
+  "contract_id": "phase-5-public-finder-scientific-review",
+  "decision": {
+    "cutover_authorized": false,
+    "optimization_authorized": false,
+    "public_evidence_opened": false,
+    "release_authorized": false,
+    "rerun_authorized": false,
+    "rescoring_authorized": false,
+    "terminal_decision_changed": false,
+    "tuning_authorized": false
+  },
+  "findings": [
+    {
+      "confidence": "high",
+      "finding_id": "terminal-result-is-not-an-official-sdc1-score",
+      "observations": [
+        "the frozen matcher uses position-only separation at 0.5 synthesized beams",
+        "the official SDC1 scorer combines position, size, and flux error and estimates chance matches with a null catalogue",
+        "Hebog supplied neither fitted nor deconvolved source shapes and did not supply population classification",
+        "the frozen compiler therefore recorded the official SDC1 score and published-team comparisons as unavailable"
+      ],
+      "scientific_effect": "The fail is valid under the frozen Phase 5 stress-test rules but cannot be interpreted as Hebog's official SDC1 challenge performance or as a calibrated comparison with submitted teams.",
+      "severity": "critical-protocol-validity"
+    },
+    {
+      "confidence": "high",
+      "finding_id": "sdc1-gates-lack-public-calibration",
+      "observations": [
+        "the frozen completeness gate requires at least 0.90 over every selected population admitted at apparent peak SNR at least 5",
+        "published 1.4-GHz SDC1 submissions reached 50 percent completeness between 4.5 and 14 sigma",
+        "the selected eight-tile population is a deterministic stress sample rather than an area-representative SDC1 sample",
+        "no published submission was evaluated with the frozen Hebog matcher and gates before the one-look"
+      ],
+      "scientific_effect": "The absolute limits may remain useful internal aspirations, but they are not externally calibrated public-challenge acceptance limits.",
+      "severity": "critical-protocol-validity"
+    },
+    {
+      "confidence": "high",
+      "finding_id": "sdc1-low-snr-detection-and-photometry-deficit",
+      "observations": [
+        "completeness is 0.06588 at apparent peak SNR 5 to 8 and 0.22444 at SNR 8 to 10",
+        "median and p95 absolute integrated-flux errors are 0.15837 and 0.55610 at SNR 5 to 8",
+        "the candidate catalogue's fifth-percentile measured peak SNR is 7.84 despite a five-sigma seed rule",
+        "sampled candidate RMS medians are 66.06 to 66.82 nJy per beam, below the 73 nJy truth-admission noise value"
+      ],
+      "scientific_effect": "RMS inflation does not explain the threshold loss. The effective catalogue admission and measurement chain is materially less sensitive than the nominal five-sigma seed rule on this population.",
+      "severity": "major-candidate-capability"
+    },
+    {
+      "confidence": "high",
+      "finding_id": "sdc1-association-semantics-dominate-high-snr-result",
+      "observations": [
+        "at SNR at least 50 the frozen 0.5-beam matcher recovers 957 of 1735 truth sources, or 0.55159",
+        "a diagnostic five-beam position-only radius recovers 1465 of 1735, or 0.84438, but has an approximate Poisson chance-association probability of 0.88 at the selected truth density",
+        "changing from truth centroid to truth core coordinates changes overall matches from 8181 to 8173",
+        "the 2641 unmatched candidates have median measured peak SNR 27.94"
+      ],
+      "scientific_effect": "Coordinate choice is not the cause. A position-only radius cannot safely resolve the dense-field association problem; the source-aware official matching dimensions and a null control are required before attributing all unmatched high-SNR entries to detection failure.",
+      "severity": "major-protocol-and-candidate-capability"
+    },
+    {
+      "confidence": "high",
+      "finding_id": "sdc1-high-snr-flux-measurement-is-acceptable-for-matches",
+      "observations": [
+        "at SNR 20 to 50 median and p95 absolute integrated-flux errors are 0.09972 and 0.20581",
+        "at SNR at least 50 median and p95 errors are 0.07171 and 0.12809",
+        "at SNR at least 50 completeness under the frozen matcher spans only 0.54258 to 0.57042 across four truth-major-axis bins"
+      ],
+      "scientific_effect": "The aggregate flux failure is concentrated at low SNR and is entangled with selection and association. High-SNR matched-source photometry is not the first correction target, and apparent size alone does not explain the high-SNR match deficit.",
+      "severity": "bounded-photometry-gap"
+    },
+    {
+      "confidence": "high",
+      "finding_id": "hydra-deep-islands-are-catastrophically-bridged",
+      "observations": [
+        "the candidate uses a three-beam binary-dilation association support before connected-component labelling",
+        "the deep retained mask covers 4.1388 percent of pixels versus 0.8668 percent in the shallow image",
+        "the deep product has 357 labels with p95 area 6248 pixels and maximum area 55186 pixels, while shallow has 423 labels with p95 area 777 pixels and maximum area 2737 pixels",
+        "Hebog publishes 356 deep and 413 shallow catalogue entries and only 38 deep-shallow matches"
+      ],
+      "scientific_effect": "Fainter deep-image support creates bridges between otherwise distinct seeded islands. The association policy changes source identity with depth and defeats deblending.",
+      "severity": "critical-candidate-capability"
+    },
+    {
+      "confidence": "high",
+      "finding_id": "hydra-rms-is-not-the-primary-failure",
+      "observations": [
+        "deep sampled image MAD sigma is 32.94 microJy per beam and median Hebog RMS is 30.52 microJy per beam",
+        "shallow sampled image MAD sigma is 175.81 microJy per beam and median Hebog RMS is 169.97 microJy per beam",
+        "the noise ratio is represented consistently while catalogue cardinality changes in the wrong direction"
+      ],
+      "scientific_effect": "Background and RMS estimation are plausible at field scale. Island association and deblending, rather than gross noise normalization, explain the observed depth inversion most directly.",
+      "severity": "cause-exclusion"
+    },
+    {
+      "confidence": "high",
+      "finding_id": "public-catalogue-characterization-is-incomplete",
+      "observations": [
+        "all SDC1 major-axis, minor-axis, and position-angle diagnostic counts are zero",
+        "every public catalogue row records deconvolution_status unavailable and no fitted or deconvolved shape",
+        "the official SDC1 task includes flux, core fraction, size, position angle, and source population"
+      ],
+      "scientific_effect": "Hebog's public runner cannot yet support challenge-equivalent source characterization, source-aware matching, or the official global score.",
+      "severity": "major-candidate-capability"
+    }
+  ],
+  "literature": [
+    {
+      "identifier": "bonaldi-et-al-2021-sdc1-results",
+      "role": "official challenge analysis, source-finding curves, scoring, and morphology limitations",
+      "url": "https://doi.org/10.1093/mnras/staa3023"
+    },
+    {
+      "identifier": "skao-sdc1-data-description",
+      "role": "official catalogue fields, primary-beam-corrected flux requirement, and source-population task",
+      "url": "https://www.skao.int/sites/default/files/documents/SKA-TEL-SKO-0001001-SKA_DataChallengesDataDescription-signed.pdf"
+    },
+    {
+      "identifier": "ska-sdc1-scoring",
+      "role": "official scorer implementation and core-versus-centroid modes",
+      "url": "https://developer.skatelescope.org/projects/sdc1-scoring/en/latest/sdc1_scorer.html"
+    },
+    {
+      "identifier": "hydra-i",
+      "role": "deep-shallow surrogate semantics and 90-percent percentage-real-detections optimization",
+      "url": "https://doi.org/10.1017/pasa.2023.24"
+    },
+    {
+      "identifier": "hydra-ii",
+      "role": "finder-specific completeness, reliability, flux, size, and complex-source limitations",
+      "url": "https://doi.org/10.1017/pasa.2023.29"
+    }
+  ],
+  "next_actions": [
+    {
+      "action": "prospectively review and implement seeded-island ownership that associates multiscale support without merging independently seeded neighbours",
+      "authorization_required": true,
+      "priority": 1
+    },
+    {
+      "action": "add fitted and deconvolved shape fields to the public catalogue and validate their units and missing-value semantics",
+      "authorization_required": true,
+      "priority": 2
+    },
+    {
+      "action": "prospectively replace the public SDC1 protocol with an official-source-finding scorer adapter, null-catalogue diagnostics, published-team calibration, and SNR-dependent curves",
+      "authorization_required": true,
+      "priority": 3
+    },
+    {
+      "action": "treat the now-viewed SDC1 and Hydra products as development and regression evidence, then run the complete cumulative regression replay before freezing new held-out qualification identities",
+      "authorization_required": true,
+      "priority": 4
+    }
+  ],
+  "review_scope": {
+    "campaign_reexecution": false,
+    "diagnostics_are_non_binding": true,
+    "evidence_opened_after_terminal_decision": true,
+    "optimization": false,
+    "rescoring": false,
+    "terminal_outputs_overwritten": false,
+    "tuning": false
+  },
+  "schema_version": 1,
+  "status": "terminal-post-result-scientific-review-complete"
+}

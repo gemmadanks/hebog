@@ -10791,3 +10791,50 @@ expected xfails. The strict documentation build passes. Review against
 
 **Immediate next step:** validate and commit the terminal evidence record,
 then request independent radio-astronomy review of decision `954077e9...`.
+
+## 2026-08-26 — Complete the public-finder scientific failure review
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Opened the sealed SDC1/Hydra products only after terminal decision
+  `954077e9...`. No campaign, compiler, evaluator, gate, matcher, catalogue, or
+  terminal record changed. Machine-readable review `320f57f5...` binds the
+  exact campaign, analysis, decision, protocol, identity review, and execution
+  decision.
+- The frozen result is a valid Phase 5 stress-test fail but is not an official
+  SDC1 score. Its matcher uses only position within 0.5 beam, while the
+  official scorer combines position, size, and flux and measures chance
+  associations with a null catalogue. Hebog's public catalogue contains no
+  fitted/deconvolved shapes, core fraction, or population class, and the
+  absolute 0.90/0.95 gates were never calibrated against submitted teams.
+- SDC1 exposes a real low-SNR gap beyond RMS estimation: completeness is
+  0.06588 at SNR 5--8 and 0.22444 at 8--10, while core RMS medians are
+  66.06--66.82 nJy/beam against the 73 nJy truth-admission value. Candidate
+  fifth-percentile SNR is 7.84. At SNR at least 50, frozen completeness is
+  0.55159, but diagnostic position-only radii raise it to 0.84438 at five
+  beams; the corresponding approximate chance-association probability is
+  0.88, confirming that a larger positional radius is not a safe fix. Core
+  versus centroid truth coordinates change 8,181 matches to only 8,173.
+- Matched-source photometry is not the leading correction: median/p95 absolute
+  flux errors are 0.09972/0.20581 at SNR 20--50 and 0.07171/0.12809 at SNR at
+  least 50. Bright-source completeness is nearly flat, 0.54258--0.57042,
+  across four intrinsic major-axis bins, so apparent size alone does not
+  explain the high-SNR match deficit.
+- Hydra establishes the candidate defect directly. Deep and shallow median
+  RMS values, 30.52 and 169.97 microJy/beam, track sampled image MAD sigmas,
+  32.94 and 175.81 microJy/beam. But three-beam association dilation makes
+  deep support cover 4.139% of the image and creates 357 labels with p95 area
+  6,248 pixels and maximum 55,186; shallow support covers 0.867% and creates
+  423 labels with p95 777 and maximum 2,737. This bridging collapses catalogue
+  identity and explains the counter-directional 356-deep/413-shallow counts
+  and 38 matches.
+
+**Decision:** Phase 5 remains open. Prioritize a prospective seeded-ownership
+correction and complete public shape records, then redesign the SDC1 lane
+around official source-finding match dimensions, a null control, submitted-
+team calibration, and SNR-dependent curves. The viewed public products become
+development/regression evidence. Require full cumulative replay and fresh
+held-out qualification before proposing another one-look.
+
+**Immediate next step:** obtain named approval for a no-execution scientific
+correction pre-review. Do not tune, rescore, rerun, cut over, or release.

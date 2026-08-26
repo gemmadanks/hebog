@@ -695,13 +695,27 @@ separately approved prospective development response.
       respectively. Position, duplicate, and merge gates pass. All 16
       non-binding Hydra diagnostics are complete, including Hebog deep/shallow
       overlap 0.10674. Public evidence, optimization, tuning, rescoring,
-      cutover, and release remain closed.
-- [ ] Complete an independent scientific review of terminal public decision
-      `954077e9...`. Attribute the broad SDC1 detection/reliability and smaller
-      photometry failures without tuning or rescoring the sealed one-look.
-      Decide whether a prospective development correction is justified, and
-      require a separately reviewed protocol before changing science or
-      running new public evidence.
+      cutover, and release remain closed. Independent post-result review
+      `320f57f5...` preserves that terminal decision but separates protocol
+      validity from candidate capability. The frozen position-only matcher and
+      uncalibrated absolute gates are not an official SDC1 score. Independently,
+      the Hydra deep product proves a real depth-dependent association defect:
+      three-beam multiscale support dilation bridges seeded islands into labels
+      as large as 55,186 pixels, versus 2,737 shallow, while field-scale RMS
+      remains plausible.
+- [x] Complete an independent scientific review of terminal public decision
+      `954077e9...` without tuning or rescoring the sealed one-look. The review
+      attributes SDC1 low-SNR sensitivity loss beyond RMS estimation, source-
+      association ambiguity under a position-only dense-field matcher, missing
+      public shape characterization, and Hydra deep-image overmerging. Matched
+      SDC1 flux is within the frozen limits above SNR 20, so photometry is not
+      the first correction target. Phase 5 remains closed.
+- [ ] Prospectively pre-review seeded-island ownership, fitted/deconvolved
+      public shapes, and an official-source-finding SDC1 adapter with null-
+      catalogue and submitted-team calibration. Treat the now-viewed SDC1 and
+      Hydra products only as development/regression evidence. Require TDD,
+      complete cumulative regression replay, fresh held-out qualification,
+      and separate named approval before any new public execution.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
