@@ -120,3 +120,11 @@ missing authorization and identity drift. No replay, viewed public-data read,
 campaign, compilation, evaluation, tuning, rescoring, cutover, or release was
 performed. A replacement non-executable identity review and another named
 approval are still required before replay.
+
+Replacement identity review SHA-256 `5e5bf04a...` now binds implementation
+commit `1a6cecb...`, wrapper `b4d02784...`, the complete correction source
+overlay, inherited dependency reference, exact reconstructed population,
+unchanged delegated programs/contracts, two-worker invocation, closed baseline,
+and absent write-once output and scratch. All of its authorization flags are
+false. A separate named approval bound to that review is the only next replay
+boundary.

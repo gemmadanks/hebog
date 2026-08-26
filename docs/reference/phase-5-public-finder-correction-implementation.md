@@ -21,8 +21,9 @@ pre-review `e198df12...` recommended a minimal separately reviewed wrapper.
 Gemma Danks approved wrapper implementation and fixture/no-write validation;
 decision `83d14670...` records that limited authorization. The wrapper is now
 implemented and validated, but it has no execution decision and cannot start
-the replay. Replacement exact identities and another named approval remain
-required.
+the replay. Replacement identity review `5e5bf04a...` now binds implementation
+commit `1a6cecb...` and wrapper `b4d02784...`; every authorization flag remains
+false, so another named approval is still required.
 
 The implementation is governed by correction pre-review SHA-256
 `3e02aff3...` and the named implementation decision in
@@ -131,9 +132,11 @@ preflight because the historical program selected the older candidate. The
 repair wrapper now selects correction configuration `65c8876d...` while
 checksum-binding the historical program and unchanged compilation/evaluation
 machinery. It remains fail-closed until a replacement identity review and
-separate named approval exist. Any execution on viewed public data requires a
-later executable protocol freeze and separate approval. Fresh held-out
-qualification remains a distinct boundary after those reviews.
+separate named approval exist. Review `5e5bf04a...` supplies the non-executable
+replacement identity; it does not supply that approval. Any execution on
+viewed public data requires a later executable protocol freeze and separate
+approval. Fresh held-out qualification remains a distinct boundary after
+those reviews.
 
 The focused fixture suite passes 118 tests. The branch-aware repository suite
 passes 1,796 tests with four expected xfails and 95.06% total coverage. The

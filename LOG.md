@@ -11064,3 +11064,41 @@ non-executable identity freeze. The replay remains unauthorized.
 **Immediate next step:** validate and commit this wrapper, then freeze its
 exact commit, program, evidence, runtime, output, and scratch identities. Do
 not run the replay or open viewed SDC1/Hydra products.
+
+## 2026-08-26 — Freeze replacement correction replay identities
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- Committed the validated wrapper as `1a6cecb...`, Git tree `efdc910d...`.
+  Wrapper `b4d02784...`, implementation decision `83d14670...`, and wrapper
+  tests `4c55414e...` are now immutable implementation identities.
+- Published non-executable replacement review `5e5bf04a...`. It binds
+  candidate `b1d59e5...`, source tree `2de6564e...`, correction configuration
+  `65c8876d...`, contract `f0ddd4d5...`, `uv.lock` `c81a9831...`, and inherited
+  compatibility dependency runtime `sha256:1a83f649...`. The review states
+  explicitly that the correction is a source overlay and is not baked into
+  the inherited container.
+- Bound historical replay `5d41d31e...`, compiler `e442f658...`, evaluator
+  `7612746b...`, reference verifier `81faad48...`, endpoint registry
+  `2d7a646b...`, evaluation contract `45901f8c...`, original request
+  `7ba9be1b...`, reconstructed-reference record `69c66e0b...`, and closed
+  baseline `a45303df...`.
+- Froze the prospective command at two workers, reference reconstruction
+  `benchmark-results/phase-5/viewed-reference-reconstruction`, output
+  `cumulative-regression-ledger-public-finder-correction.json`, and scratch
+  `/private/tmp/hebog-phase5-public-finder-correction-b1d59e5`. The execution
+  decision, output, scratch, and corrected SDC1/Hydra products are absent.
+  Every review authorization flag is false.
+
+**Validation:** four focused freeze tests pass. They verify the immutable
+implementation commit/tree, every live file hash, exact wrapper decision
+fields, all-false authorization boundary, and absent replay/public outputs.
+
+**Decision:** replacement identity review `5e5bf04a...` is ready for a separate
+named approval authorizing exactly one complete 800-compact/1,600-Continuum
+cumulative replay. It does not authorize viewed public-data execution, a new
+campaign, qualification, tuning, rescoring, cutover, or release.
+
+**Immediate next step:** request named replay approval bound to review
+`5e5bf04a...`, candidate `b1d59e5...`, correction configuration `65c8876d...`,
+wrapper `b4d02784...`, and baseline `a45303df...`. Do not execute beforehand.

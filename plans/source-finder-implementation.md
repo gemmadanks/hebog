@@ -757,8 +757,14 @@ separately approved prospective development response.
       and closed baseline `a45303df...`. Authorization, source, dependency,
       population, program, output, and scratch drift fail before scientific
       input access; no execution decision or replay output exists.
-- [ ] Freeze the replacement replay identities and obtain another named
-      approval before running it. Require
+- [x] Freeze replacement replay identity review `5e5bf04a...` against
+      implementation commit `1a6cecb...`, wrapper `b4d02784...`, the exact
+      two-worker reconstructed-reference invocation, correction source overlay,
+      inherited dependency reference, historical programs/contracts, and
+      closed baseline. The execution decision, output, scratch, and corrected
+      viewed-public products are absent, and all authorization flags are false.
+- [ ] Obtain named approval bound to replacement review `5e5bf04a...` before
+      running exactly one complete cumulative replay. Require
       `cumulative_science_regression_ready=true` with no like-semantics
       regression. Viewed SDC1/Hydra execution, a new campaign, fresh
       qualification, tuning, rescoring, cutover, and release remain closed.
