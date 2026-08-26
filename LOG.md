@@ -10457,3 +10457,37 @@ permanent deletion still requires explicit approval.
 are complete without finder output. The next public gate is a separately
 reviewed finder runner/compiler/evaluator composition and named execution
 approval; this work did not open qualification or authorize cutover/release.
+
+## 2026-08-26 — Seal final qualification and diagnose compiler failure
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- The one approved campaign completed all 1,688 inputs and 8,440 finder runs
+  and published terminal campaign SHA-256 `4badb8e1...` from immutable
+  execution commit `1d584fb...`. No second request or campaign was started.
+- The committed compiler was invoked once and stopped during terminal request
+  identity validation, before verifying or reading any input/result science
+  and before creating `final-qualification-analysis.json`. It raised
+  `ValueError: recovery decision fields changed`; no terminal decision exists.
+- The failure is composition-only. The final compiler injects final protocol
+  helpers into the inherited recovery module's `_HELPERS`, but recovery's
+  `_configured_terminal` immediately replaces them from its stale
+  `_COMPAT_HELPERS`. The post-failure JSON adapter therefore sends the final
+  execution decision to `load_recovery_execution_decision` instead of
+  `load_final_qualification_execution_decision`.
+- A no-science diagnostic confirmed both sides: the frozen composition
+  installed the recovery loader, while installing complete final aliases at
+  the inherited compatibility layer selected the final loader, admitted the
+  approved decision, and retained the 1,688-image request model. The
+  diagnostic did not compile, score, or inspect campaign products.
+
+**Decision:** preserve the sealed campaign and all scientific identities; do
+not rerun, tune, rescore, or bypass the frozen compiler. The original compiler
+identity is unusable, so evaluation remains closed and Phase 5 is not yet
+qualified.
+
+**Immediate next step:** prepare a no-science repair pre-review with a focused
+real-seam regression, a corrected compiler and dependent registry/evaluator
+identities, and an exact existing-campaign evaluation amendment bound to
+campaign `4badb8e1...`. Named approval is required before the corrected
+composition may compile and evaluate that existing campaign once.

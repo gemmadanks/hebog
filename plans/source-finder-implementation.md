@@ -627,9 +627,15 @@ outstanding.
       only if every identity remains unchanged. Preflight passed from immutable
       authorization commit `1d584fb...` with request `eebb6d79...`, all 1,688
       inputs and 8,440 runs, and the exact four runtime identities unchanged.
-      The campaign remains unopened because 46 GiB of host space is below the
-      approximately 102 GiB observed requirement; execution waits for approved
-      cleanup of closed raw evidence, not a scientific or identity change.
+      After approved cleanup, that single campaign sealed completely as
+      campaign SHA-256 `4badb8e1...`. The frozen compiler then failed during
+      request-identity validation, before reading input/result science or
+      writing an analysis: its final-qualification helper map was overwritten
+      by a stale inherited recovery compatibility map, so the final execution
+      decision was parsed as a recovery decision. Do not rerun the campaign or
+      inspect its products. A no-science repair pre-review must bind a tested
+      compiler/registry/evaluator composition to this exact sealed campaign,
+      followed by named approval for one compilation and evaluation only.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
       The pre-acquisition review now recommends a truth-bearing SKA SDC1
@@ -660,14 +666,16 @@ outstanding.
       Pydantic objects, so a tested bounded evaluator now reduces each exact,
       hash-bound shard in an isolated process before applying the unchanged
       scientific decision functions.
-- [x] Implement and freeze the final runner/compiler/evaluator/runtime
-      composition. Identity review `42ad6237...` binds candidate `9062664...`,
-      source `e4307246...`, configuration `0e5dde51...`, four exact runtime
-      images, 1,688 inputs, 8,440 total runs, 5,064 binding runs, and the
-      closed compact decisions without pooling or rescoring. Named approval
-      was recorded and the complete no-write preflight passed unchanged as
-      request `eebb6d79...`. The single campaign may start after sufficient
-      disk is made available; it has not yet executed or opened science.
+- [ ] Repair and refreeze the final compiler/evaluator composition. Identity
+      review `42ad6237...` correctly bound candidate `9062664...`, source
+      `e4307246...`, configuration `0e5dde51...`, four runtime images, 1,688
+      inputs, 8,440 runs, and closed compact evidence; its approved campaign
+      sealed as `4badb8e1...`. The compiler identity it bound is nevertheless
+      unusable because its compatibility-layer alias is overwritten before
+      terminal verification. No analysis exists. The repair must add a
+      regression that exercises the real inherited decision-loading seam,
+      preserve all science and campaign identities, and obtain named approval
+      before compiling the existing sealed campaign exactly once.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:
