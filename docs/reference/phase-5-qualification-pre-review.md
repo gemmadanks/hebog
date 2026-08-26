@@ -4,11 +4,11 @@
 manifest. It remains untouched, but it is too small and too narrow for the
 current endpoint-specific power requirement. Named scientific approval on
 2026-08-25 selected the closed compact evidence and froze a fresh,
-four-geometry replacement. Execution and qualification opening remain false.
-The final runner/compiler/evaluator composition and exact four runtime
-identities are frozen under identity-review SHA-256 `42ad6237...`. Gemma
-Danks approved the bound one-look execution on 2026-08-25; the no-write
-preflight must still pass unchanged before the campaign can open.
+four-geometry replacement. The one approved campaign and the separately
+authorized evaluation repair have now completed. Terminal decision SHA-256
+`d4db4d7f...` is `pass`: all 143 Continuum absolute endpoints, all 226
+applicable paired comparisons, and both separately bound compact records pass.
+Cutover and release remain unauthorized.
 
 ## Evidence
 
@@ -102,8 +102,11 @@ independently hash-bound and are not pooled with the final Continuum result.
    `42ad6237...` and every runtime identity.~~ Approved on 2026-08-25. Run the
    complete no-write preflight from the immutable authorization commit and
    execute only if every identity remains unchanged.
-4. Execute once, evaluate absolute science before comparisons and runtime, and
-   retain a terminal failure without tuning or rescoring.
+4. ~~Execute once, evaluate absolute science before comparisons and runtime,
+   and retain a terminal failure without tuning or rescoring.~~ Completed. The
+   one campaign sealed as `4badb8e1...`; evaluation-only repair identities
+   `42ac2a96...` and `f4396a8a...` preserved the frozen science and produced
+   passing decision `d4db4d7f...` without rerunning, tuning, or rescoring.
 5. Only after qualification, public evidence, the Rapthor profile, and
    independent scientific and engineering acceptance pass may the Phase 5
    readiness record be published as complete.

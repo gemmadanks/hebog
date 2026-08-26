@@ -218,3 +218,28 @@ Gemma Danks supplied that named approval on 2026-08-26 with the response
 "I approve, please continue." The resulting decision authorizes the repair
 compiler and evaluator exactly once against the already sealed campaign. It
 does not reopen finder execution or any excluded scope.
+
+## Terminal repair outcome
+
+Authorization decision SHA-256 `0e963b9a...` admitted the exact repair
+identities and existing campaign. The compiler ran once and wrote
+`benchmark-results/phase-5/final-qualification-analysis.json`, SHA-256
+`34fb0f7ecafe35b32a0ffbdc8de6053e3bd416322014fea4daa15e035a04aacd`.
+Its provenance binds campaign `4badb8e1...`, repair review `b69b2eaa...`,
+repair compiler `42ac2a96...`, and the byte-exact frozen compiler/evaluator;
+`science_or_gates_changed` remains false.
+
+The repair evaluator then ran once and wrote
+`benchmark-results/phase-5/final-qualification-decision.json`, SHA-256
+`d4db4d7f240faf4c7d841b4586208a33fd81d13228a1215cebb75ddd11e63416`.
+The terminal status is `pass`: all 143 Continuum absolute endpoints and all
+226 applicable paired comparisons pass, while both closed compact records
+pass without pooling or rescoring. All 5,064 binding runs and all 8,440
+terminal runs succeeded, with no unavailable or unexpected run.
+
+Science was interpreted before diagnostic runtime. Median per-image wall time
+was 1.1157 seconds for Hebog, 3.5375 seconds for released PyBDSF operational,
+and 3.7566 seconds for pinned-master PyBDSF operational. These campaign
+timings are diagnostic rather than the matched complete Rapthor performance
+gate. The campaign elapsed 47,571.7 seconds. Campaign reexecution,
+optimization, tuning, rescoring, cutover, and release remain unauthorized.

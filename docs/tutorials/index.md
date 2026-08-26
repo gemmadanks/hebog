@@ -23,8 +23,9 @@ uv run hebog --version
 ```
 
 The scientific `find_sources` API intentionally raises `NotImplementedError`
-until the remaining orchestration and final qualification work can satisfy the
-complete public result contract. The compact path and the bounded Phase 5
+until the remaining orchestration, public-evidence, Rapthor-profile, and
+independent-review work can satisfy the complete public result contract. The
+compact path and the bounded Phase 5
 multiscale, association, extended-measurement, provenance, and product-
 completion components are exercised through their stage and pure-kernel APIs.
 They are not yet a supported replacement for the public pipeline.

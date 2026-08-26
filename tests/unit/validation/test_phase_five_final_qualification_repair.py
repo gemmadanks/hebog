@@ -422,8 +422,12 @@ def test_repair_identity_review_is_non_executable_and_exact() -> None:
         file_sha256(_ROOT / review["campaign"]["path"])
         == (review["campaign"]["sha256"])
     )
-    assert not (_ROOT / review["outputs"]["analysis_path"]).exists()
-    assert not (_ROOT / review["outputs"]["decision_path"]).exists()
+    assert review["outputs"] == {
+        "analysis_path": _ANALYSIS_RELATIVE,
+        "analysis_state": "absent",
+        "decision_path": _DECISION_RELATIVE,
+        "decision_state": "absent",
+    }
 
 
 def test_repair_decision_records_exact_named_authorization() -> None:

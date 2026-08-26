@@ -10607,3 +10607,49 @@ analysis publication, one evaluation.
 **Immediate next step:** validate and commit this authorization without
 changing either repair program, run the repair compiler once, then evaluate
 once if compilation succeeds.
+
+## 2026-08-26 — Pass the untouched Phase 5 final qualification
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Committed authorization `54811b2...` retained repair compiler
+  `42ac2a96...`, evaluator `f4396a8a...`, identity review `b69b2eaa...`, and
+  sealed campaign `4badb8e1...` unchanged. The compiler ran exactly once and
+  atomically wrote `final-qualification-analysis.json`, SHA-256
+  `34fb0f7e...`. Its repair provenance validates against authorization
+  `0e963b9a...`; no science meaning or gate changed.
+- The authorized evaluator ran exactly once and atomically wrote
+  `final-qualification-decision.json`, SHA-256 `d4db4d7f...`. The terminal
+  status is `pass`, qualification is opened, and cutover remains false. The
+  campaign audit contains all 1,688 images, all 8,440 terminal runs, all 5,064
+  binding candidate/operational runs, zero failed or unavailable binding run,
+  and zero unexpected run.
+- Interpreted science before runtime. Both closed compact decisions pass
+  without pooling or rescoring. All 143 Continuum absolute endpoints and all
+  226 applicable paired comparisons pass. The tightest absolute gate is
+  overall mask recall at `0.900893` against `0.90`; the tightest paired gate is
+  overall mask precision against pinned PyBDSF master, whose upper confidence
+  limit is `0.049648` against the `0.05` practical-regression margin.
+- Runtime was reviewed only after the passing scientific decision. Median
+  per-image wall time is 1.1157 seconds for Hebog, 3.5375 seconds for released
+  PyBDSF operational, and 3.7566 seconds for pinned-master PyBDSF operational.
+  The complete campaign elapsed 47,571.7 seconds. These source-finder campaign
+  timings are diagnostic and are not the matched complete Rapthor performance
+  gate.
+
+**Decision:** the untouched final-qualification and evaluation-repair tasks
+pass and are closed. Phase 5 itself remains open for the public/challenge
+finder comparison, restricted Rapthor workflow profile, final readiness
+record, and named independent radio-astronomy and engineering acceptance.
+Campaign reexecution, optimization, tuning, rescoring, cutover, and release
+remain unauthorized.
+
+**Validation:** all 18 focused final-qualification tests pass. The required
+branch-aware suite passes 1,742 tests with four expected xfails and 95.11%
+coverage. `just check` passes formatting, Ruff, Pyright, doctests, 1,588
+tests, and four expected xfails. The strict documentation build passes. Final
+review against `CODE_REVIEW.md` found no actionable issue.
+
+**Immediate next step:** validate and commit this terminal evidence record,
+then prepare the public/challenge finder execution composition without opening
+another campaign or implying production cutover.

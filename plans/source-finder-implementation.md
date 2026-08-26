@@ -613,7 +613,7 @@ outstanding.
       product, campaign-composition, and runtime-provenance root causes to 34
       unique pytest functions. Its integrity test fails if an entry or named
       fixture disappears; the complete registered lane passes independently.
-- [ ] Repeat the full final comparison with untouched qualification data,
+- [x] Repeat the full final comparison with untouched qualification data,
       injected truth, both PyBDSF references, and Aegean over its applicable
       scope, stratified by morphology, scale, SNR, edge, blend, and background.
       A no-science audit found that the untouched 400-image, one-geometry
@@ -628,22 +628,18 @@ outstanding.
       authorization commit `1d584fb...` with request `eebb6d79...`, all 1,688
       inputs and 8,440 runs, and the exact four runtime identities unchanged.
       After approved cleanup, that single campaign sealed completely as
-      campaign SHA-256 `4badb8e1...`. The frozen compiler then failed during
-      request-identity validation, before reading input/result science or
-      writing an analysis: its final-qualification helper map was overwritten
-      by a stale inherited recovery compatibility map, so the final execution
-      decision was parsed as a recovery decision. Do not rerun the campaign or
-      inspect its products. A no-science repair pre-review must bind a tested
-      compiler/registry/evaluator composition to this exact sealed campaign,
-      followed by named approval for one compilation and evaluation only.
-      Pre-review `8cff6163...` recommends new evaluation-only compiler and
-      evaluator wrappers around the byte-exact frozen programs, with a
-      real-JSON-seam regression and two approval boundaries. It currently
-      authorizes nothing by itself. Named implementation-only approval on
-      2026-08-26 is recorded separately and permits validated repair wrappers
-      plus an exact pending identity review, but still forbids compilation,
-      evaluation, campaign reexecution, optimization, tuning, rescoring,
-      cutover, and release.
+      campaign SHA-256 `4badb8e1...`. Its frozen compiler failed before science
+      because a stale inherited compatibility map parsed the final decision as
+      a recovery decision. The separately reviewed evaluation-only repair
+      preserved the campaign and every scientific identity, installed the
+      intended final aliases at that seam, and delegated to the byte-exact
+      frozen compiler and evaluator. The one authorized compilation wrote
+      analysis SHA-256 `34fb0f7e...`; the one authorized evaluation wrote
+      decision SHA-256 `d4db4d7f...` with `status=pass`. All 143 Continuum
+      absolute endpoints and all 226 applicable paired comparisons pass, both
+      closed compact records pass without pooling or rescoring, and all 5,064
+      binding runs are successful. No campaign rerun, tuning, rescoring,
+      cutover, or release was authorized.
 - [ ] Add public/challenge comparisons across at least two telescope families;
       use Selavy, ProFound, or CAESAR only where scientifically applicable.
       The pre-acquisition review now recommends a truth-bearing SKA SDC1
@@ -674,7 +670,7 @@ outstanding.
       Pydantic objects, so a tested bounded evaluator now reduces each exact,
       hash-bound shard in an isolated process before applying the unchanged
       scientific decision functions.
-- [ ] Repair and refreeze the final compiler/evaluator composition. Identity
+- [x] Repair and refreeze the final compiler/evaluator composition. Identity
       review `42ad6237...` correctly bound candidate `9062664...`, source
       `e4307246...`, configuration `0e5dde51...`, four runtime images, 1,688
       inputs, 8,440 runs, and closed compact evidence; its approved campaign
@@ -694,11 +690,13 @@ outstanding.
       `b69b2eaa...`, which binds the exact repair programs, complete frozen
       composition, campaign/request, four runtimes, and absent outputs. Every
       authorization flag in the review remains false. Named approval on
-      2026-08-26 now authorizes exactly one compilation and one evaluation of
-      the existing campaign through the frozen repair identities. It still
-      forbids another campaign, optimization, tuning, rescoring, cutover, and
-      release. Validate the committed authorization, then compile and evaluate
-      once; scientific outcomes must be interpreted before runtime.
+      2026-08-26 authorized exactly one compilation and one evaluation of the
+      existing campaign through repair compiler `42ac2a96...` and evaluator
+      `f4396a8a...`. Provenance validation passed; atomic analysis `34fb0f7e...`
+      and terminal decision `d4db4d7f...` were published exactly once. Science
+      was interpreted before diagnostic runtime, and the terminal status is
+      `pass`. Another campaign, optimization, tuning, rescoring, cutover, and
+      release remain unauthorized.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:

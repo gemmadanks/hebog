@@ -11,12 +11,13 @@ derive and admit every stage-specific halo and prove complete one-tile/many-
 tile scientific equality across the reviewed boundary matrix. Step 5 is now
 complete: executor and retry invariance, bounded byte-level execution evidence,
 and the complete Phase 4 compact regression are also green. The controlled
-incremental performance gate passes. Untouched qualification, the Rapthor
+incremental performance gate passes. The untouched final qualification has
+now passed all 143 Continuum absolute endpoints, all 226 applicable paired
+comparisons, and the separately bound compact conjunction. The Rapthor
 workflow-profile experiment, public evidence, and independent acceptance
-remain open. The final qualification population and complete prospective
-execution/evaluation composition are frozen, but no one-look execution is
-authorized. This contract does not yet establish production multiscale
-equivalence.
+remain open. This contract therefore establishes the frozen candidate's
+qualification result, but not production multiscale equivalence or cutover
+readiness.
 
 The approved Step 4 policy is recorded in the
 [compact/extended association pre-review](phase-5-association-pre-review.md).

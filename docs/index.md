@@ -42,13 +42,16 @@ complete optimized-candidate replay preserved that result, and the controlled
 incremental compact matrix passed its component budgets. Earlier failed
 campaigns remain immutable historical evidence rather than being rescored.
 
-Phase 5 is active, not complete. Its latest recovery comparison passed all
-143 Continuum absolute gates, all 226 powered Continuum comparisons
-against the two PyBDSF references, and all applicable compact PyBDSF/Aegean
-gates. Remaining work includes full multiscale implementation, the stable
-top-level pipeline, real-residual and independent review, Rapthor integration
-and matched runtime evidence, and production-scale distributed qualification.
-Hebog is therefore not yet a production-ready or default Rapthor backend.
+Phase 5 is active, not complete. Its untouched final qualification passed all
+143 Continuum absolute gates, all 226 powered Continuum comparisons against
+the two PyBDSF references, and both separately bound compact decisions. The
+1,688-image campaign completed all 8,440 runs without a failure. Remaining
+Phase 5 gates are the approved public/challenge comparison, the restricted
+Rapthor workflow profile, the readiness record, and independent scientific
+and engineering acceptance. The stable public pipeline, matched complete
+Rapthor runtime evidence, and production-scale distributed qualification are
+later delivery gates. Hebog is therefore not yet a production-ready or
+default Rapthor backend.
 
 Start with the [quick start](tutorials/index.md), read the
 [architecture](explanation/index.md) and
