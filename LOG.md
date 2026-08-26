@@ -10558,3 +10558,32 @@ the campaign.
 **Immediate next step:** commit the validated implementation, then freeze a
 pending checksummed repair review against that commit and the existing sealed
 campaign. Obtain a second named approval before invoking either wrapper.
+
+## 2026-08-26 — Freeze exact final-qualification repair identities
+
+**Plan phase:** Phase 5, Step 6 — untouched final qualification
+
+- Committed the validated repair implementation as `b6ce3cdd...`, tree
+  `fa7e1a07...`. Repair compiler SHA-256 is `42ac2a96...`; evaluator SHA-256
+  is `f4396a8a...`; implementation decision SHA-256 is `bec708fe...`.
+- Created pending repair identity review SHA-256 `b69b2eaa...`. It binds the
+  implementation commit/tree, pre-review and implementation approval, sealed
+  campaign `4badb8e1...` and request `eebb6d79...`, all byte-exact frozen
+  compiler/evaluator/protocol/population/registry/contract/decision/review
+  identities, candidate/source/configuration, and the unchanged four runtime
+  images.
+- Confirmed that `final-qualification-analysis.json`,
+  `final-qualification-decision.json`, and the prospective execution decision
+  are absent. Every campaign-execution, compilation, evaluation,
+  optimization, tuning, rescoring, cutover, and release flag in the pending
+  review remains false. Focused validation passes 14 tests without opening
+  campaign products.
+
+**Decision:** implementation and exact identity freezing are complete within
+the approved scope. No compiler or evaluator has been invoked against the
+campaign.
+
+**Immediate next step:** obtain named approval of exact repair review
+`b69b2eaa...`. Only that separate approval may authorize one compilation and
+one evaluation of the existing sealed campaign; it may not authorize another
+campaign, tuning, rescoring, cutover, or release.

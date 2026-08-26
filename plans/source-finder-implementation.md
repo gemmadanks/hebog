@@ -689,9 +689,12 @@ outstanding.
       complete final aliases only at the inherited compatibility seam, then
       delegate compilation and scoring to the byte-exact frozen functions.
       Real-seam, exact-authorization, provenance, write-once, and unchanged-
-      delegation regressions pass without opening campaign science. Freeze
-      the exact implementation identities next; a separate named approval is
-      still mandatory before the analysis or decision may be created.
+      delegation regressions pass without opening campaign science.
+      Implementation commit `b6ce3cdd...` is frozen by pending identity review
+      `b69b2eaa...`, which binds the exact repair programs, complete frozen
+      composition, campaign/request, four runtimes, and absent outputs. Every
+      authorization flag remains false. A separate named approval of that
+      review is mandatory before the analysis or decision may be created.
 - [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
       sides of any new crossover; meet the 6.0-second multiscale budget with no
       unapproved adjacent-tier regression. Preserve the two superseded curves:

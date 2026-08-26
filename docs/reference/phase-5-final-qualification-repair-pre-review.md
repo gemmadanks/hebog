@@ -178,3 +178,38 @@ programs and freezing their exact identities. Suggested wording is:
 
 After that implementation is committed, a new exact-identity review will be
 presented for a separate named compilation/evaluation approval.
+
+## Implemented repair and pending execution review
+
+The implementation-only approval was recorded on 2026-08-26. Repair compiler
+commit `b6ce3cdd49d3e51f2d1437cea3d4d4a4d79d056c` passes the real inherited
+JSON-seam regression and delegates science compilation and evaluation to the
+byte-exact frozen programs. Neither campaign science nor a write-once output
+was opened while implementing or validating it.
+
+The pending machine identity review is
+`config/contracts/phase-5-final-qualification-evaluation-repair-review.json`,
+SHA-256
+`b69b2eaa4b7d00b12314e0a7d753c22843778111ac4f0d1214dc3e1a790e2305`.
+It binds:
+
+- sealed campaign `4badb8e1...` and request `eebb6d79...`;
+- implementation commit `b6ce3cdd...` and tree `fa7e1a07...`;
+- repair compiler `42ac2a96...` and evaluator `f4396a8a...`;
+- the byte-exact frozen compiler, evaluator, protocol, population, registry,
+  evaluation contract, execution decision, and identity review;
+- candidate `9062664...`, source tree `e4307246...`, configuration
+  `0e5dde51...`, and the unchanged four runtime identities; and
+- absent analysis, decision, and execution-authorization records.
+
+Every authorization flag in that review is false. The review does not permit
+the repair programs to run. A suitable separate approval is:
+
+> I approve the Phase 5 final-qualification evaluation repair bound to
+> identity review SHA-256
+> `b69b2eaa4b7d00b12314e0a7d753c22843778111ac4f0d1214dc3e1a790e2305`
+> and its exact repair and frozen identities. This authorizes exactly one
+> compilation and one evaluation of existing sealed campaign
+> `4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08`.
+> It does not authorize campaign reexecution, optimization, tuning,
+> rescoring, cutover, or release.

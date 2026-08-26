@@ -371,3 +371,57 @@ def test_repair_evaluator_delegates_unchanged_scoring(
 
     assert result == expected
     assert observed == [(analysis, contract, registry)]
+
+
+def test_repair_identity_review_is_pending_and_exact() -> None:
+    """The exact implementation is frozen but still cannot run itself."""
+    path = (
+        _ROOT / "config/contracts/"
+        "phase-5-final-qualification-evaluation-repair-review.json"
+    )
+    review = json.loads(path.read_text(encoding="utf-8"))
+
+    assert review["status"] == (
+        "ready-for-named-final-qualification-evaluation-repair-approval"
+    )
+    assert review["implementation"]["commit"] == (
+        "b6ce3cdd49d3e51f2d1437cea3d4d4a4d79d056c"
+    )
+    assert review["implementation"]["tree"] == (
+        "fa7e1a07897acea92689f1eeab3b052ac3ca0147"
+    )
+    assert review["campaign"]["sha256"] == (
+        "4badb8e1bb8b141c654ede168d6e75e93514dee1ae41e4ccad710fefde3f3e08"
+    )
+    assert set(review["authorization"].values()) == {
+        False,
+        None,
+        (
+            "config/contracts/phase-5-final-qualification-evaluation-"
+            "repair-decision.json"
+        ),
+    }
+    assert set(review["scientific_scope"].values()) == {False}
+    original_review = json.loads(
+        (
+            _ROOT / "config/contracts/"
+            "phase-5-final-qualification-identity-review.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert review["runtime_images"] == original_review["runtime_images"]
+    identities = [
+        review["implementation"]["pre_review"],
+        review["implementation"]["implementation_decision"],
+        review["implementation"]["repair_compiler"],
+        review["implementation"]["repair_evaluator"],
+        *review["frozen_composition"]["identity_artifacts"],
+    ]
+    for identity in identities:
+        assert file_sha256(_ROOT / identity["path"]) == identity["sha256"]
+    assert (
+        file_sha256(_ROOT / review["campaign"]["path"])
+        == (review["campaign"]["sha256"])
+    )
+    assert not (_ROOT / review["outputs"]["analysis_path"]).exists()
+    assert not (_ROOT / review["outputs"]["decision_path"]).exists()
+    assert not (_ROOT / review["authorization"]["next_decision_path"]).exists()
