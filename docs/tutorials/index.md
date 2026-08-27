@@ -31,7 +31,8 @@ completion components are exercised through their stage and pure-kernel APIs.
 They are not yet a supported replacement for the public pipeline.
 
 Run the redistributable Marimo demonstration to inspect the current compact
-path and an extended residual recovered by the Phase 5 multiscale kernels:
+path and a multi-object residual processed by the bounded Phase 5 multiscale
+stage, including per-scale, persistent, and retained support:
 
 ```console
 uv run marimo edit notebooks/source_finder_demo.py

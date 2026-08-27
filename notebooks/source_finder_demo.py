@@ -17,15 +17,15 @@ def _(mo):
     # Hebog staged source-finding demonstration
 
     This notebook runs the qualified compact-source path from **Phase 4** and
-    the implemented multiscale scientific kernels from **Phase 5** on small,
-    deterministic synthetic radio images. The compact path estimates
+    the bounded multiscale stage from **Phase 5** on small, deterministic
+    synthetic radio images. The compact path estimates
     background and RMS noise, detects connected source islands, reconciles an
     island that crosses tile boundaries, deblends compact peaks, calculates
     exact-label moments, fits Gaussian components, transforms them to sky
     coordinates, deconvolves the beam, and builds a Rapthor-compatible
-    catalogue. A separate residual example shows how the Phase 5 matched-filter
-    seed aid and residual B3 à trous representation recover extended emission
-    whose brightest original pixel is below the direct detection threshold.
+    catalogue. A separate residual scene shows how the Phase 5 matched-filter
+    seed aid and residual B3 à trous representation handle direct, diffuse,
+    edge, invalid-clipped, and tile-crossing emission.
 
     The example uses Hebog's window-readable synthetic source and serial
     executor so it is quick and completely redistributable. Production inputs
@@ -60,7 +60,9 @@ def _():
     import hebog.stages.deblending as deblending_stage
     import hebog.stages.detection as detection_stage
     import hebog.stages.measurement as measurement_stage
+    import hebog.stages.multiscale as multiscale_stage
     import hebog.validation.datasets as validation_datasets
+    from hebog.algorithms import phase_five_execution
 
     return (
         astrometry_algorithms,
@@ -77,10 +79,12 @@ def _():
         measurement_stage,
         mpl_patches,
         multiscale_algorithms,
+        multiscale_stage,
         ndimage,
         np,
         partitioning_algorithms,
         pathlib,
+        phase_five_execution,
         plt,
         rapthor_catalogue_adapter,
         tempfile,
@@ -95,11 +99,12 @@ def _(mo):
 
     The checked-in development recipe contains Gaussian noise, a negative
     background, threshold-crossing sources, blends, and an image-edge source.
-    This visual variant keeps five high-confidence interior sources and
-    replaces the close pair with two equal compact sources fifteen pixels apart
-    across a four-tile corner. That keeps every admitted region eligible for a
-    complete catalogue while making reconciliation and deblending easy to see;
-    no governed regression or qualification recipe is changed. Noise is
+    This visual variant retains the complete 3/4/5/6-sigma threshold ladder,
+    bright adaptive-RMS source, and edge-truncated source. It replaces only the
+    governed close pair with two equal-brightness compact peaks joined by a
+    sub-threshold bridge across a four-tile corner, and adds one invalid
+    rectangle away from the analytic sources. No governed regression or
+    qualification recipe is changed. Noise is
     generated from global pixel coordinates, so reading the image in different
     windows always produces exactly the same pixels.
     """)
@@ -122,30 +127,42 @@ def _(
     _demonstration_sources = list(demonstration_dataset.recipe.sources)
     _pair_update = {
         "y_pixel": 96.0,
-        "peak_flux_jy_per_beam": 0.005,
-        "major_sigma_pixels": 2.5,
-        "minor_sigma_pixels": 1.7,
+        "peak_flux_jy_per_beam": 0.004,
+        "major_sigma_pixels": 1.7,
+        "minor_sigma_pixels": 1.2,
         "rotation_degrees_counterclockwise_from_x": 0.0,
     }
     _demonstration_sources[4] = _demonstration_sources[4].model_copy(
-        update={**_pair_update, "x_pixel": 88.5}
+        update={**_pair_update, "x_pixel": 87.0}
     )
     _demonstration_sources[5] = _demonstration_sources[5].model_copy(
-        update={**_pair_update, "x_pixel": 103.5}
+        update={**_pair_update, "x_pixel": 105.0}
     )
-    _demonstration_sources = [
-        source.model_copy(
+    _demonstration_sources.append(
+        _demonstration_sources[0].model_copy(
             update={
-                "peak_flux_jy_per_beam": max(
-                    source.peak_flux_jy_per_beam,
-                    0.002,
-                )
+                "x_pixel": 96.0,
+                "y_pixel": 96.0,
+                "peak_flux_jy_per_beam": 0.0007,
+                "major_sigma_pixels": 12.0,
+                "minor_sigma_pixels": 2.0,
+                "rotation_degrees_counterclockwise_from_x": 0.0,
             }
         )
-        for source in _demonstration_sources[2:7]
-    ]
+    )
     demonstration_recipe = demonstration_dataset.recipe.model_copy(
-        update={"sources": tuple(_demonstration_sources)}
+        update={
+            "generator_version": 2,
+            "sources": tuple(_demonstration_sources),
+            "invalid_rectangles": (
+                validation_datasets.SyntheticInvalidRectangle(
+                    y_start=118,
+                    y_stop=136,
+                    x_start=58,
+                    x_stop=78,
+                ),
+            ),
+        }
     )
     input_image = validation_datasets.generate_synthetic_image(
         demonstration_recipe
@@ -193,8 +210,16 @@ def _(
 
 
 @app.cell
-def _(demonstration_dataset, demonstration_recipe, input_image, mo, np, plt):
-    _minimum, _maximum = np.percentile(input_image, (1.0, 99.8))
+def _(
+    demonstration_dataset,
+    demonstration_recipe,
+    input_image,
+    mo,
+    mpl_patches,
+    np,
+    plt,
+):
+    _minimum, _maximum = np.nanpercentile(input_image, (1.0, 99.8))
     _figure, _axis = plt.subplots(figsize=(7.0, 5.5))
     _image_artist = _axis.imshow(
         input_image,
@@ -208,6 +233,39 @@ def _(demonstration_dataset, demonstration_recipe, input_image, mo, np, plt):
         xlabel="x pixel",
         ylabel="y pixel",
     )
+    _axis.axvline(96, color="tab:orange", linestyle="--", linewidth=0.8)
+    _axis.axhline(96, color="tab:orange", linestyle="--", linewidth=0.8)
+    for _source_index, _source in enumerate(
+        demonstration_recipe.sources,
+        start=1,
+    ):
+        _axis.plot(
+            _source.x_pixel,
+            _source.y_pixel,
+            marker="+",
+            color="tab:cyan",
+            markersize=7,
+        )
+        _axis.annotate(
+            f"S{_source_index}",
+            (_source.x_pixel, _source.y_pixel),
+            xytext=(4, 4),
+            textcoords="offset points",
+            color="tab:cyan",
+            fontsize=8,
+        )
+    for _rectangle in demonstration_recipe.invalid_rectangles:
+        _axis.add_patch(
+            mpl_patches.Rectangle(
+                (_rectangle.x_start, _rectangle.y_start),
+                _rectangle.x_stop - _rectangle.x_start,
+                _rectangle.y_stop - _rectangle.y_start,
+                fill=False,
+                hatch="////",
+                edgecolor="tab:red",
+                linewidth=1.2,
+            )
+        )
     _figure.colorbar(
         _image_artist,
         ax=_axis,
@@ -215,6 +273,34 @@ def _(demonstration_dataset, demonstration_recipe, input_image, mo, np, plt):
         shrink=0.82,
     )
     _figure.tight_layout()
+    _roles = (
+        "3-sigma threshold crossing",
+        "4-sigma threshold crossing",
+        "5-sigma seed boundary",
+        "6-sigma accepted compact source",
+        "first peak in a blended island",
+        "second peak in a blended island",
+        "bright adaptive-RMS source",
+        "image-edge source",
+        "sub-threshold bridge joining the blend",
+    )
+
+    def _analytic_peak_snr(source):
+        return source.peak_flux_jy_per_beam / demonstration_recipe.noise_rms
+
+    _source_rows = "\n".join(
+        f"| S{_index} | {_role} | "
+        f"{_analytic_peak_snr(_source):.1f} | "
+        f"({_source.y_pixel:.2f}, {_source.x_pixel:.2f}) |"
+        for _index, (_source, _role) in enumerate(
+            zip(demonstration_recipe.sources, _roles, strict=True),
+            start=1,
+        )
+    )
+    _source_table_header = (
+        "| Marker | Intended case | Analytic peak / input RMS | "
+        "Centre (y, x) |"
+    )
     mo.vstack(
         [
             mo.md(
@@ -224,6 +310,14 @@ def _(demonstration_dataset, demonstration_recipe, input_image, mo, np, plt):
                 f"`{len(demonstration_recipe.sources)}`"
             ),
             _figure,
+            mo.md(
+                f"{_source_table_header}\n"
+                "| --- | --- | ---: | --- |\n"
+                f"{_source_rows}\n\n"
+                "Orange dashed lines are tile boundaries. The hatched "
+                "rectangle is invalid and is excluded from estimation, "
+                "detection, and fitting."
+            ),
         ]
     )
     return
@@ -236,7 +330,7 @@ def _(mo):
 
     The scientific thresholds are explicit: an island includes pixels at or
     above 3 sigma and must contain a seed strictly above 5 sigma. The
-    six-pixel minimum suppresses isolated noise pixels. A high-significance
+    seven-pixel minimum suppresses isolated noise pixels. A high-significance
     scan at 50 sigma requests a finer local RMS grid near a bright source. For
     this visual example, compact peaks at least one pixel apart remain
     separate when the weaker peak is at least 0.5 sigma above their saddle.
@@ -565,7 +659,7 @@ def _(
     _figure, _axes = plt.subplots(
         1, 4, figsize=(16.0, 4.0), constrained_layout=True
     )
-    _minimum, _maximum = np.percentile(input_image, (1.0, 99.8))
+    _minimum, _maximum = np.nanpercentile(input_image, (1.0, 99.8))
     _panels = (
         (input_image, "Input", "gray", _minimum, _maximum),
         (background_plane, "Estimated background", "coolwarm", None, None),
@@ -642,7 +736,7 @@ def _(
         xlabel="x pixel",
         ylabel="y pixel",
     )
-    _minimum, _maximum = np.percentile(input_image, (1.0, 99.8))
+    _minimum, _maximum = np.nanpercentile(input_image, (1.0, 99.8))
     _region_axis.imshow(
         input_image,
         origin="lower",
@@ -888,11 +982,16 @@ def _(
     rms_plane,
 ):
     partition_checks = {
-        "Background is identical": np.array_equal(
-            one_tile_background,
-            background_plane,
-        ),
-        "RMS is identical": np.array_equal(one_tile_rms, rms_plane),
+    "Background is identical": np.array_equal(
+        one_tile_background,
+        background_plane,
+        equal_nan=True,
+    ),
+    "RMS is identical": np.array_equal(
+        one_tile_rms,
+        rms_plane,
+        equal_nan=True,
+    ),
         "Source mask is identical": np.array_equal(
             one_tile_mask,
             source_filtering_mask,
@@ -950,11 +1049,13 @@ def _(mo):
     mo.md(r"""
     ## 8. Recover an extended residual across scales
 
-    Phase 5 first removes or excludes accepted compact emission. This isolated
-    example therefore starts from a compact-clean residual containing one
-    broad Gaussian with a peak of only 4 sigma. The original residual remains
-    the measurement and mask support: multiscale responses may seed an island,
-    but they do not replace the observed pixels or invent filtered flux.
+    Phase 5 first removes or excludes accepted compact emission. This example
+    therefore starts from a compact-clean residual containing four deliberately
+    different sources. Two original-pixel peaks are below 5 sigma and require
+    multiscale seed evidence; one is a compact direct seed; and one is clipped
+    by invalid pixels. One diffuse source lies on a four-tile corner and
+    another reaches the image edge, exercising reconciliation and normalized
+    support.
 
     Hebog uses two deliberately separate multiscale roles:
 
@@ -964,39 +1065,108 @@ def _(mo):
 
     Seeds above 5 sigma grow through eight-connected original residual pixels
     at or above 3 sigma. A retained scale response also needs at least 50%
-    valid filter support.
+    valid filter support. The example runs the production bounded Phase 5
+    stage, including two-pass topology reconciliation and persisted Zarr
+    products, rather than plotting only an isolated in-memory kernel.
     """)
     return
 
 
 @app.cell
-def _(demonstration_dataset, hebog_config, multiscale_algorithms, np):
-    multiscale_shape_yx = (129, 129)
+def _(
+    demonstration_workspace,
+    hebog_config,
+    hebog_executors,
+    hebog_io,
+    hebog_models,
+    multiscale_algorithms,
+    multiscale_stage,
+    np,
+    partitioning_algorithms,
+    pathlib,
+    phase_five_execution,
+):
+    multiscale_shape_yx = (192, 192)
     _y_grid, _x_grid = np.indices(multiscale_shape_yx, dtype=np.float64)
-    multiscale_rms_jy_per_beam = 0.001
-    multiscale_residual = 0.004 * np.exp(
-        -0.5
-        * (
-            np.square((_x_grid - 64.0) / 10.0)
-            + np.square((_y_grid - 64.0) / 7.0)
-        )
+    multiscale_rms = 0.001 * (
+        0.85
+        + 0.30 * _x_grid / (multiscale_shape_yx[1] - 1)
+        + 0.20 * _y_grid / (multiscale_shape_yx[0] - 1)
     )
+    multiscale_background = -0.0002 + 0.00008 * np.sin(_x_grid / 19.0)
+    multiscale_cases = (
+        {
+            "marker": "A",
+            "name": "Diffuse tile-crossing source",
+            "centre_yx": (96.0, 96.0),
+            "sigma_yx": (11.0, 7.0),
+            "peak_snr": 4.2,
+            "policy": "multiscale-only; crosses four tile cores",
+        },
+        {
+            "marker": "B",
+            "name": "Compact direct seed",
+            "centre_yx": (44.0, 42.0),
+            "sigma_yx": (1.2, 1.0),
+            "peak_snr": 7.5,
+            "policy": "direct seed; sub-beam retention rule",
+        },
+        {
+            "marker": "C",
+            "name": "Diffuse image-edge source",
+            "centre_yx": (184.0, 32.0),
+            "sigma_yx": (8.0, 5.0),
+            "peak_snr": 4.4,
+            "policy": "multiscale-only; normalized edge support",
+        },
+        {
+            "marker": "D",
+            "name": "Invalid-clipped source",
+            "centre_yx": (58.0, 151.0),
+            "sigma_yx": (6.0, 4.0),
+            "peak_snr": 6.5,
+            "policy": "direct seed; invalid pixels cannot bridge",
+        },
+    )
+    multiscale_residual = multiscale_rms * (
+        0.18 * np.sin(_x_grid / 3.7) + 0.12 * np.cos(_y_grid / 5.1)
+    )
+    for _case in multiscale_cases:
+        _centre_y, _centre_x = _case["centre_yx"]
+        _sigma_y, _sigma_x = _case["sigma_yx"]
+        _peak = (
+            _case["peak_snr"] * multiscale_rms[int(_centre_y), int(_centre_x)]
+        )
+        multiscale_residual += _peak * np.exp(
+            -0.5
+            * (
+                np.square((_y_grid - _centre_y) / _sigma_y)
+                + np.square((_x_grid - _centre_x) / _sigma_x)
+            )
+        )
+    multiscale_valid = np.ones(multiscale_shape_yx, dtype=np.bool_)
+    multiscale_invalid_bounds_yxyx = (54, 64, 154, 160)
+    _invalid_y_start, _invalid_y_stop, _invalid_x_start, _invalid_x_stop = (
+        multiscale_invalid_bounds_yxyx
+    )
+    multiscale_valid[
+        _invalid_y_start:_invalid_y_stop,
+        _invalid_x_start:_invalid_x_stop,
+    ] = False
+    multiscale_image = multiscale_background + multiscale_residual
+    multiscale_image[~multiscale_valid] = np.nan
+    multiscale_direct_snr = multiscale_residual / multiscale_rms
+    multiscale_direct_snr[~multiscale_valid] = np.nan
     multiscale_beam = multiscale_algorithms.BeamShapePixels(
-        major_fwhm_pixels=demonstration_dataset.beam.major_fwhm_pixels,
-        minor_fwhm_pixels=demonstration_dataset.beam.minor_fwhm_pixels,
-        position_angle_degrees=(
-            demonstration_dataset.beam.position_angle_degrees
-        ),
+        major_fwhm_pixels=3.0,
+        minor_fwhm_pixels=2.25,
+        position_angle_degrees=10.0,
     )
     _prepared_multiscale = multiscale_algorithms.prepare_scale_filter_inputs(
-        multiscale_residual,
-        np.ones(multiscale_shape_yx, dtype=np.bool_),
-        np.zeros(multiscale_shape_yx, dtype=np.float64),
-        np.full(
-            multiscale_shape_yx,
-            multiscale_rms_jy_per_beam,
-            dtype=np.float64,
-        ),
+        multiscale_image,
+        multiscale_valid,
+        multiscale_background,
+        multiscale_rms,
     )
     _matched_plan = multiscale_algorithms.build_scale_filter_bank(
         multiscale_beam,
@@ -1018,70 +1188,307 @@ def _(demonstration_dataset, hebog_config, multiscale_algorithms, np):
         _atrous_plan,
         minimum_support_fraction=0.5,
     )
-    multiscale_detection = (
-        multiscale_algorithms.detect_residual_multiscale_islands(
-            _prepared_multiscale,
-            multiscale_matched,
-            multiscale_atrous,
+
+    class _ArrayWindowSource:
+        def __init__(self, values, valid_pixels):
+            self._values = values
+            self._valid_pixels = valid_pixels
+
+        def read_window(self, bounds):
+            _selection = (
+                slice(bounds.y_start, bounds.y_stop),
+                slice(bounds.x_start, bounds.x_stop),
+            )
+            return hebog_io.ImageWindow(
+                bounds=bounds,
+                values=np.array(self._values[_selection], copy=True),
+                valid_pixels=np.array(
+                    self._valid_pixels[_selection],
+                    copy=True,
+                ),
+            )
+
+    _background_manifest = partitioning_algorithms.plan_image_partitions(
+        image_shape_yx=multiscale_shape_yx,
+        tile_core_shape_yx=(96, 96),
+        halo_yx=(0, 0),
+    )
+    _background_sink = hebog_io.ZarrProductSink(
+        pathlib.Path(demonstration_workspace.name)
+        / "multiscale-background.zarr",
+        _background_manifest,
+        generation_id="marimo-multiscale-background",
+    )
+    for _product_name in ("background", "rms"):
+        _background_sink.initialize_product(
+            product_name=_product_name,
+            dtype=np.dtype("<f8"),
+        )
+    _background_chunks = []
+    for _tile in _background_manifest.tiles:
+        _selection = (
+            slice(_tile.core_bounds.y_start, _tile.core_bounds.y_stop),
+            slice(_tile.core_bounds.x_start, _tile.core_bounds.x_stop),
+        )
+        for _product_name, _values in (
+            ("background", multiscale_background),
+            ("rms", multiscale_rms),
+        ):
+            _background_chunks.append(
+                _background_sink.write_chunk(
+                    product_name=_product_name,
+                    tile=_tile,
+                    values=np.asarray(_values[_selection]),
+                )
+            )
+    _background_sink.publish_generation(
+        product_names=("background", "rms"),
+        chunks=_background_chunks,
+    )
+
+    _filter_halo = phase_five_execution.scale_filter_halo_pixels(
+        multiscale_beam
+    )
+    _multiscale_manifest = partitioning_algorithms.plan_image_partitions(
+        image_shape_yx=multiscale_shape_yx,
+        tile_core_shape_yx=(96, 96),
+        halo_yx=(_filter_halo, _filter_halo),
+    )
+    _multiscale_sink = hebog_io.ZarrProductSink(
+        pathlib.Path(demonstration_workspace.name) / "multiscale-stage.zarr",
+        _multiscale_manifest,
+        generation_id="marimo-multiscale-stage",
+    )
+    multiscale_stage_result = multiscale_stage.run_phase_five_multiscale_stage(
+        _ArrayWindowSource(multiscale_image, multiscale_valid),
+        _background_sink,
+        _multiscale_manifest,
+        config=multiscale_stage.PhaseFiveMultiscaleStageConfig(
             multiscale_beam,
-            hebog_config.ResidualMultiscaleDetectionConfig(
+            detection=hebog_config.ResidualMultiscaleDetectionConfig(
                 detection_threshold_sigma=5.0,
                 island_threshold_sigma=3.0,
                 minimum_scale_support_fraction=0.5,
                 minimum_island_area_beams=1.0,
             ),
-        )
+            maximum_tiles_per_batch=2,
+        ),
+        executor=hebog_executors.SerialExecutor(),
+        sink=_multiscale_sink,
     )
-    multiscale_direct_snr = multiscale_residual / multiscale_rms_jy_per_beam
+    multiscale_bounds = hebog_models.ImageBounds(
+        0,
+        multiscale_shape_yx[0],
+        0,
+        multiscale_shape_yx[1],
+    )
+    multiscale_combined_snr = _multiscale_sink.read_completed_window(
+        "combined-snr",
+        multiscale_bounds,
+    )
+    multiscale_reconstructed_snr = (
+        _multiscale_sink.read_completed_window(
+            "reconstructed-signal",
+            multiscale_bounds,
+        )
+        / multiscale_rms
+    )
+    multiscale_position_snr = (
+        _multiscale_sink.read_completed_window(
+            "position-signal",
+            multiscale_bounds,
+        )
+        / multiscale_rms
+    )
+    multiscale_scale_support = tuple(
+        np.asarray(
+            _multiscale_sink.read_completed_window(
+                f"scale-{_order}-significant",
+                multiscale_bounds,
+            ),
+            dtype=np.bool_,
+        )
+        for _order in (1, 2, 3)
+    )
+    multiscale_atrous_support = np.asarray(
+        _multiscale_sink.read_completed_window(
+            "reconstruction-mask",
+            multiscale_bounds,
+        ),
+        dtype=np.bool_,
+    )
+    multiscale_retained_support = np.asarray(
+        _multiscale_sink.read_completed_window(
+            "retained-mask",
+            multiscale_bounds,
+        ),
+        dtype=np.bool_,
+    )
     return (
         multiscale_atrous,
-        multiscale_detection,
+        multiscale_atrous_support,
+        multiscale_cases,
+        multiscale_combined_snr,
         multiscale_direct_snr,
+        multiscale_invalid_bounds_yxyx,
         multiscale_matched,
+        multiscale_position_snr,
+        multiscale_reconstructed_snr,
         multiscale_residual,
+        multiscale_retained_support,
+        multiscale_scale_support,
+        multiscale_stage_result,
+        multiscale_valid,
     )
 
 
 @app.cell(hide_code=True)
 def _(
     mo,
+    mpl_patches,
     multiscale_atrous,
-    multiscale_detection,
+    multiscale_atrous_support,
+    multiscale_cases,
+    multiscale_combined_snr,
     multiscale_direct_snr,
+    multiscale_invalid_bounds_yxyx,
     multiscale_matched,
+    multiscale_position_snr,
+    multiscale_reconstructed_snr,
+    multiscale_retained_support,
+    multiscale_scale_support,
+    multiscale_stage_result,
+    multiscale_valid,
     np,
     plt,
 ):
-    _figure, _axes = plt.subplots(1, 3, figsize=(13.0, 4.0))
-    _direct_artist = _axes[0].imshow(
-        multiscale_direct_snr,
-        origin="lower",
-        cmap="magma",
-        vmin=0.0,
-        vmax=5.0,
+    _evidence_figure, _evidence_axes = plt.subplots(
+        2,
+        2,
+        figsize=(13.0, 8.5),
+        constrained_layout=True,
     )
-    _axes[0].set_title("Original residual S/N")
-    _combined_artist = _axes[1].imshow(
-        multiscale_detection.combined_snr,
-        origin="lower",
-        cmap="magma",
-        vmin=0.0,
-        vmax=float(np.max(multiscale_detection.combined_snr)),
+    _evidence_panels = (
+        (multiscale_direct_snr, "Original residual S/N"),
+        (multiscale_combined_snr, "Maximum seed evidence"),
+        (multiscale_reconstructed_snr, "B3 reconstructed signal / RMS"),
+        (multiscale_position_snr, "Regularized position signal / RMS"),
     )
-    _axes[1].set_title("Maximum seed evidence")
-    _axes[2].imshow(
-        multiscale_detection.retained_mask,
+    _invalid_y_start, _invalid_y_stop, _invalid_x_start, _invalid_x_stop = (
+        multiscale_invalid_bounds_yxyx
+    )
+    for _axis, (_values, _title) in zip(
+        _evidence_axes.flat,
+        _evidence_panels,
+        strict=True,
+    ):
+        _artist = _axis.imshow(
+            _values,
+            origin="lower",
+            cmap="magma",
+            vmin=0.0,
+            vmax=float(np.nanmax(_values)),
+        )
+        _axis.set(title=_title, xlabel="x pixel", ylabel="y pixel")
+        _axis.axvline(96, color="white", linestyle="--", linewidth=0.7)
+        _axis.axhline(96, color="white", linestyle="--", linewidth=0.7)
+        _axis.add_patch(
+            mpl_patches.Rectangle(
+                (_invalid_x_start, _invalid_y_start),
+                _invalid_x_stop - _invalid_x_start,
+                _invalid_y_stop - _invalid_y_start,
+                fill=False,
+                hatch="////",
+                edgecolor="cyan",
+                linewidth=1.0,
+            )
+        )
+        _evidence_figure.colorbar(_artist, ax=_axis, shrink=0.78)
+    for _axis in _evidence_axes.flat:
+        for _case in multiscale_cases:
+            _centre_y, _centre_x = _case["centre_yx"]
+            _axis.plot(
+                _centre_x,
+                _centre_y,
+                marker="+",
+                color="cyan",
+                markersize=7,
+            )
+            _axis.annotate(
+                _case["marker"],
+                (_centre_x, _centre_y),
+                xytext=(4, 4),
+                textcoords="offset points",
+                color="cyan",
+                fontsize=9,
+            )
+
+    _scale_figure, _scale_axes = plt.subplots(
+        1,
+        3,
+        figsize=(13.0, 3.8),
+        constrained_layout=True,
+    )
+    for _order, (_axis, _support) in enumerate(
+        zip(_scale_axes, multiscale_scale_support, strict=True),
+        start=1,
+    ):
+        _axis.imshow(
+            _support,
+            origin="lower",
+            cmap="binary",
+            vmin=0,
+            vmax=1,
+        )
+        _axis.set(
+            title=(
+                f"B3 level {_order}: "
+                f"{int(np.count_nonzero(_support))} supported pixels"
+            ),
+            xlabel="x pixel",
+            ylabel="y pixel",
+        )
+
+    _support_figure, _support_axes = plt.subplots(
+        1,
+        2,
+        figsize=(13.0, 4.0),
+        constrained_layout=True,
+    )
+    _scale_support = np.asarray(
+        multiscale_atrous_support,
+        dtype=np.bool_,
+    )
+    _support_axes[0].imshow(
+        _scale_support,
         origin="lower",
-        cmap="gray_r",
+        cmap="binary",
         vmin=0,
         vmax=1,
     )
-    _axes[2].set_title("Original-pixel retained support")
-    for _axis in _axes:
+    _support_axes[0].set_title("A trous persistent scale support")
+    _support_axes[1].imshow(
+        multiscale_retained_support,
+        origin="lower",
+        cmap="binary",
+        vmin=0,
+        vmax=1,
+    )
+    _support_axes[1].set_title("Original-pixel retained support")
+    for _axis in _support_axes:
         _axis.set(xlabel="x pixel", ylabel="y pixel")
-    _figure.colorbar(_direct_artist, ax=_axes[0], shrink=0.8)
-    _figure.colorbar(_combined_artist, ax=_axes[1], shrink=0.8)
-    _figure.tight_layout()
+    _support_figure.colorbar(
+        _support_axes[0].images[0],
+        ax=_support_axes[0],
+        ticks=[0.0, 1.0],
+        shrink=0.8,
+    )
+    _support_figure.colorbar(
+        _support_axes[1].images[0],
+        ax=_support_axes[1],
+        ticks=[0.0, 1.0],
+        shrink=0.8,
+    )
     _matched_peak_snrs = tuple(
         float(
             np.nanmax(
@@ -1100,12 +1507,21 @@ def _(
         )
         for response in multiscale_atrous.responses
     )
-    _retained_count = int(np.count_nonzero(multiscale_detection.retained_mask))
+    _retained_count = int(np.count_nonzero(multiscale_retained_support))
+    _scale_support_count = int(np.count_nonzero(_scale_support))
     _statistics = mo.hstack(
         [
             mo.stat(
-                label="Direct peak",
-                value=(f"{float(np.max(multiscale_direct_snr)):.2f} sigma"),
+                label="Bounded stage",
+                value=(
+                    f"{multiscale_stage_result.partition_count} tiles / "
+                    f"{multiscale_stage_result.executor_task_count} tasks / "
+                    f"{100 * np.mean(multiscale_valid):.2f}% valid"
+                ),
+            ),
+            mo.stat(
+                label="Reconciled detections",
+                value=str(len(multiscale_stage_result.detection_islands)),
             ),
             mo.stat(
                 label="Matched-filter peaks (1/2/4 beams)",
@@ -1120,35 +1536,87 @@ def _(
                 ),
             ),
             mo.stat(
+                label="A trous support",
+                value=f"{_scale_support_count} pixels",
+            ),
+            mo.stat(
                 label="Retained support",
                 value=f"{_retained_count} pixels",
             ),
         ],
         widths="equal",
     )
-    mo.vstack([_statistics, _figure])
+
+    def _case_row(case):
+        _centre_y, _centre_x = case["centre_yx"]
+        _index = (int(_centre_y), int(_centre_x))
+        _direct_snr = multiscale_direct_snr[_index]
+        _combined_snr = multiscale_combined_snr[_index]
+        _retained = "yes" if multiscale_retained_support[_index] else "no"
+        return (
+            f"| {case['marker']} | {case['name']} | "
+            f"{_direct_snr:.2f} | {_combined_snr:.2f} | "
+            f"{_retained} | {case['policy']} |"
+        )
+
+    _case_rows = "\n".join(_case_row(_case) for _case in multiscale_cases)
+    _case_table_header = (
+        "| Marker | Demonstrated case | Direct S/N | Maximum seed S/N | "
+        "Retained | Policy exercised |"
+    )
+    _case_table = mo.md(f"""
+    {_case_table_header}
+    | --- | --- | ---: | ---: | --- | --- |
+    {_case_rows}
+    """)
+    mo.vstack(
+        [
+            _statistics,
+            _case_table,
+            _evidence_figure,
+            mo.md("### Significant support at each B3 level"),
+            _scale_figure,
+            mo.md("### Persistent and final retained support"),
+            _support_figure,
+        ]
+    )
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## What this does—and does not—demonstrate
+    ## What this demonstrates—and the remaining boundary
 
-    Hebog can currently locate compact and multiscale emission, reconcile it
-    across bounded tiles, retain exact compact catalogue products when no
-    extended evidence changes an association, measure accepted extended
-    support on original pixels, and record the contributing scales and visible
-    support. Compact Gaussian uncertainties are calibrated where the Phase 4
-    contract permits them; shape and marginally resolved flux uncertainties
-    remain explicitly report-only or unavailable rather than fabricated.
+    The compact scene now exercises threshold inclusion and exclusion,
+    invalid pixels, adaptive RMS, edge truncation, connected-island
+    reconciliation, true two-peak deblending, exact-label moments, Gaussian
+    fitting, WCS/beam transforms, catalogue construction, deterministic FITS,
+    and one-tile/four-tile equality.
 
-    This notebook demonstrates scientific stages, not the final public
-    pipeline. Per-channel catalogue fields, `find_sources` orchestration, the
-    complete Rapthor `filter_skymodel` decision, the controlled incremental
-    performance gate, untouched Phase 5 qualification, and independent human
-    review remain open. Hebog is therefore not yet a drop-in PyBDSF replacement
-    or a production-ready Rapthor backend.
+    The residual scene executes the latest bounded Phase 5 multiscale stage on
+    four tiles. It demonstrates spatial background/RMS preparation,
+    beam-aware matched-filter seed evidence, the residual B3 representation,
+    normalized edge and invalid-pixel support, stable topology reconciliation,
+    all three scale-support products, and the final two-stage policy:
+
+    1. A persistent, adjacent-scale B3 reconstruction support mask.
+    2. The final retained original-pixel support after seed and area checks.
+
+    The three B3 panels make adjacent-scale persistence auditable, and the two
+    final support plots are emitted as a dedicated figure so both remain
+    visible in Marimo app view. Compact Gaussian uncertainties remain
+    calibrated only where the Phase 4 contract permits them; unavailable or
+    report-only quantities are not fabricated.
+
+    This is still a stage-level demonstration. Cross-scale/compact-context
+    association, extended-emission measurement, combined-product provenance,
+    and publication kernels are implemented and covered by focused tests, but
+    are not yet composed behind the public `find_sources` entry point. The
+    complete Rapthor `filter_skymodel` decision, controlled performance gates,
+    untouched Phase 5 qualification, and independent human review also remain
+    open. Hebog is therefore not yet a drop-in PyBDSF replacement or a
+    production-ready Rapthor backend.
     """).callout(kind="warn")
     return
 
