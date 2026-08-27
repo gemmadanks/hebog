@@ -1,0 +1,211 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "complete_no_write_preflight_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "identity_freeze_authorized": false,
+    "implementation_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "revision": "26e639ace9d39b039eb7c3114427277c91809591",
+    "source_tree_sha256": "34fecf302e7c6a9722dd15b8d843d316a4e4e7a1be3df2610a2d45b0a5dfb893"
+  },
+  "closed_boundary": {
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "compact_image_count": 800,
+    "continuum_image_count": 1600,
+    "failed_correction_ledger_sha256": "1ac6deb24e4bfc1928318c95437d45acac6ac1f94621b53d45175e0f41bd9797",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "required_result": "cumulative_science_regression_ready=true-with-no-like-semantics-regression",
+    "workers": 2
+  },
+  "current_wrapper": {
+    "bound_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+    "bound_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+    "bound_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+    "path": "scripts/validation/review_phase5_public_finder_correction_cumulative_regressions.py",
+    "sha256": "04a3a54335c93b6abfa71c71ba2e4771ae48dfc38bc3587a673fa2683fa780ac",
+    "status": "immutable-consumed-correction-replay-wrapper"
+  },
+  "historical_replay": {
+    "path": "scripts/validation/review_phase5_cumulative_regressions.py",
+    "sha256": "5d41d31ee79cd0d6d203cd774267fd504d06fe7662768486f99c31a7902b8a3f"
+  },
+  "non_transferable_authorization": {
+    "consumed": true,
+    "execution_decision": {
+      "path": "config/contracts/phase-5-public-finder-correction-cumulative-replay-reference-provenance-repair-execution-decision.json",
+      "sha256": "a220249b19730041903fae1631ef44b686c766a34bae9d2fb851cee0e78ffd0d"
+    },
+    "reason": "candidate-program-configuration-and-output-identities-change",
+    "transferable": false
+  },
+  "pre_review_id": "phase-5-public-finder-source-association-replay-composition-pre-review",
+  "prospective_repair": {
+    "allowed_changes": [
+      "replace-candidate-revision-source-tree-and-configuration-bindings",
+      "select-public-finder-source-association-candidate-configuration",
+      "bind-source-association-pre-review-and-implementation-decision",
+      "publish-to-a-new-write-once-ledger-path",
+      "freeze-new-wrapper-and-non-executable-composition-identities"
+    ],
+    "approach": "add-one-minimal-source-association-wrapper-around-the-checksum-bound-correction-wrapper",
+    "forbidden_changes": [
+      "modify-or-overwrite-the-consumed-correction-wrapper-or-ledger",
+      "change-compact-or-continuum-population-membership",
+      "change-reference-reconstruction-or-any-reference-product",
+      "change-compiler-evaluator-endpoint-registry-evaluation-contract-or-gates",
+      "change-background-rms-threshold-minimum-area-aperture-flux-position-shape-or-source-association-policy",
+      "change-runtime-dependency-identities-or-worker-count",
+      "read-viewed-sdc1-or-hydra-products-during-implementation",
+      "create-scratch-or-output-before-a-later-exact-replay-approval"
+    ],
+    "prospective_paths": {
+      "executable_identity_review": "config/contracts/phase-5-public-finder-source-association-cumulative-replay-review.json",
+      "implementation_decision": "config/contracts/phase-5-public-finder-source-association-replay-composition-implementation-decision.json",
+      "output": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association.json",
+      "scratch": "/private/tmp/hebog-phase5-public-finder-source-association-26e639a",
+      "wrapper": "scripts/validation/review_phase5_public_finder_source_association_cumulative_regressions.py"
+    },
+    "required_composition": [
+      "checksum-verify-and-delegate-reference-provenance-compact-generation-compilation-evaluation-regression-comparison-and-atomic-publication-to-the-current-correction-wrapper",
+      "bind-revision-26e639ace9d39b039eb7c3114427277c91809591-and-source-tree-34fecf302e7c6a9722dd15b8d843d316a4e4e7a1be3df2610a2d45b0a5dfb893",
+      "compute-configuration-78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946-through-public_finder_source_association_candidate_configuration",
+      "retain-build_public_finder_correction_continuum_products-from-the-exact-new-source-tree-because-it-now-publishes-the-approved-source-association-records",
+      "bind-the-exact-source-overlay-separately-from-the-unchanged-compatibility-container-and-dependency-inventory",
+      "require-the-new-output-and-scratch-to-be-absent-before-any-scientific-input-access"
+    ]
+  },
+  "required_next_decision": "named-approval-of-this-exact-pre-review-for-fixture-and-no-write-implementation-and-non-executable-identity-freezing-only",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-pre-review",
+    "implement-the-new-wrapper-test-first-with-fixture-and-no-write-validation-only",
+    "freeze-exact-non-executable-wrapper-candidate-runtime-reference-program-and-output-identities",
+    "obtain-a-separate-named-approval-before-one-complete-cumulative-replay"
+  ],
+  "required_validation": {
+    "complete_no_write_preflight": true,
+    "cumulative_replay_started": false,
+    "executable_identity_review_created": false,
+    "fail_closed_cases": [
+      "old-execution-decision-reuse",
+      "candidate-revision-or-source-tree-drift",
+      "candidate-configuration-drift",
+      "source-association-contract-or-decision-drift",
+      "current-wrapper-or-delegated-program-drift",
+      "reference-or-runtime-identity-drift",
+      "population-worker-endpoint-or-gate-drift",
+      "existing-prospective-scratch-or-output"
+    ],
+    "fixture_only": true,
+    "required_handoff": [
+      "focused-tests",
+      "just-coverage",
+      "just-check",
+      "just-docs-build",
+      "just-pre-commit",
+      "code-review",
+      "one-local-conventional-commit-without-pushing"
+    ],
+    "viewed_scientific_products_opened": false
+  },
+  "reviewed_on": "2026-08-27",
+  "runtime_identity_registry": {
+    "path": "config/contracts/phase-5-public-finder-correction-reference-reconstruction-decision.json",
+    "runtime_image_count": 4,
+    "sha256": "cc22c7736fab3a3e6c1e84e3e3426e952df40651706e0b69d1dd2da8bfc5b660",
+    "status": "unchanged-exact-four-runtime-identities"
+  },
+  "schema_version": 1,
+  "scientific_scope": {
+    "candidate_science_changed": false,
+    "compact_composition_changed": false,
+    "endpoints_or_gates_changed": false,
+    "population_changed": false,
+    "reference_evidence_changed": false,
+    "runtime_identity_changed": false,
+    "threshold_or_photometry_changed": false,
+    "viewed_public_products_opened": false
+  },
+  "source_association_identity_review": {
+    "path": "config/contracts/phase-5-public-finder-source-association-identity-review.json",
+    "sha256": "c58eec6e1492196b40b859bd31aa3b8c55de51f8a7fc53a95bc5db9ecc19e263"
+  },
+  "status": "ready-for-named-replay-composition-implementation-review",
+  "unchanged_dependencies": [
+    {
+      "path": "config/contracts/phase-5-corrective-a-review.json",
+      "role": "base-candidate-configuration",
+      "sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+    },
+    {
+      "path": "config/contracts/phase-5-public-finder-correction.json",
+      "role": "public-correction-contract",
+      "sha256": "f0ddd4d5cb8c3c5542d1de761f6fde0644ec7cf051d5fb1dc7482ed3b96ff524"
+    },
+    {
+      "path": "config/contracts/phase-5-public-finder-source-association-pre-review.json",
+      "role": "source-association-scientific-contract",
+      "sha256": "9af42348896e0449e007fe2318648f66122313d600137f8f5ec525ebaec1cc3c"
+    },
+    {
+      "path": "config/contracts/phase-5-public-finder-source-association-implementation-decision.json",
+      "role": "source-association-implementation-authorization",
+      "sha256": "6a495cfcb54ec01e5a7290b6c28edf7b7fffe89f88318c5b6f3e135e70a15553"
+    },
+    {
+      "path": "scripts/validation/compile_phase5_external_post_failure_campaign.py",
+      "role": "compiler",
+      "sha256": "e442f6586993d95a942a80af4e45fbf5b50448b434d5c0a244d78fb333b679b8"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_external_post_failure_decision.py",
+      "role": "evaluator",
+      "sha256": "7612746bda483c82d0e7e72a7f49bb8283f8ae6c03d26bd18508184dbda7169a"
+    },
+    {
+      "path": "scripts/validation/reconstruct_phase5_viewed_references.py",
+      "role": "reference-verifier",
+      "sha256": "81faad486ddb306e175a7ddd8c1c281a2e498cd30bb60f3e43c7b6e791cd0126"
+    },
+    {
+      "path": "config/contracts/phase-5-external-post-failure-endpoint-registry.json",
+      "role": "endpoint-registry",
+      "sha256": "2d7a646b6206bd127b1e470b16d1fe35ebc3f238835eafdc6c77d8a82b79ef1c"
+    },
+    {
+      "path": "config/contracts/phase-5-external-post-failure-evaluation.json",
+      "role": "evaluation-contract",
+      "sha256": "45901f8ca4526fdc1007d26d891e409306565e749bad2b959181a9929ff73016"
+    },
+    {
+      "path": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+      "role": "viewed-request",
+      "sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+    },
+    {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction/recovery.json",
+      "role": "reconstructed-reference-terminal",
+      "sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "role": "closed-baseline",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    {
+      "path": "uv.lock",
+      "role": "dependency-lock",
+      "sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff"
+    }
+  ]
+}

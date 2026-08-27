@@ -29,6 +29,7 @@ Related project references:
 - [Phase 5 astrometry technical pre-review](phase-5-astrometry-pre-review.md)
 - [Phase 5 public-finder source-association pre-review](phase-5-public-finder-source-association-pre-review.md)
 - [Phase 5 public-finder source-association implementation](phase-5-public-finder-source-association-implementation.md)
+- [Phase 5 source-association replay-composition pre-review](phase-5-public-finder-source-association-replay-composition-pre-review.md)
 - [Phase 5 final-qualification evaluation-repair pre-review](phase-5-final-qualification-repair-pre-review.md)
 - [Phase 5 release readiness](phase-5-release-readiness.md)
 - [Compact deblending](compact-deblending.md)

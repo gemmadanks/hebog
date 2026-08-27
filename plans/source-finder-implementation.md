@@ -862,11 +862,16 @@ separately approved prospective development response.
       explicitly incompatible because it remains bound to candidate
       `b1d59e5...` and configuration `65c8876d...`; no executable composition
       or action is authorized.
-- [ ] Prospectively pre-review the smallest replay-consumer update that binds
+- [x] Prospectively pre-review the smallest replay-consumer update that binds
       candidate `26e639a...` and configuration `78dbb230...` while preserving
       the exact population, references, compiler/evaluator, endpoints, and
-      closed baseline. Implement and freeze that composition only after named
-      approval; the complete replay then needs a separate exact approval.
+      closed baseline. Review `a2e13e11...` requires a new wrapper and output
+      namespace, keeps the consumed correction wrapper and authorization
+      immutable, and leaves every implementation and execution flag false.
+- [ ] Obtain named approval of pre-review `a2e13e11...`, then implement and
+      fixture/no-write validate only the minimal wrapper and freeze its exact
+      non-executable identities. The complete replay still requires a separate
+      exact approval.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

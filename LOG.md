@@ -11620,3 +11620,32 @@ canonical configuration hashes match the review; all bound implementation,
 historical, and fixture files are byte exact; JSON formatting and focused Ruff
 pass. No replay, campaign, qualification, tuning, rescoring, cutover, or
 release was started.
+
+## 2026-08-27 — Pre-review source-association replay composition
+
+**Plan phase:** Phase 5, public-finder correction regression gate
+
+- Added non-executable replay-composition pre-review `a2e13e11...` against
+  candidate `26e639a...`, source tree `34fecf30...`, configuration
+  `78dbb230...`, reconstructed reference terminal `48209eae...`, and closed
+  baseline `a45303df...`.
+- Preserved the exact 800 compact and 1,600 Continuum population, two workers,
+  four-runtime registry, compiler, evaluator, reference verifier, endpoint
+  registry, evaluation contract, and historical replay machinery.
+- Required one new wrapper and write-once output namespace. The consumed
+  correction wrapper `04a3a543...`, ledger `1ac6deb2...`, and execution
+  decision `a220249b...` remain immutable and cannot authorize the changed
+  candidate.
+- Froze fixture/no-write fail-closed requirements for candidate, contract,
+  program, runtime, reference, population, gate, scratch, output, and old-
+  authorization drift. Every implementation and execution flag remains false;
+  no scientific product was opened.
+
+**Validation:** The test-first pre-review initially failed because the governed
+record was absent, then all 18 source-association governance tests, focused
+Ruff, focused Pyright, JSON formatting, codespell, and strict documentation
+passed. Scoped push-stage hooks and all unaffected repository-wide hooks pass.
+`just check` remains blocked only by unrelated unformatted notebook and
+benchmark files already present in the working tree. No production code
+changed, so a new coverage run was not required. The prospective replay output
+and scratch namespaces are absent.
