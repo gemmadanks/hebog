@@ -1,0 +1,170 @@
+{
+  "contract_id": "phase-5-readiness",
+  "programs": [
+    {
+      "path": "src/hebog/validation/phase_five_release_readiness.py",
+      "program_id": "readiness-library",
+      "sha256": "3e75e7d063936990a46c6f5a638fe0ec8a1fef67ca03f1ee8477f521c1923292"
+    },
+    {
+      "path": "scripts/validation/review_phase5_readiness.py",
+      "program_id": "readiness-command",
+      "sha256": "7d2650aaaa70f6da9828b268c1f74ebcce82d16238de39d673b9924e3c5a3816"
+    }
+  ],
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "cutover_authorized": false,
+    "optimization_authorized": false,
+    "qualification_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "required_acceptance_roles": [
+    "radio-astronomy",
+    "engineering"
+  ],
+  "required_evidence": [
+    {
+      "evidence_id": "public-finder-correction-cumulative-regression",
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+      "required_fields": {
+        "all_required_endpoints_pass": true,
+        "candidate_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+        "candidate_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+        "candidate_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+        "cumulative_science_regression_ready": true,
+        "ledger_id": "phase-5-cumulative-regression-ledger",
+        "like_semantics_compact_regressions": [],
+        "like_semantics_continuum_regressions": []
+      },
+      "review_owner": "radio-astronomy",
+      "sha256": null
+    },
+    {
+      "evidence_id": "public-finder-correction-held-out-qualification",
+      "path": "benchmark-results/phase-5/public-finder-correction-qualification-decision.json",
+      "required_fields": {
+        "candidate_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+        "candidate_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+        "candidate_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+        "cutover_authorized": false,
+        "decision_id": "phase-5-public-finder-correction-qualification-terminal-decision",
+        "scientific_outcomes_before_runtime": true,
+        "status": "pass"
+      },
+      "review_owner": "radio-astronomy",
+      "sha256": null
+    },
+    {
+      "evidence_id": "rapthor-profile",
+      "path": "benchmark-results/phase-5/rapthor-profile-decision.json",
+      "required_fields": {
+        "complete": true,
+        "cutover_authorized": false,
+        "decision_id": "phase-5-rapthor-profile-decision",
+        "qualification_opened": false,
+        "status": "complete"
+      },
+      "review_owner": "engineering",
+      "sha256": null
+    },
+    {
+      "evidence_id": "incremental-multiscale-performance",
+      "path": "benchmark-results/phase-5/incremental-multiscale-instrumentation-corrected/matrix-summary.json",
+      "required_fields": {
+        "benchmark_id": "phase-5-incremental-multiscale",
+        "budget_decision.failed_profiles": [],
+        "budget_decision.multiscale_processing_budget_seconds": 6.0,
+        "budget_decision.passed": true,
+        "budget_decision.representative_executor": "dask",
+        "budget_decision.representative_size_pixels": 3000
+      },
+      "review_owner": "engineering",
+      "sha256": "980e24c21591a2af1187767ff179d9199b3c0dd61f7edbdd389871e218cc7d80"
+    },
+    {
+      "evidence_id": "bounded-deterministic-execution-contract",
+      "path": "config/contracts/phase-5-multiscale.json",
+      "required_fields": {
+        "bounded_execution.complete_plane_assembly": "small-deterministic-test-oracle-only-never-production",
+        "bounded_execution.executor_invariance_matrix": [
+          "partition",
+          "batch",
+          "worker-count",
+          "completion-order",
+          "retry",
+          "serial-and-existing-dask"
+        ],
+        "bounded_execution.response_persistence": "recompute-after-compact-topology-no-image-sized-response-bank",
+        "contract_id": "phase-5-multiscale",
+        "independent_human_review": "required-before-cutover",
+        "status": "reviewed-development"
+      },
+      "review_owner": "engineering",
+      "sha256": "7e79935d4870223d9448efb8c98407de63ecb148d98a4b8f5ef5c684cf55c5fe"
+    },
+    {
+      "evidence_id": "closed-final-qualification-context",
+      "path": "benchmark-results/phase-5/final-qualification-decision.json",
+      "required_fields": {
+        "campaign.status": "pass",
+        "compact_status": "pass",
+        "cutover_authorized": false,
+        "decision_id": "phase-5-final-qualification-terminal-decision",
+        "evaluation_repair.science_or_gates_changed": false,
+        "scientific_outcomes_before_runtime": true,
+        "status": "pass"
+      },
+      "review_owner": "radio-astronomy",
+      "sha256": "d4db4d7f240faf4c7d841b4586208a33fd81d13228a1215cebb75ddd11e63416"
+    },
+    {
+      "evidence_id": "terminal-public-failure-context",
+      "path": "benchmark-results/phase-5/public-finder-decision.json",
+      "required_fields": {
+        "cutover_authorized": false,
+        "decision_id": "phase-5-public-finder-terminal-decision",
+        "public_evidence_opened": false,
+        "release_authorized": false,
+        "scientific_outcomes_interpreted_before_runtime": true,
+        "status": "fail"
+      },
+      "review_owner": "radio-astronomy",
+      "sha256": "954077e9af7bcd34d42d2a273a08dbd7aa8cdd43427c6aa28ec3de5d74465e3a"
+    },
+    {
+      "evidence_id": "terminal-public-failure-scientific-review",
+      "path": "config/contracts/phase-5-public-finder-scientific-review.json",
+      "required_fields": {
+        "contract_id": "phase-5-public-finder-scientific-review",
+        "decision.cutover_authorized": false,
+        "decision.release_authorized": false,
+        "decision.terminal_decision_changed": false,
+        "decision.tuning_authorized": false,
+        "status": "terminal-post-result-scientific-review-complete"
+      },
+      "review_owner": "radio-astronomy",
+      "sha256": "320f57f556f2b1e9ed7ecd8b7f7bd48558dad25e7bf80d9d6a5ad4e0a50a08f6"
+    }
+  ],
+  "review_questions": {
+    "engineering": [
+      "Does the implementation preserve bounded tile ownership, deterministic identities, retry safety, and scheduler-independent results?",
+      "Does the selected Rapthor profile preserve every safety stratum without compensating failures through overall agreement?",
+      "Are write-once evidence, source, configuration, dependency, and runtime identities sufficient to reproduce every binding claim?",
+      "Are the 3,000-pixel incremental budget and adjacent crossover evidence adequate for Phase 5, without making a complete filter_skymodel speed claim?",
+      "Are all cutover, release, optimization, tuning, rescoring, and later-phase execution decisions still explicitly closed?"
+    ],
+    "radio-astronomy": [
+      "Does the corrected candidate pass compact and Continuum absolute science with no like-semantics regression?",
+      "Does fresh held-out qualification support the morphology, scale, SNR, edge, blend, background, position, flux, and shape claims being made?",
+      "Does the review preserve the terminal SDC1/Hydra failure without tuning or rescoring it, and is the disposition of those viewed results scientifically acceptable?",
+      "Are the seeded-island ownership, public moment-equivalent shapes, beam deconvolution states, and unavailable official-score semantics scientifically honest?",
+      "Are the selected Rapthor workflow profile and remaining limitations appropriate for a Phase 6 handoff rather than a cutover or release claim?"
+    ]
+  },
+  "schema_version": 1,
+  "status": "frozen-pre-readiness"
+}

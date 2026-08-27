@@ -45,13 +45,21 @@ campaigns remain immutable historical evidence rather than being rescored.
 Phase 5 is active, not complete. Its untouched final qualification passed all
 143 Continuum absolute gates, all 226 powered Continuum comparisons against
 the two PyBDSF references, and both separately bound compact decisions. The
-1,688-image campaign completed all 8,440 runs without a failure. Remaining
-Phase 5 gates are the approved public/challenge comparison, the restricted
-Rapthor workflow profile, the readiness record, and independent scientific
-and engineering acceptance. The stable public pipeline, matched complete
-Rapthor runtime evidence, and production-scale distributed qualification are
-later delivery gates. Hebog is therefore not yet a production-ready or
-default Rapthor backend.
+1,688-image campaign completed all 8,440 runs without a failure. The first
+public/challenge decision is an immutable failure; its scientific review led
+to a prospectively implemented correction. That correction preserves compact
+science but fails the complete Continuum cumulative replay with 44 failed
+endpoints and 37 like-semantics regressions. The evidence points to catalogue
+fragmentation: completeness and merge gates pass, while reliability, duplicate,
+split, flux-tail, and position-tail gates fail. A separately reviewed
+source-association repair must pass a newly authorized cumulative replay and
+fresh held-out qualification. Remaining Phase 5 gates also include the
+restricted Rapthor workflow profile, the fail-closed
+[readiness record](reference/phase-5-release-readiness.md), and independent
+scientific and engineering acceptance. The stable public pipeline, matched
+complete Rapthor runtime evidence, and production-scale distributed
+qualification are later delivery gates. Hebog is therefore not yet a
+production-ready or default Rapthor backend.
 
 Start with the [quick start](tutorials/index.md), read the
 [architecture](explanation/index.md) and

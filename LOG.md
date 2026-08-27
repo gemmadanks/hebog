@@ -11450,3 +11450,79 @@ with no deferrals, and all four labeled residual cases have retained support.
 result bindings. The end-to-end serial run sealed 10 successful current-Hebog
 cases and confirmed that the source-tree identity did not change during
 execution. No separate test or notebook-validation command was run.
+
+## 2026-08-27 — Add fail-closed Phase 5 readiness records
+
+**Plan phase:** Phase 5, terminal readiness governance
+
+- Added a two-stage readiness library and write-once command. Preparation
+  verifies exact generator, contract, evidence, source, configuration, and
+  terminal-field identities; absent evidence becomes a named blocker, while a
+  present malformed, failing, or changed artifact aborts the review packet.
+- Added the machine readiness contract and independent radio-astronomy and
+  engineering review questions. The contract preserves the terminal public
+  failure as binding context and requires a fresh corrected-candidate held-out
+  qualification rather than relabelling or rescoring viewed evidence.
+- Finalization rebuilds the exact packet from live evidence and accepts only
+  two exact packet-bound acceptance records with no blocking findings. Phase 5
+  completion keeps campaign, qualification, tuning, rescoring, optimization,
+  cutover, release, and Phase 6 execution unauthorized.
+- The repository dry run now fails closed on the terminal corrected cumulative
+  ledger's `all_required_endpoints_pass=false`; it does not misclassify the
+  failing result as missing evidence and writes no draft or terminal readiness
+  artifact. Corrected-candidate held-out qualification and the restricted
+  Rapthor profile also remain absent downstream.
+
+**Validation:** 92 focused readiness and correction-governance tests passed;
+Ruff format and lint passed for every changed Python file; Pyright reported
+zero errors; strict documentation build passed; and the live terminal audit
+raised the exact binding cumulative-endpoint mismatch without writing a
+packet. Full branch-aware coverage passed 1,883 tests with 44 deselected and
+four expected failures at 94.97% total coverage.
+
+## 2026-08-27 — Close the corrected cumulative replay as a failure
+
+**Plan phase:** Phase 5, public-finder correction regression gate
+
+- The single named-approved replay exited successfully after all 2,400
+  candidate products and atomically published ledger SHA-256
+  `1ac6deb24e4bfc1928318c95437d45acac6ac1f94621b53d45175e0f41bd9797`.
+  The ledger binds candidate `b1d59e5aaf778a5fed4ea662afeba2ee100424ff`,
+  source tree `2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9`,
+  configuration `65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0`,
+  reconstruction `48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2`,
+  and closed baseline `a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9`.
+- Compact remains `pass` with zero like-semantics regressions. Continuum is
+  terminally `fail`: 89 endpoints pass, 44 fail, 10 are underpowered, and 37
+  regress against the closed like-semantics baseline. Therefore
+  `cumulative_science_regression_ready=false`, all-required-endpoints is false,
+  and fresh campaign freeze remains closed.
+- Science was interpreted before power. Completeness passes all 16 strata and
+  merge fraction passes all 16, but overall reliability is 0.62563, duplicate
+  fraction is 0.25179, split fraction is 0.25295, integrated-flux p95 error is
+  0.79260, and position p95 error is 4.20355 beams. The 37 regressions comprise
+  12 split, 10 duplicate, four median-flux, four position-tail, three x-offset,
+  three y-offset, and one reliability endpoint. The 10 underpowered endpoints
+  reflect observed paired variance above the planning bound and cannot
+  compensate for the absolute failures or regressions.
+- Code-to-evidence review identifies a source-composition defect rather than a
+  sensitivity or merge failure. The correction deliberately preserves every
+  accepted original-residual connected component as an owner, assigns nearby
+  reconstructed support to that owner, and publishes one catalogue row per
+  owner. It removed the historical connected association union but did not add
+  the separately modelled object-association/grouping layer. Multi-component
+  extended truths are consequently published as fragments, explaining the
+  simultaneous perfect completeness, poor reliability, high split/duplicate
+  fractions, divided flux, and long position tails.
+- No replay, viewed-data execution, campaign, qualification, tuning, rescoring,
+  cutover, or release was started or authorized. The next scientific task is
+  a prospective pre-review of bounded component-to-source association and
+  explicit component-versus-source catalogue semantics on analytic and
+  injected truth; the failing and underpowered evidence must not be tuned.
+
+**Validation:** Exact candidate, source, configuration, reconstruction,
+baseline, wrapper, review, and execution-decision identities were verified.
+The focused replay/readiness suite passed 92 tests, and the stale historical
+absence assertions were corrected to validate their recorded freeze-time
+state rather than requiring a later authorized write-once output to remain
+absent forever.

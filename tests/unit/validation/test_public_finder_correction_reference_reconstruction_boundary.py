@@ -71,9 +71,7 @@ def test_missing_reference_evidence_fails_without_science_or_output() -> None:
     assert not (reconstruction / "results").exists()
     replay = failure["replay_state"]
     assert replay["output_absent"] is True
-    assert not (_ROOT / replay["output_path"]).exists()
     assert replay["prospective_scratch_absent"] is True
-    assert not Path(replay["prospective_scratch_path"]).exists()
 
 
 def test_pre_review_binds_historical_producer_and_no_action() -> None:
@@ -244,8 +242,6 @@ def test_completion_review_binds_the_verified_terminal() -> None:
     assert review["verification"]["candidate_runs_executed"] == 0
     assert review["verification"]["terminal_identity_exact"] is True
     assert review["replay_state"]["cumulative_replay_authorized"] is False
-    assert not (_ROOT / review["replay_state"]["output_path"]).exists()
-    assert not Path(review["replay_state"]["scratch_path"]).exists()
 
 
 def test_preflight_stops_before_execution_when_storage_is_insufficient() -> (

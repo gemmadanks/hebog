@@ -812,11 +812,33 @@ separately approved prospective development response.
       producer source `b4176ce3...` and candidate source `2de6564e...`, with
       replay output and scratch still absent. Replacement non-executable review
       `c5924600...` freezes the corrected wrapper and exact replay composition.
-- [ ] Obtain a new one-replay approval bound to review `c5924600...`, execute
-      exactly one two-worker 800-compact/1,600-Continuum cumulative replay, and
-      require `cumulative_science_regression_ready=true` with no like-semantics
-      regression. Viewed SDC1/Hydra execution, a new campaign, fresh
-      qualification, tuning, rescoring, cutover, and release remain closed.
+- [x] Complete the named-approved replay bound to review `c5924600...` from
+      immutable commit `4786184...`. The exact two-worker
+      800-compact/1,600-Continuum process published terminal ledger
+      `1ac6deb2...`, with exact candidate `b1d59e5...`, source
+      `2de6564e...`, configuration `65c8876d...`, reconstructed references
+      `48209eae...`, and closed baseline `a45303df...`. Compact passes without
+      a like-semantics regression, but Continuum has 89 passes, 44 failures,
+      10 underpowered endpoints, and 37 like-semantics regressions, so
+      `cumulative_science_regression_ready=false` and the terminal status is
+      `fail`.
+- [ ] Prospectively repair the source-identity composition exposed by ledger
+      `1ac6deb2...`, under a new scientific pre-review before implementation.
+      The corrected owner plane keeps completeness and merge endpoints green,
+      but treats every accepted original-residual connected component as a
+      terminal catalogue source without a distinct object-association layer.
+      That converts multi-component extended truths into fragments: overall
+      reliability is 0.62563, duplicate fraction 0.25179, split fraction
+      0.25295, integrated-flux p95 error 0.79260, and position p95 error 4.20355
+      beams. The 37 regressions comprise 12 split, 10 duplicate, four median
+      flux, four position-tail, three x-offset, three y-offset, and one
+      reliability endpoint. Preserve exact seed-pixel ownership, but review a
+      bounded source-association graph and explicit component-versus-source
+      catalogue semantics against analytic and injected truth. Do not infer a
+      threshold or photometric correction from this result, and do not tune
+      from the 10 underpowered endpoints. Another replay, viewed SDC1/Hydra
+      execution, a campaign, qualification, tuning, rescoring, cutover, and
+      release require separately frozen identities and named approval.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
@@ -871,15 +893,28 @@ separately approved prospective development response.
       through the promoted matched-filter seed aid and residual-B3 scale
       support. Documentation continues to fail closed about the unfinished
       public orchestration and qualification boundary.
-- [ ] Publish the Phase 5 readiness record after the performance, untouched
-      qualification, Rapthor-profile, and independent-review gates close.
+- [x] Implement the fail-closed Phase 5 readiness contract, review-packet
+      generator, and finalizer. The exact generator programs, binding evidence
+      paths and fields, immutable public failure context, reviewer ownership,
+      role-specific questions, and closed later-lifecycle authorizations are
+      machine bound. Missing evidence becomes a named blocker; malformed,
+      failing, or identity-drifted evidence aborts preparation. Finalization
+      rebuilds the exact packet and requires separate packet-bound
+      radio-astronomy and engineering acceptances without authorizing cutover
+      or release.
+- [ ] Publish the Phase 5 readiness record only after a prospectively repaired
+      candidate passes a separately frozen and authorized cumulative replay,
+      fresh held-out qualification of that exact candidate, the restricted
+      Rapthor profile, performance, and independent-review gates. The current
+      terminal cumulative failure is a hard blocker, not missing evidence.
 - [ ] Obtain named independent radio-astronomy and engineering acceptance.
 
-Phase 5 closes only when the final implementation passes every absolute and
-applicable PyBDSF/Aegean gate, the Rapthor profile is selected, compact
-regression remains green, bounded tile/executor invariance is proven, the
-incremental performance budget passes, and independent reviewers accept the
-evidence and Phase 6 handoff.
+Phase 5 closes only when the final corrected implementation passes every
+binding absolute and applicable reference gate on fresh held-out evidence, the
+Rapthor profile is selected, compact regression remains green, bounded
+tile/executor invariance is proven, the incremental performance budget passes,
+the terminal public failure remains explicitly scoped, and independent
+reviewers accept the exact evidence packet and Phase 6 handoff.
 
 ### Phase 6: distributed execution
 

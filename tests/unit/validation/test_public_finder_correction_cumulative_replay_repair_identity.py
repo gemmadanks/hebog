@@ -134,15 +134,15 @@ def test_named_approval_is_bound_to_the_consumed_failed_composition() -> None:
     )
 
 
-def test_replacement_ledger_and_public_outputs_are_absent() -> None:
-    """The failed execution published no replay or corrected viewed product."""
+def test_replacement_review_records_absent_prospective_outputs() -> None:
+    """The review records the no-output state at its freeze boundary."""
     review = _load()
     execution = review["prospective_execution"]
 
     assert _ROOT / execution["execution_decision"]["path"] == (
         _EXECUTION_DECISION
     )
-    assert not (_ROOT / execution["output"]["path"]).exists()
+    assert execution["output"]["state_at_review"] == "absent"
     for name in (
         "public-finder-correction-analysis.json",
         "public-finder-correction-comparison",
