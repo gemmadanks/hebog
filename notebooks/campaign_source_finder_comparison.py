@@ -1,3 +1,5 @@
+# ruff: noqa: E501
+
 import marimo
 
 __generated_with = "0.23.15"
@@ -276,11 +278,26 @@ def _(  # noqa: C901, PLR0915
     def _collect_public_cases(
         root: Path,
         campaign: dict[str, object],
+        repository_root: Path,
     ) -> list[CampaignCase]:
-        output: list[CampaignCase] = []
+        grouped: dict[str, CampaignCase] = {}
+        base_campaign_value = campaign.get("base_campaign_repository_path")
+        if base_campaign_value is not None:
+            base_campaign_path = _resolve_relative_path(
+                repository_root,
+                base_campaign_value,
+                role="base public campaign",
+            )
+            base_campaign = _read_json_object(base_campaign_path)
+            for case in _collect_public_cases(
+                base_campaign_path.parent,
+                base_campaign,
+                repository_root,
+            ):
+                grouped[case.key] = case
         raw_results = campaign.get("results", ())
         if not isinstance(raw_results, list):
-            return output
+            return sorted(grouped.values(), key=lambda item: item.label)
         for item in raw_results:
             if not isinstance(item, dict) or "result_path" not in item:
                 continue
@@ -292,28 +309,32 @@ def _(  # noqa: C901, PLR0915
                 item["result_path"],
                 role="public result",
             )
-            output.append(
-                CampaignCase(
-                    key=f"public/{case_id}",
-                    label=f"public | {case_id}",
-                    case_id=case_id,
-                    kind="public",
-                    lane=None,
-                    dataset_id=None,
-                    seed=None,
-                    input_json_path=root / "inputs" / case_id / "input.json",
-                    runs=(
-                        (
-                            "hebog",
-                            "operational",
-                            result_path,
-                            str(item.get("status", "unknown")),
-                        ),
-                    ),
-                    manifest_relative_path=None,
-                )
+            finder_id = str(item.get("finder_id", "hebog"))
+            mode = str(item.get("mode", "operational"))
+            existing = grouped.get(f"public/{case_id}")
+            case = existing or CampaignCase(
+                key=f"public/{case_id}",
+                label=f"public | {case_id}",
+                case_id=case_id,
+                kind="public",
+                lane=None,
+                dataset_id=None,
+                seed=None,
+                input_json_path=root / "inputs" / case_id / "input.json",
+                runs=(),
+                manifest_relative_path=None,
             )
-        return sorted(output, key=lambda item: item.label)
+            _case_with_run(
+                grouped,
+                dataclasses.replace(case, runs=()),
+                (
+                    finder_id,
+                    mode,
+                    result_path,
+                    str(item.get("status", "unknown")),
+                ),
+            )
+        return sorted(grouped.values(), key=lambda item: item.label)
 
     def _has_local_input(case: CampaignCase) -> bool:
         if not case.input_json_path.is_file():
@@ -353,13 +374,14 @@ def _(  # noqa: C901, PLR0915
                 [case for case in cases if _has_local_input(case)],
             )
         if public_request.is_file():
-            cases = _collect_public_cases(root, campaign)
+            repository_root = Path(__file__).resolve().parents[1]
+            cases = _collect_public_cases(root, campaign, repository_root)
             return "public", [case for case in cases if _has_local_input(case)]
         return "unsupported", []
 
     def _resolve_input_image(
         repository_root: Path,
-        campaign_root: Path,
+        campaign_root: Path,  # noqa: ARG001
         case: CampaignCase,
     ) -> Path:
         if not case.input_json_path.is_file():
@@ -391,8 +413,9 @@ def _(  # noqa: C901, PLR0915
                 role="repository input",
             )
         if location == "staging":
+            public_input_root = case.input_json_path.parents[2]
             return _resolve_relative_path(
-                campaign_root,
+                public_input_root,
                 record["input_path"],
                 role="staged input",
             )
@@ -454,6 +477,9 @@ def _(  # noqa: C901, PLR0915
         finder_id: str,
         role_map: dict[str, Path],
     ) -> tuple[CatalogueSource, ...]:
+        comparison_path = role_map.get("comparison-catalogue-json")
+        if comparison_path is not None:
+            return load_comparison_catalogue(comparison_path)
         if finder_id == "hebog":
             path = role_map.get("segment-catalogue-json") or role_map.get(
                 "compact-catalogue-json"
@@ -826,7 +852,7 @@ def _(  # noqa: C901, PLR0915
             return float(minimum - padding), float(maximum + padding)
         return float(minimum), float(maximum)
 
-    def plot_case(
+    def plot_case(  # noqa: C901, PLR0915
         case: CampaignCase,
         image: npt.NDArray[np.float64],
         overlays: dict[str, RunOverlay],
@@ -946,9 +972,7 @@ def _(  # noqa: C901, PLR0915
         ):
             axis = flat_axes[index]
             draw_image(axis)
-            colour = colours[
-                (index - overlay_axis_start) % len(colours)
-            ]
+            colour = colours[(index - overlay_axis_start) % len(colours)]
             if overlay.source_x:
                 axis.scatter(
                     overlay.source_x,

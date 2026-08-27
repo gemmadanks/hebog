@@ -11337,3 +11337,91 @@ pre-existing notebook Ruff findings; no notebook changes were retained.
 **Immediate next step:** obtain one named approval bound exactly to review
 `c5924600...`. Only then run the single two-worker cumulative replay and require
 no like-semantics regression before any viewed public execution is reopened.
+
+## 2026-08-27 — Refresh the staged source-finder demonstration
+
+**Plan phase:** Phase 5, implementation communication
+
+- Expanded the Marimo compact scene to retain the governed threshold ladder,
+  a true tile-corner blend, adaptive-RMS source, edge source, and invalid
+  pixels instead of displaying only high-confidence interior objects.
+- Replaced the isolated one-object multiscale display with four deterministic
+  direct, diffuse, edge, and invalid-clipped cases executed through the bounded
+  four-tile Phase 5 stage and its persisted Zarr products.
+- Added explicit matched/B3 evidence, all three significant-scale masks, and
+  dedicated persistent A trous and retained original-pixel support figures so
+  the final support products remain visible in Marimo app view.
+
+**Validation:** focused Ruff and strict Marimo checks pass. A headless Marimo
+HTML export completed successfully and contains the separate A trous,
+retained-support, and three B3-level displays with no traceback or Marimo error
+marker. The executed compact output reconciles five islands into six regions
+with no deferrals, and all four labeled residual cases have retained support.
+
+## 2026-08-27 — Add an astronomer-facing source-finder workbench
+
+**Plan phase:** Phase 5, implementation communication
+
+- Added a Marimo workbench for research and telescope-commissioning use of the
+  implemented bounded compact-source stages on user-supplied FITS images.
+- Added an offline synthetic commissioning image and opt-in official LoTSS DR2
+  cutouts of 3C 295 and M51, with provenance and citation guidance kept beside
+  the examples rather than committing generated or survey FITS products.
+- Exposed documented detection, island, RMS, adaptive bright-source, deblend,
+  and tiling controls; each run preserves its configuration, Zarr diagnostics,
+  and Rapthor-compatible FITS catalogue in a fresh output directory.
+- Grounded the workflow and diagnostic advice in established source-finder
+  literature and PyBDSF, Aegean, and LoTSS operational documentation. The
+  notebook explicitly distinguishes implemented compact-source behavior from
+  forced photometry, cross-matching, and validated diffuse-emission analysis.
+
+**Validation:** not run in this task.
+
+## 2026-08-27 — Add a representative crowded LoTSS field
+
+**Plan phase:** Phase 5, implementation communication
+
+- Added an on-demand 22-arcmin LoTSS DR2 cutout at the public API's example
+  position, where the survey-wide mean density implies roughly 100 catalogue
+  sources while preserving the distinction between an expectation and a
+  matched truth population.
+- Added image-specific guidance for previewing the complete field and assessing
+  thresholds, spatial RMS, blends, catalogue matching, completeness, and
+  reliability.
+
+**Validation:** not run in this task.
+
+## 2026-08-27 — Add a 100-source survey field to the workbench
+
+**Plan phase:** Phase 5, implementation communication
+
+- Added a deterministic offline 1,024-square-pixel field with exactly 100
+  injected sources spanning 4 to 80 sigma, five close pairs, six extended
+  sources, spatially varying noise, and an invalid region.
+- Generalized the synthetic reference-mask comparison across the commissioning
+  and survey examples and added injected/fitted population counts with an
+  explicit warning that count equality is not a completeness measurement.
+- Added a crowded-survey preset and population-level guidance for completeness,
+  reliability, flux recovery, astrometry, blends, spatial systematics, and
+  runtime assessment.
+
+**Validation:** not run in this task.
+
+## 2026-08-27 — Add multiscale support to the astronomer workbench
+
+**Plan phase:** Phase 5, implementation communication
+
+- Added an opt-in bounded Phase 5 multiscale run over the workbench image and
+  its compact-stage background/RMS products, using a beam sampled through the
+  image WCS at its centre and the exact derived filter halo.
+- Exposed the promoted multiscale seed, island, valid-support, beam-area, and
+  executor-batch controls, and preserved them in each run configuration.
+- Added direct/combined/B3 evidence, all three significant-scale masks,
+  adjacent-scale reconstruction support, retained original-pixel support, and
+  stable topology counts to the interactive diagnostics.
+- Kept the scientific boundary explicit: these products support multiscale
+  exploration, but this notebook does not claim a final combined
+  compact-plus-extended catalogue without model subtraction, association,
+  extended measurement, and publication composition.
+
+**Validation:** not run in this task.
