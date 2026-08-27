@@ -105,6 +105,15 @@ def test_named_reference_repair_approval_authorizes_no_replay() -> None:
     assert authorization["public_development_execution_authorized"] is False
 
 
+def test_wrapper_binds_the_reconstructed_reference_terminal() -> None:
+    """The replacement replay must consume only the newly sealed evidence."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+
+    assert wrapper["_REFERENCE_RECONSTRUCTION_SHA256"] == (
+        "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+    )
+
+
 def test_reference_repair_decision_matches_the_no_write_scope(
     tmp_path: Path,
 ) -> None:

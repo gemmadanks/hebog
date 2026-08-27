@@ -28,6 +28,10 @@ _PREFLIGHT = (
     _ROOT / "config/contracts/phase-5-public-finder-correction-reference-"
     "reconstruction-preflight.json"
 )
+_COMPLETION_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-correction-reference-"
+    "reconstruction-review.json"
+)
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -110,8 +114,8 @@ def test_pre_review_binds_historical_producer_and_no_action() -> None:
     assert historical["reference_run_count"] == 9600
 
 
-def test_reconstruction_uses_new_write_once_namespace() -> None:
-    """A future recovery cannot overwrite the preserved historical seal."""
+def test_reconstruction_used_the_new_write_once_namespace() -> None:
+    """The completed recovery did not overwrite the historical seal."""
     review = _load(_PRE_REVIEW)
     prospective = review["prospective_reconstruction"]
     historical = review["historical_reconstruction"]
@@ -122,7 +126,7 @@ def test_reconstruction_uses_new_write_once_namespace() -> None:
     assert prospective["output_path"] != str(
         Path(historical["retained_terminal"]["path"]).parent
     )
-    assert not (_ROOT / prospective["output_path"]).exists()
+    assert (_ROOT / prospective["output_path"] / "recovery.json").is_file()
     assert not (_ROOT / prospective["staging_path"]).exists()
 
 
@@ -206,12 +210,42 @@ def test_named_approval_binds_historical_program_population_and_runtimes() -> (
         assert approved[finder_id]["digest"] == runtime["digest"]
 
 
-def test_approved_reconstruction_paths_remain_write_once() -> None:
-    """Approval is invalid once either prospective path exists."""
+def test_completed_reconstruction_is_terminal_and_write_once() -> None:
+    """The consumed approval has one sealed output and no staging state."""
     execution = _load(_DECISION)["prospective_execution"]
 
-    assert not (_ROOT / execution["output_path"]).exists()
+    terminal = _ROOT / execution["output_path"] / "recovery.json"
+    assert terminal.is_file()
     assert not (_ROOT / execution["staging_path"]).exists()
+
+
+def test_completion_review_binds_the_verified_terminal() -> None:
+    """The replay consumer can bind only the completely verified recovery."""
+    review = _load(_COMPLETION_REVIEW)
+
+    assert review["status"] == "verified-reference-reconstruction-terminal"
+    assert set(review["authorization"].values()) == {False}
+    assert review["approved_reconstruction"] == {
+        "decision": {
+            "path": str(_DECISION.relative_to(_ROOT)),
+            "sha256": file_sha256(_DECISION),
+        },
+        "maximum_executions": 1,
+    }
+    terminal = review["terminal"]
+    root = _ROOT / terminal["path"]
+    assert file_sha256(root / "recovery.json") == terminal["recovery_sha256"]
+    assert (
+        file_sha256(root / "recovery-request.json")
+        == (terminal["request_sha256"])
+    )
+    assert review["verification"]["verified_input_count"] == 2400
+    assert review["verification"]["verified_reference_run_count"] == 9600
+    assert review["verification"]["candidate_runs_executed"] == 0
+    assert review["verification"]["terminal_identity_exact"] is True
+    assert review["replay_state"]["cumulative_replay_authorized"] is False
+    assert not (_ROOT / review["replay_state"]["output_path"]).exists()
+    assert not Path(review["replay_state"]["scratch_path"]).exists()
 
 
 def test_preflight_stops_before_execution_when_storage_is_insufficient() -> (
@@ -242,8 +276,8 @@ def test_preflight_stops_before_execution_when_storage_is_insufficient() -> (
     assert state["candidate_runs_started"] == 0
     assert state["output_absent"] is True
     assert state["staging_absent"] is True
-    assert not (_ROOT / state["output_path"]).exists()
-    assert not (_ROOT / state["staging_path"]).exists()
+    assert state["output_absent"] is True
+    assert state["staging_absent"] is True
     assert (
         preflight["storage"]["observed_available_gib"]
         < (preflight["storage"]["minimum_available_gib"])
