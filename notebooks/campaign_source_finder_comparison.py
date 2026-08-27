@@ -1051,7 +1051,7 @@ def _(Path, mo):  # noqa: N803
             repository_root
             / "benchmark-results"
             / "phase-5"
-            / "public-finder-comparison"
+            / "current-public-hebog-comparison"
         ),
         placeholder="/path/to/sealed/campaign",
         full_width=True,
@@ -1354,9 +1354,9 @@ def _(mo):
 
     Synthetic campaigns also provide a truth-layer selector. It can show every
     injected source or only one governed source subset, such as blended,
-    extended, or image-edge sources. The default public campaign has no
-    injected truth and contains Hebog outputs only, so it shows input,
-    significance, and Hebog-result plots without a selectable truth layer.
+    extended, or image-edge sources. The default current-Hebog refresh has no injected truth. It overlays
+    current-worktree Hebog on the sealed released PyBDSF and Aegean reference
+    results, without a selectable truth layer.
 
     These images are qualitative diagnostics. They complement, but do not
     replace, the campaign's governed completeness, reliability, astrometry,

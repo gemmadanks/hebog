@@ -11425,3 +11425,28 @@ with no deferrals, and all four labeled residual cases have retained support.
   extended measurement, and publication composition.
 
 **Validation:** not run in this task.
+
+## 2026-08-27 - Refresh the public comparison with current Hebog
+
+**Plan phase:** Phase 5, implementation communication
+
+- Ran the current workspace Hebog implementation over the same ten sealed
+  public inputs, serially and host-locally, without starting a container or
+  writing to either predecessor campaign.
+- Bound the derived campaign to source tree
+  `2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9`
+  and unchanged scientific configuration
+  `0e5dde51dfd2df84cdf71c3da34449b96c6999f517d781e1aaaec48ebb485a94`.
+- Sealed 10 of 10 current-Hebog results under
+  `benchmark-results/phase-5/current-public-hebog-comparison`, recursively
+  retaining the released PyBDSF and Aegean reference products for notebook
+  comparison.
+- Changed the campaign comparison notebook default to the new nested derived
+  campaign, where current Hebog replaces the historical Hebog overlay.
+- Kept `scientific_claims_authorized` false; the refresh supports qualitative
+  inspection and follow-up matching, not a qualification claim.
+
+**Validation:** the no-write preflight verified all ten input and historical
+result bindings. The end-to-end serial run sealed 10 successful current-Hebog
+cases and confirmed that the source-tree identity did not change during
+execution. No separate test or notebook-validation command was run.
