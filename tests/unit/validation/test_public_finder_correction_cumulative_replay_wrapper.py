@@ -44,6 +44,11 @@ _REFERENCE_REPAIR_REVIEW = (
     "phase-5-public-finder-correction-cumulative-replay-reference-"
     "provenance-repair-review.json"
 )
+_REFERENCE_REPAIR_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/"
+    "phase-5-public-finder-correction-cumulative-replay-reference-"
+    "provenance-repair-execution-decision.json"
+)
 
 
 def _arguments(tmp_path: Path) -> Namespace:
@@ -181,6 +186,26 @@ def test_reference_repair_review_freezes_no_execution_authority() -> None:
     assert verification["verified_reference_run_count"] == 9600
     assert verification["output_absent"] is True
     assert verification["scratch_absent"] is True
+
+
+def test_named_replay_approval_binds_the_reconstructed_references() -> None:
+    """The one replay authority must match every frozen execution field."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    decision = json.loads(
+        _REFERENCE_REPAIR_EXECUTION_DECISION.read_text(encoding="utf-8")
+    )
+
+    wrapper["_validate_execution_decision"](
+        decision,
+        _frozen_replay_arguments(),
+    )
+    assert decision["reference_repair_identity_review"] == {
+        "path": str(_REFERENCE_REPAIR_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REFERENCE_REPAIR_REVIEW),
+    }
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    assert set(decision["prohibited_authorizations"].values()) == {False}
 
 
 def test_reference_repair_decision_matches_the_no_write_scope(
