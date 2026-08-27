@@ -1,0 +1,166 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "base_failed_candidate": {
+    "configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+    "revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+    "source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9"
+  },
+  "candidate": {
+    "commit": "26e639ace9d39b039eb7c3114427277c91809591",
+    "configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "implementation_decision": {
+      "path": "config/contracts/phase-5-public-finder-source-association-implementation-decision.json",
+      "sha256": "6a495cfcb54ec01e5a7290b6c28edf7b7fffe89f88318c5b6f3e135e70a15553"
+    },
+    "pre_review": {
+      "path": "config/contracts/phase-5-public-finder-source-association-pre-review.json",
+      "sha256": "9af42348896e0449e007fe2318648f66122313d600137f8f5ec525ebaec1cc3c"
+    },
+    "source_tree_sha256": "34fecf302e7c6a9722dd15b8d843d316a4e4e7a1be3df2610a2d45b0a5dfb893",
+    "tree": "251c44c0435e8cade4423a22e2fd5ab755bcbdce"
+  },
+  "candidate_artifacts": [
+    {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "73082209b81e78d1bbb8b0885019e56038e2f4e46e106f93a9cd7244bcd15080"
+    },
+    {
+      "path": "src/hebog/data_models/source_association.py",
+      "sha256": "d8bf812ad68444f37485cb8520a546e5313ef320bb7527713be95a51933aaa31"
+    },
+    {
+      "path": "src/hebog/data_models/__init__.py",
+      "sha256": "31eba7a110e6973e8895126847dd993a7720604b0ef4748157a74ee3b8a12a62"
+    },
+    {
+      "path": "src/hebog/validation/post_campaign_science.py",
+      "sha256": "9b798a2fc7eae61f362d083f6f46e90f9b1432867c2db877b35d0a324943b3ae"
+    },
+    {
+      "path": "src/hebog/validation/products.py",
+      "sha256": "f9d0a21bf6252096fd67379c8b410718138a9d492263912f4ee3010c5c277ba0"
+    },
+    {
+      "path": "src/hebog/validation/public_finder_correction.py",
+      "sha256": "f7ea034939a73e8f568a974781198afc7cd958d6433e0c0de5f9b83d5c86e952"
+    }
+  ],
+  "closed_regression_boundary": {
+    "baseline": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    "failed_correction": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+      "sha256": "1ac6deb24e4bfc1928318c95437d45acac6ac1f94621b53d45175e0f41bd9797"
+    },
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "required_result": "cumulative_science_regression_ready=true-with-no-like-semantics-regression",
+    "scope": "complete-800-compact-and-1600-continuum-replay"
+  },
+  "historical_invariants": [
+    {
+      "path": "src/hebog/validation/post_correction_recovery.py",
+      "role": "closed-recovery-candidate-composition",
+      "sha256": "9343e0696426a0e8aff6022fdf88c6b6118147d362f15ed00f39374abafd71e6"
+    },
+    {
+      "path": "src/hebog/validation/phase_five_filter_review.py",
+      "role": "closed-three-beam-association-oracle",
+      "sha256": "06cd8a0dfb39a23840f336023d49ab382468c5089993553c380babe89b301dcf"
+    },
+    {
+      "path": "src/hebog/algorithms/multiscale_association.py",
+      "role": "association-edge-provenance-without-pixel-ownership",
+      "sha256": "84a66a9ce6500a44c37c241e25606720755c8501e29dfb9249c52325775daad9"
+    }
+  ],
+  "replay_boundary": {
+    "candidate_output": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association.json",
+      "state_at_review": "absent"
+    },
+    "current_wrapper": {
+      "bound_configuration_sha256": "65c8876dcdb484bd5a82b3520e065ea6bf33cf24cfdd33b592c6c859231c62f0",
+      "bound_revision": "b1d59e5aaf778a5fed4ea662afeba2ee100424ff",
+      "bound_source_tree_sha256": "2de6564e78f1a3664dd3fb18f696c747bfc3350fdd894164c4fafb07528d1ba9",
+      "path": "scripts/validation/review_phase5_public_finder_correction_cumulative_regressions.py",
+      "sha256": "04a3a54335c93b6abfa71c71ba2e4771ae48dfc38bc3587a673fa2683fa780ac",
+      "status": "does-not-bind-source-association-candidate"
+    },
+    "executable_composition_frozen": false,
+    "status": "replay-remains-closed"
+  },
+  "required_next_decision": "separate-pre-review-and-named-approval-of-an-exact-replay-composition-bound-to-this-candidate",
+  "review_id": "phase-5-public-finder-source-association-identity-review",
+  "reviewed_on": "2026-08-27",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "astrophysical_object_association_claimed": false,
+    "background_or_rms_changed": false,
+    "component_measurement_or_ownership_changed": false,
+    "detection_or_island_thresholds_changed": false,
+    "integrated_flux_aperture_or_calibration_changed": false,
+    "minimum_island_area_changed": false,
+    "position_or_component_shape_policy_changed": false,
+    "viewed_products_opened_during_implementation": false
+  },
+  "status": "ready-for-separate-replay-composition-pre-review",
+  "validation_artifacts": [
+    {
+      "path": "tests/unit/test_source_association.py",
+      "sha256": "87dc771a5ed8588bec4202fc825d14d622e9628eaf64cdeea9a01edd9ad6709d"
+    },
+    {
+      "path": "tests/unit/validation/test_products.py",
+      "sha256": "3f7f7515ce543a8c9ee8b08dae527082047d1fac3b741bcef73994115e37c1d3"
+    },
+    {
+      "path": "tests/unit/validation/test_post_campaign_science.py",
+      "sha256": "3077e8d3b178a21939d3328659add3aa6eb3ddb4966d7759d72c6a51d82e3b11"
+    },
+    {
+      "path": "tests/unit/validation/test_post_correction_recovery.py",
+      "sha256": "bd8d426709012bab0ad84324c19552d06f2d3888cae7187dc4ea429e4260120f"
+    },
+    {
+      "path": "tests/unit/validation/test_public_finder_correction.py",
+      "sha256": "6ed29715f7a3a8eee28b0c809f1010dcf58634a3aa0b33b6a05156733a53220b"
+    },
+    {
+      "path": "tests/unit/validation/test_public_finder_source_association_pre_review.py",
+      "sha256": "502db04e80c1c1cb7584a58b194a9a7570f66dc204ceba9bde6ed59cc88e60d3"
+    },
+    {
+      "path": "tests/integration/test_public_finder_correction_execution.py",
+      "sha256": "06d16593a2bf5108661bd07641141fce69600d10a395d131032932d31b9f6502"
+    }
+  ],
+  "viewed_development_boundary": {
+    "corrected_analysis": {
+      "path": "benchmark-results/phase-5/public-finder-source-association-analysis.json",
+      "state_at_review": "absent"
+    },
+    "corrected_campaign": {
+      "path": "benchmark-results/phase-5/public-finder-source-association-comparison",
+      "state_at_review": "absent"
+    },
+    "corrected_decision": {
+      "path": "benchmark-results/phase-5/public-finder-source-association-decision.json",
+      "state_at_review": "absent"
+    },
+    "executable_protocol_frozen": false,
+    "status": "viewed-development-execution-remains-closed"
+  }
+}

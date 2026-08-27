@@ -11594,3 +11594,29 @@ historical recovery and final-qualification contracts remain green. All
 unaffected pre-commit hooks pass. Repository-wide format, codespell, notebook,
 and quick-pytest hooks remain blocked only by unrelated dirty files and the
 same frozen public-protocol checksum guard.
+
+## 2026-08-27 — Freeze non-executable source-association identities
+
+**Plan phase:** Phase 5, public-finder correction regression gate
+
+- Froze identity review `c58eec6e...` against implementation commit
+  `26e639a...`, tree `251c44c...`, source tree `34fecf30...`, and complete
+  configuration `78dbb230...`. It checksum-binds every implementation and
+  fixture artifact plus the exact pre-review and implementation decision.
+- Preserved the failed ledger `1ac6deb2...`, reconstructed reference terminal
+  `48209eae...`, and closed baseline `a45303df...` as the scientific boundary.
+  No terminal replay or viewed product was opened to create the review.
+- Recorded that wrapper `04a3a543...` is not executable for this candidate: it
+  remains bound to revision `b1d59e5...`, source tree `2de6564e...`, and
+  configuration `65c8876d...`. The replacement ledger and all corrected viewed
+  products are absent. Every authorization flag is false.
+- The next governed task is a prospective replay-composition pre-review. It
+  cannot execute until its implementation is separately approved, exact
+  executable identities are frozen, and a later named replay approval is
+  received.
+
+**Validation:** 14 identity/pre-review tests pass; the live source-tree and
+canonical configuration hashes match the review; all bound implementation,
+historical, and fixture files are byte exact; JSON formatting and focused Ruff
+pass. No replay, campaign, qualification, tuning, rescoring, cutover, or
+release was started.

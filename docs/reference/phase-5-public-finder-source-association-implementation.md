@@ -1,8 +1,9 @@
 # Phase 5 public-finder source-association implementation
 
-**Status:** implemented and validated on analytic fixtures only. The exact
-candidate identity freeze is pending. No replay, viewed-data execution,
-campaign, qualification, tuning, rescoring, cutover, or release is authorized.
+**Status:** implemented and validated on analytic fixtures only. Exact
+non-executable identity review SHA-256 `c58eec6e...` freezes the candidate.
+No replay, viewed-data execution, campaign, qualification, tuning, rescoring,
+cutover, or release is authorized.
 
 The implementation is governed by pre-review SHA-256
 `9af42348896e0449e007fe2318648f66122313d600137f8f5ec525ebaec1cc3c`
@@ -81,6 +82,14 @@ provenance.
 Executor fixtures verify one-tile versus overlapping many-tile results across
 Serial and existing-Dask execution, including partition-origin changes,
 completion-order reversal, and duplicate retry evidence. The new association
-modules have 90.60% focused branch-aware coverage. A newly frozen exact
-non-executable candidate and separate named approval are required before any
-cumulative replay.
+modules have 90.60% focused branch-aware coverage.
+
+Identity review
+`config/contracts/phase-5-public-finder-source-association-identity-review.json`
+binds implementation commit `26e639a...`, source tree `34fecf30...`,
+configuration `78dbb230...`, all implementation and validation artifacts, the
+failed ledger `1ac6deb2...`, reconstructed references `48209eae...`, and closed
+baseline `a45303df...`. The existing replay wrapper remains bound to prior
+candidate `b1d59e5...` and configuration `65c8876d...`, so it cannot execute
+this candidate. A separate replay-composition pre-review, exact executable
+identity freeze, and named approval are required before any cumulative replay.

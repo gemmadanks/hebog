@@ -854,11 +854,19 @@ separately approved prospective development response.
       negative controls and Serial/existing-Dask one-tile, overlapping-halo,
       partition-origin, task-order, and retry invariance pass without opening
       replay or viewed-public products.
-- [ ] Freeze the validated implementation as an exact non-executable corrected
-      candidate. A complete cumulative replay still requires a new exact
-      identity review and separate named approval; viewed execution, another
-      campaign, qualification, tuning, rescoring, cutover, and release remain
-      closed.
+- [x] Freeze the validated implementation as exact non-executable identity
+      review `c58eec6e...`. It binds commit `26e639a...`, source tree
+      `34fecf30...`, configuration `78dbb230...`, implementation/fixture
+      artifacts, failed ledger `1ac6deb2...`, reconstructed references
+      `48209eae...`, and closed baseline `a45303df...`. The existing wrapper is
+      explicitly incompatible because it remains bound to candidate
+      `b1d59e5...` and configuration `65c8876d...`; no executable composition
+      or action is authorized.
+- [ ] Prospectively pre-review the smallest replay-consumer update that binds
+      candidate `26e639a...` and configuration `78dbb230...` while preserving
+      the exact population, references, compiler/evaluator, endpoints, and
+      closed baseline. Implement and freeze that composition only after named
+      approval; the complete replay then needs a separate exact approval.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
