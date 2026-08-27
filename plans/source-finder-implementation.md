@@ -805,17 +805,18 @@ separately approved prospective development response.
       all four runtime identities, 2,400 inputs, 9,600 reference runs, zero
       candidate runs, and one new write-once namespace. It authorizes only the
       complete no-write preflight and one conditional reconstruction.
-- [ ] Provide at least 120 GiB host headroom, rebuild and verify the missing
-      per-image reference evidence without any candidate run, then freeze the
-      new terminal identity. Update and re-verify the correction consumer,
-      obtain a new one-replay approval, and require
-      `cumulative_science_regression_ready=true` with no like-semantics
+- [x] Rebuild and fully verify the missing per-image reference evidence without
+      any candidate run. The single authorized reconstruction sealed 2,400
+      inputs and 9,600 reference runs as terminal `48209eae...`; immutable
+      consumer commit `046df24...` then verified every product under distinct
+      producer source `b4176ce3...` and candidate source `2de6564e...`, with
+      replay output and scratch still absent. Replacement non-executable review
+      `c5924600...` freezes the corrected wrapper and exact replay composition.
+- [ ] Obtain a new one-replay approval bound to review `c5924600...`, execute
+      exactly one two-worker 800-compact/1,600-Continuum cumulative replay, and
+      require `cumulative_science_regression_ready=true` with no like-semantics
       regression. Viewed SDC1/Hydra execution, a new campaign, fresh
       qualification, tuning, rescoring, cutover, and release remain closed.
-      The first authorized no-write preflight passed checkout, program,
-      decision, population, all four image identities, and write-once-path
-      checks, then stopped with 75.7465 GiB available against 120 GiB. No
-      staging or execution began; at least another 44.2535 GiB is required.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

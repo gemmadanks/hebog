@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import runpy
+import subprocess
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -37,6 +39,11 @@ _REFERENCE_REPAIR_IMPLEMENTATION_DECISION = (
     "phase-5-public-finder-correction-cumulative-replay-reference-"
     "provenance-repair-implementation-decision.json"
 )
+_REFERENCE_REPAIR_REVIEW = (
+    _ROOT / "config/contracts/"
+    "phase-5-public-finder-correction-cumulative-replay-reference-"
+    "provenance-repair-review.json"
+)
 
 
 def _arguments(tmp_path: Path) -> Namespace:
@@ -59,6 +66,30 @@ def _reference_repair_arguments(tmp_path: Path) -> Namespace:
         "b1d59e5"
     )
     return arguments
+
+
+def _frozen_replay_arguments() -> Namespace:
+    """Return the exact invocation frozen after reference verification."""
+    return Namespace(
+        campaign=None,
+        reference_reconstruction=Path(
+            "benchmark-results/phase-5/"
+            "viewed-reference-reconstruction-public-finder-correction"
+        ),
+        output=Path(
+            "benchmark-results/phase-5/"
+            "cumulative-regression-ledger-public-finder-correction.json"
+        ),
+        scratch=Path(
+            "/private/tmp/hebog-phase5-public-finder-correction-"
+            "reference-repair-b1d59e5"
+        ),
+        workers=2,
+        closed_component_baseline_ledger=Path(
+            "benchmark-results/phase-5/"
+            "cumulative-regression-ledger-recovery.json"
+        ),
+    )
 
 
 def test_named_repair_approval_authorizes_no_replay() -> None:
@@ -112,6 +143,44 @@ def test_wrapper_binds_the_reconstructed_reference_terminal() -> None:
     assert wrapper["_REFERENCE_RECONSTRUCTION_SHA256"] == (
         "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
     )
+
+
+def test_reference_repair_review_freezes_no_execution_authority() -> None:
+    """Verified identities remain inert until one exact named approval."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    review = json.loads(_REFERENCE_REPAIR_REVIEW.read_text(encoding="utf-8"))
+
+    assert review["status"] == (
+        "ready-for-named-public-finder-correction-cumulative-replay-approval"
+    )
+    assert set(review["authorization"].values()) == {False}
+    assert review["prospective_execution"] == wrapper[
+        "_expected_execution_fields"
+    ](_frozen_replay_arguments())
+    implementation = review["implementation"]
+    wrapper_record = implementation["wrapper"]
+    content = subprocess.check_output(
+        (
+            "git",
+            "show",
+            f"{implementation['commit']}:{wrapper_record['path']}",
+        ),
+        cwd=_ROOT,
+    )
+    assert hashlib.sha256(content).hexdigest() == wrapper_record["sha256"]
+    reconstruction = review["reconstruction"]
+    completion = reconstruction["completion_review"]
+    assert file_sha256(_ROOT / completion["path"]) == completion["sha256"]
+    assert (
+        file_sha256(_ROOT / reconstruction["path"] / "recovery.json")
+        == reconstruction["recovery_sha256"]
+    )
+    verification = review["no_write_verification"]
+    assert verification["status"] == "pass"
+    assert verification["verified_input_count"] == 2400
+    assert verification["verified_reference_run_count"] == 9600
+    assert verification["output_absent"] is True
+    assert verification["scratch_absent"] is True
 
 
 def test_reference_repair_decision_matches_the_no_write_scope(
