@@ -11303,3 +11303,37 @@ single execution authorization.
 four exact runtime images or required public-comparison population, then rerun
 the no-write preflight. The cumulative replay and later Phase 5 actions remain
 closed.
+
+## 2026-08-27 — Rebuild and verify correction reference evidence
+
+**Plan phase:** Phase 5, Step 6 — public/challenge evidence
+
+- The complete no-write reconstruction preflight passed from exact historical
+  producer commit `a000db4...` after host headroom reached 120.21 GiB. The
+  single authorized process then sealed all 2,400 inputs and 9,600 PyBDSF /
+  Aegean reference runs, with zero candidate runs, as terminal `48209eae...`.
+- An independent full verifier confirmed both identity sets, all per-product
+  provenance, producer source `b4176ce3...`, the four retained runtime images,
+  and the exact 2,400/9,600 counts. Commit `046df24...` records the terminal
+  review and updates only the corrected replay consumer's reference binding.
+- The first immutable consumer invocation supplied the predecessor baseline
+  filename and failed closed at baseline identity validation before reference
+  access or scratch creation. The corrected exact invocation used closed
+  baseline `a45303df...` and passed complete no-write verification from commit
+  `046df24...`; replay scratch and output remain absent.
+- Non-executable review `c5924600...`, committed in `2ef6532...`, freezes
+  candidate `b1d59e5...`, source `2de6564e...`, configuration `65c8876d...`,
+  wrapper `04a3a543...`, terminal `48209eae...`, baseline `a45303df...`, all
+  compiler/evaluator/contracts, two workers, and the write-once output paths.
+  Every execution and later-lifecycle authorization remains false.
+
+**Validation:** the complete terminal verifier and corrected consumer
+verification each passed 2,400 inputs and 9,600 references. Focused suites
+pass 37 tests. Scoped push-stage hooks pass Ruff, formatting, JSON, spelling,
+Pyright, strict docs, and the 1,670-test quick lane. The repository-wide hook
+was also attempted in a disposable checkout and was blocked only by unrelated
+pre-existing notebook Ruff findings; no notebook changes were retained.
+
+**Immediate next step:** obtain one named approval bound exactly to review
+`c5924600...`. Only then run the single two-worker cumulative replay and require
+no like-semantics regression before any viewed public execution is reopened.
