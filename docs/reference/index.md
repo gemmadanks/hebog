@@ -27,6 +27,7 @@ Related project references:
 - [Phase 5 scale-filter selection](phase-5-filter-selection.md)
 - [Phase 5 regression fixtures](phase-5-regression-fixtures.md)
 - [Phase 5 astrometry technical pre-review](phase-5-astrometry-pre-review.md)
+- [Phase 5 public-finder source-association pre-review](phase-5-public-finder-source-association-pre-review.md)
 - [Phase 5 final-qualification evaluation-repair pre-review](phase-5-final-qualification-repair-pre-review.md)
 - [Phase 5 release readiness](phase-5-release-readiness.md)
 - [Compact deblending](compact-deblending.md)

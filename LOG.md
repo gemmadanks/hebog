@@ -11526,3 +11526,36 @@ The focused replay/readiness suite passed 92 tests, and the stale historical
 absence assertions were corrected to validate their recorded freeze-time
 state rather than requiring a later authorized write-once output to remain
 absent forever.
+
+## 2026-08-27 — Pre-review public-finder source association
+
+**Plan phase:** Phase 5, public-finder correction regression gate
+
+- Added non-executable scientific pre-review `9af42348...`, bound to terminal
+  failed ledger `1ac6deb2...`, candidate `b1d59e5...`, source
+  `2de6564e...`, configuration `65c8876d...`, reconstructed reference
+  `48209eae...`, and closed baseline `a45303df...`.
+- Distinguished immutable detection components, binding image-domain
+  catalogue sources, and out-of-scope astrophysical objects. The prospective
+  graph requires undilated shared support, existing-threshold intensity
+  continuity, directional-FWHM proximity, and deterministic complete-link
+  grouping; ambiguous, distance-only, or transitive-only associations remain
+  separate.
+- Froze component partition, pixel ownership, flux conservation, identity
+  invariance, and zero-false-association gates. Source rows may aggregate only
+  existing exclusive component measurements; thresholds, background/RMS,
+  support recovery, apertures, calibration, astrometry, and shape estimators
+  cannot change in the same repair.
+- Bound adversarial analytic and execution-invariance fixtures and explicitly
+  forbade terminal replay products, viewed SDC1/Hydra products, and reference
+  finder catalogues as implementation inputs. No implementation, replay,
+  viewed execution, campaign, qualification, tuning, rescoring, cutover, or
+  release was authorized or started.
+
+**Validation:** 52 focused pre-review, correction, and readiness tests passed;
+Ruff format and lint passed for the new test; JSON formatting and spelling
+hooks passed on the review packet; strict documentation, Pyright, structural,
+YAML, TOML, JSON, and lockfile checks passed. The repository-wide Ruff lane is
+blocked by pre-existing unformatted notebook and LoTSS files, and the quick
+pytest lane is blocked by the unrelated modified frozen public-finder runner;
+neither blocker was changed or staged.

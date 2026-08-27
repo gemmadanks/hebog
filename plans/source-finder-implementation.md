@@ -822,8 +822,15 @@ separately approved prospective development response.
       10 underpowered endpoints, and 37 like-semantics regressions, so
       `cumulative_science_regression_ready=false` and the terminal status is
       `fail`.
-- [ ] Prospectively repair the source-identity composition exposed by ledger
-      `1ac6deb2...`, under a new scientific pre-review before implementation.
+- [x] Complete the prospective scientific pre-review for the source-identity
+      composition exposed by ledger `1ac6deb2...`. Review `9af42348...`
+      distinguishes immutable detection components, image-domain catalogue
+      sources, and out-of-scope astrophysical objects. It freezes a
+      conservative graph using undilated parent support, existing-threshold
+      intensity continuity, directional-FWHM proximity, and deterministic
+      complete-link grouping; ambiguous and transitive-only associations stay
+      separate. Source rows aggregate existing exclusive component
+      measurements while component ownership remains bitwise identical.
       The corrected owner plane keeps completeness and merge endpoints green,
       but treats every accepted original-residual connected component as a
       terminal catalogue source without a distinct object-association layer.
@@ -839,6 +846,13 @@ separately approved prospective development response.
       from the 10 underpowered endpoints. Another replay, viewed SDC1/Hydra
       execution, a campaign, qualification, tuning, rescoring, cutover, and
       release require separately frozen identities and named approval.
+- [ ] Obtain named scientific and engineering approval of exact pre-review
+      `9af42348...`, then implement only its test-first pure association
+      records, analytic and invariant fixtures, fixture-only catalogue-source
+      composition, and serial/existing-Dask validation. Do not open the
+      terminal replay or viewed public products. Freeze a non-executable
+      corrected candidate after validation; one complete cumulative replay
+      still requires a new exact identity review and separate named approval.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
