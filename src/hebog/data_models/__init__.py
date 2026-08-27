@@ -34,6 +34,12 @@ from hebog.data_models.partitioning import (
     TilePartition,
 )
 from hebog.data_models.products import ProductChunk
+from hebog.data_models.source_association import (
+    CatalogueSourceMembership,
+    DetectionComponentRecord,
+    SourceAssociationEdge,
+    SourceAssociationResult,
+)
 from hebog.data_models.source_finding import (
     ContinuumSourceFindingDiagnostics,
     MaterializedProduct,
@@ -44,6 +50,7 @@ from hebog.data_models.source_finding import (
 )
 
 __all__ = [
+    "CatalogueSourceMembership",
     "CelestialWcs",
     "CombinedCatalogueReduction",
     "CombinedCatalogueShard",
@@ -56,6 +63,7 @@ __all__ = [
     "CompletedCombinedCatalogueState",
     "ContinuumSourceFindingDiagnostics",
     "CrossScaleAssociation",
+    "DetectionComponentRecord",
     "ExtendedEmissionMeasurement",
     "ExtendedSourceIdentity",
     "FluxMeasurement",
@@ -72,6 +80,8 @@ __all__ = [
     "RestoringBeam",
     "ScaleDetection",
     "SkyPosition",
+    "SourceAssociationEdge",
+    "SourceAssociationResult",
     "SourceCandidate",
     "SourceCatalogue",
     "SourceFinderRequest",

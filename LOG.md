@@ -11559,3 +11559,38 @@ YAML, TOML, JSON, and lockfile checks passed. The repository-wide Ruff lane is
 blocked by pre-existing unformatted notebook and LoTSS files, and the quick
 pytest lane is blocked by the unrelated modified frozen public-finder runner;
 neither blocker was changed or staged.
+
+## 2026-08-27 — Implement public-finder source association on fixtures
+
+**Plan phase:** Phase 5, public-finder correction regression gate
+
+- Recorded named implementation decision `6a495fcb...` against exact
+  pre-review `9af42348...`; it authorizes fixture-only implementation and a
+  non-executable identity freeze, but no scientific execution.
+- Added immutable stable component, edge, membership, and graph records.
+  Persistent IDs derive from global owner coordinates rather than task-local
+  labels. The graph requires a shared undilated parent, an everywhere-valid
+  existing-threshold saddle, available component shapes, and directional-FWHM
+  proximity. Deterministic complete-link reduction rejects transitive-only
+  chains and ambiguous evidence.
+- Added binding source-row composition while retaining component diagnostics.
+  It sums existing exclusive integrated flux, selects maximum component peak,
+  composes centroids in a local tangent plane, and measures the union of exact
+  owner support without changing component labels, measurements, thresholds,
+  calibration, or shape policy.
+- Analytic fixtures cover singleton, broad split, low-saddle, high-dynamic-
+  range, directional-filament, disconnected-lobe, invalid-gap, unavailable-
+  shape, and bridge-chain cases. Serial and existing-Dask fixtures prove label,
+  tile, partition-origin, task-order, and retry invariance. No terminal replay,
+  viewed SDC1/Hydra product, or reference catalogue was opened.
+
+**Validation:** 90 focused unit/integration tests pass; the association-only
+matrix passes 19 tests with 90.60% branch-aware coverage of the new algorithm
+and records. Focused Ruff and Pyright pass, and strict documentation builds.
+Repository coverage reaches 94.88% with 1,912 tests passing and four expected
+xfails. Its sole failure is the intended fail-closed checksum rejection by the
+closed public one-look protocol after the approved program seam changed;
+historical recovery and final-qualification contracts remain green. All
+unaffected pre-commit hooks pass. Repository-wide format, codespell, notebook,
+and quick-pytest hooks remain blocked only by unrelated dirty files and the
+same frozen public-protocol checksum guard.

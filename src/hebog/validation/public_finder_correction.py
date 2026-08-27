@@ -21,18 +21,19 @@ from hebog.data_models.catalogues import (
     SourceCandidate,
     SpectralModel,
 )
+from hebog.data_models.source_association import SourceAssociationResult
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
 from hebog.validation.external_runners import file_sha256
+from hebog.validation.phase_five_filter_review import ThresholdFilterResult
 from hebog.validation.post_campaign_science import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     evaluate_public_finder_correction_candidate_products,
 )
 from hebog.validation.post_correction_recovery import (
-    PostCorrectionContinuumProducts,
     post_correction_candidate_configuration,
 )
-from hebog.validation.products import build_hebog_segment_moment_catalogue
+from hebog.validation.products import build_hebog_associated_moment_catalogues
 
 _ARCSECONDS_PER_DEGREE = 3600.0
 _HALF_CIRCLE_DEGREES = 180.0
@@ -44,7 +45,21 @@ _PUBLIC_SUPPORT_POLICY = (
     "direct-seed-nearest-owner-half-beam-multiscale-recovery"
 )
 _PUBLIC_SHAPE_POLICY = "exact-owner-positive-residual-moment-equivalent"
+_SOURCE_ASSOCIATION_POLICY = (
+    "undilated-three-sigma-directional-fwhm-complete-link-v1"
+)
 _IMAGE_DIMENSIONS = 2
+
+
+@dataclass(frozen=True, slots=True)
+class PublicFinderCorrectionContinuumProducts:
+    """Binding associated sources and immutable component diagnostics."""
+
+    detection: ThresholdFilterResult
+    catalogue: tuple[CatalogueSource, ...]
+    valid_pixels: npt.NDArray[np.bool_]
+    component_catalogue: tuple[CatalogueSource, ...]
+    source_association: SourceAssociationResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -267,6 +282,35 @@ def public_finder_correction_candidate_configuration(
     return {"compact": base["compact"], "continuum": continuum}
 
 
+def public_finder_source_association_candidate_configuration(
+    base_review_path: Path,
+    correction_contract_path: Path,
+    source_association_pre_review_path: Path,
+    implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Return the non-executable source-association candidate identity."""
+    base = public_finder_correction_candidate_configuration(
+        base_review_path,
+        correction_contract_path,
+    )
+    continuum_value = base["continuum"]
+    if not isinstance(continuum_value, dict):
+        raise TypeError("base Continuum configuration must be a dictionary")
+    continuum = dict(cast(dict[str, object], continuum_value))
+    continuum.update(
+        {
+            "source_association_policy": _SOURCE_ASSOCIATION_POLICY,
+            "source_association_pre_review_sha256": file_sha256(
+                source_association_pre_review_path
+            ),
+            "source_association_implementation_decision_sha256": (
+                file_sha256(implementation_decision_path)
+            ),
+        }
+    )
+    return {"compact": base["compact"], "continuum": continuum}
+
+
 def _aligned_public_plane(
     values: npt.ArrayLike,
     *,
@@ -296,7 +340,7 @@ def build_public_finder_correction_continuum_products(  # noqa: PLR0913
     *,
     beam: BeamShapePixels,
     review: PhaseFiveCorrectiveAReview,
-) -> PostCorrectionContinuumProducts:
+) -> PublicFinderCorrectionContinuumProducts:
     """Build the prospective seeded-owner and moment-shape candidate."""
     image = _aligned_public_plane(image_jy_per_beam, name="image")
     background = _aligned_public_plane(
@@ -322,22 +366,27 @@ def build_public_finder_correction_continuum_products(  # noqa: PLR0913
         beam=beam,
         review=review,
     )
-    catalogue = build_hebog_segment_moment_catalogue(
+    catalogues = build_hebog_associated_moment_catalogues(
         image,
         background,
         valid,
         products.detection.component_labels,
+        products.significant_multiscale_support,
+        products.detection.combined_snr,
         header,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         beam_minor_fwhm_pixels=beam.minor_fwhm_pixels,
+        island_threshold_sigma=review.matrix.island_sigma,
         measurement_aperture_radius_beams=(
             CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
         ),
         position_signal_jy_per_beam=products.position_signal_jy_per_beam,
     )
     valid.setflags(write=False)
-    return PostCorrectionContinuumProducts(
+    return PublicFinderCorrectionContinuumProducts(
         detection=products.detection,
-        catalogue=catalogue,
+        catalogue=catalogues.source_catalogue,
         valid_pixels=valid,
+        component_catalogue=catalogues.component_catalogue,
+        source_association=catalogues.association,
     )

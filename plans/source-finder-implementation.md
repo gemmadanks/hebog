@@ -846,13 +846,19 @@ separately approved prospective development response.
       from the 10 underpowered endpoints. Another replay, viewed SDC1/Hydra
       execution, a campaign, qualification, tuning, rescoring, cutover, and
       release require separately frozen identities and named approval.
-- [ ] Obtain named scientific and engineering approval of exact pre-review
-      `9af42348...`, then implement only its test-first pure association
-      records, analytic and invariant fixtures, fixture-only catalogue-source
-      composition, and serial/existing-Dask validation. Do not open the
-      terminal replay or viewed public products. Freeze a non-executable
-      corrected candidate after validation; one complete cumulative replay
-      still requires a new exact identity review and separate named approval.
+- [x] Implement the named-approved source-association repair on fixtures only.
+      Decision `6a495fcb...` binds pre-review `9af42348...`. Stable component
+      records, undilated existing-threshold directional-FWHM edges,
+      deterministic complete-link reduction, and binding aggregate source
+      rows preserve exact owner labels and component photometry. Analytic
+      negative controls and Serial/existing-Dask one-tile, overlapping-halo,
+      partition-origin, task-order, and retry invariance pass without opening
+      replay or viewed-public products.
+- [ ] Freeze the validated implementation as an exact non-executable corrected
+      candidate. A complete cumulative replay still requires a new exact
+      identity review and separate named approval; viewed execution, another
+      campaign, qualification, tuning, rescoring, cutover, and release remain
+      closed.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

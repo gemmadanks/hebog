@@ -13,6 +13,10 @@ _REVIEW = (
     _ROOT / "config/contracts/phase-5-public-finder-source-association-"
     "pre-review.json"
 )
+_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
+    "implementation-decision.json"
+)
 
 
 def _load() -> dict[str, Any]:
@@ -197,7 +201,7 @@ def test_source_association_review_has_no_compensating_gate() -> None:
 
 
 def test_source_association_review_binds_clean_implementation_seams() -> None:
-    """Later implementation must explicitly replace reviewed source bytes."""
+    """Only approved seams may replace the pre-review source bytes."""
     records = cast(list[dict[str, str]], _load()["implementation_seams"])
 
     assert {record["path"] for record in records} == {
@@ -206,8 +210,20 @@ def test_source_association_review_binds_clean_implementation_seams() -> None:
         "src/hebog/validation/products.py",
         "src/hebog/validation/public_finder_correction.py",
     }
-    for record in records:
-        assert file_sha256(_ROOT / record["path"]) == record["sha256"]
+    current = {
+        record["path"]: file_sha256(_ROOT / record["path"])
+        for record in records
+    }
+    reviewed = {record["path"]: record["sha256"] for record in records}
+    assert (
+        current["src/hebog/algorithms/extended_measurement.py"]
+        == reviewed["src/hebog/algorithms/extended_measurement.py"]
+    )
+    assert {path for path in current if current[path] != reviewed[path]} == {
+        "src/hebog/validation/post_campaign_science.py",
+        "src/hebog/validation/products.py",
+        "src/hebog/validation/public_finder_correction.py",
+    }
 
 
 def test_source_association_review_requires_test_first_approval_boundary() -> (
@@ -227,3 +243,38 @@ def test_source_association_review_requires_test_first_approval_boundary() -> (
         "identities",
         "obtain-separate-named-approval-before-one-complete-cumulative-replay",
     ]
+
+
+def test_exact_approval_authorizes_only_fixture_bound_implementation() -> None:
+    """The named decision preserves every later lifecycle prohibition."""
+    decision = json.loads(_DECISION.read_text(encoding="utf-8"))
+
+    assert decision["pre_review"] == {
+        "path": (
+            "config/contracts/phase-5-public-finder-source-association-"
+            "pre-review.json"
+        ),
+        "sha256": (
+            "9af42348896e0449e007fe2318648f66122313d600137f8f5ec525ebaec1cc3c"
+        ),
+    }
+    assert file_sha256(_REVIEW) == decision["pre_review"]["sha256"]
+    authorization = decision["authorization"]
+    assert authorization["source_association_implementation_authorized"]
+    assert authorization["fixture_only_validation_authorized"]
+    assert authorization["candidate_identity_freeze_authorized"]
+    assert not any(
+        authorization[field]
+        for field in (
+            "campaign_execution_authorized",
+            "cumulative_replay_authorized",
+            "cutover_authorized",
+            "fresh_qualification_authorized",
+            "optimization_authorized",
+            "public_development_execution_authorized",
+            "release_authorized",
+            "rescoring_authorized",
+            "threshold_or_photometric_tuning_authorized",
+            "viewed_data_execution_authorized",
+        )
+    )

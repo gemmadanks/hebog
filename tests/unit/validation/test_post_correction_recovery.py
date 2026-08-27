@@ -183,16 +183,28 @@ def test_public_correction_adapter_uses_seeded_detection_and_moment_shapes(
         return_value=SimpleNamespace(
             detection=detection,
             position_signal_jy_per_beam=position_signal,
+            significant_multiscale_support=np.ones(
+                shape,
+                dtype=np.bool_,
+            ),
         ),
     )
     catalogue = (cast(Any, SimpleNamespace(identifier="source")),)
+    component_catalogue = (cast(Any, SimpleNamespace(identifier="component")),)
+    association = cast(Any, SimpleNamespace())
     measure = mocker.patch(
         "hebog.validation.public_finder_correction."
-        "build_hebog_segment_moment_catalogue",
-        return_value=catalogue,
+        "build_hebog_associated_moment_catalogues",
+        return_value=SimpleNamespace(
+            source_catalogue=catalogue,
+            component_catalogue=component_catalogue,
+            association=association,
+        ),
     )
     beam = BeamShapePixels(4.0, 3.0, 12.0)
-    review = cast(Any, SimpleNamespace())
+    review = cast(
+        Any, SimpleNamespace(matrix=SimpleNamespace(island_sigma=3.0))
+    )
 
     products = build_public_finder_correction_continuum_products(
         image,
@@ -205,6 +217,8 @@ def test_public_correction_adapter_uses_seeded_detection_and_moment_shapes(
 
     assert products.detection is detection
     assert products.catalogue is catalogue
+    assert products.component_catalogue is component_catalogue
+    assert products.source_association is association
     assert evaluate.call_args.kwargs == {"beam": beam, "review": review}
     assert measure.call_args.args[:4] == (
         image,
@@ -212,6 +226,13 @@ def test_public_correction_adapter_uses_seeded_detection_and_moment_shapes(
         products.valid_pixels,
         labels,
     )
+    np.testing.assert_array_equal(
+        measure.call_args.args[4],
+        np.ones(shape, dtype=np.bool_),
+    )
+    assert measure.call_args.args[5] is detection.combined_snr
+    assert isinstance(measure.call_args.args[6], fits.Header)
+    assert measure.call_args.kwargs["island_threshold_sigma"] == 3.0
     assert measure.call_args.kwargs["measurement_aperture_radius_beams"] == 1.5
 
 

@@ -17,6 +17,7 @@ from pytest_mock import MockerFixture
 
 from hebog.validation.products import (
     aegean_support_label_plane,
+    build_hebog_associated_moment_catalogues,
     build_hebog_segment_catalogue,
     build_hebog_segment_moment_catalogue,
     load_aegean_catalogue,
@@ -969,3 +970,93 @@ def test_hebog_unmeasurable_segment_remains_mask_only() -> None:
     assert tuple(source.island_identifier for source in sources) == (
         "hebog-segment-1",
     )
+
+
+def test_associated_catalogue_aggregates_without_changing_components() -> None:
+    """Binding source rows sum exact diagnostic component measurements."""
+    shape = (9, 47)
+    labels = np.zeros(shape, dtype=np.int32)
+    labels[3:6, 2:22] = 9
+    labels[3:6, 23:43] = 2
+    image = np.zeros(shape, dtype=np.float64)
+    image[labels > 0] = 0.01
+    image[3:6, (2, 21, 23, 42)] = 2.0
+    significant = np.zeros(shape, dtype=np.bool_)
+    significant[3:6, 2:43] = True
+    combined_snr = np.zeros(shape, dtype=np.float64)
+    combined_snr[significant] = 4.0
+    valid = np.ones(shape, dtype=np.bool_)
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 24.0
+    header["CRPIX2"] = 5.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["BMAJ"] = 3.0 / 3600.0
+    header["BMIN"] = 2.0 / 3600.0
+    header["BPA"] = 0.0
+    before = labels.copy()
+
+    products = build_hebog_associated_moment_catalogues(
+        image,
+        np.zeros(shape, dtype=np.float64),
+        valid,
+        labels,
+        significant,
+        combined_snr,
+        header,
+        beam_major_fwhm_pixels=3.0,
+        beam_minor_fwhm_pixels=2.0,
+        island_threshold_sigma=3.0,
+        measurement_aperture_radius_beams=1.5,
+    )
+
+    assert len(products.component_catalogue) == 2
+    assert len(products.source_catalogue) == 1
+    assert len(products.association.memberships) == 1
+    source = products.source_catalogue[0]
+    assert source.component_count == 2
+    assert source.integrated_flux_jy == pytest.approx(
+        sum(item.integrated_flux_jy for item in products.component_catalogue)
+    )
+    assert source.association_integrated_flux_jy == pytest.approx(
+        sum(
+            cast(float, item.association_integrated_flux_jy)
+            for item in products.component_catalogue
+        )
+    )
+    assert source.peak_flux_jy_per_beam == max(
+        item.peak_flux_jy_per_beam for item in products.component_catalogue
+    )
+    assert "associated-component-source" in source.quality_flags
+    assert all(
+        "detection-component" in item.quality_flags
+        for item in products.component_catalogue
+    )
+    np.testing.assert_array_equal(labels, before)
+
+
+def test_associated_catalogue_fails_closed_without_component_measurement() -> (
+    None
+):
+    """An accepted owner cannot silently disappear from binding sources."""
+    shape = (9, 9)
+    labels = np.zeros(shape, dtype=np.int32)
+    labels[3:6, 3:6] = 1
+
+    with pytest.raises(ValueError, match="no measurable"):
+        build_hebog_associated_moment_catalogues(
+            np.full(shape, -1.0),
+            np.zeros(shape),
+            np.ones(shape, dtype=np.bool_),
+            labels,
+            labels > 0,
+            np.full(shape, 4.0),
+            fits.Header(),
+            beam_major_fwhm_pixels=3.0,
+            beam_minor_fwhm_pixels=2.0,
+            island_threshold_sigma=3.0,
+        )

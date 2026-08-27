@@ -9,14 +9,16 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
-from dataclasses import asdict, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from math import ceil
 from pathlib import Path, PurePosixPath
-from typing import Literal, Self, TypeAlias, cast
+from typing import Any, Literal, Self, TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -31,8 +33,13 @@ from hebog.algorithms.extended_measurement import (
     expand_detected_segment_labels,
     measure_detected_segment_position,
 )
+from hebog.algorithms.source_association import (
+    associate_detection_components,
+    build_detection_component_records,
+)
 from hebog.data_models.catalogues import GaussianShape
 from hebog.data_models.images import RestoringBeam
+from hebog.data_models.source_association import SourceAssociationResult
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
 from hebog.validation.evidence import DatasetIdentity, SoftwareIdentity
 
@@ -1155,6 +1162,228 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
             )
         )
     return tuple(output)
+
+
+@dataclass(frozen=True, slots=True)
+class AssociatedMomentCatalogues:
+    """Binding source rows plus retained immutable component diagnostics."""
+
+    component_catalogue: tuple[CatalogueSource, ...]
+    source_catalogue: tuple[CatalogueSource, ...]
+    association: SourceAssociationResult
+
+
+def _stable_component_catalogue(
+    sources: tuple[CatalogueSource, ...],
+    association: SourceAssociationResult,
+) -> tuple[CatalogueSource, ...]:
+    """Replace task-local label identities with stable component identities."""
+    by_label_identifier = {
+        f"hebog-segment-{record.label_value}": record.component_id
+        for record in association.components
+    }
+    output = tuple(
+        replace(
+            source,
+            identifier=by_label_identifier[source.identifier],
+            island_identifier=by_label_identifier[source.identifier],
+            quality_flags=tuple(
+                sorted({*source.quality_flags, "detection-component"})
+            ),
+        )
+        for source in sources
+    )
+    return tuple(sorted(output, key=lambda item: item.identifier))
+
+
+def _flux_weighted_tangent_position(
+    components: tuple[CatalogueSource, ...],
+) -> tuple[float, float]:
+    """Combine component centroids in one local tangent plane."""
+    origin_source = components[0]
+    origin = SkyCoord(
+        ra=origin_source.right_ascension_degrees * u.deg,
+        dec=origin_source.declination_degrees * u.deg,
+        frame="icrs",
+    )
+    coordinates = SkyCoord(
+        ra=[item.right_ascension_degrees for item in components] * u.deg,
+        dec=[item.declination_degrees for item in components] * u.deg,
+        frame="icrs",
+    )
+    east, north = origin.spherical_offsets_to(coordinates)
+    weights = np.asarray(
+        [item.integrated_flux_jy for item in components],
+        dtype=np.float64,
+    )
+    combined = origin.spherical_offsets_by(
+        float(np.average(east.to_value(u.deg), weights=weights)) * u.deg,
+        float(np.average(north.to_value(u.deg), weights=weights)) * u.deg,
+    )
+    combined_coordinates = cast(Any, combined)
+    right_ascension = float(combined_coordinates.ra.deg)
+    declination = float(combined_coordinates.dec.deg)
+    return right_ascension, declination
+
+
+def _associated_source_catalogue(  # noqa: PLR0913
+    components: tuple[CatalogueSource, ...],
+    association: SourceAssociationResult,
+    *,
+    residual: npt.NDArray[np.float64],
+    valid: npt.NDArray[np.bool_],
+    labels: npt.NDArray[np.int64],
+    celestial_wcs: WCS,
+    beam: RestoringBeam | None,
+) -> tuple[CatalogueSource, ...]:
+    """Aggregate existing component measurements without remeasurement."""
+    components_by_id = {item.identifier: item for item in components}
+    records_by_id = {
+        item.component_id: item for item in association.components
+    }
+    output: list[CatalogueSource] = []
+    for membership in association.memberships:
+        members = tuple(
+            components_by_id[component_id]
+            for component_id in membership.component_ids
+            if component_id in components_by_id
+        )
+        if not members:
+            raise ValueError(
+                "associated source has no measurable detection component"
+            )
+        if len(members) != len(membership.component_ids):
+            raise ValueError(
+                "associated source cannot mix measurable and unavailable "
+                "components"
+            )
+        member_labels = tuple(
+            records_by_id[item.identifier].label_value for item in members
+        )
+        support = np.isin(labels, member_labels) & valid
+        if beam is None:
+            shape_fields: dict[str, object] = {
+                "fitted_shape": None,
+                "deconvolved_shape": None,
+                "deconvolved_major_fwhm_degrees": None,
+                "deconvolution_status": "unavailable",
+                "quality_flags": (
+                    "segment-moment-equivalent-shape",
+                    "shape-unavailable",
+                ),
+            }
+        else:
+            shape_fields = _moment_shape_fields(
+                residual,
+                support,
+                celestial_wcs,
+                beam,
+            )
+        right_ascension, declination = _flux_weighted_tangent_position(members)
+        association_fluxes = tuple(
+            item.association_integrated_flux_jy
+            if item.association_integrated_flux_jy is not None
+            else item.integrated_flux_jy
+            for item in members
+        )
+        flags = cast(tuple[str, ...], shape_fields["quality_flags"])
+        shape_fields["quality_flags"] = tuple(
+            sorted({*flags, "associated-component-source"})
+        )
+        output.append(
+            CatalogueSource(
+                identifier=membership.source_id,
+                right_ascension_degrees=right_ascension,
+                declination_degrees=declination,
+                peak_flux_jy_per_beam=max(
+                    item.peak_flux_jy_per_beam for item in members
+                ),
+                integrated_flux_jy=sum(
+                    item.integrated_flux_jy for item in members
+                ),
+                association_integrated_flux_jy=sum(association_fluxes),
+                island_identifier=membership.source_id,
+                component_count=len(members),
+                **shape_fields,  # type: ignore[arg-type]
+            )
+        )
+    return tuple(sorted(output, key=lambda item: item.identifier))
+
+
+def build_hebog_associated_moment_catalogues(  # noqa: PLR0913, PLR0917
+    image_jy_per_beam: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    component_labels: npt.ArrayLike,
+    significant_multiscale_support: npt.ArrayLike,
+    combined_snr: npt.ArrayLike,
+    header: fits.Header,
+    *,
+    beam_major_fwhm_pixels: float,
+    beam_minor_fwhm_pixels: float,
+    island_threshold_sigma: float,
+    measurement_aperture_radius_beams: float = 4.0,
+    position_signal_jy_per_beam: npt.ArrayLike | None = None,
+    denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
+) -> AssociatedMomentCatalogues:
+    """Build component diagnostics and binding associated source rows."""
+    components = build_hebog_segment_moment_catalogue(
+        image_jy_per_beam,
+        background_jy_per_beam,
+        valid_pixels,
+        component_labels,
+        header,
+        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+        beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
+        measurement_aperture_radius_beams=measurement_aperture_radius_beams,
+        position_signal_jy_per_beam=position_signal_jy_per_beam,
+        denoised_position_maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+    )
+    residual, valid, labels = _validated_hebog_segment_planes(
+        image_jy_per_beam,
+        background_jy_per_beam,
+        valid_pixels,
+        component_labels,
+    )
+    records = build_detection_component_records(
+        labels,
+        residual,
+        valid,
+    )
+    association = associate_detection_components(
+        records,
+        labels,
+        significant_multiscale_support,
+        combined_snr,
+        valid,
+        island_threshold_sigma=island_threshold_sigma,
+    )
+    stable_components = _stable_component_catalogue(components, association)
+    celestial_wcs = WCS(header, relax=True).celestial
+    try:
+        beam: RestoringBeam | None = RestoringBeam(
+            major_fwhm_degrees=cast(float, header["BMAJ"]),
+            minor_fwhm_degrees=cast(float, header["BMIN"]),
+            position_angle_degrees=cast(float, header["BPA"]),
+        )
+    except (KeyError, TypeError, ValueError):
+        beam = None
+    sources = _associated_source_catalogue(
+        stable_components,
+        association,
+        residual=residual,
+        valid=valid,
+        labels=labels,
+        celestial_wcs=celestial_wcs,
+        beam=beam,
+    )
+    return AssociatedMomentCatalogues(
+        component_catalogue=stable_components,
+        source_catalogue=sources,
+        association=association,
+    )
 
 
 def load_fits_plane(path: Path) -> npt.NDArray[np.float64]:

@@ -42,6 +42,7 @@ class PostCampaignCandidateProducts:
 
     detection: ThresholdFilterResult
     position_signal_jy_per_beam: npt.NDArray[np.float64]
+    significant_multiscale_support: npt.NDArray[np.bool_]
 
 
 def refine_external_candidate_detection(
@@ -99,6 +100,11 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
         island_sigma=review.matrix.island_sigma,
         minimum_support_fraction=review.matrix.support_fraction_bounds[0],
     )
+    significant_support = np.asarray(
+        reconstruction.support_mask,
+        dtype=np.bool_,
+    ).copy()
+    significant_support.setflags(write=False)
     return PostCampaignCandidateProducts(
         detection=refine_external_candidate_detection(
             detection,
@@ -109,6 +115,7 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
             prepared.residual_jy_per_beam
             + atrous.reconstructed_signal_jy_per_beam
         ),
+        significant_multiscale_support=significant_support,
     )
 
 
@@ -169,12 +176,18 @@ def evaluate_public_finder_correction_candidate_products(  # noqa: PLR0913
         component_labels=labels,
         component_count=int(np.count_nonzero(np.unique(labels) > 0)),
     )
+    significant_support = np.asarray(
+        direct_detection.reconstruction.support_mask,
+        dtype=np.bool_,
+    ).copy()
+    significant_support.setflags(write=False)
     return PostCampaignCandidateProducts(
         detection=detection,
         position_signal_jy_per_beam=(
             prepared.residual_jy_per_beam
             + atrous.reconstructed_signal_jy_per_beam
         ),
+        significant_multiscale_support=significant_support,
     )
 
 

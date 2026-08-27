@@ -15,12 +15,14 @@ from pytest_mock import MockerFixture
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.data_models.catalogues import Island, SourceCatalogue
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
+from hebog.validation.external_runners import file_sha256
 from hebog.validation.public_finder_correction import (
     Sdc1SourceFindingRecord,
     build_public_finder_correction_continuum_products,
     build_public_moment_source_candidate,
     build_sdc1_source_finding_records,
     public_finder_correction_candidate_configuration,
+    public_finder_source_association_candidate_configuration,
 )
 
 
@@ -265,6 +267,41 @@ def test_public_correction_configuration_fails_closed_on_malformed_base(
 
     with pytest.raises(TypeError, match="dictionary"):
         public_finder_correction_candidate_configuration(contract, contract)
+
+
+def test_source_association_configuration_binds_approved_review_and_decision(
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    """The new non-executable identity cannot omit its exact authority."""
+    mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "public_finder_correction_candidate_configuration",
+        return_value={"compact": {"frozen": True}, "continuum": {"base": 1}},
+    )
+    pre_review = tmp_path / "pre-review.json"
+    decision = tmp_path / "decision.json"
+    pre_review.write_text('{"review": 1}\n', encoding="utf-8")
+    decision.write_text('{"decision": 1}\n', encoding="utf-8")
+
+    configuration = public_finder_source_association_candidate_configuration(
+        tmp_path / "base.json",
+        tmp_path / "correction.json",
+        pre_review,
+        decision,
+    )
+
+    assert configuration["compact"] == {"frozen": True}
+    continuum = cast(dict[str, object], configuration["continuum"])
+    assert continuum["source_association_policy"] == (
+        "undilated-three-sigma-directional-fwhm-complete-link-v1"
+    )
+    assert continuum["source_association_pre_review_sha256"] == file_sha256(
+        pre_review
+    )
+    assert continuum[
+        "source_association_implementation_decision_sha256"
+    ] == file_sha256(decision)
 
 
 def test_public_correction_rejects_nonreal_input_before_science() -> None:
