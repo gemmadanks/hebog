@@ -1,0 +1,180 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "complete_no_write_reference_verification_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "identity_freeze_authorized": false,
+    "implementation_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "readiness_contract_implementation_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_data_execution_authorized": false,
+    "wrapper_implementation_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "measurement_repair": {
+      "path": "src/hebog/validation/products.py",
+      "sha256": "a3c53daac3dbae03bd6b3f62488cd46de541d79d9c6c903d34ce7951334d690b"
+    },
+    "revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+    "source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+    "tree": "d27f59168111ded8690c783e56bc735b294d7250"
+  },
+  "closed_evidence": {
+    "closed_baseline": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    },
+    "failed_public_correction_ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+      "sha256": "1ac6deb24e4bfc1928318c95437d45acac6ac1f94621b53d45175e0f41bd9797"
+    },
+    "reference_reconstruction": {
+      "path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction/recovery.json",
+      "sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+    },
+    "runtime_identity_registry": {
+      "path": "config/contracts/phase-5-public-finder-correction-reference-reconstruction-decision.json",
+      "sha256": "cc22c7736fab3a3e6c1e84e3e3426e952df40651706e0b69d1dd2da8bfc5b660"
+    }
+  },
+  "consumed_boundary": {
+    "completed_candidate_product_count": 58,
+    "execution_decision": {
+      "path": "config/contracts/phase-5-public-finder-source-association-cumulative-replay-execution-decision.json",
+      "sha256": "d806f38e7f57ef4fea757a9d5fcb3499221bc0d89058d3582dfce96c2d1a4e34"
+    },
+    "failure": "associated-source-has-no-measurable-detection-component-before-atomic-ledger-publication",
+    "ledger_published": false,
+    "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association.json",
+    "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-association-26e639a",
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_source_association_cumulative_regressions.py",
+      "sha256": "bfc1d6d0d255b9fd7e7b43f910e9c2665d9083de572bce7b64afee66c473f357"
+    }
+  },
+  "pre_review_id": "phase-5-public-finder-source-association-measurement-repair-replay-pre-review",
+  "prospective_composition": {
+    "allowed_changes": [
+      "add-one-minimal-wrapper-around-the-consumed-source-association-wrapper",
+      "replace-candidate-revision-and-source-tree-with-the-measurement-repair-candidate",
+      "bind-the-measurement-repair-program-and-regression-fixture",
+      "retain-the-source-association-configuration-without-retrospective-tuning",
+      "publish-to-new-write-once-ledger-and-scratch-namespaces",
+      "prospectively-rebind-the-readiness-contract-to-the-final-candidate-and-future-evidence-paths",
+      "freeze-exact-non-executable-wrapper-readiness-and-replay-identities"
+    ],
+    "forbidden_changes": [
+      "modify-or-overwrite-the-consumed-wrapper-decision-scratch-or-output",
+      "reuse-any-of-the-58-old-candidate-products",
+      "change-compact-or-continuum-population-membership",
+      "change-reference-reconstruction-or-any-reference-product",
+      "change-compiler-evaluator-endpoint-registry-evaluation-contract-or-gates",
+      "change-background-rms-threshold-minimum-area-source-association-position-shape-or-normal-positive-aperture-policy",
+      "read-viewed-sdc1-or-hydra-products-during-implementation",
+      "create-replay-scratch-or-output-before-a-later-exact-replay-approval",
+      "retrospectively-edit-readiness-identities-after-opening-results"
+    ],
+    "identity_review_path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-cumulative-replay-review.json",
+    "implementation_decision_path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-replay-implementation-decision.json",
+    "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+    "required_result": "cumulative_science_regression_ready=true-with-no-like-semantics-regression",
+    "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-association-measurement-repair-6184a32",
+    "workers": 2,
+    "wrapper_path": "scripts/validation/review_phase5_public_finder_source_association_measurement_repair_cumulative_regressions.py"
+  },
+  "readiness_repair": {
+    "current_contract": {
+      "path": "config/contracts/phase-5-readiness.json",
+      "sha256": "bb0719fb17b36c2506073958b3012c237f029a6e54091057151f2c248fdb7540",
+      "status": "frozen-pre-readiness"
+    },
+    "future_held_out_qualification": {
+      "path": "benchmark-results/phase-5/public-finder-source-association-measurement-repair-qualification-decision.json",
+      "required_fields": {
+        "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+        "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+        "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+        "cutover_authorized": false,
+        "scientific_outcomes_before_runtime": true,
+        "status": "pass"
+      }
+    },
+    "must_precede_replay": true,
+    "required_replacement_evidence_id": "public-finder-source-association-measurement-repair-cumulative-regression",
+    "required_replacement_fields": {
+      "all_required_endpoints_pass": true,
+      "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+      "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+      "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+      "cumulative_science_regression_ready": true,
+      "ledger_id": "phase-5-cumulative-regression-ledger",
+      "like_semantics_compact_regressions": [],
+      "like_semantics_continuum_regressions": []
+    },
+    "required_replacement_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+    "unchanged_evidence_ids": [
+      "rapthor-profile",
+      "incremental-multiscale-performance",
+      "bounded-deterministic-execution-contract",
+      "closed-final-qualification-context",
+      "terminal-public-failure-context",
+      "terminal-public-failure-scientific-review"
+    ]
+  },
+  "required_next_decision": "named-approval-of-this-exact-pre-review-for-wrapper-readiness-implementation-no-write-validation-and-non-executable-identity-freezing-only",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-pre-review",
+    "implement-the-wrapper-and-readiness-contract-test-first-without-opening-scientific-results",
+    "run-fixture-and-complete-no-write-reference-verification",
+    "freeze-exact-non-executable-candidate-wrapper-readiness-runtime-reference-program-output-and-scratch-identities",
+    "obtain-a-separate-named-approval-before-one-complete-cumulative-replay"
+  ],
+  "required_validation": {
+    "complete_no_write_reference_verification": true,
+    "cumulative_replay_started": false,
+    "fail_closed_cases": [
+      "consumed-execution-decision-or-wrapper-reuse",
+      "candidate-revision-source-tree-or-measurement-program-drift",
+      "candidate-configuration-drift",
+      "source-association-contract-or-decision-drift",
+      "delegated-program-reference-runtime-population-worker-endpoint-or-gate-drift",
+      "readiness-contract-or-required-evidence-drift",
+      "existing-prospective-scratch-or-output"
+    ],
+    "fixture_only": true,
+    "required_handoff": [
+      "focused-tests",
+      "just-coverage",
+      "just-check",
+      "just-docs-build",
+      "just-pre-commit",
+      "code-review",
+      "one-local-conventional-commit-without-pushing"
+    ],
+    "viewed_scientific_products_opened": false
+  },
+  "reviewed_on": "2026-08-28",
+  "schema_version": 1,
+  "scientific_scope": {
+    "candidate_science_changed": true,
+    "compact_composition_changed": false,
+    "endpoints_or_gates_changed": false,
+    "exact_owner_positive_fallback_added": true,
+    "normal_positive_aperture_photometry_changed": false,
+    "population_changed": false,
+    "reference_evidence_changed": false,
+    "runtime_identity_changed": false,
+    "source_association_policy_changed": false,
+    "threshold_background_rms_or_minimum_area_changed": false,
+    "truly_unmeasurable_owner_policy": "fail-closed",
+    "viewed_public_products_opened": false
+  },
+  "status": "ready-for-named-measurement-repair-replay-composition-review"
+}

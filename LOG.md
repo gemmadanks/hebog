@@ -11820,3 +11820,35 @@ replacement non-executable identities without starting another replay.
 **Immediate next step:** freeze a new non-executable cumulative-replay and
 readiness composition for `6184a32...`; seek separate exact replay approval
 only after fixture and complete no-write verification pass.
+
+## 2026-08-28 — Pre-review the measurement-repair replay composition
+
+**Plan phase:** Phase 5, closure gate 1
+
+- Confirmed that the consumed source-association wrapper and execution
+  decision bind candidate `26e639a...` exactly and cannot authorize repair
+  commit `6184a32...` or a readiness-contract rewrite.
+- Added pre-review `7687839f...`, binding candidate source tree
+  `517d56e1...`, unchanged configuration `78dbb230...`, repaired
+  `products.py` SHA `a3c53daa...`, reconstructed references `48209eae...`,
+  and closed baseline `a45303df...`.
+- Required a new minimal wrapper, ledger, and scratch namespace; prohibited
+  reuse of the 58 old candidate products or any consumed wrapper, decision,
+  scratch, or output as authority.
+- Prospectively specified replacement cumulative and future held-out fields
+  for the readiness contract, which currently binds superseded candidate
+  `b1d59e5...`. Readiness rebinding must precede replay rather than follow a
+  result.
+- Left implementation, no-write verification, identity freezing, cumulative
+  replay, viewed-data execution, qualification, tuning, rescoring, cutover,
+  and release unauthorized.
+
+**Validation:** the four contract tests first failed because the pre-review
+was absent, then passed after it was added. Focused Ruff and canonical JSON
+formatting pass. No scientific product was opened and no scratch or output was
+created.
+
+**Immediate next step:** obtain named approval of exact pre-review
+`7687839f...` for wrapper/readiness implementation, fixture/no-write
+validation, and non-executable identity freezing only. A cumulative replay
+still requires a later exact identity review and separate named approval.

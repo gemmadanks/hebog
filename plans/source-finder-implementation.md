@@ -403,6 +403,13 @@ be updated prospectively to the final repaired candidate and evidence paths
 before the final evidence is opened; a passing result must not be fitted into
 the readiness contract retrospectively.
 
+Non-executable pre-review `7687839f...` now binds repair commit
+`6184a32...`, source tree `517d56e1...`, unchanged configuration
+`78dbb230...`, the consumed replay boundary, new write-once namespaces,
+prospective readiness fields, and the required fixture/no-write checks. Every
+authorization remains false. Gate 1 is paused pending named approval of that
+exact review for wrapper/readiness implementation and identity freezing only.
+
 #### Remaining closure sequence
 
 Execute these steps in order. A failure at either scientific gate stops the
@@ -410,6 +417,9 @@ sequence and requires a new prospective review; it does not authorize tuning
 from partial or viewed evidence.
 
 1. [ ] **Freeze the repaired cumulative-replay composition.**
+   - Obtain named approval of pre-review `7687839f...`; this approval may
+     authorize only replacement wrapper/readiness implementation, fixture and
+     complete no-write validation, and non-executable identity freezing.
    - Bind the exact candidate commit and source tree derived from
      `6184a32...`, the complete configuration, measurement-repair program,
      source-association contracts, replay wrapper, reconstructed reference
