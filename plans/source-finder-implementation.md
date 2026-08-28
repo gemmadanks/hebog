@@ -871,7 +871,11 @@ separately approved prospective development response.
 - [ ] Obtain named approval of pre-review `a2e13e11...`, then implement and
       fixture/no-write validate only the minimal wrapper and freeze its exact
       non-executable identities. The complete replay still requires a separate
-      exact approval.
+      exact approval. Approval decision `37931ad3...` is recorded and wrapper
+      `bfc1d6d0...` passes 59 fixture/no-write contracts, including spawned-
+      worker composition and rejection of the consumed authorization. Complete
+      reference verification and the exact identity freeze remain pending from
+      the clean implementation commit.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa

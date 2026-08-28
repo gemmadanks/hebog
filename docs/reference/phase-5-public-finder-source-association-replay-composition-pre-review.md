@@ -105,3 +105,28 @@ fixture/no-write validation, and non-executable identity freezing:
 > It does not authorize the cumulative replay, viewed SDC1/Hydra execution,
 > another campaign, fresh qualification, tuning, rescoring, cutover, or
 > release.
+
+## Implementation status
+
+Gemma Danks approved the exact request above on 2026-08-28. Implementation
+decision SHA-256 `37931ad3...` records fixture/no-write implementation,
+complete reference verification, and non-executable identity freezing as
+authorized while cumulative replay and every later lifecycle action remain
+false.
+
+The new wrapper is
+`scripts/validation/review_phase5_public_finder_source_association_cumulative_regressions.py`,
+SHA-256 `bfc1d6d0...`. It checksum-loads the consumed correction wrapper, retains
+its reference-provenance repair and historical replay, and then replaces only
+the source-association candidate revision, source/configuration identities,
+Continuum builder, spawned-worker seam, provenance, and new write-once paths.
+The old execution decision fails before wrapper or reference loading.
+
+Fifty-nine fixture/no-write contract tests exercise the real wrapper,
+including spawned-worker composition, consumed-authorization rejection,
+candidate and dependency drift, exact invocation paths, worker count, and
+authorization-before-reference ordering. Direct branch-aware wrapper coverage
+is 93%; focused Ruff and Pyright pass. The
+complete no-write reference verification and replacement identity freeze still
+must run from a clean checkout of the exact implementation commit; no replay
+has started.

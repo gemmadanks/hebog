@@ -1,0 +1,53 @@
+{
+  "approved_on": "2026-08-28",
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "complete_no_write_reference_verification_authorized": true,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fixture_no_write_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "identity_freeze_authorized": true,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "revision": "26e639ace9d39b039eb7c3114427277c91809591",
+    "source_tree_sha256": "34fecf302e7c6a9722dd15b8d843d316a4e4e7a1be3df2610a2d45b0a5dfb893"
+  },
+  "decision_id": "phase-5-public-finder-source-association-replay-composition-implementation-decision",
+  "exact_approval": "I approve the Phase 5 public-finder source-association replay-composition pre-review SHA-256 a2e13e1126ce7733949dca570116c8b9cb73eb8128226bedcd9ee214f44e32a3 and its recommendations. This authorizes test-first implementation and fixture/no-write validation of the minimal replay wrapper, followed by freezing exact non-executable identities for candidate 26e639ace9d39b039eb7c3114427277c91809591, configuration 78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946, reconstructed reference terminal 48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2, and closed baseline a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9. It does not authorize the cumulative replay, viewed SDC1/Hydra execution, another campaign, fresh qualification, tuning, rescoring, cutover, or release.",
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-source-association-replay-composition-pre-review.json",
+    "sha256": "a2e13e1126ce7733949dca570116c8b9cb73eb8128226bedcd9ee214f44e32a3"
+  },
+  "prohibited_actions": [
+    "cumulative replay",
+    "viewed SDC1 or Hydra execution",
+    "another campaign or request",
+    "fresh qualification",
+    "threshold background RMS minimum-area support-recovery aperture flux astrometry shape or association tuning",
+    "rescoring sealed evidence",
+    "optimization",
+    "cutover",
+    "release"
+  ],
+  "reviewer": "Gemma Danks",
+  "scope": {
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "current_wrapper_sha256": "04a3a54335c93b6abfa71c71ba2e4771ae48dfc38bc3587a673fa2683fa780ac",
+    "prospective_output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association.json",
+    "prospective_scratch_path": "/private/tmp/hebog-phase5-public-finder-source-association-26e639a",
+    "reconstructed_reference_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "required_result": "validated-non-executable-wrapper-and-replacement-identity-review",
+    "workers": 2
+  },
+  "status": "authorized-for-source-association-replay-wrapper-implementation-and-no-write-validation"
+}

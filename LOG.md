@@ -11649,3 +11649,30 @@ passed. Scoped push-stage hooks and all unaffected repository-wide hooks pass.
 benchmark files already present in the working tree. No production code
 changed, so a new coverage run was not required. The prospective replay output
 and scratch namespaces are absent.
+
+## 2026-08-28 — Implement source-association replay wrapper on fixtures
+
+**Plan phase:** Phase 5, public-finder correction regression gate
+
+- Recorded named decision `37931ad3...` against exact replay-composition
+  pre-review `a2e13e11...`. It authorizes test-first fixture/no-write wrapper
+  implementation, complete reference verification, and non-executable
+  identity freezing, but no replay or viewed-data execution.
+- Added a new fail-closed wrapper around consumed correction wrapper
+  `04a3a543...`. The layer retains historical reference provenance, compact
+  generation, compiler/evaluator, endpoints, gates, runtimes, population, and
+  atomic publication while binding candidate `26e639a...`, source
+  `34fecf30...`, configuration `78dbb230...`, and a new absent write-once
+  namespace.
+- Spawned workers install the same source-association candidate seams. The
+  consumed execution decision fails before loading replay or reference
+  machinery, and candidate, program, dependency, reference, runtime, path,
+  worker, scratch, or output drift fails closed.
+- No scientific product was opened and no replay was started. Complete
+  no-write reference verification remains pending from a clean immutable
+  checkout of the exact implementation commit.
+
+**Validation:** The wrapper test started red because the implementation
+decision and wrapper were absent. All 59 focused wrapper contracts now pass;
+focused Ruff and Pyright pass. Direct branch-aware wrapper coverage is 93%.
+Wrapper SHA-256 is `bfc1d6d0...`.
