@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import importlib.metadata
 import subprocess
 from pathlib import Path
@@ -191,7 +192,48 @@ def _run_aegean(
         _write_empty_catalogues(component_path, island_path)
     elif not component_path.exists() or not island_path.exists():
         raise RuntimeError("Aegean wrote only one of its paired catalogues")
-    sources = load_aegean_catalogue(component_path, island_path)
+    island_table = fits.getdata(island_path, ext=1)
+    component_table = fits.getdata(component_path, ext=1)
+    invalid_islands = tuple(
+        sorted(
+            int(row["island"])
+            for row in island_table
+            if not np.isfinite(float(row["int_flux"]))
+            or float(row["int_flux"]) <= 0.0
+        )
+    )
+    invalid_island_set = set(invalid_islands)
+    excluded_component_count = sum(
+        int(row["island"]) in invalid_island_set for row in component_table
+    )
+    sources = load_aegean_catalogue(
+        component_path,
+        island_path,
+        exclude_invalid_islands=True,
+    )
+    exclusions_path = staging / "catalogue_exclusions.json"
+    exclusions_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "policy": (
+                    "exclude-islands-with-nonfinite-or-nonpositive-"
+                    "integrated-flux"
+                ),
+                "excluded_island_count": len(invalid_islands),
+                "excluded_component_count": excluded_component_count,
+                "excluded_island_identifiers": list(invalid_islands),
+                "retained_island_count": len(island_table)
+                - len(invalid_islands),
+                "retained_component_count": len(component_table)
+                - excluded_component_count,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     input_data = np.asarray(fits.getdata(image_path)).squeeze()
     if input_data.ndim != _IMAGE_DIMENSIONS:
         raise ValueError("Aegean input must contain one image plane")
@@ -207,6 +249,7 @@ def _run_aegean(
         header=input_header,
     ).writeto(support_path)
     return {
+        "catalogue-exclusions-json": exclusions_path,
         "component-catalogue-fits": component_path,
         "island-catalogue-fits": island_path,
         "support-proxy-labels-fits": support_path,

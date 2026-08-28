@@ -324,3 +324,19 @@ increase the finder count: the two selected lanes already meet the telescope-
 family requirement and have complementary truth roles. A third survey is
 appropriate later if independent review identifies a frequency, instrument,
 or morphology gap that materially affects readiness.
+
+## Post-review LoTSS observational extension
+
+Scientist inspection on 2026-08-27 identified the anticipated material gap:
+the public comparison did not exercise representative LOFAR low-frequency
+fields, bright-source neighbourhood completeness, or the relationship between
+disconnected Hebog support and catalogue positions. A separate LoTSS DR2 lane
+therefore complements rather than reopens this sealed SDC1/Hydra decision.
+
+The additive lane contains a wide 90-arcmin RA-13 survey field, a 12-arcmin
+3C 295 bright-source field, and a 20-arcmin M51 complex-emission field. Current
+Hebog, released PyBDSF, and Aegean run on each checksum-bound image. These are
+observational diagnostics without injected truth: finder agreement and the
+PyBDSF-derived published LoTSS catalogue must not be interpreted as ground
+truth or as a qualification gate. The original SDC1 and Hydra artifacts remain
+immutable, and the notebook aggregate uses links rather than rewriting them.

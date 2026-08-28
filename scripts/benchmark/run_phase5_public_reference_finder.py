@@ -206,6 +206,7 @@ def _normalise_products(
         sources = load_aegean_catalogue(
             artifacts["component-catalogue-fits"],
             artifacts["island-catalogue-fits"],
+            exclude_invalid_islands=True,
         )
         plane_roles = ("support-proxy-labels-fits",)
     comparison_path = staging / "comparison_catalogue.json"

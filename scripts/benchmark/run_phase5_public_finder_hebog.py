@@ -96,6 +96,11 @@ def _beam_pixels(header: fits.Header) -> BeamShapePixels:
         raise ValueError(
             "public FITS beam or pixel scale is invalid"
         ) from error
+    # Celestial WCS serialization can round equal axis scales in opposite
+    # directions. Preserve an exactly circular sky beam without allowing a
+    # materially inverted FITS beam to pass the domain invariant.
+    if minor > major and minor - major <= 1e-12 * max(major, minor):
+        major = minor = (major + minor) / 2.0
     return BeamShapePixels(major, minor, angle)
 
 
