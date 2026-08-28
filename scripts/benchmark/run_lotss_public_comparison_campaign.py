@@ -60,6 +60,8 @@ _RUNNER_PATH = Path(
     "scripts/benchmark/run_lotss_public_comparison_campaign.py"
 )
 _CUTOUT_ENDPOINT = "https://lofar-surveys.org/dr2-cutout.fits"
+_HTTP_OK = 200
+_IMAGE_DIMENSIONS = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,8 +205,8 @@ def _download(url: str, destination: Path) -> None:
         url,
         headers={"User-Agent": "Hebog-LoTSS-validation/1"},
     )
-    with urllib.request.urlopen(request, timeout=600) as response:  # noqa: S310
-        if response.status != 200:
+    with urllib.request.urlopen(request, timeout=600) as response:
+        if response.status != _HTTP_OK:
             raise RuntimeError(f"LoTSS cutout returned HTTP {response.status}")
         with partial.open("wb") as handle:
             while block := response.read(1024 * 1024):
@@ -217,8 +219,12 @@ def _normalise_fits(download: Path, destination: Path) -> dict[str, object]:
     with fits.open(download, memmap=False) as hdul:
         source_header = hdul[0].header.copy()
         plane = np.squeeze(np.asarray(hdul[0].data))
-    if plane.ndim != 2 or not np.issubdtype(plane.dtype, np.number):
-        raise ValueError(f"LoTSS cutout is not one numeric image plane: {plane.shape}")
+    if plane.ndim != _IMAGE_DIMENSIONS or not np.issubdtype(
+        plane.dtype, np.number
+    ):
+        raise ValueError(
+            f"LoTSS cutout is not one numeric image plane: {plane.shape}"
+        )
     if not np.any(np.isfinite(plane)):
         raise ValueError("LoTSS cutout contains no finite pixels")
     header = WCS(source_header, relax=True).celestial.to_header(relax=True)
@@ -270,7 +276,9 @@ def _acquire_case(input_root: Path, case: LoTSSCase) -> dict[str, object]:
     if image_path.is_file() and input_record_path.is_file():
         record = _read_json(input_record_path)
         if record.get("input_sha256") != _sha256(image_path):
-            raise ValueError(f"resumed LoTSS input checksum changed: {case.case_id}")
+            raise ValueError(
+                f"resumed LoTSS input checksum changed: {case.case_id}"
+            )
         return record
 
     directory.mkdir(parents=True, exist_ok=True)
@@ -308,7 +316,7 @@ def _acquire_case(input_root: Path, case: LoTSSCase) -> dict[str, object]:
 
 def _run_command(command: list[str]) -> None:
     """Run one isolated reference process and surface bounded diagnostics."""
-    completed = subprocess.run(  # noqa: S603
+    completed = subprocess.run(
         command,
         check=False,
         capture_output=True,
@@ -323,7 +331,7 @@ def _run_command(command: list[str]) -> None:
         )
 
 
-def _reference_command(
+def _reference_command(  # noqa: PLR0913
     *,
     repository_root: Path,
     staging: Path,
@@ -375,7 +383,9 @@ def _reference_command(
 def _link_directory(source: Path, destination: Path) -> None:
     """Mirror one directory with non-overwriting in-root hard links."""
     if destination.exists() or destination.is_symlink():
-        raise FileExistsError(f"aggregate destination already exists: {destination}")
+        raise FileExistsError(
+            f"aggregate destination already exists: {destination}"
+        )
     destination.mkdir(parents=True)
     for source_path in sorted(source.rglob("*")):
         relative = source_path.relative_to(source)
@@ -421,7 +431,9 @@ def _build_aggregate(
 ) -> None:
     """Assemble an additive SDC1/Hydra/LoTSS notebook campaign."""
     if aggregate.exists():
-        raise FileExistsError(f"aggregate campaign already exists: {aggregate}")
+        raise FileExistsError(
+            f"aggregate campaign already exists: {aggregate}"
+        )
     staging = aggregate.parent / f".{aggregate.name}.staging"
     if staging.exists():
         raise FileExistsError(f"aggregate staging already exists: {staging}")
@@ -543,7 +555,7 @@ def _build_aggregate(
     staging.rename(aggregate)
 
 
-def run_campaign(  # noqa: C901, PLR0915
+def run_campaign(  # noqa: PLR0913, PLR0915
     *,
     repository_root: Path,
     output: Path,
@@ -578,7 +590,9 @@ def run_campaign(  # noqa: C901, PLR0915
         repository_root / _BASE_REVIEW
     )
     reference_identity = _read_json(reference_identity_path)
-    containers = cast(dict[str, dict[str, str]], reference_identity["containers"])
+    containers = cast(
+        dict[str, dict[str, str]], reference_identity["containers"]
+    )
     request = {
         "schema_version": 1,
         "request_id": "phase-5-lotss-dr2-observational-comparison",
@@ -616,7 +630,9 @@ def run_campaign(  # noqa: C901, PLR0915
     current_results: list[dict[str, object]] = []
     reference_results: list[dict[str, object]] = []
     for case in _CASES:
-        input_path = input_root / str(input_records[case.case_id]["input_path"])
+        input_path = input_root / str(
+            input_records[case.case_id]["input_path"]
+        )
         hebog_output = (
             staging / "results" / case.case_id / "hebog" / "operational"
         )

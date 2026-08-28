@@ -8,8 +8,8 @@
     "optimization_authorized": false,
     "public_development_execution_authorized": false,
     "release_authorized": false,
-    "sealed_decision_rescoring_authorized": false,
     "sdc1_adapter_implementation_authorized": false,
+    "sealed_decision_rescoring_authorized": false,
     "shape_implementation_authorized": false,
     "threshold_tuning_authorized": false
   },

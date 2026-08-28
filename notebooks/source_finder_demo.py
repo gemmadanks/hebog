@@ -982,16 +982,16 @@ def _(
     rms_plane,
 ):
     partition_checks = {
-    "Background is identical": np.array_equal(
-        one_tile_background,
-        background_plane,
-        equal_nan=True,
-    ),
-    "RMS is identical": np.array_equal(
-        one_tile_rms,
-        rms_plane,
-        equal_nan=True,
-    ),
+        "Background is identical": np.array_equal(
+            one_tile_background,
+            background_plane,
+            equal_nan=True,
+        ),
+        "RMS is identical": np.array_equal(
+            one_tile_rms,
+            rms_plane,
+            equal_nan=True,
+        ),
         "Source mask is identical": np.array_equal(
             one_tile_mask,
             source_filtering_mask,

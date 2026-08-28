@@ -1,3 +1,5 @@
+# ruff: noqa: C901, E501, PLR0915
+
 import marimo
 
 __generated_with = "0.23.15"
@@ -131,7 +133,7 @@ def _(mo):
     guidance](https://pybdsf.readthedocs.io/en/latest/process_image.html),
     [PyBDSF artifact and extended-emission
     examples](https://github.com/lofar-astron/PyBDSF/blob/master/doc/source/examples.rst),
-    and [Aegean priorized/forced fitting
+    and [Aegean forced-fitting
     guidance](https://aegeantools.readthedocs.io/en/dev-aegean/includes/aegean.html#priorized-fitting).
     """)
     return
@@ -151,9 +153,7 @@ def _(mo):
             "LoTSS DR2: 3C 295 bright-source field (12 arcmin)": (
                 "lotss-3c295"
             ),
-            "LoTSS DR2: M51 complex-emission field (20 arcmin)": (
-                "lotss-m51"
-            ),
+            "LoTSS DR2: M51 complex-emission field (20 arcmin)": ("lotss-m51"),
             "My FITS image": "custom",
         },
         value="Synthetic commissioning field (offline)",
@@ -238,11 +238,7 @@ def _(
 
         def _add_gaussian(_x0, _y0, _peak, _sx, _sy):
             _image[:] += _peak * np.exp(
-                -0.5
-                * (
-                    ((_x - _x0) / _sx) ** 2
-                    + ((_y - _y0) / _sy) ** 2
-                )
+                -0.5 * (((_x - _x0) / _sx) ** 2 + ((_y - _y0) / _sy) ** 2)
             )
 
         _sources = (
@@ -256,11 +252,7 @@ def _(
             _add_gaussian(*_source)
 
         _radius = np.hypot(_x - 398.0, _y - 132.0)
-        _image += (
-            3.0e-4
-            * np.cos(_radius / 2.8)
-            * np.exp(-_radius / 42.0)
-        )
+        _image += 3.0e-4 * np.cos(_radius / 2.8) * np.exp(-_radius / 42.0)
         _image[28:46, 450:476] = np.nan
 
         _header = fits.Header()
@@ -306,15 +298,14 @@ def _(
         )
         _image += 1.5e-5 * np.sin(_y / 180.0)
 
-        _centres = []
-        for _row in range(10):
-            for _column in range(10):
-                _centres.append(
-                    [
-                        55.0 + 101.0 * _column + _rng.uniform(-18.0, 18.0),
-                        55.0 + 101.0 * _row + _rng.uniform(-18.0, 18.0),
-                    ]
-                )
+        _centres = [
+            [
+                55.0 + 101.0 * _column + _rng.uniform(-18.0, 18.0),
+                55.0 + 101.0 * _row + _rng.uniform(-18.0, 18.0),
+            ]
+            for _row in range(10)
+            for _column in range(10)
+        ]
         for _pair_index in range(0, 10, 2):
             _centres[_pair_index + 1] = [
                 _centres[_pair_index][0] + _rng.uniform(7.0, 11.0),
@@ -324,6 +315,7 @@ def _(
         _peak_snrs = np.geomspace(4.0, 80.0, 100)
         _rng.shuffle(_peak_snrs)
         _sources = []
+        _extended_source_start = 94
         for _source_index, ((_x0, _y0), _peak_snr) in enumerate(
             zip(_centres, _peak_snrs, strict=True)
         ):
@@ -331,7 +323,9 @@ def _(
                 0.75 + 0.50 * _x0 / (_shape[1] - 1)
             )
             _size_scale = (
-                _rng.uniform(1.8, 4.0) if _source_index >= 94 else 1.0
+                _rng.uniform(1.8, 4.0)
+                if _source_index >= _extended_source_start
+                else 1.0
             )
             _sigma_x = _rng.uniform(1.7, 2.2) * _size_scale
             _sigma_y = _rng.uniform(1.3, 1.8) * _size_scale
@@ -347,10 +341,7 @@ def _(
             )
             _image += _peak * np.exp(
                 -0.5
-                * (
-                    ((_x - _x0) / _sigma_x) ** 2
-                    + ((_y - _y0) / _sigma_y) ** 2
-                )
+                * (((_x - _x0) / _sigma_x) ** 2 + ((_y - _y0) / _sigma_y) ** 2)
             )
         _image[470:502, 805:850] = np.nan
 
@@ -579,9 +570,7 @@ def _(
 ):
     _finite = preview_values[np.isfinite(preview_values)]
     _lower, _upper = (
-        np.percentile(_finite, (1.0, 99.7))
-        if _finite.size
-        else (0.0, 1.0)
+        np.percentile(_finite, (1.0, 99.7)) if _finite.size else (0.0, 1.0)
     )
     _figure, _axis = plt.subplots(figsize=(8.0, 6.0))
     _artist = _axis.imshow(
@@ -754,8 +743,7 @@ def _(
     )
     adaptive_window = mo.ui.dropdown(
         options={
-            f"{_value} px": _value
-            for _value in (15, 21, 31, 35, 47, 63, 95)
+            f"{_value} px": _value for _value in (15, 21, 31, 35, 47, 63, 95)
         },
         value=f"{_preset['fine_window']} px",
         label="Fine RMS window",
@@ -985,13 +973,14 @@ def _(
         _problems.append("Choose a non-empty output root.")
     parameter_error = " ".join(_problems)
     if parameter_error:
-        mo.callout(parameter_error, kind="danger")
+        _parameter_status = mo.callout(parameter_error, kind="danger")
     else:
-        mo.callout(
+        _parameter_status = mo.callout(
             "Parameters are internally consistent. Press **Run Hebog** "
             "when ready.",
             kind="success",
         )
+    _parameter_status  # noqa: B018
     return (parameter_error,)
 
 
@@ -1057,9 +1046,9 @@ def _(
     ).strip("-")
     if not _domain_label or not _domain_label[0].isalpha():
         _domain_label = f"run-{_domain_label or 'experiment'}"
-    _timestamp = datetime_module.datetime.now(
-        datetime_module.UTC
-    ).strftime("%Y%m%d-%H%M%S%f")
+    _timestamp = datetime_module.datetime.now(datetime_module.UTC).strftime(
+        "%Y%m%d-%H%M%S%f"
+    )
     _run_id = f"{_domain_label}-{_timestamp}"
     _output_root = pathlib.Path(output_directory.value).expanduser().resolve()
     _run_directory = _output_root / _run_id
@@ -1093,9 +1082,7 @@ def _(
                 adaptive_candidate_threshold.value
             ),
             influence_radius_pixels=float(max(_coarse_y, _coarse_x) / 2),
-            transition_width_pixels=float(
-                max(1, min(_fine_y, _fine_x) / 2)
-            ),
+            transition_width_pixels=float(max(1, min(_fine_y, _fine_x) / 2)),
         )
     _detection_config = detection_stage.DetectionStageConfig(
         background_rms=hebog_config.BackgroundRmsConfig(
@@ -1117,9 +1104,7 @@ def _(
     )
     _deblend_config = hebog_config.CompactDeblendConfig(
         minimum_peak_signal_to_noise=float(detection_threshold.value),
-        minimum_peak_separation_pixels=int(
-            deblend_peak_separation.value
-        ),
+        minimum_peak_separation_pixels=int(deblend_peak_separation.value),
         minimum_saddle_depth_sigma=float(deblend_saddle_depth.value),
         minimum_region_pixels=int(minimum_island_pixels.value),
         maximum_compact_island_pixels=250_000,
@@ -1205,9 +1190,7 @@ def _(
 
     _multiscale_record = None
     if run_multiscale.value:
-        _covariance_values = (
-            _geometry.restoring_beam_covariance_pixels_squared
-        )
+        _covariance_values = _geometry.restoring_beam_covariance_pixels_squared
         if _covariance_values is None:
             raise ValueError(
                 "multiscale analysis requires a sampled restoring beam"
@@ -1241,12 +1224,10 @@ def _(
         _multiscale_halo = phase_five_execution.scale_filter_halo_pixels(
             _multiscale_beam
         )
-        _multiscale_manifest = (
-            partitioning_algorithms.plan_image_partitions(
-                image_shape_yx=source_metadata.shape_yx,
-                tile_core_shape_yx=_manifest.tile_core_shape_yx,
-                halo_yx=(_multiscale_halo, _multiscale_halo),
-            )
+        _multiscale_manifest = partitioning_algorithms.plan_image_partitions(
+            image_shape_yx=source_metadata.shape_yx,
+            tile_core_shape_yx=_manifest.tile_core_shape_yx,
+            halo_yx=(_multiscale_halo, _multiscale_halo),
         )
         _multiscale_sink = hebog_io.ZarrProductSink(
             _run_directory / "multiscale-products.zarr",
@@ -1254,36 +1235,32 @@ def _(
             generation_id=f"{_run_id}-multiscale",
         )
         _multiscale_started = time.perf_counter()
-        _multiscale_result = (
-            multiscale_stage.run_phase_five_multiscale_stage(
-                _source,
-                _sink,
-                _multiscale_manifest,
-                config=multiscale_stage.PhaseFiveMultiscaleStageConfig(
-                    beam=_multiscale_beam,
-                    detection=(
-                        hebog_config.ResidualMultiscaleDetectionConfig(
-                            detection_threshold_sigma=float(
-                                multiscale_detection_threshold.value
-                            ),
-                            island_threshold_sigma=float(
-                                multiscale_island_threshold.value
-                            ),
-                            minimum_scale_support_fraction=float(
-                                multiscale_support_fraction.value
-                            ),
-                            minimum_island_area_beams=float(
-                                multiscale_minimum_area_beams.value
-                            ),
-                        )
-                    ),
-                    maximum_tiles_per_batch=int(
-                        multiscale_tiles_per_batch.value
-                    ),
+        _multiscale_result = multiscale_stage.run_phase_five_multiscale_stage(
+            _source,
+            _sink,
+            _multiscale_manifest,
+            config=multiscale_stage.PhaseFiveMultiscaleStageConfig(
+                beam=_multiscale_beam,
+                detection=(
+                    hebog_config.ResidualMultiscaleDetectionConfig(
+                        detection_threshold_sigma=float(
+                            multiscale_detection_threshold.value
+                        ),
+                        island_threshold_sigma=float(
+                            multiscale_island_threshold.value
+                        ),
+                        minimum_scale_support_fraction=float(
+                            multiscale_support_fraction.value
+                        ),
+                        minimum_island_area_beams=float(
+                            multiscale_minimum_area_beams.value
+                        ),
+                    )
                 ),
-                executor=_executor,
-                sink=_multiscale_sink,
-            )
+                maximum_tiles_per_batch=int(multiscale_tiles_per_batch.value),
+            ),
+            executor=_executor,
+            sink=_multiscale_sink,
         )
         _multiscale_record = {
             "result": _multiscale_result,
@@ -1339,27 +1316,21 @@ def _(
             "minimum_peak_separation_pixels": int(
                 deblend_peak_separation.value
             ),
-            "minimum_saddle_depth_sigma": float(
-                deblend_saddle_depth.value
-            ),
+            "minimum_saddle_depth_sigma": float(deblend_saddle_depth.value),
         },
         "multiscale": {
             "enabled": bool(run_multiscale.value),
             "detection_threshold_sigma": float(
                 multiscale_detection_threshold.value
             ),
-            "island_threshold_sigma": float(
-                multiscale_island_threshold.value
-            ),
+            "island_threshold_sigma": float(multiscale_island_threshold.value),
             "minimum_scale_support_fraction": float(
                 multiscale_support_fraction.value
             ),
             "minimum_island_area_beams": float(
                 multiscale_minimum_area_beams.value
             ),
-            "maximum_tiles_per_batch": int(
-                multiscale_tiles_per_batch.value
-            ),
+            "maximum_tiles_per_batch": int(multiscale_tiles_per_batch.value),
             "beam_shape_pixels": (
                 {
                     "major_fwhm": (
@@ -1949,7 +1920,7 @@ def _(
             """),
             kind="info",
         )
-    _mask_quality_view
+    _mask_quality_view  # noqa: B018
     return
 
 
@@ -2097,7 +2068,7 @@ def _(mo):
       Dask executor rather than starting a private cluster here.
     - The catalogue is not primary-beam corrected and is not automatically
       cross-matched, classified, or associated into host galaxies.
-    - Forced/priorized photometry, time-domain cross-matching, completeness
+    - Forced photometry, time-domain cross-matching, completeness
       injection, and a materialized compact model/residual image are not part
       of this workbench.
     - **Hebog supports bounded multiscale/diffuse processing.** When enabled,

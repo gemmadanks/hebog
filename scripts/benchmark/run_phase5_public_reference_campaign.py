@@ -31,15 +31,14 @@ _RUNNER = Path("scripts/benchmark/run_phase5_public_reference_finder.py")
 
 def _load_protocol(path: Path) -> PhaseFiveExternalComparisonProtocol:
     helpers = runpy.run_path(
-        str(
-            _ROOT
-            / "scripts/validation/phase5_viewed_recovery_protocol.py"
-        )
+        str(_ROOT / "scripts/validation/phase5_viewed_recovery_protocol.py")
     )
     return cast(
         PhaseFiveExternalComparisonProtocol,
         helpers["load_viewed_recovery_protocol"](path),
     )
+
+
 _FINDERS: tuple[FinderId, ...] = ("released-pybdsf", "aegean")
 
 

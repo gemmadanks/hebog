@@ -23,14 +23,15 @@ _REFERENCE_CAMPAIGN = Path(
     "benchmark-results/phase-5/public-reference-comparison"
 )
 _INPUT_CAMPAIGN = Path("benchmark-results/phase-5/public-finder-comparison")
-_OUTPUT = Path(
-    "benchmark-results/phase-5/current-public-hebog-comparison"
-)
+_OUTPUT = Path("benchmark-results/phase-5/current-public-hebog-comparison")
 _BASE_REVIEW = Path("config/contracts/phase-5-corrective-a-review.json")
 _HEBOG_RUNNER = Path("scripts/benchmark/run_phase5_public_finder_hebog.py")
 _RUNNER_REPOSITORY_PATH = Path(
     "scripts/benchmark/run_phase5_current_public_hebog_campaign.py"
 )
+_CORE_BOUNDS_LENGTH = 4
+_PUBLIC_CASE_COUNT = 10
+_REFERENCE_RESULT_COUNT = 20
 
 
 def _file_sha256(path: Path) -> str:
@@ -91,7 +92,7 @@ def _resolve_input(
     raw_core = record.get("local_core_yx_half_open")
     if raw_core is None:
         core = None
-    elif isinstance(raw_core, list) and len(raw_core) == 4:
+    elif isinstance(raw_core, list) and len(raw_core) == _CORE_BOUNDS_LENGTH:
         core = ImageBounds(
             y_start=int(raw_core[0]),
             y_stop=int(raw_core[1]),
@@ -125,8 +126,9 @@ def _preflight(
     reference = _read_json(reference_root / "campaign.json")
     if (
         reference.get("status") != "terminal-derived-results-sealed"
-        or reference.get("case_count") != 10
-        or len(cast(list[object], reference.get("results", []))) != 20
+        or reference.get("case_count") != _PUBLIC_CASE_COUNT
+        or len(cast(list[object], reference.get("results", [])))
+        != _REFERENCE_RESULT_COUNT
         or reference.get("scientific_claims_authorized") is not False
         or reference.get("base_campaign_repository_path")
         != str(_INPUT_CAMPAIGN / "campaign.json")
@@ -136,23 +138,19 @@ def _preflight(
     raw_results = historical.get("results")
     if (
         historical.get("status") != "terminal-raw-results-sealed"
-        or historical.get("case_count") != 10
-        or historical.get("successful_case_count") != 10
+        or historical.get("case_count") != _PUBLIC_CASE_COUNT
+        or historical.get("successful_case_count") != _PUBLIC_CASE_COUNT
         or not isinstance(raw_results, list)
-        or len(raw_results) != 10
+        or len(raw_results) != _PUBLIC_CASE_COUNT
     ):
         raise ValueError("historical Hebog input campaign is not sealed")
     source_sha256 = source_tree_sha256(repository_root)
     configuration_sha256 = post_correction_candidate_configuration_sha256(
         repository_root / _BASE_REVIEW
     )
-    staging = output.parent / (
-        f".{output.name}.{source_sha256[:12]}.staging"
-    )
+    staging = output.parent / (f".{output.name}.{source_sha256[:12]}.staging")
     active = sorted(
-        path
-        for path in output.parent.glob(".*.staging")
-        if path != staging
+        path for path in output.parent.glob(".*.staging") if path != staging
     )
     if active:
         raise RuntimeError(
@@ -200,7 +198,7 @@ def run_campaign(
 ) -> None:
     (
         staging,
-        reference,
+        _reference,
         source_sha256,
         configuration_sha256,
         cases,
@@ -333,9 +331,7 @@ def run_campaign(
                 "output": str(output),
                 "source_tree_sha256": source_sha256,
                 "status": terminal["status"],
-                "successful_case_count": terminal[
-                    "successful_case_count"
-                ],
+                "successful_case_count": terminal["successful_case_count"],
             },
             sort_keys=True,
         )

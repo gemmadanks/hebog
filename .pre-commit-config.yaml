@@ -1,7 +1,7 @@
 repos:
   # --- Ruff: lint + format (fast) ---
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.17
+    rev: v0.16.1
     hooks:
       - id: ruff
         args: [--fix]         # remove if you want fail-only

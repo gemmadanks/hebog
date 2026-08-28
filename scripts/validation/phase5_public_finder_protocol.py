@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any, cast
 
@@ -80,6 +81,48 @@ def file_sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def committed_file_sha256(root: Path, revision: str, path: str) -> str:
+    """Hash one file from a frozen repository revision."""
+    try:
+        content = subprocess.run(
+            ("git", "show", f"{revision}:{path}"),
+            cwd=root,
+            check=True,
+            capture_output=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError(
+            f"cannot read frozen public finder program: {path}"
+        ) from error
+    return hashlib.sha256(content).hexdigest()
+
+
+def commit_containing_file(
+    root: Path,
+    path: str,
+    expected_sha256: str,
+) -> str:
+    """Find the repository revision that froze one reviewed file."""
+    try:
+        revisions = subprocess.run(
+            ("git", "log", "--format=%H", "--", path),
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError(
+            f"cannot inspect frozen file history: {path}"
+        ) from error
+    for revision in revisions:
+        if committed_file_sha256(root, revision, path) == expected_sha256:
+            return revision
+    raise ValueError(
+        f"reviewed file is absent from repository history: {path}"
+    )
 
 
 def json_object(path: Path) -> dict[str, Any]:
@@ -250,7 +293,7 @@ def load_public_finder_protocol(path: Path) -> dict[str, Any]:
     return document
 
 
-def load_public_finder_execution_decision(  # noqa: C901
+def load_public_finder_execution_decision(  # noqa: C901, PLR0912
     path: Path,
 ) -> dict[str, Any]:
     """Validate pending or separately approved exact one-look authority."""
@@ -292,8 +335,26 @@ def load_public_finder_execution_decision(  # noqa: C901
         or tuple(item.get("path") for item in programs) != _PROGRAM_PATHS
     ):
         raise ValueError("public finder identity review is invalid")
+    implementation_commit = review.get("implementation_commit")
+    if not isinstance(implementation_commit, str):
+        raise ValueError("public finder implementation commit is invalid")
+    review_path_value = review_identity.get("path")
+    review_sha256 = review_identity.get("sha256")
+    if not isinstance(review_path_value, str) or not isinstance(
+        review_sha256, str
+    ):
+        raise ValueError("public finder identity review binding is invalid")
+    review_commit = commit_containing_file(
+        root,
+        review_path_value,
+        review_sha256,
+    )
     for program in programs:
-        if file_sha256(root / program["path"]) != program.get("sha256"):
+        program_path = program.get("path")
+        if not isinstance(program_path, str) or (
+            committed_file_sha256(root, review_commit, program_path)
+            != program.get("sha256")
+        ):
             raise ValueError("public finder program checksum changed")
     outputs = review.get("outputs")
     if outputs != _OUTPUTS:

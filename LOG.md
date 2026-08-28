@@ -11558,6 +11558,22 @@ absent forever.
 **Validation:** not run in this task. Campaign execution evidence is recorded
 by the generated checksum-bound manifests under `benchmark-results/phase-5/`.
 
+## 2026-08-28 - Add revisioned all-public Hebog notebook refreshes
+
+**Plan phase:** Phase 5, implementation communication
+
+- Added one source-identified command that reruns Hebog over all frozen SDC1,
+  Hydra, and LoTSS inputs while reusing sealed PyBDSF and Aegean references.
+- Made completed refreshes immutable and discoverable through a generated
+  history registry plus a stable `latest` notebook pointer.
+- Added a synchronized notebook section for comparing catalogue markers and
+  actual Rapthor support masks from multiple Hebog revisions side by side.
+- Preserved the distinction between public observational diagnostics and
+  injected truth; refreshes remain unauthorized for qualification claims.
+
+**Validation:** the generated campaign manifests provide execution evidence;
+no separate test or Marimo-validation command was run in this task.
+
 ## 2026-08-27 — Pre-review public-finder source association
 
 **Plan phase:** Phase 5, public-finder correction regression gate

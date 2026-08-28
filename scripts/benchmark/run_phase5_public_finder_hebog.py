@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import runpy
+from dataclasses import asdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
@@ -23,18 +24,19 @@ from hebog.data_models import ImageBounds
 from hebog.executors import SerialExecutor
 from hebog.io import FitsImageSource, ZarrProductSink
 from hebog.stages.detection import run_detection_stage
+from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.contracts import load_phase_five_corrective_a_review
 from hebog.validation.hebog_campaign import (
     _ArrayImageSource,
     phase_five_corrected_candidate_configs,
 )
-from hebog.validation.post_correction_recovery import (
-    build_post_correction_continuum_products,
-    post_correction_candidate_configuration_sha256,
-)
 from hebog.validation.products import (
     load_fits_plane,
     write_comparison_catalogue,
+)
+from hebog.validation.public_finder_correction import (
+    build_public_finder_correction_continuum_products,
+    public_finder_source_association_candidate_configuration,
 )
 
 _ROOT = Path(__file__).parents[2]
@@ -42,6 +44,29 @@ _PROTOCOL = runpy.run_path(
     str(_ROOT / "scripts/validation/phase5_public_finder_protocol.py")
 )
 _BASE_REVIEW = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
+_CORRECTION_CONTRACT = (
+    _ROOT / "config/contracts/phase-5-public-finder-correction.json"
+)
+_SOURCE_ASSOCIATION_PRE_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
+    "pre-review.json"
+)
+_SOURCE_ASSOCIATION_IMPLEMENTATION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
+    "implementation-decision.json"
+)
+
+
+def public_hebog_configuration_sha256() -> str:
+    """Return the current public comparison's governed science identity."""
+    return canonical_sha256(
+        public_finder_source_association_candidate_configuration(
+            _BASE_REVIEW,
+            _CORRECTION_CONTRACT,
+            _SOURCE_ASSOCIATION_PRE_REVIEW,
+            _SOURCE_ASSOCIATION_IMPLEMENTATION_DECISION,
+        )
+    )
 
 
 def _estimate_background_rms(
@@ -159,9 +184,7 @@ def _build_public_bundle(  # noqa: PLR0913
     configuration_sha256: str,
 ) -> dict[str, object]:
     """Build one complete bundle inside an unpublished private directory."""
-    observed_configuration = post_correction_candidate_configuration_sha256(
-        _BASE_REVIEW
-    )
+    observed_configuration = public_hebog_configuration_sha256()
     if observed_configuration != configuration_sha256:
         raise ValueError("qualified Hebog configuration checksum changed")
     metadata = FitsImageSource(input_path).metadata()
@@ -177,7 +200,7 @@ def _build_public_bundle(  # noqa: PLR0913
     )
     header = cast(fits.Header, fits.getheader(input_path))
     review = load_phase_five_corrective_a_review(_BASE_REVIEW)
-    products = build_post_correction_continuum_products(
+    products = build_public_finder_correction_continuum_products(
         image,
         background,
         rms,
@@ -197,14 +220,24 @@ def _build_public_bundle(  # noqa: PLR0913
         slice(selected_core.x_start, selected_core.x_stop),
     )
     core_header = _core_header(header, selected_core)
-    catalogue_path = output / "segment_catalogue.json"
+    source_catalogue_path = output / "source_catalogue.json"
+    component_catalogue_path = output / "component_catalogue.json"
+    association_path = output / "source_association.json"
     labels_path = output / "segment_labels.fits"
     mask_path = output / "segment_mask.fits"
     background_path = output / "background.fits"
     rms_path = output / "rms.fits"
-    write_comparison_catalogue(
-        catalogue_path,
-        _core_catalogue(products.catalogue, header, selected_core),
+    core_sources = _core_catalogue(products.catalogue, header, selected_core)
+    core_components = _core_catalogue(
+        products.component_catalogue,
+        header,
+        selected_core,
+    )
+    write_comparison_catalogue(source_catalogue_path, core_sources)
+    write_comparison_catalogue(component_catalogue_path, core_components)
+    _PROTOCOL["write_once_json"](
+        association_path,
+        asdict(products.source_association),
     )
     _write_plane(
         labels_path,
@@ -231,7 +264,9 @@ def _build_public_bundle(  # noqa: PLR0913
     artifacts = {
         "background-fits": background_path,
         "rms-fits": rms_path,
-        "segment-catalogue-json": catalogue_path,
+        "source-catalogue-json": source_catalogue_path,
+        "component-catalogue-json": component_catalogue_path,
+        "source-association-json": association_path,
         "segment-labels-fits": labels_path,
         "segment-mask-fits": mask_path,
     }
@@ -242,6 +277,9 @@ def _build_public_bundle(  # noqa: PLR0913
         "case_id": case_id,
         "configuration_sha256": observed_configuration,
         "input_sha256": _PROTOCOL["file_sha256"](input_path),
+        "source_count": len(core_sources),
+        "component_count": len(core_components),
+        "association_edge_count": len(products.source_association.edges),
         "core_bounds_yx_half_open": [
             selected_core.y_start,
             selected_core.y_stop,

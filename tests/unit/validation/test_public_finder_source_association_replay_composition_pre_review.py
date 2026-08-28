@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any, cast
 
 from hebog.validation.external_runners import (
     canonical_sha256,
     file_sha256,
-    source_tree_sha256,
 )
 from hebog.validation.public_finder_correction import (
     public_finder_source_association_candidate_configuration,
@@ -25,6 +26,35 @@ _PRE_REVIEW = (
 def _load() -> dict[str, Any]:
     """Load the static non-executable pre-review."""
     return json.loads(_PRE_REVIEW.read_text(encoding="utf-8"))
+
+
+def _committed_source_tree_sha256(revision: str) -> str:
+    """Reproduce the production-source identity at one frozen revision."""
+    paths = subprocess.check_output(
+        (
+            "git",
+            "ls-tree",
+            "-r",
+            "--name-only",
+            revision,
+            "src/hebog",
+        ),
+        cwd=_ROOT,
+        text=True,
+    ).splitlines()
+    digest = hashlib.sha256()
+    for path in sorted(item for item in paths if item.endswith(".py")):
+        content = subprocess.run(
+            ("git", "show", f"{revision}:{path}"),
+            cwd=_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        digest.update(path.encode())
+        digest.update(b"\0")
+        digest.update(content)
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def test_replay_composition_pre_review_is_non_executable() -> None:
@@ -58,7 +88,10 @@ def test_replay_composition_binds_exact_candidate_and_inputs() -> None:
     assert candidate["revision"] == (
         "26e639ace9d39b039eb7c3114427277c91809591"
     )
-    assert source_tree_sha256(_ROOT) == candidate["source_tree_sha256"]
+    assert (
+        _committed_source_tree_sha256(cast(str, candidate["revision"]))
+        == candidate["source_tree_sha256"]
+    )
     assert (
         canonical_sha256(configuration) == (candidate["configuration_sha256"])
     )

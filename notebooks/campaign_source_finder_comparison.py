@@ -1,8 +1,8 @@
-# ruff: noqa: E501
+# ruff: noqa: C901, E501, N803, PLR0915
 
 import marimo
 
-__generated_with = "0.23.15"
+__generated_with = "0.23.16"
 app = marimo.App(width="full")
 
 
@@ -94,13 +94,13 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(  # noqa: C901, PLR0915
-    CampaignCase,  # noqa: N803
-    CatalogueSource,  # noqa: N803
-    DatasetRecord,  # noqa: N803
-    Path,  # noqa: N803
-    RunOverlay,  # noqa: N803
-    WCS,  # noqa: N803
+def _(
+    CampaignCase,
+    CatalogueSource,
+    DatasetRecord,
+    Path,
+    RunOverlay,
+    WCS,
     dataclasses,
     fits,
     json,
@@ -481,8 +481,10 @@ def _(  # noqa: C901, PLR0915
         if comparison_path is not None:
             return load_comparison_catalogue(comparison_path)
         if finder_id == "hebog":
-            path = role_map.get("segment-catalogue-json") or role_map.get(
-                "compact-catalogue-json"
+            path = (
+                role_map.get("source-catalogue-json")
+                or role_map.get("segment-catalogue-json")
+                or role_map.get("compact-catalogue-json")
             )
             return load_comparison_catalogue(path) if path is not None else ()
         if finder_id in {"released-pybdsf", "pinned-pybdsf-master"}:
@@ -582,7 +584,7 @@ def _(  # noqa: C901, PLR0915
             notes=notes,
         )
 
-    def load_case_overlays(  # noqa: C901, PLR0912, PLR0915
+    def load_case_overlays(  # noqa: PLR0912
         case: CampaignCase,
         repository_root: Path,
         campaign_root: Path,
@@ -689,6 +691,20 @@ def _(  # noqa: C901, PLR0915
                 notes.append(f"catalogue load failed: {error}")
             if not catalogue:
                 notes.append("no catalogue rows or catalogue artifact")
+            if finder_id == "hebog" and "source-catalogue-json" in role_map:
+                component_path = role_map.get("component-catalogue-json")
+                try:
+                    component_count = (
+                        len(load_comparison_catalogue(component_path))
+                        if component_path is not None
+                        else 0
+                    )
+                    notes.append(
+                        f"associated source catalogue from {component_count} "
+                        "immutable detection components"
+                    )
+                except (KeyError, OSError, TypeError, ValueError) as error:
+                    notes.append(f"component catalogue load failed: {error}")
 
             try:
                 source_x, source_y = _to_pixel_positions(wcs, catalogue)
@@ -852,7 +868,7 @@ def _(  # noqa: C901, PLR0915
             return float(minimum - padding), float(maximum + padding)
         return float(minimum), float(maximum)
 
-    def plot_case(  # noqa: C901, PLR0915
+    def plot_case(
         case: CampaignCase,
         image: npt.NDArray[np.float64],
         overlays: dict[str, RunOverlay],
@@ -1043,7 +1059,7 @@ def _(  # noqa: C901, PLR0915
 
 
 @app.cell(hide_code=True)
-def _(Path, mo):  # noqa: N803
+def _(Path, mo):
     repository_root = Path(__file__).resolve().parents[1]
     campaign_root = mo.ui.text(
         label="Campaign root",
@@ -1051,7 +1067,8 @@ def _(Path, mo):  # noqa: N803
             repository_root
             / "benchmark-results"
             / "phase-5"
-                / "current-public-plus-lotss-comparison"
+            / "hebog-notebook-refreshes"
+            / "latest"
         ),
         placeholder="/path/to/sealed/campaign",
         full_width=True,
@@ -1079,12 +1096,7 @@ def _(Path, mo):  # noqa: N803
 
 
 @app.cell(hide_code=True)
-def _(
-    load_campaign_cases,
-    normalise_campaign_path,
-    campaign_root,
-    mo,
-):
+def _(campaign_root, load_campaign_cases, mo, normalise_campaign_path):
     root = normalise_campaign_path(campaign_root.value)
     campaign_error = None
     try:
@@ -1137,15 +1149,15 @@ def _(
             case_selector,
         ]
     )
-    return campaign_kind, case_selector, cases, root
+    return case_selector, cases, root
 
 
 @app.cell(hide_code=True)
 def _(
-    CampaignCase,  # noqa: N803
-    load_case_overlays,
+    CampaignCase,
     case_selector,
     cases,
+    load_case_overlays,
     mo,
     repository_root,
     root,
@@ -1216,12 +1228,12 @@ def _(mo, truth):
 @app.cell(hide_code=True)
 def _(
     format_overlay_summary,
-    plot_case,
     image,
     image_path,
     include_failed_runs,
     mo,
     overlays,
+    plot_case,
     selected_case,
     truth,
     truth_selector,
@@ -1272,71 +1284,344 @@ def _(
             mo.md(format_overlay_summary(summary_overlays)),
             mo.md(
                 """
-### Evidence-table columns
+    ### Evidence-table columns
 
-| Column | Definition |
-| --- | --- |
-| **Finder** | Source-finding program that produced the result. |
-| **Mode** | Governed configuration used for that finder; modes are defined below. |
-| **Status** | Whether the recorded run completed successfully. A failed run can retain diagnostic metadata but is not scientific evidence. |
-| **Catalogue rows** | Measurement records emitted by the finder. A row is not necessarily one distinct astrophysical source, and this count can differ from the support-label count. |
-| **Support labels** | Distinct positive regions in the displayed support map: Hebog segments, PyBDSF islands, or Aegean support proxies. |
-| **Recorded wall time (s)** | Elapsed real time stored for that run, in seconds. This is context, not by itself evidence of a speedup across finders, modes, or machines. |
-| **Notes** | Missing, empty, invalid, or display-conversion issues. `none` means no issue was recorded; `unavailable` means no value was provided. |
+    | Column | Definition |
+    | --- | --- |
+    | **Finder** | Source-finding program that produced the result. |
+    | **Mode** | Governed configuration used for that finder; modes are defined below. |
+    | **Status** | Whether the recorded run completed successfully. A failed run can retain diagnostic metadata but is not scientific evidence. |
+    | **Catalogue rows** | Measurement records emitted by the finder. A row is not necessarily one distinct astrophysical source, and this count can differ from the support-label count. |
+    | **Support labels** | Distinct positive regions in the displayed support map: Hebog segments, PyBDSF islands, or Aegean support proxies. |
+    | **Recorded wall time (s)** | Elapsed real time stored for that run, in seconds. This is context, not by itself evidence of a speedup across finders, modes, or machines. |
+    | **Notes** | Missing, empty, invalid, or display-conversion issues. `none` means no issue was recorded; `unavailable` means no value was provided. |
 
-### Finder and mode names
+    ### Finder and mode names
 
-| Term | Definition |
-| --- | --- |
-| **Hebog** | Candidate source finder being scientifically validated. |
-| **Released PyBDSF** | Released PyBDSF version used by Rapthor as the production comparison baseline. |
-| **Pinned PyBDSF master** | Separately pinned PyBDSF development revision used as a second comparison baseline. |
-| **Aegean** | Aegean source finder used as an independent public comparison. |
-| **Candidate** | Governed Hebog configuration under validation. |
-| **Operational** | A finder's governed normal configuration, including its usual background and noise-estimation path. |
-| **Controlled background** | A reference finder receives the same supplied analytic background and RMS noise planes. This separates source extraction from background estimation. |
+    | Term | Definition |
+    | --- | --- |
+    | **Hebog** | Candidate source finder being scientifically validated. |
+    | **Released PyBDSF** | Released PyBDSF version used by Rapthor as the production comparison baseline. |
+    | **Pinned PyBDSF master** | Separately pinned PyBDSF development revision used as a second comparison baseline. |
+    | **Aegean** | Aegean source finder used as an independent public comparison. |
+    | **Candidate** | Governed Hebog configuration under validation. |
+    | **Operational** | A finder's governed normal configuration, including its usual background and noise-estimation path. |
+    | **Controlled background** | A reference finder receives the same supplied analytic background and RMS noise planes. This separates source extraction from background estimation. |
 
-### Plot vocabulary
+    ### Plot vocabulary
 
-| Term | Definition |
-| --- | --- |
-| **Input image** | Selected FITS brightness plane. For a public case, the notebook uses the governed comparison region when the result declares crop bounds. |
-| **Catalogue marker** | Catalogue position transformed through the FITS world-coordinate system into zero-based image-pixel coordinates. |
-| **Support mask** | Translucent overlay covering every positive pixel assigned to a finder. Hebog's overlay is loaded directly from the campaign's `segment-mask-fits`, the retained Boolean support product for source filtering in this validation profile. It is not an uncertainty region. |
-| **Support-label boundary** | Darker edge wherever neighbouring support-label IDs differ, including the edge between labelled and unlabelled pixels. |
-| **Segment** | Hebog's accepted connected support region. A segment can exist without a measurable catalogue row. |
-| **Island** | PyBDSF's native connected support region. An island can contain more than one fitted catalogue component. |
-| **Aegean support proxy** | Ellipse-derived comparison region constructed from Aegean catalogue components and island identifiers. It is not a native Aegean pixel-segmentation map. |
-| **Injected truth** | Known simulated emitters created before any finder is run. This is authoritative truth for synthetic campaigns. |
-| **Truth layer** | Selected truth subset drawn over a synthetic image. Public observations do not have injected truth. |
-| **Validation stratum** | Predeclared diagnostic subset, such as an SNR or image-edge band. Validation strata may overlap. |
-| **Classification stratum** | Predeclared, disjoint source-type population, such as compact, blended, or extended sources. |
-| **FITS** | Flexible Image Transport System, the astronomy image and metadata format used here. |
-| **WCS** | World Coordinate System metadata that maps image pixels to sky coordinates. |
-| **RMS** | Root-mean-square noise level used to express detection significance. |
-| **Local significance** | Background-subtracted brightness divided by Hebog's recorded local RMS: `(input - background) / RMS`. The colour scale is clipped at -8 and +8 sigma for display only; this does not change the mask. |
+    | Term | Definition |
+    | --- | --- |
+    | **Input image** | Selected FITS brightness plane. For a public case, the notebook uses the governed comparison region when the result declares crop bounds. |
+    | **Catalogue marker** | Catalogue position transformed through the FITS world-coordinate system into zero-based image-pixel coordinates. |
+    | **Support mask** | Translucent overlay covering every positive pixel assigned to a finder. Hebog's overlay is loaded directly from the campaign's `segment-mask-fits`, the retained Boolean support product for source filtering in this validation profile. It is not an uncertainty region. |
+    | **Support-label boundary** | Darker edge wherever neighbouring support-label IDs differ, including the edge between labelled and unlabelled pixels. |
+    | **Segment** | Hebog's accepted connected support region. A segment can exist without a measurable catalogue row. |
+    | **Island** | PyBDSF's native connected support region. An island can contain more than one fitted catalogue component. |
+    | **Aegean support proxy** | Ellipse-derived comparison region constructed from Aegean catalogue components and island identifiers. It is not a native Aegean pixel-segmentation map. |
+    | **Injected truth** | Known simulated emitters created before any finder is run. This is authoritative truth for synthetic campaigns. |
+    | **Truth layer** | Selected truth subset drawn over a synthetic image. Public observations do not have injected truth. |
+    | **Validation stratum** | Predeclared diagnostic subset, such as an SNR or image-edge band. Validation strata may overlap. |
+    | **Classification stratum** | Predeclared, disjoint source-type population, such as compact, blended, or extended sources. |
+    | **FITS** | Flexible Image Transport System, the astronomy image and metadata format used here. |
+    | **WCS** | World Coordinate System metadata that maps image pixels to sky coordinates. |
+    | **RMS** | Root-mean-square noise level used to express detection significance. |
+    | **Local significance** | Background-subtracted brightness divided by Hebog's recorded local RMS: `(input - background) / RMS`. The colour scale is clipped at -8 and +8 sigma for display only; this does not change the mask. |
 
-### Validation terms
+    ### Validation terms
 
-| Term | Definition |
-| --- | --- |
-| **Completeness** | Fraction of eligible truth sources recovered by the finder. |
-| **Reliability** | Fraction of reported detections associated with eligible truth. |
-| **Astrometry** | Accuracy of the reported sky position. |
-| **Photometry** | Accuracy of measured source flux. |
-| **Shape** | Accuracy of fitted or deconvolved source size and orientation. |
-| **Association** | Governed matching of catalogue components or support regions to the same truth object. Finders are matched independently to truth, not voted against one another. |
-| **Non-inferiority** | Statistical test that Hebog is not worse than a reference by more than a predeclared scientifically acceptable margin. |
-| **Governed** | Defined by the validation protocol before interpreting the result, rather than chosen after seeing the outcome. |
-| **Sealed campaign** | Completed campaign whose manifest and evidence are treated as immutable validation records. |
+    | Term | Definition |
+    | --- | --- |
+    | **Completeness** | Fraction of eligible truth sources recovered by the finder. |
+    | **Reliability** | Fraction of reported detections associated with eligible truth. |
+    | **Astrometry** | Accuracy of the reported sky position. |
+    | **Photometry** | Accuracy of measured source flux. |
+    | **Shape** | Accuracy of fitted or deconvolved source size and orientation. |
+    | **Association** | Governed matching of catalogue components or support regions to the same truth object. Finders are matched independently to truth, not voted against one another. |
+    | **Non-inferiority** | Statistical test that Hebog is not worse than a reference by more than a predeclared scientifically acceptable margin. |
+    | **Governed** | Defined by the validation protocol before interpreting the result, rather than chosen after seeing the outcome. |
+    | **Sealed campaign** | Completed campaign whose manifest and evidence are treated as immutable validation records. |
 
-Counts and visual agreement are useful diagnostics, but do not establish
-scientific equivalence alone. Public data has no injected truth, so finder
-agreement there is descriptive rather than ground truth.
-                """
+    Counts and visual agreement are useful diagnostics, but do not establish
+    scientific equivalence alone. Public data has no injected truth, so finder
+    agreement there is descriptive rather than ground truth.
+                    """
             ),
         ]
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _(Path, cases, json, mo, repository_root):
+    _history_index_path = (
+        repository_root
+        / "benchmark-results"
+        / "phase-5"
+        / "hebog-notebook-refreshes"
+        / "index.json"
+    )
+    history_records: tuple[dict[str, object], ...] = ()
+    _history_error = None
+    try:
+        _history_document = json.loads(
+            _history_index_path.read_text(encoding="utf-8")
+        )
+        _raw_history = _history_document.get("refreshes", ())
+        if not isinstance(_raw_history, list):
+            raise ValueError("history refreshes must be a list")
+        history_records = tuple(
+            _item for _item in _raw_history if isinstance(_item, dict)
+        )
+    except (OSError, TypeError, ValueError) as _history_load_error:
+        _history_error = str(_history_load_error)
+
+    _history_options: dict[str, str] = {}
+    for _registered_run in history_records:
+        _campaign_path = str(
+            _registered_run.get("campaign_repository_path", "")
+        )
+        if not _campaign_path:
+            continue
+        _display_label = (
+            f"{_registered_run.get('label', Path(_campaign_path).name)} | "
+            f"{str(_registered_run.get('source_tree_sha256') or 'unknown')[:8]} | "
+            f"{_registered_run.get('case_count', '?')} cases"
+        )
+        _history_options[_display_label] = _campaign_path
+    _default_history_labels = list(_history_options)[-3:]
+    history_selector = mo.ui.multiselect(
+        options=_history_options,
+        value=_default_history_labels,
+        label="Hebog runs to compare",
+        full_width=True,
+    )
+    _history_dataset_options = {_case.label: _case.case_id for _case in cases}
+    _preferred_history_case_id = "sdc1-ordinary-y06-x09"
+    _default_history_dataset_label = next(
+        (
+            _label
+            for _label, _case_id in _history_dataset_options.items()
+            if _case_id == _preferred_history_case_id
+        ),
+        next(iter(_history_dataset_options), None),
+    )
+    history_dataset_selector = mo.ui.dropdown(
+        options=_history_dataset_options,
+        value=_default_history_dataset_label,
+        searchable=True,
+        label=f"Dataset | {len(_history_dataset_options)} available",
+        full_width=True,
+    )
+    _history_status = (
+        mo.callout(
+            f"Hebog history could not be loaded: {_history_error}",
+            kind="warn",
+        )
+        if _history_error is not None
+        else mo.md(
+            "Choose a dataset and the registered Hebog runs to compare. "
+            "Runs that do not contain the selected dataset are skipped."
+        )
+    )
+    mo.vstack(
+        [
+            mo.md("## Hebog implementation history"),
+            _history_status,
+            history_dataset_selector,
+            history_selector,
+        ]
+    )
+    return history_dataset_selector, history_records, history_selector
+
+
+@app.cell(hide_code=True)
+def _(
+    Path,
+    history_dataset_selector,
+    history_records,
+    history_selector,
+    load_campaign_cases,
+    load_case_overlays,
+    mo,
+    np,
+    plt,
+    repository_root,
+):
+    _selected_history_case_id = history_dataset_selector.value
+    mo.stop(
+        _selected_history_case_id is None,
+        mo.callout("Select a dataset to compare Hebog runs.", kind="warn"),
+    )
+    records_by_path = {
+        str(_registered_run.get("campaign_repository_path")): _registered_run
+        for _registered_run in history_records
+    }
+    selected_history_paths = tuple(history_selector.value or ())
+    history_runs = []
+    history_warnings = []
+    for relative_path in selected_history_paths:
+        history_root = (repository_root / Path(relative_path)).resolve()
+        try:
+            _, history_cases = load_campaign_cases(history_root)
+            history_case = next(
+                case
+                for case in history_cases
+                if case.case_id == _selected_history_case_id
+            )
+            history_image, _, history_overlays, _, run_warnings = (
+                load_case_overlays(
+                    history_case,
+                    repository_root,
+                    history_root,
+                )
+            )
+            hebog_overlay = next(
+                overlay
+                for overlay in history_overlays.values()
+                if overlay.finder_id == "hebog"
+                and overlay.mode == "operational"
+                and overlay.status == "success"
+            )
+            history_runs.append(
+                (
+                    records_by_path.get(str(relative_path), {}),
+                    history_image,
+                    hebog_overlay,
+                )
+            )
+            history_warnings.extend(run_warnings)
+        except (
+            FileNotFoundError,
+            KeyError,
+            OSError,
+            StopIteration,
+            TypeError,
+            ValueError,
+        ) as error:
+            history_warnings.append(f"{relative_path}: {error}")
+
+    if history_runs:
+        history_figure, history_axes = plt.subplots(
+            1,
+            len(history_runs),
+            figsize=(6.2 * len(history_runs), 6.0),
+            squeeze=False,
+            sharex=True,
+            sharey=True,
+        )
+        finite = history_runs[0][1][np.isfinite(history_runs[0][1])]
+        minimum, maximum = (
+            tuple(float(value) for value in np.percentile(finite, (1, 99.8)))
+            if finite.size
+            else (0.0, 1.0)
+        )
+        history_rows = []
+        for axis, (_run_record, run_image, overlay) in zip(
+            history_axes[0], history_runs, strict=True
+        ):
+            axis.imshow(
+                run_image,
+                origin="lower",
+                cmap="gray",
+                vmin=minimum,
+                vmax=maximum,
+                interpolation="nearest",
+            )
+            if overlay.support_mask is not None:
+                axis.contourf(
+                    overlay.support_mask,
+                    levels=[0.5, 1.5],
+                    colors=["tab:blue"],
+                    alpha=0.2,
+                    antialiased=False,
+                )
+                axis.contour(
+                    overlay.support_mask,
+                    levels=[0.5],
+                    colors=["tab:blue"],
+                    linewidths=0.8,
+                )
+            if overlay.source_x:
+                axis.scatter(
+                    overlay.source_x,
+                    overlay.source_y,
+                    s=30,
+                    marker="o",
+                    facecolors="none",
+                    edgecolors="tab:blue",
+                    linewidths=1.2,
+                )
+            run_label = str(_run_record.get("label", "Hebog run"))
+            axis.set(
+                title=(
+                    f"{run_label}\n{overlay.source_count} catalogue rows | "
+                    f"{overlay.label_count} support labels"
+                ),
+                xlabel="x pixel",
+                ylabel="y pixel",
+            )
+            history_rows.append(
+                "| "
+                + " | ".join(
+                    (
+                        run_label.replace("|", "\\|"),
+                        str(_run_record.get("commit") or "unrecorded")[:12],
+                        str(
+                            _run_record.get("source_tree_sha256") or "unknown"
+                        )[:12],
+                        str(
+                            _run_record.get("hebog_runner_sha256")
+                            or "unrecorded"
+                        )[:12],
+                        str(overlay.source_count),
+                        str(overlay.label_count),
+                        (
+                            f"{overlay.wall_seconds:.2f}"
+                            if overlay.wall_seconds is not None
+                            else "unavailable"
+                        ),
+                    )
+                )
+                + " |"
+            )
+        history_figure.suptitle(
+            f"Hebog implementation comparison | {_selected_history_case_id}"
+        )
+        history_figure.tight_layout()
+        history_output = mo.vstack(
+            [
+                mo.md(
+                    "Zoom or pan any panel; shared axes keep all selected "
+                    "Hebog runs synchronized. Blue regions are each run's "
+                    "actual Rapthor support mask."
+                ),
+                mo.mpl.interactive(history_figure),
+                mo.md(
+                    "\n".join(
+                        (
+                            "| Run | Commit | Source tree | Runner | Catalogue rows | Support labels | Wall time (s) |",
+                            "| --- | --- | --- | --- | ---: | ---: | ---: |",
+                            *history_rows,
+                        )
+                    )
+                ),
+            ]
+        )
+    else:
+        history_output = mo.callout(
+            "None of the selected Hebog campaigns contains this case.",
+            kind="warn",
+        )
+    _history_warning_output = (
+        mo.callout(
+            "\n".join(f"- {warning}" for warning in history_warnings),
+            kind="warn",
+        )
+        if history_warnings
+        else mo.md("")
+    )
+    mo.vstack([history_output, _history_warning_output])
     return
 
 
@@ -1354,9 +1639,11 @@ def _(mo):
 
     Synthetic campaigns also provide a truth-layer selector. It can show every
     injected source or only one governed source subset, such as blended,
-    extended, or image-edge sources. The default current-Hebog refresh has no injected truth. It overlays
-    current-worktree Hebog on the sealed released PyBDSF and Aegean reference
-    results, without a selectable truth layer.
+    extended, or image-edge sources. The default registered refresh has no
+    injected truth. It overlays the latest source-identified Hebog run on the
+    sealed released PyBDSF and Aegean reference results, without a selectable
+    truth layer. The implementation-history section compares registered Hebog
+    runs visually; it does not turn public observations into ground truth.
 
     These images are qualitative diagnostics. They complement, but do not
     replace, the campaign's governed completeness, reliability, astrometry,

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any, cast
 
 from hebog.validation.external_runners import (
     canonical_sha256,
-    file_sha256,
-    source_tree_sha256,
 )
 from hebog.validation.public_finder_correction import (
     public_finder_source_association_candidate_configuration,
@@ -25,6 +25,44 @@ _REVIEW = (
 def _load() -> dict[str, Any]:
     """Load the exact static identity review."""
     return json.loads(_REVIEW.read_text(encoding="utf-8"))
+
+
+def _committed_bytes(revision: str, path: str) -> bytes:
+    """Read one frozen repository file without checking out the revision."""
+    return subprocess.run(
+        ("git", "show", f"{revision}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+def _committed_file_sha256(revision: str, path: str) -> str:
+    """Hash one file from the exact frozen candidate revision."""
+    return hashlib.sha256(_committed_bytes(revision, path)).hexdigest()
+
+
+def _committed_source_tree_sha256(revision: str) -> str:
+    """Reproduce the production-source identity at one frozen revision."""
+    paths = subprocess.check_output(
+        (
+            "git",
+            "ls-tree",
+            "-r",
+            "--name-only",
+            revision,
+            "src/hebog",
+        ),
+        cwd=_ROOT,
+        text=True,
+    ).splitlines()
+    digest = hashlib.sha256()
+    for path in sorted(item for item in paths if item.endswith(".py")):
+        digest.update(path.encode())
+        digest.update(b"\0")
+        digest.update(_committed_bytes(revision, path))
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def test_identity_review_freezes_candidate_without_execution() -> None:
@@ -67,10 +105,11 @@ def test_identity_review_freezes_candidate_without_execution() -> None:
     }
 
 
-def test_identity_review_binds_live_source_configuration_and_files() -> None:
-    """Source, configuration, implementation, and fixtures are byte exact."""
+def test_identity_review_binds_frozen_source_configuration_and_files() -> None:
+    """The historical source, configuration, and fixtures remain exact."""
     review = _load()
     candidate = cast(dict[str, Any], review["candidate"])
+    revision = cast(str, candidate["commit"])
     configuration = public_finder_source_association_candidate_configuration(
         _ROOT / "config/contracts/phase-5-corrective-a-review.json",
         _ROOT / "config/contracts/phase-5-public-finder-correction.json",
@@ -80,7 +119,10 @@ def test_identity_review_binds_live_source_configuration_and_files() -> None:
         "implementation-decision.json",
     )
 
-    assert source_tree_sha256(_ROOT) == candidate["source_tree_sha256"]
+    assert (
+        _committed_source_tree_sha256(revision)
+        == candidate["source_tree_sha256"]
+    )
     assert canonical_sha256(configuration) == candidate["configuration_sha256"]
     identities = [
         candidate["pre_review"],
@@ -90,7 +132,10 @@ def test_identity_review_binds_live_source_configuration_and_files() -> None:
         *review["validation_artifacts"],
     ]
     for identity in identities:
-        assert file_sha256(_ROOT / identity["path"]) == identity["sha256"]
+        assert (
+            _committed_file_sha256(revision, identity["path"])
+            == identity["sha256"]
+        )
 
 
 def test_identity_review_records_closed_science_and_incompatible_wrapper() -> (

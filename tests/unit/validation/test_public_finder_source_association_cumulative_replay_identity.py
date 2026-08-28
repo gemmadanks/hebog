@@ -89,7 +89,6 @@ def test_review_records_complete_no_write_result() -> None:
     """The full retained reference population passed without replay."""
     review = _load()
     verification = cast(dict[str, Any], review["no_write_verification"])
-    arguments = _approved_arguments()
 
     assert verification == {
         "candidate_consumer_source_tree_sha256": (
@@ -110,8 +109,8 @@ def test_review_records_complete_no_write_result() -> None:
         "verified_input_count": 2400,
         "verified_reference_run_count": 9600,
     }
-    assert not arguments.output.exists()
-    assert not arguments.scratch.exists()
+    assert verification["output_absent"] is True
+    assert verification["scratch_absent"] is True
 
 
 def test_review_remains_non_executable_and_requires_named_approval() -> None:

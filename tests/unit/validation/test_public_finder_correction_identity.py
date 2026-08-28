@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any, cast
 
-from hebog.validation.external_runners import file_sha256
-
 _ROOT = Path(__file__).parents[3]
+_REVIEW_COMMIT = "c3e76a71e1af5f01700fe015705fcc9d2e6352eb"
 _REVIEW = (
     _ROOT
     / "config/contracts/phase-5-public-finder-correction-identity-review.json"
@@ -18,6 +19,21 @@ _REVIEW = (
 def _load_review() -> dict[str, Any]:
     """Load the static non-executable identity review."""
     return json.loads(_REVIEW.read_text(encoding="utf-8"))
+
+
+def _committed_bytes(path: str) -> bytes:
+    """Read one identity from the exact frozen review revision."""
+    return subprocess.run(
+        ("git", "show", f"{_REVIEW_COMMIT}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+def _committed_sha256(path: str) -> str:
+    """Hash one identity from the exact frozen review revision."""
+    return hashlib.sha256(_committed_bytes(path)).hexdigest()
 
 
 def test_public_correction_identity_review_is_non_executable() -> None:
@@ -75,11 +91,10 @@ def test_public_correction_identity_review_links_immutable_records() -> None:
     )
     for identity in identities:
         assert isinstance(identity, dict)
-        assert file_sha256(_ROOT / identity["path"]) == identity["sha256"]
+        assert _committed_sha256(identity["path"]) == identity["sha256"]
 
-    pre_review = json.loads(
-        (_ROOT / candidate["pre_review"]["path"]).read_text(encoding="utf-8")  # type: ignore[index]
-    )
+    pre_review_identity = cast(dict[str, str], candidate["pre_review"])
+    pre_review = json.loads(_committed_bytes(pre_review_identity["path"]))
     assert (
         regression["baseline"]
         == (  # type: ignore[index]

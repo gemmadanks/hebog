@@ -6,8 +6,8 @@
 from __future__ import annotations
 
 import argparse
-import json
 import importlib.metadata
+import json
 import subprocess
 from pathlib import Path
 from typing import Literal, cast

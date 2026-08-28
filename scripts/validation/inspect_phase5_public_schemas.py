@@ -10,7 +10,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import subprocess
 import tarfile
 from io import BytesIO
 from pathlib import Path
@@ -44,9 +46,11 @@ _SERIALIZATION_AMENDMENT_PATH = (
 _SERIALIZATION_AMENDMENT_SHA256 = (
     "243d1680f451d1facd22e4594ef9061d40d197fdf71579c54e83a3113284a4b4"
 )
+_SERIALIZATION_AMENDMENT_COMMIT = "bb824c10b9c55710ac1a8edebefcfa0503bb8027"
 _FORMATTER_CONFIGURATION_SHA256 = (
     "8c6c490241f53711a8e4be0f4c2a3e32322e0243c0d67b94acec5fc9f6f5bdc1"
 )
+_INSPECTOR_PATH = "scripts/validation/inspect_phase5_public_schemas.py"
 _EXPECTED_TOTAL_BYTES = 15_053_995_875
 _EXPECTED_ARTIFACT_COUNT = 7
 _SDC1_COLUMNS = (
@@ -92,6 +96,26 @@ def _json_object(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"expected JSON object: {path}")
     return cast(dict[str, Any], value)
+
+
+def _committed_file_sha256(
+    repository_root: Path,
+    revision: str,
+    path: str,
+) -> str:
+    """Hash one file from an immutable repository revision."""
+    try:
+        content = subprocess.run(
+            ("git", "show", f"{revision}:{path}"),
+            cwd=repository_root,
+            check=True,
+            capture_output=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError(
+            f"cannot read frozen repository file: {path}"
+        ) from error
+    return hashlib.sha256(content).hexdigest()
 
 
 def _validate_serialization_amendment(
@@ -143,7 +167,11 @@ def _validate_serialization_amendment(
         != _ACQUISITION_SCRIPT_SHA256
         or formatter.get("path") != ".pre-commit-config.yaml"
         or formatter.get("sha256") != _FORMATTER_CONFIGURATION_SHA256
-        or file_sha256(repository_root / cast(str, formatter["path"]))
+        or _committed_file_sha256(
+            repository_root,
+            _SERIALIZATION_AMENDMENT_COMMIT,
+            cast(str, formatter["path"]),
+        )
         != _FORMATTER_CONFIGURATION_SHA256
         or authorization
         != {
@@ -678,7 +706,7 @@ def build_schema_review(
         },
         "proposed_sdc1_selection": _proposed_selection(),
         "inspector": {
-            "path": ("scripts/validation/inspect_phase5_public_schemas.py"),
+            "path": _INSPECTOR_PATH,
             "sha256": file_sha256(Path(__file__)),
         },
         "artifact_checksums_frozen": True,
@@ -717,9 +745,13 @@ def load_checked_schema_review(path: Path) -> dict[str, Any]:
         or amendment.get("canonical_decision_sha256")
         != _CANONICAL_SCIENTIFIC_DECISION_SHA256
         or amendment.get("semantic_json_object_changed") is not False
-        or inspector.get("path")
-        != "scripts/validation/inspect_phase5_public_schemas.py"
-        or inspector.get("sha256") != file_sha256(Path(__file__))
+        or inspector.get("path") != _INSPECTOR_PATH
+        or inspector.get("sha256")
+        != _committed_file_sha256(
+            path.resolve().parents[2],
+            _SERIALIZATION_AMENDMENT_COMMIT,
+            _INSPECTOR_PATH,
+        )
         or review.get("artifact_checksums_frozen") is not True
         or review.get("scientific_review_complete") is not False
         or review.get("cutout_selection_authorized") is not False

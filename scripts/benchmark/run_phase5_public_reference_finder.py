@@ -45,10 +45,7 @@ raise SystemExit(main())
 
 def _load_protocol(path: Path) -> PhaseFiveExternalComparisonProtocol:
     helpers = runpy.run_path(
-        str(
-            _ROOT
-            / "scripts/validation/phase5_viewed_recovery_protocol.py"
-        )
+        str(_ROOT / "scripts/validation/phase5_viewed_recovery_protocol.py")
     )
     return cast(
         PhaseFiveExternalComparisonProtocol,
@@ -250,7 +247,7 @@ def _write_result(path: Path, document: dict[str, object]) -> None:
     )
 
 
-def _run_reference(  # noqa: PLR0913
+def _run_reference(  # noqa: PLR0913, PLR0915
     *,
     protocol_path: Path,
     image_path: Path,

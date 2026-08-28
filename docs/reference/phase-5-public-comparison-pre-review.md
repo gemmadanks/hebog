@@ -340,3 +340,10 @@ observational diagnostics without injected truth: finder agreement and the
 PyBDSF-derived published LoTSS catalogue must not be interpreted as ground
 truth or as a qualification gate. The original SDC1 and Hydra artifacts remain
 immutable, and the notebook aggregate uses links rather than rewriting them.
+
+Rapid-development notebook refreshes rerun only Hebog over all frozen public
+inputs and reuse the sealed reference products. Each refresh is stored under a
+Git-commit and source-tree identity, registered in a generated history index,
+and remains scientifically unauthorized. The notebook's `latest` pointer is a
+convenience for inspection, while side-by-side historical panels make changes
+visible without replacing earlier evidence.
