@@ -11998,3 +11998,20 @@ false authorization boundary.
 **Immediate next step:** obtain separate named approval bound exactly to
 review `6a0e79b4...` for one compilation and evaluation of the preserved
 product set only. Another replay or candidate submission remains forbidden.
+
+## 2026-08-28 — Authorize preserved-product evaluation completion
+
+**Plan phase:** Phase 5, closure gate 2
+
+- Gemma Danks approved exactly the evaluation-only completion bound to review
+  `6a0e79b4...`, product set `dbc317fa...`, completion program `105d7e30...`,
+  evaluation adapter `daa8234d...`, reconstructed references `48209eae...`,
+  and closed baseline `a45303df...`.
+- Recorded decision `46ddfefa...`, which authorizes one compilation and
+  evaluation of the 2,400 preserved products. Candidate execution, another
+  replay or campaign, viewed SDC1/Hydra execution, fresh qualification,
+  tuning, rescoring, cutover, and release remain false.
+
+**Immediate next step:** validate and commit the decision, create an immutable
+execution checkout, repeat the complete no-write identity verification there,
+and invoke the completion program exactly once.

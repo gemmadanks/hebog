@@ -1,0 +1,47 @@
+{
+  "approval": {
+    "approved_on": "2026-08-28",
+    "exact_approval": "I approve the Phase 5 source-association measurement-repair evaluation-only completion bound to identity review SHA-256 `6a0e79b4cab6173e527e27312050002e658e3ab935448bb9a33f7168a6c0a1d0`, candidate product-set SHA-256 `dbc317fa98638d96ebecac26d98014a953defc96ed48a741f42f48954daa48ab`, completion program SHA-256 `105d7e30efc90adafc5f99056642a582119a947009dafc65d45a4720ad968d00`, evaluation adapter SHA-256 `daa8234dcb2af1b234428756e8ae39d0659b4bd58f1095a1bab659227a146948`, reconstructed reference terminal SHA-256 `48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2`, and closed baseline `a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9`. This authorizes exactly one compilation and evaluation of the 2,400 preserved candidate products and its atomic ledger. It does not authorize candidate execution, a replay, viewed SDC1/Hydra execution, another campaign, fresh qualification, tuning, rescoring, cutover, or release.",
+    "reviewer": "Gemma Danks"
+  },
+  "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+  "candidate_execution_authorized": false,
+  "candidate_product_count": 2400,
+  "candidate_product_set_sha256": "dbc317fa98638d96ebecac26d98014a953defc96ed48a741f42f48954daa48ab",
+  "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+  "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+  "closed_baseline_path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "compilation_resume_authorized": true,
+  "completion_program_sha256": "105d7e30efc90adafc5f99056642a582119a947009dafc65d45a4720ad968d00",
+  "decision_id": "phase-5-public-finder-source-association-measurement-repair-evaluation-repair-execution-decision",
+  "evaluation_authorized": true,
+  "evaluation_repair_adapter_sha256": "daa8234dcb2af1b234428756e8ae39d0659b4bd58f1095a1bab659227a146948",
+  "existing_product_completion_authorized": true,
+  "historical_successor_compiler_sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55",
+  "historical_support_matcher_sha256": "75ea063cb68e807207ddcfd691d05eeb644cd76a624fdb66f34449f6b7638feb",
+  "identity_review": {
+    "path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-evaluation-repair-review.json",
+    "sha256": "6a0e79b4cab6173e527e27312050002e658e3ab935448bb9a33f7168a6c0a1d0"
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "candidate_execution_authorized": false,
+    "cumulative_replay_rerun_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "reconstructed_reference_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+  "reconstructed_reference_run_count": 9600,
+  "reconstructed_reference_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "schema_version": 1,
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-association-measurement-repair-6184a32",
+  "source_association_program_sha256": "73082209b81e78d1bbb8b0885019e56038e2f4e46e106f93a9cd7244bcd15080",
+  "status": "reviewed-before-measurement-repair-evaluation-completion"
+}

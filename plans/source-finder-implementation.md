@@ -424,7 +424,9 @@ execution decision `5ddc524a...` was consumed by the process that produced
 every candidate shard but no ledger. The evaluation-only repair has now been
 committed, verified against the preserved product-set identity, and frozen in
 review `6a0e79b4...` for separate exact compilation/evaluation approval. It
-cannot submit candidate work.
+cannot submit candidate work. Gemma Danks granted that exact evaluation-only
+approval on 2026-08-28; decision `46ddfefa...` records the authority without
+opening candidate execution or another replay.
 
 #### Remaining closure sequence
 
@@ -455,9 +457,10 @@ from partial or viewed evidence.
    - [x] Freeze evaluation-only completion identity `6a0e79b4...` after exact
      verification of product set `dbc317fa...`; it leaves compilation and
      evaluation unauthorized.
-   - [ ] Obtain separate approval bound to that review, then compile and
-     evaluate only the exact preserved product set. Candidate submission and
-     another replay remain forbidden.
+   - [x] Obtain separate approval bound to that review and record exact
+     evaluation-only decision `46ddfefa...`.
+   - [ ] Compile and evaluate only the exact preserved product set. Candidate
+     submission and another replay remain forbidden.
    - Require `cumulative_science_regression_ready=true`, every required
      endpoint passing, and empty compact and Continuum like-semantics regression
      lists. Interpret compact and Continuum science before power or runtime.

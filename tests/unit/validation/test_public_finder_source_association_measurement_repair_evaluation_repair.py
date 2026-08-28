@@ -29,6 +29,10 @@ _REVIEW = (
     _ROOT / "config/contracts/phase-5-public-finder-source-association-"
     "measurement-repair-evaluation-repair-review.json"
 )
+_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
+    "measurement-repair-evaluation-repair-execution-decision.json"
+)
 
 
 def _namespace() -> dict[str, Any]:
@@ -295,3 +299,34 @@ def test_identity_review_freezes_only_non_executable_completion() -> None:
     assert review["compilation_resume_authorized"] is False
     assert review["evaluation_authorized"] is False
     assert not any(review["prohibited_authorizations"].values())
+
+
+def test_execution_decision_authorizes_only_existing_product_completion() -> (
+    None
+):
+    """The named approval opens compilation and evaluation, not execution."""
+    review: dict[str, Any] = json.loads(_REVIEW.read_text(encoding="utf-8"))
+    decision: dict[str, Any] = json.loads(
+        _EXECUTION_DECISION.read_text(encoding="utf-8")
+    )
+
+    assert decision["status"] == review["status"]
+    assert decision["identity_review"] == {
+        "path": str(_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REVIEW),
+    }
+    verified = review["verified_composition"]
+    for field in (
+        "candidate_product_set_sha256",
+        "completion_program_sha256",
+        "source_association_program_sha256",
+        "historical_support_matcher_sha256",
+        "historical_successor_compiler_sha256",
+        "evaluation_repair_adapter_sha256",
+    ):
+        assert decision[field] == verified[field]
+    assert decision["existing_product_completion_authorized"] is True
+    assert decision["compilation_resume_authorized"] is True
+    assert decision["evaluation_authorized"] is True
+    assert decision["candidate_execution_authorized"] is False
+    assert not any(decision["prohibited_authorizations"].values())
