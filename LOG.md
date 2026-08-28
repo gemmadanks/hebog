@@ -11911,3 +11911,26 @@ and clean `just pre-commit`.
 identity review `119ce0f9...` for one complete two-worker cumulative replay.
 Do not execute it or any later lifecycle step under the implementation
 approval.
+
+## 2026-08-28 — Authorize one measurement-repair cumulative replay
+
+**Plan phase:** Phase 5, closure gate 2
+
+- Recorded Gemma Danks's exact approval bound to non-executable identity review
+  `119ce0f9...`, candidate `6184a32...`, source tree `517d56e1...`,
+  configuration `78dbb230...`, wrapper `79e8252c...`, reconstructed reference
+  terminal `48209eae...`, and closed baseline `a45303df...`.
+- Added fail-closed execution decision `5ddc524a...`. It authorizes exactly one
+  complete two-worker 800-compact/1,600-Continuum replay and its atomic ledger.
+- Retained explicit false authorization for viewed SDC1/Hydra execution,
+  another campaign, fresh qualification, optimization, tuning, rescoring,
+  cutover, and release.
+
+**Validation:** the authorization contract first failed because the decision
+was absent, then the identity and wrapper suites passed all 16 tests. The exact
+approval, review checksum, expected replay fields, and prohibited-authority
+map are checked mechanically.
+
+**Immediate next step:** commit the execution decision, construct an immutable
+checkout from that clean revision, revalidate absent output/scratch state, and
+start the authorized replay exactly once.

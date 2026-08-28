@@ -415,7 +415,10 @@ decision `b9d48850...` binds the minimal replacement layer over consumed
 wrapper `bfc1d6d0...`. The clean implementation commit `9cc00fb...` passed
 complete no-write verification of all 2,400 inputs and 9,600 retained
 reference runs without creating output or scratch state. Gate 1 is complete;
-gate 2 now requires separate named approval bound to review `119ce0f9...`.
+Gemma Danks has now granted separate named approval bound to review
+`119ce0f9...`. Execution decision `5ddc524a...` opens exactly one complete
+two-worker replay and no later lifecycle authority. The replay has not yet
+started.
 
 #### Remaining closure sequence
 
@@ -438,8 +441,8 @@ from partial or viewed evidence.
      candidate, configuration, ledger, and future held-out decision identities.
 
 2. [ ] **Obtain named approval and run exactly one cumulative replay.**
-   - Approval must bind the replacement identity review and exact two-worker
-     800-compact/1,600-Continuum composition.
+   - [x] Approval binds replacement identity review `119ce0f9...` and the
+     exact two-worker 800-compact/1,600-Continuum composition.
    - Require `cumulative_science_regression_ready=true`, every required
      endpoint passing, and empty compact and Continuum like-semantics regression
      lists. Interpret compact and Continuum science before power or runtime.

@@ -93,9 +93,10 @@ def test_review_freezes_exact_implementation_and_prospective_execution() -> (
     reconstruction = cast(dict[str, Any], review["reconstruction"])
     completion = cast(dict[str, str], reconstruction["completion_review"])
     assert file_sha256(_ROOT / completion["path"]) == completion["sha256"]
-    assert file_sha256(
-        _ROOT / reconstruction["path"] / "recovery.json"
-    ) == reconstruction["recovery_sha256"]
+    assert (
+        file_sha256(_ROOT / reconstruction["path"] / "recovery.json")
+        == reconstruction["recovery_sha256"]
+    )
 
 
 def test_review_records_complete_no_write_result() -> None:
@@ -134,8 +135,8 @@ def test_review_records_complete_no_write_result() -> None:
     }
 
 
-def test_review_remains_non_executable_and_requires_named_approval() -> None:
-    """Identity freezing opens no replay or later lifecycle authority."""
+def test_review_remains_non_executable_and_named_approval_is_exact() -> None:
+    """The review stays closed while its exact decision opens one replay."""
     review = _load()
     authorization = cast(dict[str, bool], review["authorization"])
 
@@ -145,4 +146,16 @@ def test_review_remains_non_executable_and_requires_named_approval() -> None:
         "separate-named-approval-bound-to-this-review-for-one-complete-"
         "cumulative-replay-only"
     )
-    assert not _EXECUTION_DECISION.exists()
+
+    wrapper = runpy.run_path(str(_WRAPPER))
+    decision = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
+    wrapper["_validate_execution_decision"](decision, _approved_arguments())
+    assert decision["measurement_repair_replay_identity_review"] == {
+        "path": str(_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REVIEW),
+    }
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        wrapper["_PROHIBITED_AUTHORIZATIONS"], False
+    )
