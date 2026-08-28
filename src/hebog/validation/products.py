@@ -579,12 +579,16 @@ def _aegean_source(
 def load_aegean_catalogue(
     component_path: Path,
     island_path: Path,
+    *,
+    exclude_invalid_islands: bool = False,
 ) -> tuple[CatalogueSource, ...]:
     """Read maintained Aegean component and island FITS catalogues.
 
     Aegean component UUIDs are deliberately ignored. Stable comparison IDs
     come from the integer island and source columns, while association fluxes
-    come from the companion island catalogue.
+    come from the companion island catalogue. Callers importing diagnostic
+    observational catalogues may explicitly exclude islands whose integrated
+    flux is non-finite or non-positive; strict validation remains the default.
     """
     components = cast(
         npt.NDArray[np.void], fits.getdata(component_path, ext=1)
@@ -600,6 +604,36 @@ def load_aegean_catalogue(
         _AEGEAN_ISLAND_COLUMNS,
         product="island",
     )
+
+    island_identifiers = [int(row["island"]) for row in islands]
+    if len(island_identifiers) != len(set(island_identifiers)):
+        raise ValueError("duplicate Aegean island")
+    if exclude_invalid_islands:
+        invalid_islands = {
+            int(row["island"])
+            for row in islands
+            if not np.isfinite(float(row["int_flux"]))
+            or float(row["int_flux"]) <= 0.0
+        }
+        if invalid_islands:
+            islands = islands[
+                np.asarray(
+                    [
+                        int(row["island"]) not in invalid_islands
+                        for row in islands
+                    ],
+                    dtype=np.bool_,
+                )
+            ]
+            components = components[
+                np.asarray(
+                    [
+                        int(row["island"]) not in invalid_islands
+                        for row in components
+                    ],
+                    dtype=np.bool_,
+                )
+            ]
 
     island_rows = _load_aegean_islands(islands)
     _validate_aegean_component_counts(components, island_rows)

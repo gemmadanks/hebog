@@ -1051,7 +1051,7 @@ def _(Path, mo):  # noqa: N803
             repository_root
             / "benchmark-results"
             / "phase-5"
-            / "current-public-hebog-comparison"
+                / "current-public-plus-lotss-comparison"
         ),
         placeholder="/path/to/sealed/campaign",
         full_width=True,
