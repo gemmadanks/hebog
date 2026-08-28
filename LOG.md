@@ -11527,6 +11527,37 @@ absence assertions were corrected to validate their recorded freeze-time
 state rather than requiring a later authorized write-once output to remain
 absent forever.
 
+## 2026-08-27 - Add an isolated LoTSS observational comparison lane
+
+**Plan phase:** Phase 5, implementation communication
+
+- Added a prospective LoTSS DR2 campaign with one wide 90-arcmin RA-13 field,
+  the 3C 295 bright-source field, and the M51 complex-emission field.
+- Kept acquisition, current-Hebog execution, and networkless released PyBDSF
+  and Aegean execution isolated from the sealed SDC1/Hydra campaigns.
+- Added an aggregate notebook view that links the ten existing public cases
+  and three LoTSS cases without copying or modifying their science products.
+- Materialized the aggregate with in-root hard links rather than escaping
+  directory symlinks, preserving storage efficiency while satisfying the
+  notebook's fail-closed campaign path boundary.
+- Kept `scientific_claims_authorized` false. LoTSS is observational diagnostic
+  evidence; its PyBDSF-derived catalogue and cross-finder agreement are not
+  independent truth.
+- Preserved circular LoTSS beams across FITS WCS serialization by equalizing
+  pixel-space axes only when their inversion is within `1e-12` relative
+  round-off; materially inverted beam metadata still fails closed.
+- Preserved the source spectral WCS as scalar FITS `RESTFRQ` and `RESTFREQ`
+  cards when reducing LoTSS cutouts to two dimensions. The latter spelling is
+  required by the pinned released PyBDSF reader.
+- Added an explicit observational Aegean import policy that excludes islands
+  with non-finite or non-positive integrated flux and their components. Every
+  run retains a JSON exclusion report; duplicate identities, missing islands,
+  and inconsistent component counts continue to fail closed. The policy is
+  applied consistently during execution and public-product normalization.
+
+**Validation:** not run in this task. Campaign execution evidence is recorded
+by the generated checksum-bound manifests under `benchmark-results/phase-5/`.
+
 ## 2026-08-27 — Pre-review public-finder source association
 
 **Plan phase:** Phase 5, public-finder correction regression gate
