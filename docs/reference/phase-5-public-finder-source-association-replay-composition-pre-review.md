@@ -126,7 +126,12 @@ Fifty-nine fixture/no-write contract tests exercise the real wrapper,
 including spawned-worker composition, consumed-authorization rejection,
 candidate and dependency drift, exact invocation paths, worker count, and
 authorization-before-reference ordering. Direct branch-aware wrapper coverage
-is 93%; focused Ruff and Pyright pass. The
-complete no-write reference verification and replacement identity freeze still
-must run from a clean checkout of the exact implementation commit; no replay
-has started.
+is 93%; focused Ruff and Pyright pass.
+
+Clean immutable checkout `1b511ed...` then passed the complete no-write
+verification: candidate `26e639a...`, source `34fecf30...`, configuration
+`78dbb230...`, and reconstruction `48209eae...` matched; all 2,400 inputs and
+9,600 reference runs verified; and the new ledger and scratch paths remained
+absent. Replacement non-executable identity review SHA-256 `7f7ac272...`
+freezes the exact future two-worker composition. No replay has started; one
+separate named approval bound to that review is still required.

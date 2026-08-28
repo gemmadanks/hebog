@@ -11668,11 +11668,17 @@ and scratch namespaces are absent.
   consumed execution decision fails before loading replay or reference
   machinery, and candidate, program, dependency, reference, runtime, path,
   worker, scratch, or output drift fails closed.
-- No scientific product was opened and no replay was started. Complete
-  no-write reference verification remains pending from a clean immutable
-  checkout of the exact implementation commit.
+- No scientific product was opened and no replay was started. Clean immutable
+  checkout `1b511ed...` passed the complete no-write verification for all
+  2,400 inputs and 9,600 reference runs; reconstruction `48209eae...` matched
+  and the prospective output and scratch remained absent.
+- Froze replacement non-executable identity review `7f7ac272...` over the
+  exact implementation commit/tree, wrapper, candidate, configuration,
+  reconstructed references, closed baseline, runtimes, programs, paths, and
+  two-worker composition. One separate named replay approval remains required.
 
 **Validation:** The wrapper test started red because the implementation
 decision and wrapper were absent. All 59 focused wrapper contracts now pass;
 focused Ruff and Pyright pass. Direct branch-aware wrapper coverage is 93%.
-Wrapper SHA-256 is `bfc1d6d0...`.
+Wrapper SHA-256 is `bfc1d6d0...`. The clean related identity and reference
+suite passes 112 tests; the identity-freeze suite passes 62 tests.

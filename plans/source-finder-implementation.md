@@ -868,14 +868,18 @@ separately approved prospective development response.
       closed baseline. Review `a2e13e11...` requires a new wrapper and output
       namespace, keeps the consumed correction wrapper and authorization
       immutable, and leaves every implementation and execution flag false.
-- [ ] Obtain named approval of pre-review `a2e13e11...`, then implement and
+- [x] Obtain named approval of pre-review `a2e13e11...`, then implement and
       fixture/no-write validate only the minimal wrapper and freeze its exact
       non-executable identities. The complete replay still requires a separate
       exact approval. Approval decision `37931ad3...` is recorded and wrapper
       `bfc1d6d0...` passes 59 fixture/no-write contracts, including spawned-
-      worker composition and rejection of the consumed authorization. Complete
-      reference verification and the exact identity freeze remain pending from
-      the clean implementation commit.
+      worker composition and rejection of the consumed authorization. Clean
+      commit `1b511ed...` verified all 2,400 inputs and 9,600 reference runs
+      without creating output or scratch, and replacement identity review
+      `7f7ac272...` freezes the exact non-executable composition.
+- [ ] Obtain a separate named one-replay approval bound to replacement review
+      `7f7ac272...`. Only then run the exact two-worker 800-compact/1,600-
+      Continuum cumulative replay and require no like-semantics regression.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
