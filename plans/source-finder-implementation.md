@@ -397,18 +397,22 @@ the replay wrapper, and replacement output/scratch namespaces have not yet been
 frozen together. No cumulative replay, viewed SDC1/Hydra execution, fresh
 qualification, tuning, rescoring, cutover, or release is currently authorized.
 
-The frozen readiness contract also still names superseded correction candidate
-`b1d59e5...`, configuration `65c8876d...`, and its old ledger path. It must
-be updated prospectively to the final repaired candidate and evidence paths
-before the final evidence is opened; a passing result must not be fitted into
-the readiness contract retrospectively.
+The frozen readiness contract has now been prospectively rebound to repair
+candidate `6184a32...`, configuration `78dbb230...`, and the replacement
+cumulative and future held-out evidence paths. Those identities were fixed
+before either result was opened; a passing result cannot be fitted into the
+readiness contract retrospectively.
 
 Non-executable pre-review `7687839f...` now binds repair commit
 `6184a32...`, source tree `517d56e1...`, unchanged configuration
 `78dbb230...`, the consumed replay boundary, new write-once namespaces,
-prospective readiness fields, and the required fixture/no-write checks. Every
-authorization remains false. Gate 1 is paused pending named approval of that
-exact review for wrapper/readiness implementation and identity freezing only.
+prospective readiness fields, and the required fixture/no-write checks. Named
+approval opened only wrapper/readiness implementation, fixture and complete
+no-write verification, and non-executable identity freezing. Implementation
+decision `b9d48850...` binds the minimal replacement layer over consumed
+wrapper `bfc1d6d0...`; focused fixture contracts pass. Gate 1 remains open
+until the clean committed wrapper passes complete no-write verification and
+the exact non-executable identity review is frozen.
 
 #### Remaining closure sequence
 
@@ -417,7 +421,7 @@ sequence and requires a new prospective review; it does not authorize tuning
 from partial or viewed evidence.
 
 1. [ ] **Freeze the repaired cumulative-replay composition.**
-   - Obtain named approval of pre-review `7687839f...`; this approval may
+   - [x] Obtain named approval of pre-review `7687839f...`; this approval may
      authorize only replacement wrapper/readiness implementation, fixture and
      complete no-write validation, and non-executable identity freezing.
    - Bind the exact candidate commit and source tree derived from
@@ -427,7 +431,7 @@ from partial or viewed evidence.
    - Use new write-once ledger and scratch identities, run fixture and complete
      no-write verification, and publish a non-executable identity review with
      every later authorization false.
-   - Prospectively update the readiness contract to require the same final
+   - [x] Prospectively update the readiness contract to require the same final
      candidate, configuration, ledger, and future held-out decision identities.
 
 2. [ ] **Obtain named approval and run exactly one cumulative replay.**

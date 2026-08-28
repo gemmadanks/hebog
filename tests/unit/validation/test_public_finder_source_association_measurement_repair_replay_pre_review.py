@@ -20,6 +20,10 @@ _PRE_REVIEW = (
     "measurement-repair-replay-pre-review.json"
 )
 _READINESS = _ROOT / "config/contracts/phase-5-readiness.json"
+_IMPLEMENTATION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
+    "measurement-repair-replay-implementation-decision.json"
+)
 _CANDIDATE_REVISION = "6184a32648eee637f0aca03ab2ec0249bd0510f0"
 
 
@@ -156,15 +160,17 @@ def test_pre_review_prospectively_rebinds_readiness() -> None:
     review = _load(_PRE_REVIEW)
     readiness = cast(dict[str, Any], review["readiness_repair"])
     current = _load(_READINESS)
+    implementation = _load(_IMPLEMENTATION_DECISION)
     current_requirement = cast(dict[str, Any], current["required_evidence"][0])
 
     assert readiness["current_contract"] == {
         "path": "config/contracts/phase-5-readiness.json",
-        "sha256": file_sha256(_READINESS),
+        "sha256": implementation["readiness"]["previous_sha256"],
         "status": "frozen-pre-readiness",
     }
+    assert file_sha256(_READINESS) != readiness["current_contract"]["sha256"]
     assert current_requirement["required_fields"]["candidate_revision"] == (
-        "b1d59e5aaf778a5fed4ea662afeba2ee100424ff"
+        _CANDIDATE_REVISION
     )
     replacement = readiness["required_replacement_fields"]
     assert replacement["candidate_revision"] == _CANDIDATE_REVISION

@@ -1,0 +1,63 @@
+{
+  "approved_on": "2026-08-28",
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "complete_no_write_reference_verification_authorized": true,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fixture_no_write_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "identity_freeze_authorized": true,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "readiness_contract_implementation_authorized": true,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_data_execution_authorized": false,
+    "wrapper_implementation_authorized": true
+  },
+  "candidate": {
+    "configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "measurement_repair_sha256": "a3c53daac3dbae03bd6b3f62488cd46de541d79d9c6c903d34ce7951334d690b",
+    "revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+    "source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff"
+  },
+  "decision_id": "phase-5-public-finder-source-association-measurement-repair-replay-implementation-decision",
+  "exact_approval": "I approve the Phase 5 source-association measurement-repair replay pre-review SHA-256 7687839f4c65c0a6d549d42b0ddeacd8c6954912389071605d696394307c653d and its recommendations. This authorizes test-first implementation and fixture/complete no-write validation of the minimal replacement replay wrapper, prospective rebinding of the Phase 5 readiness contract to candidate 6184a32648eee637f0aca03ab2ec0249bd0510f0, source tree 517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff, configuration 78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946, and freezing exact non-executable replacement identities. It does not authorize the cumulative replay, viewed SDC1/Hydra execution, another campaign, fresh qualification, tuning, rescoring, cutover, or release.",
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-replay-pre-review.json",
+    "sha256": "7687839f4c65c0a6d549d42b0ddeacd8c6954912389071605d696394307c653d"
+  },
+  "prohibited_actions": [
+    "cumulative replay",
+    "viewed SDC1 or Hydra execution",
+    "another campaign or request",
+    "fresh qualification",
+    "threshold background RMS minimum-area source-association position shape or normal-positive-aperture photometric tuning",
+    "rescoring sealed evidence",
+    "optimization",
+    "cutover",
+    "release"
+  ],
+  "readiness": {
+    "contract_path": "config/contracts/phase-5-readiness.json",
+    "previous_sha256": "bb0719fb17b36c2506073958b3012c237f029a6e54091057151f2c248fdb7540",
+    "required_cumulative_evidence_id": "public-finder-source-association-measurement-repair-cumulative-regression",
+    "required_qualification_evidence_id": "public-finder-source-association-measurement-repair-held-out-qualification",
+    "status": "prospectively-rebound-before-replay"
+  },
+  "reviewer": "Gemma Danks",
+  "scope": {
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "consumed_wrapper_sha256": "bfc1d6d0d255b9fd7e7b43f910e9c2665d9083de572bce7b64afee66c473f357",
+    "prospective_output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+    "prospective_scratch_path": "/private/tmp/hebog-phase5-public-finder-source-association-measurement-repair-6184a32",
+    "reconstructed_reference_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "required_result": "validated-non-executable-measurement-repair-wrapper-readiness-and-replacement-identity-review",
+    "workers": 2
+  },
+  "status": "authorized-for-measurement-repair-wrapper-readiness-implementation-and-no-write-validation"
+}

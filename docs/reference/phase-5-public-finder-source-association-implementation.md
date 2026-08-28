@@ -93,3 +93,28 @@ baseline `a45303df...`. The existing replay wrapper remains bound to prior
 candidate `b1d59e5...` and configuration `65c8876d...`, so it cannot execute
 this candidate. A separate replay-composition pre-review, exact executable
 identity freeze, and named approval are required before any cumulative replay.
+
+## Measurement-completeness repair composition
+
+The consumed source-association replay stopped after 58 candidate products
+because an accepted positive owner could lose its catalogue measurement when
+negative surrounding residuals made only the expanded aperture non-positive.
+Repair commit `6184a32...` retains ordinary expanded-aperture photometry and
+uses the positive exact owner only for that bounded fallback. Truly
+unmeasurable owners still fail closed.
+
+Pre-review `7687839f...` authorized a minimal replacement wrapper and a
+prospective readiness update, not a replay. The wrapper checksum-binds and
+loads the consumed source-association composition, then replaces only the
+candidate revision/source tree, measurement-repair program, and new
+write-once ledger and scratch namespaces. The scientific configuration,
+compact path, reference products, compiler, evaluator, endpoints, gates, and
+two-worker population remain unchanged.
+
+The readiness contract now requires candidate `6184a32...`, source tree
+`517d56e1...`, configuration `78dbb230...`, the prospective measurement-repair
+cumulative ledger, and a future held-out qualification decision. These fields
+were fixed before either result was opened. Fixture validation passes; complete
+no-write verification and the replacement non-executable identity review must
+still be completed from the clean implementation commit before a separate
+one-replay approval can be requested.

@@ -11852,3 +11852,33 @@ created.
 `7687839f...` for wrapper/readiness implementation, fixture/no-write
 validation, and non-executable identity freezing only. A cumulative replay
 still requires a later exact identity review and separate named approval.
+
+## 2026-08-28 — Implement the approved measurement-repair replay composition
+
+**Plan phase:** Phase 5, closure gate 1
+
+- Recorded Gemma Danks's exact approval of pre-review `7687839f...` for
+  wrapper/readiness implementation, fixture and complete no-write validation,
+  and non-executable identity freezing only.
+- Added a minimal replacement wrapper over consumed source-association wrapper
+  `bfc1d6d0...`. It rebinds candidate `6184a32...`, source tree
+  `517d56e1...`, repaired `products.py` `a3c53daa...`, unchanged configuration
+  `78dbb230...`, and new write-once output/scratch namespaces while retaining
+  the consumed compact, compiler, evaluator, reference, endpoint, gate, and
+  two-worker seams.
+- Prospectively rebound the frozen readiness contract to the same final
+  candidate and the replacement cumulative-ledger and future held-out
+  qualification paths before either result exists.
+- Implementation decision `b9d48850...` leaves cumulative replay, viewed-data
+  execution, another campaign, fresh qualification, optimization, tuning,
+  rescoring, cutover, and release unauthorized.
+
+**Validation:** the new contracts first failed for the absent wrapper and
+decision and stale readiness identities. They now pass 51 focused wrapper,
+historical pre-review, and readiness tests. Focused Ruff passes. No replay
+scratch/output was created and no viewed scientific product was opened.
+
+**Immediate next step:** validate and commit this implementation boundary,
+then run the complete no-write verifier from that clean immutable revision and
+freeze the exact non-executable replacement identity review. A separate named
+approval remains mandatory before any replay.
