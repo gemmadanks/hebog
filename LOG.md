@@ -11792,3 +11792,31 @@ without modifying files.
 **Immediate next step:** commit the reviewed repair and repository-check
 repairs coherently without mixing unrelated notebook-refresh work, then freeze
 replacement non-executable identities without starting another replay.
+
+## 2026-08-28 — Condense the Phase 5 closure plan
+
+**Plan phase:** Phase 5, closure governance
+
+- Replaced completed recovery, campaign, correction, and incident chronology
+  in the delivery plan with a durable evidence table; detailed chronology
+  remains in this log and exact identities remain in machine contracts.
+- Made the current blocker explicit: the measurement-completeness repair at
+  `6184a32...` has fixture evidence but no frozen replacement replay identity,
+  current execution authority, terminal cumulative ledger, or fresh held-out
+  qualification.
+- Reduced Phase 5 closure to six ordered gates: freeze the repaired
+  composition and prospective readiness identities; obtain approval and pass
+  one cumulative replay; qualify that exact candidate on fresh held-out data;
+  complete the restricted Rapthor profile; confirm final engineering evidence;
+  and obtain independent radio-astronomy and engineering acceptance before
+  write-once readiness publication.
+- Identified that the frozen readiness contract still names superseded
+  candidate `b1d59e5...`, configuration `65c8876d...`, and the old ledger
+  path. It must be updated prospectively before final evidence is opened.
+- Preserved the consumed-authorization, write-once, no-tuning, no-rescoring,
+  and no-cutover boundaries. No replay, qualification, public campaign, or
+  later lifecycle action was authorized or started.
+
+**Immediate next step:** freeze a new non-executable cumulative-replay and
+readiness composition for `6184a32...`; seek separate exact replay approval
+only after fixture and complete no-write verification pass.

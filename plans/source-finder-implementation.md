@@ -326,655 +326,154 @@ closed historical evidence and were not rescored.
 
 ### 6.2 Phase 5 decisions and latest evidence
 
-The initial matched-filter and wavelet candidates both failed the complete
-scientific matrix (`select-neither`). The corrective design retained the
-community-standard residual B3 à trous representation, original-image
-photometry, morphology-independent support, and separate compact versus
-irregular-source astrometry semantics. Detailed experiment chronology and all
-closed campaign identities remain in `LOG.md`.
+Phase 5 is open. The multiscale implementation, combined products, bounded
+execution proof, compact regression, original powered qualification, and
+incremental performance budget are complete. Recovery decision `cd3eacfb...`
+passes every binding Continuum and compact gate; final baseline qualification
+decision `d4db4d7f...` also passes.
 
-The recovery campaign is now the terminal Step 2C-PC promotion evidence:
+The public/challenge one-look remains closed failure evidence: decision
+`954077e9...` fails SDC1 completeness, reliability, and flux-error gates, and
+independent review `320f57f5...` attributes material defects to
+source-association semantics and deep-image overmerging without authorizing
+tuning or rescoring. The first corrected cumulative ledger `1ac6deb2...`
+retains compact science but fails with 37 Continuum like-semantics regressions.
 
-| Evidence | Result |
-| --- | --- |
-| Candidate | `c184acf7f...`; source `b4176ce3...`; configuration `0e5dde51...` |
-| Sealed campaign | 2,488 inputs; all 12,440 runs successful; SHA `4d881a41...` |
-| Analysis | write-once SHA `198fe6ff...` |
-| Decision | terminal `pass`; SHA `cd3eacfb...` |
-| Continuum | 143/143 absolute gates and 226/226 powered comparisons pass: 113 against each PyBDSF reference |
-| Compact | 77/77 binding absolute gates, 450/450 PyBDSF comparisons, and 143/143 applicable Aegean comparisons pass |
+The source-association candidate addressed those regressions prospectively, but
+its approved replay stopped after 58 of 2,400 candidate products because a
+positive owner could lose its catalogue row when surrounding negative
+residuals made the expanded aperture non-positive. No ledger was published and
+that authorization is consumed. Commit `6184a32...` contains the fixture-
+validated measurement-completeness repair; its replacement executable
+identities have not been frozen and no new execution is authorized.
 
-The closest Continuum gates are overall mask recall 0.90103 against 0.90 and
-overall mask-precision regression UCL 0.04940 against the pinned-master 0.05
-margin; keep both as explicit regression watchpoints. Five compact
-truth-absolute diagnostics remain outside stronger report-only envelopes, but
-they are not binding gates and all reference comparisons pass. This campaign
-contains no runtime-performance gate and supports no speed claim. Steps 3, 4,
-and 5 are complete. The separately reviewed incremental curve passes its
-6.0-second budget for every representative workload and confirms Serial below
-the measured 1,024--3,000-pixel crossover and Dask above it. Phase 5
-qualification, independent acceptance, and the later Rapthor cutover remain
-outstanding.
-
-The terminal public/challenge comparison is now an additional binding Phase 5
-result. Campaign `42abb896...` sealed all ten runs; analysis `975978fb...` and
-decision `954077e9...` are write-once. All nine SDC1 endpoint populations fail
-the same completeness, reliability, median-flux-error, and p95-flux-error
-gates. Overall completeness is 0.32463 and reliability 0.75598, while
-position, duplicate, and merge gates pass. The 16 non-binding Hydra
-diagnostics are complete and also expose weak Hebog deep/shallow stability.
-This supersedes the earlier expectation that passing internal qualification
-was sufficient to open public evidence. Phase 5 readiness, cutover, and
-release remain closed pending an independent scientific failure review and a
-separately approved prospective development response.
+The closest passing Continuum margins remain mask recall 0.90103 against 0.90
+and mask-precision regression UCL 0.04940 against the pinned-master 0.05
+margin. Section 7 now contains the single authoritative Phase 5 closure
+sequence; detailed campaign chronology and immutable identities remain in
+`LOG.md` and `config/contracts/`.
 
 ## 7. Delivery plan
 
 ### Phase 5: multiscale and extended emission
 
-#### 2C-PC. Recover from the failed post-correction campaign
+**Status: open.** Multiscale science, combined products, bounded execution,
+the original final qualification, compact regression, and the incremental
+performance budget are complete. Phase 5 is blocked by the absence of a passing
+cumulative regression ledger and fresh held-out qualification for the latest
+source-association repair. Detailed campaign and incident chronology belongs in
+`LOG.md`; machine identities and authorization boundaries remain in
+`config/contracts/`.
 
-- [x] Restore historical compiler SHA `7a055891...` and verify the complete
-      inherited identity chain. Preserve the sealed campaign, analysis, and
-      decision unchanged.
-- [x] Obtain named approval for the 2026-08-20 recovery pre-review. It
-      attributes the failures to an unbound candidate configuration, omitted
-      Continuum product settings, and Rapthor-source compact compilation; the
-      valid-region rule is a no-effect contract gap on this population.
-- [x] Implement the already reviewed candidate in one prospective product
-      adapter: refined residual-B3 support, 1.5-beam nearest-owned photometry,
-      regularized position weights, and the exact approved configuration SHA.
-- [x] Implement a new prospective compiler composition with fitted-component
-      compact semantics, symmetric valid-domain masks, and fail-closed
-      candidate-configuration verification. Add test-first normal, duplicate,
-      merged-support, invalid-pixel, all-reference-parity, and identity cases.
-      Keep source photometry distinct from support/island topology.
-- [x] Make no new algorithm correction unless the correctly composed
-      candidate fails permitted development evidence. Do not weaken gates or
-      change governed truth.
-- [x] Bind a restartable viewed-reference reconstruction after approved raw
-      cleanup removed the old products: retain the exact 1,600/800 viewed
-      population and protocol, use equivalent rebuilt PyBDSF/Aegean runtimes,
-      execute no historical Hebog leg, and label the result development-only.
-- [x] Produce a cumulative Phase 4/5 regression ledger and require no
-      like-semantics pass-to-fail regression. The complete viewed replay has
-      zero compact or Continuum regressions: compact passes, all 143 Continuum
-      absolute gates pass, and the nine underpowered paired endpoints feed the
-      completed prospective power review. A fresh campaign remains
-      unauthorized.
-- [x] Recompute exact endpoint power. The write-once recovery review
-      `bbfab3a0...` binds all 226 comparisons and selects 1,688 Continuum
-      realizations (422 per geometry) plus 800 compact realizations; its
-      conservative combined familywise power lower bound is 0.90508 against
-      the required 0.90.
-- [x] Obtain named scientific approval of candidate `c184acf...` / source
-      `b4176ce3...` / configuration `0e5dde51...`, then freeze the powered
-      seed-disjoint population, prospective recovery compiler/evaluator, and
-      four approved runtimes without execution. Initial review `5bdf4f46...`
-      was superseded before preflight because its verifier could not represent
-      the approved state; corrected pending review `8aaaca74...` adds only the
-      fail-closed authorization transition and keeps all science identities.
-- [x] Obtain a separate named one-look approval bound to identity review
-      `8aaaca74...` and its four runtimes. Approval of superseded review
-      `5bdf4f46...` did not carry across the verifier change. The corrected
-      decision now authorizes exactly one comparison while leaving the look
-      unopened. Run the complete no-write preflight from the immutable
-      authorization commit; execute and evaluate only if every identity holds.
-- [x] Restore at least 126 GiB host headroom, rerun the omitted no-write storage
-      audit, and resume the same `fa3134b...` / `7a44ba52...` staging namespace.
-      The identity preflight passed as request `4c53dc39...`, but launch was
-      stopped after 3 inputs and 0 results when only 28 GiB was observed. Do not
-      create a second campaign request or change any frozen identity. Approved
-      cleanup permanently removed the development-only viewed reconstruction's
-      42-GiB `inputs/` and 55-GiB `results/` while retaining its four provenance
-      records. Trimming the Podman guest then reduced its host allocation from
-      about 98 GiB to 31 GiB and restored 134 GiB host headroom. All four exact
-      images reverified and the same request resumed in managed session 83019;
-      hourly operational monitoring is active without partial-science access.
-- [x] Correct the recovery runner composition without creating another campaign.
-      The resumed process verified all 2,488 inputs but failed on the first
-      Hebog invocation before candidate execution because the recovery script
-      imports `hebog.validation.post_correction_recovery` from the approved
-      source tree while the container command deliberately omitted
-      `PYTHONPATH=/repository/src`. One reference result completed, no Hebog
-      result or terminal manifest exists, and no partial science was inspected.
-      A recovery-only Podman delegate now injects that path solely for the exact
-      frozen Hebog image and runner; command tests prove materialization,
-      references, and other images are unchanged, and a network-isolated import
-      smoke test resolves the approved module from the immutable checkout.
-- [x] Bind the delegate to request `4c53dc39...`, infrastructure log
-      `91e3db30...`, implementation commit `c88e7c25...`, delegate SHA
-      `36a420a1...`, the exact images, and the preserved staging namespace.
-      Pending resume review `a8d30ee9...` records zero completed Hebog results,
-      one unopened reference result, unchanged science, and sufficient adjusted
-      storage headroom; it cannot authorize itself.
-- [x] Obtain exact named approval of pending resume review `a8d30ee9...`.
-      Authorization decision `de2aec16...` permits only request `4c53dc39...`
-      to resume through delegate commit `c88e7c25...`; it forbids a second
-      campaign and any science change.
-- [x] Complete the existing-campaign resume, terminal verification, and frozen
-      compilation. Campaign `4d881a41...` sealed all 2,488 inputs and 12,440
-      runs; write-once analysis `198fe6ff...` compiled successfully.
-- [x] Repair the terminal evaluator composition without changing science. The
-      frozen evaluator stopped before scoring or output because it passed the
-      recovery-seam identity where the inherited evaluator requires the base
-      accelerator recorded by the analysis. A separate fail-closed adapter
-      at commit `147e193...` preserves both identities and forbids campaign or
-      analysis reruns. Pending review `0b6a98d9...` binds the unchanged evidence
-      and cannot authorize itself.
-- [x] Obtain exact named approval of pending review `0b6a98d9...`.
-      Authorization decision `5103aedc...` permits the amendment to evaluate
-      existing analysis `198fe6ff...` exactly once; it forbids campaign
-      re-execution, analysis recompilation, and science or gate changes.
-- [x] Evaluate analysis `198fe6ff...` once through the approved amendment.
-      Terminal decision `cd3eacfb...` is `pass`: all 143 Continuum absolute
-      gates, all 226 Continuum PyBDSF comparisons, all 77 compact binding
-      absolute gates, all 450 compact PyBDSF comparisons, and all 143
-      applicable compact Aegean comparisons pass. No campaign or analysis was
-      rerun and no gate or endpoint changed.
-- [x] Open Step 3 because every applicable absolute, released/master PyBDSF,
-      and Aegean gate passed. Retain the two narrow Continuum margins as
-      regression watchpoints; this decision does not close Phase 5 or make a
-      runtime claim.
+#### Completed evidence
 
-#### 2D. Determine the Rapthor profile
+| Workstream | Durable result |
+| --- | --- |
+| Recovery promotion | Candidate `c184acf7...` passed all 143 Continuum absolute gates, all 226 powered PyBDSF comparisons, all compact binding gates, and all applicable Aegean comparisons in terminal decision `cd3eacfb...`. |
+| Multiscale science and products | Residual-B3 detection, compact/extended reconciliation, deterministic identities, combined catalogues/masks, Rapthor compatibility products, and auditable scale/support provenance are implemented. |
+| Bounded execution | Reviewed halos, bounded shards and reductions, one-tile/many-tile equality, and Serial/existing-Dask partition, worker, order, and retry invariance pass. |
+| Final baseline qualification | The powered 1,688-image Continuum qualification and closed compact evidence passed through terminal decision `d4db4d7f...`; no campaign rerun, tuning, or rescoring occurred. |
+| Compact regression | All 800 Phase 4U realizations pass 77 absolute gates, 40 released/master PyBDSF comparisons, and five stronger-Hebog envelopes. |
+| Incremental performance | Summary `980e24c2...` passes the 6.0-second 3,000-pixel budget and retains Serial through 1,024 pixels and Dask at 3,000 pixels. This is not a complete Rapthor speed claim. |
+| Public/challenge evidence | Sealed public decision `954077e9...` failed SDC1 completeness, reliability, and flux-error gates. Independent review `320f57f5...` preserved that result, identified source-association and deep-image overmerging defects, and forbade tuning or rescoring viewed data. |
+| First public correction | Cumulative ledger `1ac6deb2...` kept compact green but recorded 37 Continuum like-semantics regressions, mainly split/duplicate source failures; it remains closed failure evidence. |
+| Source-association correction | Candidate `26e639a...` added conservative component association and deterministic source composition. Its approved replay stopped after 58 of 2,400 candidate products because a positive owner could lose its catalogue row when negative surrounding residuals made the expanded aperture non-positive. No ledger was published. |
+| Measurement-completeness repair | Commit `6184a32...` preserves positive expanded-aperture measurements, falls back to explicitly flagged positive exact-owner support only when required, propagates the flags, and remains fail-closed for genuinely unmeasurable owners. Fixture, coverage, check, documentation, and pre-commit validation pass. |
+| Readiness machinery | The fail-closed packet generator and finalizer exist and require packet-bound radio-astronomy and engineering acceptance. They do not authorize execution, cutover, or release. |
 
-- [x] Freeze the Rapthor/LSMTool revision, real input checksums, both PyBDSF
-      configurations, and predeclared decision strata.
-- [ ] Feed Hebog compact and qualified continuum masks through the same
-      filtering logic; compare retained/rejected true, apparent, and bright
-      sky-model components, including extended, edge, masked, sparse, and
-      crowded cases. Contract schema 1 and the fail-closed comparator are
-      implemented: they require exact pre-filter component identities and
-      strata, invoke rather than reproduce the pinned LSMTool operation, and
-      forbid overall agreement from compensating for a failed safety lane. A
-      tested two-artifact boundary now freezes the canonical component
-      population before membership results, requires exact compact, continuum,
-      released, and pinned-master lanes, binds the contract/software/input and
-      population hashes, and publishes one non-overwritable decision. Restore
-      the restricted real inputs on the controlled runner, freeze the
-      population, and execute the four LSMTool lanes.
-- [ ] Select `compact` only if at least 99.5% agreement and every safety
-      stratum pass; otherwise select `continuum`.
-- [ ] Treat this as a workflow-profile decision only. It cannot narrow the
-      general continuum science or authorize the Phase 7 backend cutover.
+The narrow Continuum watchpoints from the passing recovery evidence remain
+overall mask recall 0.90103 against 0.90 and mask-precision regression UCL
+0.04940 against the pinned-master 0.05 margin. The terminal public failure and
+the failed `1ac6deb2...` replay must remain visible historical evidence.
 
-#### 3. Complete multiscale science
+#### Current blocker and authorization state
 
-- [x] Detect significant residual emission at each configured scale from
-      shared à trous smoothings and calibrated local noise; reconstruct
-      accepted adjacent-scale signal without an image-sized response bank.
-      The promoted three-scale float64 kernel now exposes immutable per-scale
-      significance provenance, rejects non-finite thresholds and non-adjacent
-      scale records, and retains only bounded tile-local working planes.
-- [x] Freeze scale-specific connectivity, persistence, seed/grow, support,
-      minimum-area, edge, and invalid-pixel rules with analytic tests. The
-      production policy uses adjacent scales, eight-neighbour 3-sigma growth
-      on original valid residual pixels, normalized support of at least 0.5,
-      and a one-beam floor with a direct 5-sigma seed exception.
-- [x] Complete compact-deferred islands through a bounded partitioned path;
-      no task may own an arbitrarily large island. The published accepted mask
-      is relabelled in independently bounded zero-halo cores, reconciled from
-      compact boundary summaries, and bound to canonical array-free shards;
-      exact membership is reconstructed from only one shard tile at a time.
-- [x] Measure extended flux, position, shape, background, and available
-      uncertainty from original pixels with explicit unavailable/truncation
-      semantics. Bounded tasks apply the promoted 1.5-major-beam nearest-owned
-      aperture, preserve compact supports as barriers, reduce only scalar
-      statistics, use regularized direct-plus-B3 positions with the reviewed
-      compact safeguard when supplied, and type flux uncertainty, shape
-      availability, and edge/invalid truncation without inventing errors.
-- [x] Preserve compact Phase 4 products exactly when multiscale evidence does
-      not alter their association. The no-op boundary accepts only
-      `extended-only` evidence with no compact source identities, returns the
-      same completed compact object, and reproduces identical Rapthor FITS
-      bytes; compact-touching or ambiguous evidence fails closed for Step 4.
+There is no terminal cumulative ledger for the measurement-completeness
+repair. The previous source-association replay authorization
+(`d806f38e...`) was consumed by the failed process, and the old candidate,
+wrapper, scratch, and execution decision must not be reused as authorization.
+Commit `6184a32...`, its source-tree checksum, the resulting configuration,
+the replay wrapper, and replacement output/scratch namespaces have not yet been
+frozen together. No cumulative replay, viewed SDC1/Hydra execution, fresh
+qualification, tuning, rescoring, cutover, or release is currently authorized.
 
-#### 4. Reconcile scales and construct products
+The frozen readiness contract also still names superseded correction candidate
+`b1d59e5...`, configuration `65c8876d...`, and its old ledger path. It must
+be updated prospectively to the final repaired candidate and evidence paths
+before the final evidence is opened; a passing result must not be fitted into
+the readiness contract retrospectively.
 
-- [x] Define deterministic compact/extended overlap, ownership, split/merge,
-      and duplicate-suppression rules before implementation. Named approval on
-      2026-08-24 froze contract schema 2: adjacent-scale exact-support graph
-      reconciliation, shared-island/separate-source compact context,
-      compact-first pixel ownership, one extended row per association, and
-      fail-closed ambiguity. The bounded serial association kernel now derives
-      stable associations independently of plane and local-label order;
-      combined identity and construction remain below.
-- [x] Preserve physically distinct compact components embedded in or projected
-      on extended emission while merging fragments of one extended object. A
-      bounded many-to-many context graph retains every accepted Phase 4 source
-      ID and every reconciled extended association ID, records containment and
-      overlap per edge, uses only exact support or the frozen half-beam context
-      dilation, and fails closed on conflicting extended ownership.
-- [x] Derive stable island, source, and compatibility-component identities from
-      global reconciled properties, independent of tiles and task order.
-      Compact-only islands and all Phase 4 source/Gaussian IDs remain exact;
-      mixed and extended islands hash canonical compact-island and association
-      membership, while each association has one context-independent extended
-      source ID. Irregular extended sources deliberately have zero Gaussian
-      components rather than publishing an unfitted compatibility Gaussian;
-      machine contract schema 3 freezes these identity rules.
-- [x] Merge bounded shards hierarchically and publish only when every accepted
-      or deferred island has a terminal disposition. Canonical fan-in-two
-      reduction records depth and maximum input-shard size under an explicit
-      final-state record cap. State schema 2 carries disjoint accepted and
-      deferred identity sets; missing dispositions, omissions, failed states,
-      duplicate ownership, and unknown terminal evidence all block completion.
-- [x] Materialise the combined catalogue, mask, RMS, provenance, diagnostics,
-      and Rapthor compatibility view without changing compact-only output.
-      Compact-only composition reuses the exact Phase 4 catalogue and RMS
-      records and reproduces identical internal-catalogue, mask, diagnostics,
-      and Rapthor FITS bytes. Mixed output retains every compact source and
-      Gaussian, adds one irregular row per accepted association, unions only
-      accepted extended support into the mask, and records scale/support
-      provenance in diagnostics schema 2. Contract schema 4 freezes the
-      original-pixel peak/flux and characteristic-extent semantics.
+#### Remaining closure sequence
 
-#### 5. Prove bounded deterministic execution
+Execute these steps in order. A failure at either scientific gate stops the
+sequence and requires a new prospective review; it does not authorize tuning
+from partial or viewed evidence.
 
-- [x] Derive and review every stage halo; reject configurations that cannot
-      meet the memory contract. Allocation-free planning derives the actual
-      matched-filter radii, cumulative residual-B3 support, refinement,
-      three-beam segment association, compact-context, and 1.5-beam
-      measurement halos; reconciled record-only stages require zero image
-      halo. Every stage must preserve the strict quarter-core guardrail and
-      fit its worst-case interior read within the global and any tighter stage
-      task-pixel cap. Byte-level workspace evidence remains the final Step 5
-      task.
-- [x] Prove one-tile/many-tile equality across edges, corners, rectangular
-      tiles, invalid regions, largest scales, and multiple partition origins.
-      The core-only filtering seam returns owned immutable arrays, while the
-      existing bounded side/corner summaries reconcile reconstruction,
-      residual-island, and segment-association topology. A small deterministic
-      oracle proves identical masks, labels, island properties, final segment
-      refinement, position signal, and matched/B3 responses for one tile and
-      88-by-96 cores at origins `(0, 0)` and `(43, 47)`. Complete-plane
-      assembly is test-only and remains forbidden in production.
-- [x] Prove partition, batch, worker-count, completion-order, retry, and
-      executor invariance for science and product identities. The production
-      stage performs an array-free topology pass, reconciles bounded side and
-      corner summaries, then recomputes the bounded filters to publish only
-      accepted science products; it never persists an image-sized response
-      bank or returns science arrays through the executor. One-/many-tile
-      products retain the existing `2e-13` FFT tolerance and exact masks plus
-      global topology IDs. For one partition, one/all-tile batches, reversed
-      completion, identical retry, SerialExecutor, and one-/two-worker Dask
-      publish the exact same checksummed generation bytes.
-- [x] Record bounded retained bytes, workspaces, summaries, shards, and graph
-      size; exercise SerialExecutor and the existing executor path. Exact
-      ndarray-payload accounting for the reviewed five-pixel beam and
-      256-square core records a 26,298,000-byte conservative filter peak.
-      Bounded 12-window FITS batching raises the measured 3,000-square task
-      peak to 37,350,048 bytes with 28,890,128 retained array bytes while
-      amortising file opens. Each tile contributes two topology summaries,
-      three scale
-      summaries, 20,480 boundary-array bytes, and eight checksummed product
-      shards. A two-pass graph has
-      `2 * ceil(partitions / maximum_tiles_per_batch)` coarse tasks; Serial and
-      one-/two-worker existing-client Dask return identical evidence. At the
-      3,000-square anchor with batch size 12 this is 144 tiles, 2.81 MiB of
-      boundary arrays, and 24 tasks, filling three waves on four workers. The
-      100,000-square projection makes the
-      already planned distributed hierarchical reduction in Phase 6 mandatory
-      before extreme-scale qualification.
+1. [ ] **Freeze the repaired cumulative-replay composition.**
+   - Bind the exact candidate commit and source tree derived from
+     `6184a32...`, the complete configuration, measurement-repair program,
+     source-association contracts, replay wrapper, reconstructed reference
+     terminal `48209eae...`, and closed baseline `a45303df...`.
+   - Use new write-once ledger and scratch identities, run fixture and complete
+     no-write verification, and publish a non-executable identity review with
+     every later authorization false.
+   - Prospectively update the readiness contract to require the same final
+     candidate, configuration, ledger, and future held-out decision identities.
 
-#### 6. Qualify Phase 5
+2. [ ] **Obtain named approval and run exactly one cumulative replay.**
+   - Approval must bind the replacement identity review and exact two-worker
+     800-compact/1,600-Continuum composition.
+   - Require `cumulative_science_regression_ready=true`, every required
+     endpoint passing, and empty compact and Continuum like-semantics regression
+     lists. Interpret compact and Continuum science before power or runtime.
+   - If execution or evaluation fails, preserve the write-once state and stop;
+     do not overwrite, resume under a consumed decision, tune, rescore, or
+     silently substitute evidence.
 
-- [x] Turn every accepted development defect into a deterministic regression
-      fixture. Machine registry schema 1 binds all 18 accepted numerical,
-      product, campaign-composition, and runtime-provenance root causes to 34
-      unique pytest functions. Its integrity test fails if an entry or named
-      fixture disappears; the complete registered lane passes independently.
-- [x] Repeat the full final comparison with untouched qualification data,
-      injected truth, both PyBDSF references, and Aegean over its applicable
-      scope, stratified by morphology, scale, SNR, edge, blend, and background.
-      A no-science audit found that the untouched 400-image, one-geometry
-      manifest is below the current 1,532-image power minimum. Preserve it
-      unopened. Named approval on 2026-08-25 froze 1,688 fresh Continuum
-      qualification images, balanced as 422 over four geometries, and bound
-      the closed Phase 4U/current compact evidence without pooling or a fresh
-      compact lane. The final runner/compiler/evaluator/runtime composition is
-      frozen by identity review `42ad6237...`. Named one-look approval on
-      2026-08-25 authorizes the no-write preflight and conditional execution
-      only if every identity remains unchanged. Preflight passed from immutable
-      authorization commit `1d584fb...` with request `eebb6d79...`, all 1,688
-      inputs and 8,440 runs, and the exact four runtime identities unchanged.
-      After approved cleanup, that single campaign sealed completely as
-      campaign SHA-256 `4badb8e1...`. Its frozen compiler failed before science
-      because a stale inherited compatibility map parsed the final decision as
-      a recovery decision. The separately reviewed evaluation-only repair
-      preserved the campaign and every scientific identity, installed the
-      intended final aliases at that seam, and delegated to the byte-exact
-      frozen compiler and evaluator. The one authorized compilation wrote
-      analysis SHA-256 `34fb0f7e...`; the one authorized evaluation wrote
-      decision SHA-256 `d4db4d7f...` with `status=pass`. All 143 Continuum
-      absolute endpoints and all 226 applicable paired comparisons pass, both
-      closed compact records pass without pooling or rescoring, and all 5,064
-      binding runs are successful. No campaign rerun, tuning, rescoring,
-      cutover, or release was authorized.
-- [x] Add public/challenge comparisons across at least two telescope families;
-      use Selavy, ProFound, or CAESAR only where scientifically applicable.
-      The pre-acquisition review now recommends a truth-bearing SKA SDC1
-      1.4-GHz lane and the real ASKAP EMU Pilot Hydra deep/shallow lane. The
-      exact public URLs, roles, metrics, five scoped Hydra comparators, and
-      no-finder-as-truth policy are machine validated. Named scientific review
-      approved acquisition on 2026-08-25 and froze seven exact requests
-      totalling 15.05 GB. Acquisition SHA `a74e60de...` verifies all source
-      checksums. Schema review SHA `409318f5...` records exact SDC1/Hydra
-      shapes, WCS, units, catalogue layouts, and the truth-only eight-tile
-      formula proposal without opening pixels or finder products. It also
-      binds serialization-only amendment `243d1680...`, which preserves the
-      sealed decision hash while validating the formatter-canonical decision
-      as scientifically unchanged. Named schema/selection review
-      `409318f5...` authorized adapters and one population, but no finder run.
-      The SDC1/Hydra adapters are implemented and terminal population
-      `0a7c2b18...` selects eight unique 2,048-square strata from 32 admitted
-      tiles; all source, FITS, truth-membership, and implementation bindings
-      verify. Official truth ID `32397377`, the sole non-finite centroid, is
-      explicitly excluded by the approved membership rule. Public finder
-      execution still requires its own frozen protocol and named approval.
-      No-science execution pre-review `476265e1...` now recommends ten Hebog
-      runs, candidate-owned background/RMS estimation, haloed SDC1 core
-      execution, nine non-compensating SDC1 absolute endpoint families, and
-      non-binding per-finder Hydra diagnostics. Named implementation review
-      authorized only implementation and identity freezing. The validated
-      protocol, runner, compiler, evaluator, sparse association, deconvolved
-      SDC1 shape diagnostics, and fail-closed authorization boundary are
-      committed as `3d234c5d...`. Identity review `19b6296f...` freezes those
-      programs, the selected population, passing candidate and qualified
-      runtime, and exact absent output namespace. Pending decision
-      `d307c1ea...` kept every action false. Named approval on 2026-08-26 is
-      recorded as decision `a9330407...` and authorizes the complete no-write
-      preflight and, only if every identity remains unchanged, one public
-      finder campaign, one compilation, and one evaluation. The preflight
-      passed unchanged. Campaign `42abb896...` sealed all ten successful runs;
-      analysis `975978fb...` and decision `954077e9...` were each published
-      exactly once. The terminal result is `fail`: all nine SDC1 populations
-      miss completeness, reliability, median-flux-error, and p95-flux-error
-      gates. Overall values are 0.32463, 0.75598, 0.10475, and 0.30592,
-      respectively. Position, duplicate, and merge gates pass. All 16
-      non-binding Hydra diagnostics are complete, including Hebog deep/shallow
-      overlap 0.10674. Public evidence, optimization, tuning, rescoring,
-      cutover, and release remain closed. Independent post-result review
-      `320f57f5...` preserves that terminal decision but separates protocol
-      validity from candidate capability. The frozen position-only matcher and
-      uncalibrated absolute gates are not an official SDC1 score. Independently,
-      the Hydra deep product proves a real depth-dependent association defect:
-      three-beam multiscale support dilation bridges seeded islands into labels
-      as large as 55,186 pixels, versus 2,737 shallow, while field-scale RMS
-      remains plausible.
-- [x] Complete an independent scientific review of terminal public decision
-      `954077e9...` without tuning or rescoring the sealed one-look. The review
-      attributes SDC1 low-SNR sensitivity loss beyond RMS estimation, source-
-      association ambiguity under a position-only dense-field matcher, missing
-      public shape characterization, and Hydra deep-image overmerging. Matched
-      SDC1 flux is within the frozen limits above SNR 20, so photometry is not
-      the first correction target. Phase 5 remains closed.
-- [x] Prospectively pre-review seeded-island ownership, fitted/deconvolved
-      public shapes, and an official-source-finding SDC1 adapter with null-
-      catalogue and submitted-team calibration. Pre-review
-      `3e02aff3...` preserves original-residual
-      seed identities, assigns eligible half-beam multiscale support by stable
-      nearest ownership, and keeps association edges separate from pixel and
-      catalogue identity. It specifies moment-equivalent observed covariance,
-      local-WCS transformation, honest beam-deconvolution states, and an
-      isolated official source-finding scorer without claiming the unavailable
-      classification score. Threshold, RMS, minimum-area, aperture, flux, and
-      public-gate changes are excluded from the correction. The now-viewed
-      SDC1 and Hydra products remain development/regression evidence. Named
-      implementation approval, exact non-executable identities, a separately
-      approved complete cumulative replay, and fresh held-out qualification
-      are all still required.
-- [x] Implement the approved public-finder correction on fixture evidence only.
-      Decision `8ade048d...` binds pre-review `3e02aff3...` and authorizes no
-      execution. The prospective path preserves accepted direct-residual seeds,
-      assigns half-beam reconstructed support by exact nearest ownership with a
-      global-position tie break, and leaves the historical three-beam union
-      reproducible. Catalogue rows now publish WCS-aware moment-equivalent
-      observed shapes and explicit beam-deconvolution states without changing
-      thresholds, RMS, area, position, aperture, or flux. The in-memory SDC1
-      adapter exposes only position, size, and apparent flux; classification,
-      core fraction, and the official global score remain unavailable. Viewed
-      SDC1/Hydra products and the closed cumulative ledger were not opened.
-      Exact non-executable identity review `e2121fb8...` now binds candidate
-      `b1d59e5...`, source tree `2de6564e...`, the unchanged base configuration,
-      correction contract `f0ddd4d5...`, closed cumulative baseline
-      `a45303df...`, and the still-closed viewed population. It records that no
-      replay ledger or corrected viewed products exist and authorizes nothing.
-- [x] Obtain named approval bound to correction identity review `e2121fb8...`
-      for one complete cumulative replay only. No-write preflight rejected the
-      composition before execution: bound program `5d41d31e...` still selects
-      revision `c184acf7...`, base configuration `0e5dde51...`, and the old
-      Continuum builder. The approved correction is `b1d59e5...` with complete
-      configuration `65c8876d...`. No scratch, product, or ledger was created.
-- [x] Implement the approved cumulative-replay repair without executing it.
-      Decision `83d14670...` binds pre-review `e198df12...`. The minimal
-      wrapper checksum-verifies and delegates to historical replay
-      `5d41d31e...`, selecting only candidate `b1d59e5...`, complete correction
-      configuration `65c8876d...`, the corrected Continuum builder, and an
-      explicit source-overlay runtime record. It preserves compact generation,
-      compiler/evaluator programs, endpoints, gates, reconstructed references,
-      and closed baseline `a45303df...`. Authorization, source, dependency,
-      population, program, output, and scratch drift fail before scientific
-      input access; no execution decision or replay output exists.
-- [x] Freeze replacement replay identity review `5e5bf04a...` against
-      implementation commit `1a6cecb...`, wrapper `b4d02784...`, the exact
-      two-worker reconstructed-reference invocation, correction source overlay,
-      inherited dependency reference, historical programs/contracts, and
-      closed baseline. The execution decision, output, scratch, and corrected
-      viewed-public products are absent, and all authorization flags are false.
-- [x] Obtain named approval bound to replacement review `5e5bf04a...` for
-      exactly one complete cumulative replay. The decision binds candidate
-      `b1d59e5...`, configuration `65c8876d...`, wrapper `b4d02784...`, the
-      two-worker 800-compact/1,600-Continuum composition, and closed baseline
-      `a45303df...`; all later lifecycle actions remain unauthorized.
-- [x] Attempt the approved replay from clean immutable commit `300526e...`.
-      Static no-write identity preflight passed, but the single process failed
-      before reference or candidate science: the frozen reconstruction
-      producer verifier expects source `b4176ce3...` and incorrectly hashes
-      the corrected consumer checkout `2de6564e...`. Scratch is empty and the
-      atomic ledger is absent; the execution approval is consumed.
-- [x] Publish non-executable reference-consumer provenance repair pre-review
-      `d169ab9a...`. It keeps historical reconstruction producer source
-      `b4176ce3...` separate from corrected candidate source `2de6564e...`,
-      preserves every science and evidence byte, requires both verifier-layer
-      fixtures plus a complete no-write verification before identity freeze,
-      and authorizes nothing.
-- [x] Obtain named approval of pre-review `d169ab9a...` and implement only the
-      minimal reference-consumer provenance repair. Decision `76477b31...`
-      authorizes implementation, non-executable identity freezing, and one
-      complete no-write reference verification, but no replay. Wrapper
-      `6f383435...` scopes historical producer source `b4176ce3...` to the two
-      frozen verifier checks, preserves candidate source `2de6564e...`
-      everywhere else, and verifies references before scratch creation. The
-      first immutable no-write attempt exposed `runpy.run_path`'s copied return
-      namespace; wrapper `b2240e55...` now patches the verifier function's
-      actual globals, with a regression fixture matching that behaviour.
-- [x] Commit the validated repair and attempt complete no-write verification
-      from clean immutable checkouts. Commit `c5fa6ee...` passes both producer
-      and consumer source guards, but verification then stops at the first
-      reconstructed input because the approved 2026-08-22 cleanup permanently
-      deleted both raw trees. Availability failure `2ae63e0a...` records zero
-      verified products and absent replay output/scratch. Non-executable
-      reconstruction pre-review `e3abbe9c...` binds historical producer commit
-      `a000db4...`, all four retained runtimes, 2,400 inputs, 9,600 reference
-      runs, a new write-once namespace, and the 120-GiB storage precondition.
-- [x] Obtain separate named approval for the exact reference reconstruction.
-      Decision `cc22c773...` binds pre-review `e3abbe9c...`, historical
-      producer `a000db4...`, program `81faad48...`, decision `b35f4a81...`,
-      all four runtime identities, 2,400 inputs, 9,600 reference runs, zero
-      candidate runs, and one new write-once namespace. It authorizes only the
-      complete no-write preflight and one conditional reconstruction.
-- [x] Rebuild and fully verify the missing per-image reference evidence without
-      any candidate run. The single authorized reconstruction sealed 2,400
-      inputs and 9,600 reference runs as terminal `48209eae...`; immutable
-      consumer commit `046df24...` then verified every product under distinct
-      producer source `b4176ce3...` and candidate source `2de6564e...`, with
-      replay output and scratch still absent. Replacement non-executable review
-      `c5924600...` freezes the corrected wrapper and exact replay composition.
-- [x] Complete the named-approved replay bound to review `c5924600...` from
-      immutable commit `4786184...`. The exact two-worker
-      800-compact/1,600-Continuum process published terminal ledger
-      `1ac6deb2...`, with exact candidate `b1d59e5...`, source
-      `2de6564e...`, configuration `65c8876d...`, reconstructed references
-      `48209eae...`, and closed baseline `a45303df...`. Compact passes without
-      a like-semantics regression, but Continuum has 89 passes, 44 failures,
-      10 underpowered endpoints, and 37 like-semantics regressions, so
-      `cumulative_science_regression_ready=false` and the terminal status is
-      `fail`.
-- [x] Complete the prospective scientific pre-review for the source-identity
-      composition exposed by ledger `1ac6deb2...`. Review `9af42348...`
-      distinguishes immutable detection components, image-domain catalogue
-      sources, and out-of-scope astrophysical objects. It freezes a
-      conservative graph using undilated parent support, existing-threshold
-      intensity continuity, directional-FWHM proximity, and deterministic
-      complete-link grouping; ambiguous and transitive-only associations stay
-      separate. Source rows aggregate existing exclusive component
-      measurements while component ownership remains bitwise identical.
-      The corrected owner plane keeps completeness and merge endpoints green,
-      but treats every accepted original-residual connected component as a
-      terminal catalogue source without a distinct object-association layer.
-      That converts multi-component extended truths into fragments: overall
-      reliability is 0.62563, duplicate fraction 0.25179, split fraction
-      0.25295, integrated-flux p95 error 0.79260, and position p95 error 4.20355
-      beams. The 37 regressions comprise 12 split, 10 duplicate, four median
-      flux, four position-tail, three x-offset, three y-offset, and one
-      reliability endpoint. Preserve exact seed-pixel ownership, but review a
-      bounded source-association graph and explicit component-versus-source
-      catalogue semantics against analytic and injected truth. Do not infer a
-      threshold or photometric correction from this result, and do not tune
-      from the 10 underpowered endpoints. Another replay, viewed SDC1/Hydra
-      execution, a campaign, qualification, tuning, rescoring, cutover, and
-      release require separately frozen identities and named approval.
-- [x] Implement the named-approved source-association repair on fixtures only.
-      Decision `6a495fcb...` binds pre-review `9af42348...`. Stable component
-      records, undilated existing-threshold directional-FWHM edges,
-      deterministic complete-link reduction, and binding aggregate source
-      rows preserve exact owner labels and component photometry. Analytic
-      negative controls and Serial/existing-Dask one-tile, overlapping-halo,
-      partition-origin, task-order, and retry invariance pass without opening
-      replay or viewed-public products.
-- [x] Freeze the validated implementation as exact non-executable identity
-      review `c58eec6e...`. It binds commit `26e639a...`, source tree
-      `34fecf30...`, configuration `78dbb230...`, implementation/fixture
-      artifacts, failed ledger `1ac6deb2...`, reconstructed references
-      `48209eae...`, and closed baseline `a45303df...`. The existing wrapper is
-      explicitly incompatible because it remains bound to candidate
-      `b1d59e5...` and configuration `65c8876d...`; no executable composition
-      or action is authorized.
-- [x] Prospectively pre-review the smallest replay-consumer update that binds
-      candidate `26e639a...` and configuration `78dbb230...` while preserving
-      the exact population, references, compiler/evaluator, endpoints, and
-      closed baseline. Review `a2e13e11...` requires a new wrapper and output
-      namespace, keeps the consumed correction wrapper and authorization
-      immutable, and leaves every implementation and execution flag false.
-- [x] Obtain named approval of pre-review `a2e13e11...`, then implement and
-      fixture/no-write validate only the minimal wrapper and freeze its exact
-      non-executable identities. The complete replay still requires a separate
-      exact approval. Approval decision `37931ad3...` is recorded and wrapper
-      `bfc1d6d0...` passes 59 fixture/no-write contracts, including spawned-
-      worker composition and rejection of the consumed authorization. Clean
-      commit `1b511ed...` verified all 2,400 inputs and 9,600 reference runs
-      without creating output or scratch, and replacement identity review
-      `7f7ac272...` freezes the exact non-executable composition.
-- [x] Obtain a separate named one-replay approval bound to replacement review
-      `7f7ac272...`. Exact execution decision `d806f38e...` authorizes only the
-      two-worker 800-compact/1,600-Continuum cumulative replay and atomic
-      ledger; viewed public execution and every later lifecycle action remain
-      false.
-- [x] Invoke the exact approved replay once. The sandboxed process stopped
-      before candidate work; the unchanged permitted retry then completed 58
-      of 2,400 candidate products before failing without an atomic ledger.
-      One accepted detection owner had positive exact support but a
-      non-positive expanded measurement aperture, so it was retained by the
-      association partition after its component catalogue row had been
-      suppressed. No partial science was interpreted and the one-replay
-      authorization is consumed.
-- [x] Validate the measurement-completeness repair on fixtures: preserve
-      expanded-aperture photometry when it is positive, use an explicitly
-      flagged positive exact-owner fallback only when negative surroundings
-      make that aperture non-positive, and keep truly non-measurable owners
-      fail-closed.
-- [ ] Freeze replacement candidate/replay identities and obtain a new exact
-      one-replay approval before resuming or restarting; then require
-      `cumulative_science_regression_ready=true` with no like-semantics compact
-      or Continuum regression before any viewed SDC1/Hydra follow-up.
-- [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
-      envelopes. Current Hebog completed all 800 untouched Phase 4U compact
-      realizations with no failures. The frozen 50,000-resample one-sided BCa
-      decision passes all 20 endpoints against released PyBDSF, all 20 against
-      pinned PyBDSF master, all 77 absolute gates, and all five stronger-Hebog
-      envelopes. The 90-MiB shards expand to roughly 10.4 GiB each as validated
-      Pydantic objects, so a tested bounded evaluator now reduces each exact,
-      hash-bound shard in an isolated process before applying the unchanged
-      scientific decision functions.
-- [x] Repair and refreeze the final compiler/evaluator composition. Identity
-      review `42ad6237...` correctly bound candidate `9062664...`, source
-      `e4307246...`, configuration `0e5dde51...`, four runtime images, 1,688
-      inputs, 8,440 runs, and closed compact evidence; its approved campaign
-      sealed as `4badb8e1...`. The compiler identity it bound is nevertheless
-      unusable because its compatibility-layer alias is overwritten before
-      terminal verification. No analysis exists. The repair must add a
-      regression that exercises the real inherited decision-loading seam,
-      preserve all science and campaign identities, and obtain named approval
-      before compiling the existing sealed campaign exactly once. Pre-review
-      `8cff6163...` rejects in-place edits, ad hoc runtime patching, and a
-      campaign rerun. The approved evaluation-only wrappers now install the
-      complete final aliases only at the inherited compatibility seam, then
-      delegate compilation and scoring to the byte-exact frozen functions.
-      Real-seam, exact-authorization, provenance, write-once, and unchanged-
-      delegation regressions pass without opening campaign science.
-      Implementation commit `b6ce3cdd...` is frozen by pending identity review
-      `b69b2eaa...`, which binds the exact repair programs, complete frozen
-      composition, campaign/request, four runtimes, and absent outputs. Every
-      authorization flag in the review remains false. Named approval on
-      2026-08-26 authorized exactly one compilation and one evaluation of the
-      existing campaign through repair compiler `42ac2a96...` and evaluator
-      `f4396a8a...`. Provenance validation passed; atomic analysis `34fb0f7e...`
-      and terminal decision `d4db4d7f...` were published exactly once. Science
-      was interpreted before diagnostic runtime, and the terminal status is
-      `pass`. Another campaign, optimization, tuning, rescoring, cutover, and
-      release remain unauthorized.
-- [x] Benchmark 256, 512, 1,024, and 3,000-square incremental paths and both
-      sides of any new crossover; meet the 6.0-second multiscale budget with no
-      unapproved adjacent-tier regression. Preserve the two superseded curves:
-      one used the wrong beam/core composition and one was perturbed by a 5-ms
-      process-tree monitor. The first valid reviewed curve, summary SHA
-      `980e24c2...`, binds commit `1f7a4ae...`, preserves exact Serial/Dask
-      scientific structure, and passes sparse/normal/extended 3,000-square
-      medians at 5.6711/5.5770/5.6427 seconds. Serial is 1.49--1.69 times faster
-      at 1,024; Dask is 3.35--3.43 times faster at 3,000, so retain the frozen
-      Serial-through-1,024/Dask-at-3,000 policy. This curve is the baseline for
-      later adjacent-tier regression decisions.
-- [x] Update schemas, method/configuration documentation, the Marimo
-      demonstration, and auditable per-object scale/support provenance. The
-      current demonstration executes both the qualified compact path and a
-      compact-clean extended residual whose 4-sigma direct peak is recovered
-      through the promoted matched-filter seed aid and residual-B3 scale
-      support. Documentation continues to fail closed about the unfinished
-      public orchestration and qualification boundary.
-- [x] Implement the fail-closed Phase 5 readiness contract, review-packet
-      generator, and finalizer. The exact generator programs, binding evidence
-      paths and fields, immutable public failure context, reviewer ownership,
-      role-specific questions, and closed later-lifecycle authorizations are
-      machine bound. Missing evidence becomes a named blocker; malformed,
-      failing, or identity-drifted evidence aborts preparation. Finalization
-      rebuilds the exact packet and requires separate packet-bound
-      radio-astronomy and engineering acceptances without authorizing cutover
-      or release.
-- [ ] Publish the Phase 5 readiness record only after a prospectively repaired
-      candidate passes a separately frozen and authorized cumulative replay,
-      fresh held-out qualification of that exact candidate, the restricted
-      Rapthor profile, performance, and independent-review gates. The current
-      terminal cumulative failure is a hard blocker, not missing evidence.
-- [ ] Obtain named independent radio-astronomy and engineering acceptance.
+3. [ ] **Freshly qualify the exact passing candidate.**
+   - Freeze a seed-disjoint, previously unopened held-out population and the
+     exact compiler/evaluator/runtime identities, then obtain a separate
+     one-look approval.
+   - Require all binding absolute gates and all applicable released/master
+     PyBDSF and Aegean comparisons, including the two Continuum watchpoints.
+     Keep compact regression green and do not pool with or rescore closed
+     campaigns.
+   - Viewed SDC1/Hydra evidence remains diagnostic historical context, not
+     fresh qualification truth.
 
-Phase 5 closes only when the final corrected implementation passes every
-binding absolute and applicable reference gate on fresh held-out evidence, the
-Rapthor profile is selected, compact regression remains green, bounded
-tile/executor invariance is proven, the incremental performance budget passes,
-the terminal public failure remains explicitly scoped, and independent
-reviewers accept the exact evidence packet and Phase 6 handoff.
+4. [ ] **Complete the restricted Rapthor profile decision.**
+   - Restore the controlled real inputs, freeze their canonical pre-filter
+     component population, and run compact and continuum Hebog masks through
+     the exact pinned LSMTool filtering operation against both PyBDSF
+     references.
+   - Compare true/apparent, bright, extended, edge, masked, sparse, and crowded
+     safety strata. Select `compact` only when overall agreement is at least
+     99.5% and every safety stratum passes; otherwise select `continuum`.
+   - Record a write-once profile decision. This selects workflow behaviour only
+     and does not authorize the Phase 7 cutover.
+
+5. [ ] **Confirm final engineering evidence.**
+   - Re-run source-association Serial/existing-Dask invariance and the affected
+     incremental performance anchors for the exact final candidate, or record a
+     reviewed proof that the frozen performance path and identity are
+     unchanged. Preserve the 6.0-second budget and crossover policy.
+   - Rebuild the complete readiness review packet against the final cumulative
+     ledger, held-out qualification, Rapthor profile, bounded-execution
+     contract, performance summary, closed final qualification, terminal public
+     failure, and its independent scientific review.
+
+6. [ ] **Obtain independent acceptance and publish readiness.**
+   - Obtain separate packet-bound radio-astronomy and engineering acceptances.
+   - Run the write-once readiness finalizer, update `LOG.md`, user
+     documentation, and the Phase 6 handoff, then create a reviewed local
+     commit without pushing.
+   - The readiness record closes Phase 5 only. Cutover, release, optimization,
+     and Phase 6/7 execution remain separately governed.
+
+Phase 5 is complete when steps 1--6 are checked and the final readiness record
+is terminal. No additional public campaign is intrinsically required for
+closure unless the prospective scientific review or fresh qualification
+exposes a new blocker.
 
 ### Phase 6: distributed execution
 
