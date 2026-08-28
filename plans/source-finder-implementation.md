@@ -395,10 +395,13 @@ repair. Replacement review `119ce0f9...` and execution decision `5ddc524a...`
 authorized one replay; it completed all 2,400 shards and then failed during
 catalogue compilation, so that authority is consumed. The execution-failure
 contract preserves the absent ledger, complete scratch, and adapter mismatch.
-The existing shards may be reused only after complete identity verification
-under a newly frozen evaluation-repair composition. Candidate execution,
-replay, viewed SDC1/Hydra execution, qualification, tuning, rescoring,
-cutover, and release remain unauthorized.
+Clean repair commit `ea3279d...` and non-executable identity review
+`6a0e79b4...` now bind the new adapter and completion program, all 2,400
+artifact-verified candidate shards (`dbc317fa...`), all 9,600 retained
+reference runs, the unchanged historical compiler/matcher, and the absent
+ledger. Candidate execution, replay, compilation, evaluation, viewed
+SDC1/Hydra execution, qualification, tuning, rescoring, cutover, and release
+remain unauthorized pending separate exact completion approval.
 
 The frozen readiness contract has now been prospectively rebound to repair
 candidate `6184a32...`, configuration `78dbb230...`, and the replacement
@@ -418,10 +421,10 @@ complete no-write verification of all 2,400 inputs and 9,600 retained
 reference runs without creating output or scratch state. Gate 1 is complete.
 Gemma Danks granted separate named approval bound to review `119ce0f9...`;
 execution decision `5ddc524a...` was consumed by the process that produced
-every candidate shard but no ledger. The evaluation-only repair must now be
-committed, verified against the preserved product-set identity, and frozen for
-separate exact compilation/evaluation approval. It must never submit candidate
-work.
+every candidate shard but no ledger. The evaluation-only repair has now been
+committed, verified against the preserved product-set identity, and frozen in
+review `6a0e79b4...` for separate exact compilation/evaluation approval. It
+cannot submit candidate work.
 
 #### Remaining closure sequence
 
@@ -449,9 +452,12 @@ from partial or viewed evidence.
    - [x] Candidate execution completed all 2,400 products under that authority;
      compilation failed before atomic publication on the stale single-support
      adapter, and the replay authority is consumed.
-   - [ ] Freeze and approve the evaluation-only completion identity, then
-     compile and evaluate only the exact preserved product set. Candidate
-     submission and another replay remain forbidden.
+   - [x] Freeze evaluation-only completion identity `6a0e79b4...` after exact
+     verification of product set `dbc317fa...`; it leaves compilation and
+     evaluation unauthorized.
+   - [ ] Obtain separate approval bound to that review, then compile and
+     evaluate only the exact preserved product set. Candidate submission and
+     another replay remain forbidden.
    - Require `cumulative_science_regression_ready=true`, every required
      endpoint passing, and empty compact and Continuum like-semantics regression
      lists. Interpret compact and Continuum science before power or runtime.

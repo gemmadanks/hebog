@@ -66,8 +66,10 @@ The later source-association measurement-repair replay completed all 2,400
 candidate products but did not publish a ledger: its compiler rejected the new
 binding source identity at the stale single-segment adapter. Those products are
 preserved for a fail-closed evaluation-only completion. They are not passing
-evidence, and readiness remains blocked until an exactly approved repair
-publishes a terminal passing ledger and the later gates also pass.
+evidence. Non-executable repair review `6a0e79b4...` binds verified product set
+`dbc317fa...` and leaves compilation/evaluation closed. Readiness remains
+blocked until an exactly approved completion publishes a terminal passing
+ledger and the later gates also pass.
 
 ## Prepare the packet
 

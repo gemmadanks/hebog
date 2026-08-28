@@ -54,9 +54,10 @@ fragmentation: completeness and merge gates pass, while reliability, duplicate,
 split, flux-tail, and position-tail gates fail. The source-association repair
 completed its 2,400 candidate products, but a stale single-support compiler
 adapter stopped before the cumulative ledger. An evaluation-only repair must
-verify and compile those preserved products under a new exact approval; no
-candidate rerun is required. The repaired candidate must then pass fresh
-held-out qualification. Remaining Phase 5 gates include the
+compile the now-verified preserved products under an exact approval bound to
+non-executable review `6a0e79b4...`; no candidate rerun is required or
+authorized. The repaired candidate must then pass fresh held-out
+qualification. Remaining Phase 5 gates include the
 restricted Rapthor workflow profile, the fail-closed
 [readiness record](reference/phase-5-release-readiness.md), and independent
 scientific and engineering acceptance. The stable public pipeline, matched

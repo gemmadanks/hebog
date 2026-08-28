@@ -6,7 +6,7 @@ import json
 import runpy
 from pathlib import Path
 from types import FunctionType
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -24,6 +24,10 @@ _FAILURE = (
 _PRE_REVIEW = (
     _ROOT / "config/contracts/phase-5-public-finder-source-association-"
     "measurement-repair-evaluation-repair-pre-review.json"
+)
+_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
+    "measurement-repair-evaluation-repair-review.json"
 )
 
 
@@ -253,3 +257,41 @@ def test_repair_contract_preserves_consumed_authorization_boundary() -> None:
     assert authority["compilation_authorized"] is False
     assert authority["evaluation_authorized"] is False
     assert authority["cumulative_replay_rerun_authorized"] is False
+
+
+def test_identity_review_freezes_only_non_executable_completion() -> None:
+    """The verified product set is bound without transferring authority."""
+    review: dict[str, Any] = json.loads(_REVIEW.read_text(encoding="utf-8"))
+
+    assert review["status"] == (
+        "reviewed-before-measurement-repair-evaluation-completion"
+    )
+    assert review["implementation"]["commit"] == (
+        "ea3279d6cea50af26d5e5c25aa7904a238718456"
+    )
+    implementation: dict[str, Any] = review["implementation"]
+    assert isinstance(implementation, dict)
+    for identity in implementation.values():
+        if not isinstance(identity, dict):
+            continue
+        identity_record = cast(dict[str, Any], identity)
+        path = identity_record.get("path")
+        sha256 = identity_record.get("sha256")
+        if not isinstance(path, str):
+            continue
+        assert isinstance(sha256, str)
+        assert file_sha256(_ROOT / path) == sha256
+    verified = review["verified_composition"]
+    assert verified["candidate_product_count"] == 2400
+    assert verified["candidate_product_set_sha256"] == (
+        "dbc317fa98638d96ebecac26d98014a953defc96ed48a741f42f48954daa48ab"
+    )
+    assert verified["reference_run_count"] == 9600
+    assert verified["output_absent"] is True
+    assert verified["candidate_execution_started"] is False
+    assert verified["compilation_started"] is False
+    assert verified["evaluation_started"] is False
+    assert review["candidate_execution_authorized"] is False
+    assert review["compilation_resume_authorized"] is False
+    assert review["evaluation_authorized"] is False
+    assert not any(review["prohibited_authorizations"].values())

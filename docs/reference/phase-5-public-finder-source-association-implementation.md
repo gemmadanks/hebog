@@ -145,5 +145,9 @@ remains byte-identical. The new adapter presents a bounded synthetic union-label
 view only to catalogue matching while retaining the original component-label
 plane for topology. The completion program re-hashes every preserved shard and
 replaces candidate execution with a verification-only seam. It cannot submit
-candidate work, and compilation/evaluation remain closed until a new exact
-repair review and named approval exist.
+candidate work. Clean repair commit `ea3279d...` verified all 2,400 candidate
+shards as product set `dbc317fa...`, all 9,600 retained reference runs, and the
+absent ledger without opening scientific products. Non-executable review
+`6a0e79b4...` freezes that exact composition with compilation and evaluation
+still false. A separate approval bound to that review is required before the
+preserved products may be compiled and evaluated.

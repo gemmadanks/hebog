@@ -11972,3 +11972,29 @@ boundary, then run its complete no-write verifier from the clean revision and
 freeze a non-executable exact evaluation-repair identity. A separate named
 approval is required before the preserved products may be compiled and
 evaluated.
+
+## 2026-08-28 — Freeze the evaluation-only repair identity
+
+**Plan phase:** Phase 5, closure gate 2
+
+- Committed the isolated adapter, completion-only program, failure record,
+  tests, plan, and documentation as `ea3279d...`; tree `5be72ba4...` leaves
+  every historically checksum-bound producer, matcher, and compiler unchanged.
+- From that clean revision, ran the complete no-write verifier over all 2,400
+  preserved candidate shards and all 9,600 retained reference runs. Every
+  marker, declared artifact byte count, artifact SHA-256, candidate identity,
+  reference identity, and closed-baseline identity matched.
+- Froze candidate product set `dbc317fa...`, completion program `105d7e30...`,
+  evaluation adapter `daa8234d...`, historical matcher `75ea063c...`, and
+  historical compiler `8e38de3b...` in non-executable review `6a0e79b4...`.
+- Confirmed the atomic ledger remains absent and that no candidate execution,
+  compilation, evaluation, tuning, rescoring, cutover, or release occurred.
+
+**Validation:** the no-write verifier passed from the clean implementation
+commit. The review contract test binds every program path/checksum, the exact
+product count and product-set checksum, reference count, absent output, and
+false authorization boundary.
+
+**Immediate next step:** obtain separate named approval bound exactly to
+review `6a0e79b4...` for one compilation and evaluation of the preserved
+product set only. Another replay or candidate submission remains forbidden.
