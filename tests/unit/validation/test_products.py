@@ -972,6 +972,55 @@ def test_hebog_unmeasurable_segment_remains_mask_only() -> None:
     )
 
 
+def test_associated_catalogue_falls_back_for_negative_aperture() -> None:
+    """Negative surroundings cannot erase a positive detected owner."""
+    shape = (9, 9)
+    labels = np.zeros(shape, dtype=np.int32)
+    labels[3:6, 3:6] = 1
+    image = np.full(shape, -0.5, dtype=np.float64)
+    image[labels == 1] = 1.0
+    valid = np.ones(shape, dtype=np.bool_)
+    header = fits.Header()
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 5.0
+    header["CRPIX2"] = 5.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["BMAJ"] = 3.0 / 3600.0
+    header["BMIN"] = 2.0 / 3600.0
+    header["BPA"] = 0.0
+
+    products = build_hebog_associated_moment_catalogues(
+        image,
+        np.zeros(shape, dtype=np.float64),
+        valid,
+        labels,
+        labels > 0,
+        np.where(labels > 0, 4.0, 0.0),
+        header,
+        beam_major_fwhm_pixels=3.0,
+        beam_minor_fwhm_pixels=2.0,
+        island_threshold_sigma=3.0,
+        measurement_aperture_radius_beams=1.5,
+    )
+
+    assert len(products.component_catalogue) == 1
+    assert len(products.source_catalogue) == 1
+    component = products.component_catalogue[0]
+    source = products.source_catalogue[0]
+    beam_area_pixels = 2.0 * np.pi / (8.0 * np.log(2.0)) * 3.0 * 2.0
+    assert component.integrated_flux_jy == pytest.approx(
+        9.0 / beam_area_pixels
+    )
+    assert source.integrated_flux_jy == component.integrated_flux_jy
+    assert "association-aperture-nonpositive" in component.quality_flags
+    assert "exact-owner-positive-residual-flux" in component.quality_flags
+    assert "exact-owner-positive-residual-flux" in source.quality_flags
+
+
 def test_associated_catalogue_aggregates_without_changing_components() -> None:
     """Binding source rows sum exact diagnostic component measurements."""
     shape = (9, 47)

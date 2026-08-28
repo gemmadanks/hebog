@@ -882,7 +882,21 @@ separately approved prospective development response.
       two-worker 800-compact/1,600-Continuum cumulative replay and atomic
       ledger; viewed public execution and every later lifecycle action remain
       false.
-- [ ] Run that exact replay once, then require
+- [x] Invoke the exact approved replay once. The sandboxed process stopped
+      before candidate work; the unchanged permitted retry then completed 58
+      of 2,400 candidate products before failing without an atomic ledger.
+      One accepted detection owner had positive exact support but a
+      non-positive expanded measurement aperture, so it was retained by the
+      association partition after its component catalogue row had been
+      suppressed. No partial science was interpreted and the one-replay
+      authorization is consumed.
+- [x] Validate the measurement-completeness repair on fixtures: preserve
+      expanded-aperture photometry when it is positive, use an explicitly
+      flagged positive exact-owner fallback only when negative surroundings
+      make that aperture non-positive, and keep truly non-measurable owners
+      fail-closed.
+- [ ] Freeze replacement candidate/replay identities and obtain a new exact
+      one-replay approval before resuming or restarting; then require
       `cumulative_science_regression_ready=true` with no like-semantics compact
       or Continuum regression before any viewed SDC1/Hydra follow-up.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog

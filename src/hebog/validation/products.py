@@ -919,8 +919,9 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
     """Measure catalogue rows for physically measurable blind segments.
 
     Labels remain the authoritative record of every accepted detection.
-    Segments without a finite positive signed-flux measurement therefore stay
-    in the label/mask products but do not receive an invented catalogue row.
+    Expanded-aperture photometry is preferred. When surrounding negative
+    residuals make that aperture non-positive, the accepted owner's positive
+    exact support provides an explicitly flagged conservative fallback.
     """
     residual, valid, labels = _validated_hebog_segment_planes(
         image_jy_per_beam,
@@ -988,6 +989,19 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         integrated_weight = float(
             np.sum(residual[measurement_support], dtype=np.float64)
         )
+        quality_flags: tuple[str, ...] = ()
+        if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
+            exact_positive_support = support & (residual > 0.0)
+            integrated_weight = float(
+                np.sum(
+                    residual[exact_positive_support],
+                    dtype=np.float64,
+                )
+            )
+            quality_flags = (
+                "association-aperture-nonpositive",
+                "exact-owner-positive-residual-flux",
+            )
         if not np.isfinite(integrated_weight) or integrated_weight <= 0.0:
             continue
         integrated_flux = integrated_weight / beam_area_pixels
@@ -1008,6 +1022,7 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
                 deconvolution_status="unavailable",
                 island_identifier=identifier,
                 component_count=1,
+                quality_flags=quality_flags,
             )
         )
     return tuple(output)
@@ -1184,15 +1199,24 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
         if source is None:
             continue
         support = (labels == label_value) & valid
+        shape_fields = _moment_shape_fields(
+            residual,
+            support,
+            celestial_wcs,
+            beam,
+        )
+        shape_fields["quality_flags"] = tuple(
+            sorted(
+                {
+                    *source.quality_flags,
+                    *cast(tuple[str, ...], shape_fields["quality_flags"]),
+                }
+            )
+        )
         output.append(
             replace(
                 source,
-                **_moment_shape_fields(
-                    residual,
-                    support,
-                    celestial_wcs,
-                    beam,
-                ),
+                **shape_fields,  # type: ignore[arg-type]
             )
         )
     return tuple(output)
@@ -1321,8 +1345,17 @@ def _associated_source_catalogue(  # noqa: PLR0913
             for item in members
         )
         flags = cast(tuple[str, ...], shape_fields["quality_flags"])
+        member_flags = {
+            flag for item in members for flag in item.quality_flags
+        }
         shape_fields["quality_flags"] = tuple(
-            sorted({*flags, "associated-component-source"})
+            sorted(
+                {
+                    *flags,
+                    *member_flags,
+                    "associated-component-source",
+                }
+            )
         )
         output.append(
             CatalogueSource(

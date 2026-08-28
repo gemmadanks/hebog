@@ -11747,3 +11747,48 @@ suite passes 112 tests; the identity-freeze suite passes 62 tests.
 
 **Validation:** All 63 focused identity, authorization-boundary, and wrapper
 tests pass; focused Ruff and JSON formatting pass.
+
+## 2026-08-28 — Stop the source-association replay at component measurement
+
+**Plan phase:** Phase 5, public-finder correction regression gate
+
+- The first process stopped before candidate execution because the app
+  sandbox denied Python's semaphore-capability inspection. The unchanged
+  authorized command was retried outside that sandbox, as permitted for the
+  same request and output namespace.
+- The retry completed 58 of 2,400 candidate products and then failed during
+  candidate product generation with `associated source has no measurable
+  detection component`. No atomic ledger was written and no partial science
+  was inspected. The 7.7-GiB scratch remains preserved for diagnosis.
+- Reproduced the exact control-flow defect on a bounded analytic fixture. A
+  positive accepted owner can have a non-positive expanded aperture after
+  surrounding negative residuals are included. The component catalogue then
+  suppressed that owner while the association graph correctly retained it in
+  its exact component partition.
+- Added a regression that fails on executed candidate `f90dfdf...` for the
+  same exception. The prospective repair retains normal expanded-aperture
+  photometry, but when only that signed aperture is non-positive it emits an
+  explicitly flagged measurement from the positive exact owner support.
+  A genuinely non-measurable all-negative owner still fails closed, and the
+  audit flags propagate through moment-equivalent component and associated
+  source records.
+
+**Decision:** treat this as a candidate measurement-completeness defect, not a
+scientific result. The original one-replay authorization is consumed. Do not
+reuse the old candidate or execution decision, overwrite scratch, publish a
+ledger, or restart until the repair is validated and replacement exact
+identities receive new named approval.
+
+**Validation:** the new analytic regression fails against immutable executed
+source `f90dfdf...` and passes with the repair. The focused product,
+source-association, recovery, and historical-governance suite passes 73 tests;
+focused Ruff and Pyright pass. After repairing stale live-file assumptions in
+historical governance checks and aligning the Ruff hook with the locked
+development version, full branch-aware coverage passes 1,986 tests at 94.87%.
+`just check` passes 1,829 selected tests, strict documentation and Marimo
+validation pass, and the complete push-stage `just pre-commit` suite passes
+without modifying files.
+
+**Immediate next step:** commit the reviewed repair and repository-check
+repairs coherently without mixing unrelated notebook-refresh work, then freeze
+replacement non-executable identities without starting another replay.
