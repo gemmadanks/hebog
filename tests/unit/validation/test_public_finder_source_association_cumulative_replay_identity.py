@@ -125,4 +125,24 @@ def test_review_remains_non_executable_and_requires_named_approval() -> None:
         "separate-named-approval-bound-to-this-review-for-one-complete-"
         "cumulative-replay-only"
     )
-    assert not _EXECUTION_DECISION.exists()
+
+
+def test_execution_decision_binds_exact_review_and_replay_boundary() -> None:
+    """The named approval opens one exact replay and nothing later."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    decision = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
+    arguments = _approved_arguments()
+
+    wrapper["_validate_execution_decision"](decision, arguments)
+    assert decision["source_association_replay_identity_review"] == {
+        "path": str(_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REVIEW),
+    }
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        wrapper["_PROHIBITED_AUTHORIZATIONS"], False
+    )
+    prospective = _load()["prospective_execution"]
+    for field, expected in prospective.items():
+        assert decision[field] == expected

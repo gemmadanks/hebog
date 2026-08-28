@@ -133,5 +133,11 @@ verification: candidate `26e639a...`, source `34fecf30...`, configuration
 `78dbb230...`, and reconstruction `48209eae...` matched; all 2,400 inputs and
 9,600 reference runs verified; and the new ledger and scratch paths remained
 absent. Replacement non-executable identity review SHA-256 `7f7ac272...`
-freezes the exact future two-worker composition. No replay has started; one
-separate named approval bound to that review is still required.
+freezes the exact future two-worker composition.
+
+Gemma Danks subsequently approved exactly one replay bound to that review.
+Execution decision SHA-256 `d806f38e...` authorizes only the complete
+two-worker 800-compact/1,600-Continuum replay and its atomic ledger. Viewed
+SDC1/Hydra execution, another campaign, fresh qualification, tuning,
+rescoring, cutover, and release remain unauthorized. At decision freeze time,
+no replay had started and both write-once paths remained absent.

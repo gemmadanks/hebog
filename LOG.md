@@ -11682,3 +11682,21 @@ decision and wrapper were absent. All 59 focused wrapper contracts now pass;
 focused Ruff and Pyright pass. Direct branch-aware wrapper coverage is 93%.
 Wrapper SHA-256 is `bfc1d6d0...`. The clean related identity and reference
 suite passes 112 tests; the identity-freeze suite passes 62 tests.
+
+## 2026-08-28 — Authorize source-association cumulative replay
+
+**Plan phase:** Phase 5, public-finder correction regression gate
+
+- Recorded Gemma Danks's exact one-replay approval against identity review
+  `7f7ac272...`, candidate `26e639a...`, configuration `78dbb230...`, wrapper
+  `bfc1d6d0...`, reconstructed reference `48209eae...`, and closed baseline
+  `a45303df...`.
+- Execution decision `d806f38e...` authorizes exactly one complete two-worker
+  800-compact/1,600-Continuum cumulative replay and its atomic ledger. Viewed
+  SDC1/Hydra execution, another campaign, fresh qualification, optimization,
+  tuning, rescoring, cutover, and release remain false.
+- The ledger and scratch namespaces were absent when authority was recorded;
+  no replay was started while freezing this decision.
+
+**Validation:** All 63 focused identity, authorization-boundary, and wrapper
+tests pass; focused Ruff and JSON formatting pass.

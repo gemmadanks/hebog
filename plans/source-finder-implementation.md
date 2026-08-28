@@ -877,9 +877,14 @@ separately approved prospective development response.
       commit `1b511ed...` verified all 2,400 inputs and 9,600 reference runs
       without creating output or scratch, and replacement identity review
       `7f7ac272...` freezes the exact non-executable composition.
-- [ ] Obtain a separate named one-replay approval bound to replacement review
-      `7f7ac272...`. Only then run the exact two-worker 800-compact/1,600-
-      Continuum cumulative replay and require no like-semantics regression.
+- [x] Obtain a separate named one-replay approval bound to replacement review
+      `7f7ac272...`. Exact execution decision `d806f38e...` authorizes only the
+      two-worker 800-compact/1,600-Continuum cumulative replay and atomic
+      ledger; viewed public execution and every later lifecycle action remain
+      false.
+- [ ] Run that exact replay once, then require
+      `cumulative_science_regression_ready=true` with no like-semantics compact
+      or Continuum regression before any viewed SDC1/Hydra follow-up.
 - [x] Re-run the complete Phase 4 compact regression and stronger-Hebog
       envelopes. Current Hebog completed all 800 untouched Phase 4U compact
       realizations with no failures. The frozen 50,000-resample one-sided BCa
