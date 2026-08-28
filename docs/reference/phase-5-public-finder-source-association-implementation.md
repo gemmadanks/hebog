@@ -114,7 +114,9 @@ two-worker population remain unchanged.
 The readiness contract now requires candidate `6184a32...`, source tree
 `517d56e1...`, configuration `78dbb230...`, the prospective measurement-repair
 cumulative ledger, and a future held-out qualification decision. These fields
-were fixed before either result was opened. Fixture validation passes; complete
-no-write verification and the replacement non-executable identity review must
-still be completed from the clean implementation commit before a separate
-one-replay approval can be requested.
+were fixed before either result was opened. Clean implementation commit
+`9cc00fb...` passed complete no-write verification of all 2,400 inputs and
+9,600 retained reference runs. It created neither the prospective ledger nor
+scratch state and did not start a replay. Non-executable review `119ce0f9...`
+now freezes every prospective replay field with all later authorizations false.
+A separate named one-replay approval remains required.

@@ -392,10 +392,12 @@ There is no terminal cumulative ledger for the measurement-completeness
 repair. The previous source-association replay authorization
 (`d806f38e...`) was consumed by the failed process, and the old candidate,
 wrapper, scratch, and execution decision must not be reused as authorization.
-Commit `6184a32...`, its source-tree checksum, the resulting configuration,
-the replay wrapper, and replacement output/scratch namespaces have not yet been
-frozen together. No cumulative replay, viewed SDC1/Hydra execution, fresh
-qualification, tuning, rescoring, cutover, or release is currently authorized.
+Replacement identity review `119ce0f9...` now freezes commit `6184a32...`, its
+source-tree checksum, configuration, replay wrapper, reconstructed references,
+closed baseline, and new output/scratch namespaces together. Every execution
+and later lifecycle authorization remains false. No cumulative replay, viewed
+SDC1/Hydra execution, fresh qualification, tuning, rescoring, cutover, or
+release is currently authorized.
 
 The frozen readiness contract has now been prospectively rebound to repair
 candidate `6184a32...`, configuration `78dbb230...`, and the replacement
@@ -410,9 +412,10 @@ prospective readiness fields, and the required fixture/no-write checks. Named
 approval opened only wrapper/readiness implementation, fixture and complete
 no-write verification, and non-executable identity freezing. Implementation
 decision `b9d48850...` binds the minimal replacement layer over consumed
-wrapper `bfc1d6d0...`; focused fixture contracts pass. Gate 1 remains open
-until the clean committed wrapper passes complete no-write verification and
-the exact non-executable identity review is frozen.
+wrapper `bfc1d6d0...`. The clean implementation commit `9cc00fb...` passed
+complete no-write verification of all 2,400 inputs and 9,600 retained
+reference runs without creating output or scratch state. Gate 1 is complete;
+gate 2 now requires separate named approval bound to review `119ce0f9...`.
 
 #### Remaining closure sequence
 
@@ -420,17 +423,17 @@ Execute these steps in order. A failure at either scientific gate stops the
 sequence and requires a new prospective review; it does not authorize tuning
 from partial or viewed evidence.
 
-1. [ ] **Freeze the repaired cumulative-replay composition.**
+1. [x] **Freeze the repaired cumulative-replay composition.**
    - [x] Obtain named approval of pre-review `7687839f...`; this approval may
      authorize only replacement wrapper/readiness implementation, fixture and
      complete no-write validation, and non-executable identity freezing.
-   - Bind the exact candidate commit and source tree derived from
+   - [x] Bind the exact candidate commit and source tree derived from
      `6184a32...`, the complete configuration, measurement-repair program,
      source-association contracts, replay wrapper, reconstructed reference
      terminal `48209eae...`, and closed baseline `a45303df...`.
-   - Use new write-once ledger and scratch identities, run fixture and complete
-     no-write verification, and publish a non-executable identity review with
-     every later authorization false.
+   - [x] Use new write-once ledger and scratch identities, run fixture and
+     complete no-write verification, and publish a non-executable identity
+     review with every later authorization false.
    - [x] Prospectively update the readiness contract to require the same final
      candidate, configuration, ledger, and future held-out decision identities.
 

@@ -11882,3 +11882,32 @@ scratch/output was created and no viewed scientific product was opened.
 then run the complete no-write verifier from that clean immutable revision and
 freeze the exact non-executable replacement identity review. A separate named
 approval remains mandatory before any replay.
+
+## 2026-08-28 — Freeze the measurement-repair replay identities
+
+**Plan phase:** Phase 5, closure gate 1
+
+- Committed the fail-closed replacement replay composition and prospective
+  readiness rebind as `9cc00fb...`.
+- From that clean revision, completed the authorized no-write verification of
+  all 2,400 retained inputs and 9,600 retained reference runs. Candidate
+  `6184a32...`, source tree `517d56e1...`, configuration `78dbb230...`,
+  reconstruction `48209eae...`, consumed wrapper `bfc1d6d0...`, readiness
+  `cef14d01...`, and measurement repair `a3c53daa...` all matched exactly.
+- Confirmed the new ledger and scratch namespaces were absent before and after
+  verification and that no cumulative replay started.
+- Froze non-executable replacement identity review `119ce0f9...`, including
+  implementation tree `1bc47b9e...`, wrapper `79e8252c...`, closed baseline
+  `a45303df...`, and every prospective replay field. All execution, viewed-data,
+  tuning, rescoring, cutover, and release authorizations remain false.
+
+**Validation:** the identity tests first failed because the review was absent,
+then all three passed after the exact terminal record was added. The earlier
+implementation boundary passed 51 focused tests, full coverage (2,003 passed,
+4 xfailed; 94.87%), `just check` (1,846 passed, 4 xfailed), strict docs build,
+and clean `just pre-commit`.
+
+**Immediate next step:** obtain separate named approval bound exactly to
+identity review `119ce0f9...` for one complete two-worker cumulative replay.
+Do not execute it or any later lifecycle step under the implementation
+approval.
