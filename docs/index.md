@@ -51,9 +51,12 @@ to a prospectively implemented correction. That correction preserves compact
 science but fails the complete Continuum cumulative replay with 44 failed
 endpoints and 37 like-semantics regressions. The evidence points to catalogue
 fragmentation: completeness and merge gates pass, while reliability, duplicate,
-split, flux-tail, and position-tail gates fail. A separately reviewed
-source-association repair must pass a newly authorized cumulative replay and
-fresh held-out qualification. Remaining Phase 5 gates also include the
+split, flux-tail, and position-tail gates fail. The source-association repair
+completed its 2,400 candidate products, but a stale single-support compiler
+adapter stopped before the cumulative ledger. An evaluation-only repair must
+verify and compile those preserved products under a new exact approval; no
+candidate rerun is required. The repaired candidate must then pass fresh
+held-out qualification. Remaining Phase 5 gates include the
 restricted Rapthor workflow profile, the fail-closed
 [readiness record](reference/phase-5-release-readiness.md), and independent
 scientific and engineering acceptance. The stable public pipeline, matched

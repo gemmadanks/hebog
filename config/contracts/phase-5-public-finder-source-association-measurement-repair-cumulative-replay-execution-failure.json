@@ -1,0 +1,79 @@
+{
+  "bound_execution": {
+    "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+    "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "execution_checkout_revision": "4ea0c3b4c832e0513e05e2602c096b3518535682",
+    "execution_decision": {
+      "path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-cumulative-replay-execution-decision.json",
+      "sha256": "5ddc524a4014cadcf4f7df9745dedc963589b6ea7462c686a6b0adcb412a323b"
+    },
+    "identity_review": {
+      "path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-cumulative-replay-review.json",
+      "sha256": "119ce0f99bb4a6f44710325f7ac53001bf4d09e349e550c303deccbdbd9a3a48"
+    },
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "workers": 2,
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_source_association_measurement_repair_cumulative_regressions.py",
+      "sha256": "79e8252cd06cca4959b794af231b6078c80a34f996ff5184ed7c8f4994029084"
+    }
+  },
+  "failure_id": "phase-5-public-finder-source-association-measurement-repair-cumulative-replay-execution-failure",
+  "observed_execution": {
+    "atomic_ledger_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+    "atomic_ledger_state": "absent",
+    "candidate_product_count": 2400,
+    "candidate_products_state": "complete-and-preserved",
+    "candidate_progress_count": 2400,
+    "candidate_progress_terminal_at": "2026-08-28T17:17:41.507037+00:00",
+    "candidate_rerun_required": false,
+    "exception": "ValueError: Hebog segment island identity is malformed",
+    "failure_stage": "continuum-catalogue-compilation",
+    "partial_ledger_written": false,
+    "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-association-measurement-repair-6184a32"
+  },
+  "repair_boundary": {
+    "candidate_execution_authorized": false,
+    "candidate_products_may_change": false,
+    "compilation_authorized": false,
+    "cumulative_replay_rerun_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "implementation_authorized_by_user": true,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "replacement_exact_identity_review_required": true,
+    "required_repairs": [
+      "independently reproduce and validate the frozen component and source identity derivations without changing their producer",
+      "recover exact source membership from the finite native component set and verify the persisted source digest",
+      "represent a catalogue source by a canonical non-empty union of native support labels",
+      "adapt truth matching through a bounded synthetic union-label view without changing the closed matcher or native topology metrics",
+      "add an evaluation-only completion wrapper that verifies and reuses all 2,400 existing candidate products without candidate execution"
+    ],
+    "rescoring_authorized": false,
+    "separate_compilation_resume_approval_required": true,
+    "tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "root_cause": {
+    "candidate_contract": "The binding Hebog source catalogue uses source-associated SHA-256 identities derived from exact stable component membership, and a row may own more than one positive native component support.",
+    "compiler_contract": "The successor compiler still required every Hebog catalogue island identity to be one hebog-segment-N label and represented every catalogue row with exactly one support label.",
+    "mismatch": "The compiler rejected the first binding associated-source row before it could represent the row's exact union of native owner supports.",
+    "missing_regression": "Fixture tests covered source association and the legacy single-segment compiler separately but did not pass a binding associated-source catalogue through the continuum compiler boundary."
+  },
+  "schema_version": 1,
+  "scientific_outcome": {
+    "available": false,
+    "reason": "Compilation stopped before the atomic cumulative ledger and its endpoint decisions were produced."
+  },
+  "status": "failed-after-candidate-products-before-atomic-ledger",
+  "transfer_policy": {
+    "existing_candidate_products_reusable_after_exact_verification": true,
+    "new_evaluation_adapter_requires_new_identity": true,
+    "original_execution_decision_reusable": false,
+    "original_replay_authorization_consumed": true
+  }
+}

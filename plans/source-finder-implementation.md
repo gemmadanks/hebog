@@ -339,13 +339,14 @@ source-association semantics and deep-image overmerging without authorizing
 tuning or rescoring. The first corrected cumulative ledger `1ac6deb2...`
 retains compact science but fails with 37 Continuum like-semantics regressions.
 
-The source-association candidate addressed those regressions prospectively, but
-its approved replay stopped after 58 of 2,400 candidate products because a
-positive owner could lose its catalogue row when surrounding negative
-residuals made the expanded aperture non-positive. No ledger was published and
-that authorization is consumed. Commit `6184a32...` contains the fixture-
-validated measurement-completeness repair; its replacement executable
-identities have not been frozen and no new execution is authorized.
+The source-association candidate addressed those regressions prospectively.
+Its first replay stopped after 58 products on a measurement-completeness
+defect. Repair candidate `6184a32...` then completed all 2,400 candidate
+products, but the compiler rejected the binding `source-associated-*`
+catalogue identity because its adapter still required one legacy
+`hebog-segment-N` label per row. No ledger was published and both replay
+authorizations are consumed. The complete shard set remains preserved for an
+evaluation-only repair; no candidate rerun is required or authorized.
 
 The closest passing Continuum margins remain mask recall 0.90103 against 0.90
 and mask-precision regression UCL 0.04940 against the pinned-master 0.05
@@ -378,7 +379,8 @@ source-association repair. Detailed campaign and incident chronology belongs in
 | Public/challenge evidence | Sealed public decision `954077e9...` failed SDC1 completeness, reliability, and flux-error gates. Independent review `320f57f5...` preserved that result, identified source-association and deep-image overmerging defects, and forbade tuning or rescoring viewed data. |
 | First public correction | Cumulative ledger `1ac6deb2...` kept compact green but recorded 37 Continuum like-semantics regressions, mainly split/duplicate source failures; it remains closed failure evidence. |
 | Source-association correction | Candidate `26e639a...` added conservative component association and deterministic source composition. Its approved replay stopped after 58 of 2,400 candidate products because a positive owner could lose its catalogue row when negative surrounding residuals made the expanded aperture non-positive. No ledger was published. |
-| Measurement-completeness repair | Commit `6184a32...` preserves positive expanded-aperture measurements, falls back to explicitly flagged positive exact-owner support only when required, propagates the flags, and remains fail-closed for genuinely unmeasurable owners. Fixture, coverage, check, documentation, and pre-commit validation pass. |
+| Measurement-completeness repair | Commit `6184a32...` preserves positive expanded-aperture measurements, falls back to explicitly flagged positive exact-owner support only when required, propagates the flags, and remains fail-closed for genuinely unmeasurable owners. Its authorized replay completed all 2,400 candidate products. |
+| Association-aware evaluation repair | The replay then failed before its atomic ledger because the compiler still required one legacy segment label per binding catalogue row. A new adapter leaves every closed program byte-identical, verifies the persisted source-membership digest against the finite native components, presents the exact support union only to catalogue matching, keeps native topology separate, and provides a completion-only path that forbids candidate execution. |
 | Readiness machinery | The fail-closed packet generator and finalizer exist and require packet-bound radio-astronomy and engineering acceptance. They do not authorize execution, cutover, or release. |
 
 The narrow Continuum watchpoints from the passing recovery evidence remain
@@ -389,15 +391,14 @@ the failed `1ac6deb2...` replay must remain visible historical evidence.
 #### Current blocker and authorization state
 
 There is no terminal cumulative ledger for the measurement-completeness
-repair. The previous source-association replay authorization
-(`d806f38e...`) was consumed by the failed process, and the old candidate,
-wrapper, scratch, and execution decision must not be reused as authorization.
-Replacement identity review `119ce0f9...` now freezes commit `6184a32...`, its
-source-tree checksum, configuration, replay wrapper, reconstructed references,
-closed baseline, and new output/scratch namespaces together. Every execution
-and later lifecycle authorization remains false. No cumulative replay, viewed
-SDC1/Hydra execution, fresh qualification, tuning, rescoring, cutover, or
-release is currently authorized.
+repair. Replacement review `119ce0f9...` and execution decision `5ddc524a...`
+authorized one replay; it completed all 2,400 shards and then failed during
+catalogue compilation, so that authority is consumed. The execution-failure
+contract preserves the absent ledger, complete scratch, and adapter mismatch.
+The existing shards may be reused only after complete identity verification
+under a newly frozen evaluation-repair composition. Candidate execution,
+replay, viewed SDC1/Hydra execution, qualification, tuning, rescoring,
+cutover, and release remain unauthorized.
 
 The frozen readiness contract has now been prospectively rebound to repair
 candidate `6184a32...`, configuration `78dbb230...`, and the replacement
@@ -414,11 +415,13 @@ no-write verification, and non-executable identity freezing. Implementation
 decision `b9d48850...` binds the minimal replacement layer over consumed
 wrapper `bfc1d6d0...`. The clean implementation commit `9cc00fb...` passed
 complete no-write verification of all 2,400 inputs and 9,600 retained
-reference runs without creating output or scratch state. Gate 1 is complete;
-Gemma Danks has now granted separate named approval bound to review
-`119ce0f9...`. Execution decision `5ddc524a...` opens exactly one complete
-two-worker replay and no later lifecycle authority. The replay has not yet
-started.
+reference runs without creating output or scratch state. Gate 1 is complete.
+Gemma Danks granted separate named approval bound to review `119ce0f9...`;
+execution decision `5ddc524a...` was consumed by the process that produced
+every candidate shard but no ledger. The evaluation-only repair must now be
+committed, verified against the preserved product-set identity, and frozen for
+separate exact compilation/evaluation approval. It must never submit candidate
+work.
 
 #### Remaining closure sequence
 
@@ -443,6 +446,12 @@ from partial or viewed evidence.
 2. [ ] **Obtain named approval and run exactly one cumulative replay.**
    - [x] Approval binds replacement identity review `119ce0f9...` and the
      exact two-worker 800-compact/1,600-Continuum composition.
+   - [x] Candidate execution completed all 2,400 products under that authority;
+     compilation failed before atomic publication on the stale single-support
+     adapter, and the replay authority is consumed.
+   - [ ] Freeze and approve the evaluation-only completion identity, then
+     compile and evaluate only the exact preserved product set. Candidate
+     submission and another replay remain forbidden.
    - Require `cumulative_science_regression_ready=true`, every required
      endpoint passing, and empty compact and Continuum like-semantics regression
      lists. Interpret compact and Continuum science before power or runtime.

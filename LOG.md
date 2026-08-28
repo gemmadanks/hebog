@@ -11934,3 +11934,41 @@ map are checked mechanically.
 **Immediate next step:** commit the execution decision, construct an immutable
 checkout from that clean revision, revalidate absent output/scratch state, and
 start the authorized replay exactly once.
+
+## 2026-08-28 — Repair associated-source evaluation after complete execution
+
+**Plan phase:** Phase 5, closure gate 2
+
+- The authorized measurement-repair process produced all 2,400 candidate
+  shards and then failed before atomic ledger publication with
+  `Hebog segment island identity is malformed`. The exact complete scratch is
+  preserved; no partial ledger or scientific decision exists, and execution
+  decision `5ddc524a...` is consumed.
+- Root cause was a missing cross-boundary regression: binding
+  `source-associated-*` catalogue rows can own several immutable component
+  supports, while the closed successor compiler accepted one
+  `hebog-segment-N` support per row.
+- Added a new evaluation-only adapter that leaves the checksum-bound identity
+  producer, matcher, and successor compiler byte-identical. It verifies each
+  persisted source digest against the finite native component set, presents a
+  bounded synthetic union-label view only to catalogue matching, and retains
+  the original component-label plane for split and merge topology.
+- Added a completion-only program that hashes every candidate artifact and
+  canonical marker, verifies all retained references and the closed baseline,
+  forbids candidate submission, and refuses compilation/evaluation until a
+  replacement exact identity review and named approval exist.
+- Updated the Phase 5 plan and documentation to preserve the failure state,
+  consumed authority, reusable complete product set, and remaining
+  qualification boundary.
+
+**Validation:** 96 focused legacy and repair tests pass; all 81 frozen protocol
+identity tests pass; focused Ruff and Pyright pass; `just coverage` passes with
+2,023 tests, 4 expected failures, and 94.80% total coverage. The new adapter is
+88% branch-aware covered. No candidate execution, compilation, evaluation, or
+scientific result inspection occurred.
+
+**Immediate next step:** finish repository checks and commit this repair
+boundary, then run its complete no-write verifier from the clean revision and
+freeze a non-executable exact evaluation-repair identity. A separate named
+approval is required before the preserved products may be compiled and
+evaluated.

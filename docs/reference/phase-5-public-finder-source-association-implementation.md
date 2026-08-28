@@ -119,4 +119,31 @@ were fixed before either result was opened. Clean implementation commit
 9,600 retained reference runs. It created neither the prospective ledger nor
 scratch state and did not start a replay. Non-executable review `119ce0f9...`
 now freezes every prospective replay field with all later authorizations false.
-A separate named one-replay approval remains required.
+A separate named one-replay approval was granted and consumed. The replay
+completed all 2,400 candidate products, then stopped before the atomic ledger
+because the continuum compiler still interpreted every Hebog catalogue row as
+one legacy `hebog-segment-N` support. Binding associated-source rows instead
+use stable `source-associated-*` identities and can own several native
+component supports.
+
+## Evaluation-only compiler adapter
+
+The repair keeps the three semantic layers separate:
+
+- stable component identities are recomputed only from each native support's
+  canonical owner pixel;
+- the persisted source digest and component count must identify exactly one
+  complete partition of those components; and
+- the compiler matches the binding source against the union of its verified
+  native supports while retaining each native support independently for split
+  and merge topology.
+
+Malformed, mixed, incomplete, ambiguous, or unverifiable memberships fail
+closed. Single-segment Hebog and both PyBDSF translations keep their prior
+meaning. Every historically checksum-bound producer, matcher, and compiler
+remains byte-identical. The new adapter presents a bounded synthetic union-label
+view only to catalogue matching while retaining the original component-label
+plane for topology. The completion program re-hashes every preserved shard and
+replaces candidate execution with a verification-only seam. It cannot submit
+candidate work, and compilation/evaluation remain closed until a new exact
+repair review and named approval exist.

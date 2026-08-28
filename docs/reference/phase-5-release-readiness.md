@@ -62,6 +62,13 @@ reviewable packet. Fresh correction qualification and the Rapthor profile also
 remain absent. The command cannot publish a Phase 5 completion record until a
 separately reviewed candidate passes every gate.
 
+The later source-association measurement-repair replay completed all 2,400
+candidate products but did not publish a ledger: its compiler rejected the new
+binding source identity at the stale single-segment adapter. Those products are
+preserved for a fail-closed evaluation-only completion. They are not passing
+evidence, and readiness remains blocked until an exactly approved repair
+publishes a terminal passing ledger and the later gates also pass.
+
 ## Prepare the packet
 
 Run this only against terminal, write-once evidence. If evidence is still
