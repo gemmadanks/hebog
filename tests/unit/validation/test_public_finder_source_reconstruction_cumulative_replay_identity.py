@@ -26,7 +26,12 @@ _EXECUTION_DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-source-reconstruction-"
     "cumulative-replay-execution-decision.json"
 )
+_EVALUATION_REPAIR_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-reconstruction-"
+    "evaluation-repair-review.json"
+)
 _IMPLEMENTATION_REVISION = "6d0cceb4bfadad6a5e9b37df21410f4bfc902aa6"
+_REPAIR_IMPLEMENTATION_REVISION = "ef961d56e1115408316ed4e3b5f6186170675a76"
 
 
 def _load() -> dict[str, Any]:
@@ -166,10 +171,6 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     expected_fields = wrapper["_expected_execution_fields"](
         _approved_arguments()
     )
-    expected_fields["wrapper_sha256"] = cast(
-        dict[str, Any],
-        review["prospective_execution"],
-    )["wrapper_sha256"]
     for field, expected in expected_fields.items():
         assert decision[field] == expected
     assert decision["source_reconstruction_replay_identity_review"] == {
@@ -180,6 +181,11 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
         wrapper["_PROHIBITED_AUTHORIZATIONS"],
         False,
     )
+    assert decision["existing_product_evaluation_resume_authorized"] is True
+    assert decision["evaluation_repair_review"] == {
+        "path": str(_EVALUATION_REPAIR_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_EVALUATION_REPAIR_REVIEW),
+    }
 
 
 def test_review_binds_reconstruction_and_closed_baseline() -> None:
@@ -198,3 +204,29 @@ def test_review_binds_reconstruction_and_closed_baseline() -> None:
         file_sha256(_ROOT / execution["closed_baseline_path"])
         == (execution["closed_baseline_sha256"])
     )
+
+
+def test_evaluation_repair_review_freezes_existing_products_only() -> None:
+    """The compiler retry binds the fix and cannot reopen candidate science."""
+    value = json.loads(_EVALUATION_REPAIR_REVIEW.read_text(encoding="utf-8"))
+    assert isinstance(value, dict)
+    repair = cast(dict[str, Any], value)
+    implementation = cast(dict[str, Any], repair["implementation"])
+
+    assert repair["status"] == (
+        "reviewed-before-source-reconstruction-existing-product-"
+        "evaluation-resume"
+    )
+    assert implementation["commit"] == _REPAIR_IMPLEMENTATION_REVISION
+    for name in ("implementation_decision", "pre_review", "wrapper"):
+        record = cast(dict[str, str], implementation[name])
+        assert record["sha256"] == _committed_file_sha256(
+            _REPAIR_IMPLEMENTATION_REVISION,
+            record["path"],
+        )
+    assert repair["candidate_product_count"] == 2400
+    assert repair["candidate_product_set_sha256"] == (
+        "0d8c2d0bb783aa812c520667ca71a557bae08d3a4a234ba70d7589c1285aa3c7"
+    )
+    assert repair["output_absent"] is True
+    assert not any(cast(dict[str, bool], repair["authorization"]).values())

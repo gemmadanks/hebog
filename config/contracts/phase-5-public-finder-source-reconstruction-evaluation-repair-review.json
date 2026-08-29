@@ -1,0 +1,68 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "existing_product_evaluation_resume_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "candidate_product_count": 2400,
+  "candidate_product_set_sha256": "0d8c2d0bb783aa812c520667ca71a557bae08d3a4a234ba70d7589c1285aa3c7",
+  "candidate_science": {
+    "configuration_sha256": "470e918db1a640d7393edc02de01fc57b50881b908bd6d5dac18a57709117bbb",
+    "revision": "42c75f44b71800ae5fa1e0ebe1669caa7da59f85",
+    "source_tree_sha256": "1b67c7f6f768d6f83becc853a1ebd45b3996164cd2b87fdc0f71b9a3299e6bf1"
+  },
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "decision_id": "phase-5-public-finder-source-reconstruction-evaluation-repair-review",
+  "failure": {
+    "path": "config/contracts/phase-5-public-finder-source-reconstruction-cumulative-replay-execution-failure.json",
+    "sha256": "7103c36eac03b0e0cc629a29c9b3e4e5b5a1b43750a05d09c674780cf27d3556"
+  },
+  "implementation": {
+    "commit": "ef961d56e1115408316ed4e3b5f6186170675a76",
+    "implementation_decision": {
+      "path": "config/contracts/phase-5-public-finder-source-reconstruction-evaluation-repair-implementation-decision.json",
+      "sha256": "b4f5bf000735cda0683dc3295236b6876328949f020e9beaeeee3f51d617c7cf"
+    },
+    "pre_review": {
+      "path": "config/contracts/phase-5-public-finder-source-reconstruction-evaluation-repair-pre-review.json",
+      "sha256": "01cc417778d5129177ecb1086f4db2da7f98e0b8fc45a614640cc81c7987b442"
+    },
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_source_reconstruction_cumulative_regressions.py",
+      "sha256": "3ff495e373c366be37532cccb4a600fab8423137caad45e246dde55698d67413"
+    }
+  },
+  "original_authorization": {
+    "decision_sha256": "0d87caf76434379f4b7e0957411e346dcfd1013dfb3e4fd5ee61290f2c30b905",
+    "identity_review_sha256": "b4eff0621a05a98ab3ad3fa29c1bf3b9447a7a4dd2abf38c3aca5b566c548f21"
+  },
+  "output_absent": true,
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-reconstruction.json",
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "reference_run_count": 9600,
+  "required_next_decision": "consume-the-existing-explicit-error-fix-and-retry-approval-to-amend-only-the-existing-product-evaluation-boundary",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "candidate_reexecution": false,
+    "endpoint_or_gate_change": false,
+    "reference_change": false,
+    "scientific_product_interpretation_before_atomic_publication": false,
+    "threshold_or_photometric_change": false
+  },
+  "status": "reviewed-before-source-reconstruction-existing-product-evaluation-resume",
+  "verified_composition": {
+    "all_declared_artifacts_hashed": true,
+    "candidate_execution_forbidden": true,
+    "candidate_product_count": 2400,
+    "candidate_product_set_sha256": "0d8c2d0bb783aa812c520667ca71a557bae08d3a4a234ba70d7589c1285aa3c7",
+    "output_absent": true,
+    "reference_run_count": 9600,
+    "status": "pass"
+  }
+}

@@ -25,8 +25,18 @@
   "dependency_lock_sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff",
   "endpoint_registry_sha256": "2d7a646b6206bd127b1e470b16d1fe35ebc3f238835eafdc6c77d8a82b79ef1c",
   "evaluation_contract_sha256": "45901f8ca4526fdc1007d26d891e409306565e749bad2b959181a9929ff73016",
+  "evaluation_repair_approval_consumption": {
+    "authority": "the exact 2026-08-29 user instruction recorded in approval.exact_approval",
+    "boundary": "resume compilation and evaluation only from the verified 2400-product set after the operational compiler failure; candidate execution remains forbidden",
+    "failure_sha256": "7103c36eac03b0e0cc629a29c9b3e4e5b5a1b43750a05d09c674780cf27d3556"
+  },
+  "evaluation_repair_review": {
+    "path": "config/contracts/phase-5-public-finder-source-reconstruction-evaluation-repair-review.json",
+    "sha256": "cc531cee9d15371056c26ff20a8dec934455b916669731a18bb5bbdb4c1fb142"
+  },
   "evaluator_sha256": "7612746bda483c82d0e7e72a7f49bb8283f8ae6c03d26bd18508184dbda7169a",
   "execution_authorized": true,
+  "existing_product_evaluation_resume_authorized": true,
   "historical_replay_sha256": "5d41d31ee79cd0d6d203cd774267fd504d06fe7662768486f99c31a7902b8a3f",
   "measurement_repair_implementation_decision_sha256": "b9d48850a2447e888ef7eb923143dad31c41d5867694b536cbbec441bd590d1e",
   "measurement_repair_pre_review_sha256": "7687839f4c65c0a6d549d42b0ddeacd8c6954912389071605d696394307c653d",
@@ -69,5 +79,5 @@
   "status": "reviewed-before-public-finder-source-reconstruction-cumulative-replay",
   "viewed_request_sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4",
   "workers": 2,
-  "wrapper_sha256": "b19c215794872271044adc06a15b2778f810f40c8f57be38071b144430bb8c41"
+  "wrapper_sha256": "3ff495e373c366be37532cccb4a600fab8423137caad45e246dde55698d67413"
 }

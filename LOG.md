@@ -12299,3 +12299,31 @@ association-evaluation suites now pass 23 focused tests; Ruff passes.
 preserved product set and repair identities, amend the consumed execution
 decision within the user's narrow retry authority, then resume compilation and
 evaluation without candidate execution.
+
+## 2026-08-29 — Freeze the source-reconstruction evaluation repair
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Committed the evaluation-only repair as `ef961d5...`; its wrapper identity is
+  `3ff495e3...`. No file under `src/hebog/` changed, so candidate revision,
+  source tree, configuration, algorithms, and products remain exact.
+- Reverified all 9,600 reconstructed reference runs and hashed every declared
+  artifact in all 2,400 preserved candidate shards. Product set `0d8c2d0b...`
+  is complete, canonical, identity-consistent, and bound to the original
+  candidate. The atomic output remains absent.
+- Review `cc531cee...` freezes the implementation, failure, product set,
+  references, baseline, and no-candidate-execution boundary. It authorizes
+  nothing by itself.
+- Amended existing decision `659725aa...` under Gemma Danks's exact recorded
+  error-fix-and-retry instruction. It opens one compilation and evaluation from
+  those verified products only; another replay, candidate run, campaign,
+  qualification, tuning, rescoring, optimization, cutover, and release remain
+  prohibited.
+
+**Validation:** all 13 wrapper and identity-freeze tests pass after preserving
+the original replay review as historical evidence and binding the successor
+repair separately. Ruff passes.
+
+**Immediate next step:** commit the exact repair identity and amended decision,
+create a clean immutable checkout, run the existing-product-only completion,
+and interpret science only after successful atomic ledger publication.

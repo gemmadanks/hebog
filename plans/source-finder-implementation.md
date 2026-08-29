@@ -432,8 +432,11 @@ scientific verdict. Gemma Danks's explicit error-fix-and-retry authority opens
 only a minimal evaluation repair: reference rows retain historical measurement
 semantics, associated Hebog rows use prospective source topology, mixed
 semantics fail closed, all persisted shards are hashed, and candidate execution
-is forbidden. Exact repair and product-set identities must be frozen before
-compilation resumes.
+is forbidden. Review `cc531cee...` freezes repair commit `ef961d5...`, wrapper
+`3ff495e3...`, all 2,400 products as set `0d8c2d0b...`, all 9,600 references,
+and the still-absent ledger. Amended decision `659725aa...` consumes only the
+existing explicit error-fix-and-retry authority for one compilation/evaluation
+resume; no candidate execution or broader Phase 5 action is authorized.
 
 The readiness contract is now prospectively rebound to source-reconstruction
 candidate `42c75f4...`, source tree `1b67c7f6...`, configuration
