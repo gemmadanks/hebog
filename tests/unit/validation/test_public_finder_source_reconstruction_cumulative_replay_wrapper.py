@@ -84,31 +84,17 @@ def test_wrapper_binds_clean_candidate_and_prospective_programs() -> None:
     )
 
 
-def test_readiness_is_prospectively_rebound_before_replay() -> None:
-    """Final readiness requires the source-reconstruction evidence identity."""
+def test_readiness_no_longer_targets_failed_source_reconstruction() -> None:
+    """The failed predecessor cannot satisfy final readiness."""
     readiness = json.loads(_READINESS.read_text(encoding="utf-8"))
     evidence = {
         item["evidence_id"]: item for item in readiness["required_evidence"]
     }
-    cumulative = evidence[
-        "public-finder-source-reconstruction-cumulative-regression"
-    ]
-    assert cumulative["path"] == str(_approved_arguments().output)
-    assert cumulative["required_fields"]["candidate_revision"] == _REVISION
-    assert (
-        cumulative["required_fields"]["candidate_source_tree_sha256"]
-        == _SOURCE_TREE
+    assert "public-finder-source-reconstruction-cumulative-regression" not in (
+        evidence
     )
-    assert (
-        cumulative["required_fields"]["candidate_configuration_sha256"]
-        == _CONFIGURATION
-    )
-    qualification = evidence[
-        "public-finder-source-reconstruction-held-out-qualification"
-    ]
-    assert qualification["required_fields"]["candidate_revision"] == (
-        _REVISION
-    )
+    held_out = "public-finder-source-reconstruction-held-out-qualification"
+    assert held_out not in evidence
 
 
 def test_fixture_verifier_is_no_write(

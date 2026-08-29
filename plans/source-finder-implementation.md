@@ -578,6 +578,11 @@ from partial or viewed evidence.
    - [x] Pass real-path shell, three-lobe, closed-curved-filament, nearby-pair,
      terminal-only, invalid-gap, transitive-chain, Serial/existing-Dask,
      order, and retry fixtures.
+   - [x] Compose the fail-closed replacement replay wrapper and prospectively
+     rebind readiness to candidate `5f2b098...`, source tree `a7ef1887...`,
+     and configuration `88634678...`. The wrapper consumes the exact failed
+     predecessor, changes no compact or reference path, and cannot execute
+     without a later exact review-bound decision.
    - [ ] Freeze exact non-executable candidate and replay identities and run
      the complete no-write verification. Any replay still requires a separate
      exact approval.

@@ -12508,3 +12508,26 @@ cutover, and release remain prohibited.
 validated implementation locally, then freeze exact non-executable candidate
 and replay identities and run their complete no-write verification. A replay
 still requires a separate exact approval.
+
+## 2026-08-29 — Compose parent-construction replay boundary
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Committed the validated parent-construction candidate as `5f2b098...` with
+  source tree `a7ef1887...` and configuration `88634678...`.
+- Added a fail-closed prospective replay wrapper that consumes exact
+  source-reconstruction wrapper `3ff495e3...`, overlays only the new candidate
+  identity and current Continuum builder, preserves the compact/reference
+  composition, and requires a separate identity-review-bound decision before
+  execution.
+- Prospectively rebound readiness from failed candidate `42c75f4...` to the
+  parent-construction candidate and new write-once cumulative and held-out
+  qualification namespaces. No prior ledger, campaign, or qualification
+  result was changed or accepted for the new candidate.
+- The wrapper contract was developed test-first: five tests initially failed
+  because the wrapper and readiness binding did not exist; the completed
+  wrapper, predecessor, and readiness suites pass 48 tests.
+
+**Immediate next step:** validate and commit the replay composition, then use
+that clean revision to run the complete no-write verifier and freeze an exact
+non-executable replay identity. Replay execution remains unauthorized.

@@ -3,9 +3,10 @@
 **Status:** the first source-reconstruction candidate is terminal failed
 evidence. The separately approved parent-construction repair is implemented
 and passes its synthetic real-scale, overmerge-safety, and executor fixtures.
-Exact replacement identities are not yet frozen. No cumulative replay,
-public-data campaign, qualification run, tuning, rescoring, cutover, or release
-is authorized by this work.
+The replacement candidate identity and fail-closed replay wrapper are now
+composed; the exact wrapper revision and complete no-write result are not yet
+frozen. No cumulative replay, public-data campaign, qualification run, tuning,
+rescoring, cutover, or release is authorized by this work.
 
 This page records the prospective correction approved by source-reconstruction
 pre-review `528f18a6...`. It replaces the failed catalogue composition used by
@@ -197,5 +198,9 @@ must be summarized in the
 the existing failed evidence. That authority is consumed and its terminal
 ledger failed. Root-cause repair decision `8296c4ce...` authorized only the
 prerequisite label/activation work. Parent-construction review `b5d89bdc...`
-now permits freezing a replacement candidate and replay composition after
-validation, but it does not authorize executing that replay.
+permitted the validated replacement candidate and replay composition to be
+prepared. The new wrapper consumes the exact failed source-reconstruction
+wrapper, replaces only its candidate identity and current Continuum builder,
+requires output and scratch to be absent during verification, and fails closed
+unless a separate future decision binds its eventual identity-review digest.
+It does not authorize executing the replay.
