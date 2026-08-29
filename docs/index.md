@@ -52,12 +52,15 @@ science but fails the complete Continuum cumulative replay with 44 failed
 endpoints and 37 like-semantics regressions. The evidence points to catalogue
 fragmentation: completeness and merge gates pass, while reliability, duplicate,
 split, flux-tail, and position-tail gates fail. The source-association repair
-completed its 2,400 candidate products, but a stale single-support compiler
-adapter stopped before the cumulative ledger. An evaluation-only repair must
-compile the now-verified preserved products under an exact approval bound to
-non-executable review `6a0e79b4...`; no candidate rerun is required or
-authorized. The repaired candidate must then pass fresh held-out
-qualification. Remaining Phase 5 gates include the
+and measurement fallback completed all 2,400 candidate products. The approved
+evaluation-only completion published terminal ledger `6b2aa4de...`: compact
+still passes, but Continuum again has 44 failed endpoints, 10 underpowered
+endpoints, and the same 37 like-semantics regressions. Source-union matching
+changed no endpoint status; component-level fragmentation, flux tails, and
+position tails remain binding failures. Fresh held-out qualification is
+therefore closed. Remaining Phase 5 gates cannot resume until a separately
+reviewed prospective scientific correction passes cumulative regression; they
+include the
 restricted Rapthor workflow profile, the fail-closed
 [readiness record](reference/phase-5-release-readiness.md), and independent
 scientific and engineering acceptance. The stable public pipeline, matched

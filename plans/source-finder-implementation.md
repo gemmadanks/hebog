@@ -390,18 +390,23 @@ the failed `1ac6deb2...` replay must remain visible historical evidence.
 
 #### Current blocker and authorization state
 
-There is no terminal cumulative ledger for the measurement-completeness
-repair. Replacement review `119ce0f9...` and execution decision `5ddc524a...`
-authorized one replay; it completed all 2,400 shards and then failed during
-catalogue compilation, so that authority is consumed. The execution-failure
-contract preserves the absent ledger, complete scratch, and adapter mismatch.
-Clean repair commit `ea3279d...` and non-executable identity review
-`6a0e79b4...` now bind the new adapter and completion program, all 2,400
-artifact-verified candidate shards (`dbc317fa...`), all 9,600 retained
-reference runs, the unchanged historical compiler/matcher, and the absent
-ledger. Candidate execution, replay, compilation, evaluation, viewed
-SDC1/Hydra execution, qualification, tuning, rescoring, cutover, and release
-remain unauthorized pending separate exact completion approval.
+The measurement-completeness repair now has terminal cumulative ledger
+`6b2aa4de...`. Replacement review `119ce0f9...` and decision `5ddc524a...`
+produced all 2,400 candidate shards before the stale compiler stopped.
+Evaluation-only review `6a0e79b4...` and decision `46ddfefa...` then authorized
+one completion from verified product set `dbc317fa...`; immutable revision
+`2174b0c...` published the ledger without candidate execution. Both
+authorities are consumed.
+
+The ledger is terminally `fail`. Compact passes with no like-semantics
+regression. Continuum has 89 passes, 44 failures, 10 underpowered endpoints,
+and 37 like-semantics regressions; `cumulative_science_regression_ready`,
+all-required-endpoints, and fresh-campaign freeze are false. Source-union
+matching changed 49 point estimates but no endpoint status relative to
+`1ac6deb2...`; reliability and duplicate fraction worsened slightly, while
+split, flux, and mask metrics were unchanged. Candidate execution, replay,
+viewed SDC1/Hydra execution, qualification, tuning, rescoring, cutover, and
+release remain unauthorized.
 
 The frozen readiness contract has now been prospectively rebound to repair
 candidate `6184a32...`, configuration `78dbb230...`, and the replacement
@@ -448,7 +453,7 @@ from partial or viewed evidence.
    - [x] Prospectively update the readiness contract to require the same final
      candidate, configuration, ledger, and future held-out decision identities.
 
-2. [ ] **Obtain named approval and run exactly one cumulative replay.**
+2. [x] **Run the only approved cumulative evaluation and stop on failure.**
    - [x] Approval binds replacement identity review `119ce0f9...` and the
      exact two-worker 800-compact/1,600-Continuum composition.
    - [x] Candidate execution completed all 2,400 products under that authority;
@@ -459,16 +464,18 @@ from partial or viewed evidence.
      evaluation unauthorized.
    - [x] Obtain separate approval bound to that review and record exact
      evaluation-only decision `46ddfefa...`.
-   - [ ] Compile and evaluate only the exact preserved product set. Candidate
-     submission and another replay remain forbidden.
-   - Require `cumulative_science_regression_ready=true`, every required
-     endpoint passing, and empty compact and Continuum like-semantics regression
-     lists. Interpret compact and Continuum science before power or runtime.
+   - [x] Compile and evaluate only the exact preserved product set. Candidate
+     submission and another replay remained forbidden.
+   - [x] Interpret compact and Continuum science before power or runtime. The
+     required gate failed: `cumulative_science_regression_ready=false`, not
+     every endpoint passes, and 37 Continuum regressions remain.
    - If execution or evaluation fails, preserve the write-once state and stop;
      do not overwrite, resume under a consumed decision, tune, rescore, or
      silently substitute evidence.
 
 3. [ ] **Freshly qualify the exact passing candidate.**
+   - Blocked: the cumulative prerequisite failed, so no qualification
+     population may be opened or frozen for this candidate.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval.

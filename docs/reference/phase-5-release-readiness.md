@@ -63,13 +63,15 @@ remain absent. The command cannot publish a Phase 5 completion record until a
 separately reviewed candidate passes every gate.
 
 The later source-association measurement-repair replay completed all 2,400
-candidate products but did not publish a ledger: its compiler rejected the new
-binding source identity at the stale single-segment adapter. Those products are
-preserved for a fail-closed evaluation-only completion. They are not passing
-evidence. Non-executable repair review `6a0e79b4...` binds verified product set
-`dbc317fa...` and leaves compilation/evaluation closed. Readiness remains
-blocked until an exactly approved completion publishes a terminal passing
-ledger and the later gates also pass.
+candidate products, and the separately approved evaluation-only adapter
+published terminal ledger `6b2aa4de...` without another candidate run. Compact
+passes, but Continuum has 44 failures, 10 underpowered endpoints, and the same
+37 like-semantics regressions as the first correction. The source-union view
+changed no endpoint status: reliability is 0.62375, duplicate and split
+fractions are both 0.25295, integrated-flux p95 error is 0.79260, and position
+p95 error is 4.18028 beams. The record is failing evidence, not missing
+evidence. `prepare` must continue to abort, and fresh qualification remains
+closed until a prospectively reviewed candidate passes cumulative regression.
 
 ## Prepare the packet
 

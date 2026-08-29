@@ -151,3 +151,23 @@ absent ledger without opening scientific products. Non-executable review
 `6a0e79b4...` freezes that exact composition with compilation and evaluation
 still false. A separate approval bound to that review is required before the
 preserved products may be compiled and evaluated.
+
+## Terminal evaluation result
+
+The exact approval was recorded in decision `46ddfefa...`. Immutable revision
+`2174b0c...` reverified all preserved products and references, then atomically
+published ledger `6b2aa4de...` without candidate execution. The ledger is a
+terminal failure: compact passes with zero regressions; Continuum has 89
+passing, 44 failing, and 10 underpowered endpoints, plus 37 like-semantics
+regressions.
+
+The association layer changed 49 Continuum point estimates but no endpoint
+status relative to the first corrected ledger. Overall reliability moved from
+0.62563 to 0.62375 and duplicate fraction from 0.25179 to 0.25295; split
+fraction stayed 0.25295. Integrated-flux and mask results were unchanged, and
+the astrometric changes were numerically negligible. This is consistent with
+the approved evaluation semantics: catalogue matching uses source unions, but
+split and merge topology deliberately retains native components. The terminal
+result therefore does not establish that source association solved the
+binding fragmentation problem. It cannot be rescored or used to open held-out
+qualification.

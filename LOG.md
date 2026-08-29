@@ -12015,3 +12015,54 @@ product set only. Another replay or candidate submission remains forbidden.
 **Immediate next step:** validate and commit the decision, create an immutable
 execution checkout, repeat the complete no-write identity verification there,
 and invoke the completion program exactly once.
+
+## 2026-08-29 — Close measurement-repair evaluation as a failure
+
+**Plan phase:** Phase 5, closure gate 2
+
+- Committed exact evaluation-only authority as `2174b0c...`; decision
+  `46ddfefa...` binds review `6a0e79b4...`, product set `dbc317fa...`, repair
+  programs, reconstructed references `48209eae...`, and closed baseline
+  `a45303df...` while forbidding candidate execution and another replay.
+- Immutable checkout `2174b0c...` passed the complete no-write preflight over
+  all 2,400 candidate products and 9,600 reference runs. The single authorized
+  process then exited successfully and atomically published ledger SHA-256
+  `6b2aa4deb306e0d7ba8285aae1e18bfb4f4e838b57aecd0497bec990e8a8c842`.
+  Ledger provenance exactly binds the approved candidate, source,
+  configuration, product set, adapter, references, baseline, decision, and
+  execution revision; no candidate run occurred.
+- Science was interpreted before power. Compact is `pass` with zero
+  like-semantics regressions. Continuum is `fail`: 89 endpoints pass, 44 fail,
+  10 are underpowered, and 37 regress against the closed like-semantics
+  baseline. Forty-three failures violate absolute limits; mask precision
+  passes its 0.85 absolute floor at 0.88406 but fails both paired 0.05 margins.
+- Overall completeness is 1.0, merge fraction is 0.0, and mask recall is
+  0.91965. Binding failures include reliability 0.62375 against 0.95,
+  duplicate fraction 0.25295 against 0.02, split fraction 0.25295 against 0.10,
+  integrated-flux p95 error 0.79260 against 0.25, and position p95 error
+  4.18028 beams against 0.5. The 37 regressions comprise 12 split, 10
+  duplicate, four median-flux, four position-tail, three x-offset, three
+  y-offset, and one reliability endpoint.
+- Compared with first corrected ledger `1ac6deb2...`, source association
+  changed 49 candidate point estimates but no endpoint status. Reliability
+  declined from 0.62563 and duplicate fraction increased from 0.25179; split,
+  integrated-flux, and mask results are unchanged. The approved adapter's
+  source-union catalogue matching therefore did not remove the binding native
+  component-topology fragmentation.
+- `cumulative_science_regression_ready`, all-required-endpoints,
+  fresh-campaign freeze, and every later execution authorization are false.
+  The failed ledger is immutable and must not be rescored, tuned, or rerun.
+
+**Validation:** exact provenance and ledger SHA-256 audits passed; 53 focused
+evaluation-repair and readiness tests passed. The live readiness prepare check
+rejected `all_required_endpoints_pass` and left its output absent. Branch-aware
+coverage passed 2,025 tests with 44 deselected and four expected failures at
+94.80%; all 27 applicable equivalence tests passed.
+
+**Immediate next step:** stop Phase 5 closure and obtain a new prospective
+scientific pre-review. It must decide whether binding split/duplicate semantics
+remain native-component topology—requiring an actual segmentation/reconciliation
+correction—or become catalogue-source topology under a prospectively revised
+protocol. Either path needs fixture-first evidence and independent scientific
+review before any new cumulative execution; held-out qualification remains
+closed.
