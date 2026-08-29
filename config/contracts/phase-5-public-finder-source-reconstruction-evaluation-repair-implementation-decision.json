@@ -1,0 +1,24 @@
+{
+  "approval": {
+    "approved_on": "2026-08-29",
+    "exact_user_instruction": "Please continue with the next step. I also give my approval to start the campaign once this is ready and if there are any errors I give my approval to fix them and retry the campaign until it is up and running. Once it is clear the run is error-free please monitor hourly and start the evaluation once the campaign is complete. If I need to clear any disk space, please recommend what to delete so that I can do that manually while the campaign proceeds.",
+    "reviewer": "Gemma Danks"
+  },
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_only_repair_implementation_authorized": true,
+    "existing_product_verification_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-source-reconstruction-evaluation-repair-implementation-decision",
+  "failure_path": "config/contracts/phase-5-public-finder-source-reconstruction-cumulative-replay-execution-failure.json",
+  "pre_review_path": "config/contracts/phase-5-public-finder-source-reconstruction-evaluation-repair-pre-review.json",
+  "schema_version": 1,
+  "status": "authorized-for-existing-product-evaluation-repair-implementation"
+}

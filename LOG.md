@@ -12265,3 +12265,37 @@ complete pre-commit suite pass.
 **Immediate next step:** validate and commit the decision, create an immutable
 execution checkout, start the exact replay once, and confirm healthy progress
 before enabling hourly monitoring.
+
+## 2026-08-29 — Repair source-reconstruction terminal evaluation
+
+**Plan phase:** Phase 5, closure gate 3
+
+- The authorized replay at immutable revision `041b8f4...` completed all 2,400
+  candidate shards in managed session `61210`; the write-once ledger remained
+  absent throughout candidate execution.
+- Terminal Continuum compilation then failed before atomic publication. The
+  prospective wrapper sent every finder through the Hebog-only source-union
+  topology callback. Released and pinned-master PyBDSF rows retain the frozen
+  singular `support_label` contract, while associated Hebog rows expose
+  `support_labels`; the resulting `AttributeError` occurred before any ledger
+  or scientific interpretation.
+- Added the missing regression test and a finder-semantics dispatch: unchanged
+  and empty reference catalogues use the historical measurement path, only an
+  all-associated Hebog catalogue uses prospective source topology, and mixed
+  support semantics fail closed.
+- Added a completion-only boundary that hashes all 2,400 canonical markers and
+  declared artifacts, verifies the exact progress population, forbids candidate
+  submission, and records repair provenance in the eventual atomic ledger.
+- Recorded the terminal failure, a thorough pre-review, and an implementation
+  decision bound to Gemma Danks's explicit authorization to fix operational
+  errors and retry. Candidate science, thresholds, photometry, references,
+  endpoint policy, gates, and the output path are unchanged.
+
+**Validation:** the new reference-dispatch test first reproduced the exact
+`support_labels` failure. The corrected wrapper, prospective topology, and
+association-evaluation suites now pass 23 focused tests; Ruff passes.
+
+**Immediate next step:** commit the repair, verify and freeze the exact
+preserved product set and repair identities, amend the consumed execution
+decision within the user's narrow retry authority, then resume compilation and
+evaluation without candidate execution.

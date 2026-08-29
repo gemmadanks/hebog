@@ -108,9 +108,9 @@ def test_review_freezes_exact_non_executable_composition() -> None:
             _IMPLEMENTATION_REVISION,
             record["path"],
         )
-    assert review["prospective_execution"] == wrapper[
-        "_expected_execution_fields"
-    ](_approved_arguments())
+    expected = wrapper["_expected_execution_fields"](_approved_arguments())
+    expected["wrapper_sha256"] = wrapper_record["sha256"]
+    assert review["prospective_execution"] == expected
 
 
 def test_review_records_complete_no_write_result() -> None:
@@ -163,9 +163,14 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     decision = cast(dict[str, Any], decision_value)
     assert decision["execution_authorized"] is True
     assert decision["cumulative_replay_authorized"] is True
-    for field, expected in wrapper["_expected_execution_fields"](
+    expected_fields = wrapper["_expected_execution_fields"](
         _approved_arguments()
-    ).items():
+    )
+    expected_fields["wrapper_sha256"] = cast(
+        dict[str, Any],
+        review["prospective_execution"],
+    )["wrapper_sha256"]
+    for field, expected in expected_fields.items():
         assert decision[field] == expected
     assert decision["source_reconstruction_replay_identity_review"] == {
         "path": str(_REVIEW.relative_to(_ROOT)),

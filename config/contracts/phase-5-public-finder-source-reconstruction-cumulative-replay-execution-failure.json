@@ -1,0 +1,26 @@
+{
+  "atomic_ledger_written": false,
+  "candidate_configuration_sha256": "470e918db1a640d7393edc02de01fc57b50881b908bd6d5dac18a57709117bbb",
+  "candidate_execution_completed": true,
+  "candidate_input_count": 2400,
+  "candidate_revision": "42c75f44b71800ae5fa1e0ebe1669caa7da59f85",
+  "candidate_source_tree_sha256": "1b67c7f6f768d6f83becc853a1ebd45b3996164cd2b87fdc0f71b9a3299e6bf1",
+  "decision_id": "phase-5-public-finder-source-reconstruction-cumulative-replay-execution-failure",
+  "execution_checkout_revision": "041b8f47d1db3e7e026d8433dd5f3ad7c72eeedd",
+  "execution_decision_sha256": "0d87caf76434379f4b7e0957411e346dcfd1013dfb3e4fd5ee61290f2c30b905",
+  "failed_stage": "terminal-continuum-compilation-before-atomic-ledger-publication",
+  "failure": {
+    "exception_type": "AttributeError",
+    "message": "'ContinuumCatalogueObject' object has no attribute 'support_labels'",
+    "origin": "src/hebog/validation/source_association_evaluation_repair.py:_synthetic_source_labels",
+    "trigger": "the prospective source-topology callback received a released or pinned-master PyBDSF single-support catalogue row"
+  },
+  "managed_session": 61210,
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-reconstruction.json",
+  "progress_completed": 2400,
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "schema_version": 1,
+  "scientific_products_interpreted": false,
+  "status": "failed-after-all-candidate-products-before-atomic-ledger",
+  "wrapper_sha256": "b19c215794872271044adc06a15b2778f810f40c8f57be38071b144430bb8c41"
+}

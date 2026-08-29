@@ -10,6 +10,7 @@ import argparse
 import json
 import runpy
 import subprocess
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 
@@ -24,7 +25,9 @@ from hebog.validation.public_finder_correction import (
     public_finder_source_reconstruction_candidate_configuration,
 )
 from hebog.validation.source_association_evaluation_repair import (
+    AssociatedContinuumCatalogueObject,
     continuum_catalogue_objects,
+    measure_continuum_image,
     measure_prospective_source_topology,
 )
 
@@ -54,6 +57,10 @@ _IDENTITY_REVIEW = (
 _EXECUTION_DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-source-reconstruction-"
     "cumulative-replay-execution-decision.json"
+)
+_EVALUATION_REPAIR_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-reconstruction-"
+    "evaluation-repair-review.json"
 )
 _MULTISCALE_PROGRAM = _ROOT / "src/hebog/algorithms/multiscale_association.py"
 _HIERARCHY_PROGRAM = _ROOT / "src/hebog/algorithms/source_association.py"
@@ -127,6 +134,8 @@ _PROSPECTIVE_SCRATCH_PATH = Path(
 _PROSPECTIVE_BASELINE_PATH = Path(
     "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json"
 )
+_INPUT_COUNT = 2400
+_WORKERS = 2
 _PROHIBITED_AUTHORIZATIONS = (
     "campaign_execution_authorized",
     "cutover_authorized",
@@ -148,6 +157,115 @@ def _load_json(path: Path, *, label: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise ValueError(f"{label} not authorized")
     return cast(dict[str, object], value)
+
+
+def _canonical_json_bytes(value: object) -> bytes:
+    """Serialize one finite deterministic evidence record."""
+    return (
+        json.dumps(value, allow_nan=False, indent=2, sort_keys=True) + "\n"
+    ).encode()
+
+
+def _verify_candidate_artifacts(
+    directory: Path,
+    marker: Mapping[str, object],
+    *,
+    lane: str,
+) -> None:
+    """Hash one shard's declared artifacts and reject role or file drift."""
+    artifacts = marker.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise ValueError("source-reconstruction artifacts are malformed")
+    expected_roles = (
+        {
+            "segment-catalogue-json",
+            "segment-labels-fits",
+            "segment-mask-fits",
+        }
+        if lane == "continuum"
+        else {"compact-catalogue-json"}
+    )
+    roles: set[str] = set()
+    names = {"complete.json"}
+    for value in artifacts:
+        if not isinstance(value, dict):
+            raise ValueError("source-reconstruction artifacts are malformed")
+        role = value.get("role")
+        relative_path = value.get("relative_path")
+        if (
+            not isinstance(role, str)
+            or not isinstance(relative_path, str)
+            or Path(relative_path).name != relative_path
+        ):
+            raise ValueError("source-reconstruction artifacts are malformed")
+        path = directory / relative_path
+        if (
+            not path.is_file()
+            or value.get("byte_count") != path.stat().st_size
+            or value.get("sha256") != file_sha256(path)
+        ):
+            raise ValueError("source-reconstruction artifact identity changed")
+        roles.add(role)
+        names.add(relative_path)
+    if (
+        roles != expected_roles
+        or {item.name for item in directory.iterdir()} != names
+    ):
+        raise ValueError("source-reconstruction artifact set changed")
+
+
+def _verify_existing_candidate_products(
+    scratch: Path,
+    expected_inputs: Sequence[tuple[str, str]],
+    *,
+    expected_count: int = _INPUT_COUNT,
+) -> str:
+    """Hash every preserved shard without opening scientific contents."""
+    if (
+        len(expected_inputs) != expected_count
+        or len({item[0] for item in expected_inputs}) != expected_count
+    ):
+        raise ValueError("source-reconstruction product population changed")
+    products = scratch / "products"
+    progress = scratch / "progress.log"
+    if (
+        not products.is_dir()
+        or not progress.is_file()
+        or {item.name for item in scratch.iterdir()}
+        != {"products", "progress.log"}
+    ):
+        raise ValueError("source-reconstruction scratch layout changed")
+    expected_ids = {item[0] for item in expected_inputs}
+    if {item.name for item in products.iterdir()} != expected_ids:
+        raise ValueError("source-reconstruction product population changed")
+
+    markers: list[dict[str, object]] = []
+    for input_id, lane in expected_inputs:
+        directory = products / input_id
+        marker_path = directory / "complete.json"
+        marker = _load_json(marker_path, label="candidate complete marker")
+        if (
+            marker.get("schema_version") != 1
+            or marker.get("input_id") != input_id
+            or marker.get("configuration_sha256")
+            != _CANDIDATE_CONFIGURATION_SHA256
+            or marker.get("source_tree_sha256")
+            != _CANDIDATE_SOURCE_TREE_SHA256
+            or marker_path.read_bytes() != _canonical_json_bytes(marker)
+        ):
+            raise ValueError("source-reconstruction product identity changed")
+        _verify_candidate_artifacts(directory, marker, lane=lane)
+        markers.append(marker)
+
+    progress_lines = progress.read_text(encoding="utf-8").splitlines()
+    completed_ids = {
+        line.rsplit(" input=", maxsplit=1)[1]
+        for line in progress_lines
+        if " input=" in line
+    }
+    if len(progress_lines) != expected_count or completed_ids != expected_ids:
+        raise ValueError("source-reconstruction progress is incomplete")
+    return canonical_sha256(markers)
 
 
 def _load_consumed_wrapper() -> dict[str, Any]:
@@ -197,9 +315,24 @@ def _binding_source_topology_metrics(
     beam_fwhm_pixels: float,
 ) -> dict[str, dict[str, float | tuple[float, ...]]]:
     """Present source-union gates while retaining native diagnostics."""
+    associated = tuple(
+        item
+        for item in catalogue
+        if isinstance(item, AssociatedContinuumCatalogueObject)
+    )
+    if not associated:
+        return measure_continuum_image(
+            truth,
+            catalogue,
+            truth_label_plane=truth_label_plane,
+            candidate_label_plane=candidate_label_plane,
+            beam_fwhm_pixels=beam_fwhm_pixels,
+        )
+    if len(associated) != len(catalogue):
+        raise ValueError("continuum catalogue cannot mix support semantics")
     measured = measure_prospective_source_topology(
         truth,
-        catalogue,
+        associated,
         truth_label_plane=truth_label_plane,
         candidate_label_plane=candidate_label_plane,
         beam_fwhm_pixels=beam_fwhm_pixels,
@@ -369,7 +502,11 @@ def _validate_implementation_decision(document: dict[str, object]) -> None:
         raise ValueError("source-reconstruction authorization changed")
 
 
-def _require_common_identities(arguments: argparse.Namespace) -> str:
+def _require_common_identities(
+    arguments: argparse.Namespace,
+    *,
+    existing_products: bool = False,
+) -> str:
     """Verify candidate, programs, evidence, and absent write-once state."""
     _require_exact_invocation(arguments)
     revision = _git_revision()
@@ -406,8 +543,12 @@ def _require_common_identities(arguments: argparse.Namespace) -> str:
         if not path.is_file() or file_sha256(path) != expected:
             raise ValueError(f"source-reconstruction {label} identity changed")
     _validate_readiness()
-    if arguments.output.exists() or arguments.scratch.exists():
+    if arguments.output.exists() or (
+        arguments.scratch.exists() and not existing_products
+    ):
         raise ValueError("source-reconstruction write-once namespace exists")
+    if existing_products and not arguments.scratch.is_dir():
+        raise ValueError("source-reconstruction candidate products are absent")
     return revision
 
 
@@ -511,6 +652,8 @@ def _expected_execution_fields(
 def _authorize_replay(
     arguments: argparse.Namespace,
     execution_decision_path: Path,
+    *,
+    existing_products: bool = False,
 ) -> dict[str, object]:
     """Require a future exact review and named one-replay approval."""
     if not execution_decision_path.is_file():
@@ -549,7 +692,15 @@ def _authorize_replay(
         or file_sha256(_IDENTITY_REVIEW) != review_sha256
     ):
         raise ValueError("source-reconstruction identity review changed")
-    execution_revision = _require_common_identities(arguments)
+    repair_review_sha256 = (
+        _evaluation_repair_review_sha256(decision)
+        if existing_products
+        else None
+    )
+    execution_revision = _require_common_identities(
+        arguments,
+        existing_products=existing_products,
+    )
     return {
         "candidate_configuration_sha256": _CANDIDATE_CONFIGURATION_SHA256,
         "candidate_source_overlay_revision": _CANDIDATE_REVISION,
@@ -557,8 +708,94 @@ def _authorize_replay(
         "execution_checkout_revision": execution_revision,
         "execution_decision_sha256": file_sha256(execution_decision_path),
         "identity_review_sha256": review_sha256,
+        "evaluation_repair_review_sha256": repair_review_sha256,
         "wrapper_sha256": file_sha256(Path(__file__)),
     }
+
+
+def _evaluation_repair_review_sha256(
+    decision: dict[str, object],
+) -> str:
+    """Require the exact existing-product evaluation-repair boundary."""
+    repair = decision.get("evaluation_repair_review")
+    expected_path = str(_EVALUATION_REPAIR_REVIEW.relative_to(_ROOT))
+    resume_authorized = decision.get(
+        "existing_product_evaluation_resume_authorized"
+    )
+    if (
+        resume_authorized is not True
+        or not isinstance(repair, dict)
+        or repair.get("path") != expected_path
+    ):
+        raise ValueError("source-reconstruction evaluation repair changed")
+    review_sha256 = repair.get("sha256")
+    if (
+        not isinstance(review_sha256, str)
+        or not _EVALUATION_REPAIR_REVIEW.is_file()
+        or file_sha256(_EVALUATION_REPAIR_REVIEW) != review_sha256
+    ):
+        raise ValueError("source-reconstruction evaluation repair changed")
+    return review_sha256
+
+
+def _install_existing_product_evaluation(
+    frozen: dict[str, Any],
+    *,
+    provenance: Mapping[str, object],
+    expected_count: int = _INPUT_COUNT,
+) -> None:
+    """Forbid candidate submission and verify every preserved shard."""
+    completed = frozen.get("_completed_candidate")
+    serializer = frozen.get("_canonical_json_bytes")
+    if not callable(completed) or not callable(serializer):
+        raise ValueError("source-reconstruction completion seam changed")
+
+    def verify_tasks(
+        tasks: tuple[dict[str, object], ...],
+        *,
+        workers: int,
+        progress_path: Path,
+    ) -> None:
+        if (
+            workers != _WORKERS
+            or len(tasks) != expected_count
+            or progress_path != _PROSPECTIVE_SCRATCH_PATH / "progress.log"
+        ):
+            raise ValueError("source-reconstruction product set changed")
+        for task in tasks:
+            if not completed(
+                Path(cast(str, task["output_directory"])),
+                input_id=cast(str, task["input_id"]),
+                configuration_sha256=cast(
+                    str,
+                    task["configuration_sha256"],
+                ),
+                source_sha256=cast(str, task["source_tree_sha256"]),
+            ):
+                raise ValueError(
+                    "source-reconstruction product identity changed"
+                )
+
+    def candidate_execution_forbidden(_task: dict[str, object]) -> str:
+        raise RuntimeError(
+            "source-reconstruction evaluation repair forbids candidate "
+            "execution"
+        )
+
+    def serialize(value: object) -> bytes:
+        document = value
+        if isinstance(value, dict) and value.get("ledger_id") == (
+            "phase-5-cumulative-regression-ledger"
+        ):
+            document = {
+                **value,
+                "evaluation_repair_provenance": dict(provenance),
+            }
+        return cast(bytes, serializer(document))
+
+    frozen["_run_candidate_tasks"] = verify_tasks
+    frozen["_generate_candidate_product"] = candidate_execution_forbidden
+    frozen["_canonical_json_bytes"] = serialize
 
 
 def run_authorized_replay(
@@ -567,8 +804,31 @@ def run_authorized_replay(
     execution_decision_path: Path,
 ) -> None:
     """Delegate exactly once only after a later named approval."""
-    provenance = _authorize_replay(arguments, execution_decision_path)
+    existing_products = arguments.scratch.exists()
+    provenance = _authorize_replay(
+        arguments,
+        execution_decision_path,
+        existing_products=existing_products,
+    )
     verified = _verify_reference_reconstruction(arguments)
+    if existing_products:
+        expected_inputs = tuple(
+            (item.input_id, item.lane) for item in verified.request.inputs
+        )
+        product_set_sha256 = _verify_existing_candidate_products(
+            arguments.scratch,
+            expected_inputs,
+        )
+        repair_review = _load_json(
+            _EVALUATION_REPAIR_REVIEW,
+            label="source-reconstruction evaluation repair",
+        )
+        if repair_review.get("candidate_product_set_sha256") != (
+            product_set_sha256
+        ):
+            raise ValueError("source-reconstruction product set changed")
+        provenance["candidate_product_count"] = len(expected_inputs)
+        provenance["candidate_product_set_sha256"] = product_set_sha256
     consumed = _load_consumed_wrapper()
     source_association = cast(
         dict[str, Any], consumed["_load_consumed_wrapper"]()
@@ -584,7 +844,13 @@ def run_authorized_replay(
         verified_reference=verified,
     )
     _install_source_reconstruction_static_seams(frozen)
-    frozen["_generate_candidate_product"] = _generate_candidate_product
+    if existing_products:
+        _install_existing_product_evaluation(
+            frozen,
+            provenance=provenance,
+        )
+    else:
+        frozen["_generate_candidate_product"] = _generate_candidate_product
     frozen["_parse_args"] = lambda: arguments
     frozen["main"]()
 

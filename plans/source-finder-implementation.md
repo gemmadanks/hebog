@@ -349,11 +349,14 @@ measurement, and mask-support admission remain open defects.
 
 Pre-review `528f18a6...` accounts for every failure and its approved
 fixture-first correction is implemented as candidate `42c75f4...`. The
-prospective replay wrapper and readiness binding are prepared without replay
-authority; exact clean-revision freezing and complete no-write verification
-remain next. Section 7 contains the single authoritative Phase 5 closure
-sequence; detailed chronology and immutable identities remain in `LOG.md` and
-`config/contracts/`.
+frozen replay completed all 2,400 candidate products, then stopped during
+terminal compilation before atomic publication because the shared prospective
+topology callback did not dispatch unchanged PyBDSF single-support records to
+their historical evaluator. No ledger or scientific interpretation exists.
+The approved evaluation-only repair adds that dispatch and verifies the
+preserved products while forbidding candidate submission. Section 7 contains
+the single authoritative Phase 5 closure sequence; detailed chronology and
+immutable identities remain in `LOG.md` and `config/contracts/`.
 
 ## 7. Delivery plan
 
@@ -421,7 +424,16 @@ threshold, gate, component owner, or closed evidence product. Replay and
 viewed-data execution remain unauthorized. Identity review `b4eff062...` now
 freezes the exact non-executable composition and records a passing complete
 no-write verification. Execution decision `0d87caf7...` now records the
-separate approval for that composition; the single replay remains next.
+separate approval for that composition. The replay completed all 2,400
+candidate products but failed during terminal Continuum compilation before the
+atomic ledger because the wrapper sent unchanged PyBDSF catalogue records to a
+Hebog-only `support_labels` evaluator. This is an operational failure, not a
+scientific verdict. Gemma Danks's explicit error-fix-and-retry authority opens
+only a minimal evaluation repair: reference rows retain historical measurement
+semantics, associated Hebog rows use prospective source topology, mixed
+semantics fail closed, all persisted shards are hashed, and candidate execution
+is forbidden. Exact repair and product-set identities must be frozen before
+compilation resumes.
 
 The readiness contract is now prospectively rebound to source-reconstruction
 candidate `42c75f4...`, source tree `1b67c7f6...`, configuration
@@ -508,8 +520,13 @@ from partial or viewed evidence.
      inputs and 9,600 reference runs with output and scratch absent.
    - [x] Obtain a separate exact one-replay approval. Decision `0d87caf7...`
      binds review `b4eff062...` and leaves all later actions unauthorized.
-   - [ ] Execute that one replay and require every compact and Continuum
-     absolute and like-semantics gate. Stop again on scientific failure.
+   - [x] Execute the candidate stage once. All 2,400 products completed under
+     the exact authority; terminal compilation failed before atomic publication
+     on a reference-record dispatch defect, so no scientific result exists.
+   - [ ] Freeze and consume the approved evaluation-only repair, compile and
+     evaluate only the exact preserved product set, and require every compact
+     and Continuum absolute and like-semantics gate. Candidate submission is
+     forbidden; stop again on scientific failure.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

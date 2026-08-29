@@ -1,0 +1,43 @@
+{
+  "authorization_source": {
+    "approved_on": "2026-08-29",
+    "exact_user_instruction": "Please continue with the next step. I also give my approval to start the campaign once this is ready and if there are any errors I give my approval to fix them and retry the campaign until it is up and running. Once it is clear the run is error-free please monitor hourly and start the evaluation once the campaign is complete. If I need to clear any disk space, please recommend what to delete so that I can do that manually while the campaign proceeds.",
+    "reviewer": "Gemma Danks"
+  },
+  "decision_id": "phase-5-public-finder-source-reconstruction-evaluation-repair-pre-review",
+  "failure_accounting": {
+    "candidate_execution": "all 2400 candidate shards completed and remain in the original write-once scratch namespace",
+    "coverage_gap": "fixture tests exercised associated Hebog rows but did not exercise the same callback with unchanged PyBDSF single-support rows",
+    "immediate_cause": "the replay wrapper unconditionally invoked the Hebog-only prospective topology evaluator for all three finders",
+    "interface_mismatch": "AssociatedContinuumCatalogueObject exposes support_labels while the unchanged PyBDSF ContinuumCatalogueObject exposes support_label",
+    "root_cause": "the prospective compiler seam replaced the shared measurement callback without a finder-semantics dispatch",
+    "scientific_effect": "none was interpreted because the compiler failed before atomic ledger publication",
+    "write_once_effect": "the terminal ledger path remains absent and can be published exactly once"
+  },
+  "implementation_boundary": {
+    "allowed": [
+      "add a regression test covering unchanged PyBDSF rows at the shared callback",
+      "dispatch unchanged or empty reference catalogues to the historical measurement path",
+      "dispatch only all-associated Hebog catalogues to prospective source-level topology",
+      "reject mixed support semantics",
+      "hash and verify every preserved candidate marker and declared artifact",
+      "forbid candidate submission during the completion",
+      "resume compilation and evaluation into the original absent atomic ledger path",
+      "freeze exact repair identities and record provenance in the terminal ledger"
+    ],
+    "forbidden": [
+      "candidate reexecution",
+      "another cumulative replay or campaign",
+      "viewed SDC1 or Hydra execution",
+      "fresh qualification",
+      "threshold or photometric tuning",
+      "rescoring or gate changes",
+      "optimization",
+      "cutover",
+      "release"
+    ]
+  },
+  "recommendation": "implement the minimal finder-semantics dispatch and an existing-product-only evaluation completion, validate it fixture-first, freeze the exact preserved product set and repair program, then consume the user's explicit repair-and-retry approval to resume compilation and evaluation once",
+  "schema_version": 1,
+  "status": "implementation-authorized-by-explicit-user-repair-request"
+}

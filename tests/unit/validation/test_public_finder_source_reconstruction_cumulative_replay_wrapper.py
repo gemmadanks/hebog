@@ -9,9 +9,14 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import numpy as np
 import pytest
 
 from hebog.validation.external_runners import file_sha256
+from hebog.validation.external_successor_compiler import (
+    ContinuumCatalogueObject,
+    ContinuumTruthObject,
+)
 
 _ROOT = Path(__file__).parents[3]
 _WRAPPER = (
@@ -108,10 +113,13 @@ def test_readiness_is_prospectively_rebound_before_replay() -> None:
 
 def test_fixture_verifier_is_no_write(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     """Verification returns identities without creating replay state."""
     wrapper = runpy.run_path(str(_WRAPPER))
     arguments = _approved_arguments()
+    arguments.output = tmp_path / "ledger.json"
+    arguments.scratch = tmp_path / "scratch"
     globals_ = wrapper[
         "verify_source_reconstruction_replay_composition"
     ].__globals__
@@ -191,3 +199,124 @@ def test_composition_replaces_only_future_continuum_and_evaluator() -> None:
     assert frozen["_candidate_configuration_sha256"]() == _CONFIGURATION
     assert frozen["_write_compact_products"] is compact
     assert frozen["_install_prospective_compiler"] is not None
+
+
+def test_binding_topology_preserves_reference_catalogue_semantics() -> None:
+    """PyBDSF rows retain their single-support compiler interpretation."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    truth = ContinuumTruthObject(
+        identifier="truth-one",
+        support_label=1,
+        centre_xy=(0.5, 0.0),
+        integrated_flux_jy=1.0,
+        catalogue_role="astronomical-source",
+        strata=("morphology-shell",),
+    )
+    reference = ContinuumCatalogueObject(
+        identifier="reference-one",
+        support_label=7,
+        centre_xy=(0.5, 0.0),
+        integrated_flux_jy=1.0,
+    )
+
+    result = wrapper["_binding_source_topology_metrics"](
+        (truth,),
+        (reference,),
+        truth_label_plane=np.asarray(((1, 1),), dtype=np.int32),
+        candidate_label_plane=np.asarray(((7, 7),), dtype=np.int32),
+        beam_fwhm_pixels=2.0,
+    )
+
+    assert result["reliability"]["overall"] == 1.0
+    assert result["split-fraction"]["overall"] == 0.0
+
+
+def test_existing_product_evaluation_forbids_candidate_execution() -> None:
+    """A terminal compiler retry can only verify preserved candidate shards."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    calls: list[Path] = []
+
+    def completed(
+        directory: Path,
+        **_identities: str,
+    ) -> bool:
+        calls.append(directory)
+        return True
+
+    def serialize(value: object) -> bytes:
+        return json.dumps(value, sort_keys=True).encode()
+
+    frozen: dict[str, Any] = {
+        "_completed_candidate": completed,
+        "_canonical_json_bytes": serialize,
+    }
+    wrapper["_install_existing_product_evaluation"](
+        frozen,
+        provenance={"repair": "verified"},
+        expected_count=1,
+    )
+    scratch = wrapper["_PROSPECTIVE_SCRATCH_PATH"]
+    task = {
+        "output_directory": str(scratch / "products" / "input-one"),
+        "input_id": "input-one",
+        "configuration_sha256": "c" * 64,
+        "source_tree_sha256": "s" * 64,
+    }
+
+    frozen["_run_candidate_tasks"](
+        (task,),
+        workers=2,
+        progress_path=scratch / "progress.log",
+    )
+
+    assert calls == [scratch / "products" / "input-one"]
+    with pytest.raises(RuntimeError, match="forbids candidate execution"):
+        frozen["_generate_candidate_product"](task)
+    ledger = json.loads(
+        frozen["_canonical_json_bytes"](
+            {"ledger_id": "phase-5-cumulative-regression-ledger"}
+        )
+    )
+    assert ledger["evaluation_repair_provenance"] == {"repair": "verified"}
+
+
+def test_existing_product_verifier_hashes_complete_shards(
+    tmp_path: Path,
+) -> None:
+    """Evaluation repair admits only canonical, artifact-verified products."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    scratch = tmp_path / "scratch"
+    directory = scratch / "products" / "input-one"
+    directory.mkdir(parents=True)
+    artifact = directory / "compact_catalogue.json"
+    artifact.write_text("{}\n", encoding="utf-8")
+    marker = {
+        "schema_version": 1,
+        "input_id": "input-one",
+        "configuration_sha256": wrapper["_CANDIDATE_CONFIGURATION_SHA256"],
+        "source_tree_sha256": wrapper["_CANDIDATE_SOURCE_TREE_SHA256"],
+        "artifacts": [
+            {
+                "role": "compact-catalogue-json",
+                "relative_path": artifact.name,
+                "byte_count": artifact.stat().st_size,
+                "sha256": file_sha256(artifact),
+            }
+        ],
+    }
+    (directory / "complete.json").write_text(
+        json.dumps(marker, allow_nan=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (scratch / "progress.log").write_text(
+        "completed=1/1 input=input-one\n",
+        encoding="utf-8",
+    )
+
+    identity = wrapper["_verify_existing_candidate_products"](
+        scratch,
+        (("input-one", "compact"),),
+        expected_count=1,
+    )
+
+    assert len(identity) == 64
