@@ -12238,3 +12238,30 @@ coverage` at 94.64% and all 27 applicable equivalence tests.
 **Immediate next step:** obtain a separate named one-replay approval bound to
 identity review SHA-256 `b4eff0621a05a98ab3ad3fa29c1bf3b9447a7a4dd2abf38c3aca5b566c548f21`.
 Do not execute the replay or any later Phase 5 action before that approval.
+
+## 2026-08-29 — Authorize one source-reconstruction cumulative replay
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Interpreted Gemma Danks's instruction to start the next campaign as approval
+  of the exact frozen cumulative replay in review `b4eff062...`, not a new
+  viewed SDC1/Hydra campaign. This is the only pending executable step in the
+  plan and matches the immediately preceding approval text supplied for review.
+- Added execution decision `0d87caf7...`, binding candidate `42c75f4...`,
+  source tree `1b67c7f6...`, configuration `470e918d...`, wrapper
+  `b19c2157...`, reconstructed references `48209eae...`, closed baseline
+  `a45303df...`, two workers, and the exact write-once output and scratch paths.
+- The same write-once namespace may be operationally restarted if a process or
+  environment error occurs. A scientific identity change, tuning, rescoring,
+  viewed-data execution, another campaign, qualification, optimization,
+  cutover, or release remains unauthorized.
+
+**Validation:** all nine focused identity and wrapper contracts pass; Ruff and
+focused Pyright pass; the decision parses as strict JSON and matches every
+field returned by the frozen wrapper. `just check` passes 1,914 tests with 202
+deselected and four expected failures; the strict documentation build and the
+complete pre-commit suite pass.
+
+**Immediate next step:** validate and commit the decision, create an immutable
+execution checkout, start the exact replay once, and confirm healthy progress
+before enabling hourly monitoring.

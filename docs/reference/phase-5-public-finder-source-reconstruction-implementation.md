@@ -129,7 +129,8 @@ non-executable. That step is complete in identity review `b4eff062...`: all
 2,400 inputs and 9,600 retained reference runs verified, the future output and
 scratch namespaces were absent, and no replay started.
 
-One cumulative replay requires a separate named approval of that exact frozen
-composition. A replay result, if later authorized, must be summarized in the
+Execution decision `0d87caf7...` records the separate named approval of that
+exact frozen composition and authorizes one cumulative replay only. Its result
+must be summarized in the
 [Phase 5 campaign overview](phase-5-campaign-overview.md) without replacing
 the existing failed evidence.

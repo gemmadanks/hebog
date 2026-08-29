@@ -420,7 +420,8 @@ passes its analytic and Serial/existing-Dask contracts without changing a
 threshold, gate, component owner, or closed evidence product. Replay and
 viewed-data execution remain unauthorized. Identity review `b4eff062...` now
 freezes the exact non-executable composition and records a passing complete
-no-write verification; only the separate replay approval remains outstanding.
+no-write verification. Execution decision `0d87caf7...` now records the
+separate approval for that composition; the single replay remains next.
 
 The readiness contract is now prospectively rebound to source-reconstruction
 candidate `42c75f4...`, source tree `1b67c7f6...`, configuration
@@ -505,8 +506,10 @@ from partial or viewed evidence.
      evaluator, reconstructed-reference, and baseline composition; run its
      complete no-write verification. Review `b4eff062...` verifies all 2,400
      inputs and 9,600 reference runs with output and scratch absent.
-   - [ ] Obtain a separate exact one-replay approval and require every compact
-     and Continuum absolute and like-semantics gate. Stop again on failure.
+   - [x] Obtain a separate exact one-replay approval. Decision `0d87caf7...`
+     binds review `b4eff062...` and leaves all later actions unauthorized.
+   - [ ] Execute that one replay and require every compact and Continuum
+     absolute and like-semantics gate. Stop again on scientific failure.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

@@ -10,8 +10,6 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
-
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -146,8 +144,8 @@ def test_review_records_complete_no_write_result() -> None:
     }
 
 
-def test_review_stays_closed_pending_separate_named_approval() -> None:
-    """Identity freezing cannot become replay authority."""
+def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
+    """The new decision binds the review without opening later actions."""
     review = _load()
     authorization = cast(dict[str, bool], review["authorization"])
 
@@ -157,13 +155,26 @@ def test_review_stays_closed_pending_separate_named_approval() -> None:
         "separate-named-approval-bound-to-this-review-for-one-complete-"
         "cumulative-replay-only"
     )
-    assert not _EXECUTION_DECISION.exists()
     wrapper = runpy.run_path(str(_WRAPPER))
-    with pytest.raises(ValueError, match="cumulative replay not authorized"):
-        wrapper["run_authorized_replay"](
-            _approved_arguments(),
-            execution_decision_path=_EXECUTION_DECISION,
-        )
+    decision_value = json.loads(
+        _EXECUTION_DECISION.read_text(encoding="utf-8")
+    )
+    assert isinstance(decision_value, dict)
+    decision = cast(dict[str, Any], decision_value)
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    for field, expected in wrapper["_expected_execution_fields"](
+        _approved_arguments()
+    ).items():
+        assert decision[field] == expected
+    assert decision["source_reconstruction_replay_identity_review"] == {
+        "path": str(_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REVIEW),
+    }
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        wrapper["_PROHIBITED_AUTHORIZATIONS"],
+        False,
+    )
 
 
 def test_review_binds_reconstruction_and_closed_baseline() -> None:
