@@ -12133,3 +12133,47 @@ qualification, tuning, rescoring, cutover, and release remain forbidden.
 **Immediate next step:** use the overview format for the next terminal replay;
 the current execution boundary remains named approval of pre-review
 `528f18a6...`.
+
+## 2026-08-29 — Implement the approved source-reconstruction correction
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Recorded Gemma Danks's exact approval of pre-review `528f18a6...` in a
+  fail-closed implementation decision. It authorizes only fixture-first
+  implementation, validation, and non-executable identity freezing.
+- Added stable exact-support scale features and a deterministic hierarchy that
+  groups immutable detection components only through one unambiguous common
+  multiscale parent. Missing or branched lineage stays singleton and is
+  explicitly flagged.
+- Replaced component-summed binding rows with one measurement on a disjoint
+  source-label aperture. Component measurements remain diagnostic, while
+  source flux, centroid, shape, and the positive exact-owner fallback are
+  evaluated once per catalogue source.
+- Restricted reconstructed-mask admission to support in the same valid
+  eight-connected component as a direct seed, retaining the existing radius,
+  direct ownership, and canonical nearest-seed tie rule.
+- Added a prospective in-memory topology evaluator whose binding split/merge,
+  reliability, and duplicate metrics use catalogue-source unions. Native
+  component split/merge remains a separate diagnostic; closed ledger and
+  campaign paths are not accepted.
+- Preserved the historical association and evaluator paths for every sealed
+  evidence product. No campaign, replay, viewed public data, qualification,
+  tuning, rescoring, optimization, cutover, or release occurred.
+
+**Validation:** the test-first contracts initially failed on absent hierarchy,
+measurement, and prospective-evaluator seams. The implemented correction now
+passes the focused source, multiscale, measurement, evaluator, product, and
+Serial/existing-Dask suites, including singleton, three-lobe, shell, filament,
+nearby-source, ambiguous-chain, tile-origin, and source-union topology cases.
+`just coverage` passes 2,063 tests with 44 deselected and four expected
+failures at 94.64%; `just check` passes 1,905 tests with 202 deselected and
+four expected failures; all 27 applicable equivalence tests pass; docs and the
+complete pre-commit suite pass. Review against `CODE_REVIEW.md` found no
+actionable implementation issue. Two historical SHA checks were corrected to
+read their review-named Git revisions instead of requiring successor files to
+retain obsolete bytes.
+
+**Immediate next step:** finish repository validation and commit the fixture-
+only implementation, then freeze the exact candidate and prospective replay
+composition and run its complete no-write verifier. A separate named approval
+will still be required before one cumulative replay.

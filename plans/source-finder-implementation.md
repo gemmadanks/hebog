@@ -412,10 +412,12 @@ all 44 failures and recommends four prospective corrections: a common-parent
 multiscale source hierarchy in place of pairwise complete-link association,
 one source-level measurement on disjoint pixels, connected reconstructed-mask
 support, and a future evaluator that binds split/merge to catalogue-source
-unions while retaining component topology as a diagnostic. The review adds no
-threshold or gate change and grants no authority. Named scientific and
-engineering approval is required before its fixture-only implementation may
-begin.
+unions while retaining component topology as a diagnostic. Gemma Danks
+approved that exact fixture-only boundary on 2026-08-29. The correction now
+passes its analytic and Serial/existing-Dask contracts without changing a
+threshold, gate, component owner, or closed evidence product. Replay and
+viewed-data execution remain unauthorized pending an exact non-executable
+identity freeze and separate approval.
 
 The frozen readiness contract has now been prospectively rebound to repair
 candidate `6184a32...`, configuration `78dbb230...`, and the replacement
@@ -486,11 +488,11 @@ from partial or viewed evidence.
    - [x] Freeze a non-executable pre-review against terminal ledger
      `6b2aa4de...`, account for all 44 failures, separate direct causal facts
      from hypotheses, and forbid tuning or retrospective rescoring.
-   - [ ] Obtain named approval of exact pre-review `528f18a6...`. Approval may
+   - [x] Obtain named approval of exact pre-review `528f18a6...`. Approval may
      open only test-first source hierarchy, source measurement, connected-mask
      support, future source-topology evaluator, fixture/executor validation,
      and non-executable identity freezing.
-   - [ ] Implement the smallest correction that passes every positive and
+   - [x] Implement the smallest correction that passes every positive and
      negative analytic fixture. Preserve component ownership, detection
      thresholds, gate values, and all closed evidence.
    - [ ] Freeze a new candidate, source tree, configuration, compiler,

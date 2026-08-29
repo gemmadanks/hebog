@@ -63,6 +63,46 @@ def test_seeded_multiscale_ownership_recovers_wings_without_new_identity() -> (
     assert owned[2, 2] == 0
 
 
+def test_seeded_ownership_excludes_disconnected_nearby_support() -> None:
+    """A nearby significant island needs an eight-connected seed path."""
+    seeds = np.zeros((9, 9), dtype=np.int32)
+    seeds[4, 2] = 7
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[4, 2:5] = True
+    significant[3:6, 6:8] = True
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        np.ones(seeds.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=12.0,
+    )
+
+    assert np.all(owned[3:6, 6:8] == 0)
+    assert np.all(owned[4, 2:5] == 7)
+
+
+def test_seeded_multiscale_ownership_cannot_cross_invalid_gap() -> None:
+    """Invalid pixels break reconstructed support connectivity."""
+    seeds = np.zeros((7, 9), dtype=np.int32)
+    seeds[3, 1] = 4
+    significant = np.zeros(seeds.shape, dtype=np.bool_)
+    significant[3, 1:8] = True
+    valid = np.ones(seeds.shape, dtype=np.bool_)
+    valid[:, 4] = False
+
+    owned = assign_seeded_multiscale_support(
+        seeds,
+        significant,
+        valid,
+        beam_major_fwhm_pixels=20.0,
+    )
+
+    assert np.all(owned[:, 5:] == 0)
+    assert owned[3, 3] == 4
+    assert owned[3, 1] == 4
+
+
 def test_seeded_multiscale_ownership_clips_cleanly_at_image_edge() -> None:
     """An edge seed owns only finite in-image support within the radius."""
     seeds = np.zeros((4, 4), dtype=np.int32)
@@ -141,8 +181,7 @@ def test_seeded_multiscale_tie_considers_every_equidistant_seed() -> None:
             centre_yx[0] + offset_y,
             centre_yx[1] + offset_x,
         ] = 100 - index
-    significant = np.zeros(seeds.shape, dtype=np.bool_)
-    significant[centre_yx] = True
+    significant = np.ones(seeds.shape, dtype=np.bool_)
 
     owned = assign_seeded_multiscale_support(
         seeds,

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import runpy
+import subprocess
+from hashlib import sha256
 from pathlib import Path
 from types import FunctionType
 from typing import Any, cast
@@ -37,6 +39,17 @@ _EXECUTION_DECISION = (
 
 def _namespace() -> dict[str, Any]:
     return runpy.run_path(str(_SCRIPT))
+
+
+def _committed_file_sha256(revision: str, path: str) -> str:
+    """Hash one file at the immutable revision named by the review."""
+    content = subprocess.run(
+        ("git", "show", f"{revision}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    return sha256(content).hexdigest()
 
 
 def _write_product(
@@ -275,6 +288,7 @@ def test_identity_review_freezes_only_non_executable_completion() -> None:
     )
     implementation: dict[str, Any] = review["implementation"]
     assert isinstance(implementation, dict)
+    revision = cast(str, implementation["commit"])
     for identity in implementation.values():
         if not isinstance(identity, dict):
             continue
@@ -284,7 +298,7 @@ def test_identity_review_freezes_only_non_executable_completion() -> None:
         if not isinstance(path, str):
             continue
         assert isinstance(sha256, str)
-        assert file_sha256(_ROOT / path) == sha256
+        assert _committed_file_sha256(revision, path) == sha256
     verified = review["verified_composition"]
     assert verified["candidate_product_count"] == 2400
     assert verified["candidate_product_set_sha256"] == (

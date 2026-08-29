@@ -14,6 +14,7 @@ from typing import cast
 import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import binary_dilation
+from scipy.ndimage import label as connected_component_labels
 
 from hebog.data_models.multiscale import (
     CompactExtendedContextEdge,
@@ -23,6 +24,7 @@ from hebog.data_models.multiscale import (
 )
 
 _ASSOCIATION_ID_NAMESPACE = b"phase-5-cross-scale-association-v1\0"
+_DETECTION_ID_NAMESPACE = b"phase-5-scale-detection-v1\0"
 _IMAGE_DIMENSIONS = 2
 _COMPACT_CONTEXT_RADIUS_BEAMS = 0.5
 
@@ -71,6 +73,116 @@ class ScaleDetectionPlane:
         canonical = np.asarray(labels, dtype=np.int32).copy()
         canonical.setflags(write=False)
         object.__setattr__(self, "component_labels", canonical)
+
+
+def _scale_detection_id(
+    scale_order: int,
+    canonical_pixel_yx: tuple[int, int],
+) -> str:
+    """Derive one stable feature identity from scale and global owner pixel."""
+    digest = sha256(_DETECTION_ID_NAMESPACE)
+    for value in (scale_order, *canonical_pixel_yx):
+        digest.update(str(value).encode("ascii"))
+        digest.update(b"\0")
+    return f"scale-detection-{digest.hexdigest()}"
+
+
+def build_scale_detection_plane(  # noqa: PLR0913
+    significant_support: npt.ArrayLike,
+    response_jy_per_beam: npt.ArrayLike,
+    signal_to_noise: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    *,
+    scale_order: int,
+    nominal_scale_beam_fwhm: float,
+    origin_yx: tuple[int, int] = (0, 0),
+) -> ScaleDetectionPlane:
+    """Build stable exact features from one reviewed significant scale mask."""
+    support = np.asarray(significant_support)
+    response = np.asarray(response_jy_per_beam)
+    snr = np.asarray(signal_to_noise)
+    valid = np.asarray(valid_pixels)
+    if support.ndim != _IMAGE_DIMENSIONS or support.dtype != np.bool_:
+        raise ValueError("significant scale support must be a boolean plane")
+    if valid.shape != support.shape or valid.dtype != np.bool_:
+        raise ValueError("scale validity must be one aligned boolean plane")
+    if any(
+        array.shape != support.shape
+        or not np.issubdtype(array.dtype, np.number)
+        or np.iscomplexobj(array)
+        for array in (response, snr)
+    ):
+        raise ValueError("scale response and SNR must be aligned real planes")
+    if np.any(support & ~valid):
+        raise ValueError("scale support must be scientifically valid")
+    if (
+        isinstance(scale_order, bool)
+        or scale_order < 1
+        or not isfinite(nominal_scale_beam_fwhm)
+        or nominal_scale_beam_fwhm <= 0.0
+        or len(origin_yx) != _IMAGE_DIMENSIONS
+        or min(origin_yx) < 0
+    ):
+        raise ValueError("scale metadata must be positive and canonical")
+    labels, count = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(
+            support,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    detections: list[ScaleDetection] = []
+    y_origin, x_origin = origin_yx
+    for label_value in range(1, count + 1):
+        local_y, local_x = np.nonzero(labels == label_value)
+        feature_response = np.asarray(
+            response[local_y, local_x],
+            dtype=np.float64,
+        )
+        feature_snr = np.asarray(snr[local_y, local_x], dtype=np.float64)
+        if (
+            not np.all(np.isfinite(feature_response))
+            or not np.all(np.isfinite(feature_snr))
+            or float(np.max(feature_response)) <= 0.0
+        ):
+            raise ValueError(
+                "significant scale features require finite positive response"
+            )
+        canonical = (
+            int(local_y[0]) + y_origin,
+            int(local_x[0]) + x_origin,
+        )
+        detections.append(
+            ScaleDetection(
+                detection_id=_scale_detection_id(scale_order, canonical),
+                parent_island_id=None,
+                scale_order=scale_order,
+                nominal_scale_beam_fwhm=nominal_scale_beam_fwhm,
+                support_pixel_count=int(local_y.size),
+                valid_support_fraction=1.0,
+                bounds_yx=(
+                    int(np.min(local_y)) + y_origin,
+                    int(np.max(local_y)) + y_origin + 1,
+                    int(np.min(local_x)) + x_origin,
+                    int(np.max(local_x)) + x_origin + 1,
+                ),
+                canonical_pixel_yx=canonical,
+                peak_response_jy_per_beam=float(np.max(feature_response)),
+                peak_signal_to_noise=float(np.max(feature_snr)),
+                touches_image_edge=bool(
+                    np.any(local_y == 0)
+                    or np.any(local_x == 0)
+                    or np.any(local_y == support.shape[0] - 1)
+                    or np.any(local_x == support.shape[1] - 1)
+                ),
+            )
+        )
+    return ScaleDetectionPlane(
+        scale_order=scale_order,
+        component_labels=np.asarray(labels, dtype=np.int32),
+        detections=tuple(detections),
+        origin_yx=origin_yx,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -318,7 +430,25 @@ def _join_adjacent_overlaps(
     components: _DisjointDetections,
 ) -> None:
     """Add vectorized exact-support edges between adjacent scale planes."""
-    for first, second in pairwise(planes):
+    for first_id, second_id in adjacent_scale_overlap_edges(planes):
+        components.union(first_id, second_id)
+
+
+def adjacent_scale_overlap_edges(
+    planes: tuple[ScaleDetectionPlane, ...],
+) -> tuple[tuple[str, str], ...]:
+    """Return canonical fine-to-coarse exact-overlap hierarchy edges.
+
+    This is the same bounded overlap evidence used by
+    :func:`associate_adjacent_scale_detections`, exposed so a catalogue-source
+    hierarchy can retain parent direction without constructing another graph
+    implementation.
+    """
+    if not planes:
+        return ()
+    ordered_planes, _ = _validated_inputs(planes)
+    edges: set[tuple[str, str]] = set()
+    for first, second in pairwise(ordered_planes):
         if second.scale_order != first.scale_order + 1:
             continue
         first_labels = first.component_labels
@@ -331,10 +461,13 @@ def _join_adjacent_overlaps(
             axis=0,
         )
         for first_label, second_label in label_pairs:
-            components.union(
-                first.detections[int(first_label) - 1].detection_id,
-                second.detections[int(second_label) - 1].detection_id,
+            edges.add(
+                (
+                    first.detections[int(first_label) - 1].detection_id,
+                    second.detections[int(second_label) - 1].detection_id,
+                )
             )
+    return tuple(sorted(edges))
 
 
 def _build_association(

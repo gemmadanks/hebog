@@ -15,10 +15,17 @@ from hebog.algorithms.extended_measurement import (
 )
 from hebog.algorithms.multiscale import (
     BeamShapePixels,
+    ResidualAtrousResult,
     ResidualMultiscaleDetectionConfig,
+    SignificantAtrousReconstruction,
+    calibrated_scale_snrs,
     detect_residual_multiscale_islands,
     prepare_scale_filter_inputs,
     reconstruct_significant_atrous,
+)
+from hebog.algorithms.multiscale_association import (
+    ScaleDetectionPlane,
+    build_scale_detection_plane,
 )
 from hebog.validation.campaigns import diagnose_phase_four_realization
 from hebog.validation.comparison import (
@@ -43,6 +50,37 @@ class PostCampaignCandidateProducts:
     detection: ThresholdFilterResult
     position_signal_jy_per_beam: npt.NDArray[np.float64]
     significant_multiscale_support: npt.NDArray[np.bool_]
+    scale_detection_planes: tuple[ScaleDetectionPlane, ...]
+
+
+def _retained_scale_detection_planes(
+    atrous: ResidualAtrousResult,
+    reconstruction: SignificantAtrousReconstruction,
+    valid_pixels: npt.NDArray[np.bool_],
+    *,
+    minimum_support_fraction: float,
+) -> tuple[ScaleDetectionPlane, ...]:
+    """Build exact retained per-scale features for source hierarchy."""
+    scale_snrs = calibrated_scale_snrs(
+        atrous.responses,
+        minimum_support_fraction=minimum_support_fraction,
+    )
+    return tuple(
+        build_scale_detection_plane(
+            scale_mask & reconstruction.support_mask,
+            response.response_jy_per_beam,
+            scale_snr,
+            valid_pixels,
+            scale_order=response.scale_order,
+            nominal_scale_beam_fwhm=(response.nominal_scale_beam_fwhm),
+        )
+        for response, scale_mask, scale_snr in zip(
+            atrous.responses,
+            reconstruction.significant_scale_masks,
+            scale_snrs,
+            strict=True,
+        )
+    )
 
 
 def refine_external_candidate_detection(
@@ -116,6 +154,14 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
             + atrous.reconstructed_signal_jy_per_beam
         ),
         significant_multiscale_support=significant_support,
+        scale_detection_planes=_retained_scale_detection_planes(
+            atrous,
+            reconstruction,
+            prepared.scientifically_valid,
+            minimum_support_fraction=(
+                review.matrix.support_fraction_bounds[0]
+            ),
+        ),
     )
 
 
@@ -188,6 +234,14 @@ def evaluate_public_finder_correction_candidate_products(  # noqa: PLR0913
             + atrous.reconstructed_signal_jy_per_beam
         ),
         significant_multiscale_support=significant_support,
+        scale_detection_planes=_retained_scale_detection_planes(
+            atrous,
+            direct_detection.reconstruction,
+            prepared.scientifically_valid,
+            minimum_support_fraction=(
+                review.matrix.support_fraction_bounds[0]
+            ),
+        ),
     )
 
 

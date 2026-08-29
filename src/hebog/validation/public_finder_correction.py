@@ -33,7 +33,10 @@ from hebog.validation.post_campaign_science import (
 from hebog.validation.post_correction_recovery import (
     post_correction_candidate_configuration,
 )
-from hebog.validation.products import build_hebog_associated_moment_catalogues
+from hebog.validation.products import (
+    build_hebog_associated_moment_catalogues,
+    build_hebog_reconstructed_source_catalogues,
+)
 
 _ARCSECONDS_PER_DEGREE = 3600.0
 _HALF_CIRCLE_DEGREES = 180.0
@@ -47,6 +50,16 @@ _PUBLIC_SUPPORT_POLICY = (
 _PUBLIC_SHAPE_POLICY = "exact-owner-positive-residual-moment-equivalent"
 _SOURCE_ASSOCIATION_POLICY = (
     "undilated-three-sigma-directional-fwhm-complete-link-v1"
+)
+_SOURCE_RECONSTRUCTION_POLICY = (
+    "undilated-adjacent-scale-unambiguous-common-parent-v1"
+)
+_SOURCE_MEASUREMENT_POLICY = "disjoint-source-owned-aperture-moment-v1"
+_CONNECTED_SUPPORT_POLICY = (
+    "direct-seed-connected-half-beam-multiscale-recovery-v1"
+)
+_SOURCE_TOPOLOGY_POLICY = (
+    "binding-catalogue-source-diagnostic-detection-component-v1"
 )
 _IMAGE_DIMENSIONS = 2
 
@@ -311,6 +324,38 @@ def public_finder_source_association_candidate_configuration(
     return {"compact": base["compact"], "continuum": continuum}
 
 
+def public_finder_source_reconstruction_candidate_configuration(
+    base_review_path: Path,
+    correction_contract_path: Path,
+    source_reconstruction_pre_review_path: Path,
+    implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Return the non-executable source-reconstruction candidate identity."""
+    base = public_finder_correction_candidate_configuration(
+        base_review_path,
+        correction_contract_path,
+    )
+    continuum_value = base["continuum"]
+    if not isinstance(continuum_value, dict):
+        raise TypeError("base Continuum configuration must be a dictionary")
+    continuum = dict(cast(dict[str, object], continuum_value))
+    continuum.update(
+        {
+            "source_reconstruction_policy": _SOURCE_RECONSTRUCTION_POLICY,
+            "source_measurement_policy": _SOURCE_MEASUREMENT_POLICY,
+            "connected_support_policy": _CONNECTED_SUPPORT_POLICY,
+            "source_topology_policy": _SOURCE_TOPOLOGY_POLICY,
+            "source_reconstruction_pre_review_sha256": file_sha256(
+                source_reconstruction_pre_review_path
+            ),
+            "source_reconstruction_implementation_decision_sha256": (
+                file_sha256(implementation_decision_path)
+            ),
+        }
+    )
+    return {"compact": base["compact"], "continuum": continuum}
+
+
 def _aligned_public_plane(
     values: npt.ArrayLike,
     *,
@@ -377,6 +422,64 @@ def build_public_finder_correction_continuum_products(  # noqa: PLR0913
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         beam_minor_fwhm_pixels=beam.minor_fwhm_pixels,
         island_threshold_sigma=review.matrix.island_sigma,
+        measurement_aperture_radius_beams=(
+            CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
+        ),
+        position_signal_jy_per_beam=products.position_signal_jy_per_beam,
+    )
+    valid.setflags(write=False)
+    return PublicFinderCorrectionContinuumProducts(
+        detection=products.detection,
+        catalogue=catalogues.source_catalogue,
+        valid_pixels=valid,
+        component_catalogue=catalogues.component_catalogue,
+        source_association=catalogues.association,
+    )
+
+
+def build_public_finder_source_reconstruction_continuum_products(  # noqa: PLR0913
+    image_jy_per_beam: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    rms_jy_per_beam: npt.ArrayLike,
+    header: fits.Header,
+    *,
+    beam: BeamShapePixels,
+    review: PhaseFiveCorrectiveAReview,
+) -> PublicFinderCorrectionContinuumProducts:
+    """Build the fixture-only common-parent reconstructed candidate."""
+    image = _aligned_public_plane(image_jy_per_beam, name="image")
+    background = _aligned_public_plane(
+        background_jy_per_beam,
+        name="background",
+        shape=image.shape,
+    )
+    rms = _aligned_public_plane(
+        rms_jy_per_beam,
+        name="RMS",
+        shape=image.shape,
+    )
+    valid = np.isfinite(image) & np.isfinite(background) & np.isfinite(rms)
+    if np.any(np.isfinite(image) != valid):
+        raise ValueError(
+            "public-finder correction mean/RMS validity differs from image"
+        )
+    products = evaluate_public_finder_correction_candidate_products(
+        image,
+        valid,
+        background,
+        rms,
+        beam=beam,
+        review=review,
+    )
+    catalogues = build_hebog_reconstructed_source_catalogues(
+        image,
+        background,
+        valid,
+        products.detection.component_labels,
+        products.scale_detection_planes,
+        header,
+        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
+        beam_minor_fwhm_pixels=beam.minor_fwhm_pixels,
         measurement_aperture_radius_beams=(
             CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
         ),

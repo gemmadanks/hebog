@@ -13,11 +13,14 @@ from distributed import Client, LocalCluster
 from hebog.algorithms.extended_measurement import (
     assign_seeded_multiscale_support,
 )
+from hebog.algorithms.multiscale_association import ScaleDetectionPlane
 from hebog.algorithms.source_association import (
+    associate_components_by_multiscale_hierarchy,
     associate_detection_components,
     build_detection_component_records,
     reduce_source_associations,
 )
+from hebog.data_models.multiscale import ScaleDetection
 from hebog.data_models.source_association import (
     DetectionComponentRecord,
     SourceAssociationResult,
@@ -35,6 +38,11 @@ AssociationBatch: TypeAlias = tuple[
     npt.NDArray[np.int32],
     tuple[DetectionComponentRecord, ...],
     tuple[int, int],
+]
+HierarchyBatch: TypeAlias = tuple[
+    npt.NDArray[np.int32],
+    tuple[DetectionComponentRecord, ...],
+    tuple[ScaleDetectionPlane, ...],
 ]
 
 
@@ -241,3 +249,103 @@ def test_source_association_partition_order_and_retry_invariance() -> None:
 
     assert _identity_view(serial) == _identity_view(expected)
     assert _identity_view(dask) == _identity_view(expected)
+
+
+def _hierarchy_plane(
+    labels: npt.NDArray[np.int32],
+    identifier: str,
+    *,
+    scale_order: int,
+) -> ScaleDetectionPlane:
+    """Build one exact common-parent plane for executor fixtures."""
+    y_pixels, x_pixels = np.nonzero(labels > 0)
+    support_labels = np.where(labels > 0, 1, 0).astype(np.int32)
+    return ScaleDetectionPlane(
+        scale_order=scale_order,
+        component_labels=support_labels,
+        detections=(
+            ScaleDetection(
+                detection_id=identifier,
+                parent_island_id=None,
+                scale_order=scale_order,
+                nominal_scale_beam_fwhm=float(2 ** (scale_order - 1)),
+                support_pixel_count=int(y_pixels.size),
+                valid_support_fraction=1.0,
+                bounds_yx=(
+                    int(np.min(y_pixels)),
+                    int(np.max(y_pixels)) + 1,
+                    int(np.min(x_pixels)),
+                    int(np.max(x_pixels)) + 1,
+                ),
+                canonical_pixel_yx=(int(y_pixels[0]), int(x_pixels[0])),
+                peak_response_jy_per_beam=1.0,
+                peak_signal_to_noise=5.0,
+                touches_image_edge=False,
+            ),
+        ),
+    )
+
+
+def _reconstruct_hierarchy(batch: HierarchyBatch) -> SourceAssociationResult:
+    """Apply common-parent reconstruction through a worker-safe boundary."""
+    labels, records, planes = batch
+    return associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+
+@pytest.mark.integration
+def test_source_hierarchy_is_serial_dask_order_and_retry_invariant() -> None:
+    """Common-parent membership ignores labels, tasks, and plane ordering."""
+    labels = np.zeros((9, 17), dtype=np.int32)
+    labels[4, 3] = 9
+    labels[4, 13] = 2
+    permuted = np.where(labels == 9, 31, np.where(labels == 2, 7, 0)).astype(
+        np.int32
+    )
+    support = np.zeros(labels.shape, dtype=np.int32)
+    support[4, 3:14] = 1
+    fine = _hierarchy_plane(support, "scale-hierarchy-fine", scale_order=1)
+    coarse = _hierarchy_plane(
+        support,
+        "scale-hierarchy-coarse",
+        scale_order=2,
+    )
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    permuted_records = build_detection_component_records(
+        permuted,
+        np.asarray(permuted > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    batches: tuple[HierarchyBatch, ...] = (
+        (labels, records, (fine, coarse)),
+        (permuted, permuted_records, (coarse, fine)),
+    )
+    expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
+
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(
+            _reconstruct_hierarchy,
+            (*tuple(reversed(batches)), batches[0]),
+        )
+
+    expected_view = _identity_view(expected[0])
+    assert _identity_view(expected[1]) == expected_view
+    assert [_identity_view(item) for item in actual] == [
+        expected_view,
+        expected_view,
+        expected_view,
+    ]

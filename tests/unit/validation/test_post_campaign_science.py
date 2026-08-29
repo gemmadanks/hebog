@@ -72,9 +72,18 @@ def test_candidate_products_reuse_atrous_detection_and_position_signal(
         support_mask=np.ones(labels.shape, dtype=np.bool_)
     )
     direct_signal = np.full(labels.shape, 1.5)
+    scale_planes = (cast(Any, SimpleNamespace(scale_order=1)),)
     mocker.patch(
         "hebog.validation.post_campaign_science.prepare_scale_filter_inputs",
-        return_value=SimpleNamespace(residual_jy_per_beam=direct_signal),
+        return_value=SimpleNamespace(
+            residual_jy_per_beam=direct_signal,
+            scientifically_valid=np.ones(labels.shape, dtype=np.bool_),
+        ),
+    )
+    build_planes = mocker.patch(
+        "hebog.validation.post_campaign_science."
+        "_retained_scale_detection_planes",
+        return_value=scale_planes,
     )
     corrective = mocker.patch(
         "hebog.validation.post_campaign_science._corrective_results",
@@ -108,12 +117,14 @@ def test_candidate_products_reuse_atrous_detection_and_position_signal(
         direct_signal + position_signal,
     )
     assert products.detection.component_count == 1
+    assert products.scale_detection_planes is scale_planes
     assert corrective.call_args.kwargs["family"] == "residual-b3-atrous"
     assert reconstruct.call_args.kwargs == {
         "detection_sigma": 5.0,
         "island_sigma": 3.0,
         "minimum_support_fraction": review.matrix.support_fraction_bounds[0],
     }
+    assert build_planes.call_count == 1
 
 
 def test_public_correction_owns_bridge_from_pre_union_direct_seeds(
@@ -141,6 +152,7 @@ def test_public_correction_owns_bridge_from_pre_union_direct_seeds(
     atrous = SimpleNamespace(
         reconstructed_signal_jy_per_beam=np.full(labels.shape, 0.5)
     )
+    scale_planes = (cast(Any, SimpleNamespace(scale_order=1)),)
     mocker.patch(
         "hebog.validation.post_campaign_science.prepare_scale_filter_inputs",
         return_value=prepared,
@@ -148,6 +160,11 @@ def test_public_correction_owns_bridge_from_pre_union_direct_seeds(
     mocker.patch(
         "hebog.validation.post_campaign_science._corrective_results",
         return_value=(object(), atrous, object()),
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science."
+        "_retained_scale_detection_planes",
+        return_value=scale_planes,
     )
     detect = mocker.patch(
         "hebog.validation.post_campaign_science."
@@ -176,6 +193,7 @@ def test_public_correction_owns_bridge_from_pre_union_direct_seeds(
     assert products.detection.component_labels[3, 1] == 9
     assert products.detection.component_labels[3, 9] == 2
     assert products.detection.component_labels[3, 5] == 9
+    assert products.scale_detection_planes is scale_planes
     assert detect.call_count == 1
 
 

@@ -19,6 +19,9 @@ from scipy.ndimage import (
     convolve,
     distance_transform_edt,
 )
+from scipy.ndimage import (
+    label as connected_component_labels,
+)
 from scipy.spatial import (
     cKDTree,  # pyright: ignore[reportAttributeAccessIssue]
 )
@@ -418,6 +421,13 @@ def assign_seeded_multiscale_support(  # noqa: PLR0913
     seed_points = np.column_stack(np.nonzero(labels > 0))
     if not seed_points.size:
         return output
+    connected_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(
+            ((labels > 0) | significant) & valid,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
     candidate_points = np.column_stack(
         np.nonzero(significant & valid & (labels == 0))
     )
@@ -427,16 +437,27 @@ def assign_seeded_multiscale_support(  # noqa: PLR0913
         labels,
         canonical_seed_references_yx,
     )
-    distances, owner_ranks = _nearest_canonical_seed_ranks(
-        cast(_NearestSeedTree, cKDTree(seed_points)),
-        np.asarray(candidate_points, dtype=np.int64),
-        seed_ranks,
-    )
-    eligible = distances <= (recovery_radius_beams * beam_major_fwhm_pixels)
-    eligible_points = candidate_points[eligible]
-    output[eligible_points[:, 0], eligible_points[:, 1]] = labels_by_rank[
-        owner_ranks[eligible]
-    ].astype(np.int32, copy=False)
+    seed_components = connected_labels[seed_points[:, 0], seed_points[:, 1]]
+    candidate_components = connected_labels[
+        candidate_points[:, 0], candidate_points[:, 1]
+    ]
+    maximum_distance = recovery_radius_beams * beam_major_fwhm_pixels
+    for component in sorted({int(value) for value in seed_components}):
+        local_seed = seed_components == component
+        local_candidate = candidate_components == component
+        if not np.any(local_candidate):
+            continue
+        points = np.asarray(candidate_points[local_candidate], dtype=np.int64)
+        distances, owner_ranks = _nearest_canonical_seed_ranks(
+            cast(_NearestSeedTree, cKDTree(seed_points[local_seed])),
+            points,
+            seed_ranks[local_seed],
+        )
+        eligible = distances <= maximum_distance
+        eligible_points = points[eligible]
+        output[eligible_points[:, 0], eligible_points[:, 1]] = labels_by_rank[
+            owner_ranks[eligible]
+        ].astype(np.int32, copy=False)
     return output
 
 

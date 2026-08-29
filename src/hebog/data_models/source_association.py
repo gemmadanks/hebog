@@ -131,6 +131,7 @@ class SourceAssociationResult:
     components: tuple[DetectionComponentRecord, ...]
     edges: tuple[SourceAssociationEdge, ...]
     memberships: tuple[CatalogueSourceMembership, ...]
+    ambiguous_component_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         """Require unique evidence and an exact component partition."""
@@ -171,4 +172,10 @@ class SourceAssociationResult:
             raise ValueError(
                 "source memberships must partition every component "
                 "exactly once"
+            )
+        if self.ambiguous_component_ids != tuple(
+            sorted(set(self.ambiguous_component_ids))
+        ) or not set(self.ambiguous_component_ids).issubset(component_ids):
+            raise ValueError(
+                "ambiguous component IDs must be a canonical component subset"
             )

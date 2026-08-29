@@ -11,6 +11,10 @@ _REVIEW = (
     _ROOT / "config/contracts/phase-5-public-finder-source-reconstruction-"
     "pre-review.json"
 )
+_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-reconstruction-"
+    "implementation-decision.json"
+)
 
 
 def _load() -> dict[str, Any]:
@@ -247,3 +251,38 @@ def test_source_reconstruction_review_requires_separate_replay_approval() -> (
         "freeze-exact-non-executable-candidate-and-replay-identities",
         "obtain-separate-named-approval-before-one-complete-cumulative-replay",
     ]
+
+
+def test_exact_approval_opens_only_fixture_bound_implementation() -> None:
+    """The named decision preserves every execution prohibition."""
+    decision = json.loads(_DECISION.read_text(encoding="utf-8"))
+
+    assert decision["pre_review"] == {
+        "path": (
+            "config/contracts/phase-5-public-finder-source-reconstruction-"
+            "pre-review.json"
+        ),
+        "sha256": (
+            "528f18a661bb2391018c458a29aace2757762e58107650e6ae01d05adc85347f"
+        ),
+    }
+    authorization = decision["authorization"]
+    assert authorization["source_reconstruction_implementation_authorized"]
+    assert authorization["evaluator_implementation_authorized"]
+    assert authorization["fixture_only_validation_authorized"]
+    assert authorization["candidate_identity_freeze_authorized"]
+    assert not any(
+        authorization[field]
+        for field in (
+            "campaign_execution_authorized",
+            "cumulative_replay_authorized",
+            "cutover_authorized",
+            "fresh_qualification_authorized",
+            "optimization_authorized",
+            "public_development_execution_authorized",
+            "release_authorized",
+            "rescoring_authorized",
+            "threshold_or_photometric_tuning_authorized",
+            "viewed_data_execution_authorized",
+        )
+    )

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, cast
 
@@ -22,6 +24,17 @@ _DECISION = (
 def _load() -> dict[str, Any]:
     """Load the non-executable scientific pre-review."""
     return json.loads(_REVIEW.read_text(encoding="utf-8"))
+
+
+def _committed_file_sha256(revision: str, path: str) -> str:
+    """Hash one review seam at its immutable failed-candidate revision."""
+    content = subprocess.run(
+        ("git", "show", f"{revision}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    return sha256(content).hexdigest()
 
 
 def test_source_association_review_is_non_executable() -> None:
@@ -210,20 +223,13 @@ def test_source_association_review_binds_clean_implementation_seams() -> None:
         "src/hebog/validation/products.py",
         "src/hebog/validation/public_finder_correction.py",
     }
-    current = {
-        record["path"]: file_sha256(_ROOT / record["path"])
+    revision = cast(str, _load()["terminal_failure"]["candidate"]["revision"])
+    frozen = {
+        record["path"]: _committed_file_sha256(revision, record["path"])
         for record in records
     }
     reviewed = {record["path"]: record["sha256"] for record in records}
-    assert (
-        current["src/hebog/algorithms/extended_measurement.py"]
-        == reviewed["src/hebog/algorithms/extended_measurement.py"]
-    )
-    assert {path for path in current if current[path] != reviewed[path]} == {
-        "src/hebog/validation/post_campaign_science.py",
-        "src/hebog/validation/products.py",
-        "src/hebog/validation/public_finder_correction.py",
-    }
+    assert frozen == reviewed
 
 
 def test_source_association_review_requires_test_first_approval_boundary() -> (

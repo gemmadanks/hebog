@@ -135,6 +135,15 @@ class AssociatedContinuumCatalogueObject:
             )
 
 
+@dataclass(frozen=True, slots=True)
+class ProspectiveSourceTopologyMeasurements:
+    """Binding catalogue-source metrics plus component diagnostics."""
+
+    binding_metrics: dict[str, dict[str, float | tuple[float, ...]]]
+    native_component_split_fraction: dict[str, float]
+    native_component_merge_fraction: dict[str, float]
+
+
 def _native_component_labels_by_id(
     label_plane: npt.ArrayLike,
 ) -> dict[str, int]:
@@ -410,6 +419,179 @@ def _associated_context(
             for item in support_report.eligible_associations
         ),
         support_edges=support_report.eligible_associations,
+    )
+
+
+def _prospective_source_contexts(
+    truth: tuple[successor.ContinuumTruthObject, ...],
+    catalogue: tuple[AssociatedContinuumCatalogueObject, ...],
+    *,
+    truth_labels: npt.NDArray[np.int64],
+    candidate_labels: npt.NDArray[np.int64],
+    beam_fwhm_pixels: float,
+) -> tuple[Any, Any]:
+    """Associate binding source unions and diagnostic components separately."""
+    synthetic, source_labels = _synthetic_source_labels(
+        catalogue,
+        candidate_labels,
+    )
+    truth_objects = tuple(
+        successor._association_object(item) for item in truth
+    )
+    catalogue_objects = tuple(
+        AssociationObject(
+            identifier=item.identifier,
+            object_class="extended",
+            centre_x_pixel=item.centre_xy[0],
+            centre_y_pixel=item.centre_xy[1],
+            support_label=source_labels[item.identifier],
+        )
+        for item in catalogue
+    )
+    catalogue_report = successor.match_truth_to_finder(
+        truth_objects,
+        catalogue_objects,
+        beam_fwhm_pixels=beam_fwhm_pixels,
+        truth_label_plane=truth_labels,
+        candidate_label_plane=synthetic,
+    )
+    native_supports = successor.native_support_objects(candidate_labels)
+    native_report = successor.match_truth_to_finder(
+        truth_objects,
+        tuple(successor._association_object(item) for item in native_supports),
+        beam_fwhm_pixels=beam_fwhm_pixels,
+        truth_label_plane=truth_labels,
+        candidate_label_plane=candidate_labels,
+    )
+
+    def context(report: Any, *, source_rows: bool) -> Any:
+        candidates = (
+            {item.identifier: item for item in catalogue}
+            if source_rows
+            else {item.identifier: item for item in native_supports}
+        )
+        return successor._ContinuumAssociations(
+            primary={
+                item.truth_identifier: item.candidate_identifier
+                for item in report.primary_associations
+            },
+            candidate_by_id=cast(
+                dict[str, successor.ContinuumCatalogueObject],
+                candidates,
+            ),
+            catalogue_truth_degrees=Counter(
+                item.truth_identifier for item in report.eligible_associations
+            ),
+            support_truth_degrees=Counter(
+                item.truth_identifier for item in report.eligible_associations
+            ),
+            support_candidate_degrees=Counter(
+                item.candidate_identifier
+                for item in report.eligible_associations
+            ),
+            support_edges=report.eligible_associations,
+        )
+
+    return context(catalogue_report, source_rows=True), context(
+        native_report,
+        source_rows=False,
+    )
+
+
+def _topology_fractions(
+    selected: tuple[successor.ContinuumTruthObject, ...],
+    associations: Any,
+) -> tuple[float, float]:
+    """Return split and merge fractions for one explicit topology layer."""
+    identifiers = {item.identifier for item in selected}
+    split = sum(
+        associations.support_truth_degrees[identifier] > 1
+        for identifier in identifiers
+    ) / len(selected)
+    selected_supports = {
+        item.candidate_identifier
+        for item in associations.support_edges
+        if item.truth_identifier in identifiers
+    }
+    merge = (
+        sum(
+            associations.support_candidate_degrees[identifier] > 1
+            for identifier in selected_supports
+        )
+        / len(selected_supports)
+        if selected_supports
+        else 0.0
+    )
+    return split, merge
+
+
+def measure_prospective_source_topology(
+    truth: tuple[successor.ContinuumTruthObject, ...],
+    catalogue: tuple[AssociatedContinuumCatalogueObject, ...],
+    *,
+    truth_label_plane: npt.ArrayLike,
+    candidate_label_plane: npt.ArrayLike,
+    beam_fwhm_pixels: float,
+) -> ProspectiveSourceTopologyMeasurements:
+    """Measure future binding source topology and component diagnostics.
+
+    The function accepts only current in-memory truth, catalogue, and label
+    records. It has no campaign or ledger input and therefore cannot rescore a
+    closed evidence product.
+    """
+    truth_rows = tuple(truth)
+    catalogue_rows = tuple(catalogue)
+    if not truth_rows:
+        raise ValueError("successor continuum truth must not be empty")
+    truth_labels = _label_plane(truth_label_plane, name="truth label plane")
+    candidate_labels = _label_plane(
+        candidate_label_plane,
+        name="candidate label plane",
+    )
+    if truth_labels.shape != candidate_labels.shape:
+        raise ValueError("truth and candidate label planes must share shape")
+    binding, diagnostic = _prospective_source_contexts(
+        truth_rows,
+        catalogue_rows,
+        truth_labels=truth_labels,
+        candidate_labels=candidate_labels,
+        beam_fwhm_pixels=beam_fwhm_pixels,
+    )
+    results: dict[str, dict[str, Any]] = {
+        metric: {} for metric in successor._METRIC_FAMILIES
+    }
+    results["reliability"]["overall"] = (
+        len(set(binding.primary.values())) / len(catalogue_rows)
+        if catalogue_rows
+        else 0.0
+    )
+    for metric, value in successor._mask_metrics(
+        truth_labels,
+        candidate_labels,
+    ).items():
+        results[metric]["overall"] = value
+    native_split: dict[str, float] = {}
+    native_merge: dict[str, float] = {}
+    for stratum in successor._truth_strata(truth_rows):
+        selected = successor._selected_truth(truth_rows, stratum)
+        successor._populate_stratum_metrics(
+            results,
+            selected,
+            stratum,
+            binding,
+            beam_fwhm_pixels=beam_fwhm_pixels,
+        )
+        native_split[stratum], native_merge[stratum] = _topology_fractions(
+            selected,
+            diagnostic,
+        )
+    return ProspectiveSourceTopologyMeasurements(
+        binding_metrics=cast(
+            dict[str, dict[str, float | tuple[float, ...]]],
+            results,
+        ),
+        native_component_split_fraction=dict(sorted(native_split.items())),
+        native_component_merge_fraction=dict(sorted(native_merge.items())),
     )
 
 

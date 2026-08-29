@@ -1,0 +1,45 @@
+{
+  "approved_on": "2026-08-29",
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_identity_freeze_authorized": true,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "evaluator_implementation_authorized": true,
+    "fixture_only_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_reconstruction_implementation_authorized": true,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-source-reconstruction-implementation-decision",
+  "exact_approval": "I approve the Phase 5 public-finder source-reconstruction pre-review SHA-256 528f18a661bb2391018c458a29aace2757762e58107650e6ae01d05adc85347f and its recommendations. This authorizes test-first implementation and fixture-only validation of the deterministic multiscale source hierarchy, source-level measurement, connected support admission, and prospective catalogue-source topology evaluator, followed by freezing exact non-executable candidate and replay identities. It does not authorize a cumulative replay, viewed SDC1/Hydra execution, another campaign, fresh qualification, threshold or photometric tuning, rescoring, optimization, cutover, or release.",
+  "implementation_scope": [
+    "deterministic common-parent multiscale source hierarchy",
+    "single-pass disjoint source-level measurement",
+    "connected reconstructed-support admission",
+    "prospective binding catalogue-source and diagnostic component topology",
+    "analytic fixture and serial existing-Dask invariance validation",
+    "non-executable corrected candidate and replay identity freeze"
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-source-reconstruction-pre-review.json",
+    "sha256": "528f18a661bb2391018c458a29aace2757762e58107650e6ae01d05adc85347f"
+  },
+  "prohibited_actions": [
+    "cumulative replay",
+    "execution on viewed SDC1 or Hydra data",
+    "new campaign or request",
+    "fresh qualification",
+    "threshold background RMS minimum-area recovery-radius gate margin or photometric tuning",
+    "rescoring sealed evidence",
+    "optimization",
+    "cutover",
+    "release"
+  ],
+  "status": "authorized-for-source-reconstruction-implementation-and-fixture-only-validation"
+}

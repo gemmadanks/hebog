@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import numpy as np
@@ -19,10 +20,12 @@ from hebog.validation.external_runners import file_sha256
 from hebog.validation.public_finder_correction import (
     Sdc1SourceFindingRecord,
     build_public_finder_correction_continuum_products,
+    build_public_finder_source_reconstruction_continuum_products,
     build_public_moment_source_candidate,
     build_sdc1_source_finding_records,
     public_finder_correction_candidate_configuration,
     public_finder_source_association_candidate_configuration,
+    public_finder_source_reconstruction_candidate_configuration,
 )
 
 
@@ -302,6 +305,110 @@ def test_source_association_configuration_binds_approved_review_and_decision(
     assert continuum[
         "source_association_implementation_decision_sha256"
     ] == file_sha256(decision)
+
+
+def test_source_reconstruction_configuration_binds_all_prospective_policies(
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    """The corrected identity names hierarchy, measurement, mask, and score."""
+    mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "public_finder_correction_candidate_configuration",
+        return_value={"compact": {"frozen": True}, "continuum": {"base": 1}},
+    )
+    pre_review = tmp_path / "pre-review.json"
+    decision = tmp_path / "decision.json"
+    pre_review.write_text('{"review": 1}\n', encoding="utf-8")
+    decision.write_text('{"decision": 1}\n', encoding="utf-8")
+
+    configuration = (
+        public_finder_source_reconstruction_candidate_configuration(
+            tmp_path / "base.json",
+            tmp_path / "correction.json",
+            pre_review,
+            decision,
+        )
+    )
+
+    continuum = cast(dict[str, object], configuration["continuum"])
+    assert continuum["source_reconstruction_policy"] == (
+        "undilated-adjacent-scale-unambiguous-common-parent-v1"
+    )
+    assert continuum["source_measurement_policy"] == (
+        "disjoint-source-owned-aperture-moment-v1"
+    )
+    assert continuum["connected_support_policy"] == (
+        "direct-seed-connected-half-beam-multiscale-recovery-v1"
+    )
+    assert continuum["source_topology_policy"] == (
+        "binding-catalogue-source-diagnostic-detection-component-v1"
+    )
+    assert continuum["source_reconstruction_pre_review_sha256"] == (
+        file_sha256(pre_review)
+    )
+    assert continuum[
+        "source_reconstruction_implementation_decision_sha256"
+    ] == file_sha256(decision)
+
+
+def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
+    mocker: MockerFixture,
+) -> None:
+    """The future candidate composes corrected products without execution."""
+    shape = (5, 5)
+    image = np.ones(shape)
+    background = np.zeros(shape)
+    rms = np.ones(shape)
+    labels = np.ones(shape, dtype=np.int32)
+    detection = cast(
+        Any,
+        SimpleNamespace(component_labels=labels),
+    )
+    scale_planes = (cast(Any, SimpleNamespace(scale_order=1)),)
+    position_signal = np.full(shape, 2.0)
+    evaluate = mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "evaluate_public_finder_correction_candidate_products",
+        return_value=SimpleNamespace(
+            detection=detection,
+            scale_detection_planes=scale_planes,
+            position_signal_jy_per_beam=position_signal,
+        ),
+    )
+    catalogue = (cast(Any, SimpleNamespace(identifier="source")),)
+    components = (cast(Any, SimpleNamespace(identifier="component")),)
+    association = cast(Any, SimpleNamespace())
+    measure = mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "build_hebog_reconstructed_source_catalogues",
+        return_value=SimpleNamespace(
+            source_catalogue=catalogue,
+            component_catalogue=components,
+            association=association,
+        ),
+    )
+    beam = BeamShapePixels(4.0, 3.0, 0.0)
+    review = cast(Any, SimpleNamespace())
+
+    result = build_public_finder_source_reconstruction_continuum_products(
+        image,
+        background,
+        rms,
+        fits.Header(),
+        beam=beam,
+        review=review,
+    )
+
+    assert result.catalogue is catalogue
+    assert result.component_catalogue is components
+    assert result.source_association is association
+    assert evaluate.call_args.kwargs == {"beam": beam, "review": review}
+    assert measure.call_args.args[3] is labels
+    assert measure.call_args.args[4] is scale_planes
+    assert measure.call_args.kwargs["position_signal_jy_per_beam"] is (
+        position_signal
+    )
 
 
 def test_public_correction_rejects_nonreal_input_before_science() -> None:

@@ -15,6 +15,11 @@ import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import label as connected_component_labels
 
+from hebog.algorithms.multiscale_association import (
+    ScaleDetectionPlane,
+    adjacent_scale_overlap_edges,
+    associate_adjacent_scale_detections,
+)
 from hebog.data_models.source_association import (
     CatalogueSourceMembership,
     DetectionComponentRecord,
@@ -489,3 +494,168 @@ def associate_detection_components(  # noqa: PLR0913
         is not None
     )
     return reduce_source_associations(records, edges)
+
+
+def _hierarchy_inputs(
+    records: tuple[DetectionComponentRecord, ...],
+    component_labels: npt.ArrayLike,
+    scale_detection_planes: tuple[ScaleDetectionPlane, ...],
+    valid_pixels: npt.ArrayLike,
+) -> tuple[npt.NDArray[np.int64], tuple[ScaleDetectionPlane, ...]]:
+    """Validate direct owners and their aligned scale-feature hierarchy."""
+    labels, _, _ = _validated_planes(
+        component_labels,
+        np.zeros(np.asarray(component_labels).shape, dtype=np.float64),
+        valid_pixels,
+    )
+    label_values = tuple(
+        sorted(int(value) for value in np.unique(labels) if value > 0)
+    )
+    if tuple(sorted(item.label_value for item in records)) != label_values:
+        raise ValueError("component records must cover every positive label")
+    component_ids = tuple(item.component_id for item in records)
+    if len(set(component_ids)) != len(component_ids):
+        raise ValueError("component record IDs must be unique")
+    ordered = tuple(
+        sorted(scale_detection_planes, key=lambda item: item.scale_order)
+    )
+    if not ordered:
+        raise ValueError("source hierarchy requires scale detection planes")
+    # The existing association call is the canonical complete validation of
+    # plane labels, records, origins, and adjacent scale ordering.
+    associate_adjacent_scale_detections(ordered)
+    if any(item.component_labels.shape != labels.shape for item in ordered):
+        raise ValueError("source hierarchy planes must share one shape")
+    if any(item.origin_yx != ordered[0].origin_yx for item in ordered):
+        raise ValueError("source hierarchy planes must share one origin")
+    return labels, ordered
+
+
+def _feature_by_id(
+    planes: tuple[ScaleDetectionPlane, ...],
+) -> dict[str, tuple[int, int]]:
+    """Map stable feature identities to scale order and local label."""
+    return {
+        detection.detection_id: (plane.scale_order, label_value)
+        for plane in planes
+        for label_value, detection in enumerate(plane.detections, start=1)
+    }
+
+
+def _attached_finest_feature(
+    record: DetectionComponentRecord,
+    labels: npt.NDArray[np.int64],
+    planes: tuple[ScaleDetectionPlane, ...],
+) -> tuple[str | None, bool]:
+    """Attach one owner to exactly one finest intersecting feature."""
+    owner = labels == record.label_value
+    for plane in planes:
+        feature_labels = tuple(
+            sorted(
+                int(value)
+                for value in np.unique(plane.component_labels[owner])
+                if value > 0
+            )
+        )
+        if not feature_labels:
+            continue
+        if len(feature_labels) != 1:
+            return None, True
+        return plane.detections[feature_labels[0] - 1].detection_id, False
+    return None, False
+
+
+def _unambiguous_root(
+    feature_id: str,
+    parents_by_id: Mapping[str, tuple[str, ...]],
+) -> tuple[str | None, bool]:
+    """Follow unique adjacent-scale parents or fail closed on a branch."""
+    visited: set[str] = set()
+    current = feature_id
+    while current in parents_by_id:
+        if current in visited:
+            raise ValueError("source hierarchy contains a parent cycle")
+        visited.add(current)
+        parents = parents_by_id[current]
+        if len(parents) != 1:
+            return None, True
+        current = parents[0]
+    return current, False
+
+
+def associate_components_by_multiscale_hierarchy(
+    records: tuple[DetectionComponentRecord, ...],
+    component_labels: npt.ArrayLike,
+    scale_detection_planes: tuple[ScaleDetectionPlane, ...],
+    valid_pixels: npt.ArrayLike,
+) -> SourceAssociationResult:
+    """Partition direct owners through one unambiguous common scale parent.
+
+    Direct component labels are immutable. Each owner attaches to the finest
+    exact undilated scale feature it intersects, then follows only unique
+    adjacent-scale overlap parents. Owners with the same explicit root form a
+    catalogue source. Missing or branched lineage remains a flagged singleton.
+    """
+    labels, planes = _hierarchy_inputs(
+        records,
+        component_labels,
+        scale_detection_planes,
+        valid_pixels,
+    )
+    feature_index = _feature_by_id(planes)
+    parent_sets: dict[str, set[str]] = {}
+    for child_id, parent_id in adjacent_scale_overlap_edges(planes):
+        child_scale = feature_index[child_id][0]
+        parent_scale = feature_index[parent_id][0]
+        if parent_scale != child_scale + 1:
+            raise ValueError("source hierarchy parent scales must be adjacent")
+        parent_sets.setdefault(child_id, set()).add(parent_id)
+    parents_by_id = {
+        child_id: tuple(sorted(parent_ids))
+        for child_id, parent_ids in parent_sets.items()
+    }
+
+    groups: dict[str, set[str]] = {}
+    ambiguous: set[str] = set()
+    for record in sorted(records, key=lambda item: item.component_id):
+        attached, attachment_ambiguous = _attached_finest_feature(
+            record,
+            labels,
+            planes,
+        )
+        if attached is None:
+            root = None
+            lineage_ambiguous = attachment_ambiguous
+        else:
+            root, lineage_ambiguous = _unambiguous_root(
+                attached,
+                parents_by_id,
+            )
+        is_ambiguous = attachment_ambiguous or lineage_ambiguous
+        if is_ambiguous:
+            ambiguous.add(record.component_id)
+        key = (
+            f"parent:{root}"
+            if root is not None and not is_ambiguous
+            else f"singleton:{record.component_id}"
+        )
+        groups.setdefault(key, set()).add(record.component_id)
+
+    memberships = tuple(
+        sorted(
+            (
+                CatalogueSourceMembership(
+                    source_id=_source_id(tuple(sorted(group))),
+                    component_ids=tuple(sorted(group)),
+                )
+                for group in groups.values()
+            ),
+            key=lambda item: item.source_id,
+        )
+    )
+    return SourceAssociationResult(
+        components=tuple(sorted(records, key=lambda item: item.component_id)),
+        edges=(),
+        memberships=memberships,
+        ambiguous_component_ids=tuple(sorted(ambiguous)),
+    )

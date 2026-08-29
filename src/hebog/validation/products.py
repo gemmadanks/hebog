@@ -33,13 +33,18 @@ from hebog.algorithms.extended_measurement import (
     expand_detected_segment_labels,
     measure_detected_segment_position,
 )
+from hebog.algorithms.multiscale_association import ScaleDetectionPlane
 from hebog.algorithms.source_association import (
+    associate_components_by_multiscale_hierarchy,
     associate_detection_components,
     build_detection_component_records,
 )
 from hebog.data_models.catalogues import GaussianShape
 from hebog.data_models.images import RestoringBeam
-from hebog.data_models.source_association import SourceAssociationResult
+from hebog.data_models.source_association import (
+    CatalogueSourceMembership,
+    SourceAssociationResult,
+)
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
 from hebog.validation.evidence import DatasetIdentity, SoftwareIdentity
 
@@ -1229,6 +1234,150 @@ class AssociatedMomentCatalogues:
     component_catalogue: tuple[CatalogueSource, ...]
     source_catalogue: tuple[CatalogueSource, ...]
     association: SourceAssociationResult
+
+
+def _source_label_plane(
+    labels: npt.NDArray[np.int64],
+    association: SourceAssociationResult,
+) -> tuple[
+    npt.NDArray[np.int32],
+    dict[int, CatalogueSourceMembership],
+]:
+    """Map immutable component owners to canonical source-local labels."""
+    records_by_id = {
+        item.component_id: item for item in association.components
+    }
+    output = np.zeros(labels.shape, dtype=np.int32)
+    memberships_by_label: dict[int, CatalogueSourceMembership] = {}
+    for source_label, membership in enumerate(
+        association.memberships,
+        start=1,
+    ):
+        component_labels = tuple(
+            records_by_id[component_id].label_value
+            for component_id in membership.component_ids
+        )
+        output[np.isin(labels, component_labels)] = source_label
+        memberships_by_label[source_label] = membership
+    if np.any((labels > 0) & (output == 0)):
+        raise ValueError("source memberships must own every component pixel")
+    return output, memberships_by_label
+
+
+def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
+    image_jy_per_beam: npt.ArrayLike,
+    background_jy_per_beam: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    component_labels: npt.ArrayLike,
+    scale_detection_planes: tuple[ScaleDetectionPlane, ...],
+    header: fits.Header,
+    *,
+    beam_major_fwhm_pixels: float,
+    beam_minor_fwhm_pixels: float,
+    measurement_aperture_radius_beams: float = 4.0,
+    position_signal_jy_per_beam: npt.ArrayLike | None = None,
+    denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
+) -> AssociatedMomentCatalogues:
+    """Measure each common-parent catalogue source exactly once.
+
+    Immutable component measurements remain diagnostic. Binding source rows
+    are measured from a source-label plane before aperture expansion, so every
+    observable pixel belongs to at most one source aperture.
+    """
+    residual, valid, labels = _validated_hebog_segment_planes(
+        image_jy_per_beam,
+        background_jy_per_beam,
+        valid_pixels,
+        component_labels,
+    )
+    component_sources = build_hebog_segment_moment_catalogue(
+        image_jy_per_beam,
+        background_jy_per_beam,
+        valid,
+        labels,
+        header,
+        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+        beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
+        measurement_aperture_radius_beams=measurement_aperture_radius_beams,
+        position_signal_jy_per_beam=position_signal_jy_per_beam,
+        denoised_position_maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+    )
+    records = build_detection_component_records(labels, residual, valid)
+    association = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        scale_detection_planes,
+        valid,
+    )
+    stable_components = _stable_component_catalogue(
+        component_sources,
+        association,
+    )
+    source_labels, membership_by_label = _source_label_plane(
+        labels,
+        association,
+    )
+    measured_sources = build_hebog_segment_moment_catalogue(
+        image_jy_per_beam,
+        background_jy_per_beam,
+        valid,
+        source_labels,
+        header,
+        beam_major_fwhm_pixels=beam_major_fwhm_pixels,
+        beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
+        measurement_aperture_radius_beams=measurement_aperture_radius_beams,
+        position_signal_jy_per_beam=position_signal_jy_per_beam,
+        denoised_position_maximum_peak_to_mean_ratio=(
+            denoised_position_maximum_peak_to_mean_ratio
+        ),
+    )
+    components_by_id = {item.identifier: item for item in stable_components}
+    output: list[CatalogueSource] = []
+    for source in measured_sources:
+        prefix = "hebog-segment-"
+        if not source.identifier.startswith(prefix):
+            raise ValueError("measured source identity is malformed")
+        source_label = int(source.identifier[len(prefix) :])
+        membership = membership_by_label[source_label]
+        member_flags = {
+            flag
+            for component_id in membership.component_ids
+            for component in (components_by_id.get(component_id),)
+            if component is not None
+            for flag in component.quality_flags
+        }
+        flags = {
+            *source.quality_flags,
+            *member_flags,
+            "reconstructed-catalogue-source",
+        }
+        if any(
+            component_id in association.ambiguous_component_ids
+            for component_id in membership.component_ids
+        ):
+            flags.add("ambiguous-multiscale-parent")
+        output.append(
+            replace(
+                source,
+                identifier=membership.source_id,
+                island_identifier=membership.source_id,
+                component_count=len(membership.component_ids),
+                quality_flags=tuple(sorted(flags)),
+            )
+        )
+    if len(output) != len(association.memberships):
+        raise ValueError(
+            "reconstructed source has no measurable catalogue row"
+        )
+    return AssociatedMomentCatalogues(
+        component_catalogue=stable_components,
+        source_catalogue=tuple(
+            sorted(output, key=lambda item: item.identifier)
+        ),
+        association=association,
+    )
 
 
 def _stable_component_catalogue(
