@@ -367,9 +367,10 @@ are now frozen as candidate `5f2b098...` and review `e615da00...`. Its first
 authorized process stopped before candidate execution: after retained-reference
 verification, wrapper `9bf44c09...` skipped the measurement-repair predecessor
 layer and raised `_load_current_wrapper`. No scratch or ledger was created.
-Explicit repair instruction now governs a wrapper-only traversal correction,
-expanded no-write execution-composition verification, and one restart with all
-scientific identities unchanged.
+Repair review `89327ae5...` now binds the wrapper-only traversal correction and
+expanded no-write execution-composition verification. Decision `0349fdc2...`
+consumes the explicit restart instruction for one unchanged replay; all
+scientific identities remain fixed.
 Section 7 contains the single authoritative Phase 5 closure sequence; detailed
 chronology and immutable identities remain in `LOG.md` and
 `config/contracts/`.
@@ -604,11 +605,14 @@ from partial or viewed evidence.
      measurement-repair overlay as source association and raised
      `_load_current_wrapper`. Scratch and output remained absent; no candidate
      or scientific product exists.
-   - [ ] Complete the approved wrapper-only repair: descend explicitly through
+   - [x] Complete the approved wrapper-only repair: descend explicitly through
      source reconstruction, measurement repair, and source association in both
      parent and worker processes; make no-write verification resolve the same
      executable seams; freeze replacement wrapper/checkout identities; and
-     restart the unchanged replay once.
+     retain the unchanged replay namespace. Repair review `89327ae5...` passed
+     all 2,400 inputs, 9,600 reference runs, and executable seams; restart
+     decision `0349fdc2...` consumes only the explicit fix-and-restart
+     instruction.
    - [ ] Execute that single cumulative replay, interpret compact and Continuum
      science before power, and require every absolute and like-semantics gate.
      Treat a scientific failure as terminal without tuning or rerunning.

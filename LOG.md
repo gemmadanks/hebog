@@ -12604,10 +12604,20 @@ parent-process, worker, no-write, and existing wrapper suite passes eight tests.
 `just coverage` passes 2,123 tests with 44 deselected and 4 expected failures;
 branch-aware project coverage remains 94.75%. Focused Ruff and Pyright checks
 pass. `just check` passes 1,965 tests with 202 deselected and 4 expected
-failures, and the strict documentation build passes. Replacement identity
-freeze remains pending.
+failures, and the strict documentation build passes. The subsequent replacement
+identity freeze is recorded below.
+- Boundary commit `9d15fd0...` fails closed on a replacement review and
+  decision, verifies the consumed original authorization, and binds the full
+  expected composition through canonical digest `7a9c19d3...`.
+- The complete clean-checkout no-write verifier passed again: all 2,400 inputs,
+  9,600 retained reference runs, and executable delegation seams verified;
+  candidate execution remained false and scratch/output remained absent.
+- Repair review `89327ae5...` freezes wrapper `053fc647...`, unchanged
+  candidate science, and the clean `9d15fd0...` boundary. Repair execution
+  decision `0349fdc2...` consumes only the explicit fix-and-restart instruction
+  and keeps viewed-data execution, campaigns, qualification, optimization,
+  tuning, rescoring, cutover, and release false.
 
-**Immediate next step:** validate and commit the wrapper-only repair, freeze a
-replacement exact review and execution decision that consume the explicit
-fix-and-restart instruction, then run the unchanged replay once from a clean
-immutable checkout.
+**Immediate next step:** commit the replacement review and decision, construct
+a clean immutable checkout, reverify the exact repair identity and absent
+namespaces, then run the unchanged replay once.

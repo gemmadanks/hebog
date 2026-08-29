@@ -236,3 +236,12 @@ same executable seams, closing the test gap that allowed identity/reference
 verification to pass without exercising authorized delegation. Candidate
 `5f2b098...`, configuration `88634678...`, references, gates, population,
 workers, scratch, and output remain unchanged.
+
+Replacement repair review `89327ae5...` binds boundary commit `9d15fd0...`,
+wrapper `053fc647...`, and canonical execution identity `7a9c19d3...`. Its
+complete no-write verification passed all 2,400 inputs and 9,600 retained
+reference runs, installed the executable delegation seams, and confirmed the
+original output and scratch remained absent. Repair execution decision
+`0349fdc2...` consumes Gemma Danks's explicit “fix the error and restart the
+run” instruction for that one unchanged replay only. Every later action
+remains unauthorized.

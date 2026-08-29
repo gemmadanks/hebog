@@ -1,0 +1,38 @@
+{
+  "approved_on": "2026-08-29",
+  "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+  "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+  "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "cumulative_replay_authorized": true,
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-repair-execution-decision",
+  "exact_approval": "Please fix the error and restart the run.",
+  "execution_authorized": true,
+  "expected_execution_sha256": "7a9c19d324b61606b9d5148f37212fdb4f7c050f985becd7def6447dc69a8333",
+  "original_execution_decision": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-execution-decision.json",
+    "sha256": "78c274ccf8c14fc0dd4deff1a2e791eb64ad154100af8db8ef0f72795ff40d9f"
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+  "parent_construction_replay_repair_review": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-repair-review.json",
+    "sha256": "89327ae5d129148ec03d222bca1e44fb141ebbe2a8d7fe2522defb53a1aac5da"
+  },
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "schema_version": 1,
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-hierarchy-parent-construction-5f2b098",
+  "status": "authorized-for-one-wrapper-repaired-cumulative-replay-restart",
+  "workers": 2,
+  "wrapper_sha256": "053fc6479d75a9f11e97cc2ec6f7de41610c5c03083bd81ce01ca47ef104c8d7"
+}

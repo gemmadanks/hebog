@@ -6,9 +6,11 @@ import hashlib
 import json
 import runpy
 import subprocess
+from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
+from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
@@ -20,9 +22,17 @@ _WRAPPER = (
     _ROOT / "scripts/validation/review_phase5_public_finder_source_hierarchy_"
     "parent_construction_cumulative_regressions.py"
 )
-_EXECUTION_DECISION = (
+_ORIGINAL_EXECUTION_DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
     "construction-cumulative-replay-execution-decision.json"
+)
+_REPAIR_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-cumulative-replay-repair-review.json"
+)
+_REPAIR_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-cumulative-replay-repair-execution-decision.json"
 )
 _IMPLEMENTATION_REVISION = "af7040e477471a94c82745659d36a397fda27cba"
 _IMPLEMENTATION_TREE = "158c6f531533ddb563e0b856431f94870843bc8b"
@@ -33,6 +43,30 @@ def _load() -> dict[str, Any]:
     document = json.loads(_REVIEW.read_text(encoding="utf-8"))
     assert isinstance(document, dict)
     return cast(dict[str, Any], document)
+
+
+def _approved_arguments() -> Namespace:
+    """Return the exact prospective no-write and replay invocation."""
+    return Namespace(
+        campaign=None,
+        reference_reconstruction=Path(
+            "benchmark-results/phase-5/"
+            "viewed-reference-reconstruction-public-finder-correction"
+        ),
+        output=Path(
+            "benchmark-results/phase-5/cumulative-regression-ledger-"
+            "public-finder-source-hierarchy-parent-construction.json"
+        ),
+        scratch=Path(
+            "/private/tmp/hebog-phase5-public-finder-source-hierarchy-"
+            "parent-construction-5f2b098"
+        ),
+        workers=2,
+        closed_component_baseline_ledger=Path(
+            "benchmark-results/phase-5/"
+            "cumulative-regression-ledger-recovery.json"
+        ),
+    )
 
 
 def _committed_file_sha256(revision: str, path: str) -> str:
@@ -114,7 +148,7 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
     review = _load()
     wrapper = runpy.run_path(str(_WRAPPER))
     decision_value = json.loads(
-        _EXECUTION_DECISION.read_text(encoding="utf-8")
+        _ORIGINAL_EXECUTION_DECISION.read_text(encoding="utf-8")
     )
     assert isinstance(decision_value, dict)
     decision = cast(dict[str, Any], decision_value)
@@ -136,6 +170,70 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
         cast(dict[str, bool], decision["prohibited_authorizations"]).values()
     )
     assert review["authorization"]["cumulative_replay_authorized"] is False
+
+
+def test_repair_review_binds_exact_wrapper_only_restart() -> None:
+    """The explicit repair instruction opens only the corrected replay."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    review_value = json.loads(_REPAIR_REVIEW.read_text(encoding="utf-8"))
+    decision_value = json.loads(
+        _REPAIR_EXECUTION_DECISION.read_text(encoding="utf-8")
+    )
+    assert isinstance(review_value, dict)
+    assert isinstance(decision_value, dict)
+    review = cast(dict[str, Any], review_value)
+    decision = cast(dict[str, Any], decision_value)
+    expected_sha256 = canonical_sha256(
+        wrapper["_expected_execution_fields"](_approved_arguments())
+    )
+
+    assert review["expected_execution_sha256"] == expected_sha256
+    assert review["implementation"]["wrapper"]["sha256"] == file_sha256(
+        _WRAPPER
+    )
+    assert review["no_write_verification"] == {
+        "candidate_configuration_sha256": (
+            "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484"
+        ),
+        "candidate_revision": ("5f2b09880dc10feb6ffaec50ffcf3c807a093416"),
+        "candidate_source_tree_sha256": (
+            "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8"
+        ),
+        "consumed_wrapper_sha256": (
+            "3ff495e373c366be37532cccb4a600fab8423137caad45e246dde55698d67413"
+        ),
+        "cumulative_replay_started": False,
+        "execution_checkout_revision": (
+            "9d15fd0a0d8b8203dcda650e529ebea9c98ffdea"
+        ),
+        "execution_delegation_verified": True,
+        "output_absent": True,
+        "readiness_sha256": (
+            "318d6d6c612b7c043963de2b70556031d47c3b04b15de8ce8daca7bd23fcd386"
+        ),
+        "reference_reconstruction_sha256": (
+            "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+        ),
+        "scratch_absent": True,
+        "status": "pass",
+        "verified_input_count": 2400,
+        "verified_reference_run_count": 9600,
+    }
+    assert not any(cast(dict[str, bool], review["authorization"]).values())
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    assert decision["expected_execution_sha256"] == expected_sha256
+    assert decision["parent_construction_replay_repair_review"] == {
+        "path": str(_REPAIR_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REPAIR_REVIEW),
+    }
+    assert decision["original_execution_decision"] == {
+        "path": str(_ORIGINAL_EXECUTION_DECISION.relative_to(_ROOT)),
+        "sha256": file_sha256(_ORIGINAL_EXECUTION_DECISION),
+    }
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        wrapper["_PROHIBITED_AUTHORIZATIONS"], False
+    )
 
 
 def test_review_binds_reconstruction_and_closed_baseline() -> None:
