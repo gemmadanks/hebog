@@ -119,10 +119,13 @@ retry.
 
 The implementation decision is
 `config/contracts/phase-5-public-finder-source-reconstruction-implementation-decision.json`.
-The next permitted activity is to freeze a clean candidate revision, source
-tree, configuration, prospective replay wrapper, evaluator, reconstructed
-reference, and closed-baseline identity, then run the complete verifier in
-no-write mode. The output must remain non-executable.
+The prospective replay wrapper now consumes the exact previous replay
+composition, replaces only the Continuum candidate and catalogue-source
+topology seams, and prospectively rebinds readiness. The next permitted
+activity is to freeze its clean revision together with the candidate, source
+tree, configuration, evaluator, reconstructed reference, and closed baseline,
+then run the complete verifier in no-write mode. The output must remain
+non-executable.
 
 One cumulative replay requires a separate named approval of that exact frozen
 composition. A replay result, if later authorized, must be summarized in the

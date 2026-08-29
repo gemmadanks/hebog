@@ -27,13 +27,13 @@
   ],
   "required_evidence": [
     {
-      "evidence_id": "public-finder-source-association-measurement-repair-cumulative-regression",
-      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+      "evidence_id": "public-finder-source-reconstruction-cumulative-regression",
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-reconstruction.json",
       "required_fields": {
         "all_required_endpoints_pass": true,
-        "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
-        "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
-        "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+        "candidate_configuration_sha256": "470e918db1a640d7393edc02de01fc57b50881b908bd6d5dac18a57709117bbb",
+        "candidate_revision": "42c75f44b71800ae5fa1e0ebe1669caa7da59f85",
+        "candidate_source_tree_sha256": "1b67c7f6f768d6f83becc853a1ebd45b3996164cd2b87fdc0f71b9a3299e6bf1",
         "cumulative_science_regression_ready": true,
         "ledger_id": "phase-5-cumulative-regression-ledger",
         "like_semantics_compact_regressions": [],
@@ -43,14 +43,14 @@
       "sha256": null
     },
     {
-      "evidence_id": "public-finder-source-association-measurement-repair-held-out-qualification",
-      "path": "benchmark-results/phase-5/public-finder-source-association-measurement-repair-qualification-decision.json",
+      "evidence_id": "public-finder-source-reconstruction-held-out-qualification",
+      "path": "benchmark-results/phase-5/public-finder-source-reconstruction-qualification-decision.json",
       "required_fields": {
-        "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
-        "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
-        "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+        "candidate_configuration_sha256": "470e918db1a640d7393edc02de01fc57b50881b908bd6d5dac18a57709117bbb",
+        "candidate_revision": "42c75f44b71800ae5fa1e0ebe1669caa7da59f85",
+        "candidate_source_tree_sha256": "1b67c7f6f768d6f83becc853a1ebd45b3996164cd2b87fdc0f71b9a3299e6bf1",
         "cutover_authorized": false,
-        "decision_id": "phase-5-public-finder-source-association-measurement-repair-qualification-terminal-decision",
+        "decision_id": "phase-5-public-finder-source-reconstruction-qualification-terminal-decision",
         "scientific_outcomes_before_runtime": true,
         "status": "pass"
       },

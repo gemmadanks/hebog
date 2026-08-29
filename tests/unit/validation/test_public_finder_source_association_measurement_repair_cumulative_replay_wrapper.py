@@ -9,7 +9,7 @@ import subprocess
 from argparse import Namespace
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -41,6 +41,7 @@ _CANDIDATE_SOURCE_TREE = (
 _CONFIGURATION = (
     "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946"
 )
+_IMPLEMENTATION_REVISION = "9cc00fb339b12fb00695b0799f828a5afba8ee16"
 
 
 def _arguments(tmp_path: Path) -> Namespace:
@@ -90,6 +91,20 @@ def _committed_file_sha256(revision: str, path: str) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def _committed_json(revision: str, path: str) -> dict[str, Any]:
+    """Load one JSON object from an exact historical revision."""
+    value = subprocess.run(
+        ("git", "show", f"{revision}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    document = json.loads(value)
+    assert isinstance(document, dict)
+    return cast(dict[str, Any], document)
+
+
 def test_approval_opens_implementation_and_identity_freeze_only() -> None:
     """The exact decision cannot be interpreted as replay authority."""
     decision = json.loads(_IMPLEMENTATION_DECISION.read_text(encoding="utf-8"))
@@ -115,7 +130,10 @@ def test_approval_opens_implementation_and_identity_freeze_only() -> None:
 
 def test_readiness_is_prospectively_bound_to_the_repaired_candidate() -> None:
     """The final candidate and future paths are fixed before results open."""
-    readiness = json.loads(_READINESS.read_text(encoding="utf-8"))
+    readiness = _committed_json(
+        _IMPLEMENTATION_REVISION,
+        str(_READINESS.relative_to(_ROOT)),
+    )
     evidence = {
         item["evidence_id"]: item for item in readiness["required_evidence"]
     }

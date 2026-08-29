@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, cast
 
 from hebog.validation.campaign_runtime import canonical_sha256
-from hebog.validation.external_runners import file_sha256
 from hebog.validation.public_finder_correction import (
     public_finder_source_association_candidate_configuration,
 )
@@ -25,6 +24,7 @@ _IMPLEMENTATION_DECISION = (
     "measurement-repair-replay-implementation-decision.json"
 )
 _CANDIDATE_REVISION = "6184a32648eee637f0aca03ab2ec0249bd0510f0"
+_IMPLEMENTATION_REVISION = "9cc00fb339b12fb00695b0799f828a5afba8ee16"
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -42,6 +42,13 @@ def _committed_bytes(revision: str, path: str) -> bytes:
         check=True,
         capture_output=True,
     ).stdout
+
+
+def _committed_json(revision: str, path: str) -> dict[str, Any]:
+    """Load one JSON object from an exact historical revision."""
+    document = json.loads(_committed_bytes(revision, path))
+    assert isinstance(document, dict)
+    return cast(dict[str, Any], document)
 
 
 def _committed_source_tree_sha256(revision: str) -> str:
@@ -159,7 +166,10 @@ def test_pre_review_prospectively_rebinds_readiness() -> None:
     """Readiness identities must change before repaired evidence is opened."""
     review = _load(_PRE_REVIEW)
     readiness = cast(dict[str, Any], review["readiness_repair"])
-    current = _load(_READINESS)
+    current = _committed_json(
+        _IMPLEMENTATION_REVISION,
+        str(_READINESS.relative_to(_ROOT)),
+    )
     implementation = _load(_IMPLEMENTATION_DECISION)
     current_requirement = cast(dict[str, Any], current["required_evidence"][0])
 
@@ -168,7 +178,15 @@ def test_pre_review_prospectively_rebinds_readiness() -> None:
         "sha256": implementation["readiness"]["previous_sha256"],
         "status": "frozen-pre-readiness",
     }
-    assert file_sha256(_READINESS) != readiness["current_contract"]["sha256"]
+    assert (
+        hashlib.sha256(
+            _committed_bytes(
+                _IMPLEMENTATION_REVISION,
+                str(_READINESS.relative_to(_ROOT)),
+            )
+        ).hexdigest()
+        != readiness["current_contract"]["sha256"]
+    )
     assert current_requirement["required_fields"]["candidate_revision"] == (
         _CANDIDATE_REVISION
     )

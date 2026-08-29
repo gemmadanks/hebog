@@ -347,11 +347,13 @@ but Continuum still has 44 failures and the same 37 regressions. Source-union
 matching changed no endpoint status; component fragmentation, source-level
 measurement, and mask-support admission remain open defects.
 
-Pre-review `528f18a6...` now accounts for every failure and defines the next
-fixture-first correction boundary without authorizing implementation or
-execution. Section 7 contains the single authoritative Phase 5 closure
-sequence; detailed campaign chronology and immutable identities remain in
-`LOG.md` and `config/contracts/`.
+Pre-review `528f18a6...` accounts for every failure and its approved
+fixture-first correction is implemented as candidate `42c75f4...`. The
+prospective replay wrapper and readiness binding are prepared without replay
+authority; exact clean-revision freezing and complete no-write verification
+remain next. Section 7 contains the single authoritative Phase 5 closure
+sequence; detailed chronology and immutable identities remain in `LOG.md` and
+`config/contracts/`.
 
 ## 7. Delivery plan
 
@@ -419,11 +421,14 @@ threshold, gate, component owner, or closed evidence product. Replay and
 viewed-data execution remain unauthorized pending an exact non-executable
 identity freeze and separate approval.
 
-The frozen readiness contract has now been prospectively rebound to repair
-candidate `6184a32...`, configuration `78dbb230...`, and the replacement
-cumulative and future held-out evidence paths. Those identities were fixed
-before either result was opened; a passing result cannot be fitted into the
-readiness contract retrospectively.
+The readiness contract is now prospectively rebound to source-reconstruction
+candidate `42c75f4...`, source tree `1b67c7f6...`, configuration
+`470e918d...`, and its replacement cumulative and future held-out evidence
+paths. The wrapper consumes the exact measurement-repair composition, replaces
+only the Continuum candidate builder and prospective catalogue-source topology
+evaluator, and leaves compact/reference/baseline machinery fixed. These
+identities are being fixed before either result exists; a passing result cannot
+be fitted into readiness retrospectively.
 
 Non-executable pre-review `7687839f...` now binds repair commit
 `6184a32...`, source tree `517d56e1...`, unchanged configuration

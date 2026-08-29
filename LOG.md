@@ -12177,3 +12177,37 @@ retain obsolete bytes.
 only implementation, then freeze the exact candidate and prospective replay
 composition and run its complete no-write verifier. A separate named approval
 will still be required before one cumulative replay.
+
+## 2026-08-29 — Prepare the non-executable source-reconstruction replay
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Added a prospective replay wrapper over the exact measurement-repair
+  composition. It preserves compact products, reconstructed references, the
+  closed baseline, thresholds, gates, and historical compiler programs while
+  replacing only the Continuum candidate builder and prospective
+  catalogue-source topology seam.
+- Prospectively rebound the fail-closed Phase 5 readiness contract to candidate
+  `42c75f4...`, source tree `1b67c7f6...`, configuration `470e918d...`, and
+  new cumulative and held-out result paths before either result exists.
+- Kept the composition non-executable: the fixture verifier writes no replay
+  state, and the execution entry point requires a separate absent exact
+  decision. No replay, campaign, viewed-data execution, qualification, tuning,
+  rescoring, optimization, cutover, or release occurred.
+- Pinned the historical measurement-repair readiness test to its named
+  implementation revision so successor readiness contracts cannot rewrite or
+  invalidate the earlier frozen evidence boundary.
+
+**Validation:** focused wrapper, readiness, hierarchy, source-measurement,
+topology, and integration contracts pass (78 tests); Ruff and focused Pyright
+pass. `just coverage` passes 2,068 tests with 44 deselected and four expected
+failures at 94.64%; `just check` passes 1,910 tests with 202 deselected and
+four expected failures; all 27 applicable equivalence tests pass; the strict
+documentation build and complete pre-commit suite pass. Review against
+`CODE_REVIEW.md` found no actionable issue. The clean-revision no-write
+verifier is recorded with the exact identity freeze that follows.
+
+**Immediate next step:** commit this prospective composition, run its complete
+no-write verifier from the clean revision, and freeze the exact non-executable
+identity review. A separate named approval remains mandatory before one
+cumulative replay.

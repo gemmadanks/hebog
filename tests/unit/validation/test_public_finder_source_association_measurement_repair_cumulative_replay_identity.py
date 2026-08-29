@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import runpy
 import subprocess
@@ -25,6 +26,7 @@ _EXECUTION_DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-source-association-"
     "measurement-repair-cumulative-replay-execution-decision.json"
 )
+_IMPLEMENTATION_REVISION = "9cc00fb339b12fb00695b0799f828a5afba8ee16"
 
 
 def _load() -> dict[str, Any]:
@@ -58,6 +60,17 @@ def _approved_arguments() -> Namespace:
     )
 
 
+def _committed_file_sha256(revision: str, path: str) -> str:
+    """Hash one exact committed file."""
+    value = subprocess.run(
+        ("git", "show", f"{revision}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    return hashlib.sha256(value).hexdigest()
+
+
 def test_review_freezes_exact_implementation_and_prospective_execution() -> (
     None
 ):
@@ -66,9 +79,7 @@ def test_review_freezes_exact_implementation_and_prospective_execution() -> (
     implementation = cast(dict[str, Any], review["implementation"])
     wrapper = runpy.run_path(str(_WRAPPER))
 
-    assert implementation["commit"] == (
-        "9cc00fb339b12fb00695b0799f828a5afba8ee16"
-    )
+    assert implementation["commit"] == _IMPLEMENTATION_REVISION
     tree = subprocess.check_output(
         ("git", "rev-parse", f"{implementation['commit']}^{{tree}}"),
         cwd=_ROOT,
@@ -77,7 +88,10 @@ def test_review_freezes_exact_implementation_and_prospective_execution() -> (
     assert tree == implementation["tree"]
     assert implementation["wrapper"] == {
         "path": str(_WRAPPER.relative_to(_ROOT)),
-        "sha256": file_sha256(_WRAPPER),
+        "sha256": _committed_file_sha256(
+            _IMPLEMENTATION_REVISION,
+            str(_WRAPPER.relative_to(_ROOT)),
+        ),
     }
     for name in (
         "implementation_decision",
@@ -85,7 +99,13 @@ def test_review_freezes_exact_implementation_and_prospective_execution() -> (
         "readiness_contract",
     ):
         record = cast(dict[str, str], implementation[name])
-        assert file_sha256(_ROOT / record["path"]) == record["sha256"]
+        assert (
+            _committed_file_sha256(
+                _IMPLEMENTATION_REVISION,
+                record["path"],
+            )
+            == record["sha256"]
+        )
     assert review["prospective_execution"] == wrapper[
         "_expected_execution_fields"
     ](_approved_arguments())
