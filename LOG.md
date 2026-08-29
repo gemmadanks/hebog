@@ -12114,3 +12114,22 @@ failed endpoint exactly once and binds the terminal ledger SHA-256.
 `528f18a6...`. Approval may open only test-first fixture implementation and
 non-executable identity freezing; a cumulative replay, viewed-data execution,
 qualification, tuning, rescoring, cutover, and release remain forbidden.
+
+## 2026-08-29 — Add the Phase 5 scientific campaign overview
+
+**Plan phase:** Phase 5, evidence communication
+
+- Added an append-only human-readable campaign overview that explains the
+  distinction between final qualification, the public SDC1/Hydra development
+  campaign, and cumulative regression replays.
+- Recorded the latest 800-compact/1,600-Continuum comparison against released
+  and pinned-master PyBDSF, including the experimental method, compact pass,
+  Continuum failure, all principal point metrics, root-cause summary, and next
+  correction boundary.
+- Added a required snapshot format and plan instruction so future terminal
+  campaigns preserve a comparable scientific summary without replacing or
+  rescoring earlier evidence.
+
+**Immediate next step:** use the overview format for the next terminal replay;
+the current execution boundary remains named approval of pre-review
+`528f18a6...`.

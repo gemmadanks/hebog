@@ -69,6 +69,10 @@ complete Rapthor runtime evidence, and production-scale distributed
 qualification are later delivery gates. Hebog is therefore not yet a
 production-ready or default Rapthor backend.
 
+The [Phase 5 scientific campaign overview](reference/phase-5-campaign-overview.md)
+provides a plain-language, append-only summary of what each material campaign
+tested, how Hebog compared with PyBDSF, and what the evidence changed next.
+
 Start with the [quick start](tutorials/index.md), read the
 [architecture](explanation/index.md) and
 [quality attributes](explanation/quality-attributes.md), review the

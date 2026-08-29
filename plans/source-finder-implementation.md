@@ -498,6 +498,9 @@ from partial or viewed evidence.
      complete no-write verification.
    - [ ] Obtain a separate exact one-replay approval and require every compact
      and Continuum absolute and like-semantics gate. Stop again on failure.
+   - After every terminal campaign, replay, or evaluation-only completion,
+     append a human-readable immutable snapshot to the Phase 5 scientific
+     campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
    - Blocked: the cumulative prerequisite failed, so no qualification
