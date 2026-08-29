@@ -17,6 +17,7 @@ across decisions, or replace a failed result with a later interpretation.
 | Public SDC1/Hydra development campaign | Exercise the public finder on realistic, previously unseen public data | Fail | Revealed a real low-SNR sensitivity gap and deep-field association overmerging. Its position-only SDC1 protocol is a stress test, not an official SDC1 score. |
 | First corrected cumulative replay | Check the seeded-island and public-measurement correction against all viewed regression evidence | Fail | Compact remained sound, but Continuum had 44 failures and 37 like-semantics regressions dominated by fragmentation. |
 | Source-association measurement-repair replay | Test whether conservative component association and complete measurement records fixed the remaining Continuum failures | Fail | Association changed point estimates but no endpoint status. Compact passed; source reconstruction, source-level measurement, and mask precision remain open. |
+| Source-reconstruction cumulative replay | Test deterministic multiscale hierarchy, one source-level measurement, connected support, and source-union topology | Fail | Compact passed, but Continuum again had 44 failures and 37 regressions. The hierarchy did not change governed source membership or fragmentation. |
 
 The apparent contrast between final qualification and later failure is useful,
 not contradictory. The final qualification showed that the frozen candidate
@@ -140,6 +141,84 @@ adjacent-scale support, measures that source once on disjoint owned pixels,
 requires connected recovered mask support, and separates binding source-level
 topology from diagnostic component fragmentation. See the
 [source-reconstruction pre-review](phase-5-public-finder-source-reconstruction-pre-review.md).
+
+## Latest snapshot: source reconstruction
+
+**Terminal date:** 2026-08-29
+
+**Evidence role:** viewed-development cumulative regression, not fresh held-out
+qualification and not a new real-sky campaign.
+
+**Scientific question:** does a deterministic common-parent multiscale
+hierarchy, followed by one measurement per reconstructed source and connected
+support admission, eliminate the catalogue fragmentation exposed by the prior
+replay without regressing compact science?
+
+**Terminal verdict:** no. Compact passed, but Continuum failed. The exact
+terminal ledger is
+`benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-reconstruction.json`,
+SHA-256
+`84fbb3a18828210543d815d28aa4eab039a2ad7467aa2572a9c5119780f55a0e`.
+
+### What was tested
+
+The replay reused the governed 800 compact and 1,600 Continuum images, all
+9,600 reconstructed reference runs, and the same closed like-semantics
+baseline. Candidate `42c75f4...` generated all 2,400 new Hebog products.
+Every image retained analytic or injected truth, and the evaluator applied the
+same fail-closed absolute, paired PyBDSF non-inferiority, and previous-Hebog
+regression gates described above.
+
+The candidate stage completed successfully. Compilation then stopped before
+publication because unchanged PyBDSF records were sent to the new Hebog-only
+source-union evaluator. The approved evaluation-only repair dispatched each
+record by its frozen semantics, verified product set `0d8c2d0b...`, and
+published the ledger without rerunning Hebog. This operational incident did
+not change candidate science, references, gates, thresholds, or products.
+
+### Scientific result
+
+Compact passed with no like-semantics regression. Continuum again produced 89
+passes, 44 failures, 10 underpowered endpoints, and 37 like-semantics
+regressions.
+
+| Overall Continuum metric | Hebog | Required limit | Outcome |
+| --- | ---: | ---: | --- |
+| Completeness | 100.00% | at least 90% | Pass |
+| Reliability | 62.38% | at least 95% | Fail |
+| Median integrated-flux error | 5.22% | at most 10% | Pass |
+| Integrated-flux-error p95 | 79.26% | at most 25% | Fail |
+| Position-error p95 | 4.18 beams | at most 0.5 beam | Fail |
+| Duplicate fraction | 25.29% | at most 2% | Fail |
+| Split fraction | 25.29% | at most 10% | Fail |
+| Mask precision | 88.41% | at least 85% | Absolute value passes, but paired non-inferiority fails |
+| Mask recall | 91.96% | at least 90% | Pass |
+| Mask intersection over union | 82.06% | at least 80% | Pass |
+| Merge fraction | 0.00% | at most 10% | Pass |
+
+Relative to the preceding measurement-repair ledger, 48 of 143 Continuum
+point estimates changed. The largest change was only about
+`6.6e-7`, no endpoint moved between pass, fail, or underpowered, and overall
+duplicate and split fractions were exactly unchanged. This is stronger than a
+generic statement that the correction was insufficient: on the governed
+population, the new hierarchy did not materially change catalogue-source
+membership. Consequently, one-source measurement and source-union scoring had
+no different grouping to measure or score.
+
+Hebog still has the same mixed scientific profile. It detects all governed
+Continuum truth, has good typical flux recovery, high mask recall and overlap,
+and no merge problem. It does not yet turn that recovered emission into a
+clean, reliable source catalogue: fragmentation remains too high and drives
+poor reliability and severe position and flux tails.
+
+### What happens next
+
+The cumulative gate remains closed, so fresh held-out qualification, the
+Rapthor profile decision, cutover, and release cannot proceed. The next step is
+a prospective root-cause review of why common-parent hierarchy activation left
+source membership unchanged. That review must reproduce the activation gap in
+analytic fixtures and freeze any correction before another replay is proposed;
+this terminal evidence must not be tuned or rescored.
 
 ## Required format for future snapshots
 

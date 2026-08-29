@@ -12327,3 +12327,44 @@ repair separately. Ruff passes.
 **Immediate next step:** commit the exact repair identity and amended decision,
 create a clean immutable checkout, run the existing-product-only completion,
 and interpret science only after successful atomic ledger publication.
+
+## 2026-08-29 — Close source reconstruction as a scientific failure
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Immutable evaluation revision `66352e7...` completed the approved
+  existing-product-only compilation and atomically published
+  `cumulative-regression-ledger-public-finder-source-reconstruction.json`,
+  SHA-256 `84fbb3a1...`, without candidate submission or product mutation.
+- Provenance verification binds candidate `42c75f4...`, source tree
+  `1b67c7f6...`, configuration `470e918d...`, verified product set
+  `0d8c2d0b...`, evaluation repair `cc531cee...` / `3ff495e3...`, amended
+  decision `659725aa...`, reconstructed references `48209eae...`, and closed
+  baseline `a45303df...`. The process exited successfully; the result is a
+  scientific gate failure, not an operational failure.
+- Compact passes with no like-semantics regressions. Continuum records 89
+  passes, 44 failures, 10 underpowered endpoints, and 37 like-semantics
+  regressions. `cumulative_science_regression_ready`, all-required-endpoints,
+  fresh-campaign freeze, fresh-campaign execution, and step-three authority
+  are all false; power review is not reached.
+- Overall Continuum completeness is 100%, median integrated-flux error is
+  5.22%, mask recall is 91.96%, mask IoU is 82.06%, and merge fraction is 0%.
+  Reliability is 62.38%, integrated-flux-error p95 is 79.26%, position-error
+  p95 is 4.18 beams, and duplicate and split fractions are each 25.29%.
+- Against terminal measurement-repair ledger `6b2aa4de...`, all 143 endpoint
+  states are unchanged: 89 pass-to-pass, 44 fail-to-fail, and 10
+  underpowered-to-underpowered. Forty-eight point estimates changed, but the
+  largest absolute change is about `6.6e-7`; duplicate and split topology is
+  exactly unchanged. The governed source hierarchy therefore did not
+  materially change catalogue membership, so the intended source-level
+  measurement and topology correction could not close the fragmentation
+  failures.
+
+**Decision:** stop the closure sequence. Do not rerun, tune, rescore, qualify,
+profile Rapthor, cut over, or release. Preserve this ledger as terminal
+viewed-development regression evidence.
+
+**Immediate next step:** prepare a new prospective scientific/root-cause
+pre-review that explains why common-parent hierarchy activation left source
+membership unchanged and requires analytic reproduction before freezing any
+new correction or requesting another replay.

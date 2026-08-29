@@ -349,14 +349,16 @@ measurement, and mask-support admission remain open defects.
 
 Pre-review `528f18a6...` accounts for every failure and its approved
 fixture-first correction is implemented as candidate `42c75f4...`. The
-frozen replay completed all 2,400 candidate products, then stopped during
-terminal compilation before atomic publication because the shared prospective
-topology callback did not dispatch unchanged PyBDSF single-support records to
-their historical evaluator. No ledger or scientific interpretation exists.
-The approved evaluation-only repair adds that dispatch and verifies the
-preserved products while forbidding candidate submission. Section 7 contains
-the single authoritative Phase 5 closure sequence; detailed chronology and
-immutable identities remain in `LOG.md` and `config/contracts/`.
+frozen replay completed all 2,400 candidate products. After an evaluation-only
+dispatch repair, immutable revision `66352e7...` published terminal ledger
+`84fbb3a1...` from the verified products without candidate reexecution.
+Compact remains green, but Continuum remains at 89 passes, 44 failures, 10
+underpowered endpoints, and the same 37 like-semantics regressions. The
+source-reconstruction candidate changed 48 point estimates only at negligible
+numerical scale and changed no endpoint status or split/duplicate topology.
+Section 7 contains the single authoritative Phase 5 closure sequence; detailed
+chronology and immutable identities remain in `LOG.md` and
+`config/contracts/`.
 
 ## 7. Delivery plan
 
@@ -385,6 +387,7 @@ source-association repair. Detailed campaign and incident chronology belongs in
 | Source-association correction | Candidate `26e639a...` added conservative component association and deterministic source composition. Its approved replay stopped after 58 of 2,400 candidate products because a positive owner could lose its catalogue row when negative surrounding residuals made the expanded aperture non-positive. No ledger was published. |
 | Measurement-completeness repair | Commit `6184a32...` preserves positive expanded-aperture measurements, falls back to explicitly flagged positive exact-owner support only when required, propagates the flags, and remains fail-closed for genuinely unmeasurable owners. Its authorized replay completed all 2,400 candidate products. |
 | Association-aware evaluation repair | The replay then failed before its atomic ledger because the compiler still required one legacy segment label per binding catalogue row. A new adapter leaves every closed program byte-identical, verifies the persisted source-membership digest against the finite native components, presents the exact support union only to catalogue matching, keeps native topology separate, and provides a completion-only path that forbids candidate execution. |
+| Source-reconstruction correction | Candidate `42c75f4...` added a deterministic common-parent hierarchy, one source-level measurement, connected-support admission, and source-union topology evaluation. Terminal ledger `84fbb3a1...` preserves compact science but fails the cumulative gate with 44 Continuum failures and 37 regressions; source membership and fragmentation were effectively unchanged. |
 | Readiness machinery | The fail-closed packet generator and finalizer exist and require packet-bound radio-astronomy and engineering acceptance. They do not authorize execution, cutover, or release. |
 
 The narrow Continuum watchpoints from the passing recovery evidence remain
@@ -412,31 +415,28 @@ split, flux, and mask metrics were unchanged. Candidate execution, replay,
 viewed SDC1/Hydra execution, qualification, tuning, rescoring, cutover, and
 release remain unauthorized.
 
-Non-executable source-reconstruction pre-review `528f18a6...` accounts for
-all 44 failures and recommends four prospective corrections: a common-parent
-multiscale source hierarchy in place of pairwise complete-link association,
-one source-level measurement on disjoint pixels, connected reconstructed-mask
-support, and a future evaluator that binds split/merge to catalogue-source
-unions while retaining component topology as a diagnostic. Gemma Danks
-approved that exact fixture-only boundary on 2026-08-29. The correction now
-passes its analytic and Serial/existing-Dask contracts without changing a
-threshold, gate, component owner, or closed evidence product. Replay and
-viewed-data execution remain unauthorized. Identity review `b4eff062...` now
-freezes the exact non-executable composition and records a passing complete
-no-write verification. Execution decision `0d87caf7...` now records the
-separate approval for that composition. The replay completed all 2,400
-candidate products but failed during terminal Continuum compilation before the
-atomic ledger because the wrapper sent unchanged PyBDSF catalogue records to a
-Hebog-only `support_labels` evaluator. This is an operational failure, not a
-scientific verdict. Gemma Danks's explicit error-fix-and-retry authority opens
-only a minimal evaluation repair: reference rows retain historical measurement
-semantics, associated Hebog rows use prospective source topology, mixed
-semantics fail closed, all persisted shards are hashed, and candidate execution
-is forbidden. Review `cc531cee...` freezes repair commit `ef961d5...`, wrapper
-`3ff495e3...`, all 2,400 products as set `0d8c2d0b...`, all 9,600 references,
-and the still-absent ledger. Amended decision `659725aa...` consumes only the
-existing explicit error-fix-and-retry authority for one compilation/evaluation
-resume; no candidate execution or broader Phase 5 action is authorized.
+Source-reconstruction pre-review `528f18a6...` proposed a common-parent
+multiscale hierarchy, one source-level measurement, connected reconstructed
+support, and source-union topology evaluation. Candidate `42c75f4...` passed
+its analytic and Serial/existing-Dask contracts without changing thresholds,
+gates, component ownership, or closed evidence. Review `b4eff062...` and
+decision `0d87caf7...` bound the exact replay. After all 2,400 products were
+created, the historical PyBDSF/successor-Hebog record-dispatch defect stopped
+terminal compilation. Review `cc531cee...`, wrapper `3ff495e3...`, product set
+`0d8c2d0b...`, and amended decision `659725aa...` authorized only the
+evaluation repair and exact existing-product completion.
+
+That completion is now terminal. Ledger `84fbb3a1...` is provenance-complete
+and `fail`: compact passes with no regression, while Continuum records 89
+passes, 44 failures, 10 underpowered endpoints, and 37 like-semantics
+regressions. Relative to `6b2aa4de...`, 48 point estimates changed only at
+negligible numerical scale, no endpoint status changed, and overall duplicate
+and split fractions remain 25.29%. The intended hierarchy therefore did not
+alter governed catalogue-source membership on this population. The next action
+must be a new prospective scientific/root-cause review of hierarchy activation
+and source-membership evidence; it may not tune or rescore this terminal
+ledger. Candidate execution, replay, viewed SDC1/Hydra execution,
+qualification, cutover, and release are unauthorized.
 
 The readiness contract is now prospectively rebound to source-reconstruction
 candidate `42c75f4...`, source tree `1b67c7f6...`, configuration
@@ -524,12 +524,20 @@ from partial or viewed evidence.
    - [x] Obtain a separate exact one-replay approval. Decision `0d87caf7...`
      binds review `b4eff062...` and leaves all later actions unauthorized.
    - [x] Execute the candidate stage once. All 2,400 products completed under
-     the exact authority; terminal compilation failed before atomic publication
-     on a reference-record dispatch defect, so no scientific result exists.
-   - [ ] Freeze and consume the approved evaluation-only repair, compile and
+     the exact authority; the first terminal compilation failed before atomic
+     publication on a reference-record dispatch defect and was preserved as an
+     operational incident.
+   - [x] Freeze and consume the approved evaluation-only repair, compile and
      evaluate only the exact preserved product set, and require every compact
      and Continuum absolute and like-semantics gate. Candidate submission is
      forbidden; stop again on scientific failure.
+   - [x] Record terminal ledger `84fbb3a1...`: compact passes, but Continuum
+     remains at 89 pass, 44 fail, 10 underpowered, and 37 like-semantics
+     regressions. No endpoint status changed relative to `6b2aa4de...`.
+   - [ ] Complete a new prospective pre-review that explains why the hierarchy
+     left source membership and split/duplicate topology unchanged, defines
+     fixture evidence that reproduces the governed activation gap, and freezes
+     a correction before any further replay request.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
