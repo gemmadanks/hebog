@@ -1,0 +1,229 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-direct-seed-hierarchy-attachment-repair",
+    "fixture-only-hierarchy-activation-and-safety-validation",
+    "compact-hierarchy-activation-telemetry",
+    "serial-and-existing-dask-invariance-validation",
+    "non-executable-candidate-and-replay-identity-freeze"
+  ],
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_implementation_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "root_cause_repair_implementation_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "candidate": {
+      "configuration_sha256": "470e918db1a640d7393edc02de01fc57b50881b908bd6d5dac18a57709117bbb",
+      "product_set_sha256": "0d8c2d0bb783aa812c520667ca71a557bae08d3a4a234ba70d7589c1285aa3c7",
+      "revision": "42c75f44b71800ae5fa1e0ebe1669caa7da59f85",
+      "source_tree_sha256": "1b67c7f6f768d6f83becc853a1ebd45b3996164cd2b87fdc0f71b9a3299e6bf1"
+    },
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "prior_terminal_ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+      "sha256": "6b2aa4deb306e0d7ba8285aae1e18bfb4f4e838b57aecd0497bec990e8a8c842"
+    },
+    "programs": {
+      "candidate_builder_sha256": "760a63e48d1e2952e33418e37f4207797d0ec5ddccdb5bab6d62587ef190223a",
+      "connected_support_sha256": "6964fcfe067128eef01d8fb4b655e9ef9a6053e845236f03a0f534bae8635604",
+      "hierarchy_sha256": "60adc5f3be2e0bde41a5956107a35da7efa0994bacade011139581953b5e8ec9",
+      "measurement_sha256": "b4f024b41ac843f6084e6edb4c9173c9bd0b1b299a5c7f22c3d31789092f936d",
+      "multiscale_sha256": "be31b737b7835afaf718821c0584d668aa0878bb2950a667876296f731ac2a97",
+      "topology_evaluator_sha256": "b46167deff074d48540a88949ef6fcf86b474aa6a1c7806b357e919cc497eb49"
+    },
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "terminal_ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-reconstruction.json",
+      "sha256": "84fbb3a18828210543d815d28aa4eab039a2ad7467aa2572a9c5119780f55a0e"
+    }
+  },
+  "causal_findings": {
+    "confirmed_primary_defect": {
+      "activation_path": [
+        "evaluate_public_finder_correction_candidate_products computes direct seed labels",
+        "assign_seeded_multiscale_support expands and reassigns those labels over reconstructed support",
+        "PostCampaignCandidateProducts retains only the expanded labels as detection.component_labels",
+        "build_public_finder_source_reconstruction_continuum_products passes the expanded labels to hierarchy association",
+        "_attached_finest_feature treats intersection with more than one finest-scale feature as immediate ambiguity",
+        "associate_components_by_multiscale_hierarchy forces every ambiguous owner into a singleton"
+      ],
+      "classification": "confirmed-by-code-trace-and-controlled-analytic-reproduction",
+      "description": "Hierarchy attachment uses post-recovery measurement ownership rather than immutable direct-seed ownership. Expanded owners can intersect multiple fine-scale features and are rejected before their common-parent convergence is considered.",
+      "scientific_effect": "The intended catalogue-source grouping remains dormant, so source-level remeasurement and source-union topology are applied mostly to singleton components.",
+      "semantic_contract_violation": "The hierarchy docstring promises direct component owners, but the composed caller supplies support-expanded measurement owners."
+    },
+    "controlled_reproduction": {
+      "expected": {
+        "ambiguous_component_count": 0,
+        "membership_sizes": [
+          2
+        ]
+      },
+      "fixture": "Two direct owners attach to fine-scale features with one unique coarse parent; support recovery expands the first owner across two of those fine features.",
+      "observed_with_direct_seed_labels": {
+        "ambiguous_component_count": 0,
+        "membership_sizes": [
+          2
+        ]
+      },
+      "observed_with_expanded_measurement_labels": {
+        "ambiguous_component_count": 1,
+        "membership_sizes": [
+          1,
+          1
+        ]
+      }
+    },
+    "evaluator_and_adapter": {
+      "classification": "excluded-as-primary-cause",
+      "evidence": "The writer persists source membership in source identifiers and component counts; the prospective evaluator verifies that digest against native labels and reconstructs exact source-union support. A grouped membership would therefore be visible to binding topology metrics."
+    },
+    "exact_overlap_scale_shift": {
+      "classification": "plausible-secondary-hypothesis-not-yet-reproduced",
+      "description": "A physical source feature may move between wavelet scales and fail exact adjacent-scale overlap. No governed or analytic evidence yet establishes that this caused the terminal failure."
+    },
+    "mask_support": {
+      "classification": "prior-primary-hypothesis-refuted-for-this-population",
+      "evidence": "Connected-support admission changed mask precision by only 1.794e-7, mask recall by -6.510e-7, and mask IoU by 3.414e-7, with no endpoint transition.",
+      "remaining_question": "The remaining precision deficit concerns connected retained support and must be reproduced prospectively; it does not authorize a threshold or radius change."
+    },
+    "terminal_evidence_limit": {
+      "classification": "observability-gap",
+      "description": "The sealed products and ledger contain no aggregate hierarchy activation record, and the raw candidate shards were removed after verified terminal compilation. Campaign-level ambiguous, unattached, converged, and membership-size counts cannot be recovered retrospectively.",
+      "consequence": "The primary cause is high-confidence rather than campaign-level conclusive; the next candidate must emit compact activation telemetry before another replay can be considered."
+    },
+    "ultimate_root_overmerge": {
+      "classification": "prospective-safety-risk-not-observed-cause",
+      "description": "Grouping every lineage that reaches the same terminal coarse root can merge independent nearby sources. The passing zero-merge terminal evidence does not exercise an activated hierarchy, so coarse-bridge and crowded-field negative controls remain mandatory."
+    }
+  },
+  "change_control": {
+    "forbidden_same_change": [
+      "background-or-rms-estimator-changes",
+      "detection-or-island-threshold-changes",
+      "minimum-island-area-changes",
+      "recovery-radius-changes",
+      "beam-or-wcs-interpretation-changes",
+      "truth-aware-or-reference-finder-association",
+      "terminal-product-derived-constants",
+      "gate-or-margin-changes",
+      "runtime-optimization",
+      "retrospective-scoring-of-closed-ledgers"
+    ],
+    "historical_evidence_immutable": true,
+    "terminal_failure_immutable": true
+  },
+  "excluded_primary_causes": [
+    "evaluation-adapter-membership-loss",
+    "disconnected-support-admission",
+    "threshold-selection",
+    "candidate-overmerge-in-the-terminal-population",
+    "insufficient-statistical-power",
+    "runtime-or-operational-failure"
+  ],
+  "recommended_repair": {
+    "activation_telemetry": [
+      "direct-component-count",
+      "catalogue-source-count",
+      "membership-size-histogram",
+      "unattached-component-count",
+      "multiple-finest-feature-attachment-count",
+      "branched-lineage-count",
+      "unique-convergence-count",
+      "per-scale-feature-counts",
+      "adjacent-scale-parent-edge-counts"
+    ],
+    "attachment_rule": "Attach immutable direct-seed support to the complete set of finest intersected features; accept grouping only when their lineages provide one unique nearest common convergence. Zero or multiple convergence candidates remain flagged singletons.",
+    "identity_separation": {
+      "direct_component_labels": "immutable hierarchy attachment and component identity",
+      "measurement_component_labels": "connected recovered support ownership for masks and source measurement"
+    },
+    "no_new_numeric_thresholds": true,
+    "scope": "source-hierarchy-activation-and-observability-only",
+    "source_measurement_and_evaluator": "Retain unchanged unless a focused fixture independently demonstrates a defect after membership activates."
+  },
+  "required_next_decision": "named-approval-of-this-exact-root-cause-pre-review-for-fixture-only-repair",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-review",
+    "add-red-analytic-activation-and-overmerge-safety-fixtures",
+    "separate-direct-seed-and-measurement-owner-labels",
+    "implement-unique-nearest-common-convergence-attachment",
+    "add-compact-fail-closed-activation-telemetry",
+    "validate-fixture-serial-existing-dask-tile-order-and-retry-invariance",
+    "freeze-exact-non-executable-candidate-and-replay-identities",
+    "obtain-separate-exact-approval-before-any-cumulative-replay"
+  ],
+  "review_id": "phase-5-public-finder-source-reconstruction-root-cause-pre-review",
+  "reviewed_on": "2026-08-29",
+  "schema_version": 1,
+  "status": "ready-for-named-hierarchy-activation-repair-review",
+  "terminal_science": {
+    "compact": {
+      "like_semantics_regression_count": 0,
+      "status": "pass"
+    },
+    "continuum": {
+      "changed_point_estimate_count_vs_prior": 48,
+      "like_semantics_regression_count": 37,
+      "maximum_absolute_point_change_vs_prior": 6.5104e-7,
+      "overall_duplicate_fraction": 0.2529464285714285,
+      "overall_split_fraction": 0.2529464285714285,
+      "status_counts": {
+        "fail": 44,
+        "indeterminate": 0,
+        "pass": 89,
+        "underpowered": 10
+      },
+      "status_transition_count_vs_prior": 0
+    },
+    "cumulative_science_regression_ready": false,
+    "status": "fail"
+  },
+  "test_first_matrix": {
+    "activation": [
+      "expanded-owner-crosses-two-fine-features-with-one-common-parent",
+      "direct-seed-owner-attaches-before-support-expansion",
+      "multiple-finest-features-with-one-unique-nearest-convergence",
+      "multiple-finest-features-with-no-common-convergence",
+      "multiple-finest-features-with-ambiguous-convergences"
+    ],
+    "end_to_end_analytic": [
+      "shell-through-real-scale-filter-support-assignment-hierarchy-measurement-and-evaluator",
+      "curved-filament-through-real-scale-filter-support-assignment-hierarchy-measurement-and-evaluator",
+      "multi-lobe-artifact-through-real-scale-filter-support-assignment-hierarchy-measurement-and-evaluator"
+    ],
+    "forbidden_inputs": [
+      "terminal-or-prior-candidate-product-shards",
+      "viewed-sdc1-products",
+      "viewed-hydra-products",
+      "pybdsf-or-aegean-catalogues"
+    ],
+    "invariance": [
+      "serial-versus-existing-dask",
+      "tile-shape-and-origin",
+      "worker-count-and-task-order",
+      "retry-and-completion-order",
+      "telemetry-reduction-order"
+    ],
+    "mask_follow_up": [
+      "connected-false-support-analytic-reproduction-before-any-mask-change"
+    ],
+    "safety": [
+      "two-independent-sources-with-a-real-coarse-bridge",
+      "crowded-many-seed-field",
+      "masked-gap-and-invalid-pixels",
+      "branched-lineage",
+      "multiple-common-ancestor-candidates",
+      "scale-shift-without-exact-overlap"
+    ]
+  }
+}

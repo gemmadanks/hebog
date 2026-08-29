@@ -432,11 +432,17 @@ passes, 44 failures, 10 underpowered endpoints, and 37 like-semantics
 regressions. Relative to `6b2aa4de...`, 48 point estimates changed only at
 negligible numerical scale, no endpoint status changed, and overall duplicate
 and split fractions remain 25.29%. The intended hierarchy therefore did not
-alter governed catalogue-source membership on this population. The next action
-must be a new prospective scientific/root-cause review of hierarchy activation
-and source-membership evidence; it may not tune or rescore this terminal
-ledger. Candidate execution, replay, viewed SDC1/Hydra execution,
-qualification, cutover, and release are unauthorized.
+alter governed catalogue-source membership on this population. Root-cause
+pre-review `c1a92bd2...` now governs the next action. Code trace and a synthetic
+analytic reproduction confirm that the candidate discarded its direct-seed
+label plane, attached the hierarchy to support-expanded measurement owners,
+and forced any owner crossing multiple finest-scale features into a singleton
+before testing their unique common-parent convergence. Existing one-pixel
+fixtures could not reach that path. Exact-overlap scale shift remains an
+unproven secondary hypothesis, while terminal-root overmerge is a prospective
+safety risk. The review authorizes nothing; candidate execution, replay,
+viewed SDC1/Hydra execution, qualification, tuning, rescoring, cutover, and
+release remain unauthorized.
 
 The readiness contract is now prospectively rebound to source-reconstruction
 candidate `42c75f4...`, source tree `1b67c7f6...`, configuration
@@ -534,10 +540,17 @@ from partial or viewed evidence.
    - [x] Record terminal ledger `84fbb3a1...`: compact passes, but Continuum
      remains at 89 pass, 44 fail, 10 underpowered, and 37 like-semantics
      regressions. No endpoint status changed relative to `6b2aa4de...`.
-   - [ ] Complete a new prospective pre-review that explains why the hierarchy
-     left source membership and split/duplicate topology unchanged, defines
-     fixture evidence that reproduces the governed activation gap, and freezes
-     a correction before any further replay request.
+   - [x] Complete root-cause pre-review `c1a92bd2...`. It binds terminal ledger
+     `84fbb3a1...`, reproduces the expanded-owner ambiguity on synthetic arrays,
+     separates confirmed causes from hypotheses and safety risks, and defines
+     fail-closed activation telemetry and end-to-end analytic fixtures.
+   - [ ] Obtain named approval of exact review `c1a92bd2...`. Approval may open
+     only test-first separation of direct-seed and measurement-owner labels,
+     unique-nearest-convergence attachment, fixture/executor validation,
+     compact activation telemetry, and non-executable identity freezing.
+   - [ ] After the approved fixture-only repair passes every positive and
+     overmerge negative control, freeze its exact non-executable candidate and
+     replay identities. Any replay still requires a separate exact approval.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

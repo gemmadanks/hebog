@@ -12368,3 +12368,49 @@ viewed-development regression evidence.
 pre-review that explains why common-parent hierarchy activation left source
 membership unchanged and requires analytic reproduction before freezing any
 new correction or requesting another replay.
+
+## 2026-08-29 — Diagnose dormant source-reconstruction activation
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Root-cause pre-review `c1a92bd2...` binds terminal ledger `84fbb3a1...`,
+  predecessor `6b2aa4de...`, candidate `42c75f4...`, source tree
+  `1b67c7f6...`, configuration `470e918d...`, and verified product set
+  `0d8c2d0b...`. It is non-executable.
+- Code trace found a semantic composition defect: direct residual-detection
+  labels are expanded by seeded support assignment, then only the expanded
+  measurement-owner plane is retained and passed to hierarchy attachment.
+  `_attached_finest_feature()` marks an owner ambiguous as soon as that
+  expanded footprint intersects multiple finest-scale features, so the owner
+  becomes a singleton before common-parent convergence is considered.
+- A synthetic controlled fixture reproduced the defect without governed or
+  viewed data. Expanded measurement labels produced membership sizes `[1, 1]`
+  and one ambiguous owner; the same direct-seed labels produced membership
+  size `[2]` with no ambiguity under the unique common parent.
+- Terminal invariance corroborates dormant membership: all 143 endpoint states,
+  overall duplicate and split fractions, reliability, and flux metrics are
+  unchanged; the largest point-estimate change is only about `6.51e-7`.
+- Existing hierarchy fixtures use one-pixel owners and hand-built scale planes,
+  while the composition test mocks both ends of the boundary. No test exercised
+  real scale filtering through seeded support, hierarchy, measurement, and the
+  topology evaluator.
+- The prior disconnected-support explanation is refuted as material on this
+  population: connected admission moved mask precision by only `1.79e-7` and
+  caused no status transition. Exact-overlap scale shift remains an unproven
+  hypothesis; terminal-root overmerge remains a mandatory safety risk.
+
+**Decision:** recommend a bounded fixture-first repair that preserves separate
+direct-seed and measurement-owner label planes, evaluates unique nearest
+common convergence before declaring ambiguity, and emits compact activation
+telemetry. Do not change thresholds, radii, gates, photometry, background/RMS,
+or closed evidence.
+
+**Validation:** all 8 review-contract tests pass; the focused hierarchy,
+prospective evaluator, and review suite passes 34 tests; `just check` passes
+with 1,926 tests passed, 202 deselected, and 4 expected failures; and the
+strict documentation build passes. Coverage was not rerun because this review
+changes no production behaviour or control flow.
+
+**Immediate next step:** obtain named approval of exact review `c1a92bd2...`
+before implementing the fixture-only repair. Another cumulative replay would
+still require a later exact identity review and separate approval.
