@@ -71,8 +71,8 @@
       "test_gap": "Earlier positive fixtures manually supplied a connected coarse parent and therefore proved reduction of an existing hierarchy, not construction of that hierarchy from the real scale filter."
     },
     "controlled_real_scale_reproduction": {
-      "forbidden_inputs_used": false,
       "fixture": "An 81-by-81 analytic four-lobe Gaussian shell at radius 10 pixels, evaluated through the real corrective-A scale filter, support assignment, source reconstruction, and telemetry composition.",
+      "forbidden_inputs_used": false,
       "observed": {
         "adjacent_scale_parent_edge_count": 8,
         "catalogue_source_count": 4,
@@ -104,9 +104,9 @@
     "excluded_causes": {
       "direct-versus-measurement-owner-confusion": "Repaired and independently covered; the real-scale fixture still fails with immutable direct labels.",
       "hierarchy_reducer_ignores_an_existing_parent": "Hand-built fixtures with a persistent common parent group correctly.",
+      "operational_or_runtime_failure": "The fixture completes deterministically and exposes a scientific topology result.",
       "source_measurement_or_topology_adapter": "These stages cannot activate until catalogue membership groups, and existing focused contracts preserve a grouped membership.",
-      "threshold_gate_or_photometric_values": "No viewed evidence or parameter change was used; the failure occurs before measurement and endpoint evaluation.",
-      "operational_or_runtime_failure": "The fixture completes deterministically and exposes a scientific topology result."
+      "threshold_gate_or_photometric_values": "No viewed evidence or parameter change was used; the failure occurs before measurement and endpoint evaluation."
     },
     "safety_risk": {
       "classification": "must-be-resolved-before-identity-freeze",

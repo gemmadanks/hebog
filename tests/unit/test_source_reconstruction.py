@@ -382,6 +382,208 @@ def test_terminal_coarse_bridge_does_not_merge_independent_sources() -> None:
     assert diagnostics.catalogue_source_count == 2
 
 
+def test_persistent_two_feature_envelopes_do_not_invent_one_source() -> None:
+    """Two nearby persistent features remain conservatively independent."""
+    pixels = ((10, 5), (10, 15))
+    labels, records = _components(pixels, shape=(21, 21))
+    middle = _plane(
+        2,
+        (
+            ("scale-pair-left-middle", ((10, 5),)),
+            ("scale-pair-right-middle", ((10, 15),)),
+        ),
+        shape=labels.shape,
+    )
+    coarse = _plane(
+        3,
+        (
+            ("scale-pair-left-coarse", ((10, 5),)),
+            ("scale-pair-right-coarse", ((10, 15),)),
+        ),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (middle, coarse),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+
+
+def test_persistent_cycle_supported_envelopes_construct_one_parent() -> None:
+    """A four-lobe parent must recur at adjacent B3 footprint scales."""
+    pixels = ((10, 20), (20, 10), (20, 30), (30, 20))
+    labels, records = _components(pixels, shape=(41, 41))
+    planes = tuple(
+        _plane(
+            scale_order,
+            tuple(
+                (f"scale-ring-{scale_order}-{index}", (pixel,))
+                for index, pixel in enumerate(pixels, start=1)
+            ),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [4]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.scale_aware_parent_candidate_count == 2
+    assert diagnostics.persistent_parent_count == 1
+    assert diagnostics.rejected_parent_ambiguity_count == 0
+
+
+def test_terminal_cycle_supported_envelope_fails_closed() -> None:
+    """A candidate that appears only at the last scale remains ungrouped."""
+    pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
+    labels, records = _components(pixels, shape=(41, 41))
+    planes = tuple(
+        _plane(
+            scale_order,
+            tuple(
+                (f"scale-terminal-{scale_order}-{index}", (pixel,))
+                for index, pixel in enumerate(pixels, start=1)
+            ),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 4
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.per_scale_parent_candidate_counts == ((2, 0), (3, 1))
+    assert diagnostics.persistent_parent_count == 0
+    assert diagnostics.rejected_parent_ambiguity_count == 1
+
+
+def test_transitive_envelope_chain_fails_closed() -> None:
+    """Pairwise transitive proximity cannot manufacture a common parent."""
+    pixels = tuple((10, x) for x in (4, 14, 24, 34))
+    labels, records = _components(pixels, shape=(21, 39))
+    middle = _plane(
+        2,
+        tuple(
+            (f"scale-chain-{index}", (pixel,))
+            for index, pixel in enumerate(pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (middle,),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 4
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.scale_aware_parent_candidate_count == 0
+
+
+def test_invalid_gap_blocks_scale_aware_parent_construction() -> None:
+    """A complete invalid barrier prevents envelope parent evidence."""
+    pixels = ((15, 15), (25, 15), (15, 25), (25, 25))
+    labels, records = _components(pixels, shape=(41, 41))
+    valid = np.ones(labels.shape, dtype=np.bool_)
+    valid[:, 20] = False
+    planes = tuple(
+        _plane(
+            scale_order,
+            tuple(
+                (f"scale-gap-{scale_order}-{index}", (pixel,))
+                for index, pixel in enumerate(pixels, start=1)
+            ),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        valid,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 4
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.persistent_parent_count == 0
+
+
+def test_scale_aware_parent_rejects_support_on_an_invalid_pixel() -> None:
+    """Scale-feature evidence itself may not occupy invalid support."""
+    pixels = ((10, 10), (10, 20), (20, 15))
+    labels, records = _components(pixels, shape=(31, 31))
+    plane = _plane(
+        2,
+        tuple(
+            (f"scale-invalid-{index}", (pixel,))
+            for index, pixel in enumerate(pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+    valid = np.ones(labels.shape, dtype=np.bool_)
+    valid[pixels[0]] = False
+    labels[pixels[0]] = 0
+    records = tuple(record for record in records if record.label_value != 1)
+
+    with pytest.raises(ValueError, match=r"scale support.*valid"):
+        associate_components_by_multiscale_hierarchy(
+            records,
+            labels,
+            (plane,),
+            valid,
+        )
+
+
+def test_unreviewed_scale_has_no_constructed_parent_envelope() -> None:
+    """Scales beyond the fixed three-stage B3 plan remain fail-closed."""
+    pixels = ((10, 20), (20, 10), (20, 30), (30, 20))
+    labels, records = _components(pixels, shape=(41, 41))
+    unreviewed = _plane(
+        4,
+        tuple(
+            (f"scale-unreviewed-{index}", (pixel,))
+            for index, pixel in enumerate(pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (unreviewed,),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 4
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.per_scale_parent_candidate_counts == ((4, 0),)
+
+
 def test_multiple_finest_features_without_convergence_fail_closed() -> None:
     """One direct owner cannot invent a parent for disjoint lineages."""
     labels = np.zeros((7, 11), dtype=np.int32)
@@ -465,6 +667,19 @@ def test_hierarchy_diagnostics_reject_inconsistent_counts() -> None:
         replace(diagnostics, per_scale_feature_counts=((0, 1),))
     with pytest.raises(ValueError, match="exceeds source"):
         replace(diagnostics, unique_convergence_count=2)
+    with pytest.raises(ValueError, match="non-negative"):
+        replace(diagnostics, rejected_parent_ambiguity_count=-1)
+    with pytest.raises(ValueError, match=r"candidate counts.*canonical"):
+        replace(
+            diagnostics,
+            per_scale_parent_candidate_counts=((1, 0), (1, 0)),
+        )
+    with pytest.raises(ValueError, match=r"candidate scales.*match"):
+        replace(diagnostics, per_scale_parent_candidate_counts=((2, 0),))
+    with pytest.raises(ValueError, match=r"candidate counts.*match total"):
+        replace(diagnostics, scale_aware_parent_candidate_count=1)
+    with pytest.raises(ValueError, match="persistent parents exceed"):
+        replace(diagnostics, persistent_parent_count=1)
     with pytest.raises(ValueError, match="match association"):
         replace(
             result,

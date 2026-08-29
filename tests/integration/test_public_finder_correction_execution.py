@@ -252,38 +252,38 @@ def test_source_association_partition_order_and_retry_invariance() -> None:
     assert _identity_view(dask) == _identity_view(expected)
 
 
-def _hierarchy_plane(
-    labels: npt.NDArray[np.int32],
-    identifier: str,
+def _hierarchy_cycle_plane(
+    shape: tuple[int, int],
+    pixels: tuple[tuple[int, int], ...],
     *,
     scale_order: int,
 ) -> ScaleDetectionPlane:
-    """Build one exact common-parent plane for executor fixtures."""
-    y_pixels, x_pixels = np.nonzero(labels > 0)
-    support_labels = np.where(labels > 0, 1, 0).astype(np.int32)
-    return ScaleDetectionPlane(
-        scale_order=scale_order,
-        component_labels=support_labels,
-        detections=(
+    """Build separated features whose B3 envelopes form one cycle."""
+    support_labels = np.zeros(shape, dtype=np.int32)
+    detections: list[ScaleDetection] = []
+    for label_value, pixel in enumerate(pixels, start=1):
+        support_labels[pixel] = label_value
+        detections.append(
             ScaleDetection(
-                detection_id=identifier,
+                detection_id=(
+                    f"scale-hierarchy-{scale_order}-{pixel[0]}-{pixel[1]}"
+                ),
                 parent_island_id=None,
                 scale_order=scale_order,
                 nominal_scale_beam_fwhm=float(2 ** (scale_order - 1)),
-                support_pixel_count=int(y_pixels.size),
+                support_pixel_count=1,
                 valid_support_fraction=1.0,
-                bounds_yx=(
-                    int(np.min(y_pixels)),
-                    int(np.max(y_pixels)) + 1,
-                    int(np.min(x_pixels)),
-                    int(np.max(x_pixels)) + 1,
-                ),
-                canonical_pixel_yx=(int(y_pixels[0]), int(x_pixels[0])),
+                bounds_yx=(pixel[0], pixel[0] + 1, pixel[1], pixel[1] + 1),
+                canonical_pixel_yx=pixel,
                 peak_response_jy_per_beam=1.0,
                 peak_signal_to_noise=5.0,
                 touches_image_edge=False,
-            ),
-        ),
+            )
+        )
+    return ScaleDetectionPlane(
+        scale_order=scale_order,
+        component_labels=support_labels,
+        detections=tuple(detections),
     )
 
 
@@ -300,20 +300,23 @@ def _reconstruct_hierarchy(batch: HierarchyBatch) -> SourceAssociationResult:
 
 @pytest.mark.integration
 def test_source_hierarchy_is_serial_dask_order_and_retry_invariant() -> None:
-    """Common-parent membership ignores labels, tasks, and plane ordering."""
-    labels = np.zeros((9, 17), dtype=np.int32)
-    labels[4, 3] = 9
-    labels[4, 13] = 2
-    permuted = np.where(labels == 9, 31, np.where(labels == 2, 7, 0)).astype(
-        np.int32
-    )
-    support = np.zeros(labels.shape, dtype=np.int32)
-    support[4, 3:14] = 1
-    fine = _hierarchy_plane(support, "scale-hierarchy-fine", scale_order=1)
-    coarse = _hierarchy_plane(
-        support,
-        "scale-hierarchy-coarse",
+    """Scale-aware parent membership ignores labels, tasks, and order."""
+    pixels = ((10, 20), (20, 10), (20, 30), (30, 20))
+    labels = np.zeros((41, 41), dtype=np.int32)
+    for label_value, pixel in zip((9, 2, 17, 4), pixels, strict=True):
+        labels[pixel] = label_value
+    permuted = np.zeros_like(labels)
+    for label_value, pixel in zip((31, 7, 22, 13), pixels, strict=True):
+        permuted[pixel] = label_value
+    middle = _hierarchy_cycle_plane(
+        labels.shape,
+        pixels,
         scale_order=2,
+    )
+    coarse = _hierarchy_cycle_plane(
+        labels.shape,
+        tuple(reversed(pixels)),
+        scale_order=3,
     )
     records = build_detection_component_records(
         labels,
@@ -326,8 +329,8 @@ def test_source_hierarchy_is_serial_dask_order_and_retry_invariant() -> None:
         np.ones(labels.shape, dtype=np.bool_),
     )
     batches: tuple[HierarchyBatch, ...] = (
-        (labels, records, (fine, coarse)),
-        (permuted, permuted_records, (coarse, fine)),
+        (labels, records, (middle, coarse)),
+        (permuted, permuted_records, (coarse, middle)),
     )
     expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
 

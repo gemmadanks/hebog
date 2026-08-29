@@ -124,9 +124,39 @@ class CatalogueSourceMembership:
             _require_identifier(component_id, field_name="component ID")
 
 
+def _validate_parent_candidate_counts(
+    feature_counts: tuple[tuple[int, int], ...],
+    parent_counts: tuple[tuple[int, int], ...],
+    *,
+    candidate_count: int,
+    persistent_count: int,
+) -> None:
+    """Require canonical scale-aligned parent-construction counts."""
+    if parent_counts != tuple(sorted(set(parent_counts))) or any(
+        scale <= 0 or count < 0 for scale, count in parent_counts
+    ):
+        raise ValueError(
+            "source hierarchy parent candidate counts must be canonical"
+        )
+    if tuple(scale for scale, _ in parent_counts) != tuple(
+        scale for scale, _ in feature_counts
+    ):
+        raise ValueError(
+            "source hierarchy parent candidate scales must match features"
+        )
+    if sum(count for _, count in parent_counts) != candidate_count:
+        raise ValueError(
+            "source hierarchy parent candidate counts must match total"
+        )
+    if persistent_count > candidate_count:
+        raise ValueError(
+            "source hierarchy persistent parents exceed candidates"
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class SourceHierarchyDiagnostics:
-    """Compact array-free activation evidence for one source hierarchy."""
+    """Compact array-free exact and scale-aware hierarchy evidence."""
 
     direct_component_count: int
     catalogue_source_count: int
@@ -138,6 +168,10 @@ class SourceHierarchyDiagnostics:
     unique_convergence_count: int
     per_scale_feature_counts: tuple[tuple[int, int], ...]
     adjacent_scale_parent_edge_count: int
+    scale_aware_parent_candidate_count: int
+    persistent_parent_count: int
+    rejected_parent_ambiguity_count: int
+    per_scale_parent_candidate_counts: tuple[tuple[int, int], ...]
 
     def __post_init__(self) -> None:
         """Require canonical non-negative counts and exact cardinalities."""
@@ -150,6 +184,9 @@ class SourceHierarchyDiagnostics:
             self.no_common_convergence_count,
             self.unique_convergence_count,
             self.adjacent_scale_parent_edge_count,
+            self.scale_aware_parent_candidate_count,
+            self.persistent_parent_count,
+            self.rejected_parent_ambiguity_count,
         )
         if any(value < 0 for value in scalar_counts):
             raise ValueError("source hierarchy counts must be non-negative")
@@ -184,6 +221,12 @@ class SourceHierarchyDiagnostics:
             raise ValueError(
                 "source hierarchy convergence count exceeds source count"
             )
+        _validate_parent_candidate_counts(
+            scale_counts,
+            self.per_scale_parent_candidate_counts,
+            candidate_count=self.scale_aware_parent_candidate_count,
+            persistent_count=self.persistent_parent_count,
+        )
 
 
 @dataclass(frozen=True, slots=True)

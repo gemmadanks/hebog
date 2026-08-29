@@ -19,6 +19,7 @@ from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
 from hebog.validation.contracts import load_phase_five_corrective_a_review
 from hebog.validation.external_runners import file_sha256
 from hebog.validation.public_finder_correction import (
+    PublicFinderCorrectionContinuumProducts,
     Sdc1SourceFindingRecord,
     build_public_finder_correction_continuum_products,
     build_public_finder_source_reconstruction_continuum_products,
@@ -26,6 +27,7 @@ from hebog.validation.public_finder_correction import (
     build_sdc1_source_finding_records,
     public_finder_correction_candidate_configuration,
     public_finder_source_association_candidate_configuration,
+    public_finder_source_hierarchy_parent_construction_configuration,
     public_finder_source_reconstruction_candidate_configuration,
     public_finder_source_reconstruction_root_cause_repair_configuration,
 )
@@ -397,6 +399,49 @@ def test_root_cause_repair_configuration_binds_activation_authority(
     ] == file_sha256(root_decision)
 
 
+def test_parent_construction_configuration_binds_exact_authority(
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    """The parent identity extends the repair without becoming executable."""
+    mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "public_finder_source_reconstruction_root_cause_repair_configuration",
+        return_value={"compact": {"frozen": True}, "continuum": {"base": 1}},
+    )
+    parent_review = tmp_path / "parent-review.json"
+    parent_decision = tmp_path / "parent-decision.json"
+    parent_review.write_text('{"review": 3}\n', encoding="utf-8")
+    parent_decision.write_text('{"decision": 3}\n', encoding="utf-8")
+
+    configuration = (
+        public_finder_source_hierarchy_parent_construction_configuration(
+            tmp_path / "base.json",
+            tmp_path / "correction.json",
+            tmp_path / "source-review.json",
+            tmp_path / "source-decision.json",
+            tmp_path / "root-review.json",
+            tmp_path / "root-decision.json",
+            parent_review,
+            parent_decision,
+        )
+    )
+
+    continuum = cast(dict[str, object], configuration["continuum"])
+    assert continuum["source_hierarchy_parent_construction_policy"] == (
+        "b3-footprint-cycle-supported-adjacent-persistent-parent-v1"
+    )
+    assert continuum["source_hierarchy_parent_telemetry_policy"] == (
+        "array-free-scale-parent-candidate-acceptance-census-v1"
+    )
+    assert continuum[
+        "source_hierarchy_parent_construction_pre_review_sha256"
+    ] == file_sha256(parent_review)
+    assert continuum[
+        "source_hierarchy_parent_construction_implementation_decision_sha256"
+    ] == file_sha256(parent_decision)
+
+
 def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     mocker: MockerFixture,
 ) -> None:
@@ -460,23 +505,16 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     )
 
 
-def test_real_scale_composition_reports_unconverged_shell_fragments() -> None:
-    """Telemetry exposes absent parents in real scale masks."""
-    shape = (81, 81)
-    y_pixels, x_pixels = np.mgrid[: shape[0], : shape[1]]
-    radius = 10.0
-    radial_distance = np.hypot(x_pixels - 40.0, y_pixels - 40.0)
-    position_angle = np.arctan2(y_pixels - 40.0, x_pixels - 40.0)
-    image = np.exp(-((radial_distance - radius) ** 2) / 2.0)
-    image *= 1.0 + 8.0 * np.clip(np.cos(4.0 * position_angle), 0.0, None)
+def _real_scale_header(shape: tuple[int, int]) -> fits.Header:
+    """Return one fixed synthetic one-arcsecond image header."""
     header = fits.Header()
     header["NAXIS"] = 2
     header["NAXIS1"] = shape[1]
     header["NAXIS2"] = shape[0]
     header["CTYPE1"] = "RA---SIN"
     header["CTYPE2"] = "DEC--SIN"
-    header["CRPIX1"] = 41.0
-    header["CRPIX2"] = 41.0
+    header["CRPIX1"] = shape[1] // 2 + 1.0
+    header["CRPIX2"] = shape[0] // 2 + 1.0
     header["CRVAL1"] = 10.0
     header["CRVAL2"] = -30.0
     header["CDELT1"] = -1.0 / 3600.0
@@ -484,26 +522,115 @@ def test_real_scale_composition_reports_unconverged_shell_fragments() -> None:
     header["BMAJ"] = 4.0 / 3600.0
     header["BMIN"] = 4.0 / 3600.0
     header["BPA"] = 0.0
+    return header
+
+
+def _real_scale_source_products(
+    image: np.ndarray,
+) -> PublicFinderCorrectionContinuumProducts:
+    """Run one synthetic image through the real corrective scale path."""
     review = load_phase_five_corrective_a_review(
         _ROOT / "config/contracts/phase-5-corrective-a-review.json"
     )
-
-    products = build_public_finder_source_reconstruction_continuum_products(
+    return build_public_finder_source_reconstruction_continuum_products(
         image,
-        np.zeros(shape),
-        np.ones(shape),
-        header,
+        np.zeros(image.shape),
+        np.ones(image.shape),
+        _real_scale_header(image.shape),
         beam=BeamShapePixels(4.0, 4.0, 0.0),
         review=review,
     )
 
+
+def _modulated_ring_image(
+    *,
+    lobe_count: int,
+    radius: float = 10.0,
+    x_axis_ratio: float = 1.0,
+) -> np.ndarray:
+    """Return a fixed synthetic closed curved source with bright lobes."""
+    shape = (81, 81)
+    y_pixels, x_pixels = np.mgrid[: shape[0], : shape[1]]
+    scaled_x = (x_pixels - 40.0) / x_axis_ratio
+    radial_distance = np.hypot(scaled_x, y_pixels - 40.0)
+    position_angle = np.arctan2(y_pixels - 40.0, scaled_x)
+    image = np.exp(-((radial_distance - radius) ** 2) / 2.0)
+    image *= 1.0 + 8.0 * np.clip(
+        np.cos(float(lobe_count) * position_angle),
+        0.0,
+        None,
+    )
+    return image
+
+
+def test_real_scale_composition_reconstructs_one_persistent_shell_parent() -> (
+    None
+):
+    """The fixed filter footprint reconstructs one persistent shell parent."""
+    products = _real_scale_source_products(_modulated_ring_image(lobe_count=4))
+
     diagnostics = products.source_association.hierarchy_diagnostics
     assert diagnostics is not None
     assert diagnostics.direct_component_count == 4
-    assert diagnostics.catalogue_source_count == 4
-    assert diagnostics.membership_size_histogram == ((1, 4),)
+    assert diagnostics.catalogue_source_count == 1
+    assert diagnostics.membership_size_histogram == ((4, 1),)
     assert diagnostics.per_scale_feature_counts == ((1, 4), (2, 4), (3, 4))
-    assert diagnostics.unique_convergence_count == 0
+    assert diagnostics.unique_convergence_count == 1
+    assert diagnostics.per_scale_parent_candidate_counts == (
+        (1, 0),
+        (2, 1),
+        (3, 1),
+    )
+    assert diagnostics.scale_aware_parent_candidate_count == 2
+    assert diagnostics.persistent_parent_count == 1
+    assert diagnostics.rejected_parent_ambiguity_count == 0
+
+
+@pytest.mark.parametrize(
+    ("lobe_count", "radius", "x_axis_ratio"),
+    ((3, 7.0, 1.0), (6, 10.0, 1.5)),
+    ids=("three-lobe", "closed-curved-filament"),
+)
+def test_real_scale_parent_construction_handles_other_extended_morphologies(
+    lobe_count: int,
+    radius: float,
+    x_axis_ratio: float,
+) -> None:
+    """Real scale products reconstruct multi-lobe and curved sources."""
+    products = _real_scale_source_products(
+        _modulated_ring_image(
+            lobe_count=lobe_count,
+            radius=radius,
+            x_axis_ratio=x_axis_ratio,
+        )
+    )
+
+    diagnostics = products.source_association.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.direct_component_count == lobe_count
+    assert diagnostics.catalogue_source_count == 1
+    assert diagnostics.membership_size_histogram == ((lobe_count, 1),)
+    assert diagnostics.unique_convergence_count == 1
+
+
+def test_real_scale_terminal_only_three_lobe_parent_fails_closed() -> None:
+    """A wide parent first visible at the terminal scale stays separate."""
+    products = _real_scale_source_products(
+        _modulated_ring_image(lobe_count=3, radius=10.0)
+    )
+
+    diagnostics = products.source_association.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.direct_component_count == 3
+    assert diagnostics.catalogue_source_count == 3
+    assert diagnostics.membership_size_histogram == ((1, 3),)
+    assert diagnostics.per_scale_parent_candidate_counts == (
+        (1, 0),
+        (2, 0),
+        (3, 1),
+    )
+    assert diagnostics.persistent_parent_count == 0
+    assert diagnostics.rejected_parent_ambiguity_count == 1
 
 
 def test_public_correction_rejects_nonreal_input_before_science() -> None:

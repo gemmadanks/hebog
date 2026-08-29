@@ -1,10 +1,9 @@
 # Phase 5 public-finder source reconstruction
 
 **Status:** the first source-reconstruction candidate is terminal failed
-evidence. Its approved activation repair is implemented and validated as a
-prerequisite, but a real-scale analytic fixture proves that the current scale
-features do not construct the shared parent needed to group sibling lobes.
-Candidate and replay identity freeze therefore stopped. No cumulative replay,
+evidence. The separately approved parent-construction repair is implemented
+and passes its synthetic real-scale, overmerge-safety, and executor fixtures.
+Exact replacement identities are not yet frozen. No cumulative replay,
 public-data campaign, qualification run, tuning, rescoring, cutover, or release
 is authorized by this work.
 
@@ -18,7 +17,8 @@ and all sealed evidence.
 The corrected path makes four coordinated changes:
 
 1. direct detection components become one catalogue source only through an
-   explicit common feature in the exact undilated multiscale hierarchy;
+   explicit common feature or one adjacent-scale-persistent parent derived
+   from the fixed B3 filter footprint;
 2. each resulting source is measured once on a unique source-owned aperture;
 3. reconstructed mask support must have an eight-connected path to an
    accepted direct seed; and
@@ -41,6 +41,17 @@ immutable direct-seed support and follows only unique parent links. Components
 group at their finest common feature only when that feature persists to a
 parent, or when every component directly attaches to that same feature.
 
+When exact sibling features remain disconnected, the parent constructor makes
+a bounded envelope around each feature using the cumulative radius of the
+already frozen B3-spline filter at that scale: 2, 6, or 14 pixels. Envelopes
+are clipped to valid pixels and are used only as hierarchy evidence; exact
+feature support remains the sole measurement support. A sweep-line overlap
+graph identifies spatially interacting siblings. Only a connected graph
+two-core is eligible, so a pair or transitive chain cannot manufacture a
+parent. The identical set of immutable direct components must recur as a
+candidate at adjacent scales. A shared exact feature at one of those scales
+may corroborate the envelope candidate at the other.
+
 The rule fails closed:
 
 - no feature leaves a component as a singleton;
@@ -49,8 +60,11 @@ The rule fails closed:
   and leaves it as a singleton;
 - a shared feature appearing only as a terminal coarse bridge cannot group
   otherwise independent components; and
-- proximity, a centroid chord, or a transitive chain cannot create a source
-  without one explicit common feature.
+- proximity, a two-feature envelope, a centroid chord, or a transitive chain
+  cannot create a source;
+- invalid-pixel barriers split envelopes; and
+- scales outside the frozen three-stage B3 plan cannot construct envelope
+  parents.
 
 Component labels and owner pixels are never rewritten. Catalogue-source IDs
 remain a deterministic digest of the sorted immutable component IDs.
@@ -109,8 +123,11 @@ The fixture suite covers:
 
 - a singleton at scale one and scale four;
 - three-lobe, shell, curved-filament, boundary, and corner common parents;
+- real scale-filter three-lobe, four-lobe shell, and closed curved-filament
+  activation with an exact candidate/accepted/rejected telemetry census;
 - nearby sources without significant bridge support;
-- ambiguous and unambiguous transitive chains;
+- persistent two-feature neighbours, terminal-only candidates, and ambiguous
+  and unambiguous transitive chains;
 - crowded seeds, invalid gaps, label permutations, bounded tile origins, and
   different plane orders;
 - exact source flux and centroid, disjoint apertures, boundary/corner
@@ -150,8 +167,14 @@ the measurement evidence; any prospective support envelope may provide parent
 evidence only, must persist across adjacent scales, and must fail the nearby
 source, terminal-bridge, crowded-field, invalid-gap, and transitive-chain
 negative controls. No fitted threshold or campaign-derived radius is allowed.
-The design requires a separate named approval before implementation, and any
-eventual replay would still require a later exact approval.
+Gemma Danks approved that exact review. Implementation decision
+`config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-implementation-decision.json`
+opens only fixture-bound implementation, validation, and non-executable
+identity freezing. The implementation now passes the required positive and
+overmerge controls, emits parent-candidate, accepted-parent, and rejected
+candidate counts, and is invariant under label, plane, task, retry, Serial,
+and existing-Dask ordering. Any eventual replay still requires a later exact
+approval.
 
 ## Governance boundary
 
@@ -173,5 +196,6 @@ must be summarized in the
 [Phase 5 campaign overview](phase-5-campaign-overview.md) without replacing
 the existing failed evidence. That authority is consumed and its terminal
 ledger failed. Root-cause repair decision `8296c4ce...` authorized only the
-prerequisite fixture-bound activation work. Because the real-scale fixture did
-not activate, it did not produce replacement candidate or replay identities.
+prerequisite label/activation work. Parent-construction review `b5d89bdc...`
+now permits freezing a replacement candidate and replay composition after
+validation, but it does not authorize executing that replay.

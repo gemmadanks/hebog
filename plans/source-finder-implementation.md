@@ -568,12 +568,19 @@ from partial or viewed evidence.
    - [x] Freeze non-executable parent-construction pre-review `b5d89bdc...`,
      which accounts for the second defect and preserves every execution and
      tuning prohibition.
-   - [ ] Obtain named approval of exact review `b5d89bdc...` before any
-     scale-aware parent-construction implementation.
-   - [ ] Pass every real-path positive and overmerge negative fixture plus
-     Serial/existing-Dask invariance, then freeze exact non-executable candidate
-     and replay identities. Any replay still requires a separate exact
-     approval.
+   - [x] Obtain named approval of exact review `b5d89bdc...`. The
+     parent-construction implementation decision records fixture-only authority
+     and keeps every execution and tuning flag false.
+   - [x] Implement B3-footprint parent envelopes, cycle-supported sibling
+     candidates, adjacent-scale persistence, exact-feature corroboration, and
+     compact candidate/accepted/rejected telemetry without changing exact
+     support or measurement.
+   - [x] Pass real-path shell, three-lobe, closed-curved-filament, nearby-pair,
+     terminal-only, invalid-gap, transitive-chain, Serial/existing-Dask,
+     order, and retry fixtures.
+   - [ ] Freeze exact non-executable candidate and replay identities and run
+     the complete no-write verification. Any replay still requires a separate
+     exact approval.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

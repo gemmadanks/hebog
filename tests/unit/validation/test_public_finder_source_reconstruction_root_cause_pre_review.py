@@ -22,6 +22,10 @@ _PARENT_REVIEW = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
     "construction-pre-review.json"
 )
+_PARENT_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-implementation-decision.json"
+)
 
 
 def _load() -> dict[str, Any]:
@@ -298,3 +302,53 @@ def test_real_scale_parent_review_binds_observed_activation_census() -> None:
         "unique_convergence_count": 0,
     }
     assert review["recommended_design"]["no_new_fitted_numeric_thresholds"]
+
+
+def test_parent_construction_approval_opens_no_execution() -> None:
+    """Named design approval remains fixture-only and non-executable."""
+    decision = json.loads(_PARENT_DECISION.read_text(encoding="utf-8"))
+
+    assert decision["pre_review"] == {
+        "approved_revision": "9e47b78917df3ee574de4831ef2309ad27ccdbf2",
+        "approved_sha256": (
+            "b5d89bdc331a388ec67a840acce4e86c593596f2d43b918ee47c9b113481f19d"
+        ),
+        "canonical_json_sha256": (
+            "f6674e25e459c7fa98f1c57d0eeafae9c35ac3317a4f5ca19a54065ffc8e4813"
+        ),
+        "normalized_sha256": (
+            "77669f1288287ca7ef5981a59de0ba4585500a504af5fba33642f5a02e2ff469"
+        ),
+        "path": (
+            "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+            "construction-pre-review.json"
+        ),
+        "pretty_format_only": True,
+    }
+    assert (
+        _sha256(_PARENT_REVIEW) == decision["pre_review"]["normalized_sha256"]
+    )
+    assert (
+        _canonical_sha256(json.loads(_PARENT_REVIEW.read_text()))
+        == (decision["pre_review"]["canonical_json_sha256"])
+    )
+    authorization = decision["authorization"]
+    assert authorization["parent_construction_implementation_authorized"]
+    assert authorization["fixture_only_validation_authorized"]
+    assert authorization["candidate_identity_freeze_authorized"]
+    assert authorization["replay_identity_freeze_authorized"]
+    assert not any(
+        authorization[field]
+        for field in (
+            "campaign_execution_authorized",
+            "cumulative_replay_authorized",
+            "cutover_authorized",
+            "fresh_qualification_authorized",
+            "optimization_authorized",
+            "public_development_execution_authorized",
+            "release_authorized",
+            "rescoring_authorized",
+            "threshold_or_photometric_tuning_authorized",
+            "viewed_data_execution_authorized",
+        )
+    )

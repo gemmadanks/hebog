@@ -60,6 +60,12 @@ _SOURCE_RECONSTRUCTION_ACTIVATION_POLICY = (
 _SOURCE_RECONSTRUCTION_TELEMETRY_POLICY = (
     "array-free-hierarchy-activation-census-v1"
 )
+_SOURCE_HIERARCHY_PARENT_CONSTRUCTION_POLICY = (
+    "b3-footprint-cycle-supported-adjacent-persistent-parent-v1"
+)
+_SOURCE_HIERARCHY_PARENT_TELEMETRY_POLICY = (
+    "array-free-scale-parent-candidate-acceptance-census-v1"
+)
 _SOURCE_MEASUREMENT_POLICY = "disjoint-source-owned-aperture-moment-v1"
 _CONNECTED_SUPPORT_POLICY = (
     "direct-seed-connected-half-beam-multiscale-recovery-v1"
@@ -396,6 +402,49 @@ def public_finder_source_reconstruction_root_cause_repair_configuration(  # noqa
                 "source_reconstruction_root_cause_implementation_"
                 "decision_sha256"
             ): file_sha256(root_cause_implementation_decision_path),
+        }
+    )
+    return {"compact": base["compact"], "continuum": continuum}
+
+
+def public_finder_source_hierarchy_parent_construction_configuration(  # noqa: PLR0913, PLR0917
+    base_review_path: Path,
+    correction_contract_path: Path,
+    source_reconstruction_pre_review_path: Path,
+    source_reconstruction_decision_path: Path,
+    root_cause_pre_review_path: Path,
+    root_cause_implementation_decision_path: Path,
+    parent_construction_pre_review_path: Path,
+    parent_construction_implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Return the approved non-executable parent-construction identity."""
+    base = public_finder_source_reconstruction_root_cause_repair_configuration(
+        base_review_path,
+        correction_contract_path,
+        source_reconstruction_pre_review_path,
+        source_reconstruction_decision_path,
+        root_cause_pre_review_path,
+        root_cause_implementation_decision_path,
+    )
+    continuum_value = base["continuum"]
+    if not isinstance(continuum_value, dict):
+        raise TypeError("base Continuum configuration must be a dictionary")
+    continuum = dict(cast(dict[str, object], continuum_value))
+    continuum.update(
+        {
+            "source_hierarchy_parent_construction_policy": (
+                _SOURCE_HIERARCHY_PARENT_CONSTRUCTION_POLICY
+            ),
+            "source_hierarchy_parent_telemetry_policy": (
+                _SOURCE_HIERARCHY_PARENT_TELEMETRY_POLICY
+            ),
+            "source_hierarchy_parent_construction_pre_review_sha256": (
+                file_sha256(parent_construction_pre_review_path)
+            ),
+            (
+                "source_hierarchy_parent_construction_implementation_"
+                "decision_sha256"
+            ): file_sha256(parent_construction_implementation_decision_path),
         }
     )
     return {"compact": base["compact"], "continuum": continuum}

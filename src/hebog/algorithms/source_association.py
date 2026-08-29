@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, deque
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
@@ -15,8 +15,10 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
+from scipy.ndimage import binary_dilation
 from scipy.ndimage import label as connected_component_labels
 
+from hebog.algorithms.multiscale import residual_atrous_scale_halos_pixels
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     adjacent_scale_overlap_edges,
@@ -35,6 +37,7 @@ _SOURCE_NAMESPACE = b"phase-5-associated-source-v1\0"
 _IMAGE_DIMENSIONS = 2
 _MINIMUM_SHAPE_PIXELS = 3
 _MINIMUM_SOURCE_MEMBERS = 2
+_MINIMUM_CYCLE_DEGREE = 2
 _GAUSSIAN_FWHM_FACTOR = 2.0 * np.sqrt(2.0 * np.log(2.0))
 
 
@@ -505,9 +508,13 @@ def _hierarchy_inputs(
     component_labels: npt.ArrayLike,
     scale_detection_planes: tuple[ScaleDetectionPlane, ...],
     valid_pixels: npt.ArrayLike,
-) -> tuple[npt.NDArray[np.int64], tuple[ScaleDetectionPlane, ...]]:
+) -> tuple[
+    npt.NDArray[np.int64],
+    tuple[ScaleDetectionPlane, ...],
+    npt.NDArray[np.bool_],
+]:
     """Validate direct owners and their aligned scale-feature hierarchy."""
-    labels, _, _ = _validated_planes(
+    labels, _, valid = _validated_planes(
         component_labels,
         np.zeros(np.asarray(component_labels).shape, dtype=np.float64),
         valid_pixels,
@@ -532,7 +539,13 @@ def _hierarchy_inputs(
         raise ValueError("source hierarchy planes must share one shape")
     if any(item.origin_yx != ordered[0].origin_yx for item in ordered):
         raise ValueError("source hierarchy planes must share one origin")
-    return labels, ordered
+    if any(
+        bool(np.any((item.component_labels > 0) & ~valid)) for item in ordered
+    ):
+        raise ValueError(
+            "source hierarchy scale support must be scientifically valid"
+        )
+    return labels, ordered, valid
 
 
 def _feature_by_id(
@@ -617,6 +630,26 @@ class _HierarchyAttachments:
     no_common_convergence_count: int
 
 
+@dataclass(frozen=True, slots=True)
+class _FeatureEnvelope:
+    """One bounded B3-footprint envelope around exact feature support."""
+
+    feature_id: str
+    bounds_yx: tuple[int, int, int, int]
+    support: npt.NDArray[np.bool_]
+
+
+@dataclass(frozen=True, slots=True)
+class _ScaleAwareParentEvidence:
+    """Accepted scale-aware parent groups and their compact census."""
+
+    groups: tuple[frozenset[str], ...]
+    candidate_count: int
+    rejected_ambiguity_count: int
+    per_scale_candidate_counts: tuple[tuple[int, int], ...]
+    accepted_candidate_occurrences: tuple[tuple[frozenset[str], int], ...]
+
+
 def _hierarchy_attachments(
     records: tuple[DetectionComponentRecord, ...],
     labels: npt.NDArray[np.int64],
@@ -671,6 +704,260 @@ def _hierarchy_attachments(
     )
 
 
+def _feature_envelopes(
+    plane: ScaleDetectionPlane,
+    valid: npt.NDArray[np.bool_],
+) -> tuple[_FeatureEnvelope, ...]:
+    """Derive bounded valid envelopes from the fixed B3 filter footprint."""
+    halos = residual_atrous_scale_halos_pixels()
+    if plane.scale_order > len(halos):
+        return ()
+    radius = halos[plane.scale_order - 1]
+    origin_y, origin_x = plane.origin_yx
+    height, width = plane.component_labels.shape
+    envelopes: list[_FeatureEnvelope] = []
+    for label_value, detection in enumerate(plane.detections, start=1):
+        global_y0, global_y1, global_x0, global_x1 = detection.bounds_yx
+        exact_y0 = global_y0 - origin_y
+        exact_y1 = global_y1 - origin_y
+        exact_x0 = global_x0 - origin_x
+        exact_x1 = global_x1 - origin_x
+        y0 = max(0, exact_y0 - radius)
+        y1 = min(height, exact_y1 + radius)
+        x0 = max(0, exact_x0 - radius)
+        x1 = min(width, exact_x1 + radius)
+        seed = np.zeros((y1 - y0, x1 - x0), dtype=np.bool_)
+        seed[
+            exact_y0 - y0 : exact_y1 - y0,
+            exact_x0 - x0 : exact_x1 - x0,
+        ] = (
+            plane.component_labels[
+                exact_y0:exact_y1,
+                exact_x0:exact_x1,
+            ]
+            == label_value
+        )
+        envelope = np.asarray(
+            binary_dilation(
+                seed,
+                structure=np.ones((3, 3), dtype=np.bool_),
+                iterations=radius,
+                mask=valid[y0:y1, x0:x1],
+            ),
+            dtype=np.bool_,
+        )
+        envelope.setflags(write=False)
+        envelopes.append(
+            _FeatureEnvelope(
+                feature_id=detection.detection_id,
+                bounds_yx=(y0, y1, x0, x1),
+                support=envelope,
+            )
+        )
+    return tuple(envelopes)
+
+
+def _envelopes_overlap(
+    first: _FeatureEnvelope,
+    second: _FeatureEnvelope,
+) -> bool:
+    """Return whether box-overlapping bounded envelopes share support."""
+    first_y0, first_y1, first_x0, first_x1 = first.bounds_yx
+    second_y0, second_y1, second_x0, second_x1 = second.bounds_yx
+    y0 = max(first_y0, second_y0)
+    y1 = min(first_y1, second_y1)
+    x0 = max(first_x0, second_x0)
+    x1 = min(first_x1, second_x1)
+    return bool(
+        np.any(
+            first.support[
+                y0 - first_y0 : y1 - first_y0,
+                x0 - first_x0 : x1 - first_x0,
+            ]
+            & second.support[
+                y0 - second_y0 : y1 - second_y0,
+                x0 - second_x0 : x1 - second_x0,
+            ]
+        )
+    )
+
+
+def _envelope_adjacency(
+    envelopes: tuple[_FeatureEnvelope, ...],
+) -> dict[str, set[str]]:
+    """Build a deterministic sweep-line overlap graph for bounded envelopes."""
+    adjacency: dict[str, set[str]] = {
+        item.feature_id: set() for item in envelopes
+    }
+    active: list[_FeatureEnvelope] = []
+    for envelope in sorted(
+        envelopes,
+        key=lambda item: (item.bounds_yx[0], item.feature_id),
+    ):
+        y0 = envelope.bounds_yx[0]
+        active = [item for item in active if item.bounds_yx[1] > y0]
+        for other in active:
+            if (
+                other.bounds_yx[2] >= envelope.bounds_yx[3]
+                or envelope.bounds_yx[2] >= other.bounds_yx[3]
+                or not _envelopes_overlap(other, envelope)
+            ):
+                continue
+            adjacency[other.feature_id].add(envelope.feature_id)
+            adjacency[envelope.feature_id].add(other.feature_id)
+        active.append(envelope)
+    return adjacency
+
+
+def _cycle_supported_feature_groups(
+    adjacency: Mapping[str, set[str]],
+) -> tuple[frozenset[str], ...]:
+    """Return connected two-core groups, rejecting pairs and chain bridges."""
+    remaining = set(adjacency)
+    degrees = {
+        feature_id: len(neighbours)
+        for feature_id, neighbours in adjacency.items()
+    }
+    queue = deque(
+        sorted(
+            feature_id
+            for feature_id, degree in degrees.items()
+            if degree < _MINIMUM_CYCLE_DEGREE
+        )
+    )
+    while queue:
+        feature_id = queue.popleft()
+        remaining.remove(feature_id)
+        for neighbour in sorted(adjacency[feature_id] & remaining):
+            degrees[neighbour] -= 1
+            if degrees[neighbour] == 1:
+                queue.append(neighbour)
+    groups: list[frozenset[str]] = []
+    unseen = set(remaining)
+    while unseen:
+        start = min(unseen)
+        pending = [start]
+        group: set[str] = set()
+        while pending:
+            feature_id = pending.pop()
+            if feature_id not in unseen:
+                continue
+            unseen.remove(feature_id)
+            group.add(feature_id)
+            pending.extend(
+                sorted(adjacency[feature_id] & unseen, reverse=True)
+            )
+        groups.append(frozenset(group))
+    return tuple(sorted(groups, key=lambda item: tuple(sorted(item))))
+
+
+def _components_for_feature_group(
+    feature_ids: frozenset[str],
+    attachments: _HierarchyAttachments,
+) -> frozenset[str]:
+    """Map one feature group to unambiguous attached direct components."""
+    return frozenset(
+        component_id
+        for component_id, lineage in attachments.lineages_by_component.items()
+        if component_id not in attachments.ambiguous_component_ids
+        and not feature_ids.isdisjoint(lineage)
+    )
+
+
+def _scale_aware_parent_evidence(
+    planes: tuple[ScaleDetectionPlane, ...],
+    valid: npt.NDArray[np.bool_],
+    attachments: _HierarchyAttachments,
+) -> _ScaleAwareParentEvidence:
+    """Construct only persistent cycle-supported sibling parent evidence."""
+    candidates_by_scale: dict[int, tuple[frozenset[str], ...]] = {}
+    for plane in planes:
+        exact_groups = {
+            component_ids
+            for detection in plane.detections
+            if len(
+                component_ids := _components_for_feature_group(
+                    frozenset((detection.detection_id,)),
+                    attachments,
+                )
+            )
+            >= _MINIMUM_SOURCE_MEMBERS
+        }
+        envelope_groups = (
+            _cycle_supported_feature_groups(
+                _envelope_adjacency(_feature_envelopes(plane, valid))
+            )
+            if len(plane.detections) >= _MINIMUM_CYCLE_DEGREE + 1
+            else ()
+        )
+        envelope_component_groups = {
+            component_ids
+            for feature_group in envelope_groups
+            if len(
+                component_ids := _components_for_feature_group(
+                    feature_group,
+                    attachments,
+                )
+            )
+            >= _MINIMUM_SOURCE_MEMBERS
+        }
+        candidates_by_scale[plane.scale_order] = tuple(
+            sorted(
+                exact_groups | envelope_component_groups,
+                key=lambda item: tuple(sorted(item)),
+            )
+        )
+    persistent_groups: set[frozenset[str]] = set()
+    candidate_keys_by_scale = {
+        scale_order: set(candidates)
+        for scale_order, candidates in candidates_by_scale.items()
+    }
+    for scale_order, candidates in candidate_keys_by_scale.items():
+        persistent_groups.update(
+            candidates & candidate_keys_by_scale.get(scale_order + 1, set())
+        )
+    candidate_count = sum(len(items) for items in candidates_by_scale.values())
+    candidate_occurrences = Counter(
+        group
+        for candidates in candidates_by_scale.values()
+        for group in candidates
+    )
+    overlapping_components = {
+        component_id
+        for component_id, count in Counter(
+            component_id
+            for group in persistent_groups
+            for component_id in group
+        ).items()
+        if count > 1
+    }
+    accepted_groups = tuple(
+        sorted(
+            (
+                group
+                for group in persistent_groups
+                if group.isdisjoint(overlapping_components)
+            ),
+            key=lambda item: tuple(sorted(item)),
+        )
+    )
+    accepted_candidates = sum(
+        candidate_occurrences[group] for group in accepted_groups
+    )
+    return _ScaleAwareParentEvidence(
+        groups=accepted_groups,
+        candidate_count=candidate_count,
+        rejected_ambiguity_count=candidate_count - accepted_candidates,
+        per_scale_candidate_counts=tuple(
+            (plane.scale_order, len(candidates_by_scale[plane.scale_order]))
+            for plane in planes
+        ),
+        accepted_candidate_occurrences=tuple(
+            (group, candidate_occurrences[group]) for group in accepted_groups
+        ),
+    )
+
+
 def _hierarchy_groups(
     records: tuple[DetectionComponentRecord, ...],
     attachments: _HierarchyAttachments,
@@ -712,6 +999,48 @@ def _hierarchy_groups(
     return tuple(groups)
 
 
+def _apply_scale_aware_parent_groups(
+    exact_groups: tuple[frozenset[str], ...],
+    evidence: _ScaleAwareParentEvidence,
+) -> tuple[tuple[frozenset[str], ...], _ScaleAwareParentEvidence]:
+    """Reconcile parents with exact groups before membership and telemetry."""
+    singleton_ids = {
+        next(iter(group)) for group in exact_groups if len(group) == 1
+    }
+    accepted = tuple(
+        group for group in evidence.groups if group.issubset(singleton_ids)
+    )
+    discarded = set(evidence.groups) - set(accepted)
+    discarded_occurrences = sum(
+        count
+        for group, count in evidence.accepted_candidate_occurrences
+        if group in discarded
+    )
+    applied_evidence = _ScaleAwareParentEvidence(
+        groups=accepted,
+        candidate_count=evidence.candidate_count,
+        rejected_ambiguity_count=(
+            evidence.rejected_ambiguity_count + discarded_occurrences
+        ),
+        per_scale_candidate_counts=evidence.per_scale_candidate_counts,
+        accepted_candidate_occurrences=tuple(
+            (group, count)
+            for group, count in evidence.accepted_candidate_occurrences
+            if group in accepted
+        ),
+    )
+    grouped_ids = set().union(*accepted) if accepted else set()
+    groups = (
+        tuple(
+            group
+            for group in exact_groups
+            if len(group) > 1 or group.isdisjoint(grouped_ids)
+        )
+        + accepted
+    )
+    return groups, applied_evidence
+
+
 def _source_memberships(
     groups: tuple[frozenset[str], ...],
 ) -> tuple[CatalogueSourceMembership, ...]:
@@ -731,16 +1060,18 @@ def _source_memberships(
 
 
 def _hierarchy_diagnostics(
-    records: tuple[DetectionComponentRecord, ...],
     memberships: tuple[CatalogueSourceMembership, ...],
     planes: tuple[ScaleDetectionPlane, ...],
     parent_edges: tuple[tuple[str, str], ...],
     attachments: _HierarchyAttachments,
+    scale_aware_parents: _ScaleAwareParentEvidence,
 ) -> SourceHierarchyDiagnostics:
     """Build compact deterministic activation evidence."""
     histogram = Counter(len(item.component_ids) for item in memberships)
     return SourceHierarchyDiagnostics(
-        direct_component_count=len(records),
+        direct_component_count=sum(
+            len(item.component_ids) for item in memberships
+        ),
         catalogue_source_count=len(memberships),
         membership_size_histogram=tuple(sorted(histogram.items())),
         unattached_component_count=attachments.unattached_count,
@@ -756,6 +1087,16 @@ def _hierarchy_diagnostics(
             (plane.scale_order, len(plane.detections)) for plane in planes
         ),
         adjacent_scale_parent_edge_count=len(parent_edges),
+        scale_aware_parent_candidate_count=(
+            scale_aware_parents.candidate_count
+        ),
+        persistent_parent_count=len(scale_aware_parents.groups),
+        rejected_parent_ambiguity_count=(
+            scale_aware_parents.rejected_ambiguity_count
+        ),
+        per_scale_parent_candidate_counts=(
+            scale_aware_parents.per_scale_candidate_counts
+        ),
     )
 
 
@@ -771,10 +1112,13 @@ def associate_components_by_multiscale_hierarchy(
     exact undilated scale features it intersects, then follows only unique
     adjacent-scale overlap parents. Owners group at their finest shared
     feature only when that feature persists to a parent, or when every owner
-    directly attaches to the same feature. Missing, branched, or unconverged
-    lineage remains a flagged singleton.
+    directly attaches to the same feature. When exact sibling lineages remain
+    separate, bounded envelopes derived from the fixed B3 footprint may
+    construct a parent only from cycle-supported features whose identical
+    component group recurs at an adjacent scale. Missing, branched, terminal,
+    chain-only, or conflicting convergence remains a flagged singleton.
     """
-    labels, planes = _hierarchy_inputs(
+    labels, planes, valid = _hierarchy_inputs(
         records,
         component_labels,
         scale_detection_planes,
@@ -801,14 +1145,22 @@ def associate_components_by_multiscale_hierarchy(
         parents_by_id,
         feature_index,
     )
-    memberships = _source_memberships(
-        _hierarchy_groups(
-            records,
-            attachments,
-            feature_index,
-            parents_by_id,
-        )
+    scale_aware_parents = _scale_aware_parent_evidence(
+        planes,
+        valid,
+        attachments,
     )
+    exact_groups = _hierarchy_groups(
+        records,
+        attachments,
+        feature_index,
+        parents_by_id,
+    )
+    groups, applied_scale_aware_parents = _apply_scale_aware_parent_groups(
+        exact_groups,
+        scale_aware_parents,
+    )
+    memberships = _source_memberships(groups)
     return SourceAssociationResult(
         components=tuple(sorted(records, key=lambda item: item.component_id)),
         edges=(),
@@ -817,10 +1169,10 @@ def associate_components_by_multiscale_hierarchy(
             sorted(attachments.ambiguous_component_ids)
         ),
         hierarchy_diagnostics=_hierarchy_diagnostics(
-            records,
             memberships,
             planes,
             parent_edges,
             attachments,
+            applied_scale_aware_parents,
         ),
     )

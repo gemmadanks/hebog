@@ -1,0 +1,48 @@
+{
+  "approved_on": "2026-08-29",
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_identity_freeze_authorized": true,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fixture_only_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "parent_construction_implementation_authorized": true,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "replay_identity_freeze_authorized": true,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-implementation-decision",
+  "exact_approval": "I approve, please continue with the next task.",
+  "implementation_scope": [
+    "test-first scale-aware parent construction derived from the fixed B3-spline filter footprint",
+    "fixture-only positive activation and overmerge safety validation",
+    "compact parent candidate accepted parent and rejected ambiguity telemetry",
+    "serial existing-Dask plane-order tile-origin and retry invariance",
+    "non-executable corrected candidate and replay identity freeze only after every fixture gate passes"
+  ],
+  "pre_review": {
+    "approved_revision": "9e47b78917df3ee574de4831ef2309ad27ccdbf2",
+    "approved_sha256": "b5d89bdc331a388ec67a840acce4e86c593596f2d43b918ee47c9b113481f19d",
+    "canonical_json_sha256": "f6674e25e459c7fa98f1c57d0eeafae9c35ac3317a4f5ca19a54065ffc8e4813",
+    "normalized_sha256": "77669f1288287ca7ef5981a59de0ba4585500a504af5fba33642f5a02e2ff469",
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-pre-review.json",
+    "pretty_format_only": true
+  },
+  "prohibited_actions": [
+    "cumulative replay",
+    "execution on viewed SDC1 or Hydra data",
+    "new campaign or request",
+    "fresh qualification",
+    "threshold background RMS minimum-area recovery-radius aperture-radius gate margin or photometric tuning",
+    "rescoring sealed evidence",
+    "optimization",
+    "cutover",
+    "release"
+  ],
+  "status": "authorized-for-fixture-only-parent-construction"
+}

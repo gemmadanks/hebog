@@ -12466,3 +12466,45 @@ Full coverage and handoff validation remain pending.
 review `b5d89bdc...` before implementing that design. Replay, candidate
 identity freeze, viewed SDC1/Hydra execution, qualification, tuning, rescoring,
 cutover, and release remain prohibited.
+
+## 2026-08-29 — Implement scale-aware source-parent construction
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Gemma Danks approved exact parent-construction pre-review `b5d89bdc...`.
+  The implementation decision records fixture-only authority; cumulative
+  replay, viewed data, campaign execution, qualification, tuning, rescoring,
+  optimization, cutover, and release remain false.
+- The mandatory JSON hook later reordered two object fields in that approved
+  review. The decision binds original bytes `b5d89bdc...` at revision
+  `9e47b789...`, normalized bytes `77669f12...`, and their identical canonical
+  JSON digest `f6674e25...`; no field or value changed.
+- Exact significant feature support, immutable direct components, recovered
+  measurement owners, thresholds, masks, photometry, and every closed ledger
+  remain unchanged. The new pure hierarchy transform builds bounded valid
+  envelopes from the frozen cumulative B3 radii of 2, 6, and 14 pixels.
+- A sweep-line overlap graph admits only cycle-supported sibling groups and
+  requires the identical immutable component group at adjacent scales. One
+  exact shared feature may corroborate an envelope group at its neighbour.
+  Pairs, transitive chains, terminal-only candidates, invalid barriers,
+  conflicting groups, and unreviewed scales fail closed.
+- Compact array-free diagnostics now count candidates per scale, total
+  candidates, accepted persistent parents, and rejected candidates. The real
+  four-lobe shell changes from four singleton catalogue sources to one
+  four-component source through one parent repeated at scales 2 and 3.
+- Real scale-filter three-lobe, shell, and closed curved-filament positives;
+  independent-pair, terminal-only, invalid-gap, and transitive-chain
+  negatives; label/plane ordering; duplicate retry; and Serial/existing-Dask
+  invariance all pass.
+- `just coverage` passes 2,110 tests with 4 expected failures and 44
+  deselections; branch-aware project coverage is 94.75%. No campaign,
+  governed population, or closed scientific output was opened or rescored.
+- `just check` passes 1,952 tests with 4 expected failures and 202
+  deselections; all 27 frozen equivalence tests pass; and the strict
+  documentation build passes. Final review found no unresolved correctness,
+  architecture, safety, coverage, or documentation issue.
+
+**Immediate next step:** complete handoff validation and review, commit the
+validated implementation locally, then freeze exact non-executable candidate
+and replay identities and run their complete no-write verification. A replay
+still requires a separate exact approval.
