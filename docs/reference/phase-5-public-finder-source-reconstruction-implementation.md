@@ -125,7 +125,9 @@ topology seams, and prospectively rebinds readiness. The next permitted
 activity is to freeze its clean revision together with the candidate, source
 tree, configuration, evaluator, reconstructed reference, and closed baseline,
 then run the complete verifier in no-write mode. The output must remain
-non-executable.
+non-executable. That step is complete in identity review `b4eff062...`: all
+2,400 inputs and 9,600 retained reference runs verified, the future output and
+scratch namespaces were absent, and no replay started.
 
 One cumulative replay requires a separate named approval of that exact frozen
 composition. A replay result, if later authorized, must be summarized in the

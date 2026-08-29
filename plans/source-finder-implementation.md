@@ -418,8 +418,9 @@ unions while retaining component topology as a diagnostic. Gemma Danks
 approved that exact fixture-only boundary on 2026-08-29. The correction now
 passes its analytic and Serial/existing-Dask contracts without changing a
 threshold, gate, component owner, or closed evidence product. Replay and
-viewed-data execution remain unauthorized pending an exact non-executable
-identity freeze and separate approval.
+viewed-data execution remain unauthorized. Identity review `b4eff062...` now
+freezes the exact non-executable composition and records a passing complete
+no-write verification; only the separate replay approval remains outstanding.
 
 The readiness contract is now prospectively rebound to source-reconstruction
 candidate `42c75f4...`, source tree `1b67c7f6...`, configuration
@@ -500,9 +501,10 @@ from partial or viewed evidence.
    - [x] Implement the smallest correction that passes every positive and
      negative analytic fixture. Preserve component ownership, detection
      thresholds, gate values, and all closed evidence.
-   - [ ] Freeze a new candidate, source tree, configuration, compiler,
+   - [x] Freeze a new candidate, source tree, configuration, compiler,
      evaluator, reconstructed-reference, and baseline composition; run its
-     complete no-write verification.
+     complete no-write verification. Review `b4eff062...` verifies all 2,400
+     inputs and 9,600 reference runs with output and scratch absent.
    - [ ] Obtain a separate exact one-replay approval and require every compact
      and Continuum absolute and like-semantics gate. Stop again on failure.
    - After every terminal campaign, replay, or evaluation-only completion,

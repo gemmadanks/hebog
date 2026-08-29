@@ -12211,3 +12211,30 @@ verifier is recorded with the exact identity freeze that follows.
 no-write verifier from the clean revision, and freeze the exact non-executable
 identity review. A separate named approval remains mandatory before one
 cumulative replay.
+
+## 2026-08-29 — Freeze the source-reconstruction replay identity
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Ran the complete no-write verifier from clean composition revision
+  `6d0cceb4...` and tree `0b5f36af...`. It verified all 2,400 inputs and 9,600
+  retained reference runs, candidate `42c75f4...`, source tree `1b67c7f6...`,
+  configuration `470e918d...`, reconstruction `48209eae...`, closed baseline
+  `a45303df...`, readiness `c70c4c32...`, and wrapper `b19c2157...`.
+- The verifier returned `status=pass`, `cumulative_replay_started=false`,
+  `output_absent=true`, and `scratch_absent=true`. It did not create an output,
+  scratch namespace, candidate product, replay, campaign, or scientific result.
+- Frozen non-executable identity review `b4eff062...` records the complete
+  verifier result and every future execution field. All authorization flags
+  remain false, including cumulative replay, viewed-data execution,
+  qualification, tuning, rescoring, optimization, cutover, and release.
+
+**Validation:** all nine focused wrapper and identity-review contracts pass;
+Ruff and focused Pyright pass; `just check` passes 1,914 tests with 202
+deselected and four expected failures; the strict documentation build and
+complete pre-commit suite pass. The prior composition commit passed `just
+coverage` at 94.64% and all 27 applicable equivalence tests.
+
+**Immediate next step:** obtain a separate named one-replay approval bound to
+identity review SHA-256 `b4eff0621a05a98ab3ad3fa29c1bf3b9447a7a4dd2abf38c3aca5b566c548f21`.
+Do not execute the replay or any later Phase 5 action before that approval.
