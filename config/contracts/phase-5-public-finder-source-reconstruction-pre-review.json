@@ -1,0 +1,508 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-source-hierarchy-and-association-implementation",
+    "test-first-source-level-measurement-implementation",
+    "test-first-connected-support-admission-implementation",
+    "prospective-source-topology-evaluator-implementation",
+    "fixture-serial-and-existing-dask-validation",
+    "non-executable-candidate-and-replay-identity-freeze"
+  ],
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_implementation_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "evaluator_implementation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_reconstruction_implementation_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "evaluation_execution_decision": {
+      "path": "config/contracts/phase-5-public-finder-source-association-measurement-repair-evaluation-repair-execution-decision.json",
+      "sha256": "46ddfefaca9a3b7474483769d5ab4a4a35c65607996218686c0476ab71d340c0"
+    },
+    "readiness_contract": {
+      "path": "config/contracts/phase-5-readiness.json",
+      "sha256": "cef14d0130b264ddfc5e4277455820cae5436aa578b0ddb798a103ce9421321f"
+    },
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "review_base_commit": "99d5d2e8e0746d7499ab45726c2db595e4acc30f",
+    "scientific_gate_contract": {
+      "path": "config/contracts/phase-5-corrective-a-review.json",
+      "sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+    }
+  },
+  "change_control": {
+    "allowed_only_after_named_approval": [
+      "replace pairwise complete-link association with a deterministic multiscale source hierarchy",
+      "measure each associated source once on uniquely owned pixels",
+      "require connected support admission without changing detection thresholds",
+      "separate binding catalogue-source topology from diagnostic component topology",
+      "add analytic fixture and executor-invariance evidence",
+      "freeze exact non-executable candidate and replay identities"
+    ],
+    "forbidden_same_change": [
+      "background or RMS estimator changes",
+      "detection or island threshold changes",
+      "minimum island area changes",
+      "multiscale recovery radius changes",
+      "beam or WCS interpretation changes",
+      "truth-aware or reference-finder association",
+      "terminal-product-derived constants",
+      "gate or margin changes",
+      "runtime optimization",
+      "retrospective scoring of any closed ledger"
+    ],
+    "historical_evidence_immutable": true,
+    "terminal_failure_immutable": true
+  },
+  "failure_census": {
+    "failed_endpoint_count": 44,
+    "groups": {
+      "astrometry": {
+        "count": 13,
+        "endpoints": [
+          "continuum--absolute-mean-offset-x--above-compact-deblend-limit",
+          "continuum--absolute-mean-offset-x--morphology-shell",
+          "continuum--absolute-mean-offset-x--tile-corner",
+          "continuum--absolute-mean-offset-y--above-compact-deblend-limit",
+          "continuum--absolute-mean-offset-y--morphology-shell",
+          "continuum--absolute-mean-offset-y--tile-corner",
+          "continuum--position-p95--overall",
+          "continuum--position-p95--above-compact-deblend-limit",
+          "continuum--position-p95--morphology-shell",
+          "continuum--position-p95--scale-4-beam",
+          "continuum--position-p95--tile-boundary",
+          "continuum--position-p95--tile-corner",
+          "continuum--position-p95--varying-noise"
+        ],
+        "observations": {
+          "mean_offset_x_point_shell_beams": 0.0797378721985098,
+          "mean_offset_x_upper_bound_shell_beams": 0.18457825050931723,
+          "mean_offset_y_point_shell_beams": 0.006853987527750982,
+          "mean_offset_y_upper_bound_shell_beams": 0.1288723035126016,
+          "position_p95_overall_beams": 4.18027545615179,
+          "position_p95_shell_beams": 5.080704423284844
+        },
+        "primary_causes": [
+          "under-associated-shell-and-boundary-fragments-leave-primary-matches-on-displaced-components",
+          "binding-centre-is-an-average-of-component-centres-rather-than-one-source-level-moment"
+        ]
+      },
+      "flux": {
+        "count": 11,
+        "endpoints": [
+          "continuum--integrated-flux-median--above-compact-deblend-limit",
+          "continuum--integrated-flux-median--morphology-shell",
+          "continuum--integrated-flux-median--tile-boundary",
+          "continuum--integrated-flux-median--tile-corner",
+          "continuum--integrated-flux-p95--overall",
+          "continuum--integrated-flux-p95--above-compact-deblend-limit",
+          "continuum--integrated-flux-p95--morphology-shell",
+          "continuum--integrated-flux-p95--scale-4-beam",
+          "continuum--integrated-flux-p95--tile-boundary",
+          "continuum--integrated-flux-p95--tile-corner",
+          "continuum--integrated-flux-p95--varying-noise"
+        ],
+        "observations": {
+          "median_error_shell": 0.7645747153563076,
+          "median_error_tile_boundary": 0.4569709149284421,
+          "p95_error_overall": 0.7926015578297192,
+          "p95_error_shell": 0.8468279954246932
+        },
+        "primary_causes": [
+          "under-association-presents-one-fragment-as-the-primary-source-measurement",
+          "associated-flux-is-a-sum-of-component-aperture-measurements-not-one-deduplicated-source-measurement"
+        ]
+      },
+      "mask": {
+        "count": 1,
+        "endpoints": [
+          "continuum--mask-precision--overall"
+        ],
+        "observations": {
+          "absolute_floor": 0.85,
+          "candidate_precision": 0.8840623415189617,
+          "candidate_recall": 0.9196480561358854,
+          "pinned_master_noninferiority_margin": 0.05,
+          "pinned_master_upper_confidence_limit": 0.07689228482796945,
+          "released_noninferiority_margin": 0.05,
+          "released_upper_confidence_limit": 0.06943760628619901
+        },
+        "primary_causes": [
+          "reconstructed-support-is-admitted-by-nearest-distance-without-a-required-connected-path-to-an-accepted-seed"
+        ]
+      },
+      "reliability": {
+        "count": 1,
+        "endpoints": [
+          "continuum--reliability--overall"
+        ],
+        "observations": {
+          "candidate": 0.6237540792540792,
+          "minimum": 0.95,
+          "pinned_master": 0.5260681778903286,
+          "released": 0.5670251096942274
+        },
+        "primary_causes": [
+          "catalogue-cardinality-remains-inflated-by-under-associated-component-sources"
+        ]
+      },
+      "topology": {
+        "count": 18,
+        "duplicate_endpoints": [
+          "continuum--duplicate-fraction--overall",
+          "continuum--duplicate-fraction--above-compact-deblend-limit",
+          "continuum--duplicate-fraction--morphology-artifact",
+          "continuum--duplicate-fraction--morphology-shell",
+          "continuum--duplicate-fraction--scale-1-beam",
+          "continuum--duplicate-fraction--scale-4-beam",
+          "continuum--duplicate-fraction--tile-boundary",
+          "continuum--duplicate-fraction--tile-corner",
+          "continuum--duplicate-fraction--varying-noise"
+        ],
+        "endpoints": [
+          "continuum--duplicate-fraction--overall",
+          "continuum--duplicate-fraction--above-compact-deblend-limit",
+          "continuum--duplicate-fraction--morphology-artifact",
+          "continuum--duplicate-fraction--morphology-shell",
+          "continuum--duplicate-fraction--scale-1-beam",
+          "continuum--duplicate-fraction--scale-4-beam",
+          "continuum--duplicate-fraction--tile-boundary",
+          "continuum--duplicate-fraction--tile-corner",
+          "continuum--duplicate-fraction--varying-noise",
+          "continuum--split-fraction--overall",
+          "continuum--split-fraction--above-compact-deblend-limit",
+          "continuum--split-fraction--morphology-artifact",
+          "continuum--split-fraction--morphology-shell",
+          "continuum--split-fraction--scale-1-beam",
+          "continuum--split-fraction--scale-4-beam",
+          "continuum--split-fraction--tile-boundary",
+          "continuum--split-fraction--tile-corner",
+          "continuum--split-fraction--varying-noise"
+        ],
+        "observations": {
+          "artifact": 0.741875,
+          "overall": 0.2529464285714285,
+          "scale_1_beam": 0.375,
+          "scale_4_beam": 0.20575,
+          "shell": 1.0,
+          "tile_boundary": 0.5,
+          "varying_noise": 0.17145833333333332
+        },
+        "primary_causes": [
+          "straight-centroid-segment-and-directional-fwhm-edges-reject-curved-ring-and-separated-multipeak-support",
+          "complete-link-grouping-cannot-express-one-source-through-a-supported-chain-or-common-multiscale-parent",
+          "binding-split-metric-still-counts-native-components-after-catalogue-source-association"
+        ],
+        "split_endpoints": [
+          "continuum--split-fraction--overall",
+          "continuum--split-fraction--above-compact-deblend-limit",
+          "continuum--split-fraction--morphology-artifact",
+          "continuum--split-fraction--morphology-shell",
+          "continuum--split-fraction--scale-1-beam",
+          "continuum--split-fraction--scale-4-beam",
+          "continuum--split-fraction--tile-boundary",
+          "continuum--split-fraction--tile-corner",
+          "continuum--split-fraction--varying-noise"
+        ]
+      }
+    },
+    "unaccounted_failed_endpoints": [],
+    "underpowered_endpoint_count": 10,
+    "underpowered_endpoints": [
+      "continuum--integrated-flux-median--invalid-pixels",
+      "continuum--integrated-flux-median--morphology-curved-filament",
+      "continuum--integrated-flux-median--morphology-mixed-compact-extended",
+      "continuum--integrated-flux-median--scale-1-beam",
+      "continuum--integrated-flux-p95--morphology-curved-filament",
+      "continuum--integrated-flux-p95--scale-2-beam",
+      "continuum--duplicate-fraction--morphology-diffuse",
+      "continuum--split-fraction--invalid-pixels",
+      "continuum--split-fraction--morphology-diffuse",
+      "continuum--split-fraction--morphology-mixed-compact-extended"
+    ]
+  },
+  "implementation_seams": [
+    {
+      "path": "src/hebog/algorithms/source_association.py",
+      "role": "replace pairwise complete-link association with source-hierarchy evidence",
+      "sha256": "73082209b81e78d1bbb8b0885019e56038e2f4e46e106f93a9cd7244bcd15080"
+    },
+    {
+      "path": "src/hebog/algorithms/multiscale_association.py",
+      "role": "reuse the existing bounded adjacent-scale exact-overlap association kernel rather than create a parallel hierarchy implementation",
+      "sha256": "84a66a9ce6500a44c37c241e25606720755c8501e29dfb9249c52325775daad9"
+    },
+    {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "role": "admit only connected uniquely owned reconstructed support",
+      "sha256": "45fff45bb37ccd218f69075d800abefd28e6c76ea3517bc181c0a5d8c492435d"
+    },
+    {
+      "path": "src/hebog/validation/post_campaign_science.py",
+      "role": "compose unchanged thresholds with corrected support admission",
+      "sha256": "9b798a2fc7eae61f362d083f6f46e90f9b1432867c2db877b35d0a324943b3ae"
+    },
+    {
+      "path": "src/hebog/validation/products.py",
+      "role": "measure each associated source once and retain component diagnostics",
+      "sha256": "a3c53daac3dbae03bd6b3f62488cd46de541d79d9c6c903d34ce7951334d690b"
+    },
+    {
+      "path": "src/hebog/validation/source_association_evaluation_repair.py",
+      "role": "replace the temporary mixed source-component topology adapter prospectively",
+      "sha256": "daa8234dcb2af1b234428756e8ae39d0659b4bd58f1095a1bab659227a146948"
+    },
+    {
+      "path": "src/hebog/validation/external_successor_compiler.py",
+      "role": "define explicit future binding source topology and diagnostic component topology",
+      "sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55"
+    }
+  ],
+  "literature_and_domain_alignment": [
+    {
+      "identifier": "hancock-et-al-2012",
+      "role": "retain the distinction between detection components image-domain sources and physical objects",
+      "url": "https://doi.org/10.1111/j.1365-2966.2012.20768.x"
+    },
+    {
+      "identifier": "pybdsf-grouping-documentation",
+      "role": "use image-domain island and component hierarchy as precedent without copying implementation or treating PyBDSF as truth",
+      "url": "https://pybdsf.readthedocs.io/en/latest/process_image.html#grouping-of-gaussians-into-sources"
+    }
+  ],
+  "prospective_design": {
+    "evaluation_semantics": {
+      "binding_completeness_and_reliability": "catalogue-source-topology",
+      "binding_split_and_merge": "catalogue-source-union-topology",
+      "diagnostic_split_and_merge": "native-detection-component-topology",
+      "duplicate_fraction": "catalogue-source-topology",
+      "retrospective_rescore_authorized": false,
+      "rule": "future-candidates-only-under-a-new-frozen-protocol"
+    },
+    "source_hierarchy": {
+      "ambiguous_parent_policy": "leave-components-separate-and-flag-the-ambiguity",
+      "component_ownership": "bitwise-unchanged",
+      "current_aggregate_parent_limitation": "the current aggregate connected parent is only a prerequisite for pair edges and cannot itself associate a source; grouping that aggregate parent directly would recreate bridge-driven overmerge risk",
+      "forbidden_evidence": [
+        "truth-identities",
+        "reference-finder-products",
+        "terminal-candidate-products",
+        "viewed-public-outcomes",
+        "morphological-dilation",
+        "distance-only-grouping"
+      ],
+      "grouping": "deterministic-common-parent-membership-not-pairwise-complete-link",
+      "new_numeric_thresholds": "none",
+      "parent_evidence": "undilated-connected-multiscale-reconstruction-features",
+      "path_geometry": "geodesic-within-significant-support-not-straight-centroid-segment",
+      "physical_object_claim": false,
+      "proposed_mechanism": [
+        "reuse ScaleDetectionPlane and associate_adjacent_scale_detections from the existing multiscale association seam",
+        "build exact feature identities independently at every already-reviewed significant reconstruction scale",
+        "link features across adjacent scales by the existing deterministic exact-support overlap kernel",
+        "attach each immutable direct owner to the finest feature it intersects",
+        "associate owners only through one explicit common parent feature rather than through transitive pair edges",
+        "retain singleton sources when no unambiguous parent exists"
+      ],
+      "reuse_boundary": "adapt the already tested bounded cross-scale association records and overlap reduction; do not add a second graph framework or reuse its half-beam compact-context dilation",
+      "why_it_addresses_the_failure": "rings curved filaments and multipeak sources can share a connected parent along their emission rather than requiring a bright straight centroid chord or every-pair FWHM proximity",
+      "why_it_does_not_recreate_deep_overmerge": "the hierarchy uses undilated significant features and exact scale lineage rather than the historical three-beam connected union"
+    },
+    "source_measurement": {
+      "centroid": "single-source-level-positive-denoised-first-moment",
+      "component_aperture_sums_are_binding": false,
+      "component_centroid_averages_are_binding": false,
+      "component_measurements_retained": "diagnostic-only",
+      "fallback": "one-flagged-positive-exact-source-support-fallback-after-a-nonpositive-source-aperture",
+      "integrated_flux": "sum-background-subtracted-residual-once-per-source-owned-pixel",
+      "peak_flux": "maximum-residual-on-source-owned-support",
+      "shape": "moment-equivalent-shape-on-the-exact-source-support-union",
+      "support": "exact-union-of-member-owner-support-plus-one-uniquely-owned-source-aperture",
+      "thresholds_changed": false,
+      "uncertainties": "remain-unavailable-until-separately-reviewed"
+    },
+    "support_admission": {
+      "direct_seed_pixels": "unchanged",
+      "existing_recovery_radius": "unchanged",
+      "new_numeric_thresholds": "none",
+      "reconstructed_pixel_requirement": "same-valid-eight-connected-component-in-the-union-of-direct-seeds-and-significant-support-within-the-existing-radius-as-an-accepted-direct-seed",
+      "unconnected_nearby_support": "excluded",
+      "why_it_addresses_the_failure": "nearest-distance-alone-can-admit isolated reconstructed support and association cannot repair the resulting boolean-mask false positives"
+    }
+  },
+  "required_next_decision": "named-approval-of-this-exact-pre-review-for-fixture-only-implementation",
+  "required_sequence": [
+    "obtain named scientific and engineering approval of this exact pre-review",
+    "write failing analytic source-hierarchy measurement mask and evaluator fixtures before production behavior",
+    "implement the smallest correction that passes every fixture without changing thresholds gates or historical evidence",
+    "run focused unit integration serial existing-Dask equivalence coverage type and documentation validation",
+    "review fixture outcomes and freeze the exact source hierarchy measurement support and evaluator semantics",
+    "run complete no-write identity verification without opening terminal or viewed products",
+    "freeze-exact-non-executable-candidate-and-replay-identities",
+    "obtain-separate-named-approval-before-one-complete-cumulative-replay"
+  ],
+  "review_id": "phase-5-public-finder-source-reconstruction-pre-review",
+  "reviewed_on": "2026-08-29",
+  "root_cause_model": {
+    "component_level_measurement_composition": {
+      "affected_failure_count": 24,
+      "affected_groups": [
+        "flux",
+        "astrometry"
+      ],
+      "confidence": "high",
+      "direct_code_evidence": [
+        "associated integrated flux is the sum of independently expanded component measurements",
+        "associated position is the integrated-flux-weighted average of component positions",
+        "neither quantity is measured once on a deduplicated source-owned support"
+      ],
+      "interaction": "under-association leaves only a displaced or flux-incomplete fragment available to the primary matcher while successful association may sum component apertures that were not designed as one source measurement"
+    },
+    "disconnected_support_admission": {
+      "affected_failure_count": 1,
+      "affected_groups": [
+        "mask"
+      ],
+      "confidence": "moderate",
+      "direct_code_evidence": [
+        "significant reconstructed pixels are assigned to the nearest seed within the fixed radius",
+        "the assignment has no connectivity requirement between the reconstructed pixel and that seed",
+        "source association changes labels and catalogue rows but cannot change the boolean mask"
+      ],
+      "remaining_uncertainty": "the terminal ledger retains aggregate mask statistics rather than per-pixel causal attribution so analytic false-positive fixtures must confirm the exact contribution before implementation is accepted"
+    },
+    "excluded_primary_causes": [
+      "gross-detection-sensitivity-loss",
+      "candidate-overmerge",
+      "global-astrometric-bias",
+      "insufficient-statistical-power-as-an-explanation-for-absolute-failures"
+    ],
+    "science_interpreted_before_power": true,
+    "topology_semantics_mismatch": {
+      "affected_failure_count": 9,
+      "affected_groups": [
+        "split-fraction"
+      ],
+      "confidence": "certain",
+      "direct_code_evidence": [
+        "catalogue matching uses synthetic associated-source union labels",
+        "split fraction is populated from native support truth degrees",
+        "the terminal duplicate and split fractions are numerically identical in every reported stratum"
+      ],
+      "interpretation": "native component fragmentation remains a useful diagnostic but cannot be the binding split definition for a catalogue whose public rows are associated sources"
+    },
+    "under_association": {
+      "affected_failure_count": 43,
+      "affected_groups": [
+        "reliability",
+        "topology",
+        "flux",
+        "astrometry"
+      ],
+      "confidence": "high",
+      "direct_code_evidence": [
+        "each accepted edge requires a bright straight centroid segment",
+        "each accepted edge requires separation within half the summed directional component FWHM",
+        "complete-link grouping requires every component pair to have an edge",
+        "shell above-deblend and tile-corner strata repeat the same catastrophic values",
+        "association changed 49 point estimates but no endpoint status"
+      ],
+      "mechanism": "curved ring corner-crossing and multipeak sources can share real undilated multiscale support without a bright straight centroid chord or an all-pairs FWHM relation so their component owners remain separate catalogue rows",
+      "qualification": "mask precision is excluded because source association cannot change the boolean mask"
+    }
+  },
+  "schema_version": 1,
+  "scientific_gates": {
+    "association_fixture_rule": "every-positive-and-negative-control-passes-with-no-compensation",
+    "component_ownership": "bitwise-identical-before-and-after-source-reconstruction",
+    "component_partition": "every-component-appears-in-exactly-one-catalogue-source",
+    "cumulative_replay": "separate-exact-approval-and-all-absolute-and-like-semantics-gates",
+    "mask_fixture_rule": "no-disconnected-support-admission-and-no-loss-of-connected-analytic-source-wings",
+    "measurement_fixture_rule": "analytic-noiseless-source-flux-and-centroid-within-floating-point-tolerance",
+    "physical_association_claims": "zero",
+    "source_apertures": "disjoint-and-every-measurement-pixel-counted-at-most-once",
+    "source_identity_invariance": "label-tile-partition-worker-order-and-retry-independent"
+  },
+  "status": "ready-for-named-source-reconstruction-implementation-review",
+  "terminal_evidence": {
+    "candidate_configuration_sha256": "78dbb230cbb726cbbe02b74f2e7fe96bc42801e2102bf15f0580c0643befe946",
+    "candidate_product_set_sha256": "dbc317fa98638d96ebecac26d98014a953defc96ed48a741f42f48954daa48ab",
+    "candidate_revision": "6184a32648eee637f0aca03ab2ec0249bd0510f0",
+    "candidate_source_tree_sha256": "517d56e19a5d58eb386d96bdb181d36afb574ad018222f870cc8434c398044ff",
+    "compact": {
+      "like_semantics_regression_count": 0,
+      "status": "pass"
+    },
+    "continuum": {
+      "like_semantics_regression_count": 37,
+      "status": "fail",
+      "status_counts": {
+        "fail": 44,
+        "indeterminate": 0,
+        "pass": 89,
+        "underpowered": 10
+      }
+    },
+    "ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+      "sha256": "6b2aa4deb306e0d7ba8285aae1e18bfb4f4e838b57aecd0497bec990e8a8c842"
+    },
+    "power_interpretation": "ten-underpowered-endpoints-cannot-compensate-for-forty-three-absolute-failures-one-paired-failure-or-thirty-seven-regressions"
+  },
+  "test_first_matrix": {
+    "association": [
+      "single-compact-source",
+      "multi-peak-shell-at-centre-boundary-and-corner",
+      "three-lobe-artifact-group",
+      "curved-and-straight-filaments",
+      "scale-one-and-scale-four-emission",
+      "varying-noise-source",
+      "two-nearby-independent-sources-with-faint-bridge",
+      "deep-crowded-many-seed-field",
+      "invalid-pixel-and-masked-gap",
+      "three-component-transitive-chain-with-and-without-one-common-parent"
+    ],
+    "evaluation": [
+      "associated-source-split-and-merge-use-source-union-labels",
+      "native-component-split-and-merge-remain-separate-diagnostics",
+      "duplicate-and-reliability-use-catalogue-source-rows",
+      "closed-ledger-cannot-be-loaded-as-a-rescore-input"
+    ],
+    "forbidden_inputs": [
+      "terminal-ledger-products-or-per-realization-products",
+      "viewed-sdc1-products",
+      "viewed-hydra-products",
+      "pybdsf-or-aegean-catalogues"
+    ],
+    "invariance": [
+      "component-label-permutation",
+      "tile-shape-and-partition-origin",
+      "one-tile-versus-many-tile",
+      "serial-versus-existing-dask",
+      "worker-count-task-order-and-retry"
+    ],
+    "mask": [
+      "disconnected-significant-support-is-not-admitted",
+      "connected-extended-wings-remain-admitted",
+      "invalid-pixel-barrier-cannot-be-crossed",
+      "direct-seed-support-is-bitwise-unchanged"
+    ],
+    "measurement": [
+      "source-flux-counts-each-owned-pixel-once",
+      "source-centroid-recovers-analytic-symmetry-centre",
+      "source-apertures-are-disjoint",
+      "shell-and-filament-flux-is-not-fragment-limited",
+      "tile-boundary-and-corner-measurements-match-one-tile-results",
+      "nonpositive-source-aperture-fallback-is-source-level-and-flagged"
+    ]
+  }
+}

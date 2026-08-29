@@ -12066,3 +12066,51 @@ correction—or become catalogue-source topology under a prospectively revised
 protocol. Either path needs fixture-first evidence and independent scientific
 review before any new cumulative execution; held-out qualification remains
 closed.
+
+## 2026-08-29 — Pre-review terminal source-reconstruction correction
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Completed a prospective scientific and engineering review against immutable
+  ledger `6b2aa4de...`, candidate `6184a32...`, product set `dbc317fa...`,
+  reconstructed references `48209eae...`, and closed baseline `a45303df...`.
+  The review grants no implementation or execution authority and preserves the
+  failed ledger without rescoring.
+- Accounted for all 44 Continuum failures: one reliability, 18
+  duplicate/split topology, 11 integrated-flux, 13 astrometry, and one mask
+  precision endpoint. The 10 underpowered endpoints are recorded separately
+  and cannot offset the failures or 37 like-semantics regressions.
+- The high-confidence primary failure is under-association. The straight-line
+  S/N chord, directional-FWHM proximity, and complete-link all-pairs rule
+  cannot represent common curved, ring, corner-crossing, or multipeak support.
+  The shell population consequently produces the repeated topology, flux, and
+  position failures.
+- Identified a certain evaluation-semantics defect: catalogue matching uses
+  source-union labels, but binding split fraction still uses native component
+  degrees. Native fragmentation remains a useful diagnostic, but preserving
+  components makes that definition incapable of demonstrating catalogue-source
+  reconstruction. Duplicate and reliability already use source rows and still
+  fail, so an evaluator-only change is insufficient.
+- Identified a second high-confidence source-measurement defect. Binding flux
+  sums independently expanded component apertures, and binding position
+  averages component centroids; neither measures the associated source once
+  on a deduplicated source-owned support. The mask failure is independent:
+  nearest-distance support admission has no connectivity requirement. Its
+  aggregate causal attribution remains moderate-confidence and must be
+  reproduced by analytic fixtures before implementation.
+- Recommended a deterministic common-parent multiscale hierarchy using
+  undilated support by reusing the existing bounded adjacent-scale overlap
+  kernel, source-level disjoint photometry and denoised moments, connected
+  reconstructed-support admission, and prospectively separated
+  source/component topology metrics. No second graph framework, threshold,
+  recovery radius, gate, or margin change is proposed.
+
+**Validation:** nine initial test-first machine-contract checks failed on the
+absent review, then passed after it was added; a tenth check binds reuse of the
+existing multiscale association seam. The complete contract records every
+failed endpoint exactly once and binds the terminal ledger SHA-256.
+
+**Immediate next step:** obtain named approval of exact pre-review
+`528f18a6...`. Approval may open only test-first fixture implementation and
+non-executable identity freezing; a cumulative replay, viewed-data execution,
+qualification, tuning, rescoring, cutover, and release remain forbidden.

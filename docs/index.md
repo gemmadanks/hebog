@@ -59,7 +59,8 @@ endpoints, and the same 37 like-semantics regressions. Source-union matching
 changed no endpoint status; component-level fragmentation, flux tails, and
 position tails remain binding failures. Fresh held-out qualification is
 therefore closed. Remaining Phase 5 gates cannot resume until a separately
-reviewed prospective scientific correction passes cumulative regression; they
+reviewed [source-reconstruction correction](reference/phase-5-public-finder-source-reconstruction-pre-review.md)
+passes its fixtures and a separately authorized cumulative regression; they
 include the
 restricted Rapthor workflow profile, the fail-closed
 [readiness record](reference/phase-5-release-readiness.md), and independent

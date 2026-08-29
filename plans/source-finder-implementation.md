@@ -339,18 +339,17 @@ source-association semantics and deep-image overmerging without authorizing
 tuning or rescoring. The first corrected cumulative ledger `1ac6deb2...`
 retains compact science but fails with 37 Continuum like-semantics regressions.
 
-The source-association candidate addressed those regressions prospectively.
-Its first replay stopped after 58 products on a measurement-completeness
-defect. Repair candidate `6184a32...` then completed all 2,400 candidate
-products, but the compiler rejected the binding `source-associated-*`
-catalogue identity because its adapter still required one legacy
-`hebog-segment-N` label per row. No ledger was published and both replay
-authorizations are consumed. The complete shard set remains preserved for an
-evaluation-only repair; no candidate rerun is required or authorized.
+The source-association candidate then attempted to address those regressions
+prospectively. After repairing measurement completeness and the compiler's
+single-label assumption, evaluation-only completion published terminal ledger
+`6b2aa4de...` without rerunning the 2,400 candidate products. Compact passes,
+but Continuum still has 44 failures and the same 37 regressions. Source-union
+matching changed no endpoint status; component fragmentation, source-level
+measurement, and mask-support admission remain open defects.
 
-The closest passing Continuum margins remain mask recall 0.90103 against 0.90
-and mask-precision regression UCL 0.04940 against the pinned-master 0.05
-margin. Section 7 now contains the single authoritative Phase 5 closure
+Pre-review `528f18a6...` now accounts for every failure and defines the next
+fixture-first correction boundary without authorizing implementation or
+execution. Section 7 contains the single authoritative Phase 5 closure
 sequence; detailed campaign chronology and immutable identities remain in
 `LOG.md` and `config/contracts/`.
 
@@ -407,6 +406,16 @@ matching changed 49 point estimates but no endpoint status relative to
 split, flux, and mask metrics were unchanged. Candidate execution, replay,
 viewed SDC1/Hydra execution, qualification, tuning, rescoring, cutover, and
 release remain unauthorized.
+
+Non-executable source-reconstruction pre-review `528f18a6...` accounts for
+all 44 failures and recommends four prospective corrections: a common-parent
+multiscale source hierarchy in place of pairwise complete-link association,
+one source-level measurement on disjoint pixels, connected reconstructed-mask
+support, and a future evaluator that binds split/merge to catalogue-source
+unions while retaining component topology as a diagnostic. The review adds no
+threshold or gate change and grants no authority. Named scientific and
+engineering approval is required before its fixture-only implementation may
+begin.
 
 The frozen readiness contract has now been prospectively rebound to repair
 candidate `6184a32...`, configuration `78dbb230...`, and the replacement
@@ -473,9 +482,27 @@ from partial or viewed evidence.
      do not overwrite, resume under a consumed decision, tune, rescore, or
      silently substitute evidence.
 
-3. [ ] **Freshly qualify the exact passing candidate.**
+3. [ ] **Correct source reconstruction prospectively.**
+   - [x] Freeze a non-executable pre-review against terminal ledger
+     `6b2aa4de...`, account for all 44 failures, separate direct causal facts
+     from hypotheses, and forbid tuning or retrospective rescoring.
+   - [ ] Obtain named approval of exact pre-review `528f18a6...`. Approval may
+     open only test-first source hierarchy, source measurement, connected-mask
+     support, future source-topology evaluator, fixture/executor validation,
+     and non-executable identity freezing.
+   - [ ] Implement the smallest correction that passes every positive and
+     negative analytic fixture. Preserve component ownership, detection
+     thresholds, gate values, and all closed evidence.
+   - [ ] Freeze a new candidate, source tree, configuration, compiler,
+     evaluator, reconstructed-reference, and baseline composition; run its
+     complete no-write verification.
+   - [ ] Obtain a separate exact one-replay approval and require every compact
+     and Continuum absolute and like-semantics gate. Stop again on failure.
+
+4. [ ] **Freshly qualify the exact passing candidate.**
    - Blocked: the cumulative prerequisite failed, so no qualification
-     population may be opened or frozen for this candidate.
+     population may be opened or frozen until step 3 publishes a passing
+     ledger.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval.
@@ -486,7 +513,7 @@ from partial or viewed evidence.
    - Viewed SDC1/Hydra evidence remains diagnostic historical context, not
      fresh qualification truth.
 
-4. [ ] **Complete the restricted Rapthor profile decision.**
+5. [ ] **Complete the restricted Rapthor profile decision.**
    - Restore the controlled real inputs, freeze their canonical pre-filter
      component population, and run compact and continuum Hebog masks through
      the exact pinned LSMTool filtering operation against both PyBDSF
@@ -497,7 +524,7 @@ from partial or viewed evidence.
    - Record a write-once profile decision. This selects workflow behaviour only
      and does not authorize the Phase 7 cutover.
 
-5. [ ] **Confirm final engineering evidence.**
+6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected
      incremental performance anchors for the exact final candidate, or record a
      reviewed proof that the frozen performance path and identity are
@@ -507,7 +534,7 @@ from partial or viewed evidence.
      contract, performance summary, closed final qualification, terminal public
      failure, and its independent scientific review.
 
-6. [ ] **Obtain independent acceptance and publish readiness.**
+7. [ ] **Obtain independent acceptance and publish readiness.**
    - Obtain separate packet-bound radio-astronomy and engineering acceptances.
    - Run the write-once readiness finalizer, update `LOG.md`, user
      documentation, and the Phase 6 handoff, then create a reviewed local
@@ -515,7 +542,7 @@ from partial or viewed evidence.
    - The readiness record closes Phase 5 only. Cutover, release, optimization,
      and Phase 6/7 execution remain separately governed.
 
-Phase 5 is complete when steps 1--6 are checked and the final readiness record
+Phase 5 is complete when steps 1--7 are checked and the final readiness record
 is terminal. No additional public campaign is intrinsically required for
 closure unless the prospective scientific review or fresh qualification
 exposes a new blocker.
