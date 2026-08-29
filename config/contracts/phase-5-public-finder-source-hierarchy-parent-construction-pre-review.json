@@ -1,0 +1,174 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-scale-aware-parent-construction",
+    "fixture-only-positive-and-overmerge-safety-validation",
+    "serial-and-existing-dask-invariance-validation",
+    "compact-parent-construction-telemetry",
+    "non-executable-candidate-and-replay-identity-freeze"
+  ],
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_identity_freeze_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "parent_construction_implementation_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "replay_identity_freeze_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "approved_root_cause_repair": {
+      "approved_pre_review_revision": "a6a56ff145bf4d5c23001b5853d50750e576611d",
+      "approved_pre_review_sha256": "c1a92bd2d03455046db60c6e5b704eb3f7097b4c094d96386f69ae90cdec3993",
+      "canonical_pre_review_json_sha256": "25531467b4baf3ca3d4c87b21e0d1bd85fb16cfc586345fc0728bb9096e46b3d",
+      "decision_path": "config/contracts/phase-5-public-finder-source-reconstruction-root-cause-repair-implementation-decision.json",
+      "decision_sha256": "8296c4ce30b8d28790e1c45b43582df1ba58737d5d7b3a7b29a5fb2766ad897b",
+      "normalized_pre_review_sha256": "fe9ca88d455720c5d375812875c3067e98ecc3e1ee05ead71d1c3dd0b568f979",
+      "pre_review_path": "config/contracts/phase-5-public-finder-source-reconstruction-root-cause-pre-review.json",
+      "pretty_format_only": true
+    },
+    "base_revision": "a6a56ff145bf4d5c23001b5853d50750e576611d",
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "failed_candidate": {
+      "configuration_sha256": "470e918db1a640d7393edc02de01fc57b50881b908bd6d5dac18a57709117bbb",
+      "revision": "42c75f44b71800ae5fa1e0ebe1669caa7da59f85",
+      "source_tree_sha256": "1b67c7f6f768d6f83becc853a1ebd45b3996164cd2b87fdc0f71b9a3299e6bf1"
+    },
+    "prerequisite_programs": {
+      "candidate_composition_sha256": "5f3e0cd2b8ca8748f003542e340ea7589d1c03bd67310f0a24e08b5c70714727",
+      "candidate_products_sha256": "bf53ed2ed4b7b0968bb9f2f89c837ba759b61f3444962ec7f2c02d4eb1249071",
+      "hierarchy_sha256": "db7e41f4328f7033e3300e45ae335cf80127bef9810740a112f8e17e761503b1",
+      "measurement_sha256": "210d683af1cfbfc2a20dfe232740930feb38edd14de715e54592757df6fde812",
+      "multiscale_association_sha256": "be31b737b7835afaf718821c0584d668aa0878bb2950a667876296f731ac2a97"
+    },
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "terminal_ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-reconstruction.json",
+      "sha256": "84fbb3a18828210543d815d28aa4eab039a2ad7467aa2572a9c5119780f55a0e"
+    }
+  },
+  "causal_findings": {
+    "confirmed_prerequisite_defect": {
+      "classification": "implemented-and-fixture-validated",
+      "description": "The composed candidate discarded immutable direct-seed labels and attached hierarchy identity to expanded measurement owners. The approved repair now retains both planes, permits multiple finest-feature attachments only through one unique common lineage, rejects terminal-only bridges, and emits compact activation diagnostics."
+    },
+    "confirmed_remaining_defect": {
+      "activation_path": [
+        "retained significant wavelet support is labelled independently at each scale",
+        "each analytic shell lobe remains a separate exact connected feature at scales one two and three",
+        "adjacent-scale exact overlap produces four persistent independent lineages",
+        "no scale contains a shared connected feature and therefore no common parent can exist",
+        "the repaired hierarchy correctly leaves all four direct components as singleton catalogue sources"
+      ],
+      "classification": "confirmed-by-real-scale-fixture-and-activation-telemetry",
+      "description": "The hierarchy consumes per-scale connected components but does not construct a source-level parent when sibling features remain disconnected in every thresholded scale plane. Exact overlap can preserve a lineage; it cannot create the missing sibling parent.",
+      "scientific_effect": "Extended multi-lobe sources remain fragmented even after direct-owner identity is repaired, so source-level measurement and source-union topology remain dormant for those morphologies.",
+      "test_gap": "Earlier positive fixtures manually supplied a connected coarse parent and therefore proved reduction of an existing hierarchy, not construction of that hierarchy from the real scale filter."
+    },
+    "controlled_real_scale_reproduction": {
+      "forbidden_inputs_used": false,
+      "fixture": "An 81-by-81 analytic four-lobe Gaussian shell at radius 10 pixels, evaluated through the real corrective-A scale filter, support assignment, source reconstruction, and telemetry composition.",
+      "observed": {
+        "adjacent_scale_parent_edge_count": 8,
+        "catalogue_source_count": 4,
+        "direct_component_count": 4,
+        "membership_size_histogram": [
+          [
+            1,
+            4
+          ]
+        ],
+        "per_scale_feature_counts": [
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        "unique_convergence_count": 0
+      },
+      "parameter_sweep_summary": "Synthetic-only Gaussian pairs, ring lobes, and pedestal variants either remained separate at every retained scale or collapsed into one direct component before hierarchy association. None produced the required multi-component common parent through the real scale path."
+    },
+    "excluded_causes": {
+      "direct-versus-measurement-owner-confusion": "Repaired and independently covered; the real-scale fixture still fails with immutable direct labels.",
+      "hierarchy_reducer_ignores_an_existing_parent": "Hand-built fixtures with a persistent common parent group correctly.",
+      "source_measurement_or_topology_adapter": "These stages cannot activate until catalogue membership groups, and existing focused contracts preserve a grouped membership.",
+      "threshold_gate_or_photometric_values": "No viewed evidence or parameter change was used; the failure occurs before measurement and endpoint evaluation.",
+      "operational_or_runtime_failure": "The fixture completes deterministically and exposes a scientific topology result."
+    },
+    "safety_risk": {
+      "classification": "must-be-resolved-before-identity-freeze",
+      "description": "A parent-construction rule broad enough to connect shell lobes may also merge independent nearby sources, especially through terminal coarse bridges or crowded transitive chains."
+    }
+  },
+  "change_control": {
+    "forbidden_same_change": [
+      "background-or-rms-estimator-changes",
+      "detection-or-island-threshold-changes",
+      "minimum-island-area-changes",
+      "measurement-or-photometry-changes",
+      "recovery-or-aperture-radius-changes",
+      "beam-or-wcs-interpretation-changes",
+      "truth-aware-or-reference-finder-association",
+      "terminal-product-derived-constants",
+      "gate-or-margin-changes",
+      "runtime-optimization",
+      "retrospective-scoring-of-closed-ledgers"
+    ],
+    "historical_evidence_immutable": true,
+    "identity_freeze_blocked_until_fixture_acceptance": true,
+    "terminal_failure_immutable": true
+  },
+  "recommended_design": {
+    "acceptance_boundary": "Construct prospective source parents from immutable scale-feature summaries only. Keep exact feature support, direct components, measurement owners, photometry, and every closed evaluator unchanged.",
+    "candidate_rule": "Derive a deterministic scale-aware support envelope from the exact B3-spline filter footprint at each scale, build parent candidates only through valid connected significant support, and accept a sibling parent only when the same grouping persists across adjacent scales. Ambiguous parentage, terminal-only convergence, invalid gaps, or transitive-only chains remain flagged singletons.",
+    "fixed_not_tuned": [
+      "envelope geometry derived from the existing filter footprint rather than campaign results",
+      "existing scale orders and significance masks",
+      "existing direct component identities and connected-valid support",
+      "existing fail-closed unique-parent and persistence requirements"
+    ],
+    "implementation_sequence": [
+      "add red end-to-end shell curved-filament and multi-lobe fixtures through the real scale path",
+      "add independent-neighbour terminal-bridge crowded-field invalid-gap and transitive-chain negatives",
+      "implement parent construction as one pure scheduler-independent summary transform",
+      "retain exact support for measurement and use envelopes only for prospective parent evidence",
+      "emit exact-feature parent-candidate accepted-parent and rejected-ambiguity census",
+      "prove serial existing-Dask plane-order tile-origin and retry invariance",
+      "require every positive and negative fixture before candidate or replay identity freeze"
+    ],
+    "no_new_fitted_numeric_thresholds": true,
+    "rejected_shortcuts": [
+      "grouping by final terminal root alone",
+      "unbounded morphological dilation",
+      "centroid-distance-only association",
+      "truth or PyBDSF catalogue assisted grouping",
+      "changing detection thresholds until a parent appears"
+    ]
+  },
+  "required_next_decision": "named-approval-of-this-exact-parent-construction-pre-review-for-fixture-only-design-implementation",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-parent-construction-review",
+    "implement-parent-construction-test-first-on-synthetic-fixtures-only",
+    "pass-positive-activation-and-overmerge-negative-controls",
+    "pass-serial-existing-dask-and-order-invariance",
+    "freeze-exact-non-executable-candidate-and-replay-identities",
+    "obtain-separate-exact-approval-before-any-cumulative-replay"
+  ],
+  "review_id": "phase-5-public-finder-source-hierarchy-parent-construction-pre-review",
+  "reviewed_on": "2026-08-29",
+  "schema_version": 1,
+  "status": "ready-for-named-parent-construction-design-review"
+}

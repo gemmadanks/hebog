@@ -41,6 +41,8 @@ def _header(shape: tuple[int, int]) -> fits.Header:
 def _plane(
     entries: Sequence[tuple[str, Sequence[tuple[int, int]]]],
     shape: tuple[int, int],
+    *,
+    scale_order: int = 1,
 ) -> ScaleDetectionPlane:
     labels = np.zeros(shape, dtype=np.int32)
     records: list[ScaleDetection] = []
@@ -54,8 +56,8 @@ def _plane(
             ScaleDetection(
                 detection_id=identifier,
                 parent_island_id=None,
-                scale_order=1,
-                nominal_scale_beam_fwhm=1.0,
+                scale_order=scale_order,
+                nominal_scale_beam_fwhm=float(2 ** (scale_order - 1)),
                 support_pixel_count=len(ordered),
                 valid_support_fraction=1.0,
                 bounds_yx=(min(ys), max(ys) + 1, min(xs), max(xs) + 1),
@@ -66,7 +68,7 @@ def _plane(
             )
         )
     return ScaleDetectionPlane(
-        scale_order=1,
+        scale_order=scale_order,
         component_labels=labels,
         detections=tuple(records),
     )
@@ -77,6 +79,7 @@ def _measure(
     image: np.ndarray,
     planes: tuple[ScaleDetectionPlane, ...],
     *,
+    direct_labels: np.ndarray | None = None,
     radius: float = 1.0,
 ):
     return build_hebog_reconstructed_source_catalogues(
@@ -84,6 +87,7 @@ def _measure(
         np.zeros_like(image),
         np.ones(image.shape, dtype=np.bool_),
         labels,
+        direct_labels if direct_labels is not None else labels,
         planes,
         _header(image.shape),
         beam_major_fwhm_pixels=2.0,
@@ -91,6 +95,83 @@ def _measure(
         measurement_aperture_radius_beams=radius,
         position_signal_jy_per_beam=image,
     )
+
+
+def test_hierarchy_uses_direct_seeds_not_expanded_measurement_owners() -> None:
+    """Recovered ownership cannot manufacture finest-feature ambiguity."""
+    shape = (9, 15)
+    direct = np.zeros(shape, dtype=np.int32)
+    direct[4, 2] = 1
+    direct[4, 11] = 2
+    measurement = np.zeros(shape, dtype=np.int32)
+    measurement[4, 2:7] = 1
+    measurement[4, 11] = 2
+    image = np.asarray(measurement > 0, dtype=np.float64)
+    fine = _plane(
+        (
+            ("scale-direct-left", ((4, 2),)),
+            ("scale-recovered-left", ((4, 5), (4, 6))),
+            ("scale-direct-right", ((4, 11),)),
+        ),
+        shape,
+    )
+    convergence = _plane(
+        (
+            (
+                "scale-direct-convergence",
+                tuple((4, x) for x in range(2, 12)),
+            ),
+        ),
+        shape,
+        scale_order=2,
+    )
+    persistence = _plane(
+        (
+            (
+                "scale-direct-persistence",
+                tuple((4, x) for x in range(2, 12)),
+            ),
+        ),
+        shape,
+        scale_order=3,
+    )
+
+    products = _measure(
+        measurement,
+        image,
+        (fine, convergence, persistence),
+        direct_labels=direct,
+    )
+
+    assert len(products.source_catalogue) == 1
+    assert products.source_catalogue[0].component_count == 2
+    assert products.association.hierarchy_diagnostics is not None
+
+
+@pytest.mark.parametrize(
+    ("direct", "message"),
+    (
+        (np.ones((2, 2), dtype=np.float64), "integer plane"),
+        (np.zeros((2, 2), dtype=np.int32), "identities must match"),
+        (np.asarray([[0, 1], [0, 0]], dtype=np.int32), "valid subset"),
+    ),
+)
+def test_direct_hierarchy_labels_fail_closed(
+    direct: np.ndarray,
+    message: str,
+) -> None:
+    """Hierarchy identities must be exact subsets of measurement owners."""
+    measurement = np.asarray([[1, 0], [0, 0]], dtype=np.int32)
+    image = np.asarray(measurement > 0, dtype=np.float64)
+    planes = (_plane((("scale-owner", ((0, 0),)),), measurement.shape),)
+
+    with pytest.raises(ValueError, match=message):
+        _measure(
+            measurement,
+            image,
+            planes,
+            direct_labels=direct,
+        )
 
 
 @pytest.mark.parametrize("offset", ((0, 0), (0, 5), (5, 5)))

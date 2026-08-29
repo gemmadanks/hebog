@@ -1268,7 +1268,8 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     image_jy_per_beam: npt.ArrayLike,
     background_jy_per_beam: npt.ArrayLike,
     valid_pixels: npt.ArrayLike,
-    component_labels: npt.ArrayLike,
+    measurement_component_labels: npt.ArrayLike,
+    direct_component_labels: npt.ArrayLike,
     scale_detection_planes: tuple[ScaleDetectionPlane, ...],
     header: fits.Header,
     *,
@@ -1280,16 +1281,41 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
 ) -> AssociatedMomentCatalogues:
     """Measure each common-parent catalogue source exactly once.
 
-    Immutable component measurements remain diagnostic. Binding source rows
-    are measured from a source-label plane before aperture expansion, so every
-    observable pixel belongs to at most one source aperture.
+    Direct seed labels define hierarchy identity. Recovered measurement labels
+    define masks and apertures. Immutable component measurements remain
+    diagnostic. Binding source rows are measured from a source-label plane
+    before aperture expansion, so every observable pixel belongs to at most one
+    source aperture.
     """
     residual, valid, labels = _validated_hebog_segment_planes(
         image_jy_per_beam,
         background_jy_per_beam,
         valid_pixels,
-        component_labels,
+        measurement_component_labels,
     )
+    direct = np.asarray(direct_component_labels)
+    if (
+        direct.ndim != labels.ndim
+        or direct.shape != labels.shape
+        or not np.issubdtype(direct.dtype, np.integer)
+        or bool(np.any(direct < 0))
+    ):
+        raise ValueError(
+            "direct component labels must be one aligned non-negative "
+            "integer plane"
+        )
+    direct = np.asarray(direct, dtype=np.int64)
+    if bool(np.any((direct > 0) & (~valid | (labels != direct)))):
+        raise ValueError(
+            "direct component ownership must be a valid subset of "
+            "measurement ownership"
+        )
+    if set(np.unique(direct[direct > 0])) != set(
+        np.unique(labels[labels > 0])
+    ):
+        raise ValueError(
+            "direct and measurement component identities must match"
+        )
     component_sources = build_hebog_segment_moment_catalogue(
         image_jy_per_beam,
         background_jy_per_beam,
@@ -1304,10 +1330,10 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
             denoised_position_maximum_peak_to_mean_ratio
         ),
     )
-    records = build_detection_component_records(labels, residual, valid)
+    records = build_detection_component_records(direct, residual, valid)
     association = associate_components_by_multiscale_hierarchy(
         records,
-        labels,
+        direct,
         scale_detection_planes,
         valid,
     )

@@ -356,6 +356,13 @@ Compact remains green, but Continuum remains at 89 passes, 44 failures, 10
 underpowered endpoints, and the same 37 like-semantics regressions. The
 source-reconstruction candidate changed 48 point estimates only at negligible
 numerical scale and changed no endpoint status or split/duplicate topology.
+Approved review `c1a92bd2...` led to a prerequisite repair that separates
+direct hierarchy identity from recovered measurement ownership and emits
+activation telemetry. Real-scale fixture evidence then isolated a second
+blocker: four analytic shell lobes remain four disconnected exact features at
+every retained scale, so exact-overlap lineage tracking cannot construct the
+shared source parent. Non-executable review `b5d89bdc...` now governs that
+parent-construction problem; replacement identity freeze is blocked.
 Section 7 contains the single authoritative Phase 5 closure sequence; detailed
 chronology and immutable identities remain in `LOG.md` and
 `config/contracts/`.
@@ -366,11 +373,11 @@ chronology and immutable identities remain in `LOG.md` and
 
 **Status: open.** Multiscale science, combined products, bounded execution,
 the original final qualification, compact regression, and the incremental
-performance budget are complete. Phase 5 is blocked by the absence of a passing
-cumulative regression ledger and fresh held-out qualification for the latest
-source-association repair. Detailed campaign and incident chronology belongs in
-`LOG.md`; machine identities and authorization boundaries remain in
-`config/contracts/`.
+performance budget are complete. Phase 5 is blocked by a source-parent
+construction defect, then by the absence of a passing cumulative regression
+ledger and fresh held-out qualification for the eventual corrected candidate.
+Detailed campaign and incident chronology belongs in `LOG.md`; machine
+identities and authorization boundaries remain in `config/contracts/`.
 
 #### Completed evidence
 
@@ -433,25 +440,29 @@ regressions. Relative to `6b2aa4de...`, 48 point estimates changed only at
 negligible numerical scale, no endpoint status changed, and overall duplicate
 and split fractions remain 25.29%. The intended hierarchy therefore did not
 alter governed catalogue-source membership on this population. Root-cause
-pre-review `c1a92bd2...` now governs the next action. Code trace and a synthetic
-analytic reproduction confirm that the candidate discarded its direct-seed
-label plane, attached the hierarchy to support-expanded measurement owners,
-and forced any owner crossing multiple finest-scale features into a singleton
-before testing their unique common-parent convergence. Existing one-pixel
-fixtures could not reach that path. Exact-overlap scale shift remains an
-unproven secondary hypothesis, while terminal-root overmerge is a prospective
-safety risk. The review authorizes nothing; candidate execution, replay,
-viewed SDC1/Hydra execution, qualification, tuning, rescoring, cutover, and
-release remain unauthorized.
+pre-review `c1a92bd2...` was approved for fixture-only repair. The implemented
+prerequisite now preserves immutable direct-seed labels alongside recovered
+measurement ownership, accepts multiple fine-feature attachments only through
+one nearest common lineage, rejects terminal-only coarse bridges, and emits
+compact activation diagnostics. Hand-built hierarchy, malformed ownership,
+overmerge, telemetry, product-composition, and existing-Dask contracts pass.
 
-The readiness contract is now prospectively rebound to source-reconstruction
-candidate `42c75f4...`, source tree `1b67c7f6...`, configuration
-`470e918d...`, and its replacement cumulative and future held-out evidence
-paths. The wrapper consumes the exact measurement-repair composition, replaces
-only the Continuum candidate builder and prospective catalogue-source topology
-evaluator, and leaves compact/reference/baseline machinery fixed. These
-identities are being fixed before either result exists; a passing result cannot
-be fitted into readiness retrospectively.
+The required real-scale positive fixture does not pass. A four-lobe analytic
+shell remains four features at every retained scale; exact overlap produces
+four independent persistent lineages and no convergence. This confirms that
+the remaining defect is parent construction, not hierarchy reduction or label
+composition. Earlier fixtures manually inserted the missing coarse parent.
+Review `b5d89bdc...` is non-executable and proposes a scale-aware parent
+construction derived from the fixed filter footprint with persistent-parent
+and connected-valid-support controls. Identity freeze, replay, viewed-data
+execution, qualification, tuning, rescoring, cutover, and release remain
+unauthorized.
+
+The readiness contract remains bound to failed source-reconstruction candidate
+`42c75f4...`, source tree `1b67c7f6...`, configuration `470e918d...`, and the
+failed cumulative path. It must not be rebound again until an approved parent
+construction passes all fixture controls and exact non-executable replacement
+identities can be frozen prospectively.
 
 Non-executable pre-review `7687839f...` now binds repair commit
 `6184a32...`, source tree `517d56e1...`, unchanged configuration
@@ -544,13 +555,25 @@ from partial or viewed evidence.
      `84fbb3a1...`, reproduces the expanded-owner ambiguity on synthetic arrays,
      separates confirmed causes from hypotheses and safety risks, and defines
      fail-closed activation telemetry and end-to-end analytic fixtures.
-   - [ ] Obtain named approval of exact review `c1a92bd2...`. Approval may open
+   - [x] Obtain named approval of exact review `c1a92bd2...`. Approval opened
      only test-first separation of direct-seed and measurement-owner labels,
      unique-nearest-convergence attachment, fixture/executor validation,
      compact activation telemetry, and non-executable identity freezing.
-   - [ ] After the approved fixture-only repair passes every positive and
-     overmerge negative control, freeze its exact non-executable candidate and
-     replay identities. Any replay still requires a separate exact approval.
+   - [x] Implement direct/measurement-owner separation, nearest common-lineage
+     reduction, terminal-bridge rejection, and compact activation telemetry.
+     The focused hierarchy and composition suite passes.
+   - [x] Run the real scale-filter fixture. It fails the positive activation
+     criterion with four features at every retained scale and no common
+     convergence, so candidate and replay identity freeze stopped.
+   - [x] Freeze non-executable parent-construction pre-review `b5d89bdc...`,
+     which accounts for the second defect and preserves every execution and
+     tuning prohibition.
+   - [ ] Obtain named approval of exact review `b5d89bdc...` before any
+     scale-aware parent-construction implementation.
+   - [ ] Pass every real-path positive and overmerge negative fixture plus
+     Serial/existing-Dask invariance, then freeze exact non-executable candidate
+     and replay identities. Any replay still requires a separate exact
+     approval.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

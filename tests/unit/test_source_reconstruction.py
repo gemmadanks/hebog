@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -116,11 +117,12 @@ def test_multipeak_shell_uses_one_explicit_common_parent(
         )
     )
     coarse = _plane(2, (("scale-shell-parent", ring),))
+    persistent = _plane(3, (("scale-shell-persistent", ring),))
 
     result = associate_components_by_multiscale_hierarchy(
         records,
         labels,
-        (fine, coarse),
+        (fine, coarse, persistent),
         np.ones(labels.shape, dtype=np.bool_),
     )
 
@@ -147,11 +149,12 @@ def test_filaments_follow_support_not_centroid_chords() -> None:
         + [(12, x) for x in range(8, 13)]
     )
     parent = _plane(2, (("scale-filament-parent", curved),))
+    persistent = _plane(3, (("scale-filament-persistent", curved),))
 
     result = associate_components_by_multiscale_hierarchy(
         records,
         labels,
-        (fine, parent),
+        (fine, parent, persistent),
         np.ones(labels.shape, dtype=np.bool_),
     )
 
@@ -172,11 +175,13 @@ def test_three_lobe_artifact_uses_one_common_parent() -> None:
     parent_support = tuple(
         [(4, x) for x in range(2, 13)] + [(y, 7) for y in range(5, 8)]
     )
+    parent = _plane(2, (("scale-artifact-parent", parent_support),))
+    persistent = _plane(3, (("scale-artifact-persistent", parent_support),))
 
     result = associate_components_by_multiscale_hierarchy(
         records,
         labels,
-        (fine, _plane(2, (("scale-artifact-parent", parent_support),))),
+        (fine, parent, persistent),
         np.ones(labels.shape, dtype=np.bool_),
     )
 
@@ -285,6 +290,190 @@ def test_ambiguous_transitive_bridge_fails_closed() -> None:
 
     assert len(result.memberships) == 3
     assert len(result.ambiguous_component_ids) == 1
+
+
+def test_multiple_finest_features_use_one_persistent_common_convergence() -> (
+    None
+):
+    """One owner crossing fine features may still have one source parent."""
+    labels = np.zeros((9, 15), dtype=np.int32)
+    labels[4, 2:7] = 1
+    labels[4, 11] = 2
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    fine = _plane(
+        1,
+        (
+            ("scale-expanded-left-a", ((4, 2), (4, 3))),
+            ("scale-expanded-left-b", ((4, 5), (4, 6))),
+            ("scale-expanded-right", ((4, 11),)),
+        ),
+        shape=labels.shape,
+    )
+    convergence = _plane(
+        2,
+        (("scale-expanded-convergence", tuple((4, x) for x in range(2, 12))),),
+        shape=labels.shape,
+    )
+    persistent = _plane(
+        3,
+        (("scale-expanded-persistent", tuple((4, x) for x in range(2, 12))),),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (fine, convergence, persistent),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [2]
+    assert result.ambiguous_component_ids == ()
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.direct_component_count == 2
+    assert diagnostics.catalogue_source_count == 1
+    assert diagnostics.membership_size_histogram == ((2, 1),)
+    assert diagnostics.multiple_finest_feature_attachment_count == 1
+    assert diagnostics.unique_convergence_count == 1
+
+
+def test_terminal_coarse_bridge_does_not_merge_independent_sources() -> None:
+    """A bridge appearing only at the terminal scale is not corroborated."""
+    pixels = ((4, 2), (4, 12))
+    labels, records = _components(pixels)
+    fine = _plane(
+        1,
+        (
+            ("scale-bridge-left-fine", (pixels[0],)),
+            ("scale-bridge-right-fine", (pixels[1],)),
+        ),
+        shape=labels.shape,
+    )
+    separated = _plane(
+        2,
+        (
+            ("scale-bridge-left-mid", tuple((4, x) for x in range(2, 5))),
+            ("scale-bridge-right-mid", tuple((4, x) for x in range(10, 13))),
+        ),
+        shape=labels.shape,
+    )
+    terminal_bridge = _plane(
+        3,
+        (("scale-terminal-bridge", tuple((4, x) for x in range(2, 13))),),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (fine, separated, terminal_bridge),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.unique_convergence_count == 0
+    assert diagnostics.catalogue_source_count == 2
+
+
+def test_multiple_finest_features_without_convergence_fail_closed() -> None:
+    """One direct owner cannot invent a parent for disjoint lineages."""
+    labels = np.zeros((7, 11), dtype=np.int32)
+    labels[3, 2:9] = 1
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    fine = _plane(
+        1,
+        (
+            ("scale-no-parent-left", ((3, 2), (3, 3))),
+            ("scale-no-parent-right", ((3, 7), (3, 8))),
+        ),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (fine,),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert len(result.memberships) == 1
+    assert result.ambiguous_component_ids == (records[0].component_id,)
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.multiple_finest_feature_attachment_count == 1
+    assert diagnostics.no_common_convergence_count == 1
+
+
+def test_direct_owner_without_scale_feature_is_counted_as_unattached() -> None:
+    """A missing feature remains an observable fail-closed singleton."""
+    labels, records = _components(((3, 3),))
+    empty = _plane(1, (), shape=labels.shape)
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (empty,),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert len(result.memberships) == 1
+    assert result.ambiguous_component_ids == ()
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.unattached_component_count == 1
+    assert diagnostics.per_scale_feature_counts == ((1, 0),)
+
+
+def test_hierarchy_diagnostics_reject_inconsistent_counts() -> None:
+    """Serializable activation evidence cannot drift from its partition."""
+    labels, records = _components(((3, 3),))
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (_plane(1, (("scale-diagnostic", ((3, 3),)),)),),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+
+    with pytest.raises(ValueError, match="non-negative"):
+        replace(diagnostics, unattached_component_count=-1)
+    with pytest.raises(ValueError, match="requires direct"):
+        replace(diagnostics, direct_component_count=0)
+    with pytest.raises(ValueError, match="requires catalogue"):
+        replace(diagnostics, catalogue_source_count=0)
+    with pytest.raises(ValueError, match="canonical"):
+        replace(diagnostics, membership_size_histogram=((0, 1),))
+    with pytest.raises(ValueError, match="count sources"):
+        replace(diagnostics, membership_size_histogram=((1, 2),))
+    with pytest.raises(ValueError, match="count components"):
+        replace(diagnostics, membership_size_histogram=((2, 1),))
+    with pytest.raises(ValueError, match="scale counts"):
+        replace(diagnostics, per_scale_feature_counts=((1, 1), (1, 1)))
+    with pytest.raises(ValueError, match="scale counts"):
+        replace(diagnostics, per_scale_feature_counts=((0, 1),))
+    with pytest.raises(ValueError, match="exceeds source"):
+        replace(diagnostics, unique_convergence_count=2)
+    with pytest.raises(ValueError, match="match association"):
+        replace(
+            result,
+            hierarchy_diagnostics=replace(
+                diagnostics,
+                direct_component_count=2,
+                membership_size_histogram=((2, 1),),
+            ),
+        )
 
 
 def test_hierarchy_is_component_label_and_plane_order_invariant() -> None:

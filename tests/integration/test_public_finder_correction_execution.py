@@ -158,6 +158,7 @@ def _identity_view(result: SourceAssociationResult) -> tuple[Any, ...]:
         ),
         result.edges,
         result.memberships,
+        result.hierarchy_diagnostics,
     )
 
 

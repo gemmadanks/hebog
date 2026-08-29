@@ -16,6 +16,7 @@ from pytest_mock import MockerFixture
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.data_models.catalogues import Island, SourceCatalogue
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
+from hebog.validation.contracts import load_phase_five_corrective_a_review
 from hebog.validation.external_runners import file_sha256
 from hebog.validation.public_finder_correction import (
     Sdc1SourceFindingRecord,
@@ -26,7 +27,10 @@ from hebog.validation.public_finder_correction import (
     public_finder_correction_candidate_configuration,
     public_finder_source_association_candidate_configuration,
     public_finder_source_reconstruction_candidate_configuration,
+    public_finder_source_reconstruction_root_cause_repair_configuration,
 )
+
+_ROOT = Path(__file__).parents[3]
 
 
 def _resolved_source() -> CatalogueSource:
@@ -352,6 +356,47 @@ def test_source_reconstruction_configuration_binds_all_prospective_policies(
     ] == file_sha256(decision)
 
 
+def test_root_cause_repair_configuration_binds_activation_authority(
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    """The repaired identity binds both reviews without becoming executable."""
+    mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "public_finder_source_reconstruction_candidate_configuration",
+        return_value={"compact": {"frozen": True}, "continuum": {"base": 1}},
+    )
+    root_review = tmp_path / "root-review.json"
+    root_decision = tmp_path / "root-decision.json"
+    root_review.write_text('{"review": 2}\n', encoding="utf-8")
+    root_decision.write_text('{"decision": 2}\n', encoding="utf-8")
+
+    configuration = (
+        public_finder_source_reconstruction_root_cause_repair_configuration(
+            tmp_path / "base.json",
+            tmp_path / "correction.json",
+            tmp_path / "source-review.json",
+            tmp_path / "source-decision.json",
+            root_review,
+            root_decision,
+        )
+    )
+
+    continuum = cast(dict[str, object], configuration["continuum"])
+    assert continuum["source_reconstruction_activation_policy"] == (
+        "direct-seed-nearest-persistent-common-convergence-v2"
+    )
+    assert continuum["source_reconstruction_telemetry_policy"] == (
+        "array-free-hierarchy-activation-census-v1"
+    )
+    assert continuum[
+        "source_reconstruction_root_cause_pre_review_sha256"
+    ] == file_sha256(root_review)
+    assert continuum[
+        "source_reconstruction_root_cause_implementation_decision_sha256"
+    ] == file_sha256(root_decision)
+
+
 def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     mocker: MockerFixture,
 ) -> None:
@@ -361,6 +406,8 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     background = np.zeros(shape)
     rms = np.ones(shape)
     labels = np.ones(shape, dtype=np.int32)
+    direct_labels = np.zeros(shape, dtype=np.int32)
+    direct_labels[2, 2] = 1
     detection = cast(
         Any,
         SimpleNamespace(component_labels=labels),
@@ -372,6 +419,7 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
         "evaluate_public_finder_correction_candidate_products",
         return_value=SimpleNamespace(
             detection=detection,
+            direct_component_labels=direct_labels,
             scale_detection_planes=scale_planes,
             position_signal_jy_per_beam=position_signal,
         ),
@@ -405,10 +453,57 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     assert result.source_association is association
     assert evaluate.call_args.kwargs == {"beam": beam, "review": review}
     assert measure.call_args.args[3] is labels
-    assert measure.call_args.args[4] is scale_planes
+    assert measure.call_args.args[4] is direct_labels
+    assert measure.call_args.args[5] is scale_planes
     assert measure.call_args.kwargs["position_signal_jy_per_beam"] is (
         position_signal
     )
+
+
+def test_real_scale_composition_reports_unconverged_shell_fragments() -> None:
+    """Telemetry exposes absent parents in real scale masks."""
+    shape = (81, 81)
+    y_pixels, x_pixels = np.mgrid[: shape[0], : shape[1]]
+    radius = 10.0
+    radial_distance = np.hypot(x_pixels - 40.0, y_pixels - 40.0)
+    position_angle = np.arctan2(y_pixels - 40.0, x_pixels - 40.0)
+    image = np.exp(-((radial_distance - radius) ** 2) / 2.0)
+    image *= 1.0 + 8.0 * np.clip(np.cos(4.0 * position_angle), 0.0, None)
+    header = fits.Header()
+    header["NAXIS"] = 2
+    header["NAXIS1"] = shape[1]
+    header["NAXIS2"] = shape[0]
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = 41.0
+    header["CRPIX2"] = 41.0
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["BMAJ"] = 4.0 / 3600.0
+    header["BMIN"] = 4.0 / 3600.0
+    header["BPA"] = 0.0
+    review = load_phase_five_corrective_a_review(
+        _ROOT / "config/contracts/phase-5-corrective-a-review.json"
+    )
+
+    products = build_public_finder_source_reconstruction_continuum_products(
+        image,
+        np.zeros(shape),
+        np.ones(shape),
+        header,
+        beam=BeamShapePixels(4.0, 4.0, 0.0),
+        review=review,
+    )
+
+    diagnostics = products.source_association.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.direct_component_count == 4
+    assert diagnostics.catalogue_source_count == 4
+    assert diagnostics.membership_size_histogram == ((1, 4),)
+    assert diagnostics.per_scale_feature_counts == ((1, 4), (2, 4), (3, 4))
+    assert diagnostics.unique_convergence_count == 0
 
 
 def test_public_correction_rejects_nonreal_input_before_science() -> None:

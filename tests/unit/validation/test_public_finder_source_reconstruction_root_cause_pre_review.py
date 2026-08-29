@@ -13,6 +13,15 @@ _REVIEW = (
     / "config/contracts/phase-5-public-finder-source-reconstruction-root-"
     "cause-pre-review.json"
 )
+_DECISION = (
+    _ROOT
+    / "config/contracts/phase-5-public-finder-source-reconstruction-root-"
+    "cause-repair-implementation-decision.json"
+)
+_PARENT_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-pre-review.json"
+)
 
 
 def _load() -> dict[str, Any]:
@@ -23,6 +32,17 @@ def _load() -> dict[str, Any]:
 def _sha256(path: Path) -> str:
     """Return the hexadecimal SHA-256 of one evidence file."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _canonical_sha256(payload: dict[str, Any]) -> str:
+    """Return the semantic digest independent of JSON pretty formatting."""
+    canonical = json.dumps(
+        payload,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 def test_review_is_non_executable() -> None:
@@ -176,3 +196,105 @@ def test_review_requires_separate_replay_approval() -> None:
         "freeze-exact-non-executable-candidate-and-replay-identities",
         "obtain-separate-exact-approval-before-any-cumulative-replay",
     ]
+
+
+def test_named_approval_opens_only_fixture_bound_repair() -> None:
+    """The implementation decision preserves every execution prohibition."""
+    decision = json.loads(_DECISION.read_text(encoding="utf-8"))
+
+    pre_review = decision["pre_review"]
+    assert pre_review == {
+        "approved_revision": "a6a56ff145bf4d5c23001b5853d50750e576611d",
+        "approved_sha256": (
+            "c1a92bd2d03455046db60c6e5b704eb3f7097b4c094d96386f69ae90cdec3993"
+        ),
+        "canonical_json_sha256": (
+            "25531467b4baf3ca3d4c87b21e0d1bd85fb16cfc586345fc0728bb9096e46b3d"
+        ),
+        "normalized_sha256": (
+            "fe9ca88d455720c5d375812875c3067e98ecc3e1ee05ead71d1c3dd0b568f979"
+        ),
+        "path": (
+            "config/contracts/phase-5-public-finder-source-reconstruction-"
+            "root-cause-pre-review.json"
+        ),
+        "pretty_format_only": True,
+    }
+    assert _sha256(_REVIEW) == pre_review["normalized_sha256"]
+    assert _canonical_sha256(_load()) == pre_review["canonical_json_sha256"]
+    authorization = decision["authorization"]
+    assert authorization["root_cause_repair_implementation_authorized"]
+    assert authorization["activation_telemetry_implementation_authorized"]
+    assert authorization["fixture_only_validation_authorized"]
+    assert authorization["candidate_identity_freeze_authorized"]
+    assert authorization["replay_identity_freeze_authorized"]
+    assert not any(
+        authorization[field]
+        for field in (
+            "campaign_execution_authorized",
+            "cumulative_replay_authorized",
+            "cutover_authorized",
+            "fresh_qualification_authorized",
+            "optimization_authorized",
+            "public_development_execution_authorized",
+            "release_authorized",
+            "rescoring_authorized",
+            "threshold_or_photometric_tuning_authorized",
+            "viewed_data_execution_authorized",
+        )
+    )
+
+
+def test_real_scale_parent_review_is_non_executable_and_exact() -> None:
+    """Failed activation opens a new review, never identity or execution."""
+    review = json.loads(_PARENT_REVIEW.read_text(encoding="utf-8"))
+
+    assert review["review_id"] == (
+        "phase-5-public-finder-source-hierarchy-parent-construction-pre-review"
+    )
+    assert review["status"] == (
+        "ready-for-named-parent-construction-design-review"
+    )
+    assert set(review["authorization"].values()) == {False}
+    assert review["change_control"][
+        "identity_freeze_blocked_until_fixture_acceptance"
+    ]
+    assert review["required_sequence"][-2:] == [
+        "freeze-exact-non-executable-candidate-and-replay-identities",
+        "obtain-separate-exact-approval-before-any-cumulative-replay",
+    ]
+
+
+def test_real_scale_parent_review_binds_observed_activation_census() -> None:
+    """The next design must address the real composition, not a mock tree."""
+    review = json.loads(_PARENT_REVIEW.read_text(encoding="utf-8"))
+    context = review["binding_context"]
+    approved = context["approved_root_cause_repair"]
+
+    assert approved["approved_pre_review_sha256"] == (
+        "c1a92bd2d03455046db60c6e5b704eb3f7097b4c094d96386f69ae90cdec3993"
+    )
+    assert (
+        _sha256(_ROOT / approved["pre_review_path"])
+        == (approved["normalized_pre_review_sha256"])
+    )
+    assert (
+        _canonical_sha256(_load())
+        == (approved["canonical_pre_review_json_sha256"])
+    )
+    assert (
+        _sha256(_ROOT / approved["decision_path"])
+        == (approved["decision_sha256"])
+    )
+    observed = review["causal_findings"]["controlled_real_scale_reproduction"][
+        "observed"
+    ]
+    assert observed == {
+        "adjacent_scale_parent_edge_count": 8,
+        "catalogue_source_count": 4,
+        "direct_component_count": 4,
+        "membership_size_histogram": [[1, 4]],
+        "per_scale_feature_counts": [[1, 4], [2, 4], [3, 4]],
+        "unique_convergence_count": 0,
+    }
+    assert review["recommended_design"]["no_new_fitted_numeric_thresholds"]

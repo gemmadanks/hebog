@@ -1,8 +1,12 @@
 # Phase 5 public-finder source reconstruction
 
-**Status:** implemented and validated on analytic fixtures only. No cumulative
-replay, public-data campaign, qualification run, tuning, rescoring, cutover,
-or release is authorized by this work.
+**Status:** the first source-reconstruction candidate is terminal failed
+evidence. Its approved activation repair is implemented and validated as a
+prerequisite, but a real-scale analytic fixture proves that the current scale
+features do not construct the shared parent needed to group sibling lobes.
+Candidate and replay identity freeze therefore stopped. No cumulative replay,
+public-data campaign, qualification run, tuning, rescoring, cutover, or release
+is authorized by this work.
 
 This page records the prospective correction approved by source-reconstruction
 pre-review `528f18a6...`. It replaces the failed catalogue composition used by
@@ -32,15 +36,19 @@ they are not dilated for source reconstruction. A stable feature identity is
 derived from the scale order and the globally canonical first support pixel.
 
 Adjacent scales are joined with Hebog's existing exact-overlap association
-kernel. A direct component attaches to the finest feature it intersects and
-follows only unique parent links. Components with the same unambiguous root
-form one catalogue source.
+kernel. A direct component attaches to every finest feature intersected by its
+immutable direct-seed support and follows only unique parent links. Components
+group at their finest common feature only when that feature persists to a
+parent, or when every component directly attaches to that same feature.
 
 The rule fails closed:
 
-- no feature or no parent leaves a component as a singleton;
-- more than one intersecting finest feature or more than one parent marks the
-  component ambiguous and leaves it as a singleton; and
+- no feature leaves a component as a singleton;
+- multiple intersecting finest features require one unique common lineage;
+- missing convergence or more than one parent marks the component ambiguous
+  and leaves it as a singleton;
+- a shared feature appearing only as a terminal coarse bridge cannot group
+  otherwise independent components; and
 - proximity, a centroid chord, or a transitive chain cannot create a source
   without one explicit common feature.
 
@@ -115,9 +123,39 @@ The same source memberships and support owners are tested through the serial
 and existing-Dask executors, including reversed task order and a duplicate
 retry.
 
+## Post-campaign activation review
+
+Terminal cumulative ledger `84fbb3a1...` showed that the first candidate did
+not materially change membership: all endpoint states and the overall 25.29%
+split and duplicate fractions were unchanged. Review `c1a92bd2...` traced one
+real composition defect: support expansion replaced the direct-seed owner
+plane before hierarchy attachment. The approved repair now retains both
+planes, measures on recovered ownership, associates on direct ownership, and
+records an array-free activation census.
+
+That repair exposed a separate source-parent construction defect. An 81 by 81
+analytic four-lobe shell was sent through the real corrective-A scale filter,
+support assignment, hierarchy, and product composition. It produced four
+direct components and four exact features at each of scales 1, 2, and 3. Exact
+adjacent-scale overlap produced four persistent lineages, not one shared
+parent, so the correct fail-closed result remained four singleton catalogue
+sources. The earlier positive tests manually supplied a connected coarse
+parent; they validated hierarchy reduction but not construction of that parent
+from real scale products.
+
+Non-executable parent-construction pre-review `b5d89bdc...` records the full
+cause and proposes a fixture-first, scale-aware parent construction derived
+from the existing B3-spline filter footprint. Exact feature support remains
+the measurement evidence; any prospective support envelope may provide parent
+evidence only, must persist across adjacent scales, and must fail the nearby
+source, terminal-bridge, crowded-field, invalid-gap, and transitive-chain
+negative controls. No fitted threshold or campaign-derived radius is allowed.
+The design requires a separate named approval before implementation, and any
+eventual replay would still require a later exact approval.
+
 ## Governance boundary
 
-The implementation decision is
+The original implementation decision is
 `config/contracts/phase-5-public-finder-source-reconstruction-implementation-decision.json`.
 The prospective replay wrapper now consumes the exact previous replay
 composition, replaces only the Continuum candidate and catalogue-source
@@ -133,4 +171,7 @@ Execution decision `0d87caf7...` records the separate named approval of that
 exact frozen composition and authorizes one cumulative replay only. Its result
 must be summarized in the
 [Phase 5 campaign overview](phase-5-campaign-overview.md) without replacing
-the existing failed evidence.
+the existing failed evidence. That authority is consumed and its terminal
+ledger failed. Root-cause repair decision `8296c4ce...` authorized only the
+prerequisite fixture-bound activation work. Because the real-scale fixture did
+not activate, it did not produce replacement candidate or replay identities.

@@ -48,6 +48,7 @@ class PostCampaignCandidateProducts:
     """Refined detection plus regularized position-measurement signal."""
 
     detection: ThresholdFilterResult
+    direct_component_labels: npt.NDArray[np.int32]
     position_signal_jy_per_beam: npt.NDArray[np.float64]
     significant_multiscale_support: npt.NDArray[np.bool_]
     scale_detection_planes: tuple[ScaleDetectionPlane, ...]
@@ -143,12 +144,18 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
         dtype=np.bool_,
     ).copy()
     significant_support.setflags(write=False)
+    direct_labels = np.asarray(
+        detection.component_labels,
+        dtype=np.int32,
+    ).copy()
+    direct_labels.setflags(write=False)
     return PostCampaignCandidateProducts(
         detection=refine_external_candidate_detection(
             detection,
             reconstruction.support_mask,
             beam,
         ),
+        direct_component_labels=direct_labels,
         position_signal_jy_per_beam=(
             prepared.residual_jy_per_beam
             + atrous.reconstructed_signal_jy_per_beam
@@ -227,8 +234,14 @@ def evaluate_public_finder_correction_candidate_products(  # noqa: PLR0913
         dtype=np.bool_,
     ).copy()
     significant_support.setflags(write=False)
+    direct_labels = np.asarray(
+        direct_detection.component_labels,
+        dtype=np.int32,
+    ).copy()
+    direct_labels.setflags(write=False)
     return PostCampaignCandidateProducts(
         detection=detection,
+        direct_component_labels=direct_labels,
         position_signal_jy_per_beam=(
             prepared.residual_jy_per_beam
             + atrous.reconstructed_signal_jy_per_beam

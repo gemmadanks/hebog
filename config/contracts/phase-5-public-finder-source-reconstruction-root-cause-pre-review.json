@@ -98,8 +98,8 @@
     },
     "terminal_evidence_limit": {
       "classification": "observability-gap",
-      "description": "The sealed products and ledger contain no aggregate hierarchy activation record, and the raw candidate shards were removed after verified terminal compilation. Campaign-level ambiguous, unattached, converged, and membership-size counts cannot be recovered retrospectively.",
-      "consequence": "The primary cause is high-confidence rather than campaign-level conclusive; the next candidate must emit compact activation telemetry before another replay can be considered."
+      "consequence": "The primary cause is high-confidence rather than campaign-level conclusive; the next candidate must emit compact activation telemetry before another replay can be considered.",
+      "description": "The sealed products and ledger contain no aggregate hierarchy activation record, and the raw candidate shards were removed after verified terminal compilation. Campaign-level ambiguous, unattached, converged, and membership-size counts cannot be recovered retrospectively."
     },
     "ultimate_root_overmerge": {
       "classification": "prospective-safety-risk-not-observed-cause",
@@ -174,7 +174,7 @@
     "continuum": {
       "changed_point_estimate_count_vs_prior": 48,
       "like_semantics_regression_count": 37,
-      "maximum_absolute_point_change_vs_prior": 6.5104e-7,
+      "maximum_absolute_point_change_vs_prior": 6.5104e-07,
       "overall_duplicate_fraction": 0.2529464285714285,
       "overall_split_fraction": 0.2529464285714285,
       "status_counts": {

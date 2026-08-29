@@ -12414,3 +12414,55 @@ changes no production behaviour or control flow.
 **Immediate next step:** obtain named approval of exact review `c1a92bd2...`
 before implementing the fixture-only repair. Another cumulative replay would
 still require a later exact identity review and separate approval.
+
+## 2026-08-29 — Isolate the missing source-parent construction
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Gemma Danks approved exact root-cause review `c1a92bd2...`. Decision
+  `8296c4ce...` records fixture-only implementation authority and preserves all
+  replay, viewed-data, qualification, tuning, rescoring, optimization,
+  cutover, and release prohibitions.
+- The mandatory JSON hook normalized key order and exponent formatting in that
+  already approved review. Decision `8296c4ce...` binds original bytes
+  `c1a92bd2...` at revision `a6a56ff...`, normalized bytes `fe9ca88d...`, and
+  their identical canonical JSON digest `25531467...`; no field or value
+  changed.
+- Added separate immutable direct-seed and recovered measurement-owner planes.
+  Hierarchy identity now uses direct owners; masks and source photometry retain
+  recovered owners. Multiple finest-feature attachments may proceed only
+  through one unambiguous common lineage. Terminal-only coarse bridges remain
+  singletons.
+- Added compact, array-free hierarchy telemetry covering direct components,
+  catalogue sources, membership sizes, attachment ambiguity, convergence,
+  per-scale feature counts, and adjacent-scale parent edges. The persisted
+  source-association record therefore makes future activation observable.
+- Hand-built positive parents, absent/branched convergence, expanded-owner
+  separation, terminal-bridge safety, malformed ownership, serial composition,
+  and existing-Dask serialization pass 64 focused tests.
+- The mandatory real-path analytic shell exposed a second confirmed defect.
+  Four direct lobes remain four connected features at scales 1, 2, and 3;
+  eight adjacent-scale edges preserve four independent lineages, but no common
+  parent exists. The result correctly remains four singleton sources with zero
+  convergence. Synthetic-only Gaussian-pair, ring-lobe, and pedestal probes
+  likewise either stayed separate at every scale or collapsed before
+  hierarchy association.
+- Earlier positive tests manually supplied a connected coarse parent. They
+  proved reduction of an existing hierarchy but could not prove that the real
+  scale products construct that hierarchy. The approved label repair is
+  necessary but insufficient, so no replacement candidate or replay identity
+  was frozen.
+- Non-executable pre-review `b5d89bdc...` recommends a test-first, scale-aware
+  parent construction derived from the existing B3-spline filter footprint,
+  with exact support retained for measurement, adjacent-scale persistence,
+  connected-valid-support admission, and explicit overmerge controls. It adds
+  no fitted threshold or campaign-derived radius and authorizes nothing.
+
+**Validation:** focused hierarchy, product, prospective composition, review,
+and existing-Dask tests pass 64 tests; Ruff passes on all changed Python files.
+Full coverage and handoff validation remain pending.
+
+**Immediate next step:** obtain named approval of exact parent-construction
+review `b5d89bdc...` before implementing that design. Replay, candidate
+identity freeze, viewed SDC1/Hydra execution, qualification, tuning, rescoring,
+cutover, and release remain prohibited.

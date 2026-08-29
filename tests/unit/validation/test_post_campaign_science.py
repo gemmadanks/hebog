@@ -117,6 +117,11 @@ def test_candidate_products_reuse_atrous_detection_and_position_signal(
         direct_signal + position_signal,
     )
     assert products.detection.component_count == 1
+    np.testing.assert_array_equal(
+        products.direct_component_labels,
+        detection.component_labels,
+    )
+    assert not products.direct_component_labels.flags.writeable
     assert products.scale_detection_planes is scale_planes
     assert corrective.call_args.kwargs["family"] == "residual-b3-atrous"
     assert reconstruct.call_args.kwargs == {
@@ -193,6 +198,11 @@ def test_public_correction_owns_bridge_from_pre_union_direct_seeds(
     assert products.detection.component_labels[3, 1] == 9
     assert products.detection.component_labels[3, 9] == 2
     assert products.detection.component_labels[3, 5] == 9
+    np.testing.assert_array_equal(
+        products.direct_component_labels,
+        direct_detection.component_labels,
+    )
+    assert not products.direct_component_labels.flags.writeable
     assert products.scale_detection_planes is scale_planes
     assert detect.call_count == 1
 

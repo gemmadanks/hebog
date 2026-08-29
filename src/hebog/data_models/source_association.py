@@ -125,6 +125,68 @@ class CatalogueSourceMembership:
 
 
 @dataclass(frozen=True, slots=True)
+class SourceHierarchyDiagnostics:
+    """Compact array-free activation evidence for one source hierarchy."""
+
+    direct_component_count: int
+    catalogue_source_count: int
+    membership_size_histogram: tuple[tuple[int, int], ...]
+    unattached_component_count: int
+    multiple_finest_feature_attachment_count: int
+    branched_lineage_count: int
+    no_common_convergence_count: int
+    unique_convergence_count: int
+    per_scale_feature_counts: tuple[tuple[int, int], ...]
+    adjacent_scale_parent_edge_count: int
+
+    def __post_init__(self) -> None:
+        """Require canonical non-negative counts and exact cardinalities."""
+        scalar_counts = (
+            self.direct_component_count,
+            self.catalogue_source_count,
+            self.unattached_component_count,
+            self.multiple_finest_feature_attachment_count,
+            self.branched_lineage_count,
+            self.no_common_convergence_count,
+            self.unique_convergence_count,
+            self.adjacent_scale_parent_edge_count,
+        )
+        if any(value < 0 for value in scalar_counts):
+            raise ValueError("source hierarchy counts must be non-negative")
+        if self.direct_component_count <= 0:
+            raise ValueError("source hierarchy requires direct components")
+        if self.catalogue_source_count <= 0:
+            raise ValueError("source hierarchy requires catalogue sources")
+        histogram = self.membership_size_histogram
+        if histogram != tuple(sorted(set(histogram))) or any(
+            size <= 0 or count <= 0 for size, count in histogram
+        ):
+            raise ValueError(
+                "source hierarchy membership histogram must be canonical"
+            )
+        if sum(count for _, count in histogram) != self.catalogue_source_count:
+            raise ValueError(
+                "source hierarchy membership histogram must count sources"
+            )
+        if (
+            sum(size * count for size, count in histogram)
+            != self.direct_component_count
+        ):
+            raise ValueError(
+                "source hierarchy membership histogram must count components"
+            )
+        scale_counts = self.per_scale_feature_counts
+        if scale_counts != tuple(sorted(set(scale_counts))) or any(
+            scale <= 0 or count < 0 for scale, count in scale_counts
+        ):
+            raise ValueError("source hierarchy scale counts must be canonical")
+        if self.unique_convergence_count > self.catalogue_source_count:
+            raise ValueError(
+                "source hierarchy convergence count exceeds source count"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class SourceAssociationResult:
     """Complete array-free association graph and source partition."""
 
@@ -132,6 +194,7 @@ class SourceAssociationResult:
     edges: tuple[SourceAssociationEdge, ...]
     memberships: tuple[CatalogueSourceMembership, ...]
     ambiguous_component_ids: tuple[str, ...] = ()
+    hierarchy_diagnostics: SourceHierarchyDiagnostics | None = None
 
     def __post_init__(self) -> None:
         """Require unique evidence and an exact component partition."""
@@ -178,4 +241,12 @@ class SourceAssociationResult:
         ) or not set(self.ambiguous_component_ids).issubset(component_ids):
             raise ValueError(
                 "ambiguous component IDs must be a canonical component subset"
+            )
+        diagnostics = self.hierarchy_diagnostics
+        if diagnostics is not None and (
+            diagnostics.direct_component_count != len(self.components)
+            or diagnostics.catalogue_source_count != len(self.memberships)
+        ):
+            raise ValueError(
+                "source hierarchy diagnostics must match association counts"
             )

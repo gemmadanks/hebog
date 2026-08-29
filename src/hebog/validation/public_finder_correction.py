@@ -54,6 +54,12 @@ _SOURCE_ASSOCIATION_POLICY = (
 _SOURCE_RECONSTRUCTION_POLICY = (
     "undilated-adjacent-scale-unambiguous-common-parent-v1"
 )
+_SOURCE_RECONSTRUCTION_ACTIVATION_POLICY = (
+    "direct-seed-nearest-persistent-common-convergence-v2"
+)
+_SOURCE_RECONSTRUCTION_TELEMETRY_POLICY = (
+    "array-free-hierarchy-activation-census-v1"
+)
 _SOURCE_MEASUREMENT_POLICY = "disjoint-source-owned-aperture-moment-v1"
 _CONNECTED_SUPPORT_POLICY = (
     "direct-seed-connected-half-beam-multiscale-recovery-v1"
@@ -356,6 +362,45 @@ def public_finder_source_reconstruction_candidate_configuration(
     return {"compact": base["compact"], "continuum": continuum}
 
 
+def public_finder_source_reconstruction_root_cause_repair_configuration(  # noqa: PLR0913, PLR0917
+    base_review_path: Path,
+    correction_contract_path: Path,
+    source_reconstruction_pre_review_path: Path,
+    source_reconstruction_decision_path: Path,
+    root_cause_pre_review_path: Path,
+    root_cause_implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Return the approved non-executable hierarchy-activation identity."""
+    base = public_finder_source_reconstruction_candidate_configuration(
+        base_review_path,
+        correction_contract_path,
+        source_reconstruction_pre_review_path,
+        source_reconstruction_decision_path,
+    )
+    continuum_value = base["continuum"]
+    if not isinstance(continuum_value, dict):
+        raise TypeError("base Continuum configuration must be a dictionary")
+    continuum = dict(cast(dict[str, object], continuum_value))
+    continuum.update(
+        {
+            "source_reconstruction_activation_policy": (
+                _SOURCE_RECONSTRUCTION_ACTIVATION_POLICY
+            ),
+            "source_reconstruction_telemetry_policy": (
+                _SOURCE_RECONSTRUCTION_TELEMETRY_POLICY
+            ),
+            "source_reconstruction_root_cause_pre_review_sha256": (
+                file_sha256(root_cause_pre_review_path)
+            ),
+            (
+                "source_reconstruction_root_cause_implementation_"
+                "decision_sha256"
+            ): file_sha256(root_cause_implementation_decision_path),
+        }
+    )
+    return {"compact": base["compact"], "continuum": continuum}
+
+
 def _aligned_public_plane(
     values: npt.ArrayLike,
     *,
@@ -476,6 +521,7 @@ def build_public_finder_source_reconstruction_continuum_products(  # noqa: PLR09
         background,
         valid,
         products.detection.component_labels,
+        products.direct_component_labels,
         products.scale_detection_planes,
         header,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,

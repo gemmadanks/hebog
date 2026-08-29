@@ -5,7 +5,9 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping
+from dataclasses import dataclass
 from hashlib import sha256
 from itertools import combinations
 from math import isfinite
@@ -25,12 +27,14 @@ from hebog.data_models.source_association import (
     DetectionComponentRecord,
     SourceAssociationEdge,
     SourceAssociationResult,
+    SourceHierarchyDiagnostics,
 )
 
 _COMPONENT_NAMESPACE = b"phase-5-detection-component-v1\0"
 _SOURCE_NAMESPACE = b"phase-5-associated-source-v1\0"
 _IMAGE_DIMENSIONS = 2
 _MINIMUM_SHAPE_PIXELS = 3
+_MINIMUM_SOURCE_MEMBERS = 2
 _GAUSSIAN_FWHM_FACTOR = 2.0 * np.sqrt(2.0 * np.log(2.0))
 
 
@@ -542,12 +546,12 @@ def _feature_by_id(
     }
 
 
-def _attached_finest_feature(
+def _attached_finest_features(
     record: DetectionComponentRecord,
     labels: npt.NDArray[np.int64],
     planes: tuple[ScaleDetectionPlane, ...],
-) -> tuple[str | None, bool]:
-    """Attach one owner to exactly one finest intersecting feature."""
+) -> tuple[str, ...]:
+    """Return every finest-scale feature intersecting one direct owner."""
     owner = labels == record.label_value
     for plane in planes:
         feature_labels = tuple(
@@ -559,28 +563,200 @@ def _attached_finest_feature(
         )
         if not feature_labels:
             continue
-        if len(feature_labels) != 1:
-            return None, True
-        return plane.detections[feature_labels[0] - 1].detection_id, False
-    return None, False
+        return tuple(
+            plane.detections[label_value - 1].detection_id
+            for label_value in feature_labels
+        )
+    return ()
 
 
-def _unambiguous_root(
+def _unambiguous_lineage(
     feature_id: str,
     parents_by_id: Mapping[str, tuple[str, ...]],
-) -> tuple[str | None, bool]:
-    """Follow unique adjacent-scale parents or fail closed on a branch."""
+) -> tuple[tuple[str, ...], bool]:
+    """Return one feature-to-root lineage or fail closed on a branch."""
     visited: set[str] = set()
     current = feature_id
+    lineage: list[str] = []
     while current in parents_by_id:
         if current in visited:
             raise ValueError("source hierarchy contains a parent cycle")
         visited.add(current)
+        lineage.append(current)
         parents = parents_by_id[current]
         if len(parents) != 1:
-            return None, True
+            return (), True
         current = parents[0]
-    return current, False
+    lineage.append(current)
+    return tuple(lineage), False
+
+
+def _nearest_common_feature(
+    lineages: tuple[tuple[str, ...], ...],
+    feature_index: Mapping[str, tuple[int, int]],
+) -> str | None:
+    """Return the finest feature shared by every unique lineage."""
+    if not lineages:
+        return None
+    common = set(lineages[0]).intersection(*lineages[1:])
+    if not common:
+        return None
+    return min(common, key=lambda item: (feature_index[item][0], item))
+
+
+@dataclass(frozen=True, slots=True)
+class _HierarchyAttachments:
+    """Internal attachment paths and their fail-closed census."""
+
+    features_by_component: Mapping[str, tuple[str, ...]]
+    lineages_by_component: Mapping[str, tuple[str, ...]]
+    ambiguous_component_ids: frozenset[str]
+    unattached_count: int
+    multiple_attachment_count: int
+    branched_lineage_count: int
+    no_common_convergence_count: int
+
+
+def _hierarchy_attachments(
+    records: tuple[DetectionComponentRecord, ...],
+    labels: npt.NDArray[np.int64],
+    planes: tuple[ScaleDetectionPlane, ...],
+    parents_by_id: Mapping[str, tuple[str, ...]],
+    feature_index: Mapping[str, tuple[int, int]],
+) -> _HierarchyAttachments:
+    """Attach direct owners to unique feature lineages."""
+    features_by_component: dict[str, tuple[str, ...]] = {}
+    lineages_by_component: dict[str, tuple[str, ...]] = {}
+    ambiguous: set[str] = set()
+    unattached_count = 0
+    multiple_attachment_count = 0
+    branched_lineage_count = 0
+    no_common_convergence_count = 0
+    for record in sorted(records, key=lambda item: item.component_id):
+        attachments = _attached_finest_features(record, labels, planes)
+        features_by_component[record.component_id] = attachments
+        if not attachments:
+            unattached_count += 1
+            continue
+        multiple_attachment_count += len(attachments) > 1
+        lineages_and_flags = tuple(
+            _unambiguous_lineage(attachment, parents_by_id)
+            for attachment in attachments
+        )
+        if any(is_ambiguous for _, is_ambiguous in lineages_and_flags):
+            ambiguous.add(record.component_id)
+            branched_lineage_count += 1
+            continue
+        lineages = tuple(lineage for lineage, _ in lineages_and_flags)
+        if len(lineages) == 1:
+            lineages_by_component[record.component_id] = lineages[0]
+            continue
+        convergence = _nearest_common_feature(lineages, feature_index)
+        if convergence is None:
+            ambiguous.add(record.component_id)
+            no_common_convergence_count += 1
+            continue
+        first_lineage = lineages[0]
+        lineages_by_component[record.component_id] = first_lineage[
+            first_lineage.index(convergence) :
+        ]
+    return _HierarchyAttachments(
+        features_by_component=features_by_component,
+        lineages_by_component=lineages_by_component,
+        ambiguous_component_ids=frozenset(ambiguous),
+        unattached_count=unattached_count,
+        multiple_attachment_count=multiple_attachment_count,
+        branched_lineage_count=branched_lineage_count,
+        no_common_convergence_count=no_common_convergence_count,
+    )
+
+
+def _hierarchy_groups(
+    records: tuple[DetectionComponentRecord, ...],
+    attachments: _HierarchyAttachments,
+    feature_index: Mapping[str, tuple[int, int]],
+    parents_by_id: Mapping[str, tuple[str, ...]],
+) -> tuple[frozenset[str], ...]:
+    """Group owners at their first corroborated shared feature."""
+    groups: list[frozenset[str]] = []
+    unassigned = {
+        record.component_id
+        for record in records
+        if record.component_id not in attachments.ambiguous_component_ids
+    }
+    for feature_id in sorted(
+        feature_index,
+        key=lambda item: (feature_index[item][0], item),
+    ):
+        members = {
+            component_id
+            for component_id in unassigned
+            if feature_id
+            in attachments.lineages_by_component.get(component_id, ())
+        }
+        if len(members) < _MINIMUM_SOURCE_MEMBERS:
+            continue
+        corroborated = feature_id in parents_by_id or all(
+            attachments.features_by_component[component_id] == (feature_id,)
+            for component_id in members
+        )
+        if not corroborated:
+            continue
+        groups.append(frozenset(members))
+        unassigned.difference_update(members)
+    groups.extend(frozenset((component_id,)) for component_id in unassigned)
+    groups.extend(
+        frozenset((component_id,))
+        for component_id in attachments.ambiguous_component_ids
+    )
+    return tuple(groups)
+
+
+def _source_memberships(
+    groups: tuple[frozenset[str], ...],
+) -> tuple[CatalogueSourceMembership, ...]:
+    """Return canonical stable source records for exact groups."""
+    return tuple(
+        sorted(
+            (
+                CatalogueSourceMembership(
+                    source_id=_source_id(tuple(sorted(group))),
+                    component_ids=tuple(sorted(group)),
+                )
+                for group in groups
+            ),
+            key=lambda item: item.source_id,
+        )
+    )
+
+
+def _hierarchy_diagnostics(
+    records: tuple[DetectionComponentRecord, ...],
+    memberships: tuple[CatalogueSourceMembership, ...],
+    planes: tuple[ScaleDetectionPlane, ...],
+    parent_edges: tuple[tuple[str, str], ...],
+    attachments: _HierarchyAttachments,
+) -> SourceHierarchyDiagnostics:
+    """Build compact deterministic activation evidence."""
+    histogram = Counter(len(item.component_ids) for item in memberships)
+    return SourceHierarchyDiagnostics(
+        direct_component_count=len(records),
+        catalogue_source_count=len(memberships),
+        membership_size_histogram=tuple(sorted(histogram.items())),
+        unattached_component_count=attachments.unattached_count,
+        multiple_finest_feature_attachment_count=(
+            attachments.multiple_attachment_count
+        ),
+        branched_lineage_count=attachments.branched_lineage_count,
+        no_common_convergence_count=(attachments.no_common_convergence_count),
+        unique_convergence_count=sum(
+            len(item.component_ids) > 1 for item in memberships
+        ),
+        per_scale_feature_counts=tuple(
+            (plane.scale_order, len(plane.detections)) for plane in planes
+        ),
+        adjacent_scale_parent_edge_count=len(parent_edges),
+    )
 
 
 def associate_components_by_multiscale_hierarchy(
@@ -589,12 +765,14 @@ def associate_components_by_multiscale_hierarchy(
     scale_detection_planes: tuple[ScaleDetectionPlane, ...],
     valid_pixels: npt.ArrayLike,
 ) -> SourceAssociationResult:
-    """Partition direct owners through one unambiguous common scale parent.
+    """Partition direct owners at a corroborated common scale feature.
 
     Direct component labels are immutable. Each owner attaches to the finest
-    exact undilated scale feature it intersects, then follows only unique
-    adjacent-scale overlap parents. Owners with the same explicit root form a
-    catalogue source. Missing or branched lineage remains a flagged singleton.
+    exact undilated scale features it intersects, then follows only unique
+    adjacent-scale overlap parents. Owners group at their finest shared
+    feature only when that feature persists to a parent, or when every owner
+    directly attaches to the same feature. Missing, branched, or unconverged
+    lineage remains a flagged singleton.
     """
     labels, planes = _hierarchy_inputs(
         records,
@@ -603,8 +781,9 @@ def associate_components_by_multiscale_hierarchy(
         valid_pixels,
     )
     feature_index = _feature_by_id(planes)
+    parent_edges = adjacent_scale_overlap_edges(planes)
     parent_sets: dict[str, set[str]] = {}
-    for child_id, parent_id in adjacent_scale_overlap_edges(planes):
+    for child_id, parent_id in parent_edges:
         child_scale = feature_index[child_id][0]
         parent_scale = feature_index[parent_id][0]
         if parent_scale != child_scale + 1:
@@ -615,47 +794,33 @@ def associate_components_by_multiscale_hierarchy(
         for child_id, parent_ids in parent_sets.items()
     }
 
-    groups: dict[str, set[str]] = {}
-    ambiguous: set[str] = set()
-    for record in sorted(records, key=lambda item: item.component_id):
-        attached, attachment_ambiguous = _attached_finest_feature(
-            record,
-            labels,
-            planes,
-        )
-        if attached is None:
-            root = None
-            lineage_ambiguous = attachment_ambiguous
-        else:
-            root, lineage_ambiguous = _unambiguous_root(
-                attached,
-                parents_by_id,
-            )
-        is_ambiguous = attachment_ambiguous or lineage_ambiguous
-        if is_ambiguous:
-            ambiguous.add(record.component_id)
-        key = (
-            f"parent:{root}"
-            if root is not None and not is_ambiguous
-            else f"singleton:{record.component_id}"
-        )
-        groups.setdefault(key, set()).add(record.component_id)
-
-    memberships = tuple(
-        sorted(
-            (
-                CatalogueSourceMembership(
-                    source_id=_source_id(tuple(sorted(group))),
-                    component_ids=tuple(sorted(group)),
-                )
-                for group in groups.values()
-            ),
-            key=lambda item: item.source_id,
+    attachments = _hierarchy_attachments(
+        records,
+        labels,
+        planes,
+        parents_by_id,
+        feature_index,
+    )
+    memberships = _source_memberships(
+        _hierarchy_groups(
+            records,
+            attachments,
+            feature_index,
+            parents_by_id,
         )
     )
     return SourceAssociationResult(
         components=tuple(sorted(records, key=lambda item: item.component_id)),
         edges=(),
         memberships=memberships,
-        ambiguous_component_ids=tuple(sorted(ambiguous)),
+        ambiguous_component_ids=tuple(
+            sorted(attachments.ambiguous_component_ids)
+        ),
+        hierarchy_diagnostics=_hierarchy_diagnostics(
+            records,
+            memberships,
+            planes,
+            parent_edges,
+            attachments,
+        ),
     )

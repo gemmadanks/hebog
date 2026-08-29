@@ -1,0 +1,50 @@
+{
+  "approved_on": "2026-08-29",
+  "authorization": {
+    "activation_telemetry_implementation_authorized": true,
+    "campaign_execution_authorized": false,
+    "candidate_identity_freeze_authorized": true,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fixture_only_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "replay_identity_freeze_authorized": true,
+    "rescoring_authorized": false,
+    "root_cause_repair_implementation_authorized": true,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-source-reconstruction-root-cause-repair-implementation-decision",
+  "exact_approval": "Please continue with the next task. I approve the recommended actions in the root cause review.",
+  "implementation_scope": [
+    "test-first separation of immutable direct-seed and recovered measurement-owner labels",
+    "unique nearest common-convergence hierarchy attachment",
+    "compact fail-closed hierarchy activation telemetry",
+    "fixture-only end-to-end and overmerge safety validation",
+    "serial existing-Dask tile order and retry invariance",
+    "non-executable corrected candidate and replay identity freeze"
+  ],
+  "pre_review": {
+    "approved_revision": "a6a56ff145bf4d5c23001b5853d50750e576611d",
+    "approved_sha256": "c1a92bd2d03455046db60c6e5b704eb3f7097b4c094d96386f69ae90cdec3993",
+    "canonical_json_sha256": "25531467b4baf3ca3d4c87b21e0d1bd85fb16cfc586345fc0728bb9096e46b3d",
+    "normalized_sha256": "fe9ca88d455720c5d375812875c3067e98ecc3e1ee05ead71d1c3dd0b568f979",
+    "path": "config/contracts/phase-5-public-finder-source-reconstruction-root-cause-pre-review.json",
+    "pretty_format_only": true
+  },
+  "prohibited_actions": [
+    "cumulative replay",
+    "execution on viewed SDC1 or Hydra data",
+    "new campaign or request",
+    "fresh qualification",
+    "threshold background RMS minimum-area recovery-radius gate margin or photometric tuning",
+    "rescoring sealed evidence",
+    "optimization",
+    "cutover",
+    "release"
+  ],
+  "status": "authorized-for-hierarchy-activation-repair-and-fixture-only-validation"
+}
