@@ -58,13 +58,21 @@ _PARENT_IMPLEMENTATION_DECISION = (
     "construction-implementation-decision.json"
 )
 _READINESS = _ROOT / "config/contracts/phase-5-readiness.json"
-_IDENTITY_REVIEW = (
+_ORIGINAL_IDENTITY_REVIEW = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
     "construction-cumulative-replay-review.json"
 )
-_EXECUTION_DECISION = (
+_ORIGINAL_EXECUTION_DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
     "construction-cumulative-replay-execution-decision.json"
+)
+_IDENTITY_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-cumulative-replay-repair-review.json"
+)
+_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-cumulative-replay-repair-execution-decision.json"
 )
 _REPAIR_FAILURE = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
@@ -123,6 +131,12 @@ _REPAIR_PRE_REVIEW_SHA256 = (
 )
 _REPAIR_IMPLEMENTATION_DECISION_SHA256 = (
     "8df4301b2ef687905f91a8103cb9ce9cac7327a581f46d4f60d06760989da5d4"
+)
+_ORIGINAL_IDENTITY_REVIEW_SHA256 = (
+    "e615da0027a1cbb8bd0ab60f2b32cd09f37ccd49cf6a3e420a1ca9e8427a837e"
+)
+_ORIGINAL_EXECUTION_DECISION_SHA256 = (
+    "78c274ccf8c14fc0dd4deff1a2e791eb64ad154100af8db8ef0f72795ff40d9f"
 )
 _READINESS_SHA256 = (
     "318d6d6c612b7c043963de2b70556031d47c3b04b15de8ce8daca7bd23fcd386"
@@ -408,6 +422,16 @@ def _require_common_identities(arguments: argparse.Namespace) -> str:
             _REPAIR_IMPLEMENTATION_DECISION_SHA256,
             "repair implementation decision",
         ),
+        (
+            _ORIGINAL_IDENTITY_REVIEW,
+            _ORIGINAL_IDENTITY_REVIEW_SHA256,
+            "original identity review",
+        ),
+        (
+            _ORIGINAL_EXECUTION_DECISION,
+            _ORIGINAL_EXECUTION_DECISION_SHA256,
+            "original execution decision",
+        ),
         (_READINESS, _READINESS_SHA256, "readiness"),
         (_MULTISCALE_PROGRAM, _MULTISCALE_PROGRAM_SHA256, "multiscale"),
         (_HIERARCHY_PROGRAM, _HIERARCHY_PROGRAM_SHA256, "hierarchy"),
@@ -514,6 +538,12 @@ def _expected_execution_fields(
             "parent_construction_replay_failure_sha256": (
                 _REPAIR_FAILURE_SHA256
             ),
+            "original_parent_construction_replay_identity_review_sha256": (
+                _ORIGINAL_IDENTITY_REVIEW_SHA256
+            ),
+            "original_parent_construction_execution_decision_sha256": (
+                _ORIGINAL_EXECUTION_DECISION_SHA256
+            ),
             "parent_construction_replay_repair_pre_review_sha256": (
                 _REPAIR_PRE_REVIEW_SHA256
             ),
@@ -570,15 +600,25 @@ def _authorize_replay(
         raise ValueError(
             "parent-construction cumulative replay not authorized"
         )
-    for field, expected in _expected_execution_fields(arguments).items():
-        if decision.get(field) != expected:
-            raise ValueError(f"cumulative replay {field} identity changed")
+    expected_execution_sha256 = canonical_sha256(
+        _expected_execution_fields(arguments)
+    )
+    if decision.get("expected_execution_sha256") != (
+        expected_execution_sha256
+    ):
+        raise ValueError("cumulative replay execution identity changed")
     prohibited = decision.get("prohibited_authorizations")
     if not isinstance(prohibited, dict) or prohibited != dict.fromkeys(
         _PROHIBITED_AUTHORIZATIONS, False
     ):
         raise ValueError("parent-construction authorization changed")
-    review = decision.get("parent_construction_replay_identity_review")
+    original_decision = decision.get("original_execution_decision")
+    if not isinstance(original_decision, dict) or original_decision != {
+        "path": str(_ORIGINAL_EXECUTION_DECISION.relative_to(_ROOT)),
+        "sha256": _ORIGINAL_EXECUTION_DECISION_SHA256,
+    }:
+        raise ValueError("original replay authorization changed")
+    review = decision.get("parent_construction_replay_repair_review")
     if not isinstance(review, dict) or review.get("path") != str(
         _IDENTITY_REVIEW.relative_to(_ROOT)
     ):
@@ -598,6 +638,9 @@ def _authorize_replay(
         "execution_checkout_revision": execution_revision,
         "execution_decision_sha256": file_sha256(execution_decision_path),
         "identity_review_sha256": review_sha256,
+        "original_execution_decision_sha256": (
+            _ORIGINAL_EXECUTION_DECISION_SHA256
+        ),
         "wrapper_sha256": file_sha256(Path(__file__)),
     }
 
