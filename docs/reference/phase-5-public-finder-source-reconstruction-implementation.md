@@ -210,3 +210,10 @@ Identity review `e615da00...` now binds wrapper revision `af7040e...`, candidate
 reference terminal `48209eae...`, and closed baseline `a45303df...`. It does
 not authorize executing the replay; that requires a separate named approval
 bound to the complete review digest.
+
+Gemma Danks subsequently approved exactly one two-worker cumulative replay
+bound to review `e615da00...`. Execution decision `78c274cc...` binds the
+800-compact/1,600-Continuum population and every candidate, wrapper, retained
+reference, closed-baseline, output, and scratch identity. It authorizes only
+that replay. Viewed-data and campaign execution, qualification, tuning,
+rescoring, optimization, cutover, and release remain false.

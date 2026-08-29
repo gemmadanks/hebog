@@ -121,7 +121,7 @@ def test_review_records_complete_no_write_result() -> None:
 
 
 def test_review_is_non_executable_and_requires_new_named_approval() -> None:
-    """Identity freeze cannot be interpreted as replay authority."""
+    """Identity freeze itself cannot be interpreted as replay authority."""
     review = _load()
     authorization = cast(dict[str, bool], review["authorization"])
 
@@ -131,7 +131,35 @@ def test_review_is_non_executable_and_requires_new_named_approval() -> None:
         "separate-named-approval-bound-to-this-review-for-one-complete-"
         "cumulative-replay-only"
     )
-    assert not _EXECUTION_DECISION.exists()
+
+
+def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
+    """The execution decision binds the review and no later action."""
+    review = _load()
+    wrapper = runpy.run_path(str(_WRAPPER))
+    decision_value = json.loads(
+        _EXECUTION_DECISION.read_text(encoding="utf-8")
+    )
+    assert isinstance(decision_value, dict)
+    decision = cast(dict[str, Any], decision_value)
+
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    for field, expected in wrapper["_expected_execution_fields"](
+        _approved_arguments()
+    ).items():
+        assert decision[field] == expected
+    assert decision["parent_construction_replay_identity_review"] == {
+        "path": str(_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REVIEW),
+    }
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        wrapper["_PROHIBITED_AUTHORIZATIONS"], False
+    )
+    assert not any(
+        cast(dict[str, bool], decision["prohibited_authorizations"]).values()
+    )
+    assert review["authorization"]["cumulative_replay_authorized"] is False
 
 
 def test_review_binds_reconstruction_and_closed_baseline() -> None:

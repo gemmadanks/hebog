@@ -12548,3 +12548,23 @@ optimization, cutover, and release remain unauthorized.
 
 **Immediate next step:** obtain the separate exact one-replay approval, or
 stop with the corrected candidate fully implemented and identity-frozen.
+
+## 2026-08-29 — Authorize the parent-construction cumulative replay
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Gemma Danks approved exactly one 800-compact/1,600-Continuum cumulative
+  replay bound to non-executable review `e615da00...`.
+- Execution decision `78c274cc...` expands the supplied review prefix to its
+  already frozen full SHA-256, binds candidate `5f2b098...`, source tree
+  `a7ef1887...`, configuration `88634678...`, wrapper `9bf44c09...`, retained
+  reference `48209eae...`, closed baseline `a45303df...`, two workers, and the
+  exact future output and scratch namespaces.
+- The review remains non-executable. The separate decision opens only one
+  cumulative replay; campaign or viewed-data execution, qualification,
+  tuning, rescoring, optimization, cutover, and release remain false.
+- The decision and wrapper authorization contracts pass 11 focused tests.
+
+**Immediate next step:** commit the exact decision, construct a clean immutable
+execution checkout, reverify all identities and absent namespaces, then start
+the single authorized replay. Treat scientific failure as terminal evidence.

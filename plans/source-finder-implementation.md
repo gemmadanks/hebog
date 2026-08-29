@@ -587,6 +587,14 @@ from partial or viewed evidence.
      `e615da00...`. The complete no-write verifier passed all 2,400 inputs and
      9,600 reference runs with the future output and scratch absent and no
      replay started. Any replay still requires a separate exact approval.
+   - [x] Obtain the separate exact one-replay approval. Decision `78c274cc...`
+     binds review `e615da00...`, candidate `5f2b098...`, the two-worker
+     800-compact/1,600-Continuum population, and every retained program,
+     reference, baseline, output, and scratch identity. All later actions
+     remain unauthorized.
+   - [ ] Execute that single cumulative replay, interpret compact and Continuum
+     science before power, and require every absolute and like-semantics gate.
+     Treat a scientific failure as terminal without tuning or rerunning.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
