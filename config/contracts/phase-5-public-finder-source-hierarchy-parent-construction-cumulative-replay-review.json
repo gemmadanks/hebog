@@ -1,0 +1,154 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+    "implementation_commit": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+    "revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+    "source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8"
+  },
+  "implementation": {
+    "commit": "af7040e477471a94c82745659d36a397fda27cba",
+    "parent_implementation_decision": {
+      "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-implementation-decision.json",
+      "sha256": "04b94b1c2c1bc8458970c679177ee5daa8455f77e2e90e980e5da7897bbb448b"
+    },
+    "parent_pre_review": {
+      "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-pre-review.json",
+      "sha256": "77669f1288287ca7ef5981a59de0ba4585500a504af5fba33642f5a02e2ff469"
+    },
+    "programs": {
+      "candidate": {
+        "path": "src/hebog/validation/public_finder_correction.py",
+        "sha256": "92ee690b1333b28ccf0a09659480e19086e6eb4f9f39c8961e0b26c334cc21bd"
+      },
+      "evaluator": {
+        "path": "src/hebog/validation/source_association_evaluation_repair.py",
+        "sha256": "b46167deff074d48540a88949ef6fcf86b474aa6a1c7806b357e919cc497eb49"
+      },
+      "hierarchy": {
+        "path": "src/hebog/algorithms/source_association.py",
+        "sha256": "04e73bb5c59ee6ebf69309bbcad938c810eed68c3b339b51bda2b95ff51a89dd"
+      },
+      "measurement": {
+        "path": "src/hebog/validation/products.py",
+        "sha256": "210d683af1cfbfc2a20dfe232740930feb38edd14de715e54592757df6fde812"
+      },
+      "multiscale": {
+        "path": "src/hebog/algorithms/multiscale_association.py",
+        "sha256": "be31b737b7835afaf718821c0584d668aa0878bb2950a667876296f731ac2a97"
+      },
+      "support": {
+        "path": "src/hebog/algorithms/extended_measurement.py",
+        "sha256": "6964fcfe067128eef01d8fb4b655e9ef9a6053e845236f03a0f534bae8635604"
+      }
+    },
+    "readiness_contract": {
+      "path": "config/contracts/phase-5-readiness.json",
+      "sha256": "318d6d6c612b7c043963de2b70556031d47c3b04b15de8ce8daca7bd23fcd386"
+    },
+    "root_cause_implementation_decision": {
+      "path": "config/contracts/phase-5-public-finder-source-reconstruction-root-cause-repair-implementation-decision.json",
+      "sha256": "8296c4ce30b8d28790e1c45b43582df1ba58737d5d7b3a7b29a5fb2766ad897b"
+    },
+    "root_cause_pre_review": {
+      "path": "config/contracts/phase-5-public-finder-source-reconstruction-root-cause-pre-review.json",
+      "sha256": "fe9ca88d455720c5d375812875c3067e98ecc3e1ee05ead71d1c3dd0b568f979"
+    },
+    "tree": "158c6f531533ddb563e0b856431f94870843bc8b",
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_source_hierarchy_parent_construction_cumulative_regressions.py",
+      "sha256": "9bf44c09f6840c99ea3c0a82f4896fa9a3d4d88e7d87d1832e00200a51cdfdb1"
+    }
+  },
+  "no_write_verification": {
+    "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+    "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+    "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+    "consumed_wrapper_sha256": "3ff495e373c366be37532cccb4a600fab8423137caad45e246dde55698d67413",
+    "cumulative_replay_started": false,
+    "execution_checkout_revision": "af7040e477471a94c82745659d36a397fda27cba",
+    "output_absent": true,
+    "readiness_sha256": "318d6d6c612b7c043963de2b70556031d47c3b04b15de8ce8daca7bd23fcd386",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "scratch_absent": true,
+    "status": "pass",
+    "verified_input_count": 2400,
+    "verified_reference_run_count": 9600
+  },
+  "prospective_execution": {
+    "base_review_sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+    "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+    "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+    "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+    "closed_baseline_path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "compatibility_container_digest": "sha256:1a83f64948460a46dd6f6c5e9434d155fd9b2ae45f97db849d5288f350dca8d1",
+    "compatibility_dependency_inventory_sha256": "d383be3a97d716ce033b1151a5282729794dbc5f1734081d3ed36bcd2409b5a2",
+    "compiler_sha256": "e442f6586993d95a942a80af4e45fbf5b50448b434d5c0a244d78fb333b679b8",
+    "composition_implementation_decision_sha256": "b9d48850a2447e888ef7eb923143dad31c41d5867694b536cbbec441bd590d1e",
+    "composition_pre_review_sha256": "7687839f4c65c0a6d549d42b0ddeacd8c6954912389071605d696394307c653d",
+    "consumed_measurement_repair_wrapper_sha256": "79e8252cd06cca4959b794af231b6078c80a34f996ff5184ed7c8f4994029084",
+    "consumed_source_association_wrapper_sha256": "bfc1d6d0d255b9fd7e7b43f910e9c2665d9083de572bce7b64afee66c473f357",
+    "consumed_source_reconstruction_wrapper_sha256": "3ff495e373c366be37532cccb4a600fab8423137caad45e246dde55698d67413",
+    "correction_contract_sha256": "f0ddd4d5cb8c3c5542d1de761f6fde0644ec7cf051d5fb1dc7482ed3b96ff524",
+    "current_wrapper_sha256": "04a3a54335c93b6abfa71c71ba2e4771ae48dfc38bc3587a673fa2683fa780ac",
+    "dependency_lock_sha256": "c81a9831ec545b2d7797e1c0951ad46e0e23337b97866ced0ae27e290dfd71ff",
+    "endpoint_registry_sha256": "2d7a646b6206bd127b1e470b16d1fe35ebc3f238835eafdc6c77d8a82b79ef1c",
+    "evaluation_contract_sha256": "45901f8ca4526fdc1007d26d891e409306565e749bad2b959181a9929ff73016",
+    "evaluator_sha256": "7612746bda483c82d0e7e72a7f49bb8283f8ae6c03d26bd18508184dbda7169a",
+    "historical_replay_sha256": "5d41d31ee79cd0d6d203cd774267fd504d06fe7662768486f99c31a7902b8a3f",
+    "measurement_repair_implementation_decision_sha256": "b9d48850a2447e888ef7eb923143dad31c41d5867694b536cbbec441bd590d1e",
+    "measurement_repair_pre_review_sha256": "7687839f4c65c0a6d549d42b0ddeacd8c6954912389071605d696394307c653d",
+    "measurement_repair_sha256": "a3c53daac3dbae03bd6b3f62488cd46de541d79d9c6c903d34ce7951334d690b",
+    "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+    "readiness_contract_sha256": "318d6d6c612b7c043963de2b70556031d47c3b04b15de8ce8daca7bd23fcd386",
+    "reference_reconstruction_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "reference_reconstruction_producer_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "reference_verifier_sha256": "81faad486ddb306e175a7ddd8c1c281a2e498cd30bb60f3e43c7b6e791cd0126",
+    "runtime_identity_registry_sha256": "cc22c7736fab3a3e6c1e84e3e3426e952df40651706e0b69d1dd2da8bfc5b660",
+    "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-hierarchy-parent-construction-5f2b098",
+    "source_association_identity_review_sha256": "c58eec6e1492196b40b859bd31aa3b8c55de51f8a7fc53a95bc5db9ecc19e263",
+    "source_association_implementation_decision_sha256": "6a495cfcb54ec01e5a7290b6c28edf7b7fffe89f88318c5b6f3e135e70a15553",
+    "source_association_pre_review_sha256": "9af42348896e0449e007fe2318648f66122313d600137f8f5ec525ebaec1cc3c",
+    "source_hierarchy_parent_construction_implementation_decision_sha256": "04b94b1c2c1bc8458970c679177ee5daa8455f77e2e90e980e5da7897bbb448b",
+    "source_hierarchy_parent_construction_pre_review_sha256": "77669f1288287ca7ef5981a59de0ba4585500a504af5fba33642f5a02e2ff469",
+    "source_reconstruction_candidate_program_sha256": "92ee690b1333b28ccf0a09659480e19086e6eb4f9f39c8961e0b26c334cc21bd",
+    "source_reconstruction_evaluator_program_sha256": "b46167deff074d48540a88949ef6fcf86b474aa6a1c7806b357e919cc497eb49",
+    "source_reconstruction_hierarchy_program_sha256": "04e73bb5c59ee6ebf69309bbcad938c810eed68c3b339b51bda2b95ff51a89dd",
+    "source_reconstruction_implementation_decision_sha256": "634ae2c753457f8e6c4b0181d6daa252b5a522c31057755ef4b765fec7972ab6",
+    "source_reconstruction_measurement_program_sha256": "210d683af1cfbfc2a20dfe232740930feb38edd14de715e54592757df6fde812",
+    "source_reconstruction_multiscale_program_sha256": "be31b737b7835afaf718821c0584d668aa0878bb2950a667876296f731ac2a97",
+    "source_reconstruction_pre_review_sha256": "528f18a661bb2391018c458a29aace2757762e58107650e6ae01d05adc85347f",
+    "source_reconstruction_root_cause_decision_sha256": "8296c4ce30b8d28790e1c45b43582df1ba58737d5d7b3a7b29a5fb2766ad897b",
+    "source_reconstruction_root_cause_pre_review_sha256": "fe9ca88d455720c5d375812875c3067e98ecc3e1ee05ead71d1c3dd0b568f979",
+    "source_reconstruction_support_program_sha256": "6964fcfe067128eef01d8fb4b655e9ef9a6053e845236f03a0f534bae8635604",
+    "viewed_request_sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4",
+    "workers": 2,
+    "wrapper_sha256": "9bf44c09f6840c99ea3c0a82f4896fa9a3d4d88e7d87d1832e00200a51cdfdb1"
+  },
+  "reconstruction": {
+    "completion_review": {
+      "path": "config/contracts/phase-5-public-finder-correction-reference-reconstruction-review.json",
+      "sha256": "0043fdb9ca2bb82e78a954e315e7024ada95204063026a83bd2646a451280a75"
+    },
+    "path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "producer_source_tree_sha256": "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc",
+    "recovery_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+  },
+  "required_next_decision": "separate-named-approval-bound-to-this-review-for-one-complete-cumulative-replay-only",
+  "review_id": "phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-review",
+  "schema_version": 1,
+  "status": "ready-for-named-parent-construction-cumulative-replay-approval"
+}

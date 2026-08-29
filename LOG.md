@@ -12528,6 +12528,23 @@ still requires a separate exact approval.
   because the wrapper and readiness binding did not exist; the completed
   wrapper, predecessor, and readiness suites pass 48 tests.
 
-**Immediate next step:** validate and commit the replay composition, then use
-that clean revision to run the complete no-write verifier and freeze an exact
-non-executable replay identity. Replay execution remains unauthorized.
+**Terminal identity-freeze result:** composition commit `af7040e...` and tree
+`158c6f53...` passed the complete no-write verifier. It identity-checked all
+2,400 inputs and 9,600 retained reference runs, retained reference terminal
+`48209eae...`, closed baseline `a45303df...`, candidate `5f2b098...`, source
+tree `a7ef1887...`, configuration `88634678...`, and wrapper `9bf44c09...`.
+The future output and scratch namespaces were absent and
+`cumulative_replay_started=false`.
+
+- The final identity, wrapper, predecessor, readiness, and authorization suites
+  pass 64 focused tests. `just check` passes 1,962 tests with 202 deselected
+  and 4 expected failures, and the strict documentation build passes.
+
+**Decision:** non-executable identity review `e615da00...` freezes the exact
+prospective replay composition with every authorization false. Replay
+execution now requires a separate named approval bound to that full digest;
+viewed execution, campaign execution, qualification, tuning, rescoring,
+optimization, cutover, and release remain unauthorized.
+
+**Immediate next step:** obtain the separate exact one-replay approval, or
+stop with the corrected candidate fully implemented and identity-frozen.

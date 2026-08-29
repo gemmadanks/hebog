@@ -3,10 +3,12 @@
 **Status:** the first source-reconstruction candidate is terminal failed
 evidence. The separately approved parent-construction repair is implemented
 and passes its synthetic real-scale, overmerge-safety, and executor fixtures.
-The replacement candidate identity and fail-closed replay wrapper are now
-composed; the exact wrapper revision and complete no-write result are not yet
-frozen. No cumulative replay, public-data campaign, qualification run, tuning,
-rescoring, cutover, or release is authorized by this work.
+The replacement candidate and fail-closed replay composition are frozen in
+non-executable identity review `e615da00...`. Its complete no-write verifier
+passed all 2,400 inputs and 9,600 retained reference runs with the future
+output and scratch absent. No cumulative replay, public-data campaign,
+qualification run, tuning, rescoring, cutover, or release is authorized by
+this work.
 
 This page records the prospective correction approved by source-reconstruction
 pre-review `528f18a6...`. It replaces the failed catalogue composition used by
@@ -203,4 +205,8 @@ prepared. The new wrapper consumes the exact failed source-reconstruction
 wrapper, replaces only its candidate identity and current Continuum builder,
 requires output and scratch to be absent during verification, and fails closed
 unless a separate future decision binds its eventual identity-review digest.
-It does not authorize executing the replay.
+Identity review `e615da00...` now binds wrapper revision `af7040e...`, candidate
+`5f2b098...`, source tree `a7ef1887...`, configuration `88634678...`, retained
+reference terminal `48209eae...`, and closed baseline `a45303df...`. It does
+not authorize executing the replay; that requires a separate named approval
+bound to the complete review digest.

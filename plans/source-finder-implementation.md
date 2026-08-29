@@ -583,9 +583,10 @@ from partial or viewed evidence.
      and configuration `88634678...`. The wrapper consumes the exact failed
      predecessor, changes no compact or reference path, and cannot execute
      without a later exact review-bound decision.
-   - [ ] Freeze exact non-executable candidate and replay identities and run
-     the complete no-write verification. Any replay still requires a separate
-     exact approval.
+   - [x] Freeze exact non-executable candidate and replay identities in review
+     `e615da00...`. The complete no-write verifier passed all 2,400 inputs and
+     9,600 reference runs with the future output and scratch absent and no
+     replay started. Any replay still requires a separate exact approval.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
