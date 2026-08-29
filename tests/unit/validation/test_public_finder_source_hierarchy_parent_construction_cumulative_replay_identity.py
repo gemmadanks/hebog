@@ -6,7 +6,6 @@ import hashlib
 import json
 import runpy
 import subprocess
-from argparse import Namespace
 from pathlib import Path
 from typing import Any, cast
 
@@ -36,30 +35,6 @@ def _load() -> dict[str, Any]:
     return cast(dict[str, Any], document)
 
 
-def _approved_arguments() -> Namespace:
-    """Return the exact prospective no-write and replay invocation."""
-    return Namespace(
-        campaign=None,
-        reference_reconstruction=Path(
-            "benchmark-results/phase-5/"
-            "viewed-reference-reconstruction-public-finder-correction"
-        ),
-        output=Path(
-            "benchmark-results/phase-5/cumulative-regression-ledger-"
-            "public-finder-source-hierarchy-parent-construction.json"
-        ),
-        scratch=Path(
-            "/private/tmp/hebog-phase5-public-finder-source-hierarchy-"
-            "parent-construction-5f2b098"
-        ),
-        workers=2,
-        closed_component_baseline_ledger=Path(
-            "benchmark-results/phase-5/"
-            "cumulative-regression-ledger-recovery.json"
-        ),
-    )
-
-
 def _committed_file_sha256(revision: str, path: str) -> str:
     """Hash one exact committed file."""
     value = subprocess.run(
@@ -75,7 +50,6 @@ def test_review_freezes_exact_non_executable_composition() -> None:
     """The review binds the candidate, wrapper, programs, and readiness."""
     review = _load()
     implementation = cast(dict[str, Any], review["implementation"])
-    wrapper = runpy.run_path(str(_WRAPPER))
 
     assert implementation["commit"] == _IMPLEMENTATION_REVISION
     assert implementation["tree"] == _IMPLEMENTATION_TREE
@@ -97,9 +71,11 @@ def test_review_freezes_exact_non_executable_composition() -> None:
         assert record["sha256"] == _committed_file_sha256(
             _IMPLEMENTATION_REVISION, record["path"]
         )
-    expected = wrapper["_expected_execution_fields"](_approved_arguments())
-    expected["wrapper_sha256"] = implementation["wrapper"]["sha256"]
-    assert review["prospective_execution"] == expected
+    execution = cast(dict[str, Any], review["prospective_execution"])
+    assert execution["candidate_revision"] == (
+        "5f2b09880dc10feb6ffaec50ffcf3c807a093416"
+    )
+    assert execution["wrapper_sha256"] == implementation["wrapper"]["sha256"]
 
 
 def test_review_records_complete_no_write_result() -> None:
@@ -145,8 +121,8 @@ def test_named_approval_opens_only_the_exact_frozen_replay() -> None:
 
     assert decision["execution_authorized"] is True
     assert decision["cumulative_replay_authorized"] is True
-    for field, expected in wrapper["_expected_execution_fields"](
-        _approved_arguments()
+    for field, expected in cast(
+        dict[str, Any], review["prospective_execution"]
     ).items():
         assert decision[field] == expected
     assert decision["parent_construction_replay_identity_review"] == {

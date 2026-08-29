@@ -1,0 +1,39 @@
+{
+  "candidate_execution_started": false,
+  "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+  "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-cumulative-replay-execution-failure",
+  "failed_on": "2026-08-29",
+  "failure": {
+    "exception": "KeyError: '_load_current_wrapper'",
+    "failed_operation": "resolve the inherited replay composition after complete retained-reference verification",
+    "immediate_cause": "the parent-construction wrapper treated the measurement-repair wrapper returned by the source-reconstruction predecessor as the source-association wrapper",
+    "root_cause": "the wrapper copied its predecessor's one-level traversal even though adding the source-reconstruction overlay introduced a second consumed-wrapper layer",
+    "scientific_effect": "none; the failure occurred before scratch creation, candidate submission, compilation, evaluation, or atomic ledger publication",
+    "test_gap": "the no-write verifier checked identities and references but did not resolve executable composition, while the authorization test exercised only the closed path and the seam test mocked away the predecessor chain"
+  },
+  "identity_review_sha256": "e615da0027a1cbb8bd0ab60f2b32cd09f37ccd49cf6a3e420a1ca9e8427a837e",
+  "operational_attempts": [
+    {
+      "effect": "no scratch, candidate task, or scientific output",
+      "failure": "the immutable checkout could not see ignored retained evidence",
+      "session": 19750,
+      "stage": "retained-reference verification"
+    },
+    {
+      "effect": "no scratch, candidate task, or scientific output",
+      "failure": "wrapper composition KeyError after retained-reference verification",
+      "session": 5116,
+      "stage": "executable composition resolution"
+    }
+  ],
+  "original_execution_decision_sha256": "78c274ccf8c14fc0dd4deff1a2e791eb64ad154100af8db8ef0f72795ff40d9f",
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+  "output_published": false,
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "schema_version": 1,
+  "scratch_created": false,
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-hierarchy-parent-construction-5f2b098",
+  "status": "terminal-pre-candidate-execution-failure"
+}

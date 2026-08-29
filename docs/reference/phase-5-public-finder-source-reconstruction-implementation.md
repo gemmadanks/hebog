@@ -217,3 +217,22 @@ bound to review `e615da00...`. Execution decision `78c274cc...` binds the
 reference, closed-baseline, output, and scratch identity. It authorizes only
 that replay. Viewed-data and campaign execution, qualification, tuning,
 rescoring, optimization, cutover, and release remain false.
+
+The first authorized process did not reach candidate execution. An initial
+immutable-checkout evidence-visibility error was corrected without changing
+any identity. The resumed process then completed retained-reference
+verification but failed while resolving executable composition: the
+parent-construction wrapper descended through source reconstruction once,
+received the measurement-repair overlay, and incorrectly treated it as the
+source-association wrapper. It therefore requested `_load_current_wrapper`
+from the wrong layer. No scratch directory, candidate product, partial science,
+or ledger was created.
+
+The approved repair is orchestration-only. It resolves the exact chain
+explicitly—source reconstruction, measurement repair, source association, then
+the frozen replay—and reuses that resolver in both the parent process and
+spawned workers. Complete no-write verification now resolves and installs the
+same executable seams, closing the test gap that allowed identity/reference
+verification to pass without exercising authorized delegation. Candidate
+`5f2b098...`, configuration `88634678...`, references, gates, population,
+workers, scratch, and output remain unchanged.

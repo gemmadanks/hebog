@@ -362,7 +362,14 @@ activation telemetry. Real-scale fixture evidence then isolated a second
 blocker: four analytic shell lobes remain four disconnected exact features at
 every retained scale, so exact-overlap lineage tracking cannot construct the
 shared source parent. Non-executable review `b5d89bdc...` now governs that
-parent-construction problem; replacement identity freeze is blocked.
+parent-construction problem. The approved implementation and replay identities
+are now frozen as candidate `5f2b098...` and review `e615da00...`. Its first
+authorized process stopped before candidate execution: after retained-reference
+verification, wrapper `9bf44c09...` skipped the measurement-repair predecessor
+layer and raised `_load_current_wrapper`. No scratch or ledger was created.
+Explicit repair instruction now governs a wrapper-only traversal correction,
+expanded no-write execution-composition verification, and one restart with all
+scientific identities unchanged.
 Section 7 contains the single authoritative Phase 5 closure sequence; detailed
 chronology and immutable identities remain in `LOG.md` and
 `config/contracts/`.
@@ -592,6 +599,16 @@ from partial or viewed evidence.
      800-compact/1,600-Continuum population, and every retained program,
      reference, baseline, output, and scratch identity. All later actions
      remain unauthorized.
+   - [x] Preserve the terminal pre-candidate failure: session `5116` verified
+     retained references, then wrapper `9bf44c09...` treated the
+     measurement-repair overlay as source association and raised
+     `_load_current_wrapper`. Scratch and output remained absent; no candidate
+     or scientific product exists.
+   - [ ] Complete the approved wrapper-only repair: descend explicitly through
+     source reconstruction, measurement repair, and source association in both
+     parent and worker processes; make no-write verification resolve the same
+     executable seams; freeze replacement wrapper/checkout identities; and
+     restart the unchanged replay once.
    - [ ] Execute that single cumulative replay, interpret compact and Continuum
      science before power, and require every absolute and like-semantics gate.
      Treat a scientific failure as terminal without tuning or rerunning.

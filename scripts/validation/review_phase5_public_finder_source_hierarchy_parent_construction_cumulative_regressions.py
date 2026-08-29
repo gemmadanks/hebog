@@ -66,6 +66,18 @@ _EXECUTION_DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
     "construction-cumulative-replay-execution-decision.json"
 )
+_REPAIR_FAILURE = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-cumulative-replay-execution-failure.json"
+)
+_REPAIR_PRE_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-cumulative-replay-repair-pre-review.json"
+)
+_REPAIR_IMPLEMENTATION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-cumulative-replay-repair-implementation-decision.json"
+)
 _MULTISCALE_PROGRAM = _ROOT / "src/hebog/algorithms/multiscale_association.py"
 _HIERARCHY_PROGRAM = _ROOT / "src/hebog/algorithms/source_association.py"
 _SUPPORT_PROGRAM = _ROOT / "src/hebog/algorithms/extended_measurement.py"
@@ -102,6 +114,15 @@ _PARENT_PRE_REVIEW_SHA256 = (
 )
 _PARENT_IMPLEMENTATION_DECISION_SHA256 = (
     "04b94b1c2c1bc8458970c679177ee5daa8455f77e2e90e980e5da7897bbb448b"
+)
+_REPAIR_FAILURE_SHA256 = (
+    "9ddf370eb4a224aed071104ab91c7a5ad5ca8fdd28370875be3eaf6dd4f2b672"
+)
+_REPAIR_PRE_REVIEW_SHA256 = (
+    "e492110f55005d833a833d474745ac2a957aa456541bedf9dfbc0cd52b4a00f9"
+)
+_REPAIR_IMPLEMENTATION_DECISION_SHA256 = (
+    "8df4301b2ef687905f91a8103cb9ce9cac7327a581f46d4f60d06760989da5d4"
 )
 _READINESS_SHA256 = (
     "318d6d6c612b7c043963de2b70556031d47c3b04b15de8ce8daca7bd23fcd386"
@@ -181,6 +202,24 @@ def _load_consumed_wrapper() -> dict[str, Any]:
     return runpy.run_path(str(_CONSUMED_WRAPPER))
 
 
+def _load_source_association_composition() -> tuple[
+    dict[str, Any], dict[str, Any], dict[str, Any]
+]:
+    """Descend through both predecessor overlays to the frozen replay."""
+    source_reconstruction = _load_consumed_wrapper()
+    measurement_repair = cast(
+        dict[str, Any], source_reconstruction["_load_consumed_wrapper"]()
+    )
+    source_association = cast(
+        dict[str, Any], measurement_repair["_load_consumed_wrapper"]()
+    )
+    current = cast(
+        dict[str, Any], source_association["_load_current_wrapper"]()
+    )
+    frozen = cast(dict[str, Any], current["_load_frozen_replay"]())
+    return source_association, current, frozen
+
+
 def _candidate_configuration_sha256() -> str:
     """Return the approved parent-construction configuration identity."""
     configuration = (
@@ -236,14 +275,7 @@ def _install_parent_construction_static_seams(
 
 def _generate_candidate_product(task: dict[str, object]) -> str:
     """Reinstall parent-construction seams in each spawned worker."""
-    consumed = _load_consumed_wrapper()
-    source_association = cast(
-        dict[str, Any], consumed["_load_consumed_wrapper"]()
-    )
-    current = cast(
-        dict[str, Any], source_association["_load_current_wrapper"]()
-    )
-    frozen = cast(dict[str, Any], current["_load_frozen_replay"]())
+    _, _, frozen = _load_source_association_composition()
     _install_parent_construction_static_seams(frozen)
     return cast(str, frozen["_generate_candidate_product"](task))
 
@@ -365,6 +397,17 @@ def _require_common_identities(arguments: argparse.Namespace) -> str:
             _PARENT_IMPLEMENTATION_DECISION_SHA256,
             "parent decision",
         ),
+        (_REPAIR_FAILURE, _REPAIR_FAILURE_SHA256, "repair failure"),
+        (
+            _REPAIR_PRE_REVIEW,
+            _REPAIR_PRE_REVIEW_SHA256,
+            "repair pre-review",
+        ),
+        (
+            _REPAIR_IMPLEMENTATION_DECISION,
+            _REPAIR_IMPLEMENTATION_DECISION_SHA256,
+            "repair implementation decision",
+        ),
         (_READINESS, _READINESS_SHA256, "readiness"),
         (_MULTISCALE_PROGRAM, _MULTISCALE_PROGRAM_SHA256, "multiscale"),
         (_HIERARCHY_PROGRAM, _HIERARCHY_PROGRAM_SHA256, "hierarchy"),
@@ -411,6 +454,14 @@ def verify_parent_construction_replay_composition(
     _validate_implementation_decision(decision)
     execution_revision = _require_common_identities(arguments)
     verified = _verify_reference_reconstruction(arguments)
+    source_association, _, frozen = _load_source_association_composition()
+    if not callable(
+        source_association.get("_install_source_association_composition")
+    ) or not callable(frozen.get("main")):
+        raise ValueError("parent-construction execution composition changed")
+    _install_parent_construction_static_seams(frozen)
+    if not callable(frozen.get("_generate_candidate_product")):
+        raise ValueError("parent-construction candidate composition changed")
     return {
         "candidate_configuration_sha256": _CANDIDATE_CONFIGURATION_SHA256,
         "candidate_revision": _CANDIDATE_REVISION,
@@ -418,6 +469,7 @@ def verify_parent_construction_replay_composition(
         "consumed_wrapper_sha256": _CONSUMED_WRAPPER_SHA256,
         "cumulative_replay_started": False,
         "execution_checkout_revision": execution_revision,
+        "execution_delegation_verified": True,
         "output_absent": not arguments.output.exists(),
         "readiness_sha256": _READINESS_SHA256,
         "reference_reconstruction_sha256": (
@@ -459,6 +511,16 @@ def _expected_execution_fields(
                 "source_hierarchy_parent_construction_implementation_"
                 "decision_sha256"
             ): _PARENT_IMPLEMENTATION_DECISION_SHA256,
+            "parent_construction_replay_failure_sha256": (
+                _REPAIR_FAILURE_SHA256
+            ),
+            "parent_construction_replay_repair_pre_review_sha256": (
+                _REPAIR_PRE_REVIEW_SHA256
+            ),
+            (
+                "parent_construction_replay_repair_implementation_"
+                "decision_sha256"
+            ): _REPAIR_IMPLEMENTATION_DECISION_SHA256,
             "source_reconstruction_hierarchy_program_sha256": (
                 _HIERARCHY_PROGRAM_SHA256
             ),
@@ -548,14 +610,9 @@ def run_authorized_replay(
     """Delegate exactly once only after a later named approval."""
     provenance = _authorize_replay(arguments, execution_decision_path)
     verified = _verify_reference_reconstruction(arguments)
-    consumed = _load_consumed_wrapper()
-    source_association = cast(
-        dict[str, Any], consumed["_load_consumed_wrapper"]()
+    source_association, current, frozen = (
+        _load_source_association_composition()
     )
-    current = cast(
-        dict[str, Any], source_association["_load_current_wrapper"]()
-    )
-    frozen = cast(dict[str, Any], current["_load_frozen_replay"]())
     source_association["_install_source_association_composition"](
         current,
         frozen,

@@ -12568,3 +12568,46 @@ stop with the corrected candidate fully implemented and identity-frozen.
 **Immediate next step:** commit the exact decision, construct a clean immutable
 execution checkout, reverify all identities and absent namespaces, then start
 the single authorized replay. Treat scientific failure as terminal evidence.
+
+## 2026-08-29 — Repair parent-construction replay delegation
+
+**Plan phase:** Phase 5, closure gate 3
+
+- The first immutable process, session `19750`, stopped during retained-
+  reference verification because ignored benchmark evidence was not visible
+  inside the worktree. Attaching checksum-identical ignored evidence changed no
+  source or science identity, and the complete preflight passed again.
+- The resumed process, session `5116`, completed retained-reference verification
+  but raised `KeyError: '_load_current_wrapper'` before scratch creation or
+  candidate submission. The wrapper descended only once from source
+  reconstruction, received the measurement-repair overlay, and treated it as
+  source association. No candidate product, partial science, or terminal ledger
+  exists.
+- The test gap was structural: no-write verification checked identities and
+  all 9,600 retained reference runs without resolving executable composition;
+  the closed authorization test never entered delegation; and the static-seam
+  test mocked away predecessor depth.
+- Gemma Danks explicitly instructed: “Please fix the error and restart the
+  run.” Repair pre-review `e492110f...` restricts that authority to one
+  wrapper-only correction and one unchanged replay restart. Candidate
+  `5f2b098...`, source tree `a7ef1887...`, configuration `88634678...`,
+  references, baseline, gates, population, workers, output, and scratch remain
+  unchanged.
+- A red regression test reproduced the exact KeyError. The minimal repair now
+  resolves source reconstruction, measurement repair, source association, and
+  the frozen replay explicitly through one helper shared by parent and worker
+  execution. No-write verification resolves and installs those same seams.
+
+**Validation:** the new authorized-delegation regression failed for the exact
+missing `_load_current_wrapper` reason before implementation. The completed
+parent-process, worker, no-write, and existing wrapper suite passes eight tests.
+`just coverage` passes 2,123 tests with 44 deselected and 4 expected failures;
+branch-aware project coverage remains 94.75%. Focused Ruff and Pyright checks
+pass. `just check` passes 1,965 tests with 202 deselected and 4 expected
+failures, and the strict documentation build passes. Replacement identity
+freeze remains pending.
+
+**Immediate next step:** validate and commit the wrapper-only repair, freeze a
+replacement exact review and execution decision that consume the explicit
+fix-and-restart instruction, then run the unchanged replay once from a clean
+immutable checkout.

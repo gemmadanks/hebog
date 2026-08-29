@@ -144,6 +144,7 @@ def test_fixture_verifier_is_no_write(
 
     assert result["status"] == "pass"
     assert result["cumulative_replay_started"] is False
+    assert result["execution_delegation_verified"] is True
     assert result["verified_input_count"] == 4
     assert result["verified_reference_run_count"] == 16
     assert not arguments.output.exists()
@@ -159,6 +160,120 @@ def test_replay_remains_closed_without_separate_exact_decision() -> None:
             _approved_arguments(),
             execution_decision_path=Path("missing-execution-decision.json"),
         )
+
+
+def test_authorized_replay_traverses_source_reconstruction_predecessor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Execution descends through measurement repair to source association."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    globals_ = wrapper["run_authorized_replay"].__globals__
+    events: list[str] = []
+    frozen: dict[str, Any] = {"main": lambda: events.append("main")}
+    current = {"_load_frozen_replay": lambda: frozen}
+
+    def install_source_association(
+        current_wrapper: dict[str, Any],
+        frozen_wrapper: dict[str, Any],
+        provenance: dict[str, object],
+        *,
+        verified_reference: object,
+    ) -> None:
+        assert current_wrapper is current
+        assert frozen_wrapper is frozen
+        assert provenance == {"execution": "authorized"}
+        assert verified_reference == "verified-reference"
+        events.append("source-association")
+
+    source_association = {
+        "_load_current_wrapper": lambda: current,
+        "_install_source_association_composition": install_source_association,
+    }
+    measurement_repair = {
+        "_load_consumed_wrapper": lambda: source_association,
+    }
+    source_reconstruction = {
+        "_load_consumed_wrapper": lambda: measurement_repair,
+    }
+
+    def authorize(
+        _arguments: Namespace,
+        _decision: Path,
+    ) -> dict[str, object]:
+        return {"execution": "authorized"}
+
+    def verify_reference(_arguments: Namespace) -> str:
+        return "verified-reference"
+
+    def install_parent(frozen_wrapper: dict[str, Any]) -> None:
+        events.append("parent" if frozen_wrapper is frozen else "wrong-frozen")
+
+    monkeypatch.setitem(
+        globals_,
+        "_authorize_replay",
+        authorize,
+    )
+    monkeypatch.setitem(
+        globals_,
+        "_verify_reference_reconstruction",
+        verify_reference,
+    )
+    monkeypatch.setitem(
+        globals_,
+        "_load_consumed_wrapper",
+        lambda: source_reconstruction,
+    )
+    monkeypatch.setitem(
+        globals_,
+        "_install_parent_construction_static_seams",
+        install_parent,
+    )
+
+    wrapper["run_authorized_replay"](
+        _approved_arguments(),
+        execution_decision_path=Path("authorized-decision.json"),
+    )
+
+    assert events == ["source-association", "parent", "main"]
+
+
+def test_candidate_worker_reuses_the_verified_composition_chain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Spawned workers resolve the same frozen replay as the parent process."""
+    wrapper = runpy.run_path(str(_WRAPPER))
+    globals_ = wrapper["_generate_candidate_product"].__globals__
+    task = {"input_id": "continuum-0001"}
+
+    def generate(value: dict[str, object]) -> str:
+        return "candidate-product" if value is task else "wrong-task"
+
+    frozen: dict[str, Any] = {"_generate_candidate_product": generate}
+    events: list[str] = []
+
+    def load_composition() -> tuple[
+        dict[str, Any], dict[str, Any], dict[str, Any]
+    ]:
+        return {}, {}, frozen
+
+    def install_parent(frozen_wrapper: dict[str, Any]) -> None:
+        events.append("parent" if frozen_wrapper is frozen else "wrong-frozen")
+
+    monkeypatch.setitem(
+        globals_,
+        "_load_source_association_composition",
+        load_composition,
+    )
+    monkeypatch.setitem(
+        globals_,
+        "_install_parent_construction_static_seams",
+        install_parent,
+    )
+
+    result = wrapper["_generate_candidate_product"](task)
+
+    assert result == "candidate-product"
+    assert events == ["parent"]
 
 
 def test_composition_preserves_compact_and_overlays_parent_candidate(
