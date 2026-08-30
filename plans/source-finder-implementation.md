@@ -464,16 +464,25 @@ one nearest common lineage, rejects terminal-only coarse bridges, and emits
 compact activation diagnostics. Hand-built hierarchy, malformed ownership,
 overmerge, telemetry, product-composition, and existing-Dask contracts pass.
 
-The required real-scale positive fixture does not pass. A four-lobe analytic
-shell remains four features at every retained scale; exact overlap produces
-four independent persistent lineages and no convergence. This confirms that
-the remaining defect is parent construction, not hierarchy reduction or label
-composition. Earlier fixtures manually inserted the missing coarse parent.
-Review `b5d89bdc...` is non-executable and proposes a scale-aware parent
-construction derived from the fixed filter footprint with persistent-parent
-and connected-valid-support controls. Identity freeze, replay, viewed-data
-execution, qualification, tuning, rescoring, cutover, and release remain
-unauthorized.
+The parent-construction replay is also terminally failed. Ledger `2ece9928...`
+passed compact but retained 44 Continuum failures and 37 like-semantics
+regressions, with all 143 Continuum values and states unchanged from source
+reconstruction. Its 1,600 sidecars contained 18,065 components and 18,065
+singleton catalogue sources. All 1,923 parent candidates first appeared at
+scale 3, so the identical-group recurrence rule could never accept one at the
+next nonexistent scale.
+
+The prospective correction replaces that impossible requirement with two
+fail-closed safeguards: connected adjacent-scale significant support may only
+corroborate non-terminal hierarchy evidence and cannot itself merge pairs or
+paths, while a terminal feature cycle is admitted only when every constituent
+has an exact child at the preceding scale. It changes no threshold,
+measurement, gate, reference, or closed evidence. Positive activation,
+connected-island overmerge, invalid/unseeded support, ambiguous-owner,
+partial-group conflict, terminal-persistence, label/order/retry, and
+Serial/existing-Dask fixtures pass. This implementation is non-executable;
+exact identity freezing, replay, viewed-data execution, qualification, tuning,
+rescoring, cutover, and release remain unauthorized.
 
 The readiness contract remains bound to failed source-reconstruction candidate
 `42c75f4...`, source tree `1b67c7f6...`, configuration `470e918d...`, and the
@@ -665,6 +674,15 @@ from partial or viewed evidence.
      ledger, so the parent-construction path still did not change governed
      catalogue-source membership. This candidate is terminally failed and may
      not be rerun or tuned.
+   - [x] Document and implement the prospective persistent-support and
+     constituent-persistent terminal-cycle correction. Require explicit
+     significant support, whole-group reconciliation, compact activation and
+     rejection telemetry, and fixture/executor invariance without changing
+     thresholds, measurement, gates, or closed evidence.
+   - [ ] Freeze exact non-executable candidate and replay identities for this
+     correction and run the complete no-write verifier. Any cumulative replay
+     requires a separate exact approval; no execution authority is implied by
+     this implementation.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

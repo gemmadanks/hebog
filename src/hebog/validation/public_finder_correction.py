@@ -571,6 +571,7 @@ def build_public_finder_source_reconstruction_continuum_products(  # noqa: PLR09
         valid,
         products.detection.component_labels,
         products.direct_component_labels,
+        products.significant_multiscale_support,
         products.scale_detection_planes,
         header,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,

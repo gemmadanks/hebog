@@ -465,6 +465,7 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
         return_value=SimpleNamespace(
             detection=detection,
             direct_component_labels=direct_labels,
+            significant_multiscale_support=np.zeros(shape, dtype=np.bool_),
             scale_detection_planes=scale_planes,
             position_signal_jy_per_beam=position_signal,
         ),
@@ -499,7 +500,11 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     assert evaluate.call_args.kwargs == {"beam": beam, "review": review}
     assert measure.call_args.args[3] is labels
     assert measure.call_args.args[4] is direct_labels
-    assert measure.call_args.args[5] is scale_planes
+    np.testing.assert_array_equal(
+        measure.call_args.args[5],
+        np.zeros(shape, dtype=np.bool_),
+    )
+    assert measure.call_args.args[6] is scale_planes
     assert measure.call_args.kwargs["position_signal_jy_per_beam"] is (
         position_signal
     )
@@ -582,8 +587,9 @@ def test_real_scale_composition_reconstructs_one_persistent_shell_parent() -> (
         (3, 1),
     )
     assert diagnostics.scale_aware_parent_candidate_count == 2
-    assert diagnostics.persistent_parent_count == 1
-    assert diagnostics.rejected_parent_ambiguity_count == 0
+    assert diagnostics.persistent_parent_count == 0
+    assert diagnostics.rejected_parent_ambiguity_count == 2
+    assert diagnostics.terminal_cycle_parent_count == 1
 
 
 @pytest.mark.parametrize(
@@ -613,8 +619,8 @@ def test_real_scale_parent_construction_handles_other_extended_morphologies(
     assert diagnostics.unique_convergence_count == 1
 
 
-def test_real_scale_terminal_only_three_lobe_parent_fails_closed() -> None:
-    """A wide parent first visible at the terminal scale stays separate."""
+def test_real_scale_terminal_three_lobe_uses_persistent_parent() -> None:
+    """Persistent features recover a parent first visible at scale three."""
     products = _real_scale_source_products(
         _modulated_ring_image(lobe_count=3, radius=10.0)
     )
@@ -622,8 +628,8 @@ def test_real_scale_terminal_only_three_lobe_parent_fails_closed() -> None:
     diagnostics = products.source_association.hierarchy_diagnostics
     assert diagnostics is not None
     assert diagnostics.direct_component_count == 3
-    assert diagnostics.catalogue_source_count == 3
-    assert diagnostics.membership_size_histogram == ((1, 3),)
+    assert diagnostics.catalogue_source_count == 1
+    assert diagnostics.membership_size_histogram == ((3, 1),)
     assert diagnostics.per_scale_parent_candidate_counts == (
         (1, 0),
         (2, 0),
@@ -631,6 +637,9 @@ def test_real_scale_terminal_only_three_lobe_parent_fails_closed() -> None:
     )
     assert diagnostics.persistent_parent_count == 0
     assert diagnostics.rejected_parent_ambiguity_count == 1
+    assert diagnostics.connected_support_candidate_count == 0
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 1
 
 
 def test_public_correction_rejects_nonreal_input_before_science() -> None:

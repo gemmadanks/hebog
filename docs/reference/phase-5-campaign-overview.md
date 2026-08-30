@@ -313,6 +313,24 @@ result is terminal evidence for this candidate: it must not be tuned, rescored,
 or rerun. Any further scientific correction requires a new prospective
 root-cause review and new frozen candidate identity.
 
+### Prospective correction after this result
+
+The retained sidecars showed why the science was unchanged: all 18,065 direct
+components remained singleton sources, and every one of 1,923 constructed
+parents first appeared at the final retained scale. The old rule required the
+same parent to recur at a fourth scale that does not exist.
+
+The next fixture-only correction does not alter this terminal result. It uses
+connected adjacent-scale significant support only to corroborate non-terminal
+hierarchy evidence; connected support alone cannot merge pairs or paths. For a
+parent first resolved at the final scale, it requires a cycle of at least three
+features and proves that every constituent feature persists from the preceding
+scale. Uncorroborated terminal bridges, pairs, chains, ambiguous owners,
+invalid support, and partial overlaps with an existing exact source remain
+separate. See the
+[persistent-support parent correction](phase-5-public-finder-persistent-support-parent-correction.md)
+for the complete scientific and authorization boundary.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

@@ -1270,6 +1270,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     valid_pixels: npt.ArrayLike,
     measurement_component_labels: npt.ArrayLike,
     direct_component_labels: npt.ArrayLike,
+    significant_multiscale_support: npt.ArrayLike,
     scale_detection_planes: tuple[ScaleDetectionPlane, ...],
     header: fits.Header,
     *,
@@ -1336,6 +1337,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         direct,
         scale_detection_planes,
         valid,
+        significant_multiscale_support=significant_multiscale_support,
     )
     stable_components = _stable_component_catalogue(
         component_sources,

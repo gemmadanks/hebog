@@ -88,6 +88,7 @@ def _measure(
         np.ones(image.shape, dtype=np.bool_),
         labels,
         direct_labels if direct_labels is not None else labels,
+        np.zeros(labels.shape, dtype=np.bool_),
         planes,
         _header(image.shape),
         beam_major_fwhm_pixels=2.0,

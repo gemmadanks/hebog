@@ -44,16 +44,24 @@ immutable direct-seed support and follows only unique parent links. Components
 group at their finest common feature only when that feature persists to a
 parent, or when every component directly attaches to that same feature.
 
-When exact sibling features remain disconnected, the parent constructor makes
-a bounded envelope around each feature using the cumulative radius of the
-already frozen B3-spline filter at that scale: 2, 6, or 14 pixels. Envelopes
-are clipped to valid pixels and are used only as hierarchy evidence; exact
-feature support remains the sole measurement support. A sweep-line overlap
-graph identifies spatially interacting siblings. Only a connected graph
-two-core is eligible, so a pair or transitive chain cannot manufacture a
-parent. The identical set of immutable direct components must recur as a
-candidate at adjacent scales. A shared exact feature at one of those scales
-may corroborate the envelope candidate at the other.
+When exact sibling features remain disconnected, parent construction now has
+two explicit safeguards. First, components in the same eight-connected
+component of direct support plus adjacent-scale significant reconstruction
+support may corroborate a non-terminal envelope group. Connected support does
+not itself form a parent because one connected island can contain multiple
+astrophysical sources.
+
+Second, the constructor makes a bounded envelope around each feature using the
+cumulative radius of the already frozen B3-spline filter at that scale: 2, 6,
+or 14 pixels. Envelopes are clipped to valid pixels and are used only as
+hierarchy evidence; exact feature support remains the sole measurement support.
+A sweep-line graph identifies spatially interacting siblings. A non-terminal
+envelope group still requires connected significant support. At the final
+retained scale, a graph two-core with at least three members may form a parent
+only when every terminal feature has an exact child at the immediately
+preceding scale. This proves adjacent-scale persistence of every constituent
+without demanding recurrence of a newly resolved parent at a nonexistent
+fourth scale.
 
 The rule fails closed:
 
@@ -61,10 +69,12 @@ The rule fails closed:
 - multiple intersecting finest features require one unique common lineage;
 - missing convergence or more than one parent marks the component ambiguous
   and leaves it as a singleton;
-- a shared feature appearing only as a terminal coarse bridge cannot group
-  otherwise independent components; and
-- proximity, a two-feature envelope, a centroid chord, or a transitive chain
-  cannot create a source;
+- an uncorroborated terminal bridge cannot create a source;
+- a terminal pair, a transitive chain, or a cycle containing any feature
+  without an incoming adjacent-scale edge remains separate;
+- connected significant support, proximity, a two-feature envelope, or a
+  centroid chord cannot create a source without independent hierarchy
+  evidence;
 - invalid-pixel barriers split envelopes; and
 - scales outside the frozen three-stage B3 plan cannot construct envelope
   parents.
@@ -131,6 +141,9 @@ The fixture suite covers:
 - nearby sources without significant bridge support;
 - persistent two-feature neighbours, terminal-only candidates, and ambiguous
   and unambiguous transitive chains;
+- connected persistent-support pairs and curved paths that remain separate,
+  terminal cycles with persistent constituents, and uncorroborated terminal
+  cycles;
 - crowded seeds, invalid gaps, label permutations, bounded tile origins, and
   different plane orders;
 - exact source flux and centroid, disjoint apertures, boundary/corner
@@ -178,6 +191,21 @@ overmerge controls, emits parent-candidate, accepted-parent, and rejected
 candidate counts, and is invariant under label, plane, task, retry, Serial,
 and existing-Dask ordering. Any eventual replay still requires a later exact
 approval.
+
+The terminal replay later proved that the adjacent-group recurrence rule was
+still impossible for this population: all 1,923 constructed parent candidates
+first appeared at scale 3 and none could recur at scale 4. Every one of 18,065
+components therefore remained a singleton. The prospective correction is
+documented in the
+[persistent-support parent correction](phase-5-public-finder-persistent-support-parent-correction.md).
+It makes significant reconstruction support explicit as corroboration rather
+than source membership, and replaces terminal group recurrence with
+constituent-feature persistence plus a cycle requirement. The real three-lobe
+terminal fixture now activates, while connected-support-only islands, invalid
+support, unseeded support, ambiguous owners, partial exact-group overlap,
+pairs, chains, and terminal features without adjacent children fail closed.
+This is fixture evidence only; no replay or viewed-data execution is
+authorized.
 
 ## Governance boundary
 

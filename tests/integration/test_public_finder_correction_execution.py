@@ -43,6 +43,7 @@ HierarchyBatch: TypeAlias = tuple[
     npt.NDArray[np.int32],
     tuple[DetectionComponentRecord, ...],
     tuple[ScaleDetectionPlane, ...],
+    npt.NDArray[np.bool_],
 ]
 
 
@@ -289,12 +290,13 @@ def _hierarchy_cycle_plane(
 
 def _reconstruct_hierarchy(batch: HierarchyBatch) -> SourceAssociationResult:
     """Apply common-parent reconstruction through a worker-safe boundary."""
-    labels, records, planes = batch
+    labels, records, planes, significant = batch
     return associate_components_by_multiscale_hierarchy(
         records,
         labels,
         planes,
         np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
     )
 
 
@@ -329,8 +331,18 @@ def test_source_hierarchy_is_serial_dask_order_and_retry_invariant() -> None:
         np.ones(labels.shape, dtype=np.bool_),
     )
     batches: tuple[HierarchyBatch, ...] = (
-        (labels, records, (middle, coarse)),
-        (permuted, permuted_records, (coarse, middle)),
+        (
+            labels,
+            records,
+            (middle, coarse),
+            np.zeros(labels.shape, dtype=np.bool_),
+        ),
+        (
+            permuted,
+            tuple(reversed(permuted_records)),
+            (coarse, middle),
+            np.zeros(labels.shape, dtype=np.bool_),
+        ),
     )
     expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
 
@@ -353,3 +365,62 @@ def test_source_hierarchy_is_serial_dask_order_and_retry_invariant() -> None:
         expected_view,
         expected_view,
     ]
+
+
+@pytest.mark.integration
+def test_connected_support_is_serial_dask_order_and_retry_invariant() -> None:
+    """Persistent-support corroboration and telemetry are invariant."""
+    pixels = ((4, 2), (4, 8), (9, 8))
+    labels = np.zeros((13, 13), dtype=np.int32)
+    permuted = np.zeros_like(labels)
+    for value, other, pixel in zip(
+        (9, 2, 17),
+        (31, 7, 22),
+        pixels,
+        strict=True,
+    ):
+        labels[pixel] = value
+        permuted[pixel] = other
+    plane = _hierarchy_cycle_plane(labels.shape, pixels, scale_order=1)
+    support = np.zeros(labels.shape, dtype=np.bool_)
+    support[4, 2:9] = True
+    support[4:10, 8] = True
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    permuted_records = build_detection_component_records(
+        permuted,
+        np.asarray(permuted > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    batches: tuple[HierarchyBatch, ...] = (
+        (labels, records, (plane,), support),
+        (permuted, tuple(reversed(permuted_records)), (plane,), support),
+    )
+    expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
+
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(
+            _reconstruct_hierarchy,
+            (*tuple(reversed(batches)), batches[0]),
+        )
+
+    expected_view = _identity_view(expected[0])
+    assert _identity_view(expected[1]) == expected_view
+    assert [_identity_view(item) for item in actual] == [
+        expected_view,
+        expected_view,
+        expected_view,
+    ]
+    diagnostics = expected[0].hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.connected_support_candidate_count == 1
+    assert diagnostics.catalogue_source_count == 3

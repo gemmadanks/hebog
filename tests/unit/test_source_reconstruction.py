@@ -413,6 +413,256 @@ def test_persistent_two_feature_envelopes_do_not_invent_one_source() -> None:
     assert [len(item.component_ids) for item in result.memberships] == [1, 1]
 
 
+@pytest.mark.parametrize(
+    "pixels",
+    (
+        ((7, 3), (7, 11)),
+        ((3, 3), (7, 7), (11, 11)),
+    ),
+    ids=("two-lobe", "curved-path"),
+)
+def test_connected_support_does_not_conflate_islands_with_sources(
+    pixels: tuple[tuple[int, int], ...],
+) -> None:
+    """Persistent emission alone cannot promote pairs or paths to sources."""
+    labels, records = _components(pixels)
+    fine = _plane(
+        1,
+        tuple(
+            (f"scale-persistent-{index}", (pixel,))
+            for index, pixel in enumerate(pixels, start=1)
+        ),
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    if len(pixels) == 2:
+        significant[7, 3:12] = True
+    else:
+        significant[3:8, 3] = True
+        significant[7, 3:8] = True
+        significant[7:12, 7] = True
+        significant[11, 7:12] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (fine,),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    membership_sizes = [len(item.component_ids) for item in result.memberships]
+    assert membership_sizes == [1] * len(pixels)
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.connected_support_candidate_count == 1
+    assert diagnostics.rejected_connected_support_ambiguity_count == 0
+
+
+def test_uncorroborated_terminal_envelope_overlap_remains_separate() -> None:
+    """A terminal cycle without persistent constituents cannot merge."""
+    pixels = ((10, 20), (20, 10), (20, 30), (30, 20))
+    labels, records = _components(pixels, shape=(41, 41))
+    terminal = _plane(
+        3,
+        tuple(
+            (f"scale-geometry-terminal-{index}", (pixel,))
+            for index, pixel in enumerate(pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (terminal,),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=np.zeros(
+            labels.shape,
+            dtype=np.bool_,
+        ),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 4
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.scale_aware_parent_candidate_count == 1
+    assert diagnostics.persistent_parent_count == 0
+    assert diagnostics.connected_support_candidate_count == 0
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 0
+    assert diagnostics.rejected_terminal_cycle_count == 1
+
+
+def test_connected_support_cannot_change_an_exact_group() -> None:
+    """Support cannot split one exact source or manufacture another."""
+    pixels = ((4, 2), (4, 7), (4, 12))
+    labels, records = _components(pixels)
+    fine = _plane(
+        1,
+        tuple(
+            (f"scale-conflict-{index}", (pixel,))
+            for index, pixel in enumerate(pixels, start=1)
+        ),
+    )
+    exact_parent = _plane(
+        2,
+        (
+            ("scale-conflict-left-parent", tuple((4, x) for x in range(2, 8))),
+            ("scale-conflict-right", (pixels[2],)),
+        ),
+    )
+    persistent_parent = _plane(
+        3,
+        (
+            (
+                "scale-conflict-left-persistent",
+                tuple((4, x) for x in range(2, 8)),
+            ),
+            ("scale-conflict-right-persistent", (pixels[2],)),
+        ),
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[4, 7:13] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (fine, exact_parent, persistent_parent),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert sorted(len(item.component_ids) for item in result.memberships) == [
+        1,
+        2,
+    ]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.connected_support_candidate_count == 1
+    assert diagnostics.rejected_connected_support_ambiguity_count == 0
+
+
+def test_connected_support_rejects_invalid_or_misaligned_evidence() -> None:
+    """Persistent support is a validated scientific input, not a hint."""
+    labels, records = _components(((4, 4),))
+    plane = _plane(1, (("scale-support", ((4, 4),)),))
+    valid = np.ones(labels.shape, dtype=np.bool_)
+    invalid_support = np.zeros(labels.shape, dtype=np.bool_)
+    invalid_support[3, 3] = True
+    valid[3, 3] = False
+
+    with pytest.raises(ValueError, match=r"significant.*valid"):
+        associate_components_by_multiscale_hierarchy(
+            records,
+            labels,
+            (plane,),
+            valid,
+            significant_multiscale_support=invalid_support,
+        )
+    with pytest.raises(ValueError, match="aligned boolean"):
+        associate_components_by_multiscale_hierarchy(
+            records,
+            labels,
+            (plane,),
+            np.ones(labels.shape, dtype=np.bool_),
+            significant_multiscale_support=np.zeros((2, 2)),
+        )
+
+
+def test_unseeded_persistent_support_is_ignored() -> None:
+    """A support island without multiple direct owners creates no parent."""
+    labels, records = _components(((3, 3), (11, 11)))
+    fine = _plane(
+        1,
+        (
+            ("scale-unseeded-left", ((3, 3),)),
+            ("scale-unseeded-right", ((11, 11),)),
+        ),
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[6:9, 6:9] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (fine,),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.connected_support_candidate_count == 0
+
+
+def test_persistent_support_does_not_override_ambiguous_lineage() -> None:
+    """Connected emission cannot promote a hierarchy-ambiguous owner."""
+    labels = np.zeros((9, 11), dtype=np.int32)
+    labels[4, 2:4] = 1
+    labels[4, 8] = 2
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    fine = _plane(
+        1,
+        (
+            ("scale-ambiguous-first", ((4, 2),)),
+            ("scale-ambiguous-second", ((4, 3),)),
+            ("scale-ambiguous-other", ((4, 8),)),
+        ),
+        shape=labels.shape,
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[4, 2:9] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (fine,),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    assert len(result.ambiguous_component_ids) == 1
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.connected_support_candidate_count == 1
+    assert diagnostics.rejected_connected_support_ambiguity_count == 1
+
+
+def test_disconnected_direct_component_fails_parent_construction() -> None:
+    """One direct identity may not span disconnected support parents."""
+    labels = np.zeros((11, 11), dtype=np.int32)
+    labels[2, 2] = 1
+    labels[8, 8] = 1
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    plane = _plane(
+        1,
+        (("scale-disconnected-owner", ((2, 2), (8, 8))),),
+        shape=labels.shape,
+    )
+
+    with pytest.raises(ValueError, match=r"one connected support parent"):
+        associate_components_by_multiscale_hierarchy(
+            records,
+            labels,
+            (plane,),
+            np.ones(labels.shape, dtype=np.bool_),
+            significant_multiscale_support=np.zeros(
+                labels.shape,
+                dtype=np.bool_,
+            ),
+        )
+
+
 def test_persistent_cycle_supported_envelopes_construct_one_parent() -> None:
     """A four-lobe parent must recur at adjacent B3 footprint scales."""
     pixels = ((10, 20), (20, 10), (20, 30), (30, 20))
@@ -440,12 +690,13 @@ def test_persistent_cycle_supported_envelopes_construct_one_parent() -> None:
     diagnostics = result.hierarchy_diagnostics
     assert diagnostics is not None
     assert diagnostics.scale_aware_parent_candidate_count == 2
-    assert diagnostics.persistent_parent_count == 1
-    assert diagnostics.rejected_parent_ambiguity_count == 0
+    assert diagnostics.persistent_parent_count == 0
+    assert diagnostics.rejected_parent_ambiguity_count == 2
+    assert diagnostics.terminal_cycle_parent_count == 1
 
 
-def test_terminal_cycle_supported_envelope_fails_closed() -> None:
-    """A candidate that appears only at the last scale remains ungrouped."""
+def test_terminal_cycle_with_persistent_features_constructs_parent() -> None:
+    """A final-scale cycle may use constituents persistent from scale two."""
     pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
     labels, records = _components(pixels, shape=(41, 41))
     planes = tuple(
@@ -467,12 +718,15 @@ def test_terminal_cycle_supported_envelope_fails_closed() -> None:
         np.ones(labels.shape, dtype=np.bool_),
     )
 
-    assert [len(item.component_ids) for item in result.memberships] == [1] * 4
+    assert [len(item.component_ids) for item in result.memberships] == [4]
     diagnostics = result.hierarchy_diagnostics
     assert diagnostics is not None
     assert diagnostics.per_scale_parent_candidate_counts == ((2, 0), (3, 1))
     assert diagnostics.persistent_parent_count == 0
     assert diagnostics.rejected_parent_ambiguity_count == 1
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 1
+    assert diagnostics.rejected_terminal_cycle_count == 0
 
 
 def test_transitive_envelope_chain_fails_closed() -> None:
@@ -680,6 +934,16 @@ def test_hierarchy_diagnostics_reject_inconsistent_counts() -> None:
         replace(diagnostics, scale_aware_parent_candidate_count=1)
     with pytest.raises(ValueError, match="persistent parents exceed"):
         replace(diagnostics, persistent_parent_count=1)
+    with pytest.raises(ValueError, match="connected-support outcomes"):
+        replace(
+            diagnostics,
+            rejected_connected_support_ambiguity_count=1,
+        )
+    with pytest.raises(ValueError, match="terminal-cycle outcomes"):
+        replace(
+            diagnostics,
+            terminal_cycle_parent_count=1,
+        )
     with pytest.raises(ValueError, match="match association"):
         replace(
             result,

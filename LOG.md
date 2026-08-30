@@ -12917,3 +12917,47 @@ ledger, then execute compilation and evaluation once.
 **Immediate next step:** stop execution and obtain prospective scientific
 review before implementing another source-membership correction. Any future
 candidate requires new frozen identities and a new cumulative replay approval.
+
+## 2026-08-30 — Implement the terminal parent correction
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Documented the terminal scientific failure and its retained activation
+  evidence in the persistent-support parent-correction reference. All 1,923
+  constructed parents first appeared at scale 3, so the previous requirement
+  that the same group recur at scale 4 was impossible. The document binds
+  terminal ledger `2ece9928...`, records the unchanged Continuum result, and
+  keeps replay, viewed-data execution, tuning, rescoring, cutover, and release
+  unauthorized.
+- Added test-first activation and overmerge controls. The initial red tests
+  failed because significant reconstruction support was not composed into
+  source reconstruction and a real terminal three-lobe morphology remained
+  three singleton sources. A real-scale diagnostic then disproved the broader
+  support-as-membership hypothesis: its significant support remained three
+  disconnected components, and a connected island is not in general one
+  astrophysical source. The implementation was narrowed before acceptance.
+- Significant multiscale support is now an explicit, shape- and
+  validity-checked input. It can corroborate a non-terminal hierarchy parent
+  but cannot create source membership by itself. A newly resolved terminal
+  parent is admitted only for a graph cycle of at least three features when
+  every terminal feature has an exact child at the preceding scale. Exact
+  groups are reconciled whole, and candidate, rejection, and activation counts
+  remain compact and array-free.
+- Positive shell, three-lobe, and curved-morphology fixtures activate the
+  intended terminal path. Connected-support pairs and paths, terminal pairs,
+  chains, non-persistent cycles, ambiguous owners, invalid or misaligned
+  support, unseeded support, and disconnected owner identities fail closed.
+  Public product composition forwards the exact support plane, while component
+  labels, measurement ownership, thresholds, gates, and photometric
+  definitions remain unchanged. Serial and existing-Dask execution agree
+  under label, input, task, and retry reordering.
+- Eighty-one focused scientific, composition, frozen-provenance, and executor
+  tests pass. `just coverage` passes 2,153 tests with 44 deselected and four
+  expected failures at 94.70% branch-aware project coverage. `just check`
+  passes formatting, Ruff, Pyright, doctests, and 1,994 tests with 203
+  deselected and four expected failures. All 27 applicable equivalence tests
+  and the strict documentation build pass.
+
+**Immediate next step:** freeze the clean implementation as exact
+non-executable candidate and replay identities and run the complete no-write
+verifier. Any cumulative replay still requires a separate exact approval.

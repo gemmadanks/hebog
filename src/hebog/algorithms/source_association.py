@@ -650,6 +650,25 @@ class _ScaleAwareParentEvidence:
     accepted_candidate_occurrences: tuple[tuple[frozenset[str], int], ...]
 
 
+@dataclass(frozen=True, slots=True)
+class _ConnectedSupportEvidence:
+    """Connected persistent-support corroboration groups and census."""
+
+    groups: tuple[frozenset[str], ...]
+    candidate_count: int
+    rejected_ambiguity_count: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class _TerminalCycleEvidence:
+    """Terminal cycles whose constituent features persist individually."""
+
+    groups: tuple[frozenset[str], ...]
+    candidate_count: int
+    rejected_count: int
+    accepted_parent_count: int = 0
+
+
 def _hierarchy_attachments(
     records: tuple[DetectionComponentRecord, ...],
     labels: npt.NDArray[np.int64],
@@ -958,6 +977,158 @@ def _scale_aware_parent_evidence(
     )
 
 
+def _validated_significant_support(
+    value: npt.ArrayLike | None,
+    labels: npt.NDArray[np.int64],
+    valid: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.bool_]:
+    """Return aligned persistent support or a fail-closed empty plane."""
+    if value is None:
+        return np.zeros(labels.shape, dtype=np.bool_)
+    support = np.asarray(value)
+    if (
+        support.ndim != _IMAGE_DIMENSIONS
+        or support.shape != labels.shape
+        or support.dtype != np.bool_
+    ):
+        raise ValueError(
+            "significant multiscale support must be one aligned boolean plane"
+        )
+    if bool(np.any(support & ~valid)):
+        raise ValueError(
+            "significant multiscale support must be scientifically valid"
+        )
+    return np.asarray(support, dtype=np.bool_)
+
+
+def _connected_support_evidence(
+    records: tuple[DetectionComponentRecord, ...],
+    labels: npt.NDArray[np.int64],
+    significant: npt.NDArray[np.bool_],
+    valid: npt.NDArray[np.bool_],
+    ambiguous_component_ids: frozenset[str],
+) -> _ConnectedSupportEvidence:
+    """Group direct owners sharing connected persistent emission support."""
+    parent_labels, _ = cast(
+        tuple[npt.NDArray[np.int64], int],
+        connected_component_labels(
+            ((labels > 0) | significant) & valid,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    component_ids_by_parent: dict[int, set[str]] = {}
+    for record in records:
+        parents = tuple(
+            sorted(
+                int(value)
+                for value in np.unique(
+                    parent_labels[labels == record.label_value]
+                )
+                if value > 0
+            )
+        )
+        if len(parents) != 1:
+            raise ValueError(
+                "each direct component must occupy one connected support "
+                "parent"
+            )
+        component_ids_by_parent.setdefault(parents[0], set()).add(
+            record.component_id
+        )
+    candidates = tuple(
+        sorted(
+            (
+                frozenset(component_ids)
+                for component_ids in component_ids_by_parent.values()
+                if len(component_ids) >= _MINIMUM_SOURCE_MEMBERS
+            ),
+            key=lambda item: tuple(sorted(item)),
+        )
+    )
+    groups = tuple(
+        group
+        for group in candidates
+        if group.isdisjoint(ambiguous_component_ids)
+    )
+    return _ConnectedSupportEvidence(
+        groups=groups,
+        candidate_count=len(candidates),
+        rejected_ambiguity_count=len(candidates) - len(groups),
+    )
+
+
+def _terminal_cycle_evidence(
+    planes: tuple[ScaleDetectionPlane, ...],
+    valid: npt.NDArray[np.bool_],
+    attachments: _HierarchyAttachments,
+    parent_edges: tuple[tuple[str, str], ...],
+) -> _TerminalCycleEvidence:
+    """Construct terminal cycles only from adjacent-persistent features."""
+    terminal = planes[-1]
+    feature_groups = (
+        _cycle_supported_feature_groups(
+            _envelope_adjacency(_feature_envelopes(terminal, valid))
+        )
+        if len(terminal.detections) >= _MINIMUM_CYCLE_DEGREE + 1
+        else ()
+    )
+    terminal_feature_ids = {item.detection_id for item in terminal.detections}
+    terminal_parents_with_children = {
+        parent_id
+        for _, parent_id in parent_edges
+        if parent_id in terminal_feature_ids
+    }
+    candidates: set[frozenset[str]] = set()
+    accepted: set[frozenset[str]] = set()
+    for feature_group in feature_groups:
+        component_ids = _components_for_feature_group(
+            feature_group,
+            attachments,
+        )
+        if len(component_ids) < _MINIMUM_CYCLE_DEGREE + 1:
+            continue
+        candidates.add(component_ids)
+        if feature_group.issubset(terminal_parents_with_children):
+            accepted.add(component_ids)
+    ordered = tuple(sorted(accepted, key=lambda item: tuple(sorted(item))))
+    return _TerminalCycleEvidence(
+        groups=ordered,
+        candidate_count=len(candidates),
+        rejected_count=len(candidates - accepted),
+    )
+
+
+def _filter_scale_aware_parents_by_connected_support(
+    evidence: _ScaleAwareParentEvidence,
+    connected_support: _ConnectedSupportEvidence,
+) -> _ScaleAwareParentEvidence:
+    """Forbid geometry-only parent groups without persistent signal."""
+    retained = tuple(
+        group
+        for group in evidence.groups
+        if any(group.issubset(parent) for parent in connected_support.groups)
+    )
+    discarded = set(evidence.groups) - set(retained)
+    discarded_occurrences = sum(
+        count
+        for group, count in evidence.accepted_candidate_occurrences
+        if group in discarded
+    )
+    return _ScaleAwareParentEvidence(
+        groups=retained,
+        candidate_count=evidence.candidate_count,
+        rejected_ambiguity_count=(
+            evidence.rejected_ambiguity_count + discarded_occurrences
+        ),
+        per_scale_candidate_counts=evidence.per_scale_candidate_counts,
+        accepted_candidate_occurrences=tuple(
+            (group, count)
+            for group, count in evidence.accepted_candidate_occurrences
+            if group in retained
+        ),
+    )
+
+
 def _hierarchy_groups(
     records: tuple[DetectionComponentRecord, ...],
     attachments: _HierarchyAttachments,
@@ -1041,6 +1212,35 @@ def _apply_scale_aware_parent_groups(
     return groups, applied_evidence
 
 
+def _apply_terminal_cycle_groups(
+    groups: tuple[frozenset[str], ...],
+    evidence: _TerminalCycleEvidence,
+) -> tuple[tuple[frozenset[str], ...], _TerminalCycleEvidence]:
+    """Apply whole terminal-cycle parents without splitting exact groups."""
+    current = list(groups)
+    accepted_count = 0
+    rejected_count = evidence.rejected_count
+    for parent in evidence.groups:
+        intersecting = [
+            group for group in current if not group.isdisjoint(parent)
+        ]
+        if any(not group.issubset(parent) for group in intersecting):
+            rejected_count += 1
+            continue
+        current = [group for group in current if group not in intersecting]
+        current.append(parent)
+        accepted_count += 1
+    return (
+        tuple(current),
+        _TerminalCycleEvidence(
+            groups=evidence.groups,
+            candidate_count=evidence.candidate_count,
+            rejected_count=rejected_count,
+            accepted_parent_count=accepted_count,
+        ),
+    )
+
+
 def _source_memberships(
     groups: tuple[frozenset[str], ...],
 ) -> tuple[CatalogueSourceMembership, ...]:
@@ -1059,12 +1259,14 @@ def _source_memberships(
     )
 
 
-def _hierarchy_diagnostics(
+def _hierarchy_diagnostics(  # noqa: PLR0913, PLR0917
     memberships: tuple[CatalogueSourceMembership, ...],
     planes: tuple[ScaleDetectionPlane, ...],
     parent_edges: tuple[tuple[str, str], ...],
     attachments: _HierarchyAttachments,
     scale_aware_parents: _ScaleAwareParentEvidence,
+    connected_support: _ConnectedSupportEvidence,
+    terminal_cycles: _TerminalCycleEvidence,
 ) -> SourceHierarchyDiagnostics:
     """Build compact deterministic activation evidence."""
     histogram = Counter(len(item.component_ids) for item in memberships)
@@ -1097,6 +1299,13 @@ def _hierarchy_diagnostics(
         per_scale_parent_candidate_counts=(
             scale_aware_parents.per_scale_candidate_counts
         ),
+        connected_support_candidate_count=(connected_support.candidate_count),
+        rejected_connected_support_ambiguity_count=(
+            connected_support.rejected_ambiguity_count
+        ),
+        terminal_cycle_candidate_count=terminal_cycles.candidate_count,
+        terminal_cycle_parent_count=terminal_cycles.accepted_parent_count,
+        rejected_terminal_cycle_count=terminal_cycles.rejected_count,
     )
 
 
@@ -1105,6 +1314,8 @@ def associate_components_by_multiscale_hierarchy(
     component_labels: npt.ArrayLike,
     scale_detection_planes: tuple[ScaleDetectionPlane, ...],
     valid_pixels: npt.ArrayLike,
+    *,
+    significant_multiscale_support: npt.ArrayLike | None = None,
 ) -> SourceAssociationResult:
     """Partition direct owners at a corroborated common scale feature.
 
@@ -1113,16 +1324,23 @@ def associate_components_by_multiscale_hierarchy(
     adjacent-scale overlap parents. Owners group at their finest shared
     feature only when that feature persists to a parent, or when every owner
     directly attaches to the same feature. When exact sibling lineages remain
-    separate, bounded envelopes derived from the fixed B3 footprint may
-    construct a parent only from cycle-supported features whose identical
-    component group recurs at an adjacent scale. Missing, branched, terminal,
-    chain-only, or conflicting convergence remains a flagged singleton.
+    separate, connected significant multiscale support may corroborate a
+    non-terminal envelope group but cannot create source membership by itself.
+    At the last retained scale, a cycle may construct a parent only when every
+    constituent feature has an exact child at the preceding scale. Partial
+    overlap with an exact group, missing support, branching, or conflicting
+    convergence fails closed.
     """
     labels, planes, valid = _hierarchy_inputs(
         records,
         component_labels,
         scale_detection_planes,
         valid_pixels,
+    )
+    significant = _validated_significant_support(
+        significant_multiscale_support,
+        labels,
+        valid,
     )
     feature_index = _feature_by_id(planes)
     parent_edges = adjacent_scale_overlap_edges(planes)
@@ -1150,6 +1368,23 @@ def associate_components_by_multiscale_hierarchy(
         valid,
         attachments,
     )
+    connected_support = _connected_support_evidence(
+        records,
+        labels,
+        significant,
+        valid,
+        attachments.ambiguous_component_ids,
+    )
+    terminal_cycles = _terminal_cycle_evidence(
+        planes,
+        valid,
+        attachments,
+        parent_edges,
+    )
+    scale_aware_parents = _filter_scale_aware_parents_by_connected_support(
+        scale_aware_parents,
+        connected_support,
+    )
     exact_groups = _hierarchy_groups(
         records,
         attachments,
@@ -1159,6 +1394,10 @@ def associate_components_by_multiscale_hierarchy(
     groups, applied_scale_aware_parents = _apply_scale_aware_parent_groups(
         exact_groups,
         scale_aware_parents,
+    )
+    groups, applied_terminal_cycles = _apply_terminal_cycle_groups(
+        groups,
+        terminal_cycles,
     )
     memberships = _source_memberships(groups)
     return SourceAssociationResult(
@@ -1174,5 +1413,7 @@ def associate_components_by_multiscale_hierarchy(
             parent_edges,
             attachments,
             applied_scale_aware_parents,
+            connected_support,
+            applied_terminal_cycles,
         ),
     )

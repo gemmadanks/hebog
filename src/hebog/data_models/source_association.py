@@ -154,6 +154,20 @@ def _validate_parent_candidate_counts(
         )
 
 
+def _validate_support_parent_counts(
+    *,
+    candidate_count: int,
+    parent_count: int,
+    rejected_count: int,
+    label: str,
+) -> None:
+    """Require candidate outcomes not to exceed their evidence census."""
+    if parent_count + rejected_count > candidate_count:
+        raise ValueError(
+            f"source hierarchy {label} outcomes exceed candidates"
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class SourceHierarchyDiagnostics:
     """Compact array-free exact and scale-aware hierarchy evidence."""
@@ -172,6 +186,11 @@ class SourceHierarchyDiagnostics:
     persistent_parent_count: int
     rejected_parent_ambiguity_count: int
     per_scale_parent_candidate_counts: tuple[tuple[int, int], ...]
+    connected_support_candidate_count: int = 0
+    rejected_connected_support_ambiguity_count: int = 0
+    terminal_cycle_candidate_count: int = 0
+    terminal_cycle_parent_count: int = 0
+    rejected_terminal_cycle_count: int = 0
 
     def __post_init__(self) -> None:
         """Require canonical non-negative counts and exact cardinalities."""
@@ -187,6 +206,11 @@ class SourceHierarchyDiagnostics:
             self.scale_aware_parent_candidate_count,
             self.persistent_parent_count,
             self.rejected_parent_ambiguity_count,
+            self.connected_support_candidate_count,
+            self.rejected_connected_support_ambiguity_count,
+            self.terminal_cycle_candidate_count,
+            self.terminal_cycle_parent_count,
+            self.rejected_terminal_cycle_count,
         )
         if any(value < 0 for value in scalar_counts):
             raise ValueError("source hierarchy counts must be non-negative")
@@ -226,6 +250,18 @@ class SourceHierarchyDiagnostics:
             self.per_scale_parent_candidate_counts,
             candidate_count=self.scale_aware_parent_candidate_count,
             persistent_count=self.persistent_parent_count,
+        )
+        _validate_support_parent_counts(
+            candidate_count=self.connected_support_candidate_count,
+            parent_count=0,
+            rejected_count=self.rejected_connected_support_ambiguity_count,
+            label="connected-support",
+        )
+        _validate_support_parent_counts(
+            candidate_count=self.terminal_cycle_candidate_count,
+            parent_count=self.terminal_cycle_parent_count,
+            rejected_count=self.rejected_terminal_cycle_count,
+            label="terminal-cycle",
         )
 
 
