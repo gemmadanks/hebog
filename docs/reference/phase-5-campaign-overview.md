@@ -18,6 +18,7 @@ across decisions, or replace a failed result with a later interpretation.
 | First corrected cumulative replay | Check the seeded-island and public-measurement correction against all viewed regression evidence | Fail | Compact remained sound, but Continuum had 44 failures and 37 like-semantics regressions dominated by fragmentation. |
 | Source-association measurement-repair replay | Test whether conservative component association and complete measurement records fixed the remaining Continuum failures | Fail | Association changed point estimates but no endpoint status. Compact passed; source reconstruction, source-level measurement, and mask precision remain open. |
 | Source-reconstruction cumulative replay | Test deterministic multiscale hierarchy, one source-level measurement, connected support, and source-union topology | Fail | Compact passed, but Continuum again had 44 failures and 37 regressions. The hierarchy did not change governed source membership or fragmentation. |
+| Parent-construction cumulative replay | Test whether scale-aware parent envelopes and persistence create the intended catalogue-source parents | Fail | Compact passed, but all 143 Continuum endpoint values and decisions were unchanged. The parent-construction path still did not change governed source membership. |
 
 The apparent contrast between final qualification and later failure is useful,
 not contradictory. The final qualification showed that the frozen candidate
@@ -246,6 +247,71 @@ this attempt requires separately approved
 reconstruction of only the omitted 1,600 association sidecars, with every
 regenerated catalogue, label plane, and mask required to match the preserved
 products exactly, followed by one evaluation-only completion.
+
+## Latest scientific snapshot: parent construction
+
+**Terminal date:** 2026-08-30
+
+**Evidence role:** viewed-development cumulative regression, not fresh held-out
+qualification and not a new public-data campaign.
+
+**Scientific question:** do scale-aware parent envelopes, cycle-supported
+sibling candidates, adjacent-scale persistence, and exact-feature
+corroboration finally change catalogue-source membership enough to remove the
+extended-source fragmentation exposed by the prior replays?
+
+**Terminal verdict:** no. The repaired evaluation completed and published the
+write-once ledger, but the scientific gate failed. The exact ledger is
+`benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json`,
+SHA-256
+`2ece9928eec152cf17f06e9e869d0db9c6a8f0acc2b18ea482aced5e133e6bce`.
+
+### Scientific result
+
+Compact passed every binding decision with no like-semantics regression.
+Continuum produced 89 passes, 44 failures, 10 underpowered endpoints, no
+indeterminate endpoints, and 37 like-semantics regressions.
+
+| Overall Continuum metric | Hebog | Required limit | Outcome |
+| --- | ---: | ---: | --- |
+| Completeness | 100.00% | at least 90% | Pass |
+| Reliability | 62.38% | at least 95% | Fail |
+| Median integrated-flux error | 5.22% | at most 10% | Pass |
+| Integrated-flux-error p95 | 79.26% | at most 25% | Fail |
+| Position-error p95 | 4.18 beams | at most 0.5 beam | Fail |
+| Duplicate fraction | 25.29% | at most 2% | Fail |
+| Split fraction | 25.29% | at most 10% | Fail |
+| Mask precision | 88.41% | at least 85% | Absolute value passes, but paired non-inferiority fails |
+| Mask recall | 91.96% | at least 90% | Pass |
+| Mask intersection over union | 82.06% | at least 80% | Pass |
+| Merge fraction | 0.00% | at most 10% | Pass |
+
+The failure families are unchanged: one reliability endpoint, 18 duplicate or
+split endpoints, 11 integrated-flux endpoints, 13 astrometry endpoints, and
+one mask-precision endpoint. More importantly, comparison with the preceding
+source-reconstruction ledger found no change in the candidate value, status,
+or reason for any of the 143 Continuum endpoints. This rules out the expected
+scientific effect of the new parent construction on the governed population.
+The issue is still activation or propagation of catalogue-source membership,
+not merely an evaluator presentation problem.
+
+### Operational recovery and consequence
+
+Candidate execution had already produced all 2,400 immutable products. The
+original compiler could not verify direct-seed membership because the exact
+association record had not been persisted. An approved reconstruction created
+only the 1,600 omitted Continuum association sidecars and verified every
+regenerated catalogue, label plane, and mask against the preserved products.
+Two evaluation-only composition defects were then repaired without rerunning
+the candidate. The final completion verified the candidate product set,
+association product set, retained references, closed baseline, and repair
+identities before publishing this ledger.
+
+The cumulative prerequisite remains closed. Fresh qualification, the Rapthor
+profile decision, final readiness, cutover, and release cannot proceed. This
+result is terminal evidence for this candidate: it must not be tuned, rescored,
+or rerun. Any further scientific correction requires a new prospective
+root-cause review and new frozen candidate identity.
 
 ## Required format for future snapshots
 

@@ -639,7 +639,7 @@ from partial or viewed evidence.
      terminal reconstruction sealed all 1,600 sidecars as product set
      `e1f16373...` under recovery identity `78d43370...`, with every regenerated
      candidate artifact matching the preserved product exactly.
-   - [ ] Freeze and approve one evaluation-only completion against the sealed
+   - [x] Freeze and approve one evaluation-only completion against the sealed
      sidecars, publish the atomic cumulative ledger, interpret compact and
      Continuum science before power, and require every absolute and
      like-semantics gate. The fail-closed completion program `bde8511a...`
@@ -657,14 +657,22 @@ from partial or viewed evidence.
      the repaired identity and complete the preserved-product evaluation once.
      Repair review `894f38ff...` and one-use decision `b0e38b90...` bind that
      unchanged evidence; do not run another recovery or candidate campaign.
-     Treat a scientific failure as terminal without tuning or rerunning.
+     Treat a scientific failure as terminal without tuning or rerunning. The
+     repaired completion published terminal ledger `2ece9928...`: compact
+     passed, but Continuum recorded 89 passes, 44 failures, 10 underpowered
+     endpoints, and 37 like-semantics regressions. All 143 Continuum candidate
+     values, statuses, and reasons are unchanged from the source-reconstruction
+     ledger, so the parent-construction path still did not change governed
+     catalogue-source membership. This candidate is terminally failed and may
+     not be rerun or tuned.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
-   - Blocked: the cumulative prerequisite failed, so no qualification
-     population may be opened or frozen until step 3 publishes a passing
+   - Blocked: the parent-construction cumulative prerequisite published a
+     terminal failing ledger, so no qualification population may be opened or
+     frozen until a newly reviewed correction publishes a passing cumulative
      ledger.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate

@@ -12877,3 +12877,43 @@ immutable checkout.
 **Immediate next step:** commit the repaired review and decision, create a clean
 immutable execution checkout, reverify every exact identity and the absent
 ledger, then execute compilation and evaluation once.
+
+## 2026-08-30 — Close parent construction as a scientific failure
+
+**Plan phase:** Phase 5, closure gate 3
+
+- The repaired evaluation-only completion exited successfully and atomically
+  published
+  `cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json`,
+  SHA-256 `2ece9928eec152cf17f06e9e869d0db9c6a8f0acc2b18ea482aced5e133e6bce`.
+  This is a terminal scientific failure rather than an operational failure.
+- Provenance verification binds candidate `5f2b098...`, source tree
+  `a7ef1887...`, configuration `88634678...`, candidate product set
+  `b81cb3d4...`, association product set `e1f16373...`, repaired completion
+  program `044436d5...`, repair review `894f38ff...`, execution decision
+  `b0e38b90...`, reconstruction recovery `78d43370...`, retained reference
+  terminal `48209eae...`, closed baseline `a45303df...`, and immutable
+  execution revision `1a3e1c4...`. Candidate execution remained forbidden and
+  unstarted during completion.
+- Compact passed every binding decision with no like-semantics regression.
+  Continuum recorded 89 passes, 44 failures, 10 underpowered endpoints, no
+  indeterminate endpoints, and 37 like-semantics regressions. The overall
+  failures remain reliability 62.38%, integrated-flux-error p95 79.26%,
+  position-error p95 4.18 beams, duplicate and split fractions 25.29%, and
+  paired mask-precision non-inferiority despite 88.41% absolute precision.
+- All 143 Continuum candidate values, statuses, and reasons are unchanged from
+  the preceding source-reconstruction ledger. Parent construction therefore
+  did not change governed catalogue-source membership or fragmentation. The
+  cumulative readiness, fresh qualification, Rapthor profile, final readiness,
+  cutover, and release gates remain closed. This candidate must not be tuned,
+  rescored, or rerun.
+- Thirty-one focused parent-construction provenance, wrapper, identity, and
+  evaluation tests pass. `just coverage` passes 2,144 tests with 44 deselected
+  and four expected failures at 94.70% branch-aware project coverage;
+  `just check` passes formatting, Ruff, Pyright, doctests, and 1,986 tests with
+  202 deselected and four expected failures. All 27 applicable equivalence
+  tests and the strict documentation build pass.
+
+**Immediate next step:** stop execution and obtain prospective scientific
+review before implementing another source-membership correction. Any future
+candidate requires new frozen identities and a new cumulative replay approval.
