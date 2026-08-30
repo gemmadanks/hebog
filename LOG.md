@@ -12621,3 +12621,54 @@ identity freeze is recorded below.
 **Immediate next step:** commit the replacement review and decision, construct
 a clean immutable checkout, reverify the exact repair identity and absent
 namespaces, then run the unchanged replay once.
+
+## 2026-08-30 — Diagnose parent-construction evaluation provenance failure
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Repaired replay session `36274` completed all 2,400 candidate shards: 800
+  compact and 1,600 Continuum products. The scratch contains exactly 2,400
+  progress records and the atomic cumulative ledger is absent.
+- Compilation failed on the first associated Continuum catalogue with
+  `ValueError: associated source membership cannot be verified`. No compact or
+  Continuum decision, gate result, or scientific comparison was published.
+- Root cause is semantic and reproducible: source IDs digest canonical pixels
+  from the direct-seed label plane, while the evaluator reconstructed component
+  IDs from the first pixels of the larger recovered measurement-owner plane.
+  Ownership recovery can precede the seed canonical pixel, so the reconstructed
+  digest universe is different even though label values remain stable.
+- The persistence audit found a second necessary cause: every Continuum shard
+  retains only catalogue, recovered labels, and mask. The cumulative writer
+  discarded the exact `source_association` record generated in memory, so the
+  preserved files cannot prove cryptographic membership without rerunning the
+  frozen association composition.
+- Added a red recovered-owner fixture, then implemented an explicit
+  association-record path that verifies component and source digests, maps
+  stable label values onto recovered supports, and requires an exact disjoint
+  partition. A new run-aware parent-construction overlay replaces only the
+  installed compiler object; both frozen historical compiler modules retain
+  their exact approved SHA-256 identities.
+- Failure record `phase-5-public-finder-source-hierarchy-parent-construction-
+  evaluation-provenance-failure` and repair pre-review
+  `phase-5-public-finder-source-hierarchy-parent-construction-association-
+  provenance-repair-pre-review` preserve the terminal failure and restrict the
+  next execution to sidecar-only reconstruction plus a later evaluation-only
+  completion. Existing shards, compact science, candidate configuration,
+  references, gates, thresholds, tuning, rescoring, cutover, and release remain
+  outside that boundary.
+- The completed repair preserves frozen compiler SHA-256 identities
+  `ab690dda...` and `b46167de...`; the new sidecar-aware overlay is
+  `74d16cc4...` and the reconstruction program is `e8dd80cb...`. Twenty-three
+  focused tests pass with 90% branch coverage; `just coverage` passed with
+  2,133 tests and 94.70%
+  coverage; `just check` passed 1,975 tests; the equivalence lane and strict
+  documentation build passed.
+- The complete no-write reconstruction preflight then verified the exact 2,400
+  preserved products, 9,600 retained reference runs, candidate product set
+  `b81cb3d4...`, absent failed ledger, and absent reconstruction namespaces.
+  No reconstruction, compilation, evaluation, or scientific access occurred.
+
+**Immediate next step:** finish validation and review of the evaluator repair,
+freeze exact non-executable sidecar-reconstruction identities, and obtain a
+separate exact execution approval before running the frozen 1,600-Continuum
+association composition or compiling the preserved products.

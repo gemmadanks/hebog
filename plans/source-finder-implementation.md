@@ -370,7 +370,16 @@ layer and raised `_load_current_wrapper`. No scratch or ledger was created.
 Repair review `89327ae5...` now binds the wrapper-only traversal correction and
 expanded no-write execution-composition verification. Decision `0349fdc2...`
 consumes the explicit restart instruction for one unchanged replay; all
-scientific identities remain fixed.
+scientific identities remain fixed. That replay completed all 2,400 candidate
+products, but compilation stopped before an atomic ledger because the
+evaluator tried to reconstruct direct-seed component identities from recovered
+measurement-owner labels. All 1,600 Continuum shards omit the in-memory source
+association record, so exact membership cannot be recovered from the preserved
+files alone. Pre-review
+`phase-5-public-finder-source-hierarchy-parent-construction-association-provenance-repair-pre-review`
+therefore limits the repair to explicit association provenance, immutable
+product verification, and separately approved sidecar reconstruction and
+evaluation completion.
 Section 7 contains the single authoritative Phase 5 closure sequence; detailed
 chronology and immutable identities remain in `LOG.md` and
 `config/contracts/`.
@@ -613,9 +622,23 @@ from partial or viewed evidence.
      all 2,400 inputs, 9,600 reference runs, and executable seams; restart
      decision `0349fdc2...` consumes only the explicit fix-and-restart
      instruction.
-   - [ ] Execute that single cumulative replay, interpret compact and Continuum
-     science before power, and require every absolute and like-semantics gate.
-     Treat a scientific failure as terminal without tuning or rerunning.
+   - [x] Execute the authorized candidate stage. All 2,400 shards completed;
+     compilation then failed before atomic publication because direct-seed
+     identities were inferred from recovered owner coordinates. No scientific
+     result exists, and the complete product set remains immutable.
+   - [x] Repair the evaluator contract test-first so associated rows consume an
+     explicit digest-verified source-association record through a new run-aware
+     overlay. Preserve all legacy catalogue semantics and both frozen compiler
+     program identities.
+   - [ ] Reconstruct only the omitted association provenance for the 1,600
+     Continuum shards under a separately approved write-once namespace. Require
+     regenerated catalogue, labels, and mask to match the preserved products
+     exactly; do not rerun compact science or mutate the existing scratch.
+   - [ ] Freeze and approve one evaluation-only completion against the sealed
+     sidecars, publish the atomic cumulative ledger, interpret compact and
+     Continuum science before power, and require every absolute and
+     like-semantics gate. Treat a scientific failure as terminal without tuning
+     or rerunning.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

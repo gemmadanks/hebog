@@ -1,0 +1,52 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "compilation_authorized": false,
+    "evaluation_authorized": false,
+    "fixture_validation_authorized": true,
+    "implementation_authorized": true,
+    "provenance_reconstruction_authorized": false,
+    "reconstruction_identity_freeze_authorized": true,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "candidate_product_set_sha256": "b81cb3d47d7db5ac45c66893445bd5d25711af88372566bbe979a6bce9a0fc87",
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-association-provenance-repair-implementation-decision",
+  "implementation": {
+    "evaluation_overlay_path": "src/hebog/validation/parent_construction_association_evaluation.py",
+    "evaluation_overlay_sha256": "74d16cc49f65bf5a353acc67a830dd2d175b8be2635062cca64581cfaa966962",
+    "frozen_recovery_compiler_sha256": "ab690dda67126e8cc1eeec57f426c73ee5244ba33922d1af6f4e8d5a5c07e0f6",
+    "frozen_source_association_evaluator_sha256": "b46167deff074d48540a88949ef6fcf86b474aa6a1c7806b357e919cc497eb49",
+    "reconstruction_program_path": "scripts/validation/reconstruct_phase5_parent_construction_associations.py",
+    "reconstruction_program_sha256": "e8dd80cbc8d84fcaa8d3fb2703466c701dd5ad5dfc01ef64eaa43426b43c5f24"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-association-provenance-repair-pre-review.json",
+    "sha256": "bfc1e594bd59b55a1fca18ac19e5d903685fe006943652fbe3e438630e12c6af"
+  },
+  "reconstruction_contract": {
+    "continuum_input_count": 1600,
+    "failed_ledger_must_remain_absent": true,
+    "minimum_host_headroom_bytes": 21474836480,
+    "preserved_product_count": 2400,
+    "regenerated_product_match": "exact-artifact-sha256",
+    "retained_output": "source-association-json-only",
+    "workers": 2,
+    "write_once_terminal": "benchmark-results/phase-5/parent-construction-association-provenance-reconstruction"
+  },
+  "schema_version": 1,
+  "status": "implemented-and-ready-for-non-executable-identity-freeze",
+  "validation": {
+    "complete_no_write_preflight": "pass",
+    "docs_build": "pass",
+    "equivalence_lane": "pass",
+    "focused_branch_coverage_percent": 90,
+    "focused_test_count": 23,
+    "just_check_test_count": 1975,
+    "project_branch_coverage_percent": 94.7,
+    "project_coverage_test_count": 2133,
+    "reconstruction_started": false,
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+  }
+}

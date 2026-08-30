@@ -220,6 +220,33 @@ source membership unchanged. That review must reproduce the activation gap in
 analytic fixtures and freeze any correction before another replay is proposed;
 this terminal evidence must not be tuned or rescored.
 
+## Latest operational snapshot: parent construction
+
+**Terminal date:** 2026-08-30
+
+**Evidence role:** attempted viewed-development cumulative regression. This is
+an operational failure, not a scientific result.
+
+Candidate `5f2b098...` completed all 800 compact and 1,600 Continuum products.
+Compilation then stopped before publishing an atomic ledger with
+`associated source membership cannot be verified`. The new catalogue source
+IDs were correctly constructed from immutable direct-seed components, but the
+evaluator tried to reconstruct those identities from recovered measurement
+labels whose support can begin at a different pixel. The cumulative writer had
+also omitted the exact in-memory `source_association` record from every
+Continuum shard, leaving no fail-closed way to verify the digest membership
+from the preserved files.
+
+No metric, endpoint status, or Hebog-versus-PyBDSF conclusion was produced.
+The 2,400 candidate products are complete and remain unchanged. The evaluator
+now has a tested overlay that consumes an explicit association record and
+independently verifies both component and source digests plus the disjoint
+support partition without modifying either frozen historical compiler. Closing
+this attempt requires separately approved
+reconstruction of only the omitted 1,600 association sidecars, with every
+regenerated catalogue, label plane, and mask required to match the preserved
+products exactly, followed by one evaluation-only completion.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
