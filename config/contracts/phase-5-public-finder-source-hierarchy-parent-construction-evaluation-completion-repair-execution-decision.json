@@ -1,0 +1,58 @@
+{
+  "approval": {
+    "approved_on": "2026-08-30",
+    "exact_user_instruction": "Please make the immediate repair (and any other necessary fixes) to complete the evaluation. If we need to do another recovery campaign then we can decide whether changes to the process are needed.",
+    "interpretation": "one evaluation-only completion of the unchanged preserved products after the exact repaired review passes; no recovery or candidate campaign",
+    "reviewer": "Gemma Danks"
+  },
+  "association_product_set_sha256": "e1f16373f47119c71d64e3aa90639403dd1e978d84e68f4fd507e20527a27e90",
+  "association_reconstruction_recovery_sha256": "78d43370101b39a9902f15a84209559b3759a893735fc84418fc34e30c84f2af",
+  "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
+  "candidate_execution_authorized": false,
+  "candidate_product_count": 2400,
+  "candidate_product_set_sha256": "b81cb3d47d7db5ac45c66893445bd5d25711af88372566bbe979a6bce9a0fc87",
+  "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
+  "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+  "closed_baseline_path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "compilation_authorized": true,
+  "compiler_composition_verified": true,
+  "completion_program_sha256": "044436d50bb0f208a788f54c37c8ec42882fcf3a7135383a215658b3aeb79213",
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-evaluation-completion-repair-execution-decision",
+  "evaluation_authorized": true,
+  "evaluation_overlay_sha256": "74d16cc49f65bf5a353acc67a830dd2d175b8be2635062cca64581cfaa966962",
+  "existing_product_completion_authorized": true,
+  "failure_sha256": "d2e956fc4f2d7c94f14168e0e20782f38845100aa25e3b97d589a54168fa8033",
+  "identity_review": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-evaluation-completion-repair-review.json",
+    "sha256": "894f38ff1b0d97662ed68f8e1a3454d3d427ecced65ebe495f180e05a612ee5d"
+  },
+  "implementation_commit": "ae3994ec865c36c44857d0c8959b4f29aeb4c22c",
+  "implementation_decision_sha256": "0888d6ef6f3c48f384bb24f2730040c4a02bc2467f9948232c5245a4a6ca35b3",
+  "original_authorization": {
+    "decision_sha256": "1258a3212e62d618c18174be7815b971c84c673f767a57996ba56fa84b7a4d32",
+    "identity_review_sha256": "9c2be9a7067973f5fe1d1eff4ecb0d3afcc6517e9c2338ee9e5db580d6a89906",
+    "status": "consumed-by-failed-process"
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+  "parent_wrapper_sha256": "053fc6479d75a9f11e97cc2ec6f7de41610c5c03083bd81ce01ca47ef104c8d7",
+  "pre_review_sha256": "efe91025e0be87cf85b1b885c5cad2d58555ede85c249945bd88f63d33129579",
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "candidate_execution_authorized": false,
+    "cumulative_replay_rerun_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "reconstructed_reference_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+  "reconstructed_reference_run_count": 9600,
+  "reconstructed_reference_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "schema_version": 1,
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-source-hierarchy-parent-construction-5f2b098",
+  "status": "reviewed-before-parent-construction-evaluation-completion"
+}

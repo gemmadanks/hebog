@@ -654,8 +654,9 @@ from partial or viewed evidence.
      now wraps the active three-argument installer instead of inspecting its
      globals. Its complete no-write verifier executes the exact frozen compiler
      composition after verifying all products, sidecars, and references. Freeze
-     the repaired identity and complete the preserved-product evaluation once;
-     do not run another recovery or candidate campaign.
+     the repaired identity and complete the preserved-product evaluation once.
+     Repair review `894f38ff...` and one-use decision `b0e38b90...` bind that
+     unchanged evidence; do not run another recovery or candidate campaign.
      Treat a scientific failure as terminal without tuning or rerunning.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific

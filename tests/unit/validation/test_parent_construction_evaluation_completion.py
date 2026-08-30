@@ -41,6 +41,14 @@ _EXECUTION_DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
     "construction-evaluation-completion-execution-decision.json"
 )
+_REPAIR_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-evaluation-completion-repair-review.json"
+)
+_REPAIR_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-evaluation-completion-repair-execution-decision.json"
+)
 
 
 def _namespace() -> dict[str, Any]:
@@ -359,6 +367,68 @@ def test_execution_decision_authorizes_only_evaluation_completion() -> None:
         "parent_wrapper_sha256",
     ):
         assert decision[field] == verified[field]
+    assert decision["existing_product_completion_authorized"] is True
+    assert decision["compilation_authorized"] is True
+    assert decision["evaluation_authorized"] is True
+    assert decision["candidate_execution_authorized"] is False
+    assert not any(decision["prohibited_authorizations"].values())
+
+
+def test_repair_review_freezes_the_real_composed_preflight() -> None:
+    """The replacement review binds the exact clean implementation pass."""
+    review: dict[str, Any] = json.loads(
+        _REPAIR_REVIEW.read_text(encoding="utf-8")
+    )
+
+    implementation = cast(dict[str, Any], review["implementation"])
+    revision = cast(str, implementation["commit"])
+    assert revision == "ae3994ec865c36c44857d0c8959b4f29aeb4c22c"
+    for identity in implementation.values():
+        if not isinstance(identity, dict):
+            continue
+        identity_record = cast(dict[str, Any], identity)
+        path = identity_record.get("path")
+        expected = identity_record.get("sha256")
+        if isinstance(path, str):
+            assert isinstance(expected, str)
+            assert _committed_file_sha256(revision, path) == expected
+    verified = cast(dict[str, Any], review["verified_composition"])
+    assert verified["compiler_composition_verified"] is True
+    assert verified["candidate_product_count"] == 2400
+    assert verified["reference_run_count"] == 9600
+    assert verified["candidate_execution_started"] is False
+    assert verified["compilation_started"] is False
+    assert verified["evaluation_started"] is False
+    assert verified["output_absent"] is True
+    assert not any(review["authorization"].values())
+
+
+def test_repair_decision_authorizes_only_one_existing_product_completion() -> (
+    None
+):
+    """The explicit repair instruction cannot authorize candidate work."""
+    review: dict[str, Any] = json.loads(
+        _REPAIR_REVIEW.read_text(encoding="utf-8")
+    )
+    decision: dict[str, Any] = json.loads(
+        _REPAIR_EXECUTION_DECISION.read_text(encoding="utf-8")
+    )
+
+    assert decision["identity_review"] == {
+        "path": str(_REPAIR_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REPAIR_REVIEW),
+    }
+    verified = cast(dict[str, Any], review["verified_composition"])
+    for field in (
+        "association_product_set_sha256",
+        "association_reconstruction_recovery_sha256",
+        "candidate_product_set_sha256",
+        "completion_program_sha256",
+        "evaluation_overlay_sha256",
+        "parent_wrapper_sha256",
+    ):
+        assert decision[field] == verified[field]
+    assert decision["compiler_composition_verified"] is True
     assert decision["existing_product_completion_authorized"] is True
     assert decision["compilation_authorized"] is True
     assert decision["evaluation_authorized"] is True

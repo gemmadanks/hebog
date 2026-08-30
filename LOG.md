@@ -12854,3 +12854,26 @@ consumed authorization.
 freeze its exact non-executable review and one-use execution decision against
 the unchanged evidence, then run compilation and evaluation once from a clean
 immutable checkout.
+
+## 2026-08-30 — Freeze the repaired parent evaluation completion
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Repair implementation commit `ae3994e...` freezes completion program
+  `044436d5...`, the closure-backed regression, and the exact no-write compiler
+  composition check. Review `894f38ff...` binds that program to unchanged
+  candidate product set `b81cb3d4...`, association product set `e1f16373...`,
+  recovery `78d43370...`, reference terminal `48209eae...`, and closed baseline
+  `a45303df...`.
+- The clean-commit exhaustive preflight passed again across all 2,400 products,
+  1,600 sidecars, and 9,600 reference runs with
+  `compiler_composition_verified=true`. Candidate execution, reconstruction,
+  compilation, evaluation, and publication remained false.
+- One-use repair decision `b0e38b90...` consumes only the explicit instruction
+  to complete this evaluation. Candidate execution, another replay or
+  campaign, reconstruction, viewed-public execution, qualification, tuning,
+  rescoring, optimization, cutover, and release remain false.
+
+**Immediate next step:** commit the repaired review and decision, create a clean
+immutable execution checkout, reverify every exact identity and the absent
+ledger, then execute compilation and evaluation once.
