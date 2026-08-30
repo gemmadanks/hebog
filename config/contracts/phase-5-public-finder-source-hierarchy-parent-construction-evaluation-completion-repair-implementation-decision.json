@@ -1,0 +1,34 @@
+{
+  "approval": {
+    "approved_on": "2026-08-30",
+    "exact_user_instruction": "Please make the immediate repair (and any other necessary fixes) to complete the evaluation. If we need to do another recovery campaign then we can decide whether changes to the process are needed.",
+    "reviewer": "Gemma Danks"
+  },
+  "authorization": {
+    "association_reconstruction_authorized": false,
+    "candidate_execution_authorized": false,
+    "campaign_execution_authorized": false,
+    "evaluation_only_completion_authorized": true,
+    "evaluation_only_repair_implementation_authorized": true,
+    "existing_product_verification_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_sdc1_hydra_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-evaluation-completion-repair-implementation-decision",
+  "failure": {
+    "path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-evaluation-completion-execution-failure.json",
+    "sha256": "d2e956fc4f2d7c94f14168e0e20782f38845100aa25e3b97d589a54168fa8033"
+  },
+  "original_authorization": {
+    "decision_sha256": "1258a3212e62d618c18174be7815b971c84c673f767a57996ba56fa84b7a4d32",
+    "identity_review_sha256": "9c2be9a7067973f5fe1d1eff4ecb0d3afcc6517e9c2338ee9e5db580d6a89906",
+    "status": "consumed-by-failed-process"
+  },
+  "pre_review_path": "config/contracts/phase-5-public-finder-source-hierarchy-parent-construction-evaluation-completion-repair-pre-review.json",
+  "schema_version": 1,
+  "status": "authorized-for-closure-safe-existing-product-evaluation-repair"
+}

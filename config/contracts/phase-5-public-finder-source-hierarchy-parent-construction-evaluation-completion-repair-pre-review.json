@@ -1,0 +1,41 @@
+{
+  "authorization_source": {
+    "approved_on": "2026-08-30",
+    "exact_user_instruction": "Please make the immediate repair (and any other necessary fixes) to complete the evaluation. If we need to do another recovery campaign then we can decide whether changes to the process are needed.",
+    "reviewer": "Gemma Danks"
+  },
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-evaluation-completion-repair-pre-review",
+  "failure_accounting": {
+    "candidate_execution": "forbidden and not started; all 2400 preserved candidate products remain unchanged",
+    "coverage_gap": "the fixture supplied a synthetic global-backed installer and the complete no-write verifier checked only that the real installer was callable",
+    "immediate_cause": "the completion program looked for install_recovery_compiler_seams in the active prospective installer module globals",
+    "root_cause": "the real source-reconstruction prospective installer retains its predecessor in a closure and must be composed through its three-argument callable contract rather than function-global introspection",
+    "scientific_effect": "none; the process failed before frozen main, compilation, evaluation, scoring, or atomic publication",
+    "write_once_effect": "the terminal ledger remains absent, while the original evaluation-completion authorization is consumed"
+  },
+  "implementation_boundary": {
+    "allowed": [
+      "replace installer-global mutation with a wrapper around the active three-argument prospective installer",
+      "invoke the exact predecessor before installing the sidecar-aware parent-construction evaluator",
+      "replace the misleading global-backed fixture with a closure-backed regression",
+      "exercise the exact frozen composed installer during complete no-write verification",
+      "verify all preserved candidate products, association sidecars, retained references, and the original absent output namespace",
+      "freeze exact repair identities against the unchanged scientific evidence",
+      "complete compilation and evaluation once under the user's explicit instruction without candidate execution"
+    ],
+    "forbidden": [
+      "candidate execution",
+      "another replay or campaign",
+      "association or reference reconstruction",
+      "viewed SDC1 or Hydra execution",
+      "fresh qualification",
+      "threshold, photometric, association, or topology changes",
+      "tuning, rescoring, or optimization",
+      "cutover",
+      "release"
+    ]
+  },
+  "recommendation": "implement the minimal closure-safe wrapper test-first, require the complete no-write verifier to execute the real composed installer, freeze the repaired completion identity, and use the explicit evaluation-completion instruction once only if every scientific and evidence identity remains unchanged",
+  "schema_version": 1,
+  "status": "implementation-and-one-evaluation-only-completion-authorized-by-explicit-user-instruction"
+}

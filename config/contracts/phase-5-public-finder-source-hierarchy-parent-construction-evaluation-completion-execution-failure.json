@@ -10,6 +10,7 @@
     "started": false
   },
   "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-evaluation-completion-execution-failure",
+  "failed_on": "2026-08-30T12:27:13.466Z",
   "failure": {
     "exception_type": "ValueError",
     "immediate_cause": "the completion wrapper expected the active prospective compiler installer to expose install_recovery_compiler_seams as a module global",
@@ -17,7 +18,6 @@
     "stage": "evaluation-adapter-installation",
     "traceback_terminal_line": 513
   },
-  "failed_on": "2026-08-30T12:27:13.466Z",
   "immutable_execution": {
     "checkout": "/private/tmp/hebog-phase5-parent-evaluation-completion-6f38a2d",
     "commit": "6f38a2dd54ed79d12af7b1e359b95b4709a1f935",
@@ -33,6 +33,14 @@
     "reference_run_count": 9600,
     "status": "pass"
   },
+  "recommended_repair": {
+    "implementation": "replace the globals mutation with a wrapper around the active prospective installer, invoke that exact closure first, then install the sidecar-aware compiler",
+    "required_validation": [
+      "add a regression fixture whose prospective installer closes over its predecessor and lacks install_recovery_compiler_seams in globals",
+      "exercise the real composed installer during complete no-write verification",
+      "freeze replacement completion and review identities against the unchanged products, sidecars, references, gates, and output namespace"
+    ]
+  },
   "root_cause": {
     "missed_test_boundary": "the fixture supplied a synthetic installer whose base recovery seam was a global, while the real source-reconstruction installer retains its predecessor in a closure cell",
     "program_defect": "_install_evaluation_compiler inspected the active installer function globals instead of wrapping and invoking the active three-argument installer composition",
@@ -45,13 +53,5 @@
     "evaluation_completion_authorization_consumed": true,
     "new_evaluation_only_repair_review_required": true,
     "rerun_forbidden_without_new_exact_approval": true
-  },
-  "recommended_repair": {
-    "implementation": "replace the globals mutation with a wrapper around the active prospective installer, invoke that exact closure first, then install the sidecar-aware compiler",
-    "required_validation": [
-      "add a regression fixture whose prospective installer closes over its predecessor and lacks install_recovery_compiler_seams in globals",
-      "exercise the real composed installer during complete no-write verification",
-      "freeze replacement completion and review identities against the unchanged products, sidecars, references, gates, and output namespace"
-    ]
   }
 }

@@ -17,6 +17,7 @@ from typing import Any, cast
 from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.external_runners import file_sha256
 from hebog.validation.parent_construction_association_evaluation import (
+    ParentConstructionContinuumImageCompiler,
     install_parent_construction_association_evaluation,
 )
 
@@ -56,11 +57,11 @@ _RECONSTRUCTION_DECISION = (
 )
 _IDENTITY_REVIEW = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
-    "construction-evaluation-completion-review.json"
+    "construction-evaluation-completion-repair-review.json"
 )
 _EXECUTION_DECISION = (
     _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
-    "construction-evaluation-completion-execution-decision.json"
+    "construction-evaluation-completion-repair-execution-decision.json"
 )
 _REFERENCE_RECONSTRUCTION = Path(
     "benchmark-results/phase-5/"
@@ -366,6 +367,11 @@ def verify_evaluation_completion_composition(
         frozen.get("_install_prospective_compiler")
     ):
         raise ValueError("evaluation completion composition changed")
+    _verify_evaluation_compiler_composition(
+        frozen,
+        verified,
+        scratch=arguments.scratch,
+    )
     return {
         "association_product_set_sha256": (association_product_set_sha256),
         "association_reconstruction_recovery_sha256": (
@@ -378,6 +384,7 @@ def verify_evaluation_completion_composition(
         "candidate_revision": _CANDIDATE_REVISION,
         "candidate_source_tree_sha256": _CANDIDATE_SOURCE_TREE_SHA256,
         "compilation_started": False,
+        "compiler_composition_verified": True,
         "completion_program_sha256": file_sha256(Path(__file__)),
         "evaluation_overlay_sha256": _EVALUATION_OVERLAY_SHA256,
         "evaluation_started": False,
@@ -503,25 +510,18 @@ def _install_completion_only(
 def _install_evaluation_compiler(frozen: dict[str, Any]) -> None:
     """Layer the sidecar adapter after all frozen compiler seams."""
     prospective_installer = frozen.get("_install_prospective_compiler")
-    if not callable(prospective_installer) or not hasattr(
-        prospective_installer, "__globals__"
-    ):
-        raise ValueError("evaluation completion compiler seam changed")
-    installer_globals = prospective_installer.__globals__
-    original = installer_globals.get("install_recovery_compiler_seams")
-    if not callable(original):
+    if not callable(prospective_installer):
         raise ValueError("evaluation completion compiler seam changed")
 
     def install(
         compiler_globals: dict[str, Any],
-        *,
-        expected_candidate_configuration_sha256: str,
+        prospective: Any,
+        configuration_sha256: str,
     ) -> None:
-        original(
+        prospective_installer(
             compiler_globals,
-            expected_candidate_configuration_sha256=(
-                expected_candidate_configuration_sha256
-            ),
+            prospective,
+            configuration_sha256,
         )
 
         def association_path(run: Any) -> Path:
@@ -537,8 +537,38 @@ def _install_evaluation_compiler(frozen: dict[str, Any]) -> None:
             association_path=association_path,
         )
 
-    installer_globals["install_recovery_compiler_seams"] = install
-    frozen["install_recovery_compiler_seams"] = install
+    frozen["_install_prospective_compiler"] = install
+
+
+def _verify_evaluation_compiler_composition(
+    frozen: dict[str, Any],
+    verified_reference: Any,
+    *,
+    scratch: Path,
+) -> None:
+    """Exercise the exact composed compiler installer without compiling."""
+    _install_evaluation_compiler(frozen)
+    compiler = runpy.run_path(str(frozen["_COMPILER_PATH"]))
+    frozen["_install_historical_source_view"](compiler)
+    terminal = compiler["_configured_terminal"]()
+    compiler_globals = terminal["compile_terminal_analysis"].__globals__
+    prospective = frozen["_prospective_campaign"](
+        verified_reference,
+        scratch,
+        configuration_sha256=_CANDIDATE_CONFIGURATION_SHA256,
+        revision=_CANDIDATE_REVISION,
+        compiler_globals=compiler_globals,
+    )
+    frozen["_install_prospective_compiler"](
+        compiler_globals,
+        prospective,
+        _CANDIDATE_CONFIGURATION_SHA256,
+    )
+    if not isinstance(
+        compiler_globals.get("_continuum_image_observations"),
+        ParentConstructionContinuumImageCompiler,
+    ):
+        raise ValueError("evaluation completion compiler seam changed")
 
 
 def run_authorized_completion(arguments: argparse.Namespace) -> None:

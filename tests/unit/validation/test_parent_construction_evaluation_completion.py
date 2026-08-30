@@ -13,7 +13,7 @@ import subprocess
 from dataclasses import asdict
 from hashlib import sha256
 from pathlib import Path
-from types import FunctionType, SimpleNamespace
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -212,45 +212,73 @@ def test_completion_seam_forbids_candidate_execution(tmp_path: Path) -> None:
 
 
 def test_sidecar_compiler_layers_after_frozen_recovery_seams() -> None:
-    """Only the Continuum compiler is replaced after historical setup."""
+    """The sidecar compiler follows the real closure-backed installer."""
     namespace = _namespace()
     calls: list[str] = []
 
-    def original(
+    def base_installer(
         compiler: dict[str, Any],
-        *,
-        expected_candidate_configuration_sha256: str,
+        prospective: object,
+        configuration_sha256: str,
     ) -> None:
         compiler["_candidate_objects"] = lambda *_args, **_kwargs: ()
         compiler["measure_continuum_image"] = lambda *_args, **_kwargs: {}
         compiler["_continuum_image_observations"] = (
             RecoveryContinuumImageCompiler(compiler)
         )
-        calls.append(expected_candidate_configuration_sha256)
+        calls.append(f"base:{configuration_sha256}:{prospective!s}")
 
-    def prospective() -> None:
-        return None
+    def closure_installer(predecessor: Any) -> Any:
+        def install(
+            compiler: dict[str, Any],
+            prospective: object,
+            configuration_sha256: str,
+        ) -> None:
+            predecessor(compiler, prospective, configuration_sha256)
+            calls.append("source-reconstruction")
 
-    installer_globals: dict[str, Any] = {
-        "install_recovery_compiler_seams": original
+        return install
+
+    frozen = {
+        "_install_prospective_compiler": closure_installer(base_installer)
     }
-    prospective_view = FunctionType(prospective.__code__, installer_globals)
-    frozen = {"_install_prospective_compiler": prospective_view}
     namespace["_install_evaluation_compiler"](frozen)
     compiler: dict[str, Any] = {}
 
-    installer_globals["install_recovery_compiler_seams"](
+    frozen["_install_prospective_compiler"](
         compiler,
-        expected_candidate_configuration_sha256="configuration",
+        "prospective",
+        "configuration",
     )
 
-    assert calls == ["configuration"]
+    assert calls == [
+        "base:configuration:prospective",
+        "source-reconstruction",
+    ]
     installed = compiler["_continuum_image_observations"]
     assert isinstance(installed, ParentConstructionContinuumImageCompiler)
     run = SimpleNamespace(request=SimpleNamespace(input_id="continuum-1"))
     assert installed._association_path(run) == (
         namespace["_ASSOCIATION_RECONSTRUCTION"]
         / "associations/continuum-1/source_association.json"
+    )
+
+
+def test_real_parent_compiler_installer_is_wrapped_as_a_closure() -> None:
+    """The exact frozen predecessor composition is accepted unchanged."""
+    namespace = _namespace()
+    parent = namespace["_load_parent_wrapper"]()
+    _, _, frozen = parent["_load_source_association_composition"]()
+    parent["_install_parent_construction_static_seams"](frozen)
+    predecessor = frozen["_install_prospective_compiler"]
+
+    assert predecessor.__closure__ is not None
+    namespace["_install_evaluation_compiler"](frozen)
+
+    installed = frozen["_install_prospective_compiler"]
+    assert installed is not predecessor
+    assert predecessor in tuple(
+        cell.cell_contents for cell in installed.__closure__ or ()
     )
 
 

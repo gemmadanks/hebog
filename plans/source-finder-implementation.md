@@ -650,8 +650,12 @@ from partial or viewed evidence.
      The approved completion then failed before compilation because its
      adapter installer inspected a closure-backed composed installer as if the
      recovery seam were a module global. The ledger remains absent and the
-     approval is consumed. Freeze a separately approved evaluation-only repair
-     after exercising the real composed installer in no-write verification.
+     approval is consumed. The explicitly authorized evaluation-only repair
+     now wraps the active three-argument installer instead of inspecting its
+     globals. Its complete no-write verifier executes the exact frozen compiler
+     composition after verifying all products, sidecars, and references. Freeze
+     the repaired identity and complete the preserved-product evaluation once;
+     do not run another recovery or candidate campaign.
      Treat a scientific failure as terminal without tuning or rerunning.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific

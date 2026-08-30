@@ -12818,3 +12818,39 @@ single approval only if every identity remains unchanged.
 **Immediate next step:** prepare a test-first evaluation-only repair pre-review
 against the recorded failure. Do not compile, evaluate, or rerun under the
 consumed authorization.
+
+## 2026-08-30 — Repair the parent evaluation compiler composition
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Gemma Danks explicitly instructed: “Please make the immediate repair (and
+  any other necessary fixes) to complete the evaluation. If we need to do
+  another recovery campaign then we can decide whether changes to the process
+  are needed.” The bounded implementation decision permits one existing-product
+  evaluation-only completion and keeps candidate execution, reconstruction,
+  campaigns, scientific changes, tuning, rescoring, cutover, and release false.
+- Replaced the misleading global-backed installer fixture with the real
+  closure-backed three-argument shape. It reproduced the execution failure
+  before implementation with `evaluation completion compiler seam changed`.
+- The minimal repair wraps and invokes the active prospective installer, then
+  installs the parent-construction association evaluator. It no longer inspects
+  or mutates another function's module globals.
+- The complete no-write verifier now loads the exact frozen compiler and
+  prospective campaign view and executes the complete composed installer. It
+  verified all 2,400 candidate products, 1,600 association sidecars, and 9,600
+  retained reference runs; candidate execution, compilation, evaluation, and
+  publication remained false. The candidate product set remains `b81cb3d4...`,
+  the association product set remains `e1f16373...`, and the output remains
+  absent.
+- Twenty-nine focused parent-construction and evaluation tests pass; focused
+  Ruff and Pyright checks pass. `just coverage` passes 2,142 tests with 44
+  deselected and four expected failures at 94.70% branch-aware project
+  coverage; `just check` passes 1,984 tests with 202 deselected and four
+  expected failures; all 27 applicable equivalence tests and the strict
+  documentation build pass. The exhaustive verifier records
+  `compiler_composition_verified=true`.
+
+**Immediate next step:** complete repository validation, commit the repair,
+freeze its exact non-executable review and one-use execution decision against
+the unchanged evidence, then run compilation and evaluation once from a clean
+immutable checkout.
