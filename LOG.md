@@ -12695,3 +12695,24 @@ association composition or compiling the preserved products.
 review `691eaf8f...`; only then create the execution decision and run the
 write-once sidecar reconstruction. Evaluation-only completion requires a
 separate later review and approval after the terminal sidecar identity exists.
+
+## 2026-08-30 — Authorize parent association sidecar reconstruction
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Gemma Danks approved exactly one two-worker reconstruction bound to review
+  `691eaf8f35f5ff1688c52af6d448e3ba4df704529f6f50072fa6924903a59be4`,
+  preserved candidate product set `b81cb3d4...`, and reconstruction program
+  `e8dd80cb...`.
+- The authority covers only reconstruction of 1,600 omitted Continuum
+  association sidecars after an unchanged complete no-write preflight. Every
+  regenerated catalogue, labels, and mask must match its preserved SHA-256;
+  regenerated candidate products are discarded and existing shards remain
+  immutable.
+- Candidate execution, compilation, evaluation, viewed-public execution,
+  another campaign, qualification, tuning, rescoring, cutover, and release
+  remain unauthorized.
+
+**Immediate next step:** commit the exact execution decision, create an
+immutable execution checkout, reverify all identities and absent namespaces,
+then consume the approval exactly once.
