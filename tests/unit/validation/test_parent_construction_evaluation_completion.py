@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import json
 import runpy
+import subprocess
 from dataclasses import asdict
+from hashlib import sha256
 from pathlib import Path
 from types import FunctionType, SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -31,11 +33,26 @@ _SCRIPT = (
     _ROOT / "scripts/validation/complete_phase5_parent_construction_"
     "evaluation.py"
 )
+_REVIEW = (
+    _ROOT / "config/contracts/phase-5-public-finder-source-hierarchy-parent-"
+    "construction-evaluation-completion-review.json"
+)
 
 
 def _namespace() -> dict[str, Any]:
     """Load the completion wrapper without running its entry point."""
     return runpy.run_path(str(_SCRIPT))
+
+
+def _committed_file_sha256(revision: str, path: str) -> str:
+    """Hash one file from the implementation revision named by review."""
+    content = subprocess.run(
+        ("git", "show", f"{revision}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    return sha256(content).hexdigest()
 
 
 def _write_association_terminal(
@@ -248,3 +265,41 @@ def test_execution_validation_rejects_candidate_authority() -> None:
 
     with pytest.raises(ValueError, match="not authorized"):
         namespace["_validate_execution_decision"](decision, {}, {})
+
+
+def test_identity_review_freezes_only_non_executable_completion() -> None:
+    """The review binds exact evidence without authorizing evaluation."""
+    review: dict[str, Any] = json.loads(_REVIEW.read_text(encoding="utf-8"))
+
+    assert review["status"] == (
+        "reviewed-before-parent-construction-evaluation-completion"
+    )
+    implementation = cast(dict[str, Any], review["implementation"])
+    revision = cast(str, implementation["commit"])
+    assert revision == "1ce8ddedda8ae6d2715f1c70618bab065e532007"
+    for identity in implementation.values():
+        if not isinstance(identity, dict):
+            continue
+        identity_record = cast(dict[str, Any], identity)
+        path = identity_record.get("path")
+        expected = identity_record.get("sha256")
+        if isinstance(path, str):
+            assert isinstance(expected, str)
+            assert _committed_file_sha256(revision, path) == expected
+    verified = cast(dict[str, Any], review["verified_composition"])
+    assert verified["candidate_product_count"] == 2400
+    assert verified["candidate_product_set_sha256"] == (
+        "b81cb3d47d7db5ac45c66893445bd5d25711af88372566bbe979a6bce9a0fc87"
+    )
+    assert verified["association_product_set_sha256"] == (
+        "e1f16373f47119c71d64e3aa90639403dd1e978d84e68f4fd507e20527a27e90"
+    )
+    assert verified["reference_run_count"] == 9600
+    assert verified["output_absent"] is True
+    assert verified["candidate_execution_started"] is False
+    assert verified["compilation_started"] is False
+    assert verified["evaluation_started"] is False
+    assert review["candidate_execution_authorized"] is False
+    assert review["compilation_authorized"] is False
+    assert review["evaluation_authorized"] is False
+    assert not any(review["prohibited_authorizations"].values())

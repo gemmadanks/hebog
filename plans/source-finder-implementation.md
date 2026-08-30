@@ -644,9 +644,10 @@ from partial or viewed evidence.
      Continuum science before power, and require every absolute and
      like-semantics gate. The fail-closed completion program `bde8511a...`
      passed its complete no-write verification of all 2,400 candidate shards,
-     1,600 sidecars, and 9,600 reference runs; freeze its exact non-executable
-     review before requesting one compilation/evaluation approval. Treat a
-     scientific failure as terminal without tuning or rerunning.
+     1,600 sidecars, and 9,600 reference runs. Non-executable identity review
+     `9c2be9a7...` freezes that composition; obtain one named
+     compilation/evaluation approval before creating its execution decision.
+     Treat a scientific failure as terminal without tuning or rerunning.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
