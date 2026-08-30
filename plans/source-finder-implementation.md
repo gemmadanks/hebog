@@ -647,6 +647,11 @@ from partial or viewed evidence.
      1,600 sidecars, and 9,600 reference runs. Non-executable identity review
      `9c2be9a7...` freezes that composition; obtain one named
      compilation/evaluation approval before creating its execution decision.
+     The approved completion then failed before compilation because its
+     adapter installer inspected a closure-backed composed installer as if the
+     recovery seam were a module global. The ledger remains absent and the
+     approval is consumed. Freeze a separately approved evaluation-only repair
+     after exercising the real composed installer in no-write verification.
      Treat a scientific failure as terminal without tuning or rerunning.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific

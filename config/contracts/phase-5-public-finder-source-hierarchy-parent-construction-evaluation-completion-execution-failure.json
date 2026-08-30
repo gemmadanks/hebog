@@ -1,0 +1,57 @@
+{
+  "authorization": {
+    "consumed": true,
+    "execution_decision_sha256": "1258a3212e62d618c18174be7815b971c84c673f767a57996ba56fa84b7a4d32",
+    "identity_review_sha256": "9c2be9a7067973f5fe1d1eff4ecb0d3afcc6517e9c2338ee9e5db580d6a89906",
+    "retry_authorized": false
+  },
+  "candidate_execution": {
+    "authorized": false,
+    "started": false
+  },
+  "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-evaluation-completion-execution-failure",
+  "failure": {
+    "exception_type": "ValueError",
+    "immediate_cause": "the completion wrapper expected the active prospective compiler installer to expose install_recovery_compiler_seams as a module global",
+    "message": "evaluation completion compiler seam changed",
+    "stage": "evaluation-adapter-installation",
+    "traceback_terminal_line": 513
+  },
+  "failed_on": "2026-08-30T12:27:13.466Z",
+  "immutable_execution": {
+    "checkout": "/private/tmp/hebog-phase5-parent-evaluation-completion-6f38a2d",
+    "commit": "6f38a2dd54ed79d12af7b1e359b95b4709a1f935",
+    "managed_session": 11670
+  },
+  "output": {
+    "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+    "published": false
+  },
+  "preflight": {
+    "association_product_set_sha256": "e1f16373f47119c71d64e3aa90639403dd1e978d84e68f4fd507e20527a27e90",
+    "candidate_product_set_sha256": "b81cb3d47d7db5ac45c66893445bd5d25711af88372566bbe979a6bce9a0fc87",
+    "reference_run_count": 9600,
+    "status": "pass"
+  },
+  "root_cause": {
+    "missed_test_boundary": "the fixture supplied a synthetic installer whose base recovery seam was a global, while the real source-reconstruction installer retains its predecessor in a closure cell",
+    "program_defect": "_install_evaluation_compiler inspected the active installer function globals instead of wrapping and invoking the active three-argument installer composition",
+    "scientific_effect": "none; failure occurred before frozen main, compilation, evaluation, or atomic publication"
+  },
+  "schema_version": 1,
+  "status": "failed-after-preflight-before-compilation",
+  "transfer_policy": {
+    "candidate_products_reusable_after_exact_verification": true,
+    "evaluation_completion_authorization_consumed": true,
+    "new_evaluation_only_repair_review_required": true,
+    "rerun_forbidden_without_new_exact_approval": true
+  },
+  "recommended_repair": {
+    "implementation": "replace the globals mutation with a wrapper around the active prospective installer, invoke that exact closure first, then install the sidecar-aware compiler",
+    "required_validation": [
+      "add a regression fixture whose prospective installer closes over its predecessor and lacks install_recovery_compiler_seams in globals",
+      "exercise the real composed installer during complete no-write verification",
+      "freeze replacement completion and review identities against the unchanged products, sidecars, references, gates, and output namespace"
+    ]
+  }
+}

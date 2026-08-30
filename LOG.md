@@ -12787,3 +12787,34 @@ products. Only after that approval may an exact execution decision be created.
 **Immediate next step:** commit the exact execution decision, create a clean
 immutable checkout, rerun the complete no-write verification, and consume the
 single approval only if every identity remains unchanged.
+
+## 2026-08-30 — Parent evaluation completion stopped before compilation
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Immutable checkout `6f38a2d...` passed the complete no-write verification of
+  all 2,400 candidate products, 1,600 association sidecars, and 9,600 retained
+  reference runs. Session `11670` then consumed the one evaluation authority.
+- The process failed before frozen `main`, compilation, evaluation, or output
+  publication with `ValueError: evaluation completion compiler seam changed`.
+  The atomic ledger remains absent and candidate execution remained forbidden
+  and unstarted.
+- Root cause is a completion-wrapper composition error. The active
+  source-reconstruction prospective installer is a closure over its predecessor;
+  it does not expose `install_recovery_compiler_seams` in its module globals.
+  The completion wrapper assumed that global existed. Its fixture supplied a
+  synthetic global-backed installer, so the no-write test did not exercise the
+  real closure topology.
+- The minimal proposed repair is to wrap the active three-argument installer,
+  invoke that exact closure first, and then install the sidecar-aware compiler.
+  A replacement test must use a closure-backed installer and the complete
+  no-write verifier must execute the real composed seam. Products, sidecars,
+  references, gates, configuration, and output identity remain unchanged.
+- Failure record `phase-5-public-finder-source-hierarchy-parent-construction-
+  evaluation-completion-execution-failure` preserves the terminal state. The
+  original completion authority is consumed; rerun is forbidden without a new
+  exact repair review and named approval.
+
+**Immediate next step:** prepare a test-first evaluation-only repair pre-review
+against the recorded failure. Do not compile, evaluate, or rerun under the
+consumed authorization.
