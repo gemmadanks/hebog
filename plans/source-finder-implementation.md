@@ -630,18 +630,23 @@ from partial or viewed evidence.
      explicit digest-verified source-association record through a new run-aware
      overlay. Preserve all legacy catalogue semantics and both frozen compiler
      program identities.
-   - [ ] Reconstruct only the omitted association provenance for the 1,600
+   - [x] Reconstruct only the omitted association provenance for the 1,600
      Continuum shards under a separately approved write-once namespace. Require
      regenerated catalogue, labels, and mask to match the preserved products
      exactly; do not rerun compact science or mutate the existing scratch.
      Exact non-executable reconstruction review `691eaf8f...` is frozen and
-     its named one-reconstruction approval was received on 2026-08-30. Execute
-     only after the complete no-write preflight passes unchanged.
+     its named one-reconstruction approval was received on 2026-08-30. The
+     terminal reconstruction sealed all 1,600 sidecars as product set
+     `e1f16373...` under recovery identity `78d43370...`, with every regenerated
+     candidate artifact matching the preserved product exactly.
    - [ ] Freeze and approve one evaluation-only completion against the sealed
      sidecars, publish the atomic cumulative ledger, interpret compact and
      Continuum science before power, and require every absolute and
-     like-semantics gate. Treat a scientific failure as terminal without tuning
-     or rerunning.
+     like-semantics gate. The fail-closed completion program `bde8511a...`
+     passed its complete no-write verification of all 2,400 candidate shards,
+     1,600 sidecars, and 9,600 reference runs; freeze its exact non-executable
+     review before requesting one compilation/evaluation approval. Treat a
+     scientific failure as terminal without tuning or rerunning.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

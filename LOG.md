@@ -12716,3 +12716,33 @@ separate later review and approval after the terminal sidecar identity exists.
 **Immediate next step:** commit the exact execution decision, create an
 immutable execution checkout, reverify all identities and absent namespaces,
 then consume the approval exactly once.
+
+## 2026-08-30 — Seal parent association provenance and prepare evaluation
+
+**Plan phase:** Phase 5, closure gate 3
+
+- The authorized reconstruction sealed exactly 1,600 Continuum association
+  sidecars. Terminal recovery SHA-256 is `78d43370...`; the ordered association
+  product-set identity is `e1f16373...`. All 1,600 canonical completion markers
+  bind their sidecars to the exact preserved candidate complete markers, and
+  the terminal records no failure.
+- Added a completion-only wrapper around the unchanged parent-construction
+  composition. It verifies all preserved candidate artifacts and sidecars,
+  installs the sidecar-aware compiler only after the frozen recovery seams,
+  replaces candidate submission with identity verification, and raises if any
+  path attempts candidate generation.
+- The complete no-write verifier passed across all 2,400 candidate products,
+  1,600 association sidecars, and 9,600 retained reference runs. Candidate
+  execution, compilation, and evaluation remained false; the write-once
+  cumulative ledger remains absent. Completion program SHA-256 is
+  `bde8511a...` before the implementation commit.
+- Twelve focused repair and completion tests pass, including byte drift,
+  terminal provenance, compiler ordering, and fail-closed authorization
+  fixtures. `just coverage` passes 2,139 tests with 44 deselected and 4
+  expected failures at 94.70% branch-aware project coverage; `just check`
+  passes 1,981 tests with 202 deselected and 4 expected failures; the 27-test
+  equivalence lane and strict documentation build pass.
+
+**Immediate next step:** validate and commit the completion program, then
+freeze one exact non-executable evaluation identity review. Compilation and
+evaluation require a separate named approval bound to that review.
