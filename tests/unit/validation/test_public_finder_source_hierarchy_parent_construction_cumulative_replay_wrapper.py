@@ -77,28 +77,20 @@ def test_wrapper_binds_exact_candidate_and_consumed_wrapper() -> None:
     )
 
 
-def test_readiness_is_rebound_to_parent_construction_candidate() -> None:
-    """Readiness requires only future evidence from this exact candidate."""
+def test_readiness_supersedes_the_parent_construction_candidate() -> None:
+    """The failed historical candidate cannot satisfy current readiness."""
     readiness = json.loads(_READINESS.read_text(encoding="utf-8"))
     evidence = {
         item["evidence_id"]: item for item in readiness["required_evidence"]
     }
-    cumulative = evidence[
+    assert (
         "public-finder-source-hierarchy-parent-construction-cumulative-"
         "regression"
-    ]
-    assert cumulative["path"] == str(_approved_arguments().output)
-    required = cumulative["required_fields"]
-    assert required["candidate_revision"] == _REVISION
-    assert required["candidate_source_tree_sha256"] == _SOURCE_TREE
-    assert required["candidate_configuration_sha256"] == _CONFIGURATION
-    qualification = evidence[
+    ) not in evidence
+    assert (
         "public-finder-source-hierarchy-parent-construction-held-out-"
         "qualification"
-    ]
-    assert qualification["required_fields"]["candidate_revision"] == (
-        _REVISION
-    )
+    ) not in evidence
 
 
 def test_fixture_verifier_is_no_write(

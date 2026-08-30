@@ -12961,3 +12961,34 @@ candidate requires new frozen identities and a new cumulative replay approval.
 **Immediate next step:** freeze the clean implementation as exact
 non-executable candidate and replay identities and run the complete no-write
 verifier. Any cumulative replay still requires a separate exact approval.
+
+## 2026-08-30 — Compose the fail-closed terminal-parent replay
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Froze the corrected scientific candidate at revision `85d5807...`, source
+  tree `a082cbe4...`, and configuration `88ac8bea...`. The configuration binds
+  both the adjacent significant-support corroboration rule and the
+  constituent-persistent terminal-cycle rule to their exact review and
+  implementation decision.
+- Added a prospective overlay around the frozen parent-construction replay.
+  It writes and round-trip validates `source_association.json` in every future
+  Continuum shard, records that sidecar as a checksummed run artifact, and
+  installs the already-reviewed sidecar-aware compiler after the predecessor
+  compiler composition. Missing, duplicate, absolute, or parent-traversing
+  sidecar paths fail closed.
+- The replay retains the exact 800-compact/1,600-Continuum population, 9,600
+  reference runs, two-worker execution, closed baseline `a45303df...`, and
+  reconstructed-reference terminal `48209eae...`. Readiness now names only
+  future cumulative and qualification evidence from this corrected candidate;
+  the terminally failed parent-construction evidence cannot satisfy it.
+- Test-first development recorded the intended missing-wrapper/readiness red
+  state. The focused candidate, predecessor, writer, evaluator, provenance,
+  and no-write contracts now pass, including spawned-worker seam
+  reinstallation. The wrapper still rejects execution without a separately
+  frozen exact identity review and execution decision.
+
+**Immediate next step:** validate and commit the wrapper composition, run its
+complete real no-write verification against all retained reference evidence,
+then freeze the exact wrapper and execution identities before consuming the
+approved replay authority.

@@ -27,13 +27,13 @@
   ],
   "required_evidence": [
     {
-      "evidence_id": "public-finder-source-hierarchy-parent-construction-cumulative-regression",
-      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+      "evidence_id": "public-finder-terminal-parent-correction-cumulative-regression",
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json",
       "required_fields": {
         "all_required_endpoints_pass": true,
-        "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
-        "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
-        "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+        "candidate_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+        "candidate_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+        "candidate_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
         "cumulative_science_regression_ready": true,
         "ledger_id": "phase-5-cumulative-regression-ledger",
         "like_semantics_compact_regressions": [],
@@ -43,14 +43,14 @@
       "sha256": null
     },
     {
-      "evidence_id": "public-finder-source-hierarchy-parent-construction-held-out-qualification",
-      "path": "benchmark-results/phase-5/public-finder-source-hierarchy-parent-construction-qualification-decision.json",
+      "evidence_id": "public-finder-terminal-parent-correction-held-out-qualification",
+      "path": "benchmark-results/phase-5/public-finder-terminal-parent-correction-qualification-decision.json",
       "required_fields": {
-        "candidate_configuration_sha256": "88634678d7b24c9d9d47a5ba714c66fcc627c8a201b9639b133e326cd1c72484",
-        "candidate_revision": "5f2b09880dc10feb6ffaec50ffcf3c807a093416",
-        "candidate_source_tree_sha256": "a7ef1887bcaeb15abf48722d45de33f81d8be65d58fde19861bf0ece90b4dba8",
+        "candidate_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+        "candidate_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+        "candidate_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
         "cutover_authorized": false,
-        "decision_id": "phase-5-public-finder-source-hierarchy-parent-construction-qualification-terminal-decision",
+        "decision_id": "phase-5-public-finder-terminal-parent-correction-qualification-terminal-decision",
         "scientific_outcomes_before_runtime": true,
         "status": "pass"
       },
