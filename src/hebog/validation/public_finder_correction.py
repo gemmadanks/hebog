@@ -66,6 +66,12 @@ _SOURCE_HIERARCHY_PARENT_CONSTRUCTION_POLICY = (
 _SOURCE_HIERARCHY_PARENT_TELEMETRY_POLICY = (
     "array-free-scale-parent-candidate-acceptance-census-v1"
 )
+_PERSISTENT_SUPPORT_CORROBORATION_POLICY = (
+    "adjacent-significant-support-corroboration-no-membership-v1"
+)
+_TERMINAL_CYCLE_PARENT_POLICY = (
+    "three-feature-cycle-all-constituents-adjacent-persistent-v1"
+)
 _SOURCE_MEASUREMENT_POLICY = "disjoint-source-owned-aperture-moment-v1"
 _CONNECTED_SUPPORT_POLICY = (
     "direct-seed-connected-half-beam-multiscale-recovery-v1"
@@ -445,6 +451,50 @@ def public_finder_source_hierarchy_parent_construction_configuration(  # noqa: P
                 "source_hierarchy_parent_construction_implementation_"
                 "decision_sha256"
             ): file_sha256(parent_construction_implementation_decision_path),
+        }
+    )
+    return {"compact": base["compact"], "continuum": continuum}
+
+
+def public_finder_terminal_parent_correction_configuration(  # noqa: PLR0913, PLR0917
+    base_review_path: Path,
+    correction_contract_path: Path,
+    source_reconstruction_pre_review_path: Path,
+    source_reconstruction_decision_path: Path,
+    root_cause_pre_review_path: Path,
+    root_cause_implementation_decision_path: Path,
+    parent_construction_pre_review_path: Path,
+    parent_construction_implementation_decision_path: Path,
+    terminal_parent_review_path: Path,
+    terminal_parent_implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Return the non-executable terminal-parent correction identity."""
+    base = public_finder_source_hierarchy_parent_construction_configuration(
+        base_review_path,
+        correction_contract_path,
+        source_reconstruction_pre_review_path,
+        source_reconstruction_decision_path,
+        root_cause_pre_review_path,
+        root_cause_implementation_decision_path,
+        parent_construction_pre_review_path,
+        parent_construction_implementation_decision_path,
+    )
+    continuum_value = base["continuum"]
+    if not isinstance(continuum_value, dict):
+        raise TypeError("base Continuum configuration must be a dictionary")
+    continuum = dict(cast(dict[str, object], continuum_value))
+    continuum.update(
+        {
+            "persistent_support_corroboration_policy": (
+                _PERSISTENT_SUPPORT_CORROBORATION_POLICY
+            ),
+            "terminal_cycle_parent_policy": _TERMINAL_CYCLE_PARENT_POLICY,
+            "terminal_parent_review_sha256": file_sha256(
+                terminal_parent_review_path
+            ),
+            "terminal_parent_implementation_decision_sha256": file_sha256(
+                terminal_parent_implementation_decision_path
+            ),
         }
     )
     return {"compact": base["compact"], "continuum": continuum}
