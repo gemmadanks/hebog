@@ -1,0 +1,83 @@
+{
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+  },
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "decision_id": "phase-5-public-finder-terminal-parent-correction-cumulative-replay-review",
+  "expected_execution_sha256": "a069e5fc752f1c81be02e59b91c3b0754ed47eec2e72bf2f4e0647339b59c554",
+  "implementation": {
+    "candidate_boundary_commit": "85d580713664b962ae256a98b065849cf8eb9283",
+    "composition_commit": "1e8348baebaf11e26a51f66fb5cfd21e286b4875",
+    "consumed_wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_source_hierarchy_parent_construction_cumulative_regressions.py",
+      "sha256": "053fc6479d75a9f11e97cc2ec6f7de41610c5c03083bd81ce01ca47ef104c8d7"
+    },
+    "evaluator": {
+      "path": "src/hebog/validation/parent_construction_association_evaluation.py",
+      "sha256": "74d16cc49f65bf5a353acc67a830dd2d175b8be2635062cca64581cfaa966962"
+    },
+    "implementation_decision": {
+      "path": "config/contracts/phase-5-public-finder-terminal-parent-correction-implementation-decision.json",
+      "sha256": "88083eb3de4ab595b2f8519d1a896f65cf83161ce7abe96a87c575fd9692d26c"
+    },
+    "readiness": {
+      "path": "config/contracts/phase-5-readiness.json",
+      "sha256": "fb295c16b5a67618b242891dc048c4290b88ff8ceaecf81a7ad409b015f8c137"
+    },
+    "scientific_review": {
+      "path": "docs/reference/phase-5-public-finder-persistent-support-parent-correction.md",
+      "sha256": "fe528316afbdde27fbdf481aeac57dfc8b6146b2addf56e7880e1447717531c0"
+    },
+    "wrapper": {
+      "path": "scripts/validation/review_phase5_public_finder_terminal_parent_correction_cumulative_regressions.py",
+      "sha256": "2c40315ffe821008b249a57b5e8c012b0f6526ae8aacab5a9bbdb35bdeac2f21"
+    }
+  },
+  "no_write_verification": {
+    "association_sidecar_persistence_verified": true,
+    "candidate_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "candidate_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "candidate_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
+    "consumed_wrapper_sha256": "053fc6479d75a9f11e97cc2ec6f7de41610c5c03083bd81ce01ca47ef104c8d7",
+    "cumulative_replay_started": false,
+    "execution_checkout_revision": "1e8348baebaf11e26a51f66fb5cfd21e286b4875",
+    "output_absent": true,
+    "readiness_sha256": "fb295c16b5a67618b242891dc048c4290b88ff8ceaecf81a7ad409b015f8c137",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "scratch_absent": true,
+    "sidecar_aware_evaluator_installation_verified": true,
+    "status": "pass",
+    "verified_input_count": 2400,
+    "verified_reference_run_count": 9600
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json",
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "required_next_decision": "consume-explicit-user-approval-for-one-exact-terminal-parent-cumulative-replay",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "candidate_change": true,
+    "configuration_change": true,
+    "gate_or_threshold_change": false,
+    "population_change": false,
+    "reference_or_baseline_change": false,
+    "sidecar_evaluation_process_repair": true,
+    "terminal_parent_membership_correction": true
+  },
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-terminal-parent-correction-85d5807",
+  "status": "reviewed-before-terminal-parent-cumulative-replay",
+  "workers": 2
+}

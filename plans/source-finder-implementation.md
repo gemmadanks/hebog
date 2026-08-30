@@ -679,10 +679,17 @@ from partial or viewed evidence.
      significant support, whole-group reconciliation, compact activation and
      rejection telemetry, and fixture/executor invariance without changing
      thresholds, measurement, gates, or closed evidence.
-   - [ ] Freeze exact non-executable candidate and replay identities for this
-     correction and run the complete no-write verifier. Any cumulative replay
-     requires a separate exact approval; no execution authority is implied by
-     this implementation.
+   - [x] Freeze exact non-executable candidate and replay identities for this
+     correction and run the complete no-write verifier. Candidate `85d5807...`,
+     source tree `a082cbe4...`, configuration `88ac8bea...`, and wrapper
+     `2c40315f...` passed all 2,400 inputs, 9,600 reference runs, the persisted
+     association-sidecar seam, and the sidecar-aware evaluator seam under
+     review `42c35481...` without creating scratch or output.
+   - [ ] Execute the separately approved exact two-worker cumulative replay
+     under decision `f6d2bcc8...`; monitor only operational state until its
+     atomic ledger appears, then interpret compact and Continuum science before
+     power. A scientific failure is terminal evidence for this candidate; only
+     a process defect may be fixed without changing its science identity.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

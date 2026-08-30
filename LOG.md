@@ -12992,3 +12992,32 @@ verifier. Any cumulative replay still requires a separate exact approval.
 complete real no-write verification against all retained reference evidence,
 then freeze the exact wrapper and execution identities before consuming the
 approved replay authority.
+
+## 2026-08-30 — Freeze and authorize the terminal-parent replay
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Committed the fail-closed replay composition at `1e8348b...`; wrapper
+  `2c40315f...` retains candidate `85d5807...`, source tree `a082cbe4...`,
+  configuration `88ac8bea...`, reconstructed-reference terminal
+  `48209eae...`, and closed baseline `a45303df...` in a new write-once output
+  and scratch namespace.
+- The complete real no-write verifier passed all 2,400 retained inputs and
+  9,600 reference runs. It also verified that the exact candidate writer
+  persists association sidecars, the exact compiler composition installs the
+  association-aware evaluator, the clean execution revision is `1e8348b...`,
+  and both output and scratch remain absent.
+- Non-executable identity review `42c35481...` records that pass and canonical
+  execution identity `a069e5fc...`. The current explicit user instruction is
+  consumed by one-replay decision `f6d2bcc8...`; campaign execution, viewed
+  SDC1/Hydra execution, fresh qualification, tuning, rescoring, optimization,
+  cutover, and release remain false.
+- The composition passed 52 focused tests, 13 exact identity/wrapper tests,
+  `just check` with 2,003 tests and four expected failures, `just coverage`
+  with 2,162 tests and four expected failures at 94.69%, all 27 applicable
+  equivalence tests, the strict documentation build, and clean pre-commit.
+
+**Immediate next step:** commit the exact review and decision, create a clean
+immutable execution checkout, repeat the complete no-write preflight there,
+then start exactly one two-worker replay and monitor only operational state
+until the atomic ledger exists.

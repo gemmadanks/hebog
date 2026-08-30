@@ -1,0 +1,34 @@
+{
+  "approved_on": "2026-08-30",
+  "candidate_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+  "candidate_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+  "candidate_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "cumulative_replay_authorized": true,
+  "decision_id": "phase-5-public-finder-terminal-parent-correction-cumulative-replay-execution-decision",
+  "exact_approval": "Please continue the work required to pass the scientific evaluation (including the cumulative replay and any fixes for any process-related errors that occur during the replay or its evaluation). I approve the next replay and any further replays that are required if errors or failures require re-runs.",
+  "execution_authorized": true,
+  "expected_execution_sha256": "a069e5fc752f1c81be02e59b91c3b0754ed47eec2e72bf2f4e0647339b59c554",
+  "identity_review": {
+    "path": "config/contracts/phase-5-public-finder-terminal-parent-correction-cumulative-replay-review.json",
+    "sha256": "42c354811bb00625e1e1576880f1171daad3acac49e244848b1ceb02fca169ea"
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json",
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "schema_version": 1,
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-terminal-parent-correction-85d5807",
+  "status": "authorized-for-one-terminal-parent-cumulative-replay",
+  "workers": 2,
+  "wrapper_sha256": "2c40315ffe821008b249a57b5e8c012b0f6526ae8aacab5a9bbdb35bdeac2f21"
+}
