@@ -12768,3 +12768,22 @@ evaluation require a separate named approval bound to that review.
 **Immediate next step:** obtain one named approval bound to review
 `9c2be9a7...` for a single compilation and evaluation of the preserved
 products. Only after that approval may an exact execution decision be created.
+
+## 2026-08-30 — Authorize parent-construction evaluation completion
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Gemma Danks approved exactly one evaluation-only completion bound to review
+  `9c2be9a7...`, candidate product set `b81cb3d4...`, association product set
+  `e1f16373...`, completion program `bde8511a...`, and reconstruction recovery
+  `78d43370...`.
+- The authority covers one compilation and evaluation of the 2,400 preserved
+  candidate products against the 1,600 sealed sidecars and retained references,
+  with atomic publication to the original absent cumulative-ledger namespace.
+- Candidate execution, another replay or campaign, viewed SDC1/Hydra
+  execution, qualification, tuning, rescoring, optimization, cutover, and
+  release remain unauthorized.
+
+**Immediate next step:** commit the exact execution decision, create a clean
+immutable checkout, rerun the complete no-write verification, and consume the
+single approval only if every identity remains unchanged.
