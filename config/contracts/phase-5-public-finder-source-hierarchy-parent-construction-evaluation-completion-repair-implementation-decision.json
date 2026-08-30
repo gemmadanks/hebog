@@ -6,8 +6,8 @@
   },
   "authorization": {
     "association_reconstruction_authorized": false,
-    "candidate_execution_authorized": false,
     "campaign_execution_authorized": false,
+    "candidate_execution_authorized": false,
     "evaluation_only_completion_authorized": true,
     "evaluation_only_repair_implementation_authorized": true,
     "existing_product_verification_authorized": true,
