@@ -12672,3 +12672,26 @@ namespaces, then run the unchanged replay once.
 freeze exact non-executable sidecar-reconstruction identities, and obtain a
 separate exact execution approval before running the frozen 1,600-Continuum
 association composition or compiling the preserved products.
+
+## 2026-08-30 — Freeze parent association sidecar reconstruction
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Local implementation commit `8a3314d` is clean and binds the new evaluator
+  overlay `74d16cc4...`, reconstruction program `e8dd80cb...`, implementation
+  decision `d15f87e4...`, preserved candidate product set `b81cb3d4...`, and
+  unchanged historical compiler identities `ab690dda...` and `b46167de...`.
+- Exact non-executable review
+  `phase-5-public-finder-source-hierarchy-parent-construction-association-
+  provenance-reconstruction-review` has SHA-256 `691eaf8f35f5ff1688c52af6d448e3ba4df704529f6f50072fa6924903a59be4`.
+  It limits any later approval to one two-worker reconstruction of the 1,600
+  omitted association sidecars, exact byte verification of all regenerated
+  candidate products, and retention of sidecar provenance only.
+- Reconstruction, compilation, evaluation, candidate execution, viewed-public
+  execution, another campaign, qualification, tuning, rescoring, cutover, and
+  release remain unauthorized.
+
+**Immediate next step:** obtain one named reconstruction approval bound to
+review `691eaf8f...`; only then create the execution decision and run the
+write-once sidecar reconstruction. Evaluation-only completion requires a
+separate later review and approval after the terminal sidecar identity exists.

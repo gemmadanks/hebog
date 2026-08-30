@@ -159,9 +159,7 @@ def test_reconstruction_authorization_rejects_broader_authority(
     )
 
     assert authorize(composition) is decision
-    prohibited = cast(
-        dict[str, bool], decision["prohibited_authorizations"]
-    )
+    prohibited = cast(dict[str, bool], decision["prohibited_authorizations"])
     prohibited["release_authorized"] = True
     with pytest.raises(ValueError, match="authority changed"):
         authorize(composition)

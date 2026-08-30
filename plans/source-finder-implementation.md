@@ -634,6 +634,8 @@ from partial or viewed evidence.
      Continuum shards under a separately approved write-once namespace. Require
      regenerated catalogue, labels, and mask to match the preserved products
      exactly; do not rerun compact science or mutate the existing scratch.
+     Exact non-executable reconstruction review `691eaf8f...` is frozen and
+     awaits its named one-reconstruction approval.
    - [ ] Freeze and approve one evaluation-only completion against the sealed
      sidecars, publish the atomic cumulative ledger, interpret compact and
      Continuum science before power, and require every absolute and
