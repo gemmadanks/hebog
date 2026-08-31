@@ -151,16 +151,16 @@ def _current_composition(
 
 def _composition(task: dict[str, object]) -> dict[str, Any]:
     """Load one candidate's exact producer inside a worker."""
-    root = Path(cast(str, task["repository_root"]))
+    tooling_root = Path(cast(str, task["tooling_root"]))
     mode = cast(str, task["candidate_mode"])
     if mode == "incumbent":
-        wrapper = runpy.run_path(str(root / _TERMINAL_PARENT_WRAPPER))
+        wrapper = runpy.run_path(str(tooling_root / _TERMINAL_PARENT_WRAPPER))
         _, _, frozen = wrapper["_load_source_association_composition"]()
         wrapper["_install_terminal_parent_static_seams"](frozen)
         return cast(dict[str, Any], frozen)
     if mode == "current":
         return _current_composition(
-            root,
+            tooling_root,
             revision=cast(str, task["candidate_revision"]),
             configuration=cast(str, task["configuration_sha256"]),
         )
@@ -174,7 +174,12 @@ def _generate_product(task: dict[str, object]) -> str:
         key: value
         for key, value in task.items()
         if key
-        not in {"candidate_mode", "candidate_revision", "repository_root"}
+        not in {
+            "candidate_mode",
+            "candidate_revision",
+            "repository_root",
+            "tooling_root",
+        }
     }
     return cast(str, frozen["_generate_candidate_product"](candidate_task))
 
@@ -202,9 +207,10 @@ def _candidate_tasks(
     arguments: argparse.Namespace,
 ) -> tuple[dict[str, object], ...]:
     """Return exactly the selected candidate tasks after full verification."""
-    root = arguments.repository_root
+    candidate_root = arguments.repository_root
+    tooling_root = arguments.tooling_root
     verified, frozen = _verified_reference(
-        root, arguments.reference_reconstruction
+        tooling_root, arguments.reference_reconstruction
     )
     compiler = runpy.run_path(str(frozen["_COMPILER_PATH"]))
     frozen["_install_historical_source_view"](compiler)
@@ -214,29 +220,29 @@ def _candidate_tasks(
         frozen["_REGISTRY_PATH"], frozen["_COMPILER_PATH"]
     )
     compact, _ = compiler_globals["_dataset_maps"](
-        root / registry["compact_manifest_path"]
+        tooling_root / registry["compact_manifest_path"]
     )
     continuum, _ = compiler_globals["_dataset_maps"](
-        root / registry["continuum_manifest_path"]
+        tooling_root / registry["continuum_manifest_path"]
     )
     selected = _selected_inputs(
         arguments.source_request,
         arguments.population,
     )
     if arguments.candidate_mode == "current":
-        configuration = _current_configuration(root)
+        configuration = _current_configuration(candidate_root)
         revision = subprocess.check_output(
-            ("git", "rev-parse", "HEAD"), cwd=root, text=True
+            ("git", "rev-parse", "HEAD"), cwd=candidate_root, text=True
         ).strip()
         expected_source_sha256 = None
     else:
-        wrapper = runpy.run_path(str(root / _TERMINAL_PARENT_WRAPPER))
+        wrapper = runpy.run_path(str(tooling_root / _TERMINAL_PARENT_WRAPPER))
         configuration = cast(str, wrapper["_CANDIDATE_CONFIGURATION_SHA256"])
         revision = cast(str, wrapper["_CANDIDATE_REVISION"])
         expected_source_sha256 = cast(
             str, wrapper["_CANDIDATE_SOURCE_TREE_SHA256"]
         )
-    source_sha256 = source_tree_sha256(root)
+    source_sha256 = source_tree_sha256(candidate_root)
     if (
         expected_source_sha256 is not None
         and source_sha256 != expected_source_sha256
@@ -254,7 +260,8 @@ def _candidate_tasks(
             **task,
             "candidate_mode": arguments.candidate_mode,
             "candidate_revision": revision,
-            "repository_root": str(root),
+            "repository_root": str(candidate_root),
+            "tooling_root": str(tooling_root),
         }
         for task in tasks
         if task["input_id"] in selected
@@ -265,6 +272,7 @@ def main() -> None:
     """Verify, materialize, and retain exactly one smoke product set."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository-root", required=True, type=Path)
+    parser.add_argument("--tooling-root", required=True, type=Path)
     parser.add_argument("--reference-reconstruction", required=True, type=Path)
     parser.add_argument("--source-request", required=True, type=Path)
     parser.add_argument("--population", required=True, type=Path)
@@ -280,6 +288,7 @@ def main() -> None:
     )
     arguments = parser.parse_args()
     arguments.repository_root = arguments.repository_root.resolve()
+    arguments.tooling_root = arguments.tooling_root.resolve()
     if arguments.workers < 1:
         raise ValueError(
             "prospective materialization workers must be positive"

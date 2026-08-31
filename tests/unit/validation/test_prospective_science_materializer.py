@@ -69,6 +69,8 @@ def test_verify_only_does_not_create_scratch(
             str(_SCRIPT),
             "--repository-root",
             str(_ROOT),
+            "--tooling-root",
+            str(_ROOT),
             "--reference-reconstruction",
             str(tmp_path / "reference"),
             "--source-request",
@@ -94,6 +96,38 @@ def test_verify_only_does_not_create_scratch(
         "candidate_source_tree_sha256": "source-tree-sha256",
         "selected_input_count": 128,
     }
+
+
+def test_incumbent_composition_uses_separate_tooling_root(
+    tmp_path: Path,
+) -> None:
+    """Historical candidates need not contain later frozen replay tooling."""
+    script = runpy.run_path(str(_SCRIPT))
+    candidate_root = tmp_path / "candidate"
+    candidate_root.mkdir()
+    tooling_root = tmp_path / "tooling"
+    wrapper = tooling_root / script["_TERMINAL_PARENT_WRAPPER"]
+    wrapper.parent.mkdir(parents=True)
+    wrapper.write_text(
+        """
+def _load_source_association_composition():
+    return {}, {}, {}
+
+def _install_terminal_parent_static_seams(frozen):
+    frozen["installed"] = True
+""",
+        encoding="utf-8",
+    )
+
+    composition = script["_composition"](
+        {
+            "candidate_mode": "incumbent",
+            "repository_root": str(candidate_root),
+            "tooling_root": str(tooling_root),
+        }
+    )
+
+    assert composition == {"installed": True}
 
 
 def _write_product(

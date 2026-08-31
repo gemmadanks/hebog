@@ -13508,3 +13508,23 @@ remain blocked.
 complete no-write preflights, then execute and evaluate the 128-case smoke.
 Freeze the endpoint power audit and exact full-replay identities only if the
 smoke passes without a confirmed scientific regression.
+
+## 2026-09-01 — Repair prospective incumbent tooling provenance
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- The current-candidate complete no-write preflight passed against all 2,400
+  retained inputs and 9,600 reference runs without creating scratch. The
+  incumbent preflight then failed before retained-reference traversal,
+  candidate execution, scratch creation, or scientific output because the
+  materializer looked for a later frozen replay wrapper inside the historical
+  candidate checkout.
+- Separated the immutable tooling root from the historical candidate source
+  root. Reference verification and replay composition now load only from the
+  reviewed prospective tooling checkout, while revision and source-tree
+  identity remain bound to the exact candidate checkout. Added a regression
+  test proving that an incumbent checkout without the later wrapper composes
+  through the separate tooling root; focused tests and Pyright pass.
+
+**Immediate next step:** freeze the repaired program in a new immutable
+checkout and rerun both complete no-write preflights before materialization.
