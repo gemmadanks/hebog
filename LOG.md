@@ -13307,3 +13307,48 @@ pre-review `e70e602f...`, fix the dormant all-features-seeded regression under
 fixture-only authority, and build the fail-fast lanes. Freeze no full replay
 identity until the all-check parity-and-retention contract and smoke evidence
 are reviewed.
+
+## 2026-08-31 — Review Phase 5 feasibility and confirmatory science design
+
+**Plan phase:** Phase 5 closure through Phase 7 scale-out
+
+- Reviewed the complete plan for statistical identifiability, scientific
+  validity, replay-loop risk, and consistency between the early-release and
+  facility-scale milestones. The all-check parity objective is achievable only
+  when the endpoint registry, one incumbent Hebog baseline, paired sampling
+  unit, margins, applicability, and per-stratum power are frozen before
+  candidate results are viewed.
+- Added realization-level paired resampling to prevent source/pixel
+  pseudoreplication, an intersection-union global decision requiring every
+  binding endpoint to pass, prospective power for the smallest binding strata,
+  and explicit treatment of underpowered results as unresolved rather than
+  passes. One closed incumbent per explicit semantic profile replaces any
+  possible per-endpoint best-of-history envelope; current terminal-cycle work
+  retains predecessor `85d5807...` independently of the PyBDSF parity gate.
+- Found that the frozen historical evaluator labels a comparison underpowered
+  whenever observed paired standard deviation exceeds its planning value, even
+  if the observed-data upper confidence limit is already within the practical
+  margin. Several terminal comparisons exhibit this pattern; one observed
+  standard deviation exceeds plan by only about `1.2e-5`. The plan now requires
+  a prospective test-first evaluator repair: planning variance sizes the study
+  and audits assumptions, while the frozen observed-data confidence interval
+  decides non-inferiority. Historical ledgers remain unchanged.
+- Retained shape, size, and position-angle comparison wherever fitted or
+  moment-equivalent semantics align. Scientifically incompatible records must
+  be declared unavailable before candidate viewing; they cannot be forced into
+  a false comparison or dropped because of an unfavourable result.
+- Corrected the computational non-regression rule: the upper one-sided 95%
+  confidence bound for new/previous median runtime must be at most 1.05. An
+  interval spanning that margin is underpowered, not a pass.
+- Made the current repair criterion causal and testable: the smoke lane must
+  restore the parent lost by the all-features-seeded guard while preserving the
+  terminal-parent gains, compact invariance, and all overmerge controls.
+- Split the performance matrix into a declared Phase 6 initial Rapthor support
+  envelope and the Phase 7 30,000/100,000 facility matrix. This permits an
+  earlier useful release without extrapolating unmeasured scale claims or
+  weakening the final `1.0` requirements.
+
+**Immediate next step:** approve and reproduce pre-review `e70e602f...`, then
+implement the eligibility repair and fail-fast lanes. Before any full replay,
+freeze the single incumbent, endpoint registry, realization-level inference,
+and endpoint-level power plan described above.

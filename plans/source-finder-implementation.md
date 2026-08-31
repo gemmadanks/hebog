@@ -80,11 +80,12 @@ PyBDSF is the current Rapthor compatibility oracle; pinned PyBDSF `master` is a
 second binding reference. Aegean is binding for applicable compact, blended,
 and Gaussian-component populations. No single finder is scientific truth.
 
-Hebog must pass every applicable absolute gate and be non-inferior to each
-binding reference on every governed metric and stratum. Results are
-conjunctive: one population or metric cannot compensate for another.
-Predeclared one-sided confidence intervals determine non-inferiority; a worse
-point estimate with an inconclusive interval is not an improvement.
+The historical Phase 4/5 contract required Hebog to pass every applicable
+absolute gate and be non-inferior to each binding reference on every governed
+metric and stratum. Results were conjunctive: one population or metric could
+not compensate for another. Predeclared one-sided confidence intervals
+determined non-inferiority; a worse point estimate with an inconclusive
+interval was not an improvement.
 
 That conjunctive contract remains binding for every campaign and replay
 frozen through terminal-feature persistence ledger `a9b4d57e...`. Those
@@ -99,8 +100,10 @@ scientific improvement:
    compact/Aegean contract. An underpowered or inconclusive binding comparison
    does not demonstrate parity and must receive sufficient evidence before
    promotion.
-2. **Binding Hebog quality retention.** Require non-inferiority to the best
-   passing like-semantics Hebog baseline on every governed metric and stratum.
+2. **Binding Hebog quality retention.** Prospectively select one frozen
+   incumbent from the best closed like-semantics Hebog candidates considered
+   as whole candidates, then require non-inferiority to it on every governed
+   metric and stratum.
    A candidate may improve one measure without compensating for a material
    regression in another. Point estimates may vary, but the predeclared paired
    confidence rule and practical margin must rule out a scientifically material
@@ -121,7 +124,54 @@ from the candidate's viewed values. The same prospective contract then governs
 the cumulative replay and fresh held-out qualification. Until that review is
 accepted, the existing stricter contract remains the active gate.
 
-The main cross-project gates are:
+The prospective contract is scientifically confirmatory only when all of the
+following are fixed before candidate results are viewed:
+
+- one versioned endpoint registry naming every metric, stratum, direction,
+  population, unit, comparator, applicability rule, practical margin, and
+  missing-output outcome;
+- one closed incumbent Hebog ledger for like-semantics retention, or one named
+  incumbent per explicitly different semantic profile. Do not construct an
+  unattainable per-endpoint envelope by selecting the best value from different
+  historical candidates after the fact. For the current terminal-cycle repair,
+  `85d5807...` is the predecessor whose accepted parent-construction gains must
+  be retained while PyBDSF parity remains independently binding;
+- the independent sampling unit and paired resampling method. Resample whole
+  input realizations or observational units, not individual sources or pixels
+  whose within-image dependence would create pseudoreplication;
+- a prospective power calculation for every binding endpoint using its frozen
+  margin, planning variance, event frequency, and smallest governed stratum.
+  Enlarge or redesign the population before the one-look campaign when a
+  binding comparison cannot be resolved; do not demote it or add cases after
+  inspecting candidate results. Report both marginal endpoint power and a
+  reviewed dependence-aware estimate or conservative bound for the probability
+  that all co-primary endpoints pass; and
+- one intersection-union decision: promotion passes only when every binding
+  non-inferiority hypothesis passes at its predeclared one-sided level. Because
+  all co-primary hypotheses must pass, no cross-endpoint multiplicity
+  adjustment is required for that global non-inferiority claim. Any separate
+  superiority claim or selection of a favourable subset requires a
+  prospectively specified multiplicity procedure or remains descriptive.
+
+Planning variance is a design input, not an additional observed-data gate.
+The final non-inferiority decision uses the frozen estimator and the confidence
+limit computed from the observed paired realization-level variation. Exceeding
+the planning variance is recorded as an assumption deviation and informs the
+next prospectively sized campaign; it does not override a confidence limit that
+already excludes the practical margin. Conversely, a confidence limit that
+crosses the margin cannot pass merely because observed variance stayed below
+plan. The historical evaluators and their decisions remain immutable, but the
+prospective evaluator must implement and test this separation before another
+full replay identity is frozen.
+
+"All checks" means all scientifically comparable checks in the frozen
+registry. A metric may be marked not applicable only before viewing the
+candidate and only because the two products have incompatible scientific
+semantics, not because power or performance is inconvenient. Compact shape,
+size, and position-angle checks and moment-equivalent extended-source checks
+remain binding wherever the truth and comparator definitions align.
+
+The durable cross-project and absolute improvement targets are:
 
 | Metric | Gate |
 | --- | ---: |
@@ -142,6 +192,10 @@ Exact Phase 4/5 endpoint populations, absolute limits, practical margins,
 variance rules, and confidence methods remain frozen in `config/contracts/`.
 They cover compact, blended, extended, morphology, scale, SNR, edge,
 invalid-pixel, varying-noise, tile-boundary, and tile-corner strata.
+Under the prospective contract, every applicable relative PyBDSF, Aegean, and
+incumbent-Hebog form remains binding. The absolute numeric values remain
+reported longer-term targets, except for non-performance validity invariants
+and the separately frozen Rapthor profile decision.
 
 Additional rules:
 
@@ -153,6 +207,10 @@ Additional rules:
   original background-subtracted pixels.
 - Compact components, grouped sources, support/islands, and sky-model
   components are distinct governed populations.
+- Catalogue shape, size, and position angle are evaluated only against a
+  semantically aligned truth or comparator definition; incompatible fitted and
+  moment-based records are explicit unavailable outcomes rather than false
+  matches or silent passes.
 - Low-SNR threshold crossings are reported as completeness and reliability
   changes rather than hidden as unmatched rows.
 - Serial and executor results must satisfy the tighter deterministic Hebog
@@ -166,9 +224,12 @@ Additional rules:
   when confidence intervals are inconclusive.
 - Apply the dual-PyBDSF ratios at every gate-designated size both references
   can process.
-- Retain a reviewed Hebog curve across all supported sizes. A new/previous
-  median ratio whose lower 95% confidence bound exceeds `1.05` is a regression
-  unless an explicit trade-off is approved.
+- Retain a reviewed Hebog curve across all supported sizes. Hebog-on-Hebog
+  non-regression passes only when the upper one-sided 95% confidence bound for
+  the new/previous median ratio is at most `1.05`. A lower bound above `1.05`
+  is a confirmed regression; an interval spanning the margin is underpowered,
+  not a pass. An explicit reviewed trade-off may change the supported
+  performance envelope, but it cannot be described as non-regression.
 - Measure complete paths, including FITS I/O, products, orchestration, and
   filtering. Kernel-only speedups are diagnostic.
 - Peak worker and aggregate memory may not regress by more than 10% against
@@ -603,6 +664,10 @@ fail-closed requirements are:
 - require the expected direction of change relative to terminal-parent
   candidate `85d5807...`, byte-stable unaffected products where applicable,
   compact invariance, and all negative overmerge controls;
+- freeze the smoke manifest by deterministic stratified selection from
+  already-viewed development evidence plus named analytic sentinels. Include
+  the known regressed cases and their negative neighbours deliberately, but do
+  not choose or remove cases in response to the repaired candidate's output;
 - execute every concrete wrapper, worker-reinstallation, record-dispatch,
   compiler, evaluator, provenance, and atomic-publication seam used by the full
   replay; and
@@ -865,21 +930,30 @@ from partial or viewed evidence.
      non-zero pre-guard rejection and repaired acceptance, while negative
      bridge, pair, path, disconnected-support, ambiguity, and partial-group
      controls remain rejected.
-   - [ ] Freeze a 64--128-case viewed-development scientific smoke population
-     and run the exact production producer/compiler/evaluator composition.
-     Require compact invariance, expected direction relative to `85d5807...`,
-     no material regression on any governed like-semantics check, valid
-     provenance, and successful atomic publication. The smoke result is
-     diagnostic and cannot be pooled with full or qualification evidence.
    - [ ] Freeze the prospective all-check PyBDSF-parity and Hebog-retention
      decision contract described in Section 3.1. Preserve every historical
      decision under its original gate; do not choose checks, margins, strata,
      or baselines from the candidate's viewed values. Retain the existing
      absolute numeric thresholds as reported longer-term improvement targets.
-   - [ ] Only after the fixture, activation, contract, and smoke lanes pass,
-     freeze exact replacement identities and obtain separate authority for one
-     full cumulative replay. Interpret compatibility and absolute safety before
-     improvement objectives, power, or runtime; stop on a scientific failure.
+   - [ ] Repair the prospective evaluator test-first so planning variance sizes
+     the campaign and audits assumptions, while the observed realization-level
+     confidence limit alone decides non-inferiority. Cover variance just above
+     plan with an interval inside the margin, variance below plan with an
+     interval crossing the margin, missing/non-finite evidence, and exact
+     boundary equality; preserve every historical evaluator byte-for-byte.
+   - [ ] Freeze a 64--128-case viewed-development scientific smoke population
+     and run the exact prospective producer/compiler/evaluator composition.
+     Require the repaired candidate to restore the parent lost by the
+     all-features-seeded guard, preserve the intended terminal-parent gains,
+     retain compact invariance, introduce no material regression on any
+     governed like-semantics check, and publish valid provenance atomically.
+     The smoke result is diagnostic and cannot be pooled with full or
+     qualification evidence.
+   - [ ] Only after the fixture, activation, contract, prospective evaluator,
+     power plan, and smoke lanes pass, freeze exact replacement identities and
+     obtain separate authority for one full cumulative replay. Interpret
+     compatibility and validity before improvement objectives, power, or
+     runtime; stop on a scientific failure.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
@@ -892,7 +966,9 @@ from partial or viewed evidence.
      reviewed, and a full cumulative replay publishes a passing ledger.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
-     one-look approval.
+     one-look approval. Before opening it, demonstrate from the frozen planning
+     variances and event frequencies that every binding endpoint and smallest
+     binding stratum has enough independent realizations to reach a decision.
    - Require every applicable released/master PyBDSF and Aegean comparison and
      every like-semantics Hebog-retention comparison to pass the frozen paired
      rule. Report every absolute improvement endpoint and secondary stratum,
@@ -946,12 +1022,12 @@ exposes a new blocker.
 ### Phase 6: Rapthor integration, minimum performance, and early release
 
 Phase 6 begins only after Phase 5 has established all-check scientific parity,
-retained the best passing Hebog quality, and published the restricted Rapthor
-profile decision. Its objective is the earliest safe, useful improvement for
-Rapthor, not the final scientific or computational optimum. Do not delay an
-experimental release for a longer-term absolute target or maximum facility
-scale once all binding science, compatibility, operational, and minimum
-complete-path performance gates pass.
+retained the frozen incumbent Hebog quality, and published the restricted
+Rapthor profile decision. Its objective is the earliest safe, useful
+improvement for Rapthor, not the final scientific or computational optimum.
+Do not delay an experimental release for a longer-term absolute target or
+maximum facility scale once all binding science, compatibility, operational,
+and minimum complete-path performance gates pass.
 
 - [ ] Add readable acceptance scenarios for empty/corrupt inputs, restart,
       retry, backend selection, fallback, dual-run reporting, and decisions.
@@ -961,13 +1037,19 @@ complete-path performance gates pass.
 - [ ] Preserve feature-flagged PyBDSF fallback and dual-run comparison; remove
       the PyBDSF subprocess escape only from the Hebog path.
 - [ ] Run matched complete `filter_skymodel` benchmarks against released and
-      pinned-master PyBDSF across the frozen matrix and relevant core counts.
+      pinned-master PyBDSF across a frozen early-release matrix containing
+      every input size and workload Rapthor will support initially, plus both
+      sides of measured execution crossovers. The 30,000- and 100,000-square
+      facility anchors remain Phase 7 unless the initial Rapthor envelope
+      requires them.
 - [ ] Require all science and Rapthor compatibility gates, at least 50% lower
       complete matched median wall time than Rapthor's released PyBDSF, better
       complete performance than pinned PyBDSF master, runtime confidence
       bounds, retry/resume, and memory gates to pass before default cutover.
 - [ ] Publish an explicit experimental `0.x` release when the same minimum
       gates pass and the feature-flagged PyBDSF fallback remains available.
+      Declare the validated image-size, workload, resource, and storage
+      envelope and fail closed or use the fallback outside it.
       Further absolute scientific improvement and facility-scale optimization
       continue after this milestone.
 
@@ -993,6 +1075,9 @@ compensate for scientific or workflow regression.
       100, and at least 200 workers.
 - [ ] Complete the 100,000-square qualification without a full worker plane and
       within all resource, recovery, runtime, and scaling gates.
+- [ ] Extend the matched complete Rapthor performance matrix through the
+      30,000- and 100,000-square anchors and every newly measured crossover
+      before claiming support for those sizes.
 - [ ] Continue improving the reported absolute scientific targets and complete
       throughput curve without weakening parity, retention, or compatibility.
 
@@ -1024,6 +1109,12 @@ compensate for scientific or workflow regression.
 Add anchors on both sides of measured storage, batching, partition, or
 executor crossovers. At each size retain sparse, normal, and dense/extended
 workloads.
+
+Phase 6 early releases gate only the frozen initial Rapthor support envelope;
+unsupported larger inputs must fail closed or retain the PyBDSF fallback.
+Phase 7 and the `1.0` definition of done require the complete matrix, including
+the 30,000- and 100,000-square anchors. No result from a smaller tier may be
+extrapolated into an unmeasured size or worker-count claim.
 
 | 3,000-square component | Budget |
 | --- | ---: |
@@ -1065,6 +1156,10 @@ evidence decides acceptance.
 | Risk | Required control |
 | --- | --- |
 | Qualification or campaign overfitting | Freeze populations/gates first; one look; never rescore failed evidence. |
+| Binding strata remain underpowered | Freeze endpoint-level power calculations and independent realization counts before one-look execution; enlarge the population prospectively. |
+| The Hebog retention target becomes an impossible synthetic envelope | Bind one closed incumbent candidate before viewing the replacement; never select a different historical best per endpoint. |
+| Source-level rows are treated as independent replicates | Pair and resample whole input realizations or observational units; preserve within-image dependence. |
+| Planning assumptions become terminal observed-data gates | Use planning variance for prospective sample size and assumption audit only; decide non-inferiority from the frozen observed-data confidence interval. |
 | Compiler or comparator defect changes science | Test matching/measurement independently; checksum-bind programs; preserve closed compilers. |
 | Support topology is confused with source photometry | Keep catalogue/source, component, and support records distinct; measure flux on original pixels. |
 | Mask background hides errors | Evaluate precision/recall/IoU on valid pixels plus object splits/merges. |
@@ -1080,6 +1175,7 @@ evidence decides acceptance.
 | Performance complexity harms maintainability | Optimize only from profiles; isolate kernels; retain readable serial oracles. |
 | Native acceleration harms portability | Apply the native gates and require complete wheel, safety, licensing, and fallback evidence. |
 | Experimental releases imply readiness | Keep fallback and limitations explicit until all science, scale, and soak gates pass. |
+| Early release is delayed by maximum-scale work | Publish a bounded supported envelope after Phase 6 gates; defer 30,000/100,000 qualification to Phase 7 without extrapolation. |
 
 ## 10. Definition of done
 
