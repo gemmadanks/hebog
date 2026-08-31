@@ -1,0 +1,20 @@
+{
+  "candidate_results_inspected": false,
+  "evidence_role": "viewed-development-diagnostic-non-promotional",
+  "population_id": "phase-5-prospective-science-smoke",
+  "promotion_evidence": false,
+  "schema_version": 1,
+  "selection": {
+    "compact_count": 64,
+    "continuum_count_per_dataset": 16,
+    "continuum_dataset_count": 4,
+    "ordering": "sha256-input-id-then-input-id",
+    "selected_input_count": 128,
+    "selected_input_set_canonical_sha256": "fe35532e0ff424620b3f1ebaa5f5dd9472aef1ba84fd747ea976f3c4d3d30618"
+  },
+  "source_request": {
+    "path": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json",
+    "sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+  },
+  "status": "frozen-before-smoke-candidate-results"
+}

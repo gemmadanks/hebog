@@ -13466,3 +13466,45 @@ remain blocked until those prerequisites pass.
 `f70f3213...`, then implement the prospective confidence evaluator test-first.
 The endpoint-level power audit, diagnostic smoke lane, and any full replay
 remain blocked.
+
+## 2026-08-31 — Implement prospective replay activation gates
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Recorded Gemma Danks's authority to complete the frozen prerequisites and,
+  only after every gate passes without identity drift, run and evaluate the
+  next cumulative replay. The activation decision binds decision contract
+  `f70f3213...`, endpoint registry `095354bc...`, the exact prerequisite
+  programs, and explicit prohibitions on tuning, rescoring, qualification,
+  cutover, and release.
+- Implemented the prospective observed-data evaluator test-first. Planning
+  variance now sizes the experiment and records assumption deviations but
+  cannot override the realization-level upper confidence limit. Exact margin
+  equality passes; missing candidate evidence fails; missing comparators and
+  confidence intervals crossing a margin are underpowered; non-finite evidence
+  is indeterminate. Three historical evaluators remain byte-identical.
+- Froze a result-neutral 128-case diagnostic population: 64 compact inputs and
+  16 inputs from each of four Continuum datasets, ordered only by input-ID
+  digest. Added current and exact-incumbent materializers, complete no-write
+  verification of all retained evidence, compact product identity checks,
+  terminal-cycle activation checks, paired Continuum compilation, and atomic
+  write-once publication.
+- Replaced a circular draft power calculation that inferred future variance
+  from viewed confidence intervals. The final endpoint-complete audit reuses
+  the reviewed compact simultaneous lower bound and frozen Continuum family
+  planning variances at 800 compact and 1,600 Continuum realizations. Compact
+  incumbent power is conditional on exact smoke product identity and a full
+  800-product recheck. Tests cover all 1,187 comparisons, margin drift, and a
+  missing compact identity condition.
+- Focused prospective evaluator, contract, power, smoke, materializer,
+  mechanism, and end-to-end validation passes. The branch-aware coverage lane
+  passes 2,264 tests with four expected failures at 94.52%; `just check`
+  passes 2,102 tests with four expected failures; all 27 frozen equivalence
+  tests pass; the strict documentation build and final pre-commit suite pass.
+  Focused Ruff and Pyright checks also pass. No candidate product, viewed
+  scientific result, or full replay output has been opened yet.
+
+**Immediate next step:** commit an immutable prerequisite checkout, run both
+complete no-write preflights, then execute and evaluate the 128-case smoke.
+Freeze the endpoint power audit and exact full-replay identities only if the
+smoke passes without a confirmed scientific regression.

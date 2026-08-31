@@ -1,0 +1,68 @@
+{
+  "activation_id": "phase-5-prospective-science-activation",
+  "approval": {
+    "approved_scope": "complete all prerequisites, run the next cumulative replay, and evaluate its results",
+    "approver": "Gemma Danks",
+    "recorded_at": "2026-08-31",
+    "user_statement": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results."
+  },
+  "authorization": {
+    "cutover_authorized": false,
+    "full_replay_authorized_only_after_all_activation_gates_pass": true,
+    "optimization_authorized": false,
+    "qualification_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_smoke_authorized": true,
+    "threshold_or_photometric_tuning_authorized": false
+  },
+  "decision_contract": {
+    "path": "config/contracts/phase-5-prospective-science-decision-contract.json",
+    "sha256": "f70f321397618b9f63d3dd03d650a5bbc73f8aad5e5fa91f15a198a99bdb38f9"
+  },
+  "endpoint_registry": {
+    "canonical_sha256": "fadc1952be0494c3ce5f9ea901e9c1c77bb88582c0d055b786eaaf4027e06880",
+    "path": "config/contracts/phase-5-prospective-science-endpoint-registry.json",
+    "sha256": "095354bce2f34ae257574f9168770a194f1f5b00024db0ec5bcafdafba006a7e"
+  },
+  "fail_closed_activation_gates": [
+    "prospective-evaluator-tests-pass",
+    "historical-evaluators-byte-identical",
+    "complete-current-and-incumbent-no-write-preflights-pass",
+    "non-promotional-smoke-passes",
+    "all-1187-comparison-power-audit-passes",
+    "exact-full-replay-identities-frozen-before-execution"
+  ],
+  "prerequisite_programs": [
+    {
+      "path": "src/hebog/validation/prospective_science_evaluator.py",
+      "sha256": "4ddb7e273e0541cda8e66ef8477a15230753ec83623b2539f93c7c2bc790c22f"
+    },
+    {
+      "path": "src/hebog/validation/prospective_science_power.py",
+      "sha256": "b198b5b077c7ddcd7487c8d8c30f0538ce43e847d366427506082f56d6460565"
+    },
+    {
+      "path": "src/hebog/validation/prospective_science_smoke.py",
+      "sha256": "f115b99b55155d19dab52e63a8d746a70d27bd07de1607b2c8ade81ff2d50e6f"
+    },
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_hebog_products.py",
+      "sha256": "c9a3c3aee56e484fa862d3ee32c5eacf04e0b15393944e756799156f98e34b01"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
+      "sha256": "bec1b0bd5ba86c3abc0ea366e282091f2216e239f732e523d366e28bfc430fd9"
+    },
+    {
+      "path": "scripts/validation/freeze_phase5_prospective_power_audit.py",
+      "sha256": "1bddcc4c2ea2de44086bf90217f989e02d658e67b868f8aadd9e30276dea8a54"
+    }
+  ],
+  "schema_version": 1,
+  "smoke_population": {
+    "path": "config/contracts/phase-5-prospective-science-smoke-population.json",
+    "sha256": "b52ddb52c258c9379d6d3e25a7faae209a6a2ea2f1d8bcd19ff119f475ffaa5d"
+  },
+  "status": "authorized-before-prerequisite-results"
+}

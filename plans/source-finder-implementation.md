@@ -983,12 +983,16 @@ from partial or viewed evidence.
      resampling, the intersection-union decision, immutable historical
      ledgers, and all execution prohibitions. It is not active until exact
      human scientific approval and the remaining activation requirements pass.
-   - [ ] Repair the prospective evaluator test-first so planning variance sizes
+   - [x] Repair the prospective evaluator test-first so planning variance sizes
      the campaign and audits assumptions, while the observed realization-level
      confidence limit alone decides non-inferiority. Cover variance just above
      plan with an interval inside the margin, variance below plan with an
      interval crossing the margin, missing/non-finite evidence, and exact
      boundary equality; preserve every historical evaluator byte-for-byte.
+     The new evaluator is isolated from all historical decision code. The
+     endpoint-complete power audit reuses only pre-result compact familywise
+     bounds and frozen Continuum planning variances; incumbent compact power is
+     conditional on exact smoke identity and a full 800-product recheck.
    - [ ] Freeze a 64--128-case viewed-development scientific smoke population
      and run the exact prospective producer/compiler/evaluator composition.
      Require the repaired candidate to restore the parent lost by the
@@ -996,12 +1000,16 @@ from partial or viewed evidence.
      retain compact invariance, introduce no material regression on any
      governed like-semantics check, and publish valid provenance atomically.
      The smoke result is diagnostic and cannot be pooled with full or
-     qualification evidence.
+     qualification evidence. The deterministic 128-case population, current
+     and incumbent materializers, complete no-write preflight, atomic smoke
+     evaluator, and write-once power-audit program are implemented; execution
+     remains pending an immutable-checkout preflight.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
-     obtain separate authority for one full cumulative replay. Interpret
-     compatibility and validity before improvement objectives, power, or
-     runtime; stop on a scientific failure.
+     verify that the recorded conditional authority binds them without drift
+     before one full cumulative replay. Interpret compatibility and validity
+     before improvement objectives, power, or runtime; stop on a scientific
+     failure.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

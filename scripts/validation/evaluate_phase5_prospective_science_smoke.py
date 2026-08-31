@@ -1,0 +1,435 @@
+#!/usr/bin/env python3
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
+"""Compile and evaluate the frozen non-promotional Phase 5 smoke lane."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import runpy
+from dataclasses import is_dataclass, replace
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, cast
+from uuid import uuid4
+
+from hebog.validation.external_runners import (
+    canonical_sha256,
+    file_sha256,
+    source_tree_sha256,
+)
+from hebog.validation.prospective_science_contract import (
+    load_prospective_endpoint_registry,
+)
+from hebog.validation.prospective_science_smoke import (
+    evaluate_prospective_science_smoke,
+    select_prospective_smoke_inputs,
+)
+from hebog.validation.terminal_cycle_eligibility_evaluation import (
+    aggregate_terminal_cycle_eligibility,
+)
+
+_MATERIALIZER = (
+    "scripts/validation/materialize_phase5_prospective_hebog_products.py"
+)
+_TERMINAL_PARENT_WRAPPER = (
+    "scripts/validation/review_phase5_public_finder_terminal_parent_"
+    "correction_cumulative_regressions.py"
+)
+_REGISTRY = (
+    "config/contracts/phase-5-prospective-science-endpoint-registry.json"
+)
+_CONTINUUM_POWER = "config/contracts/phase-5-external-comparison.json"
+
+
+def _subset_verified(verified: Any, identifiers: set[str]) -> Any:
+    """Return one bounded view without mutating retained evidence."""
+    request = verified.request.model_copy(
+        update={
+            "inputs": tuple(
+                item
+                for item in verified.request.inputs
+                if item.input_id in identifiers
+            ),
+            "runs": tuple(
+                item
+                for item in verified.request.runs
+                if item.input_id in identifiers
+            ),
+        }
+    )
+    values = {
+        **vars(verified),
+        "request": request,
+        "inputs": {
+            key: value
+            for key, value in verified.inputs.items()
+            if key in identifiers
+        },
+        "runs": {
+            key: value
+            for key, value in verified.runs.items()
+            if key[0] in identifiers
+        },
+    }
+    if is_dataclass(verified):
+        return replace(
+            cast(Any, verified),
+            request=values["request"],
+            inputs=values["inputs"],
+            runs=values["runs"],
+        )
+    return SimpleNamespace(**values)
+
+
+def _compiler(
+    frozen: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Load the exact historical compiler and endpoint registry."""
+    compiler = runpy.run_path(str(frozen["_COMPILER_PATH"]))
+    frozen["_install_historical_source_view"](compiler)
+    terminal = compiler["_configured_terminal"]()
+    globals_ = terminal["compile_terminal_analysis"].__globals__
+    registry = globals_["load_endpoint_registry"](
+        frozen["_REGISTRY_PATH"], frozen["_COMPILER_PATH"]
+    )
+    return globals_, cast(dict[str, Any], registry)
+
+
+def _candidate_view(  # noqa: PLR0913
+    frozen: dict[str, Any],
+    verified: Any,
+    scratch: Path,
+    *,
+    configuration: str,
+    revision: str,
+    compiler_globals: dict[str, Any],
+) -> Any:
+    """Attach one exact materialized Hebog product set."""
+    return frozen["_prospective_campaign"](
+        verified,
+        scratch,
+        configuration_sha256=configuration,
+        revision=revision,
+        compiler_globals=compiler_globals,
+    )
+
+
+def _paired_incumbent_view(
+    current: Any,
+    incumbent: Any,
+    compiler_globals: dict[str, Any],
+) -> Any:
+    """Install incumbent Hebog under one temporary comparator key."""
+    runs = dict(current.runs)
+    run_type = compiler_globals["VerifiedRun"]
+    for campaign_input in current.request.inputs:
+        incumbent_run = incumbent.runs[
+            (campaign_input.input_id, "hebog", "candidate")
+        ]
+        reference = current.runs[
+            (campaign_input.input_id, "pinned-pybdsf-master", "operational")
+        ]
+        runs[
+            (campaign_input.input_id, "pinned-pybdsf-master", "operational")
+        ] = run_type(
+            request=reference.request,
+            result=incumbent_run.result,
+            directory=incumbent_run.directory,
+        )
+    if is_dataclass(current):
+        return replace(cast(Any, current), runs=runs)
+    return SimpleNamespace(**{**vars(current), "runs": runs})
+
+
+def _product_artifacts(directory: Path) -> dict[str, str]:
+    """Return role-to-digest identities from one verified marker."""
+    marker = json.loads((directory / "complete.json").read_text())
+    return {
+        item["role"]: item["sha256"]
+        for item in marker["artifacts"]
+        if item["role"] != "source-association-json"
+    }
+
+
+def _verify_product_set(
+    identifiers: set[str],
+    scratch: Path,
+    *,
+    configuration: str,
+    source_tree: str,
+) -> str:
+    """Verify every marker and return one canonical product-set identity."""
+    product_root = scratch / "products"
+    directories = {
+        path.name: path for path in product_root.iterdir() if path.is_dir()
+    }
+    if set(directories) != identifiers:
+        raise ValueError("prospective smoke product population changed")
+    records: list[dict[str, object]] = []
+    for input_id in sorted(identifiers):
+        directory = directories[input_id]
+        marker_path = directory / "complete.json"
+        marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        if (
+            not isinstance(marker, dict)
+            or marker.get("schema_version") != 1
+            or marker.get("input_id") != input_id
+            or marker.get("configuration_sha256") != configuration
+            or marker.get("source_tree_sha256") != source_tree
+        ):
+            raise ValueError("prospective smoke product marker changed")
+        artifacts = marker.get("artifacts")
+        if not isinstance(artifacts, list) or not artifacts:
+            raise ValueError("prospective smoke product artifacts are absent")
+        roles: set[str] = set()
+        artifact_records: list[dict[str, object]] = []
+        for value in artifacts:
+            if not isinstance(value, dict):
+                raise ValueError(
+                    "prospective smoke product artifact malformed"
+                )
+            role = value.get("role")
+            relative_value = value.get("relative_path")
+            if not isinstance(role, str) or not isinstance(
+                relative_value, str
+            ):
+                raise ValueError(
+                    "prospective smoke product artifact malformed"
+                )
+            relative = Path(relative_value)
+            if (
+                role in roles
+                or relative.is_absolute()
+                or ".." in relative.parts
+                or relative.name == "complete.json"
+            ):
+                raise ValueError("prospective smoke product artifact unsafe")
+            roles.add(role)
+            path = directory / relative
+            if (
+                not path.is_file()
+                or path.stat().st_size != value.get("byte_count")
+                or file_sha256(path) != value.get("sha256")
+            ):
+                raise ValueError("prospective smoke product artifact changed")
+            artifact_records.append(
+                {
+                    "role": role,
+                    "relative_path": relative.as_posix(),
+                    "byte_count": value["byte_count"],
+                    "sha256": value["sha256"],
+                }
+            )
+        records.append(
+            {
+                "input_id": input_id,
+                "configuration_sha256": configuration,
+                "source_tree_sha256": source_tree,
+                "artifacts": sorted(
+                    artifact_records, key=lambda item: cast(str, item["role"])
+                ),
+            }
+        )
+    return canonical_sha256(records)
+
+
+def _compact_equal(
+    identifiers: set[str], current: Path, incumbent: Path
+) -> bool:
+    """Require byte-identical compact products for every smoke input."""
+    compact = tuple(item for item in identifiers if "compact-blend" in item)
+    return bool(compact) and all(
+        _product_artifacts(current / "products" / input_id)
+        == _product_artifacts(incumbent / "products" / input_id)
+        for input_id in compact
+    )
+
+
+def _association_paths(
+    identifiers: set[str], scratch: Path
+) -> tuple[Path, ...]:
+    """Resolve every current Continuum sidecar from its exact marker."""
+    paths: list[Path] = []
+    for input_id in sorted(identifiers):
+        if "continuum" not in input_id:
+            continue
+        directory = scratch / "products" / input_id
+        marker = json.loads((directory / "complete.json").read_text())
+        matches = [
+            item
+            for item in marker["artifacts"]
+            if item["role"] == "source-association-json"
+        ]
+        if len(matches) != 1:
+            raise ValueError("prospective smoke association is absent")
+        path = directory / matches[0]["relative_path"]
+        if not path.is_file() or file_sha256(path) != matches[0]["sha256"]:
+            raise ValueError("prospective smoke association changed")
+        paths.append(path)
+    return tuple(paths)
+
+
+def _planning_deviations(root: Path) -> dict[str, float]:
+    """Return the frozen family floors plus aligned axis defaults."""
+    contract = json.loads((root / _CONTINUUM_POWER).read_text())
+    assumptions = contract["power_audit"]["continuum_assumptions"]
+    values = {
+        item["metric_family"]: item["planning_paired_standard_deviation"]
+        for item in assumptions
+    }
+    values["absolute-mean-offset-x"] = 0.15
+    values["absolute-mean-offset-y"] = 0.15
+    return cast(dict[str, float], values)
+
+
+def _publish(path: Path, record: dict[str, object]) -> None:
+    """Atomically publish one write-once finite smoke record."""
+    payload = (
+        json.dumps(record, allow_nan=False, indent=2, sort_keys=True) + "\n"
+    ).encode()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    try:
+        descriptor = os.open(
+            temporary, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600
+        )
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def main() -> None:
+    """Verify, compile, evaluate, and atomically publish the smoke result."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repository-root", required=True, type=Path)
+    parser.add_argument("--reference-reconstruction", required=True, type=Path)
+    parser.add_argument("--source-request", required=True, type=Path)
+    parser.add_argument("--population", required=True, type=Path)
+    parser.add_argument("--current-scratch", required=True, type=Path)
+    parser.add_argument("--incumbent-scratch", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    arguments = parser.parse_args()
+    if arguments.output.exists():
+        raise FileExistsError(
+            f"refusing to overwrite smoke result: {arguments.output}"
+        )
+    root = arguments.repository_root.resolve()
+    identifiers = set(
+        select_prospective_smoke_inputs(
+            arguments.source_request, arguments.population
+        )
+    )
+    materializer = runpy.run_path(str(root / _MATERIALIZER))
+    parent = runpy.run_path(str(root / _TERMINAL_PARENT_WRAPPER))
+    verified, _ = materializer["_verified_reference"](
+        root, arguments.reference_reconstruction
+    )
+    verified = _subset_verified(verified, identifiers)
+    revision = (
+        materializer["subprocess"]
+        .check_output(("git", "rev-parse", "HEAD"), cwd=root, text=True)
+        .strip()
+    )
+    configuration = materializer["_current_configuration"](root)
+    current_source_tree = source_tree_sha256(root)
+    current_product_set = _verify_product_set(
+        identifiers,
+        arguments.current_scratch,
+        configuration=configuration,
+        source_tree=current_source_tree,
+    )
+    frozen = materializer["_current_composition"](
+        root, revision=revision, configuration=configuration
+    )
+    compiler_globals, historical_registry = _compiler(frozen)
+    current = _candidate_view(
+        frozen,
+        verified,
+        arguments.current_scratch,
+        configuration=configuration,
+        revision=revision,
+        compiler_globals=compiler_globals,
+    )
+    incumbent_configuration = parent["_CANDIDATE_CONFIGURATION_SHA256"]
+    incumbent_revision = parent["_CANDIDATE_REVISION"]
+    incumbent_source_tree = parent["_CANDIDATE_SOURCE_TREE_SHA256"]
+    incumbent_product_set = _verify_product_set(
+        identifiers,
+        arguments.incumbent_scratch,
+        configuration=incumbent_configuration,
+        source_tree=incumbent_source_tree,
+    )
+    previous_identity = frozen["_candidate_runtime_identity"]
+    frozen["_candidate_runtime_identity"] = parent[
+        "_candidate_runtime_identity"
+    ]
+    try:
+        incumbent = _candidate_view(
+            frozen,
+            verified,
+            arguments.incumbent_scratch,
+            configuration=incumbent_configuration,
+            revision=incumbent_revision,
+            compiler_globals=compiler_globals,
+        )
+    finally:
+        frozen["_candidate_runtime_identity"] = previous_identity
+    frozen["_install_prospective_compiler"](
+        compiler_globals, current, configuration
+    )
+    current_continuum, _ = compiler_globals["compile_continuum_campaign"](
+        current, historical_registry, root
+    )
+    paired = _paired_incumbent_view(current, incumbent, compiler_globals)
+    incumbent_continuum, _ = compiler_globals["compile_continuum_campaign"](
+        paired, historical_registry, root
+    )
+    association_paths = _association_paths(
+        identifiers, arguments.current_scratch
+    )
+    terminal_cycle = aggregate_terminal_cycle_eligibility(
+        association_paths, expected_image_count=64
+    )
+    registry = load_prospective_endpoint_registry(root / _REGISTRY)
+    record = evaluate_prospective_science_smoke(
+        registry=registry,
+        current_continuum=current_continuum,
+        incumbent_paired_continuum=incumbent_continuum,
+        planning_deviation_by_family=_planning_deviations(root),
+        compact_product_identity_equal=_compact_equal(
+            identifiers,
+            arguments.current_scratch,
+            arguments.incumbent_scratch,
+        ),
+        terminal_cycle_aggregate=terminal_cycle,
+    )
+    record.update(
+        {
+            "candidate_revision": revision,
+            "candidate_source_tree_sha256": current_source_tree,
+            "candidate_configuration_sha256": configuration,
+            "candidate_product_set_canonical_sha256": current_product_set,
+            "incumbent_revision": incumbent_revision,
+            "incumbent_source_tree_sha256": incumbent_source_tree,
+            "incumbent_configuration_sha256": incumbent_configuration,
+            "incumbent_product_set_canonical_sha256": incumbent_product_set,
+            "selected_input_count": len(identifiers),
+            "population_sha256": file_sha256(arguments.population),
+            "materializer_sha256": file_sha256(root / _MATERIALIZER),
+        }
+    )
+    _publish(arguments.output, record)
+    print(arguments.output)
+    print(f"status={record['status']}")
+
+
+if __name__ == "__main__":
+    main()
