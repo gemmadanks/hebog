@@ -64,10 +64,12 @@ compensate for failed science.
 - Phase 5 owns scheduler-independent multiscale science, extended-island
   completion, cross-scale ownership, bounded tiling semantics, and incremental
   performance.
-- Phase 6 owns production executor planning, deployment-store qualification,
-  hierarchical Dask graphs, spill/recovery, and facility-scale execution.
-- Phase 7 owns Rapthor integration and complete dual-PyBDSF performance.
-- Phase 8 owns release hardening and production-readiness review.
+- Phase 6 owns Rapthor integration, complete dual-PyBDSF performance, and the
+  earliest useful experimental release once every minimum gate passes.
+- Phase 7 owns production executor planning, deployment-store qualification,
+  hierarchical Dask graphs, spill/recovery, facility-scale execution, and
+  continued post-release optimization.
+- Phase 8 owns production hardening and `1.0` readiness review.
 
 ## 3. Acceptance gates
 
@@ -88,34 +90,36 @@ That conjunctive contract remains binding for every campaign and replay
 frozen through terminal-feature persistence ledger `a9b4d57e...`. Those
 decisions are immutable and must not be retrospectively rescored. Before the
 next full Phase 5 replay, however, freeze a new prospective decision contract
-that distinguishes the minimum replacement requirement from later scientific
-improvement:
+that distinguishes the minimum replacement requirement from later absolute
+scientific improvement:
 
-1. **Binding compatibility and safety.** Require paired non-inferiority to
-   both PyBDSF references on the catalogue fields, masks, and retained/rejected
-   decisions that the pinned Rapthor consumer actually uses. Retain applicable
-   compact/Aegean contracts, deterministic execution, valid products, and
-   predeclared absolute floors for catastrophic loss, false detections,
-   fragmentation, merging, and measurement tails.
-2. **Review-required Hebog regressions.** Compare against the best
-   like-semantics Hebog baseline and require an explicit scientific trade-off
-   for a material regression. A secondary historical Hebog regression is not
-   automatically a PyBDSF-compatibility failure, but it may not be hidden or
-   silently compensated by another metric.
-3. **Improvement objectives.** Continue to report the existing ambitious
-   absolute truth targets and every morphology, scale, boundary, and noise
-   stratum. Make an endpoint binding only when the Rapthor consumer audit or a
-   documented scientific safety argument requires it; otherwise retain it as
-   an improvement target and backlog item.
+1. **Binding PyBDSF parity.** Require paired non-inferiority to both PyBDSF
+   references on every applicable governed metric and stratum, not only those
+   later shown to be consumed directly by Rapthor. Retain every applicable
+   compact/Aegean contract. An underpowered or inconclusive binding comparison
+   does not demonstrate parity and must receive sufficient evidence before
+   promotion.
+2. **Binding Hebog quality retention.** Require non-inferiority to the best
+   passing like-semantics Hebog baseline on every governed metric and stratum.
+   A candidate may improve one measure without compensating for a material
+   regression in another. Point estimates may vary, but the predeclared paired
+   confidence rule and practical margin must rule out a scientifically material
+   loss; no reviewed trade-off can waive this Phase 5 quality-retention gate.
+3. **Longer-term absolute improvement objectives.** Continue to report the
+   existing ambitious absolute truth targets and every morphology, scale,
+   boundary, and noise stratum, but do not make those numeric targets a
+   compatibility blocker once both reference-parity and Hebog-retention gates
+   pass. Product validity, finite measurements, deterministic execution,
+   schema/provenance integrity, and other non-performance safety invariants
+   remain binding.
 
-The mapping must come from a read-only audit of the pinned Rapthor/LSMTool
-consumer contract and scientific risk, not from fitting thresholds or margins
-to the viewed Phase 5 values. It must name the primary endpoints and critical
-safety strata, keep practical non-inferiority margins fixed, define how
-underpowered secondary strata are reported, and be reviewed before a new
-candidate or replay identity is frozen. The same prospective contract then
-governs the cumulative replay and fresh held-out qualification. Until that
-review is accepted, the existing stricter contract remains the active gate.
+The prospective contract must retain all governed relative checks, keep their
+practical non-inferiority margins fixed, define how additional evidence closes
+underpowered comparisons, and be reviewed before a new candidate or replay
+identity is frozen. It may not select metrics, margins, strata, or baselines
+from the candidate's viewed values. The same prospective contract then governs
+the cumulative replay and fresh held-out qualification. Until that review is
+accepted, the existing stricter contract remains the active gate.
 
 The main cross-project gates are:
 
@@ -346,8 +350,8 @@ Detailed evidence is linked from `LOG.md`; these are the durable outcomes.
 
 | Phase | Durable outcome | Remaining boundary |
 | --- | --- | --- |
-| 0 | Froze Rapthor contracts, released/master PyBDSF baselines, datasets, schemas, and architecture decisions. | Facility-scale evidence remains Phase 6/8. |
-| 1 | Delivered bounded FITS/Zarr I/O, partition ownership, restartable products, and pipeline-neutral records. | Deployment-store qualification remains Phase 6. |
+| 0 | Froze Rapthor contracts, released/master PyBDSF baselines, datasets, schemas, and architecture decisions. | Facility-scale evidence remains Phase 7/8. |
+| 1 | Delivered bounded FITS/Zarr I/O, partition ownership, restartable products, and pipeline-neutral records. | Deployment-store qualification remains Phase 7. |
 | 2 | Delivered vectorised background/RMS estimation, adaptive regions, partition invariance, and executor parity. | Preserve the reviewed curve and science gates. |
 | 3 | Delivered deterministic detection, labelling, compact deblending, masks, and explicit extended-island deferral. | Deferred/extended work is Phase 5. |
 | 4 | Delivered compact measurement, SciPy fitting, uncertainty calibration, catalogue construction, and compact regression evidence. | The compact branch remains subject to every later regression gate. |
@@ -435,11 +439,11 @@ chronology and immutable identities remain in `LOG.md` and
 the original final qualification, compact regression, and the incremental
 performance budget are complete. Phase 5 is blocked by terminal-cycle
 eligibility, the absence of a fail-fast scientific feedback lane, and a
-prospective Rapthor-bound decision contract. It then requires a passing
-cumulative regression ledger and fresh held-out qualification for the eventual
-corrected candidate. Detailed campaign and incident chronology belongs in
-`LOG.md`; machine identities and authorization boundaries remain in
-`config/contracts/`.
+prospective parity-and-quality-retention decision contract. It then requires a
+passing cumulative regression ledger and fresh held-out qualification for the
+eventual corrected candidate. Detailed campaign and incident chronology
+belongs in `LOG.md`; machine identities and authorization boundaries remain
+in `config/contracts/`.
 
 #### Completed evidence
 
@@ -610,8 +614,9 @@ The latest terminal evidence cannot pass even a PyBDSF-parity-oriented
 contract unchanged. Of the applicable paired Continuum comparisons, each
 PyBDSF reference has 66 passes, 11 underpowered endpoints, and one failure:
 overall mask precision. The next review must therefore treat mask precision as
-an explicit compatibility question tied to the Rapthor consumer audit rather
-than assuming that relaxation of unrelated absolute targets is sufficient.
+an explicit all-check PyBDSF-parity blocker rather than assuming that
+relaxation of unrelated absolute targets is sufficient. Its like-semantics
+regressions are a separate Hebog quality-retention blocker.
 
 The canonical historical readiness contract remains byte-bound to the failed
 terminal-parent candidate and must not be mutated retroactively. Prospective
@@ -863,14 +868,14 @@ from partial or viewed evidence.
    - [ ] Freeze a 64--128-case viewed-development scientific smoke population
      and run the exact production producer/compiler/evaluator composition.
      Require compact invariance, expected direction relative to `85d5807...`,
-     no new Rapthor-critical regression, valid provenance, and successful
-     atomic publication. The smoke result is diagnostic and cannot be pooled
-     with full or qualification evidence.
-   - [ ] Complete the read-only Rapthor/LSMTool consumer audit and freeze the
-     prospective compatibility-and-safety decision contract described in
-     Section 3.1. Preserve every historical decision under its original gate;
-     do not choose endpoints, margins, or safety strata from the candidate's
-     viewed values.
+     no material regression on any governed like-semantics check, valid
+     provenance, and successful atomic publication. The smoke result is
+     diagnostic and cannot be pooled with full or qualification evidence.
+   - [ ] Freeze the prospective all-check PyBDSF-parity and Hebog-retention
+     decision contract described in Section 3.1. Preserve every historical
+     decision under its original gate; do not choose checks, margins, strata,
+     or baselines from the candidate's viewed values. Retain the existing
+     absolute numeric thresholds as reported longer-term improvement targets.
    - [ ] Only after the fixture, activation, contract, and smoke lanes pass,
      freeze exact replacement identities and obtain separate authority for one
      full cumulative replay. Interpret compatibility and absolute safety before
@@ -883,25 +888,28 @@ from partial or viewed evidence.
    - Blocked: the terminal-feature persistence cumulative prerequisite
      published a terminal failing ledger. No qualification population may be
      opened or frozen until the current eligibility regression is fixed, all
-     fail-fast lanes pass, the prospective decision contract is reviewed, and
-     a full cumulative replay publishes a passing ledger.
+     fail-fast lanes pass, the all-check parity-and-retention contract is
+     reviewed, and a full cumulative replay publishes a passing ledger.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval.
-   - Apply the frozen prospective compatibility and absolute-safety gates to
-     all applicable released/master PyBDSF and Aegean comparisons. Report every
-     improvement endpoint and secondary stratum, including the two Continuum
-     watchpoints, without silently promoting it to or removing it from the
-     binding set. Keep compact regression green and do not pool with or rescore
-     closed campaigns.
+   - Require every applicable released/master PyBDSF and Aegean comparison and
+     every like-semantics Hebog-retention comparison to pass the frozen paired
+     rule. Report every absolute improvement endpoint and secondary stratum,
+     including the two Continuum watchpoints, as longer-term targets. Keep
+     compact regression green and do not pool with or rescore closed campaigns.
    - Viewed SDC1/Hydra evidence remains diagnostic historical context, not
      fresh qualification truth.
 
 5. [ ] **Complete the restricted Rapthor profile decision.**
-   - Reuse the earlier read-only consumer audit to identify every field,
+   - Begin this step only after the all-check PyBDSF-parity,
+     Hebog-quality-retention, cumulative-replay, and fresh-qualification gates
+     pass.
+   - Audit the pinned Rapthor/LSMTool consumer to identify every field,
      filename, mask semantic, and filtering decision that is scientifically
-     material to Rapthor. This audit defines the prospective gate mapping but
-     is not execution evidence.
+     material. This audit narrows the integration contract only after general
+     source-finder parity is established; it cannot excuse an earlier failed
+     check.
    - Restore the controlled real inputs, freeze their canonical pre-filter
      component population, and run compact and continuum Hebog masks through
      the exact pinned LSMTool filtering operation against both PyBDSF
@@ -910,7 +918,7 @@ from partial or viewed evidence.
      safety strata. Select `compact` only when overall agreement is at least
      99.5% and every safety stratum passes; otherwise select `continuum`.
    - Record a write-once profile decision. This selects workflow behaviour only
-     and does not authorize the Phase 7 cutover.
+     and does not authorize the Phase 6 integration, cutover, or release.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected
@@ -935,7 +943,41 @@ is terminal. No additional public campaign is intrinsically required for
 closure unless the prospective scientific review or fresh qualification
 exposes a new blocker.
 
-### Phase 6: distributed execution
+### Phase 6: Rapthor integration, minimum performance, and early release
+
+Phase 6 begins only after Phase 5 has established all-check scientific parity,
+retained the best passing Hebog quality, and published the restricted Rapthor
+profile decision. Its objective is the earliest safe, useful improvement for
+Rapthor, not the final scientific or computational optimum. Do not delay an
+experimental release for a longer-term absolute target or maximum facility
+scale once all binding science, compatibility, operational, and minimum
+complete-path performance gates pass.
+
+- [ ] Add readable acceptance scenarios for empty/corrupt inputs, restart,
+      retry, backend selection, fallback, dual-run reporting, and decisions.
+- [ ] Add the Hebog backend; split true-sky, flat-noise, and final filtering
+      into restartable tasks and run concurrently only when admitted resources
+      permit.
+- [ ] Preserve feature-flagged PyBDSF fallback and dual-run comparison; remove
+      the PyBDSF subprocess escape only from the Hebog path.
+- [ ] Run matched complete `filter_skymodel` benchmarks against released and
+      pinned-master PyBDSF across the frozen matrix and relevant core counts.
+- [ ] Require all science and Rapthor compatibility gates, at least 50% lower
+      complete matched median wall time than Rapthor's released PyBDSF, better
+      complete performance than pinned PyBDSF master, runtime confidence
+      bounds, retry/resume, and memory gates to pass before default cutover.
+- [ ] Publish an explicit experimental `0.x` release when the same minimum
+      gates pass and the feature-flagged PyBDSF fallback remains available.
+      Further absolute scientific improvement and facility-scale optimization
+      continue after this milestone.
+
+### Phase 7: scale-out and continued optimization
+
+Pursue the best practical scientific and computational performance after the
+minimum useful Rapthor release. Every scalability or optimization change must
+keep the frozen all-check PyBDSF-parity, best-Hebog-retention, and Rapthor
+compatibility suites green; throughput, memory, and scale-out gains cannot
+compensate for scientific or workflow regression.
 
 - [ ] Complete a shared serial/local/Dask executor contract for ordering,
       serialization, errors, cancellation, retry, determinism, and resources.
@@ -951,22 +993,10 @@ exposes a new blocker.
       100, and at least 200 workers.
 - [ ] Complete the 100,000-square qualification without a full worker plane and
       within all resource, recovery, runtime, and scaling gates.
+- [ ] Continue improving the reported absolute scientific targets and complete
+      throughput curve without weakening parity, retention, or compatibility.
 
-### Phase 7: Rapthor integration and performance
-
-- [ ] Add readable acceptance scenarios for empty/corrupt inputs, restart,
-      retry, backend selection, fallback, dual-run reporting, and decisions.
-- [ ] Add the Hebog backend; split true-sky, flat-noise, and final filtering
-      into restartable tasks and run concurrently only when admitted resources
-      permit.
-- [ ] Preserve feature-flagged PyBDSF fallback and dual-run comparison; remove
-      the PyBDSF subprocess escape only from the Hebog path.
-- [ ] Run matched complete `filter_skymodel` benchmarks against released and
-      pinned-master PyBDSF across the frozen matrix and relevant core counts.
-- [ ] Require all science gates, runtime confidence bounds, retry/resume, and
-      memory gates to pass before default cutover.
-
-### Phase 8: hardening and release
+### Phase 8: production hardening and `1.0` readiness
 
 - [ ] Enforce portable test lanes in CI and run qualification, benchmark, and
       scalability lanes on controlled runners.
@@ -976,8 +1006,8 @@ exposes a new blocker.
       security, licensing, packaging, and reproducibility review.
 - [ ] If native code exists, qualify every supported wheel/source-build and
       fallback path.
-- [ ] Continue explicit experimental `0.x` releases; prepare `1.0.0` only after
-      operational soak and the full definition of done.
+- [ ] Continue explicit experimental `0.x` releases from Phase 6; prepare
+      `1.0.0` only after operational soak and the full definition of done.
 
 ## 8. Performance matrix and protocol
 

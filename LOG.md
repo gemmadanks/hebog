@@ -13271,3 +13271,39 @@ identities and a new exact approval.
 pre-review `e70e602f...`. Under that fixture-only authority, reproduce and fix
 the guard regression, then implement the fail-fast lanes and complete the
 Rapthor consumer audit before freezing another candidate or full replay.
+
+## 2026-08-31 — Clarify the Phase 5 parity, retention, and sequencing contract
+
+**Plan phase:** Phase 5 closure and Phase 6 entry
+
+- Corrected the prospective plan after Gemma Danks clarified the intended
+  acceptance boundary. Hebog must match or outperform both PyBDSF references
+  on every applicable governed check, not only checks later shown to be used by
+  Rapthor. Underpowered binding comparisons require more evidence; they are not
+  passes.
+- Made retention of existing Hebog improvements a binding gate. The exact
+  paired rule and practical margin must rule out a material regression against
+  the best passing like-semantics Hebog baseline on every governed check. A
+  gain elsewhere or an explicit trade-off cannot waive this Phase 5 gate.
+- Reclassified the ambitious absolute numeric thresholds as transparent
+  longer-term improvement targets once all relative parity and retention gates
+  pass. Product validity, finite measurements, determinism, and
+  schema/provenance safety remain binding invariants.
+- Preserved the faster fixture, activation, and 64--128-case smoke ladder, but
+  removed the early Rapthor audit. Rapthor consumer/profile work now starts
+  only after a full cumulative replay and fresh qualification establish general
+  scientific parity and retained Hebog quality.
+- Recorded the optimization/release balance explicitly. Phase 6 now targets
+  the earliest safe experimental Rapthor release after compatibility and the
+  existing minimum complete-path performance gates pass; it does not wait for
+  maximum facility scale or every absolute scientific stretch target. Phase 7
+  then pursues the best practical scale and further scientific/computational
+  improvement while parity, retained Hebog quality, and Rapthor compatibility
+  remain mandatory regression gates. Phase 8 retains production hardening and
+  `1.0` readiness.
+
+**Immediate next step:** obtain named approval of terminal-cycle eligibility
+pre-review `e70e602f...`, fix the dormant all-features-seeded regression under
+fixture-only authority, and build the fail-fast lanes. Freeze no full replay
+identity until the all-check parity-and-retention contract and smoke evidence
+are reviewed.
