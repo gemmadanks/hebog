@@ -38,6 +38,7 @@ _IMAGE_DIMENSIONS = 2
 _MINIMUM_SHAPE_PIXELS = 3
 _MINIMUM_SOURCE_MEMBERS = 2
 _MINIMUM_CYCLE_DEGREE = 2
+_MINIMUM_ADJACENT_PLANES = 2
 _GAUSSIAN_FWHM_FACTOR = 2.0 * np.sqrt(2.0 * np.log(2.0))
 
 
@@ -656,7 +657,20 @@ class _ConnectedSupportEvidence:
 
     groups: tuple[frozenset[str], ...]
     candidate_count: int
+    support_component_labels: npt.NDArray[np.int64]
     rejected_ambiguity_count: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class _TerminalFeaturePersistence:
+    """Bounded terminal-feature persistence and rejection census."""
+
+    persistent_feature_ids: frozenset[str]
+    exact_feature_count: int
+    displaced_candidate_count: int
+    displaced_accepted_count: int
+    missing_child_count: int
+    ambiguous_child_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -667,6 +681,12 @@ class _TerminalCycleEvidence:
     candidate_count: int
     rejected_count: int
     accepted_parent_count: int = 0
+    exact_feature_count: int = 0
+    displaced_candidate_count: int = 0
+    displaced_accepted_count: int = 0
+    missing_child_count: int = 0
+    ambiguous_child_count: int = 0
+    conflict_count: int = 0
 
 
 def _hierarchy_attachments(
@@ -787,6 +807,8 @@ def _envelopes_overlap(
     y1 = min(first_y1, second_y1)
     x0 = max(first_x0, second_x0)
     x1 = min(first_x1, second_x1)
+    if y0 >= y1 or x0 >= x1:
+        return False
     return bool(
         np.any(
             first.support[
@@ -1016,6 +1038,8 @@ def _connected_support_evidence(
             structure=np.ones((3, 3), dtype=np.int8),
         ),
     )
+    parent_labels = np.asarray(parent_labels, dtype=np.int64)
+    parent_labels.setflags(write=False)
     component_ids_by_parent: dict[int, set[str]] = {}
     for record in records:
         parents = tuple(
@@ -1053,7 +1077,119 @@ def _connected_support_evidence(
     return _ConnectedSupportEvidence(
         groups=groups,
         candidate_count=len(candidates),
+        support_component_labels=parent_labels,
         rejected_ambiguity_count=len(candidates) - len(groups),
+    )
+
+
+def _feature_support_components(
+    plane: ScaleDetectionPlane,
+    support_component_labels: npt.NDArray[np.int64],
+) -> dict[str, int]:
+    """Map features wholly contained by one retained support component."""
+    components: dict[str, int] = {}
+    for label_value, detection in enumerate(plane.detections, start=1):
+        values = np.unique(
+            support_component_labels[plane.component_labels == label_value]
+        )
+        if values.size == 1 and int(values[0]) > 0:
+            components[detection.detection_id] = int(values[0])
+    return components
+
+
+def _terminal_feature_persistence(
+    planes: tuple[ScaleDetectionPlane, ...],
+    valid: npt.NDArray[np.bool_],
+    support_component_labels: npt.NDArray[np.int64],
+    parent_edges: tuple[tuple[str, str], ...],
+    candidate_feature_ids: frozenset[str],
+) -> _TerminalFeaturePersistence:
+    """Corroborate exact or mutually unique displaced terminal children."""
+    terminal = planes[-1]
+    terminal_ids = {item.detection_id for item in terminal.detections}
+    exact_feature_ids = frozenset(
+        parent_id
+        for _, parent_id in parent_edges
+        if parent_id in candidate_feature_ids
+    )
+    missing_exact = candidate_feature_ids - exact_feature_ids
+    if (
+        not missing_exact
+        or len(planes) < _MINIMUM_ADJACENT_PLANES
+        or terminal.scale_order != planes[-2].scale_order + 1
+    ):
+        return _TerminalFeaturePersistence(
+            persistent_feature_ids=exact_feature_ids,
+            exact_feature_count=len(exact_feature_ids),
+            displaced_candidate_count=0,
+            displaced_accepted_count=0,
+            missing_child_count=len(missing_exact),
+            ambiguous_child_count=0,
+        )
+
+    preceding = planes[-2]
+    exact_child_ids = {
+        child_id
+        for child_id, parent_id in parent_edges
+        if parent_id in terminal_ids
+    }
+    preceding_components = _feature_support_components(
+        preceding,
+        support_component_labels,
+    )
+    terminal_components = _feature_support_components(
+        terminal,
+        support_component_labels,
+    )
+    preceding_envelopes = {
+        item.feature_id: item
+        for item in _feature_envelopes(preceding, valid)
+        if item.feature_id not in exact_child_ids
+    }
+    terminal_envelopes = {
+        item.feature_id: item
+        for item in _feature_envelopes(terminal, valid)
+        if item.feature_id in missing_exact
+    }
+    candidates_by_parent: dict[str, set[str]] = {
+        feature_id: set() for feature_id in missing_exact
+    }
+    parents_by_child: dict[str, set[str]] = {}
+    for parent_id in sorted(missing_exact):
+        # Candidate features are terminal detections with an attached direct
+        # owner, so both retained maps contain them by construction.
+        parent_envelope = terminal_envelopes[parent_id]
+        parent_component = terminal_components[parent_id]
+        for child_id, child_envelope in preceding_envelopes.items():
+            if preceding_components.get(
+                child_id
+            ) != parent_component or not _envelopes_overlap(
+                child_envelope, parent_envelope
+            ):
+                continue
+            candidates_by_parent[parent_id].add(child_id)
+            parents_by_child.setdefault(child_id, set()).add(parent_id)
+    accepted_parent_ids = frozenset(
+        parent_id
+        for parent_id, child_ids in candidates_by_parent.items()
+        if len(child_ids) == 1
+        and len(parents_by_child[next(iter(child_ids))]) == 1
+    )
+    missing_ids = {
+        parent_id
+        for parent_id, child_ids in candidates_by_parent.items()
+        if not child_ids
+    }
+    ambiguous_ids = missing_exact - accepted_parent_ids - missing_ids
+    return _TerminalFeaturePersistence(
+        persistent_feature_ids=exact_feature_ids | accepted_parent_ids,
+        exact_feature_count=len(exact_feature_ids),
+        displaced_candidate_count=sum(
+            len(child_ids) for child_ids in candidates_by_parent.values()
+        ),
+        displaced_accepted_count=len(accepted_parent_ids),
+        missing_child_count=len(missing_ids),
+        ambiguous_child_count=len(ambiguous_ids),
     )
 
 
@@ -1062,8 +1198,9 @@ def _terminal_cycle_evidence(
     valid: npt.NDArray[np.bool_],
     attachments: _HierarchyAttachments,
     parent_edges: tuple[tuple[str, str], ...],
+    support_component_labels: npt.NDArray[np.int64],
 ) -> _TerminalCycleEvidence:
-    """Construct terminal cycles only from adjacent-persistent features."""
+    """Construct terminal cycles only from bounded persistent features."""
     terminal = planes[-1]
     feature_groups = (
         _cycle_supported_feature_groups(
@@ -1072,15 +1209,17 @@ def _terminal_cycle_evidence(
         if len(terminal.detections) >= _MINIMUM_CYCLE_DEGREE + 1
         else ()
     )
-    terminal_feature_ids = {item.detection_id for item in terminal.detections}
-    terminal_parents_with_children = {
-        parent_id
-        for _, parent_id in parent_edges
-        if parent_id in terminal_feature_ids
-    }
     candidates: set[frozenset[str]] = set()
-    accepted: set[frozenset[str]] = set()
+    candidate_feature_groups: list[frozenset[str]] = []
     for feature_group in feature_groups:
+        if any(
+            not _components_for_feature_group(
+                frozenset((feature_id,)),
+                attachments,
+            )
+            for feature_id in feature_group
+        ):
+            continue
         component_ids = _components_for_feature_group(
             feature_group,
             attachments,
@@ -1088,13 +1227,34 @@ def _terminal_cycle_evidence(
         if len(component_ids) < _MINIMUM_CYCLE_DEGREE + 1:
             continue
         candidates.add(component_ids)
-        if feature_group.issubset(terminal_parents_with_children):
-            accepted.add(component_ids)
+        candidate_feature_groups.append(feature_group)
+    relevant_feature_ids = (
+        frozenset().union(*candidate_feature_groups)
+        if (candidate_feature_groups)
+        else frozenset()
+    )
+    persistence = _terminal_feature_persistence(
+        planes,
+        valid,
+        support_component_labels,
+        parent_edges,
+        relevant_feature_ids,
+    )
+    accepted = {
+        _components_for_feature_group(feature_group, attachments)
+        for feature_group in candidate_feature_groups
+        if feature_group.issubset(persistence.persistent_feature_ids)
+    }
     ordered = tuple(sorted(accepted, key=lambda item: tuple(sorted(item))))
     return _TerminalCycleEvidence(
         groups=ordered,
         candidate_count=len(candidates),
         rejected_count=len(candidates - accepted),
+        exact_feature_count=persistence.exact_feature_count,
+        displaced_candidate_count=persistence.displaced_candidate_count,
+        displaced_accepted_count=persistence.displaced_accepted_count,
+        missing_child_count=persistence.missing_child_count,
+        ambiguous_child_count=persistence.ambiguous_child_count,
     )
 
 
@@ -1237,6 +1397,12 @@ def _apply_terminal_cycle_groups(
             candidate_count=evidence.candidate_count,
             rejected_count=rejected_count,
             accepted_parent_count=accepted_count,
+            exact_feature_count=evidence.exact_feature_count,
+            displaced_candidate_count=evidence.displaced_candidate_count,
+            displaced_accepted_count=evidence.displaced_accepted_count,
+            missing_child_count=evidence.missing_child_count,
+            ambiguous_child_count=evidence.ambiguous_child_count,
+            conflict_count=rejected_count - evidence.rejected_count,
         ),
     )
 
@@ -1306,6 +1472,22 @@ def _hierarchy_diagnostics(  # noqa: PLR0913, PLR0917
         terminal_cycle_candidate_count=terminal_cycles.candidate_count,
         terminal_cycle_parent_count=terminal_cycles.accepted_parent_count,
         rejected_terminal_cycle_count=terminal_cycles.rejected_count,
+        terminal_persistence_exact_feature_count=(
+            terminal_cycles.exact_feature_count
+        ),
+        terminal_persistence_displaced_candidate_count=(
+            terminal_cycles.displaced_candidate_count
+        ),
+        terminal_persistence_displaced_accepted_count=(
+            terminal_cycles.displaced_accepted_count
+        ),
+        terminal_persistence_missing_child_count=(
+            terminal_cycles.missing_child_count
+        ),
+        terminal_persistence_ambiguous_child_count=(
+            terminal_cycles.ambiguous_child_count
+        ),
+        terminal_persistence_conflict_count=terminal_cycles.conflict_count,
     )
 
 
@@ -1327,9 +1509,11 @@ def associate_components_by_multiscale_hierarchy(
     separate, connected significant multiscale support may corroborate a
     non-terminal envelope group but cannot create source membership by itself.
     At the last retained scale, a cycle may construct a parent only when every
-    constituent feature has an exact child at the preceding scale. Partial
-    overlap with an exact group, missing support, branching, or conflicting
-    convergence fails closed.
+    constituent feature has an exact child at the preceding scale or one
+    mutually unique displaced child corroborated by overlapping fixed B3
+    envelopes in the same retained significant-support component. Displaced
+    evidence cannot create cycles or membership. Partial overlap with an exact
+    group, missing support, branching, or conflicting convergence fails closed.
     """
     labels, planes, valid = _hierarchy_inputs(
         records,
@@ -1380,6 +1564,7 @@ def associate_components_by_multiscale_hierarchy(
         valid,
         attachments,
         parent_edges,
+        connected_support.support_component_labels,
     )
     scale_aware_parents = _filter_scale_aware_parents_by_connected_support(
         scale_aware_parents,

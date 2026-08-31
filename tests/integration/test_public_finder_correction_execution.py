@@ -424,3 +424,84 @@ def test_connected_support_is_serial_dask_order_and_retry_invariant() -> None:
     assert diagnostics is not None
     assert diagnostics.connected_support_candidate_count == 1
     assert diagnostics.catalogue_source_count == 3
+
+
+@pytest.mark.integration
+def test_displaced_terminal_persistence_is_serial_dask_invariant() -> None:
+    """Bounded displaced children ignore labels, task order, and retries."""
+    terminal_pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
+    preceding_pixels = ((9, 9), (9, 31), (31, 9), (31, 31))
+    labels = np.zeros((41, 41), dtype=np.int32)
+    permuted = np.zeros_like(labels)
+    for value, other, pixel in zip(
+        (9, 2, 17, 4),
+        (31, 7, 22, 13),
+        terminal_pixels,
+        strict=True,
+    ):
+        labels[pixel] = value
+        permuted[pixel] = other
+    preceding = _hierarchy_cycle_plane(
+        labels.shape,
+        preceding_pixels,
+        scale_order=2,
+    )
+    terminal = _hierarchy_cycle_plane(
+        labels.shape,
+        tuple(reversed(terminal_pixels)),
+        scale_order=3,
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    for child, parent in zip(
+        preceding_pixels,
+        terminal_pixels,
+        strict=True,
+    ):
+        significant[
+            min(child[0], parent[0]) : max(child[0], parent[0]) + 1,
+            min(child[1], parent[1]) : max(child[1], parent[1]) + 1,
+        ] = True
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    permuted_records = build_detection_component_records(
+        permuted,
+        np.asarray(permuted > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    batches: tuple[HierarchyBatch, ...] = (
+        (labels, records, (preceding, terminal), significant),
+        (
+            permuted,
+            tuple(reversed(permuted_records)),
+            (terminal, preceding),
+            significant,
+        ),
+    )
+    expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
+
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(
+            _reconstruct_hierarchy,
+            (*tuple(reversed(batches)), batches[0]),
+        )
+
+    expected_view = _identity_view(expected[0])
+    assert _identity_view(expected[1]) == expected_view
+    assert [_identity_view(item) for item in actual] == [
+        expected_view,
+        expected_view,
+        expected_view,
+    ]
+    diagnostics = expected[0].hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.catalogue_source_count == 1
+    assert diagnostics.terminal_persistence_displaced_accepted_count == 4

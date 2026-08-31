@@ -207,6 +207,21 @@ pairs, chains, and terminal features without adjacent children fail closed.
 This is fixture evidence only; no replay or viewed-data execution is
 authorized.
 
+The terminal-parent cumulative replay then showed that exact constituent
+persistence was scientifically useful but incomplete: Continuum improved from
+89 to 96 passing endpoints and from 37 to 30 regressions, yet 35 endpoints
+still failed. Approved pre-review `e416f7d8...` required a red analytic
+boundary-drift fixture before another correction. That fixture reproduced the
+remaining exact-overlap gap. The bounded amendment now accepts one mutually
+unique displaced preceding-scale child only when fixed B3 envelopes overlap
+and both exact supports lie in the same retained significant-reconstruction
+component. It cannot create a cycle or membership, and it rejects disconnected
+support, ambiguity, unseeded terminal features, pairs, paths, invalid gaps, and
+partial-group conflicts. Exact/displaced/missing/ambiguous/conflict telemetry
+is retained for prospective ledger aggregation. This implementation remains
+non-executable pending exact identity freezing and a later review-bound replay
+decision.
+
 ## Governance boundary
 
 The original implementation decision is

@@ -13077,3 +13077,48 @@ approval of review SHA-256 `e416f7d8...`.
 Only that approval may open fixture-first implementation and non-executable
 identity freezing; the existing broad replay intent cannot bind identities
 that do not yet exist.
+
+## 2026-08-31 — Implement bounded terminal-feature persistence
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Gemma Danks approved terminal-feature persistence pre-review SHA-256
+  `e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38`
+  for fixture-first implementation, diagnostics, executor validation, and
+  non-executable replacement identity freezing only.
+- A new analytic terminal-cycle fixture first failed as required: four valid
+  terminal lobes with one-pixel preceding-scale drift remained four
+  singletons because exact adjacent-scale support overlap was absent. This
+  confirmed the proposed cause before production behavior changed.
+- Implemented one bounded persistence seam. A terminal feature may use one
+  displaced child only when the relationship is mutually unique, fixed B3
+  envelopes overlap, both exact supports lie in the same retained
+  significant-reconstruction component, and the child is not already used by
+  an exact edge. The evidence only corroborates an already seeded terminal
+  cycle and cannot create cycles, pairs, paths, membership, or transitive
+  merges.
+- Added array-free exact, displaced-candidate, displaced-accepted,
+  missing-child, ambiguous-child, and whole-group-conflict diagnostics. The
+  current source-association sidecar schema preserves them for bounded
+  aggregation into the next terminal ledger.
+- Positive displacement, disconnected support, ambiguous child, unseeded
+  terminal feature, nearby pair, transitive path, invalid gap, and
+  partial-group conflict controls pass. Serial and existing-Dask execution,
+  reversed labels/planes/records/tasks, and duplicate retry produce identical
+  memberships and diagnostics.
+- Validation passed: 46 focused source-reconstruction/executor tests with 90%
+  focused branch-aware coverage across the two changed production modules;
+  `just coverage` (2,179 passed, four expected failures, 94.72%); `just check`
+  (2,019 passed, four expected failures); all 27 applicable equivalence tests;
+  and the strict documentation build. Review against `CODE_REVIEW.md` found no
+  actionable implementation, architecture, scientific-boundary, privacy, or
+  coverage issue. The only uncovered lines in the changed algorithm predate
+  this correction; all newly added production lines are exercised.
+- The mandatory JSON formatter reordered the approved pre-review and changed
+  SHA-256 `e416f7d8...`. The file was restored exactly and added to the hook's
+  narrow immutable-evidence exclusion alongside governed PyBDSF products, so
+  future full-tree hooks validate it without invalidating its approval.
+
+**Immediate next step:** commit the fixture-bound implementation, then freeze
+exact non-executable candidate and replay composition identities. No replay or
+viewed-data execution is open.

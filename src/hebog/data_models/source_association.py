@@ -168,6 +168,22 @@ def _validate_support_parent_counts(
         )
 
 
+def _validate_terminal_persistence_counts(
+    *,
+    displaced_candidate_count: int,
+    displaced_accepted_count: int,
+    conflict_count: int,
+    rejected_cycle_count: int,
+) -> None:
+    """Require accepted and conflicting persistence to have evidence."""
+    if displaced_accepted_count > displaced_candidate_count:
+        raise ValueError("accepted displaced persistence exceeds candidates")
+    if conflict_count > rejected_cycle_count:
+        raise ValueError(
+            "terminal persistence conflicts exceed rejected cycles"
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class SourceHierarchyDiagnostics:
     """Compact array-free exact and scale-aware hierarchy evidence."""
@@ -191,6 +207,12 @@ class SourceHierarchyDiagnostics:
     terminal_cycle_candidate_count: int = 0
     terminal_cycle_parent_count: int = 0
     rejected_terminal_cycle_count: int = 0
+    terminal_persistence_exact_feature_count: int = 0
+    terminal_persistence_displaced_candidate_count: int = 0
+    terminal_persistence_displaced_accepted_count: int = 0
+    terminal_persistence_missing_child_count: int = 0
+    terminal_persistence_ambiguous_child_count: int = 0
+    terminal_persistence_conflict_count: int = 0
 
     def __post_init__(self) -> None:
         """Require canonical non-negative counts and exact cardinalities."""
@@ -211,6 +233,12 @@ class SourceHierarchyDiagnostics:
             self.terminal_cycle_candidate_count,
             self.terminal_cycle_parent_count,
             self.rejected_terminal_cycle_count,
+            self.terminal_persistence_exact_feature_count,
+            self.terminal_persistence_displaced_candidate_count,
+            self.terminal_persistence_displaced_accepted_count,
+            self.terminal_persistence_missing_child_count,
+            self.terminal_persistence_ambiguous_child_count,
+            self.terminal_persistence_conflict_count,
         )
         if any(value < 0 for value in scalar_counts):
             raise ValueError("source hierarchy counts must be non-negative")
@@ -262,6 +290,16 @@ class SourceHierarchyDiagnostics:
             parent_count=self.terminal_cycle_parent_count,
             rejected_count=self.rejected_terminal_cycle_count,
             label="terminal-cycle",
+        )
+        _validate_terminal_persistence_counts(
+            displaced_candidate_count=(
+                self.terminal_persistence_displaced_candidate_count
+            ),
+            displaced_accepted_count=(
+                self.terminal_persistence_displaced_accepted_count
+            ),
+            conflict_count=self.terminal_persistence_conflict_count,
+            rejected_cycle_count=self.rejected_terminal_cycle_count,
         )
 
 

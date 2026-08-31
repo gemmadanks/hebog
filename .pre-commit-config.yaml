@@ -31,8 +31,8 @@ repos:
       - id: pretty-format-json
         args: ["--autofix", "--no-ensure-ascii"]
         files: "\\.(json)$"
-        # Governed PyBDSF products must retain their reviewed byte identity.
-        exclude: ^tests/data/pybdsf/.*/diagnostics\.json$
+        # Governed products and approved reviews retain reviewed byte identity.
+        exclude: ^(tests/data/pybdsf/.*/diagnostics\.json|config/contracts/phase-5-public-finder-terminal-feature-persistence-pre-review\.json)$
 
   # --- Conventional commits ---
   - repo: https://github.com/compilerla/conventional-pre-commit

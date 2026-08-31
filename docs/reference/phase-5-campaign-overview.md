@@ -400,19 +400,21 @@ exact pixel-overlap child at the preceding scale. The ledger proves incomplete
 activation, while code inspection identifies this exact-overlap condition as
 a plausible narrow blocker. The terminal ledger does not retain per-rejection
 sidecars, so that attribution is not yet proven for every failed realization.
-The next pre-review therefore requires a red analytic boundary-drift fixture
-before implementation. Its proposed repair may use only mutually unique,
-fixed-B3-footprint, same-significant-component evidence to corroborate a
-displaced adjacent-scale child. It may not create a cycle or source membership,
-accept pairs or paths, change thresholds or photometry, or rescore this result.
+Named approval of pre-review `e416f7d8...` opened a red analytic
+boundary-drift fixture before implementation. That fixture confirmed the
+exact-overlap failure. The implemented prospective repair uses only mutually
+unique, fixed-B3-footprint, same-significant-component evidence to corroborate
+a displaced adjacent-scale child. It may not create a cycle or source
+membership, accept pairs or paths, change thresholds or photometry, or rescore
+this result.
 
 The exact non-executable review is
 `config/contracts/phase-5-public-finder-terminal-feature-persistence-pre-review.json`,
 SHA-256
 `e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38`.
-Implementation and any replacement identity freeze require named approval of
-that review. A later replay must be bound to the resulting exact identities;
-the present failure remains immutable.
+Implementation and fixture validation are complete under the named approval.
+Replacement candidate and replay identities must still be frozen exactly
+before any later replay decision; the present failure remains immutable.
 
 ## Required format for future snapshots
 

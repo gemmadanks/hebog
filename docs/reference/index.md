@@ -32,6 +32,7 @@ Related project references:
 - [Phase 5 source-association replay-composition pre-review](phase-5-public-finder-source-association-replay-composition-pre-review.md)
 - [Phase 5 public-finder source-reconstruction pre-review](phase-5-public-finder-source-reconstruction-pre-review.md)
 - [Phase 5 persistent-support parent correction](phase-5-public-finder-persistent-support-parent-correction.md)
+- [Phase 5 terminal-feature persistence correction](phase-5-public-finder-terminal-feature-persistence-correction.md)
 - [Phase 5 scientific campaign overview](phase-5-campaign-overview.md)
 - [Phase 5 final-qualification evaluation-repair pre-review](phase-5-final-qualification-repair-pre-review.md)
 - [Phase 5 release readiness](phase-5-release-readiness.md)

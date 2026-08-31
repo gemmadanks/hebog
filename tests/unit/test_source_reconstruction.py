@@ -80,6 +80,62 @@ def _components(
     return owner_labels, records
 
 
+def _displaced_terminal_cycle_fixture(
+    *,
+    ambiguous_first_child: bool = False,
+    disconnected_first_child: bool = False,
+) -> tuple[
+    np.ndarray,
+    tuple[DetectionComponentRecord, ...],
+    tuple[ScaleDetectionPlane, ScaleDetectionPlane],
+    np.ndarray,
+]:
+    """Return one terminal cycle with bounded preceding-scale drift."""
+    terminal_pixels = ((10, 10), (10, 34), (34, 10), (34, 34))
+    preceding_pixels = ((9, 9), (9, 35), (35, 9), (35, 35))
+    labels, records = _components(terminal_pixels, shape=(49, 49))
+    preceding_entries: list[tuple[str, Sequence[tuple[int, int]]]] = [
+        (f"scale-displaced-child-{index}", (pixel,))
+        for index, pixel in enumerate(preceding_pixels, start=1)
+    ]
+    if ambiguous_first_child:
+        preceding_entries.append(
+            ("scale-displaced-child-ambiguous", ((9, 11),))
+        )
+    preceding = _plane(
+        2,
+        preceding_entries,
+        shape=labels.shape,
+    )
+    terminal = _plane(
+        3,
+        tuple(
+            (f"scale-displaced-parent-{index}", (pixel,))
+            for index, pixel in enumerate(terminal_pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    for index, (preceding_pixel, terminal_pixel) in enumerate(
+        zip(preceding_pixels, terminal_pixels, strict=True)
+    ):
+        if disconnected_first_child and index == 0:
+            continue
+        y0 = min(preceding_pixel[0], terminal_pixel[0])
+        y1 = max(preceding_pixel[0], terminal_pixel[0]) + 1
+        x0 = min(preceding_pixel[1], terminal_pixel[1])
+        x1 = max(preceding_pixel[1], terminal_pixel[1]) + 1
+        significant[y0:y1, x0:x1] = True
+    if not disconnected_first_child:
+        # Keep every lobe in one retained support component. This exercises
+        # the bounded-envelope rejection for distant, non-overlapping pairs
+        # instead of rejecting them earlier by component identity alone.
+        significant[9:36, 9:36] = True
+    if ambiguous_first_child:
+        significant[9:11, 9:12] = True
+    return labels, records, (preceding, terminal), significant
+
+
 @pytest.mark.parametrize("offset", ((0, 0), (0, 5), (5, 5)))
 def test_multipeak_shell_uses_one_explicit_common_parent(
     offset: tuple[int, int],
@@ -729,6 +785,257 @@ def test_terminal_cycle_with_persistent_features_constructs_parent() -> None:
     assert diagnostics.rejected_terminal_cycle_count == 0
 
 
+def test_terminal_cycle_accepts_unique_displaced_persistent_children() -> None:
+    """A bounded one-pixel scale drift preserves a terminal-cycle parent."""
+    labels, records, planes, significant = _displaced_terminal_cycle_fixture()
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [4]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 1
+    assert diagnostics.rejected_terminal_cycle_count == 0
+    assert diagnostics.terminal_persistence_exact_feature_count == 0
+    assert diagnostics.terminal_persistence_displaced_candidate_count == 4
+    assert diagnostics.terminal_persistence_displaced_accepted_count == 4
+    assert diagnostics.terminal_persistence_missing_child_count == 0
+    assert diagnostics.terminal_persistence_ambiguous_child_count == 0
+    assert diagnostics.terminal_persistence_conflict_count == 0
+
+
+def test_displaced_child_requires_same_connected_support() -> None:
+    """Envelope overlap alone cannot corroborate a disconnected child."""
+    labels, records, planes, significant = _displaced_terminal_cycle_fixture(
+        disconnected_first_child=True
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 4
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 0
+    assert diagnostics.rejected_terminal_cycle_count == 1
+    assert diagnostics.terminal_persistence_displaced_candidate_count == 3
+    assert diagnostics.terminal_persistence_displaced_accepted_count == 3
+    assert diagnostics.terminal_persistence_missing_child_count == 1
+    assert diagnostics.terminal_persistence_ambiguous_child_count == 0
+
+
+def test_displaced_child_requires_mutual_uniqueness() -> None:
+    """Two corroborated children for one lobe reject the whole parent."""
+    labels, records, planes, significant = _displaced_terminal_cycle_fixture(
+        ambiguous_first_child=True
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 4
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 0
+    assert diagnostics.rejected_terminal_cycle_count == 1
+    assert diagnostics.terminal_persistence_displaced_candidate_count == 5
+    assert diagnostics.terminal_persistence_displaced_accepted_count == 3
+    assert diagnostics.terminal_persistence_missing_child_count == 0
+    assert diagnostics.terminal_persistence_ambiguous_child_count == 1
+
+
+def test_displaced_evidence_cannot_create_a_terminal_pair() -> None:
+    """Mutual displaced children do not turn a nearby pair into a source."""
+    terminal_pixels = ((10, 10), (10, 30))
+    preceding_pixels = ((9, 9), (9, 31))
+    labels, records = _components(terminal_pixels, shape=(41, 41))
+    planes = (
+        _plane(
+            2,
+            tuple(
+                (f"scale-pair-child-{index}", (pixel,))
+                for index, pixel in enumerate(preceding_pixels, start=1)
+            ),
+            shape=labels.shape,
+        ),
+        _plane(
+            3,
+            tuple(
+                (f"scale-pair-parent-{index}", (pixel,))
+                for index, pixel in enumerate(terminal_pixels, start=1)
+            ),
+            shape=labels.shape,
+        ),
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[9:11, 9:11] = True
+    significant[9:11, 30:32] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 0
+    assert diagnostics.terminal_persistence_displaced_candidate_count == 0
+    assert diagnostics.terminal_persistence_displaced_accepted_count == 0
+
+
+def test_unseeded_terminal_feature_rejects_displaced_cycle() -> None:
+    """A cycle feature without a direct owner cannot help make a parent."""
+    terminal_pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
+    preceding_pixels = ((9, 9), (9, 31), (31, 9), (31, 31))
+    labels, records = _components(terminal_pixels[:3], shape=(41, 41))
+    planes = (
+        _plane(
+            2,
+            tuple(
+                (f"scale-unseeded-child-{index}", (pixel,))
+                for index, pixel in enumerate(preceding_pixels, start=1)
+            ),
+            shape=labels.shape,
+        ),
+        _plane(
+            3,
+            tuple(
+                (f"scale-unseeded-parent-{index}", (pixel,))
+                for index, pixel in enumerate(terminal_pixels, start=1)
+            ),
+            shape=labels.shape,
+        ),
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    for preceding_pixel, terminal_pixel in zip(
+        preceding_pixels,
+        terminal_pixels,
+        strict=True,
+    ):
+        significant[
+            min(preceding_pixel[0], terminal_pixel[0]) : max(
+                preceding_pixel[0], terminal_pixel[0]
+            )
+            + 1,
+            min(preceding_pixel[1], terminal_pixel[1]) : max(
+                preceding_pixel[1], terminal_pixel[1]
+            )
+            + 1,
+        ] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 3
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 0
+    assert diagnostics.terminal_cycle_parent_count == 0
+
+
+def test_displaced_terminal_parent_cannot_override_partial_group() -> None:
+    """A valid displaced cycle cannot absorb members from another parent."""
+    terminal_pixels = ((20, 20), (20, 40), (40, 20), (40, 40))
+    earlier_cycle_pixels = ((20, 20), (20, 16), (16, 20))
+    direct_pixels = (*terminal_pixels, *earlier_cycle_pixels[1:])
+    labels, records = _components(direct_pixels, shape=(61, 61))
+    fine = _plane(
+        1,
+        tuple(
+            (f"scale-conflicting-fine-{index}", (pixel,))
+            for index, pixel in enumerate(earlier_cycle_pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+    preceding_pixels = (
+        earlier_cycle_pixels[0],
+        earlier_cycle_pixels[1],
+        earlier_cycle_pixels[2],
+        (19, 41),
+        (41, 19),
+        (41, 41),
+    )
+    preceding = _plane(
+        2,
+        tuple(
+            (f"scale-conflicting-child-{index}", (pixel,))
+            for index, pixel in enumerate(preceding_pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+    terminal = _plane(
+        3,
+        tuple(
+            (f"scale-conflicting-terminal-{index}", (pixel,))
+            for index, pixel in enumerate(terminal_pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[16:21, 16:21] = True
+    for child, parent in zip(
+        preceding_pixels[3:],
+        terminal_pixels[1:],
+        strict=True,
+    ):
+        significant[
+            min(child[0], parent[0]) : max(child[0], parent[0]) + 1,
+            min(child[1], parent[1]) : max(child[1], parent[1]) + 1,
+        ] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (fine, preceding, terminal),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert sorted(len(item.component_ids) for item in result.memberships) == [
+        1,
+        1,
+        1,
+        3,
+    ]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 0
+    assert diagnostics.rejected_terminal_cycle_count == 1
+    assert diagnostics.terminal_persistence_exact_feature_count == 1
+    assert diagnostics.terminal_persistence_displaced_candidate_count == 3
+    assert diagnostics.terminal_persistence_displaced_accepted_count == 3
+    assert diagnostics.terminal_persistence_conflict_count == 1
+
+
 def test_transitive_envelope_chain_fails_closed() -> None:
     """Pairwise transitive proximity cannot manufacture a common parent."""
     pixels = tuple((10, x) for x in (4, 14, 24, 34))
@@ -753,6 +1060,8 @@ def test_transitive_envelope_chain_fails_closed() -> None:
     diagnostics = result.hierarchy_diagnostics
     assert diagnostics is not None
     assert diagnostics.scale_aware_parent_candidate_count == 0
+    assert diagnostics.terminal_persistence_displaced_candidate_count == 0
+    assert diagnostics.terminal_persistence_displaced_accepted_count == 0
 
 
 def test_invalid_gap_blocks_scale_aware_parent_construction() -> None:
@@ -943,6 +1252,16 @@ def test_hierarchy_diagnostics_reject_inconsistent_counts() -> None:
         replace(
             diagnostics,
             terminal_cycle_parent_count=1,
+        )
+    with pytest.raises(ValueError, match="displaced persistence"):
+        replace(
+            diagnostics,
+            terminal_persistence_displaced_accepted_count=1,
+        )
+    with pytest.raises(ValueError, match="conflicts exceed"):
+        replace(
+            diagnostics,
+            terminal_persistence_conflict_count=1,
         )
     with pytest.raises(ValueError, match="match association"):
         replace(

@@ -491,9 +491,13 @@ feature may use a mutually unique
 preceding-scale displaced child only when fixed B3 envelopes overlap and both
 exact supports belong to the same retained significant-support component.
 This evidence may corroborate persistence only; it cannot create cycles,
-pairs, paths, or source membership. Implementation, identity freezing, replay,
+pairs, paths, or source membership. Gemma Danks approved exact review
+`e416f7d8...`. The red one-pixel boundary-drift fixture confirmed the
+exact-overlap cause, and the bounded implementation now passes disconnected
+support, ambiguous child, unseeded feature, pair, path, invalid-gap,
+partial-group, label/order/retry, Serial, and existing-Dask controls. Replay,
 viewed-data execution, qualification, tuning, rescoring, cutover, and release
-remain unauthorized pending named approval of the exact review.
+remain unauthorized while exact replacement identities are frozen.
 
 The readiness contract remains bound to failed source-reconstruction candidate
 `42c75f4...`, source tree `1b67c7f6...`, configuration `470e918d...`, and the
@@ -707,14 +711,15 @@ from partial or viewed evidence.
      nine improved states, separates confirmed incomplete activation from the
      unproven exact-overlap attribution, and retains every tuning and execution
      prohibition.
-   - [ ] Obtain named approval of terminal-feature persistence pre-review
-     SHA-256 `e416f7d8...`. Only then add the red displaced-child fixture,
-     implement the smallest mutually unique B3/support-component persistence
-     repair if that fixture confirms the cause, retain bounded rejection
-     diagnostics, pass all overmerge and executor controls, and freeze
-     non-executable replacement identities. The user's broad replay intent
-     cannot bind identities that do not yet exist; execution still requires an
-     exact review-bound decision.
+   - [x] Obtain named approval of terminal-feature persistence pre-review
+     SHA-256 `e416f7d8...`; reproduce the exact-overlap gap in a red fixture;
+     implement only the mutually unique B3/support-component persistence seam;
+     retain bounded rejection diagnostics; and pass the positive, overmerge,
+     conflict, ordering, retry, Serial, and existing-Dask controls.
+   - [ ] Freeze exact non-executable replacement candidate, configuration,
+     wrapper, evaluator, readiness, reference, and baseline identities. The
+     user's broad replay intent cannot bind identities that do not yet exist;
+     execution still requires an exact review-bound decision.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
