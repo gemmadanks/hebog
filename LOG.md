@@ -13157,3 +13157,24 @@ viewed-data execution is open.
 SHA-256 `45aef047b0a8779e785995971eb60ad34384fa25aa443745ad36f2bdb6b652b9`
 before creating one exact replay execution decision. No existing broad replay
 authority opens this identity.
+
+## 2026-08-31 — Authorize terminal-feature persistence replay
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Gemma Danks approved the next cumulative replay, evaluation, and process-bug
+  retries required to complete them. One-use execution decision binds exact
+  non-executable review `45aef047...`, canonical execution identity
+  `75534703...`, candidate `3d080f7...`, source tree `a25d22d8...`,
+  configuration `2d6ab6bb...`, wrapper `0c66f221...`, reconstructed reference
+  `48209eae...`, closed baseline `a45303df...`, two workers, and the exact
+  write-once scratch/output namespaces.
+- Retry authority is process-only: candidate science, configuration, gates,
+  thresholds, references, baseline, and output identity may not change. A
+  completed scientific failure remains terminal and cannot be tuned,
+  rescored, or rerun as a process repair. Viewed public execution, fresh
+  qualification, cutover, and release remain false.
+
+**Immediate next step:** commit the exact decision, create a clean immutable
+execution checkout, and repeat the complete no-write preflight there before
+starting the two-worker replay.

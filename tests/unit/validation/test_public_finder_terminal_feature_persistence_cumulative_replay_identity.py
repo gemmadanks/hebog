@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from hebog.validation.campaign_runtime import canonical_sha256
+from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
 _WRAPPER = (
@@ -137,14 +138,35 @@ def test_review_binds_future_canonical_execution_identity() -> None:
     }
 
 
-def test_review_is_non_executable_and_decision_is_absent() -> None:
-    """The identity review cannot itself open viewed execution."""
+def test_review_stays_non_executable_while_exact_decision_opens_replay() -> (
+    None
+):
+    """Only the separately approved decision opens the exact replay."""
+    wrapper = runpy.run_path(str(_WRAPPER))
     review = _load(_REVIEW)
+    decision = _load(_EXECUTION_DECISION)
     authorization = cast(dict[str, bool], review["authorization"])
+    expected = canonical_sha256(
+        wrapper["_expected_execution_fields"](_arguments())
+    )
 
     assert authorization
     assert not any(authorization.values())
     assert review["status"] == (
         "reviewed-before-terminal-feature-persistence-cumulative-replay"
     )
-    assert not _EXECUTION_DECISION.exists()
+    assert decision["expected_execution_sha256"] == expected
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    assert decision["evaluation_authorized"] is True
+    assert decision["process_bug_retries_authorized"] is True
+    assert decision["identity_review"] == {
+        "path": str(_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_REVIEW),
+    }
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        wrapper["_PROHIBITED_AUTHORIZATIONS"], False
+    )
+    assert not any(
+        cast(dict[str, bool], decision["prohibited_authorizations"]).values()
+    )

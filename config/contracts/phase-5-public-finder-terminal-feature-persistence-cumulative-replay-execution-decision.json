@@ -1,0 +1,45 @@
+{
+  "approved_on": "2026-08-31",
+  "candidate_configuration_sha256": "2d6ab6bbdd06f109f9703fb0b49f489933ddc00b391f681253693b38d0f4b1de",
+  "candidate_revision": "3d080f78da09ada6753a4e5df898e1d5daa59597",
+  "candidate_source_tree_sha256": "a25d22d80f4e639e4543ee058acade6feda15105f6325dc909e69fcfb8f03924",
+  "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+  "cumulative_replay_authorized": true,
+  "decision_id": "phase-5-public-finder-terminal-feature-persistence-cumulative-replay-execution-decision",
+  "evaluation_authorized": true,
+  "exact_approval": "I approve running the next replay (and any retries that are required to fix bugs) and evaluating the results.",
+  "execution_authorized": true,
+  "expected_execution_sha256": "75534703dc685c7860fbd24d70ac0c481059f0bb01e0b5fec208b1c9269bb80f",
+  "identity_review": {
+    "path": "config/contracts/phase-5-public-finder-terminal-feature-persistence-cumulative-replay-review.json",
+    "sha256": "45aef047b0a8779e785995971eb60ad34384fa25aa443745ad36f2bdb6b652b9"
+  },
+  "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-feature-persistence.json",
+  "process_bug_retries_authorized": true,
+  "prohibited_authorizations": {
+    "campaign_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+  "retry_boundary": {
+    "candidate_science_change_authorized": false,
+    "configuration_change_authorized": false,
+    "gate_or_threshold_change_authorized": false,
+    "output_identity_change_authorized": false,
+    "process_only_repairs_with_exact_preserved_products": true,
+    "reference_or_baseline_change_authorized": false,
+    "scientific_failure_is_terminal": true
+  },
+  "schema_version": 1,
+  "scratch_path": "/private/tmp/hebog-phase5-public-finder-terminal-feature-persistence-3d080f7",
+  "status": "authorized-for-one-terminal-feature-cumulative-replay",
+  "workers": 2,
+  "wrapper_sha256": "0c66f221aa01e962368de3b0cd39a23d443c3f7d0e5a413c59aa4f21bada2ecd"
+}
