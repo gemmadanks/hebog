@@ -380,6 +380,16 @@ files alone. Pre-review
 therefore limits the repair to explicit association provenance, immutable
 product verification, and separately approved sidecar reconstruction and
 evaluation completion.
+
+Subsequent parent work is now terminal evidence. Candidate `85d5807...`
+materially improved the source-parent path but failed with 35 Continuum
+endpoints and 30 regressions. Terminal-feature candidate `3d080f7...` then
+published ledger `a9b4d57e...`: compact passes, but Continuum regresses to 39
+failures and 33 regressions. Its bounded census records zero displaced-child
+candidates, so the intended mechanism was dormant. The current blocker is the
+pre-persistence all-features-seeded eligibility guard, governed by a new
+non-executable red-fixture pre-review rather than another replay.
+
 Section 7 contains the single authoritative Phase 5 closure sequence; detailed
 chronology and immutable identities remain in `LOG.md` and
 `config/contracts/`.
@@ -390,11 +400,11 @@ chronology and immutable identities remain in `LOG.md` and
 
 **Status: open.** Multiscale science, combined products, bounded execution,
 the original final qualification, compact regression, and the incremental
-performance budget are complete. Phase 5 is blocked by a source-parent
-construction defect, then by the absence of a passing cumulative regression
-ledger and fresh held-out qualification for the eventual corrected candidate.
-Detailed campaign and incident chronology belongs in `LOG.md`; machine
-identities and authorization boundaries remain in `config/contracts/`.
+performance budget are complete. Phase 5 is blocked by terminal-cycle
+eligibility, then by the absence of a passing cumulative regression ledger and
+fresh held-out qualification for the eventual corrected candidate. Detailed
+campaign and incident chronology belongs in `LOG.md`; machine identities and
+authorization boundaries remain in `config/contracts/`.
 
 #### Completed evidence
 
@@ -502,8 +512,31 @@ configuration `2d6ab6bb...`, wrapper `0c66f221...`, evaluator `1cb62c00...`,
 readiness overlay `da135898...`, retained reference `48209eae...`, and closed
 baseline `a45303df...` are now frozen by non-executable review `45aef047...`.
 The complete no-write verification passed 2,400 inputs and 9,600 reference
-runs without creating scratch or output. Its future canonical execution
-identity is `75534703...`; no execution decision exists.
+runs without creating scratch or output. Exact decision `ad72924a...` then
+authorized one replay and evaluation in immutable checkout `ed84c216...`.
+All 2,400 products completed and terminal ledger `a9b4d57e...` was published
+without process repair or duplicate execution.
+
+The terminal-feature persistence candidate fails. Compact remains green, but
+Continuum records 93 passes, 39 failures, 11 underpowered endpoints, and 33
+like-semantics regressions. No endpoint state improved relative to the
+terminal-parent predecessor; three passes became failures and one
+underpowered endpoint became a failure. Overall reliability fell from 85.21%
+to 77.80%, split and duplicate fractions rose from 12.83% to 15.21%, flux p95
+rose from 26.94% to 74.62%, and position p95 rose from 0.98 to 3.59 beams.
+
+The new census records 1,211 terminal-cycle candidates and parents, 4,414
+exactly persistent features, and zero displaced candidates or acceptances.
+The intended correction was therefore dormant. Code inspection identifies a
+new pre-persistence eligibility guard that rejects an entire cycle when any
+geometric feature lacks a direct-component attachment. The predecessor kept
+such a persistent feature as geometry while restricting membership to seeded
+direct components. Because the census begins after this guard and transient
+products are absent, per-realization attribution still requires a red fixture.
+Non-executable review
+`phase-5-public-finder-terminal-cycle-eligibility-pre-review`, SHA-256
+`e70e602f...`, freezes that fixture-only boundary; it authorizes nothing by
+itself.
 
 The canonical historical readiness contract remains byte-bound to the failed
 terminal-parent candidate and must not be mutated retroactively. Prospective
@@ -730,16 +763,32 @@ from partial or viewed evidence.
      `2d6ab6bb...`, wrapper `0c66f221...`, and evaluator `1cb62c00...` passed
      the complete 2,400-input/9,600-reference no-write verification. Review
      `45aef047...` binds canonical future execution identity `75534703...`;
-     no replay or viewed-data execution is authorized.
+     no viewed-data execution is authorized.
+   - [x] Execute and evaluate the separately approved terminal-feature
+     persistence replay. Decision `ad72924a...` produced all 2,400 products
+     and terminal ledger `a9b4d57e...` without process repair. Compact passes,
+     but Continuum regresses to 93 pass, 39 fail, 11 underpowered, and 33
+     like-semantics regressions. Displaced persistence records zero candidates
+     and zero acceptances, so the candidate is terminally failed and may not
+     be rerun, tuned, or rescored.
+   - [x] Freeze a non-executable terminal-cycle eligibility pre-review that
+     binds all 39 failures, the four worsened endpoint states, zero displaced
+     activation, the over-restrictive all-features-seeded guard, and a red
+     fixture requirement. Exact review `e70e602f...` authorizes no
+     implementation or execution.
+   - [ ] Obtain named approval of the exact terminal-cycle eligibility
+     pre-review; reproduce the regression in a red analytic fixture; implement
+     only if confirmed; pass overmerge and executor-invariance controls; and
+     freeze replacement identities without executing them.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
-   - Blocked: the parent-construction cumulative prerequisite published a
-     terminal failing ledger, so no qualification population may be opened or
-     frozen until a newly reviewed correction publishes a passing cumulative
-     ledger.
+   - Blocked: the terminal-feature persistence cumulative prerequisite
+     published a terminal failing ledger, so no qualification population may
+     be opened or frozen until a newly reviewed correction publishes a passing
+     cumulative ledger.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval.

@@ -1,0 +1,247 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-terminal-cycle-eligibility-repair",
+    "fixture-only-seeded-and-unseeded-cycle-validation",
+    "bounded-non-binding-cycle-eligibility-diagnostics",
+    "serial-and-existing-dask-invariance-validation",
+    "non-executable-candidate-and-replay-identity-freeze"
+  ],
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_identity_freeze_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "replay_identity_freeze_authorized": false,
+    "rescoring_authorized": false,
+    "terminal_cycle_eligibility_implementation_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "base_revision": "ed84c216b5c098529c58078d06da4896ee3b618d",
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "failed_candidate": {
+      "configuration_sha256": "2d6ab6bbdd06f109f9703fb0b49f489933ddc00b391f681253693b38d0f4b1de",
+      "revision": "3d080f78da09ada6753a4e5df898e1d5daa59597",
+      "source_tree_sha256": "a25d22d80f4e639e4543ee058acade6feda15105f6325dc909e69fcfb8f03924"
+    },
+    "programs": {
+      "candidate_composition_sha256": "c0cb13b9de789f53a9ecadf50803ab60266cd142cae394a26860714d92a4945d",
+      "hierarchy_sha256": "0a7648f71416f81bf76a5236a39362c56ea065f7ddd875170542f6856322f58e",
+      "terminal_persistence_evaluator_sha256": "1cb62c0028288bd3149b325eb4c56c25f4535dcd5e5b38ac509e232ea8c21b02"
+    },
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "terminal_feature_authority": {
+      "execution_decision_sha256": "ad72924a428bb878fa0ff2ecbd38b4af0d97c9172f22514be1a8c6a915bceae3",
+      "identity_review_sha256": "45aef047b0a8779e785995971eb60ad34384fa25aa443745ad36f2bdb6b652b9",
+      "implementation_decision_sha256": "5ad7d29980420ba0b5bb65739344f77de504ac8b43c122111d605563f70d48dc",
+      "pre_review_sha256": "e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38",
+      "readiness_sha256": "da135898ed3cbada89ca32c4d2f5c1cd8f11f82a896f7d2197da6e444b3208fd",
+      "wrapper_sha256": "0c66f221aa01e962368de3b0cd39a23d443c3f7d0e5a413c59aa4f21bada2ecd"
+    },
+    "terminal_feature_ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-feature-persistence.json",
+      "sha256": "a9b4d57ec7384eb1d625b9a030126f4ca5d45f0a83150b309d14b3536eeae8a6"
+    },
+    "terminal_parent_ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json",
+      "sha256": "e2ee663f4eade383518eabbafda5cd33bfe9808b4a9b37492a77337738b611db"
+    },
+    "terminal_product_set_sha256": "cd66892ff1ca363cafd5bfe213626253645d2a976efb32f8ec935bb2e6e10748"
+  },
+  "causal_findings": {
+    "confirmed_algorithm_boundary": {
+      "classification": "code-path-inspection",
+      "description": "The candidate added an eligibility guard before persistence evaluation that rejects an entire terminal-cycle feature group whenever any geometric feature has no direct-component attachment. The predecessor allowed an unseeded but persistent feature to corroborate cycle geometry while deriving catalogue membership only from seeded direct components. The new guard can therefore remove an existing parent even when displaced persistence is never considered.",
+      "implementation_path": [
+        "_terminal_cycle_evidence constructs one same-scale cycle-supported feature group",
+        "the new singleton _components_for_feature_group eligibility guard discards the whole group when any feature is unseeded",
+        "discarded features never enter _terminal_feature_persistence and therefore do not appear in its missing or displaced census",
+        "catalogue-source membership remains limited to immutable direct components even without this whole-group guard"
+      ]
+    },
+    "confirmed_non_activation": {
+      "classification": "terminal-powered-cumulative-evidence",
+      "description": "The intended displaced-child seam did not activate on the governed population. Every admitted terminal-cycle feature used exact persistence; no displaced candidate or acceptance was recorded.",
+      "diagnostics": {
+        "ambiguous_child_count": 0,
+        "displaced_accepted_count": 0,
+        "displaced_candidate_count": 0,
+        "exact_feature_count": 4414,
+        "image_count": 1600,
+        "missing_child_count": 0,
+        "rejected_terminal_cycle_count": 0,
+        "terminal_cycle_candidate_count": 1211,
+        "terminal_cycle_parent_count": 1211,
+        "whole_group_conflict_count": 0
+      }
+    },
+    "confirmed_regression": {
+      "all_required_endpoints_pass": false,
+      "classification": "terminal-powered-cumulative-evidence",
+      "compact": {
+        "like_semantics_regression_count": 0,
+        "status": "pass"
+      },
+      "continuum_status_counts": {
+        "fail": 39,
+        "indeterminate": 0,
+        "pass": 93,
+        "underpowered": 11
+      },
+      "cumulative_science_regression_ready": false,
+      "description": "Compact remains green, but Continuum regressed relative to the terminal-parent predecessor: zero endpoint states improved, three passes became failures, one underpowered endpoint became a failure, and like-semantics regressions increased from 30 to 33.",
+      "failed_endpoint_ids": [
+        "continuum--reliability--overall",
+        "continuum--integrated-flux-median--above-compact-deblend-limit",
+        "continuum--integrated-flux-median--morphology-shell",
+        "continuum--integrated-flux-median--tile-corner",
+        "continuum--integrated-flux-p95--overall",
+        "continuum--integrated-flux-p95--above-compact-deblend-limit",
+        "continuum--integrated-flux-p95--morphology-shell",
+        "continuum--integrated-flux-p95--scale-4-beam",
+        "continuum--integrated-flux-p95--tile-boundary",
+        "continuum--integrated-flux-p95--tile-corner",
+        "continuum--integrated-flux-p95--varying-noise",
+        "continuum--absolute-mean-offset-y--above-compact-deblend-limit",
+        "continuum--absolute-mean-offset-y--morphology-shell",
+        "continuum--absolute-mean-offset-y--tile-corner",
+        "continuum--position-p95--overall",
+        "continuum--position-p95--above-compact-deblend-limit",
+        "continuum--position-p95--morphology-shell",
+        "continuum--position-p95--scale-4-beam",
+        "continuum--position-p95--tile-boundary",
+        "continuum--position-p95--tile-corner",
+        "continuum--position-p95--varying-noise",
+        "continuum--duplicate-fraction--overall",
+        "continuum--duplicate-fraction--above-compact-deblend-limit",
+        "continuum--duplicate-fraction--morphology-artifact",
+        "continuum--duplicate-fraction--morphology-shell",
+        "continuum--duplicate-fraction--scale-1-beam",
+        "continuum--duplicate-fraction--scale-4-beam",
+        "continuum--duplicate-fraction--tile-boundary",
+        "continuum--duplicate-fraction--tile-corner",
+        "continuum--duplicate-fraction--varying-noise",
+        "continuum--mask-precision--overall",
+        "continuum--split-fraction--overall",
+        "continuum--split-fraction--above-compact-deblend-limit",
+        "continuum--split-fraction--morphology-artifact",
+        "continuum--split-fraction--morphology-shell",
+        "continuum--split-fraction--scale-1-beam",
+        "continuum--split-fraction--scale-4-beam",
+        "continuum--split-fraction--tile-boundary",
+        "continuum--split-fraction--tile-corner"
+      ],
+      "like_semantics_regression_count": 33,
+      "overall_changes": {
+        "duplicate_fraction": {
+          "after": 0.1521428571428571,
+          "before": 0.12830357142857138
+        },
+        "integrated_flux_p95": {
+          "after": 0.7462138016877398,
+          "before": 0.26940993021256765
+        },
+        "position_p95_beams": {
+          "after": 3.593355081632379,
+          "before": 0.9762440933796167
+        },
+        "reliability": {
+          "after": 0.7780452845765347,
+          "before": 0.8521211514180266
+        },
+        "split_fraction": {
+          "after": 0.1521428571428571,
+          "before": 0.12830357142857138
+        }
+      },
+      "status_transitions": {
+        "pass_to_fail": [
+          "continuum--absolute-mean-offset-y--above-compact-deblend-limit",
+          "continuum--absolute-mean-offset-y--morphology-shell",
+          "continuum--absolute-mean-offset-y--tile-corner"
+        ],
+        "underpowered_to_fail": [
+          "continuum--split-fraction--scale-4-beam"
+        ]
+      }
+    },
+    "excluded_causes": {
+      "compact_science": "Compact passes every binding decision with no like-semantics regression.",
+      "displaced_persistence_overmerge": "The terminal census records zero displaced candidates and zero displaced acceptances.",
+      "identity_or_process_failure": "All 2,400 products completed, the ledger was published atomically, and candidate, source, configuration, review, decision, readiness, reference, baseline, and immutable checkout identities match.",
+      "mask_support_change": "Overall mask precision, recall, and intersection over union are byte-identical to the predecessor ledger.",
+      "power_shortfall_as_primary_cause": "The ledger has no indeterminate endpoints and does not require prospective power review; 39 endpoints are scientific failures."
+    },
+    "unresolved_attribution": {
+      "classification": "must-be-separated-by-fixture-before-implementation",
+      "description": "The bounded terminal census is recorded after the all-features-seeded eligibility guard, and transient per-image products were removed after atomic publication. The ledger therefore proves non-activation and regression but does not count the cycle groups rejected by that guard or establish per-realization causality.",
+      "required_resolution": "A red analytic fixture must reproduce loss of a scientifically valid parent when one persistent cycle feature has no direct owner, then prove that retaining the feature for geometry while excluding it from membership restores only the intended seeded parent."
+    }
+  },
+  "change_control": {
+    "forbidden_same_change": [
+      "background-or-rms-estimator-changes",
+      "detection-or-island-threshold-changes",
+      "minimum-island-area-changes",
+      "measurement-or-photometry-changes",
+      "recovery-or-aperture-radius-changes",
+      "beam-or-wcs-interpretation-changes",
+      "truth-aware-or-reference-finder-association",
+      "terminal-product-derived-numeric-constants",
+      "gate-or-margin-changes",
+      "runtime-optimization",
+      "retrospective-rescoring"
+    ],
+    "historical_evidence_immutable": true,
+    "identity_freeze_blocked_until_fixture_acceptance": true,
+    "terminal_failure_immutable": true
+  },
+  "recommended_design": {
+    "acceptance_boundary": "Change only terminal-cycle feature eligibility. Keep direct-component membership, exact measurement ownership, source measurement, persistence rules, topology scoring, thresholds, gates, references, and closed evidence unchanged.",
+    "candidate_rule": "A cycle feature without a direct-component owner may corroborate same-scale cycle geometry only when it independently passes the existing exact-or-mutually-unique displaced persistence rule. It can never add a catalogue member. The resulting parent must still contain at least three immutable direct components and pass whole-group conflict reconciliation. No new group-wide support rule is introduced; the existing retained-support condition remains part of displaced-child matching only.",
+    "fixed_not_tuned": [
+      "existing cycle and minimum-direct-component requirements",
+      "existing exact and displaced persistence rules",
+      "existing retained significant-support components",
+      "existing direct component and measurement-owner identities",
+      "existing whole-group fail-closed reconciliation"
+    ],
+    "implementation_sequence": [
+      "add a red analytic cycle fixture with at least three seeded direct components and one persistent unseeded geometric feature",
+      "prove the current all-features-seeded guard rejects that intended parent",
+      "add non-persistent unseeded bridge crowded-cycle pair path disconnected-support ambiguous-child and partial-group negative controls",
+      "move seeded-membership validation after cycle geometry while applying persistence to every seeded and unseeded feature",
+      "derive membership only from immutable seeded direct components and require at least three members",
+      "record pre-eligibility cycle unseeded persistent accepted and rejected counts in bounded diagnostics",
+      "prove component-label plane-order record-order task-order retry Serial and existing-Dask invariance",
+      "freeze exact non-executable candidate wrapper evaluator readiness and output identities only after every fixture passes"
+    ],
+    "no_new_fitted_numeric_thresholds": true,
+    "rejected_shortcuts": [
+      "accepting an unseeded feature without adjacent-scale persistence",
+      "turning an unseeded feature into a catalogue member",
+      "accepting connected support as source membership",
+      "accepting pairs paths or non-cycle bridges",
+      "truth or reference-finder assisted grouping",
+      "changing thresholds gates margins or measurement definitions"
+    ]
+  },
+  "required_next_decision": "named-approval-of-this-exact-terminal-cycle-eligibility-pre-review-for-fixture-only-implementation",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-review",
+    "reproduce-the-seeded-eligibility-regression-in-a-red-analytic-fixture",
+    "implement-only-if-the-fixture-confirms-the-proposed-cause",
+    "pass-positive-negative-and-executor-invariance-controls",
+    "freeze-exact-non-executable-candidate-and-replay-identities",
+    "obtain-new-exact-replay-approval-before-execution"
+  ],
+  "review_id": "phase-5-public-finder-terminal-cycle-eligibility-pre-review",
+  "reviewed_on": "2026-08-31",
+  "schema_version": 1,
+  "status": "ready-for-named-terminal-cycle-eligibility-review"
+}

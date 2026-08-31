@@ -421,6 +421,96 @@ scratch and output absent. No new scientific result exists yet, and the
 present terminal-parent failure remains immutable. A replay requires a new
 exact review-bound approval.
 
+## Latest scientific snapshot: terminal-feature persistence
+
+**Terminal date:** 2026-08-31
+
+**Evidence role:** viewed-development cumulative regression, not fresh
+held-out qualification and not a new public-data campaign.
+
+**Scientific question:** can a mutually unique preceding-scale child that is
+displaced by a small boundary change corroborate an already seeded terminal
+cycle, recover additional valid source parents, and preserve compact and
+overmerge safety?
+
+**Terminal verdict:** no. The intended displaced-child path did not activate,
+and an accompanying cycle-eligibility restriction removed some scientifically
+useful predecessor parents. The exact write-once ledger is
+`benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-feature-persistence.json`,
+SHA-256
+`a9b4d57ec7384eb1d625b9a030126f4ca5d45f0a83150b309d14b3536eeae8a6`.
+
+### What was tested
+
+Immutable checkout `ed84c216...` verified the exact 2,400 inputs and 9,600
+retained reference runs before executing candidate `3d080f7...` with source
+tree `a25d22d8...` and configuration `2d6ab6bb...`. The population contains
+800 compact cases and 1,600 Continuum cases. It uses the same closed baseline,
+truth matching, absolute gates, and like-semantics comparisons as the
+preceding terminal-parent replay. All candidate products completed, and the
+atomic ledger was published without a process repair or duplicate run.
+
+Compact passed every binding decision with no like-semantics regression.
+Continuum produced 93 passes, 39 failures, 11 underpowered endpoints, no
+indeterminate endpoints, and 33 like-semantics regressions. Both cumulative
+readiness booleans remain false.
+
+| Overall Continuum metric | Terminal parent | Feature persistence | Required limit | Outcome |
+| --- | ---: | ---: | ---: | --- |
+| Completeness | 100.00% | 100.00% | at least 90% | Pass |
+| Reliability | 85.21% | 77.80% | at least 95% | Regressed, fail |
+| Median integrated-flux error | 4.53% | 4.70% | at most 10% | Pass |
+| Integrated-flux-error p95 | 26.94% | 74.62% | at most 25% | Regressed, fail |
+| Position-error p95 | 0.98 beam | 3.59 beams | at most 0.5 beam | Regressed, fail |
+| Duplicate fraction | 12.83% | 15.21% | at most 2% | Regressed, fail |
+| Split fraction | 12.83% | 15.21% | at most 10% | Regressed, fail |
+| Mask precision | 88.41% | 88.41% | at least 85% plus paired non-inferiority | Absolute pass, paired fail |
+| Mask recall | 91.96% | 91.96% | at least 90% | Pass |
+| Mask intersection over union | 82.06% | 82.06% | at least 80% | Pass |
+| Merge fraction | 0.00% | 0.00% | at most 10% | Pass |
+
+Fifty of 143 Continuum point estimates changed. No endpoint state improved;
+three astrometric-bias passes became failures, the scale-4-beam split endpoint
+moved from underpowered to failure, and three new like-semantics regressions
+appeared. The failure families are reliability; flux median and tail;
+astrometric bias and tail; duplicate and split topology; and paired
+mask-precision non-inferiority.
+
+### Activation evidence and interpretation
+
+| Terminal-persistence diagnostic | Count |
+| --- | ---: |
+| Terminal-cycle candidates | 1,211 |
+| Accepted terminal parents | 1,211 |
+| Exactly persistent terminal features | 4,414 |
+| Displaced-child candidates | 0 |
+| Accepted displaced children | 0 |
+| Missing or ambiguous children | 0 |
+| Rejected cycles or whole-group conflicts | 0 |
+
+The proposed displacement mechanism was dormant on this population. The
+ledger also rules out process, identity, compact-science, mask-support, and
+displaced-overmerge explanations.
+
+Code inspection identifies the only new restriction capable of changing the
+predecessor's existing exact-parent path: before persistence evaluation, the
+candidate rejects a whole terminal-cycle feature group if any geometric
+feature has no direct-component owner. Previously, an unseeded but persistent
+feature could corroborate cycle geometry without becoming a catalogue member;
+membership was still derived only from seeded direct components. The new
+guard can therefore remove a useful parent without entering the downstream
+displaced, missing, ambiguity, or conflict census.
+
+That attribution is deliberately not treated as fully proved per realization:
+the census begins after the guard and transient candidate products were
+removed after atomic publication. The next boundary is a non-executable
+fixture-first pre-review. It requires a red seeded-cycle eligibility fixture,
+negative overmerge controls, bounded pre-eligibility diagnostics, and
+Serial/existing-Dask invariance before any prospective implementation. It
+does not authorize another replay, viewed-data execution, tuning, rescoring,
+qualification, cutover, or release. Its exact SHA-256 is
+`e70e602f5a7a7c2a703def62ac6e5922c505feb71ae4b6f9def6dfcbf9520cd5`.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

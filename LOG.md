@@ -13178,3 +13178,61 @@ authority opens this identity.
 **Immediate next step:** commit the exact decision, create a clean immutable
 execution checkout, and repeat the complete no-write preflight there before
 starting the two-worker replay.
+
+## 2026-08-31 — Close terminal-feature persistence as regressed failure
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Committed one-use replay decision `ad72924a...` at `ed84c216...`. Immutable
+  checkout `/private/tmp/hebog-phase5-terminal-feature-persistence-replay-ed84c21`
+  repeated the complete no-write verification of all 2,400 inputs and 9,600
+  retained reference runs before starting the exact two-worker replay outside
+  the app sandbox. Candidate execution produced all 800 compact and 1,600
+  Continuum products; no process repair, duplicate replay, or partial-science
+  inspection occurred.
+- The process atomically published
+  `cumulative-regression-ledger-public-finder-terminal-feature-persistence.json`,
+  SHA-256 `a9b4d57e...`. Terminal provenance binds candidate `3d080f7...`,
+  source tree `a25d22d8...`, configuration `2d6ab6bb...`, replay checkout
+  `ed84c216...`, identity review `45aef047...`, execution decision
+  `ad72924a...`, evaluator `1cb62c00...`, reconstructed reference
+  `48209eae...`, closed baseline `a45303df...`, and transient product set
+  `cd66892f...`.
+- Compact passes every binding decision with no like-semantics regression.
+  Continuum records 93 passes, 39 failures, 11 underpowered endpoints, no
+  indeterminate endpoints, and 33 like-semantics regressions. Both
+  `all_required_endpoints_pass` and `cumulative_science_regression_ready` are
+  false. The candidate is terminally failed and may not be rerun, tuned, or
+  rescored.
+- Relative to the preceding terminal-parent ledger, 50 of 143 Continuum
+  values changed, no endpoint state improved, three astrometric-bias passes
+  became failures, and scale-4 split moved from underpowered to failure.
+  Reliability fell from 85.21% to 77.80%; duplicate and split fractions rose
+  from 12.83% to 15.21%; integrated-flux p95 rose from 26.94% to 74.62%; and
+  position p95 rose from 0.98 to 3.59 beams. Mask precision, recall, and IoU
+  remain unchanged; merge fraction remains zero.
+- The bounded census proves that the intended displaced-child seam did not
+  activate: 1,211 terminal-cycle candidates all became parents using 4,414
+  exactly persistent features, while displaced candidates, displaced
+  acceptances, missing or ambiguous children, rejected cycles, and conflicts
+  are all zero.
+- Code inspection identifies one new restriction on the predecessor exact
+  path: an all-features-seeded guard discards a whole cycle before persistence
+  evaluation whenever any geometric feature lacks a direct-component owner.
+  The predecessor could retain a persistent unseeded feature as cycle geometry
+  without adding it to catalogue membership. Because the census is downstream
+  of the guard and transient products were removed, exact per-realization
+  attribution still requires a red fixture.
+- Added non-executable pre-review
+  `phase-5-public-finder-terminal-cycle-eligibility-pre-review`, SHA-256
+  `e70e602f5a7a7c2a703def62ac6e5922c505feb71ae4b6f9def6dfcbf9520cd5`.
+  It binds every terminal failure and requires the red eligibility fixture,
+  negative overmerge controls, pre-eligibility diagnostics, and
+  Serial/existing-Dask invariance. It fixes thresholds, measurement,
+  membership, gates, references, and closed evidence and authorizes neither
+  implementation nor execution.
+
+**Immediate next step:** commit the immutable terminal record and obtain named
+approval of pre-review SHA-256 `e70e602f...` before fixture-only
+implementation. Another replay requires separately frozen replacement
+identities and a new exact approval.

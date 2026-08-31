@@ -1,9 +1,9 @@
 # Phase 5 terminal-feature persistence correction
 
-**Status:** implemented and fixture-validated; non-executable. This
-correction does not authorize a cumulative replay, viewed SDC1 or Hydra
-execution, qualification, tuning, rescoring, optimization, cutover, or
-release.
+**Status:** terminal cumulative failure. The exact replay completed and the
+displaced-child correction did not activate on the governed population. This
+result does not authorize another replay, viewed SDC1 or Hydra execution,
+qualification, tuning, rescoring, optimization, cutover, or release.
 
 ## Bound evidence and decision
 
@@ -60,7 +60,69 @@ inputs and 9,600 reference runs without creating scratch or output. Exact
 identity review `45aef047...` records the result and canonical future
 execution identity `75534703...`.
 
-The review remains non-executable: every execution, tuning, rescoring,
-qualification, cutover, and release authorization is false. A cumulative
-replay requires a separate explicit approval bound to review SHA-256
-`45aef047b0a8779e785995971eb60ad34384fa25aa443745ad36f2bdb6b652b9`.
+Named approval subsequently opened exactly one cumulative replay and its
+evaluation. Immutable execution checkout `ed84c216...` repeated the complete
+no-write verification and produced all 2,400 candidate products before
+publishing the atomic ledger. No process repair or duplicate replay occurred.
+
+## Terminal cumulative result
+
+The write-once ledger is
+`benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-feature-persistence.json`,
+SHA-256
+`a9b4d57ec7384eb1d625b9a030126f4ca5d45f0a83150b309d14b3536eeae8a6`.
+It binds candidate `3d080f7...`, source tree `a25d22d8...`, configuration
+`2d6ab6bb...`, replay review `45aef047...`, execution decision `ad72924a...`,
+reconstructed reference `48209eae...`, and closed baseline `a45303df...`.
+
+Compact passes with no like-semantics regression. Continuum records 93
+passes, 39 failures, 11 underpowered endpoints, no indeterminate endpoints,
+and 33 like-semantics regressions. Both `all_required_endpoints_pass` and
+`cumulative_science_regression_ready` are false.
+
+The bounded terminal census makes the main result unambiguous:
+
+| Diagnostic | Count |
+| --- | ---: |
+| Continuum images | 1,600 |
+| Terminal-cycle candidates | 1,211 |
+| Accepted terminal parents | 1,211 |
+| Exactly persistent terminal features | 4,414 |
+| Displaced-child candidates | 0 |
+| Accepted displaced children | 0 |
+| Missing or ambiguous children | 0 |
+| Rejected cycles or whole-group conflicts | 0 |
+
+The intended displaced-child seam therefore did not activate. Relative to the
+preceding terminal-parent result, no endpoint state improved, three passes
+became failures, one underpowered endpoint became a failure, and the
+like-semantics regression count rose from 30 to 33. Overall reliability fell
+from 85.21% to 77.80%, duplicate and split fractions rose from 12.83% to
+15.21%, integrated-flux-error p95 rose from 26.94% to 74.62%, and
+position-error p95 rose from 0.98 to 3.59 beams. Mask values are unchanged.
+
+## Root cause and next review boundary
+
+Code inspection isolates an eligibility guard introduced alongside the
+displaced-child seam. Before persistence is evaluated, it rejects an entire
+terminal cycle whenever any geometric feature lacks a direct-component
+attachment. The predecessor allowed an unseeded but persistent feature to
+corroborate cycle geometry while deriving catalogue membership only from
+seeded direct components. The new guard can therefore discard a valid parent
+without ever producing a displaced, missing, or ambiguous-child diagnostic.
+
+The aggregate ledger proves non-activation and regression, but the transient
+per-image products were removed after atomic publication and the census is
+recorded after this guard. Per-realization attribution therefore still
+requires a red analytic fixture. Non-executable pre-review
+`phase-5-public-finder-terminal-cycle-eligibility-pre-review`, SHA-256
+`e70e602f5a7a7c2a703def62ac6e5922c505feb71ae4b6f9def6dfcbf9520cd5`,
+freezes that boundary. It proposes only to let an unseeded feature corroborate
+cycle geometry when it independently passes the existing exact-or-displaced
+persistence rule; it may never add catalogue membership. Thresholds,
+measurement, gates, references, and closed evidence remain fixed, and no new
+group-wide support rule is introduced.
+
+Implementation requires named approval of that exact pre-review. Another
+replay would require separately frozen replacement identities and a new exact
+approval.
