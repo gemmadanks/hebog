@@ -13391,3 +13391,38 @@ contract lane, freeze the all-check PyBDSF-parity and Hebog-retention contract,
 repair the prospective confidence evaluator, and run the frozen 64--128-case
 scientific smoke lane. Do not freeze or execute a full replay until every
 fail-fast prerequisite passes.
+
+## 2026-08-31 — Add terminal-cycle fail-fast contract lanes
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Added a frozen 25-case analytic mechanism population covering the repaired
+  persistent-unseeded activation and seven fail-closed control families. Four
+  label/order variants each record a non-zero historical pre-guard rejection
+  and repaired acceptance; non-persistent geometry, bridges, pairs, paths,
+  disconnected support, ambiguous children, and partial-group conflicts remain
+  rejected.
+- Added a strict bounded evaluator for that population. It rejects missing,
+  duplicated, or scientifically changed case evidence, remains invariant to
+  observation order, and produces only array-free non-promotional counts.
+- Added an exact analytic end-to-end contract that executes the production
+  source-reconstruction producer, canonical association writer/parser,
+  sidecar-aware terminal-cycle compiler, source-union measurement evaluator,
+  compact producer, checksum provenance, and atomic write-once publication.
+  Compact output is byte-identical across independent runs and duplicate
+  publication is rejected. Final review also made a non-empty association
+  sidecar and the exact completeness/mask-precision endpoint set mandatory,
+  so an incomplete composition cannot publish a passing record.
+- Focused Ruff and test validation passed all five new normal and failure-path
+  tests. Full coverage passed 2,223 tests with four expected failures and
+  94.71% branch-aware project coverage; the new fail-fast module reached 86%.
+  The existing equivalence lane passed all 27 selected tests and the strict
+  documentation build passed. `just check` passed 2,061 tests with four
+  expected failures and 206 deselections. No viewed SDC1/Hydra data, replay,
+  qualification population, tuning, rescoring, or replacement replay identity
+  was opened.
+
+**Immediate next step:** freeze the prospective all-check PyBDSF-parity and
+single-incumbent Hebog-retention decision contract, then repair its confidence
+evaluator test-first. The scientific smoke lane and any full replay identity
+remain blocked until those prerequisites pass.

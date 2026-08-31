@@ -1,0 +1,208 @@
+{
+  "cases": [
+    {
+      "case_id": "01-persistent-unseeded-label-order-a",
+      "expected_maximum_membership_size": 3,
+      "expected_terminal_parent_count": 1,
+      "expected_unseeded_accepted_count": 1,
+      "family": "persistent-unseeded-geometry",
+      "variant": 0
+    },
+    {
+      "case_id": "02-persistent-unseeded-label-order-b",
+      "expected_maximum_membership_size": 3,
+      "expected_terminal_parent_count": 1,
+      "expected_unseeded_accepted_count": 1,
+      "family": "persistent-unseeded-geometry",
+      "variant": 1
+    },
+    {
+      "case_id": "03-persistent-unseeded-label-order-c",
+      "expected_maximum_membership_size": 3,
+      "expected_terminal_parent_count": 1,
+      "expected_unseeded_accepted_count": 1,
+      "family": "persistent-unseeded-geometry",
+      "variant": 2
+    },
+    {
+      "case_id": "04-persistent-unseeded-label-order-d",
+      "expected_maximum_membership_size": 3,
+      "expected_terminal_parent_count": 1,
+      "expected_unseeded_accepted_count": 1,
+      "family": "persistent-unseeded-geometry",
+      "variant": 3
+    },
+    {
+      "case_id": "05-nonpersistent-unseeded-a",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "nonpersistent-unseeded-geometry",
+      "variant": 0
+    },
+    {
+      "case_id": "06-nonpersistent-unseeded-b",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "nonpersistent-unseeded-geometry",
+      "variant": 1
+    },
+    {
+      "case_id": "07-nonpersistent-unseeded-c",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "nonpersistent-unseeded-geometry",
+      "variant": 2
+    },
+    {
+      "case_id": "08-nonpersistent-unseeded-d",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "nonpersistent-unseeded-geometry",
+      "variant": 3
+    },
+    {
+      "case_id": "09-terminal-bridge-a",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-bridge",
+      "variant": 0
+    },
+    {
+      "case_id": "10-terminal-bridge-b",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-bridge",
+      "variant": 1
+    },
+    {
+      "case_id": "11-terminal-bridge-c",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-bridge",
+      "variant": 2
+    },
+    {
+      "case_id": "12-terminal-pair-a",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-pair",
+      "variant": 0
+    },
+    {
+      "case_id": "13-terminal-pair-b",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-pair",
+      "variant": 1
+    },
+    {
+      "case_id": "14-terminal-pair-c",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-pair",
+      "variant": 2
+    },
+    {
+      "case_id": "15-terminal-path-a",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-path",
+      "variant": 0
+    },
+    {
+      "case_id": "16-terminal-path-b",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-path",
+      "variant": 1
+    },
+    {
+      "case_id": "17-terminal-path-c",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "terminal-path",
+      "variant": 2
+    },
+    {
+      "case_id": "18-disconnected-support-a",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "disconnected-support",
+      "variant": 0
+    },
+    {
+      "case_id": "19-disconnected-support-b",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "disconnected-support",
+      "variant": 1
+    },
+    {
+      "case_id": "20-disconnected-support-c",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "disconnected-support",
+      "variant": 2
+    },
+    {
+      "case_id": "21-ambiguous-child-a",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "ambiguous-child",
+      "variant": 0
+    },
+    {
+      "case_id": "22-ambiguous-child-b",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "ambiguous-child",
+      "variant": 1
+    },
+    {
+      "case_id": "23-ambiguous-child-c",
+      "expected_maximum_membership_size": 1,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "ambiguous-child",
+      "variant": 2
+    },
+    {
+      "case_id": "24-partial-group-conflict-a",
+      "expected_maximum_membership_size": 3,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "partial-group-conflict",
+      "variant": 0
+    },
+    {
+      "case_id": "25-partial-group-conflict-b",
+      "expected_maximum_membership_size": 3,
+      "expected_terminal_parent_count": 0,
+      "expected_unseeded_accepted_count": 0,
+      "family": "partial-group-conflict",
+      "variant": 1
+    }
+  ],
+  "evidence_role": "analytic-non-promotional",
+  "lane_id": "phase-5-terminal-cycle-mechanism-activation",
+  "promotion_evidence": false,
+  "schema_version": 1
+}

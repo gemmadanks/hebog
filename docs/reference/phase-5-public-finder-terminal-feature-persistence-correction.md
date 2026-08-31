@@ -149,3 +149,32 @@ full-replay identity will not be frozen until the exact end-to-end contract,
 all-check PyBDSF-parity and Hebog-retention evaluator, prospective power plan,
 and 64--128-case scientific smoke lane pass. A future full replay still
 requires a separately frozen identity and explicit execution approval.
+
+## Fail-fast lanes
+
+The first two required fail-fast lanes now exist and pass without opening any
+viewed or qualification data.
+
+The mechanism-activation lane is frozen in
+`config/contracts/phase-5-terminal-cycle-fail-fast-cases.json`. It contains 25
+analytic cases across eight families. Four positive label/order variants
+exercise the former all-features-seeded rejection and require non-zero
+persistent-unseeded acceptance. The remaining cases cover non-persistent
+unseeded geometry, terminal bridges, pairs, paths, disconnected support,
+ambiguous children, and partial-group conflicts. Every negative family must
+remain closed, and any missing case or changed expected result fails the lane.
+
+The end-to-end lane is intentionally separate from those kernel fixtures. It
+runs a small real analytic source through the production source-reconstruction
+producer, serializes and parses the exact association schema, invokes the
+sidecar-aware terminal-cycle compiler and source-union measurement evaluator,
+and checks finite compiled endpoints. It also reruns the real compact producer
+and requires byte-identical catalogue output. The final record binds the
+producer, writer, compiler, and evaluator checksums and is published through an
+atomic non-overwriting link operation; a second publication fails.
+
+Both records are `analytic-non-promotional`. They can block a bad replacement
+before a long replay, but they cannot support qualification, promotion, or a
+scientific performance claim. The all-check parity/retention contract,
+prospective confidence evaluator, frozen smoke population, and smoke result
+remain prerequisites to freezing another full replay identity.

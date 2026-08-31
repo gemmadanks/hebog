@@ -944,11 +944,17 @@ from partial or viewed evidence.
      only after confirmation; and pass mechanism, overmerge, and
      executor-invariance controls. Do not freeze replacement replay identities
      until every fail-fast prerequisite below passes.
-   - [ ] Add the exact end-to-end contract and mechanism-activation lanes before
-     replacement identity freeze. The positive eligibility fixture must record
-     non-zero pre-guard rejection and repaired acceptance, while negative
-     bridge, pair, path, disconnected-support, ambiguity, and partial-group
-     controls remain rejected.
+   - [x] Add the exact end-to-end contract and mechanism-activation lanes before
+     replacement identity freeze. Frozen analytic manifest
+     `phase-5-terminal-cycle-fail-fast-cases` contains 25 cases across eight
+     required families. Four label/order variants record both the historical
+     pre-guard rejection and repaired persistent-unseeded acceptance; all
+     non-persistent, bridge, pair, path, disconnected-support,
+     ambiguous-child, and partial-group controls remain closed. The separate
+     end-to-end lane executes the real source-reconstruction producer,
+     canonical sidecar writer/parser, sidecar-aware compiler, source-union
+     evaluator, compact producer, provenance binding, and atomic write-once
+     publication. Its output is explicitly analytic and non-promotional.
    - [ ] Freeze the prospective all-check PyBDSF-parity and Hebog-retention
      decision contract described in Section 3.1. Preserve every historical
      decision under its original gate; do not choose checks, margins, strata,
