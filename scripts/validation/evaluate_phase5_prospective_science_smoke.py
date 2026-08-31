@@ -145,6 +145,34 @@ def _paired_incumbent_view(
     return SimpleNamespace(**{**vars(current), "runs": runs})
 
 
+def _compile_incumbent_pair(
+    parent: dict[str, Any],
+    current: Any,
+    incumbent: Any,
+    root: Path,
+    *,
+    configuration: str,
+) -> tuple[Any, ...]:
+    """Compile the mixed pair under the incumbent's permissive schema.
+
+    The current sidecars are independently required to satisfy the complete
+    terminal-cycle schema before this call. The historical parent compiler
+    accepts those additive diagnostics while correctly parsing incumbent
+    sidecars that predate them.
+    """
+    _, _, historical = parent["_load_source_association_composition"]()
+    parent["_install_terminal_parent_static_seams"](historical)
+    compiler_globals, registry = _compiler(historical)
+    paired = _paired_incumbent_view(current, incumbent, compiler_globals)
+    historical["_install_prospective_compiler"](
+        compiler_globals, paired, configuration
+    )
+    compiled, _ = compiler_globals["compile_continuum_campaign"](
+        paired, registry, root
+    )
+    return cast(tuple[Any, ...], compiled)
+
+
 def _product_artifacts(directory: Path) -> dict[str, str]:
     """Return role-to-digest identities from one verified marker."""
     marker = json.loads((directory / "complete.json").read_text())
@@ -388,9 +416,12 @@ def main() -> None:
     current_continuum, _ = compiler_globals["compile_continuum_campaign"](
         current, historical_registry, root
     )
-    paired = _paired_incumbent_view(current, incumbent, compiler_globals)
-    incumbent_continuum, _ = compiler_globals["compile_continuum_campaign"](
-        paired, historical_registry, root
+    incumbent_continuum = _compile_incumbent_pair(
+        parent,
+        current,
+        incumbent,
+        root,
+        configuration=configuration,
     )
     association_paths = _association_paths(
         identifiers, arguments.current_scratch
@@ -424,6 +455,7 @@ def main() -> None:
             "selected_input_count": len(identifiers),
             "population_sha256": file_sha256(arguments.population),
             "materializer_sha256": file_sha256(root / _MATERIALIZER),
+            "evaluator_sha256": file_sha256(Path(__file__).resolve()),
         }
     )
     _publish(arguments.output, record)

@@ -52,7 +52,7 @@
     },
     {
       "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
-      "sha256": "bec1b0bd5ba86c3abc0ea366e282091f2216e239f732e523d366e28bfc430fd9"
+      "sha256": "18231d537f65f10cb91766b9b6c7c9d133c6e1c00eab590118e4a5949de88822"
     },
     {
       "path": "scripts/validation/freeze_phase5_prospective_power_audit.py",

@@ -130,6 +130,68 @@ def _install_terminal_parent_static_seams(frozen):
     assert composition == {"installed": True}
 
 
+def test_smoke_incumbent_pair_uses_historical_sidecar_compiler(
+    tmp_path: Path,
+) -> None:
+    """Mixed products compile below additive current-only diagnostics."""
+    script = runpy.run_path(str(_EVALUATOR))
+    installed: list[tuple[object, str]] = []
+    paired = object()
+    compiler_globals: dict[str, Any] = {}
+
+    def install(
+        _globals: dict[str, Any], campaign: object, configuration: str
+    ) -> None:
+        installed.append((campaign, configuration))
+
+    historical = {"_install_prospective_compiler": install}
+
+    def load_composition() -> tuple[
+        dict[str, Any], dict[str, Any], dict[str, Any]
+    ]:
+        return {}, {}, historical
+
+    def install_seams(value: dict[str, Any]) -> None:
+        value["schema"] = "terminal-parent"
+
+    parent: dict[str, Any] = {
+        "_load_source_association_composition": load_composition,
+        "_install_terminal_parent_static_seams": install_seams,
+    }
+
+    def compiler(_frozen: dict[str, Any]) -> tuple[dict[str, Any], object]:
+        def compile_continuum(
+            campaign: object, _registry: object, _root: Path
+        ) -> tuple[tuple[object, str], tuple[()]]:
+            return (campaign, "compiled"), ()
+
+        compiler_globals["compile_continuum_campaign"] = compile_continuum
+        return compiler_globals, object()
+
+    def paired_view(
+        _current: object,
+        _incumbent: object,
+        _globals: dict[str, Any],
+    ) -> object:
+        return paired
+
+    helper = script["_compile_incumbent_pair"]
+    helper.__globals__["_compiler"] = compiler
+    helper.__globals__["_paired_incumbent_view"] = paired_view
+
+    result = helper(
+        parent,
+        object(),
+        object(),
+        tmp_path,
+        configuration="current-configuration",
+    )
+
+    assert historical["schema"] == "terminal-parent"
+    assert installed == [(paired, "current-configuration")]
+    assert result == (paired, "compiled")
+
+
 def _write_product(
     scratch: Path,
     input_id: str,

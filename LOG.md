@@ -13528,3 +13528,30 @@ smoke passes without a confirmed scientific regression.
 
 **Immediate next step:** freeze the repaired program in a new immutable
 checkout and rerun both complete no-write preflights before materialization.
+
+## 2026-09-01 — Repair prospective mixed-schema smoke compilation
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Both repaired no-write preflights passed and both exact 128-product smoke
+  sets materialized completely. The first evaluator invocation failed before
+  atomic publication when the current terminal-cycle parser was reused for an
+  incumbent sidecar that correctly predates the additive terminal-persistence
+  diagnostics. The verified current and incumbent product sets remain
+  unchanged and reusable.
+- Added explicit schema dispatch for the paired-incumbent compilation. Current
+  products first compile under the complete terminal-cycle schema and their
+  eligibility census is reduced independently; the mixed current/incumbent
+  pair then compiles under the exact terminal-parent schema, which accepts the
+  current sidecar's additive fields while parsing the historical sidecar at
+  its own frozen contract. A focused regression test proves the historical
+  compiler is installed for this mixed view. Seventeen smoke/materializer
+  tests and Pyright pass.
+- Closed a final terminal-provenance gap before publication: the smoke record
+  now binds the exact evaluator program as well as the materializer,
+  population, candidate and incumbent product sets, source trees,
+  configurations, and revisions.
+
+**Immediate next step:** freeze the evaluation-only repair in an immutable
+checkout and evaluate the preserved smoke products exactly once into the still
+absent atomic output.
