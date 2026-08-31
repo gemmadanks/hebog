@@ -511,6 +511,51 @@ does not authorize another replay, viewed-data execution, tuning, rescoring,
 qualification, cutover, or release. Its exact SHA-256 is
 `e70e602f5a7a7c2a703def62ac6e5922c505feb71ae4b6f9def6dfcbf9520cd5`.
 
+## Prospective evaluation contract after terminal-cycle repair
+
+**Frozen date:** 2026-08-31
+
+**Evidence role:** non-executable prospective governance. This record does
+not change, rescore, or replace any campaign result above.
+
+The next candidate must pass every applicable comparison to released PyBDSF,
+pinned PyBDSF `master`, and Aegean, while also retaining the scientific quality
+of one complete closed Hebog incumbent. It may not compensate for one failed
+check with a gain elsewhere. Ambitious absolute numeric targets remain visible
+as longer-term objectives; finite products, valid schemas and provenance,
+determinism, and write-once publication remain binding safety requirements.
+
+| Frozen scope | Count |
+| --- | ---: |
+| Compact binding endpoints | 225 |
+| Continuum binding endpoints | 143 |
+| Continuum longer-term objectives | 15 |
+| Endpoints per PyBDSF reference | 338 |
+| Applicable Aegean endpoints | 143 |
+| Incumbent-Hebog retention endpoints | 368 |
+| Total co-primary comparisons | 1,187 |
+
+The endpoint registry is
+`config/contracts/phase-5-prospective-science-endpoint-registry.json`, SHA-256
+`095354bce2f34ae257574f9168770a194f1f5b00024db0ec5bcafdafba006a7e`.
+The decision contract is
+`config/contracts/phase-5-prospective-science-decision-contract.json`, SHA-256
+`f70f321397618b9f63d3dd03d650a5bbc73f8aad5e5fa91f15a198a99bdb38f9`.
+
+The retention baseline is the whole terminal-parent candidate `85d5807...`
+and ledger `e2ee663f...`; it is not a synthetic best-per-endpoint envelope.
+Because its raw realization products were not retained, a later governed
+campaign must reexecute that exact incumbent on the same inputs to produce
+paired realization-level evidence. Planning variance will size the study and
+audit assumptions, but only the observed paired confidence limit will decide
+non-inferiority. Missing or underpowered binding evidence cannot pass.
+
+The decision contract is intentionally `active=false` and awaits exact human
+scientific approval. It authorizes no execution, replay identity,
+qualification, tuning, rescoring, cutover, or release. The next implementation
+task is the test-first prospective evaluator repair; the smoke lane and any
+full replay remain blocked.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

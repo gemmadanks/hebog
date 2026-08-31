@@ -124,6 +124,21 @@ from the candidate's viewed values. The same prospective contract then governs
 the cumulative replay and fresh held-out qualification. Until that review is
 accepted, the existing stricter contract remains the active gate.
 
+The prospective records are now frozen but deliberately inactive. Endpoint
+registry `phase-5-prospective-science-endpoint-registry.json` (SHA-256
+`095354bc...`) names 383 endpoints: 225 compact binding, 143 Continuum
+binding, and 15 Continuum longer-term objectives. It expands to 1,187
+co-primary comparisons: 338 against each PyBDSF reference, 143 applicable
+compact comparisons against Aegean, and 368 against the single incumbent
+Hebog candidate. Decision contract
+`phase-5-prospective-science-decision-contract.json` (SHA-256 `f70f3213...`)
+binds the intersection-union rule and historical immutability. It selects
+whole candidate `85d5807...`, not a per-endpoint envelope, and requires an
+exact paired reexecution because its realization-level products were not
+retained. Status remains `frozen-for-human-scientific-review`, `active=false`,
+and every execution, identity-freeze, qualification, tuning, rescoring,
+cutover, and release authorization remains false.
+
 The prospective contract is scientifically confirmatory only when all of the
 following are fixed before candidate results are viewed:
 
@@ -498,13 +513,15 @@ chronology and immutable identities remain in `LOG.md` and
 
 **Status: open.** Multiscale science, combined products, bounded execution,
 the original final qualification, compact regression, and the incremental
-performance budget are complete. Phase 5 is blocked by terminal-cycle
-eligibility, the absence of a fail-fast scientific feedback lane, and a
-prospective parity-and-quality-retention decision contract. It then requires a
-passing cumulative regression ledger and fresh held-out qualification for the
-eventual corrected candidate. Detailed campaign and incident chronology
-belongs in `LOG.md`; machine identities and authorization boundaries remain
-in `config/contracts/`.
+performance budget are complete. Terminal-cycle eligibility and the fail-fast
+scientific feedback lane are implemented, and the prospective
+parity-and-quality-retention records are frozen but inactive pending exact
+human scientific review. Phase 5 next requires the prospective evaluator,
+endpoint-level power audit, diagnostic smoke lane, one passing cumulative
+regression ledger, and fresh held-out qualification for the eventual corrected
+candidate. Detailed campaign and incident chronology belongs in `LOG.md`;
+machine identities and authorization boundaries remain in
+`config/contracts/`.
 
 #### Completed evidence
 
@@ -955,11 +972,17 @@ from partial or viewed evidence.
      canonical sidecar writer/parser, sidecar-aware compiler, source-union
      evaluator, compact producer, provenance binding, and atomic write-once
      publication. Its output is explicitly analytic and non-promotional.
-   - [ ] Freeze the prospective all-check PyBDSF-parity and Hebog-retention
+   - [x] Freeze the prospective all-check PyBDSF-parity and Hebog-retention
      decision contract described in Section 3.1. Preserve every historical
      decision under its original gate; do not choose checks, margins, strata,
      or baselines from the candidate's viewed values. Retain the existing
      absolute numeric thresholds as reported longer-term improvement targets.
+     Registry `095354bc...` freezes all 383 endpoints and 1,187 co-primary
+     comparisons. Inactive review contract `f70f3213...` binds whole incumbent
+     `85d5807...`, exact paired incumbent reexecution, realization-level BCa
+     resampling, the intersection-union decision, immutable historical
+     ledgers, and all execution prohibitions. It is not active until exact
+     human scientific approval and the remaining activation requirements pass.
    - [ ] Repair the prospective evaluator test-first so planning variance sizes
      the campaign and audits assumptions, while the observed realization-level
      confidence limit alone decides non-inferiority. Cover variance just above

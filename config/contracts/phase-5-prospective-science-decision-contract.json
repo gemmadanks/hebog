@@ -1,0 +1,155 @@
+{
+  "absolute_policy": {
+    "binding_safety_invariants": [
+      "finite-measurements",
+      "product-validity",
+      "schema-and-provenance-integrity",
+      "serial-and-existing-dask-determinism",
+      "write-once-publication"
+    ],
+    "numeric_science_targets": "report-as-longer-term-objectives"
+  },
+  "activation_requirements": [
+    "human-scientific-approval-of-exact-contract-sha256",
+    "prospective-evaluator-implementation-and-boundary-tests",
+    "prospective-power-audit-for-every-binding-endpoint",
+    "non-promotional-scientific-smoke-lane-pass",
+    "exact-incumbent-runtime-and-paired-evidence-preflight"
+  ],
+  "active": false,
+  "authorization": {
+    "cutover_authorized": false,
+    "execution_authorized": false,
+    "qualification_authorized": false,
+    "release_authorized": false,
+    "replay_identity_freeze_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false
+  },
+  "committed_source_bindings": [
+    {
+      "path": "config/contracts/phase-4-paired-noninferiority.json",
+      "sha256": "1bddf045748e49c58f2583556c69321b00938a2abdbc1e24348c7d12e77379f3"
+    },
+    {
+      "path": "config/contracts/phase-4r-metric-registry.json",
+      "sha256": "f1bcbbb6d1d216bdc5271c45a1e64789b1c8928a98bd4927f7e707d0318dd0b5"
+    },
+    {
+      "path": "config/contracts/phase-4s-paired-noninferiority.json",
+      "sha256": "b1600f3de149385e4f33a89a81fd03e0be0916a53bfc498b7ecd87f8e3d10033"
+    },
+    {
+      "path": "config/contracts/phase-4t-paired-noninferiority.json",
+      "sha256": "9dabc5511707dd96d0a2cc1422a76fb3bdd944c6050d6583585d91666c8cee71"
+    },
+    {
+      "path": "config/contracts/phase-4u-paired-noninferiority.json",
+      "sha256": "28bb37393792f8fc4cd829e9fecfc5edb6b1e77a2a3d50df586f37f33ba39eb4"
+    },
+    {
+      "path": "config/contracts/phase-5-external-comparison.json",
+      "sha256": "7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d"
+    },
+    {
+      "path": "config/contracts/phase-5-external-endpoint-registry.json",
+      "sha256": "d174fc9e9ab6648427147850e948ee33d77a6cf8cfccc05cb8a82cbd3141ff9b"
+    },
+    {
+      "path": "config/contracts/phase-5-public-finder-terminal-parent-correction-cumulative-replay-execution-decision.json",
+      "sha256": "f6d2bcc860748f9f0b778b4362d5c4183d807d4b472d2cfb717e5d28034c054a"
+    },
+    {
+      "path": "config/contracts/phase-5-public-finder-terminal-parent-correction-cumulative-replay-review.json",
+      "sha256": "42c354811bb00625e1e1576880f1171daad3acac49e244848b1ceb02fca169ea"
+    }
+  ],
+  "contract_id": "phase-5-prospective-science-decision-contract",
+  "decision": {
+    "combination_rule": "intersection-union-every-coprimary-comparison",
+    "confidence_limit_rule": "observed-paired-realization-upper-limit-at-or-below-frozen-margin",
+    "missing_candidate_outcome": "binding-fail",
+    "missing_comparator_outcome": "underpowered-global-fail",
+    "multiplicity": "none-required-for-intersection-union-noninferiority",
+    "one_sided_confidence_level": 0.95,
+    "planning_variance_role": "design-and-assumption-audit-only-not-observed-data-gate",
+    "superiority_policy": "descriptive-unless-prospective-multiplicity-procedure",
+    "underpowered_outcome": "parity-or-retention-not-demonstrated"
+  },
+  "endpoint_counts": {
+    "aegean_endpoints": 143,
+    "compact_binding_endpoints": 225,
+    "continuum_binding_endpoints": 143,
+    "continuum_objective_endpoints": 15,
+    "incumbent_retention_endpoints": 368,
+    "pybdsf_endpoints_per_reference": 338,
+    "total_coprimary_comparisons": 1187,
+    "total_endpoints": 383
+  },
+  "endpoint_registry": {
+    "path": "config/contracts/phase-5-prospective-science-endpoint-registry.json",
+    "sha256": "095354bce2f34ae257574f9168770a194f1f5b00024db0ec5bcafdafba006a7e"
+  },
+  "endpoint_registry_canonical_sha256": "fadc1952be0494c3ce5f9ea901e9c1c77bb88582c0d055b786eaaf4027e06880",
+  "historical_ledgers": [
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger.json",
+      "sha256": "f6a92d394dc1f41000a923de5e395411d275113040f9920a12743b3a6d446ab9"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-post-correction.json",
+      "sha256": "7ffd636482438c92462a0f15e00ff6759ae875d7b6ebab50bc1c8a3a9cf35be2"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-correction.json",
+      "sha256": "1ac6deb24e4bfc1928318c95437d45acac6ac1f94621b53d45175e0f41bd9797"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-association-measurement-repair.json",
+      "sha256": "6b2aa4deb306e0d7ba8285aae1e18bfb4f4e838b57aecd0497bec990e8a8c842"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-hierarchy-parent-construction.json",
+      "sha256": "2ece9928eec152cf17f06e9e869d0db9c6a8f0acc2b18ea482aced5e133e6bce"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-source-reconstruction.json",
+      "sha256": "84fbb3a18828210543d815d28aa4eab039a2ad7467aa2572a9c5119780f55a0e"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-feature-persistence.json",
+      "sha256": "a9b4d57ec7384eb1d625b9a030126f4ca5d45f0a83150b309d14b3536eeae8a6"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json",
+      "sha256": "e2ee663f4eade383518eabbafda5cd33bfe9808b4a9b37492a77337738b611db"
+    },
+    {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+      "sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
+    }
+  ],
+  "historical_policy": "immutable-original-gates-no-retrospective-rescoring",
+  "incumbent": {
+    "candidate_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json",
+      "sha256": "e2ee663f4eade383518eabbafda5cd33bfe9808b4a9b37492a77337738b611db"
+    },
+    "realization_evidence": "exact-paired-reexecution-required-no-preserved-raw-incumbent-products",
+    "selection_rationale": "last-whole-closed-candidate-before-terminal-feature-persistence-repair",
+    "selection_rule": "one-whole-closed-candidate-no-endpoint-envelope",
+    "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+  },
+  "resampling": {
+    "compact_seed": 20260807,
+    "continuum_seed": 20260810,
+    "independent_unit": "noise-seed-image",
+    "method": "paired-bca-bootstrap",
+    "paired": true,
+    "resamples": 50000
+  },
+  "schema_version": 1,
+  "status": "frozen-for-human-scientific-review"
+}

@@ -13426,3 +13426,43 @@ fail-fast prerequisite passes.
 single-incumbent Hebog-retention decision contract, then repair its confidence
 evaluator test-first. The scientific smoke lane and any full replay identity
 remain blocked until those prerequisites pass.
+
+## 2026-08-31 — Freeze the prospective all-check science contract
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Added a deterministic write-once registry generator and strict loaders for
+  the prospective PyBDSF-parity and Hebog-retention policy. The TDD lane first
+  failed on the absent contract behavior, then passed seven focused normal,
+  provenance, reproducibility, policy-drift, and unsafe-path tests.
+- Froze endpoint registry `095354bc...` with 383 explicitly named endpoints:
+  225 compact binding, 143 Continuum binding, and 15 Continuum longer-term
+  objectives. Its 1,187 co-primary comparisons comprise 338 per PyBDSF
+  reference, 143 applicable compact Aegean comparisons, and 368 comparisons
+  to one whole Hebog incumbent. Every binding endpoint includes incumbent
+  retention; scientifically incompatible Continuum centroid semantics waive
+  only the cross-finder comparison, not Hebog retention.
+- Froze inactive decision contract `f70f3213...`. It binds incumbent
+  `85d5807...` and ledger `e2ee663f...`, requires exact paired incumbent
+  reexecution because raw realization products are absent, uses whole-image
+  noise-seed realizations as the resampling unit, and requires every
+  co-primary confidence comparison to pass. Planning variance is design and
+  audit evidence only; missing or underpowered binding evidence fails the
+  global promotion decision.
+- Bound all nine historical cumulative ledgers under their original policies
+  with no retrospective rescoring. Absolute numeric targets remain reported
+  longer-term objectives, while finite products, validity, provenance,
+  determinism, and write-once publication remain binding.
+- The contract remains `active=false` pending exact human scientific review.
+  It authorizes no execution, replay identity freeze, qualification, tuning,
+  rescoring, cutover, or release. No viewed dataset, candidate, campaign,
+  replay, or result was opened.
+- Final validation passed 2,230 tests with four expected failures and 94.54%
+  branch-aware project coverage; the new production contract module reached
+  83%. `just check` passed 2,068 tests with four expected failures, all 27
+  frozen equivalence tests passed, and the strict documentation build passed.
+
+**Immediate next step:** obtain exact scientific approval of contract
+`f70f3213...`, then implement the prospective confidence evaluator test-first.
+The endpoint-level power audit, diagnostic smoke lane, and any full replay
+remain blocked.
