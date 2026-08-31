@@ -84,6 +84,39 @@ conjunctive: one population or metric cannot compensate for another.
 Predeclared one-sided confidence intervals determine non-inferiority; a worse
 point estimate with an inconclusive interval is not an improvement.
 
+That conjunctive contract remains binding for every campaign and replay
+frozen through terminal-feature persistence ledger `a9b4d57e...`. Those
+decisions are immutable and must not be retrospectively rescored. Before the
+next full Phase 5 replay, however, freeze a new prospective decision contract
+that distinguishes the minimum replacement requirement from later scientific
+improvement:
+
+1. **Binding compatibility and safety.** Require paired non-inferiority to
+   both PyBDSF references on the catalogue fields, masks, and retained/rejected
+   decisions that the pinned Rapthor consumer actually uses. Retain applicable
+   compact/Aegean contracts, deterministic execution, valid products, and
+   predeclared absolute floors for catastrophic loss, false detections,
+   fragmentation, merging, and measurement tails.
+2. **Review-required Hebog regressions.** Compare against the best
+   like-semantics Hebog baseline and require an explicit scientific trade-off
+   for a material regression. A secondary historical Hebog regression is not
+   automatically a PyBDSF-compatibility failure, but it may not be hidden or
+   silently compensated by another metric.
+3. **Improvement objectives.** Continue to report the existing ambitious
+   absolute truth targets and every morphology, scale, boundary, and noise
+   stratum. Make an endpoint binding only when the Rapthor consumer audit or a
+   documented scientific safety argument requires it; otherwise retain it as
+   an improvement target and backlog item.
+
+The mapping must come from a read-only audit of the pinned Rapthor/LSMTool
+consumer contract and scientific risk, not from fitting thresholds or margins
+to the viewed Phase 5 values. It must name the primary endpoints and critical
+safety strata, keep practical non-inferiority margins fixed, define how
+underpowered secondary strata are reported, and be reviewed before a new
+candidate or replay identity is frozen. The same prospective contract then
+governs the cumulative replay and fresh held-out qualification. Until that
+review is accepted, the existing stricter contract remains the active gate.
+
 The main cross-project gates are:
 
 | Metric | Gate |
@@ -401,10 +434,12 @@ chronology and immutable identities remain in `LOG.md` and
 **Status: open.** Multiscale science, combined products, bounded execution,
 the original final qualification, compact regression, and the incremental
 performance budget are complete. Phase 5 is blocked by terminal-cycle
-eligibility, then by the absence of a passing cumulative regression ledger and
-fresh held-out qualification for the eventual corrected candidate. Detailed
-campaign and incident chronology belongs in `LOG.md`; machine identities and
-authorization boundaries remain in `config/contracts/`.
+eligibility, the absence of a fail-fast scientific feedback lane, and a
+prospective Rapthor-bound decision contract. It then requires a passing
+cumulative regression ledger and fresh held-out qualification for the eventual
+corrected candidate. Detailed campaign and incident chronology belongs in
+`LOG.md`; machine identities and authorization boundaries remain in
+`config/contracts/`.
 
 #### Completed evidence
 
@@ -537,6 +572,46 @@ Non-executable review
 `phase-5-public-finder-terminal-cycle-eligibility-pre-review`, SHA-256
 `e70e602f...`, freezes that fixture-only boundary; it authorizes nothing by
 itself.
+
+The full replay is not an appropriate first detector for this class of defect.
+The next correction must therefore establish a reusable fail-fast ladder before
+another 800-compact/1,600-Continuum replay identity can be frozen:
+
+| Lane | Frozen population | Binding purpose | Promotion evidence |
+| --- | --- | --- | --- |
+| End-to-end contract | Tiny analytic products covering compact and Continuum | Exercise the exact producer, wrapper, compiler, evaluator, schema, provenance, and write-once seams | No |
+| Mechanism activation | 20--40 targeted analytic or viewed-development cases | Prove the proposed mechanism activates, rejects unsafe controls, and changes only the intended ownership/topology path | No |
+| Scientific smoke replay | 64--128 stratified viewed-development cases | Compare the candidate with its immediate predecessor across shells, scale-4 emission, corners, boundaries, invalid pixels, artifacts, mixed morphology, and compact overmerge sentinels | No |
+| Full cumulative replay | 800 compact and 1,600 Continuum cases | Provide the powered cumulative regression decision after all earlier lanes pass | Yes |
+
+All lanes must call the same production composition; a mock compiler or a
+different evaluator cannot qualify the full command. The first three lanes
+must remain non-promotional and may use only analytic or already-viewed
+development evidence, never the unopened qualification population. Their
+fail-closed requirements are:
+
+- reproduce the all-features-seeded regression in a red fixture, then retain
+  a persistent unseeded feature only as cycle geometry while deriving source
+  membership solely from seeded direct components;
+- observe non-zero pre-eligibility and repaired activation counts on targeted
+  positive cases; zero activation of the advertised mechanism is a terminal
+  smoke-lane failure;
+- require the expected direction of change relative to terminal-parent
+  candidate `85d5807...`, byte-stable unaffected products where applicable,
+  compact invariance, and all negative overmerge controls;
+- execute every concrete wrapper, worker-reinstallation, record-dispatch,
+  compiler, evaluator, provenance, and atomic-publication seam used by the full
+  replay; and
+- stop before identity freeze when any lane fails. Fix process-only defects
+  test-first, but require renewed scientific review for a source, configuration,
+  threshold, measurement, gate, or population change.
+
+The latest terminal evidence cannot pass even a PyBDSF-parity-oriented
+contract unchanged. Of the applicable paired Continuum comparisons, each
+PyBDSF reference has 66 passes, 11 underpowered endpoints, and one failure:
+overall mask precision. The next review must therefore treat mask precision as
+an explicit compatibility question tied to the Rapthor consumer audit rather
+than assuming that relaxation of unrelated absolute targets is sufficient.
 
 The canonical historical readiness contract remains byte-bound to the failed
 terminal-parent candidate and must not be mutated retroactively. Prospective
@@ -780,26 +855,53 @@ from partial or viewed evidence.
      pre-review; reproduce the regression in a red analytic fixture; implement
      only if confirmed; pass overmerge and executor-invariance controls; and
      freeze replacement identities without executing them.
+   - [ ] Add the exact end-to-end contract and mechanism-activation lanes before
+     replacement identity freeze. The positive eligibility fixture must record
+     non-zero pre-guard rejection and repaired acceptance, while negative
+     bridge, pair, path, disconnected-support, ambiguity, and partial-group
+     controls remain rejected.
+   - [ ] Freeze a 64--128-case viewed-development scientific smoke population
+     and run the exact production producer/compiler/evaluator composition.
+     Require compact invariance, expected direction relative to `85d5807...`,
+     no new Rapthor-critical regression, valid provenance, and successful
+     atomic publication. The smoke result is diagnostic and cannot be pooled
+     with full or qualification evidence.
+   - [ ] Complete the read-only Rapthor/LSMTool consumer audit and freeze the
+     prospective compatibility-and-safety decision contract described in
+     Section 3.1. Preserve every historical decision under its original gate;
+     do not choose endpoints, margins, or safety strata from the candidate's
+     viewed values.
+   - [ ] Only after the fixture, activation, contract, and smoke lanes pass,
+     freeze exact replacement identities and obtain separate authority for one
+     full cumulative replay. Interpret compatibility and absolute safety before
+     improvement objectives, power, or runtime; stop on a scientific failure.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
    - Blocked: the terminal-feature persistence cumulative prerequisite
-     published a terminal failing ledger, so no qualification population may
-     be opened or frozen until a newly reviewed correction publishes a passing
-     cumulative ledger.
+     published a terminal failing ledger. No qualification population may be
+     opened or frozen until the current eligibility regression is fixed, all
+     fail-fast lanes pass, the prospective decision contract is reviewed, and
+     a full cumulative replay publishes a passing ledger.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval.
-   - Require all binding absolute gates and all applicable released/master
-     PyBDSF and Aegean comparisons, including the two Continuum watchpoints.
-     Keep compact regression green and do not pool with or rescore closed
-     campaigns.
+   - Apply the frozen prospective compatibility and absolute-safety gates to
+     all applicable released/master PyBDSF and Aegean comparisons. Report every
+     improvement endpoint and secondary stratum, including the two Continuum
+     watchpoints, without silently promoting it to or removing it from the
+     binding set. Keep compact regression green and do not pool with or rescore
+     closed campaigns.
    - Viewed SDC1/Hydra evidence remains diagnostic historical context, not
      fresh qualification truth.
 
 5. [ ] **Complete the restricted Rapthor profile decision.**
+   - Reuse the earlier read-only consumer audit to identify every field,
+     filename, mask semantic, and filtering decision that is scientifically
+     material to Rapthor. This audit defines the prospective gate mapping but
+     is not execution evidence.
    - Restore the controlled real inputs, freeze their canonical pre-filter
      component population, and run compact and continuum Hebog masks through
      the exact pinned LSMTool filtering operation against both PyBDSF

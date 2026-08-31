@@ -13236,3 +13236,38 @@ starting the two-worker replay.
 approval of pre-review SHA-256 `e70e602f...` before fixture-only
 implementation. Another replay requires separately frozen replacement
 identities and a new exact approval.
+
+## 2026-08-31 — Reframe Phase 5 feedback and promotion gates prospectively
+
+**Plan phase:** Phase 5, closure gates 3--5
+
+- Reviewed terminal-feature persistence ledger `a9b4d57e...` against the
+  stated minimum replacement objective. The candidate passes 66 applicable
+  paired Continuum comparisons, is underpowered on 11, and fails one against
+  each PyBDSF reference; the shared failure is overall mask precision. Its 38
+  absolute failures and 33 like-semantics regressions remain binding terminal
+  failure evidence under the contract used for that replay.
+- Updated the durable plan without rescoring historical evidence. Before
+  another full replay, Phase 5 now requires one production-composition
+  end-to-end contract lane, a 20--40-case mechanism-activation lane, and a
+  frozen 64--128-case viewed-development scientific smoke lane. These lanes
+  are diagnostic only and cannot use or be pooled with held-out qualification
+  evidence.
+- Made the current regression an explicit pre-replay blocker. The red fixture
+  must prove that the all-features-seeded guard removes valid predecessor cycle
+  geometry; the repair must retain an independently persistent unseeded feature
+  only as geometry, keep membership seeded, produce non-zero activation on
+  positive cases, reject all overmerge controls, and preserve compact and
+  executor invariance.
+- Added a prospective evaluation-contract review based on a read-only audit of
+  the pinned Rapthor/LSMTool consumer. Binding compatibility and catastrophic
+  safety are separated from review-required regressions and later improvement
+  objectives. Both PyBDSF references, fixed practical margins, critical safety
+  strata, and transparent reporting of underpowered endpoints remain required.
+  Current campaigns may not be retroactively rescored, and the existing strict
+  contract remains active until a replacement is independently reviewed.
+
+**Immediate next step:** obtain named approval of terminal-cycle eligibility
+pre-review `e70e602f...`. Under that fixture-only authority, reproduce and fix
+the guard regression, then implement the fail-fast lanes and complete the
+Rapthor consumer audit before freezing another candidate or full replay.
