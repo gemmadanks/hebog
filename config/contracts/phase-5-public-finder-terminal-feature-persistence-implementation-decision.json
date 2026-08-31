@@ -1,0 +1,34 @@
+{
+  "approved_on": "2026-08-31",
+  "authorization": {
+    "candidate_identity_freeze_authorized": true,
+    "cumulative_replay_authorized": false,
+    "fixture_validation_authorized": true,
+    "replay_identity_freeze_authorized": true,
+    "terminal_feature_persistence_implementation_authorized": true,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-finder-terminal-feature-persistence-implementation-decision",
+  "exact_approval": "I approve the Phase 5 terminal-feature persistence pre-review SHA-256 e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38 and its recommendations. This authorizes fixture-first implementation and validation of the bounded displaced-child persistence correction, rejection diagnostics, executor-invariance tests, and freezing exact non-executable replacement identities. It does not authorize cumulative replay, viewed-data execution, tuning, rescoring, qualification, cutover, or release.",
+  "implementation_commit": "0180f15d072a683f04b7bdefa2ff236a85ac81c1",
+  "implementation_scope": [
+    "one exact or mutually unique displaced preceding-scale child corroborates only an already seeded terminal cycle",
+    "fixed B3 envelopes and retained significant-support components bound displaced evidence",
+    "disconnected ambiguous unseeded pair path invalid-gap and conflicting evidence fails closed",
+    "array-free exact displaced missing ambiguous and conflict diagnostics",
+    "serial existing-Dask label order task order and retry invariance",
+    "exact non-executable candidate evaluator readiness wrapper and replay identity freezing"
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-public-finder-terminal-feature-persistence-pre-review.json",
+    "sha256": "e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38"
+  },
+  "prohibited_actions": [
+    "cumulative replay or candidate execution",
+    "viewed SDC1 or Hydra execution",
+    "threshold photometric or association tuning",
+    "rescoring closed evidence",
+    "qualification cutover or release"
+  ],
+  "status": "authorized-for-terminal-feature-persistence-composition"
+}

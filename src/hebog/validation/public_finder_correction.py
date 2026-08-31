@@ -72,6 +72,12 @@ _PERSISTENT_SUPPORT_CORROBORATION_POLICY = (
 _TERMINAL_CYCLE_PARENT_POLICY = (
     "three-feature-cycle-all-constituents-adjacent-persistent-v1"
 )
+_TERMINAL_FEATURE_PERSISTENCE_POLICY = (
+    "exact-or-mutually-unique-displaced-b3-support-child-v1"
+)
+_TERMINAL_FEATURE_PERSISTENCE_TELEMETRY_POLICY = (
+    "array-free-terminal-persistence-rejection-census-v1"
+)
 _SOURCE_MEASUREMENT_POLICY = "disjoint-source-owned-aperture-moment-v1"
 _CONNECTED_SUPPORT_POLICY = (
     "direct-seed-connected-half-beam-multiscale-recovery-v1"
@@ -495,6 +501,56 @@ def public_finder_terminal_parent_correction_configuration(  # noqa: PLR0913, PL
             "terminal_parent_implementation_decision_sha256": file_sha256(
                 terminal_parent_implementation_decision_path
             ),
+        }
+    )
+    return {"compact": base["compact"], "continuum": continuum}
+
+
+def public_finder_terminal_feature_persistence_configuration(  # noqa: PLR0913, PLR0917
+    base_review_path: Path,
+    correction_contract_path: Path,
+    source_reconstruction_pre_review_path: Path,
+    source_reconstruction_decision_path: Path,
+    root_cause_pre_review_path: Path,
+    root_cause_implementation_decision_path: Path,
+    parent_construction_pre_review_path: Path,
+    parent_construction_implementation_decision_path: Path,
+    terminal_parent_review_path: Path,
+    terminal_parent_implementation_decision_path: Path,
+    terminal_feature_pre_review_path: Path,
+    terminal_feature_implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Return the non-executable displaced-child persistence identity."""
+    base = public_finder_terminal_parent_correction_configuration(
+        base_review_path,
+        correction_contract_path,
+        source_reconstruction_pre_review_path,
+        source_reconstruction_decision_path,
+        root_cause_pre_review_path,
+        root_cause_implementation_decision_path,
+        parent_construction_pre_review_path,
+        parent_construction_implementation_decision_path,
+        terminal_parent_review_path,
+        terminal_parent_implementation_decision_path,
+    )
+    continuum_value = base["continuum"]
+    if not isinstance(continuum_value, dict):
+        raise TypeError("base Continuum configuration must be a dictionary")
+    continuum = dict(cast(dict[str, object], continuum_value))
+    continuum.update(
+        {
+            "terminal_feature_persistence_policy": (
+                _TERMINAL_FEATURE_PERSISTENCE_POLICY
+            ),
+            "terminal_feature_persistence_telemetry_policy": (
+                _TERMINAL_FEATURE_PERSISTENCE_TELEMETRY_POLICY
+            ),
+            "terminal_feature_persistence_pre_review_sha256": file_sha256(
+                terminal_feature_pre_review_path
+            ),
+            (
+                "terminal_feature_persistence_implementation_decision_sha256"
+            ): file_sha256(terminal_feature_implementation_decision_path),
         }
     )
     return {"compact": base["compact"], "continuum": continuum}
