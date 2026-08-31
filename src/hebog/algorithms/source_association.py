@@ -687,6 +687,10 @@ class _TerminalCycleEvidence:
     missing_child_count: int = 0
     ambiguous_child_count: int = 0
     conflict_count: int = 0
+    pre_eligibility_candidate_count: int = 0
+    unseeded_candidate_count: int = 0
+    unseeded_persistent_accepted_count: int = 0
+    unseeded_persistence_rejected_count: int = 0
 
 
 def _hierarchy_attachments(
@@ -1156,10 +1160,10 @@ def _terminal_feature_persistence(
     }
     parents_by_child: dict[str, set[str]] = {}
     for parent_id in sorted(missing_exact):
-        # Candidate features are terminal detections with an attached direct
-        # owner, so both retained maps contain them by construction.
         parent_envelope = terminal_envelopes[parent_id]
-        parent_component = terminal_components[parent_id]
+        parent_component = terminal_components.get(parent_id)
+        if parent_component is None:
+            continue
         for child_id, child_envelope in preceding_envelopes.items():
             if preceding_components.get(
                 child_id
@@ -1211,15 +1215,8 @@ def _terminal_cycle_evidence(
     )
     candidates: set[frozenset[str]] = set()
     candidate_feature_groups: list[frozenset[str]] = []
+    unseeded_candidate_groups: list[frozenset[str]] = []
     for feature_group in feature_groups:
-        if any(
-            not _components_for_feature_group(
-                frozenset((feature_id,)),
-                attachments,
-            )
-            for feature_id in feature_group
-        ):
-            continue
         component_ids = _components_for_feature_group(
             feature_group,
             attachments,
@@ -1228,6 +1225,14 @@ def _terminal_cycle_evidence(
             continue
         candidates.add(component_ids)
         candidate_feature_groups.append(feature_group)
+        if any(
+            not _components_for_feature_group(
+                frozenset((feature_id,)),
+                attachments,
+            )
+            for feature_id in feature_group
+        ):
+            unseeded_candidate_groups.append(feature_group)
     relevant_feature_ids = (
         frozenset().union(*candidate_feature_groups)
         if (candidate_feature_groups)
@@ -1240,11 +1245,20 @@ def _terminal_cycle_evidence(
         parent_edges,
         relevant_feature_ids,
     )
-    accepted = {
-        _components_for_feature_group(feature_group, attachments)
+    accepted_feature_groups = tuple(
+        feature_group
         for feature_group in candidate_feature_groups
         if feature_group.issubset(persistence.persistent_feature_ids)
+    )
+    accepted = {
+        _components_for_feature_group(feature_group, attachments)
+        for feature_group in accepted_feature_groups
     }
+    accepted_feature_group_set = set(accepted_feature_groups)
+    unseeded_accepted_count = sum(
+        feature_group in accepted_feature_group_set
+        for feature_group in unseeded_candidate_groups
+    )
     ordered = tuple(sorted(accepted, key=lambda item: tuple(sorted(item))))
     return _TerminalCycleEvidence(
         groups=ordered,
@@ -1255,6 +1269,12 @@ def _terminal_cycle_evidence(
         displaced_accepted_count=persistence.displaced_accepted_count,
         missing_child_count=persistence.missing_child_count,
         ambiguous_child_count=persistence.ambiguous_child_count,
+        pre_eligibility_candidate_count=len(feature_groups),
+        unseeded_candidate_count=len(unseeded_candidate_groups),
+        unseeded_persistent_accepted_count=unseeded_accepted_count,
+        unseeded_persistence_rejected_count=(
+            len(unseeded_candidate_groups) - unseeded_accepted_count
+        ),
     )
 
 
@@ -1403,6 +1423,16 @@ def _apply_terminal_cycle_groups(
             missing_child_count=evidence.missing_child_count,
             ambiguous_child_count=evidence.ambiguous_child_count,
             conflict_count=rejected_count - evidence.rejected_count,
+            pre_eligibility_candidate_count=(
+                evidence.pre_eligibility_candidate_count
+            ),
+            unseeded_candidate_count=evidence.unseeded_candidate_count,
+            unseeded_persistent_accepted_count=(
+                evidence.unseeded_persistent_accepted_count
+            ),
+            unseeded_persistence_rejected_count=(
+                evidence.unseeded_persistence_rejected_count
+            ),
         ),
     )
 
@@ -1488,6 +1518,18 @@ def _hierarchy_diagnostics(  # noqa: PLR0913, PLR0917
             terminal_cycles.ambiguous_child_count
         ),
         terminal_persistence_conflict_count=terminal_cycles.conflict_count,
+        terminal_cycle_pre_eligibility_candidate_count=(
+            terminal_cycles.pre_eligibility_candidate_count
+        ),
+        terminal_cycle_unseeded_candidate_count=(
+            terminal_cycles.unseeded_candidate_count
+        ),
+        terminal_cycle_unseeded_persistent_accepted_count=(
+            terminal_cycles.unseeded_persistent_accepted_count
+        ),
+        terminal_cycle_unseeded_persistence_rejected_count=(
+            terminal_cycles.unseeded_persistence_rejected_count
+        ),
     )
 
 
@@ -1511,9 +1553,12 @@ def associate_components_by_multiscale_hierarchy(
     At the last retained scale, a cycle may construct a parent only when every
     constituent feature has an exact child at the preceding scale or one
     mutually unique displaced child corroborated by overlapping fixed B3
-    envelopes in the same retained significant-support component. Displaced
-    evidence cannot create cycles or membership. Partial overlap with an exact
-    group, missing support, branching, or conflicting convergence fails closed.
+    envelopes in the same retained significant-support component. A persistent
+    feature without a direct owner may corroborate cycle geometry but cannot
+    join catalogue membership, which still requires at least three immutable
+    direct components. Displaced evidence cannot create cycles or membership.
+    Partial overlap with an exact group, missing support, branching, or
+    conflicting convergence fails closed.
     """
     labels, planes, valid = _hierarchy_inputs(
         records,

@@ -638,6 +638,24 @@ Non-executable review
 `e70e602f...`, freezes that fixture-only boundary; it authorizes nothing by
 itself.
 
+Gemma Danks approved exact review `e70e602f...` for fixture-only
+implementation and non-executable identity preparation. The required red
+exact-persistence fixture reproduced the loss of a valid three-member parent
+when a fourth persistent cycle feature had no direct owner. The bounded repair
+now evaluates persistence before deriving membership: persistent unseeded
+features may corroborate cycle geometry, but membership still contains only at
+least three immutable direct components. Non-persistent unseeded geometry,
+fewer than three members, pairs, paths, bridges, disconnected support,
+ambiguous children, crowded seeds, and partial-group conflicts remain
+fail-closed. New array-free diagnostics count pre-eligibility cycles and
+unseeded accepted/rejected candidates, and the positive fixture records both
+the formerly rejected seam and repaired activation. Serial and existing-Dask
+results are invariant to component labels, plane/record/task order, and retry.
+The historical evaluator remains byte-unchanged behind a prospective
+eligibility overlay. Replacement replay identities remain deliberately
+unfrozen until the exact end-to-end, parity/retention, evaluator, power, and
+smoke prerequisites below pass.
+
 The full replay is not an appropriate first detector for this class of defect.
 The next correction must therefore establish a reusable fail-fast ladder before
 another 800-compact/1,600-Continuum replay identity can be frozen:
@@ -921,10 +939,11 @@ from partial or viewed evidence.
      activation, the over-restrictive all-features-seeded guard, and a red
      fixture requirement. Exact review `e70e602f...` authorizes no
      implementation or execution.
-   - [ ] Obtain named approval of the exact terminal-cycle eligibility
+   - [x] Obtain named approval of the exact terminal-cycle eligibility
      pre-review; reproduce the regression in a red analytic fixture; implement
-     only if confirmed; pass overmerge and executor-invariance controls; and
-     freeze replacement identities without executing them.
+     only after confirmation; and pass mechanism, overmerge, and
+     executor-invariance controls. Do not freeze replacement replay identities
+     until every fail-fast prerequisite below passes.
    - [ ] Add the exact end-to-end contract and mechanism-activation lanes before
      replacement identity freeze. The positive eligibility fixture must record
      non-zero pre-guard rejection and repaired acceptance, while negative

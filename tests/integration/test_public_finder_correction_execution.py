@@ -368,6 +368,80 @@ def test_source_hierarchy_is_serial_dask_order_and_retry_invariant() -> None:
 
 
 @pytest.mark.integration
+def test_unseeded_cycle_eligibility_is_serial_dask_invariant() -> None:
+    """Persistent geometry never changes membership with execution order."""
+    cycle_pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
+    owner_pixels = cycle_pixels[:3]
+    labels = np.zeros((41, 41), dtype=np.int32)
+    permuted = np.zeros_like(labels)
+    for value, other, pixel in zip(
+        (9, 2, 17),
+        (31, 7, 22),
+        owner_pixels,
+        strict=True,
+    ):
+        labels[pixel] = value
+        permuted[pixel] = other
+    preceding = _hierarchy_cycle_plane(
+        labels.shape,
+        cycle_pixels,
+        scale_order=2,
+    )
+    terminal = _hierarchy_cycle_plane(
+        labels.shape,
+        tuple(reversed(cycle_pixels)),
+        scale_order=3,
+    )
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    permuted_records = build_detection_component_records(
+        permuted,
+        np.asarray(permuted > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    support = np.zeros(labels.shape, dtype=np.bool_)
+    batches: tuple[HierarchyBatch, ...] = (
+        (labels, records, (preceding, terminal), support),
+        (
+            permuted,
+            tuple(reversed(permuted_records)),
+            (terminal, preceding),
+            support,
+        ),
+    )
+    expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
+
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(
+            _reconstruct_hierarchy,
+            (*tuple(reversed(batches)), batches[0]),
+        )
+
+    expected_view = _identity_view(expected[0])
+    assert _identity_view(expected[1]) == expected_view
+    assert [_identity_view(item) for item in actual] == [
+        expected_view,
+        expected_view,
+        expected_view,
+    ]
+    diagnostics = expected[0].hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.catalogue_source_count == 1
+    assert diagnostics.membership_size_histogram == ((3, 1),)
+    assert diagnostics.terminal_cycle_unseeded_candidate_count == 1
+    assert diagnostics.terminal_cycle_unseeded_persistent_accepted_count == 1
+
+
+@pytest.mark.integration
 def test_connected_support_is_serial_dask_order_and_retry_invariant() -> None:
     """Persistent-support corroboration and telemetry are invariant."""
     pixels = ((4, 2), (4, 8), (9, 8))

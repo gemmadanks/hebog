@@ -12,11 +12,21 @@ _REVIEW = (
     / "config/contracts/phase-5-public-finder-terminal-cycle-eligibility-"
     "pre-review.json"
 )
+_DECISION = (
+    _ROOT
+    / "config/contracts/phase-5-public-finder-terminal-cycle-eligibility-"
+    "implementation-decision.json"
+)
 
 
 def _load() -> dict[str, Any]:
     """Load the non-executable scientific pre-review."""
     return json.loads(_REVIEW.read_text(encoding="utf-8"))
+
+
+def _load_decision() -> dict[str, Any]:
+    """Load the exact named implementation authorization."""
+    return json.loads(_DECISION.read_text(encoding="utf-8"))
 
 
 def test_review_is_non_executable() -> None:
@@ -35,6 +45,24 @@ def test_review_is_non_executable() -> None:
         "named-approval-of-this-exact-terminal-cycle-eligibility-pre-"
         "review-for-fixture-only-implementation"
     )
+
+
+def test_decision_records_only_the_named_fixture_authorization() -> None:
+    """The approval permits composition but no scientific execution."""
+    decision = _load_decision()
+    authorization = decision["authorization"]
+
+    assert decision["pre_review"]["sha256"] == (
+        "e70e602f5a7a7c2a703def62ac6e5922c505feb71ae4b6f9def6dfcbf9520cd5"
+    )
+    assert authorization[
+        "terminal_cycle_eligibility_implementation_authorized"
+    ]
+    assert authorization["fixture_validation_authorized"]
+    assert authorization["candidate_identity_freeze_authorized"]
+    assert authorization["replay_identity_freeze_authorized"]
+    assert authorization["cumulative_replay_authorized"] is False
+    assert authorization["viewed_data_execution_authorized"] is False
 
 
 def test_review_binds_the_exact_terminal_failure() -> None:

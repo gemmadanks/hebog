@@ -13352,3 +13352,42 @@ are reviewed.
 implement the eligibility repair and fail-fast lanes. Before any full replay,
 freeze the single incumbent, endpoint registry, realization-level inference,
 and endpoint-level power plan described above.
+
+## 2026-08-31 — Repair terminal-cycle eligibility under fixture authority
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Recorded Gemma Danks's named approval of terminal-cycle eligibility
+  pre-review `e70e602f...`. The authorization permits fixture-only
+  implementation, bounded diagnostics, executor-invariance validation, and
+  non-executable identity preparation; it permits no replay, viewed-data
+  execution, tuning, rescoring, qualification, cutover, or release.
+- Added the required red exact-persistence fixture. Before implementation, a
+  four-feature terminal cycle with three immutable direct owners and one
+  persistent unseeded feature incorrectly produced three singleton catalogue
+  rows instead of one three-member parent. This confirmed the pre-review's
+  proposed all-features-seeded guard as the causal boundary independently of
+  displaced-child matching.
+- Moved terminal-cycle membership eligibility after feature persistence. An
+  unseeded terminal feature can now corroborate only cycle geometry after
+  passing the unchanged exact or mutually unique displaced persistence rule;
+  it can never become a catalogue member, reduce the three-member minimum, or
+  change direct-component or measurement ownership.
+- Added bounded pre-eligibility, unseeded-candidate, accepted, and rejected
+  counts plus a prospective evaluator overlay. The frozen terminal-feature
+  persistence evaluator remains unchanged. Positive exact and displaced
+  fixtures activate the new census, while non-persistent, insufficient-member,
+  pair, path, bridge, disconnected-support, ambiguous-child, crowded-seed,
+  and partial-group controls remain closed.
+- Focused validation passed 85 unit and integration tests, including component
+  label, plane/record/task order, retry, Serial, and existing-Dask invariance;
+  focused Ruff and Pyright checks also passed. Repository coverage passed
+  2,218 tests with 94.76% branch-aware coverage, `just check` passed 2,057
+  tests plus four expected failures, the frozen equivalence lane passed 27
+  tests, and the strict documentation build passed.
+
+**Immediate next step:** build the exact producer/wrapper/compiler/evaluator
+contract lane, freeze the all-check PyBDSF-parity and Hebog-retention contract,
+repair the prospective confidence evaluator, and run the frozen 64--128-case
+scientific smoke lane. Do not freeze or execute a full replay until every
+fail-fast prerequisite passes.

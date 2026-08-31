@@ -136,6 +136,41 @@ def _displaced_terminal_cycle_fixture(
     return labels, records, (preceding, terminal), significant
 
 
+def _unseeded_terminal_cycle_fixture(
+    *,
+    direct_owner_count: int = 3,
+    unseeded_feature_is_persistent: bool = True,
+) -> tuple[
+    np.ndarray,
+    tuple[DetectionComponentRecord, ...],
+    tuple[ScaleDetectionPlane, ScaleDetectionPlane],
+]:
+    """Return a four-feature cycle with only three direct owners."""
+    pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
+    labels, records = _components(
+        pixels[:direct_owner_count],
+        shape=(41, 41),
+    )
+    preceding_pixels = pixels if unseeded_feature_is_persistent else pixels[:3]
+    preceding = _plane(
+        2,
+        tuple(
+            (f"scale-unseeded-child-{index}", (pixel,))
+            for index, pixel in enumerate(preceding_pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+    terminal = _plane(
+        3,
+        tuple(
+            (f"scale-unseeded-parent-{index}", (pixel,))
+            for index, pixel in enumerate(pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+    return labels, records, (preceding, terminal)
+
+
 @pytest.mark.parametrize("offset", ((0, 0), (0, 5), (5, 5)))
 def test_multipeak_shell_uses_one_explicit_common_parent(
     offset: tuple[int, int],
@@ -785,6 +820,78 @@ def test_terminal_cycle_with_persistent_features_constructs_parent() -> None:
     assert diagnostics.rejected_terminal_cycle_count == 0
 
 
+def test_nonpersistent_unseeded_cycle_feature_rejects_parent() -> None:
+    """Unseeded geometry still requires independent persistence."""
+    labels, records, planes = _unseeded_terminal_cycle_fixture(
+        unseeded_feature_is_persistent=False,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1] * 3
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 0
+    assert diagnostics.rejected_terminal_cycle_count == 1
+    assert diagnostics.terminal_cycle_pre_eligibility_candidate_count == 1
+    assert diagnostics.terminal_cycle_unseeded_candidate_count == 1
+    assert diagnostics.terminal_cycle_unseeded_persistent_accepted_count == 0
+    assert diagnostics.terminal_cycle_unseeded_persistence_rejected_count == 1
+
+
+def test_unseeded_cycle_cannot_lower_direct_member_requirement() -> None:
+    """Persistent geometry cannot become a catalogue member."""
+    labels, records, planes = _unseeded_terminal_cycle_fixture(
+        direct_owner_count=2,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_pre_eligibility_candidate_count == 1
+    assert diagnostics.terminal_cycle_candidate_count == 0
+    assert diagnostics.terminal_cycle_parent_count == 0
+    assert diagnostics.terminal_cycle_unseeded_candidate_count == 0
+
+
+def test_persistent_unseeded_cycle_feature_corroborates_seeded_parent() -> (
+    None
+):
+    """Persistent geometry may corroborate but never join membership."""
+    labels, records, planes = _unseeded_terminal_cycle_fixture()
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [3]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 1
+    assert diagnostics.rejected_terminal_cycle_count == 0
+    assert diagnostics.terminal_cycle_pre_eligibility_candidate_count == 1
+    assert diagnostics.terminal_cycle_unseeded_candidate_count == 1
+    assert diagnostics.terminal_cycle_unseeded_persistent_accepted_count == 1
+    assert diagnostics.terminal_cycle_unseeded_persistence_rejected_count == 0
+
+
 def test_terminal_cycle_accepts_unique_displaced_persistent_children() -> None:
     """A bounded one-pixel scale drift preserves a terminal-cycle parent."""
     labels, records, planes, significant = _displaced_terminal_cycle_fixture()
@@ -906,8 +1013,10 @@ def test_displaced_evidence_cannot_create_a_terminal_pair() -> None:
     assert diagnostics.terminal_persistence_displaced_accepted_count == 0
 
 
-def test_unseeded_terminal_feature_rejects_displaced_cycle() -> None:
-    """A cycle feature without a direct owner cannot help make a parent."""
+def test_persistent_unseeded_terminal_feature_accepts_displaced_cycle() -> (
+    None
+):
+    """A uniquely displaced unseeded feature may corroborate geometry."""
     terminal_pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
     preceding_pixels = ((9, 9), (9, 31), (31, 9), (31, 31))
     labels, records = _components(terminal_pixels[:3], shape=(41, 41))
@@ -954,11 +1063,14 @@ def test_unseeded_terminal_feature_rejects_displaced_cycle() -> None:
         significant_multiscale_support=significant,
     )
 
-    assert [len(item.component_ids) for item in result.memberships] == [1] * 3
+    assert [len(item.component_ids) for item in result.memberships] == [3]
     diagnostics = result.hierarchy_diagnostics
     assert diagnostics is not None
-    assert diagnostics.terminal_cycle_candidate_count == 0
-    assert diagnostics.terminal_cycle_parent_count == 0
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 1
+    assert diagnostics.terminal_persistence_displaced_accepted_count == 4
+    assert diagnostics.terminal_cycle_unseeded_candidate_count == 1
+    assert diagnostics.terminal_cycle_unseeded_persistent_accepted_count == 1
 
 
 def test_displaced_terminal_parent_cannot_override_partial_group() -> None:
@@ -1262,6 +1374,25 @@ def test_hierarchy_diagnostics_reject_inconsistent_counts() -> None:
         replace(
             diagnostics,
             terminal_persistence_conflict_count=1,
+        )
+    with pytest.raises(ValueError, match="exceed pre-eligibility"):
+        replace(
+            diagnostics,
+            terminal_cycle_candidate_count=2,
+            terminal_cycle_pre_eligibility_candidate_count=1,
+        )
+    with pytest.raises(ValueError, match=r"unseeded.*exceed pre-eligibility"):
+        replace(
+            diagnostics,
+            terminal_cycle_pre_eligibility_candidate_count=1,
+            terminal_cycle_unseeded_candidate_count=2,
+            terminal_cycle_unseeded_persistent_accepted_count=2,
+        )
+    with pytest.raises(ValueError, match="outcomes must match"):
+        replace(
+            diagnostics,
+            terminal_cycle_pre_eligibility_candidate_count=1,
+            terminal_cycle_unseeded_candidate_count=1,
         )
     with pytest.raises(ValueError, match="match association"):
         replace(

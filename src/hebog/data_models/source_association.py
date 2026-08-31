@@ -184,6 +184,39 @@ def _validate_terminal_persistence_counts(
         )
 
 
+def _validate_terminal_cycle_eligibility_counts(
+    *,
+    pre_eligibility_count: int,
+    candidate_count: int,
+    unseeded_candidate_count: int,
+    unseeded_accepted_count: int,
+    unseeded_rejected_count: int,
+) -> None:
+    """Require bounded terminal-cycle eligibility outcomes."""
+    if (
+        pre_eligibility_count == 0
+        and unseeded_candidate_count == 0
+        and unseeded_accepted_count == 0
+        and unseeded_rejected_count == 0
+    ):
+        # Historical sidecars predate the prospective eligibility census.
+        return
+    if candidate_count > pre_eligibility_count:
+        raise ValueError(
+            "terminal-cycle candidates exceed pre-eligibility cycles"
+        )
+    if unseeded_candidate_count > pre_eligibility_count:
+        raise ValueError(
+            "unseeded terminal-cycle candidates exceed pre-eligibility cycles"
+        )
+    if unseeded_accepted_count + unseeded_rejected_count != (
+        unseeded_candidate_count
+    ):
+        raise ValueError(
+            "unseeded terminal-cycle outcomes must match candidates"
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class SourceHierarchyDiagnostics:
     """Compact array-free exact and scale-aware hierarchy evidence."""
@@ -213,6 +246,10 @@ class SourceHierarchyDiagnostics:
     terminal_persistence_missing_child_count: int = 0
     terminal_persistence_ambiguous_child_count: int = 0
     terminal_persistence_conflict_count: int = 0
+    terminal_cycle_pre_eligibility_candidate_count: int = 0
+    terminal_cycle_unseeded_candidate_count: int = 0
+    terminal_cycle_unseeded_persistent_accepted_count: int = 0
+    terminal_cycle_unseeded_persistence_rejected_count: int = 0
 
     def __post_init__(self) -> None:
         """Require canonical non-negative counts and exact cardinalities."""
@@ -239,6 +276,10 @@ class SourceHierarchyDiagnostics:
             self.terminal_persistence_missing_child_count,
             self.terminal_persistence_ambiguous_child_count,
             self.terminal_persistence_conflict_count,
+            self.terminal_cycle_pre_eligibility_candidate_count,
+            self.terminal_cycle_unseeded_candidate_count,
+            self.terminal_cycle_unseeded_persistent_accepted_count,
+            self.terminal_cycle_unseeded_persistence_rejected_count,
         )
         if any(value < 0 for value in scalar_counts):
             raise ValueError("source hierarchy counts must be non-negative")
@@ -300,6 +341,21 @@ class SourceHierarchyDiagnostics:
             ),
             conflict_count=self.terminal_persistence_conflict_count,
             rejected_cycle_count=self.rejected_terminal_cycle_count,
+        )
+        _validate_terminal_cycle_eligibility_counts(
+            pre_eligibility_count=(
+                self.terminal_cycle_pre_eligibility_candidate_count
+            ),
+            candidate_count=self.terminal_cycle_candidate_count,
+            unseeded_candidate_count=(
+                self.terminal_cycle_unseeded_candidate_count
+            ),
+            unseeded_accepted_count=(
+                self.terminal_cycle_unseeded_persistent_accepted_count
+            ),
+            unseeded_rejected_count=(
+                self.terminal_cycle_unseeded_persistence_rejected_count
+            ),
         )
 
 

@@ -1,0 +1,36 @@
+{
+    "approved_on": "2026-08-31",
+    "authorization": {
+        "candidate_identity_freeze_authorized": true,
+        "cumulative_replay_authorized": false,
+        "fixture_validation_authorized": true,
+        "replay_identity_freeze_authorized": true,
+        "terminal_cycle_eligibility_implementation_authorized": true,
+        "viewed_data_execution_authorized": false
+    },
+    "decision_id": "phase-5-public-finder-terminal-cycle-eligibility-implementation-decision",
+    "exact_approval": "I approve the Phase 5 terminal-cycle eligibility pre-review SHA-256 e70e602f5a7a7c2a703def62ac6e5922c505feb71ae4b6f9def6dfcbf9520cd5 and its recommendations. This authorizes test-first implementation and fixture-only validation of the terminal-cycle eligibility repair, bounded non-binding diagnostics, Serial/existing-Dask invariance validation, and freezing exact non-executable replacement identities. It does not authorize a cumulative replay, viewed-data execution, fresh qualification, optimization, tuning, rescoring, cutover, or release.",
+    "implementation_base_revision": "f73a08ef2b8f4d2c9ffee097dd564fce5732414d",
+    "implementation_scope": [
+        "persistent seeded and unseeded terminal features may corroborate same-scale cycle geometry",
+        "catalogue membership remains limited to at least three immutable direct components",
+        "unseeded features independently satisfy the existing exact or mutually unique displaced persistence rule",
+        "bounded pre-eligibility unseeded acceptance and rejection diagnostics",
+        "bridge pair path disconnected support ambiguity and partial-group evidence remains fail-closed",
+        "Serial existing-Dask label plane record task order and retry invariance",
+        "exact non-executable candidate evaluator and replay identity freezing"
+    ],
+    "pre_review": {
+        "path": "config/contracts/phase-5-public-finder-terminal-cycle-eligibility-pre-review.json",
+        "sha256": "e70e602f5a7a7c2a703def62ac6e5922c505feb71ae4b6f9def6dfcbf9520cd5"
+    },
+    "prohibited_actions": [
+        "cumulative replay or candidate execution",
+        "viewed SDC1 or Hydra execution",
+        "fresh qualification",
+        "optimization threshold photometric or association tuning",
+        "rescoring closed evidence",
+        "cutover or release"
+    ],
+    "status": "authorized-for-terminal-cycle-eligibility-composition"
+}

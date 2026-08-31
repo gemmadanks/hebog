@@ -123,6 +123,29 @@ persistence rule; it may never add catalogue membership. Thresholds,
 measurement, gates, references, and closed evidence remain fixed, and no new
 group-wide support rule is introduced.
 
-Implementation requires named approval of that exact pre-review. Another
-replay would require separately frozen replacement identities and a new exact
-approval.
+Gemma Danks approved that exact pre-review for fixture-only implementation.
+The required red fixture then reproduced the regression without displaced
+matching: a persistent four-feature cycle with three direct owners was
+incorrectly discarded, yielding three singleton sources. This confirms the
+all-features-seeded guard as the causal boundary.
+
+The prospective repair now evaluates every eligible cycle feature with the
+unchanged persistence rule before deriving membership. A persistent unseeded
+feature may corroborate cycle geometry, but it cannot become a catalogue
+member; the accepted parent must still contain at least three immutable direct
+components. A new bounded census records pre-eligibility cycles, cycles with
+unseeded geometry, accepted persistent-unseeded cycles, and persistence
+rejections.
+
+Positive exact and displaced fixtures now produce one three-member parent and
+non-zero mechanism activation. Non-persistent unseeded geometry, fewer than
+three direct members, disconnected support, ambiguous children, pairs, paths,
+bridges, crowded seeds, and partial-group conflicts remain rejected. Serial
+and existing-Dask execution are invariant to labels, feature-plane and record
+order, task order, and retry.
+
+This remains fixture evidence, not a new cumulative scientific result. The
+full-replay identity will not be frozen until the exact end-to-end contract,
+all-check PyBDSF-parity and Hebog-retention evaluator, prospective power plan,
+and 64--128-case scientific smoke lane pass. A future full replay still
+requires a separately frozen identity and explicit execution approval.

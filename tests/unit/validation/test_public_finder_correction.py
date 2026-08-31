@@ -30,6 +30,7 @@ from hebog.validation.public_finder_correction import (
     public_finder_source_hierarchy_parent_construction_configuration,
     public_finder_source_reconstruction_candidate_configuration,
     public_finder_source_reconstruction_root_cause_repair_configuration,
+    public_finder_terminal_cycle_eligibility_configuration,
     public_finder_terminal_feature_persistence_configuration,
     public_finder_terminal_parent_correction_configuration,
 )
@@ -527,6 +528,53 @@ def test_terminal_feature_persistence_configuration_binds_exact_authority(
     )
     assert continuum[
         "terminal_feature_persistence_implementation_decision_sha256"
+    ] == file_sha256(decision)
+
+
+def test_terminal_cycle_eligibility_configuration_binds_exact_authority(
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    """The eligibility identity changes no preceding science policy."""
+    mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "public_finder_terminal_feature_persistence_configuration",
+        return_value={"compact": {"frozen": True}, "continuum": {"base": 1}},
+    )
+    review = tmp_path / "terminal-cycle-review.json"
+    decision = tmp_path / "terminal-cycle-decision.json"
+    review.write_text('{"review": 6}\n', encoding="utf-8")
+    decision.write_text('{"decision": 6}\n', encoding="utf-8")
+
+    configuration = public_finder_terminal_cycle_eligibility_configuration(
+        tmp_path / "base.json",
+        tmp_path / "correction.json",
+        tmp_path / "source-review.json",
+        tmp_path / "source-decision.json",
+        tmp_path / "root-review.json",
+        tmp_path / "root-decision.json",
+        tmp_path / "parent-review.json",
+        tmp_path / "parent-decision.json",
+        tmp_path / "terminal-parent-review.md",
+        tmp_path / "terminal-parent-decision.json",
+        tmp_path / "terminal-feature-review.json",
+        tmp_path / "terminal-feature-decision.json",
+        review,
+        decision,
+    )
+
+    continuum = cast(dict[str, object], configuration["continuum"])
+    assert continuum["terminal_cycle_eligibility_policy"] == (
+        "persistent-unseeded-geometry-seeded-membership-v1"
+    )
+    assert continuum["terminal_cycle_eligibility_telemetry_policy"] == (
+        "array-free-terminal-cycle-eligibility-census-v1"
+    )
+    assert continuum["terminal_cycle_eligibility_pre_review_sha256"] == (
+        file_sha256(review)
+    )
+    assert continuum[
+        "terminal_cycle_eligibility_implementation_decision_sha256"
     ] == file_sha256(decision)
 
 
