@@ -472,17 +472,28 @@ singleton catalogue sources. All 1,923 parent candidates first appeared at
 scale 3, so the identical-group recurrence rule could never accept one at the
 next nonexistent scale.
 
-The prospective correction replaces that impossible requirement with two
-fail-closed safeguards: connected adjacent-scale significant support may only
-corroborate non-terminal hierarchy evidence and cannot itself merge pairs or
-paths, while a terminal feature cycle is admitted only when every constituent
-has an exact child at the preceding scale. It changes no threshold,
-measurement, gate, reference, or closed evidence. Positive activation,
-connected-island overmerge, invalid/unseeded support, ambiguous-owner,
-partial-group conflict, terminal-persistence, label/order/retry, and
-Serial/existing-Dask fixtures pass. This implementation is non-executable;
-exact identity freezing, replay, viewed-data execution, qualification, tuning,
-rescoring, cutover, and release remain unauthorized.
+That prospective correction was frozen and executed as candidate `85d5807...`.
+Terminal ledger `e2ee663f...` proves material but insufficient improvement:
+compact passes, while Continuum moves from 89 to 96 passing endpoints, from 44
+to 35 failures, and from 37 to 30 like-semantics regressions. Overall
+reliability rises from 62.38% to 85.21%; duplicate and split fractions fall
+from 25.29% to 12.83%; flux p95 falls from 79.26% to 26.94%; and position p95
+falls from 4.18 to 0.98 beam. The cumulative gate nevertheless remains closed.
+Shell splitting falls from 100% to 34.56%, showing that accepted terminal
+parents work but parent activation is incomplete.
+
+Non-executable pre-review
+`phase-5-public-finder-terminal-feature-persistence-pre-review` binds that
+terminal evidence and separates the confirmed incomplete activation from the
+still-unproven exact cause. Its exact SHA-256 is `e416f7d8...`. It proposes
+fixture-first testing of the narrow exact-overlap persistence seam: a terminal
+feature may use a mutually unique
+preceding-scale displaced child only when fixed B3 envelopes overlap and both
+exact supports belong to the same retained significant-support component.
+This evidence may corroborate persistence only; it cannot create cycles,
+pairs, paths, or source membership. Implementation, identity freezing, replay,
+viewed-data execution, qualification, tuning, rescoring, cutover, and release
+remain unauthorized pending named approval of the exact review.
 
 The readiness contract remains bound to failed source-reconstruction candidate
 `42c75f4...`, source tree `1b67c7f6...`, configuration `470e918d...`, and the
@@ -685,11 +696,25 @@ from partial or viewed evidence.
      `2c40315f...` passed all 2,400 inputs, 9,600 reference runs, the persisted
      association-sidecar seam, and the sidecar-aware evaluator seam under
      review `42c35481...` without creating scratch or output.
-   - [ ] Execute the separately approved exact two-worker cumulative replay
-     under decision `f6d2bcc8...`; monitor only operational state until its
-     atomic ledger appears, then interpret compact and Continuum science before
-     power. A scientific failure is terminal evidence for this candidate; only
-     a process defect may be fixed without changing its science identity.
+   - [x] Execute the separately approved exact two-worker cumulative replay
+     under decision `f6d2bcc8...`. All 2,400 products completed and terminal
+     ledger `e2ee663f...` was published. Compact passes. Continuum materially
+     improves to 96 pass, 35 fail, 12 underpowered, and 30 regressions, but the
+     cumulative gate remains false; this candidate is terminally failed and
+     may not be rerun or rescored.
+   - [x] Freeze a non-executable terminal-feature persistence pre-review that
+     accounts for all 35 failures, records the seven removed regressions and
+     nine improved states, separates confirmed incomplete activation from the
+     unproven exact-overlap attribution, and retains every tuning and execution
+     prohibition.
+   - [ ] Obtain named approval of terminal-feature persistence pre-review
+     SHA-256 `e416f7d8...`. Only then add the red displaced-child fixture,
+     implement the smallest mutually unique B3/support-component persistence
+     repair if that fixture confirms the cause, retain bounded rejection
+     diagnostics, pass all overmerge and executor controls, and freeze
+     non-executable replacement identities. The user's broad replay intent
+     cannot bind identities that do not yet exist; execution still requires an
+     exact review-bound decision.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

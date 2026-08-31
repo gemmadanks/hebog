@@ -1,0 +1,217 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-terminal-feature-persistence-repair",
+    "fixture-only-positive-and-overmerge-safety-validation",
+    "bounded-non-binding-hierarchy-diagnostics",
+    "serial-and-existing-dask-invariance-validation",
+    "non-executable-candidate-and-replay-identity-freeze"
+  ],
+  "authorization": {
+    "campaign_execution_authorized": false,
+    "candidate_identity_freeze_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "public_development_execution_authorized": false,
+    "release_authorized": false,
+    "replay_identity_freeze_authorized": false,
+    "rescoring_authorized": false,
+    "terminal_feature_persistence_implementation_authorized": false,
+    "threshold_or_photometric_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "base_revision": "c1614c2e1b7f8a47877c20a97bb732541ae039d2",
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "failed_candidate": {
+      "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+      "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+      "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+    },
+    "programs": {
+      "candidate_composition_sha256": "1e9483fc033f6e78987b90aafb8a67302071a53e622376d368d229c2cbcee3c0",
+      "hierarchy_sha256": "2532c9117411350a7f1184b79446d5dbedb3ede4d273ef97931b024988704d52"
+    },
+    "reconstructed_reference_terminal_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "terminal_parent_authority": {
+      "execution_decision_sha256": "f6d2bcc860748f9f0b778b4362d5c4183d807d4b472d2cfb717e5d28034c054a",
+      "identity_review_sha256": "42c354811bb00625e1e1576880f1171daad3acac49e244848b1ceb02fca169ea",
+      "implementation_decision_sha256": "88083eb3de4ab595b2f8519d1a896f65cf83161ce7abe96a87c575fd9692d26c",
+      "review_sha256": "fe528316afbdde27fbdf481aeac57dfc8b6146b2addf56e7880e1447717531c0"
+    },
+    "terminal_parent_ledger": {
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json",
+      "sha256": "e2ee663f4eade383518eabbafda5cd33bfe9808b4a9b37492a77337738b611db"
+    },
+    "terminal_product_set_sha256": "de69d4edfe49e8b6048b59a9ad24a5532823ae78fd05daf54ab09115636fb143"
+  },
+  "causal_findings": {
+    "confirmed_effect": {
+      "classification": "terminal-powered-cumulative-evidence",
+      "description": "The terminal-cycle parent path materially changed governed source membership: 54 of 143 Continuum point estimates changed, nine endpoint states improved, and no compact regression appeared.",
+      "improvements": {
+        "continuum_duplicate_fraction_overall": {
+          "before": 0.2529464285714285,
+          "after": 0.12830357142857138
+        },
+        "continuum_position_p95_beams": {
+          "before": 4.180275456167185,
+          "after": 0.9762440933796167
+        },
+        "continuum_reliability": {
+          "before": 0.6237540792540792,
+          "after": 0.8521211514180266
+        },
+        "continuum_split_fraction_overall": {
+          "before": 0.2529464285714285,
+          "after": 0.12830357142857138
+        },
+        "like_semantics_regressions": {
+          "before": 37,
+          "after": 30
+        }
+      }
+    },
+    "confirmed_remaining_failure": {
+      "all_required_endpoints_pass": false,
+      "classification": "terminal-powered-cumulative-evidence",
+      "compact": {
+        "like_semantics_regression_count": 0,
+        "status": "pass"
+      },
+      "continuum_status_counts": {
+        "fail": 35,
+        "indeterminate": 0,
+        "pass": 96,
+        "underpowered": 12
+      },
+      "cumulative_science_regression_ready": false,
+      "description": "The correction is scientifically beneficial but incomplete. Compact passes. Continuum has 96 passes, 35 failures, 12 underpowered endpoints, and 30 like-semantics regressions; cumulative_science_regression_ready and all_required_endpoints_pass remain false.",
+      "failed_endpoint_ids": [
+        "continuum--reliability--overall",
+        "continuum--integrated-flux-median--above-compact-deblend-limit",
+        "continuum--integrated-flux-median--morphology-shell",
+        "continuum--integrated-flux-median--tile-corner",
+        "continuum--integrated-flux-p95--overall",
+        "continuum--integrated-flux-p95--above-compact-deblend-limit",
+        "continuum--integrated-flux-p95--morphology-shell",
+        "continuum--integrated-flux-p95--scale-4-beam",
+        "continuum--integrated-flux-p95--tile-boundary",
+        "continuum--integrated-flux-p95--tile-corner",
+        "continuum--integrated-flux-p95--varying-noise",
+        "continuum--position-p95--overall",
+        "continuum--position-p95--above-compact-deblend-limit",
+        "continuum--position-p95--morphology-shell",
+        "continuum--position-p95--scale-4-beam",
+        "continuum--position-p95--tile-boundary",
+        "continuum--position-p95--tile-corner",
+        "continuum--position-p95--varying-noise",
+        "continuum--duplicate-fraction--overall",
+        "continuum--duplicate-fraction--above-compact-deblend-limit",
+        "continuum--duplicate-fraction--morphology-artifact",
+        "continuum--duplicate-fraction--morphology-shell",
+        "continuum--duplicate-fraction--scale-1-beam",
+        "continuum--duplicate-fraction--scale-4-beam",
+        "continuum--duplicate-fraction--tile-boundary",
+        "continuum--duplicate-fraction--tile-corner",
+        "continuum--duplicate-fraction--varying-noise",
+        "continuum--mask-precision--overall",
+        "continuum--split-fraction--overall",
+        "continuum--split-fraction--above-compact-deblend-limit",
+        "continuum--split-fraction--morphology-artifact",
+        "continuum--split-fraction--morphology-shell",
+        "continuum--split-fraction--scale-1-beam",
+        "continuum--split-fraction--tile-boundary",
+        "continuum--split-fraction--tile-corner"
+      ],
+      "like_semantics_regression_count": 30,
+      "scientific_interpretation": "The remaining flux and position tails co-occur with residual source splitting. Shell split and duplicate fractions fell from 1.0 to 0.345625, while shell median integrated-flux error fell from 0.7645747153563076 to 0.10390419061992509. This identifies incomplete parent activation, rather than a generally broken source measurement, as the primary remaining blocker."
+    },
+    "confirmed_algorithm_boundary": {
+      "classification": "code-path-inspection",
+      "description": "A terminal cycle is admitted only when every feature in its same-scale envelope cycle is the exact-support parent of a preceding-scale feature. Adjacent-scale association currently requires pixel-for-pixel support overlap. Boundary drift can therefore reject persistent emission even though the existing B3 footprint and retained adjacent-scale reconstruction provide bounded corroborating evidence.",
+      "implementation_path": [
+        "adjacent_scale_overlap_edges builds only exact support-overlap edges",
+        "_terminal_cycle_evidence finds a cycle-supported terminal feature group",
+        "feature_group.issubset(terminal_parents_with_children) requires an exact incoming edge for every constituent",
+        "one missing exact edge rejects the whole otherwise coherent terminal parent"
+      ]
+    },
+    "unresolved_attribution": {
+      "classification": "must-be-separated-by-fixture-before-implementation",
+      "description": "The terminal ledger intentionally retains no per-image sidecars and the wrapper deleted transient products after atomic publication. It therefore proves incomplete activation but cannot distinguish missing exact child overlap, absence of a cycle candidate, or conflict with an existing group for each rejected realization.",
+      "required_resolution": "A red analytic boundary-drift fixture and explicit rejection-reason telemetry must establish the proposed exact-overlap failure before the scientific repair is implemented."
+    },
+    "excluded_causes": {
+      "compact_science": "Compact passes with no like-semantics regression.",
+      "candidate_or_reference_identity": "The terminal ledger binds the exact candidate, source tree, configuration, replay decision, reconstructed reference, closed baseline, and immutable execution checkout.",
+      "general_source_measurement_failure": "Typical Continuum integrated-flux error passes at 4.53%, and accepted shell parents materially improve median flux and astrometry.",
+      "merge_regression": "Overall merge fraction remains exactly zero.",
+      "operational_failure": "All 2,400 candidate products completed and the atomic ledger was published successfully."
+    }
+  },
+  "change_control": {
+    "forbidden_same_change": [
+      "background-or-rms-estimator-changes",
+      "detection-or-island-threshold-changes",
+      "minimum-island-area-changes",
+      "measurement-or-photometry-changes",
+      "recovery-or-aperture-radius-changes",
+      "beam-or-wcs-interpretation-changes",
+      "truth-aware-or-reference-finder-association",
+      "terminal-product-derived-numeric-constants",
+      "gate-or-margin-changes",
+      "runtime-optimization",
+      "retrospective-rescoring"
+    ],
+    "historical_evidence_immutable": true,
+    "identity_freeze_blocked_until_fixture_acceptance": true,
+    "terminal_failure_immutable": true
+  },
+  "recommended_design": {
+    "acceptance_boundary": "Repair only terminal-feature persistence evidence. Preserve the cycle-supported parent candidate, immutable direct components, exact measurement ownership, source measurement, topology scoring, thresholds, gates, references, and closed evidence.",
+    "candidate_rule": "A terminal cycle constituent remains persistent when it has an exact incoming adjacent-scale edge, or when one unique preceding-scale feature is a mutually unambiguous displaced child: their fixed B3-footprint envelopes overlap, both exact supports belong to the same retained significant-reconstruction component, and neither feature participates in another displaced match. Displaced evidence may corroborate persistence only; it cannot create a cycle, pair, path, source member, or transitive merge.",
+    "fixed_not_tuned": [
+      "existing retained scale orders and significance masks",
+      "existing B3 filter footprint geometry",
+      "existing eight-connected significant-reconstruction components",
+      "existing cycle-supported terminal parent candidates",
+      "existing exact direct component and measurement-owner identities",
+      "mutual uniqueness and whole-group fail-closed reconciliation"
+    ],
+    "implementation_sequence": [
+      "add a red analytic terminal-cycle fixture whose persistent preceding-scale child is displaced without exact support overlap",
+      "prove that the current exact-edge rule rejects that fixture for the intended reason",
+      "add disconnected-support ambiguous-child unseeded-feature nearby-pair transitive-path invalid-gap and partial-group negative controls",
+      "implement one pure bounded adjacent-scale persistence summary using the fixed B3 footprint and retained support component labels",
+      "record exact-edge displaced-edge missing-child ambiguous-child candidate accepted and conflict counts in immutable diagnostics",
+      "retain a bounded aggregate of those diagnostics in every future terminal ledger without changing binding scoring",
+      "prove component-label plane-order task-order retry Serial and existing-Dask invariance",
+      "freeze exact non-executable candidate wrapper evaluator readiness and output identities only after every positive and negative fixture passes"
+    ],
+    "no_new_fitted_numeric_thresholds": true,
+    "rejected_shortcuts": [
+      "accepting every terminal cycle without persistence",
+      "using connected significant support as source membership",
+      "accepting terminal pairs or paths",
+      "centroid-distance association",
+      "unbounded dilation",
+      "truth or PyBDSF assisted grouping",
+      "changing thresholds gates margins or aperture definitions"
+    ]
+  },
+  "required_next_decision": "named-approval-of-this-exact-terminal-feature-persistence-pre-review-for-fixture-only-implementation",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-review",
+    "reproduce-the-exact-overlap-gap-in-a-red-analytic-fixture",
+    "implement-only-if-the-fixture-confirms-the-proposed-cause",
+    "pass-positive-negative-and-executor-invariance-controls",
+    "freeze-exact-non-executable-candidate-and-replay-identities",
+    "bind-the-existing-broad-replay-intent-to-those-new-exact-identities-before-execution"
+  ],
+  "review_id": "phase-5-public-finder-terminal-feature-persistence-pre-review",
+  "reviewed_on": "2026-08-31",
+  "schema_version": 1,
+  "status": "ready-for-named-terminal-feature-persistence-review"
+}

@@ -13021,3 +13021,59 @@ approved replay authority.
 immutable execution checkout, repeat the complete no-write preflight there,
 then start exactly one two-worker replay and monitor only operational state
 until the atomic ledger exists.
+
+## 2026-08-31 — Close the terminal-parent replay as improved failure
+
+**Plan phase:** Phase 5, closure gate 3
+
+- The immutable execution checkout `c1614c2...` repeated the complete no-write
+  verification of all 2,400 inputs and 9,600 retained reference runs, then ran
+  the exact two-worker replay under one-use decision `f6d2bcc8...`. All 2,400
+  candidate products completed and the process atomically published
+  `cumulative-regression-ledger-public-finder-terminal-parent-correction.json`,
+  SHA-256 `e2ee663f4eade383518eabbafda5cd33bfe9808b4a9b37492a77337738b611db`.
+  No process repair, duplicate replay, or partial-science inspection occurred.
+- Terminal provenance binds candidate `85d5807...`, source tree `a082cbe4...`,
+  configuration `88ac8bea...`, replay checkout `c1614c2...`, identity review
+  `42c35481...`, execution decision `f6d2bcc8...`, reconstructed reference
+  `48209eae...`, closed baseline `a45303df...`, and transient candidate product
+  set `de69d4ed...`.
+- Compact passed with no like-semantics regression. Continuum recorded 96
+  passes, 35 failures, 12 underpowered endpoints, no indeterminate endpoints,
+  and 30 like-semantics regressions. Both cumulative readiness booleans remain
+  false, so qualification and every later Phase 5 gate remain closed.
+- The correction had a large intended effect without overmerge regression:
+  overall reliability rose from 62.38% to 85.21%, duplicate and split
+  fractions fell from 25.29% to 12.83%, integrated-flux p95 fell from 79.26%
+  to 26.94%, position p95 fell from 4.18 to 0.98 beam, and merge fraction
+  remained zero. Fifty-four Continuum values and nine endpoint states changed;
+  seven like-semantics regressions were removed. Shell splitting fell from
+  100% to 34.56%, and shell median flux error fell from 76.46% to 10.39%.
+- The remaining failure is therefore incomplete activation of scientifically
+  useful parents, not dormant composition or generally invalid source-level
+  measurement. The exact code path still requires pixel-overlap child edges
+  for every terminal-cycle feature. The terminal ledger deliberately contains
+  no per-image sidecars, so missing exact overlap remains a bounded hypothesis,
+  not a proven per-realization cause.
+- Added non-executable pre-review
+  `phase-5-public-finder-terminal-feature-persistence-pre-review`. It binds all
+  35 failures and requires a red analytic boundary-drift fixture before any
+  implementation. The proposed narrow repair permits only mutually unique
+  preceding-scale displaced-child corroboration through the fixed B3 footprint
+  and the same retained significant-support component. It cannot create a
+  cycle, pair, path, or membership; thresholds, measurement, gates, references,
+  and closed evidence remain unchanged. The review also requires bounded
+  rejection-reason aggregates in the next ledger.
+- Final review SHA-256 is
+  `e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38`.
+- Validation passed: five focused contract tests, `just check` (2,013 passed,
+  four expected failures), `just coverage` (2,172 passed, four expected
+  failures, 94.69%), all 27 applicable equivalence tests, strict docs build,
+  and clean `just pre-commit`. Review against `CODE_REVIEW.md` found no
+  actionable issue; this evidence-only change alters no production behavior.
+
+**Immediate next step:** commit the immutable terminal summary and obtain named
+approval of review SHA-256 `e416f7d8...`.
+Only that approval may open fixture-first implementation and non-executable
+identity freezing; the existing broad replay intent cannot bind identities
+that do not yet exist.

@@ -19,6 +19,7 @@ across decisions, or replace a failed result with a later interpretation.
 | Source-association measurement-repair replay | Test whether conservative component association and complete measurement records fixed the remaining Continuum failures | Fail | Association changed point estimates but no endpoint status. Compact passed; source reconstruction, source-level measurement, and mask precision remain open. |
 | Source-reconstruction cumulative replay | Test deterministic multiscale hierarchy, one source-level measurement, connected support, and source-union topology | Fail | Compact passed, but Continuum again had 44 failures and 37 regressions. The hierarchy did not change governed source membership or fragmentation. |
 | Parent-construction cumulative replay | Test whether scale-aware parent envelopes and persistence create the intended catalogue-source parents | Fail | Compact passed, but all 143 Continuum endpoint values and decisions were unchanged. The parent-construction path still did not change governed source membership. |
+| Terminal-parent cumulative replay | Test the persistent terminal-cycle correction on the complete cumulative population | Fail, materially improved | Compact passed. Continuum improved from 89 to 96 passing endpoints; split and duplicate fractions nearly halved, but 35 failures and 30 regressions remain. |
 
 The apparent contrast between final qualification and later failure is useful,
 not contradictory. The final qualification showed that the frozen candidate
@@ -330,6 +331,88 @@ invalid support, and partial overlaps with an existing exact source remain
 separate. See the
 [persistent-support parent correction](phase-5-public-finder-persistent-support-parent-correction.md)
 for the complete scientific and authorization boundary.
+
+## Latest scientific snapshot: terminal-parent correction
+
+**Terminal date:** 2026-08-31
+
+**Evidence role:** viewed-development cumulative regression, not fresh held-out
+qualification and not a new public-data campaign.
+
+**Scientific question:** can a cycle-supported parent first visible at the last
+retained scale join persistent shell and other multi-lobe components without
+regressing compact science or overmerging independent sources?
+
+**Terminal verdict:** the correction worked, but not often enough to pass. The
+exact write-once ledger is
+`benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-parent-correction.json`,
+SHA-256
+`e2ee663f4eade383518eabbafda5cd33bfe9808b4a9b37492a77337738b611db`.
+
+### What was tested
+
+The replay generated 800 compact products and 1,600 Continuum products from
+candidate `85d5807...`, then compared them with the same 9,600 reconstructed
+reference runs and closed like-semantics baseline. The immutable preflight
+verified every input, reference, program, configuration, source tree, and
+write-once path before execution. All 2,400 products completed and the atomic
+ledger was published without an operational failure.
+
+Compact passed with no like-semantics regression. Continuum produced 96
+passes, 35 failures, 12 underpowered endpoints, no indeterminate endpoints,
+and 30 like-semantics regressions. Both
+`cumulative_science_regression_ready` and `all_required_endpoints_pass` are
+false.
+
+| Overall Continuum metric | Previous parent | Terminal parent | Required limit | Outcome |
+| --- | ---: | ---: | ---: | --- |
+| Completeness | 100.00% | 100.00% | at least 90% | Pass |
+| Reliability | 62.38% | 85.21% | at least 95% | Improved, fail |
+| Median integrated-flux error | 5.22% | 4.53% | at most 10% | Pass |
+| Integrated-flux-error p95 | 79.26% | 26.94% | at most 25% | Strongly improved, fail |
+| Position-error p95 | 4.18 beams | 0.98 beam | at most 0.5 beam | Strongly improved, fail |
+| Duplicate fraction | 25.29% | 12.83% | at most 2% | Nearly halved, fail |
+| Split fraction | 25.29% | 12.83% | at most 10% | Nearly halved, fail |
+| Mask precision | 88.41% | 88.41% | at least 85% plus paired non-inferiority | Absolute pass, paired fail |
+| Mask recall | 91.96% | 91.96% | at least 90% | Pass |
+| Mask intersection over union | 82.06% | 82.06% | at least 80% | Pass |
+| Merge fraction | 0.00% | 0.00% | at most 10% | Pass |
+
+Nine endpoint states improved and 54 of 143 Continuum point estimates changed.
+The clearest result is the shell stratum: split and duplicate fractions fell
+from 100% to 34.56%, while median integrated-flux error fell from 76.46% to
+10.39%. Tile-boundary median flux and six shell or corner mean-astrometry
+endpoints moved from fail to pass. Scale-4 and varying-noise split endpoints
+moved from fail to underpowered. No endpoint became worse and the
+like-semantics regression count fell from 37 to 30.
+
+### Scientific interpretation and next boundary
+
+This is the first source-parent correction that materially changed the
+governed catalogue. It shows that source-level measurement is effective once
+the intended parent activates. The remaining poor reliability, duplicate and
+split fractions, and flux and position tails are concentrated in realizations
+where the source remains fragmented; they are not evidence that accepted
+parents are generally measured badly.
+
+The current implementation requires every terminal-cycle feature to have an
+exact pixel-overlap child at the preceding scale. The ledger proves incomplete
+activation, while code inspection identifies this exact-overlap condition as
+a plausible narrow blocker. The terminal ledger does not retain per-rejection
+sidecars, so that attribution is not yet proven for every failed realization.
+The next pre-review therefore requires a red analytic boundary-drift fixture
+before implementation. Its proposed repair may use only mutually unique,
+fixed-B3-footprint, same-significant-component evidence to corroborate a
+displaced adjacent-scale child. It may not create a cycle or source membership,
+accept pairs or paths, change thresholds or photometry, or rescore this result.
+
+The exact non-executable review is
+`config/contracts/phase-5-public-finder-terminal-feature-persistence-pre-review.json`,
+SHA-256
+`e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38`.
+Implementation and any replacement identity freeze require named approval of
+that review. A later replay must be bound to the resulting exact identities;
+the present failure remains immutable.
 
 ## Required format for future snapshots
 
