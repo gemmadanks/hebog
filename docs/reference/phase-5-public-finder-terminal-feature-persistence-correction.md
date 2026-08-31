@@ -51,7 +51,16 @@ partial-group conflict fixtures pass. Component labels, feature-plane order,
 record order, task order, retry, Serial, and existing-Dask execution produce
 identical membership and diagnostics.
 
-This remains fixture evidence only. Exact candidate, configuration, wrapper,
-evaluator, readiness, retained-reference, baseline, scratch, and output
-identities must be frozen prospectively. A later cumulative replay requires a
-separate exact review-bound decision.
+This remains fixture evidence only. The exact non-executable replacement is
+now frozen as candidate `3d080f7...`, source tree `a25d22d8...`, configuration
+`2d6ab6bb...`, wrapper `0c66f221...`, evaluator `1cb62c00...`, and readiness
+overlay `da135898...`, against retained reference `48209eae...` and closed
+baseline `a45303df...`. The complete no-write verification passed all 2,400
+inputs and 9,600 reference runs without creating scratch or output. Exact
+identity review `45aef047...` records the result and canonical future
+execution identity `75534703...`.
+
+The review remains non-executable: every execution, tuning, rescoring,
+qualification, cutover, and release authorization is false. A cumulative
+replay requires a separate explicit approval bound to review SHA-256
+`45aef047b0a8779e785995971eb60ad34384fa25aa443745ad36f2bdb6b652b9`.

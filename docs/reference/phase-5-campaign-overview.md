@@ -413,8 +413,13 @@ The exact non-executable review is
 SHA-256
 `e416f7d81ac8345f2ac0ac982980e9e37299886309af2468380a7a463beafc38`.
 Implementation and fixture validation are complete under the named approval.
-Replacement candidate and replay identities must still be frozen exactly
-before any later replay decision; the present failure remains immutable.
+Replacement candidate `3d080f7...`, source tree `a25d22d8...`, configuration
+`2d6ab6bb...`, wrapper `0c66f221...`, and evaluator `1cb62c00...` are now
+frozen by non-executable review `45aef047...`. Its complete no-write verifier
+checked all 2,400 retained inputs and 9,600 reference runs while leaving both
+scratch and output absent. No new scientific result exists yet, and the
+present terminal-parent failure remains immutable. A replay requires a new
+exact review-bound approval.
 
 ## Required format for future snapshots
 

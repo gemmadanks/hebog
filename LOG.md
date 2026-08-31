@@ -13122,3 +13122,38 @@ that do not yet exist.
 **Immediate next step:** commit the fixture-bound implementation, then freeze
 exact non-executable candidate and replay composition identities. No replay or
 viewed-data execution is open.
+
+## 2026-08-31 — Freeze terminal-feature persistence identities
+
+**Plan phase:** Phase 5, closure gate 3
+
+- Committed the fail-closed prospective evaluator/configuration layer as
+  `3d080f7...` and the replay/readiness composition as `7a5cd54...`. The exact
+  candidate source tree is `a25d22d8...`, configuration is `2d6ab6bb...`,
+  wrapper is `0c66f221...`, evaluator is `1cb62c00...`, and readiness overlay
+  is `da135898...`.
+- The wrapper composes over terminal-parent wrapper `2c40315f...`, requires
+  the prospective rejection census on every successful Hebog Continuum
+  sidecar, verifies all 2,400 exact product markers before terminal
+  serialization, and reduces exactly 1,600 sidecars to bounded array-free
+  diagnostics. It cannot open execution without a separate exact decision.
+- The complete real no-write verification passed all 2,400 retained inputs
+  and 9,600 reference runs, reconstructed-reference terminal `48209eae...`,
+  closed baseline `a45303df...`, program and authority hashes, and all writer,
+  evaluator, telemetry, worker-reinstallation, and write-once seams. Execution
+  checkout was `7a5cd54...`; scratch and output remained absent.
+- Non-executable identity review `45aef047...` records that result and binds
+  canonical future execution identity `75534703...`. All replay, campaign,
+  viewed-data, qualification, tuning, rescoring, optimization, cutover, and
+  release authorizations are false; no execution decision was created.
+- Validation passed 40 focused evaluator/configuration/wrapper/identity tests
+  with 92% focused branch-aware coverage, `just coverage` with 2,196 passes
+  and four expected failures at 94.73%, `just check` with 2,040 passes and four
+  expected failures, all 27 applicable equivalence tests, strict docs build,
+  and clean pre-commit. Review against `CODE_REVIEW.md` found no actionable
+  correctness, scientific-boundary, architecture, privacy, or coverage issue.
+
+**Immediate next step:** obtain explicit approval bound to identity review
+SHA-256 `45aef047b0a8779e785995971eb60ad34384fa25aa443745ad36f2bdb6b652b9`
+before creating one exact replay execution decision. No existing broad replay
+authority opens this identity.

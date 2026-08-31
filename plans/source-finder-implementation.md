@@ -497,13 +497,21 @@ exact-overlap cause, and the bounded implementation now passes disconnected
 support, ambiguous child, unseeded feature, pair, path, invalid-gap,
 partial-group, label/order/retry, Serial, and existing-Dask controls. Replay,
 viewed-data execution, qualification, tuning, rescoring, cutover, and release
-remain unauthorized while exact replacement identities are frozen.
+remain unauthorized. Candidate `3d080f7...`, source tree `a25d22d8...`,
+configuration `2d6ab6bb...`, wrapper `0c66f221...`, evaluator `1cb62c00...`,
+readiness overlay `da135898...`, retained reference `48209eae...`, and closed
+baseline `a45303df...` are now frozen by non-executable review `45aef047...`.
+The complete no-write verification passed 2,400 inputs and 9,600 reference
+runs without creating scratch or output. Its future canonical execution
+identity is `75534703...`; no execution decision exists.
 
-The readiness contract remains bound to failed source-reconstruction candidate
-`42c75f4...`, source tree `1b67c7f6...`, configuration `470e918d...`, and the
-failed cumulative path. It must not be rebound again until an approved parent
-construction passes all fixture controls and exact non-executable replacement
-identities can be frozen prospectively.
+The canonical historical readiness contract remains byte-bound to the failed
+terminal-parent candidate and must not be mutated retroactively. Prospective
+overlay `phase-5-terminal-feature-persistence-readiness`, SHA-256
+`da135898...`, rebinds only the cumulative and future held-out evidence for
+candidate `3d080f7...`; it retains every execution and promotion prohibition.
+The canonical readiness record cannot advance unless the cumulative replay
+and fresh held-out qualification both pass.
 
 Non-executable pre-review `7687839f...` now binds repair commit
 `6184a32...`, source tree `517d56e1...`, unchanged configuration
@@ -716,10 +724,13 @@ from partial or viewed evidence.
      implement only the mutually unique B3/support-component persistence seam;
      retain bounded rejection diagnostics; and pass the positive, overmerge,
      conflict, ordering, retry, Serial, and existing-Dask controls.
-   - [ ] Freeze exact non-executable replacement candidate, configuration,
-     wrapper, evaluator, readiness, reference, and baseline identities. The
-     user's broad replay intent cannot bind identities that do not yet exist;
-     execution still requires an exact review-bound decision.
+   - [x] Freeze exact non-executable replacement candidate, configuration,
+     wrapper, evaluator, readiness, reference, and baseline identities.
+     Candidate `3d080f7...`, source tree `a25d22d8...`, configuration
+     `2d6ab6bb...`, wrapper `0c66f221...`, and evaluator `1cb62c00...` passed
+     the complete 2,400-input/9,600-reference no-write verification. Review
+     `45aef047...` binds canonical future execution identity `75534703...`;
+     no replay or viewed-data execution is authorized.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
