@@ -1,0 +1,56 @@
+{
+  "authorization": {
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "qualification_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2d6ab6bbdd06f109f9703fb0b49f489933ddc00b391f681253693b38d0f4b1de",
+    "revision": "3d080f78da09ada6753a4e5df898e1d5daa59597",
+    "source_tree_sha256": "a25d22d80f4e639e4543ee058acade6feda15105f6325dc909e69fcfb8f03924"
+  },
+  "contract_id": "phase-5-terminal-feature-persistence-readiness-overlay",
+  "parent_readiness": {
+    "path": "config/contracts/phase-5-readiness.json",
+    "sha256": "fb295c16b5a67618b242891dc048c4290b88ff8ceaecf81a7ad409b015f8c137"
+  },
+  "required_evidence": [
+    {
+      "evidence_id": "public-finder-terminal-feature-persistence-cumulative-regression",
+      "path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-terminal-feature-persistence.json",
+      "required_fields": {
+        "all_required_endpoints_pass": true,
+        "candidate_configuration_sha256": "2d6ab6bbdd06f109f9703fb0b49f489933ddc00b391f681253693b38d0f4b1de",
+        "candidate_revision": "3d080f78da09ada6753a4e5df898e1d5daa59597",
+        "candidate_source_tree_sha256": "a25d22d80f4e639e4543ee058acade6feda15105f6325dc909e69fcfb8f03924",
+        "cumulative_science_regression_ready": true,
+        "ledger_id": "phase-5-cumulative-regression-ledger",
+        "like_semantics_compact_regressions": [],
+        "like_semantics_continuum_regressions": [],
+        "terminal_feature_persistence_diagnostics.image_count": 1600
+      },
+      "review_owner": "radio-astronomy",
+      "sha256": null
+    },
+    {
+      "evidence_id": "public-finder-terminal-feature-persistence-held-out-qualification",
+      "path": "benchmark-results/phase-5/public-finder-terminal-feature-persistence-qualification-decision.json",
+      "required_fields": {
+        "candidate_configuration_sha256": "2d6ab6bbdd06f109f9703fb0b49f489933ddc00b391f681253693b38d0f4b1de",
+        "candidate_revision": "3d080f78da09ada6753a4e5df898e1d5daa59597",
+        "candidate_source_tree_sha256": "a25d22d80f4e639e4543ee058acade6feda15105f6325dc909e69fcfb8f03924",
+        "cutover_authorized": false,
+        "scientific_outcomes_before_runtime": true,
+        "status": "pass"
+      },
+      "review_owner": "radio-astronomy",
+      "sha256": null
+    }
+  ],
+  "schema_version": 1,
+  "status": "frozen-non-executable-overlay"
+}
