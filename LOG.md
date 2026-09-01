@@ -14042,3 +14042,37 @@ compact and Continuum science before power or runtime.
 **Immediate next step:** validate and freeze the repaired wrapper and amended
 authority, remove only the proven-empty scratch directory, repeat the complete
 no-write verification, then retry the unchanged cumulative replay.
+
+## 2026-09-01 — Publication replay evaluation dispatch repaired
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Repaired immutable replay `36261b5...` passed the complete 2,400-input and
+  9,600-reference preflight, then completed all 2,400 candidate products. It
+  stopped during Continuum compilation before atomic ledger publication with
+  `associated source membership cannot be verified`; no scientific decision
+  was published.
+- Root cause: the prospective smoke explicitly installed the reviewed
+  mask/measurement-separation evaluator, but the full cumulative wrapper
+  omitted that evaluation-only overlay. The historical compiler consequently
+  required every stable measurement-component label to remain present in the
+  separately refined publication mask, contradicting the already reviewed
+  two-plane contract.
+- The process-only completion hashes every declared artifact in sealed product
+  set `77a71b5...`, forbids candidate execution, and installs the exact frozen
+  smoke overlay during full compilation. Stable measurement labels define
+  catalogue-source support while refined publication labels continue to define
+  mask metrics. Candidate `937737d...`, source `9f8e4a67...`, configuration
+  `2c907949...`, retained references, baseline, endpoints, thresholds,
+  comparators, confidence rules, and trade-off margins are unchanged.
+- Focused regression coverage passes 34 tests, including exact product-set
+  hashing, candidate-execution prohibition, full-lane overlay activation, the
+  existing mask-separation safety matrix, and replay provenance. Complete
+  no-write verification passes against all 2,400 products and 9,600 reference
+  runs. Branch-aware coverage passes 2,374 tests with four expected xfails at
+  94.58%; `just check` passes 2,210 tests with four expected xfails; all 27
+  equivalence tests and the strict documentation build pass.
+
+**Immediate next step:** complete broad validation and code review, freeze an
+immutable evaluation-only checkout, then compile and evaluate the sealed
+products once into the still-absent atomic cumulative ledger.

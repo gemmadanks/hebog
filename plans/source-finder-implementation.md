@@ -1180,7 +1180,17 @@ from partial or viewed evidence.
      historical producer source `b4176ce3...`. The scratch was empty and no
      ledger was created. Freeze the process-only dispatch repair, whose tests
      exercise both historical source checks through the exact `runpy` seam,
-     then retry without changing any scientific identity or gate.
+     then retry without changing any scientific identity or gate. Repaired
+     attempt `36261b5...` passed the full 2,400-input/9,600-reference preflight
+     and completed all 2,400 candidate products. Compilation then failed before
+     atomic publication because the full wrapper omitted the already reviewed
+     mask/measurement-separation evaluation overlay used by the passing smoke;
+     the historical evaluator therefore required every stable measurement
+     label to remain present in the separately refined publication mask. The
+     sealed product set is `77a71b5...`. Complete the evaluation only from
+     those hash-verified products, with candidate execution forbidden, using
+     the exact smoke-proven overlay and unchanged endpoints, thresholds,
+     comparators, confidence rules, and trade-off margins.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
