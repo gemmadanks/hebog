@@ -51,6 +51,7 @@
     "scope": "persist the already-computed measurement-label plane, keep publication labels authoritative for mask metrics, and repeat only the frozen 128-case smoke before any full replay"
   },
   "mixed_schema_evaluation_repair": {
+    "implementation_decision_path": "config/contracts/phase-5-prospective-measurement-label-mixed-schema-evaluation-repair-implementation-decision.json",
     "pre_review_path": "config/contracts/phase-5-prospective-measurement-label-mixed-schema-evaluation-repair-pre-review.json",
     "scope": "dispatch persisted measurement support only for the repaired current configuration while retaining the historical incumbent compiler schema"
   },

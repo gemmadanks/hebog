@@ -64,6 +64,10 @@ _MIXED_SCHEMA_REPAIR_PRE_REVIEW = (
     _ROOT / "config/contracts/phase-5-prospective-measurement-label-mixed-"
     "schema-evaluation-repair-pre-review.json"
 )
+_MIXED_SCHEMA_REPAIR_DECISION = (
+    _ROOT / "config/contracts/phase-5-prospective-measurement-label-mixed-"
+    "schema-evaluation-repair-implementation-decision.json"
+)
 
 
 def _mask_separated_case() -> tuple[
@@ -638,4 +642,30 @@ def test_measurement_label_evaluation_binds_both_sealed_product_sets() -> None:
         == repair_review["binding_failure"]["failed_evaluator_sha256"]
     )
     assert decision["authorization"]["evaluation_once_authorized"] is True
+    assert decision["authorization"]["candidate_execution_authorized"] is False
+
+
+def test_mixed_schema_repair_binds_exact_evaluator_and_products() -> None:
+    """The evaluator retry retains both products and dispatch identities."""
+    decision = json.loads(
+        _MIXED_SCHEMA_REPAIR_DECISION.read_text(encoding="utf-8")
+    )
+
+    for key in ("evaluator", "pre_review", "prior_evaluation_decision"):
+        assert (
+            file_sha256(_ROOT / decision[key]["path"])
+            == (decision[key]["sha256"])
+        )
+    assert decision["candidate"]["product_set_canonical_sha256"] == (
+        "2b32ad121677aa2d0a57db806697a0b2f572a019a424f32fb8cb08667aedb705"
+    )
+    assert decision["incumbent"]["product_set_canonical_sha256"] == (
+        "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27"
+    )
+    assert (
+        decision["authorization"][
+            "evaluation_retry_authorized_for_exact_sealed_products"
+        ]
+        is True
+    )
     assert decision["authorization"]["candidate_execution_authorized"] is False
