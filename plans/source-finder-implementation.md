@@ -1136,7 +1136,7 @@ from partial or viewed evidence.
      measurement owner planes are identical on this smoke. The remaining loss
      is concentrated in one-scale sparse recovered boundaries; the dense branch
      is 0.92069 precise and the high-original-S/N boundary is 111/111 true.
-   - [ ] Correct one-scale publication support prospectively, then repeat the
+   - [x] Correct one-scale publication support prospectively, then repeat the
      same 128-case smoke. Pre-review
      `phase-5-prospective-publication-scale-persistence-pre-review.json`
      freezes adjacent-scale feature persistence and owner-bridge topology with
@@ -1149,12 +1149,31 @@ from partial or viewed evidence.
      cannot create a split component. Require zero confirmed smoke failures;
      a confidence interval that merely remains underpowered may be closed only
      by the already planned larger prospective population, never by tuning.
+     Candidate `937737d...`, source tree `9f8e4a67...`, configuration
+     `2c907949...`, and product set `86f703dc...` sealed smoke `9316882c...`.
+     Compact remains byte-identical; 334 comparisons pass, 35 are
+     diagnostic-underpowered, and none fail. The pinned-master overall mask-
+     precision point regression improves from `0.05231` to `0.04932`, inside
+     the unchanged `0.05` margin, while its `0.05397` upper confidence limit
+     remains underpowered for this small lane. Every incumbent comparison
+     passes, so the predeclared zero-confirmed-failure rule opens the larger
+     replay without rescoring or changing a gate.
+     "Pass" here is bounded non-inferiority, not a requirement that every
+     point estimate improve monotonically: a small loss may be accepted only
+     inside its frozen practical margin, with all absolute and both PyBDSF
+     gates still green, when a related metric improves materially and the
+     scientific trade-off is documented. A status regression, movement beyond
+     the margin, or a post-result change to the rule remains disallowed.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift
      before one full cumulative replay. Interpret compatibility and validity
      before improvement objectives, power, or runtime; stop on a scientific
-     failure.
+     failure. The exact replay wrapper now replaces the inherited stale-
+     scratch serializer, reloads candidate `937737d...` in every worker, and
+     binds output only to the new candidate's 2,400 products and 1,600
+     association sidecars. Run its complete no-write reference and seam
+     verification before consuming the one-replay authority.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

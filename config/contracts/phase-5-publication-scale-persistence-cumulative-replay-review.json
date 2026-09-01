@@ -1,0 +1,41 @@
+{
+  "candidate_smoke": {
+    "compact_product_identity_equal": true,
+    "confirmed_failure_count": 0,
+    "path": "benchmark-results/phase-5/prospective-science-smoke-publication-scale-persistence.json",
+    "pinned_master_mask_precision_point_regression": 0.04932400661941805,
+    "pinned_master_mask_precision_status": "underpowered",
+    "pinned_master_mask_precision_upper_confidence_limit": 0.05397013318404094,
+    "sha256": "9316882c606f66bcbf8937c4fc3f5aea331bb9ab9e8689953026016566bd9855"
+  },
+  "decision_id": "phase-5-publication-scale-persistence-cumulative-replay-review",
+  "exact_user_authority": [
+    "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+    "I think we can tolerate a slight degradation in one of the metrics if it substantially improves another and remains above our thresholds for acceptance. There will likely be tradeoff that have to be made to cope with real messy data..."
+  ],
+  "expected_execution": {
+    "candidate_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "candidate_revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "candidate_smoke_sha256": "9316882c606f66bcbf8937c4fc3f5aea331bb9ab9e8689953026016566bd9855",
+    "candidate_source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8",
+    "closed_baseline_path": "benchmark-results/phase-5/cumulative-regression-ledger-recovery.json",
+    "closed_baseline_sha256": "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9",
+    "materializer_sha256": "40486cfbbe029b53aaeba74b4640b5851dd6bd15d2739d4d76f2ba5af406f7b1",
+    "output_path": "benchmark-results/phase-5/cumulative-regression-ledger-public-finder-publication-scale-persistence.json",
+    "reference_reconstruction_path": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "reference_reconstruction_sha256": "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2",
+    "scratch_path": "/private/tmp/hebog-phase5-public-finder-publication-scale-persistence-937737d",
+    "smoke_evaluator_sha256": "f17aea97cbaf83c87a7e776e3eff9dd9d9eb78fda3fab10097af98c9a96af68d",
+    "workers": 2,
+    "wrapper_sha256": "0b2aa39ffeb6fe9741870f4d7a65bd15f69cd8c4223fd1059251de6908fb187c"
+  },
+  "expected_execution_sha256": "0c8a486e5338f02b6d499ba95ef8338861f3c9e4c5f33c73e66c1487ec60e264",
+  "review": {
+    "execution_scope": "one complete two-worker 800-compact and 1600-Continuum cumulative replay followed by its single compilation and evaluation",
+    "full_replay_opening_rule": "the exact smoke has zero confirmed failures and compact byte identity; the one remaining mask-precision comparison is underpowered rather than failed, so only the already planned larger population may resolve it",
+    "scientific_interpretation_order": "compact then Continuum compatibility and retention before diagnostics power and runtime",
+    "tradeoff_rule": "small incumbent-relative movement is admissible only inside its frozen margin when every absolute and PyBDSF gate passes and a related scientific gain is material and documented"
+  },
+  "schema_version": 1,
+  "status": "reviewed-before-publication-scale-persistence-cumulative-replay"
+}

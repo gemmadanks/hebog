@@ -827,6 +827,42 @@ result is preserved and cannot be rescored. A prospective adjacent-scale
 persistence rule must remove one-scale protrusions while retaining connected
 owner bridges, then pass a fresh smoke before the cumulative replay opens.
 
+## Publication-scale-persistence 128-case science smoke
+
+**Terminal date:** 2026-09-01
+
+**Evidence role:** viewed-development diagnostic smoke. The authoritative
+atomic record is
+`benchmark-results/phase-5/prospective-science-smoke-publication-scale-persistence.json`,
+SHA-256
+`9316882c606f66bcbf8937c4fc3f5aea331bb9ab9e8689953026016566bd9855`.
+
+**Scientific question:** does exact adjacent-scale persistence remove noisy
+one-scale publication support while retaining dense/high-S/N support, exact
+persistent features, and necessary same-owner bridges?
+
+Candidate `937737d...` sealed product set `86f703dc...` against the unchanged
+incumbent product set `1c76f739...`. Compact products remain byte-identical.
+
+| Decision class | Count |
+| --- | ---: |
+| Pass | 334 |
+| Underpowered diagnostic | 35 |
+| Confirmed fail | 0 |
+| Failed incumbent-retention comparisons | 0 |
+
+The formerly failing pinned-master overall mask-precision point regression
+improves from `0.05231` to `0.04932`, now inside the unchanged `0.05` practical
+margin. Its upper confidence limit is `0.05397`, so this small smoke remains
+underpowered on that comparison. Released PyBDSF mask precision passes, every
+incumbent comparison passes, and all earlier duplicate/split failures remain
+closed.
+
+**Terminal verdict:** zero confirmed failures; the governed larger replay is
+open. The smoke is non-promotional and cannot itself qualify or release the
+candidate. The 2,400-case replay must close the remaining power question and
+pass all PyBDSF, absolute, and incumbent-retention gates without tuning.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31
@@ -871,9 +907,11 @@ non-inferiority. Missing or underpowered binding evidence cannot pass.
 
 The contract was activated under the recorded conditional user authority only
 after its test-first evaluator, no-write verification, and fail-fast lanes
-passed. The first smoke then failed as documented above, so the full replay
-remains blocked. Qualification, tuning, rescoring, cutover, and release remain
-outside this authority.
+passed. The first smoke failed as documented above. The later
+publication-scale-persistence smoke has zero confirmed failures and therefore
+opens exactly one larger cumulative replay; it does not itself satisfy the
+power audit or authorize qualification. Tuning, rescoring, cutover, and release
+remain outside this authority.
 
 ## Required format for future snapshots
 

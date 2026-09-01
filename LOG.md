@@ -13981,3 +13981,38 @@ failures.
 immutable checkout, pass both complete no-write preflights, then materialize
 and evaluate one fresh 128-case smoke. Open the full cumulative replay only if
 confirmed smoke failures are zero.
+
+## 2026-09-01 — Publication-scale persistence opens the cumulative replay
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Exact candidate `937737d...`, source tree `9f8e4a67...`, configuration
+  `2c907949...`, and product set `86f703dc...` passed both complete 128-input
+  no-write preflights and sealed atomic smoke `9316882c...`. The immutable
+  checkout needed only an ignored link to checksum-identical retained evidence;
+  no tracked, source, configuration, or science identity changed.
+- Compact products are byte-identical. The smoke records 334 pass, 35
+  diagnostic-underpowered, and zero confirmed failures; every incumbent-
+  retention comparison passes. The formerly failing pinned-master overall
+  mask-precision point regression improves from `0.05231` to `0.04932`, inside
+  the unchanged `0.05` margin. Its `0.05397` upper confidence limit remains
+  underpowered, so only the larger prospective population may close it.
+- The predeclared zero-confirmed-failure rule opens the full cumulative replay
+  without rescoring or changing a threshold, margin, comparator, confidence
+  rule, or gate. The smoke remains non-promotional.
+- Full-wrapper review found a process defect before execution: the inherited
+  terminal-feature serializer names its historical candidate scratch path.
+  The replacement wrapper reloads candidate `937737d...` in each worker,
+  verifies every product marker and sidecar against the new source and
+  configuration, aggregates only the new 1,600 Continuum sidecars, and records
+  the exact smoke/review/decision provenance. It writes the large ledger to a
+  private same-filesystem path before one atomic hard-link publication.
+  Focused wrapper, governance, stale-scratch, serializer, and atomic-
+  publication validation passes seven tests. The branch-aware suite passes
+  2,368 tests with 94.58% coverage; equivalence passes 27 tests and the strict
+  documentation build passes.
+
+**Immediate next step:** complete broad validation and code review, commit and
+freeze the exact replay wrapper, run its complete 2,400-input/9,600-reference
+no-write preflight, then consume the authorized one-replay decision. Interpret
+compact and Continuum science before power or runtime.

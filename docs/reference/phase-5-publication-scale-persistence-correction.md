@@ -108,3 +108,29 @@ generalizes.
 
 The machine-readable pre-review is
 `config/contracts/phase-5-prospective-publication-scale-persistence-pre-review.json`.
+
+## Terminal smoke result
+
+Candidate `937737d...` sealed all 128 products and atomic smoke
+`9316882c...`. Compact products are byte-identical to the incumbent. Of 369
+Continuum comparisons, 334 pass, 35 are diagnostic-underpowered, and none
+fail. All incumbent-retention comparisons pass.
+
+The formerly failing pinned-master overall mask-precision comparison improves
+from a `0.05231` point regression to `0.04932`, inside the unchanged `0.05`
+margin. Its upper confidence limit is `0.05397`, so the 128-case lane cannot
+yet prove non-inferiority with the required confidence. This is an
+underpowered result, not an accepted failed endpoint or a change to the gate.
+
+The predeclared smoke rule therefore opens the already planned larger
+800-compact/1,600-Continuum replay. That replay must resolve the remaining
+power question and still pass every absolute, released-PyBDSF,
+pinned-master-PyBDSF, and incumbent-retention gate before qualification can
+open.
+
+Incumbent retention uses the frozen practical margins. It does not demand
+monotonic improvement in every point estimate: a small within-margin loss may
+be acceptable when a related scientific metric improves materially, every
+absolute and PyBDSF gate remains green, and the trade-off is recorded. The
+margin, comparator, confidence rule, and interpretation cannot be changed
+after viewing the replay.
