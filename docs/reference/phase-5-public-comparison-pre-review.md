@@ -343,7 +343,9 @@ immutable, and the notebook aggregate uses links rather than rewriting them.
 
 Rapid-development notebook refreshes rerun only Hebog over all frozen public
 inputs and reuse the sealed reference products. Each refresh is stored under a
-Git-commit and source-tree identity, registered in a generated history index,
-and remains scientifically unauthorized. The notebook's `latest` pointer is a
-convenience for inspection, while side-by-side historical panels make changes
-visible without replacing earlier evidence.
+Git-commit, source-tree, configuration, and public-runner identity, registered
+in a generated history index, and remains scientifically unauthorized. The
+notebook's `latest` pointer is a convenience for inspection, while side-by-side
+historical panels make changes visible without replacing earlier evidence. The
+developer command, resume rules, and output layout are documented in
+[`scripts/benchmark/README.md`](../../scripts/benchmark/README.md#refresh-public-comparison-notebook-results).

@@ -26,6 +26,56 @@ uv run python scripts/benchmark/review_phase5_filters.py \
 The reviewed outcome is `select-neither`; the decision contract keeps Step 3,
 candidate-specific optimization, and qualification closed.
 
+## Refresh public comparison notebook results
+
+`refresh_public_notebook_hebog.py` reruns the standard public Hebog runner over
+the frozen SDC1, Hydra, and LoTSS notebook inputs. It reuses the sealed PyBDSF
+and Aegean products, so it does not modify or rerun either reference finder.
+Run it from the repository root.
+
+Inspect the proposed identity and case count without starting a campaign:
+
+```console
+uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
+  --preflight-only
+```
+
+Start a refresh with a short label describing the active scientific changes:
+
+```console
+uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
+  --label "Refined source boundaries with separated mask and measurement ownership"
+```
+
+An interrupted refresh can resume only with the same source, configuration,
+runner, inputs, and references:
+
+```console
+uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
+  --resume \
+  --label "Refined source boundaries with separated mask and measurement ownership"
+```
+
+Each successful scientific identity receives an immutable directory under
+`benchmark-results/phase-5/hebog-notebook-refreshes/`. The identity binds the
+Git commit, complete Hebog source-tree checksum, governed configuration, and
+`run_phase5_public_finder_hebog.py` checksum. A dirty worktree is permitted but
+recorded. Repeating an unchanged identity reuses its existing entry rather
+than duplicating evidence. Source or runner changes during execution fail
+before publication, and partial work remains in identity-specific staging for
+`--resume`.
+
+Completion updates the generated `index.json` registry and the `latest`
+symlink without replacing earlier campaigns. Restart or reload
+`notebooks/campaign_source_finder_comparison.py`, then select the new label and
+dataset under **Hebog implementation history**.
+
+The refresh executes exactly `run_phase5_public_finder_hebog.py`. Scientific
+changes available only through another prospective smoke, replay, or sidecar
+wrapper are not included unless the standard public runner is deliberately
+updated to activate them. These public refreshes remain diagnostic evidence:
+they authorize neither qualification nor performance claims.
+
 `confirm_phase5_astrometry_follow_up.py` is the one-look Step 2C-HR
 confirmation runner. It requires the named human decision, verifies the frozen
 protocol, base residual-B3 protocol, development decision and ignored evidence,
