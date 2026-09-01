@@ -13637,3 +13637,46 @@ pass both complete no-write preflights, materialize only the new current
 128-product set, reuse the separately verified exact incumbent product set, and
 publish one replacement write-once smoke decision. Continue to the power audit
 and full replay only if it has zero confirmed failure.
+
+## 2026-09-01 — Review failed boundary smoke and separate mask measurement
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- The repaired boundary candidate completed all 128 products and published
+  `prospective-science-smoke-boundary-connectivity.json`, SHA-256
+  `e30f27dd...`. The terminal verdict remains fail: 309 comparisons pass, 49
+  are diagnostic-underpowered, and 11 are confirmed failures. Compact products
+  remain byte-identical to the incumbent.
+- Two mask-precision failures are systematic: all 64 Continuum images remain
+  below released PyBDSF and 63 remain below pinned master, even though overall
+  precision improves by about 0.00546 relative to the incumbent. Nearby
+  multiscale recovery still admitted published boundary support below the
+  already-frozen three-sigma island threshold.
+- Three new incumbent position-p95 failures come from using the refined mask as
+  the source-association and moment-measurement plane. One Continuum-2
+  varying-noise realization, seed 2026861185, dominates the tail: position p95
+  changed from 0.5709 to 2.2886 beams overall and from 0.6018 to 2.4340 beams
+  at scale four after canonical component support and identifiers changed.
+- Four duplicate and two diffuse-split failures are inherited sparse topology
+  gaps. The edge duplicate is concentrated in Continuum-1 seed 2026860341;
+  diffuse splits occur there and in Continuum-3 seeds 2026862118 and
+  2026862301. They require a separate prospective topology review if they
+  remain after the mask-only correction.
+- Froze pre-review `bd0ba297...` for a bounded correction: refine only the
+  published mask, require recovered mask support to meet the existing
+  three-sigma island threshold, and retain the deterministic seeded-owner plane
+  for catalogue association, measurement, identifiers, and direct provenance.
+  Red fixtures failed for all three missing behaviors; the focused corrected
+  suite now passes 69 tests. No detection threshold, margin, reference,
+  population, or decision rule changed.
+- Required handoff validation passes: branch-aware coverage runs 2,274 tests
+  plus four expected failures at 94.52%; `just check` runs 2,112 tests plus
+  four expected failures; all 27 frozen equivalence tests pass; focused
+  Pyright and Ruff checks, strict documentation, and the final pre-commit suite
+  pass. Code review found no actionable issue; the remaining uncertainty is
+  deliberately delegated to the write-once 128-case smoke.
+
+**Immediate next step:** complete full validation and identity freeze, then run
+both complete no-write preflights and repeat the same 128-case smoke in a fresh
+write-once namespace. The cumulative replay remains blocked until the smoke has
+zero confirmed failures.

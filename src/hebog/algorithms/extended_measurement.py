@@ -189,15 +189,17 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     core_minimum_neighbors: int = _MULTISCALE_CORE_MINIMUM_NEIGHBORS,
     boundary_minimum_snr: float = _MULTISCALE_BOUNDARY_MINIMUM_SNR,
     recovery_radius_beams: float = _MULTISCALE_RECOVERY_RADIUS_BEAMS,
+    recovered_minimum_snr: float | None = None,
 ) -> npt.NDArray[np.int32]:
     """Refine noisy flood boundaries with calibrated multiscale evidence.
 
     Dense opened support remains without an additional significance test.
     Sparse boundary pixels remain only at high combined S/N, while adjacent
     significant à trous support may recover coherent emission omitted by the
-    original-pixel flood. Recovered pixels inherit the nearest original
-    segment identity, preserving deterministic ownership without merging or
-    relabelling sources.
+    original-pixel flood. When ``recovered_minimum_snr`` is supplied, recovered
+    support must also meet that original-pixel S/N floor. Recovered pixels
+    inherit the nearest original segment identity, preserving deterministic
+    ownership without merging or relabelling sources.
     """
     labels = _segment_label_plane(component_labels)
     snr = np.asarray(combined_snr)
@@ -230,6 +232,14 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
         raise ValueError("core minimum neighbors must be an integer in [1, 9]")
     if not isfinite(boundary_minimum_snr) or boundary_minimum_snr <= 0:
         raise ValueError("boundary minimum SNR must be finite and positive")
+    if recovered_minimum_snr is not None and (
+        isinstance(recovered_minimum_snr, bool)
+        or not isfinite(recovered_minimum_snr)
+        or recovered_minimum_snr <= 0
+    ):
+        raise ValueError(
+            "recovered minimum SNR must be finite and positive when supplied"
+        )
     recovery_radius_pixels = multiscale_recovery_radius_pixels(
         beam_major_fwhm_pixels,
         recovery_radius_beams=recovery_radius_beams,
@@ -258,6 +268,8 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
         else cleaned_support
     )
     recovered = multiscale_support & nearby
+    if recovered_minimum_snr is not None:
+        recovered &= np.asarray(snr, dtype=np.float64) >= recovered_minimum_snr
     _, nearest_indices = cast(
         tuple[npt.NDArray[np.float64], npt.NDArray[np.int32]],
         distance_transform_edt(

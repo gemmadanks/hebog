@@ -1,0 +1,48 @@
+{
+  "authorization": {
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_replacement_smoke_passes": true,
+    "release_authorized": false,
+    "replacement_smoke_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "decision_id": "phase-5-prospective-mask-measurement-separation-implementation-decision",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_policy": {
+    "catalogue_measurement_plane": "deterministic-seeded-owner-plane-before-boundary-refinement",
+    "mask_measurement_separation_policy": "three-sigma-published-mask-stable-seeded-measurement-v1",
+    "published_mask_plane": "boundary-refined-seeded-owner-plane",
+    "recovered_minimum_snr": "review.matrix.island_sigma",
+    "threshold_or_margin_change": false
+  },
+  "implementation": [
+    {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "sha256": "9898c6173282e1c9810b7a9fcdbc51d3333f0cfa326b16e1858cd21870808aa8"
+    },
+    {
+      "path": "src/hebog/validation/post_campaign_science.py",
+      "sha256": "fcd98bc401d1f563249503fc9d672568400896c3ce3f1f43f8ec503ab17c33fd"
+    },
+    {
+      "path": "src/hebog/validation/public_finder_correction.py",
+      "sha256": "2f63fd4eee9035ebfc95276fd19ffdd22c2e5cbd936fb0305814aaf083d6a742"
+    }
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-mask-measurement-separation-pre-review.json",
+    "sha256": "bd0ba2979b101958b511786f737315b4d2595d298e5a42a2443cfb9e92121603"
+  },
+  "required_pre_execution_gates": [
+    "sub-island-SNR recovered support is absent from the published mask",
+    "direct and seeded measurement labels remain immutable and preserve exact identities",
+    "both public catalogue construction routes use the seeded measurement plane",
+    "real-scale source reconstruction and terminal-parent fixture suites pass",
+    "Serial and existing-Dask invariance suites pass",
+    "complete retained-reference no-write verification passes",
+    "replacement 128-case smoke publishes no confirmed failure"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-replacement-smoke-before-results"
+}

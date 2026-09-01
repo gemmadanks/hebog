@@ -202,6 +202,10 @@ def test_public_correction_owns_bridge_from_pre_union_direct_seeds(
         products.direct_component_labels,
         direct_detection.component_labels,
     )
+    np.testing.assert_array_equal(
+        products.measurement_component_labels,
+        products.detection.component_labels,
+    )
     assert not products.direct_component_labels.flags.writeable
     assert products.scale_detection_planes is scale_planes
     assert detect.call_count == 1
@@ -269,7 +273,10 @@ def test_public_correction_refines_direct_low_snr_protrusions(
     assert np.all(products.detection.component_labels[2:7, 2:7] == 4)
     assert not products.detection.component_labels[4, 7:10].any()
     assert np.all(products.direct_component_labels[2:7, 2:7] == 4)
-    assert not products.direct_component_labels[4, 7:10].any()
+    assert np.all(products.direct_component_labels[4, 7:10] == 4)
+    assert np.all(products.measurement_component_labels[2:7, 2:7] == 4)
+    assert np.all(products.measurement_component_labels[4, 7:10] == 4)
+    assert not products.measurement_component_labels.flags.writeable
 
 
 def test_candidate_products_require_atrous_evidence(

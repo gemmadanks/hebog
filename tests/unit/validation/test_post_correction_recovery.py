@@ -121,6 +121,7 @@ def test_candidate_product_adapter_connects_all_reviewed_science(
         "evaluate_post_campaign_candidate_products",
         return_value=SimpleNamespace(
             detection=detection,
+            measurement_component_labels=labels,
             position_signal_jy_per_beam=position_signal,
         ),
     )
@@ -182,6 +183,7 @@ def test_public_correction_adapter_uses_seeded_detection_and_moment_shapes(
         "evaluate_public_finder_correction_candidate_products",
         return_value=SimpleNamespace(
             detection=detection,
+            measurement_component_labels=labels,
             position_signal_jy_per_beam=position_signal,
             significant_multiscale_support=np.ones(
                 shape,

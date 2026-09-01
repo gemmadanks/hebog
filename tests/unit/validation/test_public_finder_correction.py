@@ -27,6 +27,7 @@ from hebog.validation.public_finder_correction import (
     build_sdc1_source_finding_records,
     public_finder_boundary_refinement_configuration,
     public_finder_correction_candidate_configuration,
+    public_finder_mask_measurement_separation_configuration,
     public_finder_source_association_candidate_configuration,
     public_finder_source_hierarchy_parent_construction_configuration,
     public_finder_source_reconstruction_candidate_configuration,
@@ -638,6 +639,30 @@ def test_boundary_refinement_configuration_binds_exact_review(
     )
 
 
+def test_mask_measurement_configuration_binds_exact_review(
+    tmp_path: Path,
+) -> None:
+    """The mask-only correction has an explicit immutable identity layer."""
+    files = tuple(tmp_path / f"contract-{index}.json" for index in range(18))
+    for index, path in enumerate(files):
+        path.write_text(f'{{"index": {index}}}\n', encoding="utf-8")
+
+    configuration = public_finder_mask_measurement_separation_configuration(
+        *files,
+    )
+
+    continuum = cast(dict[str, object], configuration["continuum"])
+    assert continuum["mask_measurement_separation_policy"] == (
+        "three-sigma-published-mask-stable-seeded-measurement-v1"
+    )
+    assert continuum["mask_measurement_separation_pre_review_sha256"] == (
+        file_sha256(files[-2])
+    )
+    assert continuum[
+        "mask_measurement_separation_implementation_decision_sha256"
+    ] == file_sha256(files[-1])
+
+
 def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     mocker: MockerFixture,
 ) -> None:
@@ -649,6 +674,7 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     labels = np.ones(shape, dtype=np.int32)
     direct_labels = np.zeros(shape, dtype=np.int32)
     direct_labels[2, 2] = 1
+    measurement_labels = np.ones(shape, dtype=np.int32)
     detection = cast(
         Any,
         SimpleNamespace(component_labels=labels),
@@ -661,6 +687,7 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
         return_value=SimpleNamespace(
             detection=detection,
             direct_component_labels=direct_labels,
+            measurement_component_labels=measurement_labels,
             significant_multiscale_support=np.zeros(shape, dtype=np.bool_),
             scale_detection_planes=scale_planes,
             position_signal_jy_per_beam=position_signal,
@@ -694,7 +721,7 @@ def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(
     assert result.component_catalogue is components
     assert result.source_association is association
     assert evaluate.call_args.kwargs == {"beam": beam, "review": review}
-    assert measure.call_args.args[3] is labels
+    assert measure.call_args.args[3] is measurement_labels
     assert measure.call_args.args[4] is direct_labels
     np.testing.assert_array_equal(
         measure.call_args.args[5],

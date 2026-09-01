@@ -347,6 +347,31 @@ def test_multiscale_refinement_uses_scale_support() -> None:
     assert set(np.unique(refined)) == {0, 4, 9}
 
 
+def test_multiscale_refinement_requires_island_snr_for_recovered_support() -> (
+    None
+):
+    """Scale evidence alone cannot publish a sub-island mask boundary."""
+    labels = np.zeros((9, 9), dtype=np.int32)
+    labels[2:7, 2:7] = 4
+    combined_snr = np.zeros(labels.shape, dtype=np.float64)
+    combined_snr[labels > 0] = 4.0
+    labels[4, 7] = 4
+    combined_snr[4, 7] = 2.9
+    reconstruction = np.zeros(labels.shape, dtype=np.bool_)
+    reconstruction[4, 6:8] = True
+
+    refined = refine_multiscale_segment_labels(
+        labels,
+        combined_snr,
+        reconstruction,
+        beam_major_fwhm_pixels=4.0,
+        recovered_minimum_snr=3.0,
+    )
+
+    assert refined[4, 6] == 4
+    assert refined[4, 7] == 0
+
+
 def test_multiscale_refinement_preserves_opened_away_high_snr_support() -> (
     None
 ):
@@ -423,6 +448,14 @@ def test_multiscale_refinement_rejects_ambiguous_evidence() -> None:
             support,
             beam_major_fwhm_pixels=3.0,
             core_minimum_neighbors=True,
+        )
+    with pytest.raises(ValueError, match="recovered minimum SNR"):
+        refine_multiscale_segment_labels(
+            labels,
+            snr,
+            support,
+            beam_major_fwhm_pixels=3.0,
+            recovered_minimum_snr=True,
         )
     with pytest.raises(ValueError, match="neighbors"):
         refine_multiscale_segment_labels(

@@ -566,6 +566,55 @@ also requires a regression fix for an opened-away high-S/N thin detection and
 a new write-once smoke result. It authorizes no threshold tuning or
 retrospective rescoring.
 
+## Boundary-connectivity 128-case science smoke
+
+**Terminal date:** 2026-09-01
+
+**Evidence role:** viewed-development diagnostic smoke. The authoritative
+atomic record is
+`benchmark-results/phase-5/prospective-science-smoke-boundary-connectivity.json`,
+SHA-256
+`e30f27dd4438521bd7f17c13d094257b3577a97801078def79da2101e3d018ad`.
+
+**Scientific question:** does seeded-owner boundary cleanup close the PyBDSF
+mask-precision gap without losing any scientific quality already present in
+the whole Hebog incumbent?
+
+The exact 64-compact/64-Continuum smoke population and frozen prospective
+decision contract were unchanged. Compact products were byte-identical to the
+incumbent. The corrected terminal-cycle path remained active on 26 unseeded
+persistent candidates.
+
+| Decision class | Count |
+| --- | ---: |
+| Pass | 309 |
+| Underpowered diagnostic | 49 |
+| Confirmed fail | 11 |
+| Failed incumbent-retention comparisons | 3 |
+
+Boundary cleanup modestly improved overall mask precision relative to the
+incumbent, while mask recall and intersection-over-union remained within their
+retention margins. It did not close the released or pinned-master precision
+gates: recovered multiscale support could still enter the published mask below
+the frozen three-sigma island threshold.
+
+Three new incumbent position-p95 failures revealed an implementation coupling,
+not a detection loss. The refined published mask also replaced the seeded
+catalogue measurement plane, changing component support, moment centroids, and
+identifiers. Continuum-2 varying-noise seed 2026861185 dominates this tail:
+position p95 changed from 0.5709 to 2.2886 beams overall and from 0.6018 to
+2.4340 beams at scale four. The remaining four duplicate and two diffuse-split
+failures are inherited sparse topology gaps rather than boundary-cleanup
+regressions.
+
+**Terminal verdict:** fail. The full replay remains blocked. Pre-review
+`phase-5-prospective-mask-measurement-separation-pre-review`, SHA-256
+`bd0ba2979b101958b511786f737315b4d2595d298e5a42a2443cfb9e92121603`,
+freezes a mask-only correction: recovered published support must meet the
+existing island threshold, while association and measurement retain the stable
+seeded-owner plane. No threshold, margin, population, or closed result is
+changed or rescored.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

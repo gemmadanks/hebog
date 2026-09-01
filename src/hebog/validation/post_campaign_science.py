@@ -49,6 +49,7 @@ class PostCampaignCandidateProducts:
 
     detection: ThresholdFilterResult
     direct_component_labels: npt.NDArray[np.int32]
+    measurement_component_labels: npt.NDArray[np.int32]
     position_signal_jy_per_beam: npt.NDArray[np.float64]
     significant_multiscale_support: npt.NDArray[np.bool_]
     scale_detection_planes: tuple[ScaleDetectionPlane, ...]
@@ -156,6 +157,7 @@ def evaluate_post_campaign_candidate_products(  # noqa: PLR0913
             beam,
         ),
         direct_component_labels=direct_labels,
+        measurement_component_labels=direct_labels,
         position_signal_jy_per_beam=(
             prepared.residual_jy_per_beam
             + atrous.reconstructed_signal_jy_per_beam
@@ -214,17 +216,18 @@ def evaluate_public_finder_correction_candidate_products(  # noqa: PLR0913
             ),
         ),
     )
-    labels = assign_seeded_multiscale_support(
+    measurement_labels = assign_seeded_multiscale_support(
         direct_detection.component_labels,
         direct_detection.reconstruction.support_mask,
         prepared.scientifically_valid,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
     )
     labels = refine_multiscale_segment_labels(
-        labels,
+        measurement_labels,
         direct_detection.combined_snr,
         direct_detection.reconstruction.support_mask,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
+        recovered_minimum_snr=review.matrix.island_sigma,
     )
     retained = np.asarray(labels > 0, dtype=np.bool_)
     labels.setflags(write=False)
@@ -240,15 +243,20 @@ def evaluate_public_finder_correction_candidate_products(  # noqa: PLR0913
         dtype=np.bool_,
     ).copy()
     significant_support.setflags(write=False)
-    direct_labels = np.where(
-        labels > 0,
+    direct_labels = np.asarray(
         direct_detection.component_labels,
-        0,
-    ).astype(np.int32, copy=False)
+        dtype=np.int32,
+    ).copy()
     direct_labels.setflags(write=False)
+    measurement_labels = np.asarray(
+        measurement_labels,
+        dtype=np.int32,
+    ).copy()
+    measurement_labels.setflags(write=False)
     return PostCampaignCandidateProducts(
         detection=detection,
         direct_component_labels=direct_labels,
+        measurement_component_labels=measurement_labels,
         position_signal_jy_per_beam=(
             prepared.residual_jy_per_beam
             + atrous.reconstructed_signal_jy_per_beam

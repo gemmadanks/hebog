@@ -54,7 +54,7 @@
     },
     {
       "path": "scripts/validation/materialize_phase5_prospective_hebog_products.py",
-      "sha256": "4cf0d58b9e6f2dac32ae2dfff0f197fca95548153998fc3d82df8b6bba71101e"
+      "sha256": "ccfd6928a6df9fcf3f914f810481dc4abfa1b031a54915f7dccca4fbc3618bde"
     },
     {
       "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",

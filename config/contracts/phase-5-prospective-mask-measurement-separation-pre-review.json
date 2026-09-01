@@ -1,0 +1,72 @@
+{
+  "authorization": {
+    "fixture_and_executor_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_all_prospective_gates_pass": true,
+    "mask_measurement_separation_implementation_authorized": true,
+    "release_authorized": false,
+    "repeat_diagnostic_smoke_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_evidence": {
+    "candidate_configuration_sha256": "68e8a49fd24621954e25765230f3516a20cf586c627a3f7964810a683c0ef6f1",
+    "candidate_revision": "f2d2314767d1fe17e3e4d0c9f38a921b80ede2d4",
+    "candidate_source_tree_sha256": "f41f495e462dfb88d8cf58494724cce00a1a7c9105a92d2e3b7057c1b0e275cc",
+    "incumbent_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "prospective_smoke_path": "benchmark-results/phase-5/prospective-science-smoke-boundary-connectivity.json",
+    "prospective_smoke_sha256": "e30f27dd4438521bd7f17c13d094257b3577a97801078def79da2101e3d018ad"
+  },
+  "causal_findings": {
+    "catalogue_measurement_coupling": {
+      "confirmed_failures": [
+        "incumbent-position-p95-overall",
+        "incumbent-position-p95-scale-4",
+        "incumbent-position-p95-varying-noise"
+      ],
+      "cause": "The boundary-refined published mask replaced the seeded measurement and direct-identity planes used by source association and moment measurement. Clipping changed canonical component pixels, centroids, covariances, identifiers, and one matcher tail despite unchanged detection science.",
+      "dominant_realization": "phase5-external-post-failure-continuum-2-1024-seed-2026861185",
+      "evidence": "The dominant realization kept eight catalogue sources and twelve association components, but its incumbent position p95 of 0.5709 beams became 2.2886 beams; the scale-4 value changed from 0.6018 to 2.4340 beams."
+    },
+    "mask_precision_gap": {
+      "confirmed_failures": [
+        "pinned-master-mask-precision-overall",
+        "released-mask-precision-overall"
+      ],
+      "cause": "Nearby significant multiscale support could recover a published boundary pixel below the frozen three-sigma island threshold. The deficit is population-wide rather than one outlier: all 64 Continuum smoke images are below the released reference and 63 of 64 are below pinned master.",
+      "incumbent_retention": "Overall mask precision improved by approximately 0.00546 relative to the incumbent; mask intersection-over-union and recall regressions remained within their frozen margins."
+    },
+    "remaining_topology_gap": {
+      "confirmed_failures": [
+        "pinned-master-duplicate-fraction-image-edge",
+        "released-duplicate-fraction-image-edge",
+        "released-duplicate-fraction-morphology-artifact",
+        "released-duplicate-fraction-scale-1-beam",
+        "pinned-master-split-fraction-morphology-diffuse",
+        "released-split-fraction-morphology-diffuse"
+      ],
+      "cause": "These sparse source-topology failures are inherited from the incumbent candidate and are not caused by the boundary refinement. The image-edge duplicate is concentrated in Continuum-1 seed 2026860341; diffuse splits occur in that realization and Continuum-3 seeds 2026862118 and 2026862301. A topology change must be reviewed separately if these failures remain after the mask-only correction."
+    }
+  },
+  "decision_id": "phase-5-prospective-mask-measurement-separation-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_boundary": {
+    "catalogue_policy": "Keep the deterministic seeded-owner plane for catalogue association, source measurement, identifiers, and direct-component provenance.",
+    "mask_policy": "Apply boundary cleanup only to the published detection mask and require recovered multiscale boundary support to meet the already-frozen three-sigma island threshold.",
+    "new_thresholds_or_margins": false,
+    "policy": "three-sigma-published-mask-stable-seeded-measurement-v1",
+    "retained_threshold": "review.matrix.island_sigma"
+  },
+  "required_validation": [
+    "red fixture proving sub-island-SNR recovered support cannot enter the published mask",
+    "direct and seeded measurement planes remain immutable and independent of mask cleanup",
+    "both catalogue construction routes consume the seeded measurement plane",
+    "source association and measurement retain exact direct component identities",
+    "Serial and existing-Dask partition, task-order, and retry invariance pass",
+    "compact products remain byte-identical to the incumbent",
+    "repeat the frozen 128-case prospective smoke into a new write-once namespace",
+    "stop before the full replay unless every PyBDSF and incumbent comparison passes or is diagnostic-underpowered without a confirmed failure"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-replacement-results"
+}

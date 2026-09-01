@@ -88,6 +88,9 @@ _BOUNDARY_REFINEMENT_POLICY = (
     "seeded-owner-dense-core-high-snr-nearby-significant-boundary-"
     "refinement-v1"
 )
+_MASK_MEASUREMENT_SEPARATION_POLICY = (
+    "three-sigma-published-mask-stable-seeded-measurement-v1"
+)
 _SOURCE_MEASUREMENT_POLICY = "disjoint-source-owned-aperture-moment-v1"
 _CONNECTED_SUPPORT_POLICY = (
     "direct-seed-connected-half-beam-multiscale-recovery-v1"
@@ -673,6 +676,65 @@ def public_finder_boundary_refinement_configuration(  # noqa: PLR0913, PLR0917
     return {"compact": base["compact"], "continuum": continuum}
 
 
+def public_finder_mask_measurement_separation_configuration(  # noqa: PLR0913, PLR0917
+    base_review_path: Path,
+    correction_contract_path: Path,
+    source_reconstruction_pre_review_path: Path,
+    source_reconstruction_decision_path: Path,
+    root_cause_pre_review_path: Path,
+    root_cause_implementation_decision_path: Path,
+    parent_construction_pre_review_path: Path,
+    parent_construction_implementation_decision_path: Path,
+    terminal_parent_review_path: Path,
+    terminal_parent_implementation_decision_path: Path,
+    terminal_feature_pre_review_path: Path,
+    terminal_feature_implementation_decision_path: Path,
+    terminal_cycle_pre_review_path: Path,
+    terminal_cycle_implementation_decision_path: Path,
+    boundary_refinement_pre_review_path: Path,
+    boundary_refinement_implementation_decision_path: Path,
+    separation_pre_review_path: Path,
+    separation_implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Return the mask-only refinement and stable-measurement identity."""
+    base = public_finder_boundary_refinement_configuration(
+        base_review_path,
+        correction_contract_path,
+        source_reconstruction_pre_review_path,
+        source_reconstruction_decision_path,
+        root_cause_pre_review_path,
+        root_cause_implementation_decision_path,
+        parent_construction_pre_review_path,
+        parent_construction_implementation_decision_path,
+        terminal_parent_review_path,
+        terminal_parent_implementation_decision_path,
+        terminal_feature_pre_review_path,
+        terminal_feature_implementation_decision_path,
+        terminal_cycle_pre_review_path,
+        terminal_cycle_implementation_decision_path,
+        boundary_refinement_pre_review_path,
+        boundary_refinement_implementation_decision_path,
+    )
+    continuum_value = base["continuum"]
+    if not isinstance(continuum_value, dict):
+        raise TypeError("base Continuum configuration must be a dictionary")
+    continuum = dict(cast(dict[str, object], continuum_value))
+    continuum.update(
+        {
+            "mask_measurement_separation_policy": (
+                _MASK_MEASUREMENT_SEPARATION_POLICY
+            ),
+            "mask_measurement_separation_pre_review_sha256": file_sha256(
+                separation_pre_review_path
+            ),
+            "mask_measurement_separation_implementation_decision_sha256": (
+                file_sha256(separation_implementation_decision_path)
+            ),
+        }
+    )
+    return {"compact": base["compact"], "continuum": continuum}
+
+
 def _aligned_public_plane(
     values: npt.ArrayLike,
     *,
@@ -732,7 +794,7 @@ def build_public_finder_correction_continuum_products(  # noqa: PLR0913
         image,
         background,
         valid,
-        products.detection.component_labels,
+        products.measurement_component_labels,
         products.significant_multiscale_support,
         products.detection.combined_snr,
         header,
@@ -792,7 +854,7 @@ def build_public_finder_source_reconstruction_continuum_products(  # noqa: PLR09
         image,
         background,
         valid,
-        products.detection.component_labels,
+        products.measurement_component_labels,
         products.direct_component_labels,
         products.significant_multiscale_support,
         products.scale_detection_planes,

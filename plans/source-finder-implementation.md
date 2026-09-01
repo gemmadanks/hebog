@@ -1025,7 +1025,26 @@ from partial or viewed evidence.
      configuration `68e8a49f...` preserves high-S/N thin support, removes
      ordinary low-S/N protrusions, clips direct ownership to measurement
      ownership, and passes real-scale, executor-invariance, and full 94.52%
-     branch-aware coverage. The new replacement smoke remains prerequisite.
+     branch-aware coverage. Its completed replacement smoke
+     `e30f27dd...` still fails: 309 comparisons pass, 49 are diagnostic-
+     underpowered, and 11 are confirmed failures. Boundary refinement improves
+     mask precision relative to the incumbent, but allowing sub-island-S/N
+     recovered support leaves both PyBDSF mask-precision gates red. Coupling
+     the refined mask to catalogue measurement also introduced three incumbent
+     position-p95 failures, dominated by Continuum-2 seed 2026861185. Six
+     sparse duplicate/split failures are inherited topology gaps.
+   - [ ] Separate published-mask cleanup from catalogue measurement before the
+     next smoke. Pre-review `bd0ba297...` freezes the existing three-sigma
+     island threshold as the minimum recovered-mask S/N and retains the
+     deterministic seeded-owner plane for association, measurement, and direct
+     provenance. No new threshold or margin is introduced. Red fixtures now
+     prove sub-threshold recovery is rejected, measurement identity remains
+     immutable, and both catalogue paths consume it. Repeat the exact 128-case
+     smoke in a fresh write-once namespace. If only the six inherited topology
+     failures remain, review and correct that topology separately on analytic
+     and smoke-scale evidence; do not run the full replay until every binding
+     smoke comparison is pass or diagnostic-underpowered without a confirmed
+     failure.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift
