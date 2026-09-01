@@ -14076,3 +14076,39 @@ no-write verification, then retry the unchanged cumulative replay.
 **Immediate next step:** complete broad validation and code review, freeze an
 immutable evaluation-only checkout, then compile and evaluate the sealed
 products once into the still-absent atomic cumulative ledger.
+
+## 2026-09-01 — Publication-scale persistence is terminal cumulative failure
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Immutable evaluation-only revision `36c6f1d...` verified sealed candidate
+  product set `77a71b5f...`, all 2,400 candidate products, and all 9,600
+  retained reference runs, then published atomic ledger `a9c6ed28...` without
+  candidate reexecution. Completion provenance binds program `96546d82...`,
+  review `d0d2835a...`, decision `5155b732...`, consumed wrapper
+  `a0fe32d3...`, reconstructed reference `48209eae...`, and baseline
+  `a45303df...`.
+- Compact passes all 143 Aegean and 450 dual-PyBDSF comparisons with zero
+  like-semantics regressions. Continuum records 101 passes, 31 confirmed
+  failures, 11 underpowered endpoints, and 26 incumbent regressions.
+  Reliability is 0.9031 against 0.95; duplicate fraction is 0.0604 against 0.02;
+  integrated-flux p95 is 0.2699 against 0.25; and position p95 is 0.9848 beam
+  against 0.50. Completeness, mask precision/recall/IoU, and merge fraction
+  pass overall.
+- Failure families are reliability (1), duplicate fraction (9), split
+  fraction (4), integrated-flux median (3), integrated-flux p95 (7), and
+  position p95 (7). Shell, above-compact-deblend-limit, scale-4,
+  tile-boundary/corner, artifact, and varying-noise strata dominate. The
+  full-population terminal census records 1,821 cycle candidates, 1,817
+  parents, four rejected cycles, and zero displaced-child candidates or
+  acceptances.
+- The frozen trade-off rule cannot accept the result because multiple absolute
+  and incumbent-retention gates fail. `cumulative_science_regression_ready`
+  and `all_required_endpoints_pass` are false. The result is closed and cannot
+  be tuned, rescored, or rerun as the same candidate.
+
+**Immediate next step:** perform a prospective root-cause review on the already
+viewed cumulative products, separate mask, association/topology, position, and
+flux-measurement causes, reproduce confirmed causes in analytic fixtures, and
+strengthen the stratified fail-fast smoke before proposing another scientific
+candidate or cumulative replay.

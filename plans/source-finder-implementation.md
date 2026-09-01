@@ -501,10 +501,11 @@ Subsequent parent work is now terminal evidence. Candidate `85d5807...`
 materially improved the source-parent path but failed with 35 Continuum
 endpoints and 30 regressions. Terminal-feature candidate `3d080f7...` then
 published ledger `a9b4d57e...`: compact passes, but Continuum regresses to 39
-failures and 33 regressions. Its bounded census records zero displaced-child
-candidates, so the intended mechanism was dormant. The current blocker is the
-pre-persistence all-features-seeded eligibility guard, governed by a new
-non-executable red-fixture pre-review rather than another replay.
+failures and 33 regressions. The fail-fast correction ladder subsequently
+opened publication-scale candidate `937737d...`; full ledger `a9c6ed28...`
+improves to 31 Continuum failures and 26 regressions but remains terminally
+failed. The current blocker is a prospective root-cause review of the complete
+population and stronger stratified smoke coverage rather than another replay.
 
 Section 7 contains the single authoritative Phase 5 closure sequence; detailed
 chronology and immutable identities remain in `LOG.md` and
@@ -516,15 +517,14 @@ chronology and immutable identities remain in `LOG.md` and
 
 **Status: open.** Multiscale science, combined products, bounded execution,
 the original final qualification, compact regression, and the incremental
-performance budget are complete. Terminal-cycle eligibility and the fail-fast
-scientific feedback lane are implemented, and the prospective
-parity-and-quality-retention records are frozen but inactive pending exact
-human scientific review. Phase 5 next requires the prospective evaluator,
-endpoint-level power audit, diagnostic smoke lane, one passing cumulative
-regression ledger, and fresh held-out qualification for the eventual corrected
-candidate. Detailed campaign and incident chronology belongs in `LOG.md`;
-machine identities and authorization boundaries remain in
-`config/contracts/`.
+performance budget are complete. Terminal-cycle eligibility, the fail-fast
+scientific feedback lane, the prospective evaluator, endpoint-level power
+audit, and one complete cumulative evaluation are implemented. That cumulative
+ledger fails, so Phase 5 next requires a prospective full-population root-cause
+correction, passing stratified smoke and cumulative ledgers, and fresh held-out
+qualification for the eventual corrected candidate. Detailed campaign and
+incident chronology belongs in `LOG.md`; machine identities and authorization
+boundaries remain in `config/contracts/`.
 
 #### Completed evidence
 
@@ -542,6 +542,7 @@ machine identities and authorization boundaries remain in
 | Measurement-completeness repair | Commit `6184a32...` preserves positive expanded-aperture measurements, falls back to explicitly flagged positive exact-owner support only when required, propagates the flags, and remains fail-closed for genuinely unmeasurable owners. Its authorized replay completed all 2,400 candidate products. |
 | Association-aware evaluation repair | The replay then failed before its atomic ledger because the compiler still required one legacy segment label per binding catalogue row. A new adapter leaves every closed program byte-identical, verifies the persisted source-membership digest against the finite native components, presents the exact support union only to catalogue matching, keeps native topology separate, and provides a completion-only path that forbids candidate execution. |
 | Source-reconstruction correction | Candidate `42c75f4...` added a deterministic common-parent hierarchy, one source-level measurement, connected-support admission, and source-union topology evaluation. Terminal ledger `84fbb3a1...` preserves compact science but fails the cumulative gate with 44 Continuum failures and 37 regressions; source membership and fragmentation were effectively unchanged. |
+| Publication-scale-persistence correction | Candidate `937737d...` passed the 128-case smoke and completed the full cumulative population. Terminal ledger `a9c6ed28...` keeps compact green but fails Continuum with 31 failures, 11 underpowered endpoints, and 26 incumbent regressions. It is closed evidence and motivates a full-population root-cause review. |
 | Readiness machinery | The fail-closed packet generator and finalizer exist and require packet-bound radio-astronomy and engineering acceptance. They do not authorize execution, cutover, or release. |
 
 The narrow Continuum watchpoints from the passing recovery evidence remain
@@ -657,6 +658,20 @@ Non-executable review
 `phase-5-public-finder-terminal-cycle-eligibility-pre-review`, SHA-256
 `e70e602f...`, freezes that fixture-only boundary; it authorizes nothing by
 itself.
+
+The subsequent fail-fast ladder produced smoke-passing publication-scale
+persistence candidate `937737d...`, but the complete cumulative replay is now
+terminal failure evidence. Atomic ledger `a9c6ed28...` passes compact with no
+like-semantics regression. Continuum records 101 passes, 31 failures, 11
+underpowered endpoints, and 26 incumbent regressions. Overall completeness and
+all mask gates pass, but reliability is 0.9031 against 0.95, duplicate fraction
+is 0.0604 against 0.02, integrated-flux p95 is 0.2699 against 0.25, and position
+p95 is 0.9848 beam against 0.50. Failures concentrate in shell,
+above-compact-deblend-limit, scale-4, tile-boundary/corner, artifact, and
+varying-noise strata. The frozen trade-off rule is inapplicable because
+absolute and incumbent-retention gates fail. The immediate blocker is a
+prospective full-population root-cause review and a better stratified
+fail-fast population, not qualification or another replay.
 
 Gemma Danks approved exact review `e70e602f...` for fixture-only
 implementation and non-executable identity preparation. The required red
@@ -1164,7 +1179,7 @@ from partial or viewed evidence.
      gates still green, when a related metric improves materially and the
      scientific trade-off is documented. A status regression, movement beyond
      the margin, or a post-result change to the rule remains disallowed.
-   - [ ] Only after the fixture, activation, contract, prospective evaluator,
+   - [x] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift
      before one full cumulative replay. Interpret compatibility and validity
@@ -1191,16 +1206,34 @@ from partial or viewed evidence.
      those hash-verified products, with candidate execution forbidden, using
      the exact smoke-proven overlay and unchanged endpoints, thresholds,
      comparators, confidence rules, and trade-off margins.
+     Evaluation-only completion `36c6f1d...` verified all 2,400 candidate
+     products and 9,600 retained reference runs and published atomic ledger
+     `a9c6ed28...` without candidate reexecution. Compact passes, but Continuum
+     has 31 confirmed failures, 11 underpowered endpoints, and 26
+     like-semantics regressions. The cumulative gate therefore remains closed.
+   - [ ] Complete a prospective root-cause review before changing science or
+     freezing another replay. Use only the already viewed cumulative products
+     to partition every failure family by morphology, scale, boundary state,
+     noise regime, activation diagnostics, and difference from terminal-parent
+     incumbent `85d5807...`. Distinguish publication-mask support,
+     association/topology, position, and source-flux measurement causes; do not
+     infer one cause from aggregate co-movement. Reproduce each confirmed cause
+     with analytic fixtures, then rebuild the smoke population so it includes
+     the observed shell, scale-4, corner/boundary, artifact, and varying-noise
+     tails. A new full replay may be frozen only after the exact production
+     composition passes end-to-end, activation, negative-control, and
+     stratified science-smoke lanes with all absolute, dual-PyBDSF, and
+     incumbent-retention gates green.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
-   - Blocked: the terminal-feature persistence cumulative prerequisite
-     published a terminal failing ledger. No qualification population may be
-     opened or frozen until the current eligibility regression is fixed, all
-     fail-fast lanes pass, the all-check parity-and-retention contract is
-     reviewed, and a full cumulative replay publishes a passing ledger.
+   - Blocked: the publication-scale-persistence cumulative prerequisite
+     published terminal failing ledger `a9c6ed28...`. No qualification
+     population may be opened or frozen until the full-population causes are
+     corrected prospectively, all fail-fast lanes pass, and a full cumulative
+     replay publishes a passing all-check parity-and-retention ledger.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval. Before opening it, demonstrate from the frozen planning

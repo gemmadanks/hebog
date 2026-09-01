@@ -21,6 +21,7 @@ across decisions, or replace a failed result with a later interpretation.
 | Parent-construction cumulative replay | Test whether scale-aware parent envelopes and persistence create the intended catalogue-source parents | Fail | Compact passed, but all 143 Continuum endpoint values and decisions were unchanged. The parent-construction path still did not change governed source membership. |
 | Terminal-parent cumulative replay | Test the persistent terminal-cycle correction on the complete cumulative population | Fail, materially improved | Compact passed. Continuum improved from 89 to 96 passing endpoints; split and duplicate fractions nearly halved, but 35 failures and 30 regressions remain. |
 | Prospective 128-case science smoke | Fail fast on the terminal-cycle eligibility candidate before another complete replay | Fail, full replay blocked | All incumbent-retention checks passed, but eight PyBDSF-parity checks failed. The terminal-cycle repair activated diagnostically without changing catalogue membership; systematic mask-boundary precision is the principal confirmed gap. |
+| Publication-scale-persistence cumulative replay | Test the smoke-passing adjacent-scale publication rule on the complete 800-compact/1,600-Continuum regression population | Fail | Compact passed, but Continuum recorded 31 failures, 11 underpowered endpoints, and 26 incumbent regressions. The small smoke did not expose the full shell, boundary, and scale-4 topology tails. |
 
 The apparent contrast between final qualification and later failure is useful,
 not contradictory. The final qualification showed that the frozen candidate
@@ -869,6 +870,92 @@ retained-reference verifier without its historical producer-source view. It
 created no product or ledger and left a zero-byte scratch. The retry is bound
 to a process-only dispatch repair; all scientific identities and gates remain
 unchanged.
+
+## Publication-scale-persistence cumulative replay
+
+**Terminal date:** 2026-09-01
+
+**Evidence role:** viewed-development cumulative regression. This is terminal
+scientific evidence, not fresh qualification. The authoritative atomic ledger
+is
+`benchmark-results/phase-5/cumulative-regression-ledger-public-finder-publication-scale-persistence.json`,
+SHA-256
+`a9c6ed280308f863b149ad4d8dd7db59b8581cfa51cd585c004d4b69844881c8`.
+
+**Scientific question:** does candidate `937737d...`, which passed the
+128-case smoke, preserve compact science and the terminal-parent Hebog
+incumbent while matching both PyBDSF references across the complete cumulative
+population?
+
+The replay covered 800 compact/blended and 1,600 Continuum realizations. It
+used candidate source tree `9f8e4a67...`, configuration `2c907949...`, sealed
+product-set manifest `77a71b5f...`, reconstructed reference `48209eae...`, and
+closed Hebog baseline `a45303df...`. The evaluation-only completion verified
+all 2,400 candidate products and all 9,600 retained reference runs before
+publishing the ledger. No candidate product was rerun during completion.
+
+### Scientific result
+
+Compact science passes: all 143 Aegean and 450 dual-PyBDSF comparisons pass,
+and there are no like-semantics compact regressions. Continuum does not pass.
+
+| Continuum decision class | Count |
+| --- | ---: |
+| Pass | 101 |
+| Confirmed fail | 31 |
+| Underpowered | 11 |
+| Indeterminate | 0 |
+| Like-semantics incumbent regressions | 26 |
+
+The 31 confirmed failures comprise nine duplicate-fraction, seven
+integrated-flux-p95, seven position-p95, four split-fraction, three
+integrated-flux-median, and one reliability endpoint. Important overall values
+are:
+
+| Metric | Hebog | Absolute requirement | Decision |
+| --- | ---: | ---: | --- |
+| Completeness | 1.0000 | at least 0.90 | Pass |
+| Reliability | 0.9031 | at least 0.95 | Fail |
+| Mask precision | 0.9184 | at least 0.85 | Pass |
+| Mask recall | 0.9012 | at least 0.90 | Pass |
+| Mask IoU | 0.8343 | at least 0.80 | Pass |
+| Duplicate fraction | 0.0604 | at most 0.02 | Fail |
+| Split fraction | 0.0604 | at most 0.10 | Underpowered |
+| Merge fraction | 0.0000 | at most 0.10 | Pass |
+| Integrated-flux p95 | 0.2699 | at most 0.25 | Fail |
+| Position p95 | 0.9848 beam | at most 0.50 beam | Fail |
+
+The failures concentrate in shell, above-compact-deblend-limit, scale-4,
+tile-boundary, tile-corner, artifact, and varying-noise strata. Shell duplicate
+and split fractions are `0.3456`; tile-boundary values are `0.1728`. The
+terminal diagnostics found 1,821 cycle candidates and 1,817 accepted parents,
+but no displaced-child candidates or acceptances. This is useful activation
+evidence, not yet a complete causal attribution.
+
+The frozen trade-off rule cannot turn this result into a pass. It permits only
+small incumbent-relative movement inside a predeclared practical margin when
+all absolute and both PyBDSF gates remain green and a related material gain is
+documented. Here multiple absolute gates fail and 26 like-semantics statuses
+regress, so `cumulative_science_regression_ready` and
+`all_required_endpoints_pass` are both false.
+
+### Operational result and next action
+
+Two process defects were repaired without changing science. The first stopped
+before candidate execution at historical retained-reference dispatch. The
+second stopped after all candidate products but before publication because the
+full compiler omitted the smoke-proven separation between measurement labels
+and the refined publication mask. The evaluation-only completion reused the
+hash-verified sealed products and published the terminal decision.
+
+**Terminal verdict:** fail. The passing 128-case smoke was too small to expose
+the complete population's topology and measurement tails. Before another
+candidate or replay is frozen, perform a prospective root-cause review on the
+already viewed products: compare failed full-population strata with the smoke
+and terminal-parent incumbent, establish whether publication persistence,
+source association, or source measurement caused each failure family, and
+encode the confirmed causes in targeted analytic fixtures and a stratified
+fail-fast smoke. Do not tune or rescore this ledger.
 
 ## Prospective evaluation contract after terminal-cycle repair
 
