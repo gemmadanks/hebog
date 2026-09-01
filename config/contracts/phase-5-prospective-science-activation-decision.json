@@ -16,6 +16,12 @@
     "scientific_smoke_authorized": true,
     "threshold_or_photometric_tuning_authorized": false
   },
+  "boundary_refinement_amendment": {
+    "closed_smoke_sha256": "e3ac8e62b0d136078b2a4a15e7841b12f62c4381db7bb581d03a9468448b248c",
+    "implementation_decision_path": "config/contracts/phase-5-prospective-boundary-refinement-implementation-decision.json",
+    "pre_review_path": "config/contracts/phase-5-prospective-boundary-refinement-pre-review.json",
+    "scope": "repeat the frozen smoke after the fixed no-tuning boundary refinement and run the full replay only if every activation gate passes"
+  },
   "decision_contract": {
     "path": "config/contracts/phase-5-prospective-science-decision-contract.json",
     "sha256": "f70f321397618b9f63d3dd03d650a5bbc73f8aad5e5fa91f15a198a99bdb38f9"
@@ -48,7 +54,7 @@
     },
     {
       "path": "scripts/validation/materialize_phase5_prospective_hebog_products.py",
-      "sha256": "cd951abc69472d57a64010b915ddc6c5ac8edcfe379c6bd2882584c52f26c44b"
+      "sha256": "4cf0d58b9e6f2dac32ae2dfff0f197fca95548153998fc3d82df8b6bba71101e"
     },
     {
       "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
@@ -64,5 +70,5 @@
     "path": "config/contracts/phase-5-prospective-science-smoke-population.json",
     "sha256": "b52ddb52c258c9379d6d3e25a7faae209a6a2ea2f1d8bcd19ff119f475ffaa5d"
   },
-  "status": "authorized-before-prerequisite-results"
+  "status": "authorized-for-replacement-smoke-before-results"
 }

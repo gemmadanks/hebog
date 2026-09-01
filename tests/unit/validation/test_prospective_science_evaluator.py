@@ -71,6 +71,14 @@ def test_activation_decision_binds_exact_prerequisite_programs() -> None:
     }
     for artifact in decision["prerequisite_programs"]:
         assert file_sha256(_ROOT / artifact["path"]) == artifact["sha256"]
+    amendment = decision["boundary_refinement_amendment"]
+    assert amendment["closed_smoke_sha256"] == (
+        "e3ac8e62b0d136078b2a4a15e7841b12f62c4381db7bb581d03a9468448b248c"
+    )
+    assert file_sha256(_ROOT / amendment["pre_review_path"]) == (
+        "e92ac2893699bb0ff96347af6a691c654649fa6e152ef5dd588930f9f0cf82aa"
+    )
+    assert (_ROOT / amendment["implementation_decision_path"]).is_file()
 
 
 def test_variance_above_plan_does_not_override_passing_interval() -> None:

@@ -13587,3 +13587,37 @@ implement the bounded refinement composition, pass fixture and executor
 invariance validation, and repeat the exact frozen smoke into a new write-once
 namespace. Do not freeze or run the full cumulative replay unless that smoke has
 no confirmed failure.
+
+## 2026-09-01 — Implement prospective seeded-owner boundary refinement
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Added red fixtures for the two missing behaviors. The existing refinement
+  incorrectly discarded an independently strong thin segment when the 3-by-3
+  opening removed its whole support, and the seeded-owner public path did not
+  invoke refinement at all. Both fixtures failed for those exact reasons.
+- Refined original owned pixels now survive opening only at the fixed 6-sigma
+  boundary threshold. Dense opened cores and nearby significant multiscale
+  support retain the existing five-neighbor and 0.5-beam rules. The public
+  composition applies this rule after deterministic seeded ownership.
+- Wider real-scale tests exposed a second contract error before execution:
+  refined measurement ownership could exclude a pixel still claimed by the
+  downstream direct-component plane. Direct component support is now clipped
+  to refined ownership while keeping its original component identities. This
+  restores the required direct-subset-of-measurement invariant.
+- Froze implementation decision `c273de99...` and replacement configuration
+  `ecf5ace2...`. The activation record binds the failed smoke `e3ac8e62...`,
+  bounded pre-review `e92ac289...`, new implementation decision, and exact
+  amended materializer. It continues to prohibit tuning, rescoring,
+  qualification, cutover, and release.
+- Focused boundary, configuration, materializer, real-scale morphology,
+  Serial/partition, existing-Dask, and end-to-end validation passed 71 tests.
+  Full branch-aware coverage passed 2,271 tests plus four expected failures at
+  94.52%; `just check` passed 2,109 tests plus four expected failures; and all
+  27 frozen equivalence tests passed. Focused Ruff and Pyright checks passed.
+
+**Immediate next step:** seal the exact candidate in an immutable checkout,
+pass both complete no-write preflights, materialize only the new current
+128-product set, reuse the separately verified exact incumbent product set, and
+publish one replacement write-once smoke decision. Continue to the power audit
+and full replay only if it has zero confirmed failure.

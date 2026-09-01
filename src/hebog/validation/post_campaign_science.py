@@ -220,6 +220,12 @@ def evaluate_public_finder_correction_candidate_products(  # noqa: PLR0913
         prepared.scientifically_valid,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
     )
+    labels = refine_multiscale_segment_labels(
+        labels,
+        direct_detection.combined_snr,
+        direct_detection.reconstruction.support_mask,
+        beam_major_fwhm_pixels=beam.major_fwhm_pixels,
+    )
     retained = np.asarray(labels > 0, dtype=np.bool_)
     labels.setflags(write=False)
     retained.setflags(write=False)
@@ -234,10 +240,11 @@ def evaluate_public_finder_correction_candidate_products(  # noqa: PLR0913
         dtype=np.bool_,
     ).copy()
     significant_support.setflags(write=False)
-    direct_labels = np.asarray(
+    direct_labels = np.where(
+        labels > 0,
         direct_detection.component_labels,
-        dtype=np.int32,
-    ).copy()
+        0,
+    ).astype(np.int32, copy=False)
     direct_labels.setflags(write=False)
     return PostCampaignCandidateProducts(
         detection=detection,

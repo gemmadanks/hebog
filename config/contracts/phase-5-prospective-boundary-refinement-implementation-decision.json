@@ -1,0 +1,42 @@
+{
+  "authorization": {
+    "full_cumulative_replay_authorized_only_after_replacement_smoke_passes": true,
+    "fresh_qualification_authorized": false,
+    "release_authorized": false,
+    "replacement_smoke_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "decision_id": "phase-5-prospective-boundary-refinement-implementation-decision",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_policy": {
+    "boundary_minimum_snr": 6.0,
+    "core_minimum_neighbors": 5,
+    "opening_width_pixels": 3,
+    "policy": "seeded-owner-dense-core-high-snr-nearby-significant-boundary-refinement-v1",
+    "recovery_radius_beams": 0.5
+  },
+  "implementation": [
+    {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "sha256": "a88c872ee78fcf273b9e9c3ff8d6e0fc67e77b3d41f9865c47de681bc590c835"
+    },
+    {
+      "path": "src/hebog/validation/post_campaign_science.py",
+      "sha256": "ded8571645d535ce73ab6acf02e13c24a87f7be29e90efafa3c7d764fb0eeee5"
+    }
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-boundary-refinement-pre-review.json",
+    "sha256": "e92ac2893699bb0ff96347af6a691c654649fa6e152ef5dd588930f9f0cf82aa"
+  },
+  "required_pre_execution_gates": [
+    "high-SNR thin-support and low-SNR boundary fixtures pass",
+    "direct component identities remain a subset of refined measurement ownership",
+    "Serial existing-Dask partition order and retry invariance pass",
+    "complete retained-reference no-write verification passes",
+    "replacement 128-case smoke publishes no confirmed failure"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-replacement-smoke-before-results"
+}

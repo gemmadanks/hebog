@@ -207,6 +207,71 @@ def test_public_correction_owns_bridge_from_pre_union_direct_seeds(
     assert detect.call_count == 1
 
 
+def test_public_correction_refines_direct_low_snr_protrusions(
+    mocker: MockerFixture,
+) -> None:
+    """Seed ownership is followed by the reviewed sparse-boundary filter."""
+    labels = np.zeros((9, 11), dtype=np.int32)
+    labels[2:7, 2:7] = 4
+    labels[4, 7:10] = 4
+    support = np.zeros(labels.shape, dtype=np.bool_)
+    support[2:7, 2:7] = True
+    direct_detection = SimpleNamespace(
+        combined_snr=np.where(labels > 0, 4.0, 0.0),
+        retained_mask=labels > 0,
+        component_labels=labels,
+        component_count=1,
+        reconstruction=SimpleNamespace(support_mask=support),
+    )
+    prepared = SimpleNamespace(
+        residual_jy_per_beam=np.ones(labels.shape),
+        scientifically_valid=np.ones(labels.shape, dtype=np.bool_),
+    )
+    atrous = SimpleNamespace(
+        reconstructed_signal_jy_per_beam=np.zeros(labels.shape)
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science.prepare_scale_filter_inputs",
+        return_value=prepared,
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science._corrective_results",
+        return_value=(object(), atrous, object()),
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science."
+        "detect_residual_multiscale_islands",
+        return_value=direct_detection,
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science."
+        "_retained_scale_detection_planes",
+        return_value=(),
+    )
+    review = SimpleNamespace(
+        matrix=SimpleNamespace(
+            detection_sigma=5.0,
+            island_sigma=3.0,
+            support_fraction_bounds=(0.5, 1.0),
+        ),
+        corrections=SimpleNamespace(minimum_island_area_beams=0.25),
+    )
+
+    products = evaluate_public_finder_correction_candidate_products(
+        np.ones(labels.shape),
+        np.ones(labels.shape, dtype=np.bool_),
+        np.zeros(labels.shape),
+        np.ones(labels.shape),
+        beam=BeamShapePixels(4.0, 3.0, 0.0),
+        review=review,  # type: ignore[arg-type]
+    )
+
+    assert np.all(products.detection.component_labels[2:7, 2:7] == 4)
+    assert not products.detection.component_labels[4, 7:10].any()
+    assert np.all(products.direct_component_labels[2:7, 2:7] == 4)
+    assert not products.direct_component_labels[4, 7:10].any()
+
+
 def test_candidate_products_require_atrous_evidence(
     mocker: MockerFixture,
 ) -> None:

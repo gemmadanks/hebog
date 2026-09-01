@@ -347,6 +347,31 @@ def test_multiscale_refinement_uses_scale_support() -> None:
     assert set(np.unique(refined)) == {0, 4, 9}
 
 
+def test_multiscale_refinement_preserves_opened_away_high_snr_support() -> (
+    None
+):
+    """Preserve a thin real detection only when independently strong."""
+    labels = np.zeros((7, 7), dtype=np.int32)
+    labels[3, 2:5] = 7
+    support = np.zeros(labels.shape, dtype=np.bool_)
+
+    high_snr = refine_multiscale_segment_labels(
+        labels,
+        np.where(labels > 0, 6.0, 0.0),
+        support,
+        beam_major_fwhm_pixels=4.0,
+    )
+    low_snr = refine_multiscale_segment_labels(
+        labels,
+        np.where(labels > 0, 4.0, 0.0),
+        support,
+        beam_major_fwhm_pixels=4.0,
+    )
+
+    np.testing.assert_array_equal(high_snr, labels)
+    assert not low_snr.any()
+
+
 def test_multiscale_refinement_rejects_ambiguous_evidence() -> None:
     """Refinement requires aligned calibrated planes and a finite beam."""
     labels = np.ones((5, 5), dtype=np.int32)

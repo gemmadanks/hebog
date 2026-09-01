@@ -84,6 +84,10 @@ _TERMINAL_CYCLE_ELIGIBILITY_POLICY = (
 _TERMINAL_CYCLE_ELIGIBILITY_TELEMETRY_POLICY = (
     "array-free-terminal-cycle-eligibility-census-v1"
 )
+_BOUNDARY_REFINEMENT_POLICY = (
+    "seeded-owner-dense-core-high-snr-nearby-significant-boundary-"
+    "refinement-v1"
+)
 _SOURCE_MEASUREMENT_POLICY = "disjoint-source-owned-aperture-moment-v1"
 _CONNECTED_SUPPORT_POLICY = (
     "direct-seed-connected-half-beam-multiscale-recovery-v1"
@@ -610,6 +614,59 @@ def public_finder_terminal_cycle_eligibility_configuration(  # noqa: PLR0913, PL
             ),
             "terminal_cycle_eligibility_implementation_decision_sha256": (
                 file_sha256(terminal_cycle_implementation_decision_path)
+            ),
+        }
+    )
+    return {"compact": base["compact"], "continuum": continuum}
+
+
+def public_finder_boundary_refinement_configuration(  # noqa: PLR0913, PLR0917
+    base_review_path: Path,
+    correction_contract_path: Path,
+    source_reconstruction_pre_review_path: Path,
+    source_reconstruction_decision_path: Path,
+    root_cause_pre_review_path: Path,
+    root_cause_implementation_decision_path: Path,
+    parent_construction_pre_review_path: Path,
+    parent_construction_implementation_decision_path: Path,
+    terminal_parent_review_path: Path,
+    terminal_parent_implementation_decision_path: Path,
+    terminal_feature_pre_review_path: Path,
+    terminal_feature_implementation_decision_path: Path,
+    terminal_cycle_pre_review_path: Path,
+    terminal_cycle_implementation_decision_path: Path,
+    boundary_refinement_pre_review_path: Path,
+    boundary_refinement_implementation_decision_path: Path,
+) -> dict[str, object]:
+    """Return the seeded-owner boundary-refinement candidate identity."""
+    base = public_finder_terminal_cycle_eligibility_configuration(
+        base_review_path,
+        correction_contract_path,
+        source_reconstruction_pre_review_path,
+        source_reconstruction_decision_path,
+        root_cause_pre_review_path,
+        root_cause_implementation_decision_path,
+        parent_construction_pre_review_path,
+        parent_construction_implementation_decision_path,
+        terminal_parent_review_path,
+        terminal_parent_implementation_decision_path,
+        terminal_feature_pre_review_path,
+        terminal_feature_implementation_decision_path,
+        terminal_cycle_pre_review_path,
+        terminal_cycle_implementation_decision_path,
+    )
+    continuum_value = base["continuum"]
+    if not isinstance(continuum_value, dict):
+        raise TypeError("base Continuum configuration must be a dictionary")
+    continuum = dict(cast(dict[str, object], continuum_value))
+    continuum.update(
+        {
+            "boundary_refinement_policy": _BOUNDARY_REFINEMENT_POLICY,
+            "boundary_refinement_pre_review_sha256": file_sha256(
+                boundary_refinement_pre_review_path
+            ),
+            "boundary_refinement_implementation_decision_sha256": (
+                file_sha256(boundary_refinement_implementation_decision_path)
             ),
         }
     )

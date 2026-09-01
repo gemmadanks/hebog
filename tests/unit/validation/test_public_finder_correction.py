@@ -25,6 +25,7 @@ from hebog.validation.public_finder_correction import (
     build_public_finder_source_reconstruction_continuum_products,
     build_public_moment_source_candidate,
     build_sdc1_source_finding_records,
+    public_finder_boundary_refinement_configuration,
     public_finder_correction_candidate_configuration,
     public_finder_source_association_candidate_configuration,
     public_finder_source_hierarchy_parent_construction_configuration,
@@ -576,6 +577,65 @@ def test_terminal_cycle_eligibility_configuration_binds_exact_authority(
     assert continuum[
         "terminal_cycle_eligibility_implementation_decision_sha256"
     ] == file_sha256(decision)
+
+
+def test_boundary_refinement_configuration_binds_exact_review(
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    """Boundary refinement extends the candidate without policy drift."""
+    mocker.patch(
+        "hebog.validation.public_finder_correction."
+        "public_finder_terminal_cycle_eligibility_configuration",
+        return_value={"compact": {"frozen": True}, "continuum": {"base": 1}},
+    )
+    review = tmp_path / "boundary-review.json"
+    decision = tmp_path / "boundary-decision.json"
+    review.write_text('{"review": 7}\n', encoding="utf-8")
+    decision.write_text('{"decision": 7}\n', encoding="utf-8")
+
+    configuration = public_finder_boundary_refinement_configuration(
+        base_review_path=tmp_path / "base.json",
+        correction_contract_path=tmp_path / "correction.json",
+        source_reconstruction_pre_review_path=tmp_path / "source-review.json",
+        source_reconstruction_decision_path=tmp_path / "source-decision.json",
+        root_cause_pre_review_path=tmp_path / "root-review.json",
+        root_cause_implementation_decision_path=(
+            tmp_path / "root-decision.json"
+        ),
+        parent_construction_pre_review_path=tmp_path / "parent-review.json",
+        parent_construction_implementation_decision_path=(
+            tmp_path / "parent-decision.json"
+        ),
+        terminal_parent_review_path=tmp_path / "terminal-parent-review.md",
+        terminal_parent_implementation_decision_path=(
+            tmp_path / "terminal-parent-decision.json"
+        ),
+        terminal_feature_pre_review_path=tmp_path / "feature-review.json",
+        terminal_feature_implementation_decision_path=(
+            tmp_path / "feature-decision.json"
+        ),
+        terminal_cycle_pre_review_path=tmp_path / "cycle-review.json",
+        terminal_cycle_implementation_decision_path=(
+            tmp_path / "cycle-decision.json"
+        ),
+        boundary_refinement_pre_review_path=review,
+        boundary_refinement_implementation_decision_path=decision,
+    )
+
+    assert configuration["compact"] == {"frozen": True}
+    continuum = cast(dict[str, object], configuration["continuum"])
+    assert continuum["base"] == 1
+    assert continuum["boundary_refinement_policy"] == (
+        "seeded-owner-dense-core-high-snr-nearby-significant-boundary-"
+        "refinement-v1"
+    )
+    assert continuum["boundary_refinement_pre_review_sha256"] == (
+        file_sha256(review)
+    )
+    assert continuum["boundary_refinement_implementation_decision_sha256"] == (
+        file_sha256(decision)
+    )
 
 
 def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(

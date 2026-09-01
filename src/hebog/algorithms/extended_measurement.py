@@ -212,10 +212,17 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
         beam_major_fwhm_pixels,
         recovery_radius_beams=recovery_radius_beams,
     )
+    original_support = labels > 0
+    high_confidence_boundary = original_support & (
+        np.asarray(snr, dtype=np.float64) >= boundary_minimum_snr
+    )
     cleaned = clean_detected_segment_labels(labels)
     cleaned_support = cleaned > 0
     if not np.any(cleaned_support):
-        return cleaned
+        return np.where(high_confidence_boundary, labels, 0).astype(
+            np.int32,
+            copy=False,
+        )
     neighbor_count = convolve(
         cleaned_support.astype(np.int8),
         np.ones((3, 3), dtype=np.int8),
@@ -223,16 +230,12 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
         cval=0,
     )
     dense_core = cleaned_support & (neighbor_count >= core_minimum_neighbors)
-    high_confidence_boundary = cleaned_support & (
-        np.asarray(snr, dtype=np.float64) >= boundary_minimum_snr
-    )
     nearby = (
         binary_dilation(cleaned_support, iterations=recovery_radius_pixels)
         if recovery_radius_pixels > 0
         else cleaned_support
     )
     recovered = multiscale_support & nearby
-    retained = dense_core | high_confidence_boundary | recovered
     _, nearest_indices = cast(
         tuple[npt.NDArray[np.float64], npt.NDArray[np.int32]],
         distance_transform_edt(
@@ -242,7 +245,11 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
         ),
     )
     nearest_labels = cleaned[tuple(nearest_indices)]
-    return np.where(retained, nearest_labels, 0).astype(np.int32, copy=False)
+    refined = np.where(dense_core | recovered, nearest_labels, 0)
+    return np.where(high_confidence_boundary, labels, refined).astype(
+        np.int32,
+        copy=False,
+    )
 
 
 def _canonical_seed_ranks(

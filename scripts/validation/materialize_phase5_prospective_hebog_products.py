@@ -35,9 +35,9 @@ _EXPECTED_SMOKE_INPUT_COUNT = 128
 
 
 def _current_configuration(root: Path) -> str:
-    """Return the exact terminal-cycle scientific configuration."""
+    """Return the exact boundary-refined scientific configuration."""
     from hebog.validation.public_finder_correction import (  # noqa: PLC0415
-        public_finder_terminal_cycle_eligibility_configuration,
+        public_finder_boundary_refinement_configuration,
     )
 
     paths = (
@@ -55,8 +55,10 @@ def _current_configuration(root: Path) -> str:
         "config/contracts/phase-5-public-finder-terminal-feature-persistence-implementation-decision.json",
         "config/contracts/phase-5-public-finder-terminal-cycle-eligibility-pre-review.json",
         "config/contracts/phase-5-public-finder-terminal-cycle-eligibility-implementation-decision.json",
+        "config/contracts/phase-5-prospective-boundary-refinement-pre-review.json",
+        "config/contracts/phase-5-prospective-boundary-refinement-implementation-decision.json",
     )
-    configuration = public_finder_terminal_cycle_eligibility_configuration(
+    configuration = public_finder_boundary_refinement_configuration(
         *(root / path for path in paths)
     )
     return canonical_sha256(configuration)
