@@ -41,6 +41,12 @@ def test_overlay_preserves_base_bytes_and_installs_exact_builder() -> None:
         base["build_public_finder_source_reconstruction_continuum_products"]
         is build_publication_snr_repaired_continuum_products
     )
+    assert (
+        base["_current_composition"].__globals__[
+            "build_public_finder_source_reconstruction_continuum_products"
+        ]
+        is build_publication_snr_repaired_continuum_products
+    )
     assert _BASE.read_bytes().startswith(b"#!/usr/bin/env python3\n")
 
 
@@ -98,12 +104,33 @@ def test_product_worker_strips_overlay_only_metadata() -> None:
     }
 
 
+def test_cli_installs_worker_override_in_runpy_function_globals() -> None:
+    """Spawned work must resolve the importable overlay worker, not runpy."""
+    wrapper = _load()
+    base = wrapper["_base"](_ROOT)
+
+    entrypoint = wrapper["_install_materializer_overrides"](base)
+
+    assert (
+        entrypoint.__globals__["_generate_product"]
+        is wrapper["_generate_product"]
+    )
+    assert (
+        entrypoint.__globals__["_current_configuration"]
+        is wrapper["_current_configuration"]
+    )
+
+
 def test_evaluator_dispatches_the_repaired_materializer_only() -> None:
     """The exact mixed-schema compiler is reused with the new producer."""
     evaluator = runpy.run_path(str(_EVALUATOR))
     base = evaluator["_base"](_ROOT)
 
     assert base["_MATERIALIZER"] == (
+        "scripts/validation/"
+        "materialize_phase5_prospective_publication_snr_products.py"
+    )
+    assert base["main"].__globals__["_MATERIALIZER"] == (
         "scripts/validation/"
         "materialize_phase5_prospective_publication_snr_products.py"
     )

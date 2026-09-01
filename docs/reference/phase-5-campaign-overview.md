@@ -669,12 +669,20 @@ truth would therefore be scientifically unjustified.
 
 **Terminal verdict:** fail. The full replay remains blocked. Pre-review
 `phase-5-prospective-publication-snr-repair-pre-review`, SHA-256
-`64db011706ea62e3f90472a0b0e46bc67b363cdf615256868d87788acf44654e`,
+`9c0e8ece3e64e13947a803586dfcf3fd7dcabef5281fff96a05cf9ae1a63ee53`,
 and implementation decision `029f9a2068c7...` freeze only the original-pixel
 publication statistic. No threshold, margin, measurement, association,
 population, comparator, or decision rule changes. The replacement candidate
-configuration is `8f515d7c...`; it must complete the same write-once smoke
+configuration is `57841bc3...`; it must complete the same write-once smoke
 before any separate topology correction or full replay.
+
+The first materialization attempt exposed a process-only `runpy` composition
+defect before producing any candidate product: changing the returned mapping
+did not change the globals resolved by the frozen CLI, leaving an unimportable
+`<run_path>` worker and inactive builder/evaluator overrides. Regression tests
+now verify the actual function globals. Repaired implementation decision
+`a292fa98c66b...` binds the correction; no scientific product was overwritten
+or rescored.
 
 ## Prospective evaluation contract after terminal-cycle repair
 

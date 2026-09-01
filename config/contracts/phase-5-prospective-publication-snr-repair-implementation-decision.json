@@ -23,16 +23,23 @@
     },
     {
       "path": "scripts/validation/materialize_phase5_prospective_publication_snr_products.py",
-      "sha256": "2cfb98d9761c8f0915133e8a11ab112cc8d05dcbd1c4f81bf4f0b45c6887dec2"
+      "sha256": "47d4390e241fd41fffcf1eaf8ae1a4648915de40bb36fc865a804e1f25d909e4"
     },
     {
       "path": "scripts/validation/evaluate_phase5_prospective_publication_snr_smoke.py",
-      "sha256": "75817e259ef03e4a8eeefc922ad2a313421f5cf2b8438b8c13cb5c39c048d5c2"
+      "sha256": "669a80f768fc3654abf0baebd8635eab44c4909dcc17f2bdfbcdac43308c6e54"
     }
   ],
   "pre_review": {
     "path": "config/contracts/phase-5-prospective-publication-snr-repair-pre-review.json",
-    "sha256": "64db011706ea62e3f90472a0b0e46bc67b363cdf615256868d87788acf44654e"
+    "sha256": "9c0e8ece3e64e13947a803586dfcf3fd7dcabef5281fff96a05cf9ae1a63ee53"
+  },
+  "process_repair": {
+    "failed_attempt_candidate_products": 0,
+    "failed_attempt_progress_bytes": 0,
+    "failure": "runpy returned a detached mapping, so overlay assignments did not update the function globals used by the CLI and ProcessPoolExecutor selected the unimportable <run_path> worker",
+    "repair": "install the reviewed builder, worker dispatch, configuration, retained-reference verifier, and evaluator path in the exact runpy function globals resolved at runtime",
+    "scientific_policy_change": false
   },
   "required_pre_execution_gates": [
     "filtered significance cannot publish a sub-island original-pixel boundary",

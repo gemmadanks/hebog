@@ -1071,7 +1071,7 @@ from partial or viewed evidence.
      publication boundary and topology loss to disconnected catalogue sources;
      the existing conservative pair graph finds zero admissible edges.
    - [ ] Correct the publication statistic before any topology change.
-     Pre-review `64db0117...` binds smoke `07f51256...` and rejects threshold
+     Pre-review `9c0e8ece...` binds smoke `07f51256...` and rejects threshold
      tuning, measurement-plane changes, global connectivity removal, relaxed
      association, and truth-assisted filtering. The documented original-pixel
      S/N floor was incorrectly supplied with the maximum filtered/multiscale
@@ -1080,9 +1080,14 @@ from partial or viewed evidence.
      exact measurement and catalogue products. It composes over byte-frozen
      historical producers rather than mutating their checksum-bound files.
      Focused tests and seven-case diagnostics pass; prospective mask precision
-     improves in every diagnosed case. Candidate configuration `8f515d7c...`
-     must pass complete current/incumbent no-write verification and publish the
-     same 128-case write-once smoke in a fresh namespace.
+     improves in every diagnosed case. The first materialization attempt
+     exposed a `runpy` detached-mapping defect before any candidate product:
+     the worker was unimportable and the intended builder/evaluator overrides
+     were not active in the frozen functions' globals. Exact regression tests
+     now bind those runtime globals. Repaired decision `a292fa98...` and
+     candidate configuration `57841bc3...` must pass complete
+     current/incumbent no-write verification and publish the same 128-case
+     write-once smoke in the unchanged namespace.
    - [ ] If that replacement smoke leaves confirmed duplicate or split
      failures, review and correct source topology separately on analytic,
      negative-overmerge, executor-invariant, and the same smoke-scale evidence.

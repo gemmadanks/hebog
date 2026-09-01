@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import runpy
 import subprocess as _subprocess
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
@@ -56,6 +57,12 @@ subprocess = _subprocess
 def _base(root: Path) -> dict[str, Any]:
     """Load the byte-frozen predecessor and install only the new builder."""
     materializer = runpy.run_path(str(root / _BASE_MATERIALIZER))
+    current_composition = cast(
+        Callable[..., dict[str, Any]], materializer["_current_composition"]
+    )
+    current_composition.__globals__[
+        "build_public_finder_source_reconstruction_continuum_products"
+    ] = build_publication_snr_repaired_continuum_products
     materializer[
         "build_public_finder_source_reconstruction_continuum_products"
     ] = build_publication_snr_repaired_continuum_products
@@ -133,16 +140,29 @@ def _generate_product(task: dict[str, object]) -> str:
     return cast(str, frozen["_generate_candidate_product"](candidate_task))
 
 
+def _install_materializer_overrides(
+    materializer: dict[str, Any],
+) -> Callable[[], None]:
+    """Install overlays in the globals actually resolved by runpy functions."""
+    entrypoint = cast(Callable[[], None], materializer["main"])
+    entrypoint.__globals__.update(
+        {
+            "_current_configuration": _current_configuration,
+            "_current_composition": _current_composition,
+            "_verified_reference": _verified_reference,
+            "_composition": _composition,
+            "_generate_product": _generate_product,
+        }
+    )
+    return entrypoint
+
+
 def main() -> None:
     """Run the frozen CLI with repaired configuration and worker dispatch."""
     root = Path(__file__).resolve().parents[2]
     materializer = _base(root)
-    materializer["_current_configuration"] = _current_configuration
-    materializer["_current_composition"] = _current_composition
-    materializer["_verified_reference"] = _verified_reference
-    materializer["_composition"] = _composition
-    materializer["_generate_product"] = _generate_product
-    materializer["main"]()
+    entrypoint = _install_materializer_overrides(materializer)
+    entrypoint()
 
 
 if __name__ == "__main__":

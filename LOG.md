@@ -13808,17 +13808,28 @@ only the still-absent atomic smoke evaluation.
 - Seven-case prospective diagnostics raise precision in every case and
   generally improve IoU. The correction retains the existing three-sigma
   island threshold and introduces no fitted threshold or margin. Pre-review
-  `64db0117...`, implementation decision `029f9a20...`, and configuration
-  `8f515d7c...` freeze the new boundary.
+  `9c0e8ece...`, repaired implementation decision `a292fa98...`, and
+  configuration `57841bc3...` freeze the new boundary.
 - A historical checksum test caught an initial in-place identity extension.
   The bound predecessor source and materializer were restored byte-for-byte;
   the repair now lives in a new production overlay and a minimal materializer
   wrapper. Focused tests pass 62 cases, including historical-byte checks,
   invalid dispatch, product-task composition, mask semantics, and exact review
   binding.
+- Both complete 128-input no-write verifiers passed once the incumbent source
+  root was correctly separated from the current tooling root. The first
+  materialization attempt then failed before any product or progress byte:
+  `runpy` returned a detached mapping, so assignments did not update the
+  globals used by the frozen CLI and `ProcessPoolExecutor` selected its
+  unimportable `<run_path>` worker. The same defect also meant the intended
+  builder/evaluator overrides were not active in their function globals.
+  Regression tests now bind those exact globals, and the process-only repair
+  installs all reviewed seams where the runpy functions actually resolve
+  them. No candidate product or scientific result existed to preserve or
+  rescore.
 
-**Immediate next step:** finish full validation and local review, freeze the
-exact candidate in an immutable checkout, pass current and incumbent complete
-no-write preflights, then materialize and evaluate the same 128-case smoke in a
-fresh write-once namespace. Keep the full replay blocked on any confirmed
+**Immediate next step:** validate and commit the runpy dispatch repair, freeze
+its replacement immutable checkout and identities, repeat both complete
+no-write preflights, then retry and evaluate the same 128-case smoke in the
+unchanged write-once namespace. Keep the full replay blocked on any confirmed
 failure.
