@@ -18,6 +18,9 @@ from hebog.validation.post_campaign_science import (
     evaluate_public_finder_correction_candidate_products,
     refine_external_candidate_detection,
 )
+from hebog.validation.publication_snr_repair import (
+    evaluate_publication_snr_repaired_candidate_products,
+)
 
 
 def test_external_detection_refinement_updates_all_product_fields() -> None:
@@ -277,6 +280,75 @@ def test_public_correction_refines_direct_low_snr_protrusions(
     assert np.all(products.measurement_component_labels[2:7, 2:7] == 4)
     assert np.all(products.measurement_component_labels[4, 7:10] == 4)
     assert not products.measurement_component_labels.flags.writeable
+
+
+def test_public_correction_publishes_boundaries_from_direct_snr(
+    mocker: MockerFixture,
+) -> None:
+    """Filtered significance cannot publish a sub-island direct pixel."""
+    labels = np.zeros((9, 11), dtype=np.int32)
+    labels[2:7, 2:7] = 4
+    labels[4, 7:10] = 4
+    support = np.zeros(labels.shape, dtype=np.bool_)
+    support[2:7, 2:7] = True
+    combined_snr = np.where(labels > 0, 4.0, 0.0)
+    combined_snr[4, 7:10] = 8.0
+    direct_detection = SimpleNamespace(
+        combined_snr=combined_snr,
+        retained_mask=labels > 0,
+        component_labels=labels,
+        component_count=1,
+        reconstruction=SimpleNamespace(support_mask=support),
+    )
+    direct_signal = np.where(labels > 0, 4.0, 0.0)
+    direct_signal[4, 7:10] = 2.9
+    prepared = SimpleNamespace(
+        residual_jy_per_beam=direct_signal,
+        rms_jy_per_beam=np.ones(labels.shape),
+        scientifically_valid=np.ones(labels.shape, dtype=np.bool_),
+    )
+    atrous = SimpleNamespace(
+        reconstructed_signal_jy_per_beam=np.zeros(labels.shape)
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science.prepare_scale_filter_inputs",
+        return_value=prepared,
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science._corrective_results",
+        return_value=(object(), atrous, object()),
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science."
+        "detect_residual_multiscale_islands",
+        return_value=direct_detection,
+    )
+    mocker.patch(
+        "hebog.validation.post_campaign_science."
+        "_retained_scale_detection_planes",
+        return_value=(),
+    )
+    review = SimpleNamespace(
+        matrix=SimpleNamespace(
+            detection_sigma=5.0,
+            island_sigma=3.0,
+            support_fraction_bounds=(0.5, 1.0),
+        ),
+        corrections=SimpleNamespace(minimum_island_area_beams=0.25),
+    )
+
+    products = evaluate_publication_snr_repaired_candidate_products(
+        direct_signal,
+        np.ones(labels.shape, dtype=np.bool_),
+        np.zeros(labels.shape),
+        np.ones(labels.shape),
+        beam=BeamShapePixels(4.0, 3.0, 0.0),
+        review=review,  # type: ignore[arg-type]
+    )
+
+    assert np.all(products.detection.component_labels[2:7, 2:7] == 4)
+    assert not products.detection.component_labels[4, 7:10].any()
+    assert np.all(products.measurement_component_labels[4, 7:10] == 4)
 
 
 def test_candidate_products_require_atrous_evidence(

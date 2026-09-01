@@ -13778,3 +13778,47 @@ smoke result once.
 **Immediate next step:** complete validation and code review, freeze the exact
 repaired evaluator identity against the two sealed product sets, then retry
 only the still-absent atomic smoke evaluation.
+
+## 2026-09-01 — Diagnose the mask-separated smoke and repair publication S/N
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- The repaired mixed-schema evaluator published
+  `prospective-science-smoke-mask-measurement-separation.json`, SHA-256
+  `07f51256...`. The terminal verdict is fail: 326 comparisons pass, 35 are
+  diagnostic-underpowered, and eight are confirmed failures. Compact products
+  are byte-identical and no incumbent-retention comparison fails.
+- Four duplicate, two overall mask-precision, and two diffuse split checks
+  fail. Image-level attribution confines the edge duplicate to seed
+  2026860341 and diffuse splits to seeds 2026860341, 2026862118, and
+  2026862301. Artifact and scale-one duplicate failures share disconnected
+  detection components.
+- Read-only mechanism diagnostics on seven representative cases show that the
+  precision deficit begins in direct detection, not measurement ownership or
+  connectivity restoration. The conservative association graph has zero
+  admissible edges. Disabling connectivity restoration changes only one case
+  and removes 24 truth pixels for five false pixels, so both proposed shortcuts
+  were rejected.
+- Root cause of the mask failure is a semantic statistic error: publication
+  refinement documented an original-pixel S/N requirement but consumed the
+  maximum filtered/multiscale S/N. A red fixture reproduced a filtered 8-sigma
+  boundary whose direct residual is 2.9 sigma. The prospective overlay now
+  uses residual divided by positive RMS only on scientifically valid pixels;
+  measurement ownership and catalogue construction remain unchanged.
+- Seven-case prospective diagnostics raise precision in every case and
+  generally improve IoU. The correction retains the existing three-sigma
+  island threshold and introduces no fitted threshold or margin. Pre-review
+  `64db0117...`, implementation decision `029f9a20...`, and configuration
+  `8f515d7c...` freeze the new boundary.
+- A historical checksum test caught an initial in-place identity extension.
+  The bound predecessor source and materializer were restored byte-for-byte;
+  the repair now lives in a new production overlay and a minimal materializer
+  wrapper. Focused tests pass 62 cases, including historical-byte checks,
+  invalid dispatch, product-task composition, mask semantics, and exact review
+  binding.
+
+**Immediate next step:** finish full validation and local review, freeze the
+exact candidate in an immutable checkout, pass current and incumbent complete
+no-write preflights, then materialize and evaluate the same 128-case smoke in a
+fresh write-once namespace. Keep the full replay blocked on any confirmed
+failure.

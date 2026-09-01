@@ -615,6 +615,67 @@ existing island threshold, while association and measurement retain the stable
 seeded-owner plane. No threshold, margin, population, or closed result is
 changed or rescored.
 
+## Mask/measurement-separated 128-case science smoke
+
+**Terminal date:** 2026-09-01
+
+**Evidence role:** viewed-development diagnostic smoke. The authoritative
+atomic record is
+`benchmark-results/phase-5/prospective-science-smoke-mask-measurement-separation.json`,
+SHA-256
+`07f51256f241a43bc146b5d82aa3ce8c275ecbd47b6e470db650a194cbd3df16`.
+
+**Scientific question:** does persisting the exact measurement-label plane
+restore stable catalogue/source evaluation while the separately refined
+published mask closes every PyBDSF and incumbent-retention gate?
+
+The same deterministic 64-compact/64-Continuum population was evaluated.
+Compact products remained byte-identical to the incumbent. Exact current and
+historical schema dispatch succeeded, so the result is the first complete
+scientific decision for the mask/measurement separation rather than a process
+failure.
+
+| Decision class | Count |
+| --- | ---: |
+| Pass | 326 |
+| Underpowered diagnostic | 35 |
+| Confirmed fail | 8 |
+| Failed incumbent-retention comparisons | 0 |
+
+The separation fixed all three position-p95 regressions introduced by the
+boundary candidate. The eight remaining failures are four duplicate-fraction
+checks, two overall mask-precision checks, and two diffuse split-fraction
+checks. The edge duplicate is one realization, Continuum-1 seed 2026860341;
+the diffuse split is three realizations, seeds 2026860341, 2026862118, and
+2026862301. Artifact and scale-one duplicate failures share a small set of
+disconnected detections rather than a population-wide catalogue shift.
+
+Mechanism review separated the two causes. The mask deficit exists in the
+direct detection plane; measurement ownership is effectively identical and
+publication cleanup already improves precision slightly. The implementation
+nevertheless passed the maximum of direct, matched-filter, and à-trous S/N to
+a refinement documented to require original-pixel S/N. Filtered significance
+could therefore publish sparse support below the frozen three-sigma island
+threshold. On seven diagnosed failing or worst-mask cases, using the actual
+residual divided by RMS raised publication precision in every case while
+leaving measurement and catalogue products unchanged.
+
+The topology failures are independent. The conservative component graph has
+zero admissible edges in all seven diagnosed cases. Some duplicate secondaries
+have no retained multiscale lineage, while several bright artifact and shell
+detections have distinct persistent lineages. Globally disabling connectivity
+restoration, relaxing association constraints, or filtering rows using viewed
+truth would therefore be scientifically unjustified.
+
+**Terminal verdict:** fail. The full replay remains blocked. Pre-review
+`phase-5-prospective-publication-snr-repair-pre-review`, SHA-256
+`64db011706ea62e3f90472a0b0e46bc67b363cdf615256868d87788acf44654e`,
+and implementation decision `029f9a2068c7...` freeze only the original-pixel
+publication statistic. No threshold, margin, measurement, association,
+population, comparator, or decision rule changes. The replacement candidate
+configuration is `8f515d7c...`; it must complete the same write-once smoke
+before any separate topology correction or full replay.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

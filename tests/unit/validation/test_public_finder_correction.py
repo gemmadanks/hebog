@@ -36,6 +36,9 @@ from hebog.validation.public_finder_correction import (
     public_finder_terminal_feature_persistence_configuration,
     public_finder_terminal_parent_correction_configuration,
 )
+from hebog.validation.publication_snr_repair import (
+    public_finder_publication_snr_repair_configuration,
+)
 
 _ROOT = Path(__file__).parents[3]
 
@@ -661,6 +664,37 @@ def test_mask_measurement_configuration_binds_exact_review(
     assert continuum[
         "mask_measurement_separation_implementation_decision_sha256"
     ] == file_sha256(files[-1])
+
+
+def test_publication_snr_configuration_extends_exact_base(
+    tmp_path: Path,
+) -> None:
+    """The publication statistic has an explicit immutable identity layer."""
+    review = tmp_path / "review.json"
+    decision = tmp_path / "decision.json"
+    review.write_text('{"review": true}\n', encoding="utf-8")
+    decision.write_text('{"decision": true}\n', encoding="utf-8")
+    base = {"compact": {"frozen": True}, "continuum": {"base": 1}}
+
+    configuration = public_finder_publication_snr_repair_configuration(
+        base,
+        review,
+        decision,
+    )
+
+    assert configuration["compact"] == {"frozen": True}
+    continuum = cast(dict[str, object], configuration["continuum"])
+    assert continuum["base"] == 1
+    assert continuum["publication_snr_policy"] == (
+        "direct-original-pixel-snr-published-boundary-v1"
+    )
+    assert continuum["publication_snr_pre_review_sha256"] == file_sha256(
+        review
+    )
+    assert continuum[
+        "publication_snr_implementation_decision_sha256"
+    ] == file_sha256(decision)
+    assert base == {"compact": {"frozen": True}, "continuum": {"base": 1}}
 
 
 def test_source_reconstruction_builder_uses_scale_hierarchy_measurement(

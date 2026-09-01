@@ -1,0 +1,47 @@
+{
+  "authorization": {
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_replacement_smoke_passes": true,
+    "release_authorized": false,
+    "replacement_smoke_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "decision_id": "phase-5-prospective-publication-snr-repair-implementation-decision",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_policy": {
+    "catalogue_and_measurement_change": false,
+    "detection_or_island_threshold_change": false,
+    "publication_snr_policy": "direct-original-pixel-snr-published-boundary-v1",
+    "publication_statistic": "scientifically valid residual_jy_per_beam divided by positive rms_jy_per_beam",
+    "recovered_minimum_snr": "review.matrix.island_sigma"
+  },
+  "implementation": [
+    {
+      "path": "src/hebog/validation/publication_snr_repair.py",
+      "sha256": "fa57585713e231cda11847b868a0090abed9b3bafadc4ca8fc1d56c6d37599d5"
+    },
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_publication_snr_products.py",
+      "sha256": "2cfb98d9761c8f0915133e8a11ab112cc8d05dcbd1c4f81bf4f0b45c6887dec2"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_publication_snr_smoke.py",
+      "sha256": "75817e259ef03e4a8eeefc922ad2a313421f5cf2b8438b8c13cb5c39c048d5c2"
+    }
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-publication-snr-repair-pre-review.json",
+    "sha256": "64db011706ea62e3f90472a0b0e46bc67b363cdf615256868d87788acf44654e"
+  },
+  "required_pre_execution_gates": [
+    "filtered significance cannot publish a sub-island original-pixel boundary",
+    "measurement ownership and source catalogue composition remain unchanged",
+    "high-significance thin and connected support fixtures remain accepted",
+    "Serial and existing-Dask invariance suites pass",
+    "compact products remain byte-identical to the incumbent",
+    "replacement 128-case smoke publishes no confirmed failure before full replay"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-replacement-smoke-before-results"
+}

@@ -1063,11 +1063,32 @@ from partial or viewed evidence.
      requires configuration-bound dispatch: exact measurement labels for the
      repaired current product and unchanged sidecar-aware source unions for
      the incumbent. No product, population, comparator, threshold, margin, or
-     gate changes. If the repaired smoke leaves only inherited topology
-     failures, review and
-     correct that topology separately on analytic and smoke-scale evidence;
-     do not run the full replay until every binding smoke comparison is pass
-     or diagnostic-underpowered without a confirmed failure.
+     gate changes. The repaired evaluator published atomic smoke `07f51256...`:
+     326 comparisons pass, 35 are diagnostic-underpowered, and eight are
+     confirmed failures, with zero incumbent-retention failures and byte-exact
+     compact products. Four duplicate, two mask-precision, and two diffuse-
+     split failures remain. Mechanism review localizes mask loss to the direct
+     publication boundary and topology loss to disconnected catalogue sources;
+     the existing conservative pair graph finds zero admissible edges.
+   - [ ] Correct the publication statistic before any topology change.
+     Pre-review `64db0117...` binds smoke `07f51256...` and rejects threshold
+     tuning, measurement-plane changes, global connectivity removal, relaxed
+     association, and truth-assisted filtering. The documented original-pixel
+     S/N floor was incorrectly supplied with the maximum filtered/multiscale
+     S/N. The test-first overlay now derives publication S/N only from residual
+     divided by positive RMS on scientifically valid pixels, while retaining
+     exact measurement and catalogue products. It composes over byte-frozen
+     historical producers rather than mutating their checksum-bound files.
+     Focused tests and seven-case diagnostics pass; prospective mask precision
+     improves in every diagnosed case. Candidate configuration `8f515d7c...`
+     must pass complete current/incumbent no-write verification and publish the
+     same 128-case write-once smoke in a fresh namespace.
+   - [ ] If that replacement smoke leaves confirmed duplicate or split
+     failures, review and correct source topology separately on analytic,
+     negative-overmerge, executor-invariant, and the same smoke-scale evidence.
+     Do not infer an association from viewed truth, relax existing numeric
+     constraints, or run the full replay until every binding smoke comparison
+     is pass or diagnostic-underpowered without a confirmed failure.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift

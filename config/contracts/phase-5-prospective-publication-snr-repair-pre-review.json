@@ -1,0 +1,65 @@
+{
+  "authorization": {
+    "fixture_and_executor_validation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_all_prospective_gates_pass": true,
+    "publication_snr_repair_implementation_authorized": true,
+    "release_authorized": false,
+    "repeat_diagnostic_smoke_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_evidence": {
+    "candidate_configuration_sha256": "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06",
+    "candidate_revision": "a9df2c827dfa85992d8ee7732c7f9cf327019053",
+    "candidate_source_tree_sha256": "89eb014c1072db95cc905eac66afb63bab75e8083b224eb6c691923c7ce84add",
+    "prospective_smoke_path": "benchmark-results/phase-5/prospective-science-smoke-mask-measurement-separation.json",
+    "prospective_smoke_sha256": "07f51256f241a43bc146b5d82aa3ce8c275ecbd47b6e470db650a194cbd3df16"
+  },
+  "causal_findings": {
+    "confirmed_failures": {
+      "duplicate_fraction": 4,
+      "mask_precision": 2,
+      "split_fraction": 2,
+      "total": 8
+    },
+    "mask_precision": {
+      "cause": "The published-mask refinement documented an original-pixel signal-to-noise floor but received the maximum of direct, matched-filter, and atrous signal-to-noise. Filtered significance could therefore retain a sparse boundary pixel whose original residual was below the already-frozen three-sigma island threshold.",
+      "evidence": "Direct and seeded measurement masks already contain the systematic precision deficit. Replacing only the publication statistic with original residual divided by RMS raised precision in all seven diagnosed failing or worst-mask realizations while leaving measurement ownership and catalogue science unchanged.",
+      "scope": "publication mask statistic only"
+    },
+    "source_topology": {
+      "cause": "The remaining edge, artifact, scale-one, and diffuse failures are disconnected catalogue-source topology failures independent of mask publication.",
+      "evidence": "The conservative component association graph has zero edges in all seven diagnosed realizations. Duplicate secondaries include both direct-only components with no scale lineage and scientifically significant components with distinct persistent lineages; no one threshold-free association rule is yet established.",
+      "required_boundary": "Do not weaken pair, saddle, overlap, distance, persistence, or ambiguity rules in this repair. Interpret topology separately after the replacement smoke."
+    },
+    "rejected_repairs": [
+      "changing the seeded measurement-label plane",
+      "removing connectivity restoration globally",
+      "relaxing the conservative pair association graph",
+      "filtering catalogue sources from viewed truth matches",
+      "changing any detection threshold, margin, comparator, population, or decision rule"
+    ]
+  },
+  "decision_id": "phase-5-prospective-publication-snr-repair-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_boundary": {
+    "catalogue_and_measurement_policy": "unchanged deterministic seeded-owner measurement plane",
+    "detection_threshold": "review.matrix.detection_sigma",
+    "island_threshold": "review.matrix.island_sigma",
+    "new_thresholds_or_margins": false,
+    "policy": "direct-original-pixel-snr-published-boundary-v1",
+    "publication_statistic": "prepared residual_jy_per_beam divided by aligned positive rms_jy_per_beam on scientifically valid pixels"
+  },
+  "required_validation": [
+    "red fixture where filtered signal-to-noise exceeds six while original-pixel signal-to-noise remains below the three-sigma island threshold",
+    "published support rejects that pixel while measurement ownership remains unchanged",
+    "high-significance thin and connected multiscale fixtures remain accepted",
+    "Serial and existing-Dask partition, task-order, and retry invariance pass",
+    "compact products remain byte-identical to the incumbent",
+    "repeat the frozen 128-case prospective smoke into a new write-once namespace",
+    "stop before the full replay on any confirmed PyBDSF or incumbent-retention failure"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-replacement-results"
+}
