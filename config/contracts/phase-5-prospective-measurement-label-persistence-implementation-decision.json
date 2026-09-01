@@ -1,0 +1,55 @@
+{
+  "authorization": {
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_replacement_smoke_passes": true,
+    "release_authorized": false,
+    "replacement_smoke_materialization_authorized": true,
+    "replacement_smoke_evaluation_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06",
+    "revision": "a9df2c827dfa85992d8ee7732c7f9cf327019053",
+    "source_tree_sha256": "89eb014c1072db95cc905eac66afb63bab75e8083b224eb6c691923c7ce84add"
+  },
+  "decision_id": "phase-5-prospective-measurement-label-persistence-implementation-decision",
+  "exact_incumbent_evidence": {
+    "candidate_product_set_canonical_sha256": "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27",
+    "selected_input_count": 128
+  },
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "implementation": [
+    {
+      "path": "src/hebog/validation/public_finder_correction.py",
+      "sha256": "9b469e9323e3051300dab55d59153c7c258535980bc5c87be35869c36edd2127"
+    },
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_hebog_products.py",
+      "sha256": "12f933783be0c7fc8654e7bc4c665b6b6417cbae95285da22c55aab3f3082326"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
+      "sha256": "2ce358549a944a1a292a7b515081655f143b1eb735bee84a968e05fff77bf534"
+    }
+  ],
+  "output": {
+    "must_be_absent_before_evaluation": true,
+    "path": "benchmark-results/phase-5/prospective-science-smoke-mask-measurement-separation.json"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-measurement-label-persistence-pre-review.json",
+    "sha256": "e621ffd5138399f9c2078e47dfb223f32aa6539a8b66139d00b3ee636893e2fb"
+  },
+  "required_pre_execution_gates": [
+    "candidate revision, source tree, scientific configuration, and implementation programs match this decision",
+    "complete retained-reference verification passes for all 2,400 inputs and 9,600 reference runs",
+    "current and incumbent smoke preflights select the same frozen 128 inputs",
+    "association sidecars partition exact persisted measurement labels",
+    "published positive labels are a subset of the measurement partition",
+    "the exact incumbent product set is reused without candidate execution",
+    "the write-once replacement smoke output remains absent"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-exact-replacement-smoke-before-results"
+}

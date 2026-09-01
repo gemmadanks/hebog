@@ -52,6 +52,10 @@ _EVALUATION_REPAIR_DECISION = (
     _ROOT / "config/contracts/phase-5-prospective-mask-measurement-evaluation-"
     "repair-implementation-decision.json"
 )
+_MEASUREMENT_PERSISTENCE_DECISION = (
+    _ROOT / "config/contracts/phase-5-prospective-measurement-label-"
+    "persistence-implementation-decision.json"
+)
 
 
 def _mask_separated_case() -> tuple[
@@ -495,3 +499,38 @@ def test_mask_separated_compiler_uses_measurement_support_only_for_sources(
     assert labels == {catalogue[0].identifier: 1}
     assert synthetic[2, 3] == 1
     assert not np.any(synthetic[published > 0])
+
+
+def test_measurement_label_persistence_binds_exact_replacement_smoke() -> None:
+    """The replacement smoke cannot drift from its reviewed candidate."""
+    decision = json.loads(
+        _MEASUREMENT_PERSISTENCE_DECISION.read_text(encoding="utf-8")
+    )
+
+    assert decision["candidate"] == {
+        "configuration_sha256": (
+            "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06"
+        ),
+        "revision": "a9df2c827dfa85992d8ee7732c7f9cf327019053",
+        "source_tree_sha256": (
+            "89eb014c1072db95cc905eac66afb63bab75e8083b224eb6c691923c7ce84add"
+        ),
+    }
+    assert (
+        file_sha256(_ROOT / decision["pre_review"]["path"])
+        == (decision["pre_review"]["sha256"])
+    )
+    for program in decision["implementation"]:
+        assert file_sha256(_ROOT / program["path"]) == program["sha256"]
+    full_replay_key = (
+        "full_cumulative_replay_authorized_only_after_replacement_smoke_passes"
+    )
+    assert decision["authorization"] == {
+        "fresh_qualification_authorized": False,
+        full_replay_key: True,
+        "release_authorized": False,
+        "replacement_smoke_materialization_authorized": True,
+        "replacement_smoke_evaluation_authorized": True,
+        "rescoring_closed_evidence_authorized": False,
+        "threshold_or_margin_tuning_authorized": False,
+    }
