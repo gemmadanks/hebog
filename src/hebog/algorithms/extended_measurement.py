@@ -18,6 +18,7 @@ from scipy.ndimage import (
     binary_opening,
     convolve,
     distance_transform_edt,
+    find_objects,
 )
 from scipy.ndimage import (
     label as connected_component_labels,
@@ -49,6 +50,7 @@ _MULTISCALE_CORE_MINIMUM_NEIGHBORS = 5
 _MULTISCALE_BOUNDARY_MINIMUM_SNR = 6.0
 _MULTISCALE_RECOVERY_RADIUS_BEAMS = 0.5
 _NEIGHBORHOOD_PIXEL_COUNT = 9
+_MINIMUM_BRIDGE_TOUCH_COUNT = 2
 _FWHM_FROM_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
 
 
@@ -178,6 +180,161 @@ def _preserve_refined_segment_connectivity(
         if component_count > 1:
             connected[original_labels == label_value] = label_value
     return connected
+
+
+def _dense_label_ranks(
+    labels: npt.NDArray[np.int64],
+) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.int64]]:
+    """Return compact positive ranks and their original label values."""
+    positive_values = np.unique(labels[labels > 0])
+    ranked = np.zeros(labels.shape, dtype=np.int32)
+    positive = labels > 0
+    ranked[positive] = np.asarray(
+        np.searchsorted(positive_values, labels[positive]) + 1,
+        dtype=np.int32,
+    )
+    return ranked, positive_values
+
+
+def _preserve_publication_bridges(
+    owner_labels: npt.NDArray[np.int64],
+    previous_labels: npt.NDArray[np.int64],
+    refined_labels: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int32]:
+    """Keep only previous regions needed to connect retained owner support."""
+    connected = np.asarray(refined_labels, dtype=np.int32).copy()
+    ranked, label_values = _dense_label_ranks(owner_labels)
+    structure = np.ones((3, 3), dtype=np.int8)
+    for label_value, bounds in zip(
+        label_values,
+        find_objects(ranked),
+        strict=True,
+    ):
+        if bounds is None:
+            continue
+        previous = previous_labels[bounds] == label_value
+        local = connected[bounds]
+        base_components, base_count = cast(
+            tuple[npt.NDArray[np.int32], int],
+            connected_component_labels(
+                local == label_value,
+                structure=structure,
+            ),
+        )
+        if base_count == 0:
+            continue
+        candidates, candidate_count = cast(
+            tuple[npt.NDArray[np.int32], int],
+            connected_component_labels(
+                previous & (local == 0),
+                structure=structure,
+            ),
+        )
+        for candidate_value in range(1, candidate_count + 1):
+            candidate = candidates == candidate_value
+            dilated_candidate = np.asarray(
+                binary_dilation(candidate, structure=structure),
+                dtype=np.bool_,
+            )
+            touching = np.unique(base_components[dilated_candidate])
+            if np.count_nonzero(touching > 0) >= _MINIMUM_BRIDGE_TOUCH_COUNT:
+                local[candidate] = label_value
+        final_components, final_count = cast(
+            tuple[npt.NDArray[np.int32], int],
+            connected_component_labels(
+                local == label_value,
+                structure=structure,
+            ),
+        )
+        if final_count > 1:
+            local[previous] = label_value
+            final_components, final_count = cast(
+                tuple[npt.NDArray[np.int32], int],
+                connected_component_labels(
+                    local == label_value,
+                    structure=structure,
+                ),
+            )
+        if final_count > 1:
+            previous_components = np.unique(final_components[previous])
+            previous_components = previous_components[previous_components > 0]
+            if previous_components.size != 1:
+                raise ValueError(
+                    "previous publication ownership must be connected"
+                )
+            local[
+                (final_components > 0)
+                & (final_components != previous_components[0])
+            ] = 0
+    connected.setflags(write=False)
+    return connected
+
+
+def refine_persistent_publication_labels(
+    component_labels: npt.ArrayLike,
+    publication_labels: npt.ArrayLike,
+    combined_snr: npt.ArrayLike,
+    persistent_scale_support: npt.ArrayLike,
+) -> npt.NDArray[np.int32]:
+    """Publish connected owner support corroborated across adjacent scales.
+
+    Dense opened support and independently strong original-image boundaries
+    remain unchanged. Sparse recovered pixels remain only when their exact
+    scale feature participates in an adjacent-scale association. Previously
+    published low-confidence regions are retained only when they connect two
+    retained parts of the same owner; no new threshold or ownership is
+    introduced.
+    """
+    owners = _segment_label_plane(component_labels)
+    previous = _segment_label_plane(publication_labels)
+    snr = np.asarray(combined_snr)
+    persistent = np.asarray(persistent_scale_support)
+    if previous.shape != owners.shape:
+        raise ValueError(
+            "component and publication labels must be aligned label planes"
+        )
+    if np.any((previous > 0) & (previous != owners)):
+        raise ValueError(
+            "publication ownership must agree with component ownership"
+        )
+    if (
+        snr.ndim != _IMAGE_DIMENSIONS
+        or snr.shape != owners.shape
+        or not np.issubdtype(snr.dtype, np.number)
+        or np.iscomplexobj(snr)
+    ):
+        raise ValueError(
+            "component labels and combined SNR must be aligned real "
+            "two-dimensional planes"
+        )
+    if persistent.shape != owners.shape or persistent.dtype != np.bool_:
+        raise ValueError(
+            "persistent scale support must be one aligned boolean plane"
+        )
+    cleaned_support = clean_detected_segment_labels(owners) > 0
+    neighbor_count = convolve(
+        cleaned_support.astype(np.int8),
+        np.ones((3, 3), dtype=np.int8),
+        mode="constant",
+        cval=0,
+    )
+    dense_core = cleaned_support & (
+        neighbor_count >= _MULTISCALE_CORE_MINIMUM_NEIGHBORS
+    )
+    high_confidence_boundary = (owners > 0) & (
+        np.asarray(snr, dtype=np.float64) >= _MULTISCALE_BOUNDARY_MINIMUM_SNR
+    )
+    previously_published = previous > 0
+    retained = previously_published & (
+        dense_core | high_confidence_boundary | persistent
+    )
+    published_owner_values = np.unique(previous[previous > 0])
+    restored_persistent = persistent & np.isin(owners, published_owner_values)
+    refined = np.where(retained | restored_persistent, owners, 0).astype(
+        np.int32,
+        copy=False,
+    )
+    return _preserve_publication_bridges(owners, previous, refined)
 
 
 def refine_multiscale_segment_labels(  # noqa: PLR0913

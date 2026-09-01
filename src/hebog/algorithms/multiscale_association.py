@@ -27,6 +27,7 @@ _ASSOCIATION_ID_NAMESPACE = b"phase-5-cross-scale-association-v1\0"
 _DETECTION_ID_NAMESPACE = b"phase-5-scale-detection-v1\0"
 _IMAGE_DIMENSIONS = 2
 _COMPACT_CONTEXT_RADIUS_BEAMS = 0.5
+_MINIMUM_PERSISTENT_SCALE_COUNT = 2
 
 
 def compact_context_halo_pixels(beam_major_fwhm_pixels: float) -> int:
@@ -513,6 +514,41 @@ def associate_adjacent_scale_detections(
         for detection_ids in components.groups()
     )
     return tuple(sorted(associations, key=lambda item: item.association_id))
+
+
+def persistent_adjacent_scale_support(
+    planes: tuple[ScaleDetectionPlane, ...],
+) -> npt.NDArray[np.bool_]:
+    """Return exact support whose features persist across adjacent scales."""
+    if not planes:
+        raise ValueError("persistent support requires a scale detection plane")
+    ordered_planes, _ = _validated_inputs(planes)
+    persistent_ids = {
+        detection_id
+        for association in associate_adjacent_scale_detections(ordered_planes)
+        if (
+            len(association.contributing_scale_orders)
+            >= _MINIMUM_PERSISTENT_SCALE_COUNT
+        )
+        for detection_id in association.scale_detection_ids
+    }
+    support = np.zeros(
+        ordered_planes[0].component_labels.shape,
+        dtype=np.bool_,
+    )
+    for plane in ordered_planes:
+        retained_labels = np.asarray(
+            [
+                index
+                for index, detection in enumerate(plane.detections, start=1)
+                if detection.detection_id in persistent_ids
+            ],
+            dtype=np.int32,
+        )
+        if retained_labels.size:
+            support |= np.isin(plane.component_labels, retained_labels)
+    support.setflags(write=False)
+    return support
 
 
 def _validate_uncontextualized_associations(

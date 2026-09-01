@@ -12,6 +12,7 @@ import pytest
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     associate_adjacent_scale_detections,
+    persistent_adjacent_scale_support,
 )
 from hebog.data_models.multiscale import ScaleDetection
 
@@ -89,6 +90,42 @@ def test_repeated_detection_over_three_scales_forms_one_association() -> None:
     assert association.relationship == "extended-only"
     assert association.compact_source_ids == ()
     assert association.schema_version == 2
+
+
+def test_persistent_support_excludes_single_scale_features() -> None:
+    """Only exact features participating across adjacent scales persist."""
+    fine = _plane(
+        1,
+        (
+            ("fine-persistent", ((2, 2), (2, 3))),
+            ("fine-single", ((6, 6),)),
+        ),
+    )
+    coarse = _plane(
+        2,
+        (("coarse-persistent", ((2, 3), (3, 3))),),
+    )
+
+    support = persistent_adjacent_scale_support((coarse, fine))
+
+    assert support[2, 2]
+    assert support[2, 3]
+    assert support[3, 3]
+    assert not support[6, 6]
+    assert not support.flags.writeable
+
+
+def test_persistent_support_requires_planes_and_may_be_empty() -> None:
+    """Missing planes fail closed and non-overlapping scales return empty."""
+    with pytest.raises(ValueError, match="requires a scale detection plane"):
+        persistent_adjacent_scale_support(())
+
+    first = _plane(1, (("first", ((1, 1),)),))
+    second = _plane(2, (("second", ((6, 6),)),))
+
+    support = persistent_adjacent_scale_support((first, second))
+
+    assert not support.any()
 
 
 def test_adjacent_coarse_support_can_join_same_scale_fragments() -> None:

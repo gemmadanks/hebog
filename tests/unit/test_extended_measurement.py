@@ -14,6 +14,7 @@ from hebog.algorithms.extended_measurement import (
     expand_detected_segment_labels,
     measure_detected_segment_position,
     refine_multiscale_segment_labels,
+    refine_persistent_publication_labels,
 )
 
 
@@ -412,6 +413,208 @@ def test_multiscale_refinement_cannot_split_one_direct_component() -> None:
     )
 
     np.testing.assert_array_equal(refined, labels)
+
+
+def test_persistent_publication_removes_only_one_scale_protrusions() -> None:
+    """One-scale boundary noise is removed without weakening dense support."""
+    owners = np.zeros((11, 15), dtype=np.int32)
+    owners[3:8, 3:9] = 4
+    owners[5, 9:13] = 4
+    publication = owners.copy()
+    direct_snr = np.where(owners > 0, 4.0, 0.0)
+    persistent = np.zeros(owners.shape, dtype=np.bool_)
+    persistent[4:7, 4:8] = True
+
+    refined = refine_persistent_publication_labels(
+        owners,
+        publication,
+        direct_snr,
+        persistent,
+    )
+
+    assert np.all(refined[4:7, 4:8] == 4)
+    assert np.all(refined[5, 9:13] == 0)
+    assert set(np.unique(refined)) == {0, 4}
+
+
+def test_persistent_publication_retains_owner_bridge_and_identity() -> None:
+    """A weak region joining two persistent cores remains one exact owner."""
+    owners = np.zeros((11, 17), dtype=np.int32)
+    owners[3:8, 2:7] = 9
+    owners[3:8, 10:15] = 9
+    owners[5, 7:10] = 9
+    publication = owners.copy()
+    direct_snr = np.where(owners > 0, 4.0, 0.0)
+    persistent = np.zeros(owners.shape, dtype=np.bool_)
+    persistent[4:7, 3:6] = True
+    persistent[4:7, 11:14] = True
+
+    refined = refine_persistent_publication_labels(
+        owners,
+        publication,
+        direct_snr,
+        persistent,
+    )
+
+    assert np.all(refined[5, 7:10] == 9)
+    assert set(np.unique(refined)) == {0, 9}
+
+
+def test_persistent_publication_restores_exact_persistent_owner_support() -> (
+    None
+):
+    """Adjacent-scale evidence may restore a pixel removed by publication."""
+    owners = np.zeros((9, 9), dtype=np.int32)
+    owners[2:7, 2:7] = 5
+    publication = owners.copy()
+    publication[4, 6] = 0
+    persistent = np.zeros(owners.shape, dtype=np.bool_)
+    persistent[4, 5:7] = True
+
+    refined = refine_persistent_publication_labels(
+        owners,
+        publication,
+        np.where(owners > 0, 4.0, 0.0),
+        persistent,
+    )
+
+    assert refined[4, 6] == 5
+    assert not refined.flags.writeable
+
+
+def test_persistent_publication_rejects_misaligned_or_foreign_owners() -> None:
+    """The repair cannot invent ownership or infer malformed evidence."""
+    owners = np.ones((5, 5), dtype=np.int32)
+    publication = owners.copy()
+    publication[2, 2] = 2
+    snr = np.ones(owners.shape, dtype=np.float64)
+    persistent = np.ones(owners.shape, dtype=np.bool_)
+
+    with pytest.raises(ValueError, match="publication ownership"):
+        refine_persistent_publication_labels(
+            owners,
+            publication,
+            snr,
+            persistent,
+        )
+    with pytest.raises(ValueError, match="aligned real"):
+        refine_persistent_publication_labels(
+            owners,
+            owners,
+            snr[:-1],
+            persistent,
+        )
+    with pytest.raises(ValueError, match="boolean"):
+        refine_persistent_publication_labels(
+            owners,
+            owners,
+            snr,
+            persistent.astype(np.int8),
+        )
+
+
+def test_persistent_publication_preserves_overlapping_owner_bounds() -> None:
+    """Bounding-box refinement cannot erase another non-contiguous label."""
+    owners = np.zeros((9, 11), dtype=np.int32)
+    owners[2:7, 2:5] = 4
+    owners[2:7, 6:9] = 11
+    owners[4, 5] = 11
+    publication = owners.copy()
+    persistent = np.zeros(owners.shape, dtype=np.bool_)
+    persistent[3:6, 3:4] = True
+    persistent[3:6, 7:8] = True
+
+    refined = refine_persistent_publication_labels(
+        owners,
+        publication,
+        np.where(owners > 0, 4.0, 0.0),
+        persistent,
+    )
+
+    assert np.any(refined == 4)
+    assert np.any(refined == 11)
+    assert set(np.unique(refined)) == {0, 4, 11}
+
+
+def test_persistent_publication_empty_input_remains_empty() -> None:
+    """Empty publication evidence has an immutable empty result."""
+    labels = np.zeros((4, 5), dtype=np.int32)
+
+    refined = refine_persistent_publication_labels(
+        labels,
+        labels,
+        np.zeros(labels.shape),
+        np.zeros(labels.shape, dtype=np.bool_),
+    )
+
+    assert not refined.any()
+    assert not refined.flags.writeable
+
+
+def test_persistent_publication_drops_wholly_one_scale_owner() -> None:
+    """An owner with no retained evidence cannot restore itself wholesale."""
+    owners = np.zeros((7, 9), dtype=np.int32)
+    owners[3, 2:7] = 6
+
+    refined = refine_persistent_publication_labels(
+        owners,
+        owners,
+        np.where(owners > 0, 4.0, 0.0),
+        np.zeros(owners.shape, dtype=np.bool_),
+    )
+
+    assert not refined.any()
+
+
+def test_persistent_publication_omits_detached_new_support() -> None:
+    """A restored persistent fragment cannot split the published owner."""
+    owners = np.zeros((9, 13), dtype=np.int32)
+    owners[2:7, 2:6] = 8
+    owners[4, 6:11] = 8
+    publication = np.zeros(owners.shape, dtype=np.int32)
+    publication[2:7, 2:6] = 8
+    persistent = np.zeros(owners.shape, dtype=np.bool_)
+    persistent[4, 10] = True
+
+    refined = refine_persistent_publication_labels(
+        owners,
+        publication,
+        np.where(owners > 0, 4.0, 0.0),
+        persistent,
+    )
+
+    assert refined[4, 10] == 0
+    assert np.all(refined[2:7, 2:6] == 8)
+
+
+def test_persistent_publication_rejects_disconnected_previous_owner() -> None:
+    """Malformed predecessor support cannot define ambiguous connectivity."""
+    owners = np.zeros((9, 13), dtype=np.int32)
+    owners[2:7, 2:11] = 3
+    publication = np.zeros(owners.shape, dtype=np.int32)
+    publication[2:7, 2:5] = 3
+    publication[2:7, 8:11] = 3
+
+    with pytest.raises(ValueError, match="must be connected"):
+        refine_persistent_publication_labels(
+            owners,
+            publication,
+            np.where(owners > 0, 4.0, 0.0),
+            np.zeros(owners.shape, dtype=np.bool_),
+        )
+
+
+def test_persistent_publication_requires_aligned_label_planes() -> None:
+    """Publication and owner planes cannot infer an alignment."""
+    owners = np.ones((4, 5), dtype=np.int32)
+
+    with pytest.raises(ValueError, match="aligned label planes"):
+        refine_persistent_publication_labels(
+            owners,
+            owners[:-1],
+            np.ones(owners.shape),
+            np.ones(owners.shape, dtype=np.bool_),
+        )
 
 
 def test_multiscale_refinement_rejects_ambiguous_evidence() -> None:

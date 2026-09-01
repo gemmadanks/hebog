@@ -783,6 +783,50 @@ writer and persistent-feature influence correction publish a fresh smoke with
 zero confirmed failures. No threshold, margin, comparator, measurement, or
 photometric rule is changed.
 
+## Activated persistent-feature-influence 128-case science smoke
+
+**Terminal date:** 2026-09-01
+
+**Evidence role:** viewed-development diagnostic smoke. The authoritative
+atomic record is
+`benchmark-results/phase-5/prospective-science-smoke-persistent-feature-influence.json`,
+SHA-256
+`3280088263f12ae6e63b1f81cc77c71d0b0e2f86539be7ea8459823b61886993`.
+
+**Scientific question:** does activating direct-origin publication at the
+actual final writer and allowing unique persistent-feature influence close the
+seven remaining mask and topology failures without regressing compact or the
+frozen Hebog incumbent?
+
+The deterministic 64-compact/64-Continuum smoke used current product set
+`21e27007...` and the exact incumbent product set `1c76f739...`. Compact
+products remained byte-identical.
+
+| Decision class | Count |
+| --- | ---: |
+| Pass | 334 |
+| Underpowered diagnostic | 34 |
+| Confirmed fail | 1 |
+| Failed incumbent-retention comparisons | 0 |
+
+The persistent-feature rule closes all six duplicate/split failures. The only
+failure is pinned-master overall mask precision: the candidate is `0.05231`
+worse against the frozen `0.05` practical margin, with observed paired
+standard deviation `0.02480` and upper confidence limit `0.05698`.
+
+Complete retained-input attribution corrects the prior explanation. Direct and
+measurement owner labels are identical for all 64 Continuum cases, and all
+segment-mask bytes match the preceding publication-S/N candidate. The active
+source-association change, not a mask-origin change, closed the topology
+failures. The residual false mask area is concentrated in sparse support seen
+at only one scale: its precision is `0.54903`, compared with `0.92069` for the
+dense branch and `1.0` for the 111 original-image high-S/N boundary pixels.
+
+**Terminal verdict:** fail, with one bounded mask-support cause remaining. The
+result is preserved and cannot be rescored. A prospective adjacent-scale
+persistence rule must remove one-scale protrusions while retaining connected
+owner bridges, then pass a fresh smoke before the cumulative replay opens.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31
@@ -792,8 +836,11 @@ not change, rescore, or replace any campaign result above.
 
 The next candidate must pass every applicable comparison to released PyBDSF,
 pinned PyBDSF `master`, and Aegean, while also retaining the scientific quality
-of one complete closed Hebog incumbent. It may not compensate for one failed
-check with a gain elsewhere. Ambitious absolute numeric targets remain visible
+of one complete closed Hebog incumbent. A small incumbent-relative movement is
+acceptable only inside the frozen practical margin, with all applicable
+absolute and PyBDSF gates still passing and a substantial scientifically
+related improvement reported explicitly. It cannot compensate for a failed or
+materially regressed check. Ambitious absolute numeric targets remain visible
 as longer-term objectives; finite products, valid schemas and provenance,
 determinism, and write-once publication remain binding safety requirements.
 

@@ -1,0 +1,99 @@
+{
+  "authorization": {
+    "fixture_first_implementation_and_replacement_smoke_authorized": true,
+    "full_cumulative_replay_and_evaluation_authorized_only_after_zero_failure_smoke": true,
+    "process_bug_retries_authorized_without_scientific_identity_change": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_evidence": {
+    "failed_candidate_product_set_canonical_sha256": "21e27007aa676658077f19fea044107ae99d8f717642286faea914c6729b2d86",
+    "failed_candidate_revision": "abcc2a077459958dd33a60c9da9f264db40e6475",
+    "failed_candidate_source_tree_sha256": "9cb7a1d168259582df165eb57be83a93069e001b2f2ddc8f159352cea3fa3779",
+    "terminal_smoke_path": "benchmark-results/phase-5/prospective-science-smoke-persistent-feature-influence.json",
+    "terminal_smoke_sha256": "3280088263f12ae6e63b1f81cc77c71d0b0e2f86539be7ea8459823b61886993"
+  },
+  "candidate_rule": {
+    "effect": [
+      "retain dense opened publication cores and original-image boundaries at the existing 6-sigma rule",
+      "retain or restore an owned publication pixel only when its exact scale feature belongs to an adjacent-scale association",
+      "retain a previously published one-scale region only when the complete region connects two retained parts of the same immutable owner",
+      "drop detached newly restored scale support rather than inventing a disconnected detection component",
+      "preserve measurement ownership, catalogue rows, source association, thresholds, margins, comparators, and gates"
+    ],
+    "policy_id": "adjacent-scale-persistent-publication-with-owner-bridges-v1",
+    "rejection": [
+      "one-scale recovered boundary protrusions that do not connect retained owner support",
+      "publication ownership different from immutable measurement ownership",
+      "detached persistent pixels without a path to the previous publication owner",
+      "cross-owner or invalid-pixel bridges",
+      "new numerical thresholds, truth-selected radii, catalogue filtering, or post-result margin changes"
+    ]
+  },
+  "causal_review": {
+    "falsified_prior_hypothesis": "The activated direct-origin builder is executing, but on all 64 retained Continuum smoke inputs its direct component labels and measurement component labels are identical and its segment mask bytes are unchanged from the predecessor. The remaining failure is therefore not caused by the publication origin or inactive wrapper dispatch.",
+    "observed_failure": {
+      "comparator_id": "pinned-pybdsf-master",
+      "endpoint_id": "continuum--mask-precision--overall",
+      "observed_paired_standard_deviation": 0.02480139991955672,
+      "positive_regression": 0.05230788934282682,
+      "practical_regression_margin": 0.05,
+      "upper_confidence_limit": 0.05697557830997101
+    },
+    "pixel_attribution": {
+      "dense_branch_false_pixels": 12620,
+      "dense_branch_precision": 0.92069,
+      "high_snr_boundary_false_pixels": 0,
+      "high_snr_boundary_precision": 1.0,
+      "recovered_branch_false_pixels": 906,
+      "recovered_branch_precision": 0.54903,
+      "summary": "The residual precision deficit is concentrated in sparse recovered pixels from features seen at only one scale. It is not caused by the dense core, the original-image high-SNR boundary, catalogue filtering, source association, or threshold crossings."
+    },
+    "retained_smoke_diagnostic": {
+      "candidate_mean_iou": 0.8350662349730027,
+      "candidate_mean_precision": 0.9156689137473641,
+      "candidate_mean_recall": 0.9046537854764918,
+      "current_mean_iou": 0.8313447263700307,
+      "current_mean_precision": 0.9126877297343958,
+      "current_mean_recall": 0.9031524412395089,
+      "input_count": 64,
+      "mean_iou_delta": 0.00372150860297207,
+      "mean_precision_delta": 0.002981184012968343,
+      "mean_recall_delta": 0.0015013442369828812,
+      "method": "read-only in-memory attribution over the already viewed retained smoke inputs; no product was published and no closed result was rescored",
+      "ordinary_split_labels_after_rule": 0,
+      "summary": "The proposed topological rule improves all three aggregate mask metrics on the retained diagnostic population while preserving connected ownership. The fresh governed smoke remains authoritative."
+    }
+  },
+  "decision_id": "phase-5-prospective-publication-scale-persistence-pre-review",
+  "exact_user_authority": [
+    "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+    "I think we can tolerate a slight degradation in one of the metrics if it substantially improves another and remains above our thresholds for acceptance. There will likely be tradeoff that have to be made to cope with real messy data..."
+  ],
+  "governed_tradeoff_rule": {
+    "acceptance": "A small metric degradation may be accepted only when every binding absolute and PyBDSF non-inferiority gate remains satisfied, another scientifically related metric improves materially, and the complete change is explained and documented.",
+    "incumbent_role": "The incumbent remains a binding regression comparator and every movement is reported, but a Pareto-improving or explicitly reviewed scientifically favourable trade-off is not rejected solely because one incumbent-relative point estimate moves slightly.",
+    "prohibitions": "No threshold, practical margin, comparator, gate, or confidence rule may change after observing candidate results."
+  },
+  "rejected_alternatives": [
+    "applying the existing 3-sigma island floor again because every current publication pixel already satisfies it",
+    "requiring a 5-sigma anchor because it removes genuine diffuse support and has negligible precision effect",
+    "a final three-by-three opening because it reduces mean recall by 0.01177 and mean IoU by 0.00239",
+    "restoring every owner pixel needed by unconstrained dilation because its mean precision gain is only 0.00082",
+    "retaining only the peak-connected fragment because it reduces mean recall by 0.00767 and mean IoU by 0.00234",
+    "changing scientific thresholds, practical margins, gates, comparators, or closed evidence"
+  ],
+  "required_validation": [
+    "red fixtures for one-scale protrusion removal, adjacent-scale restoration, and owner-bridge preservation",
+    "foreign-owner, malformed-plane, empty, detached-support, and non-contiguous-label failure and boundary fixtures",
+    "exact adjacent-scale feature-support tests including order invariance and single-scale exclusion",
+    "Serial and existing-Dask product invariance and compact byte identity",
+    "actual final writer activation test through every runpy overlay",
+    "complete no-write preflight for all 128 current and incumbent smoke products",
+    "one fresh write-once 128-case smoke before any complete replay",
+    "zero confirmed smoke failures before a complete cumulative replay"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-publication-scale-persistence-results"
+}

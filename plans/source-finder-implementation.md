@@ -103,11 +103,14 @@ scientific improvement:
 2. **Binding Hebog quality retention.** Prospectively select one frozen
    incumbent from the best closed like-semantics Hebog candidates considered
    as whole candidates, then require non-inferiority to it on every governed
-   metric and stratum.
-   A candidate may improve one measure without compensating for a material
-   regression in another. Point estimates may vary, but the predeclared paired
-   confidence rule and practical margin must rule out a scientifically material
-   loss; no reviewed trade-off can waive this Phase 5 quality-retention gate.
+   metric and stratum. Small metric movement inside its predeclared practical
+   non-inferiority margin is tolerable when the candidate remains above every
+   applicable absolute acceptance threshold and both PyBDSF references, a
+   scientifically related measure improves substantially, and the complete
+   trade-off is reported. This is not compensation for a material regression:
+   the frozen confidence rule must still rule out loss beyond the endpoint's
+   practical margin. A trade-off may not be invented after results are viewed,
+   hide a failed endpoint, or change a threshold, margin, comparator, or gate.
 3. **Longer-term absolute improvement objectives.** Continue to report the
    existing ambitious absolute truth targets and every morphology, scale,
    boundary, and noise stratum, but do not make those numeric targets a
@@ -1117,13 +1120,35 @@ from partial or viewed evidence.
      crowded-chain, partial-group, label/order/retry, Serial, and existing-Dask
      controls pass. The three-realization retained-data micro lane recovers all
      four governed edge, diffuse, and bright-artifact pairs together.
-   - [ ] Freeze the exact activation-plus-persistent-influence candidate, pass
+   - [x] Freeze the exact activation-plus-persistent-influence candidate, pass
      both complete 128-input no-write preflights, and publish one fresh atomic
      smoke. Require zero confirmed failures and compact/incumbent retention
      before opening the cumulative replay. If a process defect occurs, repair
      it test-first without changing the scientific identity. If completed
      science fails, preserve it as terminal evidence and return to prospective
-     review rather than tuning or rescoring.
+     review rather than tuning or rescoring. Candidate `abcc2a0...` sealed
+     product set `21e27007...`; smoke `32800882...` has 334 passes, 34
+     diagnostic-underpowered comparisons, one pinned-master overall mask-
+     precision failure at 0.05231 against the unchanged 0.05 margin, no
+     incumbent failure, and byte-identical compact products. All six remaining
+     duplicate/split failures are closed. Complete retained-input attribution
+     falsifies the earlier publication-origin explanation: direct and
+     measurement owner planes are identical on this smoke. The remaining loss
+     is concentrated in one-scale sparse recovered boundaries; the dense branch
+     is 0.92069 precise and the high-original-S/N boundary is 111/111 true.
+   - [ ] Correct one-scale publication support prospectively, then repeat the
+     same 128-case smoke. Pre-review
+     `phase-5-prospective-publication-scale-persistence-pre-review.json`
+     freezes adjacent-scale feature persistence and owner-bridge topology with
+     no new numeric parameter. Read-only all-64 diagnostics predict mean
+     precision +0.00298, recall +0.00150, and IoU +0.00372 while ordinary
+     owner fragmentation falls to zero. Test first that dense and 6-sigma
+     support remain unchanged, one-scale protrusions leave, exact persistent
+     owner pixels may return, low-confidence regions survive only when they
+     connect two retained parts of the same owner, and detached restorations
+     cannot create a split component. Require zero confirmed smoke failures;
+     a confidence interval that merely remains underpowered may be closed only
+     by the already planned larger prospective population, never by tuning.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift

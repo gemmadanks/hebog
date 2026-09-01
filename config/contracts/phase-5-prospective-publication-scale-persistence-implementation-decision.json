@@ -1,0 +1,65 @@
+{
+  "authorization": {
+    "fixture_first_implementation_and_replacement_smoke_authorized": true,
+    "full_cumulative_replay_and_evaluation_authorized_only_after_zero_failure_smoke": true,
+    "process_bug_retries_authorized_without_scientific_identity_change": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "decision_id": "phase-5-prospective-publication-scale-persistence-implementation-decision",
+  "exact_user_authority": [
+    "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+    "I think we can tolerate a slight degradation in one of the metrics if it substantially improves another and remains above our thresholds for acceptance. There will likely be tradeoff that have to be made to cope with real messy data..."
+  ],
+  "fixed_predecessor_identity": {
+    "candidate_product_set_canonical_sha256": "21e27007aa676658077f19fea044107ae99d8f717642286faea914c6729b2d86",
+    "candidate_revision": "abcc2a077459958dd33a60c9da9f264db40e6475",
+    "candidate_source_tree_sha256": "9cb7a1d168259582df165eb57be83a93069e001b2f2ddc8f159352cea3fa3779",
+    "terminal_smoke_sha256": "3280088263f12ae6e63b1f81cc77c71d0b0e2f86539be7ea8459823b61886993"
+  },
+  "fixed_scientific_policy": {
+    "catalogue_measurement_association_or_photometry_change": false,
+    "detection_island_or_boundary_threshold_change": false,
+    "incumbent_tradeoff_rule": "endpoint-practical-margin-plus-all-absolute-and-pybdsf-gates-plus-related-material-improvement-v1",
+    "publication_scale_persistence_policy": "adjacent-scale-persistent-publication-with-owner-bridges-v1",
+    "threshold_margin_comparator_confidence_or_gate_change": false
+  },
+  "implementation": [
+    {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "sha256": "c8cddfad678a575f96e7f7554854988d4d9fd3a839a4f6cd846242afc13692d8"
+    },
+    {
+      "path": "src/hebog/algorithms/multiscale_association.py",
+      "sha256": "56eebff04dba0f3020eeaad862ea534c64251ecac2bd067e631a52350a9ee53b"
+    },
+    {
+      "path": "src/hebog/validation/publication_scale_persistence.py",
+      "sha256": "d93be8a1736fb8e2817a56fcb09270b77fe1ddaf76778c03fcc5e5c9e676e990"
+    },
+    {
+      "path": "scripts/validation/materialize_phase5_prospective_publication_scale_persistence_products.py",
+      "sha256": "40486cfbbe029b53aaeba74b4640b5851dd6bd15d2739d4d76f2ba5af406f7b1"
+    },
+    {
+      "path": "scripts/validation/evaluate_phase5_prospective_publication_scale_persistence_smoke.py",
+      "sha256": "f17aea97cbaf83c87a7e776e3eff9dd9d9eb78fda3fab10097af98c9a96af68d"
+    }
+  ],
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-publication-scale-persistence-pre-review.json",
+    "sha256": "d107ce89c7dd0e149950986e3c66d6de7499c364665704a521ef2eb87824c4bd"
+  },
+  "required_pre_execution_gates": [
+    "focused scientific helper validation passes for one-scale protrusions persistent restoration owner bridges detached support malformed evidence and non-contiguous labels",
+    "adjacent-scale exact support and order invariance pass",
+    "Serial and existing-Dask product invariance and compact byte identity pass",
+    "the actual final nested writer resolves the reviewed publication-scale-persistence builder",
+    "both complete no-write preflights pass for all 128 selected inputs",
+    "one fresh current product set seals before one fresh atomic smoke",
+    "full replay remains blocked unless confirmed smoke failures are zero"
+  ],
+  "schema_version": 1,
+  "status": "authorized-for-replacement-smoke-before-results"
+}

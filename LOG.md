@@ -13925,3 +13925,59 @@ the smoke has zero confirmed failures.
 run both complete 128-input no-write preflights, and publish one fresh smoke.
 Run the complete cumulative replay only if that smoke has zero confirmed
 failures.
+
+## 2026-09-01 — Localize the last smoke failure to one-scale publication support
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Candidate `abcc2a0...`, product set `21e27007...`, and atomic smoke
+  `32800882...` are terminal. The smoke has 334 passing, 34 diagnostic-
+  underpowered, and one confirmed failing comparison. Compact products are
+  byte-identical and every incumbent comparison passes. The persistent-feature
+  correction closes all six prior duplicate/split failures.
+- The remaining endpoint is pinned-master overall Continuum mask precision:
+  point regression `0.0523079` against the unchanged `0.05` margin, observed
+  paired standard deviation `0.0248014`, and upper confidence limit `0.0569756`.
+  The full replay remains blocked and the closed smoke was not rescored.
+- Complete read-only attribution over the 64 retained Continuum inputs
+  falsified the prior mask-origin hypothesis. Direct and measurement owner
+  labels are identical and all segment masks are byte-identical to the
+  publication-S/N predecessor. Dense support is `0.92069` precise and all 111
+  high-original-S/N boundary pixels are true; sparse recovered support is only
+  `0.54903` precise and contains 906 false pixels.
+- Rejected alternatives include reapplying the already satisfied 3-sigma
+  floor, requiring a 5-sigma anchor, final 3-by-3 opening, retaining only a
+  peak-connected fragment, and wholesale or dilation-based owner restoration.
+  They were ineffective or materially reduced recall/IoU.
+- Pre-review `d107ce89...` freezes a parameter-free prospective rule: exact
+  adjacent-scale feature persistence admits sparse publication support, while
+  a previously published one-scale region survives only when the complete
+  region connects two retained parts of the same owner. Detached restored
+  support cannot create a disconnected component. Measurement, catalogue,
+  association, thresholds, margins, comparators, confidence rules, and gates
+  remain unchanged.
+- The exact production-like retained-input diagnostic improves mean precision
+  from `0.91269` to `0.91567`, recall from `0.90315` to `0.90465`, and IoU from
+  `0.83134` to `0.83507`, with zero split publication owners. This diagnostic
+  publishes no evidence; the fresh governed smoke remains authoritative.
+- Test-first implementation covers one-scale protrusions, adjacent-scale
+  restoration, owner bridges, detached support, malformed/foreign ownership,
+  empty input, non-contiguous labels with overlapping bounds, scale-order
+  invariance, and actual final-writer activation. The focused scientific,
+  governance, and wrapper suite passes 68 tests. Review found and fixed one
+  fail-open edge before execution: an owner made wholly from weak one-scale
+  support could restore itself when it had no retained core. The regression
+  fixture now requires that owner to remain absent. Full branch-aware coverage
+  passes 2,361 tests with four expected xfails at 94.58%; `just check` passes
+  2,196 tests with four expected xfails; all 27 equivalence tests pass; and the
+  strict documentation build passes.
+- The plan now states the clarified trade-off rule: slight movement inside a
+  predeclared endpoint margin may be acceptable only when every applicable
+  absolute and PyBDSF gate passes and a scientifically related metric improves
+  substantially. It cannot excuse a failed endpoint or authorize post-result
+  threshold, margin, comparator, confidence, or gate changes.
+
+**Immediate next step:** complete pre-commit, freeze the exact candidate in an
+immutable checkout, pass both complete no-write preflights, then materialize
+and evaluate one fresh 128-case smoke. Open the full cumulative replay only if
+confirmed smoke failures are zero.
