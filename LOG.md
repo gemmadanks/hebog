@@ -14016,3 +14016,29 @@ confirmed smoke failures are zero.
 freeze the exact replay wrapper, run its complete 2,400-input/9,600-reference
 no-write preflight, then consume the authorized one-replay decision. Interpret
 compact and Continuum science before power or runtime.
+
+## 2026-09-01 — Full replay retained-reference dispatch repaired
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Immutable execution commit `4f98f6f...` passed the complete no-write
+  verification of 2,400 inputs and 9,600 retained reference runs. Its full
+  command then stopped during the independently reloaded retained-reference
+  verifier, before candidate execution or output publication. The created
+  scratch contained zero bytes and zero files.
+- Root cause: preflight used the materializer's repaired reference seam, while
+  the frozen full command later reloaded the same verifier through raw
+  `runpy`. Both historical producer-source checks therefore saw the new
+  candidate source tree and failed closed.
+- The process-only repair wraps that exact `runpy` boundary, supplies producer
+  source `b4176ce3...` only to the recovery-decision and reconstruction-request
+  checks, and leaves candidate source `9f8e4a67...`, products, configuration,
+  thresholds, gates, retained evidence, baseline, and output identity
+  unchanged. Focused validation exercises both concrete source checks and the
+  full composition; nine tests pass. The branch-aware suite passes 2,370 tests
+  at 94.58% coverage, equivalence passes 27 tests, and the strict docs build
+  passes.
+
+**Immediate next step:** validate and freeze the repaired wrapper and amended
+authority, remove only the proven-empty scratch directory, repeat the complete
+no-write verification, then retry the unchanged cumulative replay.

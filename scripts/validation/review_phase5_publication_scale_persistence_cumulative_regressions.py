@@ -39,11 +39,20 @@ _SMOKE = (
     _ROOT / "benchmark-results/phase-5/"
     "prospective-science-smoke-publication-scale-persistence.json"
 )
+_REFERENCE_VERIFIER = (
+    _ROOT / "scripts/validation/reconstruct_phase5_viewed_references.py"
+)
 _IDENTITY_REVIEW = (
     _ROOT / "config/contracts/"
-    "phase-5-publication-scale-persistence-cumulative-replay-review.json"
+    "phase-5-publication-scale-persistence-cumulative-replay-reference-"
+    "dispatch-repair-review.json"
 )
 _EXECUTION_DECISION = (
+    _ROOT / "config/contracts/"
+    "phase-5-publication-scale-persistence-cumulative-replay-reference-"
+    "dispatch-repair-execution-decision.json"
+)
+_ORIGINAL_EXECUTION_DECISION = (
     _ROOT / "config/contracts/"
     "phase-5-publication-scale-persistence-cumulative-replay-execution-"
     "decision.json"
@@ -70,6 +79,12 @@ _SMOKE_SHA256 = (
 )
 _REFERENCE_RECONSTRUCTION_SHA256 = (
     "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
+)
+_REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256 = (
+    "b4176ce387fa1569cc86ca300bfa7de6462758a1068de46cd4a16616a6ec3adc"
+)
+_ORIGINAL_EXECUTION_DECISION_SHA256 = (
+    "65e9654902503c1bbbc67336853c85a1cea3800d3240f4e409cc900c0e9639d2"
 )
 _CLOSED_BASELINE_SHA256 = (
     "a45303dfa8f544830a65988fc0b3371678b9cda37cd5f62d2b650163e5dbfbf9"
@@ -203,6 +218,9 @@ def _serialize_ledger(value: object) -> bytes:
                 "candidate_smoke_sha256": _SMOKE_SHA256,
                 "identity_review_sha256": file_sha256(_IDENTITY_REVIEW),
                 "execution_decision_sha256": file_sha256(_EXECUTION_DECISION),
+                "original_execution_decision_sha256": (
+                    _ORIGINAL_EXECUTION_DECISION_SHA256
+                ),
                 "materializer_sha256": _MATERIALIZER_SHA256,
                 "smoke_evaluator_sha256": _SMOKE_EVALUATOR_SHA256,
                 "tradeoff_policy": (
@@ -231,6 +249,7 @@ def _current_composition() -> dict[str, Any]:
     )
     frozen["_canonical_json_bytes"] = _serialize_ledger
     frozen["_git_revision"] = _git_revision
+    frozen["runpy"] = _ReferenceProducerRunpy(frozen["runpy"])
     return frozen
 
 
@@ -238,6 +257,88 @@ def _generate_candidate_product(task: dict[str, object]) -> str:
     """Reinstall the exact candidate inside each spawned worker."""
     frozen = _current_composition()
     return cast(str, frozen["_generate_candidate_product"](task))
+
+
+def _historical_reconstruction_source_tree(_root: Path) -> str:
+    """Return the immutable source identity that produced the references."""
+    return _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256
+
+
+def _install_reference_producer_view(
+    reconstruction: dict[str, Any],
+) -> None:
+    """Scope the historical identity to both retained-reference checks."""
+    verifier = reconstruction.get("verify_viewed_reference_reconstruction")
+    if not callable(verifier) or not hasattr(verifier, "__globals__"):
+        raise ValueError("reference reconstruction verifier seam changed")
+    verifier_globals = verifier.__globals__
+    original_helpers = verifier_globals.get("_helpers")
+    if not callable(original_helpers):
+        raise ValueError("reference reconstruction helper seam changed")
+
+    def helpers() -> dict[str, Any]:
+        namespace_value = original_helpers()
+        if not isinstance(namespace_value, dict):
+            raise ValueError("reference reconstruction helper seam changed")
+        namespace = cast(dict[str, Any], namespace_value)
+        loader = namespace.get("load_viewed_recovery_execution_decision")
+        if not callable(loader) or not hasattr(loader, "__globals__"):
+            raise ValueError("reference reconstruction helper seam changed")
+        loader.__globals__["source_tree_sha256"] = (
+            _historical_reconstruction_source_tree
+        )
+        return namespace
+
+    verifier_globals["_helpers"] = helpers
+    verifier_globals["source_tree_sha256"] = (
+        _historical_reconstruction_source_tree
+    )
+
+
+class _ReferenceProducerRunpy:
+    """Patch only the retained-reference verifier loaded by frozen code."""
+
+    def __init__(self, delegate: Any) -> None:
+        self._delegate = delegate
+
+    def run_path(
+        self,
+        path_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Load a namespace and scope producer identity when required."""
+        namespace_value = self._delegate.run_path(
+            path_name,
+            *args,
+            **kwargs,
+        )
+        if not isinstance(namespace_value, dict):
+            raise ValueError("frozen runpy namespace changed")
+        namespace = cast(dict[str, Any], namespace_value)
+        if Path(path_name).resolve() == _REFERENCE_VERIFIER.resolve():
+            _install_reference_producer_view(namespace)
+        return namespace
+
+
+def _verify_reference_dispatch_seams(frozen: dict[str, Any]) -> None:
+    """Exercise both historical source checks without reading products."""
+    reconstruction = frozen["runpy"].run_path(str(_REFERENCE_VERIFIER))
+    verifier = reconstruction.get("verify_viewed_reference_reconstruction")
+    if not callable(verifier) or not hasattr(verifier, "__globals__"):
+        raise ValueError("reference reconstruction verifier seam changed")
+    verifier_globals = verifier.__globals__
+    helpers = verifier_globals["_helpers"]()
+    loader = helpers["load_viewed_recovery_execution_decision"]
+    observed = (
+        verifier_globals["source_tree_sha256"](_ROOT),
+        loader.__globals__["source_tree_sha256"](_ROOT),
+    )
+    if observed != (
+        _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256,
+        _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256,
+    ):
+        raise ValueError("reference reconstruction producer view changed")
 
 
 def _git_revision() -> str:
@@ -313,11 +414,17 @@ def _expected_execution_fields(
         ),
         "closed_baseline_sha256": _CLOSED_BASELINE_SHA256,
         "materializer_sha256": _MATERIALIZER_SHA256,
+        "original_execution_decision_sha256": (
+            _ORIGINAL_EXECUTION_DECISION_SHA256
+        ),
         "output_path": str(arguments.output),
         "reference_reconstruction_path": str(
             arguments.reference_reconstruction
         ),
         "reference_reconstruction_sha256": _REFERENCE_RECONSTRUCTION_SHA256,
+        "reference_reconstruction_producer_source_tree_sha256": (
+            _REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256
+        ),
         "scratch_path": str(arguments.scratch),
         "smoke_evaluator_sha256": _SMOKE_EVALUATOR_SHA256,
         "workers": arguments.workers,
@@ -337,6 +444,11 @@ def _require_common_identities(arguments: argparse.Namespace) -> str:
         (_MATERIALIZER, _MATERIALIZER_SHA256, "materializer"),
         (_SMOKE_EVALUATOR, _SMOKE_EVALUATOR_SHA256, "smoke evaluator"),
         (_SMOKE, _SMOKE_SHA256, "smoke"),
+        (
+            _ORIGINAL_EXECUTION_DECISION,
+            _ORIGINAL_EXECUTION_DECISION_SHA256,
+            "original execution decision",
+        ),
         (
             arguments.reference_reconstruction / "recovery.json",
             _REFERENCE_RECONSTRUCTION_SHA256,
@@ -370,9 +482,11 @@ def verify_replay(arguments: argparse.Namespace) -> dict[str, object]:
         != "install_terminal_cycle"
         or frozen["_canonical_json_bytes"] is not _serialize_ledger
         or frozen["_git_revision"] is not _git_revision
+        or not isinstance(frozen["runpy"], _ReferenceProducerRunpy)
         or not callable(frozen.get("_generate_candidate_product"))
     ):
         raise ValueError("publication-scale-persistence composition changed")
+    _verify_reference_dispatch_seams(frozen)
     return {
         "candidate_configuration_sha256": _CANDIDATE_CONFIGURATION_SHA256,
         "candidate_revision": _CANDIDATE_REVISION,

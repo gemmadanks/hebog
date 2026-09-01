@@ -1174,6 +1174,13 @@ from partial or viewed evidence.
      binds output only to the new candidate's 2,400 products and 1,600
      association sidecars. Run its complete no-write reference and seam
      verification before consuming the one-replay authority.
+     Immutable attempt `4f98f6f...` passed that preflight but the full command
+     failed before candidate execution because an independently reloaded
+     retained-reference verifier observed the new candidate source instead of
+     historical producer source `b4176ce3...`. The scratch was empty and no
+     ledger was created. Freeze the process-only dispatch repair, whose tests
+     exercise both historical source checks through the exact `runpy` seam,
+     then retry without changing any scientific identity or gate.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

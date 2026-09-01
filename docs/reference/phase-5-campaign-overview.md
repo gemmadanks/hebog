@@ -863,6 +863,13 @@ open. The smoke is non-promotional and cannot itself qualify or release the
 candidate. The 2,400-case replay must close the remaining power question and
 pass all PyBDSF, absolute, and incumbent-retention gates without tuning.
 
+The first immutable full-replay command passed its complete no-write preflight
+but stopped before candidate execution when the full path reloaded the
+retained-reference verifier without its historical producer-source view. It
+created no product or ledger and left a zero-byte scratch. The retry is bound
+to a process-only dispatch repair; all scientific identities and gates remain
+unchanged.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

@@ -18,9 +18,15 @@ _WRAPPER = (
 )
 _REVIEW = (
     _ROOT / "config/contracts/"
-    "phase-5-publication-scale-persistence-cumulative-replay-review.json"
+    "phase-5-publication-scale-persistence-cumulative-replay-reference-"
+    "dispatch-repair-review.json"
 )
 _DECISION = (
+    _ROOT / "config/contracts/"
+    "phase-5-publication-scale-persistence-cumulative-replay-reference-"
+    "dispatch-repair-execution-decision.json"
+)
+_ORIGINAL_DECISION = (
     _ROOT / "config/contracts/"
     "phase-5-publication-scale-persistence-cumulative-replay-execution-"
     "decision.json"
@@ -77,6 +83,12 @@ def test_review_and_decision_bind_exact_execution() -> None:
     }
     assert decision["execution_authorized"] is True
     assert not any(decision["prohibited_authorizations"].values())
+    assert review["failed_execution"] == {
+        "candidate_products_created": 0,
+        "output_created": False,
+        "original_execution_decision_sha256": file_sha256(_ORIGINAL_DECISION),
+        "scratch_byte_count": 0,
+    }
 
 
 def test_sealed_smoke_opens_only_the_larger_replay() -> None:
@@ -118,6 +130,58 @@ def test_composition_replaces_stale_serializer_and_keeps_science_seams() -> (
     )
     assert frozen["_canonical_json_bytes"].__name__ == "_serialize_ledger"
     assert frozen["_git_revision"].__name__ == "_git_revision"
+    assert frozen["runpy"].__class__.__name__ == "_ReferenceProducerRunpy"
+
+
+def test_reference_producer_view_scopes_both_historical_source_checks() -> (
+    None
+):
+    """Retained-reference verification cannot use the new candidate source."""
+    wrapper = _load()
+
+    def ambient_source(_root: object) -> str:
+        return "new-candidate-source"
+
+    protocol_globals: dict[str, Any] = {
+        "source_tree_sha256": ambient_source,
+    }
+    exec(
+        "def load_decision(_path):\n    return source_tree_sha256(None)\n",
+        protocol_globals,
+    )
+    verifier_globals: dict[str, Any] = {
+        "_helpers": lambda: {
+            "load_viewed_recovery_execution_decision": protocol_globals[
+                "load_decision"
+            ]
+        },
+        "source_tree_sha256": ambient_source,
+    }
+    exec(
+        "def verify():\n"
+        "    decision = _helpers()[\n"
+        "        'load_viewed_recovery_execution_decision'\n"
+        "    ](None)\n"
+        "    return decision, source_tree_sha256(None)\n",
+        verifier_globals,
+    )
+    reconstruction = {
+        **verifier_globals,
+        "verify_viewed_reference_reconstruction": verifier_globals["verify"],
+    }
+
+    wrapper["_install_reference_producer_view"](reconstruction)
+
+    producer = wrapper["_REFERENCE_RECONSTRUCTION_PRODUCER_SOURCE_TREE_SHA256"]
+    assert reconstruction["verify"]() == (producer, producer)
+
+
+def test_exact_composition_exercises_reference_dispatch_seams() -> None:
+    """No-write verification reaches the same runpy path as full execution."""
+    wrapper = _load()
+    frozen = wrapper["_current_composition"]()
+
+    wrapper["_verify_reference_dispatch_seams"](frozen)
 
 
 def test_authorized_replay_replaces_strict_historical_git_check(

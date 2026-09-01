@@ -134,3 +134,17 @@ be acceptable when a related scientific metric improves materially, every
 absolute and PyBDSF gate remains green, and the trade-off is recorded. The
 margin, comparator, confidence rule, and interpretation cannot be changed
 after viewing the replay.
+
+## Full-replay process repair
+
+The first immutable full command passed the complete 2,400-input and
+9,600-reference no-write preflight, then failed before candidate execution.
+The full command independently reloaded the retained-reference verifier through
+raw `runpy`; its two producer-source checks consequently observed the new
+candidate source rather than the historical reference producer. No candidate
+product or ledger was written, and the scratch contained zero bytes.
+
+The repaired wrapper scopes historical producer source `b4176ce3...` only to
+those two retained-reference checks. Candidate source, configuration, data,
+thresholds, gates, smoke, baseline, and final output identity remain unchanged.
+Focused tests exercise both real dispatch seams before the retry.
