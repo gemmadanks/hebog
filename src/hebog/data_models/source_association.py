@@ -250,6 +250,8 @@ class SourceHierarchyDiagnostics:
     terminal_cycle_unseeded_candidate_count: int = 0
     terminal_cycle_unseeded_persistent_accepted_count: int = 0
     terminal_cycle_unseeded_persistence_rejected_count: int = 0
+    persistent_feature_influence_candidate_count: int = 0
+    persistent_feature_influence_parent_count: int = 0
 
     def __post_init__(self) -> None:
         """Require canonical non-negative counts and exact cardinalities."""
@@ -280,6 +282,8 @@ class SourceHierarchyDiagnostics:
             self.terminal_cycle_unseeded_candidate_count,
             self.terminal_cycle_unseeded_persistent_accepted_count,
             self.terminal_cycle_unseeded_persistence_rejected_count,
+            self.persistent_feature_influence_candidate_count,
+            self.persistent_feature_influence_parent_count,
         )
         if any(value < 0 for value in scalar_counts):
             raise ValueError("source hierarchy counts must be non-negative")
@@ -357,6 +361,12 @@ class SourceHierarchyDiagnostics:
                 self.terminal_cycle_unseeded_persistence_rejected_count
             ),
         )
+        if self.persistent_feature_influence_parent_count > (
+            self.persistent_feature_influence_candidate_count
+        ):
+            raise ValueError(
+                "persistent feature influence parents exceed candidates"
+            )
 
 
 @dataclass(frozen=True, slots=True)

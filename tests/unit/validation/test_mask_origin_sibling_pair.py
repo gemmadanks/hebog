@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import runpy
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -35,6 +37,16 @@ _EVALUATOR = (
     _ROOT / "scripts/validation/"
     "evaluate_phase5_prospective_mask_origin_sibling_pair_smoke.py"
 )
+_ACTIVATION_MATERIALIZER = (
+    _ROOT / "scripts/validation/"
+    "materialize_phase5_prospective_mask_origin_sibling_pair_activation_"
+    "repair_products.py"
+)
+_ACTIVATION_EVALUATOR = (
+    _ROOT / "scripts/validation/"
+    "evaluate_phase5_prospective_mask_origin_sibling_pair_activation_repair_"
+    "smoke.py"
+)
 _PRE_REVIEW = (
     _ROOT / "config/contracts/"
     "phase-5-prospective-mask-origin-sibling-pair-pre-review.json"
@@ -43,6 +55,27 @@ _DECISION = (
     _ROOT / "config/contracts/"
     "phase-5-prospective-mask-origin-sibling-pair-implementation-decision.json"
 )
+_ACTIVATION_PRE_REVIEW = (
+    _ROOT / "config/contracts/"
+    "phase-5-prospective-mask-origin-sibling-pair-activation-repair-"
+    "pre-review.json"
+)
+_ACTIVATION_DECISION = (
+    _ROOT / "config/contracts/"
+    "phase-5-prospective-mask-origin-sibling-pair-activation-repair-"
+    "implementation-decision.json"
+)
+
+
+def _committed_file_sha256(revision: str, path: str) -> str:
+    """Hash one historical file without consulting mutable working bytes."""
+    content = subprocess.run(
+        ("git", "show", f"{revision}:{path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    return hashlib.sha256(content).hexdigest()
 
 
 def test_configuration_binds_both_policies_and_exact_reviews(
@@ -89,9 +122,13 @@ def test_configuration_rejects_malformed_base(tmp_path: Path) -> None:
 
 
 def test_governed_records_bind_exact_implementation() -> None:
-    """The decision is fail closed against every reviewed program byte."""
+    """The closed decision remains exact after prospective source changes."""
     review = json.loads(_PRE_REVIEW.read_text(encoding="utf-8"))
     decision = json.loads(_DECISION.read_text(encoding="utf-8"))
+    activation_review = json.loads(
+        _ACTIVATION_PRE_REVIEW.read_text(encoding="utf-8")
+    )
+    revision = activation_review["binding_evidence"]["candidate_revision"]
 
     assert review["binding_evidence"]["prospective_smoke_sha256"] == (
         "a8bee362728df293a30d171bed5afb4e412ecae9cbf9af06fbbce5afec083249"
@@ -99,6 +136,31 @@ def test_governed_records_bind_exact_implementation() -> None:
     assert decision["pre_review"] == {
         "path": str(_PRE_REVIEW.relative_to(_ROOT)),
         "sha256": file_sha256(_PRE_REVIEW),
+    }
+    for identity in decision["implementation"]:
+        assert (
+            _committed_file_sha256(revision, identity["path"])
+            == identity["sha256"]
+        )
+    assert (
+        decision["authorization"]["threshold_or_margin_tuning_authorized"]
+        is False
+    )
+
+
+def test_activation_repair_records_bind_terminal_failure_and_programs() -> (
+    None
+):
+    """The process repair cannot drift from failed evidence or exact code."""
+    review = json.loads(_ACTIVATION_PRE_REVIEW.read_text(encoding="utf-8"))
+    decision = json.loads(_ACTIVATION_DECISION.read_text(encoding="utf-8"))
+
+    assert review["binding_evidence"]["terminal_smoke_sha256"] == (
+        "778e43a96f0fad15c7ae28a562bcd18ca4b6e000df672221657e0803148addfc"
+    )
+    assert decision["pre_review"] == {
+        "path": str(_ACTIVATION_PRE_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_ACTIVATION_PRE_REVIEW),
     }
     for identity in decision["implementation"]:
         assert file_sha256(_ROOT / identity["path"]) == identity["sha256"]
@@ -203,6 +265,30 @@ def test_materializer_composes_predecessor_without_mutating_it() -> None:
     assert _PREDECESSOR.read_bytes().startswith(b"#!/usr/bin/env python3\n")
 
 
+def test_current_composition_installs_builder_in_actual_writer_globals() -> (
+    None
+):
+    """The nested publication wrapper must activate the new builder."""
+    wrapper = runpy.run_path(str(_ACTIVATION_MATERIALIZER))
+
+    frozen = wrapper["_current_composition"](
+        _ROOT,
+        revision="candidate-revision",
+        configuration="candidate-configuration",
+    )
+
+    writer = frozen["_write_continuum_products"]
+    separated_writer = writer.__globals__[  # pyright: ignore[reportFunctionMemberAccess]
+        "_write_mask_separated_continuum_products"
+    ]
+    assert (
+        separated_writer.__globals__[  # pyright: ignore[reportFunctionMemberAccess]
+            "build_public_finder_source_reconstruction_continuum_products"
+        ]
+        is build_mask_origin_sibling_pair_continuum_products
+    )
+
+
 def test_materializer_rejects_unknown_candidate_mode() -> None:
     """Worker dispatch remains fail closed outside current and incumbent."""
     wrapper = runpy.run_path(str(_MATERIALIZER))
@@ -268,6 +354,22 @@ def test_evaluator_dispatches_only_the_composed_materializer() -> None:
     expected = (
         "scripts/validation/"
         "materialize_phase5_prospective_mask_origin_sibling_pair_products.py"
+    )
+
+    assert base["_MATERIALIZER"] == expected
+    assert base["main"].__globals__["_MATERIALIZER"] == expected
+
+
+def test_activation_evaluator_dispatches_only_the_repaired_materializer() -> (
+    None
+):
+    """The replacement smoke evaluates the activated producer only."""
+    evaluator = runpy.run_path(str(_ACTIVATION_EVALUATOR))
+    base = evaluator["_base"](_ROOT)
+    expected = (
+        "scripts/validation/"
+        "materialize_phase5_prospective_mask_origin_sibling_pair_activation_"
+        "repair_products.py"
     )
 
     assert base["_MATERIALIZER"] == expected

@@ -649,6 +649,31 @@ class _ScaleAwareParentEvidence:
     rejected_ambiguity_count: int
     per_scale_candidate_counts: tuple[tuple[int, int], ...]
     accepted_candidate_occurrences: tuple[tuple[frozenset[str], int], ...]
+    self_corroborated_groups: frozenset[frozenset[str]] = frozenset()
+    feature_influence_candidate_count: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class _ScaleAwareInputs:
+    """Aligned immutable inputs used by scale-aware parent construction."""
+
+    records: tuple[DetectionComponentRecord, ...]
+    labels: npt.NDArray[np.int64]
+    planes: tuple[ScaleDetectionPlane, ...]
+    valid: npt.NDArray[np.bool_]
+    attachments: _HierarchyAttachments
+    parents_by_id: Mapping[str, tuple[str, ...]]
+    feature_index: Mapping[str, tuple[int, int]]
+
+
+@dataclass(frozen=True, slots=True)
+class _FeatureInfluenceIndex:
+    """Precomputed identity maps for persistent influence candidates."""
+
+    component_id_by_label: Mapping[int, str]
+    children_by_parent: Mapping[str, frozenset[str]]
+    plane_by_scale: Mapping[int, ScaleDetectionPlane]
+    resolved_component_ids: frozenset[str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -926,26 +951,216 @@ def _components_for_feature_group(
     )
 
 
-def _scale_aware_parent_evidence(
-    planes: tuple[ScaleDetectionPlane, ...],
+def _feature_exact_component_ids(
+    plane: ScaleDetectionPlane,
+    feature_label: int,
+    labels: npt.NDArray[np.int64],
+    component_id_by_label: Mapping[int, str],
+) -> frozenset[str]:
+    """Return direct owners intersecting one exact scale feature."""
+    return frozenset(
+        component_id_by_label[int(label_value)]
+        for label_value in np.unique(
+            labels[plane.component_labels == feature_label]
+        )
+        if int(label_value) > 0
+    )
+
+
+def _feature_influence_component_ids(
+    plane: ScaleDetectionPlane,
+    envelope: _FeatureEnvelope,
+    labels: npt.NDArray[np.int64],
     valid: npt.NDArray[np.bool_],
-    attachments: _HierarchyAttachments,
+    component_id_by_label: Mapping[int, str],
+) -> frozenset[str]:
+    """Return owners within the symmetric reviewed B3 influence support."""
+    halos = residual_atrous_scale_halos_pixels()
+    # The caller supplies only envelopes returned by _feature_envelopes,
+    # which omits scales without a reviewed B3 footprint.
+    radius = halos[plane.scale_order - 1]
+    y0, y1, x0, x1 = envelope.bounds_yx
+    expanded_y0 = max(0, y0 - radius)
+    expanded_y1 = min(labels.shape[0], y1 + radius)
+    expanded_x0 = max(0, x0 - radius)
+    expanded_x1 = min(labels.shape[1], x1 + radius)
+    seed = np.zeros(
+        (expanded_y1 - expanded_y0, expanded_x1 - expanded_x0),
+        dtype=np.bool_,
+    )
+    seed[
+        y0 - expanded_y0 : y1 - expanded_y0,
+        x0 - expanded_x0 : x1 - expanded_x0,
+    ] = envelope.support
+    influence = np.asarray(
+        binary_dilation(
+            seed,
+            structure=np.ones((3, 3), dtype=np.bool_),
+            iterations=radius,
+            mask=valid[
+                expanded_y0:expanded_y1,
+                expanded_x0:expanded_x1,
+            ],
+        ),
+        dtype=np.bool_,
+    )
+    influenced_labels = np.unique(
+        labels[
+            expanded_y0:expanded_y1,
+            expanded_x0:expanded_x1,
+        ][influence]
+    )
+    return frozenset(
+        component_id_by_label[int(label_value)]
+        for label_value in influenced_labels
+        if int(label_value) > 0
+    )
+
+
+def _feature_influence_index(
+    inputs: _ScaleAwareInputs,
+) -> _FeatureInfluenceIndex:
+    """Build the bounded lookup maps used by every feature candidate."""
+    mutable_children: dict[str, set[str]] = {}
+    for child_id, parent_ids in inputs.parents_by_id.items():
+        for parent_id in parent_ids:
+            mutable_children.setdefault(parent_id, set()).add(child_id)
+    return _FeatureInfluenceIndex(
+        component_id_by_label={
+            record.label_value: record.component_id
+            for record in inputs.records
+        },
+        children_by_parent={
+            parent_id: frozenset(child_ids)
+            for parent_id, child_ids in mutable_children.items()
+        },
+        plane_by_scale={plane.scale_order: plane for plane in inputs.planes},
+        resolved_component_ids=frozenset(
+            set(inputs.attachments.lineages_by_component)
+            - set(inputs.attachments.ambiguous_component_ids)
+        ),
+    )
+
+
+def _feature_influence_candidate(
+    inputs: _ScaleAwareInputs,
+    index: _FeatureInfluenceIndex,
+    plane: ScaleDetectionPlane,
+    feature_label: int,
+    envelope: _FeatureEnvelope,
+) -> frozenset[str] | None:
+    """Return one exact persistent-anchor plus displaced-owner pair."""
+    child_ids = index.children_by_parent.get(envelope.feature_id, frozenset())
+    if len(child_ids) != 1:
+        return None
+    child_id = next(iter(child_ids))
+    if inputs.parents_by_id.get(child_id) != (envelope.feature_id,):
+        return None
+    exact_ids = _feature_exact_component_ids(
+        plane,
+        feature_label,
+        inputs.labels,
+        index.component_id_by_label,
+    )
+    child_scale, child_label = inputs.feature_index[child_id]
+    child_exact_ids = _feature_exact_component_ids(
+        index.plane_by_scale[child_scale],
+        child_label,
+        inputs.labels,
+        index.component_id_by_label,
+    )
+    if len(exact_ids) != 1 or child_exact_ids != exact_ids:
+        return None
+    influenced_ids = _feature_influence_component_ids(
+        plane,
+        envelope,
+        inputs.labels,
+        inputs.valid,
+        index.component_id_by_label,
+    )
+    if len(influenced_ids) != _MINIMUM_SOURCE_MEMBERS:
+        return None
+    displaced_ids = influenced_ids - exact_ids
+    if len(displaced_ids) != 1 or not displaced_ids.isdisjoint(
+        index.resolved_component_ids
+    ):
+        return None
+    return influenced_ids
+
+
+def _persistent_feature_influence_groups(
+    inputs: _ScaleAwareInputs,
+) -> dict[int, tuple[frozenset[str], ...]]:
+    """Recover one displaced owner from a uniquely persistent feature.
+
+    A feature and its sole mutually unique child must intersect the same one
+    immutable direct owner.  At the parent scale, their symmetric fixed B3
+    influence may contain exactly one additional owner, and that displaced
+    owner must not already have an unambiguous lineage.  Component-level
+    mutual uniqueness rejects chains and crowded alternatives.
+    """
+    index = _feature_influence_index(inputs)
+    output: dict[int, tuple[frozenset[str], ...]] = {}
+    for plane in inputs.planes:
+        proposals = {
+            group
+            for feature_label, envelope in enumerate(
+                _feature_envelopes(plane, inputs.valid), start=1
+            )
+            if (
+                group := _feature_influence_candidate(
+                    inputs,
+                    index,
+                    plane,
+                    feature_label,
+                    envelope,
+                )
+            )
+            is not None
+        }
+        groups_by_component: dict[str, set[frozenset[str]]] = {}
+        for group in proposals:
+            for component_id in group:
+                groups_by_component.setdefault(component_id, set()).add(group)
+        output[plane.scale_order] = tuple(
+            sorted(
+                (
+                    group
+                    for group in proposals
+                    if all(
+                        groups_by_component[component_id] == {group}
+                        for component_id in group
+                    )
+                ),
+                key=lambda item: tuple(sorted(item)),
+            )
+        )
+    return output
+
+
+def _scale_aware_parent_evidence(
+    inputs: _ScaleAwareInputs,
 ) -> _ScaleAwareParentEvidence:
     """Construct persistent cycle or isolated-sibling parent evidence."""
+    influence_candidates_by_scale = _persistent_feature_influence_groups(
+        inputs,
+    )
     candidates_by_scale: dict[int, tuple[frozenset[str], ...]] = {}
-    for plane in planes:
+    for plane in inputs.planes:
         exact_groups = {
             component_ids
             for detection in plane.detections
             if len(
                 component_ids := _components_for_feature_group(
                     frozenset((detection.detection_id,)),
-                    attachments,
+                    inputs.attachments,
                 )
             )
             >= _MINIMUM_SOURCE_MEMBERS
         }
-        adjacency = _envelope_adjacency(_feature_envelopes(plane, valid))
+        adjacency = _envelope_adjacency(
+            _feature_envelopes(plane, inputs.valid)
+        )
         envelope_groups = _isolated_sibling_feature_pairs(adjacency)
         if len(plane.detections) >= _MINIMUM_CYCLE_DEGREE + 1:
             envelope_groups += _cycle_supported_feature_groups(adjacency)
@@ -955,14 +1170,16 @@ def _scale_aware_parent_evidence(
             if len(
                 component_ids := _components_for_feature_group(
                     feature_group,
-                    attachments,
+                    inputs.attachments,
                 )
             )
             >= _MINIMUM_SOURCE_MEMBERS
         }
         candidates_by_scale[plane.scale_order] = tuple(
             sorted(
-                exact_groups | envelope_component_groups,
+                exact_groups
+                | envelope_component_groups
+                | set(influence_candidates_by_scale[plane.scale_order]),
                 key=lambda item: tuple(sorted(item)),
             )
         )
@@ -975,6 +1192,12 @@ def _scale_aware_parent_evidence(
         persistent_groups.update(
             candidates & candidate_keys_by_scale.get(scale_order + 1, set())
         )
+    influence_groups = frozenset(
+        group
+        for candidates in influence_candidates_by_scale.values()
+        for group in candidates
+    )
+    persistent_groups.update(influence_groups)
     candidate_count = sum(len(items) for items in candidates_by_scale.values())
     candidate_occurrences = Counter(
         group
@@ -1009,10 +1232,14 @@ def _scale_aware_parent_evidence(
         rejected_ambiguity_count=candidate_count - accepted_candidates,
         per_scale_candidate_counts=tuple(
             (plane.scale_order, len(candidates_by_scale[plane.scale_order]))
-            for plane in planes
+            for plane in inputs.planes
         ),
         accepted_candidate_occurrences=tuple(
             (group, candidate_occurrences[group]) for group in accepted_groups
+        ),
+        self_corroborated_groups=frozenset(accepted_groups) & influence_groups,
+        feature_influence_candidate_count=sum(
+            len(groups) for groups in influence_candidates_by_scale.values()
         ),
     )
 
@@ -1300,7 +1527,8 @@ def _filter_scale_aware_parents_by_connected_support(
     retained = tuple(
         group
         for group in evidence.groups
-        if any(group.issubset(parent) for parent in connected_support.groups)
+        if group in evidence.self_corroborated_groups
+        or any(group.issubset(parent) for parent in connected_support.groups)
     )
     discarded = set(evidence.groups) - set(retained)
     discarded_occurrences = sum(
@@ -1319,6 +1547,11 @@ def _filter_scale_aware_parents_by_connected_support(
             (group, count)
             for group, count in evidence.accepted_candidate_occurrences
             if group in retained
+        ),
+        self_corroborated_groups=evidence.self_corroborated_groups
+        & frozenset(retained),
+        feature_influence_candidate_count=(
+            evidence.feature_influence_candidate_count
         ),
     )
 
@@ -1392,6 +1625,11 @@ def _apply_scale_aware_parent_groups(
             (group, count)
             for group, count in evidence.accepted_candidate_occurrences
             if group in accepted
+        ),
+        self_corroborated_groups=evidence.self_corroborated_groups
+        & frozenset(accepted),
+        feature_influence_candidate_count=(
+            evidence.feature_influence_candidate_count
         ),
     )
     grouped_ids = set().union(*accepted) if accepted else set()
@@ -1544,6 +1782,12 @@ def _hierarchy_diagnostics(  # noqa: PLR0913, PLR0917
         terminal_cycle_unseeded_persistence_rejected_count=(
             terminal_cycles.unseeded_persistence_rejected_count
         ),
+        persistent_feature_influence_candidate_count=(
+            scale_aware_parents.feature_influence_candidate_count
+        ),
+        persistent_feature_influence_parent_count=len(
+            scale_aware_parents.self_corroborated_groups
+        ),
     )
 
 
@@ -1565,6 +1809,12 @@ def associate_components_by_multiscale_hierarchy(
     separate, connected significant multiscale support may corroborate a
     persistent mutually unique pair or non-terminal cycle, but cannot create
     source membership by itself.
+    A mutually unique adjacent-scale feature may also recover exactly one
+    unresolved displaced owner when the parent and child share one direct
+    anchor and two applications of the same fixed B3 footprint contain only
+    that anchor and the displaced owner. This persistent feature evidence is
+    self-corroborating, but it remains subject to whole-group reconciliation
+    and cannot split or partially overlap an established source.
     At the last retained scale, a cycle may construct a parent only when every
     constituent feature has an exact child at the preceding scale or one
     mutually unique displaced child corroborated by overlapping fixed B3
@@ -1608,9 +1858,15 @@ def associate_components_by_multiscale_hierarchy(
         feature_index,
     )
     scale_aware_parents = _scale_aware_parent_evidence(
-        planes,
-        valid,
-        attachments,
+        _ScaleAwareInputs(
+            records=records,
+            labels=labels,
+            planes=planes,
+            valid=valid,
+            attachments=attachments,
+            parents_by_id=parents_by_id,
+            feature_index=feature_index,
+        )
     )
     connected_support = _connected_support_evidence(
         records,

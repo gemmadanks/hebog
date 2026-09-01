@@ -731,6 +731,58 @@ next bounded candidate must correct mask-origin semantics and source topology
 without changing thresholds, margins, comparators, or closed evidence, then
 pass the same smoke with zero confirmed failures.
 
+## Direct-origin and sibling-pair 128-case science smoke
+
+**Terminal date:** 2026-09-01
+
+**Evidence role:** viewed-development diagnostic smoke. The authoritative
+atomic record is
+`benchmark-results/phase-5/prospective-science-smoke-mask-origin-sibling-pair.json`,
+SHA-256
+`778e43a96f0fad15c7ae28a562bcd18ca4b6e000df672221657e0803148addfc`.
+
+**Scientific question:** does beginning publication cleanup from immutable
+direct labels and adding a conservative persistent sibling parent close the
+remaining mask-precision and duplicate/split failures without regressing the
+incumbent?
+
+The same deterministic 64-compact/64-Continuum population was evaluated.
+Compact products remained byte-identical to the incumbent.
+
+| Decision class | Count |
+| --- | ---: |
+| Pass | 327 |
+| Underpowered diagnostic | 35 |
+| Confirmed fail | 7 |
+| Failed incumbent-retention comparisons | 0 |
+
+The decision vector is unchanged from the original-pixel publication-S/N
+smoke. Subsequent byte and dispatch review separated two causes. First, the
+direct-origin publication builder was not installed in the globals used by the
+nested final writer, so every one of the 64 Continuum masks remained
+byte-identical to the predecessor. Second, the sibling association source did
+activate—ten association sidecars changed—but the rule required two attached
+feature lineages and one connected significant-support component. Each of the
+four governed failing pairs instead has only one attached or unambiguous
+direct owner and no thresholded support bridge.
+
+Read-only mechanism review on the three affected realizations found a common
+bounded signal without selecting a new number from the result: one scale
+feature persists uniquely to an adjacent scale around a single direct anchor,
+and two applications of the existing scale-specific B3 footprint contain
+exactly one additional unresolved owner. The proposed correction requires
+that exact two-owner, mutually unique topology and whole-singleton
+reconciliation; one-scale geometry, invalid gaps, resolved alternatives,
+crowding, chains, and partial existing groups remain rejected. A retained-data
+micro lane confirms that this rule groups all four governed edge, diffuse, and
+bright-artifact pairs.
+
+**Terminal verdict:** fail. The result is preserved and cannot be rescored.
+The full replay remains blocked until the separately activated direct-origin
+writer and persistent-feature influence correction publish a fresh smoke with
+zero confirmed failures. No threshold, margin, comparator, measurement, or
+photometric rule is changed.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

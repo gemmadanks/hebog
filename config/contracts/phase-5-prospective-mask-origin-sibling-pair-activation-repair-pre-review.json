@@ -1,0 +1,44 @@
+{
+  "authorization": {
+    "activation_repair_and_replacement_smoke_authorized": true,
+    "full_cumulative_replay_and_evaluation_authorized_only_after_zero_failure_smoke": true,
+    "process_bug_retries_authorized_without_scientific_identity_change": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_evidence": {
+    "candidate_configuration_sha256": "c7a77e59918135997622a2514931e18bddc332b663c2843413193becd9054be9",
+    "candidate_product_set_canonical_sha256": "021d24ee6a75af6e96f703c4425d54ffc9268902e5ee20301eac75fa6c82ebff",
+    "candidate_revision": "52d4fed7e13aa4a79379c99155ce5f35bb60521c",
+    "candidate_source_tree_sha256": "5f42ed628565eafb9daa7e8639272df23434b049686f326af1b07521108ed6d1",
+    "evaluator_sha256": "506e521f57917abd37697640881de70e53cd97442f265df47e7dff52c6b22409",
+    "materializer_sha256": "72f54aa3ad93c06879869b95d45d04037cf683a82bf5c14b1fd803250b684f45",
+    "terminal_smoke_path": "benchmark-results/phase-5/prospective-science-smoke-mask-origin-sibling-pair.json",
+    "terminal_smoke_sha256": "778e43a96f0fad15c7ae28a562bcd18ca4b6e000df672221657e0803148addfc"
+  },
+  "causal_finding": {
+    "activation_defect": "The nested publication wrapper resolves build_publication_snr_repaired_continuum_products from its own _base function globals. The candidate wrapper instead replaced build_public_finder_source_reconstruction_continuum_products in the current-composition mapping, which that nested _base never reads.",
+    "evidence": "All 64 publication masks and the complete decision vector are byte-identical to the predecessor smoke, while ten source-association sidecars changed. The topology source therefore activated, but the mask-origin builder did not.",
+    "repair_boundary": "Add one wrapper-only overlay which replaces the exact nested publication-builder global before composition, prove the final writer resolves the reviewed builder, and retain every predecessor byte and scientific rule unchanged."
+  },
+  "decision_id": "phase-5-prospective-mask-origin-sibling-pair-activation-repair-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "fixed_scientific_boundary": {
+    "candidate_scientific_source_unchanged": true,
+    "catalogue_measurement_photometry_unchanged": true,
+    "comparators_gates_thresholds_and_margins_unchanged": true,
+    "predecessor_products_and_terminal_smoke_write_once": true
+  },
+  "required_validation": [
+    "red actual-writer-global test reproduces the inactive mask builder",
+    "the repaired composition resolves the reviewed mask-origin builder from the final product writer",
+    "the historical materializer evaluator reviews and terminal product remain byte-exact",
+    "both complete 128-input no-write preflights pass",
+    "the current products publish in one fresh scratch namespace",
+    "the replacement smoke publishes once in a fresh output namespace",
+    "the cumulative replay remains blocked unless confirmed failures are zero"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-activation-repair-results"
+}

@@ -1,0 +1,94 @@
+{
+  "authorization": {
+    "fixture_first_implementation_and_replacement_smoke_authorized": true,
+    "full_cumulative_replay_and_evaluation_authorized_only_after_zero_failure_smoke": true,
+    "process_bug_retries_authorized_without_scientific_identity_change": true,
+    "release_authorized": false,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_evidence": {
+    "failed_candidate_revision": "52d4fed7e13aa4a79379c99155ce5f35bb60521c",
+    "failed_candidate_source_tree_sha256": "5f42ed628565eafb9daa7e8639272df23434b049686f326af1b07521108ed6d1",
+    "failed_product_set_canonical_sha256": "021d24ee6a75af6e96f703c4425d54ffc9268902e5ee20301eac75fa6c82ebff",
+    "terminal_smoke_path": "benchmark-results/phase-5/prospective-science-smoke-mask-origin-sibling-pair.json",
+    "terminal_smoke_sha256": "778e43a96f0fad15c7ae28a562bcd18ca4b6e000df672221657e0803148addfc"
+  },
+  "candidate_rule": {
+    "admission": [
+      "one parent scale feature has exactly one adjacent-scale child and that child has exactly that parent",
+      "the parent and child exact supports intersect the same single immutable direct component",
+      "the parent feature envelope and direct-component support receive the existing scale-specific B3 influence footprint symmetrically",
+      "the resulting influence contains exactly two immutable direct components",
+      "the second component is unattached or ambiguous rather than independently resolved",
+      "every component participates in only one proposed influence pair at that scale",
+      "the complete pair remains two current singleton source groups during whole-group reconciliation"
+    ],
+    "effect": "The persistent feature corroborates exactly one direct-component pair. It does not change detection ownership, masks, measurement support, source photometry, thresholds, margins, comparators, or closed evidence.",
+    "policy_id": "mutually-unique-persistent-feature-symmetric-b3-influence-pair-v1",
+    "rejection": [
+      "one-scale geometry",
+      "branched or multiply parented feature persistence",
+      "parent-child anchor identity disagreement",
+      "zero or multiple exact anchor components",
+      "an independently resolved displaced component",
+      "influence containing fewer or more than two direct components",
+      "component chains, crossings, crowded alternatives, or overlapping proposed pairs",
+      "an invalid-pixel barrier",
+      "partial overlap with an existing multi-component source group"
+    ]
+  },
+  "causal_review": {
+    "activation_defect_is_separate": "The publication-mask candidate was not installed at the final nested writer seam. The separately governed activation repair corrects that process defect without changing scientific policy.",
+    "failed_sibling_assumption": "The reviewed sibling rule required two attached scale-feature lineages plus connected significant support. In the affected images one immutable direct component is unattached or ambiguous and the thresholded significant-support bridge is absent, so the component cannot enter feature-to-feature membership even though one multiscale feature persists across adjacent scales.",
+    "observed_topology": [
+      {
+        "dataset_identifier": "phase5-external-post-failure-continuum-1-1024",
+        "finding": "one persistent feature remains anchored to one direct component while its symmetric reviewed B3 influence contains exactly one unattached edge component",
+        "seed": 2026860341,
+        "truth_group": "extended-edge-0001"
+      },
+      {
+        "dataset_identifier": "phase5-external-post-failure-continuum-3-1024",
+        "finding": "one persistent feature remains anchored to one ambiguous direct component while its symmetric reviewed B3 influence contains exactly one unattached diffuse component",
+        "seed": 2026862118,
+        "truth_group": "extended-diffuse-0001"
+      },
+      {
+        "dataset_identifier": "phase5-external-post-failure-continuum-3-1024",
+        "finding": "persistent anchored features independently recover the same unique two-component artifact pair",
+        "seed": 2026862301,
+        "truth_group": "artifact-bright-sidelobes-0001"
+      },
+      {
+        "dataset_identifier": "phase5-external-post-failure-continuum-3-1024",
+        "finding": "one terminal persistent feature remains anchored to one direct component while its symmetric reviewed B3 influence contains exactly one unattached diffuse component",
+        "seed": 2026862301,
+        "truth_group": "extended-diffuse-0001"
+      }
+    ],
+    "scope": "The four affected pairs explain the governed image-edge, morphology-artifact, scale-one, and morphology-diffuse topology failures. The remaining overall mask-precision failure is addressed only by the separately governed original-pixel publication-mask activation repair."
+  },
+  "decision_id": "phase-5-prospective-persistent-feature-influence-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "rejected_alternatives": [
+    "changing scientific thresholds, practical margins, gates, or comparators",
+    "treating direct-component proximity alone as source membership",
+    "treating thresholded connected support alone as source membership",
+    "adding a truth-selected distance or beam-size parameter",
+    "rerunning a complete cumulative population before the bounded smoke passes"
+  ],
+  "required_validation": [
+    "red analytic fixture for one persistent anchor and one displaced owner",
+    "interior and clipped image-edge positive fixtures",
+    "one-scale, independently resolved, invalid-gap, crowded-chain, and overlapping-group negative fixtures",
+    "whole existing source reconstruction and data-model suites",
+    "Serial and existing-Dask label, task-order, and retry invariance",
+    "actual final writer activation test for the separate publication-mask repair",
+    "complete no-write preflight for all 128 current and incumbent smoke products",
+    "one fresh write-once 128-case smoke before any complete replay",
+    "zero confirmed smoke failures before a complete cumulative replay"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-persistent-feature-influence-results"
+}

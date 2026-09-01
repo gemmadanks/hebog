@@ -13,7 +13,9 @@ from hebog.algorithms.multiscale_association import (
     build_scale_detection_plane,
 )
 from hebog.algorithms.source_association import (
+    _apply_scale_aware_parent_groups,  # pyright: ignore[reportPrivateUsage]
     _isolated_sibling_feature_pairs,  # pyright: ignore[reportPrivateUsage]
+    _ScaleAwareParentEvidence,  # pyright: ignore[reportPrivateUsage]
     associate_components_by_multiscale_hierarchy,
     build_detection_component_records,
 )
@@ -571,6 +573,244 @@ def test_persistent_connected_sibling_envelopes_construct_one_parent() -> None:
     assert diagnostics.scale_aware_parent_candidate_count == 2
     assert diagnostics.persistent_parent_count == 1
     assert diagnostics.connected_support_candidate_count == 1
+
+
+@pytest.mark.parametrize(
+    ("pixels", "shape"),
+    (
+        (((10, 5), (10, 17)), (23, 23)),
+        (((10, 0), (10, 12)), (23, 23)),
+    ),
+    ids=("interior", "clipped-image-edge"),
+)
+def test_persistent_feature_influence_recovers_one_displaced_component(
+    pixels: tuple[tuple[int, int], tuple[int, int]],
+    shape: tuple[int, int],
+) -> None:
+    """A persistent feature may recover one B3-bounded displaced owner."""
+    labels, records = _components(pixels, shape=shape)
+    planes = tuple(
+        _plane(
+            scale_order,
+            ((f"scale-influence-{scale_order}", (pixels[0],)),),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=labels > 0,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [2]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.persistent_feature_influence_candidate_count == 1
+    assert diagnostics.persistent_feature_influence_parent_count == 1
+
+
+def test_feature_influence_requires_an_unresolved_displaced_owner() -> None:
+    """Two independently resolved components may not be merged by reach."""
+    pixels = ((10, 5), (10, 17))
+    labels, records = _components(pixels, shape=(23, 23))
+    planes = tuple(
+        _plane(
+            scale_order,
+            tuple(
+                (f"scale-resolved-{scale_order}-{index}", (pixel,))
+                for index, pixel in enumerate(pixels, start=1)
+            ),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=labels > 0,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.persistent_feature_influence_candidate_count == 0
+    assert diagnostics.persistent_feature_influence_parent_count == 0
+
+
+def test_feature_influence_requires_adjacent_scale_persistence() -> None:
+    """A single coarse feature cannot recover a displaced component."""
+    pixels = ((10, 5), (10, 17))
+    labels, records = _components(pixels, shape=(23, 23))
+    coarse = _plane(
+        3,
+        (("scale-one-look-coarse", (pixels[0],)),),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (coarse,),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=labels > 0,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.persistent_feature_influence_candidate_count == 0
+
+
+def test_feature_influence_rejects_a_multiply_parented_child() -> None:
+    """A child shared by two parent features cannot corroborate either."""
+    pixels = ((10, 5), (10, 17))
+    labels, records = _components(pixels, shape=(23, 23))
+    child = _plane(
+        2,
+        (("scale-branched-child", ((10, 5), (10, 6))),),
+        shape=labels.shape,
+    )
+    parents = _plane(
+        3,
+        (
+            ("scale-branched-parent-anchor", ((10, 5),)),
+            ("scale-branched-parent-empty", ((10, 6),)),
+        ),
+        shape=labels.shape,
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (child, parents),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=labels > 0,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.persistent_feature_influence_candidate_count == 0
+
+
+def test_feature_influence_cannot_cross_an_invalid_gap() -> None:
+    """A B3 influence relationship cannot propagate through invalid data."""
+    pixels = ((10, 5), (10, 17))
+    labels, records = _components(pixels, shape=(23, 23))
+    planes = tuple(
+        _plane(
+            scale_order,
+            ((f"scale-invalid-influence-{scale_order}", (pixels[0],)),),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+    valid = np.ones(labels.shape, dtype=np.bool_)
+    valid[:, 11] = False
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        valid,
+        significant_multiscale_support=labels > 0,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.persistent_feature_influence_candidate_count == 0
+
+
+def test_feature_influence_rejects_a_crowded_component_chain() -> None:
+    """A three-owner influence neighbourhood cannot manufacture a pair."""
+    pixels = ((10, 5), (10, 17), (10, 29))
+    labels, records = _components(pixels, shape=(23, 35))
+    planes = tuple(
+        _plane(
+            scale_order,
+            (
+                (f"scale-crowded-{scale_order}-left", (pixels[0],)),
+                (f"scale-crowded-{scale_order}-right", (pixels[2],)),
+            ),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=labels > 0,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [
+        1,
+        1,
+        1,
+    ]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.persistent_feature_influence_candidate_count == 0
+
+
+def test_feature_influence_cannot_partially_overlap_an_existing_source() -> (
+    None
+):
+    """A recovered pair cannot split or extend one established source."""
+    established = frozenset(("component-a", "component-c"))
+    displaced_pair = frozenset(("component-a", "component-b"))
+    evidence = _ScaleAwareParentEvidence(
+        groups=(displaced_pair,),
+        candidate_count=1,
+        rejected_ambiguity_count=0,
+        per_scale_candidate_counts=((3, 1),),
+        accepted_candidate_occurrences=((displaced_pair, 1),),
+        self_corroborated_groups=frozenset((displaced_pair,)),
+        feature_influence_candidate_count=1,
+    )
+
+    groups, applied = _apply_scale_aware_parent_groups(
+        (established, frozenset(("component-b",))),
+        evidence,
+    )
+
+    assert groups == (established, frozenset(("component-b",)))
+    assert applied.groups == ()
+    assert applied.self_corroborated_groups == frozenset()
+    assert applied.rejected_ambiguity_count == 1
+
+
+def test_feature_influence_diagnostics_reject_impossible_counts() -> None:
+    """Published influence parents cannot exceed observed candidates."""
+    labels, records = _components(((5, 5),))
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (_plane(1, (("scale-diagnostic", ((5, 5),)),)),),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+
+    with pytest.raises(
+        ValueError,
+        match="persistent feature influence parents exceed candidates",
+    ):
+        replace(
+            diagnostics,
+            persistent_feature_influence_candidate_count=0,
+            persistent_feature_influence_parent_count=1,
+        )
 
 
 def test_persistent_sibling_geometry_requires_one_support_component() -> None:

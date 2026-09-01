@@ -13880,3 +13880,48 @@ failure.
 checkout, repeat both complete no-write preflights, and run the same 128-case
 smoke in a fresh write-once namespace. Do not open a cumulative replay until
 the smoke has zero confirmed failures.
+
+## 2026-09-01 — Diagnose inactive direct-origin writer and displaced pairs
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Candidate `52d4fed...` sealed product set `021d24ee...`; atomic smoke
+  `778e43a...` is terminal fail with 327 pass, 35 diagnostic-underpowered,
+  seven confirmed failures, zero incumbent-retention failures, and byte-exact
+  compact products. The full replay remains blocked.
+- All 64 candidate publication masks and the complete decision vector are
+  byte-identical to the predecessor, while ten association sidecars changed.
+  The nested final writer resolved its builder from a separate `runpy` global,
+  so the direct-label origin overlay was inactive. A process-only activation
+  wrapper and an actual-final-writer regression test now bind that seam without
+  changing any scientific policy or historical byte.
+- Retained-data review of the three affected realizations disproved the
+  original sibling assumption. Each of the four failing edge, diffuse, or
+  bright-artifact pairs has one persistent feature anchored to one direct
+  owner, one unresolved displaced owner within two applications of the
+  already reviewed scale-specific B3 footprint, and no connected thresholded
+  support bridge.
+- Pre-review `a22f813c...` freezes the prospective persistent-influence rule:
+  unique adjacent-scale parent/child, identical one-owner exact anchor, exactly
+  two influenced owners, unresolved displaced owner, component-level mutual
+  uniqueness, and whole-singleton reconciliation. It changes no thresholds,
+  margins, comparators, measurements, photometry, or closed evidence.
+- Test-first validation covers interior and clipped-edge recovery plus
+  one-scale, independently resolved, invalid-gap, crowded-chain, partial-group,
+  label/order/retry, Serial, and existing-Dask rejection or invariance. The
+  focused scientific/executor/governance suite passes 86 tests and focused
+  Pyright passes. A read-only three-realization micro lane recovers all four
+  governed pairs together. Full branch-aware coverage passes 2,341 tests with
+  four expected xfails at 94.55%; `just check` passes 2,177 tests with four
+  expected xfails; all 27 equivalence tests pass; and the strict docs build and
+  complete pre-commit suite pass.
+- A governance test also exposed and fixed a process defect before execution:
+  the historical candidate decision hashed source files from the mutable
+  working tree. It now verifies the closed bytes from exact revision
+  `52d4fed...`, so future prospective source changes cannot invalidate the
+  historical record.
+
+**Immediate next step:** freeze the exact candidate in an immutable checkout,
+run both complete 128-input no-write preflights, and publish one fresh smoke.
+Run the complete cumulative replay only if that smoke has zero confirmed
+failures.

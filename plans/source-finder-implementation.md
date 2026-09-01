@@ -1092,21 +1092,38 @@ from partial or viewed evidence.
      narrowly misses its retained margin. The remaining systematic defect is
      that refinement starts from expanded measurement labels, allowing dense
      recovered support to bypass the direct original-pixel S/N floor.
-   - [ ] If that replacement smoke leaves confirmed duplicate or split
-     failures, review and correct source topology separately on analytic,
-     negative-overmerge, executor-invariant, and the same smoke-scale evidence.
-     Do not infer an association from viewed truth, relax existing numeric
-     constraints, or run the full replay until every binding smoke comparison
-     is pass or diagnostic-underpowered without a confirmed failure.
-     In parallel, correct the mask origin domain: begin publication refinement
-     from immutable direct labels and admit multiscale-only pixels solely
-     through the unchanged original-pixel island-S/N rule. For sibling pairs,
-     require the same component pair to have mutually unique overlapping B3
-     envelopes at adjacent scales, lie in one connected significant-support
-     component, and reconcile only whole current singleton groups. Add nearby-
-     pair, chain, bridge, crossing, missing-persistence, invalid-support,
-     order/retry, Serial, and existing-Dask controls. Do not use viewed truth
-     to select a numeric threshold.
+   - [ ] Close the direct-origin and displaced-component smoke failures before
+     any full replay. Candidate `52d4fed...` implemented immutable-direct-label
+     publication origin and an adjacent-scale sibling-pair rule, but its
+     128-case smoke `778e43a...` remained terminal fail: 327 comparisons pass,
+     35 are diagnostic-underpowered, and seven are confirmed failures. The
+     publication builder was inactive at the nested final-writer seam, while
+     the sibling rule was active but changed no decision: all four affected
+     two-component truth groups have only one attached or unambiguous owner and
+     no thresholded significant-support bridge. Treat these as separate
+     process and scientific causes; do not tune a threshold or rescore that
+     closed smoke.
+   - [x] Repair final-writer activation and reproduce the exact four topology
+     failures in the retained-data micro lane. The activation overlay changes
+     only frozen `runpy` dispatch and proves that the actual nested product
+     writer resolves the direct-origin builder. The topology review identifies
+     a bounded replacement: one mutually unique adjacent-scale parent/child
+     feature must share exactly one direct anchor; two applications of the
+     existing scale-specific B3 footprint must contain exactly that anchor and
+     one unresolved displaced owner; each component may enter only one pair;
+     and whole-group reconciliation must retain both current singletons. No new
+     numeric parameter, threshold, margin, comparator, or gate is introduced.
+     Interior, clipped-edge, one-scale, independently resolved, invalid-gap,
+     crowded-chain, partial-group, label/order/retry, Serial, and existing-Dask
+     controls pass. The three-realization retained-data micro lane recovers all
+     four governed edge, diffuse, and bright-artifact pairs together.
+   - [ ] Freeze the exact activation-plus-persistent-influence candidate, pass
+     both complete 128-input no-write preflights, and publish one fresh atomic
+     smoke. Require zero confirmed failures and compact/incumbent retention
+     before opening the cumulative replay. If a process defect occurs, repair
+     it test-first without changing the scientific identity. If completed
+     science fails, preserve it as terminal evidence and return to prospective
+     review rather than tuning or rescoring.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift

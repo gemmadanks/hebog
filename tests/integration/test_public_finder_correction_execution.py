@@ -574,6 +574,77 @@ def test_persistent_sibling_pair_is_serial_dask_order_invariant() -> None:
 
 
 @pytest.mark.integration
+def test_persistent_feature_influence_is_serial_dask_invariant() -> None:
+    """A displaced direct owner ignores labels, order, tasks, and retries."""
+    pixels = ((10, 5), (10, 17))
+    labels = np.zeros((23, 23), dtype=np.int32)
+    permuted = np.zeros_like(labels)
+    for value, other, pixel in zip(
+        (9, 2),
+        (31, 7),
+        pixels,
+        strict=True,
+    ):
+        labels[pixel] = value
+        permuted[pixel] = other
+    preceding = _hierarchy_cycle_plane(
+        labels.shape,
+        (pixels[0],),
+        scale_order=2,
+    )
+    parent = _hierarchy_cycle_plane(
+        labels.shape,
+        (pixels[0],),
+        scale_order=3,
+    )
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    permuted_records = build_detection_component_records(
+        permuted,
+        np.asarray(permuted > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    batches: tuple[HierarchyBatch, ...] = (
+        (labels, records, (preceding, parent), labels > 0),
+        (
+            permuted,
+            tuple(reversed(permuted_records)),
+            (parent, preceding),
+            permuted > 0,
+        ),
+    )
+    expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
+
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(
+            _reconstruct_hierarchy,
+            (*tuple(reversed(batches)), batches[0]),
+        )
+
+    expected_view = _identity_view(expected[0])
+    assert _identity_view(expected[1]) == expected_view
+    assert [_identity_view(item) for item in actual] == [
+        expected_view,
+        expected_view,
+        expected_view,
+    ]
+    diagnostics = expected[0].hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.catalogue_source_count == 1
+    assert diagnostics.persistent_feature_influence_candidate_count == 1
+    assert diagnostics.persistent_feature_influence_parent_count == 1
+
+
+@pytest.mark.integration
 def test_displaced_terminal_persistence_is_serial_dask_invariant() -> None:
     """Bounded displaced children ignore labels, task order, and retries."""
     terminal_pixels = ((10, 10), (10, 30), (30, 10), (30, 30))

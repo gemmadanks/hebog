@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Materialize the activated mask and persistent-influence candidate."""
+
+from __future__ import annotations
+
+import runpy
+import subprocess as _subprocess
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any, cast
+
+from hebog.validation.external_runners import canonical_sha256, file_sha256
+
+_BASE_MATERIALIZER = (
+    "scripts/validation/"
+    "materialize_phase5_prospective_mask_origin_sibling_pair_activation_"
+    "repair_products.py"
+)
+_PRE_REVIEW = (
+    "config/contracts/"
+    "phase-5-prospective-persistent-feature-influence-pre-review.json"
+)
+_IMPLEMENTATION_DECISION = (
+    "config/contracts/"
+    "phase-5-prospective-persistent-feature-influence-implementation-"
+    "decision.json"
+)
+
+subprocess = _subprocess
+
+
+def _base(root: Path) -> dict[str, Any]:
+    """Load the exact activated predecessor materializer."""
+    return runpy.run_path(str(root / _BASE_MATERIALIZER))
+
+
+def _current_configuration(root: Path) -> str:
+    """Bind the topology correction over the activated predecessor."""
+    base_configuration = cast(str, _base(root)["_current_configuration"](root))
+    return canonical_sha256(
+        {
+            "base_configuration_sha256": base_configuration,
+            "persistent_feature_influence_pre_review_sha256": file_sha256(
+                root / _PRE_REVIEW
+            ),
+            "persistent_feature_influence_implementation_decision_sha256": (
+                file_sha256(root / _IMPLEMENTATION_DECISION)
+            ),
+        }
+    )
+
+
+def _current_composition(
+    root: Path,
+    *,
+    revision: str,
+    configuration: str,
+) -> dict[str, Any]:
+    """Compose current science through the activated final writer."""
+    return cast(
+        dict[str, Any],
+        _base(root)["_current_composition"](
+            root,
+            revision=revision,
+            configuration=configuration,
+        ),
+    )
+
+
+def _verified_reference(root: Path, reference: Path) -> tuple[Any, Any]:
+    """Delegate exact retained-reference verification unchanged."""
+    return cast(
+        tuple[Any, Any],
+        _base(root)["_verified_reference"](root, reference),
+    )
+
+
+def _composition(task: dict[str, object]) -> dict[str, Any]:
+    """Load the current correction or the unchanged incumbent."""
+    tooling_root = Path(cast(str, task["tooling_root"]))
+    materializer = _base(tooling_root)
+    if task["candidate_mode"] == "incumbent":
+        return cast(dict[str, Any], materializer["_composition"](task))
+    if task["candidate_mode"] != "current":
+        raise ValueError("prospective candidate mode is unsupported")
+    return _current_composition(
+        tooling_root,
+        revision=cast(str, task["candidate_revision"]),
+        configuration=cast(str, task["configuration_sha256"]),
+    )
+
+
+def _generate_product(task: dict[str, object]) -> str:
+    """Materialize one product through an importable worker function."""
+    frozen = _composition(task)
+    candidate_task = {
+        key: value
+        for key, value in task.items()
+        if key
+        not in {
+            "candidate_mode",
+            "candidate_revision",
+            "repository_root",
+            "tooling_root",
+        }
+    }
+    return cast(str, frozen["_generate_candidate_product"](candidate_task))
+
+
+def _install_materializer_overrides(
+    materializer: dict[str, Any],
+) -> Callable[[], None]:
+    """Install this exact identity in the frozen command-line entry point."""
+    entrypoint = cast(Callable[[], None], materializer["main"])
+    entrypoint.__globals__.update(
+        {
+            "_current_configuration": _current_configuration,
+            "_current_composition": _current_composition,
+            "_verified_reference": _verified_reference,
+            "_composition": _composition,
+            "_generate_product": _generate_product,
+        }
+    )
+    return entrypoint
+
+
+def main() -> None:
+    """Run the frozen CLI with the exact replacement identity."""
+    root = Path(__file__).resolve().parents[2]
+    materializer = _base(root)
+    entrypoint = _install_materializer_overrides(materializer)
+    entrypoint.__globals__["__file__"] = str(Path(__file__).resolve())
+    entrypoint()
+
+
+if __name__ == "__main__":
+    main()
