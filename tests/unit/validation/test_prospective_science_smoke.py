@@ -56,6 +56,10 @@ _MEASUREMENT_PERSISTENCE_DECISION = (
     _ROOT / "config/contracts/phase-5-prospective-measurement-label-"
     "persistence-implementation-decision.json"
 )
+_MEASUREMENT_PERSISTENCE_EVALUATION_DECISION = (
+    _ROOT / "config/contracts/phase-5-prospective-measurement-label-"
+    "persistence-evaluation-decision.json"
+)
 
 
 def _mask_separated_case() -> tuple[
@@ -534,3 +538,26 @@ def test_measurement_label_persistence_binds_exact_replacement_smoke() -> None:
         "rescoring_closed_evidence_authorized": False,
         "threshold_or_margin_tuning_authorized": False,
     }
+
+
+def test_measurement_label_evaluation_binds_both_sealed_product_sets() -> None:
+    """The one evaluator run cannot drift from either sealed product set."""
+    decision = json.loads(
+        _MEASUREMENT_PERSISTENCE_EVALUATION_DECISION.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert decision["candidate"]["product_set_canonical_sha256"] == (
+        "2b32ad121677aa2d0a57db806697a0b2f572a019a424f32fb8cb08667aedb705"
+    )
+    assert decision["incumbent"]["product_set_canonical_sha256"] == (
+        "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27"
+    )
+    for key in ("implementation_decision", "evaluator", "population"):
+        assert (
+            file_sha256(_ROOT / decision[key]["path"])
+            == (decision[key]["sha256"])
+        )
+    assert decision["authorization"]["evaluation_once_authorized"] is True
+    assert decision["authorization"]["candidate_execution_authorized"] is False

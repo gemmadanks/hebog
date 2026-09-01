@@ -45,6 +45,7 @@
     "scope": "evaluate only the exact sealed mask-measurement-separation smoke products while preserving the complete measurement partition and separately refined publication mask"
   },
   "measurement_label_persistence_repair": {
+    "evaluation_decision_path": "config/contracts/phase-5-prospective-measurement-label-persistence-evaluation-decision.json",
     "implementation_decision_path": "config/contracts/phase-5-prospective-measurement-label-persistence-implementation-decision.json",
     "pre_review_path": "config/contracts/phase-5-prospective-measurement-label-persistence-pre-review.json",
     "scope": "persist the already-computed measurement-label plane, keep publication labels authoritative for mask metrics, and repeat only the frozen 128-case smoke before any full replay"
