@@ -1055,8 +1055,16 @@ from partial or viewed evidence.
      reconstruction and requires one exact checksum-bound measurement-label
      artifact. Source unions must use that plane; mask and native-component
      metrics must retain the published plane. Regenerate only the exact 128
-     smoke products in a new namespace. If the repaired smoke leaves only
-     inherited topology failures, review and
+     smoke products in a new namespace. Candidate `a9df2c8...` sealed product
+     set `2b32ad12...`; the exact incumbent set remains `1c76f739...`. The
+     first evaluation reached paired compilation, then failed closed because
+     the current-only measurement decoder was also dispatched to the
+     historical incumbent schema. Mixed-schema pre-review `d20b7d89...`
+     requires configuration-bound dispatch: exact measurement labels for the
+     repaired current product and unchanged sidecar-aware source unions for
+     the incumbent. No product, population, comparator, threshold, margin, or
+     gate changes. If the repaired smoke leaves only inherited topology
+     failures, review and
      correct that topology separately on analytic and smoke-scale evidence;
      do not run the full replay until every binding smoke comparison is pass
      or diagnostic-underpowered without a confirmed failure.

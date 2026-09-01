@@ -94,10 +94,18 @@ def _measurement_label_plane(run: Any) -> np.ndarray:
 class _MaskSeparatedContinuumCompiler:
     """Use measurement support for sources and published support for masks."""
 
-    def __init__(self, delegate: Any) -> None:
+    def __init__(
+        self,
+        delegate: Any,
+        *,
+        measurement_configuration: str,
+    ) -> None:
         if not callable(delegate):
             raise ValueError("mask-separated compiler delegate is invalid")
+        if not measurement_configuration:
+            raise ValueError("measurement configuration must be non-empty")
         self._delegate = delegate
+        self._measurement_configuration = measurement_configuration
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Patch only source-union synthesis for one verified Hebog run."""
@@ -110,6 +118,8 @@ class _MaskSeparatedContinuumCompiler:
         if not (
             getattr(result, "status", None) == "success"
             and getattr(result, "finder_id", None) == "hebog"
+            and getattr(result, "configuration_sha256", None)
+            == self._measurement_configuration
         ):
             return self._delegate(*args, **kwargs)
         measurement = _measurement_label_plane(run)
@@ -138,6 +148,8 @@ class _MaskSeparatedContinuumCompiler:
 
 def _install_mask_separated_compiler(
     compiler_globals: dict[str, Any],
+    *,
+    measurement_configuration: str,
 ) -> None:
     """Wrap the current compiler without mutating historical code."""
     current = compiler_globals.get("_continuum_image_observations")
@@ -146,7 +158,10 @@ def _install_mask_separated_compiler(
     ):
         raise ValueError("mask-separated compiler seam changed")
     compiler_globals["_continuum_image_observations"] = (
-        _MaskSeparatedContinuumCompiler(current)
+        _MaskSeparatedContinuumCompiler(
+            current,
+            measurement_configuration=measurement_configuration,
+        )
     )
 
 
@@ -360,7 +375,10 @@ def _compile_incumbent_pair(
     historical["_install_prospective_compiler"](
         compiler_globals, paired, configuration
     )
-    _install_mask_separated_compiler(compiler_globals)
+    _install_mask_separated_compiler(
+        compiler_globals,
+        measurement_configuration=configuration,
+    )
     compiled, _ = compiler_globals["compile_continuum_campaign"](
         paired, registry, root
     )
@@ -608,7 +626,10 @@ def main() -> None:
         frozen["_install_prospective_compiler"](
             compiler_globals, current, configuration
         )
-        _install_mask_separated_compiler(compiler_globals)
+        _install_mask_separated_compiler(
+            compiler_globals,
+            measurement_configuration=configuration,
+        )
         current_continuum, _ = compiler_globals["compile_continuum_campaign"](
             current, historical_registry, root
         )

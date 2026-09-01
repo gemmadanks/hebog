@@ -13748,3 +13748,33 @@ candidate and tooling identities, rerun both complete no-write preflights, and
 regenerate only the frozen 128-case current smoke set in a new scratch
 namespace. Reuse the exact incumbent set and publish the still-absent atomic
 smoke result once.
+
+## 2026-09-01 — Repair mixed current/incumbent smoke dispatch
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Both complete no-write preflights passed. Candidate `a9df2c8...`, source tree
+  `89eb014c...`, and configuration `24663a15...` then sealed all 128 current
+  products as canonical set `2b32ad12...`; the exact incumbent set reverified
+  as `1c76f739...`.
+- The first evaluator process failed before compilation because an immutable
+  checkout could not see ignored benchmark evidence. A checksum-identical
+  evidence link was attached, source identity reverified unchanged, and the
+  same evaluator crossed that boundary.
+- Paired compilation then stopped before atomic publication because the new
+  measurement-label decorator selected every successful Hebog run, including
+  the historical incumbent whose closed schema correctly lacks that artifact.
+  No partial result exists.
+- Pre-review `d20b7d89...` freezes an evaluator-only repair. A red mixed-schema
+  test reproduces the defect. The repair binds measurement-label decoding to
+  the exact current configuration and delegates the historical incumbent to
+  its unchanged sidecar-aware compiler. Both direct current support and
+  historical delegation tests pass; no science identity or decision rule is
+  changed. Focused validation passes 81 tests; full branch-aware coverage
+  passes 2,283 tests with four expected xfails at 94.52%; `just check` passes
+  2,121 tests with four expected xfails; equivalence passes 27 tests; and the
+  strict documentation build passes.
+
+**Immediate next step:** complete validation and code review, freeze the exact
+repaired evaluator identity against the two sealed product sets, then retry
+only the still-absent atomic smoke evaluation.

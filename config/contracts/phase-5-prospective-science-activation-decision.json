@@ -50,6 +50,10 @@
     "pre_review_path": "config/contracts/phase-5-prospective-measurement-label-persistence-pre-review.json",
     "scope": "persist the already-computed measurement-label plane, keep publication labels authoritative for mask metrics, and repeat only the frozen 128-case smoke before any full replay"
   },
+  "mixed_schema_evaluation_repair": {
+    "pre_review_path": "config/contracts/phase-5-prospective-measurement-label-mixed-schema-evaluation-repair-pre-review.json",
+    "scope": "dispatch persisted measurement support only for the repaired current configuration while retaining the historical incumbent compiler schema"
+  },
   "prerequisite_programs": [
     {
       "path": "src/hebog/validation/prospective_science_evaluator.py",
@@ -69,7 +73,7 @@
     },
     {
       "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
-      "sha256": "2ce358549a944a1a292a7b515081655f143b1eb735bee84a968e05fff77bf534"
+      "sha256": "9cb15439afdaaba4702d0dfd077c45a75b56f40a9193d36d2cad3596c31449d0"
     },
     {
       "path": "scripts/validation/freeze_phase5_prospective_power_audit.py",

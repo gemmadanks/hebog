@@ -60,6 +60,10 @@ _MEASUREMENT_PERSISTENCE_EVALUATION_DECISION = (
     _ROOT / "config/contracts/phase-5-prospective-measurement-label-"
     "persistence-evaluation-decision.json"
 )
+_MIXED_SCHEMA_REPAIR_PRE_REVIEW = (
+    _ROOT / "config/contracts/phase-5-prospective-measurement-label-mixed-"
+    "schema-evaluation-repair-pre-review.json"
+)
 
 
 def _mask_separated_case() -> tuple[
@@ -497,12 +501,68 @@ def test_mask_separated_compiler_uses_measurement_support_only_for_sources(
         ]._synthetic_source_labels((associated,), published)
         return synthetic, labels
 
-    compiler = evaluator["_MaskSeparatedContinuumCompiler"](delegate)
+    compiler = evaluator["_MaskSeparatedContinuumCompiler"](
+        delegate,
+        measurement_configuration="current-configuration",
+    )
+    run.result.configuration_sha256 = "current-configuration"
     synthetic, labels = compiler(None, None, run)
 
     assert labels == {catalogue[0].identifier: 1}
     assert synthetic[2, 3] == 1
     assert not np.any(synthetic[published > 0])
+
+
+def test_mask_separated_compiler_delegates_historical_hebog_schema() -> None:
+    """Only current products require the new measurement-label artifact."""
+    evaluator = runpy.run_path(str(_EVALUATOR))
+    run = SimpleNamespace(
+        result=SimpleNamespace(
+            status="success",
+            finder_id="hebog",
+            configuration_sha256="historical-configuration",
+            artifacts=(),
+        )
+    )
+    delegated: list[object] = []
+
+    def delegate(*args: object, **_kwargs: object) -> str:
+        delegated.extend(args)
+        return "historical"
+
+    compiler = evaluator["_MaskSeparatedContinuumCompiler"](
+        delegate,
+        measurement_configuration="current-configuration",
+    )
+
+    assert compiler(None, None, run) == "historical"
+    assert delegated[-1] is run
+
+
+def test_mask_separated_compiler_rejects_current_schema_without_plane() -> (
+    None
+):
+    """A repaired current product cannot silently lose measurement support."""
+    evaluator = runpy.run_path(str(_EVALUATOR))
+    run = SimpleNamespace(
+        result=SimpleNamespace(
+            status="success",
+            finder_id="hebog",
+            configuration_sha256="current-configuration",
+            artifacts=(),
+        )
+    )
+
+    def delegate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    compiler = evaluator["_MaskSeparatedContinuumCompiler"](
+        delegate,
+        measurement_configuration="current-configuration",
+    )
+
+    with pytest.raises(ValueError, match="exactly one measurement label"):
+        compiler(None, None, run)
 
 
 def test_measurement_label_persistence_binds_exact_replacement_smoke() -> None:
@@ -524,8 +584,19 @@ def test_measurement_label_persistence_binds_exact_replacement_smoke() -> None:
         file_sha256(_ROOT / decision["pre_review"]["path"])
         == (decision["pre_review"]["sha256"])
     )
+    repair_review = json.loads(
+        _MIXED_SCHEMA_REPAIR_PRE_REVIEW.read_text(encoding="utf-8")
+    )
     for program in decision["implementation"]:
-        assert file_sha256(_ROOT / program["path"]) == program["sha256"]
+        if program["path"].endswith(
+            "evaluate_phase5_prospective_science_smoke.py"
+        ):
+            assert (
+                program["sha256"]
+                == repair_review["binding_failure"]["failed_evaluator_sha256"]
+            )
+        else:
+            assert file_sha256(_ROOT / program["path"]) == program["sha256"]
     full_replay_key = (
         "full_cumulative_replay_authorized_only_after_replacement_smoke_passes"
     )
@@ -554,10 +625,17 @@ def test_measurement_label_evaluation_binds_both_sealed_product_sets() -> None:
     assert decision["incumbent"]["product_set_canonical_sha256"] == (
         "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27"
     )
-    for key in ("implementation_decision", "evaluator", "population"):
+    repair_review = json.loads(
+        _MIXED_SCHEMA_REPAIR_PRE_REVIEW.read_text(encoding="utf-8")
+    )
+    for key in ("implementation_decision", "population"):
         assert (
             file_sha256(_ROOT / decision[key]["path"])
             == (decision[key]["sha256"])
         )
+    assert (
+        decision["evaluator"]["sha256"]
+        == repair_review["binding_failure"]["failed_evaluator_sha256"]
+    )
     assert decision["authorization"]["evaluation_once_authorized"] is True
     assert decision["authorization"]["candidate_execution_authorized"] is False
