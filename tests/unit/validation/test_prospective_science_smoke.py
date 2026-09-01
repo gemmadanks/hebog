@@ -1,4 +1,6 @@
 # pyright: reportPrivateUsage=false
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownMemberType=false
 """Prospective Phase 5 scientific smoke-lane tests."""
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from astropy.io import fits
 
 from hebog.data_models.source_association import (
     CatalogueSourceMembership,
@@ -409,17 +412,26 @@ def test_mask_separation_overlay_is_bounded_and_exception_safe() -> None:
 
 
 def test_mask_separation_evaluation_repair_binds_exact_evidence() -> None:
-    """The evaluator-only authority cannot drift to products or science."""
+    """The consumed repair retains its exact products and failed program."""
     decision = json.loads(
         _EVALUATION_REPAIR_DECISION.read_text(encoding="utf-8")
     )
     pre_review = decision["pre_review"]
     evaluator = decision["evaluator"]
+    persistence_review = json.loads(
+        (
+            _ROOT / "config/contracts/phase-5-prospective-measurement-label-"
+            "persistence-pre-review.json"
+        ).read_text(encoding="utf-8")
+    )
 
     assert decision["authorization"]["candidate_execution_authorized"] is False
     assert decision["authorization"]["evaluation_only_completion_authorized"]
     assert file_sha256(_ROOT / pre_review["path"]) == pre_review["sha256"]
-    assert file_sha256(_ROOT / evaluator["path"]) == evaluator["sha256"]
+    assert (
+        persistence_review["binding_failure"]["failed_evaluator_sha256"]
+        == (evaluator["sha256"])
+    )
     assert decision["exact_preserved_evidence"] == {
         "candidate_configuration_sha256": (
             "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06"
@@ -436,3 +448,50 @@ def test_mask_separation_evaluation_repair_binds_exact_evidence() -> None:
         ),
         "selected_input_count": 128,
     }
+
+
+def test_mask_separated_compiler_uses_measurement_support_only_for_sources(
+    tmp_path: Path,
+) -> None:
+    """Published-mask metrics stay separate from source-union support."""
+    evaluator = runpy.run_path(str(_EVALUATOR))
+    catalogue, _association = _mask_separated_case()
+    associated = SimpleNamespace(
+        identifier=catalogue[0].identifier,
+        support_labels=(7,),
+        centre_xy=(3.0, 2.0),
+        integrated_flux_jy=2.0,
+    )
+    measurement_path = tmp_path / "measurement_labels.fits"
+    measurement = np.zeros((5, 5), dtype=np.int32)
+    measurement[2, 3] = 7
+    fits.PrimaryHDU(measurement[np.newaxis, np.newaxis]).writeto(
+        measurement_path
+    )
+    run = SimpleNamespace(
+        directory=tmp_path,
+        result=SimpleNamespace(
+            status="success",
+            finder_id="hebog",
+            artifacts=(
+                SimpleNamespace(
+                    role="measurement-labels-fits",
+                    relative_path=measurement_path.name,
+                ),
+            ),
+        ),
+    )
+    published = np.zeros((5, 5), dtype=np.int64)
+
+    def delegate(*_args: object, **_kwargs: object) -> object:
+        synthetic, labels = evaluator[
+            "source_association_evaluation_repair"
+        ]._synthetic_source_labels((associated,), published)
+        return synthetic, labels
+
+    compiler = evaluator["_MaskSeparatedContinuumCompiler"](delegate)
+    synthetic, labels = compiler(None, None, run)
+
+    assert labels == {catalogue[0].identifier: 1}
+    assert synthetic[2, 3] == 1
+    assert not np.any(synthetic[published > 0])

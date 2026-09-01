@@ -1,0 +1,43 @@
+{
+  "authorization": {
+    "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_replacement_smoke_passes": true,
+    "measurement_label_artifact_implementation_authorized": true,
+    "release_authorized": false,
+    "repeat_128_case_smoke_materialization_authorized": true,
+    "rescoring_closed_evidence_authorized": false,
+    "threshold_or_margin_tuning_authorized": false
+  },
+  "binding_failure": {
+    "atomic_output_published": false,
+    "candidate_configuration_sha256": "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06",
+    "candidate_product_set_canonical_sha256": "02a17815187fcce129fdb931f977bf14815e6d614d8e9bcfde5ed50808ac4f5c",
+    "candidate_revision": "b8d57a6fa9d710b210ef047403f8fc873a334fef",
+    "candidate_source_tree_sha256": "53ef45860749f40dfa3ac2629609512d624fc556c2c0fa665aa134cf62f8b320",
+    "error": "ValueError: associated source supports must be present and disjoint",
+    "failed_evaluation_checkout_revision": "9e2733f5ce406a17af947a685d9fe202fae62569",
+    "failed_evaluator_sha256": "131066e8c548d10a572cc3d8cf1a28bd410815c83f8beac16d8963f649801c76",
+    "stage": "prospective-source-union-topology-synthesis"
+  },
+  "decision_id": "phase-5-prospective-measurement-label-persistence-pre-review",
+  "exact_user_authority": "Please complete all tasks required for running the next cumulative replay. Review the code and tests, close any gaps and fix bugs or make improvements as needed then run the replay and evaluate the results.",
+  "root_cause": {
+    "discarded_product": "The current candidate computed the stable measurement-component plane and used it for association and catalogue measurement, but PublicFinderCorrectionContinuumProducts and the smoke writer retained only the separately refined publication-label plane.",
+    "downstream_effect": "The first evaluator repair could verify catalogue membership when a measurement component had no published pixel, but source-union topology could not reconstruct that component's support from the publication plane and correctly failed closed.",
+    "scientific_conclusion": "Catalogue centroids or association component centroids cannot substitute for the exact measurement support without changing source-overlap semantics. The already-computed measurement plane must be persisted and consumed explicitly."
+  },
+  "required_implementation": [
+    "retain the immutable measurement-component plane in the current public Continuum product record",
+    "write it as one checksum-bound measurement-labels-fits artifact beside the unchanged published labels and mask",
+    "require association labels to partition the measurement plane exactly",
+    "require every positive published label to belong to the measurement partition",
+    "use measurement labels only for catalogue-source union synthesis",
+    "continue using publication labels for mask metrics and native-component topology diagnostics",
+    "restore every temporary evaluator seam after success or failure",
+    "regenerate the exact frozen 128-case smoke population in a new scratch namespace",
+    "reuse the exact separately verified incumbent product set",
+    "publish only to the still-absent write-once mask-measurement smoke output"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-product-schema-repair"
+}

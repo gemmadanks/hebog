@@ -13714,3 +13714,37 @@ zero confirmed failures.
 checkout and evaluate the exact sealed products into the still-absent
 write-once smoke output. Interpret that science before any topology change,
 power audit, or full replay.
+
+## 2026-09-01 — Persist source-measurement labels for smoke evaluation
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Evaluation repair `9e2733f...` crossed the original association-membership
+  failure, then stopped before atomic publication with `associated source
+  supports must be present and disjoint`. The exact candidate and incumbent
+  products remain sealed, but the current set cannot support a scientifically
+  valid source-union evaluation.
+- Root cause is a product-schema omission. The candidate computed the stable
+  measurement-component plane and used it for source association and moment
+  measurement, then discarded it from `PublicFinderCorrectionContinuumProducts`
+  and persisted only the refined publication labels. Catalogue or association
+  centroids are insufficient substitutes for exact overlap topology.
+- Pre-review `e621ffd5...` freezes a no-tuning repair: retain the immutable
+  measurement labels in the public product, persist them as a checksum-bound
+  FITS artifact, require the association to partition them exactly, and use
+  them only for source-union synthesis. Published labels remain authoritative
+  for mask metrics and native-component topology.
+- Red tests reproduced both missing behaviors. The focused implementation
+  writes and reads distinct planes, retains the exact association partition,
+  and restores the temporary evaluator seam after each run. Focused validation
+  passes 97 tests; full branch-aware coverage passes 2,280 tests with four
+  expected xfails at 94.52%; `just check` passes 2,118 tests with four expected
+  xfails; equivalence passes 27 tests; strict documentation and the complete
+  pre-commit suite pass. Review against `CODE_REVIEW.md` found no actionable
+  correctness, safety, architecture, or coverage issue.
+
+**Immediate next step:** complete full validation, commit and freeze the exact
+candidate and tooling identities, rerun both complete no-write preflights, and
+regenerate only the frozen 128-case current smoke set in a new scratch
+namespace. Reuse the exact incumbent set and publish the still-absent atomic
+smoke result once.

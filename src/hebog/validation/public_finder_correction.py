@@ -106,6 +106,7 @@ class PublicFinderCorrectionContinuumProducts:
     """Binding associated sources and immutable component diagnostics."""
 
     detection: ThresholdFilterResult
+    measurement_component_labels: npt.NDArray[np.int32]
     catalogue: tuple[CatalogueSource, ...]
     valid_pixels: npt.NDArray[np.bool_]
     component_catalogue: tuple[CatalogueSource, ...]
@@ -809,6 +810,7 @@ def build_public_finder_correction_continuum_products(  # noqa: PLR0913
     valid.setflags(write=False)
     return PublicFinderCorrectionContinuumProducts(
         detection=products.detection,
+        measurement_component_labels=products.measurement_component_labels,
         catalogue=catalogues.source_catalogue,
         valid_pixels=valid,
         component_catalogue=catalogues.component_catalogue,
@@ -869,6 +871,7 @@ def build_public_finder_source_reconstruction_continuum_products(  # noqa: PLR09
     valid.setflags(write=False)
     return PublicFinderCorrectionContinuumProducts(
         detection=products.detection,
+        measurement_component_labels=products.measurement_component_labels,
         catalogue=catalogues.source_catalogue,
         valid_pixels=valid,
         component_catalogue=catalogues.component_catalogue,

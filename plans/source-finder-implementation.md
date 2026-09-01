@@ -1047,8 +1047,16 @@ from partial or viewed evidence.
      appear in the separately refined publication mask. Evaluation-only
      pre-review `aca3574a...` preserves product set `02a17815...` and permits
      only a fail-closed dispatch repair: published positive labels remain a
-     subset of the cryptographically verified measurement partition. If the
-     repaired smoke leaves only inherited topology failures, review and
+     subset of the cryptographically verified measurement partition. That
+     repair crossed the membership check but stopped before atomic publication
+     at source-union synthesis: the candidate had computed and used the stable
+     measurement plane but the public product record and smoke writer had
+     discarded it. Persistence pre-review `e621ffd5...` rejects centroid-based
+     reconstruction and requires one exact checksum-bound measurement-label
+     artifact. Source unions must use that plane; mask and native-component
+     metrics must retain the published plane. Regenerate only the exact 128
+     smoke products in a new namespace. If the repaired smoke leaves only
+     inherited topology failures, review and
      correct that topology separately on analytic and smoke-scale evidence;
      do not run the full replay until every binding smoke comparison is pass
      or diagnostic-underpowered without a confirmed failure.

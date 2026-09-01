@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pyright: reportMissingTypeStubs=false
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
@@ -11,16 +12,33 @@ import hashlib
 import json
 import runpy
 import subprocess
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
+import numpy as np
+from astropy.io import fits
+
+from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.validation.contracts import load_phase_five_corrective_a_review
 from hebog.validation.external_runners import (
     ExternalRuntimeIdentity,
     canonical_sha256,
     source_tree_sha256,
+)
+from hebog.validation.parent_construction_association_evaluation import (
+    source_association_from_json,
+)
+from hebog.validation.products import (
+    load_fits_plane,
+    write_comparison_catalogue,
+)
+from hebog.validation.public_finder_correction import (
+    build_public_finder_source_reconstruction_continuum_products,
 )
 
 _TERMINAL_PARENT_WRAPPER = (
@@ -32,6 +50,90 @@ _TERMINAL_FEATURE_WRAPPER = (
     "persistence_cumulative_regressions.py"
 )
 _EXPECTED_SMOKE_INPUT_COUNT = 128
+
+
+def _write_mask_separated_continuum_products(  # noqa: PLR0913
+    dataset: Any,
+    *,
+    image_path: Path,
+    mean_path: Path,
+    rms_path: Path,
+    output: Path,
+    review_path: Path,
+    canonical_json_bytes: Callable[[object], bytes],
+) -> dict[str, Path]:
+    """Persist both source-measurement and publication label domains."""
+    image = load_fits_plane(image_path)
+    mean = load_fits_plane(mean_path)
+    rms = load_fits_plane(rms_path)
+    beam = BeamShapePixels(
+        dataset.beam.major_fwhm_pixels,
+        dataset.beam.minor_fwhm_pixels,
+        dataset.beam.position_angle_degrees,
+    )
+    header = cast(fits.Header, fits.getheader(image_path))
+    products = build_public_finder_source_reconstruction_continuum_products(
+        image,
+        mean,
+        rms,
+        header,
+        beam=beam,
+        review=load_phase_five_corrective_a_review(review_path),
+    )
+    published = np.asarray(products.detection.component_labels)
+    measurement = np.asarray(products.measurement_component_labels)
+    if (
+        published.shape != measurement.shape
+        or not np.issubdtype(published.dtype, np.integer)
+        or not np.issubdtype(measurement.dtype, np.integer)
+        or np.any(published < 0)
+        or np.any(measurement < 0)
+    ):
+        raise ValueError("mask-separated candidate label planes are invalid")
+    claimed = {
+        component.label_value
+        for component in products.source_association.components
+    }
+    measurement_labels = {
+        int(value) for value in np.unique(measurement) if int(value) > 0
+    }
+    published_labels = {
+        int(value) for value in np.unique(published) if int(value) > 0
+    }
+    if claimed != measurement_labels or not published_labels.issubset(claimed):
+        raise ValueError(
+            "mask-separated association does not bind both label planes"
+        )
+    catalogue_path = output / "segment_catalogue.json"
+    labels_path = output / "segment_labels.fits"
+    measurement_path = output / "measurement_labels.fits"
+    mask_path = output / "segment_mask.fits"
+    association_path = output / "source_association.json"
+    write_comparison_catalogue(catalogue_path, products.catalogue)
+    fits.PrimaryHDU(
+        data=published[np.newaxis, np.newaxis, :, :], header=header
+    ).writeto(labels_path)
+    fits.PrimaryHDU(
+        data=measurement[np.newaxis, np.newaxis, :, :], header=header
+    ).writeto(measurement_path)
+    fits.PrimaryHDU(
+        data=products.detection.retained_mask.astype(np.uint8)[
+            np.newaxis, np.newaxis, :, :
+        ],
+        header=header,
+    ).writeto(mask_path)
+    association_document = asdict(products.source_association)
+    payload = canonical_json_bytes(association_document)
+    source_association_from_json(json.loads(payload))
+    with association_path.open("xb") as stream:
+        stream.write(payload)
+    return {
+        "measurement-labels-fits": measurement_path,
+        "segment-catalogue-json": catalogue_path,
+        "segment-labels-fits": labels_path,
+        "segment-mask-fits": mask_path,
+        "source-association-json": association_path,
+    }
 
 
 def _current_configuration(root: Path) -> str:
@@ -150,6 +252,19 @@ def _current_composition(
         )
 
     frozen["_install_prospective_compiler"] = install_terminal_cycle
+
+    def write_mask_separated(
+        *args: object, **kwargs: object
+    ) -> dict[str, Path]:
+        return _write_mask_separated_continuum_products(
+            *args,
+            **kwargs,
+            review_path=root
+            / "config/contracts/phase-5-corrective-a-review.json",
+            canonical_json_bytes=frozen["_canonical_json_bytes"],
+        )
+
+    frozen["_write_continuum_products"] = write_mask_separated
     return cast(dict[str, Any], frozen)
 
 

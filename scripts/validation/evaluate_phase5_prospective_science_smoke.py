@@ -22,13 +22,17 @@ from uuid import uuid4
 import numpy as np
 
 from hebog.data_models.source_association import SourceAssociationResult
-from hebog.validation import parent_construction_association_evaluation
+from hebog.validation import (
+    parent_construction_association_evaluation,
+    source_association_evaluation_repair,
+)
 from hebog.validation.comparison import CatalogueSource
 from hebog.validation.external_runners import (
     canonical_sha256,
     file_sha256,
     source_tree_sha256,
 )
+from hebog.validation.products import load_fits_plane
 from hebog.validation.prospective_science_contract import (
     load_prospective_endpoint_registry,
 )
@@ -52,6 +56,98 @@ _REGISTRY = (
 )
 _CONTINUUM_POWER = "config/contracts/phase-5-external-comparison.json"
 _IMAGE_DIMENSIONS = 2
+_RUN_ARGUMENT_POSITION = 2
+
+
+def _measurement_artifact_path(run: Any) -> Path:
+    """Resolve exactly one safe persisted measurement-label plane."""
+    matches = tuple(
+        artifact
+        for artifact in run.result.artifacts
+        if getattr(artifact, "role", None) == "measurement-labels-fits"
+    )
+    if len(matches) != 1:
+        raise ValueError(
+            "candidate run must contain exactly one measurement label plane"
+        )
+    relative = Path(cast(str, matches[0].relative_path))
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValueError("candidate measurement label path must be relative")
+    return cast(Path, run.directory) / relative
+
+
+def _measurement_label_plane(run: Any) -> np.ndarray:
+    """Load one exact non-negative integer measurement-label plane."""
+    raw = load_fits_plane(_measurement_artifact_path(run))
+    if (
+        not np.all(np.isfinite(raw))
+        or np.any(raw < 0)
+        or not np.all(raw == np.floor(raw))
+    ):
+        raise ValueError(
+            "candidate measurement label plane must contain non-negative "
+            "integers"
+        )
+    return np.asarray(raw, dtype=np.int64)
+
+
+class _MaskSeparatedContinuumCompiler:
+    """Use measurement support for sources and published support for masks."""
+
+    def __init__(self, delegate: Any) -> None:
+        if not callable(delegate):
+            raise ValueError("mask-separated compiler delegate is invalid")
+        self._delegate = delegate
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Patch only source-union synthesis for one verified Hebog run."""
+        run = (
+            args[_RUN_ARGUMENT_POSITION]
+            if len(args) > _RUN_ARGUMENT_POSITION
+            else kwargs.get("run")
+        )
+        result = getattr(run, "result", None)
+        if not (
+            getattr(result, "status", None) == "success"
+            and getattr(result, "finder_id", None) == "hebog"
+        ):
+            return self._delegate(*args, **kwargs)
+        measurement = _measurement_label_plane(run)
+        previous = (
+            source_association_evaluation_repair._synthetic_source_labels
+        )
+
+        def measurement_support(catalogue: Any, published_labels: Any) -> Any:
+            published = np.asarray(published_labels)
+            if published.shape != measurement.shape:
+                raise ValueError(
+                    "published and measurement label planes must share shape"
+                )
+            return previous(catalogue, measurement)
+
+        source_association_evaluation_repair._synthetic_source_labels = (
+            measurement_support
+        )
+        try:
+            return self._delegate(*args, **kwargs)
+        finally:
+            source_association_evaluation_repair._synthetic_source_labels = (
+                previous
+            )
+
+
+def _install_mask_separated_compiler(
+    compiler_globals: dict[str, Any],
+) -> None:
+    """Wrap the current compiler without mutating historical code."""
+    current = compiler_globals.get("_continuum_image_observations")
+    if not callable(current) or isinstance(
+        current, _MaskSeparatedContinuumCompiler
+    ):
+        raise ValueError("mask-separated compiler seam changed")
+    compiler_globals["_continuum_image_observations"] = (
+        _MaskSeparatedContinuumCompiler(current)
+    )
 
 
 def _mask_separated_support_labels(
@@ -264,6 +360,7 @@ def _compile_incumbent_pair(
     historical["_install_prospective_compiler"](
         compiler_globals, paired, configuration
     )
+    _install_mask_separated_compiler(compiler_globals)
     compiled, _ = compiler_globals["compile_continuum_campaign"](
         paired, registry, root
     )
@@ -511,6 +608,7 @@ def main() -> None:
         frozen["_install_prospective_compiler"](
             compiler_globals, current, configuration
         )
+        _install_mask_separated_compiler(compiler_globals)
         current_continuum, _ = compiler_globals["compile_continuum_campaign"](
             current, historical_registry, root
         )

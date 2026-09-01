@@ -1,3 +1,7 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownLambdaType=false
+# pyright: reportUnknownMemberType=false
 """Fail-closed prospective smoke materializer tests."""
 
 from __future__ import annotations
@@ -7,12 +11,25 @@ import json
 import runpy
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
+import numpy as np
 import pytest
+from astropy.io import fits
 
+from hebog.data_models.source_association import (
+    CatalogueSourceMembership,
+    DetectionComponentRecord,
+    SourceAssociationResult,
+)
+from hebog.validation.products import load_fits_plane
 from hebog.validation.prospective_science_smoke import (
     select_prospective_smoke_inputs,
+)
+from hebog.validation.source_association_evaluation_repair import (
+    associated_source_identifier,
+    detection_component_identifier,
 )
 
 _ROOT = Path(__file__).parents[3]
@@ -166,6 +183,7 @@ def test_smoke_incumbent_pair_uses_historical_sidecar_compiler(
             return (campaign, "compiled"), ()
 
         compiler_globals["compile_continuum_campaign"] = compile_continuum
+        compiler_globals["_continuum_image_observations"] = lambda: None
         return compiler_globals, object()
 
     def paired_view(
@@ -190,6 +208,97 @@ def test_smoke_incumbent_pair_uses_historical_sidecar_compiler(
     assert historical["schema"] == "terminal-parent"
     assert installed == [(paired, "current-configuration")]
     assert result == (paired, "compiled")
+
+
+def test_current_writer_persists_distinct_verified_measurement_labels(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """Source topology retains its exact plane beside the published mask."""
+    script = runpy.run_path(str(_SCRIPT))
+    component_id = detection_component_identifier((0, 1))
+    source_id = associated_source_identifier((component_id,))
+    association = SourceAssociationResult(
+        components=(
+            DetectionComponentRecord(
+                component_id=component_id,
+                label_value=7,
+                canonical_pixel_yx=(0, 1),
+                centroid_yx=(0.0, 1.0),
+                covariance_pixels_squared=None,
+            ),
+        ),
+        edges=(),
+        memberships=(CatalogueSourceMembership(source_id, (component_id,)),),
+    )
+    products = SimpleNamespace(
+        catalogue=(),
+        detection=SimpleNamespace(
+            component_labels=np.asarray(
+                ((0, 0, 7), (0, 0, 0)), dtype=np.int32
+            ),
+            retained_mask=np.asarray(
+                ((False, False, True), (False, False, False))
+            ),
+        ),
+        measurement_component_labels=np.asarray(
+            ((0, 7, 7), (0, 0, 0)), dtype=np.int32
+        ),
+        source_association=association,
+    )
+    writer = script["_write_mask_separated_continuum_products"]
+    monkeypatch.setitem(
+        writer.__globals__,
+        "build_public_finder_source_reconstruction_continuum_products",
+        lambda *_args, **_kwargs: products,
+    )
+    monkeypatch.setitem(
+        writer.__globals__,
+        "write_comparison_catalogue",
+        lambda path, _catalogue: path.write_text("[]\n", encoding="utf-8"),
+    )
+    monkeypatch.setitem(
+        writer.__globals__,
+        "load_phase_five_corrective_a_review",
+        lambda _path: object(),
+    )
+    image = tmp_path / "image.fits"
+    fits.PrimaryHDU(np.zeros((1, 1, 2, 3))).writeto(image)
+    output = tmp_path / "products"
+    output.mkdir()
+
+    paths = writer(
+        SimpleNamespace(
+            beam=SimpleNamespace(
+                major_fwhm_pixels=3.0,
+                minor_fwhm_pixels=2.0,
+                position_angle_degrees=0.0,
+            )
+        ),
+        image_path=image,
+        mean_path=image,
+        rms_path=image,
+        output=output,
+        review_path=tmp_path / "review.json",
+        canonical_json_bytes=lambda value: (
+            json.dumps(value, sort_keys=True) + "\n"
+        ).encode(),
+    )
+
+    assert set(paths) == {
+        "measurement-labels-fits",
+        "segment-catalogue-json",
+        "segment-labels-fits",
+        "segment-mask-fits",
+        "source-association-json",
+    }
+    assert np.array_equal(
+        load_fits_plane(paths["measurement-labels-fits"]),
+        products.measurement_component_labels,
+    )
+    assert np.array_equal(
+        load_fits_plane(paths["segment-labels-fits"]),
+        products.detection.component_labels,
+    )
 
 
 def _write_product(
