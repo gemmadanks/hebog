@@ -158,6 +158,28 @@ def clean_detected_segment_labels(
     return np.where(retained, labels, 0).astype(np.int32, copy=False)
 
 
+def _preserve_refined_segment_connectivity(
+    original_labels: npt.NDArray[np.int64],
+    refined_labels: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int32]:
+    """Restore a direct owner only when cleanup would split its support."""
+    connected = np.asarray(refined_labels, dtype=np.int32).copy()
+    structure = np.ones((3, 3), dtype=np.int8)
+    for label_value in np.unique(original_labels):
+        if label_value <= 0:
+            continue
+        _, component_count = cast(
+            tuple[npt.NDArray[np.int32], int],
+            connected_component_labels(
+                connected == label_value,
+                structure=structure,
+            ),
+        )
+        if component_count > 1:
+            connected[original_labels == label_value] = label_value
+    return connected
+
+
 def refine_multiscale_segment_labels(  # noqa: PLR0913
     component_labels: npt.ArrayLike,
     combined_snr: npt.ArrayLike,
@@ -219,10 +241,10 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     cleaned = clean_detected_segment_labels(labels)
     cleaned_support = cleaned > 0
     if not np.any(cleaned_support):
-        return np.where(high_confidence_boundary, labels, 0).astype(
-            np.int32,
-            copy=False,
+        refined = np.where(high_confidence_boundary, labels, 0).astype(
+            np.int32, copy=False
         )
+        return _preserve_refined_segment_connectivity(labels, refined)
     neighbor_count = convolve(
         cleaned_support.astype(np.int8),
         np.ones((3, 3), dtype=np.int8),
@@ -246,10 +268,11 @@ def refine_multiscale_segment_labels(  # noqa: PLR0913
     )
     nearest_labels = cleaned[tuple(nearest_indices)]
     refined = np.where(dense_core | recovered, nearest_labels, 0)
-    return np.where(high_confidence_boundary, labels, refined).astype(
+    refined = np.where(high_confidence_boundary, labels, refined).astype(
         np.int32,
         copy=False,
     )
+    return _preserve_refined_segment_connectivity(labels, refined)
 
 
 def _canonical_seed_ranks(

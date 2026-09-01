@@ -1017,12 +1017,15 @@ from partial or viewed evidence.
      prove Serial/existing-Dask invariance and compact identity, then repeat
      the same 128-case smoke into a new write-once namespace. Require zero
      confirmed failures before the power audit and full replay identity freeze.
-     The test-first implementation and exact configuration `ecf5ace2...` are
-     complete: high-S/N thin support survives, low-S/N direct protrusions are
-     removed, downstream direct ownership is clipped to refined measurement
-     ownership, real-scale morphology and executor-invariance suites pass, and
-     the full branch-aware suite remains at 94.52%. The replacement smoke is
-     the remaining prerequisite.
+     The first implementation configuration `ecf5ace2...` passed both complete
+     no-write preflights but stopped after 16/128 products before evaluation:
+     cleanup could split one direct owner across multiple support parents. A
+     red dumbbell fixture now requires the conservative original owner only
+     when cleanup would split its eight-connected support. Replacement
+     configuration `68e8a49f...` preserves high-S/N thin support, removes
+     ordinary low-S/N protrusions, clips direct ownership to measurement
+     ownership, and passes real-scale, executor-invariance, and full 94.52%
+     branch-aware coverage. The new replacement smoke remains prerequisite.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift

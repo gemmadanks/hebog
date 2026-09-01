@@ -13615,8 +13615,24 @@ no confirmed failure.
   Full branch-aware coverage passed 2,271 tests plus four expected failures at
   94.52%; `just check` passed 2,109 tests plus four expected failures; and all
   27 frozen equivalence tests passed. Focused Ruff and Pyright checks passed.
+- Both complete 2,400-input/9,600-reference no-write preflights passed for
+  candidate `8b1029f...` and exact incumbent `85d5807...`. Candidate
+  materialization then failed after 16/128 products, before evaluation or any
+  atomic science record, because cleanup split one direct component across
+  multiple connected support parents. The 293 MiB partial scratch remains
+  preserved and will not be overwritten.
+- Added a red two-lobe bridge fixture reproducing that exact invariant failure.
+  Refinement now restores an original direct owner only when cleanup would
+  split its eight-connected support; ordinary connected low-S/N protrusions
+  remain removed. The repaired focused morphology, partition, Dask, and
+  end-to-end suite passes 65 tests, and full coverage passes 2,272 tests plus
+  four expected failures at 94.52%. `just check` passes 2,110 tests plus four
+  expected failures, and all 27 frozen equivalence tests pass.
+- Amended the implementation decision to `25cbdfa4...` with the terminal
+  process failure and no-split policy. Replacement configuration is
+  `68e8a49f...`; it requires a new immutable candidate and scratch namespace.
 
-**Immediate next step:** seal the exact candidate in an immutable checkout,
+**Immediate next step:** seal the repaired candidate in an immutable checkout,
 pass both complete no-write preflights, materialize only the new current
 128-product set, reuse the separately verified exact incumbent product set, and
 publish one replacement write-once smoke decision. Continue to the power audit

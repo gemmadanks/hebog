@@ -1,7 +1,7 @@
 {
   "authorization": {
-    "full_cumulative_replay_authorized_only_after_replacement_smoke_passes": true,
     "fresh_qualification_authorized": false,
+    "full_cumulative_replay_authorized_only_after_replacement_smoke_passes": true,
     "release_authorized": false,
     "replacement_smoke_authorized": true,
     "rescoring_closed_evidence_authorized": false,
@@ -19,7 +19,7 @@
   "implementation": [
     {
       "path": "src/hebog/algorithms/extended_measurement.py",
-      "sha256": "a88c872ee78fcf273b9e9c3ff8d6e0fc67e77b3d41f9865c47de681bc590c835"
+      "sha256": "1eb3b79eb7de3e5d0a965db29517e2deb17cf7ad69a1a5481d5f545843cef612"
     },
     {
       "path": "src/hebog/validation/post_campaign_science.py",
@@ -30,9 +30,16 @@
     "path": "config/contracts/phase-5-prospective-boundary-refinement-pre-review.json",
     "sha256": "e92ac2893699bb0ff96347af6a691c654649fa6e152ef5dd588930f9f0cf82aa"
   },
+  "process_repair": {
+    "failed_candidate_revision": "8b1029f1d1ecd75d0f0e3265c3f40e36c1edc82e",
+    "failure": "boundary cleanup split one direct component across multiple connected support parents after 16 of 128 replacement-smoke products",
+    "policy": "restore one original direct owner only when refinement would split its eight-connected support",
+    "published_scientific_result": false
+  },
   "required_pre_execution_gates": [
     "high-SNR thin-support and low-SNR boundary fixtures pass",
     "direct component identities remain a subset of refined measurement ownership",
+    "every retained direct component occupies exactly one eight-connected support parent",
     "Serial existing-Dask partition order and retry invariance pass",
     "complete retained-reference no-write verification passes",
     "replacement 128-case smoke publishes no confirmed failure"

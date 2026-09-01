@@ -372,6 +372,23 @@ def test_multiscale_refinement_preserves_opened_away_high_snr_support() -> (
     assert not low_snr.any()
 
 
+def test_multiscale_refinement_cannot_split_one_direct_component() -> None:
+    """Sparse cleanup falls back when it disconnects one direct owner."""
+    labels = np.zeros((11, 15), dtype=np.int32)
+    labels[3:8, 2:7] = 5
+    labels[3:8, 8:13] = 5
+    labels[5, 7] = 5
+
+    refined = refine_multiscale_segment_labels(
+        labels,
+        np.where(labels > 0, 4.0, 0.0),
+        np.zeros(labels.shape, dtype=np.bool_),
+        beam_major_fwhm_pixels=4.0,
+    )
+
+    np.testing.assert_array_equal(refined, labels)
+
+
 def test_multiscale_refinement_rejects_ambiguous_evidence() -> None:
     """Refinement requires aligned calibrated planes and a finite beam."""
     labels = np.ones((5, 5), dtype=np.int32)
