@@ -20,6 +20,7 @@ across decisions, or replace a failed result with a later interpretation.
 | Source-reconstruction cumulative replay | Test deterministic multiscale hierarchy, one source-level measurement, connected support, and source-union topology | Fail | Compact passed, but Continuum again had 44 failures and 37 regressions. The hierarchy did not change governed source membership or fragmentation. |
 | Parent-construction cumulative replay | Test whether scale-aware parent envelopes and persistence create the intended catalogue-source parents | Fail | Compact passed, but all 143 Continuum endpoint values and decisions were unchanged. The parent-construction path still did not change governed source membership. |
 | Terminal-parent cumulative replay | Test the persistent terminal-cycle correction on the complete cumulative population | Fail, materially improved | Compact passed. Continuum improved from 89 to 96 passing endpoints; split and duplicate fractions nearly halved, but 35 failures and 30 regressions remain. |
+| Prospective 128-case science smoke | Fail fast on the terminal-cycle eligibility candidate before another complete replay | Fail, full replay blocked | All incumbent-retention checks passed, but eight PyBDSF-parity checks failed. The terminal-cycle repair activated diagnostically without changing catalogue membership; systematic mask-boundary precision is the principal confirmed gap. |
 
 The apparent contrast between final qualification and later failure is useful,
 not contradictory. The final qualification showed that the frozen candidate
@@ -511,6 +512,60 @@ does not authorize another replay, viewed-data execution, tuning, rescoring,
 qualification, cutover, or release. Its exact SHA-256 is
 `e70e602f5a7a7c2a703def62ac6e5922c505feb71ae4b6f9def6dfcbf9520cd5`.
 
+## Prospective 128-case science smoke
+
+**Terminal date:** 2026-09-01
+
+**Evidence role:** viewed-development diagnostic smoke. It is neither a full
+cumulative replay nor qualification evidence and cannot be pooled with either.
+The authoritative atomic record is
+`benchmark-results/phase-5/prospective-science-smoke.json`, SHA-256
+`e3ac8e62b0d136078b2a4a15e7841b12f62c4381db7bb581d03a9468448b248c`.
+
+**Scientific question:** does terminal-cycle eligibility fix the known
+catalogue-source loss while preserving the whole incumbent and avoiding an
+obvious PyBDSF-parity regression on a small, deterministic population?
+
+**Population and method:** 64 compact and 64 Continuum realizations were
+selected deterministically from the retained cumulative population. The exact
+candidate and exact whole incumbent were reexecuted on the same inputs. All
+369 applicable incumbent-retention comparisons and 361 applicable PyBDSF
+comparisons used the frozen prospective contract; underpowered comparisons
+remained diagnostic and a confirmed failure stopped the full replay.
+
+| Decision class | Count |
+| --- | ---: |
+| Pass | 326 |
+| Underpowered diagnostic | 35 |
+| Confirmed fail | 8 |
+| Failed incumbent-retention comparisons | 0 |
+
+Compact products were byte-identical to the incumbent. Every failed family
+also had zero candidate-versus-incumbent difference. The eight confirmed
+PyBDSF-parity failures were one image-edge duplicate-fraction check, two
+duplicate morphology/scale checks, two overall mask-precision checks, and
+three diffuse split checks. Mask recall and intersection over union were
+better than the PyBDSF references, but mask precision was worse in every one
+of the 64 Continuum realizations. This identifies a systematic sparse-boundary
+support gap rather than a sensitivity failure. The duplicate and split
+failures were sparse realization-level outliers.
+
+The terminal-cycle eligibility census was active: 26 unseeded persistent
+candidates were accepted. Nevertheless, all 64 catalogue membership records
+were identical to the incumbent, which had already accepted the same 75
+terminal parents. The repair therefore cannot explain or fix the remaining
+parity failures.
+
+**Terminal verdict:** fail. The full cumulative replay remains blocked. The
+prospective next correction applies the already-reviewed dense-core,
+high-S/N-boundary, and nearby significant-support refinement after seeded
+ownership, with its existing fixed constants. Review
+`phase-5-prospective-boundary-refinement-pre-review`, SHA-256
+`e92ac2893699bb0ff96347af6a691c654649fa6e152ef5dd588930f9f0cf82aa`,
+also requires a regression fix for an opened-away high-S/N thin detection and
+a new write-once smoke result. It authorizes no threshold tuning or
+retrospective rescoring.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31
@@ -550,11 +605,11 @@ paired realization-level evidence. Planning variance will size the study and
 audit assumptions, but only the observed paired confidence limit will decide
 non-inferiority. Missing or underpowered binding evidence cannot pass.
 
-The decision contract is intentionally `active=false` and awaits exact human
-scientific approval. It authorizes no execution, replay identity,
-qualification, tuning, rescoring, cutover, or release. The next implementation
-task is the test-first prospective evaluator repair; the smoke lane and any
-full replay remain blocked.
+The contract was activated under the recorded conditional user authority only
+after its test-first evaluator, no-write verification, and fail-fast lanes
+passed. The first smoke then failed as documented above, so the full replay
+remains blocked. Qualification, tuning, rescoring, cutover, and release remain
+outside this authority.
 
 ## Required format for future snapshots
 

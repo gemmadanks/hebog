@@ -13555,3 +13555,35 @@ checkout and rerun both complete no-write preflights before materialization.
 **Immediate next step:** freeze the evaluation-only repair in an immutable
 checkout and evaluate the preserved smoke products exactly once into the still
 absent atomic output.
+
+## 2026-09-01 — Fail the prospective smoke and review boundary refinement
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Published the exact 128-case diagnostic smoke at
+  `prospective-science-smoke.json`, SHA-256 `e3ac8e62...`. The terminal result
+  is fail: 326 comparisons pass, 35 are diagnostic-underpowered, and eight
+  PyBDSF-parity comparisons fail. All 369 incumbent-retention comparisons pass
+  and compact products are byte-identical to the incumbent.
+- The failed families are image-edge, morphology-artifact, and one-beam
+  duplicate fractions; overall mask precision against both PyBDSF references;
+  and diffuse split fractions. Mask recall and intersection over union improve,
+  but mask precision is worse in all 64 Continuum cases, identifying systematic
+  sparse boundary support rather than lost sensitivity. Duplicate and split
+  failures are sparse realization-level outliers.
+- Terminal-cycle eligibility activated on 26 unseeded persistent candidates,
+  but all catalogue memberships remain identical to the incumbent, which had
+  already accepted the same 75 terminal parents. This prospective mechanism is
+  therefore scientifically dormant for the remaining parity gaps.
+- Froze pre-review `e92ac289...` for a bounded replacement: apply the existing
+  reviewed dense-core, high-S/N boundary, and nearby significant multiscale
+  support refinement after seeded ownership, and repair only its opened-away
+  high-S/N thin-detection branch. Its constants remain fixed at a 3-by-3
+  opening, five core neighbors, S/N 6, and 0.5 beam recovery; no threshold,
+  margin, population, ownership, association, or measurement tuning is allowed.
+
+**Immediate next step:** reproduce the high-S/N empty-opening defect test-first,
+implement the bounded refinement composition, pass fixture and executor
+invariance validation, and repeat the exact frozen smoke into a new write-once
+namespace. Do not freeze or run the full cumulative replay unless that smoke has
+no confirmed failure.

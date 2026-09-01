@@ -993,7 +993,7 @@ from partial or viewed evidence.
      endpoint-complete power audit reuses only pre-result compact familywise
      bounds and frozen Continuum planning variances; incumbent compact power is
      conditional on exact smoke identity and a full 800-product recheck.
-   - [ ] Freeze a 64--128-case viewed-development scientific smoke population
+   - [x] Freeze a 64--128-case viewed-development scientific smoke population
      and run the exact prospective producer/compiler/evaluator composition.
      Require the repaired candidate to restore the parent lost by the
      all-features-seeded guard, preserve the intended terminal-parent gains,
@@ -1002,8 +1002,21 @@ from partial or viewed evidence.
      The smoke result is diagnostic and cannot be pooled with full or
      qualification evidence. The deterministic 128-case population, current
      and incumbent materializers, complete no-write preflight, atomic smoke
-     evaluator, and write-once power-audit program are implemented; execution
-     remains pending an immutable-checkout preflight.
+     evaluator, and write-once power-audit program are implemented. The exact
+     128-case smoke published `e3ac8e62...`: 326 comparisons pass, 35 are
+     diagnostic-underpowered, and eight PyBDSF-parity comparisons fail while
+     every incumbent-retention comparison passes. Terminal-cycle eligibility
+     accepted 26 unseeded persistent candidates but changed no catalogue
+     membership relative to the incumbent. The full replay is therefore
+     blocked.
+   - [ ] Correct the confirmed prospective boundary-support gap before another
+     full replay. Review `e92ac289...` freezes the existing 3-by-3 dense-core,
+     6-sigma sparse-boundary, and 0.5-beam nearby-significant-support policy;
+     it permits no fitted threshold or margin. Reproduce the empty-opening
+     high-S/N loss in a red fixture, apply refinement after seeded ownership,
+     prove Serial/existing-Dask invariance and compact identity, then repeat
+     the same 128-case smoke into a new write-once namespace. Require zero
+     confirmed failures before the power audit and full replay identity freeze.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift
