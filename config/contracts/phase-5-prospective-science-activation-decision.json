@@ -39,6 +39,11 @@
     "all-1187-comparison-power-audit-passes",
     "exact-full-replay-identities-frozen-before-execution"
   ],
+  "mask_measurement_evaluation_repair": {
+    "implementation_decision_path": "config/contracts/phase-5-prospective-mask-measurement-evaluation-repair-implementation-decision.json",
+    "pre_review_path": "config/contracts/phase-5-prospective-mask-measurement-evaluation-repair-pre-review.json",
+    "scope": "evaluate only the exact sealed mask-measurement-separation smoke products while preserving the complete measurement partition and separately refined publication mask"
+  },
   "prerequisite_programs": [
     {
       "path": "src/hebog/validation/prospective_science_evaluator.py",
@@ -58,7 +63,7 @@
     },
     {
       "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
-      "sha256": "18231d537f65f10cb91766b9b6c7c9d133c6e1c00eab590118e4a5949de88822"
+      "sha256": "131066e8c548d10a572cc3d8cf1a28bd410815c83f8beac16d8963f649801c76"
     },
     {
       "path": "scripts/validation/freeze_phase5_prospective_power_audit.py",

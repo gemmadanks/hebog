@@ -2,6 +2,7 @@
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
+# pyright: reportPrivateUsage=false
 """Compile and evaluate the frozen non-promotional Phase 5 smoke lane."""
 
 from __future__ import annotations
@@ -10,12 +11,19 @@ import argparse
 import json
 import os
 import runpy
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import is_dataclass, replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 from uuid import uuid4
 
+import numpy as np
+
+from hebog.data_models.source_association import SourceAssociationResult
+from hebog.validation import parent_construction_association_evaluation
+from hebog.validation.comparison import CatalogueSource
 from hebog.validation.external_runners import (
     canonical_sha256,
     file_sha256,
@@ -43,6 +51,95 @@ _REGISTRY = (
     "config/contracts/phase-5-prospective-science-endpoint-registry.json"
 )
 _CONTINUUM_POWER = "config/contracts/phase-5-external-comparison.json"
+_IMAGE_DIMENSIONS = 2
+
+
+def _mask_separated_support_labels(
+    catalogue: tuple[CatalogueSource, ...],
+    label_plane: Any,
+    association: SourceAssociationResult,
+) -> dict[str, tuple[int, ...]]:
+    """Bind verified measurement identities to a refined publication mask.
+
+    The association sidecar partitions the stable measurement components.
+    The separate publication mask may remove every pixel for one of those
+    components, but it may never publish a positive label that the verified
+    measurement partition does not claim.
+    """
+    labels = np.asarray(label_plane)
+    if labels.ndim != _IMAGE_DIMENSIONS or not np.issubdtype(
+        labels.dtype, np.integer
+    ):
+        raise ValueError(
+            "candidate label plane must be a two-dimensional integer array"
+        )
+    if np.any(labels < 0):
+        raise ValueError(
+            "candidate label plane must contain non-negative labels"
+        )
+    present_labels = {
+        int(value) for value in np.unique(labels) if int(value) > 0
+    }
+    component_by_id, membership_by_id = (
+        parent_construction_association_evaluation._verified_association_maps(
+            association
+        )
+    )
+    identifiers = tuple(source.identifier for source in catalogue)
+    if len(set(identifiers)) != len(identifiers):
+        raise ValueError("associated source identifiers must be unique")
+    output: dict[str, tuple[int, ...]] = {}
+    claimed_labels: set[int] = set()
+    for source in catalogue:
+        if (
+            source.identifier != source.island_identifier
+            or not source.identifier.startswith("source-associated-")
+        ):
+            raise ValueError("associated source identity is malformed")
+        membership = membership_by_id.get(source.identifier)
+        if membership is None or source.component_count != len(
+            membership.component_ids
+        ):
+            raise ValueError("associated source membership cannot be verified")
+        try:
+            support_labels = tuple(
+                sorted(
+                    component_by_id[component_id].label_value
+                    for component_id in membership.component_ids
+                )
+            )
+        except KeyError as error:
+            raise ValueError(
+                "associated source membership cannot be verified"
+            ) from error
+        if not support_labels or claimed_labels.intersection(support_labels):
+            raise ValueError("associated source membership cannot be verified")
+        claimed_labels.update(support_labels)
+        output[source.identifier] = support_labels
+    if set(membership_by_id) != set(
+        identifiers
+    ) or not present_labels.issubset(claimed_labels):
+        raise ValueError(
+            "associated source memberships must partition native supports"
+        )
+    return output
+
+
+@contextmanager
+def _mask_measurement_separation_evaluation() -> Generator[None]:
+    """Temporarily install the current mask-separated evaluation seam."""
+    previous = (
+        parent_construction_association_evaluation._recorded_support_labels
+    )
+    parent_construction_association_evaluation._recorded_support_labels = (
+        _mask_separated_support_labels
+    )
+    try:
+        yield
+    finally:
+        parent_construction_association_evaluation._recorded_support_labels = (
+            previous
+        )
 
 
 def _subset_verified(verified: Any, identifiers: set[str]) -> Any:
@@ -410,19 +507,20 @@ def main() -> None:
         )
     finally:
         frozen["_candidate_runtime_identity"] = previous_identity
-    frozen["_install_prospective_compiler"](
-        compiler_globals, current, configuration
-    )
-    current_continuum, _ = compiler_globals["compile_continuum_campaign"](
-        current, historical_registry, root
-    )
-    incumbent_continuum = _compile_incumbent_pair(
-        parent,
-        current,
-        incumbent,
-        root,
-        configuration=configuration,
-    )
+    with _mask_measurement_separation_evaluation():
+        frozen["_install_prospective_compiler"](
+            compiler_globals, current, configuration
+        )
+        current_continuum, _ = compiler_globals["compile_continuum_campaign"](
+            current, historical_registry, root
+        )
+        incumbent_continuum = _compile_incumbent_pair(
+            parent,
+            current,
+            incumbent,
+            root,
+            configuration=configuration,
+        )
     association_paths = _association_paths(
         identifiers, arguments.current_scratch
     )

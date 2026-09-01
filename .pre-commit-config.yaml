@@ -32,7 +32,7 @@ repos:
         args: ["--autofix", "--no-ensure-ascii"]
         files: "\\.(json)$"
         # Governed products and approved reviews retain reviewed byte identity.
-        exclude: ^(tests/data/pybdsf/.*/diagnostics\.json|config/contracts/phase-5-public-finder-terminal-feature-persistence-pre-review\.json)$
+        exclude: ^(tests/data/pybdsf/.*/diagnostics\.json|config/contracts/phase-5-public-finder-terminal-feature-persistence-pre-review\.json|config/contracts/phase-5-prospective-mask-measurement-separation-pre-review\.json)$
 
   # --- Conventional commits ---
   - repo: https://github.com/compilerla/conventional-pre-commit

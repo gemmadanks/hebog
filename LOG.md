@@ -13680,3 +13680,37 @@ and full replay only if it has zero confirmed failure.
 both complete no-write preflights and repeat the same 128-case smoke in a fresh
 write-once namespace. The cumulative replay remains blocked until the smoke has
 zero confirmed failures.
+
+## 2026-09-01 — Repair mask-separated smoke evaluation
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Candidate `b8d57a6...`, source tree `53ef4586...`, and configuration
+  `24663a15...` passed the exact current and incumbent complete no-write
+  preflights. The current candidate then sealed all 128 products; canonical
+  product-set identity is `02a17815...`.
+- The first evaluation attempt failed during current compilation before atomic
+  publication. The historical association evaluator required every verified
+  measurement label to be present in the native label plane. That invariant
+  predates the reviewed mask/measurement separation: the native plane is now
+  the refined publication mask, while the sidecar and catalogue intentionally
+  preserve stable measurement components.
+- Added a test-first, evaluator-only overlay. It continues to verify exact
+  component/source identities, catalogue coverage, unique ownership, and that
+  every published positive label is claimed by the measurement partition. It
+  only allows a verified measurement component to have no remaining published
+  pixel, and restores the historical evaluator seam on both success and
+  exceptional exit. No product, source tree, scientific configuration,
+  comparator, threshold, margin, gate, or historical compiler changed.
+- Pre-review `aca3574a...` and its implementation decision bind the exact
+  sealed current and incumbent product sets. Focused association, provenance,
+  and smoke tests pass 37 tests; focused Ruff and Pyright pass.
+- The JSON formatter attempted to reorder the already checksum-bound
+  `bd0ba297...` scientific pre-review. Its exact path is now excluded beside
+  the existing governed-review exclusion, preserving the reviewed bytes while
+  all new JSON remains formatter-controlled.
+
+**Immediate next step:** freeze the evaluator-only repair in an immutable
+checkout and evaluate the exact sealed products into the still-absent
+write-once smoke output. Interpret that science before any topology change,
+power audit, or full replay.

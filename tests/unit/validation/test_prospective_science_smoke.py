@@ -1,13 +1,23 @@
+# pyright: reportPrivateUsage=false
 """Prospective Phase 5 scientific smoke-lane tests."""
 
 from __future__ import annotations
 
 import json
+import runpy
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
+from hebog.data_models.source_association import (
+    CatalogueSourceMembership,
+    DetectionComponentRecord,
+    SourceAssociationResult,
+)
+from hebog.validation import parent_construction_association_evaluation
+from hebog.validation.comparison import CatalogueSource
 from hebog.validation.external_runners import file_sha256
 from hebog.validation.prospective_science_contract import (
     ProspectiveEndpoint,
@@ -17,6 +27,10 @@ from hebog.validation.prospective_science_contract import (
 from hebog.validation.prospective_science_smoke import (
     evaluate_prospective_science_smoke,
     select_prospective_smoke_inputs,
+)
+from hebog.validation.source_association_evaluation_repair import (
+    associated_source_identifier,
+    detection_component_identifier,
 )
 
 _ROOT = Path(__file__).parents[3]
@@ -28,6 +42,49 @@ _POPULATION = (
     _ROOT
     / "config/contracts/phase-5-prospective-science-smoke-population.json"
 )
+_EVALUATOR = (
+    _ROOT / "scripts/validation/evaluate_phase5_prospective_science_smoke.py"
+)
+_EVALUATION_REPAIR_DECISION = (
+    _ROOT / "config/contracts/phase-5-prospective-mask-measurement-evaluation-"
+    "repair-implementation-decision.json"
+)
+
+
+def _mask_separated_case() -> tuple[
+    tuple[CatalogueSource, ...], SourceAssociationResult
+]:
+    component_id = detection_component_identifier((2, 3))
+    source_id = associated_source_identifier((component_id,))
+    source = CatalogueSource(
+        identifier=source_id,
+        right_ascension_degrees=10.0,
+        declination_degrees=-30.0,
+        peak_flux_jy_per_beam=1.0,
+        integrated_flux_jy=2.0,
+        association_integrated_flux_jy=2.0,
+        island_identifier=source_id,
+        component_count=1,
+    )
+    association = SourceAssociationResult(
+        components=(
+            DetectionComponentRecord(
+                component_id=component_id,
+                label_value=7,
+                canonical_pixel_yx=(2, 3),
+                centroid_yx=(2.0, 3.0),
+                covariance_pixels_squared=None,
+            ),
+        ),
+        edges=(),
+        memberships=(
+            CatalogueSourceMembership(
+                source_id=source_id,
+                component_ids=(component_id,),
+            ),
+        ),
+    )
+    return (source,), association
 
 
 def _registry() -> ProspectiveEndpointRegistry:
@@ -297,3 +354,85 @@ def test_smoke_rejects_malformed_or_duplicated_comparisons() -> None:
                 "terminal_cycle_unseeded_persistent_accepted_count": 1
             },
         )
+
+
+def test_mask_separated_support_allows_measurement_only_component() -> None:
+    """A measured source may have no pixel in the refined published mask."""
+    evaluator = runpy.run_path(str(_EVALUATOR))
+    catalogue, association = _mask_separated_case()
+
+    support = evaluator["_mask_separated_support_labels"](
+        catalogue,
+        np.zeros((5, 5), dtype=np.int32),
+        association,
+    )
+
+    assert support == {catalogue[0].identifier: (7,)}
+
+
+def test_mask_separated_support_rejects_unclaimed_published_label() -> None:
+    """The refined publication mask cannot invent association ownership."""
+    evaluator = runpy.run_path(str(_EVALUATOR))
+    catalogue, association = _mask_separated_case()
+    published = np.zeros((5, 5), dtype=np.int32)
+    published[1, 1] = 9
+
+    with pytest.raises(ValueError, match="partition native supports"):
+        evaluator["_mask_separated_support_labels"](
+            catalogue,
+            published,
+            association,
+        )
+
+
+def test_mask_separation_overlay_is_bounded_and_exception_safe() -> None:
+    """The evaluator restores the frozen compiler seam after any outcome."""
+    evaluator = runpy.run_path(str(_EVALUATOR))
+    original = (
+        parent_construction_association_evaluation._recorded_support_labels
+    )
+
+    with (
+        pytest.raises(RuntimeError, match="stop"),
+        evaluator["_mask_measurement_separation_evaluation"](),
+    ):
+        assert (
+            parent_construction_association_evaluation._recorded_support_labels
+            is evaluator["_mask_separated_support_labels"]
+        )
+        raise RuntimeError("stop")
+
+    assert (
+        parent_construction_association_evaluation._recorded_support_labels
+        is original
+    )
+
+
+def test_mask_separation_evaluation_repair_binds_exact_evidence() -> None:
+    """The evaluator-only authority cannot drift to products or science."""
+    decision = json.loads(
+        _EVALUATION_REPAIR_DECISION.read_text(encoding="utf-8")
+    )
+    pre_review = decision["pre_review"]
+    evaluator = decision["evaluator"]
+
+    assert decision["authorization"]["candidate_execution_authorized"] is False
+    assert decision["authorization"]["evaluation_only_completion_authorized"]
+    assert file_sha256(_ROOT / pre_review["path"]) == pre_review["sha256"]
+    assert file_sha256(_ROOT / evaluator["path"]) == evaluator["sha256"]
+    assert decision["exact_preserved_evidence"] == {
+        "candidate_configuration_sha256": (
+            "24663a15309a0b1236ddccfc1491145229a9441c3510c351f8e20cd7c29a7a06"
+        ),
+        "candidate_product_set_canonical_sha256": (
+            "02a17815187fcce129fdb931f977bf14815e6d614d8e9bcfde5ed50808ac4f5c"
+        ),
+        "candidate_revision": "b8d57a6fa9d710b210ef047403f8fc873a334fef",
+        "candidate_source_tree_sha256": (
+            "53ef45860749f40dfa3ac2629609512d624fc556c2c0fa665aa134cf62f8b320"
+        ),
+        "incumbent_product_set_canonical_sha256": (
+            "1c76f7392156edb57195580ee5ff930dd66594d854cc43421c5dffbad006ec27"
+        ),
+        "selected_input_count": 128,
+    }
