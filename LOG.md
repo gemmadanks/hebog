@@ -13833,3 +13833,50 @@ its replacement immutable checkout and identities, repeat both complete
 no-write preflights, then retry and evaluate the same 128-case smoke in the
 unchanged write-once namespace. Keep the full replay blocked on any confirmed
 failure.
+
+## 2026-09-01 — Close publication-S/N smoke and separate residual causes
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Candidate `16aef34...`, source tree `3fc5d4c7...`, and configuration
+  `57841bc3...` passed both exact 128-input no-write preflights. The repaired
+  materializer sealed all 128 products, and the evaluator published
+  `prospective-science-smoke-publication-snr-repair.json`, SHA-256
+  `a8bee362...`.
+- The terminal verdict remains fail: 327 comparisons pass, 35 are
+  diagnostic-underpowered, and seven are confirmed failures. Compact products
+  remain byte-identical to the incumbent. The correction clears the released
+  PyBDSF mask-precision comparison and narrows pinned-master precision to a
+  0.05231 regression against a 0.05 non-inferiority margin, but it does not
+  close that binding gate.
+- The remaining failures are independently attributable. Publication
+  refinement starts from the expanded measurement-owner plane, so its dense
+  opened core can bypass the direct original-pixel S/N floor; that is a
+  semantic origin-domain defect, not evidence for changing the frozen
+  threshold. Sparse duplicate/split failures are confined to an edge case,
+  two additional diffuse cases, and related artifact/scale-one morphologies.
+- Read-only complete-smoke attribution shows the topology cases as persistent
+  sibling detections with no admissible edge under the current three-member
+  cycle rule. A prospective pair parent must therefore require repeated
+  adjacent-scale geometry, mutual uniqueness, connected significant support,
+  whole-group reconciliation, and negative overmerge controls. Proximity or
+  connected support alone remains insufficient.
+- Pre-review `67df1551...` and implementation decision `b66f489f...` bind the
+  direct-label publication origin and the adjacent-scale, mutually unique
+  sibling-pair rule without changing measurement ownership, photometry,
+  thresholds, margins, comparators, or closed evidence. The sibling pair must
+  also occupy one connected significant-support component; chains, crowded
+  overlaps, one-scale relationships, and disconnected support fail closed.
+- Test-first validation covers the measurement-only S/N bypass, pair
+  persistence, connected-support rejection, task order, retry, label, Serial,
+  and existing-Dask invariance. Focused validation passes 78 tests. Full
+  branch-aware coverage passes 2,321 tests with four expected xfails at
+  94.53%; `just check` passes 2,158 tests with four expected xfails;
+  equivalence passes 27 tests; strict documentation and the complete
+  pre-commit suite pass. Review against `CODE_REVIEW.md` found no actionable
+  correctness, safety, architecture, or coverage issue.
+
+**Immediate next step:** freeze the validated candidate in an immutable
+checkout, repeat both complete no-write preflights, and run the same 128-case
+smoke in a fresh write-once namespace. Do not open a cumulative replay until
+the smoke has zero confirmed failures.

@@ -684,6 +684,53 @@ now verify the actual function globals. Repaired implementation decision
 `a292fa98c66b...` binds the correction; no scientific product was overwritten
 or rescored.
 
+## Original-pixel publication-S/N 128-case science smoke
+
+**Terminal date:** 2026-09-01
+
+**Evidence role:** viewed-development diagnostic smoke. The authoritative
+atomic record is
+`benchmark-results/phase-5/prospective-science-smoke-publication-snr-repair.json`,
+SHA-256
+`a8bee362728df293a30d171bed5afb4e412ecae9cbf9af06fbbce5afec083249`.
+
+**Scientific question:** does using original-pixel residual/RMS for publication
+support close the remaining mask-precision gap without changing measurement,
+catalogue, compact, or incumbent-retention science?
+
+The same deterministic 64-compact/64-Continuum smoke population was used.
+Compact products were byte-identical to the incumbent, and no candidate
+measurement or catalogue rule changed.
+
+| Decision class | Count |
+| --- | ---: |
+| Pass | 327 |
+| Underpowered diagnostic | 35 |
+| Confirmed fail | 7 |
+| Failed incumbent-retention comparisons | 0 |
+
+The repair cleared the released-PyBDSF mask-precision gate and narrowed the
+pinned-master precision regression to 0.05231 against a 0.05 margin. It did
+not clear that binding comparison. Refinement still begins from the expanded
+measurement-owner plane, whose dense opened core does not receive the direct
+S/N floor; therefore the remaining systematic mask miss is an origin-domain
+defect rather than evidence for threshold tuning.
+
+Six topology comparisons also fail: image-edge and morphology-artifact
+duplicate fractions, scale-one duplicate fraction, and diffuse split fraction.
+The edge result is driven by seed 2026860341; the diffuse result is driven by
+2026860341, 2026862118, and 2026862301. Attribution finds pairs of persistent
+sibling detections which the deliberately conservative three-member cycle rule
+cannot group. Proximity and connected support alone remain unsafe; any pair
+repair must additionally prove repeated adjacent-scale geometry, mutual
+uniqueness, whole-group reconciliation, and negative-overmerge invariance.
+
+**Terminal verdict:** fail. This result improves the prior smoke from eight to
+seven confirmed failures, but the full cumulative replay remains blocked. The
+next bounded candidate must correct mask-origin semantics and source topology
+without changing thresholds, margins, comparators, or closed evidence, then
+pass the same smoke with zero confirmed failures.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

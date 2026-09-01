@@ -896,6 +896,23 @@ def _cycle_supported_feature_groups(
     return tuple(sorted(groups, key=lambda item: tuple(sorted(item))))
 
 
+def _isolated_sibling_feature_pairs(
+    adjacency: Mapping[str, set[str]],
+) -> tuple[frozenset[str], ...]:
+    """Return mutually unique two-feature envelope relationships.
+
+    Each admitted feature overlaps exactly the other member. Chains,
+    crossings, crowded cliques, and one-sided ambiguity therefore fail closed
+    before direct-component membership is considered.
+    """
+    pairs = {
+        frozenset((feature_id, next(iter(neighbours))))
+        for feature_id, neighbours in adjacency.items()
+        if len(neighbours) == 1 and len(adjacency[next(iter(neighbours))]) == 1
+    }
+    return tuple(sorted(pairs, key=lambda item: tuple(sorted(item))))
+
+
 def _components_for_feature_group(
     feature_ids: frozenset[str],
     attachments: _HierarchyAttachments,
@@ -914,7 +931,7 @@ def _scale_aware_parent_evidence(
     valid: npt.NDArray[np.bool_],
     attachments: _HierarchyAttachments,
 ) -> _ScaleAwareParentEvidence:
-    """Construct only persistent cycle-supported sibling parent evidence."""
+    """Construct persistent cycle or isolated-sibling parent evidence."""
     candidates_by_scale: dict[int, tuple[frozenset[str], ...]] = {}
     for plane in planes:
         exact_groups = {
@@ -928,13 +945,10 @@ def _scale_aware_parent_evidence(
             )
             >= _MINIMUM_SOURCE_MEMBERS
         }
-        envelope_groups = (
-            _cycle_supported_feature_groups(
-                _envelope_adjacency(_feature_envelopes(plane, valid))
-            )
-            if len(plane.detections) >= _MINIMUM_CYCLE_DEGREE + 1
-            else ()
-        )
+        adjacency = _envelope_adjacency(_feature_envelopes(plane, valid))
+        envelope_groups = _isolated_sibling_feature_pairs(adjacency)
+        if len(plane.detections) >= _MINIMUM_CYCLE_DEGREE + 1:
+            envelope_groups += _cycle_supported_feature_groups(adjacency)
         envelope_component_groups = {
             component_ids
             for feature_group in envelope_groups
@@ -1549,7 +1563,8 @@ def associate_components_by_multiscale_hierarchy(
     feature only when that feature persists to a parent, or when every owner
     directly attaches to the same feature. When exact sibling lineages remain
     separate, connected significant multiscale support may corroborate a
-    non-terminal envelope group but cannot create source membership by itself.
+    persistent mutually unique pair or non-terminal cycle, but cannot create
+    source membership by itself.
     At the last retained scale, a cycle may construct a parent only when every
     constituent feature has an exact child at the preceding scale or one
     mutually unique displaced child corroborated by overlapping fixed B3

@@ -13,6 +13,7 @@ from hebog.algorithms.multiscale_association import (
     build_scale_detection_plane,
 )
 from hebog.algorithms.source_association import (
+    _isolated_sibling_feature_pairs,  # pyright: ignore[reportPrivateUsage]
     associate_components_by_multiscale_hierarchy,
     build_detection_component_records,
 )
@@ -78,6 +79,40 @@ def _components(
         origin_yx=origin_yx,
     )
     return owner_labels, records
+
+
+@pytest.mark.parametrize(
+    ("adjacency", "expected"),
+    (
+        (
+            {"feature-a": {"feature-b"}, "feature-b": {"feature-a"}},
+            (frozenset(("feature-a", "feature-b")),),
+        ),
+        (
+            {
+                "feature-a": {"feature-b"},
+                "feature-b": {"feature-a", "feature-c"},
+                "feature-c": {"feature-b"},
+            },
+            (),
+        ),
+        (
+            {
+                "feature-a": {"feature-b", "feature-c"},
+                "feature-b": {"feature-a", "feature-c"},
+                "feature-c": {"feature-a", "feature-b"},
+            },
+            (),
+        ),
+    ),
+    ids=("isolated-pair", "chain", "crowded-cycle"),
+)
+def test_sibling_pair_geometry_requires_mutual_uniqueness(
+    adjacency: dict[str, set[str]],
+    expected: tuple[frozenset[str], ...],
+) -> None:
+    """Only a symmetric isolated pair may enter persistence testing."""
+    assert _isolated_sibling_feature_pairs(adjacency) == expected
 
 
 def _displaced_terminal_cycle_fixture(
@@ -502,6 +537,73 @@ def test_persistent_two_feature_envelopes_do_not_invent_one_source() -> None:
     )
 
     assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+
+
+def test_persistent_connected_sibling_envelopes_construct_one_parent() -> None:
+    """Repeated isolated sibling geometry plus signal support is a parent."""
+    pixels = ((10, 5), (10, 15))
+    labels, records = _components(pixels, shape=(21, 21))
+    planes = tuple(
+        _plane(
+            scale_order,
+            tuple(
+                (f"scale-sibling-{scale_order}-{index}", (pixel,))
+                for index, pixel in enumerate(pixels, start=1)
+            ),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[10, 5:16] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [2]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.scale_aware_parent_candidate_count == 2
+    assert diagnostics.persistent_parent_count == 1
+    assert diagnostics.connected_support_candidate_count == 1
+
+
+def test_persistent_sibling_geometry_requires_one_support_component() -> None:
+    """Repeated envelopes cannot merge disconnected nearby detections."""
+    pixels = ((10, 5), (10, 15))
+    labels, records = _components(pixels, shape=(21, 21))
+    planes = tuple(
+        _plane(
+            scale_order,
+            tuple(
+                (f"scale-disconnected-{scale_order}-{index}", (pixel,))
+                for index, pixel in enumerate(pixels, start=1)
+            ),
+            shape=labels.shape,
+        )
+        for scale_order in (2, 3)
+    )
+    significant = labels > 0
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        planes,
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [1, 1]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.scale_aware_parent_candidate_count == 2
+    assert diagnostics.persistent_parent_count == 0
+    assert diagnostics.connected_support_candidate_count == 0
 
 
 @pytest.mark.parametrize(

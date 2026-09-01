@@ -1070,7 +1070,7 @@ from partial or viewed evidence.
      split failures remain. Mechanism review localizes mask loss to the direct
      publication boundary and topology loss to disconnected catalogue sources;
      the existing conservative pair graph finds zero admissible edges.
-   - [ ] Correct the publication statistic before any topology change.
+   - [x] Correct the publication statistic before any topology change.
      Pre-review `9c0e8ece...` binds smoke `07f51256...` and rejects threshold
      tuning, measurement-plane changes, global connectivity removal, relaxed
      association, and truth-assisted filtering. The documented original-pixel
@@ -1085,15 +1085,28 @@ from partial or viewed evidence.
      the worker was unimportable and the intended builder/evaluator overrides
      were not active in the frozen functions' globals. Exact regression tests
      now bind those runtime globals. Repaired decision `a292fa98...` and
-     candidate configuration `57841bc3...` must pass complete
-     current/incumbent no-write verification and publish the same 128-case
-     write-once smoke in the unchanged namespace.
+     candidate configuration `57841bc3...` passed complete current/incumbent
+     no-write verification and published smoke `a8bee362...`: 327 comparisons
+     pass, 35 are diagnostic-underpowered, and seven are confirmed failures.
+     Released-PyBDSF mask precision now passes and pinned-master precision
+     narrowly misses its retained margin. The remaining systematic defect is
+     that refinement starts from expanded measurement labels, allowing dense
+     recovered support to bypass the direct original-pixel S/N floor.
    - [ ] If that replacement smoke leaves confirmed duplicate or split
      failures, review and correct source topology separately on analytic,
      negative-overmerge, executor-invariant, and the same smoke-scale evidence.
      Do not infer an association from viewed truth, relax existing numeric
      constraints, or run the full replay until every binding smoke comparison
      is pass or diagnostic-underpowered without a confirmed failure.
+     In parallel, correct the mask origin domain: begin publication refinement
+     from immutable direct labels and admit multiscale-only pixels solely
+     through the unchanged original-pixel island-S/N rule. For sibling pairs,
+     require the same component pair to have mutually unique overlapping B3
+     envelopes at adjacent scales, lie in one connected significant-support
+     component, and reconcile only whole current singleton groups. Add nearby-
+     pair, chain, bridge, crossing, missing-persistence, invalid-support,
+     order/retry, Serial, and existing-Dask controls. Do not use viewed truth
+     to select a numeric threshold.
    - [ ] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift

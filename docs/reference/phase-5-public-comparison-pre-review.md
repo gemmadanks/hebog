@@ -348,4 +348,4 @@ in a generated history index, and remains scientifically unauthorized. The
 notebook's `latest` pointer is a convenience for inspection, while side-by-side
 historical panels make changes visible without replacing earlier evidence. The
 developer command, resume rules, and output layout are documented in
-[`scripts/benchmark/README.md`](../../scripts/benchmark/README.md#refresh-public-comparison-notebook-results).
+[`scripts/benchmark/README.md`](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/README.md#refresh-public-comparison-notebook-results).

@@ -12,7 +12,13 @@ from astropy.io import fits
 from pytest_mock import MockerFixture
 
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.validation.mask_origin_sibling_pair import (
+    evaluate_mask_origin_sibling_pair_candidate_products,
+)
 from hebog.validation.phase_five_filter_review import ThresholdFilterResult
+from hebog.validation.post_campaign_science import (
+    PostCampaignCandidateProducts,
+)
 from hebog.validation.publication_snr_repair import (
     build_publication_snr_repaired_continuum_products,
     evaluate_publication_snr_repaired_candidate_products,
@@ -93,6 +99,60 @@ def test_repaired_evaluator_requires_aligned_boolean_validity(
             beam=BeamShapePixels(2.0, 1.0, 0.0),
             review=cast(Any, SimpleNamespace()),
         )
+
+
+def test_repaired_publication_starts_from_direct_owner_support(
+    mocker: MockerFixture,
+) -> None:
+    """Dense measurement-only support cannot bypass direct island S/N."""
+    shape = (11, 13)
+    direct_labels = np.zeros(shape, dtype=np.int32)
+    direct_labels[3:8, 3:8] = 7
+    measurement_labels = direct_labels.copy()
+    measurement_labels[3:8, 8:11] = 7
+    significant = measurement_labels > 0
+    detection = ThresholdFilterResult(
+        combined_snr=np.ones(shape),
+        retained_mask=measurement_labels > 0,
+        component_labels=measurement_labels,
+        component_count=1,
+    )
+    predecessor = PostCampaignCandidateProducts(
+        detection=detection,
+        direct_component_labels=direct_labels,
+        measurement_component_labels=measurement_labels,
+        position_signal_jy_per_beam=np.ones(shape),
+        significant_multiscale_support=significant,
+        scale_detection_planes=(),
+    )
+    mocker.patch(
+        "hebog.validation.mask_origin_sibling_pair."
+        "evaluate_publication_snr_repaired_candidate_products",
+        return_value=predecessor,
+    )
+    direct_snr = np.where(direct_labels > 0, 5.0, 2.9)
+    review = cast(
+        Any,
+        SimpleNamespace(matrix=SimpleNamespace(island_sigma=3.0)),
+    )
+
+    products = evaluate_mask_origin_sibling_pair_candidate_products(
+        direct_snr,
+        np.ones(shape, dtype=np.bool_),
+        np.zeros(shape),
+        np.ones(shape),
+        beam=BeamShapePixels(4.0, 3.0, 0.0),
+        review=review,
+    )
+
+    assert np.array_equal(
+        products.detection.component_labels > 0,
+        direct_labels > 0,
+    )
+    assert np.array_equal(
+        products.measurement_component_labels,
+        measurement_labels,
+    )
 
 
 def test_continuum_builder_composes_repaired_mask_with_source_catalogues(

@@ -501,6 +501,79 @@ def test_connected_support_is_serial_dask_order_and_retry_invariant() -> None:
 
 
 @pytest.mark.integration
+def test_persistent_sibling_pair_is_serial_dask_order_invariant() -> None:
+    """Corroborated two-feature parents ignore labels, tasks, and order."""
+    pixels = ((10, 5), (10, 15))
+    labels = np.zeros((21, 21), dtype=np.int32)
+    permuted = np.zeros_like(labels)
+    for value, other, pixel in zip(
+        (9, 2),
+        (31, 7),
+        pixels,
+        strict=True,
+    ):
+        labels[pixel] = value
+        permuted[pixel] = other
+    middle = _hierarchy_cycle_plane(
+        labels.shape,
+        pixels,
+        scale_order=2,
+    )
+    coarse = _hierarchy_cycle_plane(
+        labels.shape,
+        tuple(reversed(pixels)),
+        scale_order=3,
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[10, 5:16] = True
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    permuted_records = build_detection_component_records(
+        permuted,
+        np.asarray(permuted > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    batches: tuple[HierarchyBatch, ...] = (
+        (labels, records, (middle, coarse), significant),
+        (
+            permuted,
+            tuple(reversed(permuted_records)),
+            (coarse, middle),
+            significant,
+        ),
+    )
+    expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
+
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(
+            _reconstruct_hierarchy,
+            (*tuple(reversed(batches)), batches[0]),
+        )
+
+    expected_view = _identity_view(expected[0])
+    assert _identity_view(expected[1]) == expected_view
+    assert [_identity_view(item) for item in actual] == [
+        expected_view,
+        expected_view,
+        expected_view,
+    ]
+    diagnostics = expected[0].hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.catalogue_source_count == 1
+    assert diagnostics.membership_size_histogram == ((2, 1),)
+    assert diagnostics.persistent_parent_count == 1
+
+
+@pytest.mark.integration
 def test_displaced_terminal_persistence_is_serial_dask_invariant() -> None:
     """Bounded displaced children ignore labels, task order, and retries."""
     terminal_pixels = ((10, 10), (10, 30), (30, 10), (30, 30))
