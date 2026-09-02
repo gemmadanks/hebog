@@ -1238,7 +1238,7 @@ from partial or viewed evidence.
      binding, used planning variance as an observed-data gate, and compared
      status transitions with historical baseline `a45303df...` rather than
      selected incumbent `85d5807...`.
-   - [ ] Align the cumulative evaluator and retain attributable paired
+   - [x] Align the cumulative evaluator and retain attributable paired
      evidence before changing source-finding science. Under separately named
      approval, implement one prospective adapter that reports PyBDSF parity,
      incumbent retention, binding safety, and longer-term absolute objectives
@@ -1258,18 +1258,32 @@ from partial or viewed evidence.
      unchanged from the incumbent and must not trigger a science change unless
      retained paired evidence demonstrates a material regression or a later
      separately governed improvement objective is opened.
+     Approved review `77bd4b82...` is implemented without changes under
+     `src/hebog`. The adapter independently exposes 143 Aegean, 368
+     incumbent-Hebog, and 676 dual-PyBDSF co-primary comparisons, five safety
+     invariants, and 15 report-only absolute objectives. It retains hash-bound
+     array-free endpoint statistics for all 1,600 Continuum realizations from
+     current Hebog, incumbent Hebog, and both PyBDSF references. The 155
+     result-neutral sentinel inputs additionally retain truth-linked topology,
+     association mechanism, flux, position, membership, and hierarchy
+     summaries across all four finders. The full population is 800 compact
+     plus 400 realizations from each of four Continuum datasets; its
+     conservative familywise power lower bound is `0.90978`. Complete no-write
+     validation passes for 2,400 inputs, 9,600 retained reference runs, both
+     2,400-task candidate plans, all 1,187 comparisons, and all 160 sentinel
+     memberships, with both scratch namespaces and the output absent. The
+     exact replay remains non-executable until its checksum-bound identity
+     review receives a separate named one-replay approval.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
-   - Blocked: the publication-scale-persistence cumulative prerequisite
-     published terminal ledger `a9c6ed28...` under the legacy decision path,
-     and the prospective review found no full paired incumbent evidence. No
-     qualification population may be opened or frozen until the evaluator is
-     aligned, the paired evidence is retained, all fail-fast lanes pass, and a
-     full cumulative replay publishes a passing all-check parity-and-retention
-     ledger under the prospective contract.
+   - Blocked: the evaluator and paired-evidence design are aligned, but the
+     checksum-bound paired replay has not been separately approved or run. No
+     qualification population may be opened or frozen until that replay
+     publishes a passing all-check parity-and-retention ledger under the
+     prospective contract.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval. Before opening it, demonstrate from the frozen planning

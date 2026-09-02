@@ -1070,6 +1070,43 @@ incumbent regression, the truth-linked summaries will identify whether a
 science repair belongs in association or measurement before another candidate
 is proposed.
 
+### Prospective paired-evidence implementation
+
+**Prepared:** 2026-09-02
+
+The approved evaluation-only correction is implemented without changing
+Hebog's source-finding code or any closed result. The future decision now has
+separate sections for Aegean parity, both PyBDSF parity checks, retention of
+the selected terminal-parent Hebog incumbent, binding product/safety checks,
+and report-only absolute quality objectives. Missing candidate evidence fails;
+missing or inconclusive comparator evidence cannot pass. Observed paired
+confidence limits decide non-inferiority, while a planning-variance miss is
+reported separately and cannot change an observed pass or failure.
+
+The prospective population contains 800 compact inputs and 1,600 Continuum
+inputs, with 400 independent realizations from each of four Continuum datasets.
+It covers all 1,187 frozen co-primary comparisons and has a conservative
+familywise power lower bound of 0.90978. The result-neutral diagnostic lane
+freezes 160 sentinel memberships over 155 unique shell, artifact, scale-4,
+corner, and varying-noise inputs.
+
+The future atomic record will retain array-free endpoint sufficient statistics
+for every Continuum realization from current Hebog, the selected incumbent,
+released PyBDSF, and pinned PyBDSF `master`. The sentinel subset additionally
+retains truth-group-level association mechanisms, duplicate/split topology,
+flux and position errors, source membership sizes, publication/association
+mask overlap counts, and hierarchy reason counts. Each summary and each
+complete summary set is hash-bound; no image or label array enters the record.
+These sentinel diagnostics are explanatory only and cannot promote a result.
+
+Complete no-write validation reproduced the exact population, power audit,
+and sentinel selection; verified all 2,400 inputs and 9,600 retained reference
+runs; constructed both 2,400-task candidate plans; exercised the evaluator
+seams; and confirmed that both future scratch directories and the write-once
+output are absent. No replay or scientific evaluation has been authorized by
+this preparation. The next step is a separate named approval bound to the
+final non-executable identity review.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

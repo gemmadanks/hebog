@@ -1,0 +1,34 @@
+{
+  "adequately_powered_comparison_count": 1187,
+  "all_endpoint_marginal_power_passed": true,
+  "audit_id": "phase-5-prospective-endpoint-power",
+  "candidate_full_replay_results_inspected": false,
+  "combined_familywise_power_lower_bound": 0.9097837426720311,
+  "compact_cross_finder_familywise_power_lower_bound": 0.9097837457955092,
+  "comparison_count": 1187,
+  "comparison_design_rows_retained": false,
+  "comparison_design_sha256": "1110b922bdedfb9fa9f05664590f15e3ed484fa22a3416e31d07c56636e6b4f8",
+  "continuum_cross_finder_familywise_power_lower_bound": 0.9999999999999467,
+  "continuum_incumbent_familywise_power_lower_bound": 0.9999999968765751,
+  "external_protocol": {
+    "path": "config/contracts/phase-5-external-comparison.json",
+    "sha256": "7c981658195f70cbe710b608746a9568bf57efbabb00ada54f5d3dffdbc89f6d"
+  },
+  "global_power_interpretation": "conservative union lower bound across compact cross-finder, Continuum cross-finder, and Continuum incumbent families",
+  "immutable_smoke": {
+    "path": "benchmark-results/phase-5/prospective-science-smoke-publication-scale-persistence.json",
+    "sha256": "9316882c606f66bcbf8937c4fc3f5aea331bb9ab9e8689953026016566bd9855"
+  },
+  "immutable_smoke_status": "fail",
+  "minimum_endpoint_power": 0.9,
+  "minimum_joint_power": 0.9,
+  "prospective_endpoint_registry": {
+    "path": "config/contracts/phase-5-prospective-science-endpoint-registry.json",
+    "sha256": "095354bce2f34ae257574f9168770a194f1f5b00024db0ec5bcafdafba006a7e"
+  },
+  "schema_version": 1,
+  "smoke_prerequisite_rule": "compact-identity-and-zero-confirmed-comparison-failures",
+  "smoke_result_role": "mechanism-and-compact-identity-condition-only",
+  "status": "pass",
+  "underpowered_comparisons": []
+}

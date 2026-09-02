@@ -14171,3 +14171,48 @@ candidate or cumulative replay.
 `77bd4b82...` before implementing the evaluation-only alignment and paired-
 evidence preparation. Do not change source-finding science or execute another
 replay under this review.
+
+## 2026-09-02 — Prospective paired evaluator and evidence lane prepared
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Implemented approved evaluation-only review `77bd4b82...` without changing
+  `src/hebog`, candidate science, thresholds, margins, comparators, confidence
+  rules, or closed evidence. The cumulative adapter now reports Aegean parity,
+  selected-incumbent retention, dual-PyBDSF parity, binding safety, and
+  report-only absolute objectives as independent sections. Missing or
+  inconclusive co-primary evidence fails closed, while planning-variance
+  deviations remain a separate report-only audit.
+- Fixed an incumbent-pair evaluator omission: signed-axis endpoints that are
+  inapplicable cross-finder are still paired against the selected Hebog
+  incumbent. This supplies the complete frozen 368-endpoint retention family
+  without changing PyBDSF applicability.
+- Froze a result-neutral 2,400-input population (800 compact and 400 per each
+  of four Continuum datasets), a 1,187-comparison power audit with conservative
+  familywise lower bound `0.9097837426720311`, and 160 sentinel memberships
+  over 155 unique shell, artifact, scale-4, corner, and varying-noise inputs.
+- The evaluator retains hash-bound array-free endpoint sufficient statistics
+  for every Continuum realization and all four finders. Sentinel records add
+  truth-linked duplicate/split/merge mechanisms, flux and position errors,
+  publication and association mask overlap, source membership sizes, and
+  hierarchy reason counts. Sentinel evidence is explicitly diagnostic and
+  cannot affect promotion.
+- The first complete no-write attempt exposed a task-identity mismatch because
+  the generalized producer omitted the publication-scale composition. A
+  second attempt exposed that the specialized loader returned only an
+  intermediate wrapper. The repaired loader composes the exact specialized
+  science hooks onto the complete generalized CLI; regression tests cover that
+  handoff. Neither failure created scratch, candidate products, or a decision.
+- The repaired complete no-write preflight passes: 2,400 inputs, 9,600 retained
+  reference runs, 2,400 current tasks, 2,400 incumbent tasks, 1,187 comparison
+  identities, and all sentinel memberships were verified. Both future scratch
+  directories and the atomic output remain absent. Focused validation passes
+  60 tests plus Ruff and targeted Pyright. Branch-aware coverage passes with
+  2,416 tests, four expected failures, and 94.58% total coverage; `just check`
+  passes 2,252 tests with four expected failures; the strict documentation
+  build passes; and `just test-equivalence` passes all 27 selected tests.
+
+**Immediate next step:** finish broad validation and `CODE_REVIEW.md` review,
+commit the evaluation-only implementation, freeze its exact non-executable
+identity review and repeat the no-write preflight against that immutable
+composition. Obtain a separate named one-replay approval before execution.
