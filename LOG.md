@@ -14280,6 +14280,15 @@ create an execution decision or run either candidate before that approval.
   a red regression test and changed the wrapper to bind and verify both named
   identities independently; no product, evaluator, endpoint, or decision rule
   changed.
+- The final completion-boundary review removed a circular dependency between
+  the identity-review checksum and the expected-execution checksum: the
+  execution digest binds the clean implementation revision and all executable
+  evidence, while the separate execution decision binds the completed review
+  checksum. It also requires the imported Hebog validation module to originate
+  from the immutable checkout, preventing the cross-checkout import defect
+  that invalidated the first incumbent lane. Focused regressions cover both
+  guards, and the complete no-write pass again verified 2,400 products per
+  candidate plus 9,600 retained reference runs with no execution or output.
 
 **Immediate next step:** validate and commit the evaluation-only completion,
 run its full no-write product and seam verification, freeze an exact clean

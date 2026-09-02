@@ -90,6 +90,23 @@ def test_completion_invocation_rejects_namespace_drift() -> None:
         program["_require_invocation"](arguments)
 
 
+def test_completion_rejects_hebog_imports_from_another_checkout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A detached checkout cannot silently import another Hebog tree."""
+    program = _program()
+    require_origin = program["_require_import_origin"]
+
+    monkeypatch.setattr(
+        require_origin.__globals__["inspect"],
+        "getsourcefile",
+        lambda _value: "/different/checkout/external_runners.py",
+    )
+
+    with pytest.raises(ValueError, match="import origin"):
+        require_origin()
+
+
 def test_reconstruction_record_requires_complete_fixed_identity(
     tmp_path: Path,
 ) -> None:
@@ -157,6 +174,7 @@ def test_product_preflight_rehashes_both_candidates_without_execution(
     identifiers = {f"input-{index}" for index in range(2400)}
     calls: list[Path] = []
 
+    monkeypatch.setitem(globals_, "_require_import_origin", lambda: None)
     monkeypatch.setitem(globals_, "_require_invocation", lambda _args: None)
     monkeypatch.setitem(
         globals_, "_verify_static_evidence", lambda _args: None
@@ -229,3 +247,16 @@ def test_completion_command_runs_only_the_unchanged_evaluator() -> None:
     assert command[1] == str(program["_EVALUATOR"])
     assert "materialize" not in " ".join(command)
     assert command[-2:] == ["--output", str(program["_OUTPUT"])]
+
+
+def test_execution_digest_is_not_circular_with_identity_review() -> None:
+    """The decision binds the review hash outside its own execution digest."""
+    program = _program()
+    fields = program["_expected_execution_fields"](
+        _arguments(program),
+        {"status": "pass"},
+        implementation_revision="revision",
+    )
+
+    assert fields["implementation_revision"] == "revision"
+    assert "identity_review_sha256" not in fields

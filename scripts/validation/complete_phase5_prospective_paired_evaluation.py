@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import runpy
 import subprocess
@@ -171,6 +172,14 @@ def _load_json(path: Path, *, label: str) -> dict[str, object]:
     return cast(dict[str, object], value)
 
 
+def _require_import_origin() -> None:
+    """Require Hebog imports to come from this immutable checkout."""
+    source = inspect.getsourcefile(file_sha256)
+    expected = _ROOT / "src/hebog/validation/external_runners.py"
+    if source is None or Path(source).resolve() != expected.resolve():
+        raise ValueError("paired evaluation Hebog import origin changed")
+
+
 def _require_invocation(arguments: argparse.Namespace) -> None:
     """Require the one fixed evaluation-only namespace."""
     expected = {
@@ -284,6 +293,7 @@ def _verify_reconstruction_record(arguments: argparse.Namespace) -> str:
 
 def verify_products(arguments: argparse.Namespace) -> dict[str, object]:
     """Rehash both completed product sets without compiling science."""
+    _require_import_origin()
     _require_invocation(arguments)
     _verify_static_evidence(arguments)
     incumbent_reconstruction_product_set = _verify_reconstruction_record(
@@ -370,7 +380,6 @@ def _expected_execution_fields(
     arguments: argparse.Namespace,
     verified: Mapping[str, object],
     *,
-    identity_review_sha256: str,
     implementation_revision: str,
 ) -> dict[str, object]:
     """Return every identity covered by the one-use completion authority."""
@@ -378,7 +387,6 @@ def _expected_execution_fields(
         **dict(verified),
         "completion_program_sha256": file_sha256(Path(__file__).resolve()),
         "current_scratch": str(arguments.current_scratch),
-        "identity_review_sha256": identity_review_sha256,
         "implementation_revision": implementation_revision,
         "incumbent_scratch": str(arguments.incumbent_scratch),
         "output_path": str(arguments.output),
@@ -405,7 +413,6 @@ def _validate_authority(
         _expected_execution_fields(
             arguments,
             verified,
-            identity_review_sha256=review_sha256,
             implementation_revision=revision,
         )
     )
