@@ -1,0 +1,62 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "completion": {
+    "evaluator_path": "scripts/validation/evaluate_phase5_prospective_paired_cumulative.py",
+    "evaluator_sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51",
+    "implementation_decision_path": "config/contracts/phase-5-prospective-paired-evaluation-completion-implementation-decision.json",
+    "implementation_decision_sha256": "54fb800fc04fc79561b3c095698de82dfda87c847e61bad27208a974548e8dcb",
+    "pre_review_path": "config/contracts/phase-5-prospective-paired-evaluation-completion-pre-review.json",
+    "pre_review_sha256": "a156ddae74695f86d6479eb772f6656d8b2760542e22bc56629981443939b3a7",
+    "program_path": "scripts/validation/complete_phase5_prospective_paired_evaluation.py",
+    "program_sha256": "76ecc0ee13e2fa05d3da07cb3be77a808e306771c6ca445357eafef97edb0391"
+  },
+  "decision_id": "phase-5-prospective-paired-evaluation-completion-identity-review",
+  "expected_execution_sha256": "96bdbc519cac1ff32cc3736efdca75eea5c7789047672b23915b099ff040c24f",
+  "implementation_revision": "8a19375a940d3c7487a7178218f0300e7f19a0f8",
+  "invocation": {
+    "current_scratch": "/private/tmp/hebog-phase5-prospective-paired-current-937737d",
+    "incumbent_scratch": "/private/tmp/hebog-phase5-prospective-paired-incumbent-authentic-85d5807",
+    "output": "benchmark-results/phase-5/prospective-paired-cumulative-decision.json",
+    "population": "config/contracts/phase-5-prospective-paired-population.json",
+    "reference_reconstruction": "benchmark-results/phase-5/viewed-reference-reconstruction-public-finder-correction",
+    "source_request": "benchmark-results/phase-5/external-post-failure-comparison/campaign-request.json"
+  },
+  "provenance_boundary": {
+    "candidate_execution_possible": false,
+    "clean_execution_checkout_required": true,
+    "immutable_checkout_import_origin_required": true,
+    "implementation_ancestor_required": true,
+    "product_sets_rehashed_before_evaluation": true,
+    "write_once_output_required": true
+  },
+  "schema_version": 1,
+  "status": "ready-for-exact-evaluation-only-completion",
+  "verified_products": {
+    "candidate_execution_started": false,
+    "current_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "current_product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014",
+    "current_revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "current_source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8",
+    "evaluator_sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51",
+    "incumbent_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "incumbent_product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+    "incumbent_reconstruction_product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+    "incumbent_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "incumbent_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
+    "input_count_per_candidate": 2400,
+    "reconstruction_record_sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040",
+    "reference_run_count": 9600,
+    "status": "pass"
+  }
+}

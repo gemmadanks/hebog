@@ -1305,9 +1305,12 @@ from partial or viewed evidence.
      that reconstruction and evaluation use distinct documented canonical
      schemas (`ea12ce03...` complete markers versus `8dbc9dff...` normalized
      evaluator artifacts). Record and verify both identities rather than
-     comparing unlike digests. Complete the corrected product-rehash and seam
-     preflight, freeze the exact clean completion identity, then consume one
-     evaluation-only execution into the still-absent paired decision.
+     comparing unlike digests. The corrected full product-rehash and seam
+     preflight passed, including immutable import-origin and implementation-
+     ancestry guards. Exact completion review `75d46048...`, one-use decision
+     `4624d6d9...`, and expected execution `96bdbc51...` bind the two product
+     schemas independently. Consume that evaluation-only execution into the
+     still-absent paired decision.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

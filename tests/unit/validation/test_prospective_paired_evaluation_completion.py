@@ -26,6 +26,16 @@ _IMPLEMENTATION_DECISION = (
     _ROOT / "config/contracts/phase-5-prospective-paired-evaluation-"
     "completion-implementation-decision.json"
 )
+_IDENTITY_REVIEW = (
+    _ROOT
+    / "config/contracts/phase-5-prospective-paired-evaluation-completion-"
+    "identity-review.json"
+)
+_EXECUTION_DECISION = (
+    _ROOT
+    / "config/contracts/phase-5-prospective-paired-evaluation-completion-"
+    "execution-decision.json"
+)
 
 
 def _program() -> dict[str, Any]:
@@ -298,3 +308,49 @@ def test_completion_rejects_unrelated_implementation_revision(
 
     with pytest.raises(ValueError, match="implementation revision"):
         require_ancestor("a" * 40, "b" * 40)
+
+
+def test_completion_identity_and_decision_bind_exact_verified_products() -> (
+    None
+):
+    """The one-use decision binds the complete review and execution digest."""
+    program = _program()
+    review = json.loads(_IDENTITY_REVIEW.read_text(encoding="utf-8"))
+    decision = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
+    expected = canonical_sha256(
+        program["_expected_execution_fields"](
+            _arguments(program),
+            review["verified_products"],
+            implementation_revision=review["implementation_revision"],
+        )
+    )
+
+    assert review["status"] == ("ready-for-exact-evaluation-only-completion")
+    assert review["expected_execution_sha256"] == expected
+    assert review["authorization"] == dict.fromkeys(
+        (
+            "candidate_execution_authorized",
+            "cutover_authorized",
+            "evaluation_authorized",
+            "fresh_qualification_authorized",
+            "optimization_authorized",
+            "release_authorized",
+            "rescoring_authorized",
+            "scientific_change_authorized",
+            "threshold_or_margin_tuning_authorized",
+            "viewed_data_execution_authorized",
+        ),
+        False,
+    )
+    assert decision["status"] == (
+        "authorized-for-one-exact-evaluation-only-completion"
+    )
+    assert decision["evaluation_authorized"] is True
+    assert decision["expected_execution_sha256"] == expected
+    assert decision["identity_review"] == {
+        "path": str(_IDENTITY_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_IDENTITY_REVIEW),
+    }
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        program["_PROHIBITED_AUTHORIZATIONS"], False
+    )

@@ -14296,9 +14296,17 @@ create an execution decision or run either candidate before that approval.
   and one-use decision without pretending that a JSON document can name the
   as-yet-uncreated commit containing itself. Acceptance and rejection tests
   cover the ancestry boundary.
+- Froze exact evaluation-only identity review `75d46048...` and one-use
+  execution decision `4624d6d9...` against implementation commit `8a19375...`
+  and expected execution `96bdbc51...`. The review binds current evaluator
+  product set `6bcb2959...`, authentic incumbent evaluator product set
+  `8dbc9dff...`, reconstruction marker set `ea12ce03...`, reconstruction
+  record `b302967f...`, unchanged evaluator `44d7d647...`, 2,400 inputs per
+  candidate, and 9,600 retained reference runs. Candidate execution, science
+  changes, tuning, rescoring, cutover, and release remain false.
 
-**Immediate next step:** validate and commit the evaluation-only completion,
-run its full no-write product and seam verification, freeze an exact clean
-completion identity, then evaluate the authentic incumbent against the
-unchanged current products into the absent write-once decision. Preserve all
-failed products and do not change any science or decision policy.
+**Immediate next step:** commit the exact completion review and decision,
+repeat the full no-write verification from a clean immutable checkout, then
+evaluate the authentic incumbent against the unchanged current products into
+the absent write-once decision. Preserve all failed products and do not change
+any science or decision policy.
