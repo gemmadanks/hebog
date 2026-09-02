@@ -96,6 +96,12 @@ _CURRENT_CONFIGURATION_SHA256 = (
 _CURRENT_PRODUCT_SET_SHA256 = (
     "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014"
 )
+_INCUMBENT_RECONSTRUCTION_PRODUCT_SET_SHA256 = (
+    "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8"
+)
+_INCUMBENT_EVALUATOR_PRODUCT_SET_SHA256 = (
+    "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d"
+)
 _INCUMBENT_REVISION = "85d580713664b962ae256a98b065849cf8eb9283"
 _INCUMBENT_SOURCE_TREE_SHA256 = (
     "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
@@ -128,7 +134,7 @@ _RECONSTRUCTION_DECISION_SHA256 = (
     "10e7f0980ce70be6fedef0a84c06d736b24c054838df8464216ed2aa419f3f38"
 )
 _COMPLETION_PRE_REVIEW_SHA256 = (
-    "84a496bd88a6686b5cc31099e35b4897e2477b21fe11c18e06670704d1a8f066"
+    "a156ddae74695f86d6479eb772f6656d8b2760542e22bc56629981443939b3a7"
 )
 _REFERENCE_RECONSTRUCTION_SHA256 = (
     "48209eae94b7dfe66c5098feac56ac8be608c76b6b1a1c4f6c1ff35028c69cc2"
@@ -270,6 +276,7 @@ def _verify_reconstruction_record(arguments: argparse.Namespace) -> str:
     if (
         not isinstance(product_set, str)
         or len(product_set) != _SHA256_HEX_LENGTH
+        or product_set != _INCUMBENT_RECONSTRUCTION_PRODUCT_SET_SHA256
     ):
         raise ValueError("incumbent reconstruction product identity is absent")
     return product_set
@@ -279,7 +286,9 @@ def verify_products(arguments: argparse.Namespace) -> dict[str, object]:
     """Rehash both completed product sets without compiling science."""
     _require_invocation(arguments)
     _verify_static_evidence(arguments)
-    incumbent_expected = _verify_reconstruction_record(arguments)
+    incumbent_reconstruction_product_set = _verify_reconstruction_record(
+        arguments
+    )
     evaluator = runpy.run_path(str(_EVALUATOR))
     materializer = evaluator["_load_materializer"]()
     smoke = runpy.run_path(str(evaluator["_SMOKE_EVALUATOR"]))
@@ -308,7 +317,7 @@ def verify_products(arguments: argparse.Namespace) -> dict[str, object]:
     )
     if (
         current_product_set != _CURRENT_PRODUCT_SET_SHA256
-        or incumbent_product_set != incumbent_expected
+        or incumbent_product_set != _INCUMBENT_EVALUATOR_PRODUCT_SET_SHA256
     ):
         raise ValueError("paired evaluation product-set identity changed")
     if not all(
@@ -328,6 +337,9 @@ def verify_products(arguments: argparse.Namespace) -> dict[str, object]:
         "evaluator_sha256": _EVALUATOR_SHA256,
         "incumbent_configuration_sha256": (_INCUMBENT_CONFIGURATION_SHA256),
         "incumbent_product_set_sha256": incumbent_product_set,
+        "incumbent_reconstruction_product_set_sha256": (
+            incumbent_reconstruction_product_set
+        ),
         "incumbent_revision": _INCUMBENT_REVISION,
         "incumbent_source_tree_sha256": _INCUMBENT_SOURCE_TREE_SHA256,
         "input_count_per_candidate": len(identifiers),

@@ -14,12 +14,12 @@
   "completion": {
     "evaluator_sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51",
     "program_path": "scripts/validation/complete_phase5_prospective_paired_evaluation.py",
-    "program_sha256": "301d60638a535e8b57b0f060087e7f68ad9f8c660b6b55b0a09725da5ce76bf0"
+    "program_sha256": "d25906d4aaedb00d5412210bd2fd3dfe57007215f3bc4cfbcad1c55d2a086142"
   },
   "decision_id": "phase-5-prospective-paired-evaluation-completion-implementation-decision",
   "pre_review": {
     "path": "config/contracts/phase-5-prospective-paired-evaluation-completion-pre-review.json",
-    "sha256": "84a496bd88a6686b5cc31099e35b4897e2477b21fe11c18e06670704d1a8f066"
+    "sha256": "a156ddae74695f86d6479eb772f6656d8b2760542e22bc56629981443939b3a7"
   },
   "repair_boundary": {
     "candidate_execution_possible": false,

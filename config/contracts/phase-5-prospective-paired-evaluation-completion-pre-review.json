@@ -21,8 +21,8 @@
   },
   "exact_user_authority": "Please complete all tasks required for repairing and running the evaluation.",
   "fixed_scientific_contract": {
-    "comparison_count": 1187,
     "comparators_changed": false,
+    "comparison_count": 1187,
     "confidence_rules_changed": false,
     "decision_policy_changed": false,
     "practical_margins_changed": false,
@@ -40,7 +40,8 @@
     "incumbent": {
       "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
       "count": 2400,
-      "product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+      "evaluator_product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+      "reconstruction_product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
       "reconstruction_record_sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040",
       "revision": "85d580713664b962ae256a98b065849cf8eb9283",
       "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"

@@ -1154,9 +1154,11 @@ source-finding change, threshold tuning, or rescoring is part of the repair.
 The reconstruction completed under review `ed968311...` and decision
 `10e7f098...`. Recovery record `b302967f...` binds all 800 compact and 1,600
 Continuum products, historical producer program `1e9483fc...`, wrapper
-`2c40315f...`, and authentic product set `ea12ce03...`; no current-candidate
-execution or policy change occurred. Evaluation-only pre-review `84a496bd...`
-requires both complete sets to be rehashed and the unchanged evaluator seams
+`2c40315f...`, and authentic reconstruction-marker product set `ea12ce03...`;
+no current-candidate execution or policy change occurred. The evaluator's
+normalized representation of the same incumbent artifacts is `8dbc9dff...`.
+Evaluation-only pre-review `a156ddae...` requires both named identities and
+both complete sets to be rehashed, then requires the unchanged evaluator seams
 to pass before the absent paired decision can be written once.
 
 ## Prospective evaluation contract after terminal-cycle repair

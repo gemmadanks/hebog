@@ -64,6 +64,12 @@ def test_completion_program_binds_the_unchanged_evaluator_and_repair() -> None:
     assert program["_CURRENT_PRODUCT_SET_SHA256"] == (
         "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014"
     )
+    assert program["_INCUMBENT_RECONSTRUCTION_PRODUCT_SET_SHA256"] == (
+        "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8"
+    )
+    assert program["_INCUMBENT_EVALUATOR_PRODUCT_SET_SHA256"] == (
+        "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d"
+    )
     decision = json.loads(_IMPLEMENTATION_DECISION.read_text(encoding="utf-8"))
     assert decision["completion"]["program_sha256"] == file_sha256(_PROGRAM)
     assert (
@@ -112,7 +118,9 @@ def test_reconstruction_record_requires_complete_fixed_identity(
         "input_count": 2400,
         "compact_product_count": 800,
         "continuum_product_count": 1600,
-        "product_set_sha256": "a" * 64,
+        "product_set_sha256": program[
+            "_INCUMBENT_RECONSTRUCTION_PRODUCT_SET_SHA256"
+        ],
         "current_candidate_execution_started": False,
         "scientific_policy_changed": False,
     }
@@ -121,7 +129,10 @@ def test_reconstruction_record_requires_complete_fixed_identity(
     path.write_text(json.dumps(document), encoding="utf-8")
     arguments = SimpleNamespace(reconstruction_record=path)
 
-    assert program["_verify_reconstruction_record"](arguments) == "a" * 64
+    assert (
+        program["_verify_reconstruction_record"](arguments)
+        == program["_INCUMBENT_RECONSTRUCTION_PRODUCT_SET_SHA256"]
+    )
     document["scientific_policy_changed"] = True
     document["record_canonical_sha256"] = canonical_sha256(
         {
@@ -153,7 +164,7 @@ def test_product_preflight_rehashes_both_candidates_without_execution(
     monkeypatch.setitem(
         globals_,
         "_verify_reconstruction_record",
-        lambda _args: "incumbent-products",
+        lambda _args: "incumbent-reconstruction-products",
     )
 
     def verify_product_set(
@@ -165,7 +176,7 @@ def test_product_preflight_rehashes_both_candidates_without_execution(
         return (
             program["_CURRENT_PRODUCT_SET_SHA256"]
             if scratch == arguments.current_scratch
-            else "incumbent-products"
+            else program["_INCUMBENT_EVALUATOR_PRODUCT_SET_SHA256"]
         )
 
     materializer = {
@@ -199,6 +210,13 @@ def test_product_preflight_rehashes_both_candidates_without_execution(
 
     assert calls == [arguments.current_scratch, arguments.incumbent_scratch]
     assert result["candidate_execution_started"] is False
+    assert result["incumbent_reconstruction_product_set_sha256"] == (
+        "incumbent-reconstruction-products"
+    )
+    assert (
+        result["incumbent_product_set_sha256"]
+        == program["_INCUMBENT_EVALUATOR_PRODUCT_SET_SHA256"]
+    )
     assert result["input_count_per_candidate"] == 2400
     assert result["reference_run_count"] == 9600
 

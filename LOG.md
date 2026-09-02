@@ -14265,13 +14265,21 @@ create an execution decision or run either candidate before that approval.
   compact and 1,600 Continuum) completed without retry, every artifact and
   exact persisted-label support partition passed, and recovery record
   `b302967f...` sealed authentic product set `ea12ce03...`.
-- Added evaluation-only pre-review `84a496bd...` and a completion boundary
+- Added evaluation-only pre-review `a156ddae...` and a completion boundary
   that rehashes both complete sets, verifies the original replay plus full
   repair/reconstruction authorization chain, checks the unchanged paired
   evaluator seams, requires a clean immutable import root, and invokes only
   evaluator `44d7d647...`. Five focused tests cover fixed identities, namespace
   drift, reconstruction-record corruption, two-product-set verification, and
   the no-producer command boundary.
+- The first full no-write completion check failed before science compilation
+  because its wrapper compared two intentionally different canonical product
+  schemas: recovery hashes complete marker documents (`ea12ce03...`), while
+  the unchanged evaluator hashes normalized artifact records (`8dbc9dff...`).
+  The underlying files and both identities were internally consistent. Added
+  a red regression test and changed the wrapper to bind and verify both named
+  identities independently; no product, evaluator, endpoint, or decision rule
+  changed.
 
 **Immediate next step:** validate and commit the evaluation-only completion,
 run its full no-write product and seam verification, freeze an exact clean

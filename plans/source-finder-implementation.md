@@ -1299,11 +1299,15 @@ from partial or viewed evidence.
      their repeated immutable no-write preflight and produced all 2,400
      authentic historical products. Recovery record `b302967f...` binds
      product set `ea12ce03...`; every artifact and persisted-label support
-     partition passed. Evaluation-only pre-review `84a496bd...` now freezes
+     partition passed. Evaluation-only pre-review `a156ddae...` now freezes
      reuse of current set `6bcb2959...`, authentic incumbent set `ea12ce03...`,
-     and unchanged evaluator `44d7d647...`. Complete its product-rehash and
-     seam preflight, freeze the exact clean completion identity, then consume
-     one evaluation-only execution into the still-absent paired decision.
+     and unchanged evaluator `44d7d647...`. Its first no-write pass exposed
+     that reconstruction and evaluation use distinct documented canonical
+     schemas (`ea12ce03...` complete markers versus `8dbc9dff...` normalized
+     evaluator artifacts). Record and verify both identities rather than
+     comparing unlike digests. Complete the corrected product-rehash and seam
+     preflight, freeze the exact clean completion identity, then consume one
+     evaluation-only execution into the still-absent paired decision.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
