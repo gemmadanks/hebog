@@ -14212,7 +14212,14 @@ replay under this review.
   passes 2,252 tests with four expected failures; the strict documentation
   build passes; and `just test-equivalence` passes all 27 selected tests.
 
-**Immediate next step:** finish broad validation and `CODE_REVIEW.md` review,
-commit the evaluation-only implementation, freeze its exact non-executable
-identity review and repeat the no-write preflight against that immutable
-composition. Obtain a separate named one-replay approval before execution.
+- Committed the evaluation-only implementation at `0a9922c...`, repeated the
+  complete checksum-heavy no-write preflight from that committed composition,
+  and received the same passing result with no scratch or output created. The
+  exact non-executable identity review is SHA-256 `4f5211ed...`; it binds
+  expected execution SHA-256 `cef4e764...`. Three focused identity tests bind
+  every program and design checksum, the exact no-write invocation, and the
+  all-false authorization boundary.
+
+**Immediate next step:** obtain a separate named one-replay approval bound to
+identity review `4f5211ed...` and expected execution `cef4e764...`. Do not
+create an execution decision or run either candidate before that approval.

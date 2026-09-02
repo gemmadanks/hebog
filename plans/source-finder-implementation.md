@@ -1272,8 +1272,10 @@ from partial or viewed evidence.
      validation passes for 2,400 inputs, 9,600 retained reference runs, both
      2,400-task candidate plans, all 1,187 comparisons, and all 160 sentinel
      memberships, with both scratch namespaces and the output absent. The
-     exact replay remains non-executable until its checksum-bound identity
-     review receives a separate named one-replay approval.
+     non-executable identity review is frozen at SHA-256 `4f5211ed...`, bound
+     to expected execution SHA-256 `cef4e764...`. The exact replay remains
+     unauthorized until that review receives a separate named one-replay
+     approval.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

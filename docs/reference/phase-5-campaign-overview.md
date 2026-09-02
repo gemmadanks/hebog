@@ -1107,6 +1107,13 @@ output are absent. No replay or scientific evaluation has been authorized by
 this preparation. The next step is a separate named approval bound to the
 final non-executable identity review.
 
+That identity is now frozen in
+`phase-5-prospective-paired-cumulative-replay-identity-review.json` at SHA-256
+`4f5211ed16e2ea2cf844c1e48269f64de53b8aa62614483b29e2ee4f255d04fa`.
+It binds expected execution SHA-256
+`cef4e7642665b957c8b8a0194359ffa486591b1075dad982b8de70e8e6155424`.
+The record grants no execution or evaluation authority.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31
