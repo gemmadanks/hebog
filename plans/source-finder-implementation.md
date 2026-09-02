@@ -504,8 +504,11 @@ published ledger `a9b4d57e...`: compact passes, but Continuum regresses to 39
 failures and 33 regressions. The fail-fast correction ladder subsequently
 opened publication-scale candidate `937737d...`; full ledger `a9c6ed28...`
 improves to 31 Continuum failures and 26 regressions but remains terminally
-failed. The current blocker is a prospective root-cause review of the complete
-population and stronger stratified smoke coverage rather than another replay.
+failed under its original wrapper. Prospective root-cause review `77bd4b82...`
+finds that all stored PyBDSF comparisons are inside margin and no incumbent
+point estimate moves beyond margin, but exact paired incumbent evidence is
+absent. The current blocker is prospective evaluator alignment and attributable
+paired evidence rather than another science correction or qualification.
 
 Section 7 contains the single authoritative Phase 5 closure sequence; detailed
 chronology and immutable identities remain in `LOG.md` and
@@ -520,11 +523,13 @@ the original final qualification, compact regression, and the incremental
 performance budget are complete. Terminal-cycle eligibility, the fail-fast
 scientific feedback lane, the prospective evaluator, endpoint-level power
 audit, and one complete cumulative evaluation are implemented. That cumulative
-ledger fails, so Phase 5 next requires a prospective full-population root-cause
-correction, passing stratified smoke and cumulative ledgers, and fresh held-out
-qualification for the eventual corrected candidate. Detailed campaign and
-incident chronology belongs in `LOG.md`; machine identities and authorization
-boundaries remain in `config/contracts/`.
+ledger fails under its original decision path, while prospective review
+`77bd4b82...` finds the contract decision incomplete because paired incumbent
+evidence was not retained. Phase 5 next requires evaluator alignment,
+attributable paired evidence, passing sentinel smoke and cumulative decisions,
+and fresh held-out qualification for the eventual proven candidate. Detailed
+campaign and incident chronology belongs in `LOG.md`; machine identities and
+authorization boundaries remain in `config/contracts/`.
 
 #### Completed evidence
 
@@ -542,7 +547,7 @@ boundaries remain in `config/contracts/`.
 | Measurement-completeness repair | Commit `6184a32...` preserves positive expanded-aperture measurements, falls back to explicitly flagged positive exact-owner support only when required, propagates the flags, and remains fail-closed for genuinely unmeasurable owners. Its authorized replay completed all 2,400 candidate products. |
 | Association-aware evaluation repair | The replay then failed before its atomic ledger because the compiler still required one legacy segment label per binding catalogue row. A new adapter leaves every closed program byte-identical, verifies the persisted source-membership digest against the finite native components, presents the exact support union only to catalogue matching, keeps native topology separate, and provides a completion-only path that forbids candidate execution. |
 | Source-reconstruction correction | Candidate `42c75f4...` added a deterministic common-parent hierarchy, one source-level measurement, connected-support admission, and source-union topology evaluation. Terminal ledger `84fbb3a1...` preserves compact science but fails the cumulative gate with 44 Continuum failures and 37 regressions; source membership and fragmentation were effectively unchanged. |
-| Publication-scale-persistence correction | Candidate `937737d...` passed the 128-case smoke and completed the full cumulative population. Terminal ledger `a9c6ed28...` keeps compact green but fails Continuum with 31 failures, 11 underpowered endpoints, and 26 incumbent regressions. It is closed evidence and motivates a full-population root-cause review. |
+| Publication-scale-persistence correction | Candidate `937737d...` completed the full cumulative population. Terminal ledger `a9c6ed28...` keeps compact green but reports 31 failures, 11 underpowered endpoints, and 26 regressions under its original wrapper. Review `77bd4b82...` keeps that status immutable but finds all stored PyBDSF comparisons within margin and the prospective result incomplete because full paired incumbent evidence is absent. |
 | Readiness machinery | The fail-closed packet generator and finalizer exist and require packet-bound radio-astronomy and engineering acceptance. They do not authorize execution, cutover, or release. |
 
 The narrow Continuum watchpoints from the passing recovery evidence remain
@@ -661,17 +666,19 @@ itself.
 
 The subsequent fail-fast ladder produced smoke-passing publication-scale
 persistence candidate `937737d...`, but the complete cumulative replay is now
-terminal failure evidence. Atomic ledger `a9c6ed28...` passes compact with no
-like-semantics regression. Continuum records 101 passes, 31 failures, 11
-underpowered endpoints, and 26 incumbent regressions. Overall completeness and
-all mask gates pass, but reliability is 0.9031 against 0.95, duplicate fraction
+terminal failure evidence under its original wrapper. Atomic ledger
+`a9c6ed28...` passes compact with no historical like-semantics regression.
+Continuum records 101 passes, 31 absolute-objective failures, 11 endpoints
+underpowered by the historical planning-variance rule, and 26 transitions
+against older baseline `a45303df...`. Overall completeness and all mask gates
+pass, but reliability is 0.9031 against the 0.95 objective, duplicate fraction
 is 0.0604 against 0.02, integrated-flux p95 is 0.2699 against 0.25, and position
-p95 is 0.9848 beam against 0.50. Failures concentrate in shell,
-above-compact-deblend-limit, scale-4, tile-boundary/corner, artifact, and
-varying-noise strata. The frozen trade-off rule is inapplicable because
-absolute and incumbent-retention gates fail. The immediate blocker is a
-prospective full-population root-cause review and a better stratified
-fail-fast population, not qualification or another replay.
+p95 is 0.9848 beam against 0.50. Review `77bd4b82...` keeps that evidence
+immutable but finds all 113 stored comparisons within margin against each
+PyBDSF reference and no incumbent point movement beyond margin. The prospective
+decision remains incomplete because full paired terminal-parent evidence is
+absent. Evaluator alignment and paired evidence, not an immediate science
+change, are the next blockers.
 
 Gemma Danks approved exact review `e70e602f...` for fixture-only
 implementation and non-executable identity preparation. The required red
@@ -1175,10 +1182,12 @@ from partial or viewed evidence.
      replay without rescoring or changing a gate.
      "Pass" here is bounded non-inferiority, not a requirement that every
      point estimate improve monotonically: a small loss may be accepted only
-     inside its frozen practical margin, with all absolute and both PyBDSF
-     gates still green, when a related metric improves materially and the
-     scientific trade-off is documented. A status regression, movement beyond
-     the margin, or a post-result change to the rule remains disallowed.
+     inside its frozen practical margin, with both PyBDSF comparisons,
+     incumbent retention, and safety invariants still green, when a related
+     metric improves materially and the scientific trade-off is documented.
+     Numeric absolute objectives remain report-only. A status regression,
+     movement beyond the margin, or a post-result change to the rule remains
+     disallowed.
    - [x] Only after the fixture, activation, contract, prospective evaluator,
      power plan, and smoke lanes pass, freeze exact replacement identities and
      verify that the recorded conditional authority binds them without drift
@@ -1211,29 +1220,56 @@ from partial or viewed evidence.
      `a9c6ed28...` without candidate reexecution. Compact passes, but Continuum
      has 31 confirmed failures, 11 underpowered endpoints, and 26
      like-semantics regressions. The cumulative gate therefore remains closed.
-   - [ ] Complete a prospective root-cause review before changing science or
-     freezing another replay. Use only the already viewed cumulative products
-     to partition every failure family by morphology, scale, boundary state,
-     noise regime, activation diagnostics, and difference from terminal-parent
-     incumbent `85d5807...`. Distinguish publication-mask support,
-     association/topology, position, and source-flux measurement causes; do not
-     infer one cause from aggregate co-movement. Reproduce each confirmed cause
-     with analytic fixtures, then rebuild the smoke population so it includes
-     the observed shell, scale-4, corner/boundary, artifact, and varying-noise
-     tails. A new full replay may be frozen only after the exact production
-     composition passes end-to-end, activation, negative-control, and
-     stratified science-smoke lanes with all absolute, dual-PyBDSF, and
-     incumbent-retention gates green.
+   - [x] Complete a prospective root-cause review before changing science or
+     freezing another replay. Review
+     `phase-5-publication-scale-persistence-root-cause-pre-review`, SHA-256
+     `77bd4b82...`, binds terminal ledger `a9c6ed28...`, selected terminal-
+     parent incumbent `85d5807...`, the exact smoke, population, endpoint
+     registry, and decision contract. The terminal ledger remains an immutable
+     failure under its original evaluator; it is not a completed prospective
+     decision. Its stored analysis places all 113 applicable Continuum
+     comparisons within the frozen margin against each PyBDSF reference,
+     while 32 of 143 incumbent-relative point estimates move adversely and
+     none exceeds its practical margin. Full paired incumbent products were
+     not retained, so the required confidence decisions are unavailable and
+     the prospective verdict is incomplete rather than pass or demonstrated
+     scientific fail.
+     The legacy wrapper incorrectly made report-only numeric absolute targets
+     binding, used planning variance as an observed-data gate, and compared
+     status transitions with historical baseline `a45303df...` rather than
+     selected incumbent `85d5807...`.
+   - [ ] Align the cumulative evaluator and retain attributable paired
+     evidence before changing source-finding science. Under separately named
+     approval, implement one prospective adapter that reports PyBDSF parity,
+     incumbent retention, binding safety, and longer-term absolute objectives
+     separately; never suppress a comparator because an absolute objective is
+     missed. Retain hash-bound array-free realization summaries joining truth
+     group, association mechanism, topology, flux, and position outcomes.
+     Freeze result-neutral shell, artifact, scale-4, corner, and varying-noise
+     sentinels, then prospectively size and freeze one exact paired current /
+     terminal-parent evidence population. A full execution may be frozen only
+     after the exact production composition, activation, negative controls,
+     and sentinel smoke pass. Promotion still requires every applicable
+     dual-PyBDSF comparison, every paired incumbent-retention comparison, and
+     every safety invariant to pass; numeric absolute targets remain visible
+     longer-term objectives rather than Phase 5 compatibility blockers.
+     Shell under-association accounts for 553 of 676 remaining split truth
+     groups and plausibly drives the absolute flux/position tails, but it is
+     unchanged from the incumbent and must not trigger a science change unless
+     retained paired evidence demonstrates a material regression or a later
+     separately governed improvement objective is opened.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
    - Blocked: the publication-scale-persistence cumulative prerequisite
-     published terminal failing ledger `a9c6ed28...`. No qualification
-     population may be opened or frozen until the full-population causes are
-     corrected prospectively, all fail-fast lanes pass, and a full cumulative
-     replay publishes a passing all-check parity-and-retention ledger.
+     published terminal ledger `a9c6ed28...` under the legacy decision path,
+     and the prospective review found no full paired incumbent evidence. No
+     qualification population may be opened or frozen until the evaluator is
+     aligned, the paired evidence is retained, all fail-fast lanes pass, and a
+     full cumulative replay publishes a passing all-check parity-and-retention
+     ledger under the prospective contract.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval. Before opening it, demonstrate from the frozen planning

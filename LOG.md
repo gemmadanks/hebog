@@ -14112,3 +14112,62 @@ viewed cumulative products, separate mask, association/topology, position, and
 flux-measurement causes, reproduce confirmed causes in analytic fixtures, and
 strengthen the stratified fail-fast smoke before proposing another scientific
 candidate or cumulative replay.
+
+## 2026-09-02 — Complete the publication-persistence root-cause review
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Added non-executable prospective root-cause review
+  `phase-5-publication-scale-persistence-root-cause-pre-review`, SHA-256
+  `77bd4b82cc7526b5e6f1b276ea16c887428c92f1c18126071405de69a07dce82`.
+  It binds the immutable terminal ledger, selected terminal-parent incumbent,
+  historical baseline, exact smoke and Continuum population, and the frozen
+  endpoint registry and decision contract. Every implementation, replay,
+  viewed-data, tuning, rescoring, qualification, cutover, and release
+  authorization remains false.
+- Confirmed an evaluation-contract defect rather than a demonstrated
+  prospective scientific regression. The cumulative wrapper made 31 numeric
+  absolute-objective misses binding, treated 11 endpoints as underpowered from
+  planning-variance deviations despite all 22 PyBDSF confidence limits being
+  within margin, and called 26 status transitions against baseline
+  `a45303df...` incumbent regressions.
+  The frozen prospective contract makes numeric absolute targets report-only,
+  decides non-inferiority from observed paired confidence limits, and binds
+  retention to whole candidate `85d5807...`.
+- Recomputed the audit from retained terminal analysis without changing or
+  rescoring the closed ledger. All 113 applicable Continuum comparisons are
+  within their frozen margins against each PyBDSF reference. Against the
+  selected Hebog incumbent, 32 of 143 point estimates move adversely and none
+  exceeds its practical margin; however, the exact full-population incumbent
+  products were not retained, so paired confidence evidence is unavailable.
+  The prospective global result is therefore incomplete, neither a pass nor a
+  demonstrated scientific failure.
+- Reconciled overlapping strata to independent truth groups. Of 676 remaining
+  duplicate/split groups, 553 are the same shell cohort repeated under shell,
+  corner, above-deblend-limit, scale-4, boundary, and varying-noise views; 118
+  are artifact, three diffuse, and two mixed. Relative to incumbent
+  `85d5807...`, 761 groups improve, including 720 artifact cases, while the 553
+  shell cases are unchanged. Publication persistence is isolated to mask
+  labels and improves precision and IoU; it cannot directly cause catalogue
+  topology. Shell under-association plausibly drives the remaining absolute
+  flux/position tails, but removed per-realization products prevent row-level
+  attribution or exclusion of an independent measurement-tail defect.
+- The review therefore recommends no source-finding change yet. Under a
+  separately named approval, first align the cumulative evaluator with the
+  prospective registry, retain hash-bound array-free truth-linked summaries,
+  freeze result-neutral tail sentinels, and prospectively power exact paired
+  current/terminal-parent evidence. Focused reproducibility validation passes
+  ten tests covering evidence hashes, contract semantics, all 226 PyBDSF
+  comparisons, the 143-endpoint incumbent point audit, population algebra,
+  and execution prohibitions.
+- Broad validation passes: branch-aware coverage runs 2,384 tests with four
+  expected failures at 94.58%; `just check` passes 2,220 tests with four
+  expected failures and 208 deselections; all 27 frozen equivalence tests pass;
+  and the strict documentation build passes. Final review against
+  `CODE_REVIEW.md` found no actionable correctness, evidence-integrity,
+  safety, documentation, or coverage issue.
+
+**Immediate next step:** obtain named approval of exact review
+`77bd4b82...` before implementing the evaluation-only alignment and paired-
+evidence preparation. Do not change source-finding science or execute another
+replay under this review.

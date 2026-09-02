@@ -21,7 +21,7 @@ across decisions, or replace a failed result with a later interpretation.
 | Parent-construction cumulative replay | Test whether scale-aware parent envelopes and persistence create the intended catalogue-source parents | Fail | Compact passed, but all 143 Continuum endpoint values and decisions were unchanged. The parent-construction path still did not change governed source membership. |
 | Terminal-parent cumulative replay | Test the persistent terminal-cycle correction on the complete cumulative population | Fail, materially improved | Compact passed. Continuum improved from 89 to 96 passing endpoints; split and duplicate fractions nearly halved, but 35 failures and 30 regressions remain. |
 | Prospective 128-case science smoke | Fail fast on the terminal-cycle eligibility candidate before another complete replay | Fail, full replay blocked | All incumbent-retention checks passed, but eight PyBDSF-parity checks failed. The terminal-cycle repair activated diagnostically without changing catalogue membership; systematic mask-boundary precision is the principal confirmed gap. |
-| Publication-scale-persistence cumulative replay | Test the smoke-passing adjacent-scale publication rule on the complete 800-compact/1,600-Continuum regression population | Fail | Compact passed, but Continuum recorded 31 failures, 11 underpowered endpoints, and 26 incumbent regressions. The small smoke did not expose the full shell, boundary, and scale-4 topology tails. |
+| Publication-scale-persistence cumulative replay | Test the smoke-passing adjacent-scale publication rule on the complete 800-compact/1,600-Continuum regression population | Legacy fail; prospective decision incomplete | Compact passed. The original wrapper reported 31 absolute failures, 11 underpowered endpoints, and 26 historical status regressions, but the later prospective review found all stored PyBDSF comparisons within margin and no full paired evidence against the selected Hebog incumbent. |
 
 The apparent contrast between final qualification and later failure is useful,
 not contradictory. The final qualification showed that the frozen candidate
@@ -862,7 +862,8 @@ closed.
 **Terminal verdict:** zero confirmed failures; the governed larger replay is
 open. The smoke is non-promotional and cannot itself qualify or release the
 candidate. The 2,400-case replay must close the remaining power question and
-pass all PyBDSF, absolute, and incumbent-retention gates without tuning.
+pass all PyBDSF and incumbent-retention comparisons plus every binding safety
+invariant without tuning; numeric absolute objectives remain report-only.
 
 The first immutable full-replay command passed its complete no-write preflight
 but stopped before candidate execution when the full path reloaded the
@@ -957,6 +958,118 @@ source association, or source measurement caused each failure family, and
 encode the confirmed causes in targeted analytic fixtures and a stratified
 fail-fast smoke. Do not tune or rescore this ledger.
 
+## Prospective root-cause review of publication-scale persistence
+
+**Review date:** 2026-09-02
+
+**Evidence role:** non-executable prospective review of already viewed
+development-regression evidence. It does not change the immutable terminal
+ledger's original `fail` status and does not authorize implementation or
+execution. The exact review is
+`config/contracts/phase-5-publication-scale-persistence-root-cause-pre-review.json`,
+SHA-256
+`77bd4b82cc7526b5e6f1b276ea16c887428c92f1c18126071405de69a07dce82`.
+
+The most important finding is that two questions had been combined:
+
+1. Did the candidate miss ambitious absolute quality objectives? Yes. The
+   shell-dominated duplicate, flux-tail, and position-tail measurements are
+   real and remain useful improvement targets.
+2. Did it fail the later agreed Phase 5 replacement rule: no worse than both
+   PyBDSF references, no material regression from the selected Hebog
+   incumbent, and no safety failure? The retained evidence does not show that.
+   It supports PyBDSF parity but lacks the full paired incumbent observations
+   needed to prove retention.
+
+The original cumulative wrapper still applied the historical absolute-gate
+decision path. The prospective registry instead marks numeric absolute targets
+as report-only longer-term objectives. It also requires observed paired
+confidence limits to decide non-inferiority; planning variance is a design
+audit, not a terminal gate. Finally, the wrapper's 26 “regressions” are status
+transitions against older baseline `a45303df...`, not paired comparisons with
+the selected whole terminal-parent incumbent `85d5807...`.
+
+### What the retained evidence supports
+
+| Prospective question | Retained evidence | Conclusion |
+| --- | --- | --- |
+| Compact science | 143 Aegean and 450 dual-PyBDSF comparisons passed; no historical compact regression | Green in the terminal ledger |
+| Released PyBDSF parity | All 113 applicable stored Continuum upper confidence limits are within their frozen margins | Supported by stored analysis |
+| Pinned PyBDSF `master` parity | All 113 applicable stored Continuum upper confidence limits are within their frozen margins | Supported by stored analysis |
+| Selected-incumbent retention | 32 of 143 Continuum point estimates move adversely; none moves beyond its frozen practical margin | Encouraging, but point estimates do not prove paired non-inferiority |
+| Full paired incumbent confidence | Exact full-population terminal-parent products were not retained | Missing; the global prospective decision is incomplete |
+| Binding safety | No product, provenance, determinism, finite-measurement, or write-once failure is recorded | No safety failure observed |
+
+This audit is not a retrospective rescore. It explains why the historical
+ledger remains a valid failure under its original wrapper while also being
+insufficient to decide the prospectively frozen contract.
+
+### Scientific attribution
+
+The named failure strata overlap. Every image has seven governed truth groups.
+The shell group is simultaneously `above-compact-deblend-limit`,
+`morphology-shell`, and `tile-corner`; `tile-boundary` contains shell plus
+filament; `scale-4` contains shell plus four other astronomical groups; and
+`varying-noise` contains all six astronomical groups. These labels therefore
+cannot be counted as independent causal cohorts.
+
+| Remaining split/duplicate cohort | Affected truth groups | Share of 676 |
+| --- | ---: | ---: |
+| Shell | 553 | 81.8% |
+| Artifact | 118 | 17.5% |
+| Diffuse | 3 | 0.4% |
+| Mixed compact/extended | 2 | 0.3% |
+
+Relative to terminal-parent incumbent `85d5807...`, the total falls from 1,437
+to 676 affected truth groups: 720 artifact cases and 41 other non-shell cases
+improve, while the 553 shell cases are unchanged. Reliability improves by
+0.0510, overall duplicate and split fractions each improve by 0.06795, mask
+precision improves by 0.03432, and mask IoU improves by 0.01371. Mask recall
+moves by -0.01849, overall position p95 by +0.00857 beam, and scale-4 position
+p95 by +0.01307 beam; all are inside their frozen 0.05 incumbent margins.
+
+The dominant remaining absolute-quality issue is therefore shell
+under-association: detected shell lobes remain separate catalogue sources.
+That topology plausibly creates the high whole-source flux and centroid tails
+when a lobe is compared with one shell truth source. This is high-confidence
+mechanistic attribution, not row-level proof. Aggregate co-movement cannot
+exclude an independent measurement-tail defect, and the large per-realization
+candidate products were removed after compilation.
+
+Publication-scale persistence is not the catalogue-topology cause. It refines
+only the published detection mask; source association and measurement still
+use stable measurement/direct-component labels. Its observed effect is the
+mask precision/IoU improvement with a bounded recall trade-off. A generic tile
+boundary or varying-noise failure is also excluded: shell accounts for every
+boundary split and shell plus five sparse cases accounts for every varying-
+noise split. Only four of 1,821 terminal cycles were rejected and displaced-
+child persistence never activated, so that late rejection path cannot explain
+553 shell splits.
+
+### Prospective correction
+
+Do not change source-finding science yet. First align the cumulative evaluator
+with the already frozen prospective registry and retain enough paired evidence
+to make the missing decision:
+
+- publish separate PyBDSF-parity, selected-incumbent-retention, binding-safety,
+  and absolute-objective sections;
+- decide non-inferiority from paired realization confidence limits and report
+  planning-variance deviations separately;
+- retain hash-bound, array-free per-realization summaries that join truth
+  group, association mechanism, topology, flux, and position outcomes before
+  deleting large products; and
+- freeze result-neutral shell, artifact, scale-4, corner, and varying-noise
+  sentinels for fast diagnostics, then prospectively power one exact paired
+  current/terminal-parent evidence population.
+
+If that evidence confirms the current point-estimate picture, Hebog satisfies
+the Phase 5 relative scientific requirement and shell association remains a
+transparent longer-term improvement objective. If it demonstrates a material
+incumbent regression, the truth-linked summaries will identify whether a
+science repair belongs in association or measurement before another candidate
+is proposed.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31
@@ -968,11 +1081,12 @@ The next candidate must pass every applicable comparison to released PyBDSF,
 pinned PyBDSF `master`, and Aegean, while also retaining the scientific quality
 of one complete closed Hebog incumbent. A small incumbent-relative movement is
 acceptable only inside the frozen practical margin, with all applicable
-absolute and PyBDSF gates still passing and a substantial scientifically
-related improvement reported explicitly. It cannot compensate for a failed or
-materially regressed check. Ambitious absolute numeric targets remain visible
-as longer-term objectives; finite products, valid schemas and provenance,
-determinism, and write-once publication remain binding safety requirements.
+relative comparisons and safety invariants passing and a substantial
+scientifically related improvement reported explicitly. It cannot compensate
+for a failed or materially regressed check. Ambitious absolute numeric targets
+remain visible as longer-term objectives; finite products, valid schemas and
+provenance, determinism, and write-once publication remain binding safety
+requirements.
 
 | Frozen scope | Count |
 | --- | ---: |
