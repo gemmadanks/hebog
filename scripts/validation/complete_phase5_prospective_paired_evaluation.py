@@ -148,6 +148,7 @@ _POPULATION_SHA256 = (
 )
 _EXPECTED_INPUT_COUNT = 2400
 _EXPECTED_REFERENCE_RUN_COUNT = 9600
+_SHA1_HEX_LENGTH = 40
 _SHA256_HEX_LENGTH = 64
 _PROHIBITED_AUTHORIZATIONS = (
     "candidate_execution_authorized",
@@ -376,6 +377,31 @@ def _git_revision() -> str:
     ).strip()
 
 
+def _require_implementation_ancestor(
+    implementation_revision: object, execution_revision: str
+) -> str:
+    """Require the reviewed implementation in the clean execution history."""
+    if (
+        not isinstance(implementation_revision, str)
+        or len(implementation_revision) != _SHA1_HEX_LENGTH
+        or subprocess.run(
+            (
+                "git",
+                "merge-base",
+                "--is-ancestor",
+                implementation_revision,
+                execution_revision,
+            ),
+            cwd=_ROOT,
+            check=False,
+            capture_output=True,
+        ).returncode
+        != 0
+    ):
+        raise ValueError("paired evaluation implementation revision changed")
+    return implementation_revision
+
+
 def _expected_execution_fields(
     arguments: argparse.Namespace,
     verified: Mapping[str, object],
@@ -409,16 +435,18 @@ def _validate_authority(
     )
     review_sha256 = file_sha256(_IDENTITY_REVIEW)
     revision = _git_revision()
+    implementation_revision = _require_implementation_ancestor(
+        review.get("implementation_revision"), revision
+    )
     expected_execution = canonical_sha256(
         _expected_execution_fields(
             arguments,
             verified,
-            implementation_revision=revision,
+            implementation_revision=implementation_revision,
         )
     )
     if (
         review.get("status") != "ready-for-exact-evaluation-only-completion"
-        or review.get("implementation_revision") != revision
         or review.get("verified_products") != dict(verified)
         or review.get("expected_execution_sha256") != expected_execution
         or review.get("authorization")

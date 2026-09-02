@@ -260,3 +260,41 @@ def test_execution_digest_is_not_circular_with_identity_review() -> None:
 
     assert fields["implementation_revision"] == "revision"
     assert "identity_review_sha256" not in fields
+
+
+def test_completion_accepts_a_later_clean_authorization_commit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reviewed code may be followed by its review and decision commit."""
+    program = _program()
+    require_ancestor = program["_require_implementation_ancestor"]
+    calls: list[tuple[str, ...]] = []
+
+    def run(command: tuple[str, ...], **_kwargs: object) -> SimpleNamespace:
+        calls.append(command)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(require_ancestor.__globals__["subprocess"], "run", run)
+
+    implementation = "a" * 40
+    execution = "b" * 40
+    assert require_ancestor(implementation, execution) == implementation
+    assert calls == [
+        ("git", "merge-base", "--is-ancestor", implementation, execution)
+    ]
+
+
+def test_completion_rejects_unrelated_implementation_revision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unrelated reviewed implementation cannot authorize execution."""
+    program = _program()
+    require_ancestor = program["_require_implementation_ancestor"]
+    monkeypatch.setattr(
+        require_ancestor.__globals__["subprocess"],
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=1),
+    )
+
+    with pytest.raises(ValueError, match="implementation revision"):
+        require_ancestor("a" * 40, "b" * 40)

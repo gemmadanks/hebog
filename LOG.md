@@ -14289,6 +14289,13 @@ create an execution decision or run either candidate before that approval.
   that invalidated the first incumbent lane. Focused regressions cover both
   guards, and the complete no-write pass again verified 2,400 products per
   candidate plus 9,600 retained reference runs with no execution or output.
+- The review also closed the unavoidable review-commit cycle: the clean
+  execution checkout must descend from the reviewed implementation commit,
+  while every executable, scientific input, product set, and output namespace
+  remains checksum-bound. The later commit may therefore add only the review
+  and one-use decision without pretending that a JSON document can name the
+  as-yet-uncreated commit containing itself. Acceptance and rejection tests
+  cover the ancestry boundary.
 
 **Immediate next step:** validate and commit the evaluation-only completion,
 run its full no-write product and seam verification, freeze an exact clean

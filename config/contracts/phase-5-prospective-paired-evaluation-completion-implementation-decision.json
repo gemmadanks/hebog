@@ -14,7 +14,7 @@
   "completion": {
     "evaluator_sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51",
     "program_path": "scripts/validation/complete_phase5_prospective_paired_evaluation.py",
-    "program_sha256": "e37c967bcb762e85cfe8fef9a1c7c0ccdc9fde0682c6e84c236abbcd651284b6"
+    "program_sha256": "76ecc0ee13e2fa05d3da07cb3be77a808e306771c6ca445357eafef97edb0391"
   },
   "decision_id": "phase-5-prospective-paired-evaluation-completion-implementation-decision",
   "pre_review": {
