@@ -1114,6 +1114,42 @@ It binds expected execution SHA-256
 `cef4e7642665b957c8b8a0194359ffa486591b1075dad982b8de70e8e6155424`.
 The record grants no execution or evaluation authority.
 
+### Paired replay operational failure and incumbent recovery
+
+**Terminal date:** 2026-09-02
+
+**Evidence role:** regression; operational failure before scientific decision
+
+The authorized replay asked whether current Hebog retains the scientific
+quality of terminal-parent Hebog while matching Aegean and both pinned PyBDSF
+references on the same 800 compact and 1,600 Continuum inputs. Both Hebog lanes
+completed all 2,400 products, but the evaluator correctly stopped before
+publishing the write-once decision: historical-incumbent source memberships did
+not partition the persisted Continuum labels.
+
+This was not a scientific gate failure. The materializer verified and recorded
+the historical source-tree identity, but worker processes imported the current
+editable Hebog package. Those workers therefore combined current separate
+measurement/publication labels with a historical product schema that stores
+only one label plane. In the resulting invalid incumbent set, 52 associated
+sources were partly absent and 174 were fully absent from that plane. Relaxing
+the evaluator would invent support, so its validation remains unchanged.
+
+| Product set | Products | Identity | Disposition |
+| --- | ---: | --- | --- |
+| Current Hebog | 2,400 | `6bcb2959...` | Valid; retain and reverify |
+| Mixed-lineage incumbent | 2,400 | `b373cafe...` | Preserve as non-evaluable failure evidence |
+| Paired decision | 0 | — | Not published; no scientific verdict |
+
+The bounded repair adds a worker-import origin guard and reconstructs only the
+incumbent in a new namespace under immutable historical execution checkout
+`c1614c2...`. Each reconstructed association must exactly partition its
+persisted labels. A subsequent evaluation-only completion will combine that
+verified incumbent set with the unchanged current set under the same 1,187
+comparisons, safety gates, confidence rules, practical margins, retained
+references, and baseline. No current candidate or viewed-data execution,
+source-finding change, threshold tuning, or rescoring is part of the repair.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

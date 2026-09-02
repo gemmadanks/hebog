@@ -1273,19 +1273,39 @@ from partial or viewed evidence.
      2,400-task candidate plans, all 1,187 comparisons, and all 160 sentinel
      memberships, with both scratch namespaces and the output absent. The
      non-executable identity review is frozen at SHA-256 `4f5211ed...`, bound
-     to expected execution SHA-256 `cef4e764...`. The exact replay remains
-     unauthorized until that review receives a separate named one-replay
-     approval.
+     to expected execution SHA-256 `cef4e764...`.
+   - [ ] Complete the authorized paired evaluation through the provenance-only
+     recovery path. The named replay completed all 2,400 current and all 2,400
+     incumbent products, but the evaluator failed closed before atomic
+     publication while compiling incumbent Continuum support. The paired
+     materializer had verified and stamped the historical incumbent checkout,
+     while its spawned workers imported the current editable Hebog package.
+     This mixed producer lineage left 52 associated sources partially absent
+     and 174 fully absent from the only label plane represented by the
+     historical product schema. The evaluator's exact-support rejection is
+     correct and must not be relaxed.
+     Preserve both completed sets as operational evidence, retain the valid
+     current product set `6bcb2959...`, and replace only invalid incumbent set
+     `b373cafe...`. Before reconstruction, require the imported producer module
+     to resolve inside historical execution checkout `c1614c2...`, verify its
+     source tree/program/wrapper identities, and prove that every historical
+     association membership exactly partitions the persisted labels. Run one
+     two-worker 800-compact/1,600-Continuum incumbent reconstruction in a new
+     namespace, then one evaluation-only completion against the unchanged
+     current products. Keep all 1,187 comparisons, five safety invariants,
+     thresholds, confidence rules, margins, references, and baseline fixed.
+     No current-candidate execution or source-finding change is permitted.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
-   - Blocked: the evaluator and paired-evidence design are aligned, but the
-     checksum-bound paired replay has not been separately approved or run. No
-     qualification population may be opened or frozen until that replay
-     publishes a passing all-check parity-and-retention ledger under the
-     prospective contract.
+   - Blocked: the evaluator and paired-evidence design are aligned and the
+     authorized paired candidate runs completed, but the incumbent products
+     require provenance-correct reconstruction before the unchanged evaluator
+     can publish a scientific decision. No qualification population may be
+     opened or frozen until that repaired evaluation publishes a passing
+     all-check parity-and-retention decision under the prospective contract.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
      one-look approval. Before opening it, demonstrate from the frozen planning

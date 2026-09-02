@@ -1,0 +1,38 @@
+{
+  "authorization": {
+    "current_candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_only_completion_authorized": true,
+    "fresh_qualification_authorized": false,
+    "incumbent_reconstruction_authorized": true,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-prospective-paired-incumbent-provenance-repair-implementation-decision",
+  "exact_user_authority": "Please complete all tasks required for repairing and running the evaluation.",
+  "failed_products": {
+    "disposition": "preserved-non-evaluable-process-failure-evidence",
+    "product_set_sha256": "b373cafe20285326b7a2f51b990670981edaf8dc06db16e11e8989ae86680528"
+  },
+  "implementation": {
+    "reconstruction_program_path": "scripts/validation/reconstruct_phase5_prospective_paired_incumbent.py",
+    "reconstruction_program_sha256": "79d59cb8d54867f797bb9fa473e8767bfa46d9ff99cb42a4d3bb38eb9d8efebc"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-paired-incumbent-provenance-repair-pre-review.json",
+    "sha256": "5fbafa4e3d4f215d6668a7f3ac2fda27e7da52d4341ead266b9c2f72342a5bb5"
+  },
+  "repair_boundary": {
+    "historical_import_origin_required": true,
+    "historical_support_partition_required": true,
+    "new_output_namespace_required": true,
+    "paired_decision_policy_changed": false,
+    "source_finding_science_changed": false
+  },
+  "schema_version": 1,
+  "status": "implemented-incumbent-producer-provenance-repair"
+}

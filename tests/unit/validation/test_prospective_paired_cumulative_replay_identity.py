@@ -87,9 +87,12 @@ def test_identity_review_matches_the_complete_no_write_invocation() -> None:
         "sentinel_unique_input_count": 155,
         "status": "pass",
     }
-    assert not wrapper["_CURRENT_SCRATCH"].exists()
-    assert not wrapper["_INCUMBENT_SCRATCH"].exists()
-    assert not wrapper["_OUTPUT"].exists()
+
+    # The review records the state observed before execution. Runtime products
+    # may legitimately exist after the one-use authorization is consumed, so
+    # this durable identity test must not reinterpret current filesystem state.
+    assert review["no_write_verification"]["scratch_absent"] is True
+    assert review["no_write_verification"]["output_absent"] is True
 
 
 def test_identity_review_is_non_executable_and_scientifically_fixed() -> None:

@@ -14223,3 +14223,44 @@ replay under this review.
 **Immediate next step:** obtain a separate named one-replay approval bound to
 identity review `4f5211ed...` and expected execution `cef4e764...`. Do not
 create an execution decision or run either candidate before that approval.
+
+## 2026-09-02 — Paired replay fails closed on incumbent producer provenance
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Consumed the named paired-replay authorization at clean execution commit
+  `9fa879f...`. The current and selected-incumbent lanes each completed all
+  2,400 products. The evaluator published no atomic decision because incumbent
+  Continuum compilation rejected non-partitioning association support with
+  `ValueError: associated source supports must be present and disjoint`.
+- Root-cause inspection found a producer-provenance defect, not an evaluator
+  or scientific-threshold defect. The orchestration process verified and
+  stamped historical incumbent source tree `a082cbe4...`, but spawned workers
+  imported the current editable Hebog package. The mixed-lineage products used
+  current measurement/publication separation with the historical one-label
+  schema. Across 1,600 Continuum products, 52 associated sources were only
+  partly represented by the persisted label plane and 174 were absent; there
+  were no unexpected positive publication labels.
+- Preserved current product set `6bcb2959...` as valid completed evidence and
+  failed incumbent product set `b373cafe...` as non-evaluable operational
+  evidence. The evaluator guard remains unchanged because relaxing it would
+  fabricate source support.
+- Added pre-review `phase-5-prospective-paired-incumbent-provenance-repair`,
+  SHA-256 `5fbafa4e...`, and implemented a fail-closed module-origin check plus
+  exact historical-incumbent reconstruction. The reconstruction binds
+  execution checkout `c1614c2...`, candidate `85d5807...`, source tree
+  `a082cbe4...`, configuration `88ac8bea...`, historical producer and wrapper,
+  the unchanged population/references, a new output namespace, and an exact
+  persisted-label support partition check. Current-candidate execution,
+  source-finding changes, policy changes, tuning, and rescoring remain false.
+- The complete reconstruction no-write preflight verified 2,400 inputs and
+  9,600 retained reference runs and produced expected execution SHA-256
+  `96077d89...` without creating scratch or output. Focused tests cover origin
+  acceptance/rejection, the original cross-checkout regression, exact and
+  malformed support partitions, and all repair identities.
+
+**Immediate next step:** finish repository-wide validation and review, commit
+the provenance repair, freeze an exact reconstruction execution decision, then
+reconstruct only the incumbent and evaluate it against the unchanged completed
+current products. Preserve all failed products and the absent write-once
+decision until the corrected completion succeeds.

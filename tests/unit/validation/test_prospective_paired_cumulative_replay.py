@@ -140,6 +140,7 @@ def test_wrapper_no_write_path_exercises_both_candidates(
     globals_ = verify.__globals__
     modes: list[str] = []
     monkeypatch.setitem(globals_, "_require_invocation", lambda _args: None)
+    monkeypatch.setattr(Path, "exists", lambda _self: False)
     monkeypatch.setitem(
         globals_, "_require_candidate_root", lambda *_args, **_kwargs: None
     )
