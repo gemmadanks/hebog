@@ -14258,9 +14258,23 @@ create an execution decision or run either candidate before that approval.
   `96077d89...` without creating scratch or output. Focused tests cover origin
   acceptance/rejection, the original cross-checkout regression, exact and
   malformed support partitions, and all repair identities.
+- Committed the repair as `705b48a...` and its one-use reconstruction review
+  and decision as `35a7900...`. The detached immutable checkout repeated the
+  complete preflight with the same expected execution SHA-256 `96077d89...`,
+  then ran the historical producer with two workers. All 2,400 products (800
+  compact and 1,600 Continuum) completed without retry, every artifact and
+  exact persisted-label support partition passed, and recovery record
+  `b302967f...` sealed authentic product set `ea12ce03...`.
+- Added evaluation-only pre-review `84a496bd...` and a completion boundary
+  that rehashes both complete sets, verifies the original replay plus full
+  repair/reconstruction authorization chain, checks the unchanged paired
+  evaluator seams, requires a clean immutable import root, and invokes only
+  evaluator `44d7d647...`. Five focused tests cover fixed identities, namespace
+  drift, reconstruction-record corruption, two-product-set verification, and
+  the no-producer command boundary.
 
-**Immediate next step:** finish repository-wide validation and review, commit
-the provenance repair, freeze an exact reconstruction execution decision, then
-reconstruct only the incumbent and evaluate it against the unchanged completed
-current products. Preserve all failed products and the absent write-once
-decision until the corrected completion succeeds.
+**Immediate next step:** validate and commit the evaluation-only completion,
+run its full no-write product and seam verification, freeze an exact clean
+completion identity, then evaluate the authentic incumbent against the
+unchanged current products into the absent write-once decision. Preserve all
+failed products and do not change any science or decision policy.

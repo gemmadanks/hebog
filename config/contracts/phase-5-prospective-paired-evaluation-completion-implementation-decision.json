@@ -1,0 +1,35 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_only_completion_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "completion": {
+    "evaluator_sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51",
+    "program_path": "scripts/validation/complete_phase5_prospective_paired_evaluation.py",
+    "program_sha256": "301d60638a535e8b57b0f060087e7f68ad9f8c660b6b55b0a09725da5ce76bf0"
+  },
+  "decision_id": "phase-5-prospective-paired-evaluation-completion-implementation-decision",
+  "pre_review": {
+    "path": "config/contracts/phase-5-prospective-paired-evaluation-completion-pre-review.json",
+    "sha256": "84a496bd88a6686b5cc31099e35b4897e2477b21fe11c18e06670704d1a8f066"
+  },
+  "repair_boundary": {
+    "candidate_execution_possible": false,
+    "decision_policy_changed": false,
+    "product_sets_rehashed_before_evaluation": true,
+    "reconstruction_provenance_required": true,
+    "source_finding_science_changed": false,
+    "unchanged_evaluator_required": true,
+    "write_once_output_required": true
+  },
+  "schema_version": 1,
+  "status": "implemented-prospective-paired-evaluation-only-completion"
+}

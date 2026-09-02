@@ -1139,6 +1139,7 @@ the evaluator would invent support, so its validation remains unchanged.
 | --- | ---: | --- | --- |
 | Current Hebog | 2,400 | `6bcb2959...` | Valid; retain and reverify |
 | Mixed-lineage incumbent | 2,400 | `b373cafe...` | Preserve as non-evaluable failure evidence |
+| Authentic historical incumbent | 2,400 | `ea12ce03...` | Reconstructed and fully verified |
 | Paired decision | 0 | — | Not published; no scientific verdict |
 
 The bounded repair adds a worker-import origin guard and reconstructs only the
@@ -1149,6 +1150,14 @@ verified incumbent set with the unchanged current set under the same 1,187
 comparisons, safety gates, confidence rules, practical margins, retained
 references, and baseline. No current candidate or viewed-data execution,
 source-finding change, threshold tuning, or rescoring is part of the repair.
+
+The reconstruction completed under review `ed968311...` and decision
+`10e7f098...`. Recovery record `b302967f...` binds all 800 compact and 1,600
+Continuum products, historical producer program `1e9483fc...`, wrapper
+`2c40315f...`, and authentic product set `ea12ce03...`; no current-candidate
+execution or policy change occurred. Evaluation-only pre-review `84a496bd...`
+requires both complete sets to be rehashed and the unchanged evaluator seams
+to pass before the absent paired decision can be written once.
 
 ## Prospective evaluation contract after terminal-cycle repair
 

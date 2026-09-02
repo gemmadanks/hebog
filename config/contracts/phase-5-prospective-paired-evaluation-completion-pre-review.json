@@ -1,0 +1,59 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_only_completion_authorized": true,
+    "fresh_qualification_authorized": false,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-prospective-paired-evaluation-completion-pre-review",
+  "evaluation": {
+    "evaluator_path": "scripts/validation/evaluate_phase5_prospective_paired_cumulative.py",
+    "evaluator_sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51",
+    "output": "benchmark-results/phase-5/prospective-paired-cumulative-decision.json",
+    "output_absent": true
+  },
+  "exact_user_authority": "Please complete all tasks required for repairing and running the evaluation.",
+  "fixed_scientific_contract": {
+    "comparison_count": 1187,
+    "comparators_changed": false,
+    "confidence_rules_changed": false,
+    "decision_policy_changed": false,
+    "practical_margins_changed": false,
+    "safety_invariant_count": 5,
+    "thresholds_changed": false
+  },
+  "products": {
+    "current": {
+      "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "count": 2400,
+      "product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014",
+      "revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+      "source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8"
+    },
+    "incumbent": {
+      "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+      "count": 2400,
+      "product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+      "reconstruction_record_sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040",
+      "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+      "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+    }
+  },
+  "required_completion": [
+    "rehash every artifact in both completed 2,400-product sets",
+    "verify the authentic incumbent reconstruction record and original plus repair authorization chain",
+    "exercise the unchanged evaluator and paired compiler seams without compiling science",
+    "bind imports to the exact clean immutable completion checkout",
+    "run the unchanged evaluator exactly once into the still-absent write-once output",
+    "interpret all binding comparisons and safety invariants before report-only objectives and runtime"
+  ],
+  "schema_version": 1,
+  "status": "reviewed-before-prospective-paired-evaluation-only-completion"
+}

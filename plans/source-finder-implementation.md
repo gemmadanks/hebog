@@ -1295,16 +1295,25 @@ from partial or viewed evidence.
      current products. Keep all 1,187 comparisons, five safety invariants,
      thresholds, confidence rules, margins, references, and baseline fixed.
      No current-candidate execution or source-finding change is permitted.
+     Reconstruction review `ed968311...` and decision `10e7f098...` passed
+     their repeated immutable no-write preflight and produced all 2,400
+     authentic historical products. Recovery record `b302967f...` binds
+     product set `ea12ce03...`; every artifact and persisted-label support
+     partition passed. Evaluation-only pre-review `84a496bd...` now freezes
+     reuse of current set `6bcb2959...`, authentic incumbent set `ea12ce03...`,
+     and unchanged evaluator `44d7d647...`. Complete its product-rehash and
+     seam preflight, freeze the exact clean completion identity, then consume
+     one evaluation-only execution into the still-absent paired decision.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Freshly qualify the exact passing candidate.**
    - Blocked: the evaluator and paired-evidence design are aligned and the
-     authorized paired candidate runs completed, but the incumbent products
-     require provenance-correct reconstruction before the unchanged evaluator
-     can publish a scientific decision. No qualification population may be
-     opened or frozen until that repaired evaluation publishes a passing
+     authorized paired candidate runs and the provenance-correct incumbent
+     reconstruction completed, but the unchanged evaluator has not yet
+     published the paired scientific decision. No qualification population
+     may be opened or frozen until that evaluation publishes a passing
      all-check parity-and-retention decision under the prospective contract.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact compiler/evaluator/runtime identities, then obtain a separate
