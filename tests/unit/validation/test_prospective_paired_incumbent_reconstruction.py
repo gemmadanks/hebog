@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import runpy
 from pathlib import Path
@@ -25,6 +26,15 @@ _IMPLEMENTATION_DECISION = (
     _ROOT / "config/contracts/"
     "phase-5-prospective-paired-incumbent-provenance-repair-"
     "implementation-decision.json"
+)
+_IDENTITY_REVIEW = (
+    _ROOT / "config/contracts/"
+    "phase-5-prospective-paired-incumbent-reconstruction-identity-review.json"
+)
+_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/"
+    "phase-5-prospective-paired-incumbent-reconstruction-execution-"
+    "decision.json"
 )
 
 
@@ -168,3 +178,71 @@ def test_implementation_decision_binds_provenance_only_repair() -> None:
     assert (
         decision["repair_boundary"]["paired_decision_policy_changed"] is False
     )
+
+
+def test_reconstruction_identity_review_binds_the_verified_invocation() -> (
+    None
+):
+    """The no-write record binds every executable reconstruction identity."""
+    review = json.loads(_IDENTITY_REVIEW.read_text(encoding="utf-8"))
+    program = _program()
+    arguments = argparse.Namespace(
+        closed_baseline=Path(
+            "benchmark-results/phase-5/"
+            "cumulative-regression-ledger-recovery.json"
+        ),
+        historical_root=Path(
+            "/private/tmp/hebog-phase5-terminal-parent-replay-c1614c2"
+        ),
+        output=Path(
+            "benchmark-results/phase-5/"
+            "prospective-paired-incumbent-reconstruction.json"
+        ),
+        population=Path(
+            "config/contracts/phase-5-prospective-paired-population.json"
+        ),
+        reference_reconstruction=Path(
+            "benchmark-results/phase-5/"
+            "viewed-reference-reconstruction-public-finder-correction"
+        ),
+        scratch=Path(
+            "/private/tmp/hebog-phase5-prospective-paired-"
+            "incumbent-authentic-85d5807"
+        ),
+        source_request=Path(
+            "benchmark-results/phase-5/external-post-failure-comparison/"
+            "campaign-request.json"
+        ),
+        workers=2,
+    )
+
+    assert review["status"] == (
+        "ready-for-authorized-provenance-only-reconstruction"
+    )
+    assert not any(review["authorization"].values())
+    assert review["expected_execution_sha256"] == program["canonical_sha256"](
+        program["_expected_execution_fields"](arguments)
+    )
+    assert review["implementation"]["program_sha256"] == file_sha256(_PROGRAM)
+    assert review["implementation"]["decision_sha256"] == file_sha256(
+        _IMPLEMENTATION_DECISION
+    )
+
+
+def test_reconstruction_execution_decision_consumes_only_repair_scope() -> (
+    None
+):
+    """The one-use decision permits reconstruction and evaluation only."""
+    decision = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
+    review = json.loads(_IDENTITY_REVIEW.read_text(encoding="utf-8"))
+
+    assert decision["identity_review"]["sha256"] == file_sha256(
+        _IDENTITY_REVIEW
+    )
+    assert (
+        decision["expected_execution_sha256"]
+        == review["expected_execution_sha256"]
+    )
+    assert decision["incumbent_reconstruction_authorized"] is True
+    assert decision["evaluation_authorized"] is True
+    assert not any(decision["prohibited_authorizations"].values())
