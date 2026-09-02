@@ -19,6 +19,10 @@ _WRAPPER = (
     _ROOT / "scripts/validation/"
     "review_phase5_prospective_paired_cumulative_replay.py"
 )
+_EXECUTION_DECISION = (
+    _ROOT / "config/contracts/phase-5-prospective-paired-cumulative-replay-"
+    "execution-decision.json"
+)
 
 
 def _review() -> dict[str, Any]:
@@ -114,3 +118,24 @@ def test_identity_review_is_non_executable_and_scientifically_fixed() -> None:
             ),
         },
     }
+
+
+def test_execution_decision_consumes_only_the_named_replay_authority() -> None:
+    """The new approval authorizes this replay but no adjacent activity."""
+    decision = json.loads(_EXECUTION_DECISION.read_text(encoding="utf-8"))
+
+    assert decision["identity_review"] == {
+        "path": (
+            "config/contracts/phase-5-prospective-paired-cumulative-replay-"
+            "identity-review.json"
+        ),
+        "sha256": file_sha256(_REVIEW),
+    }
+    assert (
+        decision["expected_execution_sha256"]
+        == (_review()["expected_execution_sha256"])
+    )
+    assert decision["execution_authorized"] is True
+    assert decision["cumulative_replay_authorized"] is True
+    assert decision["evaluation_authorized"] is True
+    assert not any(decision["prohibited_authorizations"].values())

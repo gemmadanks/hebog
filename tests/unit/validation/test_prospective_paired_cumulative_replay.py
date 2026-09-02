@@ -194,12 +194,27 @@ def test_wrapper_no_write_path_exercises_both_candidates(
     assert record["candidate_execution_started"] is False
 
 
-def test_wrapper_requires_a_separate_future_execution_decision() -> None:
-    """The approved implementation decision cannot start the replay."""
+def test_wrapper_accepts_only_the_exact_execution_decision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The user's decision binds the exact preflighted execution."""
     wrapper = runpy.run_path(str(_WRAPPER))
+    authority = wrapper["_require_execution_authority"]
 
-    with pytest.raises(ValueError, match="execution decision is absent"):
-        wrapper["_require_execution_authority"](_arguments(wrapper))
+    authority(_arguments(wrapper))
+
+    decision = json.loads(
+        wrapper["_EXECUTION_DECISION"].read_text(encoding="utf-8")
+    )
+    decision["expected_execution_sha256"] = "changed"
+    monkeypatch.setitem(
+        authority.__globals__,
+        "_load_json",
+        lambda *_args, **_kwargs: decision,
+    )
+
+    with pytest.raises(ValueError, match="replay is not authorized"):
+        authority(_arguments(wrapper))
 
 
 def test_future_commands_keep_current_incumbent_and_evaluation_separate() -> (

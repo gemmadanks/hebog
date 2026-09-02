@@ -1,0 +1,29 @@
+{
+  "authorization_record": {
+    "approved_on": "2026-09-02",
+    "statement": "I have freed up disk space. Please proceed with the replay."
+  },
+  "cumulative_replay_authorized": true,
+  "decision_id": "phase-5-prospective-paired-cumulative-replay-execution-decision",
+  "evaluation_authorized": true,
+  "execution_authorized": true,
+  "expected_execution_sha256": "cef4e7642665b957c8b8a0194359ffa486591b1075dad982b8de70e8e6155424",
+  "identity_review": {
+    "path": "config/contracts/phase-5-prospective-paired-cumulative-replay-identity-review.json",
+    "sha256": "4f5211ed16e2ea2cf844c1e48269f64de53b8aa62614483b29e2ee4f255d04fa"
+  },
+  "output_path": "benchmark-results/phase-5/prospective-paired-cumulative-decision.json",
+  "prohibited_authorizations": {
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "schema_version": 1,
+  "status": "authorized-for-one-prospective-paired-cumulative-replay",
+  "workers": 2
+}
