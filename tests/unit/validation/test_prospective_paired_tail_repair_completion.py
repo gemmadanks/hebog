@@ -155,7 +155,7 @@ def test_execution_digest_binds_consumed_lineage_and_scientific_inputs() -> (
 
 
 def test_identity_review_is_exact_and_non_executable() -> None:
-    """The frozen review grants no execution authority."""
+    """The review is inert while its separate decision grants one run."""
     program = _program()
     review = json.loads(_IDENTITY_REVIEW.read_text(encoding="utf-8"))
     expected = canonical_sha256(
@@ -182,4 +182,15 @@ def test_identity_review_is_exact_and_non_executable() -> None:
         ),
         False,
     )
-    assert not program["_EXECUTION_DECISION"].exists()
+    decision = json.loads(
+        program["_EXECUTION_DECISION"].read_text(encoding="utf-8")
+    )
+    assert decision["evaluation_authorized"] is True
+    assert decision["expected_execution_sha256"] == expected
+    assert decision["identity_review"] == {
+        "path": str(_IDENTITY_REVIEW.relative_to(_ROOT)),
+        "sha256": file_sha256(_IDENTITY_REVIEW),
+    }
+    assert decision["prohibited_authorizations"] == dict.fromkeys(
+        program["_PROHIBITED_AUTHORIZATIONS"], False
+    )
