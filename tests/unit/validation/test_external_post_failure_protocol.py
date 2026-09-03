@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import json
 import runpy
 from copy import deepcopy
 from pathlib import Path
@@ -23,6 +24,57 @@ _ROOT = Path(__file__).parents[3]
 def _script(relative_path: str) -> dict[str, Any]:
     """Load one script without invoking its command-line entry point."""
     return runpy.run_path(str(_ROOT / relative_path))
+
+
+def _approved_pre_review_fixture() -> dict[str, object]:
+    """Reconstruct the builder input from its checked-in frozen contract."""
+    frozen = json.loads(
+        (
+            _ROOT / "config/contracts/"
+            "phase-5-external-post-failure-population.json"
+        ).read_text(encoding="utf-8")
+    )
+    audit = frozen["power_audit"]
+    return {
+        "review_id": "phase-5-post-failure-power-pre-review",
+        "planning_method": audit["method"],
+        "population": {
+            "compact_realization_count": audit["compact_realization_count"],
+            "continuum_geometry_count": audit["continuum_geometry_count"],
+            "continuum_realizations_per_geometry": audit[
+                "continuum_realizations_per_geometry"
+            ],
+            "minimum_continuum_realization_count": audit[
+                "minimum_continuum_realization_count"
+            ],
+            "selected_continuum_realization_count": audit[
+                "continuum_realization_count"
+            ],
+        },
+        "power": {
+            "combined_familywise_power_lower_bound": audit[
+                "combined_familywise_power_lower_bound"
+            ],
+            "compact_familywise_power_lower_bound": audit[
+                "compact_familywise_power_lower_bound"
+            ],
+            "continuum_familywise_power_lower_bound": audit[
+                "continuum_familywise_power_lower_bound"
+            ],
+            "minimum_joint_power": audit["minimum_joint_power"],
+        },
+        "variance_rule": {
+            "assumption_failure": audit["assumption_failure"],
+            "family_floor_retained": audit["family_variance_floor_retained"],
+            "inflation": audit["variance_inflation"],
+        },
+        "expected_regression_rule": {
+            "retained_fraction_of_favourable_closed_difference": audit[
+                "advantage_retention"
+            ]
+        },
+        "paired_assumptions": audit["paired_assumptions"],
+    }
 
 
 def test_cumulative_ledger_marks_only_like_basis_pass_losses() -> None:
@@ -272,13 +324,24 @@ def test_cumulative_replay_separates_closed_and_candidate_source_ids() -> None:
 
 
 def test_post_failure_population_builder_freezes_approved_design(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The approved 1,600/800 design retains every exact paired prior."""
     module = _script(
         "scripts/validation/freeze_phase5_external_post_failure_population.py"
     )
+    pre_review_path = tmp_path / "post-failure-power-pre-review.json"
+    pre_review_path.write_bytes(
+        module["_json_bytes"](_approved_pre_review_fixture())
+    )
     globals_ = module["build_post_failure_documents"].__globals__
+    monkeypatch.setitem(globals_, "_PRE_REVIEW_PATH", str(pre_review_path))
+    monkeypatch.setitem(
+        globals_,
+        "_PRE_REVIEW_SHA256",
+        globals_["file_sha256"](pre_review_path),
+    )
     monkeypatch.setitem(
         globals_,
         "source_tree_sha256",
@@ -313,7 +376,15 @@ def test_post_failure_population_builder_freezes_approved_design(
     assert len(compact_seeds) == 800
     assert continuum_seeds.isdisjoint(compact_seeds)
     assert freeze["population_audit"]["seed_disjoint"] is True
-    assert len(freeze["power_audit"]["paired_assumptions"]) == 226
+    assert (
+        freeze["power_audit"]
+        == json.loads(
+            (
+                _ROOT / "config/contracts/"
+                "phase-5-external-post-failure-population.json"
+            ).read_text(encoding="utf-8")
+        )["power_audit"]
+    )
     assert freeze["power_audit"]["minimum_continuum_realization_count"] == (
         1550
     )
