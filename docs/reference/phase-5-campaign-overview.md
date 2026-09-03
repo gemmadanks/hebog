@@ -1201,6 +1201,17 @@ identity and decision. The complete prospective repair review is
 `config/contracts/phase-5-prospective-paired-tail-diagnostic-repair-pre-review.json`,
 SHA-256 `e1130b9b6b8825ab22e8f74f71f9429f98fdbf803312d45a54d0ec36647fb932`.
 
+The approved correction is now implemented as an evaluation-only overlay; the
+failed evaluator remains byte-for-byte unchanged. Its regression fixture gives
+Hebog two measurement supports but only one published support and proves that
+source composition receives the former while published-mask statistics receive
+the latter. Reference finders continue using publication labels for both roles,
+and the strict malformed-partition rejection still passes. A complete no-write
+preflight rehashed both 2,400-product Hebog sets and all 9,600 reference runs,
+verified the repaired seam, and confirmed that no candidate execution or atomic
+decision occurred. A separately frozen exact evaluation-only identity and
+one-use approval are still required before retrying the several-hour compiler.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

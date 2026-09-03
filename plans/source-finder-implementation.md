@@ -1321,9 +1321,17 @@ from partial or viewed evidence.
      diagnostic adapter test-first by selecting association labels before
      source reconstruction, while continuing to use publication labels only
      for published-mask statistics. Repair pre-review `e1130b9b...` records
-     the complete failure chain and keeps implementation and retry authority
-     false. Freeze a new exact evaluation-only identity before any completion
-     retry.
+     the complete failure chain. The approved implementation now preserves the
+     failed evaluator `44d7d647...` unchanged and overlays only that tail seam:
+     Hebog source reconstruction receives measurement labels while published-
+     mask statistics continue receiving publication labels; reference finders
+     use publication labels for both roles. The deliberately separated-label
+     regression passes together with the unchanged strict-partition rejection.
+     The complete no-write preflight rehashed both 2,400-product sets and all
+     9,600 references, exercised the overlay, and confirmed that candidate
+     execution did not start. Evaluation retry authority remains false. Commit
+     this repair, then freeze a new exact evaluation-only identity before any
+     completion retry.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

@@ -14343,3 +14343,39 @@ select association labels before source reconstruction, and keep publication
 labels only for published-mask diagnostics. Freeze a replacement evaluator and
 evaluation-only identity before any retry. Do not rerun candidate finding,
 change scientific policy, relax the guard, tune, or rescore.
+
+## 2026-09-03 — Paired tail-diagnostic repair implemented
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Implemented approved pre-review `e1130b9b...` as an isolated evaluation-only
+  overlay. Historical failed evaluator `44d7d647...` remains unchanged. The
+  repaired adapter selects Hebog's measurement-label plane before catalogue-
+  source reconstruction and independently retains publication labels for
+  published-mask statistics; PyBDSF references continue using publication
+  labels for both roles.
+- Added the missing red/green regression fixture with deliberately different
+  measurement and publication supports. It proves both label roles and the
+  exact evaluator-overlay handoff. The existing malformed-partition regression
+  confirms that the strict native-support guard was not weakened.
+- Added an evaluation-only completion boundary that delegates the full frozen
+  product verifier, binds the unchanged parent completion/evaluator and exact
+  repair programs, exercises the replacement seam, and exposes no candidate
+  producer command.
+- The complete no-write preflight passed after rehashing the exact current
+  product set `6bcb2959...`, incumbent evaluator set `8dbc9dff...`, incumbent
+  reconstruction set `ea12ce03...`, and all 9,600 retained reference runs.
+  It verified 2,400 products per candidate, reported
+  `candidate_execution_started=false`, and left the atomic decision absent.
+  Focused validation passes 51 tests, Ruff, and targeted Pyright. The final
+  execution-digest regression additionally binds the consumed failed review
+  and decision, population, source request, and retained-reference identity.
+- Repository-wide validation passes: branch-aware coverage reports 2,446
+  passing tests, four expected failures, and 94.58% total coverage; `just
+  check` reports 2,282 passing tests and four expected failures; the strict
+  documentation build and selected equivalence lane pass.
+
+**Immediate next step:** commit the reviewed repair, repeat its exact no-write
+proof from that implementation revision, and freeze a new non-executable
+evaluation-only identity. Do not retry evaluation without a separate one-use
+approval.
