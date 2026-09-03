@@ -1161,6 +1161,46 @@ Evaluation-only pre-review `a156ddae...` requires both named identities and
 both complete sets to be rehashed, then requires the unchanged evaluator seams
 to pass before the absent paired decision can be written once.
 
+### Paired evaluation-only diagnostic failure
+
+**Terminal date:** 2026-09-03
+
+**Evidence role:** operational failure after binding compilation and before
+atomic scientific publication
+
+The exact evaluation-only completion under review `75d46048...` and decision
+`4624d6d9...` reverified both 2,400-product Hebog sets and all 9,600 retained
+reference runs. It then compiled the frozen paired comparisons but stopped
+while constructing the separate result-neutral truth-linked tail diagnostics.
+No atomic paired decision was published, so the in-memory binding result is not
+scientific evidence and no pass or fail may be inferred from it.
+
+The failure was an adapter-order defect. For Hebog, associated catalogue-source
+membership is defined over the measurement label plane, while the publication
+label plane intentionally omits low-persistence components. The tail adapter
+called source reconstruction with publication labels before it selected the
+measurement labels. The exact membership guard therefore reported that valid
+source memberships did not partition the wrong native-support plane. The guard
+must remain strict.
+
+| Boundary | Terminal result | Interpretation |
+| --- | --- | --- |
+| Product rehash | Passed | Current `6bcb2959...`; incumbent evaluator `8dbc9dff...` |
+| Reference rehash | Passed | 9,600 retained runs |
+| Binding paired compilation | Completed in memory | Not publishable or interpretable without the atomic record |
+| Result-neutral tail diagnostics | Failed | Measurement/publication label-selection order defect |
+| Atomic paired decision | Absent | No scientific verdict |
+
+The prospective correction selects Hebog's association plane before catalogue
+source reconstruction, uses that measurement plane for membership recovery,
+and continues using publication labels for published-mask statistics. A fixture
+must make the planes deliberately different and verify both roles. This changes
+no source-finding product, threshold, comparator, confidence rule, margin, or
+scientific gate. Any completion retry requires a new exact evaluation-only
+identity and decision. The complete prospective repair review is
+`config/contracts/phase-5-prospective-paired-tail-diagnostic-repair-pre-review.json`,
+SHA-256 `e1130b9b6b8825ab22e8f74f71f9429f98fdbf803312d45a54d0ec36647fb932`.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

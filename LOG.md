@@ -14310,3 +14310,36 @@ repeat the full no-write verification from a clean immutable checkout, then
 evaluate the authentic incumbent against the unchanged current products into
 the absent write-once decision. Preserve all failed products and do not change
 any science or decision policy.
+
+## 2026-09-03 — Paired completion fails in result-neutral tail adapter
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Committed exact completion review `75d46048...` and one-use decision
+  `4624d6d9...` at immutable checkout `92f6f48...`. The repeated complete
+  no-write preflight passed for both 2,400-product sets and all 9,600 retained
+  reference runs with imports rooted in that checkout. Expected execution was
+  `96bdbc51...`.
+- The evaluation-only completion rehashed every product again and compiled the
+  binding paired science, but evaluator `44d7d647...` terminated before atomic
+  publication with `associated source memberships must partition native
+  supports` while constructing truth-linked tail diagnostics. The write-once
+  paired decision remains absent; unpublished in-memory results are not
+  interpreted.
+- Root cause is a result-neutral diagnostic adapter-order defect. It invokes
+  catalogue-source reconstruction with publication labels, then selects
+  Hebog's measurement label plane. Source memberships are defined over the
+  measurement supports, and low-persistence supports are intentionally absent
+  from publication labels. The strict partition guard therefore rejected the
+  wrong plane exactly as designed. This is not evidence that either preserved
+  product set or a binding scientific comparison failed.
+- Froze the complete non-executable repair pre-review at SHA-256
+  `e1130b9b...`. It preserves the strict partition guard, both product sets,
+  all references, and the full scientific contract; implementation and
+  evaluation retry authority are explicitly false.
+
+**Immediate next step:** add a deliberately mask-separated regression fixture,
+select association labels before source reconstruction, and keep publication
+labels only for published-mask diagnostics. Freeze a replacement evaluator and
+evaluation-only identity before any retry. Do not rerun candidate finding,
+change scientific policy, relax the guard, tune, or rescore.

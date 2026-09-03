@@ -1309,8 +1309,21 @@ from partial or viewed evidence.
      preflight passed, including immutable import-origin and implementation-
      ancestry guards. Exact completion review `75d46048...`, one-use decision
      `4624d6d9...`, and expected execution `96bdbc51...` bind the two product
-     schemas independently. Consume that evaluation-only execution into the
-     still-absent paired decision.
+     schemas independently. That completion compiled the binding paired
+     science but failed before atomic publication while building the separate
+     result-neutral tail diagnostics. The tail adapter passed publication
+     labels into source-membership reconstruction before selecting Hebog's
+     measurement labels. Low-persistence measurement components are
+     intentionally absent from publication labels, so valid associated-source
+     counts could not partition that wrong plane. Preserve both product sets
+     and the still-absent decision; do not relax the partition guard or infer
+     a scientific verdict from unpublished in-memory state. Repair the
+     diagnostic adapter test-first by selecting association labels before
+     source reconstruction, while continuing to use publication labels only
+     for published-mask statistics. Repair pre-review `e1130b9b...` records
+     the complete failure chain and keeps implementation and retry authority
+     false. Freeze a new exact evaluation-only identity before any completion
+     retry.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
