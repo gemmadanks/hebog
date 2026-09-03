@@ -14388,3 +14388,27 @@ change scientific policy, relax the guard, tune, or rescore.
 decision or retrying evaluation. Candidate execution, science changes, tuning,
 rescoring, viewed-data execution, qualification, cutover, and release remain
 unauthorized.
+
+## 2026-09-03 — Separate scientific-preview and Rapthor release gates
+
+**Plan phase:** Phase 5/6 boundary
+
+- Reviewed the release critical path and moved the restricted Rapthor/LSMTool
+  profile decision from Phase 5 into Phase 6, consistent with Phase 6 ownership
+  of workflow integration and complete-path performance.
+- Phase 5 now closes only after the exact candidate passes cumulative
+  dual-PyBDSF parity, best-Hebog retention, fresh seed-disjoint qualification,
+  safety and executor invariants, independent scientific and engineering
+  acceptance, and a versioned fail-closed scientific-readiness packet.
+- A passing Phase 5 record may support a bounded experimental `0.x` Hebog
+  scientific-preview release. Its claim is limited to the frozen scientific
+  matrix and explicitly excludes Rapthor compatibility, complete-path speed,
+  viewed SDC1/Hydra behaviour, facility scale, production use, and cutover.
+- Phase 6 begins with the restricted profile decision and builds a separate
+  Rapthor-readiness packet before an opt-in Rapthor-integrated release. The
+  existing combined readiness machinery must be split prospectively without
+  changing immutable records.
+
+**Immediate next step:** finish the authorized paired evaluation. If it passes,
+freeze and run fresh held-out qualification for the exact same candidate before
+claiming confirmatory parity or preparing the scientific-preview release.

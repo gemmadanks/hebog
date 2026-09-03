@@ -62,10 +62,12 @@ compensate for failed science.
 ### Phase ownership
 
 - Phase 5 owns scheduler-independent multiscale science, extended-island
-  completion, cross-scale ownership, bounded tiling semantics, and incremental
-  performance.
-- Phase 6 owns Rapthor integration, complete dual-PyBDSF performance, and the
-  earliest useful experimental release once every minimum gate passes.
+  completion, cross-scale ownership, bounded tiling semantics, incremental
+  performance, and the bounded scientific-preview release after confirmatory
+  PyBDSF parity and Hebog-quality retention pass.
+- Phase 6 owns the restricted Rapthor profile decision, Rapthor integration,
+  complete dual-PyBDSF performance, and the earliest useful Rapthor-integrated
+  experimental release once every minimum gate passes.
 - Phase 7 owns production executor planning, deployment-store qualification,
   hierarchical Dask graphs, spill/recovery, facility-scale execution, and
   continued post-release optimization.
@@ -213,7 +215,7 @@ invalid-pixel, varying-noise, tile-boundary, and tile-corner strata.
 Under the prospective contract, every applicable relative PyBDSF, Aegean, and
 incumbent-Hebog form remains binding. The absolute numeric values remain
 reported longer-term targets, except for non-performance validity invariants
-and the separately frozen Rapthor profile decision.
+and the separately frozen Phase 6 Rapthor profile decision.
 
 Additional rules:
 
@@ -548,7 +550,7 @@ authorization boundaries remain in `config/contracts/`.
 | Association-aware evaluation repair | The replay then failed before its atomic ledger because the compiler still required one legacy segment label per binding catalogue row. A new adapter leaves every closed program byte-identical, verifies the persisted source-membership digest against the finite native components, presents the exact support union only to catalogue matching, keeps native topology separate, and provides a completion-only path that forbids candidate execution. |
 | Source-reconstruction correction | Candidate `42c75f4...` added a deterministic common-parent hierarchy, one source-level measurement, connected-support admission, and source-union topology evaluation. Terminal ledger `84fbb3a1...` preserves compact science but fails the cumulative gate with 44 Continuum failures and 37 regressions; source membership and fragmentation were effectively unchanged. |
 | Publication-scale-persistence correction | Candidate `937737d...` completed the full cumulative population. Terminal ledger `a9c6ed28...` keeps compact green but reports 31 failures, 11 underpowered endpoints, and 26 regressions under its original wrapper. Review `77bd4b82...` keeps that status immutable but finds all stored PyBDSF comparisons within margin and the prospective result incomplete because full paired incumbent evidence is absent. |
-| Readiness machinery | The fail-closed packet generator and finalizer exist and require packet-bound radio-astronomy and engineering acceptance. They do not authorize execution, cutover, or release. |
+| Readiness machinery | The fail-closed packet generator and finalizer exist and require packet-bound radio-astronomy and engineering acceptance. They reflect the original combined Phase 5/Rapthor closure and must be split prospectively before scientific-preview finalization; existing records remain immutable. |
 
 The narrow Continuum watchpoints from the passing recovery evidence remain
 overall mask recall 0.90103 against 0.90 and mask-precision regression UCL
@@ -1357,57 +1359,74 @@ from partial or viewed evidence.
    - Viewed SDC1/Hydra evidence remains diagnostic historical context, not
      fresh qualification truth.
 
-5. [ ] **Complete the restricted Rapthor profile decision.**
-   - Begin this step only after the all-check PyBDSF-parity,
-     Hebog-quality-retention, cumulative-replay, and fresh-qualification gates
-     pass.
-   - Audit the pinned Rapthor/LSMTool consumer to identify every field,
-     filename, mask semantic, and filtering decision that is scientifically
-     material. This audit narrows the integration contract only after general
-     source-finder parity is established; it cannot excuse an earlier failed
-     check.
-   - Restore the controlled real inputs, freeze their canonical pre-filter
-     component population, and run compact and continuum Hebog masks through
-     the exact pinned LSMTool filtering operation against both PyBDSF
-     references.
-   - Compare true/apparent, bright, extended, edge, masked, sparse, and crowded
-     safety strata. Select `compact` only when overall agreement is at least
-     99.5% and every safety stratum passes; otherwise select `continuum`.
-   - Record a write-once profile decision. This selects workflow behaviour only
-     and does not authorize the Phase 6 integration, cutover, or release.
-
-6. [ ] **Confirm final engineering evidence.**
+5. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected
      incremental performance anchors for the exact final candidate, or record a
      reviewed proof that the frozen performance path and identity are
      unchanged. Preserve the 6.0-second budget and crossover policy.
+   - Version the readiness generator and finalizer so the Phase 5 scientific
+     packet no longer requires the deferred Rapthor profile. Keep every
+     existing readiness record immutable and make the new packet fail closed
+     unless cumulative parity, held-out qualification, Hebog retention,
+     bounded execution, provenance, and independent acceptance are present.
    - Rebuild the complete readiness review packet against the final cumulative
-     ledger, held-out qualification, Rapthor profile, bounded-execution
-     contract, performance summary, closed final qualification, terminal public
-     failure, and its independent scientific review.
+     ledger, held-out qualification, bounded-execution contract, performance
+     summary, closed final qualification, terminal public failure, and its
+     independent scientific review. The Phase 5 packet establishes general
+     scientific readiness only; it must not imply Rapthor compatibility,
+     complete-path performance, cutover, or production-scale readiness.
+   - Validate the supported Python package build and isolated import, public
+     schemas, reproduction instructions, documentation, and ordinary CI lanes
+     before declaring the scientific-preview artifact ready.
 
-7. [ ] **Obtain independent acceptance and publish readiness.**
+6. [ ] **Obtain independent acceptance and publish scientific readiness.**
    - Obtain separate packet-bound radio-astronomy and engineering acceptances.
    - Run the write-once readiness finalizer, update `LOG.md`, user
      documentation, and the Phase 6 handoff, then create a reviewed local
      commit without pushing.
-   - The readiness record closes Phase 5 only. Cutover, release, optimization,
-     and Phase 6/7 execution remain separately governed.
+   - After the terminal readiness record passes, publish a bounded experimental
+     `0.x` scientific-preview release. Limit its claim to the frozen Phase 5
+     matrix and declare that Rapthor compatibility, complete-path performance,
+     viewed SDC1/Hydra behaviour, facility scale, cutover, and production use
+     remain unqualified.
+   - The readiness record closes Phase 5 and permits only that bounded library
+     release. Rapthor integration and release, cutover, optimization, and
+     Phase 6/7 execution remain separately governed.
 
-Phase 5 is complete when steps 1--7 are checked and the final readiness record
-is terminal. No additional public campaign is intrinsically required for
-closure unless the prospective scientific review or fresh qualification
-exposes a new blocker.
+Phase 5 is complete when steps 1--6 are checked, the final readiness record is
+terminal, and the bounded scientific-preview release is ready to publish. No
+additional public campaign is intrinsically required for closure unless the
+prospective scientific review or fresh qualification exposes a new blocker.
 
 ### Phase 6: Rapthor integration, minimum performance, and early release
 
 Phase 6 begins only after Phase 5 has established all-check scientific parity,
-retained the frozen incumbent Hebog quality, and published the restricted
-Rapthor profile decision. Its objective is the earliest safe, useful
+retained the frozen incumbent Hebog quality, and published its bounded
+scientific-preview readiness. Its objective is the earliest safe, useful
 improvement for Rapthor, not the final scientific or computational optimum.
-Do not delay an experimental release for a longer-term absolute target or
-maximum facility scale once all binding science, compatibility, operational,
-and minimum complete-path performance gates pass.
+Do not delay a Rapthor-integrated experimental release for a longer-term
+absolute target or maximum facility scale once all binding science,
+compatibility, operational, and minimum complete-path performance gates pass.
+
+- [ ] Complete the restricted Rapthor profile decision.
+      Begin only after the all-check PyBDSF-parity, Hebog-quality-retention,
+      cumulative-replay, and fresh-qualification gates pass. Audit the pinned
+      Rapthor/LSMTool consumer to identify every scientifically material field,
+      filename, mask semantic, and filtering decision; this may narrow the
+      integration contract only after general source-finder parity and cannot
+      excuse an earlier failed check. Restore the controlled real inputs,
+      freeze their canonical pre-filter component population, and run compact
+      and continuum Hebog masks through the exact pinned LSMTool filtering
+      operation against both PyBDSF references. Compare true/apparent, bright,
+      extended, edge, masked, sparse, and crowded safety strata. Select
+      `compact` only when overall agreement is at least 99.5% and every safety
+      stratum passes; otherwise select `continuum`. Record a write-once profile
+      decision. It selects workflow behaviour only and does not by itself
+      authorize integration, cutover, or release.
+- [ ] Build a Phase 6 Rapthor-readiness packet that binds the terminal Phase 5
+      scientific-readiness record, the restricted profile decision, integration
+      evidence, complete-path performance, operational gates, and independent
+      acceptance without altering the Phase 5 release record.
 
 - [ ] Add readable acceptance scenarios for empty/corrupt inputs, restart,
       retry, backend selection, fallback, dual-run reporting, and decisions.
@@ -1426,10 +1445,10 @@ and minimum complete-path performance gates pass.
       complete matched median wall time than Rapthor's released PyBDSF, better
       complete performance than pinned PyBDSF master, runtime confidence
       bounds, retry/resume, and memory gates to pass before default cutover.
-- [ ] Publish an explicit experimental `0.x` release when the same minimum
-      gates pass and the feature-flagged PyBDSF fallback remains available.
-      Declare the validated image-size, workload, resource, and storage
-      envelope and fail closed or use the fallback outside it.
+- [ ] Publish an explicit Rapthor-integrated experimental `0.x` release when
+      the same minimum gates pass and the feature-flagged PyBDSF fallback
+      remains available. Declare the validated image-size, workload, resource,
+      and storage envelope and fail closed or use the fallback outside it.
       Further absolute scientific improvement and facility-scale optimization
       continue after this milestone.
 
@@ -1471,8 +1490,10 @@ compensate for scientific or workflow regression.
       security, licensing, packaging, and reproducibility review.
 - [ ] If native code exists, qualify every supported wheel/source-build and
       fallback path.
-- [ ] Continue explicit experimental `0.x` releases from Phase 6; prepare
-      `1.0.0` only after operational soak and the full definition of done.
+- [ ] Continue the experimental `0.x` release sequence begun by the Phase 5
+      scientific preview through the Rapthor-integrated Phase 6 releases;
+      prepare `1.0.0` only after operational soak and the full definition of
+      done.
 
 ## 8. Performance matrix and protocol
 
