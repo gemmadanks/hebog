@@ -7,11 +7,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import runpy
 from pathlib import Path
 from typing import Any
 
-from hebog.validation.external_runners import file_sha256
+from hebog.validation.external_runners import canonical_sha256, file_sha256
 
 _ROOT = Path(__file__).parents[3]
 _PROGRAM = (
@@ -134,6 +135,41 @@ def test_execution_identity_includes_real_tail_and_consumed_failure() -> None:
     )
     assert fields["population_sha256"] == program["_POPULATION_SHA256"]
     assert fields["source_request_sha256"] == program["_SOURCE_REQUEST_SHA256"]
+
+
+def test_identity_review_matches_exact_non_executable_completion() -> None:
+    """The frozen review binds all proofs and grants no execution authority."""
+    program = _program()
+    review = json.loads(
+        program["_IDENTITY_REVIEW"].read_text(encoding="utf-8")
+    )
+    fields = program["_expected_execution_fields"](
+        _arguments(program),
+        review["verified_products"],
+        review["tail_verification"],
+        implementation_revision=review["implementation_revision"],
+    )
+
+    assert canonical_sha256(fields) == review["expected_execution_sha256"]
+    assert review["authorization"] == dict.fromkeys(
+        (
+            "candidate_execution_authorized",
+            "cutover_authorized",
+            "evaluation_authorized",
+            "fresh_qualification_authorized",
+            "optimization_authorized",
+            "release_authorized",
+            "rescoring_authorized",
+            "scientific_change_authorized",
+            "threshold_or_margin_tuning_authorized",
+            "viewed_data_execution_authorized",
+        ),
+        False,
+    )
+    assert review["verified_products"]["candidate_execution_started"] is False
+    assert review["tail_verification"]["promotion_effect"] == (
+        "none-diagnostic-only"
+    )
 
 
 def test_authorized_completion_verifies_tail_before_authority(

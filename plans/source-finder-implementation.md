@@ -1376,10 +1376,14 @@ from partial or viewed evidence.
      finder), with digest `a9d50450...` and no promotion effect. This proves
      the sealed products are reusable but does not recover the previous
      unpublished in-memory scientific verdict.
-   - [ ] Freeze a replacement non-executable identity review from the clean
-     implementation commit, then obtain separate exact one-use approval for
-     evaluation-only compilation and atomic publication. Do not rerun either
-     Hebog candidate or any PyBDSF reference.
+   - [x] Freeze replacement non-executable identity review `7889c11f...` from
+     clean implementation commit `9f6cb556...`. It binds exact execution
+     `ad407f73...`, both sealed product sets, all retained references, the
+     complete no-write proof, and the `a9d50450...` real-tail digest, with
+     every authorization false.
+   - [ ] Obtain separate exact one-use approval for evaluation-only
+     compilation and atomic publication. Do not rerun either Hebog candidate
+     or any PyBDSF reference.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

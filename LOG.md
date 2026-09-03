@@ -14529,3 +14529,26 @@ non-executable evaluation identity from that clean implementation revision.
 Obtain separate exact one-use approval before evaluating the sealed products.
 Candidate execution, replay, tuning, rescoring, qualification, viewed-data
 execution, cutover, and release remain unauthorized.
+
+## 2026-09-03 — Freeze paired topology-repair evaluation identity
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Committed the validated repair locally as `9f6cb556...` without pushing and
+  left the unrelated user edit to
+  `tests/unit/validation/test_external_post_failure_protocol.py` unstaged.
+- Froze non-executable identity review `7889c11f...`. It binds expected
+  execution `ad407f73...`, the exact completion/evaluator/preparer/sidecar
+  programs, both sealed 2,400-product Hebog sets, all 9,600 retained reference
+  runs, implementation ancestry, the consumed failed authority, and the
+  `a9d50450...` real-product tail digest. Its authorization map is entirely
+  false.
+- The review proves the products can be reused without candidate or PyBDSF
+  execution. It does not make the earlier in-memory evaluation publishable;
+  the atomic paired decision remains absent.
+
+**Immediate next step:** obtain separate named approval bound to review
+`7889c11f...` and expected execution `ad407f73...`, then create a one-use
+evaluation-only decision and compile the sealed products once. Candidate
+execution, replay, tuning, rescoring, qualification, viewed-data execution,
+cutover, and release remain unauthorized.

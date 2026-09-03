@@ -1266,6 +1266,10 @@ These checks establish that the sealed products can be reused and neither
 Hebog nor PyBDSF needs to be rerun. They do not recover the unpublished
 in-memory comparison: the atomic paired decision is still absent, so a new
 frozen evaluation-only identity and separate one-use approval remain required.
+Non-executable review `7889c11f...` now binds implementation commit
+`9f6cb556...`, expected execution `ad407f73...`, the exact product/reference
+proof, and the real-tail digest. Every authorization is false; evaluation may
+begin only after separate exact one-use approval.
 
 ## Prospective evaluation contract after terminal-cycle repair
 
