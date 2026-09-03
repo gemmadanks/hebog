@@ -14438,3 +14438,44 @@ claiming confirmatory parity or preparing the scientific-preview release.
 **Immediate next step:** finish the authorized paired evaluation. On a pass,
 complete and freeze the public scientific interface before opening the fresh
 seed-disjoint qualification population.
+
+## 2026-09-03 — Paired tail evaluation exposed a multi-support topology seam
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- The approved evaluation-only completion ran from immutable commit
+  `07cbae3...` under review `5572148d...`, decision `3de3f6fc...`, and expected
+  execution `17f41e8a...`. It preserved and reverified current product set
+  `6bcb2959...`, incumbent evaluator set `8dbc9dff...`, reconstruction markers
+  `ea12ce03...`, and retained reference terminal `48209eae...`.
+- The repaired publication/association-label handoff succeeded and binding
+  paired science compilation completed in memory. The separate result-neutral
+  truth-linked diagnostic then terminated before atomic publication. Its
+  topology helper read singular `support_label` from an
+  `AssociatedContinuumCatalogueObject`, whose deliberate source-level contract
+  instead exposes the exact plural `support_labels` union. The exception was
+  `AttributeError: 'AssociatedContinuumCatalogueObject' object has no attribute
+  'support_label'` at `external_successor_compiler._topology_support_objects`.
+- This is an evaluation interface-dispatch defect, not evidence of candidate,
+  incumbent, reference, or scientific-gate failure. The atomic paired decision
+  remains absent, so the unpublished in-memory science is not interpreted.
+  The one-use authority is consumed and no rerun or output overwrite occurred.
+- The previous repair tests stopped at a stubbed
+  `build_truth_linked_continuum_summary`; they proved label-role separation but
+  did not exercise the next real topology helper with a multi-support source
+  record. That missing integration seam is the coverage gap.
+- The prospective correction is a result-neutral adapter that expands each
+  associated source over its canonical support-label union for topology centre
+  lookup only. It must preserve strict native-support partition validation,
+  source identity and measurements, publication/association label separation,
+  deterministic ordering, both sealed product sets, all references, and every
+  frozen scientific comparison and gate. Tests must include multi-support,
+  multiple-source, malformed-union, unknown-support, deterministic-order, and
+  legacy single-support cases and invoke the real downstream summary seam.
+
+**Immediate next step:** freeze a non-executable topology-adapter repair
+pre-review, obtain explicit approval, implement it test-first, and repeat the
+complete no-write product/reference rehash and real-seam validation before any
+new evaluation-only authority is considered. Candidate execution, rerunning,
+tuning, rescoring, qualification, viewed-data execution, cutover, and release
+remain unauthorized.

@@ -1345,8 +1345,28 @@ from partial or viewed evidence.
      9,600 references, exercised the overlay, and confirmed that candidate
      execution did not start. Repair commit `0ce3de6...` repeated that complete
      proof from its clean committed revision. Exact non-executable identity
-     review `5572148d...` binds expected execution `17f41e8a...`; all execution
-     authority remains false pending a separate named one-use approval.
+     review `5572148d...` binds expected execution `17f41e8a...`. The approved
+     one-use completion ran from immutable commit `07cbae3...`, reverified both
+     sealed product sets and all retained references, and reached the repaired
+     truth-linked tail. It then failed before atomic publication because that
+     tail passed a multi-support `AssociatedContinuumCatalogueObject` to the
+     legacy topology helper, which accepts only the single-support
+     `ContinuumCatalogueObject` contract and dereferences `support_label`
+     instead of `support_labels`. The paired decision remains absent and the
+     completed binding science is unpublished, so no scientific result may be
+     inferred. The one-use authority is consumed; preserve both product sets
+     and do not rerun this completion.
+   - Repair this new result-neutral interface mismatch prospectively and
+     test-first. Add an adapter that expands each associated catalogue source
+     over its exact non-empty canonical `support_labels` solely for topology-
+     support centre lookup, while retaining the source identifier, centre,
+     flux, strict native-support partition, publication/association label
+     separation, and all binding comparison inputs unchanged. Cover a source
+     spanning two native supports, multiple sources, missing/duplicate/unknown
+     supports, deterministic ordering, and legacy single-support PyBDSF rows;
+     then exercise the real downstream `build_truth_linked_continuum_summary`
+     seam rather than a stub. Freeze a new non-executable repair review and
+     completion identity after complete no-write rehash and seam validation.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

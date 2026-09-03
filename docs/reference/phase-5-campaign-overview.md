@@ -1217,6 +1217,45 @@ binding expected execution SHA-256
 It grants no execution authority; retrying the several-hour compiler requires
 a separate named one-use approval.
 
+### Paired tail-repair evaluation topology failure
+
+**Terminal date:** 2026-09-03
+
+**Evidence role:** operational failure after binding compilation and before
+atomic scientific publication
+
+The approved repaired completion ran from immutable commit `07cbae3...` under
+review `5572148d...`, decision `3de3f6fc...`, and expected execution
+`17f41e8a...`. It reverified both sealed 2,400-product Hebog sets and all 9,600
+retained reference runs. The measurement/publication-label repair succeeded,
+and the binding paired science again compiled in memory. The separate
+result-neutral tail then failed before writing the atomic decision, so no
+scientific result may be inferred.
+
+| Boundary | Terminal result | Interpretation |
+| --- | --- | --- |
+| Product and reference rehash | Passed | Exact current, incumbent, and retained-reference evidence preserved |
+| Label-role repair | Passed | Source membership used measurement labels; mask statistics used publication labels |
+| Binding paired compilation | Completed in memory | Unpublished and therefore not interpretable |
+| Truth-linked topology tail | Failed | Multi-support associated-source record reached a single-support helper |
+| Atomic paired decision | Absent | No scientific verdict |
+
+The topology helper expects each catalogue row to expose one `support_label`.
+Hebog's associated source record correctly exposes a canonical
+`support_labels` union because one measured source can span several native
+components. The previous repair test stubbed the downstream summary builder,
+so it proved label-role separation but missed this next real interface seam.
+
+The proposed result-neutral repair expands each associated source over its
+exact support-label union only while constructing topology-support centres. It
+must preserve source identifiers and measurements, strict support-partition
+validation, deterministic ordering, label-role separation, all products,
+references, comparisons, margins, and gates. A new real-seam regression must
+cover multi-support and malformed unions as well as legacy single-support
+reference rows. The consumed completion must not be rerun; a replacement
+evaluation requires a new frozen repair review, complete no-write rehash, and
+separate one-use approval.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31
