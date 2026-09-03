@@ -1381,9 +1381,16 @@ from partial or viewed evidence.
      `ad407f73...`, both sealed product sets, all retained references, the
      complete no-write proof, and the `a9d50450...` real-tail digest, with
      every authorization false.
-   - [ ] Obtain separate exact one-use approval for evaluation-only
-     compilation and atomic publication. Do not rerun either Hebog candidate
-     or any PyBDSF reference.
+   - [x] Obtain separate exact one-use approval for evaluation-only
+     compilation and atomic publication. The named instruction “Please
+     complete the evaluation” binds review `7889c11f...` and expected
+     execution `ad407f73...`; its decision authorizes only reuse of the sealed
+     products and atomic publication. Do not rerun either Hebog candidate or
+     any PyBDSF reference.
+   - [ ] Complete that single evaluation-only compilation, verify the atomic
+     paired decision and all frozen provenance, interpret binding science
+     before report-only objectives and runtime, and treat a scientific gate
+     failure as terminal evidence without tuning or rescoring.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

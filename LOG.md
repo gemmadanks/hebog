@@ -14552,3 +14552,25 @@ execution, cutover, and release remain unauthorized.
 evaluation-only decision and compile the sealed products once. Candidate
 execution, replay, tuning, rescoring, qualification, viewed-data execution,
 cutover, and release remain unauthorized.
+
+## 2026-09-03 — Authorize paired topology-repair evaluation
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Gemma Danks explicitly instructed “Please complete the evaluation” after
+  receiving exact review SHA-256 `7889c11f...` and expected execution SHA-256
+  `ad407f73...`. This is the named one-use approval anticipated by the frozen
+  non-executable review.
+- Added the fail-closed execution decision authorizing only one evaluation of
+  the reusable current product set `6bcb2959...`, authentic incumbent
+  evaluator set `8dbc9dff...`, reconstruction marker set `ea12ce03...`, and
+  all 9,600 retained reference runs. Candidate execution, replay, scientific
+  change, tuning, rescoring, qualification, viewed-data execution, cutover,
+  and release remain false.
+- The prior evaluation published no atomic decision and its in-memory verdict
+  remains unusable. This completion may reuse the sealed products but must
+  compile and publish the frozen scientific comparisons anew.
+
+**Immediate next step:** commit the one-use decision, construct a clean
+immutable evaluation checkout, repeat the complete no-write verification, and
+consume the authority exactly once to publish the atomic paired decision.
