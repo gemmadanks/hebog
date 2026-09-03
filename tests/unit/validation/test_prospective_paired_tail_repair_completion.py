@@ -12,7 +12,7 @@ import runpy
 from pathlib import Path
 from typing import Any
 
-from hebog.validation.external_runners import file_sha256
+from hebog.validation.external_runners import canonical_sha256, file_sha256
 
 _ROOT = Path(__file__).parents[3]
 _PROGRAM = (
@@ -23,6 +23,10 @@ _IMPLEMENTATION_DECISION = (
     _ROOT / "config/contracts/"
     "phase-5-prospective-paired-tail-diagnostic-repair-implementation-"
     "decision.json"
+)
+_IDENTITY_REVIEW = (
+    _ROOT / "config/contracts/"
+    "phase-5-prospective-paired-tail-diagnostic-repair-identity-review.json"
 )
 
 
@@ -148,3 +152,34 @@ def test_execution_digest_binds_consumed_lineage_and_scientific_inputs() -> (
         == program["_REFERENCE_RECONSTRUCTION_SHA256"]
     )
     assert "identity_review_sha256" not in fields
+
+
+def test_identity_review_is_exact_and_non_executable() -> None:
+    """The frozen review grants no execution authority."""
+    program = _program()
+    review = json.loads(_IDENTITY_REVIEW.read_text(encoding="utf-8"))
+    expected = canonical_sha256(
+        program["_expected_execution_fields"](
+            _arguments(program),
+            review["verified_products"],
+            implementation_revision=review["implementation_revision"],
+        )
+    )
+
+    assert review["expected_execution_sha256"] == expected
+    assert review["authorization"] == dict.fromkeys(
+        (
+            "candidate_execution_authorized",
+            "cutover_authorized",
+            "evaluation_authorized",
+            "fresh_qualification_authorized",
+            "optimization_authorized",
+            "release_authorized",
+            "rescoring_authorized",
+            "scientific_change_authorized",
+            "threshold_or_margin_tuning_authorized",
+            "viewed_data_execution_authorized",
+        ),
+        False,
+    )
+    assert not program["_EXECUTION_DECISION"].exists()

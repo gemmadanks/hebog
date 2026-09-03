@@ -1329,9 +1329,10 @@ from partial or viewed evidence.
      regression passes together with the unchanged strict-partition rejection.
      The complete no-write preflight rehashed both 2,400-product sets and all
      9,600 references, exercised the overlay, and confirmed that candidate
-     execution did not start. Evaluation retry authority remains false. Commit
-     this repair, then freeze a new exact evaluation-only identity before any
-     completion retry.
+     execution did not start. Repair commit `0ce3de6...` repeated that complete
+     proof from its clean committed revision. Exact non-executable identity
+     review `5572148d...` binds expected execution `17f41e8a...`; all execution
+     authority remains false pending a separate named one-use approval.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

@@ -1209,8 +1209,13 @@ the latter. Reference finders continue using publication labels for both roles,
 and the strict malformed-partition rejection still passes. A complete no-write
 preflight rehashed both 2,400-product Hebog sets and all 9,600 reference runs,
 verified the repaired seam, and confirmed that no candidate execution or atomic
-decision occurred. A separately frozen exact evaluation-only identity and
-one-use approval are still required before retrying the several-hour compiler.
+decision occurred. Repair commit `0ce3de6...` repeated the complete proof from
+its clean committed revision. The exact non-executable evaluation-only review
+is SHA-256 `5572148d6604f52988fe256beb0ec1e2046c305f2e0d3a2d50c0ee862f2f9585`,
+binding expected execution SHA-256
+`17f41e8ad0b48df3adc5b6248dd585f68036c6c7d8e72e4386724e78ce73e954`.
+It grants no execution authority; retrying the several-hour compiler requires
+a separate named one-use approval.
 
 ## Prospective evaluation contract after terminal-cycle repair
 

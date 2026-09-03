@@ -14375,7 +14375,16 @@ change scientific policy, relax the guard, tune, or rescore.
   check` reports 2,282 passing tests and four expected failures; the strict
   documentation build and selected equivalence lane pass.
 
-**Immediate next step:** commit the reviewed repair, repeat its exact no-write
-proof from that implementation revision, and freeze a new non-executable
-evaluation-only identity. Do not retry evaluation without a separate one-use
-approval.
+- Committed the repair locally at `0ce3de6...` and repeated the complete
+  checksum-heavy preflight from that clean implementation revision with the
+  same passing product proof and no output. Exact non-executable identity
+  review `5572148d...` binds expected execution `17f41e8a...`, the consumed
+  failed review and decision, both sealed Hebog product sets, population,
+  source request, retained reference, repair programs, output namespace, and
+  implementation ancestry. Its entire authorization map is false.
+
+**Immediate next step:** obtain separate named approval of exact review
+`5572148d...` and expected execution `17f41e8a...` before creating a one-use
+decision or retrying evaluation. Candidate execution, science changes, tuning,
+rescoring, viewed-data execution, qualification, cutover, and release remain
+unauthorized.

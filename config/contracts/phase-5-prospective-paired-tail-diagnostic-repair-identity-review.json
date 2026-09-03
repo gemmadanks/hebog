@@ -1,0 +1,47 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-prospective-paired-tail-diagnostic-repair-identity-review",
+  "expected_execution_sha256": "17f41e8ad0b48df3adc5b6248dd585f68036c6c7d8e72e4386724e78ce73e954",
+  "implementation_revision": "0ce3de6e27342ba77b051c0d91b09588c3004dd1",
+  "review": {
+    "candidate_execution_possible": false,
+    "failed_evaluator_preserved": true,
+    "result_neutral_tail_only": true,
+    "strict_partition_guard_preserved": true,
+    "verdict": "ready for a separately authorized exact evaluation-only retry"
+  },
+  "schema_version": 1,
+  "status": "ready-for-exact-paired-tail-repair-evaluation",
+  "verified_products": {
+    "candidate_execution_started": false,
+    "current_configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "current_product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014",
+    "current_revision": "937737d811dd229d71dbcfdbda6cb5829de6faca",
+    "current_source_tree_sha256": "9f8e4a67f0c74ac86bff4f398811a7d64620fb70512b118c0ad3bb1eb58644c8",
+    "evaluator_sha256": "1974101dd6d4c577ec402191093f3af65f4a67ef7adb6dfb2f2a85e13e2fa8a0",
+    "incumbent_configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "incumbent_product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+    "incumbent_reconstruction_product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+    "incumbent_revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "incumbent_source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696",
+    "input_count_per_candidate": 2400,
+    "parent_completion_sha256": "76ecc0ee13e2fa05d3da07cb3be77a808e306771c6ca445357eafef97edb0391",
+    "parent_evaluator_sha256": "44d7d6475832becfdf02d475a4654de05284fd2320080a8a28734e39d9aeee51",
+    "reconstruction_record_sha256": "b302967f26ac5947e3c942598a428527cce1d4fa3373ed6eaeb6d204eb8dc040",
+    "reference_run_count": 9600,
+    "repair_pre_review_sha256": "e1130b9b6b8825ab22e8f74f71f9429f98fdbf803312d45a54d0ec36647fb932",
+    "status": "pass",
+    "tail_repair_sha256": "54e592071cbab516ddccfa0edc28c4fe2b7e5cfcdfe9de997307e1231cc70703"
+  }
+}
