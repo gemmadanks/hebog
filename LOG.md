@@ -14412,3 +14412,29 @@ unauthorized.
 **Immediate next step:** finish the authorized paired evaluation. If it passes,
 freeze and run fresh held-out qualification for the exact same candidate before
 claiming confirmatory parity or preparing the scientific-preview release.
+
+## 2026-09-03 — Make the public source-finding path a Phase 5 gate
+
+**Plan phase:** Phase 5 scientific-preview readiness
+
+- Audited the plan against the repository and found that it described the
+  scheduler-independent `find_sources` contract but did not explicitly require
+  replacement of the current `NotImplementedError` placeholder or a top-level
+  `hebog.find_sources` export before the scientific-preview release.
+- Added a distinct Phase 5 public-interface milestone after the paired
+  cumulative decision and before fresh qualification. It requires a complete
+  installed-wheel FITS-to-products path, atomic publication, typed failure
+  behaviour, Serial/existing-Dask invariance, public-only documentation, and
+  removal of the placeholder documentation.
+- Fresh held-out qualification must now execute the exact release candidate
+  through `hebog.find_sources`. The facade must bind the passing algorithm and
+  configuration digests and reproduce their products; a proven facade-only
+  change may reuse cumulative science, while any scientific or product-semantic
+  change returns to prospective cumulative review.
+- Added public-interface acceptance to the fail-closed readiness packet and an
+  explicit risk control preventing internal-only evidence from qualifying an
+  unusable or divergent public entry point.
+
+**Immediate next step:** finish the authorized paired evaluation. On a pass,
+complete and freeze the public scientific interface before opening the fresh
+seed-disjoint qualification population.

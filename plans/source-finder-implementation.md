@@ -276,13 +276,23 @@ Additional rules:
 The scientific API remains scheduler independent:
 
 ```python
-result = find_sources(request, config, executor)
+import hebog
+
+result = hebog.find_sources(request, config, executor)
 ```
 
 Requests contain paths, identifiers, immutable scientific configuration, and
 small serializable metadata. Results contain product paths, counts, timings,
 schema versions, and small provenance records. Neither boundary contains open
 files, mutable full images, scheduler clients, or workflow state.
+
+The Phase 5 scientific-preview release must export `find_sources` from the
+top-level `hebog` package and implement this complete path from an installed
+wheel. A radio astronomer must not need an internal stage API, Rapthor,
+Prefect, LSMTool, or a private scheduler to analyse a supported FITS image.
+The documented bounded path uses the deterministic Serial executor; callers
+may explicitly supply another supported executor, and Hebog never creates a
+Dask cluster implicitly.
 
 One request represents one scientific image analysis and returns one
 catalogue, RMS image, source-filtering mask, and diagnostic record. The
@@ -412,6 +422,7 @@ performance.
 | Contract | Public I/O and executor behaviour | every commit |
 | Integration | FITS, Zarr, and local/in-process Dask boundaries | pull request |
 | Equivalence | Redistributable released/master PyBDSF comparisons | pull request |
+| Public interface | Installed-wheel FITS-to-products path and errors | milestone/release |
 | Acceptance | Rapthor-facing behaviour | pull request |
 | Qualification | Held-out scientific matrix | milestone/release |
 | Benchmark | Components and complete Rapthor paths | controlled runner |
@@ -529,9 +540,10 @@ ledger fails under its original decision path, while prospective review
 `77bd4b82...` finds the contract decision incomplete because paired incumbent
 evidence was not retained. Phase 5 next requires evaluator alignment,
 attributable paired evidence, passing sentinel smoke and cumulative decisions,
-and fresh held-out qualification for the eventual proven candidate. Detailed
-campaign and incident chronology belongs in `LOG.md`; machine identities and
-authorization boundaries remain in `config/contracts/`.
+the complete public scientific interface, and fresh held-out qualification for
+the eventual proven release candidate. Detailed campaign and incident
+chronology belongs in `LOG.md`; machine identities and authorization boundaries
+remain in `config/contracts/`.
 
 #### Completed evidence
 
@@ -1339,18 +1351,57 @@ from partial or viewed evidence.
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
-4. [ ] **Freshly qualify the exact passing candidate.**
+4. [ ] **Complete the public scientific interface.**
+   - Begin only after the paired cumulative decision passes every binding
+     PyBDSF-parity, Aegean, incumbent-retention, and safety check. Preserve the
+     exact passing algorithms, scientific configuration, thresholds, profiles,
+     and product semantics while completing the orchestration boundary.
+   - Replace the placeholder with a typed, scheduler-independent
+     `hebog.find_sources(request, config, executor)` implementation and export
+     it from the top-level package. It must accept one supported FITS image and
+     atomically return the versioned catalogue, RMS image, source-filtering
+     mask, diagnostics, timings, and provenance through `SourceFinderResult`.
+     The qualified `continuum` profile is the general default; `compact`
+     remains an explicit incomplete-for-extended-emission choice.
+   - Keep the public path pipeline-neutral and imports inert. Bounded serial use
+     must require neither Dask nor Rapthor; an existing Dask executor may be
+     supplied, but the library must never create a private cluster or inspect
+     ambient workflow state.
+   - Test the installed-wheel path for valid, empty, all-NaN, partially invalid,
+     non-square, edge-source, missing or invalid WCS/beam/unit metadata, corrupt
+     FITS, existing-output, interrupted-publication, retry, and unsupported-
+     profile cases. Require clear typed failures and no partially published
+     successful result.
+   - Prove that the facade selects the exact passing internal composition and
+     produces byte-identical scientific products on the deterministic public-
+     interface matrix under Serial and existing-Dask execution. Freeze the
+     passing algorithm-module digests separately from the release package
+     source tree. A facade-only source-tree change does not require another
+     cumulative replay when the algorithm/configuration digests and products
+     are unchanged; any scientific or product-semantic change returns to
+     prospective cumulative review.
+   - Add a standalone radio-astronomer tutorial using only public imports from
+     the built wheel, with configuration, output interpretation, supported
+     envelope, cleanup, reproducibility, and current limitations explained.
+     Remove every statement that the public call intentionally raises
+     `NotImplementedError` before freezing the release-candidate identity.
+
+5. [ ] **Freshly qualify the exact public release candidate.**
    - Blocked: the evaluator and paired-evidence design are aligned and the
      authorized paired candidate runs and the provenance-correct incumbent
-     reconstruction completed, but the unchanged evaluator has not yet
+     reconstruction completed, but the repaired evaluator has not yet
      published the paired scientific decision. No qualification population
-     may be opened or frozen until that evaluation publishes a passing
-     all-check parity-and-retention decision under the prospective contract.
+     may be opened or frozen until that evaluation passes and the public
+     interface above is complete and frozen.
    - Freeze a seed-disjoint, previously unopened held-out population and the
-     exact compiler/evaluator/runtime identities, then obtain a separate
+     exact installed package, public facade, algorithm, configuration,
+     compiler, evaluator, and runtime identities, then obtain a separate
      one-look approval. Before opening it, demonstrate from the frozen planning
      variances and event frequencies that every binding endpoint and smallest
      binding stratum has enough independent realizations to reach a decision.
+     Execute the candidate through `hebog.find_sources`, not a benchmark-only
+     internal materializer, and retain proof that it resolves the frozen
+     scientific composition.
    - Require every applicable released/master PyBDSF and Aegean comparison and
      every like-semantics Hebog-retention comparison to pass the frozen paired
      rule. Report every absolute improvement endpoint and secondary stratum,
@@ -1359,7 +1410,7 @@ from partial or viewed evidence.
    - Viewed SDC1/Hydra evidence remains diagnostic historical context, not
      fresh qualification truth.
 
-5. [ ] **Confirm final engineering evidence.**
+6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected
      incremental performance anchors for the exact final candidate, or record a
      reviewed proof that the frozen performance path and identity are
@@ -1367,8 +1418,9 @@ from partial or viewed evidence.
    - Version the readiness generator and finalizer so the Phase 5 scientific
      packet no longer requires the deferred Rapthor profile. Keep every
      existing readiness record immutable and make the new packet fail closed
-     unless cumulative parity, held-out qualification, Hebog retention,
-     bounded execution, provenance, and independent acceptance are present.
+     unless cumulative parity, public-interface acceptance, held-out
+     qualification, Hebog retention, bounded execution, provenance, and
+     independent acceptance are present.
    - Rebuild the complete readiness review packet against the final cumulative
      ledger, held-out qualification, bounded-execution contract, performance
      summary, closed final qualification, terminal public failure, and its
@@ -1379,7 +1431,7 @@ from partial or viewed evidence.
      schemas, reproduction instructions, documentation, and ordinary CI lanes
      before declaring the scientific-preview artifact ready.
 
-6. [ ] **Obtain independent acceptance and publish scientific readiness.**
+7. [ ] **Obtain independent acceptance and publish scientific readiness.**
    - Obtain separate packet-bound radio-astronomy and engineering acceptances.
    - Run the write-once readiness finalizer, update `LOG.md`, user
      documentation, and the Phase 6 handoff, then create a reviewed local
@@ -1393,7 +1445,7 @@ from partial or viewed evidence.
      release. Rapthor integration and release, cutover, optimization, and
      Phase 6/7 execution remain separately governed.
 
-Phase 5 is complete when steps 1--6 are checked, the final readiness record is
+Phase 5 is complete when steps 1--7 are checked, the final readiness record is
 terminal, and the bounded scientific-preview release is ready to publish. No
 additional public campaign is intrinsically required for closure unless the
 prospective scientific review or fresh qualification exposes a new blocker.
@@ -1562,6 +1614,7 @@ evidence decides acceptance.
 | Source-level rows are treated as independent replicates | Pair and resample whole input realizations or observational units; preserve within-image dependence. |
 | Planning assumptions become terminal observed-data gates | Use planning variance for prospective sample size and assumption audit only; decide non-inferiority from the frozen observed-data confidence interval. |
 | Compiler or comparator defect changes science | Test matching/measurement independently; checksum-bind programs; preserve closed compilers. |
+| Internal evidence passes but the public entry point is unusable or divergent | Qualify the installed `hebog.find_sources` path, bind algorithm digests, and require byte-identical Serial/existing-Dask product checks before release. |
 | Support topology is confused with source photometry | Keep catalogue/source, component, and support records distinct; measure flux on original pixels. |
 | Mask background hides errors | Evaluate precision/recall/IoU on valid pixels plus object splits/merges. |
 | Low-SNR/reference variability | Report truth-based curves and same-tool scatter; pin both PyBDSF identities. |
