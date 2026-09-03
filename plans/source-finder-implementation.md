@@ -1356,17 +1356,30 @@ from partial or viewed evidence.
      completed binding science is unpublished, so no scientific result may be
      inferred. The one-use authority is consumed; preserve both product sets
      and do not rerun this completion.
-   - Repair this new result-neutral interface mismatch prospectively and
-     test-first. Add an adapter that expands each associated catalogue source
-     over its exact non-empty canonical `support_labels` solely for topology-
-     support centre lookup, while retaining the source identifier, centre,
-     flux, strict native-support partition, publication/association label
-     separation, and all binding comparison inputs unchanged. Cover a source
-     spanning two native supports, multiple sources, missing/duplicate/unknown
-     supports, deterministic ordering, and legacy single-support PyBDSF rows;
-     then exercise the real downstream `build_truth_linked_continuum_summary`
-     seam rather than a stub. Freeze a new non-executable repair review and
-     completion identity after complete no-write rehash and seam validation.
+   - [x] Repair the result-neutral source-union topology mismatch
+     prospectively and test-first. Associated rows now dispatch through the
+     existing source-union association context, while native supports remain
+     separate topology evidence; legacy single-support PyBDSF rows retain the
+     unchanged helper. Exact partition, duplicate, missing/unknown support,
+     member-count, mixed-semantics, and deterministic-order guards fail
+     closed. The real downstream summary seam is covered rather than stubbed.
+   - [x] Close the second interface gap exposed by the new real-product tail
+     check. The direct tail path had bypassed the binding compiler's
+     sidecar-aware loader and attempted heuristic Hebog source-membership
+     reconstruction. A result-neutral wrapper now loads each exact
+     `source-association-json` sidecar for current and incumbent Hebog while
+     retaining the legacy path for both PyBDSF references. Missing, overlapping,
+     unconsumed, or finder-mismatched run context fails closed.
+   - [x] Rehash both complete 2,400-product sets and all 9,600 retained
+     reference runs without execution or publication. The exact real-product
+     tail passes 620 array-free summaries across 155 unique inputs (155 per
+     finder), with digest `a9d50450...` and no promotion effect. This proves
+     the sealed products are reusable but does not recover the previous
+     unpublished in-memory scientific verdict.
+   - [ ] Freeze a replacement non-executable identity review from the clean
+     implementation commit, then obtain separate exact one-use approval for
+     evaluation-only compilation and atomic publication. Do not rerun either
+     Hebog candidate or any PyBDSF reference.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

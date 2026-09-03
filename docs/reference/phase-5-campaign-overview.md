@@ -1246,15 +1246,26 @@ Hebog's associated source record correctly exposes a canonical
 components. The previous repair test stubbed the downstream summary builder,
 so it proved label-role separation but missed this next real interface seam.
 
-The proposed result-neutral repair expands each associated source over its
-exact support-label union only while constructing topology-support centres. It
-must preserve source identifiers and measurements, strict support-partition
-validation, deterministic ordering, label-role separation, all products,
-references, comparisons, margins, and gates. A new real-seam regression must
-cover multi-support and malformed unions as well as legacy single-support
-reference rows. The consumed completion must not be rerun; a replacement
-evaluation requires a new frozen repair review, complete no-write rehash, and
-separate one-use approval.
+The result-neutral repair is now implemented. Associated-source rows dispatch
+through the existing source-union association context while native supports
+remain separate topology evidence; legacy single-support PyBDSF rows retain
+their unchanged path. Exact support partitions, member counts, mixed
+semantics, and deterministic ordering are checked explicitly.
+
+The new real-product tail check then caught a second interface gap before an
+evaluation retry: the direct diagnostic path bypassed the binding compiler's
+sidecar-aware loader and attempted to infer Hebog membership heuristically.
+The repaired path now loads each checksum-verified `source-association-json`
+sidecar for current and incumbent Hebog and retains the legacy path for both
+PyBDSF references. Its no-write real-product check passed 620 array-free
+summaries across 155 unique inputs (155 per finder), digest `a9d50450...`, with
+no promotion effect. The complete integrity pass also rehashed both 2,400-
+product Hebog sets and all 9,600 retained reference runs successfully.
+
+These checks establish that the sealed products can be reused and neither
+Hebog nor PyBDSF needs to be rerun. They do not recover the unpublished
+in-memory comparison: the atomic paired decision is still absent, so a new
+frozen evaluation-only identity and separate one-use approval remain required.
 
 ## Prospective evaluation contract after terminal-cycle repair
 

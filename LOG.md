@@ -14479,3 +14479,53 @@ complete no-write product/reference rehash and real-seam validation before any
 new evaluation-only authority is considered. Candidate execution, rerunning,
 tuning, rescoring, qualification, viewed-data execution, cutover, and release
 remain unauthorized.
+
+## 2026-09-03 — Repair paired source-union topology evaluation
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- Implemented the approved result-neutral topology repair without changing
+  `src/hebog`, either sealed product set, any scientific configuration,
+  comparison, threshold, confidence rule, margin, or gate. Multi-support Hebog
+  rows now use the established source-union association context while native
+  supports remain distinct topology evidence; legacy single-support PyBDSF
+  rows retain their historical path.
+- Added exact-partition, duplicate, missing/unknown support, mixed-semantics,
+  member-count, deterministic-order, and real downstream summary tests. The
+  repair suite passes 59 focused tests; the combined repair and historical-
+  identity suite passes 77.
+- The new real-product no-write tail caught a second interface bug before an
+  evaluation retry: the direct tail path bypassed the compiler's exact
+  association-sidecar loader and attempted heuristic Hebog membership
+  reconstruction. Added a fail-closed sidecar-aware wrapper plus overlapping,
+  unconsumed, and finder-mismatched run-context guards. Current and incumbent
+  Hebog now consume their checksum-verified `source-association-json` records;
+  both PyBDSF views keep the unchanged fallback.
+- Repository coverage caught and prevented an initial governance mistake: the
+  first implementation edited checksum-bound historical preparer
+  `54f1416d...`. Restored that file byte-for-byte and moved all new behaviour
+  into a prospective composed overlay. The older replay identity contracts
+  pass unchanged. The real-product check also caught a missing parent-symbol
+  export in that overlay; the final composed-entry-point regression and exact
+  real-product digest now pass.
+- The repaired real-product tail passes 620 array-free summaries across 155
+  unique inputs, with 155 summaries per finder, digest `a9d50450...`, and
+  `promotion_effect=none-diagnostic-only`. The complete no-write integrity pass
+  rehashed both exact 2,400-product sets and all 9,600 retained reference runs,
+  reported `candidate_execution_started=false`, and left the atomic paired
+  decision absent.
+- The exact sealed products are therefore reusable and no finder replay is
+  required. The previous in-memory paired compilation remains unpublished and
+  cannot be interpreted as scientific evidence; only a newly authorized
+  evaluation-only completion may produce the atomic decision.
+- Final validation passes: branch-aware coverage reports 2,465 passing tests,
+  four expected failures, and 94.60% total coverage; `just check` reports 2,301
+  passing tests and four expected failures; the strict docs build, 27-test
+  equivalence lane, and final `just pre-commit` all pass. Review against
+  `CODE_REVIEW.md` found no actionable issue.
+
+**Immediate next step:** commit the repair locally, then freeze a replacement
+non-executable evaluation identity from that clean implementation revision.
+Obtain separate exact one-use approval before evaluating the sealed products.
+Candidate execution, replay, tuning, rescoring, qualification, viewed-data
+execution, cutover, and release remain unauthorized.

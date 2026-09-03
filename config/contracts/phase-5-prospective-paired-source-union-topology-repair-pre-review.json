@@ -1,0 +1,70 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_retry_authorized": false,
+    "fresh_qualification_authorized": false,
+    "implementation_authorized": true,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-prospective-paired-source-union-topology-repair-pre-review",
+  "failed_completion": {
+    "atomic_output_absent": true,
+    "completion_decision_sha256": "3de3f6fc228b4d2c0c85e3cfb0a60938ab74858e8e617f5fefa8af409cf56423",
+    "completion_identity_review_sha256": "5572148d6604f52988fe256beb0ec1e2046c305f2e0d3a2d50c0ee862f2f9585",
+    "error": "AttributeError: AssociatedContinuumCatalogueObject has no attribute support_label",
+    "execution_checkout": "07cbae3e45525ee49d434e937dd0c563d95b53e0",
+    "expected_execution_sha256": "17f41e8ad0b48df3adc5b6248dd585f68036c6c7d8e72e4386724e78ce73e954",
+    "stage": "result-neutral-truth-linked-tail-topology"
+  },
+  "preserved_evidence": {
+    "current_product_count": 2400,
+    "current_product_set_sha256": "6bcb2959c56173d1a930eb14b3a794727649defc1b52dc1d9d70cd041d401014",
+    "incumbent_evaluator_product_set_sha256": "8dbc9dff20c861b1f93f11781d079226a7ef68475838909496086229ddc9fe5d",
+    "incumbent_product_count": 2400,
+    "incumbent_reconstruction_product_set_sha256": "ea12ce032d06c37cfeb70dcfd16d288bd68bc1ef19c010b8491b9ff66ae406e8",
+    "reference_run_count": 9600
+  },
+  "proposed_repair": {
+    "associated_source_context": "reuse the existing source-union association context with native-support topology retained separately",
+    "candidate_execution_required": false,
+    "explicit_membership_source": "load the checksum-verified source-association-json sidecar for each Hebog tail view instead of reconstructing membership heuristically",
+    "legacy_single_support_path_changed": false,
+    "result_neutral": true,
+    "strict_support_partition": "the associated support-label union must exactly and uniquely partition every positive association label"
+  },
+  "required_tests": [
+    "a multi-support associated source reaches the real truth-linked summary and retains one source-level catalogue association plus native-support topology",
+    "the complete repaired tail invokes the real summary builder for current Hebog, incumbent Hebog, and both PyBDSF references",
+    "mixed support semantics, duplicate support membership, missing or unknown supports, and member-count disagreement fail closed",
+    "catalogue row order does not change the summary or digest",
+    "the legacy single-support path remains unchanged",
+    "current and incumbent Hebog tail views load their exact association sidecars while both PyBDSF views retain the legacy path",
+    "missing, malformed, or mismatched sidecar and run context fails closed",
+    "the exact preserved products and all retained references pass a complete no-write rehash",
+    "the exact real-product sentinel tail passes without publishing or exposing a scientific verdict"
+  ],
+  "root_cause": {
+    "binding_science_failure_observed": false,
+    "cause": "Two consecutive evaluation-only interface mismatches were present. The repaired tail correctly constructed source-level AssociatedContinuumCatalogueObject rows, but build_truth_linked_continuum_summary unconditionally dispatched them through the legacy ContinuumCatalogueObject topology path. After that dispatch was repaired, the new real-product tail smoke showed that the direct tail path also bypassed the binding compiler's sidecar-aware source-membership loader and attempted heuristic membership reconstruction. The products already preserve exact source-association-json provenance and must use it.",
+    "coverage_gap": "The prior tail test replaced build_truth_linked_continuum_summary with a stub, so it verified label-plane routing but not the next real source-topology interface.",
+    "failure_location": "scripts/validation/prepare_phase5_prospective_paired_evidence.py:build_truth_linked_continuum_summary",
+    "no_write_tail_smoke_failure": "associated source membership cannot be verified",
+    "product_corruption_observed": false
+  },
+  "schema_version": 1,
+  "scientific_contract": {
+    "comparators_changed": false,
+    "confidence_rules_changed": false,
+    "decision_policy_changed": false,
+    "practical_margins_changed": false,
+    "source_finding_products_changed": false,
+    "thresholds_changed": false
+  },
+  "status": "approved-for-test-first-source-union-topology-repair"
+}

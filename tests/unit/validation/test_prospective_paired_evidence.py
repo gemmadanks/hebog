@@ -22,10 +22,17 @@ from hebog.validation.prospective_science_contract import (
     ProspectiveEndpointRegistry,
     load_prospective_endpoint_registry,
 )
+from hebog.validation.source_association_evaluation_repair import (
+    AssociatedContinuumCatalogueObject,
+)
 
 _ROOT = Path(__file__).parents[3]
 _PROGRAM = (
     _ROOT / "scripts/validation/prepare_phase5_prospective_paired_evidence.py"
+)
+_SOURCE_UNION_PROGRAM = (
+    _ROOT / "scripts/validation/"
+    "prepare_phase5_prospective_paired_source_union_evidence.py"
 )
 _REQUEST = (
     _ROOT / "benchmark-results/phase-5/external-post-failure-comparison/"
@@ -43,6 +50,31 @@ _SMOKE = (
 def _program() -> dict[str, Any]:
     """Load the evaluation-only program without executing its CLI."""
     return runpy.run_path(str(_PROGRAM))
+
+
+def _source_union_program() -> dict[str, Any]:
+    """Load the prospective adapter over the immutable parent preparer."""
+    return runpy.run_path(str(_SOURCE_UNION_PROGRAM))
+
+
+def test_source_union_preparer_preserves_parent_program_and_entry_points() -> (
+    None
+):
+    """The overlay composes every evaluator entry point without mutation."""
+    program = _source_union_program()
+
+    assert (
+        file_sha256(program["_PARENT_PREPARER"])
+        == program["_PARENT_PREPARER_SHA256"]
+    )
+    for name in (
+        "build_aligned_prospective_power_audit",
+        "build_array_free_endpoint_summary",
+        "build_truth_linked_continuum_summary",
+        "evaluate_prospective_cumulative_evidence",
+        "select_result_neutral_tail_sentinels",
+    ):
+        assert callable(program[name])
 
 
 def _endpoint(
@@ -260,7 +292,7 @@ def test_binding_safety_is_independent_and_fail_closed() -> None:
 
 def test_truth_linked_summary_is_array_free_and_reconstructable() -> None:
     """Transient planes reduce to bounded truth-linked scientific rows."""
-    build = _program()["build_truth_linked_continuum_summary"]
+    build = _source_union_program()["build_truth_linked_continuum_summary"]
     truth = (
         ContinuumTruthObject(
             identifier="shell",
@@ -328,6 +360,181 @@ def test_truth_linked_summary_is_array_free_and_reconstructable() -> None:
     assert record["record_sha256"] == canonical_sha256(
         {key: value for key, value in record.items() if key != "record_sha256"}
     )
+
+
+def test_truth_linked_summary_accepts_exact_multi_support_sources() -> None:
+    """Associated sources use source unions and retain native topology."""
+    build = _source_union_program()["build_truth_linked_continuum_summary"]
+    truth = (
+        ContinuumTruthObject(
+            identifier="shell",
+            support_label=1,
+            centre_xy=(2.5, 0.0),
+            integrated_flux_jy=2.0,
+            catalogue_role="astronomical-source",
+            strata=("morphology-shell",),
+        ),
+    )
+    catalogue = (
+        AssociatedContinuumCatalogueObject(
+            identifier="source-a",
+            support_labels=(7, 9),
+            centre_xy=(2.5, 0.0),
+            integrated_flux_jy=2.0,
+        ),
+    )
+
+    record = build(
+        input_id="continuum-seed-1",
+        dataset_identifier="continuum-1",
+        seed=1,
+        finder_id="hebog",
+        truth=truth,
+        catalogue=catalogue,
+        truth_label_plane=np.asarray(((1, 1, 0, 1, 1, 1),)),
+        candidate_label_plane=np.asarray(((0, 0, 0, 9, 9, 9),)),
+        association_label_plane=np.asarray(((7, 7, 0, 9, 9, 9),)),
+        beam_fwhm_pixels=2.0,
+        source_member_counts={"source-a": 2},
+        hierarchy_diagnostics={},
+    )
+
+    group = record["truth_groups"][0]
+    assert group["primary_candidate_id"] == "source-a"
+    assert group["primary_source_member_count"] == 2
+    assert group["catalogue_candidate_count"] == 1
+    assert group["native_support_count"] == 2
+    assert group["association_mechanisms"] == ["native-support-split"]
+    assert record["image_counts"] == {
+        "candidate_association_mask_pixels": 5,
+        "candidate_catalogue_sources": 1,
+        "candidate_mask_pixels": 3,
+        "intersection_mask_pixels": 3,
+        "truth_mask_pixels": 5,
+        "union_mask_pixels": 5,
+    }
+
+
+@pytest.mark.parametrize(
+    ("catalogue", "counts", "message"),
+    [
+        (
+            (
+                AssociatedContinuumCatalogueObject(
+                    "source-a", (7, 11), (1.0, 0.0), 1.0
+                ),
+            ),
+            {"source-a": 2},
+            "partition native supports",
+        ),
+        (
+            (
+                AssociatedContinuumCatalogueObject(
+                    "source-a", (7,), (0.0, 0.0), 1.0
+                ),
+                AssociatedContinuumCatalogueObject(
+                    "source-b", (7,), (1.0, 0.0), 1.0
+                ),
+            ),
+            {"source-a": 1, "source-b": 1},
+            "present and disjoint",
+        ),
+        (
+            (
+                AssociatedContinuumCatalogueObject(
+                    "source-a", (7,), (0.0, 0.0), 1.0
+                ),
+                ContinuumCatalogueObject("source-b", 9, (1.0, 0.0), 1.0),
+            ),
+            {"source-a": 1, "source-b": 1},
+            "mix support semantics",
+        ),
+        (
+            (
+                AssociatedContinuumCatalogueObject(
+                    "source-a", (7, 9), (0.5, 0.0), 1.0
+                ),
+            ),
+            {"source-a": 1},
+            "counts do not match associated support unions",
+        ),
+    ],
+)
+def test_truth_linked_summary_rejects_invalid_source_support_partitions(
+    catalogue: tuple[
+        ContinuumCatalogueObject | AssociatedContinuumCatalogueObject, ...
+    ],
+    counts: dict[str, int],
+    message: str,
+) -> None:
+    """Tail diagnostics fail closed on invalid source-support evidence."""
+    build = _source_union_program()["build_truth_linked_continuum_summary"]
+
+    with pytest.raises(ValueError, match=message):
+        build(
+            input_id="continuum-seed-1",
+            dataset_identifier="continuum-1",
+            seed=1,
+            finder_id="hebog",
+            truth=(
+                ContinuumTruthObject(
+                    "truth",
+                    1,
+                    (0.5, 0.0),
+                    1.0,
+                    "astronomical-source",
+                    ("overall",),
+                ),
+            ),
+            catalogue=catalogue,
+            truth_label_plane=np.asarray(((1, 1),)),
+            candidate_label_plane=np.asarray(((7, 9),)),
+            association_label_plane=np.asarray(((7, 9),)),
+            beam_fwhm_pixels=2.0,
+            source_member_counts=counts,
+            hierarchy_diagnostics={},
+        )
+
+
+def test_truth_linked_multi_support_summary_is_catalogue_order_invariant() -> (
+    None
+):
+    """Associated-source diagnostics are deterministic across row order."""
+    build = _source_union_program()["build_truth_linked_continuum_summary"]
+    truth = (
+        ContinuumTruthObject(
+            "truth-a", 1, (0.5, 0.0), 1.0, "astronomical-source", ("overall",)
+        ),
+        ContinuumTruthObject(
+            "truth-b", 2, (4.5, 0.0), 1.0, "astronomical-source", ("overall",)
+        ),
+    )
+    sources = (
+        AssociatedContinuumCatalogueObject(
+            "source-a", (7, 8), (0.5, 0.0), 1.0
+        ),
+        AssociatedContinuumCatalogueObject(
+            "source-b", (9, 10), (4.5, 0.0), 1.0
+        ),
+    )
+    arguments = {
+        "input_id": "continuum-seed-1",
+        "dataset_identifier": "continuum-1",
+        "seed": 1,
+        "finder_id": "hebog",
+        "truth": truth,
+        "truth_label_plane": np.asarray(((1, 1, 0, 2, 2, 2),)),
+        "candidate_label_plane": np.asarray(((7, 8, 0, 9, 10, 10),)),
+        "association_label_plane": np.asarray(((7, 8, 0, 9, 10, 10),)),
+        "beam_fwhm_pixels": 2.0,
+        "source_member_counts": {"source-a": 2, "source-b": 2},
+        "hierarchy_diagnostics": {},
+    }
+
+    forward = build(catalogue=sources, **arguments)
+    reversed_rows = build(catalogue=tuple(reversed(sources)), **arguments)
+
+    assert reversed_rows == forward
 
 
 @dataclass(frozen=True)
