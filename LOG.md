@@ -15351,3 +15351,24 @@ approval remains mandatory before any execution.
 combined lane identity `4c611f1b...` and expected execution SHA-256
 `b7d12adb...` before running the development lane. A passing lane is required
 before opening held-out qualification.
+
+## 2026-09-04 — Authorize the combined development lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Recorded the user's one-use approval in exact execution decision
+  `c169bb85ba39d8fa0092e4315738514e0e47d05920b39dde49f8c857006f412d`,
+  bound to lane identity `4c611f1b...` and expected execution
+  `b7d12adb...`.
+- The decision authorizes exactly 144 candidate executions, 144 paired
+  coarse-control executions, 12 caller-owned existing-Dask comparisons, two
+  local process workers, and one atomic terminal decision. Source changes,
+  PyBDSF or viewed-data execution, replay, qualification, tuning, rescoring,
+  optimization, cutover, and release remain unauthorized.
+- The fixed scratch and atomic output are absent. Host free space is 6.1 GiB;
+  the directly comparable completed 144-image predecessor scratch occupies
+  1.1 GiB, leaving adequate but deliberately monitored headroom.
+
+**Immediate next step:** commit the exact decision, re-run the complete
+preflight from that immutable provenance point, start one caller-owned
+two-worker Dask runtime, and launch the single authorized lane.
