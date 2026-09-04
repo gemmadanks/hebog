@@ -550,8 +550,8 @@ independent acceptance. Detailed campaign and incident chronology belongs in
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
 | Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Open: the approved source-protection correction passes fixtures; the separately reproduced coarse-arm measurement and topology gaps still require renewed review before any correction. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Interface complete; final post-repair identity not yet frozen. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries; source-protection successor `9f416775...` is frozen but non-executable while independent coarse-arm gaps remain. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Source-protected candidate `7ebde589...` and public identity `4f8c110f...` are frozen; further reviewed coarse-gap corrections may still supersede them before qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -1692,10 +1692,24 @@ from partial or viewed evidence.
      the mixed core/halo measurement-aperture loss and shell publication
      fragmentation without changing either algorithm. Those gaps remain open
      and any measurement, association, or publication correction requires
-     renewed scientific review. Freeze the exact non-executable replacement
-     candidate, public composition, and lane identities next. Only a separately
-     approved, passing replacement development lane may open the independent
-     held-out analogue; these development images must never enter the one-look
+     renewed scientific review.
+   - Exact scientific candidate `7ebde589...` is committed with source-tree
+     identity `c83ee5a9...` and unchanged reference configuration
+     `2c907949...`. Successor public-composition review `4f8c110f...`,
+     implementation decision `0bf418ef...`, and development-lane identity
+     `9f416775...` are frozen write-once and non-executable. The complete
+     no-write preflight validates the 144 candidate, 144 coarse-control, and
+     12 caller-owned-Dask execution shape and leaves both the exact scratch and
+     atomic output absent. Its array-free attribution is explicitly
+     non-binding and includes the protected pixel/window counters in executor
+     equality.
+   - Do not execute that successor lane merely to reconfirm the already known
+     independent failures. First complete renewed scientific review and
+     fixture-first correction of the coarse-arm measurement-aperture and shell
+     publication/topology gaps. Then freeze the resulting exact public
+     candidate and a combined replacement lane. Only a separately approved,
+     passing replacement development lane may open the independent held-out
+     analogue; these development images must never enter the one-look
      qualification population.
 
 6. [ ] **Confirm final engineering evidence.**

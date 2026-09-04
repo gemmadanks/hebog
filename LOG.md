@@ -15185,3 +15185,35 @@ candidate, then freeze successor non-executable public-composition and
 development-lane identities and rerun the complete no-write and repository
 validation gates. Separate exact approval remains mandatory before any lane
 execution.
+
+## 2026-09-04 — Freeze the source-protected adaptive development lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Committed exact candidate `7ebde589...`, source tree `c83ee5a9...`, with the
+  unchanged reference configuration `2c907949...`. No source-finding change
+  was made after that candidate identity was established.
+- Added a successor lane wrapper that reuses the previously exercised
+  144-pair population and decision rules while adding array-free, non-binding
+  per-input attribution. The retained counters separately locate losses at
+  adaptive background, measurement, and publication boundaries; protected
+  pixel/window counts are included in exact Serial/existing-Dask science
+  equality. The wrapper uses strict JSON-aware model validation and refuses
+  execution without a separate exact one-use decision.
+- Froze write-once non-executable public identity `4f8c110f...`, implementation
+  decision `0bf418ef...`, and lane identity `9f416775...`. Every execution,
+  qualification, PyBDSF/viewed-data, tuning, rescoring, optimization, cutover,
+  and release authorization remains false.
+- The complete no-write preflight passed for 144 candidate executions, 144
+  coarse controls, and 12 caller-owned-Dask comparisons. It created neither
+  `/private/tmp/hebog-phase5-adaptive-background-source-protection-7ebde58`
+  nor the atomic decision output. Five focused tooling tests, Ruff, and Pyright
+  pass. The final expanded identity/sidecar suite passes 15 tests; the full
+  branch-aware suite passes 2,655 tests and 2 expected xfails at 94.80%
+  project coverage. The normal check passes 2,478 tests and 2 expected xfails,
+  all 27 frozen equivalence tests pass, and strict documentation builds.
+
+**Immediate next step:** complete renewed scientific review of the already
+reproduced mixed core/halo measurement-aperture loss and shell publication or
+topology fragmentation before deciding whether to supersede this candidate.
+Do not spend a development-lane run merely to rediscover those known gaps.

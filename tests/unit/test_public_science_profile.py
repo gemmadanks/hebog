@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from hebog import public_api
 from hebog.data_models import (
     PublicSourceFindingDiagnostics,
     PublicSourceFindingProvenance,
@@ -185,4 +186,47 @@ def test_public_interface_identity_binds_its_historical_file_set() -> None:
         composition.update(contents)
         composition.update(b"\0")
 
+    assert composition.hexdigest() == review["scientific_composition_sha256"]
+
+
+def test_source_protected_public_identity_binds_current_science() -> None:
+    """The successor review binds the exact installed corrected candidate."""
+    review_path = (
+        _ROOT / "config/contracts/"
+        "phase-5-adaptive-background-source-protection-"
+        "public-interface-identity-review.json"
+    )
+    contents = review_path.read_bytes()
+    review = json.loads(contents)
+
+    assert hashlib.sha256(contents).hexdigest() == (
+        "4f8c110fb45ffa151d54bc9c9dfdad1385306101a1e8397718f82a0b43388b81"
+    )
+    assert review["status"] == "frozen-non-executable"
+    assert not any(review["authorizations"].values())
+    assert review["algorithm_candidate"] == {
+        "configuration_sha256": (
+            "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
+        ),
+        "revision": "7ebde589c82e153e0f7d475a8469c120138be4da",
+        "source_tree_sha256": (
+            "c83ee5a90c33f9c915b69402710835a5a094d08df83e003f8e2fd0799f23ae2d"
+        ),
+    }
+    for relative_path, expected in review["interface_file_sha256"].items():
+        assert hashlib.sha256(
+            (_ROOT / relative_path).read_bytes()
+        ).hexdigest() == (expected)
+    composition = hashlib.sha256()
+    for module_name, expected in review["scientific_module_sha256"].items():
+        module = importlib.import_module(module_name)
+        module_path = Path(module.__file__ or "").resolve()
+        module_contents = module_path.read_bytes()
+        assert hashlib.sha256(module_contents).hexdigest() == expected
+        composition.update(module_name.encode())
+        composition.update(b"\0")
+        composition.update(module_contents)
+        composition.update(b"\0")
+
+    assert review["scientific_composition"] == public_api._COMPOSITION_NAME
     assert composition.hexdigest() == review["scientific_composition_sha256"]
