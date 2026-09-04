@@ -252,6 +252,9 @@ class SourceHierarchyDiagnostics:
     terminal_cycle_unseeded_persistence_rejected_count: int = 0
     persistent_feature_influence_candidate_count: int = 0
     persistent_feature_influence_parent_count: int = 0
+    terminal_cycle_missing_child_resilience_candidate_count: int = 0
+    terminal_cycle_missing_child_resilience_parent_count: int = 0
+    terminal_cycle_missing_child_resilience_rejected_count: int = 0
 
     def __post_init__(self) -> None:
         """Require canonical non-negative counts and exact cardinalities."""
@@ -284,6 +287,9 @@ class SourceHierarchyDiagnostics:
             self.terminal_cycle_unseeded_persistence_rejected_count,
             self.persistent_feature_influence_candidate_count,
             self.persistent_feature_influence_parent_count,
+            self.terminal_cycle_missing_child_resilience_candidate_count,
+            self.terminal_cycle_missing_child_resilience_parent_count,
+            self.terminal_cycle_missing_child_resilience_rejected_count,
         )
         if any(value < 0 for value in scalar_counts):
             raise ValueError("source hierarchy counts must be non-negative")
@@ -367,6 +373,18 @@ class SourceHierarchyDiagnostics:
             raise ValueError(
                 "persistent feature influence parents exceed candidates"
             )
+        _validate_support_parent_counts(
+            candidate_count=(
+                self.terminal_cycle_missing_child_resilience_candidate_count
+            ),
+            parent_count=(
+                self.terminal_cycle_missing_child_resilience_parent_count
+            ),
+            rejected_count=(
+                self.terminal_cycle_missing_child_resilience_rejected_count
+            ),
+            label="terminal-cycle missing-child resilience",
+        )
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,12 +1,12 @@
 # Phase 5 public-finder source reconstruction
 
-**Status:** the first source-reconstruction candidate is terminal failed
-evidence. The separately approved parent-construction repair is implemented
-and passes its synthetic real-scale, overmerge-safety, and executor fixtures.
-The replacement candidate and fail-closed replay composition are frozen in
-non-executable identity review `e615da00...`. Its complete no-write verifier
-passed all 2,400 inputs and 9,600 retained reference runs with the future
-output and scratch absent. No cumulative replay, public-data campaign,
+**Status:** historical source-reconstruction campaigns remain terminal
+evidence. The latest approved fixture-only successor adds source-owned
+persistent measurement support and a conservative one-missing-child terminal
+parent rule. Its positive, negative, invalid-pixel, boundary, and
+Serial/existing-Dask fixtures pass. A new non-executable candidate and
+development-lane identity must still be frozen before a separate execution
+decision. No development-lane run, cumulative replay, public-data campaign,
 qualification run, tuning, rescoring, cutover, or release is authorized by
 this work.
 
@@ -54,14 +54,18 @@ astrophysical sources.
 Second, the constructor makes a bounded envelope around each feature using the
 cumulative radius of the already frozen B3-spline filter at that scale: 2, 6,
 or 14 pixels. Envelopes are clipped to valid pixels and are used only as
-hierarchy evidence; exact feature support remains the sole measurement support.
-A sweep-line graph identifies spatially interacting siblings. A non-terminal
-envelope group still requires connected significant support. At the final
-retained scale, a graph two-core with at least three members may form a parent
-only when every terminal feature has an exact child at the immediately
-preceding scale. This proves adjacent-scale persistence of every constituent
-without demanding recurrence of a newly resolved parent at a nonexistent
-fourth scale.
+hierarchy evidence; they never enter measurement. Exact adjacent-scale
+persistent support may enter source-level measurement only after deterministic
+ownership by an already accepted catalogue source. A sweep-line graph
+identifies spatially interacting siblings. A non-terminal envelope group still
+requires connected significant support. At the final retained scale, a graph
+two-core with at least three members may form a parent when every terminal
+feature has an exact or mutually unique bounded displaced child at the
+immediately preceding scale. One directly owned terminal feature may lack a
+child without vetoing the whole parent, but only when every feature remains in
+one retained significant-support component and no direct component
+participates in a competing terminal cycle. A missing feature with multiple
+owners, disconnected support, or ambiguous displaced evidence fails closed.
 
 The rule fails closed:
 
@@ -70,8 +74,8 @@ The rule fails closed:
 - missing convergence or more than one parent marks the component ambiguous
   and leaves it as a singleton;
 - an uncorroborated terminal bridge cannot create a source;
-- a terminal pair, a transitive chain, or a cycle containing any feature
-  without an incoming adjacent-scale edge remains separate;
+- a terminal pair or transitive chain remains separate, while a cycle with one
+  missing child is eligible only under the exclusive whole-source rule above;
 - connected significant support, proximity, a two-feature envelope, or a
   centroid chord cannot create a source without independent hierarchy
   evidence;
@@ -86,8 +90,13 @@ remain a deterministic digest of the sorted immutable component IDs.
 
 Component moment rows remain diagnostic. Binding catalogue rows are produced
 from a separate source-label plane created after hierarchy reduction. The
-existing nearest-owner aperture expansion then partitions eligible pixels
-between sources, so distinct source apertures cannot overlap.
+source seed is extended by the union of exact adjacent-scale persistent
+support connected to an accepted source. Support connected to multiple
+sources is assigned once to the nearest immutable member pixel, with canonical
+source identity resolving exact distance ties; disconnected and invalid
+support remains unowned. The unchanged 1.5-major-beam outer guard then expands
+from that owned seed and applies the same deterministic ownership rule, so
+distinct source apertures cannot overlap.
 
 For source \(s\), integrated flux is measured once as
 
@@ -148,8 +157,13 @@ The fixture suite covers:
   different plane orders;
 - exact source flux and centroid, disjoint apertures, boundary/corner
   equality, and one source-level fallback;
+- mixed core/halo source-owned photometry at 4, 8, and 12 beam extents under
+  flat and varying backgrounds;
 - connected wings, disconnected nearby support, direct-seed preservation,
-  and invalid-pixel barriers; and
+  invalid-pixel barriers, image-edge support, and deterministic competing-
+  source ownership;
+- exact, displaced, missing, multiply owned, disconnected, partial-group,
+  branched, and competing terminal-parent cases; and
 - binding catalogue-source topology alongside native-component diagnostics.
 
 The same source memberships and support owners are tested through the serial

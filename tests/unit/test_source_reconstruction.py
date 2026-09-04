@@ -14,8 +14,10 @@ from hebog.algorithms.multiscale_association import (
 )
 from hebog.algorithms.source_association import (
     _apply_scale_aware_parent_groups,  # pyright: ignore[reportPrivateUsage]
+    _apply_terminal_cycle_groups,  # pyright: ignore[reportPrivateUsage]
     _isolated_sibling_feature_pairs,  # pyright: ignore[reportPrivateUsage]
     _ScaleAwareParentEvidence,  # pyright: ignore[reportPrivateUsage]
+    _TerminalCycleEvidence,  # pyright: ignore[reportPrivateUsage]
     associate_components_by_multiscale_hierarchy,
     build_detection_component_records,
 )
@@ -1284,6 +1286,123 @@ def test_displaced_child_requires_same_connected_support() -> None:
     assert diagnostics.terminal_persistence_displaced_accepted_count == 3
     assert diagnostics.terminal_persistence_missing_child_count == 1
     assert diagnostics.terminal_persistence_ambiguous_child_count == 0
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_candidate_count
+        == 1
+    )
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_parent_count == 0
+    )
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_rejected_count == 1
+    )
+
+
+def test_one_missing_owned_child_does_not_veto_exclusive_terminal_cycle() -> (
+    None
+):
+    """One missing child cannot split an otherwise persistent source graph."""
+    terminal_pixels = ((10, 10), (10, 34), (34, 10), (34, 34))
+    labels, records = _components(terminal_pixels, shape=(49, 49))
+    preceding = _plane(
+        2,
+        tuple(
+            (f"scale-one-missing-child-{index}", (pixel,))
+            for index, pixel in enumerate(terminal_pixels[1:], start=2)
+        ),
+        shape=labels.shape,
+    )
+    terminal = _plane(
+        3,
+        tuple(
+            (f"scale-one-missing-parent-{index}", (pixel,))
+            for index, pixel in enumerate(terminal_pixels, start=1)
+        ),
+        shape=labels.shape,
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[9:36, 9:36] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (preceding, terminal),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert [len(item.component_ids) for item in result.memberships] == [4]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 1
+    assert diagnostics.rejected_terminal_cycle_count == 0
+    assert diagnostics.terminal_persistence_missing_child_count == 1
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_candidate_count
+        == 1
+    )
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_parent_count == 1
+    )
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_rejected_count == 0
+    )
+
+
+def test_multiply_owned_missing_child_rejects_terminal_cycle() -> None:
+    """A missing feature with two direct owners is not an exclusive lobe."""
+    direct_pixels = ((10, 10), (10, 11), (10, 34), (34, 10), (34, 34))
+    labels, records = _components(direct_pixels, shape=(49, 49))
+    preceding = _plane(
+        2,
+        tuple(
+            (f"scale-multiply-owned-child-{index}", (pixel,))
+            for index, pixel in enumerate(direct_pixels[2:], start=2)
+        ),
+        shape=labels.shape,
+    )
+    terminal = _plane(
+        3,
+        (
+            ("scale-multiply-owned-parent-1", direct_pixels[:2]),
+            ("scale-multiply-owned-parent-2", (direct_pixels[2],)),
+            ("scale-multiply-owned-parent-3", (direct_pixels[3],)),
+            ("scale-multiply-owned-parent-4", (direct_pixels[4],)),
+        ),
+        shape=labels.shape,
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[9:36, 9:36] = True
+
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (preceding, terminal),
+        np.ones(labels.shape, dtype=np.bool_),
+        significant_multiscale_support=significant,
+    )
+
+    assert sorted(len(item.component_ids) for item in result.memberships) == [
+        1,
+        1,
+        1,
+        2,
+    ]
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.terminal_cycle_candidate_count == 1
+    assert diagnostics.terminal_cycle_parent_count == 0
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_candidate_count
+        == 1
+    )
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_parent_count == 0
+    )
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_rejected_count == 1
+    )
 
 
 def test_displaced_child_requires_mutual_uniqueness() -> None:
@@ -1488,6 +1607,35 @@ def test_displaced_terminal_parent_cannot_override_partial_group() -> None:
     assert diagnostics.terminal_persistence_displaced_candidate_count == 3
     assert diagnostics.terminal_persistence_displaced_accepted_count == 3
     assert diagnostics.terminal_persistence_conflict_count == 1
+
+
+def test_missing_child_resilience_reports_final_conflict_rejection() -> None:
+    """Resilience telemetry counts only parents surviving reconciliation."""
+    incumbent = (
+        frozenset(("component-a", "component-b", "component-c")),
+        frozenset(("component-d",)),
+    )
+    resilient_parent = frozenset(
+        ("component-a", "component-d", "component-e", "component-f")
+    )
+    groups, evidence = _apply_terminal_cycle_groups(
+        incumbent,
+        _TerminalCycleEvidence(
+            groups=(resilient_parent,),
+            candidate_count=1,
+            rejected_count=0,
+            missing_child_resilience_candidate_count=1,
+            missing_child_resilience_parent_count=1,
+            missing_child_resilience_rejected_count=0,
+            missing_child_resilience_groups=(resilient_parent,),
+        ),
+    )
+
+    assert groups == incumbent
+    assert evidence.accepted_parent_count == 0
+    assert evidence.conflict_count == 1
+    assert evidence.missing_child_resilience_parent_count == 0
+    assert evidence.missing_child_resilience_rejected_count == 1
 
 
 def test_transitive_envelope_chain_fails_closed() -> None:
@@ -1744,6 +1892,30 @@ def test_hierarchy_diagnostics_reject_inconsistent_counts() -> None:
                 direct_component_count=2,
                 membership_size_histogram=((2, 1),),
             ),
+        )
+
+
+def test_missing_child_resilience_diagnostics_reject_impossible_counts() -> (
+    None
+):
+    """Accepted or rejected resilient parents cannot exceed candidates."""
+    labels, records = _components(((3, 3),))
+    result = associate_components_by_multiscale_hierarchy(
+        records,
+        labels,
+        (_plane(1, (("scale-resilience-diagnostic", ((3, 3),)),)),),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    diagnostics = result.hierarchy_diagnostics
+    assert diagnostics is not None
+
+    with pytest.raises(
+        ValueError,
+        match="missing-child resilience outcomes exceed candidates",
+    ):
+        replace(
+            diagnostics,
+            terminal_cycle_missing_child_resilience_parent_count=1,
         )
 
 

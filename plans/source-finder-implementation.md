@@ -549,9 +549,9 @@ independent acceptance. Detailed campaign and incident chronology belongs in
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Open: the approved source-protection correction passes fixtures. Renewed review `026e490f...` localizes the remaining coarse-arm gaps to source-owned photometry composition and catalogue association, excludes publication-mask fragmentation as the binding split cause, and awaits named approval before either correction. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries; source-protection successor `9f416775...` is frozen but deliberately unexecuted while the approved fixture-first measurement and topology successors are absent. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Source-protected candidate `7ebde589...` and public identity `4f8c110f...` are frozen; further reviewed coarse-gap corrections may still supersede them before qualification. |
+| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | In progress: review `026e490f...` is approved. Source-owned persistent measurement support and conservative one-missing-child parent construction pass their positive, negative, invalid, boundary, and conflict fixtures; combined no-write validation and identity freezing remain. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries. The combined replacement passes fixture and executor invariance gates but has not been executed; a new exact lane identity and separate execution approval remain required. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | The source-protected candidate is superseded prospectively by the fixture-validated measurement/topology composition. Its exact committed revision, public identity, and lane identity remain to be frozen. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -1728,16 +1728,19 @@ from partial or viewed evidence.
      when the persistent whole-source graph remains unambiguous, and fail
      closed on close unrelated pairs, branches, competing parents, and
      single-scale broad bridges.
-   - Review `026e490f...` authorizes nothing. Obtain named approval before
-     adding the production-equivalent red fixtures or changing measurement or
-     association science. After both corrections pass positive, negative,
-     boundary, invalid-pixel, conflict, and Serial/existing-Dask invariance
-     tests, run the complete combined lane in no-write mode and freeze the
-     resulting exact public candidate and lane identities. Do not execute the
-     existing source-protection lane merely to reconfirm known failures. Only
-     a separately approved, passing combined development lane may open the
-     independent held-out analogue; these development images must never enter
-     the one-look qualification population.
+   - Review `026e490f...` received named approval. Production-equivalent red
+     fixtures first reproduced fixed-guard mixed-source flux loss and the
+     one-missing-child terminal-cycle veto. The implementation now seeds the
+     unchanged source aperture from exclusively owned adjacent-scale
+     persistent support and permits one missing directly owned child only for
+     an exclusive, connected whole-source terminal graph. It preserves direct
+     membership, rejects detached/invalid/competing ownership and multiply
+     owned missing features, and adds bounded stage and rejection telemetry.
+     The 4/8/12-beam flat/varying photometry cases, seven/eight-knot real-scale
+     morphology cases, overmerge controls, boundary/invalid cases, and
+     Serial/existing-Dask order/retry invariance pass. Next run the complete
+     combined lane in no-write mode and freeze exact non-executable public and
+     lane identities. Do not execute any lane without a later exact approval.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

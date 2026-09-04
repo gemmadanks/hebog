@@ -696,6 +696,7 @@ class _TerminalFeaturePersistence:
     displaced_accepted_count: int
     missing_child_count: int
     ambiguous_child_count: int
+    missing_feature_ids: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True, slots=True)
@@ -716,6 +717,10 @@ class _TerminalCycleEvidence:
     unseeded_candidate_count: int = 0
     unseeded_persistent_accepted_count: int = 0
     unseeded_persistence_rejected_count: int = 0
+    missing_child_resilience_candidate_count: int = 0
+    missing_child_resilience_parent_count: int = 0
+    missing_child_resilience_rejected_count: int = 0
+    missing_child_resilience_groups: tuple[frozenset[str], ...] = ()
 
 
 def _hierarchy_attachments(
@@ -1370,6 +1375,7 @@ def _terminal_feature_persistence(
             displaced_accepted_count=0,
             missing_child_count=len(missing_exact),
             ambiguous_child_count=0,
+            missing_feature_ids=missing_exact,
         )
 
     preceding = planes[-2]
@@ -1435,7 +1441,66 @@ def _terminal_feature_persistence(
         displaced_accepted_count=len(accepted_parent_ids),
         missing_child_count=len(missing_ids),
         ambiguous_child_count=len(ambiguous_ids),
+        missing_feature_ids=frozenset(missing_ids),
     )
+
+
+def _resilient_missing_child_cycle_groups(
+    candidate_feature_groups: list[frozenset[str]],
+    persistence: _TerminalFeaturePersistence,
+    attachments: _HierarchyAttachments,
+    terminal: ScaleDetectionPlane,
+    support_component_labels: npt.NDArray[np.int64],
+) -> tuple[tuple[frozenset[str], ...], int, int]:
+    """Admit one missing owned child only in an exclusive source graph."""
+    component_groups = tuple(
+        _components_for_feature_group(group, attachments)
+        for group in candidate_feature_groups
+    )
+    component_occurrences = Counter(
+        component_id for group in component_groups for component_id in group
+    )
+    support_components = _feature_support_components(
+        terminal,
+        support_component_labels,
+    )
+    accepted: list[frozenset[str]] = []
+    candidate_count = 0
+    rejected_count = 0
+    for feature_group, component_group in zip(
+        candidate_feature_groups,
+        component_groups,
+        strict=True,
+    ):
+        missing = feature_group - persistence.persistent_feature_ids
+        if len(missing) != 1:
+            continue
+        missing_feature = next(iter(missing))
+        if missing_feature not in persistence.missing_feature_ids:
+            continue
+        candidate_count += 1
+        missing_owners = _components_for_feature_group(
+            frozenset((missing_feature,)),
+            attachments,
+        )
+        feature_support_components = {
+            support_components.get(feature_id, 0)
+            for feature_id in feature_group
+        }
+        exclusive_components = all(
+            component_occurrences[component_id] == 1
+            for component_id in component_group
+        )
+        if (
+            len(missing_owners) == 1
+            and exclusive_components
+            and len(feature_support_components) == 1
+            and 0 not in feature_support_components
+        ):
+            accepted.append(feature_group)
+        else:
+            rejected_count += 1
+    return tuple(accepted), candidate_count, rejected_count
 
 
 def _terminal_cycle_evidence(
@@ -1486,15 +1551,33 @@ def _terminal_cycle_evidence(
         parent_edges,
         relevant_feature_ids,
     )
-    accepted_feature_groups = tuple(
+    persistent_feature_groups = tuple(
         feature_group
         for feature_group in candidate_feature_groups
         if feature_group.issubset(persistence.persistent_feature_ids)
+    )
+    (
+        resilient_feature_groups,
+        resilience_candidate_count,
+        resilience_rejected_count,
+    ) = _resilient_missing_child_cycle_groups(
+        candidate_feature_groups,
+        persistence,
+        attachments,
+        terminal,
+        support_component_labels,
+    )
+    accepted_feature_groups = tuple(
+        dict.fromkeys((*persistent_feature_groups, *resilient_feature_groups))
     )
     accepted = {
         _components_for_feature_group(feature_group, attachments)
         for feature_group in accepted_feature_groups
     }
+    resilient_groups = tuple(
+        _components_for_feature_group(feature_group, attachments)
+        for feature_group in resilient_feature_groups
+    )
     accepted_feature_group_set = set(accepted_feature_groups)
     unseeded_accepted_count = sum(
         feature_group in accepted_feature_group_set
@@ -1516,6 +1599,10 @@ def _terminal_cycle_evidence(
         unseeded_persistence_rejected_count=(
             len(unseeded_candidate_groups) - unseeded_accepted_count
         ),
+        missing_child_resilience_candidate_count=resilience_candidate_count,
+        missing_child_resilience_parent_count=len(resilient_feature_groups),
+        missing_child_resilience_rejected_count=resilience_rejected_count,
+        missing_child_resilience_groups=resilient_groups,
     )
 
 
@@ -1651,6 +1738,7 @@ def _apply_terminal_cycle_groups(
     """Apply whole terminal-cycle parents without splitting exact groups."""
     current = list(groups)
     accepted_count = 0
+    accepted_parents: set[frozenset[str]] = set()
     rejected_count = evidence.rejected_count
     for parent in evidence.groups:
         intersecting = [
@@ -1661,7 +1749,12 @@ def _apply_terminal_cycle_groups(
             continue
         current = [group for group in current if group not in intersecting]
         current.append(parent)
+        accepted_parents.add(parent)
         accepted_count += 1
+    resilience_parent_count = sum(
+        parent in accepted_parents
+        for parent in evidence.missing_child_resilience_groups
+    )
     return (
         tuple(current),
         _TerminalCycleEvidence(
@@ -1684,6 +1777,17 @@ def _apply_terminal_cycle_groups(
             ),
             unseeded_persistence_rejected_count=(
                 evidence.unseeded_persistence_rejected_count
+            ),
+            missing_child_resilience_candidate_count=(
+                evidence.missing_child_resilience_candidate_count
+            ),
+            missing_child_resilience_parent_count=(resilience_parent_count),
+            missing_child_resilience_rejected_count=(
+                evidence.missing_child_resilience_candidate_count
+                - resilience_parent_count
+            ),
+            missing_child_resilience_groups=(
+                evidence.missing_child_resilience_groups
             ),
         ),
     )
@@ -1788,6 +1892,15 @@ def _hierarchy_diagnostics(  # noqa: PLR0913, PLR0917
         persistent_feature_influence_parent_count=len(
             scale_aware_parents.self_corroborated_groups
         ),
+        terminal_cycle_missing_child_resilience_candidate_count=(
+            terminal_cycles.missing_child_resilience_candidate_count
+        ),
+        terminal_cycle_missing_child_resilience_parent_count=(
+            terminal_cycles.missing_child_resilience_parent_count
+        ),
+        terminal_cycle_missing_child_resilience_rejected_count=(
+            terminal_cycles.missing_child_resilience_rejected_count
+        ),
     )
 
 
@@ -1815,15 +1928,16 @@ def associate_components_by_multiscale_hierarchy(
     that anchor and the displaced owner. This persistent feature evidence is
     self-corroborating, but it remains subject to whole-group reconciliation
     and cannot split or partially overlap an established source.
-    At the last retained scale, a cycle may construct a parent only when every
-    constituent feature has an exact child at the preceding scale or one
-    mutually unique displaced child corroborated by overlapping fixed B3
-    envelopes in the same retained significant-support component. A persistent
-    feature without a direct owner may corroborate cycle geometry but cannot
-    join catalogue membership, which still requires at least three immutable
-    direct components. Displaced evidence cannot create cycles or membership.
-    Partial overlap with an exact group, missing support, branching, or
-    conflicting convergence fails closed.
+    At the last retained scale, a cycle may construct a parent when its
+    constituent features have exact or mutually unique displaced children. One
+    directly owned feature may lack a child without vetoing an otherwise
+    persistent whole-source graph, but only when every feature shares one
+    retained support component and no direct member has a competing cycle.
+    A persistent feature without a direct owner may corroborate cycle geometry
+    but cannot join catalogue membership, which still requires at least three
+    immutable direct components. Displaced and missing-child evidence cannot
+    create cycles or membership. Partial overlap with an exact group, missing
+    support, branching, or conflicting convergence fails closed.
     """
     labels, planes, valid = _hierarchy_inputs(
         records,

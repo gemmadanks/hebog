@@ -16,6 +16,7 @@ from hebog.algorithms.multiscale_association import ScaleDetectionPlane
 from hebog.data_models.multiscale import ScaleDetection
 from hebog.validation.products import (
     build_hebog_reconstructed_source_catalogues,
+    build_hebog_segment_catalogue,
 )
 
 
@@ -74,17 +75,21 @@ def _plane(
     )
 
 
-def _measure(
+def _measure(  # noqa: PLR0913
     labels: np.ndarray,
     image: np.ndarray,
     planes: tuple[ScaleDetectionPlane, ...],
     *,
+    background: np.ndarray | None = None,
     direct_labels: np.ndarray | None = None,
     radius: float = 1.0,
 ):
+    resolved_background = (
+        np.zeros_like(image) if background is None else background
+    )
     return build_hebog_reconstructed_source_catalogues(
         image,
-        np.zeros_like(image),
+        resolved_background,
         np.ones(image.shape, dtype=np.bool_),
         labels,
         direct_labels if direct_labels is not None else labels,
@@ -95,6 +100,49 @@ def _measure(
         beam_minor_fwhm_pixels=1.0,
         measurement_aperture_radius_beams=radius,
         position_signal_jy_per_beam=image,
+    )
+
+
+@pytest.mark.parametrize("extent_beams", (4, 8, 12))
+@pytest.mark.parametrize("varying_background", (False, True))
+def test_persistent_source_support_seeds_measurement_before_outer_guard(
+    extent_beams: int,
+    varying_background: bool,
+) -> None:
+    """Persistent source-owned emission contributes original pixels once."""
+    shape = (41, 61)
+    beam_major = 2
+    start_x = 12
+    stop_x = start_x + extent_beams * beam_major
+    source_support = tuple((20, x) for x in range(start_x, stop_x))
+    labels = np.zeros(shape, dtype=np.int32)
+    labels[source_support[0]] = 1
+    signal = np.zeros(shape, dtype=np.float64)
+    signal[20, start_x:stop_x] = 1.0
+    background = np.zeros(shape, dtype=np.float64)
+    if varying_background:
+        background[:] = np.linspace(-0.25, 0.25, shape[1])
+    planes = (
+        _plane((("scale-measurement-support-1", source_support),), shape),
+        _plane(
+            (("scale-measurement-support-2", source_support),),
+            shape,
+            scale_order=2,
+        ),
+    )
+
+    products = _measure(
+        labels,
+        signal + background,
+        planes,
+        background=background,
+        radius=1.5,
+    )
+
+    beam_area = 2.0 * pi / (8.0 * log(2.0)) * 2.0
+    assert len(products.source_catalogue) == 1
+    assert products.source_catalogue[0].integrated_flux_jy == pytest.approx(
+        len(source_support) / beam_area
     )
 
 
@@ -147,6 +195,25 @@ def test_hierarchy_uses_direct_seeds_not_expanded_measurement_owners() -> None:
     assert len(products.source_catalogue) == 1
     assert products.source_catalogue[0].component_count == 2
     assert products.association.hierarchy_diagnostics is not None
+
+
+def test_reconstructed_measurement_rejects_unknown_aperture_policy() -> None:
+    """The internal policy seam fails closed instead of changing ownership."""
+    labels = np.zeros((5, 5), dtype=np.int32)
+    labels[2, 2] = 1
+    image = np.asarray(labels > 0, dtype=np.float64)
+
+    with pytest.raises(ValueError, match="aperture tie policy is unsupported"):
+        build_hebog_segment_catalogue(
+            image,
+            np.zeros_like(image),
+            np.ones(image.shape, dtype=np.bool_),
+            labels,
+            _header(image.shape),
+            beam_major_fwhm_pixels=2.0,
+            beam_minor_fwhm_pixels=1.0,
+            aperture_tie_policy="unsupported",  # type: ignore[arg-type]
+        )
 
 
 @pytest.mark.parametrize(

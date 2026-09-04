@@ -830,7 +830,7 @@ def test_compact_dominated_segment_keeps_original_position_weights() -> None:
         labels,
         header,
     )
-    keywords = {
+    keywords: dict[str, Any] = {
         "beam_major_fwhm_pixels": 3.0,
         "beam_minor_fwhm_pixels": 2.0,
     }
@@ -875,7 +875,7 @@ def test_unavailable_denoised_position_falls_back_to_original() -> None:
         labels,
         header,
     )
-    keywords = {
+    keywords: dict[str, Any] = {
         "beam_major_fwhm_pixels": 3.0,
         "beam_minor_fwhm_pixels": 2.0,
     }

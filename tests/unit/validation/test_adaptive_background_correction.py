@@ -6,8 +6,78 @@ import numpy as np
 import pytest
 
 from hebog.validation.adaptive_background_diagnostics import (
+    attribute_source_measurement_support,
     attribute_truth_support,
 )
+
+
+def test_source_attribution_counts_owned_and_detached_support() -> None:
+    """The bounded census separates ownership from publication support."""
+    seeds = np.zeros((5, 11), dtype=np.int32)
+    seeds[2, 1] = 1
+    seeds[2, 7] = 2
+    persistent = np.zeros(seeds.shape, dtype=np.bool_)
+    persistent[2, 1:8] = True
+    persistent[4, 9:11] = True
+    measurement = seeds.copy()
+    measurement[2, 2:5] = 1
+    measurement[2, 5:7] = 2
+    guarded = measurement.copy()
+    guarded[1, 1:8] = measurement[2, 1:8]
+    publication = persistent.copy()
+
+    diagnostic = attribute_source_measurement_support(
+        seeds,
+        persistent,
+        measurement,
+        guarded,
+        publication,
+    )
+
+    assert diagnostic.source_seed_pixel_count == 2
+    assert diagnostic.persistent_support_pixel_count == 9
+    assert diagnostic.source_owned_persistent_pixel_count == 7
+    assert diagnostic.source_unowned_persistent_pixel_count == 2
+    assert diagnostic.competing_support_component_count == 1
+    assert diagnostic.publication_only_pixel_count == 2
+    assert diagnostic.source_owned_support_pixel_count == 7
+    assert diagnostic.to_record()["source_measurement_pixel_count"] == 14
+
+
+def test_source_measurement_attribution_rejects_created_identity() -> None:
+    """Diagnostic telemetry cannot legitimize an unseeded source owner."""
+    seeds = np.zeros((3, 3), dtype=np.int32)
+    seeds[1, 1] = 1
+    measurement = seeds.copy()
+    measurement[1, 2] = 2
+
+    with pytest.raises(ValueError, match="created a source identity"):
+        attribute_source_measurement_support(
+            seeds,
+            np.asarray(measurement > 0),
+            measurement,
+            measurement,
+            np.asarray(measurement > 0),
+        )
+
+
+def test_source_measurement_attribution_rejects_nonpersistent_ownership() -> (
+    None
+):
+    """Only connected persistent support may extend immutable source seeds."""
+    seeds = np.zeros((3, 4), dtype=np.int32)
+    seeds[1, 1] = 1
+    owned = seeds.copy()
+    owned[1, 2] = 1
+
+    with pytest.raises(ValueError, match="used non-persistent support"):
+        attribute_source_measurement_support(
+            seeds,
+            np.zeros(seeds.shape, dtype=np.bool_),
+            owned,
+            owned,
+            np.asarray(owned > 0),
+        )
 
 
 def test_mixed_core_halo_loss_is_attributed_before_publication() -> None:

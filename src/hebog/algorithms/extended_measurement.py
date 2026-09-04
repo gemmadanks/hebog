@@ -660,6 +660,140 @@ def assign_seeded_multiscale_support(  # noqa: PLR0913
     return output
 
 
+def assign_persistent_source_support(
+    source_labels: npt.ArrayLike,
+    persistent_multiscale_support: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+) -> npt.NDArray[np.int32]:
+    """Assign connected persistent support to canonical source owners once.
+
+    Source labels are the already accepted catalogue-source partition. Exact
+    persistent support connected to at least one source seed extends that
+    source's measurement seed. Where support is connected to multiple sources,
+    the nearest immutable source pixel owns it; exact distance ties use the
+    smaller source label, whose ordering is derived from canonical source IDs.
+    Disconnected, invalid, and non-persistent pixels cannot enter the result.
+    """
+    labels = _segment_label_plane(source_labels)
+    persistent = np.asarray(persistent_multiscale_support)
+    valid = np.asarray(valid_pixels)
+    if (
+        persistent.ndim != _IMAGE_DIMENSIONS
+        or persistent.shape != labels.shape
+        or persistent.dtype != np.bool_
+    ):
+        raise ValueError(
+            "source labels and persistent multiscale support must be aligned "
+            "boolean two-dimensional planes"
+        )
+    if (
+        valid.ndim != _IMAGE_DIMENSIONS
+        or valid.shape != labels.shape
+        or valid.dtype != np.bool_
+    ):
+        raise ValueError(
+            "source labels and valid pixels must be aligned boolean "
+            "two-dimensional planes"
+        )
+    if np.any((labels > 0) & ~valid):
+        raise ValueError("source seed pixels must be scientifically valid")
+    if np.any(persistent & ~valid):
+        raise ValueError(
+            "persistent source support must be scientifically valid"
+        )
+    output = np.asarray(labels, dtype=np.int32).copy()
+    seed_points = np.column_stack(np.nonzero(labels > 0))
+    candidate_points = np.column_stack(np.nonzero(persistent & (labels == 0)))
+    if not seed_points.size or not candidate_points.size:
+        return output
+    connected_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        connected_component_labels(
+            (labels > 0) | persistent,
+            structure=np.ones((3, 3), dtype=np.int8),
+        ),
+    )
+    seed_components = connected_labels[seed_points[:, 0], seed_points[:, 1]]
+    candidate_components = connected_labels[
+        candidate_points[:, 0], candidate_points[:, 1]
+    ]
+    canonical_labels = np.asarray(
+        sorted(int(value) for value in np.unique(labels) if value > 0),
+        dtype=np.int32,
+    )
+    ranks_by_label = {
+        int(label): rank for rank, label in enumerate(canonical_labels)
+    }
+    seed_ranks = np.asarray(
+        [ranks_by_label[int(labels[tuple(point)])] for point in seed_points],
+        dtype=np.int64,
+    )
+    for component in sorted({int(value) for value in seed_components}):
+        local_seed = seed_components == component
+        local_candidate = candidate_components == component
+        if not np.any(local_candidate):
+            continue
+        points = np.asarray(candidate_points[local_candidate], dtype=np.int64)
+        _, owner_ranks = _nearest_canonical_seed_ranks(
+            cast(_NearestSeedTree, cKDTree(seed_points[local_seed])),
+            points,
+            seed_ranks[local_seed],
+        )
+        output[points[:, 0], points[:, 1]] = canonical_labels[owner_ranks]
+    return output
+
+
+def expand_source_measurement_labels(
+    source_labels: npt.ArrayLike,
+    valid_pixels: npt.ArrayLike,
+    *,
+    radius_pixels: int,
+) -> npt.NDArray[np.int32]:
+    """Expand source apertures with canonical source-identity tie breaking."""
+    labels = _segment_label_plane(source_labels)
+    valid = np.asarray(valid_pixels)
+    if (
+        valid.ndim != _IMAGE_DIMENSIONS
+        or valid.shape != labels.shape
+        or valid.dtype != np.bool_
+    ):
+        raise ValueError(
+            "source labels and valid pixels must be aligned boolean "
+            "two-dimensional planes"
+        )
+    if isinstance(radius_pixels, bool) or radius_pixels < 0:
+        raise ValueError("radius_pixels must be a non-negative integer")
+    output = np.asarray(labels, dtype=np.int32).copy()
+    seed_points = np.column_stack(np.nonzero(labels > 0))
+    if not seed_points.size or radius_pixels == 0:
+        return output
+    candidate_points = np.column_stack(np.nonzero(valid & (labels == 0)))
+    if not candidate_points.size:
+        return output
+    canonical_labels = np.asarray(
+        sorted(int(value) for value in np.unique(labels) if value > 0),
+        dtype=np.int32,
+    )
+    ranks_by_label = {
+        int(label): rank for rank, label in enumerate(canonical_labels)
+    }
+    seed_ranks = np.asarray(
+        [ranks_by_label[int(labels[tuple(point)])] for point in seed_points],
+        dtype=np.int64,
+    )
+    distances, owner_ranks = _nearest_canonical_seed_ranks(
+        cast(_NearestSeedTree, cKDTree(seed_points)),
+        np.asarray(candidate_points, dtype=np.int64),
+        seed_ranks,
+    )
+    eligible = distances <= radius_pixels
+    points = candidate_points[eligible]
+    output[points[:, 0], points[:, 1]] = canonical_labels[
+        owner_ranks[eligible]
+    ]
+    return output
+
+
 def expand_detected_segment_labels(
     component_labels: npt.ArrayLike,
     valid_pixels: npt.ArrayLike,

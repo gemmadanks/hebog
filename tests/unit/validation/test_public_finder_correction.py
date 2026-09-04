@@ -851,8 +851,18 @@ def test_real_scale_composition_reconstructs_one_persistent_shell_parent() -> (
 
 @pytest.mark.parametrize(
     ("lobe_count", "radius", "x_axis_ratio"),
-    ((3, 7.0, 1.0), (6, 10.0, 1.5)),
-    ids=("three-lobe", "closed-curved-filament"),
+    (
+        (3, 7.0, 1.0),
+        (6, 10.0, 1.5),
+        (7, 10.0, 1.5),
+        (8, 12.0, 1.0),
+    ),
+    ids=(
+        "three-lobe",
+        "closed-curved-filament",
+        "seven-knot-curved-filament",
+        "eight-knot-shell",
+    ),
 )
 def test_real_scale_parent_construction_handles_other_extended_morphologies(
     lobe_count: int,

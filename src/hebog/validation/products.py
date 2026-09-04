@@ -30,10 +30,15 @@ from hebog.algorithms.astrometry import (
 )
 from hebog.algorithms.extended_measurement import (
     DetectedSegmentPosition,
+    assign_persistent_source_support,
     expand_detected_segment_labels,
+    expand_source_measurement_labels,
     measure_detected_segment_position,
 )
-from hebog.algorithms.multiscale_association import ScaleDetectionPlane
+from hebog.algorithms.multiscale_association import (
+    ScaleDetectionPlane,
+    persistent_adjacent_scale_support,
+)
 from hebog.algorithms.source_association import (
     associate_components_by_multiscale_hierarchy,
     associate_detection_components,
@@ -920,6 +925,9 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
     measurement_aperture_radius_beams: float = 4.0,
     position_signal_jy_per_beam: npt.ArrayLike | None = None,
     denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
+    aperture_tie_policy: Literal[
+        "nearest-support", "canonical-source"
+    ] = "nearest-support",
 ) -> tuple[CatalogueSource, ...]:
     """Measure catalogue rows for physically measurable blind segments.
 
@@ -955,12 +963,19 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
         raise ValueError(
             "Hebog segment denoised-position peak-to-mean ratio must exceed 1"
         )
+    if aperture_tie_policy not in {"nearest-support", "canonical-source"}:
+        raise ValueError("Hebog segment aperture tie policy is unsupported")
     position_signal = _validated_position_signal(
         position_signal_jy_per_beam,
         shape=residual.shape,
         valid_pixels=valid,
     )
-    measurement_labels = expand_detected_segment_labels(
+    aperture_builder = (
+        expand_source_measurement_labels
+        if aperture_tie_policy == "canonical-source"
+        else expand_detected_segment_labels
+    )
+    measurement_labels = aperture_builder(
         labels,
         valid & np.isfinite(residual),
         radius_pixels=ceil(
@@ -1154,6 +1169,9 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
     measurement_aperture_radius_beams: float = 4.0,
     position_signal_jy_per_beam: npt.ArrayLike | None = None,
     denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
+    aperture_tie_policy: Literal[
+        "nearest-support", "canonical-source"
+    ] = "nearest-support",
 ) -> tuple[CatalogueSource, ...]:
     """Publish exact-support moment shapes without changing photometry."""
     sources = build_hebog_segment_catalogue(
@@ -1169,6 +1187,7 @@ def build_hebog_segment_moment_catalogue(  # noqa: PLR0913
         denoised_position_maximum_peak_to_mean_ratio=(
             denoised_position_maximum_peak_to_mean_ratio
         ),
+        aperture_tie_policy=aperture_tie_policy,
     )
     residual, valid, labels = _validated_hebog_segment_planes(
         image_jy_per_beam,
@@ -1347,11 +1366,16 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         labels,
         association,
     )
+    source_measurement_labels = assign_persistent_source_support(
+        source_labels,
+        persistent_adjacent_scale_support(scale_detection_planes),
+        valid,
+    )
     measured_sources = build_hebog_segment_moment_catalogue(
         image_jy_per_beam,
         background_jy_per_beam,
         valid,
-        source_labels,
+        source_measurement_labels,
         header,
         beam_major_fwhm_pixels=beam_major_fwhm_pixels,
         beam_minor_fwhm_pixels=beam_minor_fwhm_pixels,
@@ -1360,6 +1384,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         denoised_position_maximum_peak_to_mean_ratio=(
             denoised_position_maximum_peak_to_mean_ratio
         ),
+        aperture_tie_policy="canonical-source",
     )
     components_by_id = {item.identifier: item for item in stable_components}
     output: list[CatalogueSource] = []

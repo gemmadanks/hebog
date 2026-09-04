@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import runpy
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -42,6 +44,18 @@ _EVALUATOR = (
     _ROOT / "scripts/validation/"
     "evaluate_phase5_prospective_persistent_feature_influence_smoke.py"
 )
+_DECISION_REVISION = "abcc2a077459958dd33a60c9da9f264db40e6475"
+
+
+def _historical_sha256(relative_path: str) -> str:
+    """Hash one program at the revision that froze this decision."""
+    contents = subprocess.run(
+        ("git", "show", f"{_DECISION_REVISION}:{relative_path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    return hashlib.sha256(contents).hexdigest()
 
 
 def test_pre_review_binds_terminal_failure_and_all_observed_topologies() -> (
@@ -118,7 +132,7 @@ def test_implementation_decision_binds_exact_reviewed_programs() -> None:
         ),
     }
     for identity in decision["implementation"]:
-        assert file_sha256(_ROOT / identity["path"]) == identity["sha256"]
+        assert _historical_sha256(identity["path"]) == identity["sha256"]
 
 
 def test_configuration_composes_exact_activation_and_topology_reviews() -> (

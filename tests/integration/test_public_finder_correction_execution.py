@@ -11,6 +11,7 @@ import pytest
 from distributed import Client, LocalCluster
 
 from hebog.algorithms.extended_measurement import (
+    assign_persistent_source_support,
     assign_seeded_multiscale_support,
 )
 from hebog.algorithms.multiscale_association import ScaleDetectionPlane
@@ -57,6 +58,18 @@ def _own_support(batch: OwnershipBatch) -> npt.NDArray[np.int32]:
         beam_major_fwhm_pixels=beam_major_fwhm_pixels,
         canonical_seed_references_yx=references,
     )
+
+
+def _own_persistent_source_support(
+    batch: tuple[
+        npt.NDArray[np.int32],
+        npt.NDArray[np.bool_],
+        npt.NDArray[np.bool_],
+    ],
+) -> npt.NDArray[np.int32]:
+    """Apply source-owned support through one worker-safe boundary."""
+    labels, support, valid = batch
+    return assign_persistent_source_support(labels, support, valid)
 
 
 def _fixture() -> OwnershipBatch:
@@ -117,6 +130,38 @@ def test_seed_ownership_is_serial_dask_and_partition_invariant() -> None:
 
     np.testing.assert_array_equal(dask_full, expected)
     np.testing.assert_array_equal(dask_partitioned, expected)
+
+
+@pytest.mark.integration
+def test_source_owned_persistent_support_is_serial_dask_retry_invariant() -> (
+    None
+):
+    """Canonical source support ignores task completion and retry order."""
+    labels = np.zeros((9, 13), dtype=np.int32)
+    labels[4, 2] = 1
+    labels[4, 10] = 2
+    persistent = np.zeros(labels.shape, dtype=np.bool_)
+    persistent[4, 2:11] = True
+    batch = (labels, persistent, np.ones(labels.shape, dtype=np.bool_))
+    expected = SerialExecutor().map_batches(
+        _own_persistent_source_support,
+        (batch,),
+    )[0]
+
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(
+            _own_persistent_source_support,
+            (batch, batch, batch),
+        )
+
+    assert all(np.array_equal(item, expected) for item in actual)
+    assert expected[4, 6] == 1
 
 
 def _associate_fixture(
@@ -723,3 +768,78 @@ def test_displaced_terminal_persistence_is_serial_dask_invariant() -> None:
     assert diagnostics is not None
     assert diagnostics.catalogue_source_count == 1
     assert diagnostics.terminal_persistence_displaced_accepted_count == 4
+
+
+@pytest.mark.integration
+def test_missing_child_resilience_is_serial_dask_order_invariant() -> None:
+    """Exclusive whole-source recovery ignores labels, order, and retries."""
+    terminal_pixels = ((10, 10), (10, 34), (34, 10), (34, 34))
+    preceding_pixels = terminal_pixels[1:]
+    labels = np.zeros((49, 49), dtype=np.int32)
+    permuted = np.zeros_like(labels)
+    for value, other, pixel in zip(
+        (9, 2, 17, 4),
+        (31, 7, 22, 13),
+        terminal_pixels,
+        strict=True,
+    ):
+        labels[pixel] = value
+        permuted[pixel] = other
+    preceding = _hierarchy_cycle_plane(
+        labels.shape,
+        preceding_pixels,
+        scale_order=2,
+    )
+    terminal = _hierarchy_cycle_plane(
+        labels.shape,
+        tuple(reversed(terminal_pixels)),
+        scale_order=3,
+    )
+    significant = np.zeros(labels.shape, dtype=np.bool_)
+    significant[9:36, 9:36] = True
+    records = build_detection_component_records(
+        labels,
+        np.asarray(labels > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    permuted_records = build_detection_component_records(
+        permuted,
+        np.asarray(permuted > 0, dtype=np.float64),
+        np.ones(labels.shape, dtype=np.bool_),
+    )
+    batches: tuple[HierarchyBatch, ...] = (
+        (labels, records, (preceding, terminal), significant),
+        (
+            permuted,
+            tuple(reversed(permuted_records)),
+            (terminal, preceding),
+            significant,
+        ),
+    )
+    expected = SerialExecutor().map_batches(_reconstruct_hierarchy, batches)
+
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address="",
+    )
+    with cluster, Client(cluster) as client:
+        actual = DaskExecutor(client).map_batches(
+            _reconstruct_hierarchy,
+            (*tuple(reversed(batches)), batches[0]),
+        )
+
+    expected_view = _identity_view(expected[0])
+    assert _identity_view(expected[1]) == expected_view
+    assert [_identity_view(item) for item in actual] == [
+        expected_view,
+        expected_view,
+        expected_view,
+    ]
+    diagnostics = expected[0].hierarchy_diagnostics
+    assert diagnostics is not None
+    assert diagnostics.catalogue_source_count == 1
+    assert (
+        diagnostics.terminal_cycle_missing_child_resilience_parent_count == 1
+    )

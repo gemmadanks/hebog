@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pytest
 
-from hebog import public_api
 from hebog.data_models import (
     PublicSourceFindingDiagnostics,
     PublicSourceFindingProvenance,
@@ -30,7 +29,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
         scientific_composition=(
-            "phase-5-configurable-source-protected-adaptive-background-v3"
+            "phase-5-configurable-source-owned-measurement-and-topology-v4"
         ),
     )
 
@@ -189,8 +188,8 @@ def test_public_interface_identity_binds_its_historical_file_set() -> None:
     assert composition.hexdigest() == review["scientific_composition_sha256"]
 
 
-def test_source_protected_public_identity_binds_current_science() -> None:
-    """The successor review binds the exact installed corrected candidate."""
+def test_source_protected_public_identity_binds_historical_science() -> None:
+    """The superseded review remains bound to its exact candidate commit."""
     review_path = (
         _ROOT / "config/contracts/"
         "phase-5-adaptive-background-source-protection-"
@@ -213,20 +212,32 @@ def test_source_protected_public_identity_binds_current_science() -> None:
             "c83ee5a90c33f9c915b69402710835a5a094d08df83e003f8e2fd0799f23ae2d"
         ),
     }
+    candidate_revision = review["algorithm_candidate"]["revision"]
+
+    def historical_bytes(relative_path: str) -> bytes:
+        return subprocess.run(
+            ("git", "show", f"{candidate_revision}:{relative_path}"),
+            cwd=_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+
     for relative_path, expected in review["interface_file_sha256"].items():
-        assert hashlib.sha256(
-            (_ROOT / relative_path).read_bytes()
-        ).hexdigest() == (expected)
+        assert hashlib.sha256(historical_bytes(relative_path)).hexdigest() == (
+            expected
+        )
     composition = hashlib.sha256()
     for module_name, expected in review["scientific_module_sha256"].items():
         module = importlib.import_module(module_name)
-        module_path = Path(module.__file__ or "").resolve()
-        module_contents = module_path.read_bytes()
+        module_path = Path(module.__file__ or "").relative_to(_ROOT)
+        module_contents = historical_bytes(str(module_path))
         assert hashlib.sha256(module_contents).hexdigest() == expected
         composition.update(module_name.encode())
         composition.update(b"\0")
         composition.update(module_contents)
         composition.update(b"\0")
 
-    assert review["scientific_composition"] == public_api._COMPOSITION_NAME
+    assert review["scientific_composition"] == (
+        "phase-5-configurable-source-protected-adaptive-background-v3"
+    )
     assert composition.hexdigest() == review["scientific_composition_sha256"]

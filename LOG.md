@@ -15266,3 +15266,44 @@ before test-first implementation of the source-owned measurement-support and
 conservative whole-source-parent corrections. Do not execute a development
 lane or open held-out qualification until both fixture gates pass and a
 combined non-executable candidate is frozen.
+
+## 2026-09-04 — Implement source-owned measurement and conservative topology
+
+**Plan phase:** Phase 5 final qualification design
+
+- Recorded named approval of review `026e490f...`; development-lane,
+  cumulative-replay, qualification, PyBDSF/viewed-data, tuning, rescoring,
+  optimization, cutover, and release authority remain closed.
+- Added production-path red fixtures before implementation. The 4/8/12-beam
+  mixed core/halo cases showed the fixed guard measuring the same small seed
+  at every extent, and an otherwise persistent four-feature terminal cycle
+  remained four singleton sources when one directly owned child was absent.
+- Source-level measurement now owns exact adjacent-scale persistent support
+  once, using nearest immutable source support and canonical source identity
+  for exact ties, before applying the unchanged 1.5-major-beam outer guard.
+  Detached, invalid, and non-persistent support cannot enter measurement;
+  original background-subtracted pixels are still summed once.
+- Terminal parent construction now tolerates one genuinely missing directly
+  owned child only when every terminal feature shares one retained support
+  component and no direct component participates in a competing cycle. It
+  rejects disconnected, ambiguous, multiply owned, partial-group, branched,
+  close-pair, path, and single-scale bridge cases and records bounded
+  candidate/accepted/rejected telemetry.
+- Focused positive, negative, invalid, image-edge, ownership-conflict, public
+  composition, and Serial/existing-Dask order/retry tests pass (165 tests in
+  the expanded focused set before the final boundary additions; 133 tests in
+  the final mechanism/executor subset). The first broad coverage run passed
+  2,684 tests with 2 expected xfails at 94.78% coverage; its four failures
+  were historical byte sentinels correctly detecting the new intentional
+  science version. Those sentinels now validate their immutable Git snapshots
+  or require the superseded lane to fail closed, without rewriting evidence.
+- Final review corrected the resilience census so an eligible missing-child
+  parent rejected by whole-group conflict reconciliation is recorded as
+  rejected rather than accepted. The added regression passes, and the final
+  branch-aware run passes 2,689 tests with 44 deselected and 2 expected xfails
+  at 94.78% project coverage.
+
+**Immediate next step:** finish repository validation, commit the exact
+scientific candidate, then run the complete combined lane in no-write mode and
+freeze successor non-executable public and lane identities. A separate exact
+approval remains mandatory before any execution.

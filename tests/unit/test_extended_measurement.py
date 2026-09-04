@@ -9,13 +9,131 @@ import numpy.typing as npt
 import pytest
 
 from hebog.algorithms.extended_measurement import (
+    assign_persistent_source_support,
     assign_seeded_multiscale_support,
     clean_detected_segment_labels,
     expand_detected_segment_labels,
+    expand_source_measurement_labels,
     measure_detected_segment_position,
     refine_multiscale_segment_labels,
     refine_persistent_publication_labels,
 )
+
+
+def test_persistent_source_support_partitions_overlap_by_source_identity() -> (
+    None
+):
+    """Connected persistent pixels have one deterministic source owner."""
+    seeds = np.zeros((7, 11), dtype=np.int32)
+    seeds[3, 2] = 9
+    seeds[3, 8] = 3
+    persistent = np.zeros(seeds.shape, dtype=np.bool_)
+    persistent[3, 2:9] = True
+
+    owned = assign_persistent_source_support(
+        seeds,
+        persistent,
+        np.ones(seeds.shape, dtype=np.bool_),
+    )
+
+    assert owned[3, 2] == 9
+    assert owned[3, 8] == 3
+    assert owned[3, 5] == 3
+    assert np.count_nonzero(owned) == 7
+    assert set(np.unique(owned)) == {0, 3, 9}
+
+
+def test_source_measurement_guard_breaks_equal_ties_by_source_identity() -> (
+    None
+):
+    """The unchanged outer guard is invariant to nearest-seed tie order."""
+    seeds = np.zeros((7, 11), dtype=np.int32)
+    seeds[3, 2] = 9
+    seeds[3, 8] = 3
+
+    expanded = expand_source_measurement_labels(
+        seeds,
+        np.ones(seeds.shape, dtype=np.bool_),
+        radius_pixels=3,
+    )
+
+    assert expanded[3, 5] == 3
+    assert expanded[3, 2] == 9
+    assert expanded[3, 8] == 3
+
+
+def test_persistent_source_support_omits_disconnected_emission() -> None:
+    """Persistent support without an accepted source seed remains unowned."""
+    seeds = np.zeros((9, 13), dtype=np.int32)
+    seeds[4, 2] = 1
+    persistent = np.zeros(seeds.shape, dtype=np.bool_)
+    persistent[4, 2:5] = True
+    persistent[4, 10:12] = True
+
+    owned = assign_persistent_source_support(
+        seeds,
+        persistent,
+        np.ones(seeds.shape, dtype=np.bool_),
+    )
+
+    assert np.all(owned[4, 2:5] == 1)
+    assert not np.any(owned[4, 10:12])
+
+
+def test_persistent_source_support_retains_valid_image_edge_emission() -> None:
+    """Connected support may reach, but never cross, an image edge."""
+    seeds = np.zeros((5, 9), dtype=np.int32)
+    seeds[0, 2] = 1
+    persistent = np.zeros(seeds.shape, dtype=np.bool_)
+    persistent[0, 2:8] = True
+    valid = np.ones(seeds.shape, dtype=np.bool_)
+    valid[0, 7] = False
+    persistent[0, 7] = False
+
+    owned = assign_persistent_source_support(seeds, persistent, valid)
+    guarded = expand_source_measurement_labels(
+        owned,
+        valid,
+        radius_pixels=2,
+    )
+
+    assert np.all(owned[0, 2:7] == 1)
+    assert owned[0, 7] == 0
+    assert guarded[0, 0] == 1
+    assert guarded[0, 7] == 0
+
+
+@pytest.mark.parametrize(
+    ("support", "valid", "message"),
+    (
+        (
+            np.ones((2, 2), dtype=np.int8),
+            np.ones((2, 2), dtype=np.bool_),
+            "aligned boolean",
+        ),
+        (
+            np.ones((2, 2), dtype=np.bool_),
+            np.ones((3, 2), dtype=np.bool_),
+            "aligned boolean",
+        ),
+        (
+            np.asarray([[False, False], [False, True]]),
+            np.asarray([[True, True], [True, False]]),
+            "scientifically valid",
+        ),
+    ),
+)
+def test_persistent_source_support_rejects_invalid_evidence(
+    support: np.ndarray,
+    valid: np.ndarray,
+    message: str,
+) -> None:
+    """Source-owned support cannot infer dtype, alignment, or validity."""
+    labels = np.zeros((2, 2), dtype=np.int32)
+    labels[0, 0] = 1
+
+    with pytest.raises(ValueError, match=message):
+        assign_persistent_source_support(labels, support, valid)
 
 
 def test_seeded_multiscale_ownership_cannot_merge_a_diffuse_bridge() -> None:

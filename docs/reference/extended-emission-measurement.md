@@ -22,6 +22,13 @@ For each accepted support, Hebog uses these governed rules:
 - local background and RMS are reduced from the already prepared fields over
   the same observable aperture.
 
+For reconstructed catalogue sources, the aperture seed additionally includes
+only exact adjacent-scale persistent support that is connected to and owned by
+an already accepted source. This recovers measured extended emission without
+changing the 1.5-beam guard. It cannot create a source identity: detached or
+invalid support is ignored, competing support is assigned once by nearest
+immutable member support, and exact ties use canonical source identity.
+
 Compact-deferred islands do not yet have a multiscale reconstruction, so their
 bounded stage records direct-original-residual position weighting. The pure
 tile kernel also accepts a regularized position plane for multiscale targets,

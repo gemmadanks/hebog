@@ -8,16 +8,16 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import runpy
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
 import pytest
-
-from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
 _FREEZER = (
@@ -44,6 +44,17 @@ _MANIFEST = (
     _ROOT
     / "config/contracts/phase-5-adaptive-background-development-manifest.json"
 )
+_FREEZE_REVISION = "d860050e174ee6633260630f804dd7063517606b"
+
+
+def _historical_bytes(revision: str, relative_path: str) -> bytes:
+    """Read one immutable file from the revision that froze its evidence."""
+    return subprocess.run(
+        ("git", "show", f"{revision}:{relative_path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
 
 
 def _terminal_products(
@@ -74,22 +85,8 @@ def _terminal_products(
 def test_frozen_successor_identities_are_reproducible_and_non_executable() -> (
     None
 ):
-    """Every checked-in successor record equals its exact generator output."""
-    freezer = runpy.run_path(str(_FREEZER))
-    public_identity = freezer["build_public_identity"](_ROOT)
-    implementation = freezer["build_implementation_decision"](
-        _ROOT,
-        public_identity,
-    )
-    identity = freezer["build_identity_review"](
-        _ROOT,
-        public_identity,
-        implementation,
-    )
-
-    assert json.loads(_PUBLIC_IDENTITY.read_text()) == public_identity
-    assert json.loads(_IMPLEMENTATION.read_text()) == implementation
-    assert json.loads(_IDENTITY.read_text()) == identity
+    """The superseded lane remains bound to its exact frozen snapshot."""
+    identity = json.loads(_IDENTITY.read_text())
     assert identity["status"] == "frozen-non-executable"
     assert set(identity["authorization"].values()) == {False}
     assert identity["candidate"] == {
@@ -103,30 +100,41 @@ def test_frozen_successor_identities_are_reproducible_and_non_executable() -> (
         ),
     }
     for binding in identity["program_bindings"].values():
-        assert file_sha256(_ROOT / binding["path"]) == binding["sha256"]
+        assert (
+            hashlib.sha256(
+                _historical_bytes(_FREEZE_REVISION, binding["path"])
+            ).hexdigest()
+            == binding["sha256"]
+        )
+    assert (
+        _historical_bytes(
+            _FREEZE_REVISION,
+            str(_IDENTITY.relative_to(_ROOT)),
+        )
+        == _IDENTITY.read_bytes()
+    )
 
 
 def test_complete_no_write_verification_creates_no_namespace(
     tmp_path: Path,
 ) -> None:
-    """All 300 planned executions validate without starting science."""
+    """A superseded lane fails closed without starting science."""
     runner = runpy.run_path(str(_RUNNER))
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
-    verification = runner["verify_no_write"](
-        repository_root=_ROOT,
-        manifest_path=_MANIFEST,
-        identity_path=_IDENTITY,
-        scratch=scratch,
-        output=output,
-        enforce_execution_paths=False,
-    )
+    with pytest.raises(
+        ValueError,
+        match="adaptive source-protection public candidate changed",
+    ):
+        runner["verify_no_write"](
+            repository_root=_ROOT,
+            manifest_path=_MANIFEST,
+            identity_path=_IDENTITY,
+            scratch=scratch,
+            output=output,
+            enforce_execution_paths=False,
+        )
 
-    assert verification["candidate_execution_count"] == 144
-    assert verification["coarse_control_execution_count"] == 144
-    assert verification["existing_dask_execution_count"] == 12
-    assert verification["candidate_execution_started"] is False
-    assert verification["attribution_schema_version"] == 1
     assert not scratch.exists()
     assert not output.exists()
 
