@@ -1594,6 +1594,15 @@ from partial or viewed evidence.
      execution `030973d2...`; it authorizes nothing. A new exact human approval
      is required before the completion may run. Repeating either serial
      source-finder arm is forbidden.
+   - The exact evaluation-only completion received separate one-use approval
+     on 2026-09-04. Execution decision
+     `phase-5-adaptive-background-development-completion-execution-decision.json`
+     binds repair review `d61b9643...`, completion identity `d2a664f5...`,
+     preserved product set `c9212f3a...`, program `8f7c9619...`, and expected
+     execution `030973d2...`. It permits zero serial reruns, exactly 12
+     two-worker existing-Dask comparisons, and one atomic decision; all wider
+     science, qualification, optimization, and release authorities remain
+     false.
    - If that bounded development lane passes, keep the frozen science
      unchanged and add an independent seed-disjoint analogue to the final
      qualification. If it exposes a material failure, diagnose and correct it
