@@ -59,10 +59,22 @@
       "resamples": 50000,
       "seed": 2026090401,
       "stratum_counts": [
-        ["phase5-external-post-failure-continuum-1-1024", 400],
-        ["phase5-external-post-failure-continuum-2-1024", 400],
-        ["phase5-external-post-failure-continuum-3-1024", 400],
-        ["phase5-external-post-failure-continuum-4-1024", 400]
+        [
+          "phase5-external-post-failure-continuum-1-1024",
+          400
+        ],
+        [
+          "phase5-external-post-failure-continuum-2-1024",
+          400
+        ],
+        [
+          "phase5-external-post-failure-continuum-3-1024",
+          400
+        ],
+        [
+          "phase5-external-post-failure-continuum-4-1024",
+          400
+        ]
       ]
     },
     {
@@ -75,10 +87,22 @@
       "resamples": 50000,
       "seed": 2026090402,
       "stratum_counts": [
-        ["phase5-external-post-failure-continuum-1-1024", 400],
-        ["phase5-external-post-failure-continuum-2-1024", 400],
-        ["phase5-external-post-failure-continuum-3-1024", 400],
-        ["phase5-external-post-failure-continuum-4-1024", 400]
+        [
+          "phase5-external-post-failure-continuum-1-1024",
+          400
+        ],
+        [
+          "phase5-external-post-failure-continuum-2-1024",
+          400
+        ],
+        [
+          "phase5-external-post-failure-continuum-3-1024",
+          400
+        ],
+        [
+          "phase5-external-post-failure-continuum-4-1024",
+          400
+        ]
       ]
     }
   ],

@@ -1432,7 +1432,7 @@ from partial or viewed evidence.
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
-4. [ ] **Complete the public scientific interface.**
+4. [x] **Complete the public scientific interface.**
    - Begin now. The closed regression population conclusively passes every
      PyBDSF-parity and Aegean check, all safety checks, and contains no material
      incumbent regression. Public-boundary work cannot change source science
@@ -1470,11 +1470,27 @@ from partial or viewed evidence.
      envelope, cleanup, reproducibility, and current limitations explained.
      Remove every statement that the public call intentionally raises
      `NotImplementedError` before freezing the release-candidate identity.
+   - Completed on 2026-09-04 without changing the frozen source-finding
+     science. The top-level facade accepts the exact 5-sigma/3-sigma,
+     seven-pixel `continuum` or explicit `compact` profile, rejects dimensions
+     above the honestly bounded 1,024-pixel preview envelope, and atomically
+     publishes catalogue, RMS, mask, and schema-three diagnostics. Typed input,
+     configuration, size, and output-ownership failures leave no successful
+     bundle. Serial and caller-owned Dask runs publish byte-identical products.
+     The isolated wheel smoke both verifies the embedded scientific review
+     SHA-256 and executes the public call. Non-executable identity review
+     `phase-5-public-interface-identity-review.json` (`a521c656...`) binds the
+     exact facade files, passing scientific modules, algorithm candidate,
+     configuration, profile, output envelope, and closed paired evidence; all
+     execution and release authorizations remain false.
 
 5. [ ] **Freshly qualify the exact public release candidate.**
-   - Blocked only on completing and freezing the public interface and obtaining
-     human scientific approval of the final retention-confirmation pre-review.
-     Do not open or freeze qualification inputs before both conditions hold.
+   - The public interface is complete and frozen. Before finalizing or opening
+     qualification, first close the adaptive-normalization development gate
+     below, then obtain human scientific approval of the resulting complete
+     qualification design and the final retention-confirmation pre-review. Do
+     not use the held-out qualification population to discover or iterate on a
+     known development risk.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact installed package, public facade, algorithm, configuration,
      compiler, evaluator, and runtime identities, then obtain a separate
@@ -1500,6 +1516,35 @@ from partial or viewed evidence.
      compact regression green and do not pool with or rescore closed campaigns.
    - Viewed SDC1/Hydra evidence remains diagnostic historical context, not
      fresh qualification truth.
+   - Keep adaptive background/RMS absorption of bright extended structure as
+     an explicit open qualification-design risk. On the viewed Hydra image,
+     one released-PyBDSF island is split across four Hebog supports with
+     `0.455` support recall, while a coarse-only Hebog replay lowers the median
+     RMS over comparison-only pixels from `649` to `40.8` microJy/beam. This
+     observation is not truth and authorizes neither tuning nor a source-
+     science change. Before freezing qualification, obtain scientific review
+     of whether the existing injected extended-source strata and background,
+     RMS, mask-IoU, split, and merge endpoints adequately cover this failure
+     mode; add a prospective truth-linked stratum only if they do not.
+   - A static audit establishes that the existing four Continuum geometries do
+     not close this risk: their brightest individual injected components span
+     only `22.62`--`29.12` sigma and their shell components span
+     `6.12`--`10.04` sigma, below the frozen adaptive candidate trigger of
+     `75` sigma. Before qualification, run a small development-only,
+     truth-linked matrix with bright extended emission prospectively placed
+     below, around, and above that trigger. Vary morphology, angular scale,
+     beam, noise gradient, and placement while retaining truth-linked coarse-
+     versus-adaptive background/RMS bias, support recall/IoU, fragmentation,
+     completeness, and integrated-flux recovery. Predeclare its cases and
+     decision rules; Hydra may motivate the design but must not supply truth,
+     thresholds, or acceptance margins.
+   - If that bounded development lane passes, keep the frozen science
+     unchanged and add an independent seed-disjoint analogue to the final
+     qualification. If it exposes a material failure, diagnose and correct it
+     test-first, rerun the affected small regression lanes and any required
+     cumulative comparison, then freeze the replacement candidate before
+     finalizing qualification. In neither case may development images be
+     promoted into the held-out one-look population.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected
@@ -1708,6 +1753,7 @@ evidence decides acceptance.
 | Internal evidence passes but the public entry point is unusable or divergent | Qualify the installed `hebog.find_sources` path, bind algorithm digests, and require byte-identical Serial/existing-Dask product checks before release. |
 | Support topology is confused with source photometry | Keep catalogue/source, component, and support records distinct; measure flux on original pixels. |
 | Mask background hides errors | Evaluate precision/recall/IoU on valid pixels plus object splits/merges. |
+| Adaptive RMS/background follows bright extended emission | Compare coarse and adaptive estimates on prospectively injected extended sources around the adaptive trigger; retain truth-linked mask coverage, fragmentation, photometry, and local-noise diagnostics. |
 | Low-SNR/reference variability | Report truth-based curves and same-tool scatter; pin both PyBDSF identities. |
 | Compact tuning regresses earlier science | Maintain the cumulative Phase 4/5 regression ledger and stronger-Hebog envelopes. |
 | Extended or blended populations disappear in aggregates | Freeze morphology/scale/blend strata and explicit unavailable/failure outcomes. |

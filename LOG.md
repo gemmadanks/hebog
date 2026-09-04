@@ -14661,3 +14661,149 @@ retention design while implementing the scheduler-independent public
 `hebog.find_sources` facade without changing the frozen source-finding science.
 No qualification execution, tuning, rescoring, cutover, or release is
 authorized.
+
+## 2026-09-04 — Diagnose fragmented support in the viewed Hydra field
+
+**Plan phase:** Phase 5 qualification design and public diagnostics
+
+- Added a component-level support diagnostic that compares labelled finder
+  products without designating either as truth. It ranks reference components
+  by candidate fragmentation and omitted pixels, then records precision,
+  recall, IoU, beam-area-normalized flux, direct-S/N quantiles, and local
+  off-source evidence. The campaign notebook now plots the input, Hebog
+  background, Hebog RMS, direct local significance, disjoint mask roles, S/N
+  distributions, and raw/background/residual flux for any selected component.
+  A reproducible CLI emits the same figure and a versioned JSON sidecar under
+  ignored `benchmark-results/` storage. The inspected artifacts are
+  `benchmark-results/phase-5/support-diagnostics/hydra-deep-released-pybdsf-label-712.png`
+  and the adjacent `.json` record.
+- Investigated released-PyBDSF island-plane label `712` (native PyBDSF
+  `Isl_id=711`) in the sealed public `hydra-deep` products. Its 5,445 pixels
+  (`59.33` beam areas) touch four Hebog labels, `2503`, `2698`, `2710`, and
+  `2731`. Hebog covers 2,478 pixels and adds eight, giving pixel precision
+  `0.99678`, recall `0.45510`, IoU `0.45443`, and 2,967 comparison-only pixels
+  (`32.33` beam areas). It is the second-largest released-PyBDSF island by
+  absolute omitted pixels and the first fragmentation-priority disagreement.
+  The four supports remain four Hebog source rows because the run records zero
+  association edges; released PyBDSF treats the structure as one island with
+  five source rows and eleven Gaussian rows.
+- The omitted region is not a marginal three-sigma contour difference under
+  Hebog's published normalization. Its median direct S/N is `0.767`; only two
+  of 2,967 pixels reach three sigma and none reach five. Its median published
+  RMS is `649` microJy/beam versus `34.0` microJy/beam immediately off-source.
+  Of `52.43` mJy raw integrated flux in those pixels, Hebog assigns `26.93`
+  mJy (`51.4%`) to background and leaves `25.50` mJy residual. By contrast,
+  common support has median direct S/N `6.99`, 1,681 pixels above five sigma,
+  and `56.20` mJy residual flux.
+- Recomputed Hebog's coarse background/RMS grid read-only from the exact input
+  and frozen Phase 4/5 configuration. The strict adaptive scan finds a bright
+  candidate at `(y, x)=(1163, 823)` inside the disputed source. Over the
+  omitted pixels, the coarse-only median RMS is `40.8` microJy/beam and median
+  background is `-3.80` microJy/beam; the published adaptively refined values
+  are `649` and `747` microJy/beam. The `35x35`-pixel fine windows, seven-pixel
+  step, 75-pixel influence radius, and 20-pixel transition therefore cause the
+  local background/RMS bubble rather than merely revealing an already-high
+  coarse noise estimate.
+- A bounded recomputation on `[y=950:1300, x=650:1000]` reproduced the exact
+  published mask in its 50-pixel interior. None of the 2,967 omitted pixels
+  belongs to retained adjacent-scale significant B3 support, although the
+  combined direct/matched/multiscale S/N reaches at least three on 2,532 and
+  at least five on 1,501. This localizes the primary failure upstream of final
+  support composition: adaptive normalization absorbs the extended structure,
+  after which persistent multiscale support cannot reconnect it through the
+  sub-three-sigma original residual. As a diagnostic counterfactual, running
+  the unchanged bounded finder on Hebog's coarse-only normalization produces
+  one touching support with `0.99798` recall, `0.81299` precision, and
+  `0.81165` IoU against the same released-PyBDSF island. The extra 1,250 pixels
+  show why disabling adaptive refinement is not itself an accepted fix; the
+  counterfactual localizes the cause but does not establish qualified support.
+- Conclusion: Hebog detects real-looking parts of the structure but does not
+  reproduce the coherent Rapthor/PyBDSF support topology for this viewed
+  object. The evidence strongly diagnoses adaptive background/RMS
+  contamination, but the public image has no injected truth, so it cannot by
+  itself establish that every released-PyBDSF pixel is astrophysical emission
+  or authorize changing frozen source science.
+- Corrected the campaign notebook's plotting import after a real Marimo run
+  exposed that repository-local `scripts` modules are not importable from the
+  notebook directory. The plotting API now lives in the installed
+  `hebog.validation` package, the script is a thin CLI wrapper, and regression
+  tests exercise both the notebook wiring and an import from outside the
+  repository. A headless export from `notebooks/` and the exact Hydra CLI
+  rerender both pass; the rerendered JSON is byte-identical to the recorded
+  evidence.
+- Final code review added fail-closed validation for invalid FITS beam/pixel
+  geometry and non-finite or negative diagnostic padding. The 29 focused tests
+  pass with 100% branch coverage for `support_diagnostics.py` and 97% for
+  `support_plotting.py`; final `just coverage` reports 2,548 passed, two
+  expected xfails, and 94.70% project coverage. `just check`, strict Marimo
+  validation, and the strict documentation build also pass.
+
+**Immediate next step:** use the new plots to triage other public components,
+then decide prospectively—before qualification is opened—whether existing
+truth-linked extended-source strata cover this adaptive-normalization failure
+mode. Do not tune thresholds or background science from this viewed object.
+
+## 2026-09-04 — Complete and freeze the public source-finding facade
+
+**Plan phase:** Phase 5 public scientific interface
+
+- Replaced the placeholder with the scheduler-independent top-level
+  `hebog.find_sources(request, config, executor)` facade. It runs the exact
+  publication-scale-persistence science, defaults to the qualified Continuum
+  profile, keeps compact mode explicitly incomplete for extended emission,
+  and accepts only the frozen 5-sigma/3-sigma, seven-pixel configuration.
+- Kept the supported claim honest: the facade rejects images above 1,024
+  pixels on either axis because the terminal continuum composition still
+  materializes one bounded preview plane. It requires ICRS `Jy/beam` FITS
+  metadata and exposes typed failures for invalid input, configuration drift,
+  oversized images, and an existing caller-owned output.
+- Added atomic catalogue, RMS, source-mask, and provenance-rich diagnostic
+  publication. Failure injection proves no requested output is left behind and
+  the identical request can retry. Serial and an existing Dask executor publish
+  byte-identical scientific product hashes for the deterministic association
+  fixture.
+- Embedded the exact reviewed scientific profile in the package and froze
+  non-executable interface identity `a521c656...`, binding aggregate scientific
+  composition `e03a0d3b...`, every declared module/file digest, candidate
+  `937737d...`, configuration `2c907949...`, and the closed paired decision.
+  Every execution, qualification, cutover, and release authorization is false.
+- Added a standalone radio-astronomer tutorial and an isolated-wheel smoke that
+  validates the embedded profile SHA-256 and executes the public FITS-to-
+  products call from the built wheel. Final validation passes: `just coverage`
+  reports 2,538 passed, two expected xfails, and 94.25% project coverage
+  (`public_api.py` 96%, `pipeline.py` 100%, and `source_finding.py` 99%);
+  `just check` reports 2,356 passed and two expected xfails; all 27 equivalence
+  tests, the strict documentation build, and the isolated package smoke pass.
+
+**Immediate next step:** obtain scientific approval of the final stratified
+retention-confirmation design and confirm that the prospective held-out strata
+cover adaptive background/RMS absorption. Then freeze and run the one-look
+4,608-image qualification through the installed public facade. Existing
+regression evidence proves PyBDSF parity but is not a substitute for this fresh
+qualification or independent release acceptance.
+
+## 2026-09-04 — Put the adaptive-background development gate before qualification
+
+**Plan phase:** Phase 5 final qualification design
+
+- Audited the four existing Continuum geometries against the exact frozen
+  adaptive trigger. Their brightest individual components reach only
+  `22.62`--`29.12` sigma, and their shell components reach only
+  `6.12`--`10.04` sigma, while adaptive refinement activates at `75` sigma.
+  The existing injected population therefore measures extended-source science
+  but cannot exercise the Hydra-like adaptive-background absorption mechanism.
+- Clarified the plan so the risk is addressed first in a small prospective,
+  development-only truth-linked matrix around the adaptive trigger. A passing
+  result retains the current science and adds an independent analogue to final
+  qualification; a material failure requires a test-first correction and the
+  affected regression/cumulative evidence before a replacement candidate is
+  frozen. Viewed Hydra evidence may motivate the cases but cannot define truth,
+  tuning, thresholds, or margins.
+- The final 4,608-image held-out population remains unopened. It must not be
+  consumed for development iteration, and Phase 5 cannot close until this gate,
+  fresh public-facade qualification, final engineering evidence, and
+  independent acceptance pass.
+
+**Immediate next step:** pre-register the bounded adaptive-background
+development matrix and its truth-linked decision rules without opening final
+qualification data or changing source science.
