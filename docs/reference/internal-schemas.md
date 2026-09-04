@@ -138,6 +138,15 @@ schema version 1 so its diagnostics bytes do not change. When a
 `MaterializedProduct` record is supplied, the reader also requires its declared
 content schema to match the canonical JSON payload.
 
+`PublicSourceFindingDiagnostics` schema version 4 records the public profile,
+profile limitations, population counts, RMS status, and exact provenance. Its
+`configuration_qualification` is `phase-5-reference` only for the evaluated
+5-sigma/3-sigma, seven-pixel configuration without a maximum island cut; all
+other valid caller configurations are `custom-unqualified`. The configuration
+SHA-256 still binds every threshold, island-size limit, and profile choice.
+This label separates execution from scientific qualification: custom settings
+are supported computations but do not inherit the reference evidence.
+
 Version 2 replaces the earlier path-only `SourceFinderResult` constructor.
 The `catalogue_path`, `rms_path`, `mask_path`, and `diagnostics_path`
 properties remain available to workflow consumers, but producers must create

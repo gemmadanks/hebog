@@ -239,7 +239,9 @@ class PublicSourceFindingProvenance(BaseModel):
     configuration_sha256: str
     scientific_profile_sha256: str
     scientific_composition_sha256: str
-    scientific_composition: Literal["phase-5-publication-scale-persistence-v1"]
+    scientific_composition: Literal[
+        "phase-5-configurable-publication-scale-persistence-v2"
+    ]
     schema_version: Literal[1] = 1
 
     @model_validator(mode="after")
@@ -257,19 +259,22 @@ class PublicSourceFindingProvenance(BaseModel):
 
 
 class PublicSourceFindingDiagnostics(BaseModel):
-    """Version-three public-run diagnostics with reproducible provenance."""
+    """Version-four public-run diagnostics with reproducible provenance."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
     run_id: str
     profile: Literal["continuum", "compact"]
     profile_limitations: tuple[Literal["extended-emission-incomplete"], ...]
+    configuration_qualification: Literal[
+        "phase-5-reference", "custom-unqualified"
+    ]
     source_count: int
     gaussian_component_count: int
     island_count: int
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[3] = 3
+    schema_version: Literal[4] = 4
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:

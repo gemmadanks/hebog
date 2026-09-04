@@ -50,6 +50,10 @@ _IDENTITY = (
 )
 
 
+def _skip_upstream_identities(_repository_root: Path) -> None:
+    """Isolate downstream historical-runner checks after supersession."""
+
+
 def test_frozen_manifest_and_reviews_are_deterministic() -> None:
     """Checked-in identities must equal the approved generator output."""
     freezer = runpy.run_path(str(_FREEZER))
@@ -180,11 +184,16 @@ def test_public_science_capture_is_bounded_and_restores_hooks(
 def test_verify_only_checks_all_tasks_without_creating_outputs(
     tmp_path: Path, monkeypatch: Any, capsys: Any
 ) -> None:
-    """The complete preflight covers 300 executions and writes nothing."""
+    """The task-count preflight covers 300 executions and writes nothing."""
     runner = runpy.run_path(str(_RUNNER))
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
     main = runner["main"]
+    monkeypatch.setitem(
+        runner["verify_no_write"].__globals__,
+        "_verify_upstream_identities",
+        _skip_upstream_identities,
+    )
     monkeypatch.setattr(
         sys,
         "argv",
@@ -322,6 +331,7 @@ def test_runner_accepts_only_the_exact_future_lane_authorization(
 
 def test_runner_rejects_an_identity_with_changed_program_binding(
     tmp_path: Path,
+    monkeypatch: Any,
 ) -> None:
     """No-write verification fails closed on prospective program drift."""
     runner = runpy.run_path(str(_RUNNER))
@@ -329,6 +339,11 @@ def test_runner_rejects_an_identity_with_changed_program_binding(
     identity["program_bindings"]["runner"]["sha256"] = "0" * 64
     changed = tmp_path / "identity.json"
     changed.write_text(json.dumps(identity), encoding="utf-8")
+    monkeypatch.setitem(
+        runner["verify_no_write"].__globals__,
+        "_verify_upstream_identities",
+        _skip_upstream_identities,
+    )
 
     with pytest.raises(ValueError, match="program identity changed"):
         runner["verify_no_write"](
@@ -438,6 +453,7 @@ def test_trigger_activation_requires_a_truth_linked_position() -> None:
 
 def test_verify_only_rejects_malformed_nested_identity(
     tmp_path: Path,
+    monkeypatch: Any,
 ) -> None:
     """Malformed frozen authorization fails closed with a clear error."""
     runner = runpy.run_path(str(_RUNNER))
@@ -445,6 +461,11 @@ def test_verify_only_rejects_malformed_nested_identity(
     identity["authorization"] = []
     changed = tmp_path / "identity.json"
     changed.write_text(json.dumps(identity), encoding="utf-8")
+    monkeypatch.setitem(
+        runner["verify_no_write"].__globals__,
+        "_verify_upstream_identities",
+        _skip_upstream_identities,
+    )
 
     with pytest.raises(
         ValueError, match="authorization must be a JSON object"

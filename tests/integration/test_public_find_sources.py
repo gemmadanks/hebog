@@ -149,6 +149,7 @@ def test_public_find_sources_materializes_the_qualified_continuum_view(
     assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
     assert diagnostics.source_count == 1
     assert diagnostics.profile == "continuum"
+    assert diagnostics.configuration_qualification == "phase-5-reference"
     assert diagnostics.provenance.input_sha256
     assert diagnostics.provenance.scientific_composition_sha256
 
@@ -201,10 +202,10 @@ def test_blank_and_all_nan_inputs_publish_honest_empty_products(
 
 
 @pytest.mark.integration
-def test_publication_fails_closed_for_existing_output_and_unfrozen_config(
+def test_publication_fails_closed_for_existing_output(
     tmp_path: Path,
 ) -> None:
-    """The facade rejects ambiguous output ownership and scientific drift."""
+    """The facade rejects ambiguous output ownership without overwriting."""
     _write_image(tmp_path / "image.fits", _ring_image())
     output = tmp_path / "products"
     output.mkdir()
@@ -215,27 +216,64 @@ def test_publication_fails_closed_for_existing_output_and_unfrozen_config(
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
     assert sentinel.read_text(encoding="utf-8") == "preserve"
 
-    with pytest.raises(
-        UnsupportedSourceFinderConfigurationError,
-        match="frozen Phase 5",
-    ):
-        hebog.find_sources(
-            _request(tmp_path, output_name="unfrozen"),
-            SourceFinderConfig(6.0, 3.0, 7),
-            _RecordingExecutor(),
-        )
-    assert not (tmp_path / "unfrozen").exists()
 
-    with pytest.raises(
-        UnsupportedSourceFinderConfigurationError,
-        match="frozen Phase 5",
-    ):
-        hebog.find_sources(
-            _request(tmp_path, output_name="maximum-cut"),
-            SourceFinderConfig(5.0, 3.0, 7, maximum_island_pixels=100),
-            _RecordingExecutor(),
-        )
-    assert not (tmp_path / "maximum-cut").exists()
+@pytest.mark.integration
+def test_custom_thresholds_change_science_and_are_marked_unqualified(
+    tmp_path: Path,
+) -> None:
+    """Caller thresholds execute while qualification remains explicit."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+
+    qualified = hebog.find_sources(
+        _request(tmp_path, output_name="qualified"),
+        _config(),
+        _RecordingExecutor(),
+    )
+    custom = hebog.find_sources(
+        _request(tmp_path, output_name="custom"),
+        SourceFinderConfig(50.0, 25.0, 7),
+        _RecordingExecutor(),
+    )
+
+    assert qualified.source_count == 1
+    assert custom.source_count == 0
+    qualified_diagnostics = read_diagnostics_product(qualified.diagnostics)
+    custom_diagnostics = read_diagnostics_product(custom.diagnostics)
+    assert isinstance(qualified_diagnostics, PublicSourceFindingDiagnostics)
+    assert isinstance(custom_diagnostics, PublicSourceFindingDiagnostics)
+    assert (
+        qualified_diagnostics.configuration_qualification
+        == "phase-5-reference"
+    )
+    assert (
+        custom_diagnostics.configuration_qualification == "custom-unqualified"
+    )
+    assert (
+        qualified_diagnostics.provenance.configuration_sha256
+        != custom_diagnostics.provenance.configuration_sha256
+    )
+
+
+@pytest.mark.integration
+def test_custom_island_size_limits_are_operational(tmp_path: Path) -> None:
+    """Caller pixel limits filter terminal components and remain explicit."""
+    _write_image(tmp_path / "image.fits", _ring_image())
+
+    result = hebog.find_sources(
+        _request(tmp_path, output_name="size-limited"),
+        SourceFinderConfig(
+            5.0,
+            3.0,
+            1,
+            maximum_island_pixels=1,
+        ),
+        _RecordingExecutor(),
+    )
+
+    assert result.source_count == 0
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert diagnostics.configuration_qualification == "custom-unqualified"
 
 
 @pytest.mark.integration

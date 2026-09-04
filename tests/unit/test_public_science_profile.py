@@ -28,7 +28,9 @@ def _provenance() -> PublicSourceFindingProvenance:
         configuration_sha256="2" * 64,
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
-        scientific_composition=("phase-5-publication-scale-persistence-v1"),
+        scientific_composition=(
+            "phase-5-configurable-publication-scale-persistence-v2"
+        ),
     )
 
 
@@ -55,6 +57,7 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         run_id="public-test",
         profile="compact",
         profile_limitations=("extended-emission-incomplete",),
+        configuration_qualification="phase-5-reference",
         source_count=1,
         gaussian_component_count=1,
         island_count=1,
@@ -68,6 +71,7 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
+    assert diagnostics.schema_version == 4
 
 
 def test_public_provenance_rejects_non_sha_identity() -> None:
@@ -104,6 +108,7 @@ def test_public_diagnostics_reject_inconsistent_identity_and_profile(
                 "run_id": run_id,
                 "profile": profile,
                 "profile_limitations": limitations,
+                "configuration_qualification": "phase-5-reference",
                 "source_count": 0,
                 "gaussian_component_count": 0,
                 "island_count": 0,
@@ -119,6 +124,7 @@ def test_public_diagnostics_reject_noncanonical_json() -> None:
         run_id="public-test",
         profile="continuum",
         profile_limitations=(),
+        configuration_qualification="custom-unqualified",
         source_count=0,
         gaussian_component_count=0,
         island_count=0,
@@ -136,8 +142,8 @@ def test_public_interface_identity_binds_every_declared_file() -> None:
     """The non-executable interface review cannot outlive code drift."""
     review = json.loads(
         (
-            _ROOT
-            / "config/contracts/phase-5-public-interface-identity-review.json"
+            _ROOT / "config/contracts/"
+            "phase-5-configurable-public-interface-identity-review.json"
         ).read_text(encoding="utf-8")
     )
 

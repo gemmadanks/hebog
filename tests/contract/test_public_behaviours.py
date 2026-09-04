@@ -14,10 +14,7 @@ from astropy.io import fits
 from hebog import SourceFinderConfig, SourceFinderRequest
 from hebog.data_models import MaterializedProduct
 from hebog.executors import SerialExecutor
-from hebog.pipeline import (
-    UnsupportedSourceFinderConfigurationError,
-    find_sources,
-)
+from hebog.pipeline import find_sources
 
 _PHASE_SIX = pytest.mark.xfail(
     strict=True,
@@ -123,23 +120,24 @@ def test_valid_request_materialises_versioned_products(tmp_path: Path) -> None:
 def test_threshold_increase_cannot_create_source(
     tmp_path: Path,
 ) -> None:
-    """The preview rejects an unevaluated threshold instead of detecting."""
-    request = _request(tmp_path, run_id="unqualified-thresholds")
+    """Higher caller-owned thresholds execute without creating a source."""
+    reference = find_sources(
+        _request(tmp_path, run_id="reference-thresholds"),
+        _config(),
+        SerialExecutor(),
+    )
 
-    with pytest.raises(
-        UnsupportedSourceFinderConfigurationError,
-        match="frozen Phase 5",
-    ):
-        find_sources(
-            request,
-            _config(
-                detection_threshold_sigma=8.0,
-                island_threshold_sigma=6.0,
-            ),
-            SerialExecutor(),
-        )
+    higher = find_sources(
+        _request(tmp_path, run_id="higher-thresholds"),
+        _config(
+            detection_threshold_sigma=8.0,
+            island_threshold_sigma=6.0,
+        ),
+        SerialExecutor(),
+    )
 
-    assert not request.output_directory.exists()
+    assert higher.diagnostics_path.is_file()
+    assert higher.source_count <= reference.source_count
 
 
 @pytest.mark.contract

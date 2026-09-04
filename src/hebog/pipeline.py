@@ -20,7 +20,7 @@ class InvalidSourceFinderInputError(SourceFinderError):
 
 
 class UnsupportedSourceFinderConfigurationError(SourceFinderError):
-    """The requested science differs from the qualified Phase 5 profile."""
+    """The requested science cannot be executed by the public pipeline."""
 
 
 class SourceFinderImageTooLargeError(SourceFinderError):

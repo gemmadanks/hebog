@@ -14906,3 +14906,58 @@ identities; executing the 144-image lane must remain a separate decision.
 identity review `f9ccef67...` and expected execution `b8d9e6d4...`, then run
 the bounded development lane. Do not open final qualification until its
 truth-linked adaptive-background result is terminally interpreted.
+
+## 2026-09-04 - Split public and internal source-finder demonstrations
+
+**Plan phase:** Cross-cutting documentation
+
+- Reworked `notebooks/source_finder_demo.py` around the supported
+  `hebog.find_sources()` FITS-to-products interface and its versioned request,
+  result, catalogue, RMS, mask, and diagnostic products.
+- Preserved the previous stage-by-stage walkthrough as the explicitly
+  developer-facing `notebooks/source_finder_internals.py`. Its new partition
+  view compares one-tile and four-tile manifests, lists owned cores and read
+  windows, and explains the separation between deterministic tile ownership
+  and dynamic executor worker placement.
+- Strict Marimo validation, focused Ruff checks, and diff whitespace checks
+  pass for both notebooks. No source-finding science, public contract, or
+  qualification evidence changed.
+
+**Immediate next step:** keep the public notebook aligned with the supported
+API while using the internal notebook for stage, tiling, and reconciliation
+diagnostics.
+
+## 2026-09-04 - Make public source-finder thresholds configurable
+
+**Plan phase:** Cross-cutting public scientific interface
+
+- Removed the public facade's policy-only rejection of configurations outside
+  the historical 5-sigma detection, 3-sigma island, and seven-pixel setting.
+  Valid caller thresholds now drive background/detection execution and the
+  terminal multiscale composition; minimum and optional maximum island sizes
+  are applied to terminal direct-island identity before catalogue creation.
+- Added a dedicated public-science adapter rather than changing the frozen
+  Phase 5 validation modules. The adapter derives an execution-only review
+  view carrying caller sigma values, preserves the reviewed support and source
+  composition, and publishes an honest empty catalogue when no configured
+  island survives.
+- Advanced public diagnostics to schema four and the scientific composition
+  to `phase-5-configurable-publication-scale-persistence-v2`. Diagnostics mark
+  exact 5/3/7 requests as `phase-5-reference` and all other valid requests as
+  `custom-unqualified`, with the exact configuration still bound by SHA-256.
+- Preserved the historical identity review unchanged and froze successor
+  non-executable identity
+  `phase-5-configurable-public-interface-identity-review.json`, linked to the
+  predecessor by SHA-256. It grants no replay, qualification, tuning, viewed-
+  data, cutover, or release authority.
+- Focused public API, product materialization, Serial/existing-Dask, custom
+  configuration, and unchanged governed validation checks pass: 119 passed
+  and 2 expected xfails. The equivalence lane passes 27 tests; the normal
+  check passes Ruff, Pyright, 2,446 unit/doctest tests, and 2 expected xfails;
+  coverage passes 2,625 tests and 2 expected xfails at 94.78% overall with
+  100% line and branch coverage for the new adapter. Strict docs and Marimo
+  checks pass, and the isolated wheel builds, installs, imports, and executes.
+
+**Immediate next step:** treat custom configurations as caller-owned science
+until separately validated; any future Phase 5 qualification must bind the
+exact reference configuration and configurable public composition.

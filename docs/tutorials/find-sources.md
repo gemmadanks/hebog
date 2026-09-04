@@ -23,7 +23,7 @@ before its final two spatial axes. The image must have:
 NaN pixels are allowed and are excluded from the analysis. Missing or invalid
 physical metadata fails clearly before any output bundle is published.
 
-## Run the qualified continuum profile
+## Run the Phase 5 reference continuum profile
 
 The output directory must not already exist. Hebog treats it as one atomic,
 caller-owned product bundle.
@@ -53,9 +53,35 @@ print(f"wall time: {result.wall_seconds:.3f} s")
 print(result.catalogue_path)
 ```
 
-`continuum` is the default profile. In this Phase 5 preview the values
-5 sigma, 3 sigma, and seven pixels are the exact qualified configuration;
-Hebog rejects other values instead of silently running unevaluated science.
+`continuum` is the default profile. The values 5 sigma, 3 sigma, and seven
+pixels define the evaluated Phase 5 reference configuration. Its diagnostics
+report `configuration_qualification="phase-5-reference"`; this identifies the
+configuration covered by the Phase 5 evidence without claiming release or
+Rapthor cutover readiness.
+
+Callers may select other valid thresholds and island-size limits. Hebog uses
+those values throughout background masking, direct and multiscale detection,
+island growth, and final size filtering. Custom runs report
+`configuration_qualification="custom-unqualified"` so they cannot be confused
+with the reference evidence:
+
+```python
+custom_config = hebog.SourceFinderConfig(
+    detection_threshold_sigma=6.0,
+    island_threshold_sigma=4.0,
+    minimum_island_pixels=10,
+)
+
+custom_result = hebog.find_sources(
+    hebog.SourceFinderRequest(
+        image_path=Path("continuum-image.fits"),
+        output_directory=Path("custom-hebog-products"),
+        run_id="observation-001-custom",
+    ),
+    custom_config,
+    SerialExecutor(),
+)
+```
 
 ## Interpret the products
 
@@ -67,7 +93,7 @@ identities, scientific status, and schema versions for four files:
 | `catalogue.fits` | Source-level catalogue plus its Gaussian components and parent islands. |
 | `rms.fits` | Candidate-owned local RMS estimate in `Jy/beam`; an empty image may report this as scientifically unavailable. |
 | `source-mask.fits` | Binary source-support mask aligned with the input image. |
-| `diagnostics.json` | Counts, profile limitations, input/configuration identities, and the exact scientific-composition identity. |
+| `diagnostics.json` | Counts, configuration qualification, profile limitations, input/configuration identities, and the exact scientific-composition identity. |
 
 Read validated products through Hebog rather than assuming FITS extension or
 column details:
@@ -88,6 +114,7 @@ for source in catalogue.sources:
 
 print(diagnostics.provenance.input_sha256)
 print(diagnostics.provenance.scientific_composition_sha256)
+print(diagnostics.configuration_qualification)
 ```
 
 Those provenance identities make it possible to establish which input,
@@ -123,9 +150,9 @@ to match. Inspect or archive it, then choose a new directory or remove it
 yourself before retrying. Hebog does not delete caller-owned products.
 
 Malformed or unreadable FITS inputs raise
-`hebog.InvalidSourceFinderInputError`. Unsupported scientific settings and
-images outside the qualified envelope use distinct public exception types, so
-workflow code does not need to parse error strings.
+`hebog.InvalidSourceFinderInputError`. Unsupported physical metadata and
+images outside the bounded preview envelope use distinct public exception
+types, so workflow code does not need to parse error strings.
 
 Callers that already own a Dask client may pass `DaskExecutor(client)` instead
 of `SerialExecutor()`. Hebog never creates a cluster or inspects ambient

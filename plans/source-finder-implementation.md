@@ -1470,19 +1470,22 @@ from partial or viewed evidence.
      envelope, cleanup, reproducibility, and current limitations explained.
      Remove every statement that the public call intentionally raises
      `NotImplementedError` before freezing the release-candidate identity.
-   - Completed on 2026-09-04 without changing the frozen source-finding
-     science. The top-level facade accepts the exact 5-sigma/3-sigma,
-     seven-pixel `continuum` or explicit `compact` profile, rejects dimensions
-     above the honestly bounded 1,024-pixel preview envelope, and atomically
-     publishes catalogue, RMS, mask, and schema-three diagnostics. Typed input,
-     configuration, size, and output-ownership failures leave no successful
-     bundle. Serial and caller-owned Dask runs publish byte-identical products.
-     The isolated wheel smoke both verifies the embedded scientific review
-     SHA-256 and executes the public call. Non-executable identity review
-     `phase-5-public-interface-identity-review.json` (`a521c656...`) binds the
-     exact facade files, passing scientific modules, algorithm candidate,
-     configuration, profile, output envelope, and closed paired evidence; all
-     execution and release authorizations remain false.
+   - Completed on 2026-09-04 with caller-owned scientific configuration. The
+     top-level facade executes every valid `SourceFinderConfig` detection and
+     island threshold and pixel-count limit rather than rejecting settings
+     outside 5-sigma/3-sigma and seven pixels. Schema-four diagnostics classify
+     that exact historical setting as `phase-5-reference` and every other
+     setting as `custom-unqualified`; the classification records evidence
+     status and never changes execution. A dedicated public-science adapter
+     applies runtime configuration while the reviewed Phase 5 validation
+     modules and their frozen identities remain unchanged. The facade retains
+     the 1,024-pixel preview envelope, atomic products, typed failures, and
+     Serial/caller-owned-Dask invariance. Successor non-executable identity
+     review `phase-5-configurable-public-interface-identity-review.json` binds
+     the new adapter, schema, facade, unchanged reviewed modules, predecessor
+     identity `a521c656...`, and closed paired evidence. It authorizes no
+     replay, fresh qualification, tuning, viewed-data execution, cutover, or
+     release; custom configurations carry no Phase 5 equivalence claim.
 
 5. [ ] **Freshly qualify the exact public release candidate.**
    - The public interface is complete and frozen. Before finalizing or opening

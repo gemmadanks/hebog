@@ -7,13 +7,13 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -62,7 +62,7 @@ _TILE_SHAPE_YX = (128, 128)
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
-_COMPOSITION_NAME = "phase-5-publication-scale-persistence-v1"
+_COMPOSITION_NAME = "phase-5-configurable-publication-scale-persistence-v2"
 _PROFILE_RESOURCE = "phase_5_continuum_review.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 _SCIENTIFIC_MODULES = (
@@ -77,6 +77,7 @@ _SCIENTIFIC_MODULES = (
     "hebog.algorithms.reconciliation",
     "hebog.algorithms.source_association",
     "hebog.public_api",
+    "hebog.public_science",
     "hebog.stages.background",
     "hebog.stages.detection",
     "hebog.validation.hebog_campaign",
@@ -122,18 +123,18 @@ def _canonical_sha256(value: object) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def _qualified_configuration(config: SourceFinderConfig) -> None:
-    """Reject scientific settings that have not passed Phase 5 evaluation."""
+def _configuration_qualification(
+    config: SourceFinderConfig,
+) -> Literal["phase-5-reference", "custom-unqualified"]:
+    """Classify caller science without restricting executable thresholds."""
     if (
         config.detection_threshold_sigma != _DETECTION_THRESHOLD_SIGMA
         or config.island_threshold_sigma != _ISLAND_THRESHOLD_SIGMA
         or config.minimum_island_pixels != _MINIMUM_ISLAND_PIXELS
         or config.maximum_island_pixels is not None
     ):
-        raise UnsupportedSourceFinderConfigurationError(
-            "the frozen Phase 5 public preview supports only the 5-sigma/"
-            "3-sigma, seven-pixel configuration"
-        )
+        return "custom-unqualified"
+    return "phase-5-reference"
 
 
 def _qualified_metadata(metadata: ImageMetadata) -> None:
@@ -222,9 +223,10 @@ def _beam_shape_pixels(metadata: ImageMetadata) -> BeamShapePixels:
     )
 
 
-def _estimate_background_rms(
+def _estimate_background_rms(  # noqa: PLR0913
     source: FitsImageSource,
     metadata: ImageMetadata,
+    config: SourceFinderConfig,
     executor: Executor,
     work_directory: Path,
     *,
@@ -245,10 +247,14 @@ def _estimate_background_rms(
         manifest,
         generation_id=generation_id,
     )
+    detection_config = replace(
+        phase_five_corrected_candidate_configs()[0],
+        source_finder=config,
+    )
     run_detection_stage(
         source,
         manifest,
-        phase_five_corrected_candidate_configs()[0],
+        detection_config,
         executor,
         sink,
     )
@@ -272,14 +278,15 @@ def _analyse_image(  # noqa: PLR0913
     executor: Executor,
     work_directory: Path,
     *,
+    config: SourceFinderConfig,
     header: fits.Header,
 ) -> _ScientificProducts:
     """Resolve the frozen terminal composition without changing its science."""
+    from hebog.public_science import (  # noqa: PLC0415
+        build_configured_continuum_products,
+    )
     from hebog.validation.contracts import (  # noqa: PLC0415
         PhaseFiveCorrectiveAReview,
-    )
-    from hebog.validation.publication_scale_persistence import (  # noqa: PLC0415
-        build_publication_scale_persistence_continuum_products,
     )
 
     bounds = _full_bounds(metadata)
@@ -287,6 +294,7 @@ def _analyse_image(  # noqa: PLR0913
     background, rms = _estimate_background_rms(
         source,
         metadata,
+        config,
         executor,
         work_directory,
         generation_id=(
@@ -302,13 +310,14 @@ def _analyse_image(  # noqa: PLR0913
             terminal=None,
         )
     review = PhaseFiveCorrectiveAReview.model_validate_json(_profile_bytes())
-    terminal = build_publication_scale_persistence_continuum_products(
+    terminal = build_configured_continuum_products(
         image,
         background,
         rms,
         header,
         beam=_beam_shape_pixels(metadata),
         review=review,
+        config=config,
     )
     return _ScientificProducts(image, background, rms, terminal)
 
@@ -581,6 +590,7 @@ def _materialize_bundle(  # noqa: PLR0913
             if config.profile == "compact"
             else ()
         ),
+        configuration_qualification=_configuration_qualification(config),
         source_count=len(catalogue.sources),
         gaussian_component_count=len(catalogue.gaussian_components),
         island_count=len(catalogue.islands),
@@ -621,15 +631,16 @@ def find_sources(
     """Analyse one supported FITS image and atomically publish its products.
 
     The Phase 5 scientific preview supports ICRS ``Jy/beam`` images no larger
-    than 1024 pixels on either axis. ``continuum`` is the default qualified
-    profile; ``compact`` intentionally omits extended-emission association.
+    than 1024 pixels on either axis. Caller thresholds are executed exactly;
+    diagnostics distinguish the Phase 5 reference configuration from custom
+    unqualified science. ``compact`` intentionally omits extended-emission
+    association.
     """
     output = Path(request.output_directory)
     if output.exists():
         raise SourceFinderOutputExistsError(
             f"source-finder output already exists: {output}"
         )
-    _qualified_configuration(config)
     image_path = Path(request.image_path)
     try:
         source = FitsImageSource(image_path)
@@ -654,6 +665,7 @@ def find_sources(
             metadata,
             executor,
             temporary / "work",
+            config=config,
             header=header,
         )
         unpublished = temporary / "bundle"
