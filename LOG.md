@@ -15436,3 +15436,45 @@ reused. No development-lane process is running.
 **Immediate next step:** commit the one-use lane decision, repeat the exact
 spawned-process no-write preflight from an immutable checkout, then start one
 two-worker run and monitor it without inspecting partial science.
+
+## 2026-09-04 — Repair the combined lane analysis-config seam
+
+**Plan phase:** Phase 5 final qualification design
+
+- The process-repaired invocation from immutable commit `8b29370...` crossed
+  the spawned-worker boundary and completed all 144 public candidate bundles,
+  then failed on the first coarse-control analysis with `_analyse_image()
+  missing 1 required keyword-only argument: 'config'`. The retained parent
+  runner predates that public analysis signature and its internal coarse-only
+  adapter omitted the configuration; the combined capture forwarded the
+  obsolete call unchanged.
+- Preserved the failed 721-file, 498,192,816-byte namespace as
+  `f008f8fe...`. It contains 144 candidate bundles, zero coarse work,
+  observations, attribution records, or progress records, and no atomic output
+  exists. No aggregate science was interpreted. The bundles cannot safely
+  complete the paired evaluation because public output deliberately omits the
+  transient background plane used by the governed error endpoints.
+- Added a red regression that requires the legacy coarse call to receive the
+  exact frozen public configuration, then implemented the minimal adapter in
+  the combined wrapper. A separately supplied candidate configuration remains
+  identity-preserved. The candidate `c28343f...`, scientific source tree
+  `8235e9bc...`, configuration `2c907949...`, population, one-factor coarse
+  override, gates, and atomic output are unchanged.
+- A disposable exact one-input candidate/coarse/array-free-attribution smoke
+  passes in 6.1 seconds. The expanded focused suite passes 50 tests, and the
+  complete no-write preflight passes all 144 candidate, 144 coarse-control,
+  and 12 existing-Dask slots with fixture seam `de75f170...` and a real
+  spawned-worker payload check. It creates neither the new scratch nor output.
+- Froze process-only review `ff687012...`, non-executable successor identity
+  `3e0730df...`, wrapper `a5024cf2...`, and expected execution
+  `c562f797...`. A new exact one-use decision records the user's standing
+  repaired-lane and process-bug authority; downstream replay and held-out
+  qualification remain ordered behind a passing terminal lane result.
+- Final repository validation passes: 2,706 branch-aware coverage tests with
+  44 deselected and 2 expected failures at 94.79% project coverage; the normal
+  check with 2,525 passed, 225 deselected, and 2 expected failures; all 27
+  frozen PyBDSF equivalence tests; and the strict documentation build.
+
+**Immediate next step:** validate and commit the exact successor, repeat its
+complete preflight from an immutable checkout, start one caller-owned
+two-worker Dask runtime, and run the single repaired lane in its fresh scratch.

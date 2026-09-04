@@ -1,0 +1,59 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "failed_execution": {
+    "candidate_bundle_count": 144,
+    "candidate_execution_count": 144,
+    "coarse_control_execution_count": 0,
+    "execution_commit": "8b29370c4ed0133557a84483b7c61ac91ff62152",
+    "execution_decision_sha256": "8678b5399a138a321f42223b384ca994a7716bb6996861b542f4abebde1286d2",
+    "identity_review_sha256": "40a9f99f817fbc39ef38ddc9f3bfc6c748040957c7ccf3b1d783ada6ab2691d2",
+    "namespace_file_count": 721,
+    "namespace_file_set_sha256": "f008f8fe5850c52d4353b463ae928dbd951aa61dcbbf6f5cd7f6ef90ce8abd0c",
+    "namespace_size_bytes": 498192816,
+    "output_published": false,
+    "progress_record_count": 0,
+    "scratch": "/private/tmp/hebog-phase5-source-owned-measurement-topology-process-repair-c28343f"
+  },
+  "finding": {
+    "classification": "post-candidate-pre-coarse-wrapper-signature-defect",
+    "exception": "TypeError",
+    "message": "_analyse_image() missing 1 required keyword-only argument: 'config'",
+    "root_cause": "The retained adaptive-background parent runner predates the current keyword-only public analysis configuration seam. Its internal coarse-control adapter called public_api._analyse_image without config. The combined capture wrapper forwarded that obsolete call unchanged, so every public candidate bundle completed but the first coarse-control analysis failed before an observation, progress record, Dask comparison, or atomic decision could be produced.",
+    "scientific_impact": "No aggregate science was published or interpreted. The 144 public candidate bundles are preserved as failed-run evidence, but they do not contain the transient background plane required to reconstruct the governed paired observation, so they cannot replace a complete lane execution."
+  },
+  "recommended_repair": {
+    "candidate_identity_unchanged": true,
+    "execution_boundary": "adapt only the combined wrapper's legacy coarse-control call by supplying the exact frozen public configuration when and only when the parent call omits config; preserve the parent's candidate path and one-factor coarse configuration override",
+    "fast_preflight": "before another full lane, execute one disposable exact development input through candidate, coarse-control, and array-free attribution, then require the existing spawned-process payload preflight",
+    "new_output_namespace": false,
+    "new_scratch_namespace_required": true,
+    "required_tests": [
+      "the combined analysis capture supplies the exact frozen public configuration to a legacy coarse-control call",
+      "an already configured candidate call retains its supplied configuration unchanged",
+      "one disposable end-to-end development case completes candidate, coarse-control, and bounded attribution",
+      "the complete no-write preflight binds the repaired wrapper, tests, candidate, population, runtime, paths, preserved failure, and absent atomic output",
+      "a real spawned worker reconstructs the exact JSON-compatible payload without running science"
+    ],
+    "scientific_configuration_unchanged": true,
+    "scientific_source_tree_unchanged": true
+  },
+  "required_next_decision": "freeze a new non-executable analysis-config repair identity; the user's standing process-bug and repaired-lane authority may then be recorded in a new exact one-use successor decision before retrying",
+  "review_id": "phase-5-source-owned-measurement-topology-analysis-config-repair-pre-review",
+  "reviewed_on": "2026-09-04",
+  "schema_version": 1,
+  "status": "ready-for-process-only-repair-review"
+}

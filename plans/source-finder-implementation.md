@@ -1762,6 +1762,26 @@ from partial or viewed evidence.
      out qualification identity. Process-only failures may be fixed and
      retried without scientific drift; a completed scientific failure is
      terminal evidence and may not be tuned or rescored.
+   - That process-repaired attempt proved the spawned-task boundary, then
+     completed all 144 public candidate bundles before the first coarse-control
+     call exposed a second process-only incompatibility: the retained parent
+     runner omitted the now-required keyword-only public analysis `config`.
+     No observation, progress record, Dask comparison, aggregate science, or
+     atomic decision was produced. Preserve its exact 721-file, 498,192,816-byte
+     namespace `f008f8fe...`; its public bundles cannot substitute for the lane
+     because the transient background plane required by the paired evaluator is
+     intentionally absent from public output.
+   - Analysis-config repair review `ff687012...` limits the successor to a
+     compatibility adapter in the combined wrapper: supply the exact frozen
+     public configuration only for the legacy coarse-control call, retain an
+     already supplied candidate configuration, and change no scientific source,
+     threshold, gate, population, comparator, or output identity. The red
+     signature regression, explicit-candidate preservation test, one-input
+     disposable candidate/coarse/attribution smoke, 50-test focused suite, and
+     real spawned-worker no-write preflight pass. Frozen successor identity
+     `3e0730df...` and expected execution `c562f797...` use a fresh scratch;
+     the user's standing bug-repair authority is recorded in a new one-use
+     decision. Run this lane before any cumulative replay or held-out opening.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

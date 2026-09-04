@@ -69,19 +69,19 @@ _ROOT_REVIEW = Path(
 _ROOT_REVIEW_SHA256 = (
     "026e490f1c97b32e0b4940a1af9985b32c33f0debd9b1ffb11f0ac4b826e2d15"
 )
-_PROCESS_REPAIR_REVIEW = Path(
+_ANALYSIS_CONFIG_REPAIR_REVIEW = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "process-repair-pre-review.json"
+    "analysis-config-repair-pre-review.json"
 )
-_PROCESS_REPAIR_REVIEW_SHA256 = (
-    "c35c6eecb32141e88d1cec8fa501bfeddc5b7d2b8a680b99188957e454e886a4"
+_ANALYSIS_CONFIG_REPAIR_REVIEW_SHA256 = (
+    "ff687012274695b4e410b643c2e012306c116e438e83186ba824f920c2914a02"
 )
 _PREDECESSOR_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "identity-review.json"
+    "process-repair-identity-review.json"
 )
 _PREDECESSOR_IDENTITY_SHA256 = (
-    "4c611f1b61113584512f45650ef41e468237c59413b7464a7070cd7bce0e4944"
+    "40a9f99f817fbc39ef38ddc9f3bfc6c748040957c7ccf3b1d783ada6ab2691d2"
 )
 _PUBLIC_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
@@ -93,11 +93,11 @@ _IMPLEMENTATION = Path(
 )
 _IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "process-repair-identity-review.json"
+    "analysis-config-repair-identity-review.json"
 )
 _EXECUTION_DECISION = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "process-repair-execution-decision.json"
+    "analysis-config-repair-execution-decision.json"
 )
 _MANIFEST = Path(
     "config/contracts/phase-5-adaptive-background-development-manifest.json"
@@ -110,7 +110,7 @@ _PARENT_RUNNER = Path(
 )
 _SCRATCH = Path(
     "/private/tmp/hebog-phase5-source-owned-measurement-topology-"
-    "process-repair-c28343f"
+    "analysis-config-repair-c28343f"
 )
 _OUTPUT = Path(
     "benchmark-results/phase-5/"
@@ -141,6 +141,10 @@ _PROGRAM_BINDING_PATHS = {
     "process_repair_freezer": (
         "scripts/validation/"
         "freeze_phase5_source_owned_measurement_topology_process_repair.py"
+    ),
+    "analysis_config_repair_freezer": (
+        "scripts/validation/"
+        "freeze_phase5_source_owned_measurement_topology_analysis_config_repair.py"
     ),
     "runner": (
         "scripts/validation/run_phase5_source_owned_measurement_topology.py"
@@ -207,6 +211,7 @@ _parent_tasks = _PARENT["_tasks"]
 _parent_candidate_products = _PARENT["_candidate_products"]
 _parent_coarse_products = _PARENT["_coarse_products"]
 _parent_run_serial_task = _PARENT["_run_serial_task"]
+_parent_public_config = _PARENT["_public_config"]
 _parent_evaluate = _PARENT["evaluate_adaptive_development"]
 _parent_activation_intersects_truth = _PARENT["_activation_intersects_truth"]
 _parent_verify_existing_dask_runtime = _PARENT["_verify_existing_dask_runtime"]
@@ -322,6 +327,13 @@ def _captured_science() -> Generator[dict[str, Any]]:
         return result
 
     def analysis(*args: Any, **kwargs: Any) -> Any:
+        if "config" not in kwargs:
+            request = args[0] if args else None
+            if not str(getattr(request, "run_id", "")).startswith("coarse-"):
+                raise ValueError(
+                    "analysis config omitted outside legacy coarse control"
+                )
+            kwargs = {**kwargs, "config": _parent_public_config()}
         result = original_analysis(*args, **kwargs)
         terminal = result.terminal
         source_inputs = captured.pop("source_stage_inputs", None)
@@ -722,16 +734,16 @@ def _verify_public_identity(
                 raise ValueError("combined public source changed")
 
 
-def _verify_process_repair_identity(
+def _verify_analysis_config_repair_identity(
     repository_root: Path,
     identity: dict[str, Any],
 ) -> None:
-    """Verify the immutable failed invocation and process-only successor."""
+    """Verify both failed invocations and the config-only successor."""
     if (
-        file_sha256(repository_root / _PROCESS_REPAIR_REVIEW)
-        != _PROCESS_REPAIR_REVIEW_SHA256
+        file_sha256(repository_root / _ANALYSIS_CONFIG_REPAIR_REVIEW)
+        != _ANALYSIS_CONFIG_REPAIR_REVIEW_SHA256
     ):
-        raise ValueError("combined process-repair review identity changed")
+        raise ValueError("combined config-repair review identity changed")
     authorization = _object_field(
         identity,
         "authorization",
@@ -763,14 +775,14 @@ def _verify_process_repair_identity(
         raise ValueError("combined predecessor identity changed")
     repair = _object_field(
         identity,
-        "process_repair",
-        label="combined process repair",
+        "analysis_config_repair",
+        label="combined analysis config repair",
     )
     if repair.get("review") != {
-        "path": str(_PROCESS_REPAIR_REVIEW),
-        "sha256": _PROCESS_REPAIR_REVIEW_SHA256,
+        "path": str(_ANALYSIS_CONFIG_REPAIR_REVIEW),
+        "sha256": _ANALYSIS_CONFIG_REPAIR_REVIEW_SHA256,
     }:
-        raise ValueError("combined process-repair binding changed")
+        raise ValueError("combined config-repair binding changed")
 
 
 def _verify_frozen_identity(
@@ -781,7 +793,7 @@ def _verify_frozen_identity(
     """Verify candidate, programs, population, runtime, and no authority."""
     if file_sha256(repository_root / _ROOT_REVIEW) != _ROOT_REVIEW_SHA256:
         raise ValueError("combined root-cause review identity changed")
-    _verify_process_repair_identity(repository_root, identity)
+    _verify_analysis_config_repair_identity(repository_root, identity)
     if source_tree_sha256(repository_root) != _CANDIDATE_SOURCE_TREE_SHA256:
         raise ValueError("combined source tree changed")
     _verify_public_identity(repository_root, identity)

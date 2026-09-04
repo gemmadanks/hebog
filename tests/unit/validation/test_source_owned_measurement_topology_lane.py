@@ -28,7 +28,7 @@ from hebog.validation.datasets import DatasetManifest
 _ROOT = Path(__file__).parents[3]
 _REPAIR_FREEZER = (
     _ROOT / "scripts/validation/"
-    "freeze_phase5_source_owned_measurement_topology_process_repair.py"
+    "freeze_phase5_source_owned_measurement_topology_analysis_config_repair.py"
 )
 _RUNNER = (
     _ROOT / "scripts/validation/"
@@ -42,13 +42,15 @@ _PUBLIC_IDENTITY = (
     _ROOT / f"config/contracts/{_PREFIX}-public-interface-identity-review.json"
 )
 _PREDECESSOR_IDENTITY = (
-    _ROOT / f"config/contracts/{_PREFIX}-identity-review.json"
-)
-_IDENTITY = (
     _ROOT / f"config/contracts/{_PREFIX}-process-repair-identity-review.json"
 )
+_IDENTITY = (
+    _ROOT
+    / f"config/contracts/{_PREFIX}-analysis-config-repair-identity-review.json"
+)
 _FAILED_DECISION = (
-    _ROOT / f"config/contracts/{_PREFIX}-execution-decision.json"
+    _ROOT
+    / f"config/contracts/{_PREFIX}-process-repair-execution-decision.json"
 )
 _MANIFEST = (
     _ROOT
@@ -71,10 +73,10 @@ def test_repair_identity_is_reproducible_and_non_executable() -> None:
             "fc4728c852da061920c9e8cb68facb18990256e18949fad4a1a0873b20b06731"
         ),
         _PREDECESSOR_IDENTITY: (
-            "4c611f1b61113584512f45650ef41e468237c59413b7464a7070cd7bce0e4944"
+            "40a9f99f817fbc39ef38ddc9f3bfc6c748040957c7ccf3b1d783ada6ab2691d2"
         ),
         _FAILED_DECISION: (
-            "c169bb85ba39d8fa0092e4315738514e0e47d05920b39dde49f8c857006f412d"
+            "8678b5399a138a321f42223b384ca994a7716bb6996861b542f4abebde1286d2"
         ),
     }
     assert {
@@ -212,6 +214,66 @@ def test_capture_uses_expanded_source_measurement_support(
         )
 
     assert np.array_equal(captured["measurement_support"], expanded > 0)
+
+
+def test_coarse_control_forwards_the_frozen_public_config(
+    monkeypatch: Any,
+) -> None:
+    """The internal coarse control follows the current analysis signature."""
+    runner = runpy.run_path(str(_RUNNER))
+    globals_ = runner["_captured_science"].__wrapped__.__globals__
+    expected_config = globals_["_parent_public_config"]()
+    observed: dict[str, object] = {}
+
+    def analyse(*_args: object, config: object, **_kwargs: object) -> object:
+        observed["config"] = config
+        return SimpleNamespace(terminal=None)
+
+    monkeypatch.setattr(globals_["public_api"], "_analyse_image", analyse)
+
+    with runner["_captured_science"]():
+        globals_["public_api"]._analyse_image(
+            SimpleNamespace(run_id="coarse-fixture-input")
+        )
+
+    assert observed["config"] == expected_config
+
+
+def test_capture_rejects_an_unconfigured_non_coarse_call() -> None:
+    """The compatibility adapter cannot mask another missing config bug."""
+    runner = runpy.run_path(str(_RUNNER))
+    globals_ = runner["_captured_science"].__wrapped__.__globals__
+
+    with (
+        runner["_captured_science"](),
+        pytest.raises(ValueError, match="outside legacy coarse control"),
+    ):
+        globals_["public_api"]._analyse_image(
+            SimpleNamespace(run_id="candidate-fixture-input")
+        )
+
+
+def test_capture_preserves_an_explicit_candidate_config(
+    monkeypatch: Any,
+) -> None:
+    """The compatibility adapter cannot replace a configured candidate call."""
+    runner = runpy.run_path(str(_RUNNER))
+    globals_ = runner["_captured_science"].__wrapped__.__globals__
+    supplied_config = object()
+    observed: dict[str, object] = {}
+
+    def analyse(*_args: object, config: object, **_kwargs: object) -> object:
+        observed["config"] = config
+        return SimpleNamespace(terminal=None)
+
+    monkeypatch.setattr(globals_["public_api"], "_analyse_image", analyse)
+    with runner["_captured_science"]():
+        globals_["public_api"]._analyse_image(
+            object(),
+            config=supplied_config,
+        )
+
+    assert observed["config"] is supplied_config
 
 
 def test_serial_wrapper_writes_only_array_free_attribution(
@@ -432,7 +494,7 @@ def test_execution_requires_a_separate_exact_decision() -> None:
         scratch=Path(
             "/private/tmp/"
             "hebog-phase5-source-owned-measurement-topology-"
-            "process-repair-c28343f"
+            "analysis-config-repair-c28343f"
         ),
         workers=2,
     )
