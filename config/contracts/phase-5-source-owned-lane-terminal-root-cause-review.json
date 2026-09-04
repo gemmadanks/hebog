@@ -64,21 +64,21 @@
       },
       "root_cause": "The injected mixed source deliberately places 75% of its total flux in an 8- or 12-beam halo. Its three-sigma truth support is covered, but much of the analytic Gaussian flux lies below that support and outside the source-owned persistent seed plus unchanged 1.5-beam aperture. The retained scale ladder ends at four beams. This is not evidence for globally enlarging production apertures after viewing results."
     },
+    "source_owned_measurement_and_parent_repairs": {
+      "classification": "implemented-correctly-but-not-activated-by-the-observed-failure-mechanisms",
+      "evidence": "All terminal-cycle missing-child counters are zero; only seven persistent-feature influence parents activate. Persistent source-owned support cannot recover an 8- to 12-beam halo that is absent from the retained four-beam scale support, and unrelated remote detections must not be merged into the injected source."
+    },
     "split_endpoint": {
       "classification": "confirmed-development-evaluator-semantic-defect-not-source-hierarchy-fragmentation",
       "evidence": {
         "minimum_dominant_source_flux_fraction": 0.8555364649856477,
         "naive_split_images": 43,
         "split_bearing_geometry_count": 9,
-        "truth_linked_split_images": 0,
         "truth_linked_source_rows": 108,
+        "truth_linked_split_images": 0,
         "unmatched_remote_source_rows": 58
       },
       "root_cause": "The lane defined split as total catalogue source count greater than one. In every flagged image, exactly one row lies inside the analytic truth-source bounding box expanded by the predeclared 1.5-major-beam association radius; the other rows are remote faint noise detections. The conservative hierarchy correctly refused to merge unrelated components, so its new terminal-cycle branches remained inactive."
-    },
-    "source_owned_measurement_and_parent_repairs": {
-      "classification": "implemented-correctly-but-not-activated-by-the-observed-failure-mechanisms",
-      "evidence": "All terminal-cycle missing-child counters are zero; only seven persistent-feature influence parents activate. Persistent source-owned support cannot recover an 8- to 12-beam halo that is absent from the retained four-beam scale support, and unrelated remote detections must not be merged into the injected source."
     },
     "trigger_executor_and_completeness": {
       "classification": "passed-and-excluded-as-root-causes",

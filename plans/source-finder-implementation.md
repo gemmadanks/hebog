@@ -545,8 +545,10 @@ contamination defect with a separately measured broad sub-threshold halo
 aperture limitation. Root-cause review
 `phase-5-source-owned-lane-terminal-root-cause-review.json` accounts for every
 failure. The estimator-footprint guard and prospective truth-linked evaluator
-are being implemented test-first; one-seed-per-geometry smoke evidence is
-inside every paired retention margin. Phase 5 then requires a passing complete
+are implemented test-first; one-seed-per-geometry smoke evidence is inside
+every paired retention margin, and exact successor identity `d74d0fba...` plus
+one-use authority `7c1fc6bd...` pass the complete no-write preflight. Phase 5
+then requires a passing complete
 development lane, cumulative dual-PyBDSF parity, one fresh held-out
 qualification of the final public candidate, final engineering evidence, and
 packet-bound independent acceptance. Detailed campaign and incident chronology
@@ -558,8 +560,8 @@ belongs in `LOG.md`; machine identities and authorization boundaries remain in
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
 | Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced measurement, association, publication, or evaluator defect is corrected test-first without changing a closed result after it is viewed. | The `c28343f...` lane completed but failed six geometries. Exact forensic review shows estimator-footprint contamination, an evaluator split/reliability conflation, and a broad sub-threshold halo aperture limitation. The first two have red tests and bounded prospective corrections; the aperture limitation remains explicit and must be judged by fresh dual-PyBDSF parity before any scale-aware photometry change. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, every paired current-versus-control retention margin, truth-linked fragmentation, negative controls, and Serial/existing-Dask invariance. Absolute synthetic truth targets remain visible improvement objectives; they cannot replace or waive final comparator parity. | The immutable terminal lane fails. A 12-execution one-seed-per-geometry successor smoke is inside every paired margin after the estimator-footprint guard. The complete successor lane and exact executor check remain open. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `c28343f...` is superseded prospectively by the estimator-footprint correction. Freeze a new exact candidate only after focused tests and the 12-case smoke pass; the complete successor lane must pass before cumulative replay or held-out qualification. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, every paired current-versus-control retention margin, truth-linked fragmentation, negative controls, and Serial/existing-Dask invariance. Absolute synthetic truth targets remain visible improvement objectives; they cannot replace or waive final comparator parity. | The immutable predecessor lane fails. The 12-execution smoke and the successor's complete 144/144/12 no-write preflight pass. Execute the frozen successor; its atomic result is the remaining fast-lane gate. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `4fb2f48...`, source tree `1275580e...`, configuration `2c907949...`, public identity `73157afa...`, and lane identity `d74d0fba...` are frozen. Serial/existing-Dask identity must pass in the complete lane before cumulative replay or held-out qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -1830,6 +1832,18 @@ from partial or viewed evidence.
      unmatched-source reliability separately. A passing lane opens cumulative
      dual-PyBDSF replay; only a passing cumulative result opens the seed-
      disjoint held-out qualification.
+   - The successor wrapper now applies those semantics without changing the
+     scientific candidate: truth-linked catalogue rows determine analytic
+     recovery and fragmentation, while every remote row remains explicit
+     array-free reliability evidence. Twenty-three focused successor tests,
+     2,723 branch-aware coverage tests at 94.80%, 2,542 normal checks, all 27
+     frozen equivalence tests, strict docs, and clean pre-commit pass. Public
+     identity `73157afa...`, implementation `7c3b38d2...`, non-executable lane
+     identity `d74d0fba...`, and separate one-use decision `7c1fc6bd...` are
+     frozen. The complete no-write preflight verifies 144 candidate, 144
+     control, and 12 caller-owned-Dask slots plus a real spawned worker without
+     creating a namespace. Run this fast lane now; do not prepare or start the
+     long cumulative replay unless its atomic decision passes.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

@@ -119,7 +119,7 @@ def test_superseded_no_write_verification_creates_no_namespace(
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
 
-    with pytest.raises(ValueError, match="source tree changed"):
+    with pytest.raises(ValueError, match="candidate changed"):
         runner["verify_no_write"](
             repository_root=_ROOT,
             manifest_path=_MANIFEST,
@@ -312,9 +312,27 @@ def test_serial_wrapper_writes_only_array_free_attribution(
                 "measurement_support": truth,
                 "publication_support": truth,
                 "source_stage": source_stage,
+                "catalogue_linkage": {
+                    "catalogue_source_count": 1,
+                    "truth_linked_source_count": 1,
+                    "unmatched_source_count": 0,
+                    "truth_linked_integrated_flux_jy": 1.0,
+                    "unmatched_integrated_flux_jy": 0.0,
+                },
             }
         )
-        globals_["_captured_coarse"].update({"detection_support": truth})
+        globals_["_captured_coarse"].update(
+            {
+                "detection_support": truth,
+                "catalogue_linkage": {
+                    "catalogue_source_count": 1,
+                    "truth_linked_source_count": 1,
+                    "unmatched_source_count": 0,
+                    "truth_linked_integrated_flux_jy": 1.0,
+                    "unmatched_integrated_flux_jy": 0.0,
+                },
+            }
+        )
         return {"input_id": "fixture-input"}
 
     def synthetic_truth(_recipe: object) -> tuple[None, np.ndarray, None]:
@@ -333,7 +351,7 @@ def test_serial_wrapper_writes_only_array_free_attribution(
     )
 
     assert result["attribution"] == sidecar
-    assert sidecar["schema_version"] == 2
+    assert sidecar["schema_version"] == 3
     assert sidecar["source_measurement_pixel_count"] == 6
     assert sidecar["protected_pixel_count"] == 6
     assert all(not isinstance(value, np.ndarray) for value in sidecar.values())
@@ -399,7 +417,7 @@ def test_attribution_aggregate_is_bounded_and_fail_closed() -> None:
     runner = runpy.run_path(str(_RUNNER))
     records = tuple(
         {
-            "schema_version": 2,
+            "schema_version": 3,
             "input_id": f"input-{index:03d}",
             "source_measurement_pixel_count": 10,
             "hierarchy_catalogue_source_count": 1,
@@ -477,6 +495,22 @@ def test_no_write_rejects_source_tree_drift(monkeypatch: Any) -> None:
     runner = runpy.run_path(str(_RUNNER))
     globals_ = runner["_verify_frozen_identity"].__globals__
     identity = json.loads(_IDENTITY.read_text())
+    identity["candidate"] = {
+        "configuration_sha256": runner["_CANDIDATE_CONFIGURATION_SHA256"],
+        "entrypoint": "hebog.find_sources",
+        "revision": runner["_CANDIDATE_REVISION"],
+        "source_tree_sha256": runner["_CANDIDATE_SOURCE_TREE_SHA256"],
+    }
+    identity["predecessor_identity"] = {
+        "path": str(runner["_PREDECESSOR_IDENTITY"]),
+        "sha256": runner["_PREDECESSOR_IDENTITY_SHA256"],
+    }
+    identity["footprint_guard_correction"] = {
+        "root_cause_review": {
+            "path": str(runner["_ROOT_REVIEW"]),
+            "sha256": runner["_ROOT_REVIEW_SHA256"],
+        }
+    }
 
     def drifted_source_tree(_root: Path) -> str:
         return "0" * 64

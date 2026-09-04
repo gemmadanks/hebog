@@ -1,0 +1,49 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "coarse_control_execution_authorized": true,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-05",
+    "statement": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns."
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "4fb2f483bc54292e869ef744d4a473434c18f4ac",
+    "source_tree_sha256": "1275580e38aa320b65a4f71cfee2ebb07d231fccb8633565d39f0713d0e791b6"
+  },
+  "decision_id": "phase-5-source-owned-measurement-topology-footprint-guard-execution-decision",
+  "downstream_authority": {
+    "sequence": [
+      "cumulative dual-PyBDSF replay",
+      "fresh held-out dual-PyBDSF qualification"
+    ],
+    "status": "approved-in-principle-pending-passing-fast-lane-and-frozen-exact-identities"
+  },
+  "expected_execution_sha256": "886a403067f88f1880830117121f1c92746ed530dc8d94cafc7b8e4b2c6e636d",
+  "identity_review": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-footprint-guard-identity-review.json",
+    "sha256": "d74d0fba79c689f6d3b1e857fd900c14d8c4138a22cbf31fe9ac29e9594486b8"
+  },
+  "identity_review_sha256": "d74d0fba79c689f6d3b1e857fd900c14d8c4138a22cbf31fe9ac29e9594486b8",
+  "output": "benchmark-results/phase-5/source-owned-measurement-topology-footprint-guard-development-decision.json",
+  "root_cause_review": {
+    "path": "config/contracts/phase-5-source-owned-lane-terminal-root-cause-review.json",
+    "sha256": "2c9495f310b3ab21cb5a49adb2fa2a04e93e71e09046bfc2362ca73dd35a33fa"
+  },
+  "schema_version": 1,
+  "status": "authorized-for-one-development-lane",
+  "workers": 2,
+  "wrapper_sha256": "5138fda039db882613bb74402df069e2285cd5288388ec5e35cf40f1dce8fa24"
+}

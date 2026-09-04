@@ -15543,3 +15543,40 @@ two-worker Dask runtime, and run the single repaired lane in its fresh scratch.
 diagnostics, run focused and branch-aware validation, commit the prospective
 scientific candidate, freeze exact non-executable lane identities, and run the
 complete 144-image lane before preparing any cumulative replay identity.
+
+## 2026-09-05 — Freeze the corrected source-owned fast lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Added a prospective lane wrapper that evaluates injected-source recovery and
+  fragmentation from only truth-linked catalogue rows within the predeclared
+  1.5-major-beam association boundary. Remote rows remain explicit unmatched
+  source-count and integrated-flux reliability diagnostics in the array-free
+  per-input record; they are never silently discarded or merged.
+- Kept the fast gate focused on product validity, activation, paired
+  current-versus-control practical margins, and Serial/existing-Dask identity.
+  The broad-halo absolute targets remain reported improvement objectives, and
+  final per-geometry released/master PyBDSF parity, selected-incumbent
+  retention, and unmatched-source reliability remain non-waivable Phase 5
+  gates.
+- Added a four-record fail-closed freezer and tests for truth-linked recovery,
+  true fragmentation, unmatched diagnostics, prospective evaluator selection,
+  separated non-executable identity/one-use authority, and write-once collision
+  behavior. The combined focused suite passes 23 tests; the complete coverage
+  suite passes 2,723 tests with 44 deselected and two expected failures at
+  94.80%; the normal check passes 2,542 tests with 225 deselected and two
+  expected failures; all 27 frozen equivalence tests and strict docs pass.
+- Canonical JSON formatting exposed ordering drift in the already committed
+  root-cause record before freezing. The record's semantics did not change;
+  its canonical SHA-256 is now `2c9495f3...`, all bindings were updated, 28
+  affected tests pass, and the complete pre-commit suite passes cleanly.
+- Froze public identity `73157afa...`, implementation decision `7c3b38d2...`,
+  non-executable lane identity `d74d0fba...`, and separate one-use execution
+  decision `7c1fc6bd...` under the user's explicit authority. The exact
+  no-write preflight passes 144 candidate, 144 coarse-control, and 12
+  caller-owned-Dask slots, fixture seam `de75f170...`, and a real spawned
+  process payload without creating scratch or output.
+
+**Immediate next step:** commit the frozen lane tooling, reproduce its complete
+preflight from an immutable checkout, run the single fast lane, and open the
+cumulative dual-PyBDSF replay only if its atomic terminal decision passes.

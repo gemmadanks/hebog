@@ -24,6 +24,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import numpy as np
+from astropy.wcs import WCS
 
 from hebog import public_api
 from hebog.algorithms.extended_measurement import (
@@ -50,7 +51,9 @@ from hebog.validation.adaptive_background_lane import (
     AdaptiveExecutorComparison,
     AdaptiveScienceSummary,
     build_adaptive_runtime_identity,
+    evaluate_phase_five_adaptive_risk,
     source_signal_and_truth,
+    truth_linked_source_topology,
 )
 from hebog.validation.datasets import (
     DatasetManifest,
@@ -62,42 +65,36 @@ from hebog.validation.external_runners import (
     file_sha256,
     source_tree_sha256,
 )
+from hebog.validation.materialization import synthetic_fits_header
 
 _ROOT_REVIEW = Path(
-    "config/contracts/phase-5-coarse-measurement-and-topology-pre-review.json"
+    "config/contracts/phase-5-source-owned-lane-terminal-root-cause-review.json"
 )
 _ROOT_REVIEW_SHA256 = (
-    "026e490f1c97b32e0b4940a1af9985b32c33f0debd9b1ffb11f0ac4b826e2d15"
-)
-_ANALYSIS_CONFIG_REPAIR_REVIEW = Path(
-    "config/contracts/phase-5-source-owned-measurement-topology-"
-    "analysis-config-repair-pre-review.json"
-)
-_ANALYSIS_CONFIG_REPAIR_REVIEW_SHA256 = (
-    "ff687012274695b4e410b643c2e012306c116e438e83186ba824f920c2914a02"
+    "2c9495f310b3ab21cb5a49adb2fa2a04e93e71e09046bfc2362ca73dd35a33fa"
 )
 _PREDECESSOR_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "process-repair-identity-review.json"
+    "analysis-config-repair-identity-review.json"
 )
 _PREDECESSOR_IDENTITY_SHA256 = (
-    "40a9f99f817fbc39ef38ddc9f3bfc6c748040957c7ccf3b1d783ada6ab2691d2"
+    "3e0730df83b1973af9455bb3be97f3194a76b2cfad9dcdf75e44eb4c4fd60570"
 )
 _PUBLIC_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "public-interface-identity-review.json"
+    "footprint-guard-public-interface-identity-review.json"
 )
 _IMPLEMENTATION = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "implementation-decision.json"
+    "footprint-guard-implementation-decision.json"
 )
 _IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "analysis-config-repair-identity-review.json"
+    "footprint-guard-identity-review.json"
 )
 _EXECUTION_DECISION = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "analysis-config-repair-execution-decision.json"
+    "footprint-guard-execution-decision.json"
 )
 _MANIFEST = Path(
     "config/contracts/phase-5-adaptive-background-development-manifest.json"
@@ -110,42 +107,37 @@ _PARENT_RUNNER = Path(
 )
 _SCRATCH = Path(
     "/private/tmp/hebog-phase5-source-owned-measurement-topology-"
-    "analysis-config-repair-c28343f"
+    "footprint-guard-4fb2f48"
 )
 _OUTPUT = Path(
     "benchmark-results/phase-5/"
-    "source-owned-measurement-topology-development-decision.json"
+    "source-owned-measurement-topology-footprint-guard-"
+    "development-decision.json"
 )
-_CANDIDATE_REVISION = "c28343fb85ae9bd0d1d927701564f93fbe51b659"
+_CANDIDATE_REVISION = "4fb2f483bc54292e869ef744d4a473434c18f4ac"
 _CANDIDATE_SOURCE_TREE_SHA256 = (
-    "8235e9bcca0e184d1a1597a3dce1f91e9389795370b61f68734b3ee5002b220f"
+    "1275580e38aa320b65a4f71cfee2ebb07d231fccb8633565d39f0713d0e791b6"
 )
 _CANDIDATE_CONFIGURATION_SHA256 = (
     "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
 )
 _EXPECTED_INPUTS = 144
 _EXPECTED_DASK = 12
-_ATTRIBUTION_SCHEMA_VERSION = 2
+_ATTRIBUTION_SCHEMA_VERSION = 3
+_ASSOCIATION_RADIUS_BEAMS = 1.5
 _PROGRAM_BINDING_PATHS = {
     "attribution": "src/hebog/validation/adaptive_background_diagnostics.py",
     "background_algorithm": "src/hebog/algorithms/background.py",
     "background_stage": "src/hebog/stages/background.py",
     "detection_stage": "src/hebog/stages/detection.py",
     "freezer": (
-        "scripts/validation/freeze_phase5_source_owned_measurement_topology.py"
+        "scripts/validation/"
+        "freeze_phase5_source_owned_measurement_topology_footprint_guard.py"
     ),
     "lane_evaluator": "src/hebog/validation/adaptive_background_lane.py",
     "measurement_algorithm": "src/hebog/algorithms/extended_measurement.py",
     "measurement_composition": "src/hebog/validation/products.py",
     "parent_runner": str(_PARENT_RUNNER),
-    "process_repair_freezer": (
-        "scripts/validation/"
-        "freeze_phase5_source_owned_measurement_topology_process_repair.py"
-    ),
-    "analysis_config_repair_freezer": (
-        "scripts/validation/"
-        "freeze_phase5_source_owned_measurement_topology_analysis_config_repair.py"
-    ),
     "runner": (
         "scripts/validation/run_phase5_source_owned_measurement_topology.py"
     ),
@@ -160,6 +152,9 @@ _FIXTURE_BINDING_PATHS = {
     ),
     "combined_lane": (
         "tests/unit/validation/test_source_owned_measurement_topology_lane.py"
+    ),
+    "footprint_guard_lane": (
+        "tests/unit/validation/test_source_owned_footprint_guard_lane.py"
     ),
     "executor_invariance": (
         "tests/integration/test_public_finder_correction_execution.py"
@@ -211,14 +206,17 @@ _parent_tasks = _PARENT["_tasks"]
 _parent_candidate_products = _PARENT["_candidate_products"]
 _parent_coarse_products = _PARENT["_coarse_products"]
 _parent_run_serial_task = _PARENT["_run_serial_task"]
+_parent_science_summary = _PARENT["_science_summary"]
+_parent_true_integrated_flux_jy = _PARENT["_true_integrated_flux_jy"]
 _parent_public_config = _PARENT["_public_config"]
-_parent_evaluate = _PARENT["evaluate_adaptive_development"]
+_lane_evaluate = evaluate_phase_five_adaptive_risk
 _parent_activation_intersects_truth = _PARENT["_activation_intersects_truth"]
 _parent_verify_existing_dask_runtime = _PARENT["_verify_existing_dask_runtime"]
 _parent_atomic_write = _PARENT["_atomic_write"]
 
 _captured_candidate: dict[str, Any] = {}
 _captured_coarse: dict[str, Any] = {}
+_latest_linkage: dict[str, int | float] = {}
 
 
 def _json_object(path: Path, *, label: str) -> dict[str, Any]:
@@ -374,15 +372,112 @@ def _captured_science() -> Generator[dict[str, Any]]:
         public_api._analyse_image = original_analysis
 
 
+def _source_flux_jy(source: Any) -> float:
+    """Return the exact public source-level aperture or fallback flux."""
+    aperture_flux = source.association_aperture_integrated_flux_jy
+    return float(
+        aperture_flux
+        if aperture_flux is not None
+        else source.flux.integrated_flux_jy
+    )
+
+
+def _source_positions_yx(
+    dataset: DatasetRecord,
+    catalogue: Any,
+) -> tuple[tuple[float, float], ...]:
+    """Transform canonical catalogue sky positions into image pixels."""
+    sources = tuple(catalogue.sources)
+    if not sources:
+        return ()
+    celestial = WCS(synthetic_fits_header(dataset), relax=True).celestial
+    world = [
+        [
+            source.position.right_ascension_degrees,
+            source.position.declination_degrees,
+        ]
+        for source in sources
+    ]
+    pixels = celestial.all_world2pix(world, 0)
+    return tuple((float(pixel[1]), float(pixel[0])) for pixel in pixels)
+
+
+def _science_summary(  # noqa: PLR0913
+    *,
+    dataset: DatasetRecord,
+    recipe: SyntheticRecipe,
+    catalogue: Any,
+    mask: np.ndarray,
+    background: np.ndarray,
+    rms: np.ndarray,
+) -> AdaptiveScienceSummary:
+    """Measure one analytic source without conflating remote detections."""
+    base = _parent_science_summary(
+        dataset=dataset,
+        recipe=recipe,
+        catalogue=catalogue,
+        mask=mask,
+        background=background,
+        rms=rms,
+    )
+    _, truth, _ = source_signal_and_truth(recipe)
+    sources = tuple(catalogue.sources)
+    topology = truth_linked_source_topology(
+        _source_positions_yx(dataset, catalogue),
+        truth,
+        association_radius_pixels=(
+            _ASSOCIATION_RADIUS_BEAMS * dataset.beam.major_fwhm_pixels
+        ),
+    )
+    linked_sources = tuple(
+        sources[index] for index in topology.truth_linked_source_indices
+    )
+    unmatched_sources = tuple(
+        sources[index] for index in topology.unmatched_source_indices
+    )
+    linked_flux = sum(_source_flux_jy(source) for source in linked_sources)
+    unmatched_flux = sum(
+        _source_flux_jy(source) for source in unmatched_sources
+    )
+    true_flux = _parent_true_integrated_flux_jy(dataset)
+    _latest_linkage.clear()
+    _latest_linkage.update(
+        {
+            "catalogue_source_count": len(sources),
+            "truth_linked_source_count": len(linked_sources),
+            "unmatched_source_count": len(unmatched_sources),
+            "truth_linked_integrated_flux_jy": linked_flux,
+            "unmatched_integrated_flux_jy": unmatched_flux,
+        }
+    )
+    return base.model_copy(
+        update={
+            "completeness": float(
+                base.completeness > 0.0 and bool(linked_sources)
+            ),
+            "integrated_flux_absolute_fractional_error": abs(
+                linked_flux - true_flux
+            )
+            / true_flux,
+            "split": topology.truth_linked_split,
+        }
+    )
+
+
+_parent_run_serial_task.__globals__["_science_summary"] = _science_summary
+
+
 def _candidate_products(*args: Any, **kwargs: Any) -> Any:
     """Run one candidate while reducing transient stage attribution."""
+    _latest_linkage.clear()
     with _captured_science() as captured:
         result = _parent_candidate_products(*args, **kwargs)
     required = {"detection", "detection_support", "source_stage"}
-    if not required.issubset(captured):
+    if not required.issubset(captured) or not _latest_linkage:
         raise ValueError(
             "combined candidate attribution capture is incomplete"
         )
+    captured["catalogue_linkage"] = dict(_latest_linkage)
     _captured_candidate.clear()
     _captured_candidate.update(captured)
     return result
@@ -390,10 +485,12 @@ def _candidate_products(*args: Any, **kwargs: Any) -> Any:
 
 def _coarse_products(*args: Any, **kwargs: Any) -> Any:
     """Run one coarse control while retaining its transient support."""
+    _latest_linkage.clear()
     with _captured_science() as captured:
         result = _parent_coarse_products(*args, **kwargs)
-    if "detection_support" not in captured:
+    if "detection_support" not in captured or not _latest_linkage:
         raise ValueError("combined coarse attribution capture is incomplete")
+    captured["catalogue_linkage"] = dict(_latest_linkage)
     _captured_coarse.clear()
     _captured_coarse.update(captured)
     return result
@@ -414,17 +511,43 @@ def _protection_counts(detection: Any) -> dict[str, int]:
     }
 
 
-def _attribution_record(truth: np.ndarray) -> dict[str, int]:
+def _prefixed_linkage(
+    prefix: str,
+    captured: dict[str, Any],
+) -> dict[str, int | float]:
+    """Return one candidate/control catalogue linkage scalar set."""
+    linkage = captured.get("catalogue_linkage")
+    if not isinstance(linkage, dict):
+        raise ValueError("combined catalogue linkage capture is incomplete")
+    expected = {
+        "catalogue_source_count",
+        "truth_linked_source_count",
+        "unmatched_source_count",
+        "truth_linked_integrated_flux_jy",
+        "unmatched_integrated_flux_jy",
+    }
+    if set(linkage) != expected or any(
+        type(value) not in {int, float} for value in linkage.values()
+    ):
+        raise ValueError("combined catalogue linkage schema changed")
+    return {f"{prefix}_{key}": value for key, value in linkage.items()}
+
+
+def _attribution_record(truth: np.ndarray) -> dict[str, int | float]:
     """Reduce one paired execution to bounded stage-local counts."""
-    record = attribute_truth_support(
-        np.asarray(truth, dtype=np.bool_),
-        _captured_coarse["detection_support"],
-        _captured_candidate["detection_support"],
-        _captured_candidate["measurement_support"],
-        _captured_candidate["publication_support"],
-    ).to_record()
+    record: dict[str, int | float] = dict(
+        attribute_truth_support(
+            np.asarray(truth, dtype=np.bool_),
+            _captured_coarse["detection_support"],
+            _captured_candidate["detection_support"],
+            _captured_candidate["measurement_support"],
+            _captured_candidate["publication_support"],
+        ).to_record()
+    )
     record.update(_protection_counts(_captured_candidate["detection"]))
     record.update(cast(dict[str, int], _captured_candidate["source_stage"]))
+    record.update(_prefixed_linkage("candidate", _captured_candidate))
+    record.update(_prefixed_linkage("coarse", _captured_coarse))
     return record
 
 
@@ -514,7 +637,7 @@ def _science_sha256(
     positions: tuple[tuple[float, float], ...],
     activation_intersects_truth: bool,
     protection_counts: dict[str, int],
-    source_stage: dict[str, int],
+    source_stage: dict[str, int | float],
 ) -> str:
     """Hash exact science and executor-invariant bounded diagnostics."""
     return canonical_sha256(
@@ -530,12 +653,19 @@ def _science_sha256(
     )
 
 
-def _source_fields(record: dict[str, Any]) -> dict[str, int]:
+def _source_fields(record: dict[str, Any]) -> dict[str, int | float]:
     """Select exact candidate-owned source-stage diagnostics."""
     return {
-        key: cast(int, value)
+        key: cast(int | float, value)
         for key, value in record.items()
         if key.startswith(("source_", "hierarchy_"))
+        or key.startswith(
+            (
+                "candidate_catalogue_",
+                "candidate_truth_linked_",
+                "candidate_unmatched_",
+            )
+        )
         or key
         in {
             "competing_support_component_count",
@@ -546,6 +676,15 @@ def _source_fields(record: dict[str, Any]) -> dict[str, int]:
             "publication_pixel_count",
         }
     }
+
+
+def _candidate_capture_fields() -> dict[str, int | float]:
+    """Return the Dask candidate diagnostics in serial-record form."""
+    fields: dict[str, int | float] = dict(
+        cast(dict[str, int], _captured_candidate["source_stage"])
+    )
+    fields.update(_prefixed_linkage("candidate", _captured_candidate))
+    return fields
 
 
 def _dask_comparison(
@@ -587,7 +726,7 @@ def _dask_comparison(
             positions,
             dask_intersects,
             _protection_counts(_captured_candidate["detection"]),
-            cast(dict[str, int], _captured_candidate["source_stage"]),
+            _candidate_capture_fields(),
         ),
     )
 
@@ -605,8 +744,7 @@ def _attribution_summary(
             key
             for key, value in records[0].items()
             if key not in {"input_id", "schema_version"}
-            and isinstance(value, int)
-            and not isinstance(value, bool)
+            and type(value) in {int, float}
         )
     )
     expected_keys = {*numeric_fields, "input_id", "schema_version"}
@@ -623,7 +761,7 @@ def _attribution_summary(
         "record_count": len(records),
         "record_set_sha256": canonical_sha256(records),
         "totals": {
-            field: sum(cast(int, record[field]) for record in records)
+            field: sum(cast(int | float, record[field]) for record in records)
             for field in numeric_fields
         },
         "records": records,
@@ -734,16 +872,11 @@ def _verify_public_identity(
                 raise ValueError("combined public source changed")
 
 
-def _verify_analysis_config_repair_identity(
+def _verify_footprint_guard_identity(
     repository_root: Path,
     identity: dict[str, Any],
 ) -> None:
-    """Verify both failed invocations and the config-only successor."""
-    if (
-        file_sha256(repository_root / _ANALYSIS_CONFIG_REPAIR_REVIEW)
-        != _ANALYSIS_CONFIG_REPAIR_REVIEW_SHA256
-    ):
-        raise ValueError("combined config-repair review identity changed")
+    """Verify the prospective guard successor and its terminal predecessor."""
     authorization = _object_field(
         identity,
         "authorization",
@@ -773,16 +906,16 @@ def _verify_analysis_config_repair_identity(
         != _PREDECESSOR_IDENTITY_SHA256
     ):
         raise ValueError("combined predecessor identity changed")
-    repair = _object_field(
+    correction = _object_field(
         identity,
-        "analysis_config_repair",
-        label="combined analysis config repair",
+        "footprint_guard_correction",
+        label="combined footprint guard correction",
     )
-    if repair.get("review") != {
-        "path": str(_ANALYSIS_CONFIG_REPAIR_REVIEW),
-        "sha256": _ANALYSIS_CONFIG_REPAIR_REVIEW_SHA256,
+    if correction.get("root_cause_review") != {
+        "path": str(_ROOT_REVIEW),
+        "sha256": _ROOT_REVIEW_SHA256,
     }:
-        raise ValueError("combined config-repair binding changed")
+        raise ValueError("combined footprint-guard review binding changed")
 
 
 def _verify_frozen_identity(
@@ -793,7 +926,7 @@ def _verify_frozen_identity(
     """Verify candidate, programs, population, runtime, and no authority."""
     if file_sha256(repository_root / _ROOT_REVIEW) != _ROOT_REVIEW_SHA256:
         raise ValueError("combined root-cause review identity changed")
-    _verify_analysis_config_repair_identity(repository_root, identity)
+    _verify_footprint_guard_identity(repository_root, identity)
     if source_tree_sha256(repository_root) != _CANDIDATE_SOURCE_TREE_SHA256:
         raise ValueError("combined source tree changed")
     _verify_public_identity(repository_root, identity)
@@ -1018,7 +1151,7 @@ def _execute(arguments: argparse.Namespace, tasks: tuple[Any, ...]) -> None:
             )
             for task in dask_tasks
         )
-    decision = _parent_evaluate(ordered, comparisons)
+    decision = _lane_evaluate(ordered, comparisons)
     decision["attribution_diagnostics"] = _attribution_summary(
         ordered_attribution
     )
