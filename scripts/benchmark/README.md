@@ -70,6 +70,36 @@ symlink without replacing earlier campaigns. Restart or reload
 `notebooks/campaign_source_finder_comparison.py`, then select the new label and
 dataset under **Hebog implementation history**.
 
+The notebook's **Diagnose one support component** section ranks another
+finder's labelled components by Hebog fragmentation and comparison-only pixel
+count. For a selected component it plots the input, Hebog background, Hebog
+RMS, direct local significance, disjoint support roles, S/N distributions, and
+flux accounting. A comparison-only pixel is a finder disagreement, not truth;
+use injected campaigns to decide completeness.
+
+The same diagnostic can be rendered non-interactively. For example, this
+compares one released-PyBDSF island with the Hebog products from the same
+image:
+
+```console
+uv run python scripts/validation/plot_support_component_diagnostic.py \
+  --image /path/to/input.fits \
+  --background /path/to/hebog/background.fits \
+  --rms /path/to/hebog/rms.fits \
+  --candidate-labels /path/to/hebog/segment_labels.fits \
+  --reference-labels /path/to/pybdsf/island_labels.fits \
+  --reference-label 712 \
+  --candidate-name Hebog \
+  --reference-name released-PyBDSF \
+  --output benchmark-results/support-label-712.png \
+  --summary-output benchmark-results/support-label-712.json
+```
+
+The JSON sidecar records pixel precision, recall, intersection-over-union,
+fragmentation, beam-area-normalized flux, direct-S/N quantiles, and local
+off-source evidence. Generated plots and records remain under the ignored
+`benchmark-results/` tree.
+
 The refresh executes exactly `run_phase5_public_finder_hebog.py`. Scientific
 changes available only through another prospective smoke, replay, or sidecar
 wrapper are not included unless the standard public runner is deliberately

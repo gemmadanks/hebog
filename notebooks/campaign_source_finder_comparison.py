@@ -36,6 +36,14 @@ def _():
         load_fits_plane,
         load_pybdsf_catalogue,
     )
+    from hebog.validation.support_diagnostics import (
+        compare_support_component,
+        rank_reference_support_disagreements,
+    )
+    from hebog.validation.support_plotting import (
+        plot_support_component_diagnostic,
+        read_beam_geometry,
+    )
 
     @dataclasses.dataclass(frozen=True, slots=True)
     class CampaignCase:
@@ -64,6 +72,8 @@ def _():
         source_x: tuple[float, ...]
         source_y: tuple[float, ...]
         significance_plane: npt.NDArray[np.float64] | None
+        background_plane: npt.NDArray[np.float64] | None
+        rms_plane: npt.NDArray[np.float64] | None
         support_mask: npt.NDArray[np.bool_] | None
         label_plane: npt.NDArray[np.int32] | None
         label_count: int
@@ -76,6 +86,7 @@ def _():
         Path,
         RunOverlay,
         WCS,
+        compare_support_component,
         dataclasses,
         fits,
         json,
@@ -89,7 +100,10 @@ def _():
         math,
         np,
         npt,
+        plot_support_component_diagnostic,
         plt,
+        rank_reference_support_disagreements,
+        read_beam_geometry,
     )
 
 
@@ -578,6 +592,8 @@ def _(
             source_x=(),
             source_y=(),
             significance_plane=None,
+            background_plane=None,
+            rms_plane=None,
             support_mask=None,
             label_plane=None,
             label_count=0,
@@ -715,6 +731,8 @@ def _(
             label_plane = None
             label_count = 0
             significance_plane = None
+            background_plane = None
+            rms_plane = None
             support_mask = None
             label_role = _label_role_for_finder(finder_id)
             label_path = (
@@ -778,6 +796,8 @@ def _(
                                 f"RMS shape {rms.shape} != image {image.shape}"
                             )
                         else:
+                            background_plane = background
+                            rms_plane = rms
                             valid_significance = (
                                 np.isfinite(image)
                                 & np.isfinite(background)
@@ -809,6 +829,8 @@ def _(
                 source_x=source_x,
                 source_y=source_y,
                 significance_plane=significance_plane,
+                background_plane=background_plane,
+                rms_plane=rms_plane,
                 support_mask=support_mask,
                 label_plane=label_plane,
                 label_count=label_count,
@@ -1347,6 +1369,168 @@ def _(
     agreement there is descriptive rather than ground truth.
                     """
             ),
+        ]
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, overlays):
+    support_candidate_overlay = next(
+        (
+            overlay
+            for overlay in overlays.values()
+            if overlay.finder_id == "hebog"
+            and overlay.mode == "operational"
+            and overlay.status == "success"
+            and overlay.label_plane is not None
+            and overlay.background_plane is not None
+            and overlay.rms_plane is not None
+        ),
+        None,
+    )
+    mo.stop(
+        support_candidate_overlay is None,
+        mo.callout(
+            "Component diagnostics require successful Hebog labels, "
+            "background, and RMS products.",
+            kind="warn",
+        ),
+    )
+    _reference_options = {
+        f"{overlay.finder_id} | {overlay.mode}": key
+        for key, overlay in overlays.items()
+        if overlay.finder_id != "hebog"
+        and overlay.status == "success"
+        and overlay.label_plane is not None
+    }
+    mo.stop(
+        not _reference_options,
+        mo.callout(
+            "Component diagnostics require another finder's label plane. "
+            "They are unavailable for Hebog-only campaigns.",
+            kind="warn",
+        ),
+    )
+    _preferred_reference_label = next(
+        (
+            label
+            for label in _reference_options
+            if label.startswith("released-pybdsf |")
+        ),
+        next(iter(_reference_options)),
+    )
+    support_reference_selector = mo.ui.dropdown(
+        options=_reference_options,
+        value=_preferred_reference_label,
+        label="Comparison label plane",
+        full_width=True,
+    )
+    mo.vstack(
+        [
+            mo.md("## Diagnose one support component"),
+            mo.md(
+                "Ranked components put fragmentation first, then the number "
+                "of comparison-only pixels. This is triage—not a declaration "
+                "that the comparison finder is ground truth."
+            ),
+            support_reference_selector,
+        ]
+    )
+    return support_candidate_overlay, support_reference_selector
+
+
+@app.cell(hide_code=True)
+def _(
+    mo,
+    overlays,
+    rank_reference_support_disagreements,
+    support_candidate_overlay,
+    support_reference_selector,
+):
+    support_reference_overlay = overlays[support_reference_selector.value]
+    _ranked_components = rank_reference_support_disagreements(
+        support_candidate_overlay.label_plane,
+        support_reference_overlay.label_plane,
+    )
+    _disagreements = tuple(
+        item
+        for item in _ranked_components
+        if item.reference_only_pixel_count > 0
+        or item.candidate_only_pixel_count > 0
+        or item.fragment_count != 1
+    )
+    _triaged_components = (_disagreements or _ranked_components)[:100]
+    _component_options = {
+        (
+            f"label {item.reference_label} | {item.fragment_count} Hebog "
+            f"fragments | {item.reference_only_pixel_count:,} "
+            f"comparison-only px | recall {item.recall:.3f}"
+        ): item.reference_label
+        for item in _triaged_components
+    }
+    mo.stop(
+        not _component_options,
+        mo.callout("The comparison label plane is empty.", kind="warn"),
+    )
+    _first_component_label = next(iter(_component_options))
+    support_component_selector = mo.ui.dropdown(
+        options=_component_options,
+        value=_first_component_label,
+        searchable=True,
+        label=(
+            f"Support component | top {len(_component_options)} "
+            "diagnostic disagreements"
+        ),
+        full_width=True,
+    )
+    mo.vstack([support_component_selector])
+    return support_component_selector, support_reference_overlay
+
+
+@app.cell(hide_code=True)
+def _(
+    compare_support_component,
+    image,
+    image_path,
+    mo,
+    plot_support_component_diagnostic,
+    read_beam_geometry,
+    support_candidate_overlay,
+    support_component_selector,
+    support_reference_overlay,
+):
+    _comparison = compare_support_component(
+        support_candidate_overlay.label_plane,
+        support_reference_overlay.label_plane,
+        support_component_selector.value,
+    )
+    _beam_area_pixels, _beam_width_pixels = read_beam_geometry(
+        image_path,
+        None,
+    )
+    _reference_name = support_reference_overlay.finder_id
+    _diagnostic_figure, _ = plot_support_component_diagnostic(
+        image=image,
+        background=support_candidate_overlay.background_plane,
+        rms=support_candidate_overlay.rms_plane,
+        candidate_labels=support_candidate_overlay.label_plane,
+        reference_labels=support_reference_overlay.label_plane,
+        comparison=_comparison,
+        beam_area_pixels=_beam_area_pixels,
+        beam_width_pixels=_beam_width_pixels,
+        padding_beams=3.0,
+        candidate_name="Hebog",
+        reference_name=_reference_name,
+    )
+    mo.vstack(
+        [
+            mo.md(
+                "Orange-only pixels are not automatically missed true "
+                "emission. Judge them using the image, Hebog background/RMS, "
+                "direct significance, S/N distributions, and flux accounting."
+            ),
+            mo.mpl.interactive(_diagnostic_figure),
         ]
     )
     return
