@@ -15478,3 +15478,68 @@ two-worker run and monitor it without inspecting partial science.
 **Immediate next step:** validate and commit the exact successor, repeat its
 complete preflight from an immutable checkout, start one caller-owned
 two-worker Dask runtime, and run the single repaired lane in its fresh scratch.
+
+## 2026-09-04 — Diagnose the completed source-owned development lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- The repaired lane completed all 144 candidate/control pairs and all 12
+  Serial/existing-Dask comparisons, then published immutable terminal failure
+  `2b3a57dd...`. The trigger seam and executor invariance pass; six of 12
+  geometry groups fail the original development rules. No cumulative replay or
+  held-out qualification was opened.
+- Reconstructed every apparent split directly from the preserved public FITS
+  catalogues, analytic truth, and image WCS. All 43 naive split flags contain
+  exactly one catalogue centroid inside the truth-source bounding box expanded
+  by the existing 1.5-major-beam association radius. The remaining 58 rows are
+  remote faint detections; the smallest dominant-source flux fraction is
+  `0.855536`. There are zero truth-linked fragmentation outcomes. The prior
+  claim that these were catalogue-association over-splits is therefore
+  corrected: the hierarchy appropriately refuses to merge unrelated rows, and
+  unmatched-source reliability must remain separately visible and binding in
+  final dual-PyBDSF qualification.
+- Captured transient planes in disposable development-only reruns of two mixed
+  cases. The flat 12-beam case contains all 105 pixels above analytic
+  three-sigma truth in its measurement aperture but omits `0.039917` Jy of its
+  `0.070054` Jy broad Gaussian halo; noise and background add `-0.006438` Jy.
+  The varying 8-beam case omits `0.016522` Jy of `0.056629` Jy and incurs
+  `-0.001926` Jy noise/background error. The 1/2/4-beam retained scale ladder
+  cannot own most of an 8/12-beam sub-threshold halo. This remains an explicit
+  improvement objective rather than justification for an outcome-selected
+  global aperture increase.
+- Isolated the remaining adaptive defect to a boundary mismatch: connected
+  source pixels are protected, but adjacent 35-by-35 fine estimator windows
+  can still sample sub-threshold wings. Disposable radii 0, 9, 17, 25, and 35
+  show that the estimator-derived half-width of 17 pixels reduces median truth-
+  region background error from `0.830575` to `0.315462` RMS and from
+  `0.313797` to `0.030930` RMS. Larger guards are not consistently better and
+  one adds a catalogue row, so they are rejected rather than tuned.
+- Froze the complete causal account in
+  `phase-5-source-owned-lane-terminal-root-cause-review.json`. It preserves the
+  failed decision, accounts for all six failed geometries, separates
+  truth-linked fragmentation from unmatched-source reliability, and applies
+  the user's established release policy prospectively: fast development binds
+  current-versus-control retention and safety, while fresh per-geometry
+  released/master PyBDSF parity and selected-incumbent retention remain the
+  non-waivable Phase 5 gates.
+- Added red tests, then implemented the footprint-derived valid-pixel source
+  guard and pure truth-linked topology helper, including a hollow-shell case.
+  Existing source-contamination, local-noise, complete-fallback, edge/invalid,
+  retry, and ordering tests remain green. A 12-execution smoke using one
+  above-trigger realization per geometry completed without process errors and
+  stayed inside every paired margin: maximum adverse flux movement `0.013665`,
+  mask-IoU movement `0.034807`, and support-recall movement `0.004189`.
+- Updated the superseded adaptive and combined lane tests to verify their exact
+  historical files at revisions `0a4a9ab...` and `6d465fd...`, then require
+  current no-write verification to fail closed before creating a namespace.
+  This preserves the write-once evidence while allowing the prospective
+  evaluator and scientific source tree to move forward. The normal check
+  passes 2,536 tests with 225 deselected and two expected failures; all 27
+  frozen PyBDSF equivalence tests and the strict documentation build pass.
+  Full branch-aware coverage passes 2,717 tests with 44 deselected and two
+  expected failures at 94.80% project coverage.
+
+**Immediate next step:** finish the successor evaluator and unmatched-source
+diagnostics, run focused and branch-aware validation, commit the prospective
+scientific candidate, freeze exact non-executable lane identities, and run the
+complete 144-image lane before preparing any cumulative replay identity.

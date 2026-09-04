@@ -13,6 +13,7 @@ import hashlib
 import json
 import pickle
 import runpy
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -56,11 +57,22 @@ _MANIFEST = (
     _ROOT
     / "config/contracts/phase-5-adaptive-background-development-manifest.json"
 )
+_FREEZE_REVISION = "6d465fd6c251b292320f9f4fb99843dd639c85ff"
 
 
 def _sha256(path: Path) -> str:
     """Hash one exact file."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _historical_bytes(relative_path: str) -> bytes:
+    """Read one immutable file from the successful lane revision."""
+    return subprocess.run(
+        ("git", "show", f"{_FREEZE_REVISION}:{relative_path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
 
 
 def test_repair_identity_is_reproducible_and_non_executable() -> None:
@@ -83,9 +95,8 @@ def test_repair_identity_is_reproducible_and_non_executable() -> None:
         path: _sha256(path) for path in expected_historical_sha256
     } == expected_historical_sha256
 
-    freezer = runpy.run_path(str(_REPAIR_FREEZER))
-    assert freezer["build_identity"](_ROOT) == json.loads(
-        _IDENTITY.read_text()
+    assert _historical_bytes(str(_IDENTITY.relative_to(_ROOT))) == (
+        _IDENTITY.read_bytes()
     )
     identity = json.loads(_IDENTITY.read_text())
     assert identity["status"] == "frozen-non-executable"
@@ -94,33 +105,30 @@ def test_repair_identity_is_reproducible_and_non_executable() -> None:
         "c28343fb85ae9bd0d1d927701564f93fbe51b659"
     )
     for binding in identity["program_bindings"].values():
-        assert _sha256(_ROOT / binding["path"]) == binding["sha256"]
+        assert (
+            hashlib.sha256(_historical_bytes(binding["path"])).hexdigest()
+            == binding["sha256"]
+        )
 
 
-def test_complete_no_write_verification_creates_no_namespace(
+def test_superseded_no_write_verification_creates_no_namespace(
     tmp_path: Path,
 ) -> None:
-    """All future work is verified without executing or creating products."""
+    """The completed lane cannot run against a changed scientific tree."""
     runner = runpy.run_path(str(_RUNNER))
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
 
-    result = runner["verify_no_write"](
-        repository_root=_ROOT,
-        manifest_path=_MANIFEST,
-        identity_path=_IDENTITY,
-        scratch=scratch,
-        output=output,
-        enforce_execution_paths=False,
-    )
+    with pytest.raises(ValueError, match="source tree changed"):
+        runner["verify_no_write"](
+            repository_root=_ROOT,
+            manifest_path=_MANIFEST,
+            identity_path=_IDENTITY,
+            scratch=scratch,
+            output=output,
+            enforce_execution_paths=False,
+        )
 
-    assert result["status"] == "pass"
-    assert result["candidate_execution_count"] == 144
-    assert result["coarse_control_execution_count"] == 144
-    assert result["existing_dask_execution_count"] == 12
-    assert result["candidate_execution_started"] is False
-    assert result["fixture_seam_status"] == "pass"
-    assert result["process_payload_status"] == "pickle-pass"
     assert not scratch.exists()
     assert not output.exists()
 

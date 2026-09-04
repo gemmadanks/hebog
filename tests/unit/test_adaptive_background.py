@@ -301,6 +301,26 @@ def test_adaptive_refinement_excludes_connected_bright_source_support() -> (
     assert abs(tile.background[40, 40]) < 2.0
 
 
+def test_adaptive_refinement_guards_one_estimator_half_width() -> None:
+    """Fine samples stay one estimator footprint from bright support."""
+    y, x = np.indices((80, 80))
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    image[40, 40] = 100.0
+
+    grids = estimate_background_rms_grids(
+        _ArrayImageSource(image),
+        image.shape,
+        _source_protection_config(),
+        SerialExecutor(),
+        bright_candidate_positions_yx=((40.0, 40.0),),
+        source_protection_island_threshold_sigma=3.0,
+    )
+
+    region = grids.adaptive_regions[0]
+    assert region.protected_pixel_count == 13
+    assert region.protected_window_count > 1
+
+
 def test_adaptive_refinement_keeps_source_free_local_noise_estimates() -> None:
     """Protection does not disable adaptive RMS in a noisy neighbourhood."""
     y, x = np.indices((80, 80))
@@ -398,8 +418,16 @@ def test_edge_and_invalid_pixels_do_not_enter_source_protection() -> None:
         prepare_background_rms_tile_request(manifest.tiles[0], grids, config),
     )
 
-    assert grids.adaptive_protected_pixel_count == (
-        np.count_nonzero(support) - 1
+    valid_support = support & np.isfinite(image)
+    support_positions = np.argwhere(valid_support)
+    squared_distances = (y[..., np.newaxis] - support_positions[:, 0]) ** 2 + (
+        x[..., np.newaxis] - support_positions[:, 1]
+    ) ** 2
+    expected_guard = np.any(squared_distances <= 2**2, axis=-1) & np.isfinite(
+        image
+    )
+    assert grids.adaptive_protected_pixel_count == np.count_nonzero(
+        expected_guard
     )
     assert np.isnan(tile.background[0, 0])
     assert np.isnan(tile.rms[0, 0])

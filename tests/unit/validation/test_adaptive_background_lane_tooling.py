@@ -6,9 +6,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import runpy
+import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import replace
@@ -48,28 +50,38 @@ _IDENTITY = (
     _ROOT / "config/contracts/"
     "phase-5-adaptive-background-development-identity-review.json"
 )
+_FREEZE_REVISION = "0a4a9ab279d654bbc8104025dcc757f39640ee83"
+
+
+def _historical_bytes(relative_path: str) -> bytes:
+    """Read one immutable file from the original lane freeze revision."""
+    return subprocess.run(
+        ("git", "show", f"{_FREEZE_REVISION}:{relative_path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
 
 
 def _skip_upstream_identities(_repository_root: Path) -> None:
     """Isolate downstream historical-runner checks after supersession."""
 
 
-def test_frozen_manifest_and_reviews_are_deterministic() -> None:
-    """Checked-in identities must equal the approved generator output."""
-    freezer = runpy.run_path(str(_FREEZER))
-
+def test_frozen_manifest_and_reviews_retain_the_historical_snapshot() -> None:
+    """Superseding source changes cannot rewrite completed lane evidence."""
     manifest = build_adaptive_development_manifest()
     assert json.loads(_MANIFEST.read_text()) == manifest.model_dump(
         mode="json"
     )
-    implementation = freezer["build_implementation_decision"](_ROOT)
-    assert json.loads(_IMPLEMENTATION.read_text()) == implementation
-    identity = freezer["build_identity_review"](_ROOT, implementation)
-    assert json.loads(_IDENTITY.read_text()) == identity
+    for path in (_MANIFEST, _IMPLEMENTATION, _IDENTITY):
+        historical = _historical_bytes(str(path.relative_to(_ROOT)))
+        assert historical == path.read_bytes()
 
 
-def test_frozen_identity_is_non_executable_and_binds_every_program() -> None:
-    """Implementation completion cannot silently authorize the lane."""
+def test_frozen_identity_is_non_executable_and_binds_historical_programs() -> (
+    None
+):
+    """Implementation completion remains bound to its original programs."""
     identity = json.loads(_IDENTITY.read_text())
 
     assert identity["status"] == "frozen-non-executable"
@@ -77,8 +89,10 @@ def test_frozen_identity_is_non_executable_and_binds_every_program() -> None:
     assert identity["population"]["input_count"] == 144
     assert identity["population"]["total_finder_executions"] == 300
     for binding in identity["program_bindings"].values():
-        assert file_sha256(_ROOT / binding["path"]) == binding["sha256"]
-    assert identity["runtime"] == build_adaptive_runtime_identity(_ROOT)
+        assert (
+            hashlib.sha256(_historical_bytes(binding["path"])).hexdigest()
+            == binding["sha256"]
+        )
 
 
 def test_freezer_collision_leaves_the_other_destinations_absent(
@@ -181,10 +195,10 @@ def test_public_science_capture_is_bounded_and_restores_hooks(
     assert public_api._analyse_image is analysis
 
 
-def test_verify_only_checks_all_tasks_without_creating_outputs(
-    tmp_path: Path, monkeypatch: Any, capsys: Any
+def test_superseded_verify_only_fails_closed_without_creating_outputs(
+    tmp_path: Path, monkeypatch: Any
 ) -> None:
-    """The task-count preflight covers 300 executions and writes nothing."""
+    """The historical lane cannot execute against changed scientific code."""
     runner = runpy.run_path(str(_RUNNER))
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
@@ -213,14 +227,9 @@ def test_verify_only_checks_all_tasks_without_creating_outputs(
         ],
     )
 
-    main()
+    with pytest.raises(ValueError, match="program identity changed"):
+        main()
 
-    record = json.loads(capsys.readouterr().out)
-    assert record["status"] == "pass"
-    assert record["candidate_execution_count"] == 144
-    assert record["coarse_control_execution_count"] == 144
-    assert record["existing_dask_execution_count"] == 12
-    assert record["candidate_execution_started"] is False
     assert not scratch.exists()
     assert not output.exists()
 

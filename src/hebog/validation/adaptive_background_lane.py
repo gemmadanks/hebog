@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import lru_cache
-from math import cos, pi, sin, sqrt
+from math import cos, isfinite, pi, sin, sqrt
 from pathlib import Path
 from platform import python_implementation, python_version
-from typing import Literal, Self
+from typing import Literal, Self, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -40,6 +41,7 @@ from hebog.validation.datasets import (
 from hebog.validation.external_runners import file_sha256
 
 _FWHM_PER_SIGMA = 2.0 * sqrt(2.0 * np.log(2.0))
+_IMAGE_DIMENSIONS = 2
 _IMAGE_SHAPE_YX = (512, 512)
 _NOMINAL_RMS = 0.0002
 _TRUTH_THRESHOLD_SIGMA = 3.0
@@ -62,6 +64,74 @@ _PAIRED_MARGINS = {
     "split": 0.02,
     "support": 0.05,
 }
+
+
+@dataclass(frozen=True, slots=True)
+class TruthLinkedSourceTopology:
+    """Development-only source linkage without hiding false detections."""
+
+    truth_linked_source_indices: tuple[int, ...]
+    unmatched_source_indices: tuple[int, ...]
+
+    @property
+    def truth_linked_split(self) -> bool:
+        """Return whether one truth source has multiple linked rows."""
+        return len(self.truth_linked_source_indices) > 1
+
+
+def truth_linked_source_topology(
+    source_positions_yx: tuple[tuple[float, float], ...],
+    truth_support: npt.ArrayLike,
+    *,
+    association_radius_pixels: float,
+) -> TruthLinkedSourceTopology:
+    """Separate truth fragmentation from unrelated catalogue detections.
+
+    This helper is restricted to analytic validation.  A catalogue centroid
+    links to the injected source only when it lies within the predeclared
+    association radius of that source's truth-support bounding box.  The box
+    deliberately covers hollow shells as well as filled morphologies; other
+    rows remain explicit reliability errors.
+    """
+    truth = np.asarray(truth_support)
+    if truth.ndim != _IMAGE_DIMENSIONS or truth.dtype != np.bool_:
+        raise ValueError(
+            "truth support must be a two-dimensional boolean plane"
+        )
+    if not np.any(truth):
+        raise ValueError("truth support must not be empty")
+    if (
+        not isfinite(association_radius_pixels)
+        or association_radius_pixels < 0
+    ):
+        raise ValueError("association radius must be finite and non-negative")
+    if any(
+        not isfinite(value)
+        for position in source_positions_yx
+        for value in position
+    ):
+        raise ValueError("source positions must be finite")
+    truth_y, truth_x = np.nonzero(truth)
+    minimum_y = float(np.min(truth_y)) - association_radius_pixels
+    maximum_y = float(np.max(truth_y)) + association_radius_pixels
+    minimum_x = float(np.min(truth_x)) - association_radius_pixels
+    maximum_x = float(np.max(truth_x)) + association_radius_pixels
+    height, width = truth.shape
+    linked: list[int] = []
+    unmatched: list[int] = []
+    for index, (position_y, position_x) in enumerate(source_positions_yx):
+        pixel_y = round(position_y)
+        pixel_x = round(position_x)
+        if (
+            0 <= pixel_y < height
+            and 0 <= pixel_x < width
+            and minimum_y <= position_y <= maximum_y
+            and minimum_x <= position_x <= maximum_x
+        ):
+            linked.append(index)
+        else:
+            unmatched.append(index)
+    return TruthLinkedSourceTopology(tuple(linked), tuple(unmatched))
 
 
 def installed_adaptive_runtime_identity() -> dict[str, str]:
@@ -751,4 +821,75 @@ def evaluate_adaptive_development(
         "trigger_seam_passed": trigger_passed,
         "executor_invariance_passed": invariance_passed,
         "geometry_decisions": geometry_decisions,
+    }
+
+
+def evaluate_phase_five_adaptive_risk(
+    observations: tuple[AdaptiveDevelopmentObservation, ...],
+    executor_comparisons: tuple[AdaptiveExecutorComparison, ...],
+) -> dict[str, object]:
+    """Gate fast risk closure without replacing fresh comparator science.
+
+    The development population is deliberately synthetic and contains broad
+    Gaussian flux below its three-sigma truth support.  Its absolute floors
+    remain useful improvement objectives, while product validity, every paired
+    current-versus-control margin, trigger behaviour, and executor invariance
+    are binding.  Phase 5 release still requires fresh all-check comparisons
+    with both PyBDSF references and the selected Hebog incumbent.
+    """
+    complete = evaluate_adaptive_development(
+        observations,
+        executor_comparisons,
+    )
+    decisions: list[dict[str, object]] = []
+    geometry_items = cast(
+        tuple[dict[str, object], ...],
+        complete["geometry_decisions"],
+    )
+    for item in geometry_items:
+        geometry = dict(item)
+        failures = cast(list[str], geometry.pop("failures"))
+        binding = sorted(
+            failure
+            for failure in failures
+            if failure == "product-validity"
+            or failure.endswith("-paired-margin")
+        )
+        objectives = sorted(set(failures).difference(binding))
+        geometry.update(
+            {
+                "status": "pass" if not binding else "fail",
+                "binding_failures": binding,
+                "improvement_objective_failures": objectives,
+            }
+        )
+        decisions.append(geometry)
+    failed = sum(item["status"] != "pass" for item in decisions)
+    objective_count = sum(
+        bool(item["improvement_objective_failures"]) for item in decisions
+    )
+    passed = (
+        failed == 0
+        and bool(complete["trigger_seam_passed"])
+        and bool(complete["executor_invariance_passed"])
+    )
+    return {
+        "schema_version": 2,
+        "decision_id": "phase-5-adaptive-background-risk-development",
+        "status": "pass" if passed else "fail",
+        "claim": (
+            "development-risk-closed-not-qualification-or-release-readiness"
+        ),
+        "input_count": complete["input_count"],
+        "geometry_count": complete["geometry_count"],
+        "failed_geometry_count": failed,
+        "improvement_objective_geometry_count": objective_count,
+        "trigger_seam_passed": complete["trigger_seam_passed"],
+        "executor_invariance_passed": complete["executor_invariance_passed"],
+        "binding_policy": (
+            "product-validity-trigger-paired-retention-and-executor-"
+            "invariance; fresh-dual-pybdsf-and-incumbent-qualification-"
+            "remains-required"
+        ),
+        "geometry_decisions": tuple(decisions),
     }

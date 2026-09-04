@@ -536,25 +536,30 @@ compact regression, the public scientific interface, and the incremental
 performance budget are complete. The repaired prospective paired decision
 passes all PyBDSF, Aegean, and safety comparisons and reports no material
 incumbent-Hebog regression; four incumbent position-tail checks remain
-underpowered rather than failed. The current blocker is the independently
-confirmed adaptive-background failure on bright extended sources. The fixture-
-first adaptive, measurement, and topology corrections are now composed in one
-candidate, but its first replacement development-lane invocation failed before
-candidate execution on a process-serialization defect. A process-only repair
-is frozen and passes the complete no-write preflight; a new exact one-use
-approval is required before retrying it. Phase 5 then requires a passing lane,
-one fresh held-out qualification of the final public candidate, final
-engineering evidence, and packet-bound independent acceptance. Detailed
-campaign and incident chronology belongs in `LOG.md`; machine identities and
-authorization boundaries remain in `config/contracts/`.
+underpowered rather than failed. The process-repaired 144-image development
+lane has now completed and is immutable failed evidence. Its apparent split
+failures are an evaluator semantic defect: all 43 flags contain one
+truth-linked source plus remote faint detections, not fragmentation. The two
+mixed-source failures combine a confirmed adaptive estimator-footprint
+contamination defect with a separately measured broad sub-threshold halo
+aperture limitation. Root-cause review
+`phase-5-source-owned-lane-terminal-root-cause-review.json` accounts for every
+failure. The estimator-footprint guard and prospective truth-linked evaluator
+are being implemented test-first; one-seed-per-geometry smoke evidence is
+inside every paired retention margin. Phase 5 then requires a passing complete
+development lane, cumulative dual-PyBDSF parity, one fresh held-out
+qualification of the final public candidate, final engineering evidence, and
+packet-bound independent acceptance. Detailed campaign and incident chronology
+belongs in `LOG.md`; machine identities and authorization boundaries remain in
+`config/contracts/`.
 
 #### Phase 5 exit gates
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Fixture-complete: candidate `c28343f...` composes source protection, source-owned persistent measurement, and conservative one-missing-child parent construction. Positive, negative, invalid, boundary, conflict, and executor fixtures pass; the combined lane has not yet executed candidate science. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Authorized to run: identity `4c611f1b...` was invoked once but failed during task pickling with zero candidate or control runs. Process-only successor `40a9f99f...` preserves the candidate and passes the complete 144-candidate/144-control/12-Dask no-write preflight; renewed authority is bound in a separate one-use decision. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `c28343f...`, source tree `8235e9bc...`, configuration `2c907949...`, and public identity `ca1abba6...` are frozen. The combined lane must pass before this candidate can enter held-out qualification. |
+| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced measurement, association, publication, or evaluator defect is corrected test-first without changing a closed result after it is viewed. | The `c28343f...` lane completed but failed six geometries. Exact forensic review shows estimator-footprint contamination, an evaluator split/reliability conflation, and a broad sub-threshold halo aperture limitation. The first two have red tests and bounded prospective corrections; the aperture limitation remains explicit and must be judged by fresh dual-PyBDSF parity before any scale-aware photometry change. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, every paired current-versus-control retention margin, truth-linked fragmentation, negative controls, and Serial/existing-Dask invariance. Absolute synthetic truth targets remain visible improvement objectives; they cannot replace or waive final comparator parity. | The immutable terminal lane fails. A 12-execution one-seed-per-geometry successor smoke is inside every paired margin after the estimator-footprint guard. The complete successor lane and exact executor check remain open. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `c28343f...` is superseded prospectively by the estimator-footprint correction. Freeze a new exact candidate only after focused tests and the 12-case smoke pass; the complete successor lane must pass before cumulative replay or held-out qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -1782,6 +1787,49 @@ from partial or viewed evidence.
      `3e0730df...` and expected execution `c562f797...` use a fresh scratch;
      the user's standing bug-repair authority is recorded in a new one-use
      decision. Run this lane before any cumulative replay or held-out opening.
+   - The repaired lane completed all 144 candidate/control pairs and 12
+     existing-Dask comparisons, then atomically published immutable failed
+     decision `2b3a57dd...`. Six geometry groups fail. Exact terminal forensics
+     in `phase-5-source-owned-lane-terminal-root-cause-review.json` correct the
+     earlier causal interpretation: every one of the 43 naive split flags is
+     one truth-linked source plus remote faint detections (58 unmatched rows),
+     not one truth source fragmented by the hierarchy. The hierarchy correctly
+     leaves those unrelated rows separate, and all missing-child terminal-cycle
+     counters remain zero.
+   - The same review directly decomposes the mixed-source flux loss. In the
+     flat 12-beam example, the current aperture contains all 105 pixels above
+     the analytic three-sigma truth boundary but omits `0.039917` Jy of a
+     `0.070054` Jy broad Gaussian halo; noise and background contribute a
+     further `-0.006438` Jy. The varying 8-beam example omits `0.016522` Jy of
+     `0.056629` Jy. This confirms an absolute broad sub-threshold halo aperture
+     limitation, but does not justify selecting a larger production aperture
+     or scale after viewing development results.
+   - Adaptive source protection also ended at a different boundary from the
+     35-by-35 fine estimator it protects. A guard derived from that existing
+     footprint (`max(window_shape_yx)//2`, 17 pixels here) reduces exact sample
+     median truth-region background error from `0.830575` to `0.315462` RMS
+     and from `0.313797` to `0.030930` RMS. Larger exploratory guards are not
+     consistently better and are rejected as outcome-selected settings. Red
+     tests now require the footprint-derived guard, valid-pixel clipping,
+     local-noise retention, and hollow-shell-aware truth linkage.
+   - Apply the project-wide gate policy prospectively: the fast development
+     lane binds product/trigger/executor validity and current-versus-control
+     non-regression, while retaining absolute synthetic flux, mask, and support
+     targets as visible improvement objectives. Phase 5 itself still cannot
+     pass unless every predeclared geometry matches or outperforms both PyBDSF
+     references, retains the selected Hebog incumbent, and passes explicit
+     unmatched-source reliability, completeness, flux, position, support, and
+     topology checks. No absolute target, aggregate, or trade-off may waive a
+     comparator or retention failure.
+   - Before another complete lane, run one above-trigger realization from each
+     of the 12 geometry groups. That 12-execution smoke now completes without a
+     process error and stays within every frozen paired margin; maximum observed
+     adverse movement is `0.013665` in flux, `0.034807` in mask IoU, and
+     `0.004189` in support recall. Freeze and run the 144-image successor only
+     after the prospective evaluator records truth-linked fragmentation and
+     unmatched-source reliability separately. A passing lane opens cumulative
+     dual-PyBDSF replay; only a passing cumulative result opens the seed-
+     disjoint held-out qualification.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

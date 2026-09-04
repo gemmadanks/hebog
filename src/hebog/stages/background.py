@@ -382,6 +382,31 @@ def _connected_source_protection(
     return np.asarray(protected, dtype=np.bool_)
 
 
+def _guard_source_protection(
+    protected: npt.NDArray[np.bool_],
+    scientifically_valid: npt.NDArray[np.bool_],
+    *,
+    estimator_window_shape_yx: tuple[int, int],
+) -> npt.NDArray[np.bool_]:
+    """Keep fine estimators one window half-width from source support.
+
+    The connected public-threshold island identifies source-owned pixels, but
+    a neighbouring estimator window can still be dominated by sub-threshold
+    source wings.  The guard is derived from the estimator footprint rather
+    than a new scientific threshold and remains clipped to valid pixels.
+    """
+    guard_radius_pixels = max(estimator_window_shape_yx) // 2
+    distance_to_protection = np.asarray(
+        ndimage.distance_transform_edt(~protected),
+        dtype=np.float64,
+    )
+    guarded = (
+        distance_to_protection <= guard_radius_pixels
+    ) & scientifically_valid
+    guarded.setflags(write=False)
+    return np.asarray(guarded, dtype=np.bool_)
+
+
 def _estimate_source_protected_adaptive_region(
     request: _AdaptiveRegionRequest,
     *,
@@ -410,12 +435,17 @@ def _estimate_source_protected_adaptive_region(
         coarse.background,
         coarse.rms,
     )
-    protected = _connected_source_protection(
+    connected_protection = _connected_source_protection(
         normalized,
         scientifically_valid,
         bounds,
         request.positions_yx,
         island_threshold_sigma=island_threshold_sigma,
+    )
+    protected = _guard_source_protection(
+        connected_protection,
+        scientifically_valid,
+        estimator_window_shape_yx=config.window_shape_yx,
     )
     results: list[RmsGridBatchStatistics] = []
     for batch in plan_rms_window_batches(

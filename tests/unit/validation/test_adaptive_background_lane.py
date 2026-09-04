@@ -18,8 +18,10 @@ from hebog.validation.adaptive_background_lane import (
     AdaptiveScienceSummary,
     build_adaptive_development_manifest,
     evaluate_adaptive_development,
+    evaluate_phase_five_adaptive_risk,
     input_identifier,
     source_signal_and_truth,
+    truth_linked_source_topology,
 )
 from hebog.validation.datasets import iter_dataset_recipes
 
@@ -164,6 +166,79 @@ def test_mixed_template_places_three_quarters_of_truth_flux_in_halo() -> None:
         assert halo_flux / (core_flux + halo_flux) == pytest.approx(0.75)
 
 
+def test_truth_linked_topology_separates_remote_false_detections() -> None:
+    """Remote catalogue rows are reliability errors, not fragmentation."""
+    truth = np.zeros((40, 50), dtype=np.bool_)
+    truth[18:23, 23:28] = True
+
+    topology = truth_linked_source_topology(
+        ((20.0, 25.0), (22.0, 30.0), (3.0, 45.0)),
+        truth,
+        association_radius_pixels=3.0,
+    )
+
+    assert topology.truth_linked_source_indices == (0, 1)
+    assert topology.unmatched_source_indices == (2,)
+    assert topology.truth_linked_split is True
+
+
+def test_truth_linked_topology_rejects_invalid_geometry() -> None:
+    """The development evaluator fails closed on malformed linkage input."""
+    truth = np.zeros((4, 4), dtype=np.bool_)
+    truth[2, 2] = True
+
+    with pytest.raises(ValueError, match="two-dimensional boolean"):
+        truth_linked_source_topology(
+            ((2.0, 2.0),),
+            np.ones((4, 4)),
+            association_radius_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="finite and non-negative"):
+        truth_linked_source_topology(
+            ((2.0, 2.0),),
+            truth,
+            association_radius_pixels=float("nan"),
+        )
+    with pytest.raises(ValueError, match="must not be empty"):
+        truth_linked_source_topology(
+            (),
+            np.zeros((4, 4), dtype=np.bool_),
+            association_radius_pixels=1.0,
+        )
+    with pytest.raises(ValueError, match="source positions must be finite"):
+        truth_linked_source_topology(
+            ((float("nan"), 2.0),),
+            truth,
+            association_radius_pixels=1.0,
+        )
+
+    out_of_bounds = truth_linked_source_topology(
+        ((-1.0, 2.0),),
+        truth,
+        association_radius_pixels=1.0,
+    )
+    assert out_of_bounds.truth_linked_source_indices == ()
+    assert out_of_bounds.unmatched_source_indices == (0,)
+
+
+def test_truth_linked_topology_links_a_hollow_shell_centroid() -> None:
+    """A real shell source is linked even when its centroid is in the hole."""
+    truth = np.zeros((31, 31), dtype=np.bool_)
+    truth[5, 5:26] = True
+    truth[25, 5:26] = True
+    truth[5:26, 5] = True
+    truth[5:26, 25] = True
+
+    topology = truth_linked_source_topology(
+        ((15.0, 15.0), (29.0, 29.0)),
+        truth,
+        association_radius_pixels=1.0,
+    )
+
+    assert topology.truth_linked_source_indices == (0,)
+    assert topology.unmatched_source_indices == (1,)
+
+
 def test_shell_template_ring_diameter_matches_declared_extent() -> None:
     """Shell knot centres must span the reviewed major extent exactly."""
     manifest = build_adaptive_development_manifest()
@@ -217,6 +292,81 @@ def test_passing_evidence_closes_only_the_development_risk() -> None:
     assert decision["geometry_count"] == 12
     assert decision["failed_geometry_count"] == 0
     assert decision["executor_invariance_passed"] is True
+
+
+def test_risk_gate_reports_absolute_objectives_without_binding() -> None:
+    """Fast development gates regression before fresh comparator parity."""
+    observations, invariance = _passing_evidence()
+    objective_only = tuple(
+        item.model_copy(
+            update={
+                "adaptive": item.adaptive.model_copy(
+                    update={
+                        "integrated_flux_absolute_fractional_error": 0.40,
+                    }
+                ),
+                "coarse": item.coarse.model_copy(
+                    update={
+                        "integrated_flux_absolute_fractional_error": 0.40,
+                    }
+                ),
+            }
+        )
+        for item in observations
+    )
+
+    decision = evaluate_phase_five_adaptive_risk(objective_only, invariance)
+
+    assert decision["status"] == "pass"
+    assert decision["failed_geometry_count"] == 0
+    assert decision["improvement_objective_geometry_count"] == 12
+    geometries = cast(
+        tuple[dict[str, object], ...], decision["geometry_decisions"]
+    )
+    assert all(
+        geometry["binding_failures"] == []
+        and geometry["improvement_objective_failures"]
+        == [
+            "integrated-flux-median-floor",
+            "integrated-flux-p95-floor",
+        ]
+        for geometry in geometries
+    )
+
+
+def test_phase_five_risk_gate_keeps_paired_regression_binding() -> None:
+    """A missed absolute target cannot excuse a new Hebog regression."""
+    observations, invariance = _passing_evidence()
+    regressed = tuple(
+        item.model_copy(
+            update={
+                "adaptive": item.adaptive.model_copy(
+                    update={
+                        "integrated_flux_absolute_fractional_error": 0.20,
+                    }
+                ),
+                "coarse": item.coarse.model_copy(
+                    update={
+                        "integrated_flux_absolute_fractional_error": 0.04,
+                    }
+                ),
+            }
+        )
+        for item in observations
+    )
+
+    decision = evaluate_phase_five_adaptive_risk(regressed, invariance)
+
+    assert decision["status"] == "fail"
+    assert decision["failed_geometry_count"] == 12
+    geometries = cast(
+        tuple[dict[str, object], ...], decision["geometry_decisions"]
+    )
+    assert all(
+        "integrated-flux-paired-margin"
+        in cast(list[str], geometry["binding_failures"])
+        for geometry in geometries
+    )
 
 
 @pytest.mark.parametrize(

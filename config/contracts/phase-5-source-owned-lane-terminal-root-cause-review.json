@@ -1,0 +1,131 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "candidate": {
+      "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "revision": "c28343fb85ae9bd0d1d927701564f93fbe51b659",
+      "source_tree_sha256": "8235e9bcca0e184d1a1597a3dce1f91e9389795370b61f68734b3ee5002b220f"
+    },
+    "development_population": {
+      "input_count": 144,
+      "manifest_sha256": "77203f85930a99ffbb5490f93db7073cab434b42c8350d6da864625efd09946b"
+    },
+    "execution": {
+      "execution_commit": "6d465fd6c251b292320f9f4fb99843dd639c85ff",
+      "execution_decision_sha256": "538ef9ce9a716ddf84d0a41ecbcc538f4175f33ba514dfada565aa066e3119fb",
+      "identity_review_sha256": "3e0730df83b1973af9455bb3be97f3194a76b2cfad9dcdf75e44eb4c4fd60570",
+      "scratch": "/private/tmp/hebog-phase5-source-owned-measurement-topology-analysis-config-repair-c28343f"
+    },
+    "terminal_decision": {
+      "failed_geometry_count": 6,
+      "file_sha256": "2b3a57dd066638f5acd3a886434827de546637953f039e8dd233f0a418bfe3dd",
+      "path": "benchmark-results/phase-5/source-owned-measurement-topology-development-decision.json",
+      "status": "fail"
+    }
+  },
+  "causal_findings": {
+    "adaptive_background_guard": {
+      "classification": "confirmed-incomplete-estimator-footprint-protection",
+      "evidence": "The current mask excludes fine windows intersecting the connected public-threshold island, but adjacent 35-by-35 windows still sample its sub-threshold wings. On exact development inputs, guarding by the existing estimator half-width of 17 pixels reduced median truth-region background error from 0.830575 to 0.315462 RMS for the flat 12-beam mixed case and from 0.313797 to 0.030930 RMS for the varying 8-beam mixed case. Larger 25- and 35-pixel guards were not consistently better and one introduced an extra catalogue row, so no radius is selected by outcome.",
+      "root_cause": "Source exclusion was defined only at the detected-island pixels, while the estimator consumes a spatial footprint. Protection therefore ended at a different boundary from the operation it was protecting."
+    },
+    "integrated_flux": {
+      "classification": "confirmed-broad-sub-threshold-halo-aperture-limitation-with-secondary-background-error",
+      "evidence": {
+        "flat_12_beam_mixed_example": {
+          "input_id": "mixed-compact-extended-beam-a-flat-scale-12-interior-above-seed-2026950107",
+          "measurement_pixels": 663,
+          "noise_and_background_error_flux_jy": -0.0064375951106263,
+          "omitted_true_flux_jy": 0.03991672865114167,
+          "true_flux_inside_measurement_jy": 0.030137325402907915,
+          "true_flux_jy": 0.07005405405404957,
+          "truth_pixels_covered": "105/105"
+        },
+        "varying_8_beam_mixed_example": {
+          "input_id": "mixed-compact-extended-beam-b-varying-scale-8-interior-boundary-seed-2026950139",
+          "measurement_pixels": 1558,
+          "noise_and_background_error_flux_jy": -0.0019261846817105646,
+          "omitted_true_flux_jy": 0.016521547740002907,
+          "true_flux_inside_measurement_jy": 0.04010766574314317,
+          "true_flux_jy": 0.056629213483146076,
+          "truth_pixels_covered": "524/524"
+        }
+      },
+      "root_cause": "The injected mixed source deliberately places 75% of its total flux in an 8- or 12-beam halo. Its three-sigma truth support is covered, but much of the analytic Gaussian flux lies below that support and outside the source-owned persistent seed plus unchanged 1.5-beam aperture. The retained scale ladder ends at four beams. This is not evidence for globally enlarging production apertures after viewing results."
+    },
+    "split_endpoint": {
+      "classification": "confirmed-development-evaluator-semantic-defect-not-source-hierarchy-fragmentation",
+      "evidence": {
+        "minimum_dominant_source_flux_fraction": 0.8555364649856477,
+        "naive_split_images": 43,
+        "split_bearing_geometry_count": 9,
+        "truth_linked_split_images": 0,
+        "truth_linked_source_rows": 108,
+        "unmatched_remote_source_rows": 58
+      },
+      "root_cause": "The lane defined split as total catalogue source count greater than one. In every flagged image, exactly one row lies inside the analytic truth-source bounding box expanded by the predeclared 1.5-major-beam association radius; the other rows are remote faint noise detections. The conservative hierarchy correctly refused to merge unrelated components, so its new terminal-cycle branches remained inactive."
+    },
+    "source_owned_measurement_and_parent_repairs": {
+      "classification": "implemented-correctly-but-not-activated-by-the-observed-failure-mechanisms",
+      "evidence": "All terminal-cycle missing-child counters are zero; only seven persistent-feature influence parents activate. Persistent source-owned support cannot recover an 8- to 12-beam halo that is absent from the retained four-beam scale support, and unrelated remote detections must not be merged into the injected source."
+    },
+    "trigger_executor_and_completeness": {
+      "classification": "passed-and-excluded-as-root-causes",
+      "evidence": "The trigger seam, all 12 Serial/existing-Dask comparisons, product validity, and completeness pass."
+    }
+  },
+  "failure_accounting": {
+    "all_six_failed_geometries_accounted_for": true,
+    "mixed_flux_mask_support_failures": "adaptive-background footprint contamination plus the independently measured broad sub-threshold halo aperture limitation",
+    "split_only_failures": "the naive total-catalogue-count split definition conflates remote false detections with truth-source fragmentation",
+    "unexplained_failure_count": 0
+  },
+  "governance_correction": {
+    "development_lane": "The terminal failure remains immutable. A successor development decision must bind product validity, trigger behaviour, completeness, estimator validity, truth-linked fragmentation, paired current-versus-coarse non-regression, and Serial/existing-Dask invariance. Absolute synthetic flux/mask/support targets remain reported improvement objectives rather than substitutes for comparator parity.",
+    "final_phase_5_gate": "Fresh qualification remains binding on every predeclared geometry for all applicable released and pinned-master PyBDSF comparisons, best-Hebog retention, unmatched-source reliability, completeness, flux, position, support, and topology. No aggregate or aspirational absolute threshold can waive a failed comparator or retention check.",
+    "historical_result_immutable": true,
+    "no_retrospective_rescore": true,
+    "policy_basis": "The user requires all-check PyBDSF parity or improvement and no material Hebog regression, while allowing aspirational absolute thresholds to remain longer-term targets."
+  },
+  "recommended_correction": {
+    "adaptive_background": "Dilate each connected source-protection island by max(fine_window_shape_yx)//2 valid pixels before window rejection. This is derived from the existing estimator footprint, introduces no science threshold, and preserves the coarse fallback and local-noise estimator outside the guard.",
+    "development_evaluator": "Define fragmentation from catalogue centroids linked to the analytic truth-source bounding box using the existing 1.5-major-beam association radius. Retain every unlinked row and its flux as explicit reliability diagnostics; do not merge or discard those catalogue rows.",
+    "flux_policy": "Do not enlarge the production aperture or add larger scientific scales from this viewed development result. First remove the paired background regression, retain the absolute halo deficit as a named diagnostic, and decide source-finding adequacy from fresh all-check dual-PyBDSF parity and incumbent retention. If either comparator flux gate fails, require a separate prospective scale-aware photometry review and another fast development lane before any long replay.",
+    "required_fast_validation": [
+      "red estimator-half-width source-protection fixture",
+      "bright extended source background and local-noise discrimination fixtures",
+      "truth-linked split versus unmatched-source evaluator fixtures including a hollow shell",
+      "below-trigger inertness",
+      "edge and invalid-pixel clipping",
+      "Serial existing-Dask order and retry invariance",
+      "one input from every 12-cell development geometry before a 144-image lane",
+      "complete no-write execution-composition preflight"
+    ]
+  },
+  "required_sequence": [
+    "retain-the-failed-terminal-decision-and-scratch-unchanged",
+    "implement-the-estimator-footprint-guard-and-successor-evaluator-test-first",
+    "run-one-seed-per-geometry-smoke-and-fix-process-defects-before-long-work",
+    "freeze-new-candidate-evaluator-and-one-use-development-lane-identities",
+    "run-the-complete-144-image-successor-lane",
+    "only-after-that-lane-passes-freeze-and-run-cumulative-dual-pybdsf-replay",
+    "only-after-cumulative-parity-passes-open-seed-disjoint-held-out-qualification",
+    "close-phase-5-only-after-all-comparator-retention-public-interface-engineering-and-independent-readiness-gates-pass"
+  ],
+  "review_id": "phase-5-source-owned-lane-terminal-root-cause-review",
+  "reviewed_on": "2026-09-04",
+  "schema_version": 1,
+  "standing_user_authority": "The user approved the repaired development lane, planned replay, final qualification campaign, and required bug fixes, while requiring fast preflight iterations before long work. This review itself does not create execution authority; each executable remains bound to a fresh exact identity and write-once namespace.",
+  "status": "root-cause-complete-ready-for-test-first-successor"
+}
