@@ -1576,6 +1576,24 @@ from partial or viewed evidence.
      comparisons, and one atomic terminal decision; source changes,
      PyBDSF/viewed-data execution, qualification, tuning, rescoring,
      optimization, cutover, and release remain unauthorized.
+   - That one-use execution completed all 144 candidate and 144 coarse-control
+     runs but failed before the first progress record, Dask comparison, or
+     atomic decision. Worker-local strict models were valid; their JSON-mode
+     dumps represented tuple-valued adaptive positions as lists, and the
+     parent incorrectly passed those Python dictionaries to strict
+     `model_validate` instead of the JSON-aware validation path. Executor
+     shutdown waited for all submitted futures, leaving 144 complete task
+     directories despite the empty progress file. This is a process-only
+     deserialization failure; no aggregate science has been interpreted.
+   - Preserve and reuse the exact 8,496-artifact, 144-input product set
+     `c9212f3a...`. Repair pre-review `d61b9643...` documents the failure and
+     restricts recovery to strict JSON parsing, manifest-bound identity checks,
+     complete product hashing, the 12 missing existing-Dask comparisons, and
+     the unchanged evaluator and write-once output. Non-executable completion
+     identity `d2a664f5...` binds that product set and expected recovery
+     execution `030973d2...`; it authorizes nothing. A new exact human approval
+     is required before the completion may run. Repeating either serial
+     source-finder arm is forbidden.
    - If that bounded development lane passes, keep the frozen science
      unchanged and add an independent seed-disjoint analogue to the final
      qualification. If it exposes a material failure, diagnose and correct it

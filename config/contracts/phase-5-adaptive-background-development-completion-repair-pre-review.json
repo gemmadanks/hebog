@@ -1,0 +1,52 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_completion_authorized": false,
+    "existing_dask_comparison_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-adaptive-background-development-completion-repair-pre-review",
+  "failed_execution": {
+    "atomic_terminal_decision_published": false,
+    "candidate_execution_count": 144,
+    "coarse_control_execution_count": 144,
+    "error": "pydantic_core.ValidationError: adaptive_candidate_positions_yx input should be a valid tuple",
+    "existing_dask_comparison_execution_count": 0,
+    "immutable_execution_commit": "e0810ad8dca88991645cb2462d29ce908783bbea",
+    "original_execution_decision_sha256": "fc804d7d90d5a546425cebd9935d8c16f1877701fd8efd82992d1dbe4c4a4d25",
+    "original_identity_review_sha256": "f9ccef67d942494c6ba1358f15ea09f02343a4f3dd930b2167f68ba5427cd5ba",
+    "preserved_artifact_count": 8496,
+    "preserved_input_count": 144,
+    "preserved_product_set_sha256": "c9212f3a696b052cb1b6b91b420d9236e15df541d0b48cebd97a179c1691f24e",
+    "progress_line_count": 0,
+    "scratch": "/private/tmp/hebog-phase5-adaptive-background-development-937737d"
+  },
+  "proposed_repair": [
+    "parse each persisted observation through Pydantic's strict JSON validation path, which preserves tuple semantics at the JSON boundary without permissive Python coercion",
+    "verify all 144 input identities and metadata against the frozen manifest before retaining any observation",
+    "hash all 8,496 preserved artifacts and require the exact product-set identity before completion",
+    "reuse the 144 candidate and 144 coarse-control results without repeating source-finder execution",
+    "run only the 12 missing caller-owned existing-Dask comparisons",
+    "evaluate under the unchanged frozen development thresholds and publish to the original still-absent write-once terminal path",
+    "require a new exact human approval bound to a non-executable completion identity before any Dask comparison or publication"
+  ],
+  "root_cause": {
+    "cause": "Each worker correctly constructed and validated an AdaptiveDevelopmentObservation, then returned model_dump(mode='json'). JSON mode represents tuple-valued positions as lists. The parent called strict model_validate on that Python dictionary, where strict tuple fields reject lists. The same payload is valid through model_validate_json because JSON has no tuple primitive and Pydantic applies the declared tuple target while retaining strict field validation.",
+    "scientific_effect": "None established or interpreted. The exception occurred in orchestration after worker-local scientific summaries were validated and persisted, before Dask invariance comparisons, aggregate evaluation, or terminal publication.",
+    "scope": "Process-only evidence deserialization defect; no source-finding code, candidate identity, population, thresholds, margins, comparator, or scientific evaluator changes are proposed.",
+    "why_all_serial_work_finished": "The first parent-side validation failure escaped from the as_completed loop, but ProcessPoolExecutor's context manager waited for every submitted future before propagating the exception. Consequently all 144 paired serial tasks finished even though progress.log remained empty.",
+    "why_preflight_missed_it": "The no-write preflight verified identities, counts, runtime, and executable seams but did not exercise the ProcessPool worker-to-parent serialization boundary with a JSON-mode tuple field."
+  },
+  "schema_version": 1,
+  "status": "frozen-for-human-review"
+}
