@@ -77,6 +77,7 @@ def test_dask_and_serial_background_stages_are_equivalent() -> None:
     y, x = np.indices((40, 44), dtype=np.float64)
     image = 1.0 + 0.01 * y + np.where((x + y) % 2 == 0, -1.0, 1.0)
     image[15:26, 17:28] *= 4.0
+    image[20, 22] = 50.0
     positions = ((20.0, 22.0),)
     source = _ArrayImageSource(image)
     config = _config()
@@ -86,6 +87,7 @@ def test_dask_and_serial_background_stages_are_equivalent() -> None:
         config,
         SerialExecutor(),
         bright_candidate_positions_yx=positions,
+        source_protection_island_threshold_sigma=3.0,
     )
 
     with Client(
@@ -101,6 +103,7 @@ def test_dask_and_serial_background_stages_are_equivalent() -> None:
             config,
             dask_executor,
             bright_candidate_positions_yx=positions,
+            source_protection_island_threshold_sigma=3.0,
         )
         manifest = plan_image_partitions(
             image_shape_yx=image.shape,

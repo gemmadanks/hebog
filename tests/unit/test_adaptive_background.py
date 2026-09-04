@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
+from typing import TypeVar
+
 import numpy as np
 import pytest
 
@@ -22,6 +25,9 @@ from hebog.stages.background import (
     prepare_background_rms_tile_request,
     refine_background_rms_grids,
 )
+
+Input = TypeVar("Input")
+Output = TypeVar("Output")
 
 
 class _ArrayImageSource:
@@ -45,6 +51,22 @@ class _ArrayImageSource:
             values=values,
             valid_pixels=np.isfinite(values),
         )
+
+
+class _RetryExecutor:
+    """Repeat region work while returning one canonical ordered result."""
+
+    def map_batches(
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+    ) -> list[Output]:
+        """Inject one identical retry without changing returned evidence."""
+        inputs = list(batches)
+        results = [function(batch) for batch in inputs]
+        if inputs:
+            function(inputs[-1])
+        return results
 
 
 def _grid(
@@ -79,6 +101,21 @@ def _config(*, adaptive: bool = True) -> BackgroundRmsConfig:
             else None
         ),
         maximum_spatial_window_fraction=0.25,
+        maximum_constant_map_pixels=4096,
+    )
+
+
+def _source_protection_config() -> BackgroundRmsConfig:
+    """Return a coarse/fine scale separation for contamination fixtures."""
+    return BackgroundRmsConfig(
+        coarse=_grid((31, 31), (10, 10)),
+        adaptive=AdaptiveRmsConfig(
+            grid=_grid((5, 5), (2, 2)),
+            candidate_threshold_sigma=20.0,
+            influence_radius_pixels=12.0,
+            transition_width_pixels=4.0,
+        ),
+        maximum_spatial_window_fraction=0.5,
         maximum_constant_map_pixels=4096,
     )
 
@@ -171,6 +208,7 @@ def test_rejects_invalid_bright_candidate_positions(
             _config(),
             SerialExecutor(),
             bright_candidate_positions_yx=positions,
+            source_protection_island_threshold_sigma=3.0,
         )
 
 
@@ -179,6 +217,7 @@ def test_adaptive_refinement_raises_local_rms_only_near_candidate() -> None:
     y, x = np.indices((40, 44))
     image = np.where((x + y) % 2 == 0, -1.0, 1.0)
     image[15:26, 17:28] *= 5.0
+    image[20, 22] = 50.0
     source = _ArrayImageSource(image)
     candidate = ((20.0, 22.0),)
 
@@ -188,6 +227,7 @@ def test_adaptive_refinement_raises_local_rms_only_near_candidate() -> None:
         _config(),
         SerialExecutor(),
         bright_candidate_positions_yx=candidate,
+        source_protection_island_threshold_sigma=3.0,
     )
     manifest = plan_image_partitions(
         image_shape_yx=image.shape,
@@ -218,10 +258,212 @@ def test_adaptive_refinement_raises_local_rms_only_near_candidate() -> None:
     np.testing.assert_allclose(far_tile.rms[0, 0], grids.coarse.rms[0, 0])
 
 
+def test_adaptive_refinement_excludes_connected_bright_source_support() -> (
+    None
+):
+    """Fine windows touching a candidate's 3-sigma island use fallback."""
+    y, x = np.indices((80, 80))
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    source_support = (y - 40) ** 2 + (x - 40) ** 2 <= 6**2
+    image[source_support] += 25.0
+    image[40, 40] += 75.0
+    source = _ArrayImageSource(image)
+    candidate = ((40.0, 40.0),)
+    config = _source_protection_config()
+
+    grids = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=candidate,
+        source_protection_island_threshold_sigma=3.0,
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=image.shape,
+        halo_yx=(0, 0),
+    )
+    tile = estimate_background_rms_tile(
+        source,
+        prepare_background_rms_tile_request(
+            manifest.tiles[0],
+            grids,
+            config,
+        ),
+    )
+
+    assert len(grids.adaptive_regions) == 1
+    region = grids.adaptive_regions[0]
+    assert region.protected_pixel_count >= np.count_nonzero(source_support)
+    assert region.protected_window_count > 0
+    assert region.grid.fallback_cell_count == region.protected_window_count
+    assert abs(tile.background[40, 40]) < 2.0
+
+
+def test_adaptive_refinement_keeps_source_free_local_noise_estimates() -> None:
+    """Protection does not disable adaptive RMS in a noisy neighbourhood."""
+    y, x = np.indices((80, 80))
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    noisy = (slice(31, 50), slice(31, 50))
+    image[noisy] *= 6.0
+    image[40, 40] = 100.0
+    source = _ArrayImageSource(image)
+    config = _source_protection_config()
+
+    grids = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=((40.0, 40.0),),
+        source_protection_island_threshold_sigma=3.0,
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=image.shape,
+        halo_yx=(0, 0),
+    )
+    tile = estimate_background_rms_tile(
+        source,
+        prepare_background_rms_tile_request(
+            manifest.tiles[0],
+            grids,
+            config,
+        ),
+    )
+
+    region = grids.adaptive_regions[0]
+    assert 0 < region.protected_window_count < region.grid.geometry.cell_count
+    assert tile.rms[40, 40] > 2.0 * grids.coarse.rms.mean()
+
+
+def test_overlapping_and_disjoint_candidates_have_bounded_protection() -> None:
+    """Merged influence regions protect every connected candidate island."""
+    y, x = np.indices((96, 96))
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    positions = ((30.0, 30.0), (30.0, 38.0), (72.0, 72.0))
+    for candidate_y, candidate_x in positions:
+        support = (y - candidate_y) ** 2 + (x - candidate_x) ** 2 <= 3**2
+        image[support] += 25.0
+        image[round(candidate_y), round(candidate_x)] += 75.0
+
+    grids = estimate_background_rms_grids(
+        _ArrayImageSource(image),
+        image.shape,
+        _source_protection_config(),
+        SerialExecutor(),
+        bright_candidate_positions_yx=tuple(reversed(positions)),
+        source_protection_island_threshold_sigma=3.0,
+    )
+
+    assert len(grids.adaptive_regions) == 2
+    assert (
+        sum(
+            len(region.bright_candidate_positions_yx)
+            for region in grids.adaptive_regions
+        )
+        == 3
+    )
+    assert grids.adaptive_protected_pixel_count >= 3 * 29
+    assert grids.adaptive_protected_window_count > 0
+
+
+def test_edge_and_invalid_pixels_do_not_enter_source_protection() -> None:
+    """Clipped support stays bounded and invalid pixels remain excluded."""
+    y, x = np.indices((64, 68))
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    support = (y - 2) ** 2 + (x - 2) ** 2 <= 4**2
+    image[support] += 30.0
+    image[2, 2] += 70.0
+    image[0, 0] = np.nan
+    config = _source_protection_config()
+    source = _ArrayImageSource(image)
+
+    grids = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=((2.0, 2.0),),
+        source_protection_island_threshold_sigma=3.0,
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=image.shape,
+        halo_yx=(0, 0),
+    )
+    tile = estimate_background_rms_tile(
+        source,
+        prepare_background_rms_tile_request(manifest.tiles[0], grids, config),
+    )
+
+    assert grids.adaptive_protected_pixel_count == (
+        np.count_nonzero(support) - 1
+    )
+    assert np.isnan(tile.background[0, 0])
+    assert np.isnan(tile.rms[0, 0])
+
+
+def test_candidate_protection_threshold_is_bounded_when_enabled() -> None:
+    """Source protection cannot use an invalid public island threshold."""
+    image = np.tile(np.array([-1.0, 1.0]), 40 * 22).reshape(40, 44)
+    image[20, 22] = 50.0
+    source = _ArrayImageSource(image)
+
+    for threshold in (0.0, 20.0, float("nan")):
+        with pytest.raises(ValueError, match="public island threshold"):
+            estimate_background_rms_grids(
+                source,
+                image.shape,
+                _config(),
+                SerialExecutor(),
+                bright_candidate_positions_yx=((20.0, 22.0),),
+                source_protection_island_threshold_sigma=threshold,
+            )
+
+
+def test_missing_protection_threshold_preserves_compact_background_path() -> (
+    None
+):
+    """The explicit compact compatibility profile keeps its reviewed path."""
+    image = np.tile(np.array([-1.0, 1.0]), 40 * 22).reshape(40, 44)
+    image[20, 22] = 50.0
+
+    grids = estimate_background_rms_grids(
+        _ArrayImageSource(image),
+        image.shape,
+        _config(),
+        SerialExecutor(),
+        bright_candidate_positions_yx=((20.0, 22.0),),
+    )
+
+    assert len(grids.adaptive_regions) == 1
+    assert grids.adaptive_protected_pixel_count == 0
+    assert grids.adaptive_protected_window_count == 0
+
+
+def test_adaptive_candidate_must_belong_to_public_island_support() -> None:
+    """A stale or mismatched candidate cannot silently expose source pixels."""
+    image = np.tile(np.array([-1.0, 1.0]), 40 * 22).reshape(40, 44)
+
+    with pytest.raises(ValueError, match="absent from source-protection"):
+        estimate_background_rms_grids(
+            _ArrayImageSource(image),
+            image.shape,
+            _config(),
+            SerialExecutor(),
+            bright_candidate_positions_yx=((20.0, 22.0),),
+            source_protection_island_threshold_sigma=3.0,
+        )
+
+
 def test_distant_candidates_keep_separate_bounded_fine_grids() -> None:
     """Adaptive summary memory scales with regions, not full image area."""
     image = np.tile(np.array([-1.0, 1.0]), 100 * 55).reshape(100, 110)
     positions = ((15.0, 16.0), (82.0, 91.0))
+    image[15, 16] = 50.0
+    image[82, 91] = 50.0
     config = _config()
 
     forward = estimate_background_rms_grids(
@@ -230,6 +472,7 @@ def test_distant_candidates_keep_separate_bounded_fine_grids() -> None:
         config,
         SerialExecutor(),
         bright_candidate_positions_yx=positions,
+        source_protection_island_threshold_sigma=3.0,
     )
     reverse = estimate_background_rms_grids(
         _ArrayImageSource(image),
@@ -237,6 +480,7 @@ def test_distant_candidates_keep_separate_bounded_fine_grids() -> None:
         config,
         SerialExecutor(),
         bright_candidate_positions_yx=tuple(reversed(positions)),
+        source_protection_island_threshold_sigma=3.0,
     )
 
     full_fine_cell_count = ((image.shape[0] - 5) // 2 + 2) * (
@@ -253,6 +497,55 @@ def test_distant_candidates_keep_separate_bounded_fine_grids() -> None:
         strict=True,
     ):
         np.testing.assert_array_equal(first.grid.rms, second.grid.rms)
+
+
+def test_adaptive_protection_is_retry_and_completion_order_invariant() -> None:
+    """Repeated or reversed region completion cannot change fine grids."""
+    y, x = np.indices((96, 96))
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    positions = ((20.0, 20.0), (74.0, 75.0))
+    for candidate_y, candidate_x in positions:
+        support = (y - candidate_y) ** 2 + (x - candidate_x) ** 2 <= 4**2
+        image[support] += 25.0
+        image[round(candidate_y), round(candidate_x)] += 75.0
+    config = _source_protection_config()
+
+    serial = estimate_background_rms_grids(
+        _ArrayImageSource(image),
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=positions,
+        source_protection_island_threshold_sigma=3.0,
+    )
+    retried = estimate_background_rms_grids(
+        _ArrayImageSource(image),
+        image.shape,
+        config,
+        _RetryExecutor(),
+        bright_candidate_positions_yx=tuple(reversed(positions)),
+        source_protection_island_threshold_sigma=3.0,
+    )
+
+    assert retried.adaptive_protected_pixel_count == (
+        serial.adaptive_protected_pixel_count
+    )
+    assert retried.adaptive_protected_window_count == (
+        serial.adaptive_protected_window_count
+    )
+    for expected, actual in zip(
+        serial.adaptive_regions,
+        retried.adaptive_regions,
+        strict=True,
+    ):
+        np.testing.assert_array_equal(
+            actual.grid.background,
+            expected.grid.background,
+        )
+        np.testing.assert_array_equal(actual.grid.rms, expected.grid.rms)
+        np.testing.assert_array_equal(
+            actual.grid.fallback_cells, expected.grid.fallback_cells
+        )
 
 
 def _assemble_tiles(
@@ -294,6 +587,7 @@ def test_output_is_invariant_to_tile_shape_and_partition_origin(
     y, x = np.indices((36, 38), dtype=np.float64)
     image = 2.0 + 0.01 * y + np.where((x + y) % 2 == 0, -1.0, 1.0)
     image[13:24, 14:25] *= 3.0
+    image[18, 19] = 50.0
     positions = ((18.0, 19.0),)
     config = _config()
     source = _ArrayImageSource(image)
@@ -303,6 +597,7 @@ def test_output_is_invariant_to_tile_shape_and_partition_origin(
         config,
         SerialExecutor(),
         bright_candidate_positions_yx=positions,
+        source_protection_island_threshold_sigma=3.0,
     )
     reference_manifest = plan_image_partitions(
         image_shape_yx=image.shape,
@@ -363,6 +658,7 @@ def test_no_candidates_skip_adaptive_reads_and_match_coarse_only() -> None:
 def test_adaptive_refinement_reuses_the_prepared_coarse_cache() -> None:
     """Candidate refinement adds fine reads without repeating coarse work."""
     image = np.tile(np.array([-1.0, 1.0]), 40 * 22).reshape(40, 44)
+    image[20, 22] = 50.0
     source = _ArrayImageSource(image)
     config = _config()
     coarse = estimate_background_rms_grids(
@@ -380,6 +676,7 @@ def test_adaptive_refinement_reuses_the_prepared_coarse_cache() -> None:
         config,
         SerialExecutor(),
         bright_candidate_positions_yx=((20.0, 22.0),),
+        source_protection_island_threshold_sigma=3.0,
     )
 
     assert refined.coarse is coarse.coarse
@@ -390,6 +687,7 @@ def test_adaptive_refinement_reuses_the_prepared_coarse_cache() -> None:
 def test_adaptive_refinement_rejects_an_already_refined_cache() -> None:
     """Retries cannot stack duplicate fine regions onto cached summaries."""
     image = np.tile(np.array([-1.0, 1.0]), 40 * 22).reshape(40, 44)
+    image[20, 22] = 50.0
     source = _ArrayImageSource(image)
     config = _config()
     refined = estimate_background_rms_grids(
@@ -398,6 +696,7 @@ def test_adaptive_refinement_rejects_an_already_refined_cache() -> None:
         config,
         SerialExecutor(),
         bright_candidate_positions_yx=((20.0, 22.0),),
+        source_protection_island_threshold_sigma=3.0,
     )
 
     with pytest.raises(ValueError, match="coarse-only"):
@@ -407,6 +706,7 @@ def test_adaptive_refinement_rejects_an_already_refined_cache() -> None:
             config,
             SerialExecutor(),
             bright_candidate_positions_yx=((20.0, 22.0),),
+            source_protection_island_threshold_sigma=3.0,
         )
 
 

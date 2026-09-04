@@ -549,7 +549,7 @@ independent acceptance. Detailed campaign and incident chronology belongs in
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Open: review `8e002699...` awaits named implementation approval. |
+| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Open: the approved source-protection correction passes fixtures; the separately reproduced coarse-arm measurement and topology gaps still require renewed review before any correction. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Interface complete; final post-repair identity not yet frozen. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
@@ -1677,15 +1677,26 @@ from partial or viewed evidence.
      or margin. A local high-noise patch must remain adaptive, below-trigger
      cases bitwise inert, and Serial/existing-Dask, tile-order, and retry results
      invariant.
-   - Next, obtain named approval of exact review `8e002699...` before any
-     source-finding change. Implement and close the source-contamination,
-     local-noise, fallback, edge/invalid, mixed-halo aperture, source-topology,
-     and attribution fixtures before freezing replacement candidate or lane
-     identities. Any independently demonstrated measurement, association, or
-     publication change requires renewed scientific review. Only a passing
-     replacement development lane may open the independent held-out analogue;
-     these development images must never enter the one-look qualification
-     population.
+   - Exact review `8e002699...` received named approval. The fixture-first
+     implementation now excludes every fine-grid window intersecting the
+     connected public-threshold island of a retained 75-sigma seed, records
+     bounded protected-pixel/window counts, and falls back through the existing
+     deterministic interpolation policy. It adds no new numeric science
+     threshold and leaves detection, measurement, association, publication,
+     truth, floors, and margins unchanged. The explicit compact profile keeps
+     its previously qualified unprotected fine-grid compatibility path; its
+     dual-PyBDSF equivalence lane remains green. Source contamination, local-noise
+     discrimination, complete fallback, edge/invalid handling, tile shape,
+     completion order, retry, Serial, and existing-Dask fixtures pass.
+   - Array-free pre-publication attribution fixtures independently reproduce
+     the mixed core/halo measurement-aperture loss and shell publication
+     fragmentation without changing either algorithm. Those gaps remain open
+     and any measurement, association, or publication correction requires
+     renewed scientific review. Freeze the exact non-executable replacement
+     candidate, public composition, and lane identities next. Only a separately
+     approved, passing replacement development lane may open the independent
+     held-out analogue; these development images must never enter the one-look
+     qualification population.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

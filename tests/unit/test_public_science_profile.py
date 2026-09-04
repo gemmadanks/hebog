@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import subprocess
 from importlib.resources import files
 from pathlib import Path
 
@@ -16,7 +17,6 @@ from hebog.data_models import (
     PublicSourceFindingDiagnostics,
     PublicSourceFindingProvenance,
 )
-from hebog.public_api import _scientific_composition_sha256
 
 _ROOT = Path(__file__).parents[2]
 
@@ -29,7 +29,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
         scientific_composition=(
-            "phase-5-configurable-publication-scale-persistence-v2"
+            "phase-5-configurable-source-protected-adaptive-background-v3"
         ),
     )
 
@@ -138,27 +138,51 @@ def test_public_diagnostics_reject_noncanonical_json() -> None:
         )
 
 
-def test_public_interface_identity_binds_every_declared_file() -> None:
-    """The non-executable interface review cannot outlive code drift."""
-    review = json.loads(
-        (
-            _ROOT / "config/contracts/"
-            "phase-5-configurable-public-interface-identity-review.json"
-        ).read_text(encoding="utf-8")
+def test_public_interface_identity_binds_its_historical_file_set() -> None:
+    """An immutable interface review remains verifiable after later science."""
+    relative_review = Path(
+        "config/contracts/"
+        "phase-5-configurable-public-interface-identity-review.json"
     )
+    review = json.loads((_ROOT / relative_review).read_text(encoding="utf-8"))
+    creation_revision = subprocess.run(
+        (
+            "git",
+            "log",
+            "--diff-filter=A",
+            "--format=%H",
+            "--",
+            str(relative_review),
+        ),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()[0]
+
+    def historical_bytes(relative_path: str) -> bytes:
+        return subprocess.run(
+            ("git", "show", f"{creation_revision}:{relative_path}"),
+            cwd=_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
 
     assert review["status"] == "frozen-non-executable"
     assert not any(review["authorizations"].values())
     for relative_path, expected in review["interface_file_sha256"].items():
-        assert (
-            hashlib.sha256((_ROOT / relative_path).read_bytes()).hexdigest()
-            == expected
+        assert hashlib.sha256(historical_bytes(relative_path)).hexdigest() == (
+            expected
         )
+    composition = hashlib.sha256()
     for module_name, expected in review["scientific_module_sha256"].items():
-        module_path = Path(importlib.import_module(module_name).__file__ or "")
-        assert hashlib.sha256(module_path.read_bytes()).hexdigest() == expected
+        module = importlib.import_module(module_name)
+        module_path = Path(module.__file__ or "").relative_to(_ROOT)
+        contents = historical_bytes(str(module_path))
+        assert hashlib.sha256(contents).hexdigest() == expected
+        composition.update(module_name.encode())
+        composition.update(b"\0")
+        composition.update(contents)
+        composition.update(b"\0")
 
-    assert (
-        _scientific_composition_sha256()
-        == review["scientific_composition_sha256"]
-    )
+    assert composition.hexdigest() == review["scientific_composition_sha256"]

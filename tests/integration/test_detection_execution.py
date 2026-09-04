@@ -450,6 +450,15 @@ def test_one_and_many_tile_detection_publish_identical_topology(
     assert many_result.adaptive_candidate_positions_yx == (
         one_result.adaptive_candidate_positions_yx
     )
+    assert many_result.background_rms_grids.adaptive_protected_pixel_count > 0
+    assert (
+        many_result.background_rms_grids.adaptive_protected_pixel_count
+        == one_result.background_rms_grids.adaptive_protected_pixel_count
+    )
+    assert (
+        many_result.background_rms_grids.adaptive_protected_window_count
+        == one_result.background_rms_grids.adaptive_protected_window_count
+    )
     assert many_result.islands == one_result.islands
     np.testing.assert_array_equal(
         _read_plane(many_sink, many_result, "source-filtering-mask"),
@@ -1363,6 +1372,14 @@ def test_dask_and_serial_detection_products_are_identical(
     assert (
         dask.adaptive_candidate_positions_yx
         == serial.adaptive_candidate_positions_yx
+    )
+    assert (
+        dask.background_rms_grids.adaptive_protected_pixel_count
+        == serial.background_rms_grids.adaptive_protected_pixel_count
+    )
+    assert (
+        dask.background_rms_grids.adaptive_protected_window_count
+        == serial.background_rms_grids.adaptive_protected_window_count
     )
     for product_name in dask.generation.product_names:
         np.testing.assert_array_equal(

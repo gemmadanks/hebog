@@ -1,3 +1,5 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownMemberType=false
 """Bounded source and executor orchestration for background estimation."""
 
 from __future__ import annotations
@@ -5,9 +7,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import partial
 from math import ceil, floor, isfinite, prod
-from typing import Protocol
+from typing import Protocol, cast
 
 import numpy as np
+import numpy.typing as npt
+from scipy import ndimage
 
 from hebog.algorithms.background import (
     BackgroundRmsTile,
@@ -26,6 +30,7 @@ from hebog.algorithms.background import (
     subset_prepared_rms_grid,
     subset_rms_grid_geometry,
 )
+from hebog.algorithms.detection import normalize_residual
 from hebog.config import BackgroundRmsConfig, RmsGridConfig
 from hebog.data_models.partitioning import ImageBounds, TilePartition
 from hebog.executors.base import Executor
@@ -46,6 +51,8 @@ class AdaptiveRmsRegion:
 
     grid: PreparedRmsGrid
     bright_candidate_positions_yx: tuple[tuple[float, float], ...]
+    protected_pixel_count: int
+    protected_window_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +67,20 @@ class BackgroundRmsGrids:
         """Return the total fine cells retained across local regions."""
         return sum(
             region.grid.geometry.cell_count for region in self.adaptive_regions
+        )
+
+    @property
+    def adaptive_protected_pixel_count(self) -> int:
+        """Return bounded source-support pixels seen across fine regions."""
+        return sum(
+            region.protected_pixel_count for region in self.adaptive_regions
+        )
+
+    @property
+    def adaptive_protected_window_count(self) -> int:
+        """Return fine windows rejected for intersecting source support."""
+        return sum(
+            region.protected_window_count for region in self.adaptive_regions
         )
 
 
@@ -87,6 +108,15 @@ class _CandidateRegion:
     """One bounded union of overlapping adaptive influence areas."""
 
     bounds: ImageBounds
+    positions_yx: tuple[tuple[float, float], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _AdaptiveRegionRequest:
+    """Bounded inputs for one source-protected adaptive grid."""
+
+    grid: RmsGridGeometry
+    coarse: PreparedRmsGrid
     positions_yx: tuple[tuple[float, float], ...]
 
 
@@ -243,13 +273,14 @@ def _merge_candidate_regions(
     )
 
 
-def estimate_background_rms_grids(
+def estimate_background_rms_grids(  # noqa: PLR0913
     source: _WindowReadable,
     image_shape_yx: tuple[int, int],
     config: BackgroundRmsConfig,
     executor: Executor,
     *,
     bright_candidate_positions_yx: tuple[tuple[float, float], ...],
+    source_protection_island_threshold_sigma: float | None = None,
 ) -> BackgroundRmsGrids:
     """Estimate cached global coarse and sparse adaptive RMS summaries."""
     if min(image_shape_yx) < 1:
@@ -287,16 +318,194 @@ def estimate_background_rms_grids(
         config,
         executor,
         bright_candidate_positions_yx=bright_candidate_positions_yx,
+        source_protection_island_threshold_sigma=(
+            source_protection_island_threshold_sigma
+        ),
     )
 
 
-def refine_background_rms_grids(
+def _grid_read_bounds(grid: RmsGridGeometry) -> ImageBounds:
+    """Return the smallest image window containing every planned cell."""
+    window_y, window_x = grid.effective_window_shape_yx
+    return ImageBounds(
+        grid.window_starts_y[0],
+        grid.window_starts_y[-1] + window_y,
+        grid.window_starts_x[0],
+        grid.window_starts_x[-1] + window_x,
+    )
+
+
+def _connected_source_protection(
+    normalized_residual: npt.NDArray[np.float64],
+    scientifically_valid: npt.NDArray[np.bool_],
+    bounds: ImageBounds,
+    positions_yx: tuple[tuple[float, float], ...],
+    *,
+    island_threshold_sigma: float,
+) -> npt.NDArray[np.bool_]:
+    """Return candidate-connected public-island support in one bounded read."""
+    membership = scientifically_valid & (
+        normalized_residual >= island_threshold_sigma
+    )
+    raw_labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        ndimage.label(
+            membership,
+            structure=np.ones((3, 3), dtype=np.bool_),
+        ),
+    )
+    labels = np.asarray(raw_labels, dtype=np.int32)
+    candidate_labels: set[int] = set()
+    for y_position, x_position in positions_yx:
+        pixel_y = round(y_position)
+        pixel_x = round(x_position)
+        if not (
+            bounds.y_start <= pixel_y < bounds.y_stop
+            and bounds.x_start <= pixel_x < bounds.x_stop
+        ):
+            raise ValueError(
+                "adaptive candidate lies outside its protection window"
+            )
+        label = int(
+            labels[
+                pixel_y - bounds.y_start,
+                pixel_x - bounds.x_start,
+            ]
+        )
+        if label == 0:
+            raise ValueError(
+                "adaptive candidate is absent from source-protection support"
+            )
+        candidate_labels.add(label)
+    protected = np.isin(labels, tuple(sorted(candidate_labels)))
+    protected.setflags(write=False)
+    return np.asarray(protected, dtype=np.bool_)
+
+
+def _estimate_source_protected_adaptive_region(
+    request: _AdaptiveRegionRequest,
+    *,
+    source: _WindowReadable,
+    config: RmsGridConfig,
+    island_threshold_sigma: float,
+) -> AdaptiveRmsRegion:
+    """Estimate a fine grid without sampling bright-source support."""
+    bounds = _grid_read_bounds(request.grid)
+    image_window = source.read_window(bounds)
+    if image_window.bounds != bounds:
+        raise ValueError("image source returned different window bounds")
+    if (
+        image_window.values.shape != bounds.shape_yx
+        or image_window.valid_pixels.shape != bounds.shape_yx
+    ):
+        raise ValueError("image source returned a misaligned window")
+    coarse = interpolate_prepared_rms_grid(
+        request.coarse,
+        bounds,
+        image_window.valid_pixels,
+    )
+    normalized, scientifically_valid = normalize_residual(
+        image_window.values,
+        image_window.valid_pixels,
+        coarse.background,
+        coarse.rms,
+    )
+    protected = _connected_source_protection(
+        normalized,
+        scientifically_valid,
+        bounds,
+        request.positions_yx,
+        island_threshold_sigma=island_threshold_sigma,
+    )
+    results: list[RmsGridBatchStatistics] = []
+    for batch in plan_rms_window_batches(
+        request.grid,
+        maximum_cells=config.maximum_batch_cells,
+    ):
+        local_selection = (
+            slice(
+                batch.read_bounds.y_start - bounds.y_start,
+                batch.read_bounds.y_stop - bounds.y_start,
+            ),
+            slice(
+                batch.read_bounds.x_start - bounds.x_start,
+                batch.read_bounds.x_stop - bounds.x_start,
+            ),
+        )
+        results.append(
+            estimate_rms_grid_batch(
+                np.asarray(image_window.values[local_selection]),
+                np.asarray(image_window.valid_pixels[local_selection]),
+                request.grid,
+                batch,
+                config.statistics,
+                protected_pixels=np.asarray(protected[local_selection]),
+            )
+        )
+    statistics = assemble_rms_grid_statistics(request.grid, results)
+    return AdaptiveRmsRegion(
+        grid=prepare_rms_grid_for_interpolation(statistics),
+        bright_candidate_positions_yx=request.positions_yx,
+        protected_pixel_count=int(np.count_nonzero(protected)),
+        protected_window_count=statistics.protected_window_count,
+    )
+
+
+def _adaptive_region_request(
+    region: _CandidateRegion,
+    *,
+    global_geometry: RmsGridGeometry,
+    coarse: PreparedRmsGrid,
+) -> _AdaptiveRegionRequest:
+    """Bind one candidate region to its fine and coarse bounded summaries."""
+    fine_grid = subset_rms_grid_geometry(global_geometry, region.bounds)
+    return _AdaptiveRegionRequest(
+        grid=fine_grid,
+        coarse=subset_prepared_rms_grid(
+            coarse,
+            _grid_read_bounds(fine_grid),
+        ),
+        positions_yx=region.positions_yx,
+    )
+
+
+def _estimate_unprotected_adaptive_regions(
+    source: _WindowReadable,
+    candidate_regions: tuple[_CandidateRegion, ...],
+    global_geometry: RmsGridGeometry,
+    config: RmsGridConfig,
+    executor: Executor,
+) -> tuple[AdaptiveRmsRegion, ...]:
+    """Preserve the established compact-profile fine-grid calculation."""
+    return tuple(
+        AdaptiveRmsRegion(
+            grid=prepare_rms_grid_for_interpolation(
+                estimate_rms_grid(
+                    source,
+                    subset_rms_grid_geometry(
+                        global_geometry,
+                        region.bounds,
+                    ),
+                    config,
+                    executor,
+                )
+            ),
+            bright_candidate_positions_yx=region.positions_yx,
+            protected_pixel_count=0,
+            protected_window_count=0,
+        )
+        for region in candidate_regions
+    )
+
+
+def refine_background_rms_grids(  # noqa: PLR0913
     source: _WindowReadable,
     coarse_grids: BackgroundRmsGrids,
     config: BackgroundRmsConfig,
     executor: Executor,
     *,
     bright_candidate_positions_yx: tuple[tuple[float, float], ...],
+    source_protection_island_threshold_sigma: float | None = None,
 ) -> BackgroundRmsGrids:
     """Estimate sparse adaptive cells while reusing a prepared coarse grid."""
     if coarse_grids.adaptive_regions:
@@ -317,28 +526,47 @@ def refine_background_rms_grids(
 
     if adaptive_config is None or not candidate_regions:
         return coarse_grids
+    if source_protection_island_threshold_sigma is not None and (
+        not isfinite(source_protection_island_threshold_sigma)
+        or source_protection_island_threshold_sigma <= 0
+        or source_protection_island_threshold_sigma
+        >= adaptive_config.candidate_threshold_sigma
+    ):
+        raise ValueError(
+            "adaptive refinement requires a finite positive public island "
+            "threshold below its candidate threshold for source protection"
+        )
     global_adaptive_geometry = plan_rms_grid(
         image_shape_yx=image_shape_yx,
         window_shape_yx=adaptive_config.grid.window_shape_yx,
         step_yx=adaptive_config.grid.step_yx,
     )
-    adaptive_regions = tuple(
-        AdaptiveRmsRegion(
-            grid=prepare_rms_grid_for_interpolation(
-                estimate_rms_grid(
-                    source,
-                    subset_rms_grid_geometry(
-                        global_adaptive_geometry,
-                        region.bounds,
-                    ),
-                    adaptive_config.grid,
-                    executor,
-                )
+    if source_protection_island_threshold_sigma is None:
+        return BackgroundRmsGrids(
+            coarse=coarse_grids.coarse,
+            adaptive_regions=_estimate_unprotected_adaptive_regions(
+                source,
+                candidate_regions,
+                global_adaptive_geometry,
+                adaptive_config.grid,
+                executor,
             ),
-            bright_candidate_positions_yx=region.positions_yx,
+        )
+    requests = tuple(
+        _adaptive_region_request(
+            region,
+            global_geometry=global_adaptive_geometry,
+            coarse=coarse_grids.coarse,
         )
         for region in candidate_regions
     )
+    estimate_region = partial(
+        _estimate_source_protected_adaptive_region,
+        source=source,
+        config=adaptive_config.grid,
+        island_threshold_sigma=source_protection_island_threshold_sigma,
+    )
+    adaptive_regions = tuple(executor.map_batches(estimate_region, requests))
     return BackgroundRmsGrids(
         coarse=coarse_grids.coarse,
         adaptive_regions=adaptive_regions,

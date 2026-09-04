@@ -15134,3 +15134,54 @@ fixture gates are closed.
 independent coarse-gap corrections pass a replacement development lane, freeze
 and scientifically review the combined general-retention plus bright-extended
 qualification design before any one-look execution.
+
+## 2026-09-04 — Implement source-protected adaptive background estimation
+
+**Plan phase:** Phase 5 final qualification design
+
+- Recorded named approval of root-cause review `8e002699...` and kept every
+  execution, replay, qualification, tuning, rescoring, cutover, and release
+  authority closed.
+- Added red fixtures demonstrating that bright connected source support was
+  entering adaptive fine windows and that a source-free high-noise
+  neighbourhood must still receive a local estimate. Before implementation,
+  both failed because the estimator had no source-protection boundary.
+- Implemented the reviewed bounded correction: each adaptive region derives
+  its connected support from the coarse-normalized image at the existing
+  public island threshold, and every fine window intersecting that support is
+  marked unavailable. Existing deterministic fine-grid interpolation or the
+  coarse map supplies the fallback; the 75-sigma trigger, grid and blend
+  geometry, public thresholds, and all downstream science remain unchanged.
+- Advanced the public scientific composition name to
+  `phase-5-configurable-source-protected-adaptive-background-v3`; its SHA-256
+  already binds the exact module bytes. This prevents the corrected science
+  from sharing the predecessor's human-readable `v2` identity.
+- The first equivalence run caught a compact-mask precision regression: the
+  protected estimator recovered one PyBDSF foreground pixel but added one
+  false foreground pixel, yielding `0.988889` precision against the frozen
+  `0.99` gate. The correction is now scoped to the general Continuum profile;
+  the explicit compact compatibility profile retains its previously qualified
+  fine-grid path. Both released and pinned-master compact comparisons pass
+  again (27 equivalence tests total) without changing a threshold or gate.
+- Added bounded protected-pixel and rejected-window counters plus array-free
+  truth-support attribution. Diagnostic-only fixtures locate the independent
+  mixed core/halo loss at measurement and shell fragmentation at publication;
+  they do not alter those algorithms or claim those separate gaps are fixed.
+- Focused unit and integration validation passes 73 tests, including source
+  contamination, local-noise discrimination, all-fine-window fallback,
+  edge/invalid pixels, overlapping and disjoint candidates, malformed or stale
+  candidates, tile-shape and completion-order invariance, retry injection, and
+  Serial/existing-Dask equality. Changed-module branch-aware coverage is
+  92.48%, with the attribution reducer at 100%. The full branch-aware suite
+  passes 2,649 tests and 2 expected xfails at 94.80% project coverage. Ruff,
+  Pyright, the 2,470-test normal check, strict docs, and all 27 equivalence
+  tests pass. The public identity sentinel now verifies the prior frozen record
+  against the exact Git snapshot where it was created, so that historical
+  evidence remains fully checkable after this intentional science change; a
+  successor will be frozen against the exact candidate commit.
+
+**Immediate next step:** commit the exact fixture-validated scientific
+candidate, then freeze successor non-executable public-composition and
+development-lane identities and rerun the complete no-write and repository
+validation gates. Separate exact approval remains mandatory before any lane
+execution.

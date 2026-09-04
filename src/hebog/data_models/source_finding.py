@@ -240,7 +240,7 @@ class PublicSourceFindingProvenance(BaseModel):
     scientific_profile_sha256: str
     scientific_composition_sha256: str
     scientific_composition: Literal[
-        "phase-5-configurable-publication-scale-persistence-v2"
+        "phase-5-configurable-source-protected-adaptive-background-v3"
     ]
     schema_version: Literal[1] = 1
 

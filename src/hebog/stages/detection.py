@@ -313,6 +313,11 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
         config.background_rms,
         executor,
         bright_candidate_positions_yx=candidate_positions,
+        source_protection_island_threshold_sigma=(
+            config.source_finder.island_threshold_sigma
+            if config.source_finder.profile == "continuum"
+            else None
+        ),
     )
     for product_name, dtype in (
         ("background", np.dtype("<f8")),

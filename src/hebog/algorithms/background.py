@@ -89,6 +89,7 @@ class RmsGridBatchStatistics:
 
     batch: RmsWindowBatch
     statistics: RmsWindowStatistics
+    protected_window_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +102,7 @@ class RmsGridStatistics:
     available: npt.NDArray[np.bool_]
     valid_sample_count: npt.NDArray[np.int64]
     retained_sample_count: npt.NDArray[np.int64]
+    protected_window_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -259,14 +261,22 @@ def _require_canonical_batch(
         raise ValueError("RMS window batch has non-canonical read bounds")
 
 
-def estimate_rms_grid_batch(
+def estimate_rms_grid_batch(  # noqa: PLR0913
     values: npt.NDArray[np.floating[Any]],
     valid_pixels: npt.NDArray[np.bool_],
     grid: RmsGridGeometry,
     batch: RmsWindowBatch,
     config: RmsWindowStatisticsConfig,
+    *,
+    protected_pixels: npt.NDArray[np.bool_] | None = None,
 ) -> RmsGridBatchStatistics:
-    """Estimate a rectangular window block without loops over grid cells."""
+    """Estimate a rectangular window block without loops over grid cells.
+
+    A fine-grid window that intersects ``protected_pixels`` is deliberately
+    unavailable as a whole. This prevents connected bright-source support
+    from contributing to either the background or RMS statistic while
+    retaining the established deterministic interpolation fallback.
+    """
     _require_canonical_batch(grid, batch)
     bounded_values = np.asarray(values)
     bounded_validity = np.asarray(valid_pixels, dtype=np.bool_)
@@ -277,6 +287,13 @@ def estimate_rms_grid_batch(
         raise ValueError(
             "RMS batch values and validity must match read bounds"
         )
+    bounded_protection: npt.NDArray[np.bool_] | None = None
+    if protected_pixels is not None:
+        bounded_protection = np.asarray(protected_pixels, dtype=np.bool_)
+        if bounded_protection.shape != batch.read_bounds.shape_yx:
+            raise ValueError(
+                "protected pixels must match RMS batch read bounds"
+            )
 
     window_shape = grid.effective_window_shape_yx
     value_views = np.lib.stride_tricks.sliding_window_view(
@@ -322,7 +339,60 @@ def estimate_rms_grid_batch(
         all_validity,
         config,
     )
-    return RmsGridBatchStatistics(batch=batch, statistics=statistics)
+    protected_window_count = 0
+    if bounded_protection is not None:
+        protection_views = np.lib.stride_tricks.sliding_window_view(
+            bounded_protection,
+            window_shape,
+        )
+        selected_protection = protection_views[
+            y_offsets[:, np.newaxis],
+            x_offsets[np.newaxis, :],
+        ]
+        protected_windows = np.any(
+            np.reshape(
+                selected_protection,
+                (batch.cell_count, *window_shape),
+            ),
+            axis=_STATISTIC_AXES,
+        )
+        protected_window_count = int(np.count_nonzero(protected_windows))
+        if protected_window_count:
+            background = np.array(statistics.background, copy=True)
+            rms = np.array(statistics.rms, copy=True)
+            available = np.array(statistics.available, copy=True)
+            retained_sample_count = np.array(
+                statistics.retained_sample_count,
+                copy=True,
+            )
+            background[protected_windows] = np.nan
+            rms[protected_windows] = np.nan
+            available[protected_windows] = False
+            retained_sample_count[protected_windows] = 0
+            statistics = RmsWindowStatistics(
+                background=cast(
+                    npt.NDArray[np.float64],
+                    _read_only(background),
+                ),
+                rms=cast(
+                    npt.NDArray[np.float64],
+                    _read_only(rms),
+                ),
+                available=cast(
+                    npt.NDArray[np.bool_],
+                    _read_only(available),
+                ),
+                valid_sample_count=statistics.valid_sample_count,
+                retained_sample_count=cast(
+                    npt.NDArray[np.int64],
+                    _read_only(retained_sample_count),
+                ),
+            )
+    return RmsGridBatchStatistics(
+        batch=batch,
+        statistics=statistics,
+        protected_window_count=protected_window_count,
+    )
 
 
 def assemble_rms_grid_statistics(
@@ -337,6 +407,7 @@ def assemble_rms_grid_statistics(
     valid_sample_count = np.zeros(shape, dtype=np.int64)
     retained_sample_count = np.zeros(shape, dtype=np.int64)
     visits = np.zeros(shape, dtype=np.uint8)
+    protected_window_count = 0
     for result in batch_results:
         if not isinstance(result, RmsGridBatchStatistics):
             raise ValueError("coarse-grid results contain an invalid batch")
@@ -374,6 +445,7 @@ def assemble_rms_grid_statistics(
             result.statistics.retained_sample_count.reshape(batch.shape_yx)
         )
         visits[selection] += 1
+        protected_window_count += result.protected_window_count
     if np.any(visits == 0):
         raise ValueError("missing coarse-grid cells prevent interpolation")
     return RmsGridStatistics(
@@ -392,6 +464,7 @@ def assemble_rms_grid_statistics(
             npt.NDArray[np.int64],
             _read_only(retained_sample_count),
         ),
+        protected_window_count=protected_window_count,
     )
 
 
