@@ -14807,3 +14807,45 @@ qualification or independent release acceptance.
 **Immediate next step:** pre-register the bounded adaptive-background
 development matrix and its truth-linked decision rules without opening final
 qualification data or changing source science.
+
+## 2026-09-04 — Pre-register the adaptive-background development lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Added pure validated covering-design code and deterministic pre-review
+  generator for the known adaptive-normalization risk. Contract
+  `phase-5-adaptive-background-development-pre-review.json` has SHA-256
+  `6287ad3ef734c91142637142f04abebfb7226253e9e49060af686fe07292eed4`;
+  its generator is `7d33669f...` and pure matrix module is `c95477bc...`.
+- The development population is 144 new seed-disjoint 512-by-512 images: 12
+  balanced geometry cells covering three morphologies, 4/8/12-beam extents,
+  two beams, flat/varying noise, and interior/tile-corner placement; each is
+  crossed with nominal 60/75/90-sigma trigger cohorts and four independent
+  noise realizations. Static audit binds 46 historical manifests and 20,917
+  prior seeds; reserved seeds `2026950001`--`2026950144` do not overlap them.
+- The proposed lane makes 144 exact public-candidate executions, 144 paired
+  internal coarse-only diagnostic executions, and 12 existing-Dask invariance
+  repetitions. At 300 total executions it is 12.5% of one 2,400-candidate
+  replay and needs no PyBDSF execution. It therefore answers the local
+  self-absorption question without consuming held-out qualification or
+  repeating already closed parity evidence.
+- Predeclared hard truth floors cover support recall, mask IoU, completeness,
+  splitting, and integrated flux and cannot be waived by a trade-off. Paired
+  candidate-versus-coarse movements use the existing practical margins;
+  background/RMS truth errors and exact trigger activation are retained for
+  diagnosis. A pass closes only this development risk. It does not establish
+  PyBDSF parity, qualification, cutover, or release readiness.
+- Nineteen focused contract tests pass, including 100% branch coverage of the
+  pure design module, deterministic regeneration, changed-identity rejection,
+  seed-overlap rejection, and write-once output behaviour. The pre-review is
+  awaiting human scientific review; every execution and source-change
+  authorization is false.
+- Final repository validation passes: `just coverage` reports 2,567 passed,
+  two expected xfails, and 94.72% branch-aware project coverage; `just check`
+  reports 2,390 passed and two expected xfails with Ruff and Pyright clean;
+  the strict documentation build also passes.
+
+**Immediate next step:** obtain scientific approval of exact pre-review
+`6287ad3e...`. Approval should authorize only test-first implementation,
+fixture/no-write validation, and freezing of non-executable development-lane
+identities; executing the 144-image lane must remain a separate decision.

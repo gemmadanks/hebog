@@ -1538,6 +1538,28 @@ from partial or viewed evidence.
      completeness, and integrated-flux recovery. Predeclare its cases and
      decision rules; Hydra may motivate the design but must not supply truth,
      thresholds, or acceptance margins.
+   - Pre-registration is complete in
+     `phase-5-adaptive-background-development-pre-review.json`
+     (`6287ad3e...`) and awaits human scientific review. The bounded lane has
+     144 new seed-disjoint 512-pixel images: 12 balanced geometry cells across
+     shell, curved-filament, and mixed compact/extended morphology; 4-, 8-,
+     and 12-beam scales; two beams; flat or varying noise; and interior or tile-
+     corner placement. Each geometry is evaluated at nominal 60-, 75-, and
+     90-sigma peaks with four noise seeds. The exact candidate runs once per
+     image, the same science with only adaptive refinement disabled runs once
+     as a diagnostic control, and one above-trigger realization per geometry
+     is repeated with a caller-owned Dask executor: 300 executions, 12.5% of
+     one 2,400-candidate replay and no PyBDSF execution.
+   - The pre-registered decision fails unless every geometry passes product,
+     trigger-seam, executor-invariance, hard truth-support, completeness,
+     mask-IoU, split, and flux floors and stays inside the existing paired
+     practical margins relative to the coarse-only diagnostic. Metric trade-
+     offs are allowed only inside those margins; no improvement may waive a
+     hard truth floor. Background and RMS errors inside analytic truth support
+     are retained as root-cause sentinels. All execution, source-change,
+     tuning, rescoring, qualification, and release authorizations remain
+     false until the exact pre-review receives approval and its implementation
+     passes fixture and complete no-write validation.
    - If that bounded development lane passes, keep the frozen science
      unchanged and add an independent seed-disjoint analogue to the final
      qualification. If it exposes a material failure, diagnose and correct it
