@@ -14620,6 +14620,44 @@ consume the authority exactly once to publish the atomic paired decision.
 
 **Immediate next step:** pre-register a minimal seed-disjoint paired power
 extension for the two distinct position-tail evidence patterns, preserving the
-scientific identities, fixed margin, confidence and multiplicity rules, and
+scientific identities, fixed margin, confidence and global-decision rules, and
 closed PyBDSF/Aegean evidence. Do not rerun the full population or change
 source science unless that extension establishes a material regression.
+
+## 2026-09-04 — Pre-review final retention confirmation
+
+**Plan phase:** Phase 5 scientific close-out
+
+- Confirmed that the terminal paired decision already establishes complete
+  regression-population parity with Aegean and both PyBDSF references: all 819
+  applicable external-finder comparisons and all five safety checks pass.
+  There are no failed incumbent-Hebog comparisons, so no source-finder change
+  is supported by the evidence.
+- Diagnosed the remaining uncertainty as an evaluation-design issue. The
+  closed bootstrap sampled all 1,600 Continuum images as one mixture even
+  though the population fixes 400 images from each of four geometries. For the
+  nonlinear pooled position-error p95, that lets geometry proportions vary and
+  adds composition variance that the experimental design did not contain.
+- Added a deterministic whole-image stratified bootstrap planner and tests.
+  It proves the three shell-labelled endpoints are one exact evidence pattern,
+  keeps geometry counts fixed, and treats scale-4 as the second pattern. A
+  50,000-resample planning-only sensitivity gives upper values of `0.0259` and
+  `0.0353` beams, both below the unchanged `0.05`-beam margin; this does not
+  rescore the immutable closed `incomplete` result.
+- Froze non-executable pre-review
+  `phase-5-final-retention-confirmation-pre-review.json`. It retains 100% of
+  each unfavourable observed shift, inflates the stratified standard errors by
+  25%, and calculates a minimum fresh balanced population of 4,568 Continuum
+  images. The selected 4,608-image design (1,152 per geometry) has a
+  conservative joint-power lower bound of `0.9026`.
+- Removed the redundant intermediate-replay step from the close-out sequence.
+  The same seed-disjoint population will close incumbent retention during the
+  already-required held-out public-interface qualification. Both PyBDSF
+  versions need run only on a prospectively selected balanced 1,600-image
+  subset; the additional 3,008 images are current-versus-incumbent only.
+
+**Immediate next step:** obtain human scientific review of the non-executable
+retention design while implementing the scheduler-independent public
+`hebog.find_sources` facade without changing the frozen source-finding science.
+No qualification execution, tuning, rescoring, cutover, or release is
+authorized.

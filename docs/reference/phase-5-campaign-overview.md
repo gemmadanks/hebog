@@ -1304,8 +1304,8 @@ evaluator `39a568ba...`.
 The four inconclusive checks are Continuum position-error p95 for
 above-compact-deblend-limit, morphology-shell, scale-4-beam, and tile-corner.
 Their observed incumbent-relative movements are only `0.0030`–`0.0131` beams,
-well inside the frozen `0.05`-beam practical margin, but their multiplicity-
-adjusted upper confidence limits are `0.0542`–`0.0564` beams. The data
+well inside the frozen `0.05`-beam practical margin, but their paired upper
+confidence limits are `0.0542`–`0.0564` beams. The data
 therefore show no material regression, but they do not yet exclude one with
 the required confidence. The first, second, and fourth endpoints describe the
 same shell observations: their retained endpoint payloads are identical across

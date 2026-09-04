@@ -1398,29 +1398,49 @@ from partial or viewed evidence.
      strata, with observed movements of `0.0030`–`0.0131` beams and upper
      confidence limits of `0.0542`–`0.0564` against the frozen `0.05`-beam
      margin. No binding comparison reports a material regression.
-   - [ ] Pre-register the smallest scientifically adequate paired power
+   - [x] Pre-register the smallest scientifically adequate paired power
      extension for the four inconclusive incumbent-retention checks. A
      terminal post-publication audit proves that
      above-compact-deblend-limit, morphology-shell, and tile-corner contain
      identical payloads in all 6,400 retained finder/input summaries, so they
      are three registry views of one shell evidence pattern and must not be
      counted as three independent deficits; treat scale-4-beam as the second
-     pattern. Preserve the `0.05`-beam margin, confidence and multiplicity
+     pattern. Preserve the `0.05`-beam margin, confidence and global-decision
      rules, current and incumbent scientific identities, and all closed
-     PyBDSF/Aegean evidence. Use new seed-disjoint regression inputs and
-     comparison-specific paired evidence rather than rerunning the complete
-     4,800-product population. If the extension proves non-inferiority, merge
-     it prospectively into one terminal decision; if it proves a material
-     regression, open a scientific root-cause review before any source change.
+     PyBDSF/Aegean evidence. Pre-review
+     `phase-5-final-retention-confirmation-pre-review.json` identifies the
+     cause of excess uncertainty: the evaluator allowed the proportions of
+     four deliberately balanced geometries to fluctuate while bootstrapping a
+     nonlinear pooled p95. Its planning-only 50,000-resample stratified audit
+     keeps all 400 images per geometry fixed and gives upper sensitivities of
+     `0.0259` and `0.0353` beams. It does not rescore the closed `incomplete`
+     decision. With the complete unfavourable observed shifts retained and
+     the stratified standard errors inflated by 25%, a fresh balanced count of
+     4,568 images is the calculated minimum; select 4,608 (1,152 per geometry)
+     for a conservative joint-power lower bound of `0.9026`.
+   - Integrate that seed-disjoint confirmation into the required held-out
+     public-interface qualification instead of running another intermediate
+     replay. Run current and incumbent Hebog over all 4,608 Continuum inputs;
+     run both PyBDSF references over a prospectively selected balanced 1,600-
+     input subset whose existing power audit already passes. Preserve all
+     endpoint identities and evaluate the two distinct retention patterns
+     with whole-image resampling within fixed geometry. If qualification proves
+     non-inferiority, no further Phase 5 source-finder improvement is required;
+     if it proves a material regression, open a scientific root-cause review
+     before any source change.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.
 
 4. [ ] **Complete the public scientific interface.**
-   - Begin only after the paired cumulative decision passes every binding
-     PyBDSF-parity, Aegean, incumbent-retention, and safety check. Preserve the
-     exact passing algorithms, scientific configuration, thresholds, profiles,
-     and product semantics while completing the orchestration boundary.
+   - Begin now. The closed regression population conclusively passes every
+     PyBDSF-parity and Aegean check, all safety checks, and contains no material
+     incumbent regression. Public-boundary work cannot change source science
+     and does not claim Phase 5 completion; the fresh qualification below must
+     still close the two residual incumbent-retention evidence patterns.
+     Preserve the exact passing algorithms, scientific configuration,
+     thresholds, profiles, and product semantics while completing the
+     orchestration boundary.
    - Replace the placeholder with a typed, scheduler-independent
      `hebog.find_sources(request, config, executor)` implementation and export
      it from the top-level package. It must accept one supported FITS image and
@@ -1452,12 +1472,9 @@ from partial or viewed evidence.
      `NotImplementedError` before freezing the release-candidate identity.
 
 5. [ ] **Freshly qualify the exact public release candidate.**
-   - Blocked: the evaluator and paired-evidence design are aligned and the
-     authorized paired candidate runs and the provenance-correct incumbent
-     reconstruction completed, but the repaired evaluator has not yet
-     published the paired scientific decision. No qualification population
-     may be opened or frozen until that evaluation passes and the public
-     interface above is complete and frozen.
+   - Blocked only on completing and freezing the public interface and obtaining
+     human scientific approval of the final retention-confirmation pre-review.
+     Do not open or freeze qualification inputs before both conditions hold.
    - Freeze a seed-disjoint, previously unopened held-out population and the
      exact installed package, public facade, algorithm, configuration,
      compiler, evaluator, and runtime identities, then obtain a separate
@@ -1467,6 +1484,15 @@ from partial or viewed evidence.
      Execute the candidate through `hebog.find_sources`, not a benchmark-only
      internal materializer, and retain proof that it resolves the frozen
      scientific composition.
+   - Freeze 4,608 seed-disjoint Continuum images with exactly 1,152 from each
+     governed geometry for current-versus-incumbent retention. Select the
+     balanced 1,600-image PyBDSF subset before execution. The qualification
+     evaluator must use whole-image paired BCa resampling within geometry for
+     the nonlinear pooled p95 endpoints, preserve the fixed `0.05`-beam margin,
+     and keep the three shell registry aliases as three governed decisions
+     backed by one evidence pattern. The separate scale-4 pattern supplies the
+     second co-primary retention check; require their conservative joint power
+     and every observed upper bound to pass.
    - Require every applicable released/master PyBDSF and Aegean comparison and
      every like-semantics Hebog-retention comparison to pass the frozen paired
      rule. Report every absolute improvement endpoint and secondary stratum,

@@ -1,0 +1,147 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "closed_evidence": {
+    "binding_comparison_counts": {
+      "aegean_pass": 143,
+      "dual_pybdsf_pass": 676,
+      "fail": 0,
+      "incumbent_hebog_pass": 364,
+      "incumbent_hebog_underpowered": 4
+    },
+    "binding_safety_all_passed": true,
+    "paired_decision_file_sha256": "5bced80488199696382233d8b0d513a83922d35cdee605c8e638798ef8f6faf4",
+    "paired_decision_record_canonical_sha256": "170361b1fc232fa821ecf4ccff5fc74bf796c55695bdc1267415d4d109d7c0d9",
+    "scientific_interpretation": "PyBDSF parity is demonstrated on the complete regression population. No material incumbent-Hebog regression is detected; final retention remains inconclusive for two distinct position-tail evidence patterns.",
+    "source_request_sha256": "7ba9be1b20ff0448e51729337acf2a7028cc0ec578c5e25106b9b34b07506df4"
+  },
+  "minimum_balanced_population": {
+    "confidence_level": 0.95,
+    "endpoint_powers": [
+      {
+        "endpoint_id": "continuum--position-p95--morphology-shell",
+        "planning_expected_regression": 0.0030125418643507373,
+        "planning_standard_error": 0.015756405998999704,
+        "power": 0.9094317826021724,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "endpoint_id": "continuum--position-p95--scale-4-beam",
+        "planning_expected_regression": 0.013072691526728741,
+        "planning_standard_error": 0.00924154831577194,
+        "power": 0.9906369424128674,
+        "practical_regression_margin": 0.05
+      }
+    ],
+    "joint_power_lower_bound": 0.9000687250150398,
+    "minimum_joint_power": 0.9,
+    "selected_count_per_stratum": 1142,
+    "selected_realization_count": 4568,
+    "variance_inflation": 1.25
+  },
+  "planning_estimates": [
+    {
+      "bootstrap_standard_error": 0.02129855825603483,
+      "bootstrap_upper_sensitivity": 0.025892111651670824,
+      "endpoint_id": "continuum--position-p95--morphology-shell",
+      "percentile": 95.0,
+      "positive_regression": 0.0030125418643507373,
+      "realization_count": 1600,
+      "resamples": 50000,
+      "seed": 2026090401,
+      "stratum_counts": [
+        ["phase5-external-post-failure-continuum-1-1024", 400],
+        ["phase5-external-post-failure-continuum-2-1024", 400],
+        ["phase5-external-post-failure-continuum-3-1024", 400],
+        ["phase5-external-post-failure-continuum-4-1024", 400]
+      ]
+    },
+    {
+      "bootstrap_standard_error": 0.012492167007623765,
+      "bootstrap_upper_sensitivity": 0.035307495312181095,
+      "endpoint_id": "continuum--position-p95--scale-4-beam",
+      "percentile": 95.0,
+      "positive_regression": 0.013072691526728741,
+      "realization_count": 1600,
+      "resamples": 50000,
+      "seed": 2026090402,
+      "stratum_counts": [
+        ["phase5-external-post-failure-continuum-1-1024", 400],
+        ["phase5-external-post-failure-continuum-2-1024", 400],
+        ["phase5-external-post-failure-continuum-3-1024", 400],
+        ["phase5-external-post-failure-continuum-4-1024", 400]
+      ]
+    }
+  ],
+  "planning_method": {
+    "bootstrap_resamples": 50000,
+    "confidence_level": 0.95,
+    "fixed_design_stratum": "continuum-dataset-geometry",
+    "independent_unit": "whole-noise-seed-image",
+    "joint_power_bound": "conservative-union-lower-bound",
+    "minimum_joint_power": 0.9,
+    "practical_regression_margin_beams": 0.05,
+    "resampling": "within-geometry-whole-image-bootstrap",
+    "statistic": "pooled-position-error-percentile-95",
+    "unfavourable_closed_shift_retained_fraction": 1.0,
+    "variance_inflation": 1.25
+  },
+  "recommendations": {
+    "closed_decision_remains_immutable_and_incomplete": true,
+    "confirmation_population": "4608 new seed-disjoint Continuum images, exactly 1152 per frozen geometry, for current-versus-incumbent retention",
+    "decision_rule": "Phase 5 scientific evidence passes only if every held-out PyBDSF/Aegean gate passes and the stratified upper bound for both distinct retention patterns is at most 0.05 beams.",
+    "failure_action": "A material held-out regression opens a new root-cause review; otherwise no further Phase 5 source-finder improvement is required.",
+    "public_interface_work_may_proceed": true,
+    "pybdsf_scope": "Run both frozen PyBDSF comparators on the prospectively selected 1600-image balanced qualification subset; the additional 3008 images close only the two incumbent-retention patterns.",
+    "qualification_integration": "Use the same new images as the required held-out public-API qualification; do not run a separate intermediate campaign.",
+    "source_finding_change_required": false
+  },
+  "review_id": "phase-5-final-retention-confirmation-pre-review",
+  "root_cause": {
+    "cause": "The closed evaluator resampled four deliberately balanced Continuum geometries as one pooled mixture. That allowed geometry proportions to fluctuate even though the design fixed 400 images per geometry, adding composition variance to nonlinear pooled p95 position endpoints.",
+    "distinct_evidence_patterns": 2,
+    "post_result_sensitivity_role": "planning-only; does not rescore or replace the closed verdict",
+    "scale_endpoint_id": "continuum--position-p95--scale-4-beam",
+    "shell_alias_endpoint_ids": [
+      "continuum--position-p95--above-compact-deblend-limit",
+      "continuum--position-p95--morphology-shell",
+      "continuum--position-p95--tile-corner"
+    ],
+    "source_finding_defect_detected": false
+  },
+  "schema_version": 1,
+  "selected_balanced_population": {
+    "confidence_level": 0.95,
+    "endpoint_powers": [
+      {
+        "endpoint_id": "continuum--position-p95--morphology-shell",
+        "planning_expected_regression": 0.0030125418643507373,
+        "planning_standard_error": 0.01568786976285308,
+        "power": 0.9115388682506541,
+        "practical_regression_margin": 0.05
+      },
+      {
+        "endpoint_id": "continuum--position-p95--scale-4-beam",
+        "planning_expected_regression": 0.013072691526728741,
+        "planning_standard_error": 0.009201350002922526,
+        "power": 0.9910672830833208,
+        "practical_regression_margin": 0.05
+      }
+    ],
+    "joint_power_lower_bound": 0.9026061513339749,
+    "minimum_joint_power": 0.9,
+    "selected_count_per_stratum": 1152,
+    "selected_realization_count": 4608,
+    "variance_inflation": 1.25
+  },
+  "status": "awaiting-human-scientific-review"
+}
