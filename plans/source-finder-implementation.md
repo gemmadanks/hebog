@@ -1603,13 +1603,29 @@ from partial or viewed evidence.
      two-worker existing-Dask comparisons, and one atomic decision; all wider
      science, qualification, optimization, and release authorities remain
      false.
-   - If that bounded development lane passes, keep the frozen science
-     unchanged and add an independent seed-disjoint analogue to the final
-     qualification. If it exposes a material failure, diagnose and correct it
-     test-first, rerun the affected small regression lanes and any required
-     cumulative comparison, then freeze the replacement candidate before
-     finalizing qualification. In neither case may development images be
-     promoted into the held-out one-look population.
+   - The completion ran from immutable commit `7c92b26...`, reverified all
+     8,496 preserved artifacts, performed only the 12 authorized Dask
+     comparisons, and published terminal decision `ff415f06...` (canonical
+     record `4f6e3724...`). The trigger seam and Serial/existing-Dask
+     invariance both pass, but 9 of 12 geometry groups fail the frozen science
+     rules: all four shell and all four mixed compact/extended groups fail,
+     while three of four curved-filament groups pass. Support recall and mask
+     IoU move adversely beyond the paired margins in most failures; mixed
+     compact/extended cases also expose material integrated-flux errors, and
+     five groups exceed the split-fraction floor. This confirms rather than
+     clears the adaptive-background self-absorption risk. It does not rescore
+     the closed PyBDSF-parity result, but final qualification must remain
+     unopened while this known bright-extended regime is unsafe.
+   - Next, produce a non-executable prospective root-cause review using only
+     the terminal development evidence and existing fixtures. It must separate
+     source contamination of adaptive background/RMS statistics from support,
+     measurement, and publication effects; define the smallest scientifically
+     justified correction; retain the coarse one-factor control; and specify
+     a fail-fast rerun of this seed-disjoint development lane plus affected
+     regression checks. Obtain explicit scientific approval before changing
+     source-finding behaviour. Only a passing replacement lane may freeze a
+     replacement candidate and open the independent held-out analogue. These
+     development images must never enter the one-look qualification population.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

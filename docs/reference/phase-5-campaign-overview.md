@@ -22,6 +22,7 @@ across decisions, or replace a failed result with a later interpretation.
 | Terminal-parent cumulative replay | Test the persistent terminal-cycle correction on the complete cumulative population | Fail, materially improved | Compact passed. Continuum improved from 89 to 96 passing endpoints; split and duplicate fractions nearly halved, but 35 failures and 30 regressions remain. |
 | Prospective 128-case science smoke | Fail fast on the terminal-cycle eligibility candidate before another complete replay | Fail, full replay blocked | All incumbent-retention checks passed, but eight PyBDSF-parity checks failed. The terminal-cycle repair activated diagnostically without changing catalogue membership; systematic mask-boundary precision is the principal confirmed gap. |
 | Publication-scale-persistence cumulative replay | Test the smoke-passing adjacent-scale publication rule on the complete 800-compact/1,600-Continuum regression population | Legacy fail; prospective decision incomplete | Compact passed. The original wrapper reported 31 absolute failures, 11 underpowered endpoints, and 26 historical status regressions, but the later prospective review found all stored PyBDSF comparisons within margin and no full paired evidence against the selected Hebog incumbent. |
+| Adaptive-background 144-image development lane | Test whether adaptive background/RMS refinement preserves bright extended sources when its strict 75-sigma trigger activates | Fail; qualification blocked | Triggering and Serial/Dask invariance passed, but 9 of 12 geometry groups failed. Shell and mixed compact/extended emission lost support or mask quality relative to the coarse control, with severe mixed-source flux failures. |
 
 The apparent contrast between final qualification and later failure is useful,
 not contradictory. The final qualification showed that the frozen candidate
@@ -1321,6 +1322,66 @@ the project's separate no-regression rule requires a small pre-registered,
 seed-disjoint current-versus-incumbent power extension before Phase 5 can
 close. The 15 absolute position objectives remain report-only and do not alter
 this verdict. No tuning, rescoring, qualification, cutover, or release is
+authorized by this result.
+
+## Adaptive-background bright-extended development lane
+
+**Terminal date:** 2026-09-04
+
+**Evidence role:** prospective, seed-disjoint development evidence; not
+qualification, a PyBDSF comparison, or release evidence
+
+**Scientific question:** when Hebog's strict 75-sigma adaptive background/RMS
+trigger activates, does refinement preserve the support, segmentation, and
+photometry of bright extended sources better than the same frozen finder with
+only coarse background estimation?
+
+The 144 analytic 512-by-512 images covered shell, curved-filament, and mixed
+compact/extended morphologies; 4-, 8-, and 12-beam scales; two restoring
+beams; flat and varying noise; interior and tile-corner placement; and nominal
+60-, 75-, and 90-sigma trigger cohorts. Four independent noise seeds populated
+each cell. The adaptive candidate and coarse-only diagnostic control were
+paired on every image. The repair completion reused all 144 sealed serial
+products and ran only the 12 missing existing-Dask comparisons; it did not
+rerun either serial arm.
+
+| Morphology | Geometry groups passing | Main terminal evidence |
+| --- | ---: | --- |
+| Shell | 0 / 4 | Every group exceeded paired support-recall and mask-IoU margins; three also missed the support-recall median floor and two exceeded the split floor. |
+| Curved filament | 3 / 4 | Support, masks, and flux were strong; one varying-noise group failed only because its split fraction was `0.667` against the `0.25` floor. |
+| Mixed compact/extended | 0 / 4 | All groups exceeded the paired flux margin, with widespread hard failures in flux, mask IoU, and support recall; two also exceeded the split floor. |
+
+All 144 inputs were product-valid and complete. The 60-sigma negative controls
+remained below the trigger, every 90-sigma positive control activated over
+truth, and all 12 caller-owned two-worker Dask results were scientifically
+identical to Serial. This separates the scientific failure from the earlier
+worker-result deserialization defect and from executor nondeterminism.
+
+The retained sentinels are consistent with bright extended emission
+contaminating local adaptive background/RMS estimation and being absorbed from
+source support: median in-support background error was `0.188`-`0.449` true
+RMS for shell groups and `0.576`-`2.261` for mixed groups, compared with
+`0.061`-`0.125` for curved filaments. That pattern is a root-cause hypothesis,
+not yet proof of the unique failing mechanism; support construction,
+measurement, and publication effects still need to be separated before a
+source-finding change is proposed.
+
+Atomic decision SHA-256 `ff415f064f4ea7daa9254338041e52ad15d41b84edf692602092134850218026`
+has canonical record identity
+`4f6e37241ee58420c30f8416c784e6c57efbd6e55eae32c1e878757116d865ab`.
+It is bound to immutable execution commit `7c92b26...`, preserved product set
+`c9212f3a...`, original lane review `f9ccef67...`, repair review `d61b9643...`,
+completion review `d2a664f5...`, completion program `8f7c9619...`, and
+completion execution decision `0d5c071b...`.
+
+The terminal verdict is `fail`: the known adaptive-background risk is real in
+this previously uncovered bright-extended regime. This does not alter the
+closed cumulative comparison showing PyBDSF parity on its regression
+population, whose source peaks did not cross the adaptive trigger. It does
+block opening final held-out qualification with the current candidate. The
+next step is an approval-gated, non-executable root-cause review followed by a
+test-first prospective correction and a rerun of this small development lane;
+no threshold change, tuning, rescoring, qualification, cutover, or release is
 authorized by this result.
 
 ## Prospective evaluation contract after terminal-cycle repair
