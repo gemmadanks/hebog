@@ -15217,3 +15217,52 @@ execution.
 reproduced mixed core/halo measurement-aperture loss and shell publication or
 topology fragmentation before deciding whether to supersede this candidate.
 Do not spend a development-lane run merely to rediscover those known gaps.
+
+## 2026-09-04 — Review the independent coarse-arm science gaps
+
+**Plan phase:** Phase 5 final qualification design
+
+- Reconstructed all six independent coarse-arm failures from the exact 144
+  retained array-free observations and bound the result to root review
+  `8e002699...`, its terminal evidence, source-protected candidate
+  `7ebde589...` / source tree `c83ee5a9...`, implementation decision
+  `0bf418ef...`, public identity `4f8c110f...`, and non-executable lane identity
+  `9f416775...`.
+- Corrected the causal interpretation of the split endpoint. The development
+  lane defines a split as more than one catalogue source, whose membership is
+  reduced from immutable direct components and the multiscale hierarchy; final
+  publication-mask connectivity is not an input. Publication remains a mask
+  safety boundary, but the binding shell and filament split failures are
+  catalogue-association over-splitting.
+- Localized the strongest mixed-source loss to source-photometry composition.
+  The flat 12-beam cohort has median background error `0.015469` RMS and median
+  truth-support recall `0.947679`, but median integrated-flux error `0.529076`.
+  Current catalogue photometry grows the associated measurement-label seed by
+  only the fixed 1.5-beam guard, while persistent source-owned scale support
+  can enter publication without entering that seed. Retained scalars do not
+  reveal the exact omitted pixels, so the review requires stage-attributed red
+  fixtures before implementation and does not claim a fully observed pixel-
+  level cause.
+- Froze non-executable review
+  `phase-5-coarse-measurement-and-topology-pre-review.json` (`026e490f...`). It
+  proposes retaining the 1.5-beam guard while seeding it from exclusively owned
+  source-level multiscale support, plus whole-graph conservative parent
+  construction that cannot add unowned membership or accept competing and
+  single-scale bridges. It changes no threshold, gate, truth, background
+  policy, or publication rule and grants no implementation or execution
+  authority.
+- Seven contract tests cover exact evidence and successor binding, causal and
+  observability limits, the catalogue-versus-publication distinction, bounded
+  correction rules, production-equivalent fixture requirements, and write-once
+  publication. The focused review and supporting regression suites pass 77
+  tests. The full branch-aware suite passes 2,664 tests and 2 expected xfails
+  at 94.80% project coverage; Ruff, Pyright, the 2,485-test normal check, and
+  the strict documentation build pass. No equivalence or benchmark lane was
+  rerun because this change records a prospective review and changes no
+  scientific implementation.
+
+**Immediate next step:** obtain named approval of exact review `026e490f...`
+before test-first implementation of the source-owned measurement-support and
+conservative whole-source-parent corrections. Do not execute a development
+lane or open held-out qualification until both fixture gates pass and a
+combined non-executable candidate is frozen.

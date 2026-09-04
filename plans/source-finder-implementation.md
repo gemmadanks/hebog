@@ -549,8 +549,8 @@ independent acceptance. Detailed campaign and incident chronology belongs in
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Open: the approved source-protection correction passes fixtures; the separately reproduced coarse-arm measurement and topology gaps still require renewed review before any correction. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries; source-protection successor `9f416775...` is frozen but non-executable while independent coarse-arm gaps remain. |
+| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Open: the approved source-protection correction passes fixtures. Renewed review `026e490f...` localizes the remaining coarse-arm gaps to source-owned photometry composition and catalogue association, excludes publication-mask fragmentation as the binding split cause, and awaits named approval before either correction. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries; source-protection successor `9f416775...` is frozen but deliberately unexecuted while the approved fixture-first measurement and topology successors are absent. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Source-protected candidate `7ebde589...` and public identity `4f8c110f...` are frozen; further reviewed coarse-gap corrections may still supersede them before qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
@@ -1688,11 +1688,13 @@ from partial or viewed evidence.
      dual-PyBDSF equivalence lane remains green. Source contamination, local-noise
      discrimination, complete fallback, edge/invalid handling, tile shape,
      completion order, retry, Serial, and existing-Dask fixtures pass.
-   - Array-free pre-publication attribution fixtures independently reproduce
-     the mixed core/halo measurement-aperture loss and shell publication
-     fragmentation without changing either algorithm. Those gaps remain open
-     and any measurement, association, or publication correction requires
-     renewed scientific review.
+   - Array-free stage-attribution fixtures reproduce possible mixed core/halo
+     measurement loss and shell publication fragmentation without changing
+     either algorithm. Renewed review `026e490f...` corrects the interpretation
+     of the binding split endpoint: the lane defines it as more than one
+     catalogue source, and catalogue membership does not consume the final
+     publication-mask connectivity. Publication can still affect mask quality,
+     but it cannot cause that recorded split result.
    - Exact scientific candidate `7ebde589...` is committed with source-tree
      identity `c83ee5a9...` and unchanged reference configuration
      `2c907949...`. Successor public-composition review `4f8c110f...`,
@@ -1703,14 +1705,39 @@ from partial or viewed evidence.
      atomic output absent. Its array-free attribution is explicitly
      non-binding and includes the protected pixel/window counters in executor
      equality.
-   - Do not execute that successor lane merely to reconfirm the already known
-     independent failures. First complete renewed scientific review and
-     fixture-first correction of the coarse-arm measurement-aperture and shell
-     publication/topology gaps. Then freeze the resulting exact public
-     candidate and a combined replacement lane. Only a separately approved,
-     passing replacement development lane may open the independent held-out
-     analogue; these development images must never enter the one-look
-     qualification population.
+   - Non-executable coarse-science review
+     `phase-5-coarse-measurement-and-topology-pre-review.json` (`026e490f...`)
+     binds all 144 retained observations, the failed terminal decision, the
+     source-protected successor, and the exact measurement, hierarchy, and
+     publication code. In the flat 12-beam mixed cohort, background error is
+     only `0.015469` RMS and truth-support recall is `0.947679`, while median
+     integrated-flux error is `0.529076`. This localizes the remaining loss to
+     source-photometry composition, although the retained scalar evidence
+     cannot identify each missing aperture pixel. The proposed correction
+     seeds the unchanged 1.5-beam outer guard with the source's exclusively
+     owned persistent multiscale-support union; it does not globally enlarge
+     the aperture, fit missing flux, or use truth/reference-finder inputs.
+   - The same review confirms catalogue association over-splitting. The
+     strongest shell cohort retains median flux error `0.003100`, mask IoU
+     `0.926517`, and truth-support recall `0.965275`, yet 8 of 12 realizations
+     produce multiple catalogue sources. The exact hierarchy rejection branch
+     remains deliberately unresolved until production-equivalent red fixtures
+     retain its bounded diagnostics. The prospective parent correction must
+     reduce the whole exclusive adjacent-scale component-feature graph, keep
+     immutable direct ownership, tolerate one missing or displaced child only
+     when the persistent whole-source graph remains unambiguous, and fail
+     closed on close unrelated pairs, branches, competing parents, and
+     single-scale broad bridges.
+   - Review `026e490f...` authorizes nothing. Obtain named approval before
+     adding the production-equivalent red fixtures or changing measurement or
+     association science. After both corrections pass positive, negative,
+     boundary, invalid-pixel, conflict, and Serial/existing-Dask invariance
+     tests, run the complete combined lane in no-write mode and freeze the
+     resulting exact public candidate and lane identities. Do not execute the
+     existing source-protection lane merely to reconfirm known failures. Only
+     a separately approved, passing combined development lane may open the
+     independent held-out analogue; these development images must never enter
+     the one-look qualification population.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

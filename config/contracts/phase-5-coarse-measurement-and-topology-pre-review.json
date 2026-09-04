@@ -1,0 +1,378 @@
+{
+  "allowed_after_separate_approval": [
+    "test-first-source-owned-multiscale-measurement-support",
+    "test-first-conservative-whole-source-parent-construction",
+    "fixture-only-measurement-association-and-publication-validation",
+    "bounded-non-binding-rejection-and-stage-attribution-telemetry",
+    "serial-and-existing-dask-invariance-validation",
+    "complete-no-write-combined-development-lane-validation",
+    "non-executable-replacement-identity-freeze-only-after-every-fixture-gate-passes"
+  ],
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "candidate": {
+      "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "revision": "7ebde589c82e153e0f7d475a8469c120138be4da",
+      "source_tree_sha256": "c83ee5a90c33f9c915b69402710835a5a094d08df83e003f8e2fd0799f23ae2d"
+    },
+    "mechanism_code": {
+      "attribution": {
+        "path": "src/hebog/validation/adaptive_background_diagnostics.py",
+        "sha256": "172787221cdc4973ab4d716973f198775de3a493bf3553d9a00316247694f9f8"
+      },
+      "attribution_fixtures": {
+        "path": "tests/unit/validation/test_adaptive_background_correction.py",
+        "sha256": "a619bd74080988bbc1adae84cb0bf0b477bb795e124c0924976b3648a3c352b3"
+      },
+      "measurement": {
+        "path": "src/hebog/validation/products.py",
+        "sha256": "a03e33e88a8dee32df337e498970a865107de44546de3ea93402f35395d993e7"
+      },
+      "multiscale_association": {
+        "path": "src/hebog/algorithms/multiscale_association.py",
+        "sha256": "56eebff04dba0f3020eeaad862ea534c64251ecac2bd067e631a52350a9ee53b"
+      },
+      "publication": {
+        "path": "src/hebog/algorithms/extended_measurement.py",
+        "sha256": "c8cddfad678a575f96e7f7554854988d4d9fd3a839a4f6cd846242afc13692d8"
+      },
+      "publication_composition": {
+        "path": "src/hebog/validation/publication_scale_persistence.py",
+        "sha256": "d93be8a1736fb8e2817a56fcb09270b77fe1ddaf76778c03fcc5e5c9e676e990"
+      },
+      "source_association": {
+        "path": "src/hebog/algorithms/source_association.py",
+        "sha256": "a1bfe2896aacabe43d1ed553342766b645be9ef8063110fa16fe00342afec924"
+      }
+    },
+    "preserved_observations": {
+      "array_free_observation_count": 144,
+      "canonical_file_set_sha256": "b55f7385e17c9f78205aa48d9a8b5fefdde2c50602db5c10d6da5c9424fcdf17",
+      "scratch": "/private/tmp/hebog-phase5-adaptive-background-development-937737d"
+    },
+    "root_cause_review": {
+      "path": "config/contracts/phase-5-adaptive-background-root-cause-pre-review.json",
+      "sha256": "8e00269924b50c1b52188beefcb177e50d9035e25a69755d5d2d31ddead3d902"
+    },
+    "source_protected_successor": {
+      "implementation_decision": {
+        "path": "config/contracts/phase-5-adaptive-background-source-protection-implementation-decision.json",
+        "sha256": "0bf418efede130b49a50ea0fea7c216856d5a0c434b64932111a7c7682a36e8f"
+      },
+      "lane_identity": {
+        "path": "config/contracts/phase-5-adaptive-background-source-protection-identity-review.json",
+        "sha256": "9f416775382a55dd600dbf6956b0ced069a6bd692bc7a0e36783702e34fe8eb3"
+      },
+      "public_identity": {
+        "path": "config/contracts/phase-5-adaptive-background-source-protection-public-interface-identity-review.json",
+        "sha256": "4f8c110fb45ffa151d54bc9c9dfdad1385306101a1e8397718f82a0b43388b81"
+      }
+    },
+    "terminal_decision": {
+      "canonical_sha256": "4f6e37241ee58420c30f8416c784e6c57efbd6e55eae32c1e878757116d865ab",
+      "path": "benchmark-results/phase-5/adaptive-background-development-decision.json",
+      "sha256": "ff415f064f4ea7daa9254338041e52ad15d41b84edf692602092134850218026"
+    }
+  },
+  "causal_findings": {
+    "adaptive_background": {
+      "classification": "fixture-corrected-but-unexecuted-prospective-successor",
+      "implication": "the source-protected implementation must be composed with both independent corrections before a new lane; fixture evidence does not predict its terminal result"
+    },
+    "catalogue_source_topology": {
+      "classification": "confirmed-catalogue-association-over-splitting",
+      "code_path": [
+        "the lane defines split as len(catalogue.sources) > 1",
+        "catalogue source count is created from multiscale hierarchy memberships over immutable direct components",
+        "publication retained-mask connectivity is not read by the membership reducer",
+        "the current ideal shell fixtures provide exact clean parents and do not cover the lane's eight-knot noisy, varying, or tile-corner feature loss"
+      ],
+      "evidence": "The strongest shell cohort has median flux error 0.003100 and median mask IoU 0.926517, yet 8 of 12 realizations publish more than one catalogue source. The source is detected and measured well enough; its direct components are not consistently assigned to one source parent.",
+      "exact_rejection_branch": "unresolved-until-production-equivalent-red-fixtures-retain-hierarchy-diagnostics",
+      "strongest_observed_contrast": {
+        "background_error_median_rms": 0.006224,
+        "image_count": 12,
+        "integrated_flux_error_median": 0.0031,
+        "integrated_flux_error_p95": 0.011018,
+        "mask_iou_median": 0.926517,
+        "mask_iou_minimum": 0.901887,
+        "source_count_range": [
+          1,
+          3
+        ],
+        "split_fraction": 0.666667,
+        "truth_support_recall_median": 0.965275,
+        "truth_support_recall_minimum": 0.944664
+      }
+    },
+    "publication_mask": {
+      "classification": "excluded-as-the-cause-of-the-binding-split-metric",
+      "remaining_scope": "publication can still change mask IoU and connectivity; the existing analytic cut-shell fixture proves that possible mechanism only, not the observed catalogue split"
+    },
+    "source_photometry_support": {
+      "classification": "localized-source-photometry-composition-gap",
+      "code_path": [
+        "publication support admits persistent adjacent-scale features independently of catalogue measurement",
+        "catalogue source labels contain only associated member measurement-component labels",
+        "photometry expands those labels by the fixed 1.5-beam outer guard and sums the original residual once",
+        "persistent source-owned scale support outside that seed cannot contribute to the catalogue flux"
+      ],
+      "evidence": "In the flat 12-beam mixed cohort, median background error is only 0.015469 RMS and median truth-support recall is 0.947679, while median integrated-flux error is 0.529076. A background or detection-only explanation cannot account for that separation.",
+      "evidence_limit": "retained scalar observations do not identify the exact missing aperture pixels or apportion the remaining loss between source-owned support and finite aperture growth",
+      "strongest_observed_contrast": {
+        "background_error_median_rms": 0.015469,
+        "image_count": 12,
+        "integrated_flux_error_median": 0.529076,
+        "integrated_flux_error_p95": 0.592872,
+        "mask_iou_median": 0.633154,
+        "mask_iou_minimum": 0.434043,
+        "source_count_range": [
+          1,
+          3
+        ],
+        "split_fraction": 0.166667,
+        "truth_support_recall_median": 0.947679,
+        "truth_support_recall_minimum": 0.863158
+      }
+    },
+    "trigger_or_executor": {
+      "classification": "excluded-as-causes-of-the-coarse-gaps",
+      "evidence": "the coarse arm has adaptive estimation disabled, and the completed lane passed exact Serial/existing-Dask science invariance"
+    }
+  },
+  "change_control": {
+    "forbidden_same_change": [
+      "adaptive-trigger-or-background-policy-change",
+      "detection-or-island-threshold-change",
+      "global-measurement-aperture-radius-increase",
+      "truth-aware-or-reference-finder-support",
+      "spatial-proximity-only-source-merging",
+      "single-scale-broad-support-merging",
+      "publication-change-to-repair-a-catalogue-count",
+      "gate-margin-or-truth-definition-change",
+      "retrospective-rescoring-of-terminal-evidence",
+      "runtime-optimization"
+    ],
+    "historical_terminal_failure_immutable": true,
+    "no_lane_execution_before_both_fixture_closures": true,
+    "no_threshold_or_margin_change": true
+  },
+  "coarse_control_evidence": {
+    "failing_geometries": [
+      {
+        "failures": [
+          "split-fraction-floor"
+        ],
+        "geometry_id": "curved_filament--beam-a--varying--scale-12--interior",
+        "summary": {
+          "background_error_median_rms": 0.00522,
+          "image_count": 12,
+          "integrated_flux_error_median": 0.010964,
+          "integrated_flux_error_p95": 0.027186,
+          "mask_iou_median": 0.915404,
+          "mask_iou_minimum": 0.852995,
+          "source_count_range": [
+            1,
+            5
+          ],
+          "split_fraction": 0.666667,
+          "truth_support_recall_median": 0.978866,
+          "truth_support_recall_minimum": 0.945674
+        }
+      },
+      {
+        "failures": [
+          "integrated-flux-median-floor",
+          "integrated-flux-p95-floor",
+          "mask-iou-cell-median-floor",
+          "mask-iou-image-floor"
+        ],
+        "geometry_id": "mixed_compact_extended--beam-a--flat--scale-12--interior",
+        "summary": {
+          "background_error_median_rms": 0.015469,
+          "image_count": 12,
+          "integrated_flux_error_median": 0.529076,
+          "integrated_flux_error_p95": 0.592872,
+          "mask_iou_median": 0.633154,
+          "mask_iou_minimum": 0.434043,
+          "source_count_range": [
+            1,
+            3
+          ],
+          "split_fraction": 0.166667,
+          "truth_support_recall_median": 0.947679,
+          "truth_support_recall_minimum": 0.863158
+        }
+      },
+      {
+        "failures": [
+          "split-fraction-floor"
+        ],
+        "geometry_id": "mixed_compact_extended--beam-a--varying--scale-4--tile-corner",
+        "summary": {
+          "background_error_median_rms": 0.005564,
+          "image_count": 12,
+          "integrated_flux_error_median": 0.033294,
+          "integrated_flux_error_p95": 0.193216,
+          "mask_iou_median": 0.810548,
+          "mask_iou_minimum": 0.754881,
+          "source_count_range": [
+            1,
+            4
+          ],
+          "split_fraction": 0.833333,
+          "truth_support_recall_median": 0.938824,
+          "truth_support_recall_minimum": 0.910811
+        }
+      },
+      {
+        "failures": [
+          "integrated-flux-median-floor",
+          "integrated-flux-p95-floor",
+          "mask-iou-cell-median-floor",
+          "mask-iou-image-floor",
+          "split-fraction-floor",
+          "support-recall-cell-median-floor",
+          "support-recall-image-floor"
+        ],
+        "geometry_id": "mixed_compact_extended--beam-b--varying--scale-8--interior",
+        "summary": {
+          "background_error_median_rms": 0.007982,
+          "image_count": 12,
+          "integrated_flux_error_median": 0.158823,
+          "integrated_flux_error_p95": 0.314101,
+          "mask_iou_median": 0.540892,
+          "mask_iou_minimum": 0.464387,
+          "source_count_range": [
+            1,
+            4
+          ],
+          "split_fraction": 0.583333,
+          "truth_support_recall_median": 0.791811,
+          "truth_support_recall_minimum": 0.669847
+        }
+      },
+      {
+        "failures": [
+          "split-fraction-floor"
+        ],
+        "geometry_id": "shell--beam-a--varying--scale-8--tile-corner",
+        "summary": {
+          "background_error_median_rms": 0.006224,
+          "image_count": 12,
+          "integrated_flux_error_median": 0.0031,
+          "integrated_flux_error_p95": 0.011018,
+          "mask_iou_median": 0.926517,
+          "mask_iou_minimum": 0.901887,
+          "source_count_range": [
+            1,
+            3
+          ],
+          "split_fraction": 0.666667,
+          "truth_support_recall_median": 0.965275,
+          "truth_support_recall_minimum": 0.944664
+        }
+      },
+      {
+        "failures": [
+          "split-fraction-floor"
+        ],
+        "geometry_id": "shell--beam-b--varying--scale-12--interior",
+        "summary": {
+          "background_error_median_rms": 0.010427,
+          "image_count": 12,
+          "integrated_flux_error_median": 0.003115,
+          "integrated_flux_error_p95": 0.009985,
+          "mask_iou_median": 0.936049,
+          "mask_iou_minimum": 0.89218,
+          "source_count_range": [
+            1,
+            2
+          ],
+          "split_fraction": 0.333333,
+          "truth_support_recall_median": 0.970351,
+          "truth_support_recall_minimum": 0.933086
+        }
+      }
+    ],
+    "failing_geometry_count": 6,
+    "interpretation": "the independent coarse arm localizes two mixed-source photometry/support failures and four catalogue over-splitting failures; it is diagnostic evidence, not a replacement public candidate"
+  },
+  "recommended_correction": {
+    "conservative_source_parent": {
+      "membership_rule": "reduce the complete bounded component-feature graph as one unit; never add a component that lacks immutable direct ownership or accept a partial overlap with an existing source group",
+      "negative_controls": [
+        "close-unrelated-pair",
+        "crossing-or-branched-features",
+        "competing-source-parent",
+        "single-scale-broad-bridge"
+      ],
+      "positive_evidence": "one exclusive connected adjacent-scale feature graph with every member anchored by immutable direct support and no competing parent assignment",
+      "resilience_rule": "an unowned persistent terminal feature may corroborate topology but cannot add membership; one missing or displaced child cannot veto an otherwise exclusive persistent whole-source graph"
+    },
+    "global_aperture_radius_change": false,
+    "new_numeric_science_thresholds": false,
+    "publication_policy": "leave publication science unchanged unless stage-attribution fixtures independently demonstrate a remaining mask defect",
+    "source_owned_measurement_support": {
+      "aperture_policy": "retain the existing 1.5-beam outer guard; extend its seed from measurement labels to the exact source-owned multiscale support union",
+      "inputs": "immutable member measurement labels plus only adjacent-scale persistent support assigned exclusively to the accepted source parent",
+      "ownership_conflicts": "assign once by deterministic nearest immutable member support and canonical source identity for exact distance ties",
+      "photometry": "sum original background-subtracted pixels once per source; do not fit or synthesize missing flux"
+    },
+    "truth_or_reference_finder_inputs": false,
+    "unchanged_science": [
+      "adaptive trigger and source-protected background policy",
+      "public detection and island thresholds",
+      "1.5-beam local measurement guard",
+      "scale detection and adjacent-scale persistence thresholds",
+      "truth definitions, floors, margins, and decision rules"
+    ]
+  },
+  "required_next_decision": "named-approval-of-this-exact-review-for-test-first-fixture-only-measurement-and-topology-correction",
+  "required_sequence": [
+    "obtain-named-approval-of-this-exact-review",
+    "add-production-equivalent-red-measurement-and-hierarchy-fixtures-with-stage-diagnostics",
+    "implement-exclusive-source-owned-multiscale-measurement-support",
+    "implement-whole-graph-conservative-source-parent-construction",
+    "retain-publication-science-and-add-bounded-stage-attribution",
+    "pass-positive-negative-boundary-invalid-and-conflict-fixtures",
+    "pass-serial-existing-dask-tile-order-and-retry-invariance",
+    "run-the-complete-combined-lane-in-no-write-mode",
+    "freeze-exact-non-executable-combined-candidate-and-lane-identities",
+    "obtain-separate-exact-approval-before-running-the-combined-development-lane",
+    "open-held-out-qualification-only-after-every-development-geometry-passes"
+  ],
+  "review_id": "phase-5-coarse-measurement-and-topology-pre-review",
+  "reviewed_on": "2026-09-04",
+  "schema_version": 1,
+  "status": "ready-for-named-measurement-and-topology-correction-review",
+  "test_first_matrix": [
+    "mixed-core-halo-source-owned-photometry-at-4-8-and-12-beam-extents",
+    "mixed-core-halo-flat-and-varying-background",
+    "eight-knot-shell-at-interior-edge-and-tile-corner",
+    "seven-knot-curved-filament-negative-and-positive-controls",
+    "missing-and-displaced-terminal-feature",
+    "exact-parent-and-terminal-cycle-regression",
+    "close-unrelated-blend-must-not-merge",
+    "crossing-branched-and-competing-parent-must-fail-closed",
+    "single-scale-broad-bridge-must-not-merge",
+    "overlapping-source-support-is-owned-once",
+    "measurement-versus-publication-attribution",
+    "invalid-pixel-and-image-edge-support",
+    "serial-existing-dask-tile-order-and-retry-invariance"
+  ]
+}
