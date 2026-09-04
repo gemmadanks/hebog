@@ -14849,3 +14849,60 @@ qualification data or changing source science.
 `6287ad3e...`. Approval should authorize only test-first implementation,
 fixture/no-write validation, and freezing of non-executable development-lane
 identities; executing the 144-image lane must remain a separate decision.
+
+## 2026-09-04 — Implement and freeze the adaptive-background lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Recorded the user's exact approval of pre-review `6287ad3e...` and
+  implemented only its prospective development tooling. No source-finding
+  science, candidate result, PyBDSF/viewed input, qualification population, or
+  release state was changed or opened.
+- Added the exact 36-cell manifest compiler and array-free evaluator for 144
+  seed-disjoint 512-pixel inputs. The scientific contract evaluates each of 12
+  trigger-independent geometries separately, preserves the fixed hard truth
+  floors and paired margins, requires the 60/90-sigma trigger seams, and binds
+  12 Serial/existing-Dask science identities. A pass remains explicitly
+  development-only.
+- Added a fail-closed future runner through `hebog.find_sources`, with the
+  coarse counterfactual isolated to an internal context that changes only the
+  adaptive background/RMS policy and always restores it. The runner requires a
+  caller-owned Dask scheduler, verifies every worker against the frozen local
+  Python/dependency identity, accepts only the exact two-worker one-use
+  authority, and writes one atomic terminal decision without overwrite.
+- Test-first review found and fixed two errors before execution: alternate
+  noise realizations initially inherited the base recipe checksum in their
+  FITS header, and shell knot centres initially spanned one beam less than the
+  reviewed ring diameter. Regression tests now bind every realization to its
+  exact recipe and require the shell ring diameter and curved-filament spacing
+  stated in the approved review.
+- Repository validation found a third process problem: placing the frozen
+  population in `config/datasets/` made the immutable pre-review's historical
+  seed audit count its own new seeds as prior evidence. The population now
+  lives beside its governed contracts, outside that historical-only scan; the
+  approved pre-review and SHA remain unchanged and all eleven original review
+  tests reproduce again.
+- Final code review found and closed a fourth process problem before freezing:
+  the terminal publisher checked for an existing file and then used a
+  replacing rename, leaving a narrow race in which another writer could be
+  overwritten. A red regression test reproduced that clobber path; publication
+  now uses an atomic no-clobber link and cleans its temporary file whether it
+  wins or loses the race.
+- The same review also found that a collision on the second or third freezer
+  destination could leave an incomplete identity set. A red regression test
+  reproduced the partial-write path; the freezer now verifies that all three
+  destinations are absent before creating any of them.
+- Froze manifest `77203f85...`, implementation decision `51161688...`, and
+  non-executable identity review `f9ccef67...`. The review binds candidate
+  `937737d...`, configuration `2c907949...`, exact programs and local runtime,
+  write-once paths, and expected execution `b8d9e6d4...`; every authorization
+  remains false.
+- Sixty-one focused tests pass. The complete no-write preflight validates 144
+  candidate tasks, 144 coarse controls, and 12 Dask comparisons and confirms
+  that candidate execution did not start and neither scratch nor terminal
+  output exists. Focused Pyright and Ruff checks are clean.
+
+**Immediate next step:** obtain a separate exact one-use approval bound to
+identity review `f9ccef67...` and expected execution `b8d9e6d4...`, then run
+the bounded development lane. Do not open final qualification until its
+truth-linked adaptive-background result is terminally interpreted.

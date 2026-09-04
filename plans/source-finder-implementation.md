@@ -1538,9 +1538,9 @@ from partial or viewed evidence.
      completeness, and integrated-flux recovery. Predeclare its cases and
      decision rules; Hydra may motivate the design but must not supply truth,
      thresholds, or acceptance margins.
-   - Pre-registration is complete in
+   - Pre-registration was approved on 2026-09-04 in
      `phase-5-adaptive-background-development-pre-review.json`
-     (`6287ad3e...`) and awaits human scientific review. The bounded lane has
+     (`6287ad3e...`). The bounded lane has
      144 new seed-disjoint 512-pixel images: 12 balanced geometry cells across
      shell, curved-filament, and mixed compact/extended morphology; 4-, 8-,
      and 12-beam scales; two beams; flat or varying noise; and interior or tile-
@@ -1556,10 +1556,23 @@ from partial or viewed evidence.
      practical margins relative to the coarse-only diagnostic. Metric trade-
      offs are allowed only inside those margins; no improvement may waive a
      hard truth floor. Background and RMS errors inside analytic truth support
-     are retained as root-cause sentinels. All execution, source-change,
-     tuning, rescoring, qualification, and release authorizations remain
-     false until the exact pre-review receives approval and its implementation
-     passes fixture and complete no-write validation.
+     are retained as root-cause sentinels.
+   - Implementation and validation are complete without running the lane or
+     changing source-finding science. Frozen population manifest `77203f85...`
+     contains the exact 36 cells and 144 realizations; implementation decision
+     `51161688...` binds the public facade, analytic compiler/evaluator,
+     coarse-control adapter, write-once runner, and local/existing-Dask runtime
+     checks. Sixty-one focused tests cover reviewed geometry, truth-linked
+     reduction, alternate-seed FITS provenance, strict identities, restoration
+     of diagnostic hooks, exact two-worker authority, worker-runtime parity,
+     and atomic publication. The complete no-write preflight validated all 300
+     planned executions while leaving both scratch and output absent.
+   - Non-executable identity review `f9ccef67...` binds candidate `937737d...`,
+     configuration `2c907949...`, the manifest and program/runtime identities,
+     and expected execution `b8d9e6d4...`. It authorizes nothing. Running the
+     lane still requires a separate exact one-use approval bound to those two
+     hashes; source changes, PyBDSF/viewed-data execution, qualification,
+     tuning, rescoring, cutover, and release remain unauthorized.
    - If that bounded development lane passes, keep the frozen science
      unchanged and add an independent seed-disjoint analogue to the final
      qualification. If it exposes a material failure, diagnose and correct it
