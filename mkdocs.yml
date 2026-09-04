@@ -60,6 +60,7 @@ extra:
 nav:
   - Home: index.md
   - Quick start: tutorials/index.md
+  - Find sources: tutorials/find-sources.md
   - Development: how-to/index.md
   - Reference:
       - API: reference/index.md

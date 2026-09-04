@@ -163,15 +163,22 @@ class SourceFinderConfig:
     compatibility configuration at the adapter boundary. The residual
     multiscale segmentation policy has its own explicit configuration because
     its area and support rules use beam rather than pixel units.
+    ``continuum`` is the general source-association profile; ``compact`` is an
+    explicit component-level profile that is incomplete for extended emission.
     """
 
     detection_threshold_sigma: float
     island_threshold_sigma: float
     minimum_island_pixels: int
     maximum_island_pixels: int | None = None
+    profile: Literal["continuum", "compact"] = "continuum"
 
     def __post_init__(self) -> None:
         """Validate finite, positive, ordered sigma thresholds."""
+        if self.profile not in {"continuum", "compact"}:
+            raise ValueError(
+                "source-finder profile must be 'continuum' or 'compact'"
+            )
         if not isfinite(self.detection_threshold_sigma):
             raise ValueError("detection_threshold_sigma must be finite")
         if self.detection_threshold_sigma <= 0:

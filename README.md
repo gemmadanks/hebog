@@ -225,9 +225,8 @@ and materialised results:
 ```python
 from pathlib import Path
 
-from hebog import SourceFinderConfig, SourceFinderRequest
+from hebog import SourceFinderConfig, SourceFinderRequest, find_sources
 from hebog.executors import SerialExecutor
-from hebog.pipeline import find_sources
 
 request = SourceFinderRequest(
     image_path=Path("image.fits"),
@@ -237,16 +236,17 @@ request = SourceFinderRequest(
 config = SourceFinderConfig(
     detection_threshold_sigma=5.0,
     island_threshold_sigma=3.0,
-    minimum_island_pixels=6,
+    minimum_island_pixels=7,
 )
 result = find_sources(request, config, SerialExecutor())
 ```
 
-The top-level `find_sources` call currently raises `NotImplementedError`.
-Completed background, noise-estimation, compact-detection, measurement,
-fitting, astrometry, and compact-catalogue capabilities are exercised through
-internal stage APIs. The stable end-to-end public pipeline and complete product
-set remain under development.
+The top-level call atomically publishes a source catalogue, RMS image,
+source-filtering mask, and provenance-rich diagnostics. The bounded Phase 5
+preview accepts ICRS `Jy/beam` images up to 1,024 pixels on either spatial axis
+and currently supports only the exact qualified 5-sigma/3-sigma, seven-pixel
+configuration. The interface still requires fresh held-out qualification and
+independent acceptance before a scientific-preview release.
 
 Requests and results never contain open FITS handles, scheduler clients, or
 mutable full-image objects. Scientific thresholds are explicit because the

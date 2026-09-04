@@ -230,8 +230,94 @@ class ContinuumSourceFindingDiagnostics(BaseModel):
         return diagnostics
 
 
+class PublicSourceFindingProvenance(BaseModel):
+    """Exact input, configuration, and scientific-composition identity."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    input_sha256: str
+    configuration_sha256: str
+    scientific_profile_sha256: str
+    scientific_composition_sha256: str
+    scientific_composition: Literal["phase-5-publication-scale-persistence-v1"]
+    schema_version: Literal[1] = 1
+
+    @model_validator(mode="after")
+    def _validate_provenance(self) -> Self:
+        """Require every bound identity to be exact lowercase SHA-256."""
+        identities = (
+            self.input_sha256,
+            self.configuration_sha256,
+            self.scientific_profile_sha256,
+            self.scientific_composition_sha256,
+        )
+        if any(_SHA256.fullmatch(identity) is None for identity in identities):
+            raise ValueError("public provenance identities must be SHA-256")
+        return self
+
+
+class PublicSourceFindingDiagnostics(BaseModel):
+    """Version-three public-run diagnostics with reproducible provenance."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    run_id: str
+    profile: Literal["continuum", "compact"]
+    profile_limitations: tuple[Literal["extended-emission-incomplete"], ...]
+    source_count: int
+    gaussian_component_count: int
+    island_count: int
+    rms_scientific_status: Literal["valid", "unavailable"]
+    provenance: PublicSourceFindingProvenance
+    schema_version: Literal[3] = 3
+
+    @model_validator(mode="after")
+    def _validate_diagnostics(self) -> Self:
+        """Require consistent populations and honest profile limitations."""
+        if not self.run_id:
+            raise ValueError("diagnostics run ID must not be empty")
+        _require_population_counts(
+            source_count=self.source_count,
+            gaussian_component_count=self.gaussian_component_count,
+            island_count=self.island_count,
+        )
+        expected_limitations = (
+            ("extended-emission-incomplete",)
+            if self.profile == "compact"
+            else ()
+        )
+        if self.profile_limitations != expected_limitations:
+            raise ValueError(
+                "public diagnostics limitations must match the profile"
+            )
+        return self
+
+    def canonical_json_bytes(self) -> bytes:
+        """Return deterministic UTF-8 JSON with one final newline."""
+        document = json.dumps(
+            self.model_dump(mode="json"),
+            allow_nan=False,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return f"{document}\n".encode()
+
+    @classmethod
+    def from_json_bytes(cls, payload: bytes) -> Self:
+        """Validate one canonical serialized public diagnostic."""
+        diagnostics = cls.model_validate_json(payload)
+        if diagnostics.canonical_json_bytes() != payload:
+            raise ValueError(
+                "public source-finding diagnostics JSON must be canonical"
+            )
+        return diagnostics
+
+
 DiagnosticsProduct = (
-    SourceFindingDiagnostics | ContinuumSourceFindingDiagnostics
+    SourceFindingDiagnostics
+    | ContinuumSourceFindingDiagnostics
+    | PublicSourceFindingDiagnostics
 )
 
 

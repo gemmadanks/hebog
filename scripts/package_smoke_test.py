@@ -106,6 +106,14 @@ def main() -> None:
             environment=environment,
             cwd=temporary_path,
         )
+        run(
+            [
+                str(python_executable),
+                str(REPOSITORY_ROOT / "scripts/public_api_package_smoke.py"),
+            ],
+            environment=environment,
+            cwd=temporary_path,
+        )
 
 
 if __name__ == "__main__":

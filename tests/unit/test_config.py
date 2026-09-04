@@ -25,6 +25,30 @@ def test_accepts_common_five_three_threshold_profile() -> None:
     assert config.island_threshold_sigma == 3.0
     assert config.minimum_island_pixels == 6
     assert config.maximum_island_pixels is None
+    assert config.profile == "continuum"
+
+
+def test_accepts_explicit_compact_profile() -> None:
+    """Callers can explicitly choose the incomplete compact-only view."""
+    config = SourceFinderConfig(
+        detection_threshold_sigma=5.0,
+        island_threshold_sigma=3.0,
+        minimum_island_pixels=7,
+        profile="compact",
+    )
+
+    assert config.profile == "compact"
+
+
+def test_rejects_unsupported_source_finding_profile() -> None:
+    """Unknown public profiles fail before any image analysis can begin."""
+    with pytest.raises(ValueError, match="profile"):
+        SourceFinderConfig(
+            detection_threshold_sigma=5.0,
+            island_threshold_sigma=3.0,
+            minimum_island_pixels=7,
+            profile="unknown",  # type: ignore[arg-type]
+        )
 
 
 def test_rejects_inverted_thresholds() -> None:

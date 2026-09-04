@@ -1222,7 +1222,7 @@ def test_diagnostics_reader_rejects_corrupt_or_unsupported_json(
         read_diagnostics_product(tmp_path / "missing.json")
 
     document = _diagnostics().model_dump(mode="json")
-    document["schema_version"] = 3
+    document["schema_version"] = 4
     path.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(UnsupportedMaterializedProductError, match="schema"):
         read_diagnostics_product(path)

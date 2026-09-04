@@ -35,6 +35,7 @@ from hebog.data_models.source_finding import (
     DiagnosticsProduct,
     MaterializedProduct,
     ProductRole,
+    PublicSourceFindingDiagnostics,
     SourceFindingDiagnostics,
 )
 from hebog.io.base import ImageBounds, ImageWindow
@@ -43,8 +44,13 @@ from hebog.io.fits import FitsImageSource, InvalidFitsImageError
 _CONTENT_SCHEMA_VERSION = 1
 _CATALOGUE_SCHEMA_VERSION = 3
 _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION = 2
+_PUBLIC_DIAGNOSTICS_SCHEMA_VERSION = 3
 _DIAGNOSTICS_SCHEMA_VERSIONS = frozenset(
-    {_CONTENT_SCHEMA_VERSION, _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION}
+    {
+        _CONTENT_SCHEMA_VERSION,
+        _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION,
+        _PUBLIC_DIAGNOSTICS_SCHEMA_VERSION,
+    }
 )
 _IMAGE_DIMENSIONS = 2
 _IMAGE_ROLES = {"rms": "RMS", "source-filtering-mask": "MASK"}
@@ -1204,6 +1210,8 @@ def read_diagnostics_product(
             return SourceFindingDiagnostics.from_json_bytes(payload)
         if schema_version == _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION:
             return ContinuumSourceFindingDiagnostics.from_json_bytes(payload)
+        if schema_version == _PUBLIC_DIAGNOSTICS_SCHEMA_VERSION:
+            return PublicSourceFindingDiagnostics.from_json_bytes(payload)
         raise UnsupportedMaterializedProductError(
             f"unsupported diagnostics content schema: {schema_version}"
         )

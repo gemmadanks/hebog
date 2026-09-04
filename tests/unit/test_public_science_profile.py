@@ -1,0 +1,158 @@
+"""Tests for the immutable scientific profile shipped in the wheel."""
+
+# pyright: reportPrivateUsage=false
+
+from __future__ import annotations
+
+import hashlib
+import importlib
+import json
+from importlib.resources import files
+from pathlib import Path
+
+import pytest
+
+from hebog.data_models import (
+    PublicSourceFindingDiagnostics,
+    PublicSourceFindingProvenance,
+)
+from hebog.public_api import _scientific_composition_sha256
+
+_ROOT = Path(__file__).parents[2]
+
+
+def _provenance() -> PublicSourceFindingProvenance:
+    """Return one exact public provenance fixture."""
+    return PublicSourceFindingProvenance(
+        input_sha256="1" * 64,
+        configuration_sha256="2" * 64,
+        scientific_profile_sha256="3" * 64,
+        scientific_composition_sha256="4" * 64,
+        scientific_composition=("phase-5-publication-scale-persistence-v1"),
+    )
+
+
+def test_profile_matches_reviewed_repository_record() -> None:
+    """The wheel cannot silently drift from the reviewed science profile."""
+    installed = (
+        files("hebog.resources")
+        .joinpath("phase_5_continuum_review.json")
+        .read_bytes()
+    )
+    reviewed = (
+        _ROOT / "config/contracts/phase-5-corrective-a-review.json"
+    ).read_bytes()
+
+    assert installed == reviewed
+    assert hashlib.sha256(installed).hexdigest() == (
+        "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+    )
+
+
+def test_public_diagnostics_round_trip_exact_provenance() -> None:
+    """Public diagnostics preserve profile limitations and exact identities."""
+    diagnostics = PublicSourceFindingDiagnostics(
+        run_id="public-test",
+        profile="compact",
+        profile_limitations=("extended-emission-incomplete",),
+        source_count=1,
+        gaussian_component_count=1,
+        island_count=1,
+        rms_scientific_status="valid",
+        provenance=_provenance(),
+    )
+
+    assert (
+        PublicSourceFindingDiagnostics.from_json_bytes(
+            diagnostics.canonical_json_bytes()
+        )
+        == diagnostics
+    )
+
+
+def test_public_provenance_rejects_non_sha_identity() -> None:
+    """Public evidence cannot carry a truncated implementation identity."""
+    document = _provenance().model_dump()
+    document["scientific_composition_sha256"] = "1234"
+
+    with pytest.raises(ValueError, match="must be SHA-256"):
+        PublicSourceFindingProvenance.model_validate(document)
+
+
+@pytest.mark.parametrize(
+    ("run_id", "profile", "limitations", "message"),
+    [
+        ("", "continuum", (), "run ID"),
+        (
+            "public-test",
+            "continuum",
+            ("extended-emission-incomplete",),
+            "limitations",
+        ),
+    ],
+)
+def test_public_diagnostics_reject_inconsistent_identity_and_profile(
+    run_id: str,
+    profile: str,
+    limitations: tuple[str, ...],
+    message: str,
+) -> None:
+    """A public diagnostic cannot overstate its profile or omit its run."""
+    with pytest.raises(ValueError, match=message):
+        PublicSourceFindingDiagnostics.model_validate(
+            {
+                "run_id": run_id,
+                "profile": profile,
+                "profile_limitations": limitations,
+                "source_count": 0,
+                "gaussian_component_count": 0,
+                "island_count": 0,
+                "rms_scientific_status": "unavailable",
+                "provenance": _provenance().model_dump(),
+            }
+        )
+
+
+def test_public_diagnostics_reject_noncanonical_json() -> None:
+    """Whitespace drift cannot masquerade as canonical public evidence."""
+    diagnostics = PublicSourceFindingDiagnostics(
+        run_id="public-test",
+        profile="continuum",
+        profile_limitations=(),
+        source_count=0,
+        gaussian_component_count=0,
+        island_count=0,
+        rms_scientific_status="unavailable",
+        provenance=_provenance(),
+    )
+
+    with pytest.raises(ValueError, match="must be canonical"):
+        PublicSourceFindingDiagnostics.from_json_bytes(
+            diagnostics.canonical_json_bytes() + b" "
+        )
+
+
+def test_public_interface_identity_binds_every_declared_file() -> None:
+    """The non-executable interface review cannot outlive code drift."""
+    review = json.loads(
+        (
+            _ROOT
+            / "config/contracts/phase-5-public-interface-identity-review.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert review["status"] == "frozen-non-executable"
+    assert not any(review["authorizations"].values())
+    for relative_path, expected in review["interface_file_sha256"].items():
+        assert (
+            hashlib.sha256((_ROOT / relative_path).read_bytes()).hexdigest()
+            == expected
+        )
+    for module_name, expected in review["scientific_module_sha256"].items():
+        module_path = Path(importlib.import_module(module_name).__file__ or "")
+        assert hashlib.sha256(module_path.read_bytes()).hexdigest() == expected
+
+    assert (
+        _scientific_composition_sha256()
+        == review["scientific_composition_sha256"]
+    )

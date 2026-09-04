@@ -43,6 +43,8 @@ from hebog.data_models.source_association import (
 from hebog.data_models.source_finding import (
     ContinuumSourceFindingDiagnostics,
     MaterializedProduct,
+    PublicSourceFindingDiagnostics,
+    PublicSourceFindingProvenance,
     SourceFinderRequest,
     SourceFinderResult,
     SourceFindingDiagnostics,
@@ -77,6 +79,8 @@ __all__ = [
     "PartitionManifest",
     "ProductChunk",
     "ProductGenerationManifest",
+    "PublicSourceFindingDiagnostics",
+    "PublicSourceFindingProvenance",
     "RestoringBeam",
     "ScaleDetection",
     "SkyPosition",

@@ -1,4 +1,4 @@
-"""Public source-finding pipeline API."""
+"""Scheduler-independent public source-finding API."""
 
 from __future__ import annotations
 
@@ -7,23 +7,36 @@ from hebog.data_models import SourceFinderRequest, SourceFinderResult
 from hebog.executors import Executor
 
 
+class SourceFinderError(Exception):
+    """Base class for failures at the public source-finding boundary."""
+
+
+class SourceFinderOutputExistsError(SourceFinderError):
+    """The caller-owned output destination already exists."""
+
+
+class InvalidSourceFinderInputError(SourceFinderError):
+    """The requested input cannot be read as a supported FITS image."""
+
+
+class UnsupportedSourceFinderConfigurationError(SourceFinderError):
+    """The requested science differs from the qualified Phase 5 profile."""
+
+
+class SourceFinderImageTooLargeError(SourceFinderError):
+    """An input exceeds the bounded Phase 5 scientific-preview envelope."""
+
+
 def find_sources(
     request: SourceFinderRequest,
     config: SourceFinderConfig,
     executor: Executor,
 ) -> SourceFinderResult:
-    """Analyse one image and materialise its scientific products.
+    """Analyse one supported FITS image and atomically publish its products.
 
-    Workflow adapters may compose multiple analyses and translate their
-    products. In particular, the Rapthor adapter owns the true-/apparent-sky
-    model filtering and its two RMS-image compatibility contract.
-
-    Raises:
-        NotImplementedError: Until the equivalence baseline in the
-            implementation plan is complete and the first scientific stage is
-            implemented.
+    The implementation is imported only when called so importing the public
+    scheduler-independent API never loads a concrete I/O or scheduler layer.
     """
-    del request, config, executor
-    raise NotImplementedError(
-        "Source finding is not implemented; follow the implementation plan"
-    )
+    from hebog.public_api import find_sources as _find_sources  # noqa: PLC0415
+
+    return _find_sources(request, config, executor)
