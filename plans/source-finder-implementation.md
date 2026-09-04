@@ -1570,9 +1570,12 @@ from partial or viewed evidence.
    - Non-executable identity review `f9ccef67...` binds candidate `937737d...`,
      configuration `2c907949...`, the manifest and program/runtime identities,
      and expected execution `b8d9e6d4...`. It authorizes nothing. Running the
-     lane still requires a separate exact one-use approval bound to those two
-     hashes; source changes, PyBDSF/viewed-data execution, qualification,
-     tuning, rescoring, cutover, and release remain unauthorized.
+     lane received separate exact one-use approval on 2026-09-04, recorded by
+     execution decision `fc804d7d...` and bound to those two hashes. It permits
+     only the 144 candidate executions, 144 coarse controls, 12 existing-Dask
+     comparisons, and one atomic terminal decision; source changes,
+     PyBDSF/viewed-data execution, qualification, tuning, rescoring,
+     optimization, cutover, and release remain unauthorized.
    - If that bounded development lane passes, keep the frozen science
      unchanged and add an independent seed-disjoint analogue to the final
      qualification. If it exposes a material failure, diagnose and correct it
