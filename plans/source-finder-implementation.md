@@ -553,7 +553,7 @@ authorization boundaries remain in `config/contracts/`.
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
 | Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Fixture-complete: candidate `c28343f...` composes source protection, source-owned persistent measurement, and conservative one-missing-child parent construction. Positive, negative, invalid, boundary, conflict, and executor fixtures pass; the combined lane has not yet executed candidate science. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Awaiting renewed execution approval: identity `4c611f1b...` was invoked once but failed during task pickling with zero candidate or control runs. Process-only successor `40a9f99f...` preserves the candidate and passes the complete 144-candidate/144-control/12-Dask no-write preflight. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Authorized to run: identity `4c611f1b...` was invoked once but failed during task pickling with zero candidate or control runs. Process-only successor `40a9f99f...` preserves the candidate and passes the complete 144-candidate/144-control/12-Dask no-write preflight; renewed authority is bound in a separate one-use decision. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `c28343f...`, source tree `8235e9bc...`, configuration `2c907949...`, and public identity `ca1abba6...` are frozen. The combined lane must pass before this candidate can enter held-out qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
@@ -1757,7 +1757,11 @@ from partial or viewed evidence.
      domain models inside each worker. Pickle round-trip, exact reconstruction,
      malformed-payload, historical-identity, collision, and full no-write
      tests pass. The original decision is consumed; a new exact approval bound
-     to expected execution `8914fafd...` is required before retrying.
+     to expected execution `8914fafd...` was recorded on 2026-09-04. Execute
+     this fail-fast lane before preparing any cumulative replay or fresh held-
+     out qualification identity. Process-only failures may be fixed and
+     retried without scientific drift; a completed scientific failure is
+     terminal evidence and may not be tuned or rescored.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

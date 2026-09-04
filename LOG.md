@@ -15412,3 +15412,27 @@ two-worker Dask runtime, and launch the single authorized lane.
 repair review `c35c6eec...`, identity `40a9f99f...`, and expected execution
 `8914fafd...`. The original decision `c169bb85...` is consumed and must not be
 reused. No development-lane process is running.
+
+## 2026-09-04 — Authorize the process-repaired combined development lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Recorded the user's renewed authority in separate one-use process-repair
+  decision `8678b539...`, bound to review `c35c6eec...`, identity
+  `40a9f99f...`, expected execution `8914fafd...`, wrapper `4858f173...`,
+  candidate `c28343f...`, source tree `8235e9bc...`, and unchanged
+  configuration `2c907949...`.
+- This decision authorizes only the immediate 144 candidate, 144 paired
+  coarse-control, and 12 existing-Dask development checks with one atomic
+  terminal result. The user's downstream replay and held-out-campaign
+  authority remains ordered behind a passing lane and new exact frozen
+  identities; it is not folded into this lane decision. Tuning, rescoring,
+  viewed data, cutover, and release remain closed.
+- Process-only bugs may be repaired and retried under the renewed authority,
+  preserving prior namespaces and scientific identity. A completed scientific
+  failure remains terminal evidence and requires prospective scientific
+  review rather than an automatic retry.
+
+**Immediate next step:** commit the one-use lane decision, repeat the exact
+spawned-process no-write preflight from an immutable checkout, then start one
+two-worker run and monitor it without inspecting partial science.
