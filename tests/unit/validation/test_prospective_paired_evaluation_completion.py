@@ -89,15 +89,26 @@ def test_completion_program_binds_the_unchanged_evaluator_and_repair() -> None:
     assert decision["repair_boundary"]["candidate_execution_possible"] is False
 
 
-def test_completion_invocation_rejects_namespace_drift() -> None:
+def test_completion_invocation_rejects_namespace_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Only the new incumbent namespace and absent paired output are valid."""
     program = _program()
     arguments = _arguments(program)
+    output = tmp_path / "prospective-paired-cumulative-decision.json"
+    require_invocation = program["_require_invocation"]
+    monkeypatch.setitem(require_invocation.__globals__, "_OUTPUT", output)
+    arguments.output = output
 
-    program["_require_invocation"](arguments)
+    require_invocation(arguments)
     arguments.incumbent_scratch = Path("different")
     with pytest.raises(ValueError, match="incumbent_scratch"):
-        program["_require_invocation"](arguments)
+        require_invocation(arguments)
+
+    arguments.incumbent_scratch = program["_INCUMBENT_SCRATCH"]
+    output.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(FileExistsError, match="output already exists"):
+        require_invocation(arguments)
 
 
 def test_completion_rejects_hebog_imports_from_another_checkout(
