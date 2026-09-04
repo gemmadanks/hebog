@@ -1,12 +1,14 @@
 # Phase 5 public-finder source reconstruction
 
 **Status:** historical source-reconstruction campaigns remain terminal
-evidence. The latest approved fixture-only successor adds source-owned
-persistent measurement support and a conservative one-missing-child terminal
-parent rule. Its positive, negative, invalid-pixel, boundary, and
-Serial/existing-Dask fixtures pass. A new non-executable candidate and
-development-lane identity must still be frozen before a separate execution
-decision. No development-lane run, cumulative replay, public-data campaign,
+evidence. Candidate `c28343f...` adds source-owned persistent measurement
+support and a conservative one-missing-child terminal-parent rule. Its
+positive, negative, invalid-pixel, boundary, and Serial/existing-Dask fixtures
+pass. Public identity `ca1abba6...` and combined development-lane identity
+`4c611f1b...` are frozen non-executable; the exact no-write preflight passed
+all 144 candidate, 144 coarse-control, and 12 existing-Dask slots without
+creating a namespace. No development-lane run, cumulative replay,
+public-data campaign,
 qualification run, tuning, rescoring, cutover, or release is authorized by
 this work.
 

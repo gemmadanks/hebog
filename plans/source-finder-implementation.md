@@ -549,9 +549,9 @@ independent acceptance. Detailed campaign and incident chronology belongs in
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | In progress: review `026e490f...` is approved. Source-owned persistent measurement support and conservative one-missing-child parent construction pass their positive, negative, invalid, boundary, and conflict fixtures; combined no-write validation and identity freezing remain. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries. The combined replacement passes fixture and executor invariance gates but has not been executed; a new exact lane identity and separate execution approval remain required. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | The source-protected candidate is superseded prospectively by the fixture-validated measurement/topology composition. Its exact committed revision, public identity, and lane identity remain to be frozen. |
+| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Fixture-complete: candidate `c28343f...` composes source protection, source-owned persistent measurement, and conservative one-missing-child parent construction. Positive, negative, invalid, boundary, conflict, and executor fixtures pass; the combined development lane remains unexecuted. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries. Replacement lane identity `4c611f1b...` is frozen non-executable and its complete 144-candidate/144-control/12-Dask no-write preflight passes. A separate exact execution approval is required. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `c28343f...`, source tree `8235e9bc...`, configuration `2c907949...`, and public identity `ca1abba6...` are frozen. The combined lane must pass before this candidate can enter held-out qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -1738,9 +1738,14 @@ from partial or viewed evidence.
      owned missing features, and adds bounded stage and rejection telemetry.
      The 4/8/12-beam flat/varying photometry cases, seven/eight-knot real-scale
      morphology cases, overmerge controls, boundary/invalid cases, and
-     Serial/existing-Dask order/retry invariance pass. Next run the complete
-     combined lane in no-write mode and freeze exact non-executable public and
-     lane identities. Do not execute any lane without a later exact approval.
+     Serial/existing-Dask order/retry invariance pass. Candidate `c28343f...`,
+     public identity `ca1abba6...`, and combined lane identity `4c611f1b...`
+     are frozen. The complete no-write preflight verifies all 300 planned
+     execution slots, the full candidate source-tree identity, exact bounded
+     measurement/topology seams, immutable programs and fixtures, and absent
+     scratch/output. Next obtain a separate
+     exact one-use approval before executing this lane; only a passing terminal
+     decision may open the seed-disjoint held-out qualification.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

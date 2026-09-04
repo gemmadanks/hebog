@@ -15307,3 +15307,47 @@ combined non-executable candidate is frozen.
 scientific candidate, then run the complete combined lane in no-write mode and
 freeze successor non-executable public and lane identities. A separate exact
 approval remains mandatory before any execution.
+
+## 2026-09-04 — Freeze the combined development lane without execution
+
+**Plan phase:** Phase 5 final qualification design
+
+- Committed the approved scientific implementation as candidate
+  `c28343fb85ae9bd0d1d927701564f93fbe51b659`, source tree
+  `8235e9bcca0e184d1a1597a3dce1f91e9389795370b61f68734b3ee5002b220f`,
+  retaining configuration
+  `2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d`.
+- Added a fail-closed combined development-lane wrapper with array-free
+  attribution for detection, source ownership, catalogue measurement,
+  publication, hierarchy rejection, and source-protection stages. Exact
+  Serial/existing-Dask comparison digests include the new measurement and
+  topology diagnostics, so scheduler equality cannot hide a stage change.
+- Test-first tooling contracts cover deterministic freezing, absent namespace,
+  bounded schema aggregation, fail-closed source identity, diagnostic-aware
+  executor digests, missing execution authority, atomic collision refusal,
+  full source-tree drift, persistent-support digest retention, and exact
+  expanded-aperture capture; all 12 pass. Review also corrected publication
+  attribution to use the exact terminal retained mask and measurement
+  attribution to use the source aperture actually passed to photometry, and
+  made the no-write boundary verify the complete source tree.
+- Froze public identity
+  `ca1abba66a6368fe37fb8e43b93b81999ced462f3e01d16be9011cc629913490`,
+  implementation decision
+  `fc4728c852da061920c9e8cb68facb18990256e18949fad4a1a0873b20b06731`,
+  and combined lane identity
+  `4c611f1b61113584512f45650ef41e468237c59413b7464a7070cd7bce0e4944`.
+  Every authorization flag is false.
+- The exact complete no-write command passed: 144 candidate slots, 144
+  coarse-control slots, 12 caller-owned existing-Dask slots, unchanged
+  manifest `77203f85...`, and bounded fixture-seam digest `de75f170...`.
+  Candidate execution did not start, and neither scratch nor atomic output was
+  created.
+- Final validation passed: 12 focused lane/tooling tests; 2,701 coverage-lane
+  tests with 2 expected failures and 94.79% branch-aware project coverage;
+  `just check` with 2,520 passed and 2 expected failures; 27 frozen PyBDSF
+  equivalence tests; and the strict documentation build.
+
+**Immediate next step:** obtain a separate exact one-use approval bound to
+combined lane identity `4c611f1b...` and expected execution SHA-256
+`b7d12adb...` before running the development lane. A passing lane is required
+before opening held-out qualification.
