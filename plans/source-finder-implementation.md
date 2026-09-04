@@ -1387,10 +1387,31 @@ from partial or viewed evidence.
      execution `ad407f73...`; its decision authorizes only reuse of the sealed
      products and atomic publication. Do not rerun either Hebog candidate or
      any PyBDSF reference.
-   - [ ] Complete that single evaluation-only compilation, verify the atomic
+   - [x] Complete that single evaluation-only compilation, verify the atomic
      paired decision and all frozen provenance, interpret binding science
      before report-only objectives and runtime, and treat a scientific gate
-     failure as terminal evidence without tuning or rescoring.
+     failure as terminal evidence without tuning or rescoring. Atomic decision
+     `5bced804...` is valid and terminal with status `incomplete`: all 143
+     Aegean, all 676 dual-PyBDSF, all five safety, and 364 of 368 incumbent-
+     retention checks pass. The remaining four are underpowered rather than
+     failed; all concern Continuum position-error p95 for shell/large-scale
+     strata, with observed movements of `0.0030`–`0.0131` beams and upper
+     confidence limits of `0.0542`–`0.0564` against the frozen `0.05`-beam
+     margin. No binding comparison reports a material regression.
+   - [ ] Pre-register the smallest scientifically adequate paired power
+     extension for the four inconclusive incumbent-retention checks. A
+     terminal post-publication audit proves that
+     above-compact-deblend-limit, morphology-shell, and tile-corner contain
+     identical payloads in all 6,400 retained finder/input summaries, so they
+     are three registry views of one shell evidence pattern and must not be
+     counted as three independent deficits; treat scale-4-beam as the second
+     pattern. Preserve the `0.05`-beam margin, confidence and multiplicity
+     rules, current and incumbent scientific identities, and all closed
+     PyBDSF/Aegean evidence. Use new seed-disjoint regression inputs and
+     comparison-specific paired evidence rather than rerunning the complete
+     4,800-product population. If the extension proves non-inferiority, merge
+     it prospectively into one terminal decision; if it proves a material
+     regression, open a scientific root-cause review before any source change.
    - After every terminal campaign, replay, or evaluation-only completion,
      append a human-readable immutable snapshot to the Phase 5 scientific
      campaign overview before closing its plan/log record.

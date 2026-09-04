@@ -1271,6 +1271,58 @@ Non-executable review `7889c11f...` now binds implementation commit
 proof, and the real-tail digest. Every authorization is false; evaluation may
 begin only after separate exact one-use approval.
 
+### Prospective paired topology-repair evaluation
+
+**Terminal date:** 2026-09-04
+
+**Evidence role:** terminal regression evaluation; scientifically valid but
+incomplete because four incumbent-retention comparisons remain inconclusive
+
+The evaluation asked whether publication-scale-persistence Hebog retains the
+best closed Hebog result while matching both released PyBDSF and pinned PyBDSF
+`master`, without weakening safety or using ambitious absolute objectives as
+release blockers. It reused the sealed 2,400-product current set
+`6bcb2959...`, sealed 2,400-product incumbent set `8dbc9dff...`, and all 9,600
+retained reference runs; no finder was rerun. The population contained 800
+compact and 1,600 Continuum inputs. Analytic injected truth supplied the
+scientific reference, and all comparisons used the pre-registered paired
+confidence limits and practical margins.
+
+Atomic decision `5bced804...` has canonical record identity `170361b1...` and
+is bound to immutable checkout `a2ddcc5...`, review `7889c11f...`, execution
+decision `4e1bbbaf...`, expected execution `ad407f73...`, and repaired
+evaluator `39a568ba...`.
+
+| Binding comparison | Pass | Underpowered | Fail | Interpretation |
+| --- | ---: | ---: | ---: | --- |
+| Aegean parity | 143 | 0 | 0 | Fully passes |
+| Released PyBDSF parity | 338 | 0 | 0 | Fully passes |
+| Pinned PyBDSF `master` parity | 338 | 0 | 0 | Fully passes |
+| Incumbent Hebog retention | 364 | 4 | 0 | Four position-tail checks are inconclusive |
+| Binding safety | 5 | 0 | 0 | Fully passes |
+
+The four inconclusive checks are Continuum position-error p95 for
+above-compact-deblend-limit, morphology-shell, scale-4-beam, and tile-corner.
+Their observed incumbent-relative movements are only `0.0030`–`0.0131` beams,
+well inside the frozen `0.05`-beam practical margin, but their multiplicity-
+adjusted upper confidence limits are `0.0542`–`0.0564` beams. The data
+therefore show no material regression, but they do not yet exclude one with
+the required confidence. The first, second, and fourth endpoints describe the
+same shell observations: their retained endpoint payloads are identical across
+all 6,400 finder/input summaries. Scale-4-beam is the other distinct evidence
+pattern. A power extension must preserve all four registry checks but must not
+treat the three shell aliases as independent information.
+
+All 1,183 other co-primary comparisons pass, including every comparison with
+both PyBDSF versions, and all safety invariants pass. The correct verdict is
+`incomplete`, not `fail` and not release-ready. This is strong evidence that
+Hebog has reached PyBDSF scientific parity on this regression population, but
+the project's separate no-regression rule requires a small pre-registered,
+seed-disjoint current-versus-incumbent power extension before Phase 5 can
+close. The 15 absolute position objectives remain report-only and do not alter
+this verdict. No tuning, rescoring, qualification, cutover, or release is
+authorized by this result.
+
 ## Prospective evaluation contract after terminal-cycle repair
 
 **Frozen date:** 2026-08-31

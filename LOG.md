@@ -14574,3 +14574,52 @@ cutover, and release remain unauthorized.
 **Immediate next step:** commit the one-use decision, construct a clean
 immutable evaluation checkout, repeat the complete no-write verification, and
 consume the authority exactly once to publish the atomic paired decision.
+
+## 2026-09-04 — Complete paired topology-repair evaluation
+
+**Plan phase:** Phase 5 public-finder cumulative validation
+
+- The one-use evaluation completed successfully from clean immutable checkout
+  `a2ddcc57115d7d52554162c426bdac3e02e3e15a` and atomically published
+  `prospective-paired-cumulative-decision.json`, file SHA-256 `5bced804...`,
+  canonical record SHA-256 `170361b1...`. The process exited normally with
+  terminal status `incomplete`.
+- Verified exact current revision/source/configuration/product set
+  `937737d...` / `9f8e4a67...` / `2c907949...` / `6bcb2959...`, incumbent
+  revision/source/configuration/product set `85d5807...` / `a082cbe4...` /
+  `88ac8bea...` / `8dbc9dff...`, reconstruction record `b302967f...`, review
+  `7889c11f...`, execution decision `4e1bbbaf...`, completion `aaf82a85...`,
+  evaluator `39a568ba...`, source-union preparer `b4c8f8ea...`, source-union
+  tail `18c8d43b...`, and population `0bd3e6a6...`. The immutable checkout was
+  clean and the canonical record digest recomputed exactly.
+- Binding science is encouraging but not terminally sufficient: all 143
+  Aegean comparisons, all 338 released-PyBDSF comparisons, all 338 pinned-
+  master comparisons, all five safety checks, and 364 of 368 incumbent-
+  retention comparisons pass. There are zero scientific failures and four
+  underpowered incumbent-retention comparisons.
+- The four inconclusive endpoints are Continuum position p95 for
+  above-compact-deblend-limit, morphology-shell, scale-4-beam, and
+  tile-corner. Observed movements are `0.0030125` beams for the three aliased
+  shell strata and `0.0130727` beams for scale-4, inside the fixed `0.05`-beam
+  margin. Their adjusted upper confidence limits (`0.0563705` and `0.0542216`)
+  cross that margin slightly. Planning variance assumptions are met; the
+  blocker is remaining sampling uncertainty, not a detected material
+  regression or process failure.
+- Verified the apparent four endpoints represent only two distinct evidence
+  patterns: above-compact-deblend-limit, morphology-shell, and tile-corner
+  have identical endpoint payloads across all 6,400 retained finder/input
+  summaries; scale-4-beam is distinct. A future power calculation must retain
+  the registry views without treating their aliased observations as
+  independent samples.
+- The result proves dual-PyBDSF parity on this regression population, but the
+  explicit incumbent-retention rule correctly keeps
+  `cumulative_science_regression_ready=false` and
+  `all_required_endpoints_pass=false`. The 15 absolute objectives remain
+  report-only. No tuning, rescoring, qualification, cutover, or release was
+  performed or authorized.
+
+**Immediate next step:** pre-register a minimal seed-disjoint paired power
+extension for the two distinct position-tail evidence patterns, preserving the
+scientific identities, fixed margin, confidence and multiplicity rules, and
+closed PyBDSF/Aegean evidence. Do not rerun the full population or change
+source science unless that extension establishes a material regression.
