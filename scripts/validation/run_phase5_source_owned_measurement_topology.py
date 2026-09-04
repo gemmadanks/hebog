@@ -11,13 +11,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import pickle
 import runpy
 from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from contextlib import contextmanager
+from dataclasses import asdict
 from datetime import UTC, datetime
 from math import ceil
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import numpy as np
@@ -35,6 +38,9 @@ from hebog.algorithms.source_association import (
     _TerminalCycleEvidence,
 )
 from hebog.validation import products as validation_products
+from hebog.validation.adaptive_background_development import (
+    AdaptiveDevelopmentCell,
+)
 from hebog.validation.adaptive_background_diagnostics import (
     attribute_source_measurement_support,
     attribute_truth_support,
@@ -46,7 +52,11 @@ from hebog.validation.adaptive_background_lane import (
     build_adaptive_runtime_identity,
     source_signal_and_truth,
 )
-from hebog.validation.datasets import DatasetManifest
+from hebog.validation.datasets import (
+    DatasetManifest,
+    DatasetRecord,
+    SyntheticRecipe,
+)
 from hebog.validation.external_runners import (
     canonical_sha256,
     file_sha256,
@@ -59,6 +69,20 @@ _ROOT_REVIEW = Path(
 _ROOT_REVIEW_SHA256 = (
     "026e490f1c97b32e0b4940a1af9985b32c33f0debd9b1ffb11f0ac4b826e2d15"
 )
+_PROCESS_REPAIR_REVIEW = Path(
+    "config/contracts/phase-5-source-owned-measurement-topology-"
+    "process-repair-pre-review.json"
+)
+_PROCESS_REPAIR_REVIEW_SHA256 = (
+    "c35c6eecb32141e88d1cec8fa501bfeddc5b7d2b8a680b99188957e454e886a4"
+)
+_PREDECESSOR_IDENTITY = Path(
+    "config/contracts/phase-5-source-owned-measurement-topology-"
+    "identity-review.json"
+)
+_PREDECESSOR_IDENTITY_SHA256 = (
+    "4c611f1b61113584512f45650ef41e468237c59413b7464a7070cd7bce0e4944"
+)
 _PUBLIC_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
     "public-interface-identity-review.json"
@@ -69,11 +93,11 @@ _IMPLEMENTATION = Path(
 )
 _IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "identity-review.json"
+    "process-repair-identity-review.json"
 )
 _EXECUTION_DECISION = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "execution-decision.json"
+    "process-repair-execution-decision.json"
 )
 _MANIFEST = Path(
     "config/contracts/phase-5-adaptive-background-development-manifest.json"
@@ -85,7 +109,8 @@ _PARENT_RUNNER = Path(
     "scripts/validation/run_phase5_adaptive_background_development.py"
 )
 _SCRATCH = Path(
-    "/private/tmp/hebog-phase5-source-owned-measurement-topology-c28343f"
+    "/private/tmp/hebog-phase5-source-owned-measurement-topology-"
+    "process-repair-c28343f"
 )
 _OUTPUT = Path(
     "benchmark-results/phase-5/"
@@ -113,6 +138,10 @@ _PROGRAM_BINDING_PATHS = {
     "measurement_algorithm": "src/hebog/algorithms/extended_measurement.py",
     "measurement_composition": "src/hebog/validation/products.py",
     "parent_runner": str(_PARENT_RUNNER),
+    "process_repair_freezer": (
+        "scripts/validation/"
+        "freeze_phase5_source_owned_measurement_topology_process_repair.py"
+    ),
     "runner": (
         "scripts/validation/run_phase5_source_owned_measurement_topology.py"
     ),
@@ -405,6 +434,69 @@ def _run_serial_task(task: Any, scratch: Path) -> dict[str, Any]:
     return {"attribution": record, "observation": payload}
 
 
+def _serial_task_payload(task: Any) -> dict[str, object]:
+    """Remove the run-path-only task class before process serialization."""
+    return {
+        "cell": asdict(task.cell),
+        "dataset": task.dataset.model_dump(mode="json"),
+        "input_id": task.input_id,
+        "recipe": task.recipe.model_dump(mode="json"),
+    }
+
+
+def _task_from_payload(payload: dict[str, Any]) -> SimpleNamespace:
+    """Reconstruct one exact task from importable validated records."""
+    expected_fields = {"cell", "dataset", "input_id", "recipe"}
+    if set(payload) != expected_fields or not isinstance(
+        payload["input_id"], str
+    ):
+        raise ValueError("combined process task payload is malformed")
+    cell_fields = payload["cell"]
+    if not isinstance(cell_fields, dict):
+        raise ValueError("combined process task cell is malformed")
+    return SimpleNamespace(
+        cell=AdaptiveDevelopmentCell(**cell_fields),
+        dataset=DatasetRecord.model_validate(payload["dataset"]),
+        input_id=payload["input_id"],
+        recipe=SyntheticRecipe.model_validate(payload["recipe"]),
+    )
+
+
+def _run_serial_payload(
+    payload: dict[str, Any],
+    scratch: Path,
+) -> dict[str, Any]:
+    """Run one process-safe serialized task through the exact serial path."""
+    return _run_serial_task(_task_from_payload(payload), scratch)
+
+
+def _process_payload_sha256(payload: dict[str, Any]) -> str:
+    """Reconstruct and reserialize one task without running science."""
+    return canonical_sha256(_serial_task_payload(_task_from_payload(payload)))
+
+
+def _verify_process_payload(
+    payload: dict[str, Any],
+    *,
+    spawn_process: bool,
+) -> str:
+    """Verify pickle and, for exact CLI preflight, a real worker boundary."""
+    restored = pickle.loads(pickle.dumps(payload))
+    expected = canonical_sha256(payload)
+    if _process_payload_sha256(restored) != expected:
+        raise ValueError("combined process payload round trip changed")
+    if not spawn_process:
+        return "pickle-pass"
+    with ProcessPoolExecutor(max_workers=1) as executor:
+        observed = executor.submit(
+            _process_payload_sha256,
+            restored,
+        ).result()
+    if observed != expected:
+        raise ValueError("combined spawned process payload changed")
+    return "spawn-pass"
+
+
 def _science_sha256(
     summary: AdaptiveScienceSummary,
     positions: tuple[tuple[float, float], ...],
@@ -630,14 +722,16 @@ def _verify_public_identity(
                 raise ValueError("combined public source changed")
 
 
-def _verify_frozen_identity(
+def _verify_process_repair_identity(
     repository_root: Path,
-    manifest_path: Path,
     identity: dict[str, Any],
 ) -> None:
-    """Verify candidate, programs, population, runtime, and no authority."""
-    if file_sha256(repository_root / _ROOT_REVIEW) != _ROOT_REVIEW_SHA256:
-        raise ValueError("combined root-cause review identity changed")
+    """Verify the immutable failed invocation and process-only successor."""
+    if (
+        file_sha256(repository_root / _PROCESS_REPAIR_REVIEW)
+        != _PROCESS_REPAIR_REVIEW_SHA256
+    ):
+        raise ValueError("combined process-repair review identity changed")
     authorization = _object_field(
         identity,
         "authorization",
@@ -655,6 +749,39 @@ def _verify_frozen_identity(
     }
     if identity.get("candidate") != expected_candidate:
         raise ValueError("combined candidate changed")
+    predecessor = _object_field(
+        identity,
+        "predecessor_identity",
+        label="combined predecessor identity",
+    )
+    if (
+        predecessor.get("path") != str(_PREDECESSOR_IDENTITY)
+        or predecessor.get("sha256") != _PREDECESSOR_IDENTITY_SHA256
+        or file_sha256(repository_root / _PREDECESSOR_IDENTITY)
+        != _PREDECESSOR_IDENTITY_SHA256
+    ):
+        raise ValueError("combined predecessor identity changed")
+    repair = _object_field(
+        identity,
+        "process_repair",
+        label="combined process repair",
+    )
+    if repair.get("review") != {
+        "path": str(_PROCESS_REPAIR_REVIEW),
+        "sha256": _PROCESS_REPAIR_REVIEW_SHA256,
+    }:
+        raise ValueError("combined process-repair binding changed")
+
+
+def _verify_frozen_identity(
+    repository_root: Path,
+    manifest_path: Path,
+    identity: dict[str, Any],
+) -> None:
+    """Verify candidate, programs, population, runtime, and no authority."""
+    if file_sha256(repository_root / _ROOT_REVIEW) != _ROOT_REVIEW_SHA256:
+        raise ValueError("combined root-cause review identity changed")
+    _verify_process_repair_identity(repository_root, identity)
     if source_tree_sha256(repository_root) != _CANDIDATE_SOURCE_TREE_SHA256:
         raise ValueError("combined source tree changed")
     _verify_public_identity(repository_root, identity)
@@ -733,6 +860,7 @@ def verify_no_write(  # noqa: PLR0913
     scratch: Path,
     output: Path,
     enforce_execution_paths: bool = True,
+    verify_process_pool: bool = False,
 ) -> dict[str, object]:
     """Verify every planned execution and exact seam without starting it."""
     if scratch.exists() or output.exists():
@@ -756,6 +884,10 @@ def verify_no_write(  # noqa: PLR0913
     )
     if len(tasks) != _EXPECTED_INPUTS or len(dask_tasks) != _EXPECTED_DASK:
         raise ValueError("combined execution count changed")
+    process_payload_status = _verify_process_payload(
+        _serial_task_payload(tasks[0]),
+        spawn_process=verify_process_pool,
+    )
     return {
         "status": "pass",
         "attribution_schema_version": _ATTRIBUTION_SCHEMA_VERSION,
@@ -767,6 +899,7 @@ def verify_no_write(  # noqa: PLR0913
         "fixture_seam_sha256": _verify_fixture_seams(),
         "identity_review_sha256": file_sha256(identity_path),
         "manifest_sha256": file_sha256(manifest_path),
+        "process_payload_status": process_payload_status,
     }
 
 
@@ -823,7 +956,11 @@ def _execute(arguments: argparse.Namespace, tasks: tuple[Any, ...]) -> None:
         ProcessPoolExecutor(max_workers=arguments.workers) as executor,
     ):
         futures = {
-            executor.submit(_run_serial_task, task, arguments.scratch): task
+            executor.submit(
+                _run_serial_payload,
+                _serial_task_payload(task),
+                arguments.scratch,
+            ): task
             for task in tasks
         }
         for completed, future in enumerate(as_completed(futures), start=1):
@@ -903,6 +1040,7 @@ def main() -> None:
         identity_path=arguments.identity_review,
         scratch=arguments.scratch,
         output=arguments.output,
+        verify_process_pool=True,
     )
     if arguments.verify_only:
         print(json.dumps(verification, allow_nan=False, sort_keys=True))

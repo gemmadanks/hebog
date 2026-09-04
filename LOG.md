@@ -15372,3 +15372,43 @@ before opening held-out qualification.
 **Immediate next step:** commit the exact decision, re-run the complete
 preflight from that immutable provenance point, start one caller-owned
 two-worker Dask runtime, and launch the single authorized lane.
+
+## 2026-09-04 — Repair the combined lane process boundary without execution
+
+**Plan phase:** Phase 5 final qualification design
+
+- The approved development-lane invocation from immutable commit `fd04cef...`
+  failed before candidate input materialization or science execution. The
+  wrapper submitted the parent runner's private `_DevelopmentTask`, loaded
+  under the synthetic module name `<run_path>`, directly to
+  `ProcessPoolExecutor`; spawned workers could not import that class while
+  unpickling it. Candidate and coarse-control execution counts are both zero,
+  no Dask comparison or atomic result exists, and the preserved failed
+  namespace contains only an empty `progress.log`.
+- Froze process-repair review `c35c6eec...`. The wrapper now submits only a
+  built-in mapping of JSON-compatible cell, dataset, recipe, and input fields,
+  reconstructs strict validated records inside each worker, and calls the
+  unchanged serial science path. The candidate `c28343f...`, source tree
+  `8235e9bc...`, configuration `2c907949...`, population, gates, output, and
+  scientific programs remain unchanged; the retry uses a distinct scratch
+  namespace.
+- Regression tests cover payload pickle safety, exact reconstruction,
+  malformed top-level and cell payloads, immutable historical records,
+  write-once collision handling, and the existing execution and no-write
+  boundaries. All 14 focused lane tests and the expanded 25-test focused
+  lane/executor set pass; Ruff and Pyright pass.
+- Froze non-executable process-repair identity `40a9f99f...`, expected
+  execution `8914fafd...`, and wrapper `4858f173...`. The exact complete
+  no-write preflight passes all 144 candidate, 144 coarse-control, and 12
+  existing-Dask slots with fixture-seam digest `de75f170...`; a real spawned
+  worker also reconstructs and round-trips the exact payload without running
+  science. The preflight creates neither repaired scratch nor atomic output.
+- Final validation passes: 2,703 branch-aware coverage tests with 44
+  deselected and 2 expected failures at 94.79% project coverage; `just check`
+  with 2,522 passed, 225 deselected, and 2 expected failures; all 27 frozen
+  PyBDSF equivalence tests; and the strict documentation build.
+
+**Immediate next step:** obtain a new exact one-use approval bound to process-
+repair review `c35c6eec...`, identity `40a9f99f...`, and expected execution
+`8914fafd...`. The original decision `c169bb85...` is consumed and must not be
+reused. No development-lane process is running.

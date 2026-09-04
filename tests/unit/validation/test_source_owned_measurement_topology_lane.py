@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import pickle
 import runpy
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,11 +23,12 @@ from astropy.io import fits
 
 from hebog import public_science
 from hebog.validation.adaptive_background_lane import AdaptiveScienceSummary
+from hebog.validation.datasets import DatasetManifest
 
 _ROOT = Path(__file__).parents[3]
-_FREEZER = (
+_REPAIR_FREEZER = (
     _ROOT / "scripts/validation/"
-    "freeze_phase5_source_owned_measurement_topology.py"
+    "freeze_phase5_source_owned_measurement_topology_process_repair.py"
 )
 _RUNNER = (
     _ROOT / "scripts/validation/"
@@ -39,7 +41,15 @@ _IMPLEMENTATION = (
 _PUBLIC_IDENTITY = (
     _ROOT / f"config/contracts/{_PREFIX}-public-interface-identity-review.json"
 )
-_IDENTITY = _ROOT / f"config/contracts/{_PREFIX}-identity-review.json"
+_PREDECESSOR_IDENTITY = (
+    _ROOT / f"config/contracts/{_PREFIX}-identity-review.json"
+)
+_IDENTITY = (
+    _ROOT / f"config/contracts/{_PREFIX}-process-repair-identity-review.json"
+)
+_FAILED_DECISION = (
+    _ROOT / f"config/contracts/{_PREFIX}-execution-decision.json"
+)
 _MANIFEST = (
     _ROOT
     / "config/contracts/phase-5-adaptive-background-development-manifest.json"
@@ -51,18 +61,30 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_frozen_combined_identities_are_reproducible_and_non_executable(
-    tmp_path: Path,
-) -> None:
-    """The freezer reproduces all exact records without granting authority."""
-    freezer = runpy.run_path(str(_FREEZER))
-    freezer["freeze_identities"](
-        argparse.Namespace(output_root=tmp_path, repository_root=_ROOT)
-    )
+def test_repair_identity_is_reproducible_and_non_executable() -> None:
+    """Historical identities stay exact and the repair grants no authority."""
+    expected_historical_sha256 = {
+        _PUBLIC_IDENTITY: (
+            "ca1abba66a6368fe37fb8e43b93b81999ced462f3e01d16be9011cc629913490"
+        ),
+        _IMPLEMENTATION: (
+            "fc4728c852da061920c9e8cb68facb18990256e18949fad4a1a0873b20b06731"
+        ),
+        _PREDECESSOR_IDENTITY: (
+            "4c611f1b61113584512f45650ef41e468237c59413b7464a7070cd7bce0e4944"
+        ),
+        _FAILED_DECISION: (
+            "c169bb85ba39d8fa0092e4315738514e0e47d05920b39dde49f8c857006f412d"
+        ),
+    }
+    assert {
+        path: _sha256(path) for path in expected_historical_sha256
+    } == expected_historical_sha256
 
-    for expected in (_PUBLIC_IDENTITY, _IMPLEMENTATION, _IDENTITY):
-        generated = tmp_path / expected.relative_to(_ROOT)
-        assert generated.read_bytes() == expected.read_bytes()
+    freezer = runpy.run_path(str(_REPAIR_FREEZER))
+    assert freezer["build_identity"](_ROOT) == json.loads(
+        _IDENTITY.read_text()
+    )
     identity = json.loads(_IDENTITY.read_text())
     assert identity["status"] == "frozen-non-executable"
     assert set(identity["authorization"].values()) == {False}
@@ -96,6 +118,7 @@ def test_complete_no_write_verification_creates_no_namespace(
     assert result["existing_dask_execution_count"] == 12
     assert result["candidate_execution_started"] is False
     assert result["fixture_seam_status"] == "pass"
+    assert result["process_payload_status"] == "pickle-pass"
     assert not scratch.exists()
     assert not output.exists()
 
@@ -246,6 +269,47 @@ def test_serial_wrapper_writes_only_array_free_attribution(
     assert all(not isinstance(value, np.ndarray) for value in sidecar.values())
 
 
+def test_process_pool_payload_is_pickle_safe_and_exact() -> None:
+    """Parent run-path task classes never cross the process boundary."""
+    runner = runpy.run_path(str(_RUNNER))
+    manifest = DatasetManifest.model_validate_json(_MANIFEST.read_bytes())
+    task = runner["_parent_tasks"](manifest)[0]
+
+    payload = runner["_serial_task_payload"](task)
+    restored = pickle.loads(pickle.dumps(payload))
+    rebuilt = runner["_task_from_payload"](restored)
+
+    assert rebuilt.input_id == task.input_id
+    assert rebuilt.cell == task.cell
+    assert rebuilt.dataset == task.dataset
+    assert rebuilt.recipe == task.recipe
+    assert (
+        runner["_verify_process_payload"](
+            payload,
+            spawn_process=False,
+        )
+        == "pickle-pass"
+    )
+    assert "<run_path>" not in repr(restored)
+
+
+def test_process_pool_payload_fails_closed_when_malformed() -> None:
+    """A malformed process payload is rejected before science execution."""
+    runner = runpy.run_path(str(_RUNNER))
+
+    with pytest.raises(ValueError, match="payload is malformed"):
+        runner["_task_from_payload"]({"input_id": "fixture-input"})
+    with pytest.raises(ValueError, match="cell is malformed"):
+        runner["_task_from_payload"](
+            {
+                "cell": "not-a-cell",
+                "dataset": {},
+                "input_id": "fixture-input",
+                "recipe": {},
+            }
+        )
+
+
 def test_no_write_fixture_seams_reject_created_source_identity() -> None:
     """The exact preflight exercises the fail-closed ownership boundary."""
     runner = runpy.run_path(str(_RUNNER))
@@ -367,7 +431,8 @@ def test_execution_requires_a_separate_exact_decision() -> None:
         repository_root=_ROOT,
         scratch=Path(
             "/private/tmp/"
-            "hebog-phase5-source-owned-measurement-topology-c28343f"
+            "hebog-phase5-source-owned-measurement-topology-"
+            "process-repair-c28343f"
         ),
         workers=2,
     )
@@ -377,17 +442,15 @@ def test_execution_requires_a_separate_exact_decision() -> None:
 
 
 def test_identity_collision_is_atomic(tmp_path: Path) -> None:
-    """One stale destination prevents every identity write."""
-    freezer = runpy.run_path(str(_FREEZER))
+    """A stale repair-identity destination remains untouched."""
+    freezer = runpy.run_path(str(_REPAIR_FREEZER))
     existing = tmp_path / _IDENTITY.relative_to(_ROOT)
     existing.parent.mkdir(parents=True)
     existing.write_text("existing\n", encoding="utf-8")
 
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        freezer["freeze_identities"](
+    with pytest.raises(FileExistsError):
+        freezer["freeze_identity"](
             argparse.Namespace(output_root=tmp_path, repository_root=_ROOT)
         )
 
     assert existing.read_text() == "existing\n"
-    assert not (tmp_path / _PUBLIC_IDENTITY.relative_to(_ROOT)).exists()
-    assert not (tmp_path / _IMPLEMENTATION.relative_to(_ROOT)).exists()

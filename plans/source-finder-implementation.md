@@ -537,20 +537,23 @@ performance budget are complete. The repaired prospective paired decision
 passes all PyBDSF, Aegean, and safety comparisons and reports no material
 incumbent-Hebog regression; four incumbent position-tail checks remain
 underpowered rather than failed. The current blocker is the independently
-confirmed adaptive-background failure on bright extended sources. Phase 5 next
-requires fixture-first repair of that mechanism and the independent coarse-arm
-gaps, a passing replacement development lane, one fresh held-out qualification
-of the final public candidate, final engineering evidence, and packet-bound
-independent acceptance. Detailed campaign and incident chronology belongs in
-`LOG.md`; machine identities and authorization boundaries remain in
-`config/contracts/`.
+confirmed adaptive-background failure on bright extended sources. The fixture-
+first adaptive, measurement, and topology corrections are now composed in one
+candidate, but its first replacement development-lane invocation failed before
+candidate execution on a process-serialization defect. A process-only repair
+is frozen and passes the complete no-write preflight; a new exact one-use
+approval is required before retrying it. Phase 5 then requires a passing lane,
+one fresh held-out qualification of the final public candidate, final
+engineering evidence, and packet-bound independent acceptance. Detailed
+campaign and incident chronology belongs in `LOG.md`; machine identities and
+authorization boundaries remain in `config/contracts/`.
 
 #### Phase 5 exit gates
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Fixture-complete: candidate `c28343f...` composes source protection, source-owned persistent measurement, and conservative one-missing-child parent construction. Positive, negative, invalid, boundary, conflict, and executor fixtures pass; the combined development lane remains unexecuted. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Running next: the first 144-image adaptive lane failed 9 of 12 geometries. Replacement lane identity `4c611f1b...` is frozen, its complete 144-candidate/144-control/12-Dask no-write preflight passes, and the user has approved its exact execution shape. |
+| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Fixture-complete: candidate `c28343f...` composes source protection, source-owned persistent measurement, and conservative one-missing-child parent construction. Positive, negative, invalid, boundary, conflict, and executor fixtures pass; the combined lane has not yet executed candidate science. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Awaiting renewed execution approval: identity `4c611f1b...` was invoked once but failed during task pickling with zero candidate or control runs. Process-only successor `40a9f99f...` preserves the candidate and passes the complete 144-candidate/144-control/12-Dask no-write preflight. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `c28343f...`, source tree `8235e9bc...`, configuration `2c907949...`, and public identity `ca1abba6...` are frozen. The combined lane must pass before this candidate can enter held-out qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
@@ -1745,7 +1748,16 @@ from partial or viewed evidence.
      measurement/topology seams, immutable programs and fixtures, and absent
      scratch/output. Exact one-use execution approval is recorded in decision
      `c169bb85...`; only a passing terminal decision may open the seed-disjoint
-     held-out qualification.
+     held-out qualification. The approved invocation failed before candidate
+     execution because the wrapper submitted a private task class loaded by
+     `runpy` to spawned process workers. The preserved failed namespace has
+     zero progress records and no products. Process-repair review
+     `c35c6eec...` and successor identity `40a9f99f...` replace that boundary
+     with built-in JSON-compatible task mappings reconstructed through strict
+     domain models inside each worker. Pickle round-trip, exact reconstruction,
+     malformed-payload, historical-identity, collision, and full no-write
+     tests pass. The original decision is consumed; a new exact approval bound
+     to expected execution `8914fafd...` is required before retrying.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected
