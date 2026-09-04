@@ -532,18 +532,30 @@ chronology and immutable identities remain in `LOG.md` and
 ### Phase 5: multiscale and extended emission
 
 **Status: open.** Multiscale science, combined products, bounded execution,
-the original final qualification, compact regression, and the incremental
-performance budget are complete. Terminal-cycle eligibility, the fail-fast
-scientific feedback lane, the prospective evaluator, endpoint-level power
-audit, and one complete cumulative evaluation are implemented. That cumulative
-ledger fails under its original decision path, while prospective review
-`77bd4b82...` finds the contract decision incomplete because paired incumbent
-evidence was not retained. Phase 5 next requires evaluator alignment,
-attributable paired evidence, passing sentinel smoke and cumulative decisions,
-the complete public scientific interface, and fresh held-out qualification for
-the eventual proven release candidate. Detailed campaign and incident
-chronology belongs in `LOG.md`; machine identities and authorization boundaries
-remain in `config/contracts/`.
+compact regression, the public scientific interface, and the incremental
+performance budget are complete. The repaired prospective paired decision
+passes all PyBDSF, Aegean, and safety comparisons and reports no material
+incumbent-Hebog regression; four incumbent position-tail checks remain
+underpowered rather than failed. The current blocker is the independently
+confirmed adaptive-background failure on bright extended sources. Phase 5 next
+requires fixture-first repair of that mechanism and the independent coarse-arm
+gaps, a passing replacement development lane, one fresh held-out qualification
+of the final public candidate, final engineering evidence, and packet-bound
+independent acceptance. Detailed campaign and incident chronology belongs in
+`LOG.md`; machine identities and authorization boundaries remain in
+`config/contracts/`.
+
+#### Phase 5 exit gates
+
+| Gate | Binding pass condition | Current state |
+| --- | --- | --- |
+| Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced coarse-arm measurement, association, or publication defect is corrected test-first without changing a gate after results are viewed. | Open: review `8e002699...` awaits named implementation approval. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes every hard truth floor, paired retention margin, negative control, and Serial/existing-Dask invariance check. | Open: the first 144-image adaptive lane failed 9 of 12 geometries. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Interface complete; final post-repair identity not yet frozen. |
+| Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
+| Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
+| Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
+| Bounded release and handoff | The scientific-preview package is ready to publish with its supported envelope and limitations explicit; Rapthor integration, complete-path performance, and cutover remain Phase 6 decisions. | Open. |
 
 #### Completed evidence
 
@@ -1512,6 +1524,37 @@ from partial or viewed evidence.
      backed by one evidence pattern. The separate scale-4 pattern supplies the
      second co-primary retention check; require their conservative joint power
      and every observed upper bound to pass.
+   - Treat those 4,608 images as the powered general-retention population, not
+     as qualification of the adaptive-background risk. Add a distinct
+     co-primary bright-extended qualification extension using new seed-disjoint
+     realizations of all 12 pre-registered adaptive geometry cells at the
+     below-, boundary-, and above-trigger cohorts. Including the three cells
+     that passed development prevents result-selected qualification. Size the
+     extension prospectively from the retained development variances so the
+     smallest binding geometry and trigger-side stratum meets the frozen joint
+     power rule; freeze the count, seeds, generator, truth, endpoints,
+     multiplicity handling, and margins before candidate execution.
+   - The extension must contain independent analogues of every terminally
+     failing `geometry_id`: `shell--beam-a--flat--scale-4--interior`,
+     `shell--beam-a--varying--scale-8--tile-corner`,
+     `shell--beam-b--flat--scale-8--tile-corner`,
+     `shell--beam-b--varying--scale-12--interior`,
+     `curved_filament--beam-a--varying--scale-12--interior`,
+     `mixed_compact_extended--beam-a--flat--scale-12--interior`,
+     `mixed_compact_extended--beam-a--varying--scale-4--tile-corner`,
+     `mixed_compact_extended--beam-b--flat--scale-4--tile-corner`, and
+     `mixed_compact_extended--beam-b--varying--scale-8--interior`. A pooled
+     population result cannot hide a failure in any of these binding
+     geometry/trigger strata.
+   - Run the exact final Hebog candidate, its selected incumbent, released
+     PyBDSF, and pinned-master PyBDSF on every bright-extended qualification
+     image; run Aegean wherever its frozen endpoint is applicable. Below-
+     trigger cases must retain the frozen inert-control behaviour, while the
+     boundary/above cases must pass background/RMS validity, truth-support,
+     completeness, mask-IoU, split/merge, integrated-flux, position, and source-
+     topology comparisons. Every applicable comparison with both PyBDSF
+     references and every like-semantics incumbent-Hebog retention check must
+     pass its predeclared rule.
    - Require every applicable released/master PyBDSF and Aegean comparison and
      every like-semantics Hebog-retention comparison to pass the frozen paired
      rule. Report every absolute improvement endpoint and secondary stratum,
@@ -1519,28 +1562,16 @@ from partial or viewed evidence.
      compact regression green and do not pool with or rescore closed campaigns.
    - Viewed SDC1/Hydra evidence remains diagnostic historical context, not
      fresh qualification truth.
-   - Keep adaptive background/RMS absorption of bright extended structure as
-     an explicit open qualification-design risk. On the viewed Hydra image,
-     one released-PyBDSF island is split across four Hebog supports with
-     `0.455` support recall, while a coarse-only Hebog replay lowers the median
-     RMS over comparison-only pixels from `649` to `40.8` microJy/beam. This
-     observation is not truth and authorizes neither tuning nor a source-
-     science change. Before freezing qualification, obtain scientific review
-     of whether the existing injected extended-source strata and background,
-     RMS, mask-IoU, split, and merge endpoints adequately cover this failure
-     mode; add a prospective truth-linked stratum only if they do not.
-   - A static audit establishes that the existing four Continuum geometries do
-     not close this risk: their brightest individual injected components span
-     only `22.62`--`29.12` sigma and their shell components span
-     `6.12`--`10.04` sigma, below the frozen adaptive candidate trigger of
-     `75` sigma. Before qualification, run a small development-only,
-     truth-linked matrix with bright extended emission prospectively placed
-     below, around, and above that trigger. Vary morphology, angular scale,
-     beam, noise gradient, and placement while retaining truth-linked coarse-
-     versus-adaptive background/RMS bias, support recall/IoU, fragmentation,
-     completeness, and integrated-flux recovery. Predeclare its cases and
-     decision rules; Hydra may motivate the design but must not supply truth,
-     thresholds, or acceptance margins.
+   - The viewed Hydra image remains diagnostic historical context: one
+     released-PyBDSF island is split across four Hebog supports with `0.455`
+     support recall, while a coarse-only Hebog replay lowers the comparison-
+     only median RMS from `649` to `40.8` microJy/beam. It supplies neither
+     qualification truth nor thresholds. The existing four general Continuum
+     geometries cannot close this risk because their brightest components are
+     only `22.62`--`29.12` sigma and their shell components are
+     `6.12`--`10.04` sigma, all below the 75-sigma adaptive trigger. This is why
+     the independent bright-extended extension above is a binding part of final
+     qualification rather than an optional follow-up.
    - Pre-registration was approved on 2026-09-04 in
      `phase-5-adaptive-background-development-pre-review.json`
      (`6287ad3e...`). The bounded lane has
@@ -1619,16 +1650,42 @@ from partial or viewed evidence.
      clears the adaptive-background self-absorption risk. It does not rescore
      the closed PyBDSF-parity result, but final qualification must remain
      unopened while this known bright-extended regime is unsafe.
-   - Next, produce a non-executable prospective root-cause review using only
-     the terminal development evidence and existing fixtures. It must separate
-     source contamination of adaptive background/RMS statistics from support,
-     measurement, and publication effects; define the smallest scientifically
-     justified correction; retain the coarse one-factor control; and specify
-     a fail-fast rerun of this seed-disjoint development lane plus affected
-     regression checks. Obtain explicit scientific approval before changing
-     source-finding behaviour. Only a passing replacement lane may freeze a
-     replacement candidate and open the independent held-out analogue. These
-     development images must never enter the one-look qualification population.
+   - The non-executable root-cause review is frozen in
+     `phase-5-adaptive-background-root-cause-pre-review.json` (`8e002699...`).
+     Its exact reconstruction of all 144 array-free observations establishes
+     a confirmed primary paired-regression mechanism: refinement activates on
+     90 images, and all 90 then increase median in-support background error
+     because 35-by-35 fine windows sample bright source support without a
+     source-exclusion mask. The increase correlates with support loss at
+     `r=0.874107` and flux-error increase at `r=0.957040`; all 54 inactive
+     controls remain exact. Trigger logic and Serial/existing-Dask execution
+     are excluded as primary causes.
+   - A background-only correction is necessary but not sufficient. The frozen
+     coarse control independently fails absolute floors in six geometries,
+     including mixed compact/extended flux, mask, and support gaps. Adaptive
+     refinement introduced zero new split outcomes: every split-floor failure
+     was already present in the coarse arm. The review therefore keeps
+     measurement-aperture, association-topology, and pre-publication versus
+     publication attribution as separate red-fixture gates instead of hiding
+     them inside the adaptive correction.
+   - The smallest proposed adaptive correction protects the connected
+     coarse-normalized island containing each existing 75-sigma adaptive seed,
+     using the existing public island threshold. Fine windows intersecting
+     that bounded, source-blind support become unavailable and use the existing
+     deterministic interpolation fallback. It adds no numeric threshold and
+     changes no detection, measurement, association, publication, truth, gate,
+     or margin. A local high-noise patch must remain adaptive, below-trigger
+     cases bitwise inert, and Serial/existing-Dask, tile-order, and retry results
+     invariant.
+   - Next, obtain named approval of exact review `8e002699...` before any
+     source-finding change. Implement and close the source-contamination,
+     local-noise, fallback, edge/invalid, mixed-halo aperture, source-topology,
+     and attribution fixtures before freezing replacement candidate or lane
+     identities. Any independently demonstrated measurement, association, or
+     publication change requires renewed scientific review. Only a passing
+     replacement development lane may open the independent held-out analogue;
+     these development images must never enter the one-look qualification
+     population.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected
@@ -1665,10 +1722,11 @@ from partial or viewed evidence.
      release. Rapthor integration and release, cutover, optimization, and
      Phase 6/7 execution remain separately governed.
 
-Phase 5 is complete when steps 1--7 are checked, the final readiness record is
-terminal, and the bounded scientific-preview release is ready to publish. No
-additional public campaign is intrinsically required for closure unless the
-prospective scientific review or fresh qualification exposes a new blocker.
+Phase 5 is complete only when every exit gate above passes, steps 1--7 are
+checked, the final readiness record is terminal, and the bounded scientific-
+preview release is ready to publish. No additional public campaign is
+intrinsically required for closure unless the prospective scientific review or
+fresh qualification exposes a new blocker.
 
 ### Phase 6: Rapthor integration, minimum performance, and early release
 

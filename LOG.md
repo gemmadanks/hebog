@@ -14907,6 +14907,28 @@ identity review `f9ccef67...` and expected execution `b8d9e6d4...`, then run
 the bounded development lane. Do not open final qualification until its
 truth-linked adaptive-background result is terminally interpreted.
 
+## 2026-09-04 — Authorize the adaptive-background development lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Recorded the user's exact one-use approval bound to identity review
+  `f9ccef67...` and expected execution `b8d9e6d4...` in execution decision
+  `fc804d7d...`. The decision opens exactly 144 candidate executions, 144
+  coarse-only diagnostic controls, 12 caller-owned existing-Dask comparisons,
+  two workers, and one atomic terminal decision.
+- The runner accepted the decision's exact authorization shape. The complete
+  no-write verification and frozen identity checks remain the mandatory final
+  preflight before scratch creation. Host free space was 25 GiB; neither the
+  fixed scratch nor terminal output existed.
+- Source-finding changes, PyBDSF or viewed-data execution, replay,
+  qualification, optimization, tuning, rescoring, cutover, and release remain
+  unauthorized.
+
+**Immediate next step:** commit the exact decision, launch the single lane
+from that immutable provenance point with a caller-owned two-worker Dask
+scheduler, confirm it has crossed preflight, and then monitor without reading
+partial scientific products.
+
 ## 2026-09-04 - Split public and internal source-finder demonstrations
 
 **Plan phase:** Cross-cutting documentation
@@ -14926,6 +14948,85 @@ truth-linked adaptive-background result is terminally interpreted.
 **Immediate next step:** keep the public notebook aligned with the supported
 API while using the internal notebook for stage, tiling, and reconciliation
 diagnostics.
+
+## 2026-09-04 — Preserve and repair the adaptive-lane completion
+
+**Plan phase:** Phase 5 final qualification design
+
+- The exact one-use adaptive-background lane crossed its complete preflight
+  and started from immutable commit `e0810ad8...` with two local process
+  workers and an independently verified two-worker caller-owned Dask
+  scheduler. It then failed before terminal publication with strict Pydantic
+  validation rejecting the JSON-list representation of the tuple-valued
+  `adaptive_candidate_positions_yx` field.
+- The failure is confined to the worker-to-parent evidence boundary. Each
+  worker had already constructed a valid strict observation before emitting a
+  JSON-mode dump. `ProcessPoolExecutor` waited for all submitted work during
+  exception unwinding, so the preserved scratch contains all 144 candidate and
+  144 coarse-control results, 8,496 artifacts, and no Dask products. The empty
+  progress log reflects rejection of the first returned payload, not absent
+  serial work. No atomic decision exists and no aggregate science was viewed.
+- Added a test-first evaluation-only completion. Regression coverage proves
+  strict JSON tuple recovery, malformed-record rejection, manifest-bound
+  metadata validation, complete artifact sealing, selection of exactly the 12
+  missing existing-Dask comparisons, and refusal to inherit the consumed
+  authority. The complete no-write path reverified the preserved product-set
+  SHA-256 `c9212f3a...` without executing science or creating output.
+- Frozen repair pre-review `d61b9643...` and non-executable completion
+  identity `d2a664f5...`; the latter binds completion program `8f7c9619...`,
+  unchanged parent runner `d7b4b728...`, preserved products, runtime, and
+  expected completion `030973d2...`. Every authorization remains false.
+
+**Immediate next step:** obtain a new exact one-use approval for completion
+identity `d2a664f5...` and expected execution `030973d2...`. The completion
+will reuse all serial results, run only 12 existing-Dask comparisons, and
+publish the original still-absent terminal decision.
+
+## 2026-09-04 — Authorize adaptive-lane evaluation completion
+
+**Plan phase:** Phase 5 final qualification design
+
+- Recorded the user's exact one-use approval of repair pre-review
+  `d61b9643...`, completion identity `d2a664f5...`, expected execution
+  `030973d2...`, preserved product set `c9212f3a...`, and completion program
+  `8f7c9619...`. The decision opens exactly the 12 missing two-worker
+  existing-Dask comparisons and one atomic terminal decision.
+- Candidate and coarse-control execution counts remain fixed at zero. Source
+  changes, PyBDSF or viewed-data execution, replay, qualification, tuning,
+  rescoring, optimization, cutover, and release remain unauthorized.
+
+**Immediate next step:** reverify all 8,496 preserved artifacts and exact
+provenance, commit the one-use decision, then execute the completion from an
+immutable checkout with exactly two caller-owned Dask workers.
+
+## 2026-09-04 — Complete and interpret the adaptive-background lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Committed the exact one-use completion decision as `7c92b26...`, created an
+  immutable detached checkout, and repeated the complete no-write verification.
+  It rehashed all 8,496 artifacts across 144 preserved inputs and confirmed
+  zero candidate and coarse-control reruns plus exactly 12 Dask comparisons.
+- A caller-owned loopback scheduler had exactly two one-thread, 6-GiB workers.
+  The evaluation-only completion ran the 12 authorized comparisons in about
+  18 seconds, published the original write-once output atomically, and left
+  21 GiB of host headroom. Serial/existing-Dask invariance and the negative and
+  positive trigger seams all pass.
+- Terminal decision `ff415f06...` (canonical record `4f6e3724...`) fails 9 of
+  12 geometry groups. All four shell and all four mixed compact/extended
+  groups fail; three of four curved-filament groups pass. The dominant failures
+  are adverse support-recall and mask-IoU movements relative to the coarse
+  control, hard support floors, mixed-source flux errors, and split fractions.
+- The result confirms the adaptive-background self-absorption risk in a bright
+  extended regime absent from the earlier cumulative population. It does not
+  rescore or revoke that population's PyBDSF-parity evidence, but it blocks
+  opening final held-out qualification with candidate `937737d...`.
+
+**Immediate next step:** prepare a non-executable scientific root-cause review
+that separates background/RMS contamination, support, measurement, and
+publication effects and proposes the smallest test-first correction. Obtain
+explicit approval before changing finder science or rerunning the development
+lane.
 
 ## 2026-09-04 - Make public source-finder thresholds configurable
 
@@ -14961,3 +15062,75 @@ diagnostics.
 **Immediate next step:** treat custom configurations as caller-owned science
 until separately validated; any future Phase 5 qualification must bind the
 exact reference configuration and configurable public composition.
+
+## 2026-09-04 — Complete the adaptive-background root-cause review
+
+**Plan phase:** Phase 5 final qualification design
+
+- Reconstructed the failed adaptive-background development comparison from all
+  144 retained array-free observations and bound the analysis to terminal
+  decision `ff415f06...`, its canonical identity `4f6e3724...`, preserved
+  product set `c9212f3a...`, candidate `937737d...`, and every approved lane
+  and completion input.
+- Confirmed source self-contamination as the primary paired-regression cause.
+  All 54 inactive inputs are exact adaptive/coarse matches. All 90 active
+  inputs differ and increase median in-support background error; that increase
+  correlates with support loss at `r=0.874107` and integrated-flux error at
+  `r=0.957040`. Trigger selection and Serial/existing-Dask execution pass and
+  are excluded as primary causes.
+- Established that reverting to coarse-only estimation cannot pass the frozen
+  lane. The coarse control independently fails hard floors in six geometries,
+  including mixed compact/extended flux, mask, and support gaps. Adaptive
+  refinement introduced no new split outcomes, so the split failures are an
+  independent topology gap. Retained summaries do not expose pre-publication
+  support, leaving publication-specific amplification unresolved rather than
+  asserted.
+- Frozen non-executable review
+  `phase-5-adaptive-background-root-cause-pre-review.json` (`8e002699...`). It
+  proposes bounded source-protected fine-window eligibility using only the
+  existing 75-sigma trigger and public island threshold, while requiring
+  separate red fixtures for local noise, mixed-halo measurement aperture,
+  source topology, and pre-publication attribution. It changes no science and
+  grants no execution authority.
+- The review contract has eight focused tests covering exact evidence binding,
+  trigger localization, morphology-dependent effects, independent coarse gaps,
+  correction scope, fixture sequencing, and write-once publication. Focused
+  tests and Ruff checks pass.
+
+**Immediate next step:** obtain named approval of exact review `8e002699...`
+before implementing the fixture-only source-protected adaptive-background
+correction. Do not freeze or execute a replacement lane until all independent
+fixture gates are closed.
+
+## 2026-09-04 — Make failing adaptive geometries binding in qualification
+
+**Plan phase:** Phase 5 closure and final qualification design
+
+- Audited the proposed 4,608-image retention-confirmation population against
+  the 12-cell adaptive-background development matrix and its nine terminally
+  failing geometry groups. The four general Continuum geometries contain
+  related shell, curved-filament, and mixed morphologies, but their brightest
+  components are only `22.62`--`29.12` sigma and their shell components are
+  `6.12`--`10.04` sigma. They are below the 75-sigma adaptive trigger and do
+  not contain the required flat/varying, beam, scale, and placement factorial;
+  the general population alone therefore cannot qualify this risk.
+- Added explicit Phase 5 exit gates for known-risk closure, the fail-fast
+  development ladder, exact public-candidate identity, fresh scientific
+  qualification, engineering evidence, independent acceptance, and the
+  bounded scientific-preview handoff to Phase 6.
+- Made a separate bright-extended qualification extension co-primary with the
+  existing powered 4,608-image retention population. It must use new
+  seed-disjoint images from all 12 adaptive geometry cells at below-, boundary-,
+  and above-trigger cohorts, including independent analogues of all nine
+  failed groups. Prospective power must be adequate for the smallest binding
+  geometry/trigger stratum, and no pooled result may conceal a failed stratum.
+- Required current Hebog, incumbent Hebog, released PyBDSF, and pinned-master
+  PyBDSF on every extension image, with Aegean wherever applicable. Every
+  PyBDSF and incumbent-retention comparison, hard truth/safety endpoint,
+  trigger control, and Serial/existing-Dask check must pass its frozen rule.
+  The viewed development images remain excluded from qualification.
+
+**Immediate next step:** after the approved fixture-first adaptive and
+independent coarse-gap corrections pass a replacement development lane, freeze
+and scientifically review the combined general-retention plus bright-extended
+qualification design before any one-look execution.
