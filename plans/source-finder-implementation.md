@@ -551,8 +551,9 @@ is an instruction to rerun or rescore a closed campaign.
 
 ### Phase 5: multiscale and extended emission
 
-**Status: open; the version-8 public fast lane passed and the fresh cumulative
-candidate replay is next.** Multiscale science,
+**Status: open; the version-8 public fast lane and cumulative no-write gate
+passed, and the fresh cumulative candidate replay is ready once disk headroom
+is sufficient.** Multiscale science,
 combined products, bounded execution, compact regression, the public
 scientific interface, and the incremental performance budget are complete.
 The seed-disjoint 144-image repair replication passed all 12 binding geometry
@@ -580,7 +581,13 @@ viewed-data execution nor replay. Its predecessor identity `89527070...`
 remains immutable evidence for `11d70cf...`. The exact fast-lane authority was
 consumed once from immutable tooling commit `ec4be4d...`; four geometry groups
 missed only non-binding improvement objectives and no acceptance rule changed
-after viewing the result.
+after viewing the result. The successor single-scan cumulative stage freezes
+implementation `cbb3212c...`, identity `0a464a38...`, expected execution
+`1d372d64...`, and one-use decision `5662241e...`. Its complete no-write gate
+passed all 2,400 candidate tasks, all 9,600 retained reference runs, and the
+spawned-process seam with no candidate execution or output. It requires a
+fresh product namespace while reusing the retained PyBDSF and authentic-
+incumbent evidence.
 Detailed campaign and incident chronology
 belongs in `LOG.md` and the campaign overview; machine identities and
 authorization boundaries remain in `config/contracts/`.
@@ -592,7 +599,7 @@ authorization boundaries remain in `config/contracts/`.
 | Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Pass at prospective development scale. Analytic reproduction proved the public path collapsed admissible peaks; the correction preserves direct and measurement support unions, uses canonical nearest-marker ownership with intensity-saddle merging only in the public topology, and reports bounded deferrals. The established Phase 3 compact path remains green. The public topology also retains admitted unseeded parents unchanged and projects publication recovery onto authoritative measurement owners without inventing science. Terminal fast-lane decision `a274888d...` has zero binding failures. Viewed Hydra data remains diagnostic-only and was not tuned or rescored. Cumulative evidence remains a separate gate. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Pass. Unequal-Gaussian, connected two- and three-peak, exact seed-boundary/no-seed retention, disconnected recovery, edge/corner, thin horizontal/vertical, non-square, empty, invalid-input, label-invariance, support-union, exact synthetic notebook-runner, public-composition, full coverage, and compact-equivalence gates pass. Version-8 terminal `a274888d...` passes 12/12 binding geometry groups, the trigger seam, and 12/12 Serial/existing-Dask comparisons; four non-binding improvement misses remain reported. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Pass for the development gate. Candidate `95cfc76...`, source tree `8da21e86...`, and unchanged configuration `2c907949...` pass component-topology, publication-owner-domain, synthetic exact-runner, installed-wheel, compact-equivalence, source/composition identity, and the exact two-worker fast lane. Notebook identity `2920873a...` is non-executable. A new cumulative product identity is now required. |
-| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | The old sealed set cannot qualify source-changing code. The evaluator raw-dispatch defect is repaired and regression-tested; a fresh corrected-candidate product set and evaluation are required. Reuse the authentic incumbent and all retained PyBDSF products rather than rerunning unchanged references. |
+| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | The old sealed set cannot qualify source-changing code. The evaluator raw-dispatch defect is repaired and regression-tested. The fresh 2,400-product stage is frozen and its complete no-write gate passes; execution and evaluation remain required. Reuse the authentic incumbent and all retained PyBDSF products rather than rerunning unchanged references. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |

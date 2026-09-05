@@ -16280,3 +16280,41 @@ passes.
 then run it once and evaluate it by reusing the authentic incumbent and all
 retained released/master PyBDSF products. Do not open held-out qualification
 unless every cumulative binding gate passes.
+
+## 2026-09-05 — Freeze the version-8 cumulative candidate stage
+
+**Plan phase:** Phase 5 cumulative parity and retention
+
+- Composed the proven single-scan cumulative materializer under a scoped
+  version-8 wrapper. It binds candidate `95cfc76...`, source tree
+  `8da21e86...`, unchanged configuration `2c907949...`, and passing fast-lane
+  terminal `a274888d...`; it restores all predecessor module state after each
+  call.
+- Added old/new/old state-isolation coverage. A first broad run exposed that
+  the fixture's monkeypatch teardown occurred after wrapper restoration and
+  could reapply successor paths to the predecessor module. Nested the patch
+  lifetime inside the wrapper lifetime and confirmed the combined inherited
+  matrix passes; production wrapper behavior did not change.
+- Froze implementation decision `cbb3212c...`, identity review
+  `0a464a38...`, expected execution SHA-256 `1d372d64...`, and one-use
+  execution decision `5662241e...`. The exact execution shape is two workers,
+  2,400 current-candidate executions, zero PyBDSF executions, one fresh
+  scratch namespace, and one atomic product-set seal.
+- The complete no-write preflight passed with all 2,400 tasks, all 9,600
+  retained reference runs verified once, and a real spawned-process payload.
+  It reported `candidate_execution_started=false` and created neither scratch
+  nor output. The focused contracts pass 6 tests and the combined inherited
+  replay/topology/public-runner matrix passes 59 tests after excluding the
+  one historical absolute-main-path contract that must be rerun on main.
+  Branch-aware coverage passes 2,826 tests with two expected failures, 47
+  exclusions, and 94.84% coverage. The handoff suite passes 2,644 tests with
+  two expected failures and 229 exclusions; Ruff and Pyright are clean, all
+  27 compact-equivalence tests pass, and the strict documentation build
+  passes.
+- The actual replay has not started. The host has 17 GiB free while the prior
+  2,400-product scratch occupies about 14 GiB, so execution remains held until
+  enough safety headroom is available; no historical evidence was deleted.
+
+**Immediate next step:** finish repository validation and freeze a clean local
+tooling commit. Then establish safe disk headroom, reproduce the no-write gate
+from the exact immutable checkout, and consume the one-use decision once.
