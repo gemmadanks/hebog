@@ -132,12 +132,23 @@ def evaluate_mask_origin_sibling_pair_candidate_products(  # noqa: PLR0913
         & (rms > 0)
     )
     np.divide(image - background, rms, out=direct_snr, where=direct_valid)
-    labels = refine_multiscale_segment_labels(
+    direct_publication_labels = refine_multiscale_segment_labels(
         products.direct_component_labels,
         direct_snr,
         products.significant_multiscale_support,
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         recovered_minimum_snr=review.matrix.island_sigma,
+    )
+    publication_support = direct_publication_labels > 0
+    measurement_labels = np.asarray(products.measurement_component_labels)
+    if np.any(publication_support & (measurement_labels <= 0)):
+        raise ValueError(
+            "direct-derived publication support must have measurement "
+            "ownership"
+        )
+    labels = np.where(publication_support, measurement_labels, 0).astype(
+        np.int32,
+        copy=False,
     )
     retained = np.asarray(labels > 0, dtype=np.bool_)
     labels.setflags(write=False)

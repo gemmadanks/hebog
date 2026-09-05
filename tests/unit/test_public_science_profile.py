@@ -29,7 +29,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
         scientific_composition=(
-            "phase-5-configurable-deblended-component-and-source-topology-v6"
+            "phase-5-configurable-deblended-component-and-source-topology-v7"
         ),
     )
 

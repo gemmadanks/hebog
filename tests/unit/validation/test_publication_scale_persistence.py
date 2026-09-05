@@ -181,6 +181,53 @@ def test_evaluator_uses_persistence_without_changing_owner(
     assert result.direct_component_labels is candidate.direct_component_labels
 
 
+def test_evaluator_accepts_direct_measurement_boundary_tie(
+    mocker: MockerFixture,
+) -> None:
+    """Publication refinement receives the authoritative boundary owner."""
+    direct = np.zeros((9, 13), dtype=np.int32)
+    direct[2:7, 1:4] = 1
+    direct[4, 4:7] = 1
+    direct[2:7, 8:11] = 2
+    significant = np.zeros(direct.shape, dtype=np.bool_)
+    significant[4, 7] = True
+    measurement = direct.copy()
+    measurement[4, 7] = 1
+    predecessor = PostCampaignCandidateProducts(
+        detection=ThresholdFilterResult(
+            combined_snr=np.full(direct.shape, 4.0),
+            retained_mask=measurement > 0,
+            component_labels=measurement,
+            component_count=2,
+        ),
+        direct_component_labels=direct,
+        measurement_component_labels=measurement,
+        position_signal_jy_per_beam=np.full(direct.shape, 4.0),
+        significant_multiscale_support=significant,
+        scale_detection_planes=(),
+    )
+    mocker.patch(
+        "hebog.validation.mask_origin_sibling_pair."
+        "evaluate_publication_snr_repaired_candidate_products",
+        return_value=predecessor,
+    )
+
+    result = evaluate_publication_scale_persistence_candidate_products(
+        np.full(direct.shape, 4.0),
+        np.ones(direct.shape, dtype=np.bool_),
+        np.zeros(direct.shape),
+        np.ones(direct.shape),
+        beam=BeamShapePixels(4.0, 3.0, 0.0),
+        review=cast(
+            Any,
+            SimpleNamespace(matrix=SimpleNamespace(island_sigma=3.0)),
+        ),
+    )
+
+    publication = result.detection.component_labels
+    assert np.all((publication == 0) | (publication == measurement))
+
+
 def test_builder_preserves_catalogue_measurement_inputs(
     mocker: MockerFixture,
 ) -> None:

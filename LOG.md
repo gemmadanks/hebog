@@ -16110,3 +16110,38 @@ directory and restart the diagnostic refresh from the clean tooling commit.
 from the hook-clean successor identity; do not resume the failed staging
 directory. Run the governed fast regression lane before freezing or starting
 a cumulative replay.
+
+## 2026-09-05 — Align publication labels with measurement ownership
+
+**Plan phase:** Phase 5 scientific correction before fast regression
+
+- The next notebook refresh reached `sdc1-ordinary-y06-x09` and stopped before
+  publishing that case with `ValueError: publication ownership must agree with
+  component ownership`. The Astropy `BLANK` and `datfix` warnings were again
+  non-fatal and unrelated.
+- A fixture reproduced the exact failure without using viewed data. Expanded
+  measurement ownership measures proximity from every direct seed pixel,
+  while the direct-origin publication refinement measures recovered support
+  from cleaned direct support. At an equidistant recovered boundary pixel the
+  two valid deterministic rules can therefore select different existing
+  owners even though their support semantics are consistent.
+- Added the failing boundary-tie regression first. The correction retains the
+  exact direct-derived publication footprint but projects each retained pixel
+  onto the already-authoritative measurement owner before adjacent-scale
+  persistence. It neither adds nor removes support and continues to reject
+  publication support with no measurement owner.
+- Advanced the unreleased public scientific-composition name to version 7.
+  The prepared version-6 fast lane never started: only its no-write preflight
+  passed, no scratch or output was created, and its uncommitted bindings were
+  discarded as obsolete.
+
+**Validation:** 91 focused algorithm, composition, profile, and
+Serial/existing-Dask tests pass. The complete branch-aware run reached 2,808
+passes at 94.83% project coverage; its only three failures are the intentional
+version-6 notebook/source identity boundary that must be rebound after the
+source commit. All 27 compact equivalence tests pass.
+
+**Immediate next step:** commit the source correction, freeze a successor
+non-executable notebook identity against that exact source revision, rerun the
+full validation and 13-case no-write preflight, then bind and execute the
+two-worker fast regression lane rather than the obsolete version-6 lane.

@@ -20,9 +20,13 @@ from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.validation.external_runners import file_sha256
 from hebog.validation.mask_origin_sibling_pair import (
     build_mask_origin_sibling_pair_continuum_products,
+    evaluate_mask_origin_sibling_pair_candidate_products,
     public_finder_mask_origin_sibling_pair_configuration,
 )
 from hebog.validation.phase_five_filter_review import ThresholdFilterResult
+from hebog.validation.post_campaign_science import (
+    PostCampaignCandidateProducts,
+)
 
 _ROOT = Path(__file__).parents[3]
 _MATERIALIZER = (
@@ -225,6 +229,97 @@ def test_continuum_builder_preserves_measurement_catalogue_inputs(
     evaluate.assert_called_once()
     assert catalogue_builder.call_args.args[3] is labels
     assert catalogue_builder.call_args.args[4] is labels
+
+
+def test_publication_footprint_inherits_authoritative_measurement_owner(
+    mocker: MockerFixture,
+) -> None:
+    """A recovered tie pixel cannot disagree with measurement ownership."""
+    direct = np.zeros((9, 13), dtype=np.int32)
+    direct[2:7, 1:4] = 1
+    direct[4, 4:7] = 1
+    direct[2:7, 8:11] = 2
+    significant = np.zeros(direct.shape, dtype=np.bool_)
+    significant[4, 7] = True
+    measurement = direct.copy()
+    measurement[4, 7] = 1
+    candidate = PostCampaignCandidateProducts(
+        detection=ThresholdFilterResult(
+            combined_snr=np.full(direct.shape, 4.0),
+            retained_mask=measurement > 0,
+            component_labels=measurement,
+            component_count=2,
+        ),
+        direct_component_labels=direct,
+        measurement_component_labels=measurement,
+        position_signal_jy_per_beam=np.full(direct.shape, 4.0),
+        significant_multiscale_support=significant,
+        scale_detection_planes=(),
+    )
+    mocker.patch(
+        "hebog.validation.mask_origin_sibling_pair."
+        "evaluate_publication_snr_repaired_candidate_products",
+        return_value=candidate,
+    )
+
+    result = evaluate_mask_origin_sibling_pair_candidate_products(
+        np.full(direct.shape, 4.0),
+        np.ones(direct.shape, dtype=np.bool_),
+        np.zeros(direct.shape),
+        np.ones(direct.shape),
+        beam=BeamShapePixels(4.0, 3.0, 0.0),
+        review=cast(
+            Any,
+            SimpleNamespace(matrix=SimpleNamespace(island_sigma=3.0)),
+        ),
+    )
+
+    publication = result.detection.component_labels
+    assert publication[4, 7] == 1
+    assert np.all((publication == 0) | (publication == measurement))
+
+
+def test_publication_rejects_support_without_measurement_owner(
+    mocker: MockerFixture,
+) -> None:
+    """Malformed predecessor support cannot create an unowned publication."""
+    direct = np.zeros((5, 5), dtype=np.int32)
+    direct[2, 2] = 1
+    empty = np.zeros(direct.shape, dtype=np.int32)
+    candidate = PostCampaignCandidateProducts(
+        detection=ThresholdFilterResult(
+            combined_snr=np.zeros(direct.shape),
+            retained_mask=empty > 0,
+            component_labels=empty,
+            component_count=0,
+        ),
+        direct_component_labels=direct,
+        measurement_component_labels=empty,
+        position_signal_jy_per_beam=np.zeros(direct.shape),
+        significant_multiscale_support=np.zeros(
+            direct.shape,
+            dtype=np.bool_,
+        ),
+        scale_detection_planes=(),
+    )
+    mocker.patch(
+        "hebog.validation.mask_origin_sibling_pair."
+        "evaluate_publication_snr_repaired_candidate_products",
+        return_value=candidate,
+    )
+
+    with pytest.raises(ValueError, match="must have measurement ownership"):
+        evaluate_mask_origin_sibling_pair_candidate_products(
+            np.full(direct.shape, 6.0),
+            np.ones(direct.shape, dtype=np.bool_),
+            np.zeros(direct.shape),
+            np.ones(direct.shape),
+            beam=BeamShapePixels(4.0, 3.0, 0.0),
+            review=cast(
+                Any,
+                SimpleNamespace(matrix=SimpleNamespace(island_sigma=3.0)),
+            ),
+        )
 
 
 def test_continuum_builder_rejects_mean_rms_validity_mismatch() -> None:
