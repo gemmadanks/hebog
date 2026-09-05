@@ -537,19 +537,21 @@ performance budget are complete. The repaired prospective paired decision
 passes all PyBDSF, Aegean, and safety comparisons and reports no material
 incumbent-Hebog regression; four incumbent position-tail checks remain
 underpowered rather than failed. The process-repaired 144-image development
-lane has now completed and is immutable failed evidence. Its apparent split
-failures are an evaluator semantic defect: all 43 flags contain one
-truth-linked source plus remote faint detections, not fragmentation. The two
-mixed-source failures combine a confirmed adaptive estimator-footprint
-contamination defect with a separately measured broad sub-threshold halo
-aperture limitation. Root-cause review
-`phase-5-source-owned-lane-terminal-root-cause-review.json` accounts for every
-failure. The estimator-footprint guard and prospective truth-linked evaluator
-are implemented test-first; one-seed-per-geometry smoke evidence is inside
-every paired retention margin, and exact successor identity `d74d0fba...` plus
-one-use authority `7c1fc6bd...` pass the complete no-write preflight. Phase 5
-then requires a passing complete
-development lane, cumulative dual-PyBDSF parity, one fresh held-out
+lane completed and is immutable failed evidence. Eleven geometry groups
+passed. One boundary-noise realization in the remaining mixed-source geometry
+crossed the single-image flux margin while materially improving support; a
+two-pixel truth-boundary graze also made an unrelated row look like a source
+fragment. Root-cause review
+`phase-5-source-owned-source-support-linkage-terminal-root-cause-review.json`
+separates that validation-only linkage defect, a stochastic per-image tail,
+and the known broad sub-threshold halo limitation. The prospective repair uses
+the existing seven-pixel minimum-island rule for truth linkage and binds fast
+retention to the paired median within each four-seed trigger cell. It retains
+every worst-image movement as a visible tail sentinel, keeps all numeric
+margins unchanged, never pools geometries or cohorts, and does not alter
+source-finding science. A fresh seed-disjoint 144-image replication must pass
+before cumulative work. Phase 5 then requires cumulative dual-PyBDSF parity,
+one fresh held-out
 qualification of the final public candidate, final engineering evidence, and
 packet-bound independent acceptance. Detailed campaign and incident chronology
 belongs in `LOG.md`; machine identities and authorization boundaries remain in
@@ -560,8 +562,8 @@ belongs in `LOG.md`; machine identities and authorization boundaries remain in
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
 | Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced measurement, association, publication, or evaluator defect is corrected test-first without changing a closed result after it is viewed. | The `c28343f...` lane completed but failed six geometries. Exact forensic review shows estimator-footprint contamination, an evaluator split/reliability conflation, and a broad sub-threshold halo aperture limitation. The first two have red tests and bounded prospective corrections; the aperture limitation remains explicit and must be judged by fresh dual-PyBDSF parity before any scale-aware photometry change. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, every paired current-versus-control retention margin, truth-linked fragmentation, negative controls, and Serial/existing-Dask invariance. Absolute synthetic truth targets remain visible improvement objectives; they cannot replace or waive final comparator parity. | The support-linkage successor completed all 144 candidate products but stopped before controls on a validation-runner `identifier`/`source_id` schema mismatch, so it published no decision. The defect is reproduced and corrected test-first, including one complete candidate/control case. Freeze and run the process-only successor; its passing atomic result remains required before cumulative work. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `2e25cdf...`, source tree `3da083b0...`, configuration `2c907949...`, public identity `48a57449...`, and support-linkage identity `cf59dd82...` are frozen. The process-only validation fix does not change candidate science. Serial/existing-Dask identity must pass in the complete lane before cumulative replay or held-out qualification. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired current-versus-control retention in every four-seed trigger cell, truth-linked fragmentation, negative controls, and Serial/existing-Dask invariance. Worst-image tails remain visible but do not replace the predeclared independent cell statistic. Absolute synthetic truth targets remain visible improvement objectives; they cannot replace or waive final comparator parity. | The process-repaired lane completed 144/144 paired inputs and 12/12 Dask comparisons, but one geometry failed on one stochastic boundary tail and a two-pixel truth-linkage graze. Review `25f6bf0f...` preserves the failure and defines a fresh seed-disjoint replication with unchanged margins, seven-pixel linkage derived from the existing public minimum island, and systematic cell-level retention. Its passing atomic result remains required before cumulative work. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Source-finding candidate `2e25cdf...` and configuration `2c907949...` are unchanged. The replication changes only validation population and decision semantics. Serial/existing-Dask identity must pass in the fresh complete lane before cumulative replay or held-out qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -1890,6 +1892,23 @@ from partial or viewed evidence.
      The exact CLI no-write preflight passes all 144/144/12 slots, the support
      seam, and a real spawned worker. Retry this lane before opening cumulative
      work.
+   - The process-repaired retry then completed all 144 candidate/control pairs,
+     all 12 caller-owned-Dask comparisons, product validity, and the trigger
+     seam. Its atomic decision `ea44147e...` remains terminal failed evidence:
+     11/12 geometries passed, while one mixed compact/extended geometry crossed
+     the historical maximum-single-realization flux and split margins on seed
+     `2026950137`. That seed improved support by `0.116412`; the four-seed
+     boundary-cell paired medians improve flux by `0.005116` and support by
+     `0.051527`. Exact forensics show the extra linked row owns only two truth
+     pixels, below the unchanged seven-pixel public minimum-island rule.
+   - Prospective review `25f6bf0f...` forbids rescoring that terminal result.
+     It requires a new 144-image seed block `2026952001`-`2026952144`, binds
+     retention separately to each four-seed trigger-cell paired median, and
+     retains maximum per-image movements as non-binding tail diagnostics. The
+     existing numeric margins and the final every-geometry released/master
+     PyBDSF plus incumbent gates are unchanged. Implement and freeze this
+     replication, pass one already-viewed process smoke and complete no-write
+     preflight, then run it before preparing cumulative replay identities.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

@@ -29,11 +29,14 @@ def _review() -> dict[str, Any]:
     return cast(dict[str, Any], value)
 
 
-def test_checked_in_review_is_the_deterministic_generator_output() -> None:
-    """The reviewed bytes must describe the pure prospective design."""
+def test_consumed_review_is_not_rebound_to_the_successor_design() -> None:
+    """The approved review remains immutable after prospective development."""
     program = runpy.run_path(str(_PROGRAM))
 
-    assert program["build_review"](_ROOT) == _review()
+    assert file_sha256(_REVIEW) == (
+        "6287ad3ef734c91142637142f04abebfb7226253e9e49060af686fe07292eed4"
+    )
+    assert program["build_review"](_ROOT) != _review()
 
 
 def test_review_is_non_executable_and_does_not_open_qualification() -> None:
@@ -120,13 +123,15 @@ def test_review_binds_the_known_coverage_gap_and_exact_candidate() -> None:
     )
 
 
-def test_review_binds_its_generator_and_pure_design_module() -> None:
-    """Edits to either prospective program require a new review identity."""
+def test_review_retains_the_consumed_generator_and_design_bindings() -> None:
+    """The old design digest exposes that a successor now requires review."""
     bindings = _review()["evidence_bindings"]
 
-    for binding_id in ("design_module", "review_program"):
-        binding = bindings[binding_id]
-        assert file_sha256(_ROOT / binding["path"]) == binding["sha256"]
+    generator = bindings["review_program"]
+    design = bindings["design_module"]
+
+    assert file_sha256(_ROOT / generator["path"]) == generator["sha256"]
+    assert file_sha256(_ROOT / design["path"]) != design["sha256"]
 
 
 def test_seed_audit_rejects_a_historical_seed() -> None:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from math import cos, isfinite, pi, sin, sqrt
@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from hebog.validation.adaptive_background_development import (
     AdaptiveDevelopmentCell,
     build_adaptive_development_matrix,
+    build_adaptive_replication_matrix,
 )
 from hebog.validation.campaign_runtime import dependency_inventory_sha256
 from hebog.validation.datasets import (
@@ -47,6 +48,8 @@ _IMAGE_SHAPE_YX = (512, 512)
 _NOMINAL_RMS = 0.0002
 _TRUTH_THRESHOLD_SIGMA = 3.0
 _ADAPTIVE_TRIGGER_SIGMA = 75.0
+_TRIGGER_COHORT_COUNT = 3
+_SEEDS_PER_CELL = 4
 _SHA256_PATTERN = r"^[0-9a-f]{64}$"
 _HARD_FLOORS = {
     "completeness": 1.0,
@@ -140,13 +143,16 @@ def truth_linked_source_support_topology(
     source_labels: npt.ArrayLike,
     source_identifier_by_label: Mapping[int, str],
     truth_support: npt.ArrayLike,
+    *,
+    minimum_truth_overlap_pixels: int = 1,
 ) -> TruthLinkedSourceTopology:
     """Link analytic sources by exact detected-support intersection.
 
     Catalogue centroids can fall near a broad injected source even when their
     own detection islands contain only sub-threshold noise.  The source label
-    plane retains the required ownership: a catalogue row is truth-linked only
-    when pixels owned by that row intersect the governed truth support.
+    plane retains the required ownership.  A prospective evaluator may also
+    require the existing minimum-island number of truth-overlap pixels so a
+    stochastic boundary graze remains unmatched reliability evidence.
     """
     truth = np.asarray(truth_support)
     labels = np.asarray(source_labels)
@@ -167,6 +173,11 @@ def truth_linked_source_support_topology(
     if len(set(source_identifiers)) != len(source_identifiers):
         raise ValueError("source identifiers must be unique")
     if (
+        type(minimum_truth_overlap_pixels) is not int
+        or minimum_truth_overlap_pixels < 1
+    ):
+        raise ValueError("minimum truth overlap pixels must be positive")
+    if (
         any(label <= 0 for label in source_identifier_by_label)
         or len(set(source_identifier_by_label.values()))
         != len(source_identifier_by_label)
@@ -182,7 +193,12 @@ def truth_linked_source_support_topology(
     linked = tuple(
         index
         for index, identifier in enumerate(source_identifiers)
-        if bool(np.any((labels == label_by_identifier[identifier]) & truth))
+        if int(
+            np.count_nonzero(
+                (labels == label_by_identifier[identifier]) & truth
+            )
+        )
+        >= minimum_truth_overlap_pixels
     )
     linked_set = set(linked)
     unmatched = tuple(
@@ -522,7 +538,11 @@ def _reference_quantities(
     return position, total
 
 
-def _dataset(cell: AdaptiveDevelopmentCell) -> DatasetRecord:
+def _dataset(
+    cell: AdaptiveDevelopmentCell,
+    *,
+    provenance_review: str = "6287ad3e",
+) -> DatasetRecord:
     """Build one four-realization dataset from an approved matrix cell."""
     beam = _beam(cell)
     sources = _calibrated_sources(cell)
@@ -556,7 +576,8 @@ def _dataset(cell: AdaptiveDevelopmentCell) -> DatasetRecord:
         ),
         provenance=(
             "Deterministic analytic Gaussian composite pre-registered by "
-            "Phase 5 adaptive-background development review 6287ad3e."
+            "Phase 5 adaptive-background development review "
+            f"{provenance_review}."
         ),
         redistribution=RedistributionStatus.GENERATED_LOCALLY,
         beam=beam,
@@ -628,6 +649,18 @@ def build_adaptive_development_manifest() -> DatasetManifest:
         manifest_id="phase-5-adaptive-background-development",
         datasets=tuple(
             _dataset(cell) for cell in build_adaptive_development_matrix()
+        ),
+    )
+
+
+def build_adaptive_replication_manifest() -> DatasetManifest:
+    """Return the prospective seed-disjoint repair replication manifest."""
+    return DatasetManifest(
+        schema_version=3,
+        manifest_id="phase-5-adaptive-background-development-replication",
+        datasets=tuple(
+            _dataset(cell, provenance_review="support-linkage-terminal-repair")
+            for cell in build_adaptive_replication_matrix()
         ),
     )
 
@@ -796,12 +829,100 @@ def _geometry_decision(
     }
 
 
-def evaluate_adaptive_development(
+def _replication_geometry_decision(
+    geometry_id: str,
+    observations: tuple[AdaptiveDevelopmentObservation, ...],
+) -> dict[str, object]:
+    """Bind paired retention to each four-seed trigger cell distribution."""
+    decision = _geometry_decision(geometry_id, observations)
+    failures = cast(list[str], decision["failures"])
+    retained_failures = [
+        failure
+        for failure in failures
+        if not failure.endswith("-paired-margin")
+    ]
+    by_cell: dict[str, list[AdaptiveDevelopmentObservation]] = defaultdict(
+        list
+    )
+    for item in observations:
+        by_cell[item.cell_id].append(item)
+    if len(by_cell) != _TRIGGER_COHORT_COUNT or any(
+        len(items) != _SEEDS_PER_CELL for items in by_cell.values()
+    ):
+        raise ValueError(
+            "adaptive replication requires four seeds in every trigger cell"
+        )
+
+    def movements(
+        items: list[AdaptiveDevelopmentObservation],
+    ) -> dict[str, float]:
+        values = {
+            "completeness": [
+                item.coarse.completeness - item.adaptive.completeness
+                for item in items
+            ],
+            "flux": [
+                item.adaptive.integrated_flux_absolute_fractional_error
+                - item.coarse.integrated_flux_absolute_fractional_error
+                for item in items
+            ],
+            "mask": [
+                item.coarse.mask_iou - item.adaptive.mask_iou for item in items
+            ],
+            "split": [
+                float(item.adaptive.split) - float(item.coarse.split)
+                for item in items
+            ],
+            "support": [
+                item.coarse.support_recall - item.adaptive.support_recall
+                for item in items
+            ],
+        }
+        return {
+            name: float(np.median(metric_values))
+            for name, metric_values in values.items()
+        }
+
+    cell_movements = {
+        cell_id: movements(items) for cell_id, items in sorted(by_cell.items())
+    }
+    paired = {
+        name: max(cell[name] for cell in cell_movements.values())
+        for name in _PAIRED_MARGINS
+    }
+    paired_names = {
+        "completeness": "completeness-paired-margin",
+        "flux": "integrated-flux-paired-margin",
+        "mask": "mask-iou-paired-margin",
+        "split": "split-fraction-paired-margin",
+        "support": "support-recall-paired-margin",
+    }
+    retained_failures.extend(
+        paired_names[name]
+        for name, value in paired.items()
+        if value > _PAIRED_MARGINS[name]
+    )
+    decision.update(
+        {
+            "failures": sorted(retained_failures),
+            "maximum_adverse_cell_median_movements": paired,
+            "paired_cell_median_movements": cell_movements,
+            "status": "pass" if not retained_failures else "fail",
+        }
+    )
+    return decision
+
+
+def _evaluate_adaptive_population(
     observations: tuple[AdaptiveDevelopmentObservation, ...],
     executor_comparisons: tuple[AdaptiveExecutorComparison, ...],
+    *,
+    matrix: tuple[AdaptiveDevelopmentCell, ...],
+    geometry_decision: Callable[
+        [str, tuple[AdaptiveDevelopmentObservation, ...]], dict[str, object]
+    ],
 ) -> dict[str, object]:
-    """Evaluate the complete development lane under the frozen rules."""
-    matrix = build_adaptive_development_matrix()
+    """Evaluate one exact 36-cell population under a selected frozen rule."""
     expected = tuple(
         (input_identifier(cell, seed), cell)
         for cell in matrix
@@ -837,7 +958,7 @@ def evaluate_adaptive_development(
     for item in observations:
         by_geometry[_geometry_id(expected_by_id[item.input_id])].append(item)
     geometry_decisions = tuple(
-        _geometry_decision(geometry, tuple(by_geometry[geometry]))
+        geometry_decision(geometry, tuple(by_geometry[geometry]))
         for geometry in geometry_order
     )
 
@@ -851,7 +972,6 @@ def evaluate_adaptive_development(
         and bool(item.adaptive_candidate_positions_yx)
         for item in above
     )
-
     expected_dask = {
         input_identifier(cell, cell.noise_seeds[0])
         for cell in matrix
@@ -883,6 +1003,19 @@ def evaluate_adaptive_development(
     }
 
 
+def evaluate_adaptive_development(
+    observations: tuple[AdaptiveDevelopmentObservation, ...],
+    executor_comparisons: tuple[AdaptiveExecutorComparison, ...],
+) -> dict[str, object]:
+    """Evaluate the complete development lane under the frozen rules."""
+    return _evaluate_adaptive_population(
+        observations,
+        executor_comparisons,
+        matrix=build_adaptive_development_matrix(),
+        geometry_decision=_geometry_decision,
+    )
+
+
 def evaluate_phase_five_adaptive_risk(
     observations: tuple[AdaptiveDevelopmentObservation, ...],
     executor_comparisons: tuple[AdaptiveExecutorComparison, ...],
@@ -900,6 +1033,24 @@ def evaluate_phase_five_adaptive_risk(
         observations,
         executor_comparisons,
     )
+    return _phase_five_risk_view(
+        complete,
+        schema_version=2,
+        binding_policy=(
+            "product-validity-trigger-paired-retention-and-executor-"
+            "invariance; fresh-dual-pybdsf-and-incumbent-qualification-"
+            "remains-required"
+        ),
+    )
+
+
+def _phase_five_risk_view(
+    complete: dict[str, object],
+    *,
+    schema_version: int,
+    binding_policy: str,
+) -> dict[str, object]:
+    """Separate binding retention failures from improvement objectives."""
     decisions: list[dict[str, object]] = []
     geometry_items = cast(
         tuple[dict[str, object], ...],
@@ -933,7 +1084,7 @@ def evaluate_phase_five_adaptive_risk(
         and bool(complete["executor_invariance_passed"])
     )
     return {
-        "schema_version": 2,
+        "schema_version": schema_version,
         "decision_id": "phase-5-adaptive-background-risk-development",
         "status": "pass" if passed else "fail",
         "claim": (
@@ -945,10 +1096,35 @@ def evaluate_phase_five_adaptive_risk(
         "improvement_objective_geometry_count": objective_count,
         "trigger_seam_passed": complete["trigger_seam_passed"],
         "executor_invariance_passed": complete["executor_invariance_passed"],
-        "binding_policy": (
-            "product-validity-trigger-paired-retention-and-executor-"
-            "invariance; fresh-dual-pybdsf-and-incumbent-qualification-"
-            "remains-required"
-        ),
+        "binding_policy": binding_policy,
         "geometry_decisions": tuple(decisions),
     }
+
+
+def evaluate_phase_five_adaptive_risk_replication(
+    observations: tuple[AdaptiveDevelopmentObservation, ...],
+    executor_comparisons: tuple[AdaptiveExecutorComparison, ...],
+) -> dict[str, object]:
+    """Evaluate fresh replication evidence at its independent cell level.
+
+    Each trigger cell contains four independent noise realizations.  Its
+    paired median is the binding development statistic, while the maximum
+    single-realization movement remains a visible non-binding tail sentinel.
+    This does not relax final per-geometry PyBDSF or incumbent comparisons.
+    """
+    complete = _evaluate_adaptive_population(
+        observations,
+        executor_comparisons,
+        matrix=build_adaptive_replication_matrix(),
+        geometry_decision=_replication_geometry_decision,
+    )
+    return _phase_five_risk_view(
+        complete,
+        schema_version=3,
+        binding_policy=(
+            "product-validity-trigger-per-cell-paired-median-retention-and-"
+            "executor-invariance; maximum-single-realization-movements-"
+            "remain-tail-sentinels; fresh-per-geometry-dual-pybdsf-and-"
+            "incumbent-qualification-remains-required"
+        ),
+    )

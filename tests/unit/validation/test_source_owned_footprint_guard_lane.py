@@ -163,8 +163,10 @@ def test_science_summary_detects_two_truth_linked_fragments(
     centre = (float(np.mean(truth_y)), float(np.mean(truth_x)))
     truth_pixels = np.argwhere(truth)
     labels = np.zeros(truth.shape, dtype=np.int32)
-    labels[tuple(truth_pixels[0])] = 1
-    labels[tuple(truth_pixels[-1])] = 2
+    first_pixels = truth_pixels[:7]
+    second_pixels = truth_pixels[-7:]
+    labels[first_pixels[:, 0], first_pixels[:, 1]] = 1
+    labels[second_pixels[:, 0], second_pixels[:, 1]] = 2
     monkeypatch.setitem(
         runner["_science_summary"].__globals__,
         "_active_science_captures",
@@ -229,7 +231,7 @@ def test_science_summary_uses_owned_support_not_expanded_truth_box(
     unlinked_pixel = np.argwhere(inside_box & ~truth)[0]
     unlinked_yx = (float(unlinked_pixel[0]), float(unlinked_pixel[1]))
     labels = np.zeros(truth.shape, dtype=np.int32)
-    labels[tuple(truth_pixels[0])] = 1
+    labels[truth_pixels[:7, 0], truth_pixels[:7, 1]] = 1
     labels[tuple(unlinked_pixel)] = 2
     monkeypatch.setitem(
         globals_,
@@ -607,61 +609,28 @@ def test_successor_freezer_separates_identity_from_one_use_authority() -> None:
     assert decision["output"] == expected["output"]
 
 
-def test_process_repair_freezer_preserves_science_and_authority() -> None:
-    """The retry changes only wrapper identity and scratch provenance."""
+def test_consumed_process_repair_freezer_rejects_new_validation_tree() -> None:
+    """The terminal process-repair identity cannot be rebound prospectively."""
     freezer = runpy.run_path(str(_PROCESS_REPAIR_FREEZER))
-    identity = freezer["build_identity"](_ROOT)
-    decision = freezer["build_execution_decision"](_ROOT, identity)
 
-    assert identity["candidate"] == {
-        "configuration_sha256": (
-            "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
-        ),
-        "entrypoint": "hebog.find_sources",
-        "revision": "2e25cdf8bb0fbd739bba330ff20d9f798f95bf44",
-        "source_tree_sha256": (
-            "3da083b0a720fe0104fa51e135f224a2456b49bd49d85cd6a449fccb93805e8a"
-        ),
-    }
-    assert identity["status"] == "frozen-non-executable"
-    assert set(identity["authorization"].values()) == {False}
-    assert identity["expected_execution"]["scratch"].endswith(
-        "source-support-linkage-process-repair-2e25cdf"
-    )
-    assert decision["status"] == "authorized-for-one-development-lane"
-    assert set(decision["authorization"].values()) == {False, True}
-    assert decision["identity_review_sha256"] == freezer["_document_sha256"](
-        identity
-    )
-    assert (
-        decision["expected_execution_sha256"]
-        == identity["expected_execution_sha256"]
-    )
+    with pytest.raises(
+        ValueError,
+        match="source-linkage process repair changed candidate science",
+    ):
+        freezer["build_identity"](_ROOT)
 
 
 def test_successor_freezer_writes_complete_set_once(tmp_path: Path) -> None:
-    """A collision blocks the fresh four-record set before any rewrite."""
+    """The consumed predecessor freezer cannot write a replacement set."""
     freezer = runpy.run_path(str(_SUCCESSOR_FREEZER))
     arguments = argparse.Namespace(
         repository_root=_ROOT,
         output_root=tmp_path,
     )
 
-    freezer["freeze_records"](arguments)
-    relative_paths = (
-        freezer["_PUBLIC_IDENTITY"],
-        freezer["_IMPLEMENTATION"],
-        freezer["_IDENTITY"],
-        freezer["_EXECUTION_DECISION"],
-    )
-    before = {path: (tmp_path / path).read_bytes() for path in relative_paths}
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+    with pytest.raises(
+        ValueError,
+        match="source-support-linkage scientific source tree changed",
+    ):
         freezer["freeze_records"](arguments)
-
-    assert before == {
-        path: (tmp_path / path).read_bytes() for path in relative_paths
-    }
-    assert all(
-        isinstance(json.loads(payload), dict) for payload in before.values()
-    )
+    assert not tuple(tmp_path.rglob("*.json"))

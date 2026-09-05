@@ -1480,6 +1480,48 @@ The next gate is a fresh 144-input development lane using the corrected frozen
 evaluator. Cumulative dual-PyBDSF replay and seed-disjoint held-out
 qualification remain ordered behind a passing fast result.
 
+## Source-support-linkage development retry
+
+**Terminal date:** 2026-09-05
+
+**Evidence role:** development and process validation, not cumulative PyBDSF
+parity or qualification
+
+The repaired retry completed all 144 candidate/control pairs and all 12
+caller-owned-Dask comparisons. Product validity, trigger behavior, and exact
+Serial/Dask science identity passed. Eleven of the 12 geometry groups passed;
+one varying-noise, eight-beam mixed compact/extended geometry failed the
+historical maximum-single-image flux and split retention margins.
+
+| Check | Terminal result |
+| --- | ---: |
+| Candidate/control pairs | 144 / 144 |
+| Serial/existing-Dask comparisons | 12 / 12 identical |
+| Geometry groups | 11 / 12 pass |
+| Failed input | Boundary seed `2026950137` |
+| Flux-error movement on that seed | `+0.053766` |
+| Support-recall movement on that seed | `+0.116412` improvement |
+| Boundary-cell median flux movement | `-0.005116` improvement |
+| Boundary-cell median support movement | `+0.051527` improvement |
+
+The split was not a resolved second piece of the injected source. A bounded
+deterministic reproduction found that the dominant catalogue row owns 441
+truth pixels, while the second row touches only two pixels at the truth
+boundary. The any-intersection matcher called both rows truth-linked. The
+production hierarchy had no multiscale parent evidence linking the nearby
+rows, so merging them would be scientifically unsafe; all such rows remain
+explicit reliability detections.
+
+The terminal decision remains failed and is not rescored. Its SHA-256 is
+`ea44147e3f1e786e3f8f53084434da55c16b6d8b7021baa1eb12985f4a5138d6`.
+Root-cause review `25f6bf0f...` defines a prospective seed-disjoint replication:
+a row must own at least the existing seven-pixel minimum-island support inside
+truth to count as a fragment, and paired retention binds to each four-seed
+trigger cell rather than the single noisiest image. Worst-image movements
+remain visible tail sentinels, all margins remain unchanged, and final
+per-geometry released/master PyBDSF and incumbent comparisons remain strict.
+No Hebog source-finding algorithm changes in this repair.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

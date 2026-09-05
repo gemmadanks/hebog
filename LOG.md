@@ -15700,3 +15700,40 @@ before retrying the 144/144/12 lane.
 **Immediate next step:** commit the exact retry records, reproduce the preflight
 from an immutable checkout, then run the single two-worker repaired lane. Open
 no cumulative replay unless its terminal atomic decision passes.
+
+## 2026-09-05 — Diagnose the terminal support-linkage retry
+
+**Plan phase:** Phase 5 final qualification design
+
+- Ran the exact two-worker process-repaired development lane from immutable
+  commit `7d4a991...`. It completed all 144 paired candidate/control inputs and
+  12 caller-owned-Dask comparisons and atomically published terminal decision
+  `ea44147e...`. Trigger, product, and executor-invariance gates passed; 11/12
+  geometries passed.
+- Preserved the failed decision and scratch. The only failed geometry crossed
+  flux and split margins on boundary seed `2026950137`: flux error moved
+  adversely by `0.053766`, while support recall improved by `0.116412`. The
+  four-seed boundary-cell paired median improves flux by `0.005116` and support
+  by `0.051527`; no other seed in the geometry produced a split regression.
+- A bounded deterministic forensic reproduction found that the dominant row
+  owns 441 truth pixels and a nearby row owns only two at the analytic truth
+  boundary. The prior any-intersection rule therefore treated a stochastic
+  graze as fragmentation. Production association supplied no scale-aware
+  evidence for safely merging that row, so source-finding science remains
+  unchanged and every extra row remains explicit reliability evidence.
+- Added write-once root-cause review `25f6bf0f...` and red-first contracts for a
+  fresh seed-disjoint replication. The prospective evaluator uses the existing
+  seven-pixel public minimum-island support for truth linkage and binds paired
+  retention to the median of each separate four-seed trigger cell. Maximum
+  per-image movements remain visible tail diagnostics; numeric margins and all
+  final per-geometry PyBDSF/incumbent gates remain unchanged.
+- The focused evaluator, root-review, historical-immutability, and
+  source-linkage suite passes 69 tests. The complete non-slow coverage lane
+  passes 2,750 tests with 44 deselected and two expected failures at 94.80%
+  branch-aware coverage; the normal handoff lane passes 2,569 tests with 225
+  deselected and two expected failures; all 27 frozen equivalence tests,
+  strict documentation, Ruff, and Pyright pass.
+
+**Immediate next step:** commit the non-executable review and evaluator,
+implement and process-smoke the fresh-seed runner, then freeze its exact
+manifest and one-use identity before running the 144-image replication.

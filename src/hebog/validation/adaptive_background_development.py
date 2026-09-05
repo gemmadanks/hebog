@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 AdaptiveMorphology = Literal[
@@ -27,6 +27,7 @@ _TRIGGER_TARGETS: tuple[tuple[AdaptiveTriggerCohort, float], ...] = (
     ("above", 90.0),
 )
 _FIRST_NOISE_SEED = 2_026_950_001
+_REPLICATION_FIRST_NOISE_SEED = 2_026_952_001
 _SEEDS_PER_CELL = 4
 _GEOMETRY_COUNT = 12
 _CELL_COUNT = 36
@@ -170,3 +171,40 @@ def build_adaptive_development_matrix() -> tuple[AdaptiveDevelopmentCell, ...]:
     matrix = _unvalidated_matrix()
     validate_adaptive_development_matrix(matrix)
     return matrix
+
+
+def build_adaptive_replication_matrix() -> tuple[AdaptiveDevelopmentCell, ...]:
+    """Return the same development design with a fresh noise-seed block."""
+    original = build_adaptive_development_matrix()
+    next_seed = _REPLICATION_FIRST_NOISE_SEED
+    cells: list[AdaptiveDevelopmentCell] = []
+    for cell in original:
+        seeds = tuple(range(next_seed, next_seed + _SEEDS_PER_CELL))
+        next_seed += _SEEDS_PER_CELL
+        cells.append(replace(cell, noise_seeds=seeds))
+    replication = tuple(cells)
+    replication_seeds = tuple(
+        seed for cell in replication for seed in cell.noise_seeds
+    )
+    original_seeds = {seed for cell in original for seed in cell.noise_seeds}
+    expected_seeds = tuple(
+        range(
+            _REPLICATION_FIRST_NOISE_SEED,
+            _REPLICATION_FIRST_NOISE_SEED + _CELL_COUNT * _SEEDS_PER_CELL,
+        )
+    )
+    if (
+        replication_seeds != expected_seeds
+        or not original_seeds.isdisjoint(replication_seeds)
+        or any(
+            replace(replication_cell, noise_seeds=original_cell.noise_seeds)
+            != original_cell
+            for original_cell, replication_cell in zip(
+                original,
+                replication,
+                strict=True,
+            )
+        )
+    ):
+        raise ValueError("adaptive replication matrix identity changed")
+    return replication

@@ -10,17 +10,22 @@ import pytest
 from pydantic import ValidationError
 
 from hebog.validation.adaptive_background_development import (
+    AdaptiveDevelopmentCell,
     build_adaptive_development_matrix,
+    build_adaptive_replication_matrix,
 )
 from hebog.validation.adaptive_background_lane import (
     AdaptiveDevelopmentObservation,
     AdaptiveExecutorComparison,
     AdaptiveScienceSummary,
     build_adaptive_development_manifest,
+    build_adaptive_replication_manifest,
     evaluate_adaptive_development,
     evaluate_phase_five_adaptive_risk,
+    evaluate_phase_five_adaptive_risk_replication,
     input_identifier,
     source_signal_and_truth,
+    truth_linked_source_support_topology,
     truth_linked_source_topology,
 )
 from hebog.validation.datasets import iter_dataset_recipes
@@ -52,13 +57,16 @@ def _geometry_failures(decision: dict[str, object]) -> list[str]:
     return cast(list[str], geometries[0]["failures"])
 
 
-def _passing_evidence() -> tuple[
+def _passing_evidence(
+    matrix: tuple[AdaptiveDevelopmentCell, ...] | None = None,
+) -> tuple[
     tuple[AdaptiveDevelopmentObservation, ...],
     tuple[AdaptiveExecutorComparison, ...],
 ]:
     observations: list[AdaptiveDevelopmentObservation] = []
     invariance: list[AdaptiveExecutorComparison] = []
-    for cell in build_adaptive_development_matrix():
+    selected = matrix or build_adaptive_development_matrix()
+    for cell in selected:
         for seed in cell.noise_seeds:
             identifier = input_identifier(cell, seed)
             observations.append(
@@ -96,6 +104,176 @@ def _passing_evidence() -> tuple[
                 )
             )
     return tuple(observations), tuple(invariance)
+
+
+def test_replication_population_is_seed_disjoint_but_geometry_identical() -> (
+    None
+):
+    """The prospective repair gets new noise, not a retrospective rescore."""
+    original = build_adaptive_development_matrix()
+    replication = build_adaptive_replication_matrix()
+    manifest = build_adaptive_replication_manifest()
+
+    assert len(replication) == len(original) == 36
+    assert {seed for cell in original for seed in cell.noise_seeds}.isdisjoint(
+        {seed for cell in replication for seed in cell.noise_seeds}
+    )
+    assert tuple(
+        (
+            cell.cell_id,
+            cell.morphology,
+            cell.beam_id,
+            cell.noise_gradient_id,
+            cell.extent_major_beams,
+            cell.placement_id,
+            cell.trigger_cohort,
+            cell.target_nominal_peak_sigma,
+        )
+        for cell in replication
+    ) == tuple(
+        (
+            cell.cell_id,
+            cell.morphology,
+            cell.beam_id,
+            cell.noise_gradient_id,
+            cell.extent_major_beams,
+            cell.placement_id,
+            cell.trigger_cohort,
+            cell.target_nominal_peak_sigma,
+        )
+        for cell in original
+    )
+    assert manifest.manifest_id == (
+        "phase-5-adaptive-background-development-replication"
+    )
+    assert tuple(
+        recipe.seed
+        for dataset in manifest.datasets
+        for recipe in iter_dataset_recipes(dataset)
+    ) == tuple(seed for cell in replication for seed in cell.noise_seeds)
+
+
+def test_truth_linkage_requires_existing_minimum_island_truth_support() -> (
+    None
+):
+    """A two-pixel graze is reliability evidence, not a resolved fragment."""
+    truth = np.ones((8, 8), dtype=np.bool_)
+    labels = np.zeros((8, 8), dtype=np.int32)
+    labels[:, :4] = 1
+    labels[0, 4:6] = 2
+    labels[1, 4:] = 3
+    labels[2, 4:7] = 3
+
+    topology = truth_linked_source_support_topology(
+        ("main", "graze", "fragment"),
+        labels,
+        {1: "main", 2: "graze", 3: "fragment"},
+        truth,
+        minimum_truth_overlap_pixels=7,
+    )
+
+    assert topology.truth_linked_source_indices == (0, 2)
+    assert topology.unmatched_source_indices == (1,)
+    assert topology.truth_linked_split is True
+
+
+@pytest.mark.parametrize("minimum", (True, 1.5, 0, -1))
+def test_truth_linkage_rejects_invalid_minimum_overlap(
+    minimum: object,
+) -> None:
+    """The prospective overlap contract accepts positive integers only."""
+    truth = np.ones((2, 2), dtype=np.bool_)
+    labels = np.ones((2, 2), dtype=np.int32)
+
+    with pytest.raises(
+        ValueError, match="minimum truth overlap pixels must be positive"
+    ):
+        truth_linked_source_support_topology(
+            ("source",),
+            labels,
+            {1: "source"},
+            truth,
+            minimum_truth_overlap_pixels=minimum,  # type: ignore[arg-type]
+        )
+
+
+def test_replication_gate_retains_single_seed_tail_without_failing_cell() -> (
+    None
+):
+    """One stochastic tail stays visible while the paired cell remains safe."""
+    matrix = build_adaptive_replication_matrix()
+    observations, invariance = _passing_evidence(matrix)
+    tail = observations[0].model_copy(
+        update={
+            "adaptive": _summary(
+                integrated_flux_absolute_fractional_error=0.10,
+                split=True,
+            ),
+            "coarse": _summary(
+                integrated_flux_absolute_fractional_error=0.04,
+                split=False,
+            ),
+        }
+    )
+
+    decision = evaluate_phase_five_adaptive_risk_replication(
+        (tail, *observations[1:]),
+        invariance,
+    )
+
+    assert decision["status"] == "pass"
+    geometries = cast(
+        tuple[dict[str, object], ...], decision["geometry_decisions"]
+    )
+    first = geometries[0]
+    assert first["maximum_adverse_paired_movements"] == {
+        "completeness": 0.0,
+        "flux": pytest.approx(0.06),
+        "mask": 0.0,
+        "split": 1.0,
+        "support": 0.0,
+    }
+    assert first["maximum_adverse_cell_median_movements"] == {
+        "completeness": 0.0,
+        "flux": 0.0,
+        "mask": 0.0,
+        "split": 0.0,
+        "support": 0.0,
+    }
+
+
+def test_replication_gate_fails_systematic_within_cell_regression() -> None:
+    """Three adverse seeds in one trigger cell cannot hide in its geometry."""
+    matrix = build_adaptive_replication_matrix()
+    observations, invariance = _passing_evidence(matrix)
+    changed = tuple(
+        item.model_copy(
+            update={
+                "adaptive": _summary(
+                    integrated_flux_absolute_fractional_error=0.10,
+                ),
+                "coarse": _summary(
+                    integrated_flux_absolute_fractional_error=0.04,
+                ),
+            }
+        )
+        if index < 3
+        else item
+        for index, item in enumerate(observations)
+    )
+
+    decision = evaluate_phase_five_adaptive_risk_replication(
+        changed,
+        invariance,
+    )
+
+    assert decision["status"] == "fail"
+    geometries = cast(
+        tuple[dict[str, object], ...], decision["geometry_decisions"]
+    )
+    assert geometries[0]["binding_failures"] == [
+        "integrated-flux-paired-margin"
+    ]
 
 
 def test_manifest_exactly_expands_the_approved_population() -> None:

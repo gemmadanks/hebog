@@ -1,0 +1,168 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "candidate": {
+      "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "revision": "2e25cdf8bb0fbd739bba330ff20d9f798f95bf44",
+      "source_tree_sha256": "3da083b0a720fe0104fa51e135f224a2456b49bd49d85cd6a449fccb93805e8a"
+    },
+    "execution": {
+      "execution_commit": "7d4a9918d1a69a071c51d54d4ca23ee0afca7f15",
+      "execution_decision_sha256": "86be6adce5219c42eadc07e68a73ad48408d740b4c2a26f6907740c02e79abc6",
+      "identity_review_sha256": "b4d7636484218377dd4125ba0079970d08fa2602f2caa3b8dd4a9f7c31c82d55",
+      "immutable_checkout": "/private/tmp/hebog-phase5-source-support-linkage-process-repair-lane-7d4a991",
+      "scratch": "/private/tmp/hebog-phase5-source-owned-measurement-topology-source-support-linkage-process-repair-2e25cdf"
+    },
+    "terminal_decision": {
+      "canonical_sha256": "c31e8811c2df86b9816586a6868c4c478ba48f937be764567fabf3464693400d",
+      "executor_invariance_passed": true,
+      "failed_geometry_count": 1,
+      "input_count": 144,
+      "path": "benchmark-results/phase-5/source-owned-measurement-topology-source-support-linkage-development-decision.json",
+      "sha256": "ea44147e3f1e786e3f8f53084434da55c16b6d8b7021baa1eb12985f4a5138d6",
+      "status": "fail",
+      "trigger_seam_passed": true
+    }
+  },
+  "causal_findings": {
+    "excluded_causes": "Trigger activation, product validity, Serial/existing-Dask invariance, completeness, source-support ownership, and terminal-cycle logic all passed or were inactive.",
+    "single_realization_flux_tail": {
+      "classification": "stochastic-boundary-tail-not-systematic-cell-regression",
+      "evidence": "The same boundary realization worsened absolute flux error by 0.053766 while improving support recall by 0.116412. The four-seed boundary-cell paired median improves flux by 0.005116 and support by 0.051527; the complete 12-image geometry paired median also improves flux.",
+      "root_cause": "The historical fast gate bound to the maximum of every individual noise realization, although its independent development comparison unit is the four-seed trigger cell. One near-threshold stochastic tail could therefore override a safe paired cell distribution."
+    },
+    "source_photometry": {
+      "classification": "known-broad-subthreshold-halo-limitation-not-actionable-from-viewed-development-data",
+      "evidence": "Nearby independently published rows collectively recover more of the broad halo, but the conservative hierarchy has no scale-aware parent evidence that would safely distinguish them from unrelated close sources.",
+      "policy": "Do not add proximity-only merging, enlarge apertures, add scales, or tune thresholds from this viewed seed. Judge adequacy prospectively against both PyBDSF references and the selected Hebog incumbent."
+    },
+    "truth_linkage_boundary_graze": {
+      "classification": "confirmed-validation-only-fragmentation-false-positive",
+      "evidence": "A bounded deterministic reproduction found that the second linked row owns 49 direct pixels but only two inside governed three-sigma truth support; the dominant row owns 441 truth pixels. Any-intersection linkage made that two-pixel boundary graze a split.",
+      "forensic_products": {
+        "catalogue": {
+          "path": "/private/tmp/hebog-phase5-seed137-source-ownership-forensic-retry/catalogue.fits",
+          "sha256": "b18c0d4dfa6c6bb8d48c6b65d50d3ac28f62ba3dbe1ba34f9dd6c63955ea3e46",
+          "size_bytes": 31680
+        },
+        "diagnostics": {
+          "path": "/private/tmp/hebog-phase5-seed137-source-ownership-forensic-retry/diagnostics.json",
+          "sha256": "25eaee636f073f757beb5129c7638510853ef60326064d087e33b98dd8d392b0",
+          "size_bytes": 802
+        },
+        "rms": {
+          "path": "/private/tmp/hebog-phase5-seed137-source-ownership-forensic-retry/rms.fits",
+          "sha256": "bfed877a3a4e2ac1330bbfc02b8bc214133da917972a75e0dd0605526d590b79",
+          "size_bytes": 2102400
+        },
+        "source_mask": {
+          "path": "/private/tmp/hebog-phase5-seed137-source-ownership-forensic-retry/source-mask.fits",
+          "sha256": "fcf5e0a34927a991a8da06c99946b4dee3ce1c8fededf6766c09645da6427558",
+          "size_bytes": 267840
+        }
+      },
+      "process_contract": "Use the existing seven-pixel public minimum-island support as the minimum truth overlap for a row to count as a resolved fragment; keep every other row and its flux as unmatched reliability evidence."
+    }
+  },
+  "no_retrospective_rescore": true,
+  "prospective_repair": {
+    "final_gate_unchanged": "Every predeclared cumulative and held-out geometry must pass released PyBDSF, pinned-master PyBDSF, selected-Hebog retention, and hard safety checks.",
+    "retention_statistic": "maximum adverse paired median across the three separately reported four-seed trigger cells within each geometry",
+    "source_finding_science_changed": false,
+    "systematic_regression_rule": "A cell-median movement outside its unchanged margin remains binding; geometries and trigger cohorts are never pooled.",
+    "tail_sentinel": "retain maximum adverse single-realization movement for every metric as non-binding diagnostic evidence",
+    "truth_linkage": {
+      "basis": "existing-public-minimum-island-pixels",
+      "minimum_truth_overlap_pixels": 7
+    },
+    "unchanged_numeric_margins": {
+      "completeness": 0.02,
+      "flux": 0.05,
+      "mask": 0.05,
+      "split": 0.02,
+      "support": 0.05
+    }
+  },
+  "replication_population": {
+    "cell_count": 36,
+    "disjoint_from_frozen_qualification": true,
+    "disjoint_from_viewed_development": true,
+    "first_seed": 2026952001,
+    "geometry_count": 12,
+    "input_count": 144,
+    "last_seed": 2026952144,
+    "role": "development",
+    "seeds_per_cell": 4
+  },
+  "required_next_decision": "use-standing-user-authority-only-after-exact-replication-identities-and-complete-no-write-preflight-are-frozen",
+  "required_sequence": [
+    "preserve-terminal-failure-and-original-scratch-unchanged",
+    "implement-seven-pixel-truth-linkage-and-cell-median-retention-test-first",
+    "run-one-case-complete-process-smoke",
+    "freeze-seed-disjoint-replication-manifest-program-and-one-use-authority",
+    "run-144-image-replication-lane",
+    "open-cumulative-dual-pybdsf-replay-only-if-replication-passes",
+    "open-fresh-held-out-qualification-only-if-cumulative-parity-passes",
+    "close-phase-5-only-after-public-engineering-and-independent-readiness-gates-pass"
+  ],
+  "review_id": "phase-5-source-owned-source-support-linkage-terminal-root-cause-review",
+  "reviewed_on": "2026-09-05",
+  "schema_version": 1,
+  "status": "root-cause-complete-ready-for-prospective-replication",
+  "terminal_failure": {
+    "binding_failures": [
+      "integrated-flux-paired-margin",
+      "split-fraction-paired-margin"
+    ],
+    "candidate_linkage": {
+      "catalogue_source_count": 5,
+      "truth_linked_source_count": 2,
+      "unmatched_source_count": 3
+    },
+    "geometry_id": "mixed_compact_extended--beam-b--varying--scale-8--interior",
+    "only_adverse_input": "mixed-compact-extended-beam-b-varying-scale-8-interior-boundary-seed-2026950137",
+    "paired_cell_medians": {
+      "above": {
+        "completeness": 0.0,
+        "flux": -0.02171023652214224,
+        "mask": 0.01149125747727231,
+        "split": 0.0,
+        "support": -0.03734177215189877
+      },
+      "below": {
+        "completeness": 0.0,
+        "flux": 0.0,
+        "mask": 0.0,
+        "split": 0.0,
+        "support": 0.0
+      },
+      "boundary": {
+        "completeness": 0.0,
+        "flux": -0.005115927460168999,
+        "mask": 0.013448843792993936,
+        "split": 0.0,
+        "support": -0.051526717557251855
+      }
+    },
+    "tail_adverse_movements": {
+      "completeness": 0.0,
+      "flux": 0.053766446176525706,
+      "mask": 0.026897687585987873,
+      "split": 1.0,
+      "support": -0.11641221374045796
+    },
+    "tail_support_gain": 0.11641221374045796
+  }
+}

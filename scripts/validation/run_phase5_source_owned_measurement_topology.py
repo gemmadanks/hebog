@@ -451,6 +451,9 @@ def _science_summary(  # noqa: PLR0913
         linkage_inputs[0],
         cast(dict[int, str], linkage_inputs[1]),
         truth,
+        minimum_truth_overlap_pixels=(
+            _parent_public_config().minimum_island_pixels
+        ),
     )
     linked_sources = tuple(
         sources[index] for index in topology.truth_linked_source_indices
