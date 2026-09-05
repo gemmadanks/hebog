@@ -15673,3 +15673,30 @@ Open no cumulative replay unless its atomic terminal decision passes.
 repair, freeze a fresh non-executable retry identity and one-use decision under
 the user's standing bug-fix authority, and pass the full no-write preflight
 before retrying the 144/144/12 lane.
+
+## 2026-09-05 — Freeze the support-linkage process-only retry
+
+**Plan phase:** Phase 5 final qualification design
+
+- Committed the public-schema correction as `5d4e0c1`; candidate science stays
+  at `2e25cdf...`, source tree `3da083b0...`, and configuration
+  `2c907949...`.
+- Added a fail-closed freezer that verifies the exact 721-file failed namespace
+  before deriving a successor. It freezes non-executable identity
+  `b4d76364...`, expected execution `c7235c58...`, corrected wrapper
+  `a67e5a9c...`, freezer `41943767...`, and separately records one-use decision
+  `86be6adc...` under the user's standing repaired-lane and bug-fix authority.
+  The intended atomic output is unchanged and still absent; only the scratch
+  namespace is fresh.
+- The exact runner CLI no-write preflight passes all 144 candidate, 144
+  coarse-control, and 12 caller-owned-Dask slots, attribution schema version 3,
+  support-linkage seam `474471d2...`, and a real spawned process. It creates no
+  scratch or output.
+- Full pre-freeze validation is green: 2,736 branch-aware tests with 44
+  deselected and two expected failures at 94.80% coverage; 2,555 normal checks
+  with 225 deselected and two expected failures; all 27 frozen equivalence
+  tests; strict docs; zero Pyright errors; and clean pre-commit.
+
+**Immediate next step:** commit the exact retry records, reproduce the preflight
+from an immutable checkout, then run the single two-worker repaired lane. Open
+no cumulative replay unless its terminal atomic decision passes.

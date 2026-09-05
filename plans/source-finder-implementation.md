@@ -1883,9 +1883,13 @@ from partial or viewed evidence.
      `phase-5-source-owned-source-support-linkage-process-repair-pre-review.json`
      preserves the 721-file failed namespace and confirms that no scientific
      result was published. The corrected unit contract and one complete
-     frozen-case candidate/control execution pass. Freeze a fresh process-only
-     identity and scratch, repeat the complete no-write preflight, and retry
-     the 144/144/12 lane before opening cumulative work.
+     frozen-case candidate/control execution pass. Process-only identity
+     `b4d76364...`, expected execution `c7235c58...`, wrapper `a67e5a9c...`,
+     and one-use decision `86be6adc...` now bind a fresh scratch while keeping
+     the candidate, configuration, gates, and intended atomic output unchanged.
+     The exact CLI no-write preflight passes all 144/144/12 slots, the support
+     seam, and a real spawned worker. Retry this lane before opening cumulative
+     work.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

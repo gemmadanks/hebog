@@ -37,6 +37,10 @@ _SUCCESSOR_FREEZER = (
     "freeze_phase5_source_owned_measurement_topology_source_support_"
     "linkage.py"
 )
+_PROCESS_REPAIR_FREEZER = (
+    _ROOT / "scripts/validation/"
+    "freeze_phase5_source_owned_source_support_linkage_process_repair.py"
+)
 _ROOT_CAUSE_REVIEW = (
     _ROOT / "config/contracts/"
     "phase-5-source-owned-footprint-guard-lane-root-cause-review.json"
@@ -427,7 +431,7 @@ def test_process_repair_review_accounts_for_public_schema_failure() -> None:
         "candidate_bundle_count": 144,
         "candidate_execution_count": 144,
         "coarse_control_execution_count": 0,
-        "execution_commit": "218a7f9",
+        "execution_commit": "218a7f9ae8843511a07e4110af529d79ae21053f",
         "execution_decision_sha256": (
             "17a6c01c2d370055639e73f9cda6d91c4261747e36823f7db527cd4e7aacd716"
         ),
@@ -601,6 +605,38 @@ def test_successor_freezer_separates_identity_from_one_use_authority() -> None:
     )
     assert set(decision["authorization"].values()) == {False, True}
     assert decision["output"] == expected["output"]
+
+
+def test_process_repair_freezer_preserves_science_and_authority() -> None:
+    """The retry changes only wrapper identity and scratch provenance."""
+    freezer = runpy.run_path(str(_PROCESS_REPAIR_FREEZER))
+    identity = freezer["build_identity"](_ROOT)
+    decision = freezer["build_execution_decision"](_ROOT, identity)
+
+    assert identity["candidate"] == {
+        "configuration_sha256": (
+            "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
+        ),
+        "entrypoint": "hebog.find_sources",
+        "revision": "2e25cdf8bb0fbd739bba330ff20d9f798f95bf44",
+        "source_tree_sha256": (
+            "3da083b0a720fe0104fa51e135f224a2456b49bd49d85cd6a449fccb93805e8a"
+        ),
+    }
+    assert identity["status"] == "frozen-non-executable"
+    assert set(identity["authorization"].values()) == {False}
+    assert identity["expected_execution"]["scratch"].endswith(
+        "source-support-linkage-process-repair-2e25cdf"
+    )
+    assert decision["status"] == "authorized-for-one-development-lane"
+    assert set(decision["authorization"].values()) == {False, True}
+    assert decision["identity_review_sha256"] == freezer["_document_sha256"](
+        identity
+    )
+    assert (
+        decision["expected_execution_sha256"]
+        == identity["expected_execution_sha256"]
+    )
 
 
 def test_successor_freezer_writes_complete_set_once(tmp_path: Path) -> None:

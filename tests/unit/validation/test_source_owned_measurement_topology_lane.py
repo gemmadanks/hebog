@@ -511,6 +511,12 @@ def test_no_write_rejects_source_tree_drift(monkeypatch: Any) -> None:
             "sha256": runner["_ROOT_REVIEW_SHA256"],
         }
     }
+    identity["process_repair"] = {
+        "review": {
+            "path": str(runner["_PROCESS_REPAIR_REVIEW"]),
+            "sha256": runner["_PROCESS_REPAIR_REVIEW_SHA256"],
+        }
+    }
 
     def drifted_source_tree(_root: Path) -> str:
         return "0" * 64

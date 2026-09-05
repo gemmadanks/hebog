@@ -1,0 +1,50 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "coarse_control_execution_authorized": true,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-05",
+    "statement": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns."
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "entrypoint": "hebog.find_sources",
+    "revision": "2e25cdf8bb0fbd739bba330ff20d9f798f95bf44",
+    "source_tree_sha256": "3da083b0a720fe0104fa51e135f224a2456b49bd49d85cd6a449fccb93805e8a"
+  },
+  "decision_id": "phase-5-source-owned-measurement-topology-source-support-linkage-process-repair-execution-decision",
+  "downstream_authority": {
+    "sequence": [
+      "cumulative dual-PyBDSF replay",
+      "fresh held-out dual-PyBDSF qualification"
+    ],
+    "status": "approved-in-principle-pending-passing-fast-lane-and-frozen-exact-identities"
+  },
+  "expected_execution_sha256": "c7235c583c557c91b3e60d35b39c6920d3d1064d274edc7491390652e4ca3f4c",
+  "identity_review": {
+    "path": "config/contracts/phase-5-source-owned-measurement-topology-source-support-linkage-process-repair-identity-review.json",
+    "sha256": "b4d7636484218377dd4125ba0079970d08fa2602f2caa3b8dd4a9f7c31c82d55"
+  },
+  "identity_review_sha256": "b4d7636484218377dd4125ba0079970d08fa2602f2caa3b8dd4a9f7c31c82d55",
+  "output": "benchmark-results/phase-5/source-owned-measurement-topology-source-support-linkage-development-decision.json",
+  "process_repair_review": {
+    "path": "config/contracts/phase-5-source-owned-source-support-linkage-process-repair-pre-review.json",
+    "sha256": "b829a4b58c6edc86560b3e0d242869f12b5a66de1298713a705ef827e2be4fa5"
+  },
+  "schema_version": 1,
+  "status": "authorized-for-one-development-lane",
+  "workers": 2,
+  "wrapper_sha256": "a67e5a9c66e57ec887c3d73912e1f9b075bb2b352a0981bd45e40ac940a15ab2"
+}

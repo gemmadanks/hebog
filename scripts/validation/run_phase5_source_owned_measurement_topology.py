@@ -37,6 +37,7 @@ from hebog.algorithms.source_association import (
     _apply_terminal_cycle_groups,
     _TerminalCycleEvidence,
 )
+from hebog.data_models.catalogues import SourceCatalogue
 from hebog.validation import products as validation_products
 from hebog.validation.adaptive_background_development import (
     AdaptiveDevelopmentCell,
@@ -74,10 +75,10 @@ _ROOT_REVIEW_SHA256 = (
 )
 _PREDECESSOR_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "footprint-guard-identity-review.json"
+    "source-support-linkage-identity-review.json"
 )
 _PREDECESSOR_IDENTITY_SHA256 = (
-    "d74d0fba79c689f6d3b1e857fd900c14d8c4138a22cbf31fe9ac29e9594486b8"
+    "cf59dd822a57820ca61161b1946ac2241d36a6b2a9fa0bc00b74dd87bb65f984"
 )
 _PUBLIC_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
@@ -89,11 +90,18 @@ _IMPLEMENTATION = Path(
 )
 _IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "source-support-linkage-identity-review.json"
+    "source-support-linkage-process-repair-identity-review.json"
 )
 _EXECUTION_DECISION = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "source-support-linkage-execution-decision.json"
+    "source-support-linkage-process-repair-execution-decision.json"
+)
+_PROCESS_REPAIR_REVIEW = Path(
+    "config/contracts/phase-5-source-owned-source-support-linkage-"
+    "process-repair-pre-review.json"
+)
+_PROCESS_REPAIR_REVIEW_SHA256 = (
+    "b829a4b58c6edc86560b3e0d242869f12b5a66de1298713a705ef827e2be4fa5"
 )
 _MANIFEST = Path(
     "config/contracts/phase-5-adaptive-background-development-manifest.json"
@@ -106,7 +114,7 @@ _PARENT_RUNNER = Path(
 )
 _SCRATCH = Path(
     "/private/tmp/hebog-phase5-source-owned-measurement-topology-"
-    "source-support-linkage-2e25cdf"
+    "source-support-linkage-process-repair-2e25cdf"
 )
 _OUTPUT = Path(
     "benchmark-results/phase-5/"
@@ -131,8 +139,8 @@ _PROGRAM_BINDING_PATHS = {
     "detection_stage": "src/hebog/stages/detection.py",
     "freezer": (
         "scripts/validation/"
-        "freeze_phase5_source_owned_measurement_topology_source_support_"
-        "linkage.py"
+        "freeze_phase5_source_owned_source_support_linkage_process_"
+        "repair.py"
     ),
     "lane_evaluator": "src/hebog/validation/adaptive_background_lane.py",
     "measurement_algorithm": "src/hebog/algorithms/extended_measurement.py",
@@ -412,7 +420,7 @@ def _science_summary(  # noqa: PLR0913
     *,
     dataset: DatasetRecord,
     recipe: SyntheticRecipe,
-    catalogue: Any,
+    catalogue: SourceCatalogue,
     mask: np.ndarray,
     background: np.ndarray,
     rms: np.ndarray,
@@ -941,7 +949,22 @@ def _verify_frozen_identity(
     """Verify candidate, programs, population, runtime, and no authority."""
     if file_sha256(repository_root / _ROOT_REVIEW) != _ROOT_REVIEW_SHA256:
         raise ValueError("combined root-cause review identity changed")
+    if (
+        file_sha256(repository_root / _PROCESS_REPAIR_REVIEW)
+        != _PROCESS_REPAIR_REVIEW_SHA256
+    ):
+        raise ValueError("combined process-repair review identity changed")
     _verify_source_support_linkage_identity(repository_root, identity)
+    process_repair = _object_field(
+        identity,
+        "process_repair",
+        label="combined process repair",
+    )
+    if process_repair.get("review") != {
+        "path": str(_PROCESS_REPAIR_REVIEW),
+        "sha256": _PROCESS_REPAIR_REVIEW_SHA256,
+    }:
+        raise ValueError("combined process-repair binding changed")
     if source_tree_sha256(repository_root) != _CANDIDATE_SOURCE_TREE_SHA256:
         raise ValueError("combined source tree changed")
     _verify_public_identity(repository_root, identity)
