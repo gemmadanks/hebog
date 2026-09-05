@@ -1,0 +1,54 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "coarse_control_execution_authorized": true,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-05",
+    "statement": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns."
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "entrypoint": "hebog.find_sources",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "decision_id": "phase-5-public-owner-domain-fast-lane-execution-decision",
+  "downstream_authority": {
+    "sequence": [
+      "cumulative dual-PyBDSF replay",
+      "fresh held-out dual-PyBDSF qualification"
+    ],
+    "status": "approved-in-principle-pending-passing-fast-lane-and-frozen-exact-identities"
+  },
+  "expected_execution_sha256": "6c1879ddbaf0da46f6872eb0614c99a82fe975f40efb326ee39f176ef48f13dc",
+  "identity_review": {
+    "path": "config/contracts/phase-5-public-owner-domain-fast-lane-identity-review.json",
+    "sha256": "29e6f247eddbeca6f3d1f812794913fb0b1ba7579b575b3da248ad4263897b97"
+  },
+  "identity_review_sha256": "29e6f247eddbeca6f3d1f812794913fb0b1ba7579b575b3da248ad4263897b97",
+  "output": "benchmark-results/phase-5/public-owner-domain-fast-lane-decision.json",
+  "predecessor_fast_lane": {
+    "identity": {
+      "path": "config/contracts/phase-5-source-support-linkage-replication-validated-retry-identity-review.json",
+      "sha256": "6289b9cecbd956e25e3054f2e52b9d7837f8bbf78e3050d09e93b737ec1915cc"
+    },
+    "status": "pass",
+    "terminal_sha256": "0978d4a3653ce9bd4b1244ea1125142400607d04c330758ee3b4a495f4193eae"
+  },
+  "schema_version": 1,
+  "status": "authorized-for-one-development-lane",
+  "workers": 2,
+  "wrapper_sha256": "6f414d5bdd70e0154d67ace4651b52add39c2e2708a5f6e82f8b0245808feee2"
+}

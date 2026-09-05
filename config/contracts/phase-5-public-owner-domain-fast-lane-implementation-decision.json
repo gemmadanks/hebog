@@ -1,0 +1,149 @@
+{
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "entrypoint": "hebog.find_sources",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "decision_id": "phase-5-public-owner-domain-fast-lane-implementation-decision",
+  "fixture_bindings": {
+    "component_topology": {
+      "path": "tests/unit/test_component_topology.py",
+      "sha256": "80e19916fc9524f2654079b64bda5ef8f51532ca26575d4981099aecfbcf72cd"
+    },
+    "deblending": {
+      "path": "tests/unit/test_deblending.py",
+      "sha256": "7213ece3798f624e5b1cb2c5008aba9ed1fb5c9a455b59f4db9b8f9275a854ab"
+    },
+    "exact_notebook_runner": {
+      "path": "tests/integration/test_public_notebook_runner.py",
+      "sha256": "b486eb88848077d3ce11abb69a0ba5af81b9ed0b0d3efbaa82e9330aad4b08e8"
+    },
+    "executor_invariance": {
+      "path": "tests/integration/test_public_finder_correction_execution.py",
+      "sha256": "d3238341d514b61c25e1106e41fc5b881a9ba26ec7ad028e7713367ca17661a2"
+    },
+    "fast_lane": {
+      "path": "tests/unit/validation/test_public_owner_domain_fast_lane.py",
+      "sha256": "c29753ddb8110f58fe11b08498943b373921d8adb3cd725499637df74a68e316"
+    },
+    "public_science": {
+      "path": "tests/unit/test_public_science.py",
+      "sha256": "aeaf67df0754a1347b46a1d3144e3e2e0b7f5ec79e5171c24db41e9ea59d866c"
+    },
+    "public_science_profile": {
+      "path": "tests/unit/test_public_science_profile.py",
+      "sha256": "d384f926546d1cdf7ba2328bf69a97ecf6a7f21b8c04bff4f65c216b103748e9"
+    },
+    "publication_owner_domain": {
+      "path": "tests/unit/validation/test_mask_origin_sibling_pair.py",
+      "sha256": "24ba58d05e8bd6895a71b33b14e6baf7c3d3aada6f554b2c74a80f99fbd9a2de"
+    },
+    "replication_lane": {
+      "path": "tests/unit/validation/test_source_support_linkage_replication_lane.py",
+      "sha256": "e3f53656653bab9180122b47361aeb78e80f52d9285beca3acce2e79c446b489"
+    }
+  },
+  "implemented_contracts": [
+    "reuse the passed seed-disjoint 144-case fast protocol",
+    "bind the version-8 component and publication-owner corrections",
+    "retain paired cell-median gates and non-binding tail diagnostics",
+    "retain exact Serial and caller-owned-Dask invariance"
+  ],
+  "predecessor_fast_lane": {
+    "identity": {
+      "path": "config/contracts/phase-5-source-support-linkage-replication-validated-retry-identity-review.json",
+      "sha256": "6289b9cecbd956e25e3054f2e52b9d7837f8bbf78e3050d09e93b737ec1915cc"
+    },
+    "status": "pass",
+    "terminal_sha256": "0978d4a3653ce9bd4b1244ea1125142400607d04c330758ee3b4a495f4193eae"
+  },
+  "program_bindings": {
+    "attribution": {
+      "path": "src/hebog/validation/adaptive_background_diagnostics.py",
+      "sha256": "139a99ce3cd1b9c468a266320e9b6081eea716dcaf26d4b2a8ec47f0dce181d1"
+    },
+    "background_algorithm": {
+      "path": "src/hebog/algorithms/background.py",
+      "sha256": "59f405ae0d00848b61f85d23dac93dee7b65d1443763b664ad8efbc0aa34cdd3"
+    },
+    "background_stage": {
+      "path": "src/hebog/stages/background.py",
+      "sha256": "e595b2884017d623e5abbcd36408fde630d5c44eb33a4f73dede97c0b9a185e3"
+    },
+    "base_runner": {
+      "path": "scripts/validation/run_phase5_source_owned_measurement_topology.py",
+      "sha256": "1f2aa0ab0d37f5ac1d957f9d90ef1e759ac10b5888e6cc5ac5c26398edafa011"
+    },
+    "component_topology": {
+      "path": "src/hebog/algorithms/component_topology.py",
+      "sha256": "7443f054bbb0172732cd5eb26cc858933ea68ea2f97797d94a5286be5404b307"
+    },
+    "deblending": {
+      "path": "src/hebog/algorithms/deblending.py",
+      "sha256": "18df86f53d77942b19afe70cc8fc5899177b5c71ea666375ea21648cb116852d"
+    },
+    "detection_stage": {
+      "path": "src/hebog/stages/detection.py",
+      "sha256": "3088160f9df4b3f508de09c56b89b15671ca4fab5949c8a1df5479b08005dd67"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_public_owner_domain_fast_lane.py",
+      "sha256": "79bdcff487a637a2a11053c8d8dfeb34060625f6eeef280ea1974f4a6424f368"
+    },
+    "lane_design": {
+      "path": "src/hebog/validation/adaptive_background_development.py",
+      "sha256": "e1fa35d1ff299bc535b4989b0be6df4162914413ff5af51b64ec0f63bbedf038"
+    },
+    "lane_evaluator": {
+      "path": "src/hebog/validation/adaptive_background_lane.py",
+      "sha256": "7780714b02d66231ab359259ca794ef5ec49e416b7f95c6e24060b1f593b9bcc"
+    },
+    "mask_origin_sibling_pair": {
+      "path": "src/hebog/validation/mask_origin_sibling_pair.py",
+      "sha256": "95010469b8c5358ce8ac1194ca85c9d47d754b2bed6b0c6a0a00634d36deb740"
+    },
+    "measurement_algorithm": {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "sha256": "f6f12a91931bc5f213ef757c50032407ef87da53ca53383f11c7dc22227d74ed"
+    },
+    "measurement_composition": {
+      "path": "src/hebog/validation/products.py",
+      "sha256": "c5f64f35a6d7a72a3256d075e20b621081938ea7fa97525e1b887a74d4374fe7"
+    },
+    "parent_runner": {
+      "path": "scripts/validation/run_phase5_adaptive_background_development.py",
+      "sha256": "d7b4b728622b6455ff8aafe523a52c9efb6a58a3f97a3157cc6fc2ed49423df6"
+    },
+    "public_api": {
+      "path": "src/hebog/public_api.py",
+      "sha256": "86f8b6c284cb74471ccc7c2167c4b5800f870ea9cbc2e5c1b7ba9dfc1b10f7d2"
+    },
+    "public_science": {
+      "path": "src/hebog/public_science.py",
+      "sha256": "42ab6f8d4512914c882d9a69f0bcbbe7b093c4720fd52686142306935fafc128"
+    },
+    "replication_runner": {
+      "path": "scripts/validation/run_phase5_source_support_linkage_replication.py",
+      "sha256": "001834864e8a69301ee73f9ab0a97b2b09545798d4432d709cf3f4d8207a986b"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_public_owner_domain_fast_lane.py",
+      "sha256": "6f414d5bdd70e0154d67ace4651b52add39c2e2708a5f6e82f8b0245808feee2"
+    },
+    "source_association": {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "7544237bffe866d547965f01d0a7cc2c5a852335d29b03d6284ce35e165349d6"
+    },
+    "source_association_model": {
+      "path": "src/hebog/data_models/source_association.py",
+      "sha256": "05045968e83c7df83452f58038ca6ba702123c0f613f5a862e8d678b168f52e2"
+    }
+  },
+  "public_identity": {
+    "path": "config/contracts/phase-5-public-publication-owner-domain-identity-review.json",
+    "sha256": "2920873aa430086d8b12a2092ac7f70bb59dc756c3a70b03db7e7f0708fb0611"
+  },
+  "schema_version": 1,
+  "status": "implemented-and-preflight-validated-non-executable"
+}

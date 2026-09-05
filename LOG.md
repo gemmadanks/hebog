@@ -16197,3 +16197,53 @@ isolated 13-case no-write notebook preflight. Then the user may start a fresh
 notebook refresh in the new source/runner namespace; do not resume any failed
 version-7 staging directory. Run the two-worker fast regression lane before
 freezing a cumulative replay.
+
+## 2026-09-05 — Preflight the version-8 public fast lane
+
+**Plan phase:** Phase 5 scientific correction before cumulative replay
+
+- Prepared the next step in a separate worktree while the user's diagnostic
+  notebook continued from clean commit `a91825a`; no file in that active
+  checkout or its staging namespace was changed.
+- Reused the passing seed-disjoint 144-input protocol and its fixed 12
+  geometry groups, paired coarse controls, four-seed cell-median retention
+  gates, tail sentinels, and 12 caller-owned-Dask comparisons. The successor
+  adds exact bindings for component topology, deblending, public composition,
+  and publication-owner-domain repair without changing configuration,
+  thresholds, margins, seeds, or acceptance rules.
+- The first broader matrix exposed that the thin overlay left its two
+  verifier replacements installed in the shared historical runner module.
+  The correction scopes every overlay binding to one call and restores the
+  predecessor mapping afterward; the new and historical lanes pass together
+  in one process, preventing test-order and future in-process reuse drift.
+- Froze non-executable implementation `0af03eba...`, identity `29e6f247...`,
+  expected execution SHA-256 `6c1879dd...`, and one-use decision
+  `94bf8bf3...` for candidate `95cfc76...`, source tree `8da21e86...`, and
+  configuration `2c907949...`. The prior passing fast decision remains bound
+  by terminal SHA-256 `0978d4a3...`.
+- Five focused freezer, authority, source-binding, execution-shape, and
+  no-write tests pass; the broader cross-stage matrix passes 116 tests. The
+  branch-aware fast suite passes 2,820 tests with two expected failures,
+  47 deselections, and 94.84% coverage. The handoff-equivalent suite passes
+  2,638 tests with two expected failures and 229 deselections after excluding
+  exactly two historical contracts whose frozen execution identities bind the
+  absolute main-checkout path; those two checks remain required after the
+  notebook releases the main checkout. Ruff and Pyright pass, all 27 compact
+  equivalence tests pass, all 182 integration tests pass, the public-contract
+  lane passes, all Marimo notebooks pass strict validation, and the strict
+  documentation build passes. The exact CLI preflight verifies 144 candidate,
+  144 coarse-control, and 12 existing-Dask slots plus a real spawned-process
+  payload without creating scratch, output, or candidate products.
+- The first all-file pre-commit pass exposed that the generic JSON formatter
+  reordered the already-reviewed public owner-domain identity and invalidated
+  its byte checksum. Restored the exact `2920873a...` bytes and added that
+  governed identity to the formatter exclusion alongside the repository's
+  other checksum-bound reviews, so future hooks validate rather than mutate
+  it.
+
+**Immediate next step:** after the notebook releases the main checkout,
+integrate this prepared lane, rerun the two main-path identity checks and the
+complete repository handoff validation, commit it, reproduce the complete
+preflight from a clean immutable checkout, and execute the single two-worker
+lane. Freeze no cumulative identity unless its atomic terminal decision
+passes.
