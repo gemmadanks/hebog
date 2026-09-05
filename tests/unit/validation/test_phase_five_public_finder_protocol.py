@@ -45,7 +45,7 @@ _CAMPAIGN_SCRIPT = (
 )
 _RUNNER_SCRIPT = _ROOT / "scripts/benchmark/run_phase5_public_finder_hebog.py"
 _PUBLIC_IDENTITY = (
-    _ROOT / "config/contracts/phase-5-public-unseeded-parent-retention-"
+    _ROOT / "config/contracts/phase-5-public-publication-owner-alignment-"
     "identity-review.json"
 )
 _COMPILER_SCRIPT = (
@@ -565,15 +565,18 @@ def test_notebook_identity_binds_the_committed_public_source() -> None:
     """A refresh cannot silently mix new source with old provenance."""
     identity = json.loads(_PUBLIC_IDENTITY.read_text(encoding="utf-8"))
 
+    assert file_sha256(_PUBLIC_IDENTITY) == (
+        "89527070b483fa3d1145b1018f92cdf85460de15f79aed69d4d4c30aff31820d"
+    )
     assert identity["status"] == "frozen-non-executable"
     assert set(identity["authorizations"].values()) == {False}
     assert identity["algorithm_candidate"] == {
         "configuration_sha256": (
             "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
         ),
-        "revision": "3ed6086eb7907b8137d2df3ea2d4ed55a2f49ce0",
+        "revision": "11d70cf09778c6b5b4ba928d9b95856c7ba4b526",
         "source_tree_sha256": (
-            "c1fb96c4cfce21d91c1f3c7afa1b0e48dffaaab7218cd13e4a30e20f164ea0f0"
+            "d0625e195412333121866b1999e697d03fc8bce27df66d3c8b909f145ff8d46b"
         ),
     }
     assert (

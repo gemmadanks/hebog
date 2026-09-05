@@ -16134,12 +16134,19 @@ a cumulative replay.
   The prepared version-6 fast lane never started: only its no-write preflight
   passed, no scratch or output was created, and its uncommitted bindings were
   discarded as obsolete.
+- Committed the source correction locally as `11d70cf09778c6b5b4ba928d9b95856c7ba4b526`,
+  source tree `d0625e19...`, with unchanged configuration `2c907949...` and
+  composition `f7b79b97...`. Successor non-executable notebook identity
+  `89527070...` binds that exact source and supersedes `6f41d726...` for future
+  diagnostics without granting execution authority.
 
 **Validation:** 91 focused algorithm, composition, profile, and
-Serial/existing-Dask tests pass. The complete branch-aware run reached 2,808
-passes at 94.83% project coverage; its only three failures are the intentional
-version-6 notebook/source identity boundary that must be rebound after the
-source commit. All 27 compact equivalence tests pass.
+Serial/existing-Dask tests pass. Before the two-commit identity boundary, the
+complete branch-aware run reached 2,808 passes at 94.83% project coverage with
+only the three intentionally stale version-6 identity assertions failing.
+After binding version 7, the complete suite passes 2,811 tests at the same
+94.83% coverage, `just check` passes 2,630 tests, all 27 compact equivalence
+tests pass, and the strict docs and installed-wheel smoke builds pass.
 
 **Immediate next step:** commit the source correction, freeze a successor
 non-executable notebook identity against that exact source revision, rerun the

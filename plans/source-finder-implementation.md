@@ -568,17 +568,15 @@ new exact identity is executable. Only a
 fresh cumulative replay of that identity may reopen the closeout checklist;
 the authentic incumbent and retained PyBDSF products remain reusable.
 The current prospective source candidate is local commit
-`3ed6086eb7907b8137d2df3ea2d4ed55a2f49ce0`, source tree
-`c1fb96c4cfce21d91c1f3c7afa1b0e48dffaaab7218cd13e4a30e20f164ea0f0`,
-with unchanged configuration `2c907949...`. It supersedes non-executed
-candidate `6166779...` after the first notebook case exposed the no-eligible-
-seed edge before publishing any case result. It is now itself superseded for
-future execution by the test-first publication-owner alignment correction;
-exact successor source and comparison identities must be frozen after its
-source commit. Non-executable notebook identity `6f41d726...` remains the
-immutable record for `3ed6086...` and authorizes neither viewed-data execution
-nor replay. The first fast-lane preflight was no-write and unconsumed, so its
-obsolete pre-commit bindings were discarded rather than executed.
+`11d70cf09778c6b5b4ba928d9b95856c7ba4b526`, source tree
+`d0625e195412333121866b1999e697d03fc8bce27df66d3c8b909f145ff8d46b`,
+with unchanged configuration `2c907949...`. It includes the retained-unseeded-
+parent rule from `3ed6086...` and the test-first publication-owner alignment.
+Non-executable notebook identity `89527070...` binds the version-7 composition
+and authorizes neither viewed-data execution nor replay. Its predecessor
+identity `6f41d726...` remains immutable evidence for `3ed6086...`. The first
+fast-lane preflight was no-write and unconsumed, so its obsolete pre-commit
+bindings were discarded rather than executed.
 Detailed campaign and incident chronology
 belongs in `LOG.md` and the campaign overview; machine identities and
 authorization boundaries remain in `config/contracts/`.
@@ -589,7 +587,7 @@ authorization boundaries remain in `config/contracts/`.
 | --- | --- | --- |
 | Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Open pending prospective population evidence: analytic reproduction proves the public path collapsed two admissible peaks to one component. The correction preserves direct and measurement support unions, uses canonical nearest-marker ownership with intensity-saddle merging only in the public topology, and reports bounded deferrals. A first broad implementation was rejected when equivalence exposed a compact-photometry regression; the established Phase 3 policy is unchanged and green. The notebook's first prospective case also proved that multiscale admission need not imply an eligible direct-residual deblending seed; the public topology now retains such a parent unchanged as one component while the standalone compact kernel remains fail-closed. A later case exposed conflicting owner labels at one recovered publication/measurement boundary; the red analytic fixture reproduces the exact failure and the prospective correction changes ownership labels only, not either support union. Viewed Hydra data remains diagnostic-only and has not been reexecuted or tuned. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | The previous support-linkage lane passed as `0978d4a3...`. Unequal-Gaussian, connected two- and three-peak, exact seed-boundary/no-seed retention, empty, invalid-input, label-invariance, support-union, public-composition, exact Serial/existing-Dask, full coverage, and compact-equivalence gates pass. Freeze and run the small regression population before any cumulative replay. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Prospective candidate `3ed6086...`, source tree `c1fb96c4...`, and unchanged configuration `2c907949...` pass the component-topology fixtures, complete changed-module branch coverage, installed-wheel, compact-equivalence, and source/composition identity checks. Notebook identity `6f41d726...` is non-executable. The small regression population remains before replay authority is frozen or consumed. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Prospective candidate `11d70cf...`, source tree `d0625e19...`, and unchanged configuration `2c907949...` pass the component-topology and publication-owner fixtures, installed-wheel, compact-equivalence, and source/composition identity checks. Notebook identity `89527070...` is non-executable. The small regression population remains before replay authority is frozen or consumed. |
 | Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | The old sealed set cannot qualify source-changing code. The evaluator raw-dispatch defect is repaired and regression-tested; a fresh corrected-candidate product set and evaluation are required. Reuse the authentic incumbent and all retained PyBDSF products rather than rerunning unchanged references. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
