@@ -1920,9 +1920,17 @@ from partial or viewed evidence.
      `8cd60e66...` bind the same candidate, population, science, gates, and a
      fresh scratch. The already-viewed one-case candidate/control smoke passes
      attribution schema 3, and the exact CLI no-write preflight passes all
-     144/144/12 slots plus a real spawned worker. Run this fast replication
-     now; prepare no cumulative replay identity unless its atomic decision
-     passes.
+     144/144/12 slots plus a real spawned worker.
+   - The validation-clean replication ran from immutable commit `eec48cc...`
+     and atomically passed as terminal decision `0978d4a3...`: all 144 paired
+     inputs completed, all 12 geometry groups passed their binding retention
+     gates, the trigger seam passed, and all 12 Serial/existing-Dask results
+     were identical. Two mixed compact/extended groups still miss explicitly
+     non-binding improvement objectives and remain longer-term targets; their
+     tail movements did not cross the frozen retention margins. The fast gate
+     therefore authorizes freezing the exact cumulative dual-PyBDSF replay,
+     which must retain every geometry against the incumbent and match or beat
+     both PyBDSF references before final held-out qualification.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

@@ -15775,3 +15775,35 @@ manifest and one-use identity before running the 144-image replication.
 repeat the no-write preflight from an immutable checkout, then execute the
 single two-worker fast lane. Freeze cumulative replay identities only if its
 atomic terminal result passes.
+
+## 2026-09-05 — Pass the seed-disjoint support-linkage replication
+
+**Plan phase:** Phase 5 final qualification design
+
+- Committed the validation-clean replication tooling and immutable repair
+  chain as `eec48cc`. A second complete spawned-process no-write preflight from
+  that detached checkout passed all 144 candidate, 144 control, and 12
+  existing-Dask slots before scratch creation.
+- Ran the single authorized lane with two process workers and a caller-owned
+  two-worker Dask scheduler. All 144 paired inputs completed, the trigger seam
+  passed, and all 12 Serial/existing-Dask comparisons were identical. The
+  process exited zero and atomically published terminal decision `0978d4a3...`.
+- All 12 geometry groups passed their binding cell-median retention gates with
+  zero binding failures. Two mixed compact/extended groups still miss
+  non-binding improvement objectives; their maximum individual-image
+  movements remain recorded as tail sentinels and no threshold, margin, gate,
+  or result was changed after inspection.
+- This passes the fast regression gate only. It is not cumulative PyBDSF
+  parity or qualification evidence and does not by itself close Phase 5.
+- The first post-result pre-commit correctly exposed that the lane's no-write
+  test assumed its write-once output would remain absent after execution. The
+  terminal result and immutable execution revision were untouched. Replaced
+  that lifecycle-invalid assertion with the repository's established
+  historical-revision pattern: exact identity, program, fixture, and decision
+  bytes are read from `eec48cc...`, while the evolved checkout must fail closed
+  before touching a temporary namespace. All five focused tests pass.
+
+**Immediate next step:** freeze and completely no-write preflight the exact
+cumulative dual-PyBDSF replay against the retained incumbent and both pinned
+PyBDSF references. Start the long replay only if its identities, process seams,
+and disk budget pass; monitor it hourly.

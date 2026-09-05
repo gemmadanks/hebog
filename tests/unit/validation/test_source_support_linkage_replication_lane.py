@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import argparse
+import hashlib
 import json
 import runpy
+import subprocess
 from pathlib import Path
 from typing import Any, cast
 
@@ -20,10 +21,6 @@ _ROOT = Path(__file__).parents[3]
 _RUNNER = (
     _ROOT
     / "scripts/validation/run_phase5_source_support_linkage_replication.py"
-)
-_FREEZER = (
-    _ROOT / "scripts/validation/"
-    "freeze_phase5_source_support_linkage_replication_validated_retry.py"
 )
 _PREFIX = "phase-5-source-support-linkage-replication"
 _MANIFEST = _ROOT / f"config/contracts/{_PREFIX}-manifest.json"
@@ -47,6 +44,7 @@ _FAILED_DECISION = (
     _ROOT
     / f"config/contracts/{_PREFIX}-binding-repair-execution-decision.json"
 )
+_FREEZE_REVISION = "eec48cc52e7d0c957095caa626d99018ee817812"
 
 
 def _object(path: Path) -> dict[str, Any]:
@@ -54,6 +52,16 @@ def _object(path: Path) -> dict[str, Any]:
     value: object = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
     return cast(dict[str, Any], value)
+
+
+def _historical_bytes(relative_path: str) -> bytes:
+    """Read one immutable file from the successful lane revision."""
+    return subprocess.run(
+        ("git", "show", f"{_FREEZE_REVISION}:{relative_path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
 
 
 def test_manifest_is_the_exact_seed_disjoint_replication() -> None:
@@ -114,6 +122,15 @@ def test_identity_is_non_executable_and_preserves_candidate_science() -> None:
         "execution_started": False,
         "reason": "bound freezer required lint-only formatting",
     }
+    assert _historical_bytes(str(_IDENTITY.relative_to(_ROOT))) == (
+        _IDENTITY.read_bytes()
+    )
+    for binding_group in ("program_bindings", "fixture_bindings"):
+        for binding in identity[binding_group].values():
+            assert (
+                hashlib.sha256(_historical_bytes(binding["path"])).hexdigest()
+                == binding["sha256"]
+            )
 
 
 def test_one_use_decision_binds_only_the_fast_replication() -> None:
@@ -138,52 +155,32 @@ def test_one_use_decision_binds_only_the_fast_replication() -> None:
     )
 
 
-def test_complete_no_write_preflight_covers_real_process_payload() -> None:
-    """All 300 slots and an actual process seam pass before execution."""
-    runner = runpy.run_path(str(_RUNNER))
-    expected = _object(_IDENTITY)["expected_execution"]
-    verification = runner["verify_no_write"](
-        repository_root=_ROOT,
-        manifest_path=_MANIFEST,
-        identity_path=_IDENTITY,
-        scratch=Path(expected["scratch"]),
-        output=_ROOT / expected["output"],
-        verify_process_pool=True,
-    )
-
-    assert verification == {
-        **verification,
-        "status": "pass",
-        "candidate_execution_count": 144,
-        "coarse_control_execution_count": 144,
-        "existing_dask_execution_count": 12,
-        "candidate_execution_started": False,
-        "process_payload_status": "spawn-pass",
-    }
-
-
-def test_freezer_rebuilds_exact_records_and_refuses_collision(
+def test_completed_lane_fails_closed_without_touching_a_new_namespace(
     tmp_path: Path,
 ) -> None:
-    """The deterministic freezer emits the complete set exactly once."""
-    freezer = runpy.run_path(str(_FREEZER))
-    arguments = argparse.Namespace(
-        repository_root=_ROOT,
-        output_root=tmp_path,
-    )
+    """The executed lane cannot be rebound to the evolving test tree."""
+    runner = runpy.run_path(str(_RUNNER))
+    scratch = tmp_path / "scratch"
+    output = tmp_path / "decision.json"
 
-    freezer["freeze_records"](arguments)
-    paths = tuple(
-        Path("config/contracts") / name
-        for name in (
-            f"{_PREFIX}-validated-retry-implementation-decision.json",
-            f"{_PREFIX}-validated-retry-identity-review.json",
-            f"{_PREFIX}-validated-retry-execution-decision.json",
+    with pytest.raises(ValueError, match="combined fixture changed"):
+        runner["verify_no_write"](
+            repository_root=_ROOT,
+            manifest_path=_MANIFEST,
+            identity_path=_IDENTITY,
+            scratch=scratch,
+            output=output,
+            enforce_execution_paths=False,
+            verify_process_pool=True,
         )
-    )
-    assert tuple(_object(tmp_path / path) for path in paths) == tuple(
-        _object(_ROOT / path) for path in paths
-    )
 
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        freezer["freeze_records"](arguments)
+    assert not scratch.exists()
+    assert not output.exists()
+
+
+def test_frozen_records_match_the_successful_execution_revision() -> None:
+    """The terminal lane records remain exact historical evidence."""
+    for path in (_IMPLEMENTATION, _IDENTITY, _DECISION):
+        assert _historical_bytes(str(path.relative_to(_ROOT))) == (
+            path.read_bytes()
+        )

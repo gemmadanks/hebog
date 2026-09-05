@@ -1534,6 +1534,40 @@ to validation-clean identity `6289b9ce...` and decision `8cd60e66...`. This is
 process evidence only; the fresh replication result is still required before
 any cumulative replay.
 
+## Seed-disjoint source-support-linkage replication
+
+**Terminal date:** 2026-09-05
+
+**Evidence role:** development retention and executor-invariance evidence, not
+cumulative PyBDSF parity or qualification
+
+The fresh replication ran from immutable tooling commit `eec48cc...` against
+unchanged source-finding candidate `0b9e132...`. It completed 144 paired
+candidate/coarse-control inputs across 12 geometry groups, then repeated one
+above-trigger case per group on an existing two-worker Dask scheduler.
+
+| Check | Terminal result |
+| --- | ---: |
+| Candidate/control pairs | 144 / 144 |
+| Binding geometry groups | 12 / 12 pass |
+| Binding failures | 0 |
+| Serial/existing-Dask comparisons | 12 / 12 identical |
+| Trigger seam | Pass |
+| Groups missing non-binding improvement objectives | 2 |
+
+Every geometry retained the reviewed scientific quality of its paired coarse
+control under the prospective four-seed cell-median rule. Maximum
+single-realization movements remain visible as non-binding tail sentinels. Two
+mixed compact/extended groups still miss aspirational flux, mask, or support
+objectives, so they remain improvement targets rather than being hidden; they
+did not cross a frozen retention gate. The lane therefore closes the immediate
+adaptive-risk regression concern without claiming PyBDSF parity.
+
+Atomic terminal SHA-256 is
+`0978d4a3653ce9bd4b1244ea1125142400607d04c330758ee3b4a495f4193eae`.
+The next gate is the exact cumulative dual-PyBDSF replay, followed only on a
+pass by fresh seed-disjoint held-out qualification.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
