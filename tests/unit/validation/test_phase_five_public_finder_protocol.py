@@ -45,7 +45,7 @@ _CAMPAIGN_SCRIPT = (
 )
 _RUNNER_SCRIPT = _ROOT / "scripts/benchmark/run_phase5_public_finder_hebog.py"
 _PUBLIC_IDENTITY = (
-    _ROOT / "config/contracts/phase-5-public-publication-owner-alignment-"
+    _ROOT / "config/contracts/phase-5-public-publication-owner-domain-"
     "identity-review.json"
 )
 _COMPILER_SCRIPT = (
@@ -548,24 +548,25 @@ def test_hebog_runner_publishes_only_a_complete_bundle(
     assert tuple(tmp_path.glob(".case.*")) == ()
 
 
-def test_hebog_notebook_runner_rejects_unbound_public_composition() -> None:
-    """Changed public science cannot execute under its predecessor identity."""
+def test_hebog_notebook_runner_uses_exact_public_composition() -> None:
+    """Notebook evidence must execute the same terminal public composition."""
     runner = runpy.run_path(str(_RUNNER_SCRIPT))
 
-    with pytest.raises(ValueError, match="public-interface identity changed"):
-        runner["public_hebog_configuration_sha256"]()
+    assert runner["public_hebog_configuration_sha256"]() == (
+        "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
+    )
     assert runner["build_configured_continuum_products"].__module__ == (
         "hebog.public_science"
     )
     assert runner["_PUBLIC_CONFIG"].profile == "continuum"
 
 
-def test_notebook_identity_rejects_the_unbound_public_source() -> None:
-    """The predecessor identity visibly differs from the repaired source."""
+def test_notebook_identity_binds_the_committed_public_source() -> None:
+    """A refresh cannot silently mix new source with old provenance."""
     identity = json.loads(_PUBLIC_IDENTITY.read_text(encoding="utf-8"))
 
     assert file_sha256(_PUBLIC_IDENTITY) == (
-        "89527070b483fa3d1145b1018f92cdf85460de15f79aed69d4d4c30aff31820d"
+        "2920873aa430086d8b12a2092ac7f70bb59dc756c3a70b03db7e7f0708fb0611"
     )
     assert identity["status"] == "frozen-non-executable"
     assert set(identity["authorizations"].values()) == {False}
@@ -573,15 +574,19 @@ def test_notebook_identity_rejects_the_unbound_public_source() -> None:
         "configuration_sha256": (
             "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
         ),
-        "revision": "11d70cf09778c6b5b4ba928d9b95856c7ba4b526",
+        "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
         "source_tree_sha256": (
-            "d0625e195412333121866b1999e697d03fc8bce27df66d3c8b909f145ff8d46b"
+            "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
         ),
     }
     assert (
         source_tree_sha256(_ROOT)
-        != identity["algorithm_candidate"]["source_tree_sha256"]
+        == identity["algorithm_candidate"]["source_tree_sha256"]
     )
+    for relative_path, expected_sha256 in identity[
+        "interface_file_sha256"
+    ].items():
+        assert file_sha256(_ROOT / relative_path) == expected_sha256
 
 
 def test_hebog_runner_declares_component_comparison_semantics() -> None:

@@ -7,8 +7,6 @@ import runpy
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 _ROOT = Path(__file__).parents[3]
 _REFRESH = runpy.run_path(
     str(_ROOT / "scripts/benchmark/refresh_public_notebook_hebog.py")
@@ -22,11 +20,11 @@ def _write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
 
 
-def test_preflight_rejects_an_unbound_public_runner(
+def test_preflight_uses_the_public_runners_exact_configuration(
     tmp_path: Path,
     capsys: Any,
 ) -> None:
-    """A refresh cannot start while repaired science remains unbound."""
+    """A refresh must not reconstruct an obsolete candidate identity."""
     input_campaign = tmp_path / "input.json"
     reference_campaign = tmp_path / "reference.json"
     _write_json(
@@ -47,16 +45,20 @@ def test_preflight_rejects_an_unbound_public_runner(
         },
     )
 
-    with pytest.raises(ValueError, match="public-interface identity changed"):
-        _REFRESH["run_refresh"](
-            repository_root=_ROOT,
-            input_campaign_path=input_campaign,
-            reference_campaign_path=reference_campaign,
-            history_root=tmp_path / "history",
-            label="test",
-            resume=False,
-            preflight_only=True,
-        )
+    _REFRESH["run_refresh"](
+        repository_root=_ROOT,
+        input_campaign_path=input_campaign,
+        reference_campaign_path=reference_campaign,
+        history_root=tmp_path / "history",
+        label="test",
+        resume=False,
+        preflight_only=True,
+    )
 
-    assert capsys.readouterr().out == ""
+    preflight = json.loads(capsys.readouterr().out)
+    expected = _PUBLIC_RUNNER["public_hebog_configuration_sha256"]()
+    assert preflight["configuration_sha256"] == expected
+    assert preflight["configuration_sha256"] == (
+        "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
+    )
     assert not (tmp_path / "history").exists()

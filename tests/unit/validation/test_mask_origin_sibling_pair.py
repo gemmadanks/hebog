@@ -324,6 +324,65 @@ def test_publication_excludes_disconnected_recovery_without_owner(
     assert np.all((publication == 0) | (publication == direct))
 
 
+@pytest.mark.parametrize(
+    ("shape", "direct_bounds", "recovered_pixels"),
+    [
+        ((7, 13), (0, 3, 0, 3), ((0, 4),)),
+        ((7, 13), (4, 7, 10, 13), ((6, 8),)),
+        ((6, 15), (0, 1, 5, 10), ((2, 7),)),
+        ((15, 6), (5, 10, 0, 1), ((7, 2),)),
+    ],
+    ids=("top-left", "bottom-right", "thin-horizontal", "thin-vertical"),
+)
+def test_publication_owner_domain_holds_across_boundary_geometries(
+    mocker: MockerFixture,
+    shape: tuple[int, int],
+    direct_bounds: tuple[int, int, int, int],
+    recovered_pixels: tuple[tuple[int, int], ...],
+) -> None:
+    """Boundary geometries cannot publish unowned pixels."""
+    y_start, y_stop, x_start, x_stop = direct_bounds
+    direct = np.zeros(shape, dtype=np.int32)
+    direct[y_start:y_stop, x_start:x_stop] = 7
+    significant = np.zeros(shape, dtype=np.bool_)
+    for y_pixel, x_pixel in recovered_pixels:
+        significant[y_pixel, x_pixel] = True
+    candidate = PostCampaignCandidateProducts(
+        detection=ThresholdFilterResult(
+            combined_snr=np.where(direct > 0, 6.0, 0.0),
+            retained_mask=direct > 0,
+            component_labels=direct,
+            component_count=1,
+        ),
+        direct_component_labels=direct,
+        measurement_component_labels=direct,
+        position_signal_jy_per_beam=np.zeros(shape),
+        significant_multiscale_support=significant,
+        scale_detection_planes=(),
+    )
+    mocker.patch(
+        "hebog.validation.mask_origin_sibling_pair."
+        "evaluate_publication_snr_repaired_candidate_products",
+        return_value=candidate,
+    )
+
+    result = evaluate_mask_origin_sibling_pair_candidate_products(
+        np.full(shape, 6.0),
+        np.ones(shape, dtype=np.bool_),
+        np.zeros(shape),
+        np.ones(shape),
+        beam=BeamShapePixels(4.0, 3.0, 0.0),
+        review=cast(
+            Any,
+            SimpleNamespace(matrix=SimpleNamespace(island_sigma=3.0)),
+        ),
+    )
+
+    publication = result.detection.component_labels
+    assert np.all((publication == 0) | (publication == direct))
+    assert not np.any((publication > 0) & (direct == 0))
+
+
 def test_publication_rejects_direct_support_without_measurement_owner(
     mocker: MockerFixture,
 ) -> None:

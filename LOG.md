@@ -16152,3 +16152,48 @@ tests pass, and the strict docs and installed-wheel smoke builds pass.
 non-executable notebook identity against that exact source revision, rerun the
 full validation and 13-case no-write preflight, then bind and execute the
 two-worker fast regression lane rather than the obsolete version-6 lane.
+
+## 2026-09-05 — Restrict publication to the measurement-owner domain
+
+**Plan phase:** Phase 5 scientific correction before fast regression
+
+- The restarted notebook used the corrected version-7 source and stopped on
+  `sdc1-ordinary-y06-x09` at the new fail-closed guard with
+  `ValueError: direct-derived publication support must have measurement
+  ownership`. This was not a stale run; its request bound candidate
+  `11d70cf...`, source tree `d0625e19...`, and runner `8fa23453...`. The FITS
+  warnings remained unrelated.
+- Review found a second cross-stage boundary missing from the fixture matrix.
+  Publication recovery dilates around cleaned direct support, while
+  measurement recovery requires multiscale support connected to a direct
+  seed. A nearby disconnected scale pixel can therefore be inside the former
+  radius without having a scientifically established measurement owner.
+- Added the failing analytic fixture first. The correction keeps every direct
+  owner as an exact subset of authoritative measurement ownership, fails
+  closed if a direct owner is absent or changed, and excludes only recovered
+  publication pixels with no measurement owner. It does not invent an owner,
+  change a threshold, or change direct support.
+- Expanded the regression matrix across top-left and bottom-right boundaries,
+  thin horizontal and vertical seeds, and non-square planes. Added an exact
+  synthetic notebook-runner smoke combining edge emission, three connected
+  peaks, elongated emission, sparse sources, and invalid pixels through
+  background estimation, scientific composition, catalogues, and atomic
+  publication.
+- The expanded focused matrix passes 73 tests, the exact synthetic FITS runner
+  passes, branch-aware coverage passes 2,817 tests at 94.83%, and `just check`
+  passes 2,635 tests with two expected failures. All 27 compact-equivalence
+  tests, the strict documentation build, and the isolated Python 3.14
+  installed-wheel smoke also pass.
+- Committed the source correction locally as
+  `95cfc76ded56556dc3ad6894410962d34f0d5604`, source tree
+  `8da21e86...`, unchanged configuration `2c907949...`, and version-8
+  composition `8abdeb44...`. Successor non-executable notebook identity
+  `2920873a...` supersedes `89527070...` without authorizing a cumulative
+  replay, qualification, PyBDSF or viewed-data execution, tuning, cutover, or
+  release.
+
+**Immediate next step:** complete the successor-identity validation and one
+isolated 13-case no-write notebook preflight. Then the user may start a fresh
+notebook refresh in the new source/runner namespace; do not resume any failed
+version-7 staging directory. Run the two-worker fast regression lane before
+freezing a cumulative replay.
