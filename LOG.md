@@ -15644,3 +15644,32 @@ that terminal result passes.
 **Immediate next step:** validate and commit the frozen tooling, reproduce the
 preflight from an immutable checkout, then run exactly one two-worker fast lane.
 Open no cumulative replay unless its atomic terminal decision passes.
+
+## 2026-09-05 — Repair the support-linkage runner schema boundary
+
+**Plan phase:** Phase 5 final qualification design
+
+- The immutable support-linkage successor produced all 144 candidate bundles
+  but stopped before any coarse control, accepted observation, Dask comparison,
+  or atomic result. Its progress log is empty and the intended output remains
+  absent. The preserved failed namespace contains 721 files, 498,192,816 bytes,
+  and canonical file-set SHA-256 `cfea0bfc...`.
+- An isolated frozen development case reproduced the exact exception:
+  `SourceCandidate` has no `identifier` attribute. The prospective evaluator
+  used the historical comparison-record name while the public catalogue model
+  canonically exposes `source_id`; its unit doubles repeated the wrong name and
+  therefore hid the integration mismatch.
+- Changed the doubles first and observed the three focused truth-linkage tests
+  fail for the intended reason. The runner now reads `source_id`; all three
+  tests pass, and the same complete development case successfully executes both
+  candidate and coarse control and emits attribution schema version 3.
+- Added the non-executable process root-cause review
+  `phase-5-source-owned-source-support-linkage-process-repair-pre-review.json`.
+  Candidate science, configuration, thresholds, comparator rules, and intended
+  atomic output are unchanged; the incomplete candidate bundles cannot supply
+  the missing transient linkage attribution and are not scientific evidence.
+
+**Immediate next step:** complete repository validation, commit the process-only
+repair, freeze a fresh non-executable retry identity and one-use decision under
+the user's standing bug-fix authority, and pass the full no-write preflight
+before retrying the 144/144/12 lane.

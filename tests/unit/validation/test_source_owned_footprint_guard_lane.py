@@ -41,6 +41,11 @@ _ROOT_CAUSE_REVIEW = (
     _ROOT / "config/contracts/"
     "phase-5-source-owned-footprint-guard-lane-root-cause-review.json"
 )
+_PROCESS_REPAIR_REVIEW = (
+    _ROOT / "config/contracts/"
+    "phase-5-source-owned-source-support-linkage-process-repair-"
+    "pre-review.json"
+)
 
 
 def _source(
@@ -54,7 +59,7 @@ def _source(
     celestial = WCS(synthetic_fits_header(dataset), relax=True).celestial
     world = celestial.all_pix2world([[pixel_yx[1], pixel_yx[0]]], 0)[0]
     return SimpleNamespace(
-        identifier=identifier,
+        source_id=identifier,
         position=SimpleNamespace(
             right_ascension_degrees=float(world[0]),
             declination_degrees=float(world[1]),
@@ -408,6 +413,43 @@ def test_root_cause_review_accounts_for_the_only_failed_geometry() -> None:
     assert review["recommended_repair"]["scope"] == (
         "validation-evaluator-only"
     )
+    assert not any(review["authorization"].values())
+
+
+def test_process_repair_review_accounts_for_public_schema_failure() -> None:
+    """The retry is bound to the exact post-candidate process defect."""
+    review = json.loads(_PROCESS_REPAIR_REVIEW.read_text(encoding="utf-8"))
+
+    assert review["status"] == (
+        "root-cause-complete-ready-for-process-only-repair"
+    )
+    assert review["failed_execution"] == {
+        "candidate_bundle_count": 144,
+        "candidate_execution_count": 144,
+        "coarse_control_execution_count": 0,
+        "execution_commit": "218a7f9",
+        "execution_decision_sha256": (
+            "17a6c01c2d370055639e73f9cda6d91c4261747e36823f7db527cd4e7aacd716"
+        ),
+        "identity_review_sha256": (
+            "cf59dd822a57820ca61161b1946ac2241d36a6b2a9fa0bc00b74dd87bb65f984"
+        ),
+        "namespace_file_count": 721,
+        "namespace_file_set_sha256": (
+            "cfea0bfcce25d80c48e248357cb215b78eb33b795d21af51b6821677e8b7ab8d"
+        ),
+        "namespace_size_bytes": 498192816,
+        "output_published": False,
+        "progress_record_count": 0,
+        "scratch": (
+            "/private/tmp/hebog-phase5-source-owned-measurement-topology-"
+            "source-support-linkage-2e25cdf"
+        ),
+    }
+    assert review["finding"]["classification"] == (
+        "post-candidate-validation-schema-defect"
+    )
+    assert review["recommended_repair"]["candidate_identity_unchanged"]
     assert not any(review["authorization"].values())
 
 

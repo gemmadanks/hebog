@@ -439,7 +439,7 @@ def _science_summary(  # noqa: PLR0913
     ):
         raise ValueError("combined source support capture is incomplete")
     topology = truth_linked_source_support_topology(
-        tuple(source.identifier for source in sources),
+        tuple(source.source_id for source in sources),
         linkage_inputs[0],
         cast(dict[int, str], linkage_inputs[1]),
         truth,

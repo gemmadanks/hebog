@@ -560,8 +560,8 @@ belongs in `LOG.md`; machine identities and authorization boundaries remain in
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
 | Known scientific risks | Every confirmed adaptive-background defect and every independently reproduced measurement, association, publication, or evaluator defect is corrected test-first without changing a closed result after it is viewed. | The `c28343f...` lane completed but failed six geometries. Exact forensic review shows estimator-footprint contamination, an evaluator split/reliability conflation, and a broad sub-threshold halo aperture limitation. The first two have red tests and bounded prospective corrections; the aperture limitation remains explicit and must be judged by fresh dual-PyBDSF parity before any scale-aware photometry change. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, every paired current-versus-control retention margin, truth-linked fragmentation, negative controls, and Serial/existing-Dask invariance. Absolute synthetic truth targets remain visible improvement objectives; they cannot replace or waive final comparator parity. | The immutable predecessor lane fails. The 12-execution smoke and the successor's complete 144/144/12 no-write preflight pass. Execute the frozen successor; its atomic result is the remaining fast-lane gate. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `4fb2f48...`, source tree `1275580e...`, configuration `2c907949...`, public identity `73157afa...`, and lane identity `d74d0fba...` are frozen. Serial/existing-Dask identity must pass in the complete lane before cumulative replay or held-out qualification. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, every paired current-versus-control retention margin, truth-linked fragmentation, negative controls, and Serial/existing-Dask invariance. Absolute synthetic truth targets remain visible improvement objectives; they cannot replace or waive final comparator parity. | The support-linkage successor completed all 144 candidate products but stopped before controls on a validation-runner `identifier`/`source_id` schema mismatch, so it published no decision. The defect is reproduced and corrected test-first, including one complete candidate/control case. Freeze and run the process-only successor; its passing atomic result remains required before cumulative work. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `2e25cdf...`, source tree `3da083b0...`, configuration `2c907949...`, public identity `48a57449...`, and support-linkage identity `cf59dd82...` are frozen. The process-only validation fix does not change candidate science. Serial/existing-Dask identity must pass in the complete lane before cumulative replay or held-out qualification. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -1874,6 +1874,18 @@ from partial or viewed evidence.
      slots, the exact source-support linkage seam, and a spawned-process
      payload without creating scratch or output. Run this fast lane before
      preparing any cumulative replay identity.
+   - That exact run completed all 144 candidate products but failed during
+     post-candidate truth-linkage reduction before any coarse control or
+     accepted observation. The runner requested historical comparison field
+     `identifier` from a production `SourceCandidate`, whose canonical field
+     is `source_id`; the unit doubles repeated the wrong field and masked the
+     integration error. Review
+     `phase-5-source-owned-source-support-linkage-process-repair-pre-review.json`
+     preserves the 721-file failed namespace and confirms that no scientific
+     result was published. The corrected unit contract and one complete
+     frozen-case candidate/control execution pass. Freeze a fresh process-only
+     identity and scratch, repeat the complete no-write preflight, and retry
+     the 144/144/12 lane before opening cumulative work.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

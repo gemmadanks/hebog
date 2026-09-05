@@ -1,0 +1,59 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "failed_execution": {
+    "candidate_bundle_count": 144,
+    "candidate_execution_count": 144,
+    "coarse_control_execution_count": 0,
+    "execution_commit": "218a7f9",
+    "execution_decision_sha256": "17a6c01c2d370055639e73f9cda6d91c4261747e36823f7db527cd4e7aacd716",
+    "identity_review_sha256": "cf59dd822a57820ca61161b1946ac2241d36a6b2a9fa0bc00b74dd87bb65f984",
+    "namespace_file_count": 721,
+    "namespace_file_set_sha256": "cfea0bfcce25d80c48e248357cb215b78eb33b795d21af51b6821677e8b7ab8d",
+    "namespace_size_bytes": 498192816,
+    "output_published": false,
+    "progress_record_count": 0,
+    "scratch": "/private/tmp/hebog-phase5-source-owned-measurement-topology-source-support-linkage-2e25cdf"
+  },
+  "finding": {
+    "classification": "post-candidate-validation-schema-defect",
+    "exception": "AttributeError",
+    "message": "'SourceCandidate' object has no attribute 'identifier'",
+    "root_cause": "The prospective evaluator addressed catalogue sources through the historical comparison-record field `identifier`. The production public catalogue contains `SourceCandidate` records whose canonical field is `source_id`. Unit doubles repeated the historical field name, so focused tests and no-write preflight could not expose the public-schema mismatch.",
+    "scientific_impact": "none published: all 144 candidate products completed, but every pair stopped during post-candidate truth-linkage reduction before its coarse control, accepted observation, Dask comparison, aggregation, or atomic decision",
+    "verification": "An isolated execution of the first frozen development case reproduced the exact exception after candidate publication. After the test-first correction, the same case completed candidate and coarse-control execution and wrote attribution schema version 3 with one source in each result."
+  },
+  "recommended_repair": {
+    "candidate_identity_unchanged": true,
+    "execution_boundary": "read the canonical `source_id` from each public SourceCandidate and make the unit fixture expose the same public field",
+    "failed_candidate_products_reusable": false,
+    "new_output_namespace": false,
+    "new_scratch_namespace_required": true,
+    "required_fast_checks": [
+      "the focused truth-linkage tests execute against source records exposing only `source_id`",
+      "one complete frozen development case runs candidate and coarse-control paths and produces attribution schema version 3",
+      "the complete no-write preflight exercises the real spawned-process and public-source linkage seams",
+      "the repaired 144-pair lane must pass before any cumulative replay identity is frozen"
+    ],
+    "scientific_configuration_unchanged": true,
+    "scientific_source_tree_unchanged": true
+  },
+  "required_next_decision": "after full repository validation, freeze a new non-executable process-repair identity and record the user's standing bug-fix authority in one exact successor execution decision",
+  "review_id": "phase-5-source-owned-source-support-linkage-process-repair-pre-review",
+  "reviewed_on": "2026-09-05",
+  "schema_version": 1,
+  "status": "root-cause-complete-ready-for-process-only-repair"
+}
