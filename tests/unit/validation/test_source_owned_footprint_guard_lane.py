@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 from astropy.wcs import WCS
 
+from hebog.validation import adaptive_background_lane
 from hebog.validation.adaptive_background_lane import source_signal_and_truth
 from hebog.validation.materialization import synthetic_fits_header
 
@@ -31,10 +32,15 @@ _FREEZER = (
     _ROOT / "scripts/validation/"
     "freeze_phase5_source_owned_measurement_topology_footprint_guard.py"
 )
+_ROOT_CAUSE_REVIEW = (
+    _ROOT / "config/contracts/"
+    "phase-5-source-owned-footprint-guard-lane-root-cause-review.json"
+)
 
 
 def _source(
     *,
+    identifier: str,
     pixel_yx: tuple[float, float],
     flux_jy: float,
     dataset: Any,
@@ -43,6 +49,7 @@ def _source(
     celestial = WCS(synthetic_fits_header(dataset), relax=True).celestial
     world = celestial.all_pix2world([[pixel_yx[1], pixel_yx[0]]], 0)[0]
     return SimpleNamespace(
+        identifier=identifier,
         position=SimpleNamespace(
             right_ascension_degrees=float(world[0]),
             declination_degrees=float(world[1]),
@@ -67,23 +74,40 @@ def _science_inputs() -> tuple[Any, Any, np.ndarray, np.ndarray]:
     return runner, task, truth, true_rms
 
 
-def test_science_summary_excludes_remote_rows_from_truth_flux_and_split() -> (
-    None
-):
+def test_science_summary_excludes_remote_rows_from_truth_flux_and_split(
+    monkeypatch: Any,
+) -> None:
     """False detections remain visible without becoming source fragments."""
     runner, task, truth, true_rms = _science_inputs()
     true_flux = runner["_parent_true_integrated_flux_jy"](task.dataset)
     truth_y, truth_x = np.nonzero(truth)
     linked_position = (float(np.mean(truth_y)), float(np.mean(truth_x)))
     remote_position = (8.0, 8.0)
+    labels = np.zeros(truth.shape, dtype=np.int32)
+    labels[truth] = 1
+    labels[8, 8] = 2
+    monkeypatch.setitem(
+        runner["_science_summary"].__globals__,
+        "_active_science_captures",
+        [
+            {
+                "catalogue_linkage_inputs": (
+                    labels,
+                    {1: "source-linked", 2: "source-remote"},
+                )
+            }
+        ],
+    )
     catalogue = SimpleNamespace(
         sources=(
             _source(
+                identifier="source-linked",
                 pixel_yx=linked_position,
                 flux_jy=true_flux,
                 dataset=task.dataset,
             ),
             _source(
+                identifier="source-remote",
                 pixel_yx=remote_position,
                 flux_jy=true_flux / 10.0,
                 dataset=task.dataset,
@@ -115,20 +139,40 @@ def test_science_summary_excludes_remote_rows_from_truth_flux_and_split() -> (
     }
 
 
-def test_science_summary_detects_two_truth_linked_fragments() -> None:
+def test_science_summary_detects_two_truth_linked_fragments(
+    monkeypatch: Any,
+) -> None:
     """Two rows at the analytic source remain a binding split outcome."""
     runner, task, truth, true_rms = _science_inputs()
     true_flux = runner["_parent_true_integrated_flux_jy"](task.dataset)
     truth_y, truth_x = np.nonzero(truth)
     centre = (float(np.mean(truth_y)), float(np.mean(truth_x)))
+    truth_pixels = np.argwhere(truth)
+    labels = np.zeros(truth.shape, dtype=np.int32)
+    labels[tuple(truth_pixels[0])] = 1
+    labels[tuple(truth_pixels[-1])] = 2
+    monkeypatch.setitem(
+        runner["_science_summary"].__globals__,
+        "_active_science_captures",
+        [
+            {
+                "catalogue_linkage_inputs": (
+                    labels,
+                    {1: "source-a", 2: "source-b"},
+                )
+            }
+        ],
+    )
     catalogue = SimpleNamespace(
         sources=(
             _source(
+                identifier="source-a",
                 pixel_yx=centre,
                 flux_jy=true_flux / 2.0,
                 dataset=task.dataset,
             ),
             _source(
+                identifier="source-b",
                 pixel_yx=(centre[0] + 1.0, centre[1] + 1.0),
                 flux_jy=true_flux / 2.0,
                 dataset=task.dataset,
@@ -147,6 +191,219 @@ def test_science_summary_detects_two_truth_linked_fragments() -> None:
 
     assert summary.split is True
     assert runner["_latest_linkage"]["truth_linked_source_count"] == 2
+
+
+def test_science_summary_uses_owned_support_not_expanded_truth_box(
+    monkeypatch: Any,
+) -> None:
+    """A nearby row with no truth-overlapping pixels remains unmatched."""
+    runner, task, truth, true_rms = _science_inputs()
+    globals_ = runner["_science_summary"].__globals__
+    true_flux = runner["_parent_true_integrated_flux_jy"](task.dataset)
+    truth_pixels = np.argwhere(truth)
+    linked_yx = (
+        float(truth_pixels[0, 0]),
+        float(truth_pixels[0, 1]),
+    )
+    minimum_yx = truth_pixels.min(axis=0)
+    maximum_yx = truth_pixels.max(axis=0)
+    inside_box = np.zeros(truth.shape, dtype=np.bool_)
+    inside_box[
+        minimum_yx[0] : maximum_yx[0] + 1,
+        minimum_yx[1] : maximum_yx[1] + 1,
+    ] = True
+    unlinked_pixel = np.argwhere(inside_box & ~truth)[0]
+    unlinked_yx = (float(unlinked_pixel[0]), float(unlinked_pixel[1]))
+    labels = np.zeros(truth.shape, dtype=np.int32)
+    labels[tuple(truth_pixels[0])] = 1
+    labels[tuple(unlinked_pixel)] = 2
+    monkeypatch.setitem(
+        globals_,
+        "_active_science_captures",
+        [
+            {
+                "catalogue_linkage_inputs": (
+                    labels,
+                    {1: "source-linked", 2: "source-nearby"},
+                )
+            }
+        ],
+    )
+    catalogue = SimpleNamespace(
+        sources=(
+            _source(
+                identifier="source-linked",
+                pixel_yx=linked_yx,
+                flux_jy=true_flux,
+                dataset=task.dataset,
+            ),
+            _source(
+                identifier="source-nearby",
+                pixel_yx=unlinked_yx,
+                flux_jy=true_flux / 10.0,
+                dataset=task.dataset,
+            ),
+        )
+    )
+
+    summary = runner["_science_summary"](
+        dataset=task.dataset,
+        recipe=task.recipe,
+        catalogue=catalogue,
+        mask=truth,
+        background=np.full(truth.shape, task.recipe.background),
+        rms=true_rms,
+    )
+
+    assert summary.split is False
+    assert runner["_latest_linkage"]["truth_linked_source_count"] == 1
+    assert runner["_latest_linkage"]["unmatched_source_count"] == 1
+
+
+def test_support_topology_rejects_subthreshold_rows_inside_truth_box() -> None:
+    """A nearby noise island is unmatched when its own support misses truth."""
+    truth = np.zeros((7, 7), dtype=np.bool_)
+    truth[2:5, 2:5] = True
+    source_labels = np.zeros((7, 7), dtype=np.int32)
+    source_labels[3, 3] = 1
+    source_labels[1, 3] = 2
+
+    topology = adaptive_background_lane.truth_linked_source_support_topology(
+        ("source-a", "source-b"),
+        source_labels,
+        {1: "source-a", 2: "source-b"},
+        truth,
+    )
+
+    assert topology.truth_linked_source_indices == (0,)
+    assert topology.unmatched_source_indices == (1,)
+    assert topology.truth_linked_split is False
+
+
+def test_support_topology_detects_distinct_rows_overlapping_one_truth() -> (
+    None
+):
+    """Two source-owned supports intersecting one truth remain a split."""
+    truth = np.zeros((7, 7), dtype=np.bool_)
+    truth[2:5, 2:5] = True
+    source_labels = np.zeros((7, 7), dtype=np.int32)
+    source_labels[2, 2] = 1
+    source_labels[4, 4] = 2
+
+    topology = adaptive_background_lane.truth_linked_source_support_topology(
+        ("source-a", "source-b"),
+        source_labels,
+        {1: "source-a", 2: "source-b"},
+        truth,
+    )
+
+    assert topology.truth_linked_source_indices == (0, 1)
+    assert topology.unmatched_source_indices == ()
+    assert topology.truth_linked_split is True
+
+
+@pytest.mark.parametrize(
+    ("source_identifiers", "source_labels", "mapping", "truth", "message"),
+    (
+        (
+            ("source-a",),
+            np.zeros((2, 2), dtype=np.int32),
+            {},
+            np.zeros((2, 2), dtype=np.bool_),
+            "truth support must not be empty",
+        ),
+        (
+            ("source-a",),
+            np.ones((2, 2), dtype=np.int32),
+            {1: "source-a"},
+            np.ones((2, 2), dtype=np.int32),
+            "two-dimensional boolean plane",
+        ),
+        (
+            ("source-a",),
+            np.ones((3, 2), dtype=np.int32),
+            {1: "source-a"},
+            np.ones((2, 2), dtype=np.bool_),
+            "aligned non-negative integer plane",
+        ),
+        (
+            ("source-a",),
+            np.full((2, 2), -1, dtype=np.int32),
+            {1: "source-a"},
+            np.ones((2, 2), dtype=np.bool_),
+            "aligned non-negative integer plane",
+        ),
+        (
+            ("source-a", "source-a"),
+            np.ones((2, 2), dtype=np.int32),
+            {1: "source-a"},
+            np.ones((2, 2), dtype=np.bool_),
+            "source identifiers must be unique",
+        ),
+        (
+            ("source-a",),
+            np.ones((2, 2), dtype=np.int32),
+            {2: "source-a"},
+            np.ones((2, 2), dtype=np.bool_),
+            "source label identity mapping is inconsistent",
+        ),
+    ),
+)
+def test_support_topology_fails_closed_on_inconsistent_inputs(
+    source_identifiers: tuple[str, ...],
+    source_labels: np.ndarray,
+    mapping: dict[int, str],
+    truth: np.ndarray,
+    message: str,
+) -> None:
+    """Malformed linkage evidence cannot silently change split semantics."""
+    with pytest.raises(ValueError, match=message):
+        adaptive_background_lane.truth_linked_source_support_topology(
+            source_identifiers,
+            source_labels,
+            mapping,
+            truth,
+        )
+
+
+def test_root_cause_review_accounts_for_the_only_failed_geometry() -> None:
+    """The successor is justified by exact owned-support evidence."""
+    review = json.loads(_ROOT_CAUSE_REVIEW.read_text(encoding="utf-8"))
+
+    assert review["binding_context"]["terminal_decision"] == {
+        "executor_invariance_passed": True,
+        "failed_geometry_count": 1,
+        "file_sha256": (
+            "8add4b13568258219b3b52b5ae017a106d22143314995a547e6b8cd059a6b2ea"
+        ),
+        "geometry_count": 12,
+        "input_count": 144,
+        "path": (
+            "benchmark-results/phase-5/"
+            "source-owned-measurement-topology-footprint-guard-"
+            "development-decision.json"
+        ),
+        "status": "fail",
+        "trigger_seam_passed": True,
+    }
+    finding = review["causal_finding"]
+    assert finding["owned_support_forensics"] == {
+        "candidate_source_component_labels": [4, 72, 77, 86, 96],
+        "source_component_truth_overlap_pixels": {
+            "4": 0,
+            "72": 440,
+            "77": 0,
+            "86": 0,
+            "96": 0,
+        },
+        "truth_overlapping_candidate_source_count": 1,
+        "zero_overlap_candidate_source_count": 4,
+    }
+    assert finding["classification"].endswith("not-source-finding-regression")
+    assert review["recommended_repair"]["scope"] == (
+        "validation-evaluator-only"
+    )
+    assert not any(review["authorization"].values())
 
 
 def test_attribution_retains_candidate_and_control_linkage_scalars(
@@ -247,29 +504,19 @@ def test_freezer_builds_coherent_separate_identity_and_authority() -> None:
     )
 
 
-def test_freezer_writes_complete_set_once(tmp_path: Path) -> None:
-    """A collision blocks the whole four-record set before any rewrite."""
+def test_historical_freezer_rejects_changed_scientific_source_tree(
+    tmp_path: Path,
+) -> None:
+    """The consumed footprint lane cannot be rebound after this repair."""
     freezer = runpy.run_path(str(_FREEZER))
     arguments = argparse.Namespace(
         repository_root=_ROOT,
         output_root=tmp_path,
     )
 
-    freezer["freeze_records"](arguments)
-    relative_paths = (
-        freezer["_PUBLIC_IDENTITY"],
-        freezer["_IMPLEMENTATION"],
-        freezer["_IDENTITY"],
-        freezer["_EXECUTION_DECISION"],
-    )
-    before = {path: (tmp_path / path).read_bytes() for path in relative_paths}
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+    with pytest.raises(
+        ValueError,
+        match="footprint-guard scientific source tree changed",
+    ):
         freezer["freeze_records"](arguments)
-
-    assert before == {
-        path: (tmp_path / path).read_bytes() for path in relative_paths
-    }
-    assert all(
-        isinstance(json.loads(payload), dict) for payload in before.values()
-    )
+    assert not tuple(tmp_path.rglob("*.json"))

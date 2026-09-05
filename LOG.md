@@ -15580,3 +15580,39 @@ complete 144-image lane before preparing any cumulative replay identity.
 **Immediate next step:** commit the frozen lane tooling, reproduce its complete
 preflight from an immutable checkout, run the single fast lane, and open the
 cumulative dual-PyBDSF replay only if its atomic terminal decision passes.
+
+## 2026-09-05 — Diagnose the footprint-guard fast-lane failure
+
+**Plan phase:** Phase 5 final qualification design
+
+- The immutable footprint-guard lane completed 144 candidate/control pairs
+  and all 12 caller-owned Dask comparisons. Trigger activation and
+  Serial/existing-Dask invariance passed; 11/12 geometry groups passed. Atomic
+  decision `8add4b13...` failed only
+  `mixed_compact_extended--beam-b--varying--scale-8--interior` on the paired
+  split margin. No cumulative replay or qualification was opened.
+- Preserved the failed terminal decision and scratch. Exact forensics on seed
+  `2026950137` show five candidate source-component labels: label 72 overlaps
+  440 governed truth pixels, while labels 4, 77, 86, and 96 overlap zero. The
+  prior centroid-in-expanded-box matcher called three rows truth-linked and
+  therefore manufactured a split; the candidate and coarse result each
+  actually contain one truth-overlapping source. The other rows remain valid
+  unmatched-source reliability evidence.
+- Added the non-executable root-cause record
+  `phase-5-source-owned-footprint-guard-lane-root-cause-review.json`. It binds
+  terminal SHA `8add4b13...`, accounts for the only failed geometry, identifies
+  a validation-only linkage defect rather than a source-finding regression,
+  and prohibits retrospective rescoring.
+- Confirmed the red state before implementing a pure fail-closed support-
+  intersection matcher. Catalogue IDs now map exactly to source-owned labels;
+  a source is truth-linked only when its own pixels intersect analytic truth.
+  Nearby and remote zero-overlap rows and flux stay explicit unmatched
+  diagnostics. Malformed truth, labels, duplicate IDs, and incomplete mappings
+  fail closed.
+- The affected suite passes 33 tests; Ruff passes; and Pyright reports zero
+  errors in the repaired validation helper and runner.
+
+**Immediate next step:** commit this validation-only repair, freeze a fresh
+non-executable lane identity and one-use decision, pass the complete no-write
+preflight, and rerun the 144-input fast lane. Start no cumulative replay until
+that terminal result passes.

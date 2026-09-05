@@ -1,0 +1,107 @@
+{
+  "authorization": {
+    "cumulative_replay_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "binding_context": {
+    "candidate": {
+      "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+      "revision": "4fb2f483bc54292e869ef744d4a473434c18f4ac",
+      "source_tree_sha256": "1275580e38aa320b65a4f71cfee2ebb07d231fccb8633565d39f0713d0e791b6"
+    },
+    "execution": {
+      "execution_commit": "807c1e32bf491eb5ef98268a6ed74ecbdafcda3d",
+      "execution_decision_sha256": "7c1fc6bd3262f5ff7c5a76dae587878ca1adb2a75bdc7157ba37d91b0a10a4eb",
+      "identity_review_sha256": "d74d0fba79c689f6d3b1e857fd900c14d8c4138a22cbf31fe9ac29e9594486b8",
+      "immutable_checkout": "/private/tmp/hebog-phase5-source-owned-footprint-guard-lane-807c1e3",
+      "scratch": "/private/tmp/hebog-phase5-source-owned-measurement-topology-footprint-guard-4fb2f48"
+    },
+    "terminal_decision": {
+      "executor_invariance_passed": true,
+      "failed_geometry_count": 1,
+      "file_sha256": "8add4b13568258219b3b52b5ae017a106d22143314995a547e6b8cd059a6b2ea",
+      "geometry_count": 12,
+      "input_count": 144,
+      "path": "benchmark-results/phase-5/source-owned-measurement-topology-footprint-guard-development-decision.json",
+      "status": "fail",
+      "trigger_seam_passed": true
+    }
+  },
+  "causal_finding": {
+    "classification": "confirmed-validation-linkage-defect-not-source-finding-regression",
+    "failed_geometry": "mixed_compact_extended--beam-b--varying--scale-8--interior",
+    "failed_input": "mixed-compact-extended-beam-b-varying-scale-8-interior-boundary-seed-2026950137",
+    "failure": {
+      "binding_gate": "split-fraction-paired-margin",
+      "candidate_catalogue_source_count": 5,
+      "candidate_reported_truth_linked_source_count": 3,
+      "candidate_split_fraction": 0.08333333333333333,
+      "coarse_catalogue_source_count": 2,
+      "coarse_reported_truth_linked_source_count": 1,
+      "maximum_adverse_paired_split_movement": 1.0
+    },
+    "owned_support_forensics": {
+      "candidate_source_component_labels": [
+        4,
+        72,
+        77,
+        86,
+        96
+      ],
+      "source_component_truth_overlap_pixels": {
+        "4": 0,
+        "72": 440,
+        "77": 0,
+        "86": 0,
+        "96": 0
+      },
+      "truth_overlapping_candidate_source_count": 1,
+      "zero_overlap_candidate_source_count": 4
+    },
+    "root_cause": "The footprint-guard lane linked a catalogue row when its centroid fell inside the analytic truth bounding box expanded by 1.5 major beams. For a broad injected source this box also contains nearby sub-threshold noise islands. Those rows had no source-owned detection pixels intersecting the governed three-sigma analytic truth support, so the centroid rule falsely classified them as fragments.",
+    "scientific_interpretation": "The candidate and coarse result each contain one source whose owned support intersects the injected truth. The additional candidate rows remain unmatched reliability evidence. Therefore neither result fragments the truth source, the candidate does not regress the split endpoint, and no Hebog source-finding correction is indicated by this failure. The terminal failed decision remains immutable and is not retrospectively rescored."
+  },
+  "recommended_repair": {
+    "definition": "A catalogue source is truth-linked only when the source-owned component-label pixels mapped to that exact public source identifier intersect the governed analytic truth support.",
+    "fail_closed_inputs": [
+      "two-dimensional non-empty boolean truth support",
+      "shape-aligned non-negative integer source-label plane",
+      "unique public source identifiers",
+      "one-to-one complete positive-label-to-source-identifier mapping"
+    ],
+    "historical_result_immutable": true,
+    "no_retrospective_rescore": true,
+    "scope": "validation-evaluator-only",
+    "unmatched_policy": "Every zero-overlap catalogue row and its integrated flux remain explicit array-free reliability diagnostics. No row is discarded or merged."
+  },
+  "required_fast_validation": [
+    "nearby-centroid-zero-owned-support-overlap-remains-unmatched",
+    "two-distinct-owned-supports-overlapping-one-truth-remain-a-split",
+    "remote-source-flux-remains-an-explicit-unmatched-diagnostic",
+    "malformed-truth-label-and-identity-evidence-fails-closed",
+    "exact-144-input-trigger-and-paired-science-development-lane",
+    "twelve-existing-dask-comparisons-identical-to-serial",
+    "complete-no-write-preflight-before-execution"
+  ],
+  "required_sequence": [
+    "preserve-the-failed-terminal-decision-and-scratch",
+    "implement-the-validation-only-support-overlap-repair-test-first",
+    "freeze-a-new-candidate-wrapper-review-decision-and-output-identity",
+    "rerun-the-small-development-lane",
+    "open-cumulative-dual-pybdsf-replay-only-after-the-small-lane-passes",
+    "open-seed-disjoint-held-out-qualification-only-after-cumulative-parity-passes"
+  ],
+  "review_id": "phase-5-source-owned-footprint-guard-lane-root-cause-review",
+  "reviewed_on": "2026-09-05",
+  "schema_version": 1,
+  "standing_user_authority": "The user approved the repaired development lane, planned replay, final campaign, and bug fixes needed to close Phase 5, while requiring fast iteration before long work. Every executable must still bind an exact frozen identity and fresh write-once namespace.",
+  "status": "root-cause-complete-ready-for-validation-only-repair"
+}

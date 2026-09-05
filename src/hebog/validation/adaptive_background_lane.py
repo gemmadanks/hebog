@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from math import cos, isfinite, pi, sin, sqrt
@@ -132,6 +133,64 @@ def truth_linked_source_topology(
         else:
             unmatched.append(index)
     return TruthLinkedSourceTopology(tuple(linked), tuple(unmatched))
+
+
+def truth_linked_source_support_topology(
+    source_identifiers: tuple[str, ...],
+    source_labels: npt.ArrayLike,
+    source_identifier_by_label: Mapping[int, str],
+    truth_support: npt.ArrayLike,
+) -> TruthLinkedSourceTopology:
+    """Link analytic sources by exact detected-support intersection.
+
+    Catalogue centroids can fall near a broad injected source even when their
+    own detection islands contain only sub-threshold noise.  The source label
+    plane retains the required ownership: a catalogue row is truth-linked only
+    when pixels owned by that row intersect the governed truth support.
+    """
+    truth = np.asarray(truth_support)
+    labels = np.asarray(source_labels)
+    if truth.ndim != _IMAGE_DIMENSIONS or truth.dtype != np.bool_:
+        raise ValueError(
+            "truth support must be a two-dimensional boolean plane"
+        )
+    if not np.any(truth):
+        raise ValueError("truth support must not be empty")
+    if (
+        labels.shape != truth.shape
+        or not np.issubdtype(labels.dtype, np.integer)
+        or bool(np.any(labels < 0))
+    ):
+        raise ValueError(
+            "source labels must be one aligned non-negative integer plane"
+        )
+    if len(set(source_identifiers)) != len(source_identifiers):
+        raise ValueError("source identifiers must be unique")
+    if (
+        any(label <= 0 for label in source_identifier_by_label)
+        or len(set(source_identifier_by_label.values()))
+        != len(source_identifier_by_label)
+        or set(source_identifier_by_label.values()) != set(source_identifiers)
+        or {int(value) for value in np.unique(labels[labels > 0])}
+        != set(source_identifier_by_label)
+    ):
+        raise ValueError("source label identity mapping is inconsistent")
+    label_by_identifier = {
+        identifier: label
+        for label, identifier in source_identifier_by_label.items()
+    }
+    linked = tuple(
+        index
+        for index, identifier in enumerate(source_identifiers)
+        if bool(np.any((labels == label_by_identifier[identifier]) & truth))
+    )
+    linked_set = set(linked)
+    unmatched = tuple(
+        index
+        for index in range(len(source_identifiers))
+        if index not in linked_set
+    )
+    return TruthLinkedSourceTopology(linked, unmatched)
 
 
 def installed_adaptive_runtime_identity() -> dict[str, str]:

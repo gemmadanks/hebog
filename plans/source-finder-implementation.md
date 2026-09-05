@@ -1844,6 +1844,27 @@ from partial or viewed evidence.
      control, and 12 caller-owned-Dask slots plus a real spawned worker without
      creating a namespace. Run this fast lane now; do not prepare or start the
      long cumulative replay unless its atomic decision passes.
+   - The footprint-guard lane completed all 144 paired inputs and 12
+     existing-Dask comparisons with valid trigger and executor gates, but its
+     immutable terminal decision `8add4b13...` failed one geometry on the
+     split paired margin. Exact support forensics on the only failing seed show
+     that one of five candidate catalogue sources owns all 440 truth-
+     overlapping source pixels and the other four own zero; the coarse result
+     likewise has one truth-overlapping source. The 1.5-beam expanded truth-box
+     matcher therefore misclassified nearby sub-threshold noise islands as
+     source fragments. Root-cause review
+     `phase-5-source-owned-footprint-guard-lane-root-cause-review.json`
+     records this as a validation-only defect, keeps all extra rows as
+     unmatched reliability evidence, and forbids retrospective rescoring.
+   - Repair truth linkage prospectively by requiring the exact source-owned
+     component-label support mapped to each public source identifier to
+     intersect the governed analytic truth support. Fail closed on missing,
+     malformed, negative, duplicate, or incomplete linkage evidence. Freeze a
+     fresh wrapper, review, decision, scratch, and atomic output; rerun the
+     144-image lane before opening any cumulative work. This does not change
+     Hebog source-finding science. Only a passing corrected lane may open the
+     cumulative dual-PyBDSF replay, and only a passing cumulative replay may
+     open the seed-disjoint held-out qualification.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

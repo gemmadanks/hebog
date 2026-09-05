@@ -24,7 +24,6 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import numpy as np
-from astropy.wcs import WCS
 
 from hebog import public_api
 from hebog.algorithms.extended_measurement import (
@@ -53,7 +52,7 @@ from hebog.validation.adaptive_background_lane import (
     build_adaptive_runtime_identity,
     evaluate_phase_five_adaptive_risk,
     source_signal_and_truth,
-    truth_linked_source_topology,
+    truth_linked_source_support_topology,
 )
 from hebog.validation.datasets import (
     DatasetManifest,
@@ -65,7 +64,6 @@ from hebog.validation.external_runners import (
     file_sha256,
     source_tree_sha256,
 )
-from hebog.validation.materialization import synthetic_fits_header
 
 _ROOT_REVIEW = Path(
     "config/contracts/phase-5-source-owned-lane-terminal-root-cause-review.json"
@@ -124,7 +122,7 @@ _CANDIDATE_CONFIGURATION_SHA256 = (
 _EXPECTED_INPUTS = 144
 _EXPECTED_DASK = 12
 _ATTRIBUTION_SCHEMA_VERSION = 3
-_ASSOCIATION_RADIUS_BEAMS = 1.5
+_LINKAGE_INPUT_COUNT = 2
 _PROGRAM_BINDING_PATHS = {
     "attribution": "src/hebog/validation/adaptive_background_diagnostics.py",
     "background_algorithm": "src/hebog/algorithms/background.py",
@@ -217,6 +215,7 @@ _parent_atomic_write = _PARENT["_atomic_write"]
 _captured_candidate: dict[str, Any] = {}
 _captured_coarse: dict[str, Any] = {}
 _latest_linkage: dict[str, int | float] = {}
+_active_science_captures: list[dict[str, Any]] = []
 
 
 def _json_object(path: Path, *, label: str) -> dict[str, Any]:
@@ -266,16 +265,35 @@ def _source_stage_attribution(  # noqa: PLR0913
     return record
 
 
+def _catalogue_linkage_inputs(
+    component_labels: np.ndarray,
+    association: Any,
+) -> tuple[np.ndarray, dict[int, str]]:
+    """Return source-owned labels and their exact public source identities."""
+    source_labels, membership_by_label = (
+        validation_products._source_label_plane(
+            component_labels,
+            association,
+        )
+    )
+    return source_labels, {
+        label: membership.source_id
+        for label, membership in membership_by_label.items()
+    }
+
+
 @contextmanager
 def _captured_science() -> Generator[dict[str, Any]]:
     """Capture image-sized science only until it becomes bounded scalars."""
+    if _active_science_captures:
+        raise RuntimeError("combined science capture cannot be nested")
     from hebog import public_science  # noqa: PLC0415
 
     captured: dict[str, Any] = {}
-    original_analysis = public_api._analyse_image
-    original_detection = public_api.run_detection_stage
-    original_catalogues = (
-        public_science.build_hebog_reconstructed_source_catalogues
+    original_analysis, original_detection, original_catalogues = (
+        public_api._analyse_image,
+        public_api.run_detection_stage,
+        public_science.build_hebog_reconstructed_source_catalogues,
     )
 
     def detection(*args: Any, **kwargs: Any) -> Any:
@@ -289,9 +307,13 @@ def _captured_science() -> Generator[dict[str, Any]]:
         valid = np.asarray(args[2], dtype=np.bool_)
         component_labels = np.asarray(args[3])
         planes = args[6]
-        source_seeds, _ = validation_products._source_label_plane(
+        source_seeds, identifier_by_label = _catalogue_linkage_inputs(
             component_labels,
             result.association,
+        )
+        captured["catalogue_linkage_inputs"] = (
+            source_seeds,
+            identifier_by_label,
         )
         persistent = persistent_adjacent_scale_support(planes)
         owned = assign_persistent_source_support(
@@ -362,9 +384,11 @@ def _captured_science() -> Generator[dict[str, Any]]:
     public_api.run_detection_stage = detection
     public_api._analyse_image = analysis
     public_science.build_hebog_reconstructed_source_catalogues = catalogues
+    _active_science_captures.append(captured)
     try:
         yield captured
     finally:
+        _active_science_captures.pop()
         public_science.build_hebog_reconstructed_source_catalogues = (
             original_catalogues
         )
@@ -380,26 +404,6 @@ def _source_flux_jy(source: Any) -> float:
         if aperture_flux is not None
         else source.flux.integrated_flux_jy
     )
-
-
-def _source_positions_yx(
-    dataset: DatasetRecord,
-    catalogue: Any,
-) -> tuple[tuple[float, float], ...]:
-    """Transform canonical catalogue sky positions into image pixels."""
-    sources = tuple(catalogue.sources)
-    if not sources:
-        return ()
-    celestial = WCS(synthetic_fits_header(dataset), relax=True).celestial
-    world = [
-        [
-            source.position.right_ascension_degrees,
-            source.position.declination_degrees,
-        ]
-        for source in sources
-    ]
-    pixels = celestial.all_world2pix(world, 0)
-    return tuple((float(pixel[1]), float(pixel[0])) for pixel in pixels)
 
 
 def _science_summary(  # noqa: PLR0913
@@ -422,12 +426,21 @@ def _science_summary(  # noqa: PLR0913
     )
     _, truth, _ = source_signal_and_truth(recipe)
     sources = tuple(catalogue.sources)
-    topology = truth_linked_source_topology(
-        _source_positions_yx(dataset, catalogue),
+    if not _active_science_captures:
+        raise ValueError("combined source support capture is unavailable")
+    capture = _active_science_captures[-1]
+    linkage_inputs = capture.get("catalogue_linkage_inputs")
+    if (
+        not isinstance(linkage_inputs, tuple)
+        or len(linkage_inputs) != _LINKAGE_INPUT_COUNT
+        or not isinstance(linkage_inputs[1], dict)
+    ):
+        raise ValueError("combined source support capture is incomplete")
+    topology = truth_linked_source_support_topology(
+        tuple(source.identifier for source in sources),
+        linkage_inputs[0],
+        cast(dict[int, str], linkage_inputs[1]),
         truth,
-        association_radius_pixels=(
-            _ASSOCIATION_RADIUS_BEAMS * dataset.beam.major_fwhm_pixels
-        ),
     )
     linked_sources = tuple(
         sources[index] for index in topology.truth_linked_source_indices

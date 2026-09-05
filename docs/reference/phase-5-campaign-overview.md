@@ -1435,6 +1435,51 @@ opens exactly one larger cumulative replay; it does not itself satisfy the
 power audit or authorize qualification. Tuning, rescoring, cutover, and release
 remain outside this authority.
 
+## Source-owned footprint-guard development lane
+
+**Terminal date:** 2026-09-05
+
+**Evidence role:** development and process validation, not cumulative
+scientific parity or qualification.
+
+The lane asked whether the estimator-footprint source guard preserved or
+improved the 12 adaptive-background geometry groups relative to the paired
+coarse control while retaining deterministic Serial/existing-Dask behavior.
+It completed all 144 candidate/control inputs and all 12 Dask comparisons.
+The trigger seam and executor-invariance gate passed, 11 geometries passed,
+and one mixed compact/extended geometry failed only the paired split margin.
+
+| Terminal check | Result |
+| --- | ---: |
+| Inputs completed | 144 / 144 |
+| Geometry groups passing | 11 / 12 |
+| Serial/existing-Dask comparisons | 12 / 12 identical |
+| Trigger seam | Pass |
+| Binding failure | One split-margin result |
+
+The failed seed reported five candidate catalogue rows, three of which the
+development matcher called truth-linked, against two coarse rows with one
+called truth-linked. Exact source-owned component support gives a different
+and scientifically appropriate account: only one candidate row intersects the
+injected three-sigma truth support, with 440 overlapping pixels; each of the
+other four rows has zero overlap. They are nearby reliability detections, not
+fragments of the injected source. The coarse result also has one linked source.
+
+This is an evaluator defect rather than evidence that Hebog science became
+worse. The matcher used catalogue centroids inside the broad source's bounding
+box expanded by 1.5 beams, so nearby sub-threshold noise islands could be
+mistaken for fragments. The immutable terminal decision remains failed and is
+not rescored. The prospective repair links each public source through its own
+source-owned label support and keeps every non-overlapping row and its flux as
+explicit reliability evidence. Its root-cause record is
+`config/contracts/phase-5-source-owned-footprint-guard-lane-root-cause-review.json`.
+
+Atomic terminal SHA-256 is
+`8add4b13568258219b3b52b5ae017a106d22143314995a547e6b8cd059a6b2ea`.
+The next gate is a fresh 144-input development lane using the corrected frozen
+evaluator. Cumulative dual-PyBDSF replay and seed-disjoint held-out
+qualification remain ordered behind a passing fast result.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
