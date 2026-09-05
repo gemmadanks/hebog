@@ -65,8 +65,13 @@ compensate for failed science.
   completion, cross-scale ownership, bounded tiling semantics, incremental
   performance, and a terminal scientific-readiness handoff after confirmatory
   PyBDSF parity and Hebog-quality retention pass. Release Please owns the next
-  release workflow; Phase 5 does not prepare a version, tag, changelog, or
-  release artifact.
+  standalone Hebog release workflow after Phase 5 closes; Phase 5 does not
+  prepare a version, tag, changelog, or release artifact. Only a narrow
+  release-blocking production audit belongs before qualification and closure.
+- Phase 5.5 owns post-release removal or consolidation of superseded campaign
+  wrappers, one-use freezers, historical lifecycle tests, and other
+  development-only tooling. It does not change `src/hebog/`, scientific
+  products, or closed evidence, and it completes before Phase 6 begins.
 - Phase 6 owns the restricted Rapthor profile decision, Rapthor integration,
   complete dual-PyBDSF performance, and the earliest useful Rapthor-integrated
   experimental release once every minimum gate passes.
@@ -481,7 +486,9 @@ authoritative measurement owner and still rejects genuinely unowned support.
 The remaining gates are the
 prospective fast lane, a fresh cumulative replay/evaluation, seed-disjoint
 held-out qualification, final engineering/public-interface confirmation,
-cleanup and documentation, and packet-bound independent acceptance.
+a narrow production audit, documentation, and packet-bound independent
+acceptance. Broad historical-tooling cleanup is explicitly post-release Phase
+5.5 work and is not a Phase 5 scientific exit gate.
 
 The public/challenge one-look remains closed failure evidence: decision
 `954077e9...` fails SDC1 completeness, reliability, and flux-error gates, and
@@ -637,8 +644,8 @@ the failed `1ac6deb2...` replay must remain visible historical evidence.
 
 #### Authoritative Phase 5 closeout checklist
 
-If the corrected candidate's cumulative replay and evaluation pass every binding check,
-complete only these steps, in order:
+If the corrected candidate's cumulative replay and evaluation pass every
+binding check, complete only these steps, in order:
 
 1. [ ] **Seal and accept the cumulative decision.** Verify all 2,400 current
    products and their exact candidate, source-tree, configuration, program,
@@ -652,10 +659,13 @@ complete only these steps, in order:
 2. [ ] **Freeze the production candidate and run one fresh held-out
    qualification.** Before exposing held-out data, audit `src/hebog/` for dead
    branches, obsolete feature flags, duplicate helpers, stale public exports,
-   and temporary diagnostics. Defer cosmetic or speculative cleanup. Any
+   and temporary diagnostics. This narrow, release-blocking production audit
+   is the only cleanup required to close Phase 5. Change code only for a
+   reachable correctness, safety, public-contract, or material maintainability
+   defect; defer cosmetic, speculative, and historical-tooling cleanup. Any
    package-source edit creates a new candidate identity and must repeat every
-   affected fail-fast and cumulative gate before qualification; never alter
-   qualified source afterward.
+   affected fail-fast and cumulative gate before qualification. Freeze the
+   accepted source after this audit and never alter qualified source.
 
    Freeze the population, seeds, power, endpoints, comparators, and decision
    before execution. Include all 12 adaptive geometry groups—not only
@@ -677,28 +687,7 @@ complete only these steps, in order:
    input, catalogue/RMS/mask/diagnostic products, errors, schemas, atomic
    writes, bounded execution, retry/order invariance, and reproduction
    commands.
-4. [ ] **Remove obsolete historical tooling without invalidating the
-   evidence.** After the cumulative and qualification decisions are terminal,
-   inventory the Phase 5
-   validation scripts, freezers, overlays, and lifecycle-only tests. Keep the
-   canonical current generators/evaluators, shared fixtures, and anything
-   needed by the final readiness packet or notebooks. Remove superseded
-   one-use executors and tests only when no maintained code or final evidence
-   imports them. Retain behavioural regression tests even when their original
-   one-off campaign harness is removed. Do not modify `src/hebog/` in this
-   step; production cleanup was resolved before qualification. Record each
-   removed path, its last immutable commit and
-   SHA-256, and its replacement in
-   `docs/reference/phase-5-provenance-index.md`; Git history remains the
-   recovery mechanism.
-
-   Do not create a separate provenance branch: branches are mutable, easy to
-   lose, and make the release depend on parallel history. Preserve small
-   hash-bound contracts and terminal decisions in the main history, and keep
-   large generated products outside Git according to the existing evidence
-   policy. Remove obsolete scratch only after confirming that the compact
-   decision files used by notebooks and readiness remain available.
-5. [ ] **Document and finalize scientific readiness.** Update the campaign
+4. [ ] **Document and finalize scientific readiness.** Update the campaign
    overview, API reference and radio-astronomer workflow, supported profiles,
    scientific interpretation, limitations, reproducibility instructions,
    provenance index, `LOG.md`, and the Phase 6 handoff. Rebuild the fail-closed
@@ -707,10 +696,12 @@ complete only these steps, in order:
    terminal readiness record. Do not prepare a version, tag, changelog, or
    release artifact; Release Please handles the next release.
 
-Phase 5 closes when all exit-gate rows and all five items above pass for one
-exact candidate and the terminal readiness record is published. Rapthor
-integration, complete `filter_skymodel` performance, cutover, facility scale,
-and release execution remain Phase 6 or later work.
+Phase 5 closes when all exit-gate rows and all four items above pass for one
+exact candidate and the terminal readiness record is published. Release Please
+then owns the standalone Hebog release; the Phase 5 work does not manually
+prepare or execute it. Rapthor integration, complete `filter_skymodel`
+performance, cutover, facility scale, and a Rapthor-integrated release remain
+Phase 6 or later work.
 
 #### Historical Phase 5 evidence
 
@@ -722,11 +713,44 @@ retains the former inline execution chronology. Closed failures remain
 immutable evidence and must never be rerun or rescored merely because their
 narrative was removed from this current-work plan.
 
+### Phase 5.5: post-release historical-tooling cleanup
+
+Begin only after Phase 5 is terminally closed and Release Please has durably
+recorded the standalone Hebog release. This maintenance phase is deliberately
+outside the scientific release boundary: it reduces repository complexity
+without delaying parity, qualification, readiness, or release. It must finish
+before Phase 6 starts so Rapthor integration builds on one clear maintained
+validation path.
+
+- [ ] Inventory Phase 5 validation scripts, freezers, overlays, and
+      lifecycle-only tests. Identify the canonical current
+      generators/evaluators and every file still used by notebooks, current
+      regression tests, final readiness, or reproducibility documentation.
+- [ ] Remove superseded one-use executors and lifecycle tests only when no
+      maintained code or final evidence imports them. Retain behavioural
+      regression tests and shared analytic fixtures even when their original
+      campaign harness is removed.
+- [ ] Do not modify `src/hebog/` in this phase. If cleanup exposes a production
+      defect, open a separately reviewed candidate change with proportionate
+      scientific regression gates rather than folding it into repository
+      tidying. Development-tool-only deletion does not require replaying
+      scientific products.
+- [ ] Preserve compact hash-bound contracts and terminal decisions in main
+      history, keep large generated products outside Git, and record each
+      removed path, its last immutable commit and SHA-256, and its replacement
+      in `docs/reference/phase-5-provenance-index.md`. Git history is the
+      recovery mechanism; do not create a separate provenance branch.
+- [ ] Remove obsolete scratch only after confirming that notebook, readiness,
+      and reproducibility inputs remain available. Run affected focused tests,
+      `just check`, `just docs-build`, and `just pre-commit` before completing
+      the maintenance phase.
+
 ### Phase 6: Rapthor integration, minimum performance, and early release
 
 Phase 6 begins only after Phase 5 has established all-check scientific parity,
-retained the frozen incumbent Hebog quality, and published its terminal
-scientific-readiness record. Its objective is the earliest safe, useful
+retained the frozen incumbent Hebog quality, published its terminal
+scientific-readiness record, and Phase 5.5 has completed the post-release
+historical-tooling cleanup. Its objective is the earliest safe, useful
 improvement for Rapthor, not the final scientific or computational optimum.
 Do not delay a Rapthor-integrated experimental release for a longer-term
 absolute target or maximum facility scale once all binding science,

@@ -16367,3 +16367,30 @@ evaluation package. Reproduce the gate from a clean immutable checkout, then
 consume the one-use authority for evaluation only. A binding scientific
 failure is terminal evidence and does not authorize tuning, rescoring,
 qualification, or another replay.
+
+## 2026-09-05 — Separate release-blocking and historical cleanup
+
+**Plan phase:** Phase 5 closeout sequencing
+
+- Clarified that Phase 5 requires only a narrow `src/hebog/` audit for
+  reachable correctness, safety, public-contract, or material maintainability
+  defects before held-out qualification. Any resulting package-source change
+  creates a new candidate and repeats the affected scientific gates; accepted
+  source is frozen after the audit.
+- Removed broad historical-tooling deletion from the Phase 5 exit checklist.
+  Phase 5 now closes after cumulative acceptance, the production audit and
+  held-out qualification, final engineering evidence, documentation, and the
+  terminal readiness decision. Release Please then owns the standalone Hebog
+  release without manual version or release-artifact preparation.
+- Added Phase 5.5 after the standalone release and before Phase 6. It removes
+  superseded campaign-only tooling while retaining current evaluators,
+  behavioural regression tests, compact terminal evidence, notebook and
+  readiness dependencies, and a main-history provenance index. It may not
+  modify `src/hebog/`; a discovered production defect opens separately
+  reviewed work rather than being hidden in cleanup.
+
+**Immediate next step:** allow the running cumulative evaluation-only
+completion to publish its write-once result. If it passes, perform the bounded
+production audit before freezing held-out qualification; do not start Phase
+5.5 cleanup until Phase 5 closes and Release Please records the standalone
+release.
