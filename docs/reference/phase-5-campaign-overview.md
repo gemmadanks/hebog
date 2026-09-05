@@ -1616,6 +1616,40 @@ lane, then run a fresh 2,400-product cumulative candidate stage. No threshold,
 saddle margin, comparator, or acceptance gate was changed after viewing the
 notebook results.
 
+## Public unseeded-parent retention correction
+
+**Review date:** 2026-09-05
+
+**Evidence role:** prospective source correction; no notebook case or
+cumulative scientific result was published by the failed attempt
+
+After the refresh orchestration was rebound to the multi-peak candidate, its
+first `sdc1-sparse-y06-x10` case reached the public component topology and
+stopped with `compact island has no eligible deblending peak`. The FITS
+`BLANK` and `datfix` warnings were unrelated. The case had an admitted
+multiscale parent but no finite direct-residual peak strictly above the compact
+deblender's seed threshold. This is a valid relationship between the two
+stages: multiscale support admission does not prove a direct-residual compact
+seed exists.
+
+The prospective correction retains exactly one component for that parent and
+preserves its complete direct and measurement support. It cannot invent a
+split without evidence, and it does not weaken the standalone Phase 3 compact
+kernel's fail-closed no-marker contract. Boundary fixtures cover peaks below
+and exactly at the strict gate, while above-gate one-, two-, and three-peak
+paths retain their established behaviour. Component topology has complete
+line and branch coverage; focused public Serial/Dask integration, all compact
+equivalence tests, documentation, and installed-wheel smoke validation pass.
+
+The successor candidate is commit `3ed6086...`, source tree `c1fb96c4...`,
+configuration `2c907949...`, and scientific composition `d160acd4...`.
+Non-executable identity `6f41d726...` binds those exact values and supersedes
+the never-executed multi-peak notebook identity `897845b9...`. The failed
+refresh staging contains only its request and empty first-case directories;
+it is not reusable evidence. The next permitted notebook attempt must use the
+successor identity, and the governed fast regression lane still precedes any
+cumulative replay.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

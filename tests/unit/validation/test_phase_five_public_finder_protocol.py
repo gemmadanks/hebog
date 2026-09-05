@@ -44,8 +44,8 @@ _CAMPAIGN_SCRIPT = (
     _ROOT / "scripts/benchmark/run_phase5_public_finder_campaign.py"
 )
 _RUNNER_SCRIPT = _ROOT / "scripts/benchmark/run_phase5_public_finder_hebog.py"
-_MULTI_PEAK_IDENTITY = (
-    _ROOT / "config/contracts/phase-5-public-multi-peak-component-topology-"
+_PUBLIC_IDENTITY = (
+    _ROOT / "config/contracts/phase-5-public-unseeded-parent-retention-"
     "identity-review.json"
 )
 _COMPILER_SCRIPT = (
@@ -561,9 +561,9 @@ def test_hebog_notebook_runner_uses_exact_public_composition() -> None:
     assert runner["_PUBLIC_CONFIG"].profile == "continuum"
 
 
-def test_multi_peak_notebook_identity_binds_the_committed_source() -> None:
+def test_notebook_identity_binds_the_committed_public_source() -> None:
     """A refresh cannot silently mix new source with old provenance."""
-    identity = json.loads(_MULTI_PEAK_IDENTITY.read_text(encoding="utf-8"))
+    identity = json.loads(_PUBLIC_IDENTITY.read_text(encoding="utf-8"))
 
     assert identity["status"] == "frozen-non-executable"
     assert set(identity["authorizations"].values()) == {False}
@@ -571,9 +571,9 @@ def test_multi_peak_notebook_identity_binds_the_committed_source() -> None:
         "configuration_sha256": (
             "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
         ),
-        "revision": "616677950a80ecb91b4ffd60c3d7892e74cefe8d",
+        "revision": "3ed6086eb7907b8137d2df3ea2d4ed55a2f49ce0",
         "source_tree_sha256": (
-            "e1925831ebf739c2dc8af937fcedb6b358878baa7484b49e8a278a855d691076"
+            "c1fb96c4cfce21d91c1f3c7afa1b0e48dffaaab7218cd13e4a30e20f164ea0f0"
         ),
     }
     assert (

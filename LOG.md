@@ -16069,3 +16069,44 @@ passes, and final `just pre-commit` passes without modifying files.
 **Immediate next step:** complete repository validation, commit this
 process-only repair, then allow the user to remove the empty stale staging
 directory and restart the diagnostic refresh from the clean tooling commit.
+
+## 2026-09-05 — Retain admitted parents without compact deblend seeds
+
+**Plan phase:** Phase 5 scientific correction before fast regression
+
+- After the refresh configuration repair, the first
+  `sdc1-sparse-y06-x10` case reached public component topology and failed
+  before publishing a case result with
+  `ValueError: compact island has no eligible deblending peak`. The Astropy
+  `BLANK` and `datfix` warnings were non-fatal and unrelated.
+- Root cause is a valid cross-stage edge that the analytic fixtures had not
+  covered: multiscale support can admit a parent even when its direct residual
+  has no peak strictly above the compact deblending seed threshold. Calling
+  the standalone compact kernel in that state correctly exercised its
+  fail-closed no-marker contract, but aborting the public image was wrong.
+- Added the failing boundary fixture first, then made the public topology
+  retain exactly one component with unchanged direct and measurement support
+  when no eligible seed exists. The standalone Phase 3 compact deblender,
+  thresholds, support science, and above-gate multi-peak partition remain
+  unchanged.
+- Committed the scientific correction locally as
+  `3ed6086eb7907b8137d2df3ea2d4ed55a2f49ce0`, source tree
+  `c1fb96c4...`, configuration `2c907949...`, and composition `d160acd4...`.
+  Successor non-executable identity `6f41d726...` supersedes the unconsumed
+  multi-peak notebook identity `897845b9...` and authorizes no execution.
+- Focused unit tests pass 38 cases, caller-owned-Dask public integration passes
+  15 cases, component topology has 100% branch coverage, all 27 compact
+  equivalence tests pass, strict docs build and installed-wheel smoke pass.
+  The first repository-wide coverage run reached 2,805 passing tests and
+  94.83% coverage but correctly failed three stale-identity assertions before
+  the successor was bound. The source commit's pre-commit run likewise passed
+  formatting, JSON, notebook, type, and docs checks plus 1,820 tests before
+  stopping at that intentional two-commit identity boundary.
+- After rebinding, the complete branch-aware suite passes 2,808 tests at
+  94.83% project coverage, `just check` passes 2,627 tests, all 27 equivalence
+  tests pass, and strict docs plus the installed-wheel smoke pass.
+
+**Immediate next step:** the user may start a new diagnostic notebook refresh
+from the hook-clean successor identity; do not resume the failed staging
+directory. Run the governed fast regression lane before freezing or starting
+a cumulative replay.

@@ -45,19 +45,19 @@ _PROTOCOL = runpy.run_path(
 )
 _BASE_REVIEW = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
 _PUBLIC_IDENTITY = (
-    _ROOT / "config/contracts/phase-5-public-multi-peak-component-topology-"
+    _ROOT / "config/contracts/phase-5-public-unseeded-parent-retention-"
     "identity-review.json"
 )
 _PUBLIC_CONFIG = SourceFinderConfig(5.0, 3.0, 7, profile="continuum")
-_FINAL_CANDIDATE_REVISION = "616677950a80ecb91b4ffd60c3d7892e74cefe8d"
+_FINAL_CANDIDATE_REVISION = "3ed6086eb7907b8137d2df3ea2d4ed55a2f49ce0"
 _FINAL_SOURCE_TREE_SHA256 = (
-    "e1925831ebf739c2dc8af937fcedb6b358878baa7484b49e8a278a855d691076"
+    "c1fb96c4cfce21d91c1f3c7afa1b0e48dffaaab7218cd13e4a30e20f164ea0f0"
 )
 _FINAL_CONFIGURATION_SHA256 = (
     "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
 )
 _FINAL_COMPOSITION_SHA256 = (
-    "dd6abf6a4f68225fe0eb786820e19f96e98c5ebe3535a3c5d95baa4c5a78df9c"
+    "d160acd4df8ef32d863a3a3fb4a46fbe28e6803878e5ca006d99bcf89d613ff3"
 )
 
 
