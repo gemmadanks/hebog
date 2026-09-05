@@ -1,0 +1,63 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "616677950a80ecb91b4ffd60c3d7892e74cefe8d",
+    "source_tree_sha256": "e1925831ebf739c2dc8af937fcedb6b358878baa7484b49e8a278a855d691076"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cumulative_replay": false,
+    "cutover": false,
+    "fresh_qualification": false,
+    "pybdsf_execution": false,
+    "release": false,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "component_topology_correction": {
+    "accepted_peak_cardinality": "one-or-more-with-no-pairwise-upper-bound",
+    "association_semantics": "one-connected-parent-may-publish-many-gaussian-components-in-one-associated-source",
+    "compact_phase_three_partition_changed": false,
+    "measurement_support_policy": "exact-union-preserved-and-partitioned-by-nearest-direct-component",
+    "over_bound_policy": "retain-one-component-and-report-deferred-parent",
+    "public_component_partition": "canonical-nearest-marker-then-intensity-saddle-and-minimum-area-merging",
+    "support_parent_policy": "connected-detection-parent-identity-preserved"
+  },
+  "interface_file_sha256": {
+    "src/hebog/algorithms/component_topology.py": "948975540a33deb4f7ecdc18a3b98695682bccce3d58ecadb774220a6f0fe437",
+    "src/hebog/algorithms/deblending.py": "18df86f53d77942b19afe70cc8fc5899177b5c71ea666375ea21648cb116852d",
+    "src/hebog/data_models/source_finding.py": "cba49004ee34c5034db50355e5535171f35a90906a8ff6a58321917690feb7a8",
+    "src/hebog/io/materialization.py": "8ba61ac22600c72c05fefb1f8b8345387edba6029dc11c1b53b56c259b408e36",
+    "src/hebog/public_api.py": "c227c237b6a54b233eb5ac107fe53ee7363a0a7462feae0ce211ed1184f37efd",
+    "src/hebog/public_science.py": "42ab6f8d4512914c882d9a69f0bcbbe7b093c4720fd52686142306935fafc128",
+    "src/hebog/resources/phase_5_continuum_review.json": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b",
+    "src/hebog/validation/public_finder_correction.py": "102d414db69322cc0255f6e904e5730e2252946c58057679b09622fd34035bcd"
+  },
+  "predecessor_identity": {
+    "path": "config/contracts/phase-5-source-support-linkage-replication-public-interface-identity-review.json",
+    "sha256": "7b6fd62327ba72f66189020fbca6535ecb853c24006aae460b0e67137034d3cd"
+  },
+  "public_configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "review_id": "phase-5-public-multi-peak-component-topology-identity-review",
+  "schema_version": 1,
+  "scientific_composition": "phase-5-configurable-deblended-component-and-source-topology-v5",
+  "scientific_composition_sha256": "dd6abf6a4f68225fe0eb786820e19f96e98c5ebe3535a3c5d95baa4c5a78df9c",
+  "status": "frozen-non-executable",
+  "validation_evidence": {
+    "component_topology_branch_coverage_percent": 100.0,
+    "equivalence_tests_passed": 27,
+    "full_coverage_tests_passed": 2803,
+    "project_branch_coverage_percent": 94.83,
+    "public_serial_existing_dask_invariance": "pass",
+    "public_two_peak_components": 2,
+    "public_three_peak_components": 3,
+    "support_union_preservation": "pass"
+  }
+}

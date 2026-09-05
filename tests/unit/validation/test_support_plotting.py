@@ -194,3 +194,16 @@ def test_campaign_notebook_imports_plotting_from_installed_package() -> None:
     }
 
     assert plotting_imports == {"hebog.validation.support_plotting"}
+
+
+def test_campaign_notebook_distinguishes_sources_and_components() -> None:
+    """The public comparison must not present different catalogue levels."""
+    notebook = _REPOSITORY_ROOT / (
+        "notebooks/campaign_source_finder_comparison.py"
+    )
+    source = notebook.read_text(encoding="utf-8")
+
+    assert "component_count: int" in source
+    assert "component_x: tuple[float, ...]" in source
+    assert "associated sources" in source
+    assert "Gaussian components" in source

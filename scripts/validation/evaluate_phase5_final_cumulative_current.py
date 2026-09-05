@@ -48,6 +48,15 @@ def load_final_evaluator() -> dict[str, Any]:
     return evaluator
 
 
+# The inherited product verifier intentionally loads evaluator scripts with
+# ``runpy`` and dispatches these two raw module seams before scientific
+# compilation.  Keep the thin identity overlay usable through that exact
+# boundary as well as through ``load_final_evaluator``.
+_PRODUCT_VERIFIER_EVALUATOR = load_final_evaluator()
+_SMOKE_EVALUATOR = cast(Path, _PRODUCT_VERIFIER_EVALUATOR["_SMOKE_EVALUATOR"])
+_load_materializer = _PRODUCT_VERIFIER_EVALUATOR["_load_materializer"]
+
+
 def main() -> None:
     """Run the exact evaluation with the unchanged parent CLI."""
     load_final_evaluator()["main"]()

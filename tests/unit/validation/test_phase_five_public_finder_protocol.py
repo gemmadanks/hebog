@@ -11,6 +11,7 @@ from typing import Any, cast
 import numpy as np
 import pytest
 
+from hebog.validation.external_runners import file_sha256, source_tree_sha256
 from hebog.validation.public_comparison import (
     PublicCatalogueComponent,
     associate_public_catalogues,
@@ -43,6 +44,10 @@ _CAMPAIGN_SCRIPT = (
     _ROOT / "scripts/benchmark/run_phase5_public_finder_campaign.py"
 )
 _RUNNER_SCRIPT = _ROOT / "scripts/benchmark/run_phase5_public_finder_hebog.py"
+_MULTI_PEAK_IDENTITY = (
+    _ROOT / "config/contracts/phase-5-public-multi-peak-component-topology-"
+    "identity-review.json"
+)
 _COMPILER_SCRIPT = (
     _ROOT / "scripts/validation/compile_phase5_public_finder_campaign.py"
 )
@@ -541,6 +546,58 @@ def test_hebog_runner_publishes_only_a_complete_bundle(
     assert result == {"status": "success"}
     assert (output / "result.json").is_file()
     assert tuple(tmp_path.glob(".case.*")) == ()
+
+
+def test_hebog_notebook_runner_uses_exact_public_composition() -> None:
+    """Notebook evidence must execute the same terminal public composition."""
+    runner = runpy.run_path(str(_RUNNER_SCRIPT))
+
+    assert runner["public_hebog_configuration_sha256"]() == (
+        "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
+    )
+    assert runner["build_configured_continuum_products"].__module__ == (
+        "hebog.public_science"
+    )
+    assert runner["_PUBLIC_CONFIG"].profile == "continuum"
+
+
+def test_multi_peak_notebook_identity_binds_the_committed_source() -> None:
+    """A refresh cannot silently mix new source with old provenance."""
+    identity = json.loads(_MULTI_PEAK_IDENTITY.read_text(encoding="utf-8"))
+
+    assert identity["status"] == "frozen-non-executable"
+    assert set(identity["authorizations"].values()) == {False}
+    assert identity["algorithm_candidate"] == {
+        "configuration_sha256": (
+            "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
+        ),
+        "revision": "616677950a80ecb91b4ffd60c3d7892e74cefe8d",
+        "source_tree_sha256": (
+            "e1925831ebf739c2dc8af937fcedb6b358878baa7484b49e8a278a855d691076"
+        ),
+    }
+    assert (
+        source_tree_sha256(_ROOT)
+        == (identity["algorithm_candidate"]["source_tree_sha256"])
+    )
+    for relative_path, expected_sha256 in identity[
+        "interface_file_sha256"
+    ].items():
+        assert file_sha256(_ROOT / relative_path) == expected_sha256
+
+
+def test_hebog_runner_declares_component_comparison_semantics() -> None:
+    """Plots compare components while preserving associated source products."""
+    runner_source = _RUNNER_SCRIPT.read_text(encoding="utf-8")
+
+    assert '"comparison-catalogue-json": component_catalogue_path' in (
+        runner_source
+    )
+    assert '"catalogue_semantics"' in runner_source
+    assert '"comparison_rows": "gaussian-components"' in runner_source
+    assert '"component-labels-fits": component_labels_path' in runner_source
+    assert '"deblended_parent_count"' in runner_source
+    assert '"deferred_deblend_parent_count"' in runner_source
 
 
 def test_compiler_and_evaluator_expose_pure_terminal_boundaries() -> None:

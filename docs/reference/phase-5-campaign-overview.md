@@ -1568,6 +1568,54 @@ Atomic terminal SHA-256 is
 The next gate is the exact cumulative dual-PyBDSF replay, followed only on a
 pass by fresh seed-disjoint held-out qualification.
 
+## Public component-topology correction
+
+**Review date:** 2026-09-05
+
+**Evidence role:** prospective source correction; the refreshed Hydra images
+are visual diagnostics and have not been reexecuted or rescored.
+
+The completed notebook refresh exposed a semantic and scientific mismatch.
+The plot showed one marker per associated Hebog source but one marker per
+PyBDSF Gaussian component, so it visually compared different catalogue
+levels. The stored Hebog products also contained a real defect: nearly every
+connected support parent had one component, and an independent beam-scale
+local-maximum census flagged 122 multi-peak parents with fewer published
+components than diagnostic peaks. Local maxima are not themselves asserted
+astrophysical sources, but a two-dimensional unequal-Gaussian analytic fixture
+reproduced an erroneous one-component result.
+
+The root cause is the compact partition implementation. It passed the earlier
+one-dimensional bridge fixtures, but constructing a marker-distance image and
+passing it to SciPy `watershed_ift` could give almost the entire
+two-dimensional island to one marker. The remaining few pixels were then
+correctly merged by the minimum-area rule, hiding an otherwise admissible
+second peak. The prospective correction assigns the exact parent to its
+nearest canonical marker only in the new public component-topology path,
+retains the intensity saddle as the scientific merge decision, applies that
+bounded topology before public Gaussian measurement, and proves that neither
+direct nor expanded measurement support changes. A full equivalence check
+caught and rejected applying that ownership change to the established Phase 3
+compact path because it regressed blend photometry. One connected support can
+now produce several Gaussian components and one associated source without
+changing the previously qualified compact curve. Over-bound parents remain
+retained and are exposed through explicit deferral telemetry.
+
+The previous candidate's sealed product set `195a5a36...` remains valid for
+its exact old source tree but cannot qualify the corrected science. The old
+incumbent and 9,600 released/master PyBDSF reference products remain reusable.
+The prospective correction is local commit `6166779...`, source tree
+`e1925831...`, with unchanged configuration `2c907949...`. Non-executable
+notebook/comparison identity `f5dfc59d...` binds this exact composition and
+requires separate associated-source and Gaussian-component catalogues so the
+two scientific levels cannot be confused in plots or counts.
+The previously observed final-evaluator `_load_materializer` dispatch error is
+separately repaired at the raw overlay boundary. A new candidate must first
+pass fixtures, complete no-write validation, and the fast executor-invariance
+lane, then run a fresh 2,400-product cumulative candidate stage. No threshold,
+saddle margin, comparator, or acceptance gate was changed after viewing the
+notebook results.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

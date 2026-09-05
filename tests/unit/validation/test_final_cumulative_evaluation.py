@@ -82,6 +82,16 @@ def test_final_evaluator_changes_only_the_current_candidate_identity() -> None:
     assert Path(evaluator["__file__"]).resolve() == _EVALUATOR.resolve()
 
 
+def test_final_evaluator_exposes_raw_parent_product_verifier_seams() -> None:
+    """The inherited verifier can dispatch through the thin final overlay."""
+    overlay = runpy.run_path(str(_EVALUATOR))
+
+    assert callable(overlay["_load_materializer"])
+    assert Path(overlay["_SMOKE_EVALUATOR"]).name == (
+        "evaluate_phase5_prospective_science_smoke.py"
+    )
+
+
 def test_bounded_smoke_reaches_decision_summary_and_atomic_tail(
     tmp_path: Path,
 ) -> None:

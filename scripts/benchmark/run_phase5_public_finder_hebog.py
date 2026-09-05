@@ -7,8 +7,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import runpy
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
@@ -18,14 +19,17 @@ import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
 
+from hebog import public_api
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
+from hebog.config import SourceFinderConfig
 from hebog.data_models import ImageBounds
 from hebog.executors import SerialExecutor
 from hebog.io import FitsImageSource, ZarrProductSink
+from hebog.public_science import build_configured_continuum_products
 from hebog.stages.detection import run_detection_stage
-from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.contracts import load_phase_five_corrective_a_review
+from hebog.validation.external_runners import source_tree_sha256
 from hebog.validation.hebog_campaign import (
     _ArrayImageSource,
     phase_five_corrected_candidate_configs,
@@ -34,39 +38,52 @@ from hebog.validation.products import (
     load_fits_plane,
     write_comparison_catalogue,
 )
-from hebog.validation.public_finder_correction import (
-    build_public_finder_correction_continuum_products,
-    public_finder_source_association_candidate_configuration,
-)
 
 _ROOT = Path(__file__).parents[2]
 _PROTOCOL = runpy.run_path(
     str(_ROOT / "scripts/validation/phase5_public_finder_protocol.py")
 )
 _BASE_REVIEW = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
-_CORRECTION_CONTRACT = (
-    _ROOT / "config/contracts/phase-5-public-finder-correction.json"
+_PUBLIC_IDENTITY = (
+    _ROOT / "config/contracts/phase-5-public-multi-peak-component-topology-"
+    "identity-review.json"
 )
-_SOURCE_ASSOCIATION_PRE_REVIEW = (
-    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
-    "pre-review.json"
+_PUBLIC_CONFIG = SourceFinderConfig(5.0, 3.0, 7, profile="continuum")
+_FINAL_CANDIDATE_REVISION = "616677950a80ecb91b4ffd60c3d7892e74cefe8d"
+_FINAL_SOURCE_TREE_SHA256 = (
+    "e1925831ebf739c2dc8af937fcedb6b358878baa7484b49e8a278a855d691076"
 )
-_SOURCE_ASSOCIATION_IMPLEMENTATION_DECISION = (
-    _ROOT / "config/contracts/phase-5-public-finder-source-association-"
-    "implementation-decision.json"
+_FINAL_CONFIGURATION_SHA256 = (
+    "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
+)
+_FINAL_COMPOSITION_SHA256 = (
+    "dd6abf6a4f68225fe0eb786820e19f96e98c5ebe3535a3c5d95baa4c5a78df9c"
 )
 
 
 def public_hebog_configuration_sha256() -> str:
-    """Return the current public comparison's governed science identity."""
-    return canonical_sha256(
-        public_finder_source_association_candidate_configuration(
-            _BASE_REVIEW,
-            _CORRECTION_CONTRACT,
-            _SOURCE_ASSOCIATION_PRE_REVIEW,
-            _SOURCE_ASSOCIATION_IMPLEMENTATION_DECISION,
-        )
-    )
+    """Return the exact final public candidate's governed science identity."""
+    value: object = json.loads(_PUBLIC_IDENTITY.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("final public-interface identity is malformed")
+    record = cast(dict[str, object], value)
+    candidate = record.get("algorithm_candidate")
+    expected = {
+        "configuration_sha256": _FINAL_CONFIGURATION_SHA256,
+        "revision": _FINAL_CANDIDATE_REVISION,
+        "source_tree_sha256": _FINAL_SOURCE_TREE_SHA256,
+    }
+    if (
+        candidate != expected
+        or record.get("status") != "frozen-non-executable"
+        or record.get("scientific_composition_sha256")
+        != _FINAL_COMPOSITION_SHA256
+        or source_tree_sha256(_ROOT) != _FINAL_SOURCE_TREE_SHA256
+        or public_api._scientific_composition_sha256()
+        != _FINAL_COMPOSITION_SHA256
+    ):
+        raise ValueError("final public-interface identity changed")
+    return _FINAL_CONFIGURATION_SHA256
 
 
 def _estimate_background_rms(
@@ -74,6 +91,7 @@ def _estimate_background_rms(
     output: Path,
     *,
     generation_id: str,
+    config: SourceFinderConfig,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Run only the qualified candidate-owned background/RMS stage."""
     source = _ArrayImageSource(image)
@@ -90,7 +108,10 @@ def _estimate_background_rms(
     run_detection_stage(
         source,
         manifest,
-        phase_five_corrected_candidate_configs()[0],
+        replace(
+            phase_five_corrected_candidate_configs()[0],
+            source_finder=config,
+        ),
         SerialExecutor(),
         sink,
     )
@@ -197,17 +218,21 @@ def _build_public_bundle(  # noqa: PLR0913
         image,
         work_directory,
         generation_id=case_id,
+        config=_PUBLIC_CONFIG,
     )
     header = cast(fits.Header, fits.getheader(input_path))
     review = load_phase_five_corrective_a_review(_BASE_REVIEW)
-    products = build_public_finder_correction_continuum_products(
+    products = build_configured_continuum_products(
         image,
         background,
         rms,
         header,
         beam=_beam_pixels(header),
         review=review,
+        config=_PUBLIC_CONFIG,
     )
+    if products is None:
+        raise ValueError("public comparison contains no accepted islands")
     selected_core = core or ImageBounds(
         y_start=0,
         y_stop=metadata.shape_yx[0],
@@ -224,6 +249,7 @@ def _build_public_bundle(  # noqa: PLR0913
     component_catalogue_path = output / "component_catalogue.json"
     association_path = output / "source_association.json"
     labels_path = output / "segment_labels.fits"
+    component_labels_path = output / "component_labels.fits"
     mask_path = output / "segment_mask.fits"
     background_path = output / "background.fits"
     rms_path = output / "rms.fits"
@@ -247,6 +273,13 @@ def _build_public_bundle(  # noqa: PLR0913
         core_header,
     )
     _write_plane(
+        component_labels_path,
+        np.asarray(
+            products.measurement_component_labels[slices], dtype=np.int32
+        ),
+        core_header,
+    )
+    _write_plane(
         mask_path,
         np.asarray(products.detection.retained_mask[slices], dtype=np.uint8),
         core_header,
@@ -263,6 +296,8 @@ def _build_public_bundle(  # noqa: PLR0913
     )
     artifacts = {
         "background-fits": background_path,
+        "comparison-catalogue-json": component_catalogue_path,
+        "component-labels-fits": component_labels_path,
         "rms-fits": rms_path,
         "source-catalogue-json": source_catalogue_path,
         "component-catalogue-json": component_catalogue_path,
@@ -280,6 +315,15 @@ def _build_public_bundle(  # noqa: PLR0913
         "source_count": len(core_sources),
         "component_count": len(core_components),
         "association_edge_count": len(products.source_association.edges),
+        "deblended_parent_count": products.deblended_parent_count,
+        "deferred_deblend_parent_count": (
+            products.deferred_deblend_parent_count
+        ),
+        "catalogue_semantics": {
+            "comparison_rows": "gaussian-components",
+            "source_rows": "associated-sources",
+            "support_rows": "connected-islands",
+        },
         "core_bounds_yx_half_open": [
             selected_core.y_start,
             selected_core.y_stop,

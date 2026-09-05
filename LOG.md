@@ -15965,3 +15965,73 @@ evaluator dispatch while replacing only the expensive evidence readers. Make
 the minimal adapter repair, rerun the bounded terminal and frozen-authority
 smokes, freeze replacement program/identity/decision digests, and retry only
 the evaluation-only completion against the same sealed products.
+
+## 2026-09-05 — Correct public multi-peak component topology
+
+**Plan phase:** Phase 5 scientific correction before cumulative replay
+
+- The completed notebook refresh faithfully plotted the stored Hebog source
+  catalogue, but compared those associated-source rows against PyBDSF
+  Gaussian-component rows. The notebook now loads and displays Hebog sources
+  and Gaussian components separately and labels support, component, and source
+  counts with their actual meanings.
+- The screenshots also exposed real under-componentization. Stored Hydra
+  products contain 3,730 support labels, 3,729 source rows, 3,729 component
+  rows, and no association edges. A read-only, result-neutral beam-scale peak
+  census flagged 122 connected parents with more high-significance diagnostic
+  peaks than published components. Local maxima remain diagnostic features,
+  not asserted physical sources.
+- Added a two-dimensional unequal-Gaussian regression that failed because the
+  marker-distance `watershed_ift` assigned only five pixels to the second
+  basin, which the reviewed minimum-area rule then merged. Added exact
+  canonical nearest-marker assignment only for the new public topology; the
+  actual normalized-intensity saddle still decides whether a split is
+  scientifically retained. The equivalence gate caught a broader first draft
+  that increased the Phase 4 blend 95th-percentile flux error to 0.165 against
+  its 0.15 gate, so the established compact path now retains its reviewed
+  partition and returns to its passing curve.
+- Added a bounded public component-topology stage before Gaussian measurement.
+  It preserves exact direct and expanded measurement support unions, produces
+  canonical labels independent of incoming label integers, retains over-bound
+  parents as one component, and reports split and deferred-parent counts.
+  Analytic end-to-end evidence now publishes two Gaussian components in one
+  associated source for a connected two-peak island.
+- Repaired the separate final-evaluator process defect by exposing the loaded
+  `_load_materializer` and smoke-evaluator seams at the thin overlay's raw
+  module boundary. The new focused contract reaches the same dispatch used by
+  the inherited verifier.
+- A direct run on the already-viewed Hydra files was refused by the governed
+  viewed-data authorization boundary. No bypass, tuning, or rescoring was
+  attempted. Real-image confirmation remains an explicit future authority;
+  synthetic fixtures and the frozen regression populations are sufficient to
+  continue prospective validation without using the viewed images.
+- The old candidate's product set `195a5a36...` remains immutable evidence for
+  its exact source tree but cannot qualify this source-changing correction.
+  Retained incumbent and PyBDSF products remain reusable for the new paired
+  evaluation.
+
+**Validation:** the complete branch-aware suite passes with 2,803 tests and
+94.83% project coverage; the new component-topology module has 100% line and
+branch coverage. `just check` passes 2,622 fast tests, all 27 equivalence tests
+pass after narrowing the ownership policy, and `just docs-build`,
+`just marimo-check`, and `just package-smoke-test` pass. Final
+`just pre-commit` passed cleanly and source correction
+`616677950a80ecb91b4ffd60c3d7892e74cefe8d` was committed locally with source
+tree `e1925831ebf739c2dc8af937fcedb6b358878baa7484b49e8a278a855d691076`.
+- Bound the corrected composition to non-executable notebook/comparison
+  identity review `f5dfc59d...`. The runner verifies candidate, live source
+  tree, full configuration, and scientific-composition hashes before use,
+  writes separate source and Gaussian-component catalogues, and labels their
+  semantics explicitly. The notebook plots component markers and associated
+  source markers separately.
+- Added a result-neutral beam-scale local-maximum census for triage. When a
+  component-label plane is present it compares components inside their actual
+  support parent; it never treats peaks as truth or changes science.
+- Added a cheap regression for the final evaluator's inherited raw-module
+  dispatch seam. This preserves the old sealed products while preventing the
+  end-of-run `_load_materializer` failure pattern from recurring.
+
+**Immediate next step:** let the user refresh the notebook from the exact
+source and comparison-tooling commits while `src/hebog/` remains frozen.
+Prepare and no-write validate the fast regression and executor-invariance
+lane; run it before freezing or starting a fresh cumulative candidate replay.

@@ -71,6 +71,9 @@ def _():
         source_count: int
         source_x: tuple[float, ...]
         source_y: tuple[float, ...]
+        component_count: int
+        component_x: tuple[float, ...]
+        component_y: tuple[float, ...]
         significance_plane: npt.NDArray[np.float64] | None
         background_plane: npt.NDArray[np.float64] | None
         rms_plane: npt.NDArray[np.float64] | None
@@ -591,6 +594,9 @@ def _(
             source_count=0,
             source_x=(),
             source_y=(),
+            component_count=0,
+            component_x=(),
+            component_y=(),
             significance_plane=None,
             background_plane=None,
             rms_plane=None,
@@ -707,25 +713,33 @@ def _(
                 notes.append(f"catalogue load failed: {error}")
             if not catalogue:
                 notes.append("no catalogue rows or catalogue artifact")
+            source_catalogue = catalogue
+            component_catalogue: tuple[CatalogueSource, ...] = ()
             if finder_id == "hebog" and "source-catalogue-json" in role_map:
+                source_path = role_map["source-catalogue-json"]
                 component_path = role_map.get("component-catalogue-json")
                 try:
-                    component_count = (
-                        len(load_comparison_catalogue(component_path))
+                    source_catalogue = load_comparison_catalogue(source_path)
+                    component_catalogue = (
+                        load_comparison_catalogue(component_path)
                         if component_path is not None
-                        else 0
+                        else ()
                     )
                     notes.append(
-                        f"associated source catalogue from {component_count} "
-                        "immutable detection components"
+                        f"{len(source_catalogue)} associated sources from "
+                        f"{len(component_catalogue)} Gaussian components"
                     )
                 except (KeyError, OSError, TypeError, ValueError) as error:
-                    notes.append(f"component catalogue load failed: {error}")
+                    notes.append(f"Hebog catalogue load failed: {error}")
 
             try:
-                source_x, source_y = _to_pixel_positions(wcs, catalogue)
+                source_x, source_y = _to_pixel_positions(wcs, source_catalogue)
+                component_x, component_y = _to_pixel_positions(
+                    wcs, component_catalogue
+                )
             except (TypeError, ValueError) as error:
                 source_x, source_y = (), ()
+                component_x, component_y = (), ()
                 notes.append(f"WCS conversion failed: {error}")
 
             label_plane = None
@@ -825,9 +839,12 @@ def _(
                 mode=mode,
                 status=status,
                 wall_seconds=wall_seconds,
-                source_count=len(catalogue),
+                source_count=len(source_catalogue),
                 source_x=source_x,
                 source_y=source_y,
+                component_count=len(component_catalogue),
+                component_x=component_x,
+                component_y=component_y,
                 significance_plane=significance_plane,
                 background_plane=background_plane,
                 rms_plane=rms_plane,
@@ -853,9 +870,10 @@ def _(
 
     def format_overlay_summary(overlays: dict[str, RunOverlay]) -> str:
         lines = [
-            "| Finder | Mode | Status | Catalogue rows | Support labels | "
+            "| Finder | Mode | Status | Sources/catalogue rows | "
+            "Gaussian components | Support labels | "
             "Recorded wall time (s) | Notes |",
-            "| --- | --- | --- | ---: | ---: | ---: | --- |",
+            "| --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
         ]
         for overlay in sorted(overlays.values(), key=_finder_order):
             wall = (
@@ -871,6 +889,11 @@ def _(
                         _markdown_cell(overlay.mode),
                         _markdown_cell(overlay.status),
                         str(overlay.source_count),
+                        (
+                            str(overlay.component_count)
+                            if overlay.finder_id == "hebog"
+                            else "n/a"
+                        ),
                         str(overlay.label_count),
                         wall,
                         _markdown_cell(overlay.notes or "none"),
@@ -1011,17 +1034,40 @@ def _(
             axis = flat_axes[index]
             draw_image(axis)
             colour = colours[(index - overlay_axis_start) % len(colours)]
-            if overlay.source_x:
+            if overlay.finder_id == "hebog" and overlay.component_x:
+                axis.scatter(
+                    overlay.component_x,
+                    overlay.component_y,
+                    s=30,
+                    marker="o",
+                    facecolors="none",
+                    edgecolors=colour,
+                    linewidths=1.2,
+                    label="Hebog Gaussian components",
+                    zorder=5,
+                )
+            if overlay.finder_id == "hebog" and overlay.source_x:
                 axis.scatter(
                     overlay.source_x,
                     overlay.source_y,
-                    s=30,
+                    s=38,
+                    marker="x",
+                    color=colour,
+                    linewidths=1.2,
+                    label="Hebog associated sources",
+                    zorder=6,
+                )
+            elif overlay.source_x:
+                axis.scatter(
+                    overlay.source_x,
+                    overlay.source_y,
+                    s=38,
                     marker=markers.get(overlay.finder_id, "o"),
                     facecolors="none",
                     edgecolors=colour,
                     linewidths=1.2,
                     label=f"{overlay.finder_id} catalogue",
-                    zorder=5,
+                    zorder=6,
                 )
             if overlay.support_mask is not None and np.any(
                 overlay.support_mask
@@ -1057,12 +1103,18 @@ def _(
                         antialiased=False,
                         zorder=4,
                     )
-            axis.set_title(
-                f"{overlay.finder_id} | {overlay.mode}\n"
-                f"{overlay.source_count} catalogue rows | "
+            count_summary = (
+                f"{overlay.source_count} associated sources | "
+                f"{overlay.component_count} Gaussian components | "
+                f"{overlay.label_count} support labels"
+                if overlay.finder_id == "hebog"
+                else f"{overlay.source_count} catalogue rows | "
                 f"{overlay.label_count} support labels"
             )
-            if overlay.source_x:
+            axis.set_title(
+                f"{overlay.finder_id} | {overlay.mode}\n{count_summary}"
+            )
+            if overlay.source_x or overlay.component_x:
                 axis.legend(loc="best", fontsize="small")
 
         for axis in flat_axes[panel_count:]:
@@ -1736,10 +1788,21 @@ def _(
                     edgecolors="tab:blue",
                     linewidths=1.2,
                 )
+            if overlay.component_x:
+                axis.scatter(
+                    overlay.component_x,
+                    overlay.component_y,
+                    s=26,
+                    marker="o",
+                    facecolors="none",
+                    edgecolors="tab:cyan",
+                    linewidths=1.0,
+                )
             run_label = str(_run_record.get("label", "Hebog run"))
             axis.set(
                 title=(
-                    f"{run_label}\n{overlay.source_count} catalogue rows | "
+                    f"{run_label}\n{overlay.source_count} associated sources | "
+                    f"{overlay.component_count} Gaussian components | "
                     f"{overlay.label_count} support labels"
                 ),
                 xlabel="x pixel",
@@ -1759,6 +1822,7 @@ def _(
                             or "unrecorded"
                         )[:12],
                         str(overlay.source_count),
+                        str(overlay.component_count),
                         str(overlay.label_count),
                         (
                             f"{overlay.wall_seconds:.2f}"
@@ -1784,8 +1848,8 @@ def _(
                 mo.md(
                     "\n".join(
                         (
-                            "| Run | Commit | Source tree | Runner | Catalogue rows | Support labels | Wall time (s) |",
-                            "| --- | --- | --- | --- | ---: | ---: | ---: |",
+                            "| Run | Commit | Source tree | Runner | Associated sources | Gaussian components | Support labels | Wall time (s) |",
+                            "| --- | --- | --- | --- | ---: | ---: | ---: | ---: |",
                             *history_rows,
                         )
                     )
