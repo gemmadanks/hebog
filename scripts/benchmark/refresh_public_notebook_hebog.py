@@ -22,11 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
-from hebog.validation.campaign_runtime import canonical_sha256
 from hebog.validation.external_runners import source_tree_sha256
-from hebog.validation.public_finder_correction import (
-    public_finder_source_association_candidate_configuration,
-)
 
 _ROOT = Path(__file__).parents[2]
 _INPUT_CAMPAIGN = Path(
@@ -38,17 +34,6 @@ _REFERENCE_CAMPAIGN = Path(
     "reference-campaign/campaign.json"
 )
 _HISTORY_ROOT = Path("benchmark-results/phase-5/hebog-notebook-refreshes")
-_BASE_REVIEW = Path("config/contracts/phase-5-corrective-a-review.json")
-_CORRECTION_CONTRACT = Path(
-    "config/contracts/phase-5-public-finder-correction.json"
-)
-_SOURCE_ASSOCIATION_PRE_REVIEW = Path(
-    "config/contracts/phase-5-public-finder-source-association-pre-review.json"
-)
-_SOURCE_ASSOCIATION_IMPLEMENTATION_DECISION = Path(
-    "config/contracts/phase-5-public-finder-source-association-"
-    "implementation-decision.json"
-)
 _HEBOG_RUNNER = Path("scripts/benchmark/run_phase5_public_finder_hebog.py")
 _INPUT_HELPERS = Path(
     "scripts/benchmark/run_phase5_current_public_hebog_campaign.py"
@@ -161,6 +146,20 @@ def _append_progress(path: Path, message: str) -> None:
         handle.write(message + "\n")
         handle.flush()
         os.fsync(handle.fileno())
+
+
+def _load_public_runner(
+    repository_root: Path,
+) -> tuple[str, Callable[..., dict[str, object]]]:
+    """Load the exact runner and return its authoritative configuration."""
+    runner = runpy.run_path(str(repository_root / _HEBOG_RUNNER))
+    configuration_sha256 = cast(
+        Callable[[], str], runner["public_hebog_configuration_sha256"]
+    )()
+    run_public_hebog = cast(
+        Callable[..., dict[str, object]], runner["run_public_hebog"]
+    )
+    return configuration_sha256, run_public_hebog
 
 
 def _campaign_record(
@@ -279,15 +278,10 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
             "reference campaign does not contain two successful runs per case"
         )
 
-    source_sha256 = source_tree_sha256(repository_root)
-    configuration_sha256 = canonical_sha256(
-        public_finder_source_association_candidate_configuration(
-            repository_root / _BASE_REVIEW,
-            repository_root / _CORRECTION_CONTRACT,
-            repository_root / _SOURCE_ASSOCIATION_PRE_REVIEW,
-            repository_root / _SOURCE_ASSOCIATION_IMPLEMENTATION_DECISION,
-        )
+    configuration_sha256, run_public_hebog = _load_public_runner(
+        repository_root
     )
+    source_sha256 = source_tree_sha256(repository_root)
     hebog_runner_sha256 = _sha256(repository_root / _HEBOG_RUNNER)
     commit, dirty = _git_identity(repository_root)
     identifier = f"{commit[:7]}-{source_sha256[:12]}-{hebog_runner_sha256[:8]}"
@@ -325,6 +319,7 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
                 {
                     "case_count": len(raw_cases),
                     "commit": commit,
+                    "configuration_sha256": configuration_sha256,
                     "dirty_worktree": dirty,
                     "identifier": identifier,
                     "hebog_runner_sha256": hebog_runner_sha256,
@@ -366,10 +361,6 @@ def run_refresh(  # noqa: C901, PLR0912, PLR0913, PLR0915
     resolve_input = cast(
         Callable[..., tuple[Path, object, dict[str, Any]]],
         input_helpers["_resolve_input"],
-    )
-    runner = runpy.run_path(str(repository_root / _HEBOG_RUNNER))
-    run_public_hebog = cast(
-        Callable[..., dict[str, object]], runner["run_public_hebog"]
     )
     input_root = input_campaign_path.parent
     terminal_results: list[dict[str, object]] = []

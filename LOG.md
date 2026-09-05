@@ -16019,7 +16019,7 @@ pass after narrowing the ownership policy, and `just docs-build`,
 `616677950a80ecb91b4ffd60c3d7892e74cefe8d` was committed locally with source
 tree `e1925831ebf739c2dc8af937fcedb6b358878baa7484b49e8a278a855d691076`.
 - Bound the corrected composition to non-executable notebook/comparison
-  identity review `f5dfc59d...`. The runner verifies candidate, live source
+  identity review `897845b9...`. The runner verifies candidate, live source
   tree, full configuration, and scientific-composition hashes before use,
   writes separate source and Gaussian-component catalogues, and labels their
   semantics explicitly. The notebook plots component markers and associated
@@ -16035,3 +16035,37 @@ tree `e1925831ebf739c2dc8af937fcedb6b358878baa7484b49e8a278a855d691076`.
 source and comparison-tooling commits while `src/hebog/` remains frozen.
 Prepare and no-write validate the fast regression and executor-invariance
 lane; run it before freezing or starting a fresh cumulative candidate replay.
+
+## 2026-09-05 — Repair public notebook refresh identity dispatch
+
+**Plan phase:** Phase 5 diagnostic notebook refresh
+
+- The first corrected-topology notebook refresh failed closed before reading
+  or processing an image. Its staging area contained only `request.json` and
+  empty first-case directories. A second invocation correctly refused to
+  overwrite that staging area.
+- Root cause was stale refresh orchestration: it reconstructed configuration
+  `78dbb230...` from the historical source-association contract chain while
+  the exact public runner required current configuration `2c907949...`.
+- Added a red preflight regression, then made the refresh load the exact public
+  runner once and obtain both its callable and authoritative configuration
+  identity through the same boundary. Preflight now exposes that digest and
+  still creates no staging state. A resume with stale request provenance
+  remains fail-closed.
+- No `src/hebog/` file, scientific configuration, candidate identity, input,
+  reference product, or acceptance rule changed.
+- The final JSON-format hook canonicalized two unordered diagnostic keys in
+  the still-unconsumed non-executable notebook identity. Its exact canonical
+  SHA-256 is therefore `897845b9...`; the pre-canonical `f5dfc59d...` bytes
+  were never executed and are superseded.
+
+**Validation:** the focused refresh and public-runner tests pass (24 tests),
+Ruff passes, and an exact 13-case preflight reports configuration
+`2c907949...`, source tree `e1925831...`, runner `79cc9b14...`, and
+`preflight-passed` without creating its requested history directory. `just
+check` passes 2,625 tests with Pyright and Ruff clean, `just docs-build`
+passes, and final `just pre-commit` passes without modifying files.
+
+**Immediate next step:** complete repository validation, commit this
+process-only repair, then allow the user to remove the empty stale staging
+directory and restart the diagnostic refresh from the clean tooling commit.

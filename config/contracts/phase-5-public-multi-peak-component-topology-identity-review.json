@@ -56,8 +56,8 @@
     "full_coverage_tests_passed": 2803,
     "project_branch_coverage_percent": 94.83,
     "public_serial_existing_dask_invariance": "pass",
-    "public_two_peak_components": 2,
     "public_three_peak_components": 3,
+    "public_two_peak_components": 2,
     "support_union_preservation": "pass"
   }
 }

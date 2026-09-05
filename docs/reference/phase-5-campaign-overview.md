@@ -1606,7 +1606,7 @@ its exact old source tree but cannot qualify the corrected science. The old
 incumbent and 9,600 released/master PyBDSF reference products remain reusable.
 The prospective correction is local commit `6166779...`, source tree
 `e1925831...`, with unchanged configuration `2c907949...`. Non-executable
-notebook/comparison identity `f5dfc59d...` binds this exact composition and
+notebook/comparison identity `897845b9...` binds this exact composition and
 requires separate associated-source and Gaussian-component catalogues so the
 two scientific levels cannot be confused in plots or counts.
 The previously observed final-evaluator `_load_materializer` dispatch error is

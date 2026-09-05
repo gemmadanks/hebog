@@ -40,6 +40,10 @@ uv run python scripts/benchmark/refresh_public_notebook_hebog.py \
   --preflight-only
 ```
 
+The preflight prints the configuration SHA-256 returned by the exact public
+runner. The refresh never reconstructs that identity from an older contract
+chain, and it creates no staging directory during preflight.
+
 Start a refresh with a short label describing the active scientific changes:
 
 ```console
