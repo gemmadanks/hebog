@@ -279,10 +279,55 @@ def test_publication_footprint_inherits_authoritative_measurement_owner(
     assert np.all((publication == 0) | (publication == measurement))
 
 
-def test_publication_rejects_support_without_measurement_owner(
+def test_publication_excludes_disconnected_recovery_without_owner(
     mocker: MockerFixture,
 ) -> None:
-    """Malformed predecessor support cannot create an unowned publication."""
+    """Nearby disconnected scale support cannot become a publication pixel."""
+    direct = np.zeros((7, 9), dtype=np.int32)
+    direct[2:5, 1:4] = 1
+    significant = np.zeros(direct.shape, dtype=np.bool_)
+    significant[3, 5] = True
+    candidate = PostCampaignCandidateProducts(
+        detection=ThresholdFilterResult(
+            combined_snr=np.where(direct > 0, 6.0, 0.0),
+            retained_mask=direct > 0,
+            component_labels=direct,
+            component_count=1,
+        ),
+        direct_component_labels=direct,
+        measurement_component_labels=direct,
+        position_signal_jy_per_beam=np.zeros(direct.shape),
+        significant_multiscale_support=significant,
+        scale_detection_planes=(),
+    )
+    mocker.patch(
+        "hebog.validation.mask_origin_sibling_pair."
+        "evaluate_publication_snr_repaired_candidate_products",
+        return_value=candidate,
+    )
+
+    result = evaluate_mask_origin_sibling_pair_candidate_products(
+        np.full(direct.shape, 6.0),
+        np.ones(direct.shape, dtype=np.bool_),
+        np.zeros(direct.shape),
+        np.ones(direct.shape),
+        beam=BeamShapePixels(4.0, 3.0, 0.0),
+        review=cast(
+            Any,
+            SimpleNamespace(matrix=SimpleNamespace(island_sigma=3.0)),
+        ),
+    )
+
+    publication = result.detection.component_labels
+    assert publication[3, 5] == 0
+    assert np.all(publication[2:5, 1:4] == 1)
+    assert np.all((publication == 0) | (publication == direct))
+
+
+def test_publication_rejects_direct_support_without_measurement_owner(
+    mocker: MockerFixture,
+) -> None:
+    """Malformed predecessor direct support cannot lose its owner."""
     direct = np.zeros((5, 5), dtype=np.int32)
     direct[2, 2] = 1
     empty = np.zeros(direct.shape, dtype=np.int32)
@@ -308,7 +353,12 @@ def test_publication_rejects_support_without_measurement_owner(
         return_value=candidate,
     )
 
-    with pytest.raises(ValueError, match="must have measurement ownership"):
+    with pytest.raises(
+        ValueError,
+        match=(
+            "direct support must be an exact subset of measurement ownership"
+        ),
+    ):
         evaluate_mask_origin_sibling_pair_candidate_products(
             np.full(direct.shape, 6.0),
             np.ones(direct.shape, dtype=np.bool_),

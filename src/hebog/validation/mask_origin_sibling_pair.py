@@ -139,13 +139,19 @@ def evaluate_mask_origin_sibling_pair_candidate_products(  # noqa: PLR0913
         beam_major_fwhm_pixels=beam.major_fwhm_pixels,
         recovered_minimum_snr=review.matrix.island_sigma,
     )
-    publication_support = direct_publication_labels > 0
+    direct_labels = np.asarray(products.direct_component_labels)
     measurement_labels = np.asarray(products.measurement_component_labels)
-    if np.any(publication_support & (measurement_labels <= 0)):
+    direct_support = direct_labels > 0
+    if np.any(
+        direct_support
+        & ((measurement_labels <= 0) | (measurement_labels != direct_labels))
+    ):
         raise ValueError(
-            "direct-derived publication support must have measurement "
-            "ownership"
+            "direct support must be an exact subset of measurement ownership"
         )
+    publication_support = (direct_publication_labels > 0) & (
+        measurement_labels > 0
+    )
     labels = np.where(publication_support, measurement_labels, 0).astype(
         np.int32,
         copy=False,

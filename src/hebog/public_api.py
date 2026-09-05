@@ -63,7 +63,7 @@ _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
 _COMPOSITION_NAME = (
-    "phase-5-configurable-deblended-component-and-source-topology-v7"
+    "phase-5-configurable-deblended-component-and-source-topology-v8"
 )
 _PROFILE_RESOURCE = "phase_5_continuum_review.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))

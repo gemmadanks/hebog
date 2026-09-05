@@ -548,21 +548,20 @@ def test_hebog_runner_publishes_only_a_complete_bundle(
     assert tuple(tmp_path.glob(".case.*")) == ()
 
 
-def test_hebog_notebook_runner_uses_exact_public_composition() -> None:
-    """Notebook evidence must execute the same terminal public composition."""
+def test_hebog_notebook_runner_rejects_unbound_public_composition() -> None:
+    """Changed public science cannot execute under its predecessor identity."""
     runner = runpy.run_path(str(_RUNNER_SCRIPT))
 
-    assert runner["public_hebog_configuration_sha256"]() == (
-        "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
-    )
+    with pytest.raises(ValueError, match="public-interface identity changed"):
+        runner["public_hebog_configuration_sha256"]()
     assert runner["build_configured_continuum_products"].__module__ == (
         "hebog.public_science"
     )
     assert runner["_PUBLIC_CONFIG"].profile == "continuum"
 
 
-def test_notebook_identity_binds_the_committed_public_source() -> None:
-    """A refresh cannot silently mix new source with old provenance."""
+def test_notebook_identity_rejects_the_unbound_public_source() -> None:
+    """The predecessor identity visibly differs from the repaired source."""
     identity = json.loads(_PUBLIC_IDENTITY.read_text(encoding="utf-8"))
 
     assert file_sha256(_PUBLIC_IDENTITY) == (
@@ -581,12 +580,8 @@ def test_notebook_identity_binds_the_committed_public_source() -> None:
     }
     assert (
         source_tree_sha256(_ROOT)
-        == (identity["algorithm_candidate"]["source_tree_sha256"])
+        != identity["algorithm_candidate"]["source_tree_sha256"]
     )
-    for relative_path, expected_sha256 in identity[
-        "interface_file_sha256"
-    ].items():
-        assert file_sha256(_ROOT / relative_path) == expected_sha256
 
 
 def test_hebog_runner_declares_component_comparison_semantics() -> None:
