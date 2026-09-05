@@ -1,0 +1,91 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cumulative_replay_authorized": false,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "0b9e13299f3fbbd42af0dea4f70155a802a8441d",
+    "source_tree_sha256": "11307db0059739d473288dd2ed647970cce43b69e874632e1d1f14ee0ed032df"
+  },
+  "expected_execution": {
+    "candidate_executions": 2400,
+    "candidate_revision": "0b9e13299f3fbbd42af0dea4f70155a802a8441d",
+    "candidate_source_tree_sha256": "11307db0059739d473288dd2ed647970cce43b69e874632e1d1f14ee0ed032df",
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "execution_root": "/private/tmp/hebog-phase5-final-cumulative-current-replay",
+    "output": "benchmark-results/phase-5/final-cumulative-current-product-set.json",
+    "pybdsf_executions": 0,
+    "reference_run_count": 9600,
+    "scratch": "/private/tmp/hebog-phase5-final-cumulative-current-0b9e132",
+    "workers": 2
+  },
+  "expected_execution_sha256": "a07e624d242f7f9a4c75cfaca0cd820eaf4494d69a32edc016b9fe8a799eea11",
+  "fixture_bindings": {
+    "current_replay": {
+      "path": "tests/unit/validation/test_final_cumulative_current_replay_validated_retry.py",
+      "sha256": "57d2a0b482d2633bf98e9786677437e4c459e53c6769d6ba87147841c4b039e8"
+    },
+    "paired_materializer": {
+      "path": "tests/unit/validation/test_prospective_paired_cumulative_replay.py",
+      "sha256": "3bb211cb40c9374617b78aceb3288e7b33b31a6dc13936efde4ad453153e4b06"
+    },
+    "topology_completion": {
+      "path": "tests/unit/validation/test_prospective_paired_topology_repair_completion.py",
+      "sha256": "8037ef22ccd093cddab3ddb0c139ff907c41ce56408ffdb83a453dc9ac23a128"
+    }
+  },
+  "identity_review_id": "phase-5-final-cumulative-current-replay-validated-retry-type-clean-identity-review",
+  "implementation": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-validated-retry-type-clean-implementation-decision.json",
+    "sha256": "a2fcdebc34638bbe8a436bb7881103d2564d0970963a965b04d81cd40846168b"
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-pre-review.json",
+    "sha256": "57365335a4b7b119bb4dec8f0ea857481bf2d8d80f1162e60f555a258276b815"
+  },
+  "process_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-preflight-efficiency-review.json",
+    "sha256": "e102f5d4bb667e5f5c88f2c5782e98c9fc06bed98790f1f2d54cf3c3cdab7219"
+  },
+  "program_bindings": {
+    "base_runner": {
+      "path": "scripts/validation/run_phase5_final_cumulative_current_replay.py",
+      "sha256": "d73cb780623906adddf9248cd9a9c531e0955e40881e8595b54c7e9cc63ea7f6"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_final_cumulative_current_replay_validated_retry.py",
+      "sha256": "59d01e3d77a164f9748b0dc17cd52b6fbc950d62111120ff8100b59dc68db15b"
+    },
+    "materializer": {
+      "path": "scripts/validation/materialize_phase5_prospective_paired_products.py",
+      "sha256": "d5c0d16bd4f379ec4a0767ccd57d24ce089e844761372a5d3b3f4fa939be65b2"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_final_cumulative_current_replay_validated_retry.py",
+      "sha256": "906a6630c128b85f02a2a92b4f36be61c55c52778545a276d5eb22c960e90ef4"
+    },
+    "smoke_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_science_smoke.py",
+      "sha256": "9cb15439afdaaba4702d0dfd077c45a75b56f40a9193d36d2cad3596c31449d0"
+    },
+    "topology_evaluator": {
+      "path": "scripts/validation/evaluate_phase5_prospective_paired_cumulative_topology_repair.py",
+      "sha256": "39a568bada625b751931aff649e4e815c5ed70f68809d902a52ce93cfeaec62a"
+    }
+  },
+  "required_next_decision": "consume only the separately frozen validated candidate replay decision",
+  "status": "frozen-non-executable",
+  "type_clean_review": {
+    "path": "config/contracts/phase-5-final-cumulative-current-replay-type-clean-review.json",
+    "sha256": "93c4e5a8b4c0be625923c714cf7ca74166e062cb97af7c2ba1294f53c1b19d9f"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "cumulative_replay_authorized": true,
+    "evaluation_authorized": false,
+    "fresh_qualification_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-05",
+    "statement": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns."
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "0b9e13299f3fbbd42af0dea4f70155a802a8441d",
+    "source_tree_sha256": "11307db0059739d473288dd2ed647970cce43b69e874632e1d1f14ee0ed032df"
+  },
+  "decision_id": "phase-5-final-cumulative-current-replay-validated-retry-type-clean-single-scan-execution-decision",
+  "expected_execution_sha256": "a07e624d242f7f9a4c75cfaca0cd820eaf4494d69a32edc016b9fe8a799eea11",
+  "identity_review_sha256": "bf40267cceb90baecdd5fa3e480c2068a7d533c24b56f55107e465f0e67216d0",
+  "post_execution": "freeze exact product-set identity before evaluation-only compilation",
+  "process_review_sha256": "e102f5d4bb667e5f5c88f2c5782e98c9fc06bed98790f1f2d54cf3c3cdab7219",
+  "single_scan_review_sha256": "bbee4bf5808829cbf70a706bd934af6b2a325fdd95858615bdb76f39c07f53a4",
+  "status": "authorized-for-one-final-cumulative-current-replay",
+  "type_clean_review_sha256": "93c4e5a8b4c0be625923c714cf7ca74166e062cb97af7c2ba1294f53c1b19d9f"
+}

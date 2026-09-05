@@ -1,0 +1,57 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "cumulative_replay_authorized": true,
+    "cutover_authorized": false,
+    "evaluation_authorized_after_product_seal": true,
+    "fresh_qualification_authorized_after_cumulative_pass": true,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "0b9e13299f3fbbd42af0dea4f70155a802a8441d",
+    "source_tree_sha256": "11307db0059739d473288dd2ed647970cce43b69e874632e1d1f14ee0ed032df"
+  },
+  "decision_id": "phase-5-final-cumulative-current-replay-pre-review",
+  "evidence_policy": {
+    "candidate_stage": "materialize and atomically seal exactly 2400 current-candidate products",
+    "evaluation_stage": "freeze a separate evaluation-only identity after the product-set digest is known",
+    "incumbent_policy": "reuse the authentic hash-verified terminal-parent product set",
+    "pybdsf_policy": "reuse all 9600 retained released and pinned-master reference runs",
+    "write_policy": "fresh scratch and one atomic product-set record; never overwrite",
+    "wrong_stage_recovery": "preserve a complete candidate product set after evaluator failure and repair only the evaluation stage"
+  },
+  "fast_gate": {
+    "status": "pass",
+    "terminal_sha256": "0978d4a3653ce9bd4b1244ea1125142400607d04c330758ee3b4a495f4193eae"
+  },
+  "final_science_gates": {
+    "absolute_objectives": "visible-and-non-binding-longer-term-targets",
+    "aegean_parity_required": true,
+    "binding_safety_required": true,
+    "dual_pybdsf_parity_required": true,
+    "incumbent_retention_required": true,
+    "like_semantics_regression_allowed": false,
+    "tradeoff_policy": "only the prospectively frozen practical-margin rule applies"
+  },
+  "population": {
+    "compact_input_count": 800,
+    "continuum_input_count": 1600,
+    "input_count": 2400,
+    "role": "cumulative-regression"
+  },
+  "recommendations": [
+    "reuse the proven current materializer and source-union topology evaluator",
+    "run only the changed current candidate and reuse sealed incumbent and PyBDSF products",
+    "exercise all tasks, references, program bindings, and one spawned payload before execution",
+    "seal the complete product set before any scientific compilation",
+    "run the final held-out campaign only after every cumulative binding gate passes"
+  ],
+  "status": "approved-for-test-first-implementation-and-exact-replay-freeze"
+}

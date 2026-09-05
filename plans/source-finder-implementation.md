@@ -1931,6 +1931,41 @@ from partial or viewed evidence.
      therefore authorizes freezing the exact cumulative dual-PyBDSF replay,
      which must retain every geometry against the incumbent and match or beat
      both PyBDSF references before final held-out qualification.
+   - Split that cumulative work at the expensive/scientifically reusable
+     boundary. First materialize exactly 2,400 products for current candidate
+     `0b9e132...`, rehash the complete set, and publish one atomic product-set
+     seal. Only then freeze and run a separate evaluation-only completion that
+     reuses the authentic terminal-parent incumbent and all 9,600 retained
+     released/master PyBDSF runs. An evaluator or compiler bug after the seal
+     must never force candidate science to run again.
+   - The first unexecuted candidate-stage draft redundantly scanned the roughly
+     125-GiB retained reference corpus after task construction had already
+     completed the same verification. Its read-only focused test was stopped
+     after ten healthy minutes with both scratch and output absent. Process
+     review `e102f5d4...` limits the repair to removing that second scan; the
+     candidate, population, configuration, references, output identity, and
+     every scientific gate stay unchanged.
+   - The first efficiency successor stayed non-executable when repository
+     Pyright found unknown parameter types in four bounded-test monkeypatch
+     lambdas. Review `93c4e5a8...` limits the correction to explicitly typed
+     test callables. Formal code-path review then found that the type-clean
+     runner would discard its verified task plan and ask the legacy CLI to
+     rebuild it, causing another complete scan inside the same execution.
+     Review `bbee4bf5...` limits the final repair to carrying those exact tasks
+     directly into the proven process pool.
+   - Final pre-commit review then caught a provenance-format conflict before
+     execution: the repository JSON hook reordered three already hash-bound
+     process reviews. Their original bytes remain immutable and are excluded
+     by exact path; separately formatted canonical copies are bound through
+     provenance-format review `ab96bacf...`. Canonical implementation
+     `cd2f9a8a...`, non-executable identity `c713cc6d...`, expected execution
+     `a07e624d...`, and one-use decision `2a0d45ec...` bind the unchanged
+     current-only 2,400-product stage. Its ordinary process/authority suite
+     runs in seconds and proves the verified plan is materialized once; the
+     complete retained-evidence scan is a distinct slow gate that must pass
+     exactly once from the immutable execution checkout. Start no candidate
+     work unless that exact gate passes and host free space safely covers the
+     expected roughly 14-GiB scratch plus working headroom.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

@@ -15807,3 +15807,54 @@ atomic terminal result passes.
 cumulative dual-PyBDSF replay against the retained incumbent and both pinned
 PyBDSF references. Start the long replay only if its identities, process seams,
 and disk budget pass; monitor it hourly.
+
+## 2026-09-05 — Split and preflight the final cumulative candidate stage
+
+**Plan phase:** Phase 5 final qualification design
+
+- Designed the cumulative replay as a restart-safe two-stage operation. The
+  first stage runs only the changed current candidate for all 2,400 cumulative
+  inputs and atomically seals the complete rehashed product set. A separately
+  frozen evaluation stage will reuse the authentic incumbent products and all
+  9,600 retained released/master PyBDSF runs, so any later evaluator repair
+  cannot consume another candidate campaign.
+- Red-first contracts failed only because the new runner, freezer, and frozen
+  identities were absent. The first implemented draft then exposed an
+  iteration-cost defect: task construction already performs the complete
+  retained-reference verification, but the wrapper explicitly repeated it.
+  The read-only test remained healthy for ten minutes and was stopped with no
+  scratch, candidate execution, or atomic output.
+- Preserved that unexecuted draft and recorded process-only review
+  `e102f5d4...`. The validated successor removes only the duplicate scan and
+  keeps candidate `0b9e132...`, source tree `11307db0...`, configuration
+  `2c907949...`, the 800-compact/1,600-Continuum population, output identity,
+  references, and all science gates unchanged.
+- The first successor stayed non-executable when `just check` caught four
+  untyped monkeypatch lambdas in its bounded fixture. Review `93c4e5a8...`
+  records that process-only failure with scratch and output still absent.
+  Replacing only those anonymous test callables with typed local functions
+  produced type-clean implementation `a2fcdebc...`, identity `55a3d136...`,
+  expected execution `a07e624d...`, and decision `83fda979...`.
+- The final code-path review found that this type-clean draft still discarded
+  its completely verified task plan before invoking the legacy materializer,
+  which would rebuild the plan and scan the retained corpus again inside the
+  same execution. Review `bbee4bf5...` records the issue with no scratch or
+  output. The runner now passes the exact verified tasks directly to the
+  proven two-worker process target and keeps the complete product rehash and
+  atomic seal unchanged.
+- Final pre-commit exposed a provenance-format conflict before any execution:
+  the JSON formatter reordered three already hash-bound process reviews. Their
+  original bytes and SHA-256 identities remain immutable under exact-path hook
+  exclusions. Separately hook-clean canonical copies are linked by
+  provenance-format review `ab96bacf...`.
+- Canonical implementation `cd2f9a8a...`, identity `c713cc6d...`, expected
+  execution `a07e624d...`, and decision `2a0d45ec...` are frozen. Eight bounded
+  predecessor/successor lifecycle, call-count, and authority tests pass in 2.4
+  seconds; focused Ruff and Pyright pass. The complete real-evidence check is
+  intentionally a separate slow immutable-checkout gate rather than part of
+  ordinary tests.
+
+**Immediate next step:** complete repository validation and commit the frozen
+candidate stage, run its one exact complete no-write preflight from the
+immutable checkout, verify safe disk headroom, then start the single
+two-worker 2,400-product candidate run and monitor it hourly.

@@ -1,0 +1,34 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "evaluation_authorized": false,
+    "fixture_type_repair_authorized": true,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "scientific_change_authorized": false
+  },
+  "decision_id": "phase-5-final-cumulative-current-replay-type-clean-review",
+  "diagnosis": {
+    "candidate_execution_started": false,
+    "governed_output_existed": false,
+    "governed_scratch_existed": false,
+    "observed_failure": "Pyright rejected four bounded-test monkeypatch lambdas because their parameters had unknown types",
+    "runtime_or_scientific_failure": false
+  },
+  "repair": {
+    "change": "replace only the anonymous test callables with explicitly typed local functions",
+    "required_validation": [
+      "focused Ruff and Pyright",
+      "bounded predecessor and successor tests",
+      "complete repository validation",
+      "one exact immutable-checkout complete no-write preflight"
+    ],
+    "science_and_execution_identity": "unchanged"
+  },
+  "status": "approved-process-only-fixture-type-repair",
+  "superseded_unexecuted_records": {
+    "execution_decision_sha256": "f2e501e58087e82d0ab293bf1e7448333f0e5e34eba7aabb12a7ee25f0f10ad1",
+    "identity_review_sha256": "96a95d159e4fa8c1ab9ae8c8a095ca657a7099dd2407a8d36df90d17b2e632e1",
+    "implementation_decision_sha256": "769649c7ef3cc547af1c6d3b466a200c7cccb17c096a11078ba27c33d867358a"
+  }
+}
