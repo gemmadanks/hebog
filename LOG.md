@@ -16318,3 +16318,52 @@ unless every cumulative binding gate passes.
 **Immediate next step:** finish repository validation and freeze a clean local
 tooling commit. Then establish safe disk headroom, reproduce the no-write gate
 from the exact immutable checkout, and consume the one-use decision once.
+
+## 2026-09-05 — Seal the version-8 cumulative products and freeze evaluation
+
+**Plan phase:** Phase 5 cumulative parity and retention
+
+- The authorized two-worker replay completed all 2,400 current-candidate
+  executions from immutable commit `7e00c1c...` and exited successfully. Its
+  write-once record `194022ab...` seals product set `f43cb274...` for candidate
+  `95cfc76...`, source tree `8da21e86...`, and unchanged configuration
+  `2c907949...`. It reused 9,600 retained reference runs and executed neither
+  PyBDSF reference.
+- Added a thin evaluation-only completion over the reviewed final cumulative
+  compiler. It retargets only the current candidate, product seal, and output,
+  reuses the authentic incumbent and retained released/master PyBDSF products,
+  and restores the historical module after every scoped call. It cannot run a
+  candidate, incumbent, or PyBDSF process.
+- A new direct-CLI fixture caught an environment-sensitive repository import,
+  and a provenance assertion then caught the inherited compiler binding the
+  historical parent completion rather than the scoped completion. Both were
+  repaired before authority was frozen; no scientific result or threshold was
+  inspected or changed.
+- The first exhaustive rehash failed closed after hashing the product sets and
+  before evaluation because the scoped evaluator did not re-export two raw
+  compiler callables required by the inherited verifier. Added the missing
+  seam assertion first, reproduced the failure without touching products, and
+  exported the unchanged inherited callables. No output was created and the
+  one-use authority was not consumed.
+- Froze the repaired implementation file `88cb315c...`, identity file
+  `b29a54f1...`, expected execution SHA-256 `e1e43203...`, and one-use decision
+  file `423ee03c...`. The bounded terminal smoke passes all 1,187 comparisons:
+  143 Aegean, 368 incumbent-retention, 676 dual-PyBDSF, and five binding-safety
+  checks. All required endpoints and cumulative readiness pass in the smoke;
+  longer-term absolute objectives remain report-only.
+- The focused and inherited evaluation matrix passes 38 tests, Ruff and
+  Pyright are clean, and the frozen records reproduce byte-for-byte. After the
+  seam repair, the complete no-write verifier rehashed both 2,400-product
+  candidates and all 9,600 retained references successfully, reported
+  `candidate_execution_started=false`, and produced no terminal output.
+- Branch-aware coverage passes 2,836 tests with two expected failures and
+  94.84% coverage. `just check` passes 2,654 tests with the same two expected
+  failures; all 27 compact-equivalence tests pass; and the strict
+  documentation build passes. Review against `CODE_REVIEW.md` found no
+  actionable issue and no production-source or dependency change.
+
+**Immediate next step:** finish repository validation and commit the frozen
+evaluation package. Reproduce the gate from a clean immutable checkout, then
+consume the one-use authority for evaluation only. A binding scientific
+failure is terminal evidence and does not authorize tuning, rescoring,
+qualification, or another replay.

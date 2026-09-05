@@ -1,0 +1,32 @@
+{
+  "authority_source": {
+    "standing_user_authority": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns.",
+    "user_instruction": "2026-09-05 continue with the next task after the successful public owner-domain cumulative product seal"
+  },
+  "authorization": {
+    "candidate_execution_authorized": false,
+    "cutover_authorized": false,
+    "evaluation_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "rescoring_authorized": false,
+    "scientific_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-public-owner-domain-cumulative-evaluation-execution-decision",
+  "expected_execution_sha256": "e1e43203f25748adb1021dc1d3e3a3b2e2e9ad26d9719dde6924f2db4af5f6ab",
+  "identity_review": {
+    "path": "config/contracts/phase-5-public-owner-domain-cumulative-evaluation-identity-review.json",
+    "sha256": "6e4c15fd2d86447c7f7c6516003ede837138d477c0ee0f0a5bdbbc50aa77c3cb"
+  },
+  "identity_review_sha256": "6e4c15fd2d86447c7f7c6516003ede837138d477c0ee0f0a5bdbbc50aa77c3cb",
+  "result_policy": {
+    "scientific_failure_is_terminal": true,
+    "threshold_or_margin_change_after_results": false,
+    "write_once": true
+  },
+  "status": "authorized-for-one-final-cumulative-evaluation"
+}

@@ -551,9 +551,9 @@ is an instruction to rerun or rescore a closed campaign.
 
 ### Phase 5: multiscale and extended emission
 
-**Status: open; the version-8 public fast lane and cumulative no-write gate
-passed, and the fresh cumulative candidate replay is ready once disk headroom
-is sufficient.** Multiscale science,
+**Status: open; the version-8 public fast lane and cumulative candidate replay
+passed, and the sealed products are awaiting their frozen evaluation-only
+completion.** Multiscale science,
 combined products, bounded execution, compact regression, the public
 scientific interface, and the incremental performance budget are complete.
 The seed-disjoint 144-image repair replication passed all 12 binding geometry
@@ -567,9 +567,9 @@ public Serial/existing-Dask, compact-equivalence, documentation, notebook, and
 installed-wheel gates pass. Fast-lane terminal `a274888d...` binds identity
 `29e6f247...`, reuses the seed-disjoint 144-case protocol, and passes all 12
 binding geometry groups, the trigger seam, and 12 Serial/existing-Dask
-comparisons after its complete 144/144/12 no-write preflight. Only a
-fresh cumulative replay of that identity may reopen the closeout checklist;
-the authentic incumbent and retained PyBDSF products remain reusable.
+comparisons after its complete 144/144/12 no-write preflight. The fresh
+cumulative replay of that identity has now completed, and the authentic
+incumbent and retained PyBDSF products remain reusable for its evaluation.
 The current prospective source candidate is local commit
 `95cfc76ded56556dc3ad6894410962d34f0d5604`, source tree
 `8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5`,
@@ -587,7 +587,13 @@ implementation `cbb3212c...`, identity `0a464a38...`, expected execution
 passed all 2,400 candidate tasks, all 9,600 retained reference runs, and the
 spawned-process seam with no candidate execution or output. It requires a
 fresh product namespace while reusing the retained PyBDSF and authentic-
-incumbent evidence.
+incumbent evidence. The authorized two-worker replay completed successfully
+and atomically sealed all 2,400 candidate products as product set
+`f43cb274...` in record `194022ab...`, with zero PyBDSF executions. The scoped
+evaluation-only completion is now frozen with identity file `b29a54f1...`,
+expected execution `e1e43203...`, and one-use decision file `423ee03c...`.
+Its bounded terminal smoke passes all 1,187 comparisons; complete product
+rehashing also passes, and the terminal evaluation remains the next gate.
 Detailed campaign and incident chronology
 belongs in `LOG.md` and the campaign overview; machine identities and
 authorization boundaries remain in `config/contracts/`.
@@ -598,8 +604,8 @@ authorization boundaries remain in `config/contracts/`.
 | --- | --- | --- |
 | Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Pass at prospective development scale. Analytic reproduction proved the public path collapsed admissible peaks; the correction preserves direct and measurement support unions, uses canonical nearest-marker ownership with intensity-saddle merging only in the public topology, and reports bounded deferrals. The established Phase 3 compact path remains green. The public topology also retains admitted unseeded parents unchanged and projects publication recovery onto authoritative measurement owners without inventing science. Terminal fast-lane decision `a274888d...` has zero binding failures. Viewed Hydra data remains diagnostic-only and was not tuned or rescored. Cumulative evidence remains a separate gate. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Pass. Unequal-Gaussian, connected two- and three-peak, exact seed-boundary/no-seed retention, disconnected recovery, edge/corner, thin horizontal/vertical, non-square, empty, invalid-input, label-invariance, support-union, exact synthetic notebook-runner, public-composition, full coverage, and compact-equivalence gates pass. Version-8 terminal `a274888d...` passes 12/12 binding geometry groups, the trigger seam, and 12/12 Serial/existing-Dask comparisons; four non-binding improvement misses remain reported. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Pass for the development gate. Candidate `95cfc76...`, source tree `8da21e86...`, and unchanged configuration `2c907949...` pass component-topology, publication-owner-domain, synthetic exact-runner, installed-wheel, compact-equivalence, source/composition identity, and the exact two-worker fast lane. Notebook identity `2920873a...` is non-executable. A new cumulative product identity is now required. |
-| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | The old sealed set cannot qualify source-changing code. The evaluator raw-dispatch defect is repaired and regression-tested. The fresh 2,400-product stage is frozen and its complete no-write gate passes; execution and evaluation remain required. Reuse the authentic incumbent and all retained PyBDSF products rather than rerunning unchanged references. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Pass for the development and cumulative-product gates. Candidate `95cfc76...`, source tree `8da21e86...`, and unchanged configuration `2c907949...` pass component-topology, publication-owner-domain, synthetic exact-runner, installed-wheel, compact-equivalence, source/composition identity, and the exact two-worker fast lane. Notebook identity `2920873a...` remains non-executable. Product set `f43cb274...` seals all 2,400 cumulative outputs. |
+| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | In progress. The fresh 2,400-product replay completed and its atomic seal passed. Evaluation identity `b29a54f1...` reuses the authentic incumbent and all retained PyBDSF products, executes no finder, passes a bounded 1,187-comparison terminal smoke, and completely rehashes both 2,400-product candidates plus all 9,600 references. The one authorized terminal evaluation remains required. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
