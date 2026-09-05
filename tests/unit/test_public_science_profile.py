@@ -29,7 +29,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
         scientific_composition=(
-            "phase-5-configurable-source-owned-measurement-and-topology-v4"
+            "phase-5-configurable-deblended-component-and-source-topology-v5"
         ),
     )
 
@@ -61,6 +61,8 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         source_count=1,
         gaussian_component_count=1,
         island_count=1,
+        deblended_parent_count=1,
+        deferred_deblend_parent_count=0,
         rms_scientific_status="valid",
         provenance=_provenance(),
     )
@@ -71,7 +73,9 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
-    assert diagnostics.schema_version == 4
+    assert diagnostics.schema_version == 5
+    assert diagnostics.deblended_parent_count == 1
+    assert diagnostics.deferred_deblend_parent_count == 0
 
 
 def test_public_provenance_rejects_non_sha_identity() -> None:
@@ -135,6 +139,24 @@ def test_public_diagnostics_reject_noncanonical_json() -> None:
     with pytest.raises(ValueError, match="must be canonical"):
         PublicSourceFindingDiagnostics.from_json_bytes(
             diagnostics.canonical_json_bytes() + b" "
+        )
+
+
+def test_public_diagnostics_reject_negative_deblend_disposition() -> None:
+    """Bounded deblend deferral cannot be hidden in invalid telemetry."""
+    with pytest.raises(ValueError, match="deblend disposition"):
+        PublicSourceFindingDiagnostics(
+            run_id="public-test",
+            profile="continuum",
+            profile_limitations=(),
+            configuration_qualification="phase-5-reference",
+            source_count=1,
+            gaussian_component_count=1,
+            island_count=1,
+            deblended_parent_count=0,
+            deferred_deblend_parent_count=-1,
+            rms_scientific_status="valid",
+            provenance=_provenance(),
         )
 
 

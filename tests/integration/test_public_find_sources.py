@@ -148,6 +148,8 @@ def test_public_find_sources_materializes_the_qualified_continuum_view(
     assert len(catalogue.gaussian_components) == 4
     assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
     assert diagnostics.source_count == 1
+    assert diagnostics.deblended_parent_count == 0
+    assert diagnostics.deferred_deblend_parent_count == 0
     assert diagnostics.profile == "continuum"
     assert diagnostics.configuration_qualification == "phase-5-reference"
     assert diagnostics.provenance.input_sha256

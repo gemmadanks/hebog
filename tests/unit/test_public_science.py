@@ -6,11 +6,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 from astropy.io import fits
 
+from hebog import public_science
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import SourceFinderConfig
 from hebog.public_science import (
@@ -26,6 +28,26 @@ from hebog.validation.post_campaign_science import (
 )
 
 _ROOT = Path(__file__).parents[2]
+
+
+def _header(shape: tuple[int, int]) -> fits.Header:
+    """Return one valid one-arcsecond celestial fixture header."""
+    header = fits.Header()
+    header["NAXIS"] = 2
+    header["NAXIS1"] = shape[1]
+    header["NAXIS2"] = shape[0]
+    header["CTYPE1"] = "RA---SIN"
+    header["CTYPE2"] = "DEC--SIN"
+    header["CRPIX1"] = (shape[1] + 1) / 2
+    header["CRPIX2"] = (shape[0] + 1) / 2
+    header["CRVAL1"] = 10.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["BMAJ"] = 5.0 / 3600.0
+    header["BMIN"] = 4.0 / 3600.0
+    header["BPA"] = 0.0
+    return header
 
 
 def _config(
@@ -177,3 +199,150 @@ def test_configured_builder_rejects_inconsistent_finite_support() -> None:
             review=review,
             config=_config(),
         )
+
+
+def test_configured_builder_deblends_components_before_catalogue_measurement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The public composition cannot bypass compact component topology."""
+    normalized = np.zeros((11, 12), dtype=np.float64)
+    normalized[2:9, 2:10] = np.array([6.0, 5.0, 4.0, 3.0, 3.0, 4.0, 5.0, 9.0])
+    direct = np.where(normalized >= 3.0, 17, 0).astype(np.int32)
+    measurement = direct.copy()
+    measurement[1:10, 1:11] = 17
+    products = _products(direct, measurement_labels=measurement)
+    captured: dict[str, np.ndarray] = {}
+
+    def return_products(
+        *_args: object,
+        **_kwargs: object,
+    ) -> PostCampaignCandidateProducts:
+        return products
+
+    monkeypatch.setattr(
+        public_science,
+        "evaluate_publication_scale_persistence_candidate_products",
+        return_products,
+    )
+
+    def capture_catalogues(
+        image: np.ndarray,
+        background: np.ndarray,
+        valid: np.ndarray,
+        measurement_labels: np.ndarray,
+        direct_labels: np.ndarray,
+        *args: object,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        del image, background, valid, args, kwargs
+        captured["measurement"] = measurement_labels
+        captured["direct"] = direct_labels
+        return SimpleNamespace(
+            source_catalogue=(),
+            component_catalogue=(),
+            association=object(),
+        )
+
+    monkeypatch.setattr(
+        public_science,
+        "build_hebog_reconstructed_source_catalogues",
+        capture_catalogues,
+    )
+    review = PhaseFiveCorrectiveAReview.model_validate_json(
+        (
+            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
+        ).read_bytes()
+    )
+
+    result = build_configured_continuum_products(
+        normalized,
+        np.zeros(normalized.shape, dtype=np.float64),
+        np.ones(normalized.shape, dtype=np.float64),
+        fits.Header(),
+        beam=BeamShapePixels(5.0, 4.0, 0.0),
+        review=review,
+        config=SourceFinderConfig(5.0, 3.0, 7),
+    )
+
+    assert result is not None
+    assert set(np.unique(captured["direct"])) == {0, 1, 2}
+    assert set(np.unique(captured["measurement"])) == {0, 1, 2}
+    np.testing.assert_array_equal(captured["direct"] > 0, direct > 0)
+    np.testing.assert_array_equal(
+        captured["measurement"] > 0,
+        measurement > 0,
+    )
+
+
+def test_configured_builder_publishes_components_and_associated_source() -> (
+    None
+):
+    """A connected two-peak island has two components in one source."""
+    yy, xx = np.mgrid[:65, :65]
+    normalized = 10.0 * np.exp(
+        -((yy - 32) ** 2 + (xx - 29) ** 2) / 8.0
+    ) + 9.5 * np.exp(-((yy - 32) ** 2 + (xx - 36) ** 2) / 8.0)
+    review = PhaseFiveCorrectiveAReview.model_validate_json(
+        (
+            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
+        ).read_bytes()
+    )
+
+    result = build_configured_continuum_products(
+        normalized,
+        np.zeros(normalized.shape, dtype=np.float64),
+        np.ones(normalized.shape, dtype=np.float64),
+        _header(normalized.shape),
+        beam=BeamShapePixels(5.0, 4.0, 0.0),
+        review=review,
+        config=SourceFinderConfig(5.0, 3.0, 7),
+    )
+
+    assert result is not None
+    assert result.detection.component_count == 1
+    assert len(result.component_catalogue) == 2
+    assert len(result.catalogue) == 1
+    assert result.catalogue[0].component_count == 2
+    assert result.deblended_parent_count == 1
+    assert result.deferred_deblend_parent_count == 0
+    assert tuple(
+        len(membership.component_ids)
+        for membership in result.source_association.memberships
+    ) == (2,)
+
+
+def test_configured_builder_retains_three_components_in_one_parent() -> None:
+    """Multi-peak topology is not limited to a pairwise special case."""
+    yy, xx = np.mgrid[:65, :65]
+    normalized = np.zeros(yy.shape, dtype=np.float64)
+    for amplitude, x_center in ((10.0, 25), (9.5, 32), (9.0, 39)):
+        normalized += amplitude * np.exp(
+            -((yy - 32) ** 2 + (xx - x_center) ** 2) / 8.0
+        )
+    review = PhaseFiveCorrectiveAReview.model_validate_json(
+        (
+            _ROOT / "src/hebog/resources/phase_5_continuum_review.json"
+        ).read_bytes()
+    )
+
+    result = build_configured_continuum_products(
+        normalized,
+        np.zeros(normalized.shape, dtype=np.float64),
+        np.ones(normalized.shape, dtype=np.float64),
+        _header(normalized.shape),
+        beam=BeamShapePixels(5.0, 4.0, 0.0),
+        review=review,
+        config=SourceFinderConfig(5.0, 3.0, 7),
+    )
+
+    assert result is not None
+    assert result.detection.component_count == 1
+    assert len(result.component_catalogue) == 3
+    assert len(result.catalogue) == 1
+    assert result.catalogue[0].component_count == 3
+    assert result.deblended_parent_count == 1
+    assert result.deferred_deblend_parent_count == 0
+    assert tuple(
+        len(membership.component_ids)
+        for membership in result.source_association.memberships
+    ) == (3,)

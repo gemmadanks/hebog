@@ -107,11 +107,19 @@ def test_bounded_no_write_gate_checks_shape_without_real_data(
     def verify_process(_value: tuple[str, str, str]) -> str:
         return "spawn-pass"
 
+    def retained_source_identity(_root: Path) -> str:
+        return base._CANDIDATE_SOURCE_TREE_SHA256
+
     scratch = tmp_path / "candidate"
     output = tmp_path / "product-set.json"
     monkeypatch.setattr(base, "_SCRATCH", scratch)
     monkeypatch.setattr(base, "_OUTPUT", output)
     monkeypatch.setattr(base, "_verify_static_evidence", verify_static)
+    monkeypatch.setattr(
+        runner,
+        "source_tree_sha256",
+        retained_source_identity,
+    )
     monkeypatch.setattr(runner, "_verify_process_review", verify_reviews)
     monkeypatch.setattr(runner, "_verify_identity", verify_identity)
     monkeypatch.setattr(runner, "_verified_candidate_tasks", candidate_tasks)
@@ -137,28 +145,23 @@ def test_bounded_no_write_gate_checks_shape_without_real_data(
     }
 
 
-@pytest.mark.slow
-def test_exact_no_write_preflight_hashes_retained_evidence_once() -> None:
-    """The immutable gate validates all products and the real process seam."""
+def test_completed_replay_namespace_fails_closed_before_reverification(
+    tmp_path: Path,
+) -> None:
+    """A consumed write-once replay can never be started from tests."""
     runner = _runner()
-    base = runner._base()
-    verification = runner.verify_no_write(
-        repository_root=_ROOT,
-        scratch=Path(base._SCRATCH),
-        output=_ROOT / base._OUTPUT,
-        enforce_execution_root=False,
-        verify_process_pool=True,
-    )
+    scratch = tmp_path / "candidate"
+    output = tmp_path / "product-set.json"
+    output.write_text("consumed", encoding="utf-8")
 
-    assert verification == {
-        **verification,
-        "status": "pass",
-        "candidate_execution_started": False,
-        "candidate_task_count": 2400,
-        "reference_run_count": 9600,
-        "reference_verification_count": 1,
-        "process_payload_status": "spawn-pass",
-    }
+    with pytest.raises(FileExistsError, match="namespace must be absent"):
+        runner.verify_no_write(
+            repository_root=_ROOT,
+            scratch=scratch,
+            output=output,
+            enforce_execution_root=False,
+            verify_process_pool=True,
+        )
 
 
 def test_identity_and_decision_preserve_science_and_one_use_scope() -> None:

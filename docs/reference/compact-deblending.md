@@ -36,17 +36,26 @@ markers, so holes cannot flood or leave accepted pixels unassigned.
 
 The implementation combines maintained SciPy primitives rather than adding a
 new dependency. `maximum_filter` and `label` choose deterministic markers.
-`distance_transform_edt` constructs a marker-distance ridge, and
-`watershed_ift` partitions the bounded island with eight-neighbour
-connectivity. Actual normalized intensities—not geometric distance—then
-measure the highest discrete saddle between adjacent basins. A sparse
-union-find merges basins whose weaker peak lacks the configured prominence.
+The established Phase 3 compact path retains its reviewed marker-distance
+watershed, while the Phase 5 public component-topology path selects a bounded
+`cKDTree` assignment to the exact nearest marker pixels, using canonical
+marker order for distance ties. Actual normalized intensities—not geometric
+distance—then measure the highest discrete saddle between adjacent basins. A
+sparse union-find merges basins whose weaker peak lacks the configured
+prominence.
 
 An intensity-topography watershed was evaluated first, but its image-forest
-tie/marker propagation can assign nearly the complete one-dimensional bridge
-to one marker, placing the measured basin boundary above the physical saddle.
-The marker-distance ridge gives stable compact ownership while the subsequent
-intensity saddle retains the scientific split decision.
+tie/marker propagation can assign nearly the complete bridge to one marker,
+placing the measured basin boundary above the physical saddle. A later
+marker-distance image passed the one-dimensional fixtures but exposed the same
+problem in ordinary two-dimensional Gaussian blends: `watershed_ift` could
+leave only a few pixels in the second basin, which the minimum-area rule then
+merged. Exact nearest-marker ownership avoids that implementation-dependent
+flooding in the new public topology while the subsequent intensity saddle
+retains the scientific split decision. It is deliberately scoped there so it
+cannot change the already-qualified compact photometry path. A two-dimensional
+unequal-Gaussian regression fixture preserves this failure mode, and the Phase
+4 blend-equivalence matrix guards the retained compact policy.
 
 The minimum-area merge is deterministic and conservative: it preserves every
 parent-island pixel and changes only the ownership boundary between adjacent
@@ -104,6 +113,15 @@ turning the cache into an image-sized gather.
 The source-filtering mask remains the parent connected-island membership;
 deblending subdivides that topology without changing which pixels are
 detected.
+
+The Phase 5 public continuum composition applies the same bounded deblender to
+each retained connected parent before Gaussian measurement. Its direct and
+expanded measurement unions must remain byte-for-byte equivalent as boolean
+support. One connected support island can therefore contain multiple Gaussian
+components while still forming one associated catalogue source. Parents above
+the reviewed compact member or bounds limit remain one retained component and
+are counted as `deferred_deblend_parent_count` in public diagnostics; they are
+never dropped or silently presented as successfully deblended.
 
 A boolean source-filtering-mask window may contain another disconnected
 island whose bounds overlap or nest inside the requested island. The compact

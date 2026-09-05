@@ -7,12 +7,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import hypot
 from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
 from scipy import ndimage
 
+from hebog.algorithms.extended_measurement import (
+    assign_seeded_multiscale_support,
+)
 from hebog.algorithms.labelling import (
     LocalIslandSummary,
     LocalIslandTileSummary,
@@ -593,8 +597,10 @@ def _watershed_labels(
     membership: npt.NDArray[np.bool_],
     bounds: ImageBounds,
     peak_positions_yx: tuple[tuple[int, int], ...],
+    *,
+    marker_partition: Literal["marker-distance-watershed", "nearest-marker"],
 ) -> npt.NDArray[np.int32]:
-    """Partition one compact island with a marker-distance watershed."""
+    """Partition one compact island with the selected marker policy."""
     markers = np.zeros(membership.shape, dtype=np.int32)
     for marker_label, (global_y, global_x) in enumerate(
         peak_positions_yx,
@@ -605,27 +611,37 @@ def _watershed_labels(
         )
     if len(peak_positions_yx) == 1:
         return np.where(membership, 1, 0).astype(np.int32)
-
-    distance = cast(
-        npt.NDArray[np.float64],
-        ndimage.distance_transform_edt(markers == 0),
-    )
-    maximum_distance = float(np.max(distance[membership]))
-    topography = np.zeros(membership.shape, dtype=np.uint16)
-    if maximum_distance > 0:
-        topography = np.rint(
-            distance / maximum_distance * (_TOPOGRAPHY_MAXIMUM - 1)
-        ).astype(np.uint16)
-    topography[~membership] = _TOPOGRAPHY_MAXIMUM
-    raw = np.asarray(
-        ndimage.watershed_ift(
-            topography,
+    if marker_partition == "nearest-marker":
+        labels = assign_seeded_multiscale_support(
             markers,
-            structure=_EIGHT_CONNECTIVITY,
-        ),
-        dtype=np.int32,
-    )
-    labels = np.where(membership & (raw > 0), raw, 0).astype(np.int32)
+            membership,
+            membership,
+            beam_major_fwhm_pixels=1.0,
+            recovery_radius_beams=(
+                hypot(membership.shape[0], membership.shape[1]) + 1.0
+            ),
+        )
+    else:
+        distance = cast(
+            npt.NDArray[np.float64],
+            ndimage.distance_transform_edt(markers == 0),
+        )
+        maximum_distance = float(np.max(distance[membership]))
+        topography = np.zeros(membership.shape, dtype=np.uint16)
+        if maximum_distance > 0:
+            topography = np.rint(
+                distance / maximum_distance * (_TOPOGRAPHY_MAXIMUM - 1)
+            ).astype(np.uint16)
+        topography[~membership] = _TOPOGRAPHY_MAXIMUM
+        raw = np.asarray(
+            ndimage.watershed_ift(
+                topography,
+                markers,
+                structure=_EIGHT_CONNECTIVITY,
+            ),
+            dtype=np.int32,
+        )
+        labels = np.where(membership & (raw > 0), raw, 0).astype(np.int32)
     if np.any(membership & (labels == 0)):
         raise ValueError("watershed did not assign every island pixel")
     return labels
@@ -903,12 +919,21 @@ def _summarize_regions(
 def deblend_compact_island(
     compact_island: CompactIslandPixels,
     config: CompactDeblendConfig,
+    *,
+    marker_partition: Literal[
+        "marker-distance-watershed", "nearest-marker"
+    ] = "marker-distance-watershed",
 ) -> CompactDeblendResult:
     """Split one admitted island into deterministic watershed regions."""
     normalized, membership = _validate_input(compact_island, config)
     bounds = compact_island.island.bounds
     peaks = _marker_positions(normalized, membership, bounds, config)
-    watershed = _watershed_labels(membership, bounds, peaks)
+    watershed = _watershed_labels(
+        membership,
+        bounds,
+        peaks,
+        marker_partition=marker_partition,
+    )
     labels = _merge_shallow_regions(
         watershed,
         normalized,

@@ -240,7 +240,7 @@ class PublicSourceFindingProvenance(BaseModel):
     scientific_profile_sha256: str
     scientific_composition_sha256: str
     scientific_composition: Literal[
-        "phase-5-configurable-source-owned-measurement-and-topology-v4"
+        "phase-5-configurable-deblended-component-and-source-topology-v5"
     ]
     schema_version: Literal[1] = 1
 
@@ -259,7 +259,7 @@ class PublicSourceFindingProvenance(BaseModel):
 
 
 class PublicSourceFindingDiagnostics(BaseModel):
-    """Version-four public-run diagnostics with reproducible provenance."""
+    """Version-five public-run diagnostics with reproducible provenance."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
@@ -272,9 +272,11 @@ class PublicSourceFindingDiagnostics(BaseModel):
     source_count: int
     gaussian_component_count: int
     island_count: int
+    deblended_parent_count: int = 0
+    deferred_deblend_parent_count: int = 0
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[4] = 4
+    schema_version: Literal[5] = 5
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:
@@ -286,6 +288,11 @@ class PublicSourceFindingDiagnostics(BaseModel):
             gaussian_component_count=self.gaussian_component_count,
             island_count=self.island_count,
         )
+        if (
+            self.deblended_parent_count < 0
+            or self.deferred_deblend_parent_count < 0
+        ):
+            raise ValueError("deblend disposition counts cannot be negative")
         expected_limitations = (
             ("extended-emission-incomplete",)
             if self.profile == "compact"

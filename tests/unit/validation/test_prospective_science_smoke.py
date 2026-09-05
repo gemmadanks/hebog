@@ -5,8 +5,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import runpy
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -591,6 +593,19 @@ def test_measurement_label_persistence_binds_exact_replacement_smoke() -> None:
     repair_review = json.loads(
         _MIXED_SCHEMA_REPAIR_PRE_REVIEW.read_text(encoding="utf-8")
     )
+
+    def historical_bytes(relative_path: str) -> bytes:
+        return subprocess.run(
+            (
+                "git",
+                "show",
+                f"{decision['candidate']['revision']}:{relative_path}",
+            ),
+            cwd=_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+
     for program in decision["implementation"]:
         if program["path"].endswith(
             "evaluate_phase5_prospective_science_smoke.py"
@@ -600,7 +615,10 @@ def test_measurement_label_persistence_binds_exact_replacement_smoke() -> None:
                 == repair_review["binding_failure"]["failed_evaluator_sha256"]
             )
         else:
-            assert file_sha256(_ROOT / program["path"]) == program["sha256"]
+            assert (
+                hashlib.sha256(historical_bytes(program["path"])).hexdigest()
+                == program["sha256"]
+            )
     full_replay_key = (
         "full_cumulative_replay_authorized_only_after_replacement_smoke_passes"
     )

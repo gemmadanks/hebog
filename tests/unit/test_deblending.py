@@ -198,6 +198,35 @@ def test_deep_saddle_splits_close_pairs_across_flux_ratios(
     assert set(np.unique(result.region_labels)) == {1, 2}
 
 
+def test_nearest_marker_partition_keeps_two_dimensional_peaks() -> None:
+    """Two beam-scale peaks retain balanced basins before saddle review."""
+    yy, xx = np.mgrid[:33, :33]
+    normalized = 10.0 * np.exp(
+        -((yy - 16) ** 2 + (xx - 12) ** 2) / 8.0
+    ) + 9.5 * np.exp(-((yy - 16) ** 2 + (xx - 20) ** 2) / 8.0)
+    membership = normalized >= 2.5
+    compact = _compact_island(normalized, membership=membership)
+
+    result = deblend_compact_island(
+        compact,
+        _config(
+            minimum_peak_separation_pixels=2,
+            minimum_saddle_depth_sigma=1.0,
+            minimum_region_pixels=7,
+            maximum_compact_island_pixels=2_000,
+            maximum_compact_bounds_pixels=2_000,
+            target_batch_pixels=2_000,
+            maximum_batch_pixels=2_000,
+        ),
+        marker_partition="nearest-marker",
+    )
+
+    assert result.status == "deblended"
+    assert len(result.regions) == 2
+    assert min(region.pixel_count for region in result.regions) >= 30
+    np.testing.assert_array_equal(result.region_labels > 0, membership)
+
+
 def test_undersized_watershed_child_merges_before_fitting() -> None:
     """A promoted peak cannot create a region too small for its fit model."""
     compact = _compact_island(

@@ -9,9 +9,13 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 
+from hebog.algorithms.component_topology import deblend_component_topology
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.config import SourceFinderConfig
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
+from hebog.validation.hebog_campaign import (
+    phase_five_corrected_candidate_configs,
+)
 from hebog.validation.post_campaign_science import (
     CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS,
     PostCampaignCandidateProducts,
@@ -144,12 +148,33 @@ def build_configured_continuum_products(  # noqa: PLR0913
     retained = _retain_configured_islands(products, config)
     if retained is None:
         return None
+    normalized = np.full(image.shape, np.nan, dtype=np.float64)
+    positive_rms = valid & (rms > 0.0)
+    np.divide(
+        image - background,
+        rms,
+        out=normalized,
+        where=positive_rms,
+    )
+    deblend_config = replace(
+        phase_five_corrected_candidate_configs()[1],
+        minimum_peak_signal_to_noise=float(
+            np.nextafter(config.detection_threshold_sigma, -np.inf)
+        ),
+    )
+    topology = deblend_component_topology(
+        normalized,
+        retained.direct_component_labels,
+        retained.measurement_component_labels,
+        valid,
+        deblend_config,
+    )
     catalogues = build_hebog_reconstructed_source_catalogues(
         image,
         background,
         valid,
-        retained.measurement_component_labels,
-        retained.direct_component_labels,
+        topology.measurement_component_labels,
+        topology.direct_component_labels,
         retained.significant_multiscale_support,
         retained.scale_detection_planes,
         header,
@@ -163,9 +188,11 @@ def build_configured_continuum_products(  # noqa: PLR0913
     valid.setflags(write=False)
     return PublicFinderCorrectionContinuumProducts(
         detection=retained.detection,
-        measurement_component_labels=retained.measurement_component_labels,
+        measurement_component_labels=(topology.measurement_component_labels),
         catalogue=catalogues.source_catalogue,
         valid_pixels=valid,
         component_catalogue=catalogues.component_catalogue,
         source_association=catalogues.association,
+        deblended_parent_count=topology.deblended_parent_count,
+        deferred_deblend_parent_count=topology.deferred_parent_count,
     )

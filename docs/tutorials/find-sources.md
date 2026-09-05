@@ -112,13 +112,36 @@ for source in catalogue.sources:
         source.flux.integrated_flux_jy,
     )
 
+for component in catalogue.gaussian_components:
+    print(
+        component.gaussian_component_id,
+        component.source_id,
+        component.position.right_ascension_degrees,
+        component.position.declination_degrees,
+    )
+
 print(diagnostics.provenance.input_sha256)
 print(diagnostics.provenance.scientific_composition_sha256)
 print(diagnostics.configuration_qualification)
+print(diagnostics.deblended_parent_count)
+print(diagnostics.deferred_deblend_parent_count)
 ```
 
 Those provenance identities make it possible to establish which input,
 configuration, reviewed profile, and implementation produced the result.
+The three catalogue populations have deliberately different meanings:
+
+- a support island is one connected detected footprint in the mask;
+- a Gaussian component is one fitted peak within that footprint; and
+- a source is the associated physical-source hypothesis and may contain one
+  or several Gaussian components.
+
+For a component-level comparison with a PyBDSF Gaussian catalogue, compare
+`catalogue.gaussian_components`, not `catalogue.sources`. Plotting one marker
+per associated source can otherwise make a correctly detected multi-peak
+island look as though components are missing. The two deblend disposition
+counts expose how many retained parents were split and how many exceeded the
+bounded deblending envelope.
 
 ## Choose compact-only output explicitly
 

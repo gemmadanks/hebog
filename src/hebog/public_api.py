@@ -63,13 +63,14 @@ _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
 _COMPOSITION_NAME = (
-    "phase-5-configurable-source-owned-measurement-and-topology-v4"
+    "phase-5-configurable-deblended-component-and-source-topology-v5"
 )
 _PROFILE_RESOURCE = "phase_5_continuum_review.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 _SCIENTIFIC_MODULES = (
     "hebog.algorithms.astrometry",
     "hebog.algorithms.background",
+    "hebog.algorithms.component_topology",
     "hebog.algorithms.detection",
     "hebog.algorithms.extended_measurement",
     "hebog.algorithms.labelling",
@@ -596,6 +597,16 @@ def _materialize_bundle(  # noqa: PLR0913
         source_count=len(catalogue.sources),
         gaussian_component_count=len(catalogue.gaussian_components),
         island_count=len(catalogue.islands),
+        deblended_parent_count=(
+            products.terminal.deblended_parent_count
+            if products.terminal is not None
+            else 0
+        ),
+        deferred_deblend_parent_count=(
+            products.terminal.deferred_deblend_parent_count
+            if products.terminal is not None
+            else 0
+        ),
         rms_scientific_status=cast(Any, rms_status),
         provenance=PublicSourceFindingProvenance(
             input_sha256=input_sha256,

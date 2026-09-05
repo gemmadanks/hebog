@@ -163,7 +163,7 @@ def test_completed_lane_fails_closed_without_touching_a_new_namespace(
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
 
-    with pytest.raises(ValueError, match="combined fixture changed"):
+    with pytest.raises(ValueError, match="combined source tree changed"):
         runner["verify_no_write"](
             repository_root=_ROOT,
             manifest_path=_MANIFEST,

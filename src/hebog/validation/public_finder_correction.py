@@ -111,6 +111,8 @@ class PublicFinderCorrectionContinuumProducts:
     valid_pixels: npt.NDArray[np.bool_]
     component_catalogue: tuple[CatalogueSource, ...]
     source_association: SourceAssociationResult
+    deblended_parent_count: int = 0
+    deferred_deblend_parent_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
