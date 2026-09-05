@@ -92,6 +92,38 @@ def test_single_peak_preserves_one_component_and_canonicalizes_identity() -> (
     assert set(np.unique(result.measurement_component_labels)) == {0, 1}
 
 
+@pytest.mark.parametrize("peak_signal_to_noise", [4.0, 5.0])
+def test_parent_without_eligible_deblend_peak_remains_one_component(
+    peak_signal_to_noise: float,
+) -> None:
+    """A retained parent need not satisfy the stricter deblend seed gate."""
+    normalized = np.zeros((7, 7), dtype=np.float64)
+    normalized[2:5, 2:5] = peak_signal_to_noise
+    direct = np.zeros(normalized.shape, dtype=np.int32)
+    direct[2:5, 2:5] = 19
+    measurement = np.zeros(normalized.shape, dtype=np.int32)
+    measurement[1:6, 1:6] = 19
+
+    result = deblend_component_topology(
+        normalized,
+        direct,
+        measurement,
+        np.ones(normalized.shape, dtype=np.bool_),
+        _config(),
+    )
+
+    assert result.deblended_parent_count == 0
+    assert result.deferred_parent_count == 0
+    np.testing.assert_array_equal(
+        result.direct_component_labels,
+        np.where(direct > 0, 1, 0),
+    )
+    np.testing.assert_array_equal(
+        result.measurement_component_labels,
+        np.where(measurement > 0, 1, 0),
+    )
+
+
 def test_empty_topology_returns_read_only_empty_planes() -> None:
     """An empty image remains an explicit zero-component result."""
     empty = np.zeros((3, 4), dtype=np.int32)

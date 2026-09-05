@@ -123,6 +123,13 @@ the reviewed compact member or bounds limit remain one retained component and
 are counted as `deferred_deblend_parent_count` in public diagnostics; they are
 never dropped or silently presented as successfully deblended.
 
+A retained public parent can also be admitted by multiscale support without
+containing a direct-residual peak above the stricter deblending seed threshold.
+That parent remains one component with its direct and measurement support
+unchanged. This conservative public fallback does not alter the Phase 3
+compact kernel's fail-closed no-marker contract and cannot manufacture a
+split without an eligible peak.
+
 A boolean source-filtering-mask window may contain another disconnected
 island whose bounds overlap or nest inside the requested island. The compact
 stage therefore relabels that bounded window with eight-connectivity and

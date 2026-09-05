@@ -173,6 +173,18 @@ def _assign_parent_measurement_support(
     return assigned
 
 
+def _retain_single_parent_component(
+    direct_output: npt.NDArray[np.int32],
+    measurement_output: npt.NDArray[np.int32],
+    direct_membership: npt.NDArray[np.bool_],
+    measurement_membership: npt.NDArray[np.bool_],
+    component_label: int,
+) -> None:
+    """Publish one admitted parent unchanged as one component."""
+    direct_output[direct_membership] = component_label
+    measurement_output[measurement_membership] = component_label
+
+
 def deblend_component_topology(
     normalized_residual: npt.ArrayLike,
     direct_component_labels: npt.ArrayLike,
@@ -217,10 +229,13 @@ def deblend_component_topology(
             direct_pixels > config.maximum_compact_island_pixels
             or bounds_pixels > config.maximum_compact_bounds_pixels
         ):
-            direct_output = output_direct[slices]
-            direct_output[local_direct] = next_label
-            measurement_output = output_measurement[measurement_slices]
-            measurement_output[local_measurement] = next_label
+            _retain_single_parent_component(
+                output_direct[slices],
+                output_measurement[measurement_slices],
+                local_direct,
+                local_measurement,
+                next_label,
+            )
             next_label += 1
             deferred_parent_count += 1
             continue
@@ -229,6 +244,19 @@ def deblend_component_topology(
             np.argmax(np.where(local_direct, local_normalized, -np.inf))
         )
         peak_local = np.unravel_index(peak_linear, local_direct.shape)
+        if (
+            float(local_normalized[peak_local])
+            <= config.minimum_peak_signal_to_noise
+        ):
+            _retain_single_parent_component(
+                output_direct[slices],
+                output_measurement[measurement_slices],
+                local_direct,
+                local_measurement,
+                next_label,
+            )
+            next_label += 1
+            continue
         result = deblend_compact_island(
             CompactIslandPixels(
                 island=DetectedIsland(
