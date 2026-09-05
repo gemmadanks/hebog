@@ -15616,3 +15616,31 @@ cumulative dual-PyBDSF replay only if its atomic terminal decision passes.
 non-executable lane identity and one-use decision, pass the complete no-write
 preflight, and rerun the 144-input fast lane. Start no cumulative replay until
 that terminal result passes.
+
+## 2026-09-05 — Freeze the support-linkage successor lane
+
+**Plan phase:** Phase 5 final qualification design
+
+- Committed the validation-only support-intersection correction as candidate
+  `2e25cdf8...`, source tree `3da083b0...`, with unchanged scientific
+  configuration `2c907949...`. The source-tree change is confined to the
+  validation helper; the frozen public record explicitly states that
+  source-finding science is unchanged.
+- Added a separate freezer built on the established fail-closed record
+  mechanics. A focused test caught and corrected its initial `runpy` namespace
+  retargeting error before any repository identity was written. The successor
+  now binds failed predecessor identity `d74d0fba...` and root-cause review
+  `07a73bfd...` without altering either.
+- Froze public identity `48a57449...`, implementation decision `10a43ed2...`,
+  non-executable lane identity `cf59dd82...`, expected execution
+  `40a07169...`, and separate one-use decision `17a6c01...` under the user's
+  standing repaired-lane authority. Scratch and atomic output use fresh
+  source-support-linkage names.
+- The complete no-write preflight passes 144 candidate, 144 coarse-control,
+  and 12 caller-owned-Dask slots; exact candidate/source/configuration,
+  program and fixture bindings; support-overlap fixture seam `474471d2...`;
+  and a real spawned-process payload. It created no scratch or output.
+
+**Immediate next step:** validate and commit the frozen tooling, reproduce the
+preflight from an immutable checkout, then run exactly one two-worker fast lane.
+Open no cumulative replay unless its atomic terminal decision passes.

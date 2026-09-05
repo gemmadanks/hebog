@@ -1865,6 +1865,15 @@ from partial or viewed evidence.
      Hebog source-finding science. Only a passing corrected lane may open the
      cumulative dual-PyBDSF replay, and only a passing cumulative replay may
      open the seed-disjoint held-out qualification.
+   - The corrected support-linkage successor is frozen at candidate
+     `2e25cdf...`, source tree `3da083b0...`, unchanged configuration
+     `2c907949...`, public identity `48a57449...`, implementation
+     `10a43ed2...`, lane identity `cf59dd82...`, expected execution
+     `40a07169...`, and one-use decision `17a6c01...`. Its complete no-write
+     preflight verifies all 144 candidate and control inputs, 12 existing-Dask
+     slots, the exact source-support linkage seam, and a spawned-process
+     payload without creating scratch or output. Run this fast lane before
+     preparing any cumulative replay identity.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

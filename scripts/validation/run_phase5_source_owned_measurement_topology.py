@@ -66,33 +66,34 @@ from hebog.validation.external_runners import (
 )
 
 _ROOT_REVIEW = Path(
-    "config/contracts/phase-5-source-owned-lane-terminal-root-cause-review.json"
+    "config/contracts/phase-5-source-owned-footprint-guard-lane-"
+    "root-cause-review.json"
 )
 _ROOT_REVIEW_SHA256 = (
-    "2c9495f310b3ab21cb5a49adb2fa2a04e93e71e09046bfc2362ca73dd35a33fa"
+    "07a73bfd07f483624ec017b739ec6d0222a57a18a9f4b729640e626da0c648bf"
 )
 _PREDECESSOR_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "analysis-config-repair-identity-review.json"
+    "footprint-guard-identity-review.json"
 )
 _PREDECESSOR_IDENTITY_SHA256 = (
-    "3e0730df83b1973af9455bb3be97f3194a76b2cfad9dcdf75e44eb4c4fd60570"
+    "d74d0fba79c689f6d3b1e857fd900c14d8c4138a22cbf31fe9ac29e9594486b8"
 )
 _PUBLIC_IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "footprint-guard-public-interface-identity-review.json"
+    "source-support-linkage-public-interface-identity-review.json"
 )
 _IMPLEMENTATION = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "footprint-guard-implementation-decision.json"
+    "source-support-linkage-implementation-decision.json"
 )
 _IDENTITY = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "footprint-guard-identity-review.json"
+    "source-support-linkage-identity-review.json"
 )
 _EXECUTION_DECISION = Path(
     "config/contracts/phase-5-source-owned-measurement-topology-"
-    "footprint-guard-execution-decision.json"
+    "source-support-linkage-execution-decision.json"
 )
 _MANIFEST = Path(
     "config/contracts/phase-5-adaptive-background-development-manifest.json"
@@ -105,16 +106,16 @@ _PARENT_RUNNER = Path(
 )
 _SCRATCH = Path(
     "/private/tmp/hebog-phase5-source-owned-measurement-topology-"
-    "footprint-guard-4fb2f48"
+    "source-support-linkage-2e25cdf"
 )
 _OUTPUT = Path(
     "benchmark-results/phase-5/"
-    "source-owned-measurement-topology-footprint-guard-"
+    "source-owned-measurement-topology-source-support-linkage-"
     "development-decision.json"
 )
-_CANDIDATE_REVISION = "4fb2f483bc54292e869ef744d4a473434c18f4ac"
+_CANDIDATE_REVISION = "2e25cdf8bb0fbd739bba330ff20d9f798f95bf44"
 _CANDIDATE_SOURCE_TREE_SHA256 = (
-    "1275580e38aa320b65a4f71cfee2ebb07d231fccb8633565d39f0713d0e791b6"
+    "3da083b0a720fe0104fa51e135f224a2456b49bd49d85cd6a449fccb93805e8a"
 )
 _CANDIDATE_CONFIGURATION_SHA256 = (
     "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
@@ -130,7 +131,8 @@ _PROGRAM_BINDING_PATHS = {
     "detection_stage": "src/hebog/stages/detection.py",
     "freezer": (
         "scripts/validation/"
-        "freeze_phase5_source_owned_measurement_topology_footprint_guard.py"
+        "freeze_phase5_source_owned_measurement_topology_source_support_"
+        "linkage.py"
     ),
     "lane_evaluator": "src/hebog/validation/adaptive_background_lane.py",
     "measurement_algorithm": "src/hebog/algorithms/extended_measurement.py",
@@ -885,11 +887,11 @@ def _verify_public_identity(
                 raise ValueError("combined public source changed")
 
 
-def _verify_footprint_guard_identity(
+def _verify_source_support_linkage_identity(
     repository_root: Path,
     identity: dict[str, Any],
 ) -> None:
-    """Verify the prospective guard successor and its terminal predecessor."""
+    """Verify the support-linkage successor and terminal predecessor."""
     authorization = _object_field(
         identity,
         "authorization",
@@ -921,14 +923,14 @@ def _verify_footprint_guard_identity(
         raise ValueError("combined predecessor identity changed")
     correction = _object_field(
         identity,
-        "footprint_guard_correction",
-        label="combined footprint guard correction",
+        "source_support_linkage_repair",
+        label="combined source support linkage repair",
     )
     if correction.get("root_cause_review") != {
         "path": str(_ROOT_REVIEW),
         "sha256": _ROOT_REVIEW_SHA256,
     }:
-        raise ValueError("combined footprint-guard review binding changed")
+        raise ValueError("combined source-support review binding changed")
 
 
 def _verify_frozen_identity(
@@ -939,7 +941,7 @@ def _verify_frozen_identity(
     """Verify candidate, programs, population, runtime, and no authority."""
     if file_sha256(repository_root / _ROOT_REVIEW) != _ROOT_REVIEW_SHA256:
         raise ValueError("combined root-cause review identity changed")
-    _verify_footprint_guard_identity(repository_root, identity)
+    _verify_source_support_linkage_identity(repository_root, identity)
     if source_tree_sha256(repository_root) != _CANDIDATE_SOURCE_TREE_SHA256:
         raise ValueError("combined source tree changed")
     _verify_public_identity(repository_root, identity)
@@ -993,11 +995,20 @@ def _verify_fixture_seams() -> str:
         publication_support=np.asarray(seeds > 0),
         hierarchy_diagnostics=None,
     )
+    truth = np.asarray([[True, False, False, False]])
+    topology = truth_linked_source_support_topology(
+        ("source-a", "source-b"),
+        seeds,
+        {1: "source-a", 2: "source-b"},
+        truth,
+    )
     if (
         groups != (parent,)
         or evidence.accepted_parent_count != 1
         or evidence.missing_child_resilience_parent_count != 1
         or attribution["source_unowned_persistent_pixel_count"] != 0
+        or topology.truth_linked_source_indices != (0,)
+        or topology.unmatched_source_indices != (1,)
     ):
         raise ValueError("combined fixture seam verification failed")
     return canonical_sha256(
@@ -1006,6 +1017,10 @@ def _verify_fixture_seams() -> str:
             "measurement_labels": measurement.tolist(),
             "owned_labels": owned.tolist(),
             "parent": sorted(parent),
+            "truth_linked_source_indices": (
+                topology.truth_linked_source_indices
+            ),
+            "unmatched_source_indices": topology.unmatched_source_indices,
         }
     )
 

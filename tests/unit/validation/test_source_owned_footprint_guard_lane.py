@@ -32,6 +32,11 @@ _FREEZER = (
     _ROOT / "scripts/validation/"
     "freeze_phase5_source_owned_measurement_topology_footprint_guard.py"
 )
+_SUCCESSOR_FREEZER = (
+    _ROOT / "scripts/validation/"
+    "freeze_phase5_source_owned_measurement_topology_source_support_"
+    "linkage.py"
+)
 _ROOT_CAUSE_REVIEW = (
     _ROOT / "config/contracts/"
     "phase-5-source-owned-footprint-guard-lane-root-cause-review.json"
@@ -520,3 +525,65 @@ def test_historical_freezer_rejects_changed_scientific_source_tree(
     ):
         freezer["freeze_records"](arguments)
     assert not tuple(tmp_path.rglob("*.json"))
+
+
+def test_successor_freezer_separates_identity_from_one_use_authority() -> None:
+    """The repaired evaluator remains non-executable without its decision."""
+    freezer = runpy.run_path(str(_SUCCESSOR_FREEZER))
+    programs, fixtures, expected = freezer["_runner_records"](_ROOT)
+    public = freezer["build_public_identity"](_ROOT)
+    implementation = freezer["build_implementation"](
+        _ROOT, public, programs, fixtures
+    )
+    identity = freezer["build_identity"](
+        _ROOT, public, implementation, expected
+    )
+    decision = freezer["build_execution_decision"](_ROOT, identity, expected)
+
+    assert public["source_support_linkage_repair"] == {
+        "linkage": "exact-source-owned-support-intersects-analytic-truth",
+        "root_cause_review": {
+            "path": str(freezer["_ROOT_REVIEW"]),
+            "sha256": freezer["_ROOT_REVIEW_SHA256"],
+        },
+        "source_finding_science_changed": False,
+        "unmatched_reliability_retained": True,
+    }
+    assert identity["status"] == "frozen-non-executable"
+    assert set(identity["authorization"].values()) == {False}
+    assert identity["predecessor_identity"]["sha256"] == (
+        "d74d0fba79c689f6d3b1e857fd900c14d8c4138a22cbf31fe9ac29e9594486b8"
+    )
+    assert decision["identity_review_sha256"] == freezer["_document_sha256"](
+        identity
+    )
+    assert set(decision["authorization"].values()) == {False, True}
+    assert decision["output"] == expected["output"]
+
+
+def test_successor_freezer_writes_complete_set_once(tmp_path: Path) -> None:
+    """A collision blocks the fresh four-record set before any rewrite."""
+    freezer = runpy.run_path(str(_SUCCESSOR_FREEZER))
+    arguments = argparse.Namespace(
+        repository_root=_ROOT,
+        output_root=tmp_path,
+    )
+
+    freezer["freeze_records"](arguments)
+    relative_paths = (
+        freezer["_PUBLIC_IDENTITY"],
+        freezer["_IMPLEMENTATION"],
+        freezer["_IDENTITY"],
+        freezer["_EXECUTION_DECISION"],
+    )
+    before = {path: (tmp_path / path).read_bytes() for path in relative_paths}
+
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        freezer["freeze_records"](arguments)
+
+    assert before == {
+        path: (tmp_path / path).read_bytes() for path in relative_paths
+    }
+    assert all(
+        isinstance(json.loads(payload), dict) for payload in before.values()
+    )

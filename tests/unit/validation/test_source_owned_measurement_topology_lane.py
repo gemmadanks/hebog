@@ -505,7 +505,7 @@ def test_no_write_rejects_source_tree_drift(monkeypatch: Any) -> None:
         "path": str(runner["_PREDECESSOR_IDENTITY"]),
         "sha256": runner["_PREDECESSOR_IDENTITY_SHA256"],
     }
-    identity["footprint_guard_correction"] = {
+    identity["source_support_linkage_repair"] = {
         "root_cause_review": {
             "path": str(runner["_ROOT_REVIEW"]),
             "sha256": runner["_ROOT_REVIEW_SHA256"],
