@@ -1,0 +1,126 @@
+{
+  "current_authorization": {
+    "candidate_execution_authorized": false,
+    "coarse_control_execution_authorized": false,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": false,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "decision_id": "phase-5-source-support-linkage-replication-implementation-decision",
+  "exact_user_authority": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns.",
+  "fixture_bindings": {
+    "adaptive_lane": {
+      "path": "tests/unit/validation/test_adaptive_background_lane.py",
+      "sha256": "0eec0b564aba423d7b9f9f537ac406df36cb9c64538b7215b459ded48b20c8b6"
+    },
+    "combined_lane": {
+      "path": "tests/unit/validation/test_source_owned_measurement_topology_lane.py",
+      "sha256": "63f2d8543ddb73e3b1d3900e2ddabd114db8507912d23616d34ec230507058a5"
+    },
+    "executor_invariance": {
+      "path": "tests/integration/test_public_finder_correction_execution.py",
+      "sha256": "d3238341d514b61c25e1106e41fc5b881a9ba26ec7ad028e7713367ca17661a2"
+    },
+    "footprint_guard_lane": {
+      "path": "tests/unit/validation/test_source_owned_footprint_guard_lane.py",
+      "sha256": "9a3d6e0c78a1bfd3da3b1c1a65c3f1ca2af2a86a23bd3db61710f0bdd4ec9d77"
+    },
+    "replication_lane": {
+      "path": "tests/unit/validation/test_source_support_linkage_replication_lane.py",
+      "sha256": "12f40d895a9d4cf5752736f4ade77c7dff72d7ffade894f1b8ed7554c923ca40"
+    },
+    "terminal_review": {
+      "path": "tests/unit/validation/test_source_support_linkage_terminal_review.py",
+      "sha256": "b97df3a77318cdfe0c25c69f883b6ddf01100234f73d3aced799193ffadcfcbb"
+    }
+  },
+  "fixture_evidence": {
+    "complete_non_slow_tests_passed": 2750,
+    "focused_tests_passed": 69,
+    "project_branch_coverage_percent": 94.8,
+    "test_first_regression_confirmed": true
+  },
+  "implemented_contracts": [
+    "fresh replication uses 144 seeds disjoint from viewed development and frozen qualification populations",
+    "truth linkage requires the existing seven-pixel public minimum-island support inside analytic truth",
+    "paired retention binds to each four-seed trigger-cell median without pooling geometries or cohorts",
+    "maximum single-image movements remain visible non-binding tail sentinels",
+    "all final per-geometry released-PyBDSF, pinned-master-PyBDSF, and incumbent gates remain unchanged"
+  ],
+  "program_bindings": {
+    "attribution": {
+      "path": "src/hebog/validation/adaptive_background_diagnostics.py",
+      "sha256": "139a99ce3cd1b9c468a266320e9b6081eea716dcaf26d4b2a8ec47f0dce181d1"
+    },
+    "background_algorithm": {
+      "path": "src/hebog/algorithms/background.py",
+      "sha256": "59f405ae0d00848b61f85d23dac93dee7b65d1443763b664ad8efbc0aa34cdd3"
+    },
+    "background_stage": {
+      "path": "src/hebog/stages/background.py",
+      "sha256": "e595b2884017d623e5abbcd36408fde630d5c44eb33a4f73dede97c0b9a185e3"
+    },
+    "base_runner": {
+      "path": "scripts/validation/run_phase5_source_owned_measurement_topology.py",
+      "sha256": "1f2aa0ab0d37f5ac1d957f9d90ef1e759ac10b5888e6cc5ac5c26398edafa011"
+    },
+    "detection_stage": {
+      "path": "src/hebog/stages/detection.py",
+      "sha256": "3088160f9df4b3f508de09c56b89b15671ca4fab5949c8a1df5479b08005dd67"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_source_support_linkage_replication.py",
+      "sha256": "ef4ccd04e927203c88506414bd82110d679ea11b0156446af9257b36ccdda40e"
+    },
+    "lane_design": {
+      "path": "src/hebog/validation/adaptive_background_development.py",
+      "sha256": "e1fa35d1ff299bc535b4989b0be6df4162914413ff5af51b64ec0f63bbedf038"
+    },
+    "lane_evaluator": {
+      "path": "src/hebog/validation/adaptive_background_lane.py",
+      "sha256": "7780714b02d66231ab359259ca794ef5ec49e416b7f95c6e24060b1f593b9bcc"
+    },
+    "measurement_algorithm": {
+      "path": "src/hebog/algorithms/extended_measurement.py",
+      "sha256": "f6f12a91931bc5f213ef757c50032407ef87da53ca53383f11c7dc22227d74ed"
+    },
+    "measurement_composition": {
+      "path": "src/hebog/validation/products.py",
+      "sha256": "c5f64f35a6d7a72a3256d075e20b621081938ea7fa97525e1b887a74d4374fe7"
+    },
+    "parent_runner": {
+      "path": "scripts/validation/run_phase5_adaptive_background_development.py",
+      "sha256": "d7b4b728622b6455ff8aafe523a52c9efb6a58a3f97a3157cc6fc2ed49423df6"
+    },
+    "runner": {
+      "path": "scripts/validation/run_phase5_source_support_linkage_replication.py",
+      "sha256": "98d9a2f477375afa21ead4a0971cc8cfe6e77b72fe7d3c734e1d88a98b6f9f9a"
+    },
+    "source_association": {
+      "path": "src/hebog/algorithms/source_association.py",
+      "sha256": "7544237bffe866d547965f01d0a7cc2c5a852335d29b03d6284ce35e165349d6"
+    },
+    "source_association_model": {
+      "path": "src/hebog/data_models/source_association.py",
+      "sha256": "05045968e83c7df83452f58038ca6ba702123c0f613f5a862e8d678b168f52e2"
+    }
+  },
+  "public_identity": {
+    "path": "config/contracts/phase-5-source-support-linkage-replication-public-interface-identity-review.json",
+    "sha256": "7b6fd62327ba72f66189020fbca6535ecb853c24006aae460b0e67137034d3cd"
+  },
+  "root_cause_review": {
+    "path": "config/contracts/phase-5-source-owned-source-support-linkage-terminal-root-cause-review.json",
+    "sha256": "25f6bf0f0f1a41964ba59e7030579d13487c633cbd09ba5948dad3b6e5915462"
+  },
+  "schema_version": 1,
+  "status": "implemented-and-fixture-validated-non-executable"
+}

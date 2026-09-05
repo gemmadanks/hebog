@@ -1522,6 +1522,18 @@ remain visible tail sentinels, all margins remain unchanged, and final
 per-geometry released/master PyBDSF and incumbent comparisons remain strict.
 No Hebog source-finding algorithm changes in this repair.
 
+The seed-disjoint replication was prepared with two additional fail-closed
+checks. Both found wrapper-only defects before scratch creation or candidate
+execution: first, a nested `runpy` worker could not be imported by a spawned
+process; second, the overlay omitted its new process-review binding. Both
+failed identities remain immutable. The repaired wrapper now passes an actual
+candidate/control process smoke on an already-viewed seed and a complete
+no-write preflight for all 144 candidate, 144 control, and 12 existing-Dask
+slots. A final freezer-only Ruff formatting change was rebound before execution
+to validation-clean identity `6289b9ce...` and decision `8cd60e66...`. This is
+process evidence only; the fresh replication result is still required before
+any cumulative replay.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

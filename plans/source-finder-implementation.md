@@ -1906,9 +1906,23 @@ from partial or viewed evidence.
      retention separately to each four-seed trigger-cell paired median, and
      retains maximum per-image movements as non-binding tail diagnostics. The
      existing numeric margins and the final every-geometry released/master
-     PyBDSF plus incumbent gates are unchanged. Implement and freeze this
-     replication, pass one already-viewed process smoke and complete no-write
-     preflight, then run it before preparing cumulative replay identities.
+     PyBDSF plus incumbent gates are unchanged.
+   - The replication is implemented against source-finding candidate
+     `0b9e132...`, source tree `11307db0...`, and unchanged configuration
+     `2c907949...`; manifest `8d539477...` contains the exact fresh seed block.
+     Pre-execution validation caught two overlay defects before scratch or
+     science: an unpicklable nested-`runpy` worker and an omitted process-review
+     binding. Reviews `7f80bf53...` and `d8163967...` preserve both failed
+     identities. The binding-complete identity `25fbd5c3...` and decision
+     `44cdea3d...` were then superseded without execution when final Ruff
+     formatting changed only the freezer-program digest. Validation-clean
+     implementation `f33f00e8...`, identity `6289b9ce...`, and decision
+     `8cd60e66...` bind the same candidate, population, science, gates, and a
+     fresh scratch. The already-viewed one-case candidate/control smoke passes
+     attribution schema 3, and the exact CLI no-write preflight passes all
+     144/144/12 slots plus a real spawned worker. Run this fast replication
+     now; prepare no cumulative replay identity unless its atomic decision
+     passes.
 
 6. [ ] **Confirm final engineering evidence.**
    - Re-run source-association Serial/existing-Dask invariance and the affected

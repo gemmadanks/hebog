@@ -1,0 +1,50 @@
+{
+  "authorization": {
+    "candidate_execution_authorized": true,
+    "coarse_control_execution_authorized": true,
+    "cutover_authorized": false,
+    "development_lane_execution_authorized": true,
+    "fresh_qualification_authorized": false,
+    "optimization_authorized": false,
+    "pybdsf_execution_authorized": false,
+    "release_authorized": false,
+    "replay_authorized": false,
+    "rescoring_authorized": false,
+    "source_finding_change_authorized": false,
+    "threshold_or_margin_tuning_authorized": false,
+    "viewed_data_execution_authorized": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-05",
+    "statement": "I approve running the repaired development lane, the planned replay and final campaign required to verify and demonstrate scientific quality and pybdsf parity to close phase 5 as well as any bug fixes that are needed for this. Monitor long-running tasks hourly but prefer faster iterations where possible for catching and fixing bugs before starting longer replays and campaigns."
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "entrypoint": "hebog.find_sources",
+    "revision": "0b9e13299f3fbbd42af0dea4f70155a802a8441d",
+    "source_tree_sha256": "11307db0059739d473288dd2ed647970cce43b69e874632e1d1f14ee0ed032df"
+  },
+  "decision_id": "phase-5-source-support-linkage-replication-execution-decision",
+  "downstream_authority": {
+    "sequence": [
+      "cumulative dual-PyBDSF replay",
+      "fresh held-out dual-PyBDSF qualification"
+    ],
+    "status": "approved-in-principle-pending-passing-fast-lane-and-frozen-exact-identities"
+  },
+  "expected_execution_sha256": "43030f289a50b593f678969cae7cf13377352227af7244f002270fb0391d41ee",
+  "identity_review": {
+    "path": "config/contracts/phase-5-source-support-linkage-replication-identity-review.json",
+    "sha256": "ecbbeb7c9a99a1367e6680a8188714000a57b145643fef9c9486b657d0813603"
+  },
+  "identity_review_sha256": "ecbbeb7c9a99a1367e6680a8188714000a57b145643fef9c9486b657d0813603",
+  "output": "benchmark-results/phase-5/source-support-linkage-replication-development-decision.json",
+  "root_cause_review": {
+    "path": "config/contracts/phase-5-source-owned-source-support-linkage-terminal-root-cause-review.json",
+    "sha256": "25f6bf0f0f1a41964ba59e7030579d13487c633cbd09ba5948dad3b6e5915462"
+  },
+  "schema_version": 1,
+  "status": "authorized-for-one-development-lane",
+  "workers": 2,
+  "wrapper_sha256": "98d9a2f477375afa21ead4a0971cc8cfe6e77b72fe7d3c734e1d88a98b6f9f9a"
+}

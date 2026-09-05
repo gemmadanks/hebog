@@ -15737,3 +15737,41 @@ no cumulative replay unless its terminal atomic decision passes.
 **Immediate next step:** commit the non-executable review and evaluator,
 implement and process-smoke the fresh-seed runner, then freeze its exact
 manifest and one-use identity before running the 144-image replication.
+
+## 2026-09-05 — Preflight the seed-disjoint support-linkage replication
+
+**Plan phase:** Phase 5 final qualification design
+
+- Committed the prospective root-cause correction as `0b9e132`; the exact
+  source-finding configuration stays `2c907949...` and no algorithm module
+  changed. Built fresh manifest `8d539477...` over seeds
+  `2026952001`-`2026952144` and a thin overlay on the proven 144/144/12 lane.
+- The first real spawned-process no-write preflight failed before scratch or
+  candidate execution because nested `runpy` gave the submitted callable the
+  unimportable module name `<run_path>`. Review `7f80bf53...` records the
+  process-only cause. Importing the base runner through its stable module name
+  corrected that boundary.
+- The next identity-bound preflight failed even earlier because the overlay
+  had not retargeted the process-review path and digest alongside its other
+  globals. Review `d8163967...` records that provenance-only omission. The
+  atomic overlay now includes both fields; neither failure created a scratch or
+  scientific result, and both failed identities remain immutable.
+- Binding-complete identity `25fbd5c3...` and decision `44cdea3d...` were
+  superseded without execution when final Ruff formatting changed only the
+  freezer-program digest. Validation-clean implementation `f33f00e8...`,
+  non-executable identity `6289b9ce...`, and one-use decision `8cd60e66...`
+  preserve candidate `0b9e132...`, source tree `11307db0...`, configuration
+  `2c907949...`, all seeds, metrics, margins, and final comparator gates. A real
+  candidate/control smoke on already-viewed seed `2026950001` passed
+  attribution schema 3. The exact CLI no-write preflight passes 144 candidate,
+  144 control, and 12 caller-owned-Dask slots plus a spawned worker without
+  creating the governed scratch or output.
+- Final validation passes 2,755 non-slow tests with 44 deselected and two
+  expected failures at 94.81% branch-aware coverage; the normal handoff lane
+  passes 2,574 tests with 225 deselected and two expected failures. All 27
+  frozen equivalence tests, strict documentation, Ruff, and Pyright pass.
+
+**Immediate next step:** validate and commit the exact replication tooling,
+repeat the no-write preflight from an immutable checkout, then execute the
+single two-worker fast lane. Freeze cumulative replay identities only if its
+atomic terminal result passes.
