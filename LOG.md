@@ -15897,3 +15897,35 @@ two-worker 2,400-product candidate run and monitor it hourly.
 then compile the strict reusable-product evaluation. If it passes, execute the
 authoritative five-step closeout checklist without changing the qualified
 candidate.
+
+## 2026-09-05 — Seal the final cumulative products and preflight evaluation
+
+**Plan phase:** Phase 5 closeout
+
+- The exact two-worker final cumulative candidate stage completed all 2,400
+  products for candidate `0b9e132...`, source tree `11307db0...`, and
+  configuration `2c907949...`. Atomic seal
+  `final-cumulative-current-product-set.json` records product-set SHA-256
+  `195a5a36...`; no candidate, incumbent, or PyBDSF rerun is needed for the
+  evaluation.
+- Added a minimal evaluation overlay that changes only the sealed current
+  candidate identity while retaining the reviewed source-union topology
+  evaluator. Its completion wrapper first requires the exact product seal,
+  completely rehashes both 2,400-product sets and all 9,600 retained reference
+  runs, and then invokes only the evaluator.
+- The bounded terminal smoke compiles all 1,187 governed comparisons from the
+  historical terminal fixture: 143 Aegean parity, 368 incumbent retention,
+  676 dual-PyBDSF parity, five binding safety, and 15 report-only objectives.
+  Every comparison passes, both readiness flags are true, all four finder
+  summaries reach the repaired tail, atomic publication succeeds, and a
+  second publication is refused. The frozen program, fixture, product,
+  authority, and terminal-smoke bindings also validate end to end.
+- Froze separated non-executable implementation/identity records and a one-use
+  evaluation-only decision. They authorize zero candidate, incumbent,
+  reference, or PyBDSF executions and one write-once terminal decision. No
+  `src/hebog/` file changed while notebook results were being refreshed.
+
+**Immediate next step:** commit the hook-clean evaluation-only completion,
+attach the ignored evidence to an immutable checkout, rerun the bounded smoke
+there, and start the single complete rehash plus cumulative evaluation. Treat
+any scientific failure as terminal evidence and do not tune or rescore it.

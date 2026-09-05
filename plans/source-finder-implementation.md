@@ -541,11 +541,14 @@ combined products, bounded execution, compact regression, the public
 scientific interface, and the incremental performance budget are complete.
 The seed-disjoint 144-image repair replication passed all 12 binding geometry
 groups, its trigger seam, and Serial/existing-Dask invariance. Candidate
-`0b9e132...` is now materializing the exact 800-compact/1,600-Continuum
-cumulative product set. If the subsequent strict cumulative evaluation passes,
-follow only the short closeout checklist below. Detailed campaign and incident
-chronology belongs in `LOG.md` and the campaign overview; machine identities
-and authorization boundaries remain in `config/contracts/`.
+`0b9e132...` has sealed the exact 800-compact/1,600-Continuum cumulative
+product set as `195a5a36...`. Its evaluation-only completion reuses the
+authentic incumbent and all retained PyBDSF products; the bounded terminal
+smoke passes all 1,187 governed comparisons and the exact write-once
+publication path. If the strict cumulative evaluation passes, follow only the
+short closeout checklist below. Detailed campaign and incident chronology
+belongs in `LOG.md` and the campaign overview; machine identities and
+authorization boundaries remain in `config/contracts/`.
 
 #### Phase 5 exit gates
 
@@ -554,7 +557,7 @@ and authorization boundaries remain in `config/contracts/`.
 | Known scientific risks | Every confirmed adaptive-background, measurement, association, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | The prospective repair chain is complete. The remaining broad sub-threshold halo limitation is explicit and must pass cumulative and held-out dual-PyBDSF parity before any future photometric improvement work. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, truth-linked fragmentation, negative controls, and Serial/existing-Dask invariance. | Passed: terminal decision `0978d4a3...` records 144/144 inputs, 12/12 binding geometry groups, the trigger seam, and exact executor invariance. Two mixed-source absolute improvement objectives remain non-binding follow-up targets. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Candidate `0b9e132...`, source tree `11307db0...`, and configuration `2c907949...` are frozen; final installed-wheel confirmation remains part of engineering closeout. |
-| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | Active: the sealed current product stage is running. Evaluation must reuse the authentic incumbent and retained PyBDSF products without rerunning them. |
+| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | Active: all 2,400 current products are sealed; the evaluation-only completion is frozen and its terminal smoke passes. It must reuse the authentic incumbent and retained PyBDSF products without rerunning them. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
