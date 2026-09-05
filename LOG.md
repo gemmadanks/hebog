@@ -15858,3 +15858,42 @@ and disk budget pass; monitor it hourly.
 candidate stage, run its one exact complete no-write preflight from the
 immutable checkout, verify safe disk headroom, then start the single
 two-worker 2,400-product candidate run and monitor it hourly.
+
+## 2026-09-05 — Clarify the Phase 5 closeout and provenance policy
+
+**Plan phase:** Phase 5 closeout
+
+- Replaced stale blocker language with the active candidate `0b9e132...` and
+  its passing 144-image, 12-geometry seed-disjoint replication. Added the
+  active cumulative parity-and-retention gate explicitly.
+- Added one authoritative five-step closeout checklist: accept the cumulative
+  decision, resolve the production-source audit before qualifying the same
+  candidate on fresh held-out evidence, confirm the installed public and
+  engineering contract, remove only obsolete historical tooling without
+  changing qualified source, and finalize documentation plus independent
+  scientific readiness.
+- Removed the long incident-driven checklist from the current-work plan,
+  reducing it from about 2,200 to about 870 lines. `LOG.md`, the campaign
+  overview, immutable contracts, and commit `707478c...` retain the history;
+  the plan now contains only a compact evidence pointer.
+- Chose immutable commits and an in-tree provenance index over a separate
+  archival branch. Retain current reproducibility programs, behavioural
+  regression tests, compact contracts, and notebook/readiness decisions;
+  remove only unreferenced one-use wrappers and lifecycle-only tests after
+  recording their last commit, digest, and replacement. Any `src/hebog/`
+  cleanup must occur before qualification and rerun affected gates, or be
+  deferred, because it creates a new candidate identity.
+- Removed Phase 5 version, tag, changelog, artifact, and publication work from
+  the closure definition. Release Please owns the next release.
+- The final pre-commit exposed a lifecycle-invalid bounded no-write test after
+  the authorized replay correctly created its governed scratch. The immutable
+  execution checkout and running process are unchanged. The fixture now uses
+  an isolated temporary namespace while retaining the exact task-shape,
+  identity, process-seam, and no-write assertions. Its freezer contract now
+  also proves that an evolved validation fixture produces a distinct identity
+  and decision while the consumed records remain immutable and write-once.
+
+**Immediate next step:** allow the active cumulative candidate replay to seal,
+then compile the strict reusable-product evaluation. If it passes, execute the
+authoritative five-step closeout checklist without changing the qualified
+candidate.

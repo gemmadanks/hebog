@@ -76,6 +76,7 @@ def test_process_review_proves_the_predecessor_never_executed() -> None:
 
 def test_bounded_no_write_gate_checks_shape_without_real_data(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     """Fast iteration covers all branches without hashing retained data."""
     runner = _runner()
@@ -106,6 +107,10 @@ def test_bounded_no_write_gate_checks_shape_without_real_data(
     def verify_process(_value: tuple[str, str, str]) -> str:
         return "spawn-pass"
 
+    scratch = tmp_path / "candidate"
+    output = tmp_path / "product-set.json"
+    monkeypatch.setattr(base, "_SCRATCH", scratch)
+    monkeypatch.setattr(base, "_OUTPUT", output)
     monkeypatch.setattr(base, "_verify_static_evidence", verify_static)
     monkeypatch.setattr(runner, "_verify_process_review", verify_reviews)
     monkeypatch.setattr(runner, "_verify_identity", verify_identity)
@@ -114,8 +119,8 @@ def test_bounded_no_write_gate_checks_shape_without_real_data(
 
     verification = runner.verify_no_write(
         repository_root=_ROOT,
-        scratch=Path(base._SCRATCH),
-        output=_ROOT / base._OUTPUT,
+        scratch=scratch,
+        output=output,
         enforce_execution_root=False,
         verify_process_pool=True,
     )
@@ -235,10 +240,10 @@ def test_authorized_run_carries_one_verified_plan_into_materialization(
     assert published[0]["candidate_product_set_sha256"] == "sealed-products"
 
 
-def test_freezer_rebuilds_exact_records_and_refuses_collision(
+def test_consumed_freezer_preserves_identity_and_refuses_collision(
     tmp_path: Path,
 ) -> None:
-    """The successor freezer is deterministic and write-once."""
+    """Validation evolution cannot rebind the consumed replay identity."""
     freezer = importlib.import_module(
         "scripts.validation."
         "freeze_phase5_final_cumulative_current_replay_validated_retry"
@@ -246,9 +251,22 @@ def test_freezer_rebuilds_exact_records_and_refuses_collision(
     arguments = argparse.Namespace(repository_root=_ROOT, output_root=tmp_path)
 
     freezer.freeze_records(arguments)
-    for path in (_IMPLEMENTATION, _IDENTITY, _DECISION):
-        relative = path.relative_to(_ROOT)
-        assert _object(tmp_path / relative) == _object(path)
+    generated_implementation = _object(
+        tmp_path / _IMPLEMENTATION.relative_to(_ROOT)
+    )
+    generated_identity = _object(tmp_path / _IDENTITY.relative_to(_ROOT))
+    generated_decision = _object(tmp_path / _DECISION.relative_to(_ROOT))
+
+    assert generated_implementation == _object(_IMPLEMENTATION)
+    assert generated_identity != _object(_IDENTITY)
+    assert generated_decision != _object(_DECISION)
+
+    generated_fixture = generated_identity["fixture_bindings"][
+        "current_replay"
+    ]
+    frozen_fixture = _object(_IDENTITY)["fixture_bindings"]["current_replay"]
+    assert generated_fixture["sha256"] == file_sha256(Path(__file__))
+    assert generated_fixture["sha256"] != frozen_fixture["sha256"]
 
     with pytest.raises(FileExistsError, match="refusing to overwrite"):
         freezer.freeze_records(arguments)
