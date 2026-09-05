@@ -1650,6 +1650,46 @@ it is not reusable evidence. The next permitted notebook attempt must use the
 successor identity, and the governed fast regression lane still precedes any
 cumulative replay.
 
+## Version-8 public owner-domain fast regression
+
+**Terminal date:** 2026-09-05
+
+**Evidence role:** development retention and executor-invariance evidence, not
+cumulative PyBDSF parity or qualification
+
+The version-8 public candidate `95cfc76...`, source tree `8da21e86...`, and
+unchanged configuration `2c907949...` ran from immutable tooling commit
+`ec4be4d...`. The lane reused the previously passed seed-disjoint population
+without changing its 12 geometry groups, four-seed cell-median rules, hard
+truth floors, practical margins, trigger seams, or non-binding tail policy.
+It completed 144 candidate/control pairs and one caller-owned two-worker Dask
+comparison per geometry.
+
+| Check | Terminal result |
+| --- | ---: |
+| Candidate/control pairs | 144 / 144 |
+| Binding geometry groups | 12 / 12 pass |
+| Binding failures | 0 |
+| Serial/existing-Dask comparisons | 12 / 12 identical |
+| Trigger seam | Pass |
+| Groups missing non-binding improvement objectives | 4 |
+
+Every geometry retained the reviewed scientific quality of its paired coarse
+control. Two shell groups missed aspirational split objectives and two mixed
+compact/extended groups missed aspirational absolute flux, mask, or support
+objectives; these remain visible improvement targets and did not cross a
+binding retention gate. The lane therefore closes the immediate regression
+risk for the component-topology, unseeded-parent, and publication-owner-domain
+corrections. It does not establish cumulative PyBDSF parity or held-out
+qualification.
+
+Atomic terminal SHA-256 is
+`a274888dab12bd5a1623310b35ba3f9a90ff14f9fd5249d118cd2a1c8b778348`.
+It binds identity review `29e6f247...`, one-use execution decision
+`94bf8bf3...`, and manifest `8d539477...`. The next gate is a fresh
+2,400-product cumulative current-candidate stage; its evaluator must reuse the
+authentic incumbent and retained released/master PyBDSF products.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

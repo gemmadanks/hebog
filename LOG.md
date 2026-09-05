@@ -16247,3 +16247,36 @@ complete repository handoff validation, commit it, reproduce the complete
 preflight from a clean immutable checkout, and execute the single two-worker
 lane. Freeze no cumulative identity unless its atomic terminal decision
 passes.
+
+## 2026-09-05 — Pass the version-8 public fast regression lane
+
+**Plan phase:** Phase 5 scientific correction before cumulative replay
+
+- Committed the reviewed lane tooling as `ec4be4d`, created an exact detached
+  execution checkout, and repeated the complete no-write preflight there. It
+  verified 144 candidate, 144 paired coarse-control, and 12 existing-Dask
+  slots plus a real spawned-process payload without creating scratch or
+  output.
+- Ran the one authorized lane with two process workers and a caller-owned Dask
+  scheduler containing exactly two single-thread workers. All 144 paired
+  inputs completed, the trigger seam passed, and all 12 Serial/existing-Dask
+  comparisons were identical. The process exited zero and atomically
+  published terminal decision `a274888d...`.
+- All 12 geometry groups passed their binding four-seed cell-median retention
+  rules with zero binding failures. Two shell groups miss only aspirational
+  split objectives; two mixed compact/extended groups miss aspirational
+  absolute flux, mask, or support objectives. These four groups remain
+  explicit improvement targets and did not cross a binding gate.
+- The terminal binds candidate `95cfc76...`, source tree `8da21e86...`,
+  configuration `2c907949...`, identity `29e6f247...`, decision `94bf8bf3...`,
+  and manifest `8d539477...`. No threshold, margin, seed, configuration, or
+  result was changed after inspection. The scheduler and both workers were
+  stopped after publication, and the hourly monitor was deleted.
+- This closes the fast regression gate only. It neither proves cumulative
+  released/master PyBDSF parity nor consumes held-out qualification data.
+
+**Immediate next step:** freeze and completely no-write preflight a fresh
+2,400-product current-candidate cumulative stage for this exact source tree,
+then run it once and evaluate it by reusing the authentic incumbent and all
+retained released/master PyBDSF products. Do not open held-out qualification
+unless every cumulative binding gate passes.
