@@ -15929,3 +15929,39 @@ candidate.
 attach the ignored evidence to an immutable checkout, rerun the bounded smoke
 there, and start the single complete rehash plus cumulative evaluation. Treat
 any scientific failure as terminal evidence and do not tune or rescore it.
+
+## 2026-09-05 — Final evaluation stops at the verifier adapter boundary
+
+**Plan phase:** Phase 5 closeout
+
+- Committed the hook-clean evaluation-only completion as `1710d0a...` after
+  six focused tests, 2,588 fast tests, Ruff, Pyright, strict documentation,
+  and all pre-commit hooks passed. The immutable checkout reproduced the
+  bounded terminal smoke exactly: all 1,187 comparisons passed with canonical
+  decision digest `55a3ab0c...` and write-once publication intact.
+- The authorized completion then stopped immediately, before it completed the
+  retained-reference scan, rehashed either product set, compiled scientific
+  results, or wrote the atomic decision. The inherited product verifier loads
+  its configured evaluator with `runpy` and requires `_load_materializer` at
+  the raw module level. The final evaluator is a layered overlay: that seam is
+  correctly present in the mapping returned by `load_final_evaluator()`, but
+  is intentionally not exported by the thin overlay module itself. The
+  mismatch raised `KeyError: '_load_materializer'`.
+- The terminal smoke did not reveal this because it correctly exercised the
+  loaded evaluator mapping; the focused product-verifier test isolated the
+  expensive complete rehash behind a fake and therefore did not exercise the
+  inherited verifier's raw-module dispatch. A repair must add a cheap contract
+  test for that exact dispatch boundary before changing the adapter.
+- This is process-only evidence. Candidate product set `195a5a36...`, the
+  authentic incumbent set, all retained PyBDSF products, configuration,
+  endpoints, gates, and terminal output identity remain unchanged and
+  reusable. `final-cumulative-current-decision.json` is absent. Per the
+  user's notebook-refresh constraint, no repair has been implemented and no
+  `src/hebog/` file has changed.
+
+**Immediate next step:** after the notebook refresh permits changes, write a
+red regression test that calls the real inherited verifier through its raw
+evaluator dispatch while replacing only the expensive evidence readers. Make
+the minimal adapter repair, rerun the bounded terminal and frozen-authority
+smokes, freeze replacement program/identity/decision digests, and retry only
+the evaluation-only completion against the same sealed products.
