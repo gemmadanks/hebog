@@ -16626,3 +16626,36 @@ the authority once. Monitor hourly without inspecting partial science.
 component identities, implement the smallest evaluator-only repair, freeze new
 non-executable identities, and obtain exact approval before one unchanged
 sentinel retry.
+
+## 2026-09-06 — Repair and authorize compact sentinel identity linkage
+
+**Plan phase:** Phase 5 closeout
+
+- Reproduced the terminal failure test-first: the frozen successor compiler
+  rejected stable public Gaussian-component ownership before any metric could
+  be measured.
+- Added an evaluator-only adapter that maps every stable component ID to its
+  exact positive measurement label through the terminal
+  `SourceAssociationResult.components` records. It rejects identifier parsing,
+  positional inference, missing records, duplicate ownership, malformed label
+  planes, and absent labels while permitting native fitless components.
+- Added a checksum-bound repair runner that uses the adapter for both Serial
+  pairs and existing-Dask comparisons while leaving the failed parent runner,
+  candidate source, manifest, PyBDSF runtime, compiler metrics, evaluator,
+  thresholds, and margins unchanged. No file under `src/hebog` changed.
+- Fifty-five focused repair, frozen-parent, closeout, and compiler tests pass;
+  Ruff and Pyright are clean; the complete pre-commit suite passes. Commit
+  `26f13a7...` contains the repair.
+- Complete no-write preflight rehashed the failed terminal `965454ea...`, all
+  repair and parent programs, all 168 prospective seeds against 20,917
+  historical seeds, and the exact released-PyBDSF image. It found 10.8 GiB
+  free against the 8-GiB gate and started no finder.
+- Froze non-executable implementation decision `785dc9e8...`, replacement
+  identity review `3b22cb48...`, and expected execution `b0c35a73...`. The
+  user's explicit instruction to repair the evaluator and approval of all
+  retries authorizes one replacement write-once attempt with the unchanged
+  348-execution shape; one-use decision SHA-256 is `0b4856f8...`.
+
+**Immediate next step:** commit the frozen identity and one-use decision,
+create a clean immutable checkout, repeat the no-write preflight there, and
+consume the approved retry once under two workers.

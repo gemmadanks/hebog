@@ -739,6 +739,19 @@ remaining steps in order:
    evidence for or against Hebog. Preserve the terminal output and scratch;
    repair the compiler test-first, freeze replacement identities, obtain a new
    exact one-use approval, and then rerun the unchanged 168-image sentinel.
+
+   The test-first repair is complete at commit `26f13a7...`. It links stable
+   Gaussian-component identities to native measurement labels exclusively
+   through `SourceAssociationResult.components`, rejects missing or
+   inconsistent ownership, and applies the same adapter to Serial pairs and
+   existing-Dask comparisons. It does not modify `src/hebog`, candidate
+   science, the population, comparator, evaluator, thresholds, or margins.
+   Fifty-five focused tests, Ruff, Pyright, and the complete pre-commit suite
+   pass. Complete no-write preflight passes with 10.8 GiB free and zero finder
+   executions. Replacement identity-review SHA-256 is `3b22cb48...` and
+   expected-execution SHA-256 is `b0c35a73...`; the 2026-09-06 user authority
+   approves all required retries and is recorded in one-use decision
+   `0b4856f8...`.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,
