@@ -16582,3 +16582,21 @@ claim.
 canonical records, then obtain renewed exact approval of replacement identity
 `d879c65e...` and unchanged expected execution `df6b831b...` before creating
 any one-use decision or immutable execution checkout.
+
+## 2026-09-06 — Authorize the canonical compact held-out sentinel
+
+**Plan phase:** Phase 5 closeout
+
+- The scientific owner renewed the exact one-use approval for replacement
+  identity-review SHA-256 `d879c65e...` and unchanged expected-execution
+  SHA-256 `df6b831b...`: 168 current-Hebog Serial runs, 168 released-PyBDSF
+  runs, 12 existing-Dask comparisons, two workers, and one atomic terminal
+  decision.
+- Recorded the exact statement and authority in
+  `phase-5-compact-held-out-sentinel-execution-decision.json`. Another replay,
+  optimization, tuning, rescoring, cutover, release, and viewed-data execution
+  remain false.
+
+**Immediate next step:** commit the exact decision, create the immutable
+execution checkout, pass the complete no-write preflight there, and consume
+the authority once. Monitor hourly without inspecting partial science.
