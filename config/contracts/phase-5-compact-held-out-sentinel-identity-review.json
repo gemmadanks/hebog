@@ -55,7 +55,7 @@
   "identity_review_id": "phase-5-compact-held-out-sentinel-identity-review",
   "implementation": {
     "path": "config/contracts/phase-5-compact-held-out-sentinel-implementation-decision.json",
-    "sha256": "e6f587715bdb78d442cb29cd5d2edb9ea03f077019ae6544c8cb514f624847e8"
+    "sha256": "66e7a886946a99c04501976ffc8cc582e29e7d3580d21908f07aa1aa91c2fd37"
   },
   "manifest": {
     "path": "config/datasets/phase-5-compact-held-out-sentinel.json",
@@ -75,7 +75,7 @@
   },
   "pre_review": {
     "path": "config/contracts/phase-5-compact-held-out-sentinel-pre-review.json",
-    "sha256": "370d39a593862c629dc277f848da6d3d0d39166965b130cea8760eea02280f12"
+    "sha256": "84c44215a2aa98c229d6a2d991b7c98d33734d9a0fac01822dbc8a298dec8039"
   },
   "program_bindings": {
     "compiler": {
@@ -92,7 +92,7 @@
     },
     "freezer": {
       "path": "scripts/validation/freeze_phase5_compact_held_out_sentinel.py",
-      "sha256": "3ecc4ac075c9c91ddc47142249ea50e75dcfd34b0b7846d7d859dd2916f05ce1"
+      "sha256": "5ee2c6ecbfc712cd9ebecb38966c9d6daa99f50b63bb81ed3f366b61d8e7972b"
     },
     "population": {
       "path": "scripts/validation/phase5_compact_held_out_sentinel.py",

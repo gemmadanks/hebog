@@ -41,7 +41,7 @@
   },
   "pre_review": {
     "path": "config/contracts/phase-5-compact-held-out-sentinel-pre-review.json",
-    "sha256": "370d39a593862c629dc277f848da6d3d0d39166965b130cea8760eea02280f12"
+    "sha256": "84c44215a2aa98c229d6a2d991b7c98d33734d9a0fac01822dbc8a298dec8039"
   },
   "program_bindings": {
     "compiler": {
@@ -58,7 +58,7 @@
     },
     "freezer": {
       "path": "scripts/validation/freeze_phase5_compact_held_out_sentinel.py",
-      "sha256": "3ecc4ac075c9c91ddc47142249ea50e75dcfd34b0b7846d7d859dd2916f05ce1"
+      "sha256": "5ee2c6ecbfc712cd9ebecb38966c9d6daa99f50b63bb81ed3f366b61d8e7972b"
     },
     "population": {
       "path": "scripts/validation/phase5_compact_held_out_sentinel.py",

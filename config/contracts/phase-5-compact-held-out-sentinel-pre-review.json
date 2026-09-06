@@ -25,13 +25,13 @@
         "version": "1.14.1"
       }
     ],
+    "rationale": "Reexecuting every historical comparator would reproduce the oversized campaign. Fresh released-PyBDSF comparison directly answers the initial Rapthor replacement question; the sealed cumulative population already passed both PyBDSF references and Aegean.",
     "retained_without_reexecution": [
       "pinned-pybdsf-master cumulative parity",
       "Aegean cumulative parity",
       "selected-incumbent Hebog cumulative retention with the disclosed two-pattern confidence limitation",
       "800-image compact cumulative regression"
-    ],
-    "rationale": "Reexecuting every historical comparator would reproduce the oversized campaign. Fresh released-PyBDSF comparison directly answers the initial Rapthor replacement question; the sealed cumulative population already passed both PyBDSF references and Aegean."
+    ]
   },
   "decision_policy": {
     "binding_checks": [

@@ -1777,7 +1777,7 @@ source tree, so neither issue can misidentify this governed candidate. Exact
 audit SHA-256 is `e8b8fe92...`.
 
 The remaining fresh check is deliberately small. Non-executable pre-review
-`370d39a5...` specifies 168 new seed-disjoint images: all 36 known
+`84c44215...` specifies 168 new seed-disjoint images: all 36 known
 adaptive-background risk cells at four realizations each, plus six compact
 public-contract guard cells at four realizations each. The exact public Hebog
 candidate and Rapthor's released PyBDSF `1.14.1` reference account for 336
@@ -1791,11 +1791,11 @@ four realizations per cell are not a powered non-inferiority study, the
 sentinel can falsify closeout but cannot independently create the parity claim.
 
 That implementation is now complete without opening an input. Frozen identity
-review `0b3872816338e4012af72d56e5dcf8fc2936e1dd872352d0930979d06cac21b0`
+review `d879c65e70dd0d280d237f4d28212ceccee45069aed967ad5c038fc7155f4cb2`
 binds manifest
 `1dc84802f4a59848d91d6ca7af8c3795770330f4d816f337135bf18f3171feb2`,
 implementation decision
-`e6f587715bdb78d442cb29cd5d2edb9ea03f077019ae6544c8cb514f624847e8`,
+`66e7a886946a99c04501976ffc8cc582e29e7d3580d21908f07aa1aa91c2fd37`,
 and expected execution
 `df6b831b4eda14a9740aa09f6a8d0ebf152edd9778e98f13ff0cf660fac897ee`.
 The 42-cell manifest includes 144 extended-risk images and 24 compact guards,
@@ -1803,10 +1803,14 @@ including unequal two-peak, connected three-peak tile-corner, non-square
 varying-noise, edge, near-threshold, and invalid-pixel cases. Fourteen focused
 tests pass. The complete no-write preflight verified all 168 seeds are disjoint
 from 20,917 historical seeds across 46 manifests, verified the exact
-released-PyBDSF image and dependency inventory, found 12.9 GiB free, and
+released-PyBDSF image and dependency inventory, found 11.8 GiB free, and
 confirmed that no finder execution or output publication began. The identity
 is deliberately non-executable: a separate exact one-use decision and human
-approval are required before the unopened population may be generated.
+approval are required before the unopened population may be generated. An
+initial approval of identity `0b387281...` could not be consumed because the
+repository hook subsequently canonicalized one pre-review JSON key order.
+Replacement identity `d879c65e...` changes no science, population, margin,
+runtime, or expected execution, but requires renewed exact approval.
 
 ## Required format for future snapshots
 

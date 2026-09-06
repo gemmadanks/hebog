@@ -16550,3 +16550,35 @@ time is one to four hours with an eight-hour ceiling. The cumulative decision
 remains `incomplete`; a passing sentinel must be interpreted jointly with that
 powered cumulative evidence and cannot become a standalone powered parity
 claim.
+
+## 2026-09-06 — Refreeze the compact held-out closeout sentinel before execution
+
+**Plan phase:** Phase 5 closeout
+
+- The scientific owner approved exactly one two-worker execution bound to
+  identity-review SHA-256 `0b387281...` and expected-execution SHA-256
+  `df6b831b...`: 168 current-Hebog Serial runs, 168 released-PyBDSF runs, 12
+  existing-Dask comparisons, and one atomic terminal decision.
+- Before execution, the required repository pre-commit hook found that the
+  newly tracked pre-review JSON had not yet been checked by the canonical JSON
+  formatter while it was untracked. The hook reordered one object key without
+  changing scientific or execution content, changing the pre-review byte
+  identity from `370d39a5...` to `84c44215...` and correctly causing the
+  frozen identity test to fail closed.
+- No image, Hebog, PyBDSF, or Dask execution started and no one-use decision
+  was retained. The exact `0b387281...` approval is therefore unconsumed but
+  cannot authorize the replacement byte identity. The manifest, seeds,
+  margins, comparator, 168-image population, 348-execution shape, and expected
+  execution remain unchanged.
+- Refroze the canonical records. Pre-review SHA-256 is now `84c44215...`,
+  implementation-decision SHA-256 is `66e7a886...`, replacement identity-review
+  SHA-256 is `d879c65e...`, and expected execution remains `df6b831b...`.
+- Fifteen focused checks and the complete no-write preflight pass against the
+  replacement identity. The exact released-PyBDSF runtime and all seed bindings
+  match, 11.8 GiB is free against the 8-GiB gate, and no finder or output
+  publication began.
+
+**Immediate next step:** fully validate and commit the semantically identical
+canonical records, then obtain renewed exact approval of replacement identity
+`d879c65e...` and unchanged expected execution `df6b831b...` before creating
+any one-use decision or immutable execution checkout.

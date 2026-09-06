@@ -28,7 +28,7 @@ _PRE_REVIEW = Path(
     "config/contracts/phase-5-compact-held-out-sentinel-pre-review.json"
 )
 _PRE_REVIEW_SHA256 = (
-    "370d39a593862c629dc277f848da6d3d0d39166965b130cea8760eea02280f12"
+    "84c44215a2aa98c229d6a2d991b7c98d33734d9a0fac01822dbc8a298dec8039"
 )
 _PROGRAM_PATHS = {
     "compiler": (
