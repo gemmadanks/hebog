@@ -16659,3 +16659,36 @@ sentinel retry.
 **Immediate next step:** commit the frozen identity and one-use decision,
 create a clean immutable checkout, repeat the no-write preflight there, and
 consume the approved retry once under two workers.
+
+## 2026-09-06 — Retain valid empty science in the compact sentinel evaluator
+
+**Plan phase:** Phase 5 closeout
+
+- The stable-identity retry passed immutable preflight and ran 145 of 168
+  Serial Hebog/released-PyBDSF pairs before atomically publishing a second
+  `operational-fail`. Terminal SHA-256 `441f312f...` records `ValueError:
+  public Hebog terminal products are unavailable`; no Dask comparison or
+  scientific terminal decision was produced.
+- Preserved the write-once terminal and scratch. Static diagnosis found a
+  second evaluator-only mismatch: the public API intentionally returns a
+  successful empty catalogue and zero mask when no finite positive RMS is
+  available, with private terminal products set to `None`. The sentinel
+  wrapper incorrectly converted that documented public success into an
+  operational error.
+- Reproduced the boundary test-first. The replacement wrapper now compiles an
+  all-zero candidate label plane only when source, Gaussian-component, and
+  island counts are all zero, the captured RMS plane matches the exact input
+  shape, and it contains no finite positive value. Missing terminal products
+  with non-empty counts, usable RMS, or inconsistent shape still fail closed.
+  Non-empty cases continue through the exact stable component-to-label
+  association repair.
+- Twenty focused tests covering valid empty science, all fail-closed branches,
+  non-empty ownership linkage, both Serial and existing-Dask seams, failed
+  lineage, and write-once freezing pass. Ruff and Pyright pass. No file under
+  `src/hebog`, no candidate science, population, PyBDSF runtime, metric,
+  threshold, margin, or evaluator decision rule changed.
+
+**Immediate next step:** freeze and validate a distinct non-executable
+empty-result repair identity and write-once namespace, commit it, repeat the
+complete immutable no-write preflight, and run the unchanged two-worker
+sentinel under the user's explicit approval of all required retries.
