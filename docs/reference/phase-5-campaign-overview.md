@@ -1690,6 +1690,59 @@ It binds identity review `29e6f247...`, one-use execution decision
 2,400-product cumulative current-candidate stage; its evaluator must reuse the
 authentic incumbent and retained released/master PyBDSF products.
 
+## Version-8 public owner-domain cumulative evaluation
+
+**Terminal date:** 2026-09-06
+
+**Evidence role:** cumulative regression evidence; evaluation-only reuse of
+sealed current, incumbent, Aegean, and released/master PyBDSF products
+
+The exact evaluation-only completion for candidate `95cfc76...`, source tree
+`8da21e86...`, and unchanged configuration `2c907949...` exited successfully
+and atomically published an `incomplete` decision. It compiled the sealed
+2,400-product current set `f43cb274...` against the authentic incumbent and
+all 9,600 retained reference runs; it executed no finder.
+
+| Binding section | Terminal result |
+| --- | ---: |
+| Aegean parity | 143 pass / 0 unresolved |
+| Released/master PyBDSF parity | 676 pass / 0 unresolved |
+| Incumbent-Hebog retention | 364 pass / 4 underpowered |
+| Binding safety | 5 / 5 pass |
+| All binding comparisons | 1,183 pass / 4 underpowered / 0 fail |
+
+Compact science passes every applicable comparison. Continuum passes every
+dual-PyBDSF and Aegean comparison and 364 of 368 incumbent-retention checks.
+The four unresolved checks are position-error p95 aliases for
+`above-compact-deblend-limit`, `morphology-shell`, `scale-4-beam`, and
+`tile-corner`. Three aliases share one shell evidence pattern: its observed
+positive regression is `0.003013` beam and its upper confidence limit is
+`0.056371` beam against the frozen `0.05`-beam margin. The scale-4-beam
+pattern has observed positive regression `0.013073` beam and upper confidence
+limit `0.054222` beam. The overall Continuum position-p95 comparison passes
+with an upper confidence limit of `0.036636` beam. These are confidence gaps,
+not observed failures beyond the practical margin, but the frozen rules do
+not permit a pooled pass to hide an underpowered binding stratum.
+
+All finite-measurement, product-validity, provenance, Serial/existing-Dask,
+and write-once-publication safety checks pass. Longer-term absolute objectives
+remain report-only. Nevertheless,
+`cumulative_science_regression_ready=false` and
+`all_required_endpoints_pass=false`, so Phase 5 cannot close and held-out
+qualification remains closed. No threshold, margin, comparator, confidence
+rule, or result was changed after inspection.
+
+The atomic decision file SHA-256 is
+`fe4afbe912d5acfe3086141fa6840effbbbe92d7a40343fda7791880b808a0ed` and
+its canonical record SHA-256 is
+`8d69ef44bfd4d134c31bb9f00f4c6771237f2d71e9dbbe6dd941e277514b088e`.
+The next step is a prospective, power-checked retention-confirmation design
+focused on the two distinct unresolved evidence patterns. It should reuse the
+sealed evidence wherever scientifically valid, execute no PyBDSF work for the
+incumbent-only question, preserve every frozen gate, and fit the requested
+sub-12-hour closeout envelope. It must be frozen before any new realization
+is viewed or executed.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

@@ -559,8 +559,8 @@ is an instruction to rerun or rescore a closed campaign.
 ### Phase 5: multiscale and extended emission
 
 **Status: open; the version-8 public fast lane and cumulative candidate replay
-passed, and the sealed products are awaiting their frozen evaluation-only
-completion.** Multiscale science,
+passed, but the frozen cumulative evaluation is terminally incomplete on four
+incumbent-retention position-tail comparisons.** Multiscale science,
 combined products, bounded execution, compact regression, the public
 scientific interface, and the incremental performance budget are complete.
 The seed-disjoint 144-image repair replication passed all 12 binding geometry
@@ -599,8 +599,18 @@ and atomically sealed all 2,400 candidate products as product set
 `f43cb274...` in record `194022ab...`, with zero PyBDSF executions. The scoped
 evaluation-only completion is now frozen with identity file `b29a54f1...`,
 expected execution `e1e43203...`, and one-use decision file `423ee03c...`.
-Its bounded terminal smoke passes all 1,187 comparisons; complete product
-rehashing also passes, and the terminal evaluation remains the next gate.
+Its bounded terminal smoke passes all 1,187 comparisons. The terminal
+evaluation exited successfully and published canonical decision `8d69ef44...`:
+1,183 comparisons pass, all 143 Aegean and 676 dual-PyBDSF comparisons pass,
+all five safety checks pass, and four of 368 incumbent-retention comparisons
+are underpowered. Those four endpoint aliases reduce to two distinct
+Continuum position-p95 evidence patterns. Their point estimates remain inside
+the frozen `0.05`-beam margin, but their upper confidence limits are
+`0.056371` and `0.054222` beam. The decision therefore has
+`cumulative_science_regression_ready=false`; it is not a scientific failure
+beyond margin, but it cannot be accepted or pooled away. Held-out
+qualification remains closed pending a prospective powered retention
+confirmation.
 Detailed campaign and incident chronology
 belongs in `LOG.md` and the campaign overview; machine identities and
 authorization boundaries remain in `config/contracts/`.
@@ -612,7 +622,7 @@ authorization boundaries remain in `config/contracts/`.
 | Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Pass at prospective development scale. Analytic reproduction proved the public path collapsed admissible peaks; the correction preserves direct and measurement support unions, uses canonical nearest-marker ownership with intensity-saddle merging only in the public topology, and reports bounded deferrals. The established Phase 3 compact path remains green. The public topology also retains admitted unseeded parents unchanged and projects publication recovery onto authoritative measurement owners without inventing science. Terminal fast-lane decision `a274888d...` has zero binding failures. Viewed Hydra data remains diagnostic-only and was not tuned or rescored. Cumulative evidence remains a separate gate. |
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Pass. Unequal-Gaussian, connected two- and three-peak, exact seed-boundary/no-seed retention, disconnected recovery, edge/corner, thin horizontal/vertical, non-square, empty, invalid-input, label-invariance, support-union, exact synthetic notebook-runner, public-composition, full coverage, and compact-equivalence gates pass. Version-8 terminal `a274888d...` passes 12/12 binding geometry groups, the trigger seam, and 12/12 Serial/existing-Dask comparisons; four non-binding improvement misses remain reported. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Pass for the development and cumulative-product gates. Candidate `95cfc76...`, source tree `8da21e86...`, and unchanged configuration `2c907949...` pass component-topology, publication-owner-domain, synthetic exact-runner, installed-wheel, compact-equivalence, source/composition identity, and the exact two-worker fast lane. Notebook identity `2920873a...` remains non-executable. Product set `f43cb274...` seals all 2,400 cumulative outputs. |
-| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | In progress. The fresh 2,400-product replay completed and its atomic seal passed. Evaluation identity `b29a54f1...` reuses the authentic incumbent and all retained PyBDSF products, executes no finder, passes a bounded 1,187-comparison terminal smoke, and completely rehashes both 2,400-product candidates plus all 9,600 references. The one authorized terminal evaluation remains required. |
+| Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, the selected Hebog incumbent, applicable Aegean checks, and hard safety rules without pooling away a failed geometry or endpoint. | Incomplete. Atomic decision `8d69ef44...` has 1,183 passes and zero failures, including every compact, Aegean, dual-PyBDSF, and safety comparison, but four Continuum incumbent-retention position-p95 aliases are underpowered. Two distinct upper confidence limits (`0.056371` and `0.054222` beam) cross the frozen `0.05`-beam margin. A prospective powered confirmation is required; no tuning or rescoring is permitted. |
 | Fresh scientific qualification | On unopened seed-disjoint data, every binding geometry and endpoint passes released and pinned-master PyBDSF, applicable Aegean, best-Hebog retention, compact-regression, and hard safety rules. No pooled result may hide a failed binding geometry. | Open. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
@@ -644,8 +654,12 @@ the failed `1ac6deb2...` replay must remain visible historical evidence.
 
 #### Authoritative Phase 5 closeout checklist
 
-If the corrected candidate's cumulative replay and evaluation pass every
-binding check, complete only these steps, in order:
+The corrected candidate's cumulative replay is sealed, but its evaluation did
+not pass every binding check. Stop at item 1 until a prospectively frozen
+retention confirmation resolves the two distinct underpowered evidence
+patterns without changing the incumbent, endpoints, margins, confidence
+rules, or pooling policy. Once a cumulative/retention decision passes, complete
+the remaining steps in order:
 
 1. [ ] **Seal and accept the cumulative decision.** Verify all 2,400 current
    products and their exact candidate, source-tree, configuration, program,
@@ -656,6 +670,18 @@ binding check, complete only these steps, in order:
    check to pass. Absolute improvement objectives remain reported but cannot
    replace these gates. A scientific failure stops closeout and opens a new
    prospective review; it is not permission to tune or rescore the result.
+
+   Current blocker: decision `8d69ef44...` passes all Aegean and dual-PyBDSF
+   checks and shows no observed movement beyond margin, but four
+   incumbent-retention position-p95 aliases are underpowered. Freeze a
+   replacement power calculation and one-look confirmation focused on the two
+   distinct shell and scale-4-beam evidence patterns. Reuse the sealed 2,400
+   current products, authentic incumbent products, and retained references
+   wherever the paired design permits. The confirmation must execute no
+   PyBDSF work, must not weaken any binding rule, and must fit within the
+   requested sub-12-hour closeout envelope with bounded storage. A reduced
+   latest-Hebog/latest-PyBDSF held-out comparison cannot substitute for this
+   incumbent non-regression gate.
 2. [ ] **Freeze the production candidate and run one fresh held-out
    qualification.** Before exposing held-out data, audit `src/hebog/` for dead
    branches, obsolete feature flags, duplicate helpers, stale public exports,

@@ -16394,3 +16394,62 @@ completion to publish its write-once result. If it passes, perform the bounded
 production audit before freezing held-out qualification; do not start Phase
 5.5 cleanup until Phase 5 closes and Release Please records the standalone
 release.
+
+## 2026-09-06 — Record the version-8 cumulative evaluation as incomplete
+
+**Plan phase:** Phase 5 cumulative parity and retention
+
+- The single authorized evaluation-only completion exited zero from immutable
+  commit `a01344a...` and atomically published
+  `benchmark-results/phase-5/public-owner-domain-cumulative-decision.json`.
+  Its file SHA-256 is `fe4afbe9...` and its verified canonical record SHA-256
+  is `8d69ef44...`. No candidate, incumbent, Aegean, or PyBDSF finder ran.
+- Reverified the complete sealed evidence after publication: both 2,400-
+  product sets, all 9,600 retained reference runs, candidate `95cfc76...`,
+  source tree `8da21e86...`, configuration `2c907949...`, authentic incumbent
+  product set `8dbc9dff...`, reconstruction `b302967f...`, candidate seal
+  `194022ab...`, closed baseline `a45303df...`, completion `76a2adb4...`,
+  evaluator `84f1dfcf...`, identity file `b29a54f1...`, canonical identity
+  `6e4c15fd...`, execution decision `423ee03c...`, and expected execution
+  `e1e43203...` all match. The immutable checkout remained at `a01344a...`.
+  The frozen CLI's `--verify-only` path rejects an already-published output;
+  post-publication verification therefore called the same frozen verifier
+  with an in-memory absent-output sentinel and performed no writes.
+- Compact science passes every applicable comparison. Across the complete
+  decision, all 143 Aegean-parity, all 676 dual-PyBDSF-parity, 364 of 368
+  incumbent-retention, and all five binding-safety checks pass: 1,183 passes,
+  four underpowered checks, and zero failures.
+- The four unresolved incumbent checks are Continuum position-error p95 for
+  `above-compact-deblend-limit`, `morphology-shell`, `scale-4-beam`, and
+  `tile-corner`. Three aliases share one shell evidence pattern with observed
+  positive regression `0.003013` beam and upper confidence limit `0.056371`
+  beam. The scale-4 pattern has positive regression `0.013073` beam and upper
+  confidence limit `0.054222` beam. Both point estimates are inside the
+  frozen `0.05`-beam practical margin, the overall position-p95 check passes
+  at `0.036636` beam, and every planning-variance assumption passes, but the
+  stratum-level confidence intervals still cross the margin.
+- The terminal status is therefore `incomplete`, with
+  `cumulative_science_regression_ready=false` and
+  `all_required_endpoints_pass=false`. The evidence does not show a material
+  scientific regression and establishes complete released/master PyBDSF and
+  Aegean parity on this cumulative population, but it cannot establish the
+  separately required incumbent non-regression. Held-out qualification,
+  tuning, rescoring, cutover, and release remain closed.
+- Final validation passes: the focused terminal matrix has 33 passes, the two
+  historical absolute-main-path contracts pass separately, branch-aware
+  coverage has 2,834 passes, two expected failures, 47 intentional
+  deselections, and 94.84% coverage, `just check` has 2,652 passes and two
+  expected failures, all 27 compact-equivalence tests pass, and the strict
+  documentation build passes. The governed output makes one pre-publication
+  output-absence fixture fail in the main checkout; that exact fixture passes
+  in the output-free validation checkout and was the sole deselection from the
+  final otherwise-complete pre-commit run. Review against `CODE_REVIEW.md`
+  found no actionable issue and no production-source or dependency change.
+
+**Immediate next step:** prospectively freeze a power-checked, one-look
+retention confirmation for the two distinct unresolved position-tail evidence
+patterns. Reuse sealed evidence where paired independence permits, execute no
+PyBDSF work for this incumbent-only question, preserve every margin and
+confidence rule, and keep the closeout execution within the requested
+sub-12-hour and bounded-storage envelope. Do not open held-out qualification
+until this binding retention gate passes.
