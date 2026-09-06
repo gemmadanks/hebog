@@ -16719,3 +16719,37 @@ sentinel under the user's explicit approval of all required retries.
 immutable checkout, repeat the complete no-write preflight there, and consume
 the two-worker retry once. Preserve and report any further terminal process or
 scientific outcome without overwriting prior evidence.
+
+## 2026-09-06 — Correct the compact sentinel zero-count contract
+
+**Plan phase:** Phase 5 closeout
+
+- The empty-result retry passed its complete immutable no-write preflight and
+  again completed 145 Serial Hebog/released-PyBDSF pairs before atomically
+  publishing `operational-fail`. Terminal SHA-256 `e849a95d...` records
+  `ValueError: public Hebog terminal is absent while RMS remains scientifically
+  usable`; no Dask comparison or scientific terminal decision was produced.
+- Preserved all three write-once failure outputs and scratch namespaces.
+  Static diagnosis corrected the preceding root-cause interpretation:
+  `build_configured_continuum_products()` returns no private terminal whenever
+  no island is accepted, including valid source-free images whose background
+  and RMS remain usable. The public facade correctly reports zero sources,
+  zero Gaussian components, and zero islands. RMS availability cannot define
+  whether the public source population is empty.
+- Reproduced the overly strict RMS condition test-first. The final adapter now
+  compiles an empty catalogue and all-zero label plane only when all three
+  public counts are exactly zero and the captured RMS shape equals the input.
+  It retains strict failures for any nonzero count or inconsistent shape, and
+  leaves the stable non-empty component-ownership linkage unchanged.
+- Eight focused final-repair tests and the 38-test complete repair lineage pass;
+  Ruff and Pyright are clean. No `src/hebog` file, candidate science,
+  population, comparator, PyBDSF configuration, scientific metric, threshold,
+  confidence margin, or decision rule changed.
+- Froze implementation decision SHA-256 `796abeff...`, replacement identity
+  SHA-256 `ad9e2b1c...`, and expected execution SHA-256 `7c40f8b1...` in a new
+  write-once namespace. The user's explicit evaluator-repair and all-retries
+  authority permits the unchanged 168-Hebog, 168-PyBDSF, 12-Dask execution.
+
+**Immediate next step:** validate and commit the exact records, create a clean
+immutable checkout, repeat the complete no-write preflight, then consume one
+two-worker retry and evaluate its atomic terminal result.

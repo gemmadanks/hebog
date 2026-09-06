@@ -755,21 +755,25 @@ remaining steps in order:
 
    That retry preserved its 145 completed pair summaries and atomically failed
    before Dask comparison with terminal SHA-256 `441f312f...` because the
-   wrapper treated a documented public zero-source result with unavailable RMS
-   as missing science. Static public-contract review confirms that
-   `find_sources()` intentionally publishes an empty catalogue, zero mask, and
-   zero source/component/island counts in this case. The second evaluator-only
-   repair accepts missing private terminal products only when all three public
-   counts are zero, the captured RMS has the exact input shape, and no finite
-   positive RMS value exists; it otherwise fails closed. Non-empty products
-   retain the exact stable ownership adapter. Preserve both failed terminals
-   and scratch namespaces, freeze another distinct write-once identity, and
-   rerun the unchanged population under the user's standing retry authority.
-   That identity is now frozen as `c7a57be2...`, with implementation decision
-   `c02fee99...`, expected execution `64671f76...`, and one-use decision
-   `37118fed...`. Complete no-write preflight passes with 11.6 GiB free, all
-   seeds and both failed lineages intact, the exact released-PyBDSF image, and
-   zero finder executions.
+   wrapper treated a documented public zero-source result as missing science.
+   The first empty-result repair was too narrow: it accepted the public result
+   only when RMS was unusable. Its unchanged retry reached the same boundary
+   and atomically failed as terminal `e849a95d...` because Hebog can correctly
+   produce no accepted island while retaining a scientifically usable RMS
+   plane. RMS availability describes background estimation, not the public
+   source population.
+
+   The final evaluator-only rule is therefore bound to the public contract:
+   compile an empty catalogue and zero label plane only when source,
+   Gaussian-component, and island counts are exactly zero and the captured RMS
+   shape equals the input. Nonzero public counts or inconsistent shapes still
+   fail closed; non-empty products retain the exact stable ownership adapter.
+   The new pre-review preserves all three failed terminals, the unchanged
+   candidate, seed-disjoint population, released-PyBDSF runtime, evaluator,
+   metrics, thresholds, and margins. Implementation decision `796abeff...`,
+   replacement identity `ad9e2b1c...`, expected execution `7c40f8b1...`, and
+   its distinct write-once output namespace are frozen under the user's
+   standing evaluator-repair and all-retries authority.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,
