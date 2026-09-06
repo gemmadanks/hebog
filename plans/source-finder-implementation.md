@@ -727,6 +727,18 @@ remaining steps in order:
    trigger stratum, or endpoint. Any failure stops closeout and opens a
    prospective root-cause review without tuning, rescoring, adaptive sample
    size, or reconfirmation.
+
+   The one-use `d879c65e...` execution was consumed on 2026-09-06 and failed
+   closed after about 130 seconds, before the first completed realization and
+   before any PyBDSF execution. The atomic terminal record reports
+   `operational-fail` and has SHA-256 `965454ea...`: the successor compiler
+   still requires legacy
+   `hebog-segment-N` island identifiers, whereas the frozen public candidate
+   correctly emits the stable component identities introduced by the
+   owner-domain repair. This is evaluator integration failure, not scientific
+   evidence for or against Hebog. Preserve the terminal output and scratch;
+   repair the compiler test-first, freeze replacement identities, obtain a new
+   exact one-use approval, and then rerun the unchanged 168-image sentinel.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,

@@ -16600,3 +16600,29 @@ any one-use decision or immutable execution checkout.
 **Immediate next step:** commit the exact decision, create the immutable
 execution checkout, pass the complete no-write preflight there, and consume
 the authority once. Monitor hourly without inspecting partial science.
+
+## 2026-09-06 — Compact sentinel fails closed on legacy identity parsing
+
+**Plan phase:** Phase 5 closeout
+
+- Consumed the approved `d879c65e...` one-use authority from immutable commit
+  `956e8d0...` after the complete no-write preflight passed. The exact
+  two-worker scheduler registered both one-thread workers and the sentinel
+  started normally.
+- The runner atomically published `operational-fail` after about 130 seconds,
+  before any completed realization or released-PyBDSF execution. The terminal
+  record SHA-256 is `965454ea...`; its error is `ValueError: Hebog segment
+  island identity is malformed`, not a scientific comparison result.
+- Static diagnosis identified an evaluator integration mismatch: the
+  successor compiler still parses only legacy `hebog-segment-N` identities,
+  while the current public component catalogue uses the stable component
+  identities introduced by the owner-domain repair. The frozen Hebog science,
+  population, PyBDSF reference, gates, and margins were not exercised or
+  changed.
+- Preserved the write-once terminal decision and scratch, stopped the idle
+  workers and scheduler, and did not restart or open another output namespace.
+
+**Immediate next step:** add a focused failing compiler test for stable public
+component identities, implement the smallest evaluator-only repair, freeze new
+non-executable identities, and obtain exact approval before one unchanged
+sentinel retry.

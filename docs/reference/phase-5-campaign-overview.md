@@ -1812,6 +1812,19 @@ repository hook subsequently canonicalized one pre-review JSON key order.
 Replacement identity `d879c65e...` changes no science, population, margin,
 runtime, or expected execution, but requires renewed exact approval.
 
+The renewed one-use execution began from immutable commit `956e8d0...` on
+2026-09-06 and terminated after about 130 seconds, before recording a completed
+realization and before running released PyBDSF. Its atomic terminal decision is
+`operational-fail`, has SHA-256 `965454ea...`, and records `ValueError: Hebog
+segment island identity is malformed`. Static diagnosis found that the
+successor compiler accepts only the legacy `hebog-segment-N` catalogue
+identity, while the frozen current public result intentionally exposes stable
+source/component identities after the owner-domain repair. The result contains
+no scientific comparison and does not change the cumulative parity evidence.
+The output and scratch remain preserved; a test-first compiler repair,
+replacement frozen identities, and a new exact one-use approval are required
+before the unchanged sentinel may run.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
