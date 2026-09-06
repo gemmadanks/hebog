@@ -1,0 +1,23 @@
+{
+  "authorization": {
+    "another_replay": false,
+    "current_hebog_execution": true,
+    "cutover": false,
+    "existing_dask_comparison": true,
+    "held_out_execution": true,
+    "optimization": false,
+    "release": false,
+    "released_pybdsf_execution": true,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "expected_execution_sha256": "1f4eeef6c4149db249aef69c33c8036f6b37a09abfad799d90dfec7398280164",
+  "identity_review": {
+    "path": "config/contracts/phase-5-compact-held-out-sentinel-pybdsf-empty-repair-review.json",
+    "sha256": "b67d877624bc87b2b8b3d09ad6c5f2e42fe573fac1bcdb7aa9c79810c6a5a329"
+  },
+  "one_use": true,
+  "status": "authorized-for-one-compact-held-out-sentinel",
+  "user_authority": "Please repair the evaluator and make any other fixes required to complete the run. I approve of all re-tries."
+}

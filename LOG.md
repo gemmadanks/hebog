@@ -16753,3 +16753,40 @@ scientific outcome without overwriting prior evidence.
 **Immediate next step:** validate and commit the exact records, create a clean
 immutable checkout, repeat the complete no-write preflight, then consume one
 two-worker retry and evaluate its atomic terminal result.
+
+## 2026-09-06 — Retain PyBDSF's valid no-island sentinel result
+
+**Plan phase:** Phase 5 closeout
+
+- The zero-count Hebog retry passed its immutable no-write preflight and
+  completed 144 paired cases before atomically publishing another
+  `operational-fail`. Terminal SHA-256 `38438265...` records that released
+  PyBDSF reported no islands, then its child rejected the resulting zero-row
+  Gaussian FITS table because PyBDSF omits the normal column schema in this
+  state. No Dask comparison or scientific terminal decision was produced.
+- Preserved the fourth write-once output and scratch, and stopped the idle
+  scheduler and workers. This is a comparator I/O boundary defect, not a
+  change in either finder's scientific result: PyBDSF itself explicitly
+  reported a valid no-island outcome.
+- Reproduced the zero-column failure test-first. A bounded child adapter now
+  admits the schema-free table only when it has zero rows, then verifies its
+  published native label plane contains no positive island. The host adapter
+  independently enforces zero catalogue count and zero native labels before
+  compiling an empty comparison. Nonempty malformed tables, positive labels,
+  and result/catalogue count disagreement still fail closed.
+- Ten focused comparator-repair tests pass with Ruff and Pyright. The exact
+  PyBDSF 1.14.1 image, configuration, candidate, population, evaluator,
+  metrics, thresholds, confidence margins, and prior Hebog repairs remain
+  unchanged.
+- The first non-executable freeze was never run: the full repository hook found
+  two missing test-only Astropy type suppressions. Archived those unexecuted
+  records under `/private/tmp` rather than overwriting them, corrected only the
+  fixture annotation, and reran its behavior, Ruff, and Pyright checks.
+- Refroze implementation decision SHA-256 `c4e9cb03...`, replacement identity
+  SHA-256 `b67d8776...`, and unchanged expected execution SHA-256
+  `1f4eeef6...` in the same still-unused write-once namespace under the user's
+  standing all-retries authority.
+
+**Immediate next step:** validate and commit the exact comparator records,
+repeat the complete no-write preflight in a clean immutable checkout, and run
+the unchanged two-worker sentinel to its atomic scientific decision.

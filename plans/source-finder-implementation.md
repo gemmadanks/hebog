@@ -774,6 +774,19 @@ remaining steps in order:
    replacement identity `ad9e2b1c...`, expected execution `7c40f8b1...`, and
    its distinct write-once output namespace are frozen under the user's
    standing evaluator-repair and all-retries authority.
+
+   That retry completed 144 pairs and then atomically recorded terminal
+   `38438265...` when released PyBDSF explicitly found no islands and emitted
+   its valid zero-row, schema-free Gaussian FITS table. The comparator child
+   incorrectly required the normal non-empty column schema before it could
+   publish the empty result. The final comparator adapter independently checks
+   this boundary in the isolated child and host: only a zero-row catalogue
+   paired with an all-zero native PyBDSF label plane is empty science;
+   nonempty malformed tables, positive labels, and count disagreement remain
+   operational failures. The PyBDSF image, configuration, source-finding
+   science, metrics, thresholds, and margins remain unchanged. Implementation
+   decision `c4e9cb03...`, identity `b67d8776...`, and expected execution
+   `1f4eeef6...` bind the fourth write-once retry and all prior failures.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,
