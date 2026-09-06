@@ -1825,6 +1825,65 @@ The output and scratch remain preserved; a test-first compiler repair,
 replacement frozen identities, and a new exact one-use approval are required
 before the unchanged sentinel may run.
 
+## Compact held-out sentinel terminal scientific failure
+
+**Decision date:** 2026-09-07
+
+**Evidence role:** fresh seed-disjoint regression sentinel; release-blocking
+falsification evidence, not an independently powered parity claim
+
+The evaluator-only repair sequence retained four valid empty-result and
+identity boundaries without changing Hebog source-finding science, the
+released-PyBDSF configuration, the 168-image population, metrics, thresholds,
+or practical margins. The final immutable execution used candidate revision
+`95cfc76ded56556dc3ad6894410962d34f0d5604`, source-tree SHA-256
+`8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5`,
+configuration SHA-256
+`2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d`,
+identity-review SHA-256
+`b67d877624bc87b2b8b3d09ad6c5f2e42fe573fac1bcdb7aa9c79810c6a5a329`,
+and execution-decision SHA-256
+`6516d6ef373f91a1969d9c456392ba70e2cca77cfa93a710a01872f920741cd9`.
+The released-PyBDSF runtime image digest was
+`sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198`.
+
+Operationally, the campaign is complete. It produced 168 Serial Hebog and 168
+released-PyBDSF results plus 12 caller-owned existing-Dask comparisons. All
+paired products and ownership records were valid, all 12 Dask results equalled
+their Serial references, the exact 42-cell population was present, and no
+pooling was used. The atomic terminal decision is
+`compact-held-out-sentinel-pybdsf-empty-repair.json`, SHA-256
+`f542c7dbdc98bb3023efda4604d453b654c6da7bf61e5892fe528c5e601820aa`.
+It records `status=fail` and `passed=false`; this is not another operational
+failure.
+
+The frozen scientific gates pass in only 7 of 42 cells. All 12 shell cells and
+all 12 curved-filament cells fail, as do 6 of 12 mixed compact/extended cells
+and 5 of 6 compact guards. Endpoint outcomes are:
+
+| Endpoint | Failed cells | Interpretation |
+| --- | ---: | --- |
+| Completeness | 0 | Hebog median is 1.0 in every cell; this cannot compensate for other failures. |
+| Duplicate fraction | 0 | Passes every cell. |
+| Merge fraction | 0 | Passes every cell. |
+| Integrated-flux median / p95 | 29 / 30 | Frequent error regression beyond the frozen 0.05 margin. |
+| Split fraction | 28 | Hebog often splits truth associations that released PyBDSF does not. |
+| Position median / p95 | 25 / 25 | Frequent positional regression beyond the frozen 0.05-beam margin. |
+| Absolute mean x / y offset | 10 / 22 | The y-direction bias is the larger recurrent failure. |
+| Reliability | 11 | Several fresh cells fall outside the frozen 0.02 margin. |
+| Mask IoU / precision / recall | 1 / 2 / 3 | Support masks are mostly retained; catalogue science remains the dominant defect. |
+
+This fresh sentinel falsifies closeout for the exact production candidate even
+though the earlier cumulative evidence passed released/master PyBDSF and
+Aegean comparisons under its scoped incumbent-retention exception. The
+sentinel's four realizations per cell cannot establish a new parity claim, but
+its predeclared one-look rule permits it to block one. Phase 5 therefore cannot
+close on `95cfc76...`, and no readiness packet or held-out qualification may be
+finalized for that candidate. The next permissible work is a prospective
+scientific root-cause review of source splitting, flux measurement, and
+position association. It must not tune, rescore, change a margin, or reuse the
+viewed sentinel as qualification data.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

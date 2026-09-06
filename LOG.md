@@ -16790,3 +16790,42 @@ two-worker retry and evaluate its atomic terminal result.
 **Immediate next step:** validate and commit the exact comparator records,
 repeat the complete no-write preflight in a clean immutable checkout, and run
 the unchanged two-worker sentinel to its atomic scientific decision.
+
+## 2026-09-07 — Complete the repaired compact sentinel with scientific failure
+
+**Plan phase:** Phase 5 closeout
+
+- Ran the checksum-bound PyBDSF-empty repair from immutable commit
+  `0830ccd...` after its complete no-write preflight passed. The unchanged
+  two-worker campaign completed all 168 Serial Hebog executions, 168 released
+  PyBDSF executions, and 12 existing-Dask comparisons in about 8.5 minutes.
+- All 12 Dask comparisons equal their Serial references, every paired product
+  and ownership record is valid, the exact 42-cell population is present, and
+  `pooling_used=false`. The four preceding write-once operational failures and
+  their scratch remain preserved.
+- Published the atomic terminal
+  `compact-held-out-sentinel-pybdsf-empty-repair.json`, SHA-256
+  `f542c7dbdc98bb3023efda4604d453b654c6da7bf61e5892fe528c5e601820aa`.
+  It binds candidate `95cfc76...`, source tree `8da21e86...`, configuration
+  `2c907949...`, identity review `b67d8776...`, execution decision
+  `6516d6ef...`, and the exact released-PyBDSF image digest. The terminal is
+  operationally complete and scientifically `status=fail`, `passed=false`.
+- Seven of 42 cells pass and 35 fail. Every shell and curved-filament cell
+  fails, along with 6 of 12 mixed compact/extended cells and 5 of 6 compact
+  guards. Completeness, duplicate fraction, and merge fraction pass every
+  cell. The dominant failures are integrated-flux p95 (30 cells),
+  integrated-flux median (29), split fraction (28), position median and p95
+  (25 each), absolute y-offset (22), and reliability (11). Mask failures are
+  limited to IoU (1), precision (2), and recall (3), so improved support masks
+  do not resolve the catalogue-level regressions.
+- Stopped the scheduler and both workers after clean completion. No candidate,
+  comparator, population, metric, threshold, margin, confidence rule, or
+  scientific result was changed after inspection, and no further retry was
+  started because this is terminal scientific evidence rather than a process
+  defect.
+
+**Immediate next step:** stop Phase 5 closeout for candidate `95cfc76...` and
+conduct a separately governed prospective scientific root-cause review of
+source splitting, integrated-flux measurement, and position association. The
+viewed sentinel remains regression evidence and cannot become tuning or
+qualification data.

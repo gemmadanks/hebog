@@ -689,7 +689,7 @@ remaining steps in order:
    disclose that the two pattern-level incumbent upper bounds remain
    unresolved. No future document may convert this scoped acceptance into a
    claim that every incumbent-retention confidence gate passed.
-2. [ ] **Run one compact fresh held-out sentinel for the frozen production
+2. [x] **Run one compact fresh held-out sentinel for the frozen production
    candidate.** The bounded release-blocking audit is complete in
    `phase-5-production-candidate-audit.json`: the exact source tree is
    unchanged and no correctness, safety, or public-contract defect requires a
@@ -787,6 +787,24 @@ remaining steps in order:
    science, metrics, thresholds, and margins remain unchanged. Implementation
    decision `c4e9cb03...`, identity `b67d8776...`, and expected execution
    `1f4eeef6...` bind the fourth write-once retry and all prior failures.
+
+   The repaired sentinel then completed operationally on 2026-09-07. Atomic
+   terminal SHA-256 `f542c7db...` binds the exact `95cfc76...` candidate,
+   168 fresh Hebog and 168 released-PyBDSF executions, 12 equal
+   Serial/existing-Dask comparisons, valid paired products and ownership, and
+   `pooling_used=false`. This is a terminal scientific failure: only 7 of 42
+   cells pass and 35 fail, with all 12 shell cells, all 12 curved-filament
+   cells, 6 of 12 mixed compact/extended cells, and 5 of 6 compact guard cells
+   failing at least one frozen endpoint. Completeness, duplicate fraction,
+   and merge fraction pass every cell, while the most frequent failures are
+   integrated-flux p95 (30 cells), integrated-flux median (29), split
+   fraction (28), position median and p95 (25 each), and absolute y-offset
+   (22). The write-once result remains `status=fail` and `passed=false`.
+   Therefore this checklist item records a completed falsification, not a
+   passed closeout gate. Phase 5 closeout stops here; no retry, tuning,
+   rescoring, threshold change, or readiness finalization is permitted from
+   this result. A prospective scientific root-cause review is required before
+   a new candidate or campaign can be proposed.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,
@@ -795,7 +813,9 @@ remaining steps in order:
    that its code path and identity are unchanged. Verify installed-wheel FITS
    input, catalogue/RMS/mask/diagnostic products, errors, schemas, atomic
    writes, bounded execution, retry/order invariance, and reproduction
-   commands.
+   commands. This step is blocked because item 2 completed with a scientific
+   failure; repository validation used to preserve the terminal evidence does
+   not constitute this candidate-readiness gate.
 4. [ ] **Document and finalize scientific readiness.** Update the campaign
    overview, API reference and radio-astronomer workflow, supported profiles,
    scientific interpretation, limitations, reproducibility instructions,
@@ -803,7 +823,9 @@ remaining steps in order:
    readiness packet without the deferred Rapthor profile, obtain separate
    packet-bound radio-astronomy and engineering acceptance, and publish one
    terminal readiness record. Do not prepare a version, tag, changelog, or
-   release artifact; Release Please handles the next release.
+   release artifact; Release Please handles the next release. This step is
+   blocked by the failed sentinel and must not publish a readiness record for
+   candidate `95cfc76...`.
 
 Phase 5 closes when every remaining exit-gate row and items 2--4 above pass for
 one exact candidate and the terminal readiness record is published. The
