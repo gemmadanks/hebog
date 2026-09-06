@@ -44,15 +44,13 @@ _FAILED_DECISION_SHA256 = (
     "0b4856f8347ed95b2763fd174b84eaf511a7304ba0abcc5aa00c0673799f5ee2"
 )
 _FAILED_OUTPUT = Path(
-    "benchmark-results/phase-5/"
-    "compact-held-out-sentinel-identity-repair.json"
+    "benchmark-results/phase-5/compact-held-out-sentinel-identity-repair.json"
 )
 _FAILED_OUTPUT_SHA256 = (
     "441f312f09884357b50a3167a767db583028a2bbbc369d1a34bdec6c1d236c46"
 )
 _PRIOR_RUNNER = Path(
-    "scripts/benchmark/"
-    "run_phase5_compact_held_out_sentinel_identity_repair.py"
+    "scripts/benchmark/run_phase5_compact_held_out_sentinel_identity_repair.py"
 )
 _PRIOR_RUNNER_SHA256 = (
     "37afb35dab47c4885df509fa57ac150733aa793d6afaf5fae2d0f4dc329847ec"
@@ -117,8 +115,7 @@ _FIXTURE_PATHS = {
         "test_phase5_compact_sentinel_empty_result_repair.py"
     ),
     "identity_repair": (
-        "tests/unit/validation/"
-        "test_phase5_compact_sentinel_identity_repair.py"
+        "tests/unit/validation/test_phase5_compact_sentinel_identity_repair.py"
     ),
     "parent_tooling": (
         "tests/unit/validation/"

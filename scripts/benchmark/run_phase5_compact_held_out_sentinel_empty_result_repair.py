@@ -29,56 +29,49 @@ from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[2]
 _PRIOR_RUNNER = (
-    _ROOT
-    / "scripts/benchmark/"
+    _ROOT / "scripts/benchmark/"
     "run_phase5_compact_held_out_sentinel_identity_repair.py"
 )
 _PRIOR_RUNNER_SHA256 = (
     "37afb35dab47c4885df509fa57ac150733aa793d6afaf5fae2d0f4dc329847ec"
 )
 _PRIOR_IDENTITY = (
-    _ROOT
-    / "config/contracts/"
+    _ROOT / "config/contracts/"
     "phase-5-compact-held-out-sentinel-identity-repair-review.json"
 )
 _PRIOR_IDENTITY_SHA256 = (
     "3b22cb480544e243d0eebf220662e78e273b86ef405a9027ad247eee60d956a1"
 )
 _FAILED_DECISION = (
-    _ROOT
-    / "config/contracts/"
+    _ROOT / "config/contracts/"
     "phase-5-compact-held-out-sentinel-identity-repair-execution-decision.json"
 )
 _FAILED_DECISION_SHA256 = (
     "0b4856f8347ed95b2763fd174b84eaf511a7304ba0abcc5aa00c0673799f5ee2"
 )
 _FAILED_OUTPUT = (
-    _ROOT
-    / "benchmark-results/phase-5/"
+    _ROOT / "benchmark-results/phase-5/"
     "compact-held-out-sentinel-identity-repair.json"
 )
 _FAILED_OUTPUT_SHA256 = (
     "441f312f09884357b50a3167a767db583028a2bbbc369d1a34bdec6c1d236c46"
 )
 _IDENTITY = (
-    _ROOT
-    / "config/contracts/"
+    _ROOT / "config/contracts/"
     "phase-5-compact-held-out-sentinel-empty-result-repair-review.json"
 )
 _SCRATCH = Path(
     "/private/tmp/hebog-phase5-compact-held-out-sentinel-empty-result-repair"
 )
 _OUTPUT = (
-    _ROOT
-    / "benchmark-results/phase-5/"
+    _ROOT / "benchmark-results/phase-5/"
     "compact-held-out-sentinel-empty-result-repair.json"
 )
 
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 _prior: Any = importlib.import_module(
-    "scripts.benchmark."
-    "run_phase5_compact_held_out_sentinel_identity_repair"
+    "scripts.benchmark.run_phase5_compact_held_out_sentinel_identity_repair"
 )
 _parent: Any = _prior._parent
 
@@ -161,9 +154,7 @@ def _run_hebog_empty_safe(  # noqa: PLR0913
         elapsed_seconds=monotonic() - started,
         candidate_revision=_parent._CANDIDATE_REVISION,
         runtime_identity={
-            "configuration_sha256": (
-                _parent._CANDIDATE_CONFIGURATION_SHA256
-            ),
+            "configuration_sha256": (_parent._CANDIDATE_CONFIGURATION_SHA256),
             "source_tree_sha256": _parent._CANDIDATE_SOURCE_TREE_SHA256,
         },
     )

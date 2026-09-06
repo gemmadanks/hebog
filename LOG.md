@@ -16692,3 +16692,30 @@ consume the approved retry once under two workers.
 empty-result repair identity and write-once namespace, commit it, repeat the
 complete immutable no-write preflight, and run the unchanged two-worker
 sentinel under the user's explicit approval of all required retries.
+
+## 2026-09-06 — Authorize the compact sentinel empty-result retry
+
+**Plan phase:** Phase 5 closeout
+
+- The first freeze correctly remained unused when the tracked-file hook
+  canonicalized three newly added Python programs. Refroze their semantically
+  identical formatted bytes as implementation decision SHA-256 `c02fee99...`,
+  replacement identity SHA-256 `c7a57be2...`, and unchanged expected execution
+  SHA-256 `64671f76...`. The identity binds both preserved operational
+  failures, the unchanged candidate,
+  168-image seed-disjoint manifest, released-PyBDSF image, scientific compiler
+  and evaluator, 12 existing-Dask comparisons, and all repair fixtures.
+- Complete no-write preflight passed with 11.6 GiB free, all 168 prospective
+  seeds disjoint from 20,917 historical seeds across 46 manifests, the exact
+  released-PyBDSF container and dependency inventory, and zero finder
+  executions.
+- Recorded the user's standing evaluator-repair and all-retries authority in
+  one-use execution decision SHA-256 `37118fed...`. Candidate science,
+  PyBDSF configuration, metrics, thresholds, margins, tuning, rescoring,
+  optimization, cutover, release, and viewed-data execution remain unchanged
+  or unauthorized.
+
+**Immediate next step:** commit the exact replacement records, create a clean
+immutable checkout, repeat the complete no-write preflight there, and consume
+the two-worker retry once. Preserve and report any further terminal process or
+scientific outcome without overwriting prior evidence.

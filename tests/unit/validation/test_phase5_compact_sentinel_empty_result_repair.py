@@ -18,13 +18,11 @@ from astropy.io import fits
 
 _ROOT = Path(__file__).parents[3]
 _RUNNER = (
-    _ROOT
-    / "scripts/benchmark/"
+    _ROOT / "scripts/benchmark/"
     "run_phase5_compact_held_out_sentinel_empty_result_repair.py"
 )
 _FREEZER = (
-    _ROOT
-    / "scripts/validation/"
+    _ROOT / "scripts/validation/"
     "freeze_phase5_compact_sentinel_empty_result_repair.py"
 )
 
@@ -74,6 +72,7 @@ def test_runner_compiles_valid_public_empty_result(
             return None
 
     monkeypatch.setattr(parent, "_captured_science", Capture)
+
     def find_empty(*_args: object, **_kwargs: object) -> SimpleNamespace:
         return _empty_result()
 
@@ -147,6 +146,7 @@ def test_runner_rejects_inconsistent_missing_terminal_state(
             return None
 
     monkeypatch.setattr(parent, "_captured_science", Capture)
+
     def find_inconsistent(
         *_args: object, **_kwargs: object
     ) -> SimpleNamespace:
@@ -191,9 +191,8 @@ def test_runner_preserves_nonempty_stable_ownership_linkage(
             return None
 
     monkeypatch.setattr(parent, "_captured_science", Capture)
-    def find_nonempty(
-        *_args: object, **_kwargs: object
-    ) -> SimpleNamespace:
+
+    def find_nonempty(*_args: object, **_kwargs: object) -> SimpleNamespace:
         return SimpleNamespace(
             source_count=1,
             gaussian_component_count=1,
@@ -294,8 +293,7 @@ def test_empty_repair_review_records_exact_user_authority() -> None:
     """Retry permission must not broaden into a science change."""
     review = json.loads(
         (
-            _ROOT
-            / "config/contracts/"
+            _ROOT / "config/contracts/"
             "phase-5-compact-held-out-sentinel-empty-result-repair-"
             "pre-review.json"
         ).read_text(encoding="utf-8")
