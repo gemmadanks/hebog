@@ -1,0 +1,127 @@
+{
+  "authorization": {
+    "another_replay": false,
+    "current_hebog_execution": false,
+    "cutover": false,
+    "existing_dask_comparison": false,
+    "held_out_execution": false,
+    "optimization": false,
+    "release": false,
+    "released_pybdsf_execution": false,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "entrypoint": "hebog.find_sources",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "comparator": {
+    "container_digest": "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198",
+    "dependency_inventory_sha256": "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+    "finder_id": "released-pybdsf",
+    "image_id": "43a6513865a597285dc1bf473e27fc69fdd86fb143c35a24144eb6c1152bb36e",
+    "version": "1.14.1"
+  },
+  "execution_contract": {
+    "caller_owned_dask_comparisons": 12,
+    "current_hebog_serial_executions": 168,
+    "released_pybdsf_executions": 168,
+    "total_finder_executions": 348,
+    "worker_concurrency": 2,
+    "write_once_output": "benchmark-results/phase-5/compact-held-out-sentinel.json"
+  },
+  "expected_execution": {
+    "dask_scheduler_address_present": true,
+    "identity_review": "config/contracts/phase-5-compact-held-out-sentinel-identity-review.json",
+    "manifest": "config/datasets/phase-5-compact-held-out-sentinel.json",
+    "output": "benchmark-results/phase-5/compact-held-out-sentinel.json",
+    "scratch": "/private/tmp/hebog-phase5-compact-held-out-sentinel",
+    "workers": 2
+  },
+  "expected_execution_sha256": "df6b831b4eda14a9740aa09f6a8d0ebf152edd9778e98f13ff0cf660fac897ee",
+  "fixture_bindings": {
+    "closeout": {
+      "path": "tests/unit/validation/test_phase5_compact_closeout.py",
+      "sha256": "771c88fa26ed3f07dad48867179c1cf368fc2a066d58da97fb086ae7976c9c26"
+    },
+    "sentinel_tooling": {
+      "path": "tests/unit/validation/test_phase5_compact_held_out_sentinel_tooling.py",
+      "sha256": "7a570b073c3096bddc2d283c149876fd1833c73d0c4dbcd3be22e482e0fecea9"
+    }
+  },
+  "identity_review_id": "phase-5-compact-held-out-sentinel-identity-review",
+  "implementation": {
+    "path": "config/contracts/phase-5-compact-held-out-sentinel-implementation-decision.json",
+    "sha256": "e6f587715bdb78d442cb29cd5d2edb9ea03f077019ae6544c8cb514f624847e8"
+  },
+  "manifest": {
+    "path": "config/datasets/phase-5-compact-held-out-sentinel.json",
+    "sha256": "1dc84802f4a59848d91d6ca7af8c3795770330f4d816f337135bf18f3171feb2"
+  },
+  "population": {
+    "cell_count": 42,
+    "image_count": 168,
+    "role": "qualification",
+    "seed_audit": {
+      "historical_manifest_count": 46,
+      "historical_registry_canonical_sha256": "47aca0c78cd75b2e336148baa89a2354a72900c19ea84b3145788c1de519c160",
+      "historical_seed_count": 20917,
+      "prospective_seed_count": 168,
+      "seed_disjoint": true
+    }
+  },
+  "pre_review": {
+    "path": "config/contracts/phase-5-compact-held-out-sentinel-pre-review.json",
+    "sha256": "370d39a593862c629dc277f848da6d3d0d39166965b130cea8760eea02280f12"
+  },
+  "program_bindings": {
+    "compiler": {
+      "path": "scripts/validation/compile_phase5_compact_held_out_sentinel.py",
+      "sha256": "7286fbd4e7e5afbe86c87456e52cf490ae7150e41ccf1dfd57b9e9d69ab47aa2"
+    },
+    "endpoint_metrics": {
+      "path": "src/hebog/validation/external_successor_compiler.py",
+      "sha256": "8e38de3b4347faee9636b89d03f8cdcdd77e39fd1e087d2b44454e5fd7063c55"
+    },
+    "evaluator": {
+      "path": "scripts/validation/evaluate_phase5_compact_held_out_sentinel.py",
+      "sha256": "6f2a05fbc1fbe66781f72554b53b94e83d6754b0809043c214d36493f8e83bfd"
+    },
+    "freezer": {
+      "path": "scripts/validation/freeze_phase5_compact_held_out_sentinel.py",
+      "sha256": "3ecc4ac075c9c91ddc47142249ea50e75dcfd34b0b7846d7d859dd2916f05ce1"
+    },
+    "population": {
+      "path": "scripts/validation/phase5_compact_held_out_sentinel.py",
+      "sha256": "c1d78ec646771f32e57df40c7d56bb9539f348802be3f90016035e3a8956d23c"
+    },
+    "public_facade": {
+      "path": "src/hebog/public_api.py",
+      "sha256": "86f8b6c284cb74471ccc7c2167c4b5800f870ea9cbc2e5c1b7ba9dfc1b10f7d2"
+    },
+    "public_runner_identity": {
+      "path": "scripts/benchmark/run_phase5_public_finder_hebog.py",
+      "sha256": "8aca6683b22f569dc4efad022275893c6ecb7f5ad7764f0e93420709dda23573"
+    },
+    "pybdsf_child": {
+      "path": "scripts/benchmark/run_phase5_compact_held_out_pybdsf.py",
+      "sha256": "a2280496bd92634928ce8740b6cc7c4fa8a842c204f5bc0b6b4c45df4a23fc82"
+    },
+    "runner": {
+      "path": "scripts/benchmark/run_phase5_compact_held_out_sentinel.py",
+      "sha256": "a29823c1341bd44ab2fcaaa6990dc19e25b47f669c6dddecf78d9e1af956d3b2"
+    },
+    "science_profile": {
+      "path": "src/hebog/resources/phase_5_continuum_review.json",
+      "sha256": "b7bcf5d85cef13fea7a32a4128ab7cb89f1a90bb8f4e066ab3cda618aae2220b"
+    },
+    "truth_compiler": {
+      "path": "src/hebog/validation/phase_five_filter_review.py",
+      "sha256": "06cd8a0dfb39a23840f336023d49ab382468c5089993553c380babe89b301dcf"
+    }
+  },
+  "status": "frozen-non-executable"
+}

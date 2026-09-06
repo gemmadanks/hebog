@@ -1743,6 +1743,71 @@ incumbent-only question, preserve every frozen gate, and fit the requested
 sub-12-hour closeout envelope. It must be frozen before any new realization
 is viewed or executed.
 
+## Cumulative uncertainty acceptance and compact closeout design
+
+**Decision date:** 2026-09-06
+
+**Evidence role:** human acceptance of a narrow residual uncertainty for
+progression, followed by a production audit and a non-executable fresh-sentinel
+design
+
+The terminal cumulative decision above remains exactly `incomplete`. Its four
+underpowered aliases, two distinct incumbent position-p95 evidence patterns,
+false readiness flags, margins, and confidence limits have not been changed or
+relabelled. The scientific owner decided that the 4,608-image independently
+powered incumbent-only confirmation was not proportionate before closeout:
+both point movements are inside `0.05` beam, the overall position-p95 upper
+bound passes, 364 of 368 incumbent checks pass, and every released/master
+PyBDSF, Aegean, and safety comparison passes with zero scientific failures.
+This is a scoped uncertainty acceptance, not a statistical pass or permission
+to claim fully powered incumbent non-inferiority. Exact acceptance record
+SHA-256 is `a33635b5...`.
+
+A bounded review of the exact `95cfc76...` production source tree then found no
+release-blocking correctness, safety, or public-contract defect. The installed
+top-level `hebog.find_sources` path, public records, write-once materialization,
+reference profile, invalid-input behavior, and Serial/existing-Dask semantics
+are covered by the focused 141-test public/science matrix; Ruff and Pyright are
+clean. The candidate source remains `8da21e86...`, so none of the cumulative
+science is invalidated. Two non-blocking improvements are disclosed for later
+work: make the user-result composition digest transitive rather than curated,
+and move stable production composition out of the `hebog.validation`
+namespace. The cumulative and future terminal records already bind the full
+source tree, so neither issue can misidentify this governed candidate. Exact
+audit SHA-256 is `e8b8fe92...`.
+
+The remaining fresh check is deliberately small. Non-executable pre-review
+`370d39a5...` specifies 168 new seed-disjoint images: all 36 known
+adaptive-background risk cells at four realizations each, plus six compact
+public-contract guard cells at four realizations each. The exact public Hebog
+candidate and Rapthor's released PyBDSF `1.14.1` reference account for 336
+runs; 12 representative caller-owned Dask comparisons bring the total to 348.
+Pinned-master PyBDSF, Aegean, compact, and incumbent evidence is retained from
+the cumulative campaign without reexecution. The sentinel is expected to take
+one to four hours, has an eight-hour ceiling and an 8-GiB free-space preflight,
+and may not open until its generator, manifest, runtimes, evaluator, one-look
+rules, immutable checkout, and write-once output are exactly frozen. Because
+four realizations per cell are not a powered non-inferiority study, the
+sentinel can falsify closeout but cannot independently create the parity claim.
+
+That implementation is now complete without opening an input. Frozen identity
+review `0b3872816338e4012af72d56e5dcf8fc2936e1dd872352d0930979d06cac21b0`
+binds manifest
+`1dc84802f4a59848d91d6ca7af8c3795770330f4d816f337135bf18f3171feb2`,
+implementation decision
+`e6f587715bdb78d442cb29cd5d2edb9ea03f077019ae6544c8cb514f624847e8`,
+and expected execution
+`df6b831b4eda14a9740aa09f6a8d0ebf152edd9778e98f13ff0cf660fac897ee`.
+The 42-cell manifest includes 144 extended-risk images and 24 compact guards,
+including unequal two-peak, connected three-peak tile-corner, non-square
+varying-noise, edge, near-threshold, and invalid-pixel cases. Fourteen focused
+tests pass. The complete no-write preflight verified all 168 seeds are disjoint
+from 20,917 historical seeds across 46 manifests, verified the exact
+released-PyBDSF image and dependency inventory, found 12.9 GiB free, and
+confirmed that no finder execution or output publication began. The identity
+is deliberately non-executable: a separate exact one-use decision and human
+approval are required before the unopened population may be generated.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

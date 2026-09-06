@@ -16453,3 +16453,100 @@ PyBDSF work for this incumbent-only question, preserve every margin and
 confidence rule, and keep the closeout execution within the requested
 sub-12-hour and bounded-storage envelope. Do not open held-out qualification
 until this binding retention gate passes.
+
+## 2026-09-06 — Accept bounded cumulative uncertainty for progression
+
+**Plan phase:** Phase 5 closeout
+
+- Recorded the scientific owner's decision not to run the independently
+  powered 4,608-image incumbent-only confirmation because it is not quick and
+  has limited additional release-decision value after complete dual-PyBDSF and
+  Aegean parity, zero failures, 364 of 368 incumbent passes, and both unresolved
+  point movements inside the frozen `0.05`-beam margin.
+- Preserved the atomic cumulative result exactly as `incomplete`, including
+  `cumulative_science_regression_ready=false`,
+  `all_required_endpoints_pass=false`, and the two unresolved pattern-level
+  upper bounds. Acceptance record `a33635b5...` explicitly forbids describing
+  the exception as a statistical pass or fully powered incumbent
+  non-inferiority.
+- The acceptance permits only bounded production-audit and fresh-sentinel
+  design progression. It authorizes no candidate, incumbent, PyBDSF, viewed
+  data, held-out, tuning, rescoring, cutover, or release execution.
+
+## 2026-09-06 — Pass the production audit and design a compact sentinel
+
+**Plan phase:** Phase 5 closeout
+
+- Audited exact public candidate `95cfc76...`, source tree `8da21e86...`, and
+  configuration `2c907949...` across the installed top-level facade, public
+  records, source composition, error paths, atomic materialization, and
+  Serial/caller-owned Dask semantics. The focused public/science suite passes
+  141 tests with 98% branch coverage across the exact path; Ruff and Pyright
+  are clean. Audit `e8b8fe92...` records zero release-blocking findings and no
+  package-source change, so the cumulative candidate identity remains valid.
+- Deferred two non-blocking hardening tasks: replace the curated user-result
+  composition digest with a transitive manifest, and move stable production
+  composition out of the `hebog.validation` namespace. Exact campaign records
+  already bind the full source tree and exact public identity, so neither debt
+  can silently substitute a different qualified candidate.
+- Replaced the oversized qualification design with non-executable pre-review
+  `0a3ab8b...`: 168 fresh seed-disjoint 512-pixel images, comprising all 36
+  known adaptive-background risk cells plus six compact public-contract guard
+  cells at four realizations each. It proposes 168 current-Hebog Serial runs,
+  168 Rapthor-relevant released-PyBDSF runs, and 12 existing-Dask comparisons,
+  for 348 executions total.
+- The prior 1,688-image/five-run qualification required about 13.2 hours. The
+  compact sentinel is conservatively expected to complete in one to four
+  hours, has an eight-hour ceiling, requires at least 8 GiB free, and retains
+  pinned-master PyBDSF, Aegean, compact, and incumbent cumulative evidence
+  without reexecution. It is a fresh falsification gate, not a standalone
+  powered parity study.
+
+**Immediate next step:** implement the seed-disjoint manifest, compact guard
+recipes, runner, compiler, evaluator, and exhaustive no-write preflight
+test-first. Freeze their exact non-executable identities and confirm the
+runtime/storage envelope before opening any held-out input.
+
+## 2026-09-06 — Freeze the compact held-out closeout sentinel
+
+**Plan phase:** Phase 5 closeout
+
+- Implemented the prospective 42-cell sentinel test-first without executing
+  Hebog, PyBDSF, Dask, or any held-out realization. The 168-image manifest
+  covers every adaptive-background risk cell plus near-threshold, bright-edge,
+  unequal-two-peak, connected-three-peak tile-corner, non-square varying-noise,
+  and invalid-pixel compact guards.
+- The exact public Hebog path runs 168 times under Serial, the exact
+  Rapthor-relevant released PyBDSF `1.14.1` image runs 168 times in isolation,
+  and 12 representative cases compare Serial with a caller-owned existing Dask
+  scheduler. The compiler retains only array-free truth-linked summaries and
+  the evaluator requires every cell-level practical-margin and safety check;
+  no pooling may hide a failure and all absolute targets remain report-only.
+- Caught and corrected three process-only defects before freezing: a
+  fresh-interpreter repository import path, redundant type casts, and an
+  evaluator shortcut that accepted unstructured truthy tokens instead of an
+  explicit Serial/Dask equality record. The final focused matrix passes 14
+  tests; Ruff, Ruff formatting, and Pyright pass.
+- Complete no-write preflight passes with exact released-PyBDSF container and
+  dependency identities, 168 prospective seeds disjoint from 20,917 historical
+  seeds across 46 manifests, 12.9 GiB free, and zero finder executions.
+  Pre-review SHA-256 is `370d39a5...`, implementation decision SHA-256 is
+  `e6f58771...`, manifest SHA-256 is `1dc84802...`, identity-review SHA-256 is
+  `0b387281...`, and expected execution SHA-256 is `df6b831b...`.
+- Final validation passes 15 focused identity, evaluator, closeout, and dataset
+  checks; branch-aware coverage passes 2,850 tests with 45 intentional
+  deselections, two expected failures, and 94.84% coverage; all 27 compact
+  equivalence tests pass; and the strict documentation build passes. The
+  normal `just check` gates and equivalent quick-test selection pass. The
+  complete `just pre-commit` suite also passes when the already-published
+  historical cumulative output is reversibly isolated to reproduce its
+  pre-publication lifecycle fixture; that 131 MB output was restored with its
+  original `fe4afbe9...` SHA-256 immediately afterward.
+
+**Immediate next step:** obtain human review and exact approval of identity
+`0b387281...` and expected execution `df6b831b...`, then freeze a one-use
+execution decision and run the single two-worker sentinel. Its expected wall
+time is one to four hours with an eight-hour ceiling. The cumulative decision
+remains `incomplete`; a passing sentinel must be interpreted jointly with that
+powered cumulative evidence and cannot become a standalone powered parity
+claim.

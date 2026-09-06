@@ -1,0 +1,172 @@
+{
+  "candidate": {
+    "configuration_sha256": "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d",
+    "revision": "95cfc76ded56556dc3ad6894410962d34f0d5604",
+    "source_tree_sha256": "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
+  },
+  "claim_boundary": {
+    "cumulative_evidence_remains_primary": true,
+    "purpose": "A fresh falsification check for candidate-specific overfitting, known repaired geometries, public-facade failures, and comparator reversals.",
+    "standalone_powered_parity_claim": false,
+    "supported_closeout_claim": "When conjoined with the sealed 2,400-image cumulative result, a pass supplies fresh seed-disjoint evidence that the exact public candidate remains at least as scientifically useful as Rapthor's released PyBDSF reference on the explicitly sampled risk cells."
+  },
+  "comparator_scope": {
+    "fresh": [
+      {
+        "finder_id": "current-hebog",
+        "interface": "installed hebog.find_sources",
+        "role": "candidate"
+      },
+      {
+        "container_digest": "sha256:5310afe78c8fc09ed99ddee1c6978e5e32181b69f1d22432a02ef6e3a6761198",
+        "dependency_inventory_sha256": "8211043e9fca55d706d1e890e2bf0b630e228a854db0949258c498506975669f",
+        "finder_id": "released-pybdsf",
+        "role": "Rapthor-relevant comparator",
+        "version": "1.14.1"
+      }
+    ],
+    "retained_without_reexecution": [
+      "pinned-pybdsf-master cumulative parity",
+      "Aegean cumulative parity",
+      "selected-incumbent Hebog cumulative retention with the disclosed two-pattern confidence limitation",
+      "800-image compact cumulative regression"
+    ],
+    "rationale": "Reexecuting every historical comparator would reproduce the oversized campaign. Fresh released-PyBDSF comparison directly answers the initial Rapthor replacement question; the sealed cumulative population already passed both PyBDSF references and Aegean."
+  },
+  "decision_policy": {
+    "binding_checks": [
+      "every finder run succeeds and publishes a valid finite write-once summary",
+      "every one of 36 extended-risk cells passes the existing product-validity and ownership safety rules",
+      "every one of six compact guard cells passes the existing product-validity and ownership safety rules",
+      "cell-median Hebog movement versus released PyBDSF stays within every predeclared practical margin",
+      "no sampled geometry exhibits a material completeness, reliability, flux, position, support, split, duplicate, or topology regression",
+      "all 12 caller-owned existing-Dask comparisons are identical to Serial"
+    ],
+    "confidence_interpretation": "Four realizations per cell are a deterministic small-sample sentinel, not a powered non-inferiority study. Formal parity and uncertainty claims come from the sealed cumulative evidence.",
+    "failure_action": "Stop Phase 5 closeout and open a prospective root-cause review. Do not tune, rescore, replace a margin, add samples adaptively, or rerun the one-look result.",
+    "one_look_rule": "one terminal look with no tuning, rescoring, adaptive sample size, or reconfirmation",
+    "pooling_may_hide_failure": false,
+    "trade_off_rule": "A small movement is acceptable only inside its already frozen practical margin while released-PyBDSF parity and product-safety gates pass; absolute objectives remain reported long-term targets rather than binding closeout gates."
+  },
+  "execution_authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "held_out_execution": false,
+    "pybdsf_execution": false,
+    "release": false,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "execution_budget": {
+    "caller_owned_dask_comparisons": 12,
+    "current_hebog_serial_executions": 168,
+    "maximum_completion_window_hours": 8,
+    "minimum_free_disk_gib": 8,
+    "released_pybdsf_executions": 168,
+    "total_finder_executions": 348,
+    "worker_concurrency": 2
+  },
+  "implementation_requirements": [
+    "generate and verify the complete manifest without running or viewing an image",
+    "prove all 168 seeds remain disjoint from every checked-in development, regression, and qualification manifest",
+    "reuse the established analytic Gaussian-noise-v3 generator and reviewed truth compiler rather than introducing a new scientific implementation",
+    "bind the exact candidate, released-PyBDSF runtime, manifest, public runner, compiler, evaluator, endpoint rules, immutable checkout, and write-once output",
+    "exercise all 168 Hebog cases through the installed top-level public facade under Serial and 12 representative cases through one caller-owned two-worker Dask executor",
+    "retain array-free per-image truth, catalogue, support, flux, position, topology, runtime, and provenance summaries",
+    "run a complete no-write preflight and confirm at least 8 GiB free before opening the one-use execution",
+    "publish one atomic terminal decision and treat any scientific or operational failure as terminal evidence"
+  ],
+  "next_action": "Implement the manifest generator, compact guard recipes, runner, compiler, evaluator, and complete no-write preflight test-first; then freeze exact non-executable identities for one final review.",
+  "population": {
+    "compact_guard_cells": [
+      {
+        "cell_id": "compact-isolated-near-threshold-interior",
+        "risk": "low-SNR threshold crossing and false-negative control"
+      },
+      {
+        "cell_id": "compact-isolated-bright-image-edge",
+        "risk": "image-edge astrometry, shape, and flux"
+      },
+      {
+        "cell_id": "compact-unequal-two-peak-connected",
+        "risk": "close-blend deblending and component retention"
+      },
+      {
+        "cell_id": "compact-three-peak-connected-tile-corner",
+        "risk": "multi-peak topology and tile-corner invariance"
+      },
+      {
+        "cell_id": "compact-non-square-varying-noise",
+        "risk": "non-square geometry and adaptive local noise"
+      },
+      {
+        "cell_id": "compact-invalid-pixel-boundary",
+        "risk": "invalid-pixel exclusion and boundary ownership"
+      }
+    ],
+    "compact_guard_image_count": 24,
+    "extended_risk_design": "Seed-disjoint analogue of all 36 reviewed adaptive-background cells: 12 morphology/beam/noise/scale/placement geometries at below, boundary, and above the 75-sigma trigger.",
+    "image_count": 168,
+    "image_shapes_yx": [
+      [
+        384,
+        512
+      ],
+      [
+        512,
+        512
+      ]
+    ],
+    "independent_unit": "whole noise-seed image",
+    "known_risk_image_count": 144,
+    "maximum_image_shape_yx": [
+      512,
+      512
+    ],
+    "noise_realizations_per_cell": 4,
+    "role": "qualification",
+    "seed_audit": {
+      "historical_manifest_count": 46,
+      "historical_registry_canonical_sha256": "47aca0c78cd75b2e336148baa89a2354a72900c19ea84b3145788c1de519c160",
+      "historical_seed_count": 20917,
+      "prospective_seed_count": 168,
+      "seed_disjoint": true
+    },
+    "seed_range": [
+      2026970001,
+      2026970168
+    ]
+  },
+  "progression_bindings": [
+    {
+      "path": "config/contracts/phase-5-cumulative-retention-risk-acceptance.json",
+      "sha256": "a33635b50d9a0b8bca63be5ef9e1d5b4e097a868c87c029ebdb552be4e05c68b"
+    },
+    {
+      "path": "config/contracts/phase-5-production-candidate-audit.json",
+      "sha256": "e8b8fe9230d5da12990dd654b84ef5763be3434ee66a15b9b9c3aeca09224445"
+    },
+    {
+      "path": "config/contracts/phase-5-public-publication-owner-domain-identity-review.json",
+      "sha256": "2920873aa430086d8b12a2092ac7f70bb59dc756c3a70b03db7e7f0708fb0611"
+    },
+    {
+      "path": "config/contracts/phase-5-adaptive-background-development-pre-review.json",
+      "sha256": "6287ad3ef734c91142637142f04abebfb7226253e9e49060af686fe07292eed4"
+    }
+  ],
+  "resource_rationale": {
+    "comparison_with_prior_qualification": "The historical 1,688-image, five-run-per-image qualification took about 13.2 hours. This sentinel has one tenth as many images and 348 total executions rather than 8,440.",
+    "expected_elapsed_hours": [
+      1,
+      4
+    ],
+    "expected_retained_storage_gib_maximum": 3,
+    "safety_action": "Do not open execution if the immutable preflight cannot demonstrate completion inside eight hours and within the 8 GiB minimum-free-space envelope."
+  },
+  "review_id": "phase-5-compact-held-out-sentinel-pre-review",
+  "schema_version": 1,
+  "scientific_question": "Does the exact qualified Hebog public candidate remain scientifically no worse than Rapthor's released PyBDSF reference on a small fresh seed-disjoint sample of every known repaired extended geometry plus compact public-contract guards?",
+  "status": "prospectively-designed-non-executable"
+}
