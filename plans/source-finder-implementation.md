@@ -630,7 +630,7 @@ authorization boundaries remain in `config/contracts/`.
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Pass. Unequal-Gaussian, connected two- and three-peak, exact seed-boundary/no-seed retention, disconnected recovery, edge/corner, thin horizontal/vertical, non-square, empty, invalid-input, label-invariance, support-union, exact synthetic notebook-runner, public-composition, full coverage, and compact-equivalence gates pass. Version-8 terminal `a274888d...` passes 12/12 binding geometry groups, the trigger seam, and 12/12 Serial/existing-Dask comparisons; four non-binding improvement misses remain reported. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Pass for the development and cumulative-product gates. Candidate `95cfc76...`, source tree `8da21e86...`, and unchanged configuration `2c907949...` pass component-topology, publication-owner-domain, synthetic exact-runner, installed-wheel, compact-equivalence, source/composition identity, and the exact two-worker fast lane. Notebook identity `2920873a...` remains non-executable. Product set `f43cb274...` seals all 2,400 cumulative outputs. |
 | Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, applicable Aegean checks, and hard safety rules. Incumbent comparisons must show no observed movement beyond their practical margin; any unresolved confidence exception must be explicit and human accepted rather than pooled away or relabelled. | Accepted with one declared residual-uncertainty exception. Atomic decision `8d69ef44...` has 1,183 passes and zero failures, including every compact, Aegean, dual-PyBDSF, and safety comparison. Four Continuum incumbent position-p95 aliases, representing two patterns, remain underpowered; their point movements (`0.003013` and `0.013073` beam) and the overall upper bound (`0.036636` beam) are inside the `0.05`-beam margin, while pattern upper bounds exceed it by `0.006371` and `0.004222` beam. The 2026-09-06 human decision accepts that narrow uncertainty for Phase 5 progression and skips the multi-hour 4,608-image confirmation. The terminal JSON remains `incomplete`, and no claim of fully powered incumbent non-inferiority is permitted. |
-| Fresh scientific qualification | A small prospective falsification sentinel complements, but does not replace, the powered 2,400-image cumulative evidence. On unopened seed-disjoint data, the exact public Hebog candidate must pass every known-risk extended and compact guard cell, hard safety rule, released-PyBDSF practical comparison margin, and Serial/existing-Dask check. Retain the already passing pinned-master PyBDSF, Aegean, compact, and incumbent evidence without reexecution. No pooled result may hide a failed cell, and the sentinel alone must not be described as a powered parity study. | Empty-result repair authorized; execution pending. The unchanged 168-image sentinel reached 145 completed pairs under identity repair `3b22cb48...`, then published `operational-fail` because its wrapper rejected the public API's documented empty result when private terminal products were absent. This is not scientific evidence. Canonical replacement identity `c7a57be2...` and expected execution `64671f76...` preserve all science and bind a distinct write-once retry under the user's standing authority. |
+| Fresh scientific qualification | A small prospective falsification sentinel complements, but does not replace, the powered 2,400-image cumulative evidence. On unopened seed-disjoint data, the exact public Hebog candidate must pass every known-risk extended and compact guard cell, hard safety rule, released-PyBDSF practical comparison margin, and Serial/existing-Dask check. Retain the already passing pinned-master PyBDSF, Aegean, compact, and incumbent evidence without reexecution. No pooled result may hide a failed cell, and the sentinel alone must not be described as a powered parity study. | Source-aligned replacement frozen; exact execution approval pending. The first completed 168-image sentinel is immutable failed evidence because its evaluator mixed source, component, and island semantics. After approved prospective review and fixture-only repair, identity `7d133492...` binds a new 168-image seed-disjoint population, schema-v3 source-union evidence, the unchanged frozen gates, 12 Serial/existing-Dask comparisons, and expected execution `c897af7c...`. Every execution authorization remains false. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
 | Documentation and handoff | User documentation, limitations, reproducibility, provenance index, campaign overview, and the Phase 6 handoff describe exactly what passed and what remains unqualified. | Open. Release preparation is intentionally excluded; Release Please owns it. |
@@ -903,10 +903,31 @@ remaining steps in order:
    source/Gaussian membership, reused local IDs, exact ties, zero-owned
    sources, fitless-only and mixed islands, row and completion order, invalid
    owner planes, and retained-evidence tampering. This is prospective contract
-   evidence only: neither finder was executed, viewed results were not
-   rescored, and no new sentinel identity was frozen. The next governed step
-   is a separate prospective freeze of a new seed-disjoint sentinel identity,
-   followed by exact one-use execution approval.
+   evidence only: neither finder was executed and viewed results were not
+   rescored.
+
+   The separate successor freeze is now complete. New manifest
+   `phase-5-compact-held-out-source-union-sentinel` contains the unchanged 42
+   reviewed cells on 168 fresh, historically disjoint seeds
+   `2026971001..2026971168`. The isolated PyBDSF child is prospectively bound
+   to native `srl` source rows, `gaul` components, island ownership, and its
+   derived source-union owner plane; all five products must hash-match before
+   the parent can compile schema-v3 evidence. The Hebog arm binds its native
+   associated sources and measurement-component ownership to the same
+   analytic truth compiler. Both arms retain components as diagnostic-only,
+   and fitless PyBDSF islands remain binding binary support without fabricated
+   sources. Valid schema-free zero-row PyBDSF source and Gaussian catalogues
+   are accepted only as the jointly empty case, while their native fitless
+   island support remains represented explicitly as unowned.
+
+   Identity review SHA-256 `7d133492...`, implementation decision
+   `c84f47f4...`, and manifest `1c2ce27a...` pass the complete no-write
+   contract. Expected execution SHA-256 is `c897af7c...`: exactly 168 current
+   Hebog Serial executions, 168 released-PyBDSF executions, 12 caller-owned
+   existing-Dask comparisons, two workers, and one new atomic terminal. All
+   execution authorizations remain false. The next governed step is exact
+   one-use human approval of that identity and expected execution; the old
+   viewed terminal and decisions cannot authorize it.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,

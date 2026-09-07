@@ -17020,3 +17020,54 @@ pass.
 fixture-only change, freeze a new seed-disjoint sentinel identity in a separate
 prospective step and obtain exact one-use approval before executing either
 finder. Do not rescore the viewed sentinel terminal.
+
+## 2026-09-07 — Freeze the source-aligned compact held-out sentinel
+
+**Plan phase:** Phase 5 closeout
+
+- Added red-first successor contracts for a new seed-disjoint qualification
+  population, native PyBDSF `srl`/`gaul` source projection, complete no-write
+  verification, execution-authority separation, immutable program bindings,
+  and collision-safe freezing. The initial five failures were solely the
+  absence of the new population, child, runner, freezer, and records.
+- Cloned the unchanged 42 reviewed extended and compact guard cells onto 168
+  never-used seeds `2026971001..2026971168`. The metadata-only audit binds 47
+  historical manifests, 21,085 prior seeds, and canonical registry SHA-256
+  `39644fb6...`; no image was generated while freezing the population.
+- Added a future isolated PyBDSF child that will persist and hash-bind native
+  source and Gaussian catalogues, native island labels, a derived source-union
+  label plane, and an array-free projection. Its pure table adapter transforms
+  fitted sky ellipses through the local WCS Jacobian, uses the approved summed
+  Gaussian-model dominance rule within multi-source islands, and preserves
+  whole fitless islands as explicitly unowned source topology. A red-first
+  regression also reproduces PyBDSF's valid schema-free zero-row catalogues;
+  the adapter now accepts that form only when both catalogues are empty and
+  still retains native fitless islands as unowned support.
+- Added a future two-worker parent runner that compares both finders to the
+  same analytic truth. Hebog uses terminal associated-source rows and exact
+  measurement-component membership; released PyBDSF uses native source rows
+  and the child-derived union plane. Schema-v3 source metrics and binary-mask
+  metrics are binding, components remain diagnostic-only, and the exact
+  frozen parent evaluator retains every existing threshold and margin.
+- Froze manifest SHA-256 `1c2ce27a...`, implementation decision SHA-256
+  `c84f47f4...`, and non-executable identity-review SHA-256 `7d133492...`.
+  Expected execution SHA-256 is `c897af7c...`: 168 Hebog Serial runs, 168
+  released-PyBDSF runs, 12 existing-Dask comparisons, two workers, and one
+  distinct atomic terminal. Every authorization in the identity is false;
+  no execution decision was created and neither finder was run.
+- The six new successor contracts and all 83 focused population, alignment,
+  adapter, review, retained-evidence, and Serial/Dask fixture cases pass.
+  Focused Ruff and Pyright are clean. The complete no-write preflight passes
+  over all 168 seeds and the pinned released-PyBDSF image with 12.56 GiB free;
+  it reports `finder_execution_started=false` and writes nothing.
+- Repository-wide coverage passes 2,973 tests with 45 deselected and two
+  expected failures at 94.85% branch-aware coverage. `just check` passes Ruff,
+  Pyright, doctests, and 2,789 tests with 229 deselected and two expected
+  failures; `just test-equivalence` passes all 27 cases and the strict docs
+  build passes. An initial `just check` stopped on one Ruff formatting change
+  in the freezer; after formatting, the bound records were regenerated, their
+  replacement hashes recorded above, and every affected validation rerun.
+
+**Immediate next step:** after repository-wide validation and review, obtain
+exact one-use human approval of identity `7d133492...` and expected execution
+`c897af7c...`. Do not reuse a prior decision or rescore the viewed sentinel.
