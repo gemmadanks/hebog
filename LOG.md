@@ -17366,3 +17366,32 @@ history availability and error reporting, not the Phase 5 scientific outcome.
 **Immediate next step:** prepare R0's prospective scientific repair contract.
 The test-isolation blocker is resolved; scientific fixes and new campaigns
 are not authorized or performed by this engineering repair.
+
+## 2026-09-07 — Authorize R0--R6 and freeze the repair contract
+
+**Plan phase:** Phase 5 scientific repair; R0 complete
+
+- The scientific owner approved R0--R6 and their necessary fixes and replays.
+  Recorded the prospective source/island/component, measurement, uncertainty,
+  unavailability and support-domain contracts before changing implementation.
+  Candidate promotion still requires the ordered development, cumulative and
+  fresh-evidence gates; old passes and risk acceptance do not transfer.
+- Reviewed existing bounded SciPy fitting, moment, covariance and astrometry
+  machinery for reuse. The selected approach protects independently supported
+  compact separation while requiring extended-emission evidence for grouping;
+  it does not equate a shared island with a physical source or split every
+  extended object into independent components.
+- The failed source-aligned sentinel stays closed. Repairs use independent
+  analytic development fixtures, not its viewed seeds. Binding metrics,
+  thresholds, margins and reference semantics remain unchanged. No candidate,
+  PyBDSF, replay or qualification execution was started by this contract step.
+- The host currently has 117 GiB available; R6 must recheck host and Podman
+  headroom and a complete time estimate before admitting a campaign. The
+  requested final-campaign limit remains less than 12 hours.
+- The contract and audit byte bindings pass their focused test, and the
+  strict documentation build passes. Reviewed the contract against
+  `CODE_REVIEW.md`; no implementation or campaign claim is made. Clean
+  pre-commit hooks remain required before the local R0 commit.
+
+**Immediate next step:** R1 red-first source-separation and extended-retention
+tests, followed by the R2--R5 measurement, publication and short-ladder gates.

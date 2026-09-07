@@ -671,14 +671,16 @@ the failed `1ac6deb2...` replay must remain visible historical evidence.
 #### Prospective repairs after the source-aligned sentinel failure
 
 The [2026-09-07 science audit](../docs/reference/phase-5-source-catalogue-science-audit.md)
-separates reproduced defects from remaining hypotheses. The requested plan
-and review update is not authorization to change source-finding science or
-execute a campaign. Preserve terminal `ca03240d...`, all closed thresholds,
+separates reproduced defects from remaining hypotheses. On 2026-09-07 the
+scientific owner authorized completion of R0--R6, including required fixes
+and replays. The [prospective repair contract](../docs/reference/phase-5-source-catalogue-repair-contract.md)
+records the scope and acceptance rules before implementation. Preserve
+terminal `ca03240d...`, all closed thresholds,
 comparators, margins, and truth definitions. Do not tune on its viewed seeds
 or restore it to a pass through component-only scoring. Complete these tasks
 in order before attempting the remaining closeout gates:
 
-- [ ] **R0 — Freeze the prospective scientific repair contract.** Specify
+- [x] **R0 — Freeze the prospective scientific repair contract.** Specify
   independent compact sources versus components of one extended source;
   source/component/island identities; positions, shapes, integrated-flux and
   uncertainty meanings; unavailable/deferred outputs; and detection support
@@ -688,7 +690,8 @@ in order before attempting the remaining closeout gates:
   preserve real campaign evidence throughout the scientific repairs.
   Reuse existing compact fitting, astrometry, and uncertainty machinery where
   suitable; do not add
-  an alternative fitter without a demonstrated gap. This is the next task.
+  an alternative fitter without a demonstrated gap. The dated repair contract
+  records the selected approach and red-first acceptance; R1 is next.
 - [ ] **R1 — Preserve source separation without fragmenting extended objects.**
   Add failing analytic tests for independent connected unequal pairs and
   three-or-more peaks alongside single-source shells, filaments, and mixed
