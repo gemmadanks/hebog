@@ -805,6 +805,36 @@ remaining steps in order:
    rescoring, threshold change, or readiness finalization is permitted from
    this result. A prospective scientific root-cause review is required before
    a new candidate or campaign can be proposed.
+
+   The prospective root-cause review is complete on 2026-09-07. Exact
+   non-executable review SHA-256 `f94d0455...` binds terminal `f542c7db...`,
+   its 168 preserved array-free pairs, the frozen compiler/evaluator, and both
+   finder identities. It confirms a like-semantics evaluator defect: Hebog
+   component rows were scored against component-owner labels, while PyBDSF
+   Gaussian rows were scored against island labels and carried source-grouped
+   flux. Hebog has one catalogue row per native support in all 168 images;
+   PyBDSF has more Gaussian rows than native supports in 150, so the binding
+   split, merge, duplicate, reliability, flux, and position comparisons mix
+   source, component, and island domains. Of 186 failed endpoints, 180 depend
+   on that representation and cannot support a parity or inferiority decision
+   without prospective alignment. This does not imply they would pass after
+   alignment, and the failed terminal remains immutable with no retrospective
+   rescore.
+
+   Six binary-mask failures are label-invariant and remain valid candidate
+   risks. Fourteen adverse flux images and ten adverse position images also
+   lack a Hebog component-count excess, so residual photometry or astrometry
+   defects remain possible. The similar below-, boundary-, and above-trigger
+   failure burden excludes adaptive-background activation as the primary
+   cause. The next approval-gated task is test-first, fixture-only evaluator
+   alignment: use Hebog associated-source rows and source-union ownership
+   against PyBDSF rows grouped by native source identity; keep individual
+   Hebog/PyBDSF components in a separate report-only diagnostic; retain binary
+   support metrics as binding; and reproduce the residual mask, flux, and
+   position risks without using viewed data. Only after every fixture and
+   Serial/existing-Dask gate passes may a new seed-disjoint sentinel identity
+   be frozen and separately approved. Phase 5 remains open until that new
+   like-semantics sentinel passes.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,

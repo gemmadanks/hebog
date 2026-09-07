@@ -1884,6 +1884,78 @@ scientific root-cause review of source splitting, flux measurement, and
 position association. It must not tune, rescore, change a margin, or reuse the
 viewed sentinel as qualification data.
 
+## Compact sentinel root-cause review
+
+**Review date:** 2026-09-07
+
+**Review identity:**
+`phase-5-compact-held-out-sentinel-root-cause-pre-review.json`, SHA-256
+`f94d0455be9bbb4472b7ee6e6b0cd24fbf4ecc8be1d3e8a293d4467dbc02cad3`
+
+The prospective review binds the immutable failed terminal and all 168
+array-free pair summaries. It makes no source-finding change, does not rescore
+the viewed population, and authorizes no execution. The dominant issue is a
+confirmed like-semantics defect in the sentinel evaluator rather than a
+demonstrated Hebog scientific regression:
+
+- the Hebog arm supplied its Gaussian-component catalogue and
+  measurement-component labels;
+- the PyBDSF arm supplied Gaussian rows but native island labels; and
+- the common compiler preferred grouped association flux, which PyBDSF rows
+  carry for each `(Isl_id, Source_id)`, while the Hebog component rows retain
+  their individual component measurements.
+
+This difference is visible without reopening an image. Hebog has exactly one
+catalogue row per native support in all 168 summaries. PyBDSF has more Gaussian
+rows than native support labels in 150 summaries, with up to nine additional
+rows sharing that topology domain. The split fraction moves adversely beyond
+the frozen image-level margin in 110 summaries; all 110 have shared PyBDSF
+Gaussian/island ownership and 109 have more Hebog component supports than
+PyBDSF island supports. Source truth was therefore compared against unlike
+component and island representations. The same mismatch affects source flux,
+position, and reliability because a single component row is not an associated
+astronomical source.
+
+The review accounts for interpretation rather than manufacturing a new
+outcome. Of the 186 failed cell-endpoints, 180 are representation-sensitive
+and cannot establish either parity or inferiority until the prospective
+evaluator uses like source semantics. They are not assumed to pass after that
+correction. The six mask failures—one IoU, two precision, and three recall—are
+computed from positive support and are independent of label identity, so they
+remain valid candidate risks. In addition, 14 image-level adverse flux cases
+and 10 adverse position cases occur without a Hebog component-count excess;
+these preserve possible residual photometry and astrometry defects for
+fixture-only diagnosis.
+
+Adaptive-background activation is not the primary explanation. Below-trigger
+extended controls fail 11 of 12 cells with 58 failed endpoints, compared with
+10 of 12 and 58 at the boundary and 9 of 12 and 55 above the trigger. The
+failure burden is already present when the adaptive path is inactive.
+
+The proposed successor keeps semantic levels explicit:
+
+1. Binding source science uses Hebog's associated-source catalogue and
+   source-union ownership against PyBDSF rows grouped by native source identity
+   with equivalent source-union ownership.
+2. Hebog components and PyBDSF Gaussian components remain a separate
+   report-only diagnostic using individual component flux. Split or merge
+   parity is not reported there unless both finders expose like component-owner
+   planes.
+3. Binary support-mask comparisons remain direct and binding.
+4. Array-free evidence retains source and component counts, owner identities,
+   source-union membership, source and component flux/centres, and the named
+   topology domain.
+
+Twelve red fixture classes cover multiple components per source, grouped
+PyBDSF Gaussians, Hebog source unions, connected three-peak compact topology,
+grouped versus component flux, source versus component centroids, source-level
+reliability, label-domain equality, relabel-invariant masks, residual
+single-component flux/position, below-trigger controls, and Serial/Dask
+invariance. A separate exact approval is required before implementing this
+fixture-only evaluator alignment. A new seed-disjoint sentinel can be frozen
+only after all fixtures pass and requires its own approval. The old terminal
+remains `fail`, and Phase 5 remains open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

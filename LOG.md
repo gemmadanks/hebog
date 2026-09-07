@@ -16829,3 +16829,44 @@ conduct a separately governed prospective scientific root-cause review of
 source splitting, integrated-flux measurement, and position association. The
 viewed sentinel remains regression evidence and cannot become tuning or
 qualification data.
+
+## 2026-09-07 — Complete the compact sentinel root-cause review
+
+**Plan phase:** Phase 5 closeout
+
+- Completed a prospective, non-executable root-cause review bound to terminal
+  `f542c7db...` and all 168 preserved array-free pair summaries. Review
+  SHA-256 is `f94d0455...`; its deterministic builder verifies the terminal,
+  summary-file set, candidate, PyBDSF image, compiler, evaluator, runners, and
+  governing decision identities before reproducing the diagnosis.
+- Confirmed a like-semantics evaluator defect. The Hebog arm compiled
+  component rows against measurement-component labels, while the PyBDSF arm
+  compiled Gaussian rows against island labels and supplied grouped
+  `(Isl_id, Source_id)` association flux. Hebog catalogue and native-support
+  counts are equal in 168/168 images; PyBDSF Gaussian counts exceed native
+  island counts in 150/168. In 110 image-level adverse split movements,
+  PyBDSF rows share island support in every case and Hebog has more native
+  supports in 109.
+- Classified 180 of 186 failed cell-endpoints as representation-sensitive and
+  therefore uninterpretable for source-level parity until a prospective
+  evaluator alignment. This is not a counterfactual pass and the terminal is
+  not rescored. The six binary-mask endpoint failures remain valid because
+  positive-support overlap is label invariant.
+- Preserved residual science risk: 14 adverse flux images and 10 adverse
+  position images do not have a Hebog component-count excess. Below-trigger
+  controls have essentially the same failure burden as boundary and
+  above-trigger cells, excluding adaptive activation as the primary cause.
+- Defined test-first successor gates that separate a binding source lane from
+  a report-only component diagnostic, retain binding mask metrics, and require
+  explicit source/component/topology-domain fields in array-free evidence.
+  Twelve fixture classes cover the observed semantic and residual-risk seams,
+  including connected three-peak topology and Serial/existing-Dask invariance.
+  The review authorizes no implementation, execution, tuning, rescoring, or
+  source-finding change.
+- Added eight focused contract tests. The review builder reproduces canonical
+  content SHA-256 `76a25af8...` and uses write-once output semantics.
+
+**Immediate next step:** obtain named approval of exact review `f94d0455...`
+before test-first, fixture-only evaluator alignment. Do not execute or rescore
+the viewed population. Freeze a new seed-disjoint sentinel only after all
+fixtures pass, and require separate exact execution approval.
