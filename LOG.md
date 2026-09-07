@@ -17088,3 +17088,38 @@ exact one-use human approval of identity `7d133492...` and expected execution
 **Immediate next step:** validate and commit the decision, create an immutable
 execution checkout, pass the complete no-write preflight there, and consume
 the authority exactly once. Monitor without inspecting partial science.
+
+## 2026-09-07 — Repair the source-aligned sentinel PyBDSF column boundary
+
+**Plan phase:** Phase 5 closeout
+
+- The exact source-aligned sentinel ran from immutable commit `9419881...`
+  and atomically published operational-fail terminal SHA-256 `331e36a5...`.
+  It accepted no pair summary and ran no Dask comparison, so it contains no
+  scientific result. The failure is preserved without overwrite.
+- The isolated released-PyBDSF child required source-table column `N_Gaus`.
+  Static inspection of the pinned PyBDSF 1.14.1 package and the approved
+  source-union adapter review both identify the native `srl` spelling as
+  `N_gaus`. This is a case-sensitive process-boundary typo; Hebog science,
+  comparator configuration, analytic truth, evaluator, gates, margins, and
+  the unopened 168-seed population are unchanged.
+- Added a red-first regression that initially failed on the missing repair,
+  then implemented an isolated child overlay accepting exactly `N_gaus` and a
+  parent overlay selecting only that child. All four repair contracts and 71
+  focused source-union, alignment, population, and repair cases pass; focused
+  Ruff and Pyright are clean.
+- Froze non-executable implementation decision SHA-256 `22c6e9d8...` and
+  identity-review SHA-256 `524f6fd4...`. Expected execution SHA-256 is
+  `926635cd...`: the same 168 Hebog Serial and 168 released-PyBDSF executions,
+  12 existing-Dask comparisons, two workers, and a distinct atomic terminal.
+  The complete no-write preflight passes with the exact failed lineage,
+  manifest `1c2ce27a...`, pinned comparator image, 21,085 historical seeds,
+  and `finder_execution_started=false`.
+- Recorded a new one-use execution decision under the user's immediate
+  approval and standing authority to repair the evaluator and retry as needed.
+  Tuning, rescoring, optimization, cutover, release, and viewed-data execution
+  remain unauthorized.
+
+**Immediate next step:** validate and commit the isolated process repair,
+create an immutable execution checkout, repeat the no-write preflight there,
+and consume the exact replacement authority once.

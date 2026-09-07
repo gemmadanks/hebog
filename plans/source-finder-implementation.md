@@ -630,7 +630,7 @@ authorization boundaries remain in `config/contracts/`.
 | Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Pass. Unequal-Gaussian, connected two- and three-peak, exact seed-boundary/no-seed retention, disconnected recovery, edge/corner, thin horizontal/vertical, non-square, empty, invalid-input, label-invariance, support-union, exact synthetic notebook-runner, public-composition, full coverage, and compact-equivalence gates pass. Version-8 terminal `a274888d...` passes 12/12 binding geometry groups, the trigger seam, and 12/12 Serial/existing-Dask comparisons; four non-binding improvement misses remain reported. |
 | Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Pass for the development and cumulative-product gates. Candidate `95cfc76...`, source tree `8da21e86...`, and unchanged configuration `2c907949...` pass component-topology, publication-owner-domain, synthetic exact-runner, installed-wheel, compact-equivalence, source/composition identity, and the exact two-worker fast lane. Notebook identity `2920873a...` remains non-executable. Product set `f43cb274...` seals all 2,400 cumulative outputs. |
 | Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, applicable Aegean checks, and hard safety rules. Incumbent comparisons must show no observed movement beyond their practical margin; any unresolved confidence exception must be explicit and human accepted rather than pooled away or relabelled. | Accepted with one declared residual-uncertainty exception. Atomic decision `8d69ef44...` has 1,183 passes and zero failures, including every compact, Aegean, dual-PyBDSF, and safety comparison. Four Continuum incumbent position-p95 aliases, representing two patterns, remain underpowered; their point movements (`0.003013` and `0.013073` beam) and the overall upper bound (`0.036636` beam) are inside the `0.05`-beam margin, while pattern upper bounds exceed it by `0.006371` and `0.004222` beam. The 2026-09-06 human decision accepts that narrow uncertainty for Phase 5 progression and skips the multi-hour 4,608-image confirmation. The terminal JSON remains `incomplete`, and no claim of fully powered incumbent non-inferiority is permitted. |
-| Fresh scientific qualification | A small prospective falsification sentinel complements, but does not replace, the powered 2,400-image cumulative evidence. On unopened seed-disjoint data, the exact public Hebog candidate must pass every known-risk extended and compact guard cell, hard safety rule, released-PyBDSF practical comparison margin, and Serial/existing-Dask check. Retain the already passing pinned-master PyBDSF, Aegean, compact, and incumbent evidence without reexecution. No pooled result may hide a failed cell, and the sentinel alone must not be described as a powered parity study. | Source-aligned replacement authorized; immutable execution pending. The first completed 168-image sentinel is immutable failed evidence because its evaluator mixed source, component, and island semantics. After approved prospective review and fixture-only repair, identity `7d133492...` binds a new 168-image seed-disjoint population, schema-v3 source-union evidence, the unchanged frozen gates, 12 Serial/existing-Dask comparisons, and expected execution `c897af7c...`. The 2026-09-07 exact one-use decision authorizes only that execution shape; tuning, rescoring, cutover, and release remain false. |
+| Fresh scientific qualification | A small prospective falsification sentinel complements, but does not replace, the powered 2,400-image cumulative evidence. On unopened seed-disjoint data, the exact public Hebog candidate must pass every known-risk extended and compact guard cell, hard safety rule, released-PyBDSF practical comparison margin, and Serial/existing-Dask check. Retain the already passing pinned-master PyBDSF, Aegean, compact, and incumbent evidence without reexecution. No pooled result may hide a failed cell, and the sentinel alone must not be described as a powered parity study. | Repaired source-aligned retry authorized. The first 168-image sentinel is immutable failed evidence because its evaluator mixed source, component, and island semantics. Source-aligned identity `7d133492...` then failed operationally before accepting any pair because its isolated PyBDSF child requested `N_Gaus` rather than native `N_gaus`; terminal SHA-256 is `331e36a5...` and contains no scientific result. Test-first process repair identity `524f6fd4...` preserves the same 168 unopened seeds, schema-v3 source-union science, gates, candidate, comparator configuration, and 12 Serial/existing-Dask comparisons. Expected execution `926635cd...` is authorized once under the standing repair/retry approval. Tuning, rescoring, cutover, and release remain false. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
 | Documentation and handoff | User documentation, limitations, reproducibility, provenance index, campaign overview, and the Phase 6 handoff describe exactly what passed and what remains unqualified. | Open. Release preparation is intentionally excluded; Release Please owns it. |
@@ -689,7 +689,7 @@ remaining steps in order:
    disclose that the two pattern-level incumbent upper bounds remain
    unresolved. No future document may convert this scoped acceptance into a
    claim that every incumbent-retention confidence gate passed.
-2. [x] **Run one compact fresh held-out sentinel for the frozen production
+2. [ ] **Run one compact fresh held-out sentinel for the frozen production
    candidate.** The bounded release-blocking audit is complete in
    `phase-5-production-candidate-audit.json`: the exact source tree is
    unchanged and no correctness, safety, or public-contract defect requires a
@@ -924,11 +924,30 @@ remaining steps in order:
    `c84f47f4...`, and manifest `1c2ce27a...` pass the complete no-write
    contract. Expected execution SHA-256 is `c897af7c...`: exactly 168 current
    Hebog Serial executions, 168 released-PyBDSF executions, 12 caller-owned
-   existing-Dask comparisons, two workers, and one new atomic terminal. All
+   existing-Dask comparisons, two workers, and one new atomic terminal. The
    identity itself remains non-executable. The 2026-09-07 exact one-use human
-   decision now authorizes only that identity and expected execution; the old
-   viewed terminal and decisions cannot authorize it. The next governed step
-   is an immutable-checkout preflight followed by one execution.
+   decision authorized only that identity and expected execution; the old
+   viewed terminal and decisions cannot authorize it.
+
+   That source-aligned execution completed only as immutable operational-fail
+   terminal SHA-256 `331e36a5...`: PyBDSF's first child result exposed a
+   case-sensitive adapter typo, `N_Gaus` instead of its native `srl` column
+   `N_gaus`. No pair summary was accepted, no Dask comparison ran, and the
+   terminal contains no scientific result. Static inspection of the pinned
+   PyBDSF 1.14.1 package and the already approved adapter review independently
+   confirm `N_gaus`; candidate science, comparator configuration, evaluator,
+   gates, population, and manifest therefore remain frozen.
+
+   Red-first repair fixtures now pass for the exact native schema and prove
+   that only the isolated PyBDSF child is replaced. Non-executable repair
+   identity SHA-256 `524f6fd4...`, implementation decision `22c6e9d8...`,
+   and expected execution `926635cd...` bind failed-terminal lineage, the
+   unchanged 168-seed manifest, 348 total finder executions, two workers, 12
+   existing-Dask comparisons, and a new write-once namespace. The complete
+   no-write preflight passes with `finder_execution_started=false`. The
+   user's standing process-repair and retry approval authorizes this exact
+   replacement once; complete it from an immutable checkout before advancing
+   to item 3.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,
