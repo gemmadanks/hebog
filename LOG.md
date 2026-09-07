@@ -17123,3 +17123,35 @@ the authority exactly once. Monitor without inspecting partial science.
 **Immediate next step:** validate and commit the isolated process repair,
 create an immutable execution checkout, repeat the no-write preflight there,
 and consume the exact replacement authority once.
+
+## 2026-09-07 — Derive missing PyBDSF source counts from native membership
+
+**Plan phase:** Phase 5 closeout
+
+- The column-case repair ran from immutable commit `48f1ee4...` and published
+  operational-fail terminal SHA-256 `9d96a9ed...`. Like its predecessor, it
+  accepted no pair summary and contains no scientific result; it remains
+  preserved without overwrite.
+- The correction to internal spelling was accurate but incomplete. Static
+  inspection of pinned PyBDSF 1.14.1 confirms that `Source.ngaus` declares
+  `N_gaus`, while `output.make_output_columns(..., objtype="srl")` omits the
+  attribute from native source FITS output. The exact native `gaul` table does
+  persist `(Isl_id, Source_id)` for every accepted Gaussian.
+- Added a second red-first fixture reproducing the actual exported schema with
+  no source-count column and two Gaussian members. The repair derives each
+  count from exact grouped `gaul` membership, adds it only to the transient
+  validation representation, and reuses all prior adapter validation. Both
+  four-case repair suites pass; focused Ruff and Pyright are clean.
+- Froze non-executable implementation decision SHA-256 `3e085e72...` and
+  identity-review SHA-256 `07e0e8ec...`. Expected execution SHA-256 is
+  `0c7fd449...`, preserving the same 168 unopened seeds, 348 finder
+  executions, 12 existing-Dask comparisons, two workers, comparator
+  configuration, candidate, evaluator, and gates in a distinct output
+  namespace.
+- Recorded another exact one-use decision under the standing process-repair
+  and retry authority. No source-finding change, tuning, rescoring,
+  optimization, viewed-data execution, cutover, or release is authorized.
+
+**Immediate next step:** run complete validation, commit the second isolated
+repair, pass its immutable-checkout no-write preflight, and consume its exact
+one-use authority.
