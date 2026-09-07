@@ -17229,6 +17229,71 @@ repository validation required for the terminal record, and stop the monitor.
 Phase 5 remains open pending a new prospective scientific decision; do not
 finalize readiness for candidate `95cfc76...`.
 
+## 2026-09-07 — Plan source-catalogue repairs and audit remaining science risks
+
+**Plan phase:** Phase 5 closeout; planning and read-only science review
+
+- Added ordered R0--R6 tasks for a prospective scientific repair contract,
+  independent compact-source association with extended-source retention,
+  compact photometry/astrometry, support/reliability attribution, public
+  unavailable-result handling, durable diagnostic retention, a short joint
+  regression ladder, and candidate-bound cumulative/fresh qualification.
+  Corrected stale gate summaries that still described a pass or pending
+  operational retry. Broad historical cleanup stays in Phase 5.5; Release
+  Please remains responsible for releases.
+- Audited public composition, hierarchy, original-pixel measurements, shapes,
+  projection and source-union compilation at `1dedd0d...`. Its `src/hebog/`
+  tree is unchanged from failed candidate `95cfc76...`. Published findings,
+  reproduction inputs, remedies and confidence limits in
+  `docs/reference/phase-5-source-catalogue-science-audit.md`.
+- In addition to re-merging recovered compact peaks, bounded independent
+  analytic probes reproduced three further issues. A seven-arcsecond
+  Gaussian in a four-arcsecond beam at peak/RMS six is measured as 3.804
+  arcseconds and classified unresolved by both public source and component
+  rows; threshold-truncated moments, not fitting, determine those sizes.
+  Signed support `[10, -2.4, -2.4, -2.4, -2.4]` at x=2..6 returns an
+  available centroid x=-58 even with a non-negative denoised alternative.
+  Seven collinear admitted pixels under configuration `(5, 3, 7)`, or a
+  single pixel with custom minimum one, reach the public projection with an
+  unavailable shape and abort the bundle. These are fixture mechanisms, not
+  new measurements of the viewed sentinel.
+- Retained the missing per-image summary archive as an evidence-retention
+  finding. Compact flux, extended fragmentation and some mask-recall failures
+  still need independent development attribution; the aggregate terminal
+  cannot establish every underlying cause. Different photometry and detection
+  footprints remain an explicit contract to document, not grounds to invent
+  mask pixels or change the matcher.
+- Focused validation passed 227 tests across public composition, topology,
+  extended measurement, source reconstruction, products, astrometry,
+  source-union/evaluator adapters, and public FITS/Serial/existing-Dask
+  integration. The strict documentation build passes after correcting the
+  new audit's link to the repository-only plan. The numerical probes used
+  `.venv/bin/python` with only small analytic arrays and existing fixture
+  helpers; no qualification input or comparator was executed.
+- `just check` passed Ruff and Pyright but stopped after 2,579 passes and two
+  expected xfails on the existing owner-domain product-verifier unit test.
+  The fixture uses the real repository/output namespace, so the preserved
+  cumulative terminal triggers the correct production write-once guard
+  before its mocked parent verifier is reached. Added this separate test
+  isolation issue to the audit and R5; did not delete evidence, weaken the
+  guard, skip the test or implement a repair during this review.
+- The same test fails in isolation and in `just pre-commit`; the latter
+  otherwise passes its formatting, schema, spelling, notebook, type, docs
+  and lockfile hooks. Reviewed the complete documentation diff against
+  `CODE_REVIEW.md` and verified that source, tests, scripts, contracts and the
+  sentinel terminal are unchanged. Coverage, standalone equivalence and
+  performance campaigns were not rerun for documentation-only edits; no new
+  coverage or speed claim is made. The clean-hook rule prevents a local
+  commit until the existing test-isolation defect is repaired; leave the
+  documentation changes uncommitted and do not push.
+
+**Immediate next step:** isolate the existing verifier-test fixture without
+changing its production guard, then R0: prepare the prospective scientific
+repair contract and its explicit truth/measurement/public-disposition gates
+for review before test-first source-finding implementation. No source-finding
+change, campaign execution, tuning, rescoring, cutover or release was performed
+or authorized by this plan-and-review update.
+
 ## 2026-09-07 — Repair CI historical-identity checkout
 
 **Plan phase:** Phase 5 engineering validation; no scientific change

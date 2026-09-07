@@ -462,9 +462,15 @@ closed historical evidence and were not rescored.
 
 ### 6.2 Phase 5 decisions and latest evidence
 
-Phase 5 is open. The multiscale implementation, combined products, bounded
-execution proof, compact regression, public interface, and incremental
-performance budget are complete. Candidate `0b9e132...`, source tree
+Phase 5 is open and scientific closeout is blocked. The latest source-aligned
+sentinel `ca03240d...` completed normally but failed 18 of 42 cells for
+candidate `95cfc76...`. Earlier development and cumulative passes remain
+scoped historical evidence, not readiness for that candidate or its successor.
+The next work is the prospective repair checklist in Section 7, supported by
+the [source-catalogue science audit](../docs/reference/phase-5-source-catalogue-science-audit.md).
+The multiscale implementation, combined products, bounded execution proof,
+public interface, and incremental performance evidence already exist.
+Candidate `0b9e132...`, source tree
 `11307db0...`, and configuration `2c907949...` passed the 144-image
 seed-disjoint support-linkage replication across all 12 binding geometry
 groups with exact Serial/existing-Dask agreement and sealed all 2,400
@@ -558,12 +564,15 @@ is an instruction to rerun or rescore a closed campaign.
 
 ### Phase 5: multiscale and extended emission
 
-**Status: open; the version-8 public fast lane and cumulative candidate replay
-passed, the cumulative evidence is accepted for Phase 5 progression with one
-explicitly retained incumbent-uncertainty exception, and the bounded production
-audit found no release-blocking defect.** Multiscale science,
-combined products, bounded execution, compact regression, the public
-scientific interface, and the incremental performance budget are complete.
+**Status: open; source-aligned sentinel `ca03240d...` failed scientifically.
+Prospective source-association, measurement, support, and public-boundary
+repairs must precede another qualification.** The earlier version-8 fast lane
+passed and its cumulative evidence was accepted for progression with one
+explicit incumbent-uncertainty exception. The earlier production audit did
+not establish the source-level scientific correctness now falsified by the
+sentinel and bounded analytic review. Existing multiscale implementation,
+combined products, execution proofs, and incremental performance evidence
+remain useful but must be revalidated where the replacement changes them.
 The seed-disjoint 144-image repair replication passed all 12 binding geometry
 groups, its trigger seam, and Serial/existing-Dask invariance. Candidate
 `0b9e132...` sealed the exact 800-compact/1,600-Continuum cumulative product
@@ -578,7 +587,7 @@ binding geometry groups, the trigger seam, and 12 Serial/existing-Dask
 comparisons after its complete 144/144/12 no-write preflight. The fresh
 cumulative replay of that identity has now completed, and the authentic
 incumbent and retained PyBDSF products remain reusable for its evaluation.
-The current prospective source candidate is local commit
+The source-aligned sentinel's now-failed candidate is local commit
 `95cfc76ded56556dc3ad6894410962d34f0d5604`, source tree
 `8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5`,
 with unchanged configuration `2c907949...`. It includes the retained-unseeded-
@@ -626,11 +635,11 @@ authorization boundaries remain in `config/contracts/`.
 
 | Gate | Binding pass condition | Current state |
 | --- | --- | --- |
-| Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Pass at prospective development scale. Analytic reproduction proved the public path collapsed admissible peaks; the correction preserves direct and measurement support unions, uses canonical nearest-marker ownership with intensity-saddle merging only in the public topology, and reports bounded deferrals. The established Phase 3 compact path remains green. The public topology also retains admitted unseeded parents unchanged and projects publication recovery onto authoritative measurement owners without inventing science. Terminal fast-lane decision `a274888d...` has zero binding failures. Viewed Hydra data remains diagnostic-only and was not tuned or rescored. Cumulative evidence remains a separate gate. |
-| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Pass. Unequal-Gaussian, connected two- and three-peak, exact seed-boundary/no-seed retention, disconnected recovery, edge/corner, thin horizontal/vertical, non-square, empty, invalid-input, label-invariance, support-union, exact synthetic notebook-runner, public-composition, full coverage, and compact-equivalence gates pass. Version-8 terminal `a274888d...` passes 12/12 binding geometry groups, the trigger seam, and 12/12 Serial/existing-Dask comparisons; four non-binding improvement misses remain reported. |
-| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Pass for the development and cumulative-product gates. Candidate `95cfc76...`, source tree `8da21e86...`, and unchanged configuration `2c907949...` pass component-topology, publication-owner-domain, synthetic exact-runner, installed-wheel, compact-equivalence, source/composition identity, and the exact two-worker fast lane. Notebook identity `2920873a...` remains non-executable. Product set `f43cb274...` seals all 2,400 cumulative outputs. |
+| Known scientific risks | Every confirmed adaptive-background, measurement, association, component partition, publication, and evaluator defect is corrected test-first without changing a closed result after it is viewed. | Reopened. Terminal `ca03240d...` fails source-level association, compact flux, reliability, position, and some support comparisons. The 2026-09-07 analytic audit additionally reproduces unstable signed centroids, threshold-dependent shape/deconvolution bias, and shape-unavailable publication failure. Repair tasks R0--R6 below precede qualification; previous component-union tests and fast-lane pass `a274888d...` do not close these risks. |
+| Fail-fast development evidence | The replacement analytic/mechanism/smoke ladder passes product validity, trigger behaviour, paired retention in every four-seed trigger cell, multi-peak component retention, negative controls, and Serial/existing-Dask invariance. | Required for the replacement. Version-8 terminal `a274888d...` remains a 12/12 geometry and 12/12 Serial/Dask pass with four report-only misses, but its tests did not distinguish independent compact-source membership from component multiplicity or cover the newly reproduced measurement/publication failures. Require the exact public composition and joint compact/extended truth gates in R5. |
+| Exact public candidate | The installed `hebog.find_sources` path resolves the frozen algorithms and reference configuration and produces identical scientific products under Serial and caller-owned Dask execution. | Historical identity and execution-consistency pass for `95cfc76...`, source `8da21e86...`, configuration `2c907949...`, and sealed 2,400-product set `f43cb274...`. This does not establish scientific readiness: the source-aligned sentinel fails and the public projection rejects admitted shape-unavailable owners. The replacement must be frozen and revalidated after R0--R5; no prior public-candidate pass transfers automatically. |
 | Cumulative parity and retention | Across all 800 compact and 1,600 Continuum cases, every binding comparison passes both PyBDSF references, applicable Aegean checks, and hard safety rules. Incumbent comparisons must show no observed movement beyond their practical margin; any unresolved confidence exception must be explicit and human accepted rather than pooled away or relabelled. | Accepted with one declared residual-uncertainty exception. Atomic decision `8d69ef44...` has 1,183 passes and zero failures, including every compact, Aegean, dual-PyBDSF, and safety comparison. Four Continuum incumbent position-p95 aliases, representing two patterns, remain underpowered; their point movements (`0.003013` and `0.013073` beam) and the overall upper bound (`0.036636` beam) are inside the `0.05`-beam margin, while pattern upper bounds exceed it by `0.006371` and `0.004222` beam. The 2026-09-06 human decision accepts that narrow uncertainty for Phase 5 progression and skips the multi-hour 4,608-image confirmation. The terminal JSON remains `incomplete`, and no claim of fully powered incumbent non-inferiority is permitted. |
-| Fresh scientific qualification | A small prospective falsification sentinel complements, but does not replace, the powered 2,400-image cumulative evidence. On unopened seed-disjoint data, the exact public Hebog candidate must pass every known-risk extended and compact guard cell, hard safety rule, released-PyBDSF practical comparison margin, and Serial/existing-Dask check. Retain the already passing pinned-master PyBDSF, Aegean, compact, and incumbent evidence without reexecution. No pooled result may hide a failed cell, and the sentinel alone must not be described as a powered parity study. | Grouped-Gaussian process retry authorized. The first 168-image sentinel is immutable failed evidence because its evaluator mixed source, component, and island semantics. Source-aligned identity `7d133492...` then failed on `N_Gaus`; column-case repair `524f6fd4...` proved the internal spelling is `N_gaus`, but terminal `9d96a9ed...` established that released PyBDSF does not export that internal field in native `srl` FITS. Both operational terminals contain no accepted scientific summary. Test-first identity `07e0e8ec...` instead derives the count from exact persisted `gaul` `(Isl_id, Source_id)` membership while preserving the same 168 unopened seeds, schema-v3 science, gates, candidate, comparator configuration, and 12 Serial/existing-Dask comparisons. Expected execution `0c7fd449...` is authorized once under the standing repair/retry approval. Tuning, rescoring, cutover, and release remain false. |
+| Fresh scientific qualification | A small prospective falsification sentinel complements, but does not replace, the powered cumulative evidence. On unopened seed-disjoint data, the exact public candidate must pass every known-risk extended and compact guard cell, hard safety rule, released-PyBDSF practical comparison margin, and Serial/existing-Dask check. Retain earlier reference evidence only where its identity and semantics remain applicable; changed candidate science requires replacement evidence. No pooled result may hide a failed cell, and the sentinel alone is not a powered parity study. | Failed, not awaiting a process retry. Spawn-safe identity `c498a90d...` completed 168 Hebog/168 PyBDSF runs and all 12 Dask comparisons; terminal `ca03240d...` passes 24/42 cells and fails 18/42 with 59 failed cell-endpoints. Both finders were measured against analytic truth. No qualification reuse or rescoring of those seeds is allowed. Complete R0--R5 and the replacement cumulative gate before R6's separately approved fresh sentinel. |
 | Engineering evidence | Bounded execution, retry/order invariance, the 6.0-second 3,000-pixel incremental budget, package installation, schemas, atomic outputs, documentation, and ordinary CI all pass for the exact candidate. | Partly complete; final-candidate recheck remains. |
 | Independent readiness | The rebuilt fail-closed packet receives separate radio-astronomy and engineering acceptance and publishes one terminal readiness record. | Open. |
 | Documentation and handoff | User documentation, limitations, reproducibility, provenance index, campaign overview, and the Phase 6 handoff describe exactly what passed and what remains unqualified. | Open. Release preparation is intentionally excluded; Release Please owns it. |
@@ -659,6 +668,103 @@ overall mask recall 0.90103 against 0.90 and mask-precision regression UCL
 0.04940 against the pinned-master 0.05 margin. The terminal public failure and
 the failed `1ac6deb2...` replay must remain visible historical evidence.
 
+#### Prospective repairs after the source-aligned sentinel failure
+
+The [2026-09-07 science audit](../docs/reference/phase-5-source-catalogue-science-audit.md)
+separates reproduced defects from remaining hypotheses. The requested plan
+and review update is not authorization to change source-finding science or
+execute a campaign. Preserve terminal `ca03240d...`, all closed thresholds,
+comparators, margins, and truth definitions. Do not tune on its viewed seeds
+or restore it to a pass through component-only scoring. Complete these tasks
+in order before attempting the remaining closeout gates:
+
+- [ ] **R0 — Freeze the prospective scientific repair contract.** Specify
+  independent compact sources versus components of one extended source;
+  source/component/island identities; positions, shapes, integrated-flux and
+  uncertainty meanings; unavailable/deferred outputs; and detection support
+  versus measurement support/apertures. Review the selected remedies and
+  fixture acceptance rules before implementation. Fixture-isolation defect
+  F6 is repaired with temporary seal/output tests; retain those checks and
+  preserve real campaign evidence throughout the scientific repairs.
+  Reuse existing compact fitting, astrometry, and uncertainty machinery where
+  suitable; do not add
+  an alternative fitter without a demonstrated gap. This is the next task.
+- [ ] **R1 — Preserve source separation without fragmenting extended objects.**
+  Add failing analytic tests for independent connected unequal pairs and
+  three-or-more peaks alongside single-source shells, filaments, and mixed
+  emission. Then correct hierarchy grouping so persistent shared support
+  cannot by itself override justified compact separation. Test both source
+  membership and component retention, flux attribution, completeness,
+  reliability, splits, merges, and positions. A better mask or component
+  count alone cannot pass this task; previously successful extended groups
+  must remain intact.
+- [ ] **R2 — Correct compact measurements and unstable source estimates.**
+  Validate bounded compact fitting against analytic flux, position, size and
+  deconvolution truth over SNR, unequal neighbours, correlated/varying noise,
+  negative backgrounds, invalid pixels and edges. Keep irregular extended
+  photometry explicitly source-owned. Add red cases for threshold-truncated
+  moment shapes misclassified as unresolved, signed-centroid cancellation,
+  and positive-support flux fallback discontinuity/bias. Report estimator,
+  uncertainty or unavailability honestly; do not clamp all source centroids
+  to a peak or mask, since a real shell centroid can lie in its empty centre.
+- [ ] **R3 — Localize and correct remaining support/reliability losses.**
+  On independent development fixtures, retain bounded attribution across
+  coarse/adaptive background and RMS, direct seeds, multiscale support,
+  persistence/pruning, component owners, source unions and publication.
+  Separate extra noise detections from fragments, and measure missing truth
+  support independently of IoU. Cover all shell/filament/mixed-source,
+  beam/scale, trigger, noise and boundary groups, including the known failing
+  geometries. Correct only demonstrated causes; do not assume every loss
+  comes from adaptive background or globally relax detection thresholds.
+- [ ] **R4 — Complete public failure handling and diagnostic retention.**
+  Add red end-to-end cases for one-pixel/custom-minimum and seven-collinear
+  admitted owners, unavailable moment shapes, bounded deblend deferrals, and
+  mixed measurable/unmeasurable owners. Publish reviewed explicit dispositions
+  without inventing Gaussian fits or aborting unrelated valid sources.
+  Preserve array-free per-image source/component memberships, truth-match
+  edges, signed measurement residuals, support-stage counts, estimator flags
+  and Dask comparisons alongside the terminal, with checksum verification
+  and a cleanup guard. Distinguish measurement-only pixels from published
+  mask pixels rather than requiring their footprints to be identical.
+- [ ] **R5 — Pass the short joint regression ladder before a long run.**
+  Confirm each intended TDD red failure, then normal, boundary and error
+  branches. Exercise the exact `hebog.find_sources` and notebook-runner
+  compositions on synthetic development fixtures, not only internal kernels.
+  Test empty/all-NaN images, WCS/beam rotations and unequal pixel scales,
+  seed/threshold seams, thin and non-square support, tile edges/corners,
+  translation/label/task-order/retry and Serial/existing-Dask invariance.
+  Require both compact and extended truth gates together, meaningful shape
+  and uncertainty assertions, and a fixture-only terminal-publication/process
+  smoke. Keep verifier tests isolated from real ignored campaign outputs.
+  The F6 repair now covers absent/existing outputs, seal tampering, invalid
+  counts and changed invocation paths using temporary roots and synthetic
+  seals, without deleting results or weakening the production write-once
+  check. Retain these regression cases. Run focused tests, `just coverage`
+  with changed-branch inspection,
+  `just check`, `just test-equivalence`, `just docs-build`,
+  `just package-smoke-test`, and `just pre-commit`; review against
+  `CODE_REVIEW.md`. Freeze non-executable replacement identities only after
+  these gates pass. Recheck the affected runtime budget without trading away
+  scientific requirements.
+- [ ] **R6 — Re-establish candidate-bound cumulative and fresh evidence.**
+  Review which earlier reference products can be reused byte-for-byte and
+  which changed candidate paths require new cumulative measurements. Previous
+  passes and the scoped incumbent-uncertainty acceptance do not automatically
+  transfer to changed science. Freeze exact execution identities, the
+  unchanged binding scientific rules, population, sample/power rationale,
+  disk budget and end-to-end time estimate before any approved run. Preserve
+  all known-risk geometries; target the user's sub-12-hour final-campaign
+  budget and surface any conflict before execution. Run a separately approved
+  unopened seed-disjoint sentinel only after the replacement's development
+  and cumulative gates pass. Monitor long runs hourly, preserve complete
+  terminal diagnostics and treat scientific failure as terminal. A small
+  sentinel remains a falsification check, not a substitute for powered parity.
+
+After R0--R6, resume exact-candidate engineering and independent readiness
+below. Documentation, supported limitations and provenance are Phase 5 work;
+broad historical-tooling cleanup remains Phase 5.5 and Release Please still
+owns the release.
+
 #### Authoritative Phase 5 closeout checklist
 
 The corrected candidate's cumulative replay is sealed. Its evaluation did not
@@ -667,7 +773,8 @@ owner has accepted the narrowly bounded uncertainty and decided that a
 multi-hour independent confirmation is not proportionate before the remaining
 Phase 5 gates. The terminal result remains immutable and incomplete; the
 exception permits progression but is not a statistical pass. Complete the
-remaining steps in order:
+remaining steps in order. The later failed sentinel now requires R0--R6
+above; the historical progression acceptance does not waive that failure:
 
 1. [x] **Seal and accept the cumulative evidence for progression.** Verify all
    2,400 current
@@ -690,11 +797,16 @@ remaining steps in order:
    unresolved. No future document may convert this scoped acceptance into a
    claim that every incumbent-retention confidence gate passed.
 2. [ ] **Run one compact fresh held-out sentinel for the frozen production
-   candidate.** The bounded release-blocking audit is complete in
+   candidate.** This gate failed for `95cfc76...`; follow R0--R6 to qualify
+   a replacement. The chronology below records closed attempts,
+   not live retry instructions or transferable scientific approval.
+   The earlier bounded release-blocking audit was recorded in
    `phase-5-production-candidate-audit.json`: the exact source tree is
-   unchanged and no correctness, safety, or public-contract defect requires a
-   new candidate. Two non-blocking structural/provenance improvements remain
-   explicitly deferred and must not invalidate or overstate the evidence.
+   unchanged, but its then-current conclusion that no correctness, safety or
+   public-contract defect required a new candidate is superseded by the
+   failed sentinel and source-catalogue audit. Its two non-blocking structural
+   improvements remain deferred; the newly confirmed science and publication
+   defects do not.
 
    Pre-review `84c44215...` freezes the scientifically smallest useful
    falsification design: all 36 seed-disjoint adaptive-background risk cells
