@@ -2024,13 +2024,33 @@ still be completely and uniquely partitioned. Dropping fitless support,
 duplicating a whole island for multiple sources, or using nearest-centroid
 ownership is forbidden.
 
-The review authorizes no implementation or execution. Exact named approval of
-review `02b46eca...` is required before test-first, fixture-only adapter work.
-The fixture suite must cover both direct Hebog projection and PyBDSF model
-dominance, exact ties, missing membership, zero-owned sources, mixed modelled
-and fitless islands, array-free provenance, and Serial/existing-Dask order and
-worker invariance. Only then may a new seed-disjoint sentinel identity be
-frozen for separate one-use approval. Phase 5 remains open.
+The human approved exact review `02b46eca...` on 2026-09-07 for test-first,
+fixture-only implementation. The completed validation-only adapters implement
+the reviewed direct Hebog projection and explicitly named PyBDSF derived
+topology. The aligned record is now schema version 3. It binds source metrics
+to the source-union plane, keeps Gaussian/component measurements diagnostic,
+and measures binary-mask precision, recall, and IoU from all positive native
+support. Whole fitless PyBDSF islands therefore remain mask evidence without
+acquiring fabricated sources; modelled islands must remain completely owned.
+Compact modelled/unowned support counts, pixel counts, and exact membership
+digests make this distinction independently checkable without retaining image
+arrays.
+
+The adapters live only under `scripts/validation`. The candidate package tree
+remains byte-identical at SHA-256 `8da21e86...`; consequently this evaluator
+work does not alter the candidate run by the notebook or any frozen product
+identity.
+
+The 63-case focused suite passes direct and multi-component Hebog ownership,
+one- and multi-source PyBDSF islands, multiple Gaussians per source, canonical
+ties and composite source identities, fitless-only and mixed islands,
+duplicate or missing memberships, zero-owned sources, invalid owner planes,
+rehash-resistant retained evidence, row/completion-order invariance, and a
+caller-owned two-worker existing-Dask comparison. This work did not execute
+either finder, inspect or rescore the viewed sentinel result, change a finder,
+or freeze an execution identity. A new seed-disjoint sentinel identity still
+requires a separate prospective freeze and exact one-use approval. Phase 5
+remains open.
 
 ## Required format for future snapshots
 

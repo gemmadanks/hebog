@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import runpy
+import subprocess
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
-
-from hebog.validation.external_runners import file_sha256
 
 _ROOT = Path(__file__).parents[3]
 _PROGRAM = _ROOT / (
@@ -27,6 +27,18 @@ def _review() -> dict[str, Any]:
     value: object = json.loads(_REVIEW.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
     return cast(dict[str, Any], value)
+
+
+def _reviewed_sha256(relative_path: str) -> str:
+    """Hash one dependency at the exact commit inspected by the review."""
+    revision = cast(str, _review()["binding_context"]["repository_commit"])
+    contents = subprocess.run(
+        ("git", "show", f"{revision}:{relative_path}"),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    return hashlib.sha256(contents).hexdigest()
 
 
 def test_review_is_non_executable_and_requires_exact_approval() -> None:
@@ -49,11 +61,11 @@ def test_review_is_non_executable_and_requires_exact_approval() -> None:
 
 
 def test_review_binds_approved_alignment_and_current_product_schemas() -> None:
-    """Recommendations cannot drift from the reviewed product contracts."""
+    """Recommendations bind exact historical product contracts."""
     bindings = _review()["binding_context"]["repository_files"]
 
     for binding in bindings.values():
-        assert file_sha256(_ROOT / binding["path"]) == binding["sha256"]
+        assert _reviewed_sha256(binding["path"]) == binding["sha256"]
     assert bindings["approved_root_cause_review"]["sha256"] == (
         "f94d0455be9bbb4472b7ee6e6b0cd24fbf4ecc8be1d3e8a293d4467dbc02cad3"
     )

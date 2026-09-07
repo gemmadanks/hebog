@@ -880,11 +880,33 @@ remaining steps in order:
 
    The review compared both finder schemas to the same analytic-truth
    evaluator and does not treat PyBDSF as truth. It read no viewed summaries,
-   executed neither finder, changed no source-finding science, and authorizes
-   no implementation or run. Named approval of exact review `02b46eca...` is
-   required before red-first adapter and fitless-support fixtures. Only after
-   those fixtures and Serial/existing-Dask invariance pass may a new
-   seed-disjoint sentinel identity be frozen and separately approved.
+   executed neither finder, and changed no source-finding science. The human
+   approved exact review `02b46eca...` on 2026-09-07 for its named,
+   fixture-only implementation scope.
+
+   That implementation is complete. A validation-only Hebog adapter now
+   projects the exact persisted association memberships through measurement
+   component ownership; a validation-only PyBDSF adapter retains native `srl`
+   observables and partitions multi-source islands using the reviewed summed
+   accepted-Gaussian model-dominance rule. The aligned schema is version 3:
+   whole fitless PyBDSF islands remain explicitly unowned in source topology
+   while continuing to contribute to binding binary-mask metrics, and compact
+   count, pixel-count, and membership digests distinguish modelled from
+   unowned native support. Modelled islands must still be partitioned
+   completely, and rehashing cannot admit altered topology evidence.
+   Both adapters remain under `scripts/validation`; the production
+   `src/hebog` tree is unchanged at SHA-256 `8da21e86...`, so the frozen
+   candidate and notebook identities remain valid.
+
+   Sixty-three focused adapter, compiler, validation, and caller-owned
+   two-worker existing-Dask cases pass, including missing and duplicate
+   source/Gaussian membership, reused local IDs, exact ties, zero-owned
+   sources, fitless-only and mixed islands, row and completion order, invalid
+   owner planes, and retained-evidence tampering. This is prospective contract
+   evidence only: neither finder was executed, viewed results were not
+   rescored, and no new sentinel identity was frozen. The next governed step
+   is a separate prospective freeze of a new seed-disjoint sentinel identity,
+   followed by exact one-use execution approval.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,

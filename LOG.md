@@ -16965,3 +16965,58 @@ before test-first, fixture-only implementation of the two adapters and the
 fitless-support contract amendment. Do not execute either finder or freeze a
 new sentinel identity until all fixtures and Serial/existing-Dask invariance
 pass.
+
+## 2026-09-07 — Implement finder-specific source-union adapters
+
+**Plan phase:** Phase 5 closeout
+
+- Received named human approval of exact pre-review SHA-256 `02b46eca...` for
+  its test-first, fixture-only implementation scope. No finder execution,
+  replay, qualification, tuning, release, or execution-identity freeze was
+  authorized or performed.
+- Added a validation-only Hebog adapter that joins the terminal associated
+  source and component catalogues to the exact persisted association
+  membership and measurement-component owner labels. Catalogue identities,
+  association membership, and every positive owner label must agree exactly.
+- Added the explicitly named validation-only
+  `pybdsf-source-model-dominance-v1-derived-topology` adapter. It retains
+  native `srl` source observables, groups accepted `gaul` rows by canonical
+  `(Isl_id, Source_id)`, validates `N_gaus`, assigns one-source islands whole,
+  and partitions multi-source islands by summed Gaussian-model dominance with
+  a canonical exact-tie rule. Gaussian rows remain diagnostic-only.
+- Amended the aligned compact-sentinel contract to schema version 3. Whole
+  fitless PyBDSF islands may remain explicitly unowned in source topology but
+  continue to contribute to binding binary-mask metrics. Modelled islands
+  must be fully and uniquely owned. Retained records include array-free
+  modelled/unowned counts, pixel counts, and exact membership digests, and the
+  validator rejects their alteration even after the outer digest is recomputed.
+- Followed red-first development: the new adapter fixture suite first failed
+  14 cases because both adapter entry points were intentionally unimplemented.
+  The completed 63-case focused adapter/compiler/validation/Serial-Dask suite
+  passes. It covers missing and duplicate source/Gaussian memberships,
+  fitless-only and mixed islands, reused local IDs, exact ties, zero-owned
+  sources, invalid label planes, row and completion order, and retained
+  evidence tampering. Focused branch-aware coverage of the new validation
+  script is 91.36%; the remaining guards protect states that the immutable
+  association schema or the adapter's own construction already makes
+  unreachable.
+- The first repository-wide coverage attempt exposed that an initial adapter
+  placement under `src/hebog/validation` changed the governed candidate
+  source-tree digest and caused ten provenance/lifecycle regressions. Moved the
+  adapter wholly under `scripts/validation`, updated the historical review
+  contract to verify its bindings at the exact reviewed commit, and reconfirmed
+  the candidate source tree as unchanged SHA-256 `8da21e86...`. All 119 focused
+  adapter plus formerly failing notebook, sentinel, fast-lane, and owner-domain
+  regressions then passed.
+- Final repository validation passes: `just coverage` reports 2,967 passed,
+  two expected xfails, and 94.85% branch-aware project coverage; `just check`
+  reports Ruff formatting and lint clean, zero Pyright findings, and 2,783
+  passed plus two expected xfails. The 27 frozen equivalence cases and strict
+  documentation build also pass. Each lifecycle-sensitive run temporarily
+  held the ignored owner-domain terminal under a restoration trap; it is
+  restored unchanged at SHA-256 `fe4afbe9...`.
+
+**Immediate next step:** after full repository validation and review of this
+fixture-only change, freeze a new seed-disjoint sentinel identity in a separate
+prospective step and obtain exact one-use approval before executing either
+finder. Do not rescore the viewed sentinel terminal.

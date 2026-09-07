@@ -9,10 +9,12 @@ diagnostic.
 
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from hashlib import sha256
 from math import isfinite
+from pathlib import Path
 from typing import Any, Literal, cast
 
 import numpy as np
@@ -25,85 +27,27 @@ from hebog.validation.external_successor_compiler import (
     measure_continuum_image,
 )
 
+_SCRIPT_DIRECTORY = Path(__file__).parent
+if str(_SCRIPT_DIRECTORY) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIRECTORY))
+
+from compact_sentinel_source_unions import (  # noqa: E402
+    SourceUnionComponent as AlignedComponent,
+)
+from compact_sentinel_source_unions import (  # noqa: E402
+    SourceUnionDerivation,
+)
+from compact_sentinel_source_unions import (  # noqa: E402
+    SourceUnionSource as AlignedSource,
+)
+
 FinderId = Literal["current-hebog", "released-pybdsf"]
 NativeTopologyDomain = Literal["component-owner", "island-owner"]
 AdaptiveBackgroundTrigger = Literal["below", "boundary", "above"]
 MetricValue = float | list[float]
 _IMAGE_DIMENSIONS = 2
-_SCHEMA_VERSION = 2
+_SCHEMA_VERSION = 3
 _SHA256_HEX_LENGTH = 64
-
-
-def _finite_centre(value: tuple[float, float], *, name: str) -> None:
-    """Require one finite two-dimensional pixel centre."""
-    if len(value) != _IMAGE_DIMENSIONS or not all(
-        isfinite(item) for item in value
-    ):
-        raise ValueError(f"{name} must contain two finite values")
-
-
-def _positive_flux(value: float, *, name: str) -> None:
-    """Require one finite positive integrated flux."""
-    if not isfinite(value) or value <= 0.0:
-        raise ValueError(f"{name} must be finite and positive")
-
-
-@dataclass(frozen=True, slots=True)
-class AlignedComponent:
-    """One individual fitted component with explicit source membership."""
-
-    identifier: str
-    source_identifier: str
-    native_support_label: int
-    centre_xy: tuple[float, float]
-    integrated_flux_jy: float
-
-    def __post_init__(self) -> None:
-        """Validate component identity, native ownership, and observables."""
-        if not self.identifier or not self.source_identifier:
-            raise ValueError(
-                "component and source identifiers must not be empty"
-            )
-        if (
-            type(self.native_support_label) is not int
-            or self.native_support_label <= 0
-        ):
-            raise ValueError("component native support label must be positive")
-        _finite_centre(self.centre_xy, name="component centre")
-        _positive_flux(self.integrated_flux_jy, name="component flux")
-
-
-@dataclass(frozen=True, slots=True)
-class AlignedSource:
-    """One source measurement and its exact component/support membership."""
-
-    identifier: str
-    member_component_ids: tuple[str, ...]
-    native_support_labels: tuple[int, ...]
-    centre_xy: tuple[float, float]
-    integrated_flux_jy: float
-
-    def __post_init__(self) -> None:
-        """Require canonical, non-empty membership and physical observables."""
-        if not self.identifier:
-            raise ValueError("source identifier must not be empty")
-        if not self.member_component_ids or self.member_component_ids != tuple(
-            sorted(set(self.member_component_ids))
-        ):
-            raise ValueError(
-                "source component IDs must be non-empty and canonical"
-            )
-        if (
-            not self.native_support_labels
-            or self.native_support_labels
-            != tuple(sorted(set(self.native_support_labels)))
-            or min(self.native_support_labels) <= 0
-        ):
-            raise ValueError(
-                "source native support labels must be positive and canonical"
-            )
-        _finite_centre(self.centre_xy, name="source centre")
-        _positive_flux(self.integrated_flux_jy, name="source flux")
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +69,10 @@ class AlignedSummaryInput:
     cell_id: str = "fixture-cell"
     dataset_identifier: str = "fixture-dataset"
     seed: int = 1
+    source_union_derivation: SourceUnionDerivation = (
+        "hebog-association-membership-v1-direct-topology"
+    )
+    unowned_native_support_labels: tuple[int, ...] = ()
 
 
 def group_components_by_source(
@@ -204,6 +152,7 @@ def _validate_memberships(
     native_labels: npt.NDArray[np.int64],
     *,
     native_topology_domain: NativeTopologyDomain,
+    unowned_native_support_labels: tuple[int, ...],
 ) -> None:
     """Require exact source/component/native-owner partitions."""
     _validate_source_memberships(sources, components)
@@ -211,6 +160,7 @@ def _validate_memberships(
         components,
         native_labels,
         native_topology_domain=native_topology_domain,
+        unowned_native_support_labels=unowned_native_support_labels,
     )
 
 
@@ -258,19 +208,24 @@ def _validate_native_owners(
     native_labels: npt.NDArray[np.int64],
     *,
     native_topology_domain: NativeTopologyDomain,
+    unowned_native_support_labels: tuple[int, ...],
 ) -> None:
     """Require components and native owner labels to agree exactly."""
     positive_labels = {
         int(item) for item in np.unique(native_labels) if item > 0
     }
     component_labels = {item.native_support_label for item in components}
-    if positive_labels != component_labels:
-        raise ValueError(
-            "native support labels disagree with component ownership"
-        )
     if native_topology_domain not in {"component-owner", "island-owner"}:
         raise ValueError("native topology domain is unsupported")
     if native_topology_domain == "component-owner":
+        if positive_labels != component_labels:
+            raise ValueError(
+                "native support labels disagree with component ownership"
+            )
+        if unowned_native_support_labels:
+            raise ValueError(
+                "component-owner topology cannot retain unowned support"
+            )
         counts: dict[int, int] = defaultdict(int)
         for component in components:
             counts[component.native_support_label] += 1
@@ -278,6 +233,14 @@ def _validate_native_owners(
             raise ValueError(
                 "component-owner labels must own one component each"
             )
+        return
+    expected_unowned = tuple(sorted(positive_labels - component_labels))
+    if not component_labels.issubset(positive_labels) or (
+        unowned_native_support_labels != expected_unowned
+    ):
+        raise ValueError(
+            "island-owner components and unowned support disagree"
+        )
 
 
 def _source_label_map(
@@ -296,6 +259,8 @@ def _validated_source_union_labels(
     value: npt.ArrayLike,
     sources: tuple[AlignedSource, ...],
     native_labels: npt.NDArray[np.int64],
+    *,
+    unowned_native_support_labels: tuple[int, ...],
 ) -> tuple[npt.NDArray[np.int64], dict[str, int]]:
     """Require an explicit canonical source partition of native support."""
     labels = _label_plane(value, name="source-union label plane")
@@ -303,9 +268,15 @@ def _validated_source_union_labels(
         raise ValueError(
             "source-union and native owner planes must share shape"
         )
-    if np.any((native_labels > 0) != (labels > 0)):
+    if np.any((labels > 0) & (native_labels == 0)):
         raise ValueError(
-            "source unions must partition every native support pixel"
+            "source unions cannot own pixels outside native support"
+        )
+    unowned = np.isin(native_labels, unowned_native_support_labels)
+    modelled = (native_labels > 0) & ~unowned
+    if np.any((labels > 0) != modelled):
+        raise ValueError(
+            "source unions must partition all modelled native islands"
         )
     source_labels = _source_label_map(sources)
     present = {int(item) for item in np.unique(labels) if item > 0}
@@ -313,7 +284,90 @@ def _validated_source_union_labels(
         raise ValueError(
             "source-union labels must canonically own every source"
         )
+    for source in sources:
+        source_label = source_labels[source.identifier]
+        if np.any(
+            (labels == source_label)
+            & ~np.isin(native_labels, source.native_support_labels)
+        ):
+            raise ValueError(
+                "source-union ownership disagrees with native membership"
+            )
     return labels, source_labels
+
+
+def _native_membership_sha256(
+    labels: npt.NDArray[np.int64],
+    selected_labels: tuple[int, ...],
+    *,
+    domain: str,
+) -> str:
+    """Hash exact native owner membership without retaining an array."""
+    selected = np.isin(labels, selected_labels)
+    coordinates = np.asarray(np.argwhere(selected), dtype="<i8")
+    values = np.asarray(labels[selected], dtype="<i8")
+    digest = sha256(b"phase-5-native-support-membership-v1\0")
+    digest.update(domain.encode("ascii"))
+    digest.update(b"\0")
+    digest.update(np.asarray(labels.shape, dtype="<i8").tobytes())
+    digest.update(coordinates.tobytes())
+    digest.update(values.tobytes())
+    return digest.hexdigest()
+
+
+def _support_topology_evidence(
+    native_labels: npt.NDArray[np.int64],
+    *,
+    source_union_derivation: SourceUnionDerivation,
+    unowned_native_support_labels: tuple[int, ...],
+) -> dict[str, object]:
+    """Return array-free modelled and fitless native-support evidence."""
+    positive_labels = tuple(
+        int(item) for item in np.unique(native_labels) if item > 0
+    )
+    unowned = tuple(unowned_native_support_labels)
+    modelled = tuple(
+        item for item in positive_labels if item not in set(unowned)
+    )
+    return {
+        "modelled_native_support_count": len(modelled),
+        "modelled_native_support_membership_sha256": (
+            _native_membership_sha256(
+                native_labels, modelled, domain="modelled"
+            )
+        ),
+        "modelled_native_support_pixel_count": int(
+            np.count_nonzero(np.isin(native_labels, modelled))
+        ),
+        "source_union_derivation": source_union_derivation,
+        "unowned_native_support_count": len(unowned),
+        "unowned_native_support_membership_sha256": (
+            _native_membership_sha256(native_labels, unowned, domain="unowned")
+        ),
+        "unowned_native_support_pixel_count": int(
+            np.count_nonzero(np.isin(native_labels, unowned))
+        ),
+    }
+
+
+def _binary_mask_metrics(
+    truth_labels: npt.NDArray[np.int64],
+    native_labels: npt.NDArray[np.int64],
+) -> dict[str, float]:
+    """Measure the binding published mask independently of source unions."""
+    truth_mask = truth_labels > 0
+    candidate_mask = native_labels > 0
+    intersection = int(np.count_nonzero(truth_mask & candidate_mask))
+    truth_count = int(np.count_nonzero(truth_mask))
+    candidate_count = int(np.count_nonzero(candidate_mask))
+    union_count = int(np.count_nonzero(truth_mask | candidate_mask))
+    return {
+        "mask-iou": intersection / union_count if union_count else 1.0,
+        "mask-precision": (
+            intersection / candidate_count if candidate_count else 0.0
+        ),
+        "mask-recall": intersection / truth_count if truth_count else 1.0,
+    }
 
 
 def _source_union_membership_sha256(
@@ -388,8 +442,8 @@ def _component_records(
     ]
 
 
-def compile_aligned_summary(batch: AlignedSummaryInput) -> dict[str, Any]:
-    """Compile one source-binding and component-diagnostic fixture summary."""
+def _validate_batch_metadata(batch: AlignedSummaryInput) -> None:
+    """Require one explicit finder identity and semantic domain."""
     if not batch.input_id:
         raise ValueError("aligned input identity must not be empty")
     if not batch.cell_id or not batch.dataset_identifier:
@@ -400,10 +454,29 @@ def compile_aligned_summary(batch: AlignedSummaryInput) -> dict[str, Any]:
         raise ValueError("aligned seed must be a non-negative integer")
     if batch.finder_id not in {"current-hebog", "released-pybdsf"}:
         raise ValueError("aligned finder identity is unsupported")
+    expected_derivation = {
+        "current-hebog": "hebog-association-membership-v1-direct-topology",
+        "released-pybdsf": (
+            "pybdsf-source-model-dominance-v1-derived-topology"
+        ),
+    }
+    if batch.source_union_derivation != expected_derivation[batch.finder_id]:
+        raise ValueError("aligned source-union derivation is invalid")
+    expected_native_domain = {
+        "current-hebog": "component-owner",
+        "released-pybdsf": "island-owner",
+    }
+    if batch.native_topology_domain != expected_native_domain[batch.finder_id]:
+        raise ValueError("aligned finder native topology domain is invalid")
     if not isfinite(batch.beam_fwhm_pixels) or batch.beam_fwhm_pixels <= 0.0:
         raise ValueError("beam FWHM must be finite and positive")
     if batch.adaptive_background_trigger not in {"below", "boundary", "above"}:
         raise ValueError("adaptive background trigger stratum is unsupported")
+
+
+def compile_aligned_summary(batch: AlignedSummaryInput) -> dict[str, Any]:
+    """Compile one source-binding and component-diagnostic fixture summary."""
+    _validate_batch_metadata(batch)
     truth_labels = _label_plane(
         batch.truth_label_plane, name="truth label plane"
     )
@@ -428,11 +501,13 @@ def compile_aligned_summary(batch: AlignedSummaryInput) -> dict[str, Any]:
         components,
         native_labels,
         native_topology_domain=batch.native_topology_domain,
+        unowned_native_support_labels=(batch.unowned_native_support_labels),
     )
     source_union_labels, source_labels = _validated_source_union_labels(
         batch.source_union_label_plane,
         sources,
         native_labels,
+        unowned_native_support_labels=(batch.unowned_native_support_labels),
     )
     source_catalogue = tuple(
         ContinuumCatalogueObject(
@@ -450,6 +525,8 @@ def compile_aligned_summary(batch: AlignedSummaryInput) -> dict[str, Any]:
         candidate_label_plane=source_union_labels,
         beam_fwhm_pixels=batch.beam_fwhm_pixels,
     )
+    binding_metrics = _overall_metrics(source_measurements)
+    binding_metrics.update(_binary_mask_metrics(truth_labels, native_labels))
     component_metrics: dict[str, MetricValue] | None = None
     if batch.native_topology_domain == "component-owner":
         component_catalogue = tuple(
@@ -491,7 +568,7 @@ def compile_aligned_summary(batch: AlignedSummaryInput) -> dict[str, Any]:
         },
         "finder_id": batch.finder_id,
         "input_id": batch.input_id,
-        "metrics": _overall_metrics(source_measurements),
+        "metrics": binding_metrics,
         "ownership_valid": True,
         "product_valid": True,
         "schema_version": _SCHEMA_VERSION,
@@ -506,6 +583,13 @@ def compile_aligned_summary(batch: AlignedSummaryInput) -> dict[str, Any]:
         },
         "source_records": _source_records(
             sources, source_labels, source_union_labels
+        ),
+        "support_topology_evidence": _support_topology_evidence(
+            native_labels,
+            source_union_derivation=batch.source_union_derivation,
+            unowned_native_support_labels=(
+                batch.unowned_native_support_labels
+            ),
         ),
         "dataset_identifier": batch.dataset_identifier,
     }
@@ -702,6 +786,83 @@ def _validate_retained_source_unions(
             raise ValueError("retained source-union ownership is inconsistent")
 
 
+def _valid_sha256(value: object) -> bool:
+    """Return whether a retained value is one lowercase SHA-256 digest."""
+    return (
+        isinstance(value, str)
+        and len(value) == _SHA256_HEX_LENGTH
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _validate_support_topology_evidence(summary: dict[str, Any]) -> None:
+    """Require explicit array-free modelled and unowned support evidence."""
+    evidence = summary.get("support_topology_evidence")
+    finder_id = summary.get("finder_id")
+    if not isinstance(evidence, dict) or finder_id not in {
+        "current-hebog",
+        "released-pybdsf",
+    }:
+        raise ValueError("retained support-topology evidence is inconsistent")
+    typed = cast(dict[str, object], evidence)
+    expected_derivation = {
+        "current-hebog": "hebog-association-membership-v1-direct-topology",
+        "released-pybdsf": (
+            "pybdsf-source-model-dominance-v1-derived-topology"
+        ),
+    }
+    if typed.get("source_union_derivation") != expected_derivation[finder_id]:
+        raise ValueError("retained support-topology evidence is inconsistent")
+    count_fields = (
+        "modelled_native_support_count",
+        "modelled_native_support_pixel_count",
+        "unowned_native_support_count",
+        "unowned_native_support_pixel_count",
+    )
+    if any(
+        type(typed.get(field)) is not int or cast(int, typed[field]) < 0
+        for field in count_fields
+    ) or not all(
+        _valid_sha256(typed.get(field))
+        for field in (
+            "modelled_native_support_membership_sha256",
+            "unowned_native_support_membership_sha256",
+        )
+    ):
+        raise ValueError("retained support-topology evidence is inconsistent")
+    if finder_id == "current-hebog" and (
+        typed.get("unowned_native_support_count") != 0
+        or typed.get("unowned_native_support_pixel_count") != 0
+    ):
+        raise ValueError("retained support-topology evidence is inconsistent")
+    counts, sources, components = _retained_records(summary)
+    modelled_count = cast(int, typed["modelled_native_support_count"])
+    modelled_pixel_count = cast(
+        int, typed["modelled_native_support_pixel_count"]
+    )
+    unowned_count = cast(int, typed["unowned_native_support_count"])
+    unowned_pixel_count = cast(
+        int, typed["unowned_native_support_pixel_count"]
+    )
+    retained_modelled_labels = {
+        cast(int, component["native_support_label"])
+        for component in components
+    }
+    retained_modelled_pixels = sum(
+        cast(int, source["source_union_pixel_count"]) for source in sources
+    )
+    if (
+        modelled_count != len(retained_modelled_labels)
+        or modelled_pixel_count != retained_modelled_pixels
+        or (modelled_count == 0) != (modelled_pixel_count == 0)
+        or (unowned_count == 0) != (unowned_pixel_count == 0)
+        or modelled_pixel_count < modelled_count
+        or unowned_pixel_count < unowned_count
+        or (cast(int, counts["source_count"]) == 0) != (modelled_count == 0)
+    ):
+        raise ValueError("retained support-topology evidence is inconsistent")
+
+
 def _validate_retained_memberships(summary: dict[str, Any]) -> None:
     """Require retained counts and member identities to be reconstructable."""
     _counts, source_records, component_records = _retained_records(summary)
@@ -750,6 +911,7 @@ def validate_aligned_summary(summary: dict[str, Any]) -> None:
         raise ValueError("aligned summary schema version is invalid")
     _validate_retained_semantics(summary)
     _validate_retained_memberships(summary)
+    _validate_support_topology_evidence(summary)
     record_sha256 = summary.get("record_sha256")
     unhashed = {
         key: value for key, value in summary.items() if key != "record_sha256"

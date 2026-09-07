@@ -164,6 +164,9 @@ def test_one_pybdsf_island_gets_multiple_source_union_owners() -> None:
                 dtype=np.int32,
             ),
             native_topology_domain="island-owner",
+            source_union_derivation=(
+                "pybdsf-source-model-dominance-v1-derived-topology"
+            ),
             published_support_mask=labels > 0,
             beam_fwhm_pixels=1.0,
         )
@@ -198,6 +201,7 @@ def test_three_peak_connected_compact_source_remains_one_source() -> None:
     result = compile_aligned_summary(
         replace(
             _input(),
+            finder_id="released-pybdsf",
             truth=_truth(centre_xy=(1.0, 0.0)),
             truth_label_plane=np.ones((1, 5), dtype=np.int32),
             components=components,
@@ -205,6 +209,9 @@ def test_three_peak_connected_compact_source_remains_one_source() -> None:
             native_owner_label_plane=labels,
             source_union_label_plane=np.ones(labels.shape, dtype=np.int32),
             native_topology_domain="island-owner",
+            source_union_derivation=(
+                "pybdsf-source-model-dominance-v1-derived-topology"
+            ),
             published_support_mask=labels > 0,
         )
     )
@@ -419,6 +426,34 @@ def test_validator_rejects_rehashed_wrong_schema_version() -> None:
         validate_aligned_summary(result)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("source_union_derivation", "nearest-centroid"),
+        ("modelled_native_support_count", -1),
+        ("modelled_native_support_count", 3),
+        ("modelled_native_support_pixel_count", 5),
+        ("modelled_native_support_membership_sha256", "not-a-sha256"),
+        ("unowned_native_support_count", 1),
+        ("unowned_native_support_pixel_count", 1),
+    ],
+)
+def test_validator_rejects_rehashed_support_topology_tampering(
+    field: str, value: object
+) -> None:
+    """Rehashing cannot admit altered owned or fitless-support evidence."""
+    result: dict[str, Any] = compile_aligned_summary(_input())
+    evidence = result["support_topology_evidence"]
+    assert isinstance(evidence, dict)
+    evidence[field] = value
+    result["record_sha256"] = canonical_sha256(
+        {key: value for key, value in result.items() if key != "record_sha256"}
+    )
+
+    with pytest.raises(ValueError, match="support-topology evidence"):
+        validate_aligned_summary(result)
+
+
 def test_valid_empty_finder_result_remains_scientific_evidence() -> None:
     """A source-free result compiles without inventing owners or rows."""
     labels = np.zeros((1, 5), dtype=np.int32)
@@ -440,6 +475,119 @@ def test_valid_empty_finder_result_remains_scientific_evidence() -> None:
     }
     assert result["metrics"]["completeness"] == 0.0
     assert result["metrics"]["reliability"] == 0.0
+
+
+def test_pybdsf_positive_fitless_support_remains_binary_mask_evidence() -> (
+    None
+):
+    """A source-free island stays in mask metrics without a fake source."""
+    labels = np.asarray(((1, 1, 0),), dtype=np.int32)
+    result = compile_aligned_summary(
+        replace(
+            _input(),
+            finder_id="released-pybdsf",
+            sources=(),
+            components=(),
+            truth_label_plane=np.asarray(((1, 1, 0),), dtype=np.int32),
+            native_owner_label_plane=labels,
+            source_union_label_plane=np.zeros(labels.shape, dtype=np.int32),
+            native_topology_domain="island-owner",
+            source_union_derivation=(
+                "pybdsf-source-model-dominance-v1-derived-topology"
+            ),
+            unowned_native_support_labels=(1,),
+            published_support_mask=labels > 0,
+        )
+    )
+
+    assert result["schema_version"] == 3
+    assert result["counts"]["source_count"] == 0
+    assert result["metrics"]["mask-recall"] > 0.0
+    evidence = result["support_topology_evidence"]
+    assert evidence["modelled_native_support_count"] == 0
+    assert evidence["modelled_native_support_pixel_count"] == 0
+    assert evidence["source_union_derivation"] == (
+        "pybdsf-source-model-dominance-v1-derived-topology"
+    )
+    assert evidence["unowned_native_support_count"] == 1
+    assert evidence["unowned_native_support_pixel_count"] == 2
+    assert len(evidence["modelled_native_support_membership_sha256"]) == 64
+    assert len(evidence["unowned_native_support_membership_sha256"]) == 64
+
+
+def test_mixed_modelled_and_fitless_support_retains_both_domains() -> None:
+    """Only complete source-free islands may be absent from source unions."""
+    native = np.asarray(((1, 1, 0, 2, 2),), dtype=np.int32)
+    source_union = np.asarray(((1, 1, 0, 0, 0),), dtype=np.int32)
+    component = AlignedComponent(
+        "gaussian-a", "pybdsf-island-0-source-0", 1, (0.5, 0.0), 2.0
+    )
+    source = AlignedSource(
+        "pybdsf-island-0-source-0",
+        ("gaussian-a",),
+        (1,),
+        (0.5, 0.0),
+        2.0,
+    )
+    result = compile_aligned_summary(
+        replace(
+            _input(),
+            finder_id="released-pybdsf",
+            sources=(source,),
+            components=(component,),
+            native_owner_label_plane=native,
+            source_union_label_plane=source_union,
+            native_topology_domain="island-owner",
+            source_union_derivation=(
+                "pybdsf-source-model-dominance-v1-derived-topology"
+            ),
+            unowned_native_support_labels=(2,),
+            published_support_mask=native > 0,
+        )
+    )
+
+    evidence = result["support_topology_evidence"]
+    assert evidence["modelled_native_support_count"] == 1
+    assert evidence["modelled_native_support_pixel_count"] == 2
+    assert evidence["unowned_native_support_count"] == 1
+    assert evidence["unowned_native_support_pixel_count"] == 2
+    assert len(evidence["modelled_native_support_membership_sha256"]) == 64
+    assert len(evidence["unowned_native_support_membership_sha256"]) == 64
+    assert "array(" not in json.dumps(result, sort_keys=True)
+
+
+def test_pybdsf_partially_unowned_modelled_island_fails_closed() -> None:
+    """The exception is whole fitless islands, never missing source pixels."""
+    native = np.asarray(((1, 1),), dtype=np.int32)
+    component = AlignedComponent(
+        "gaussian-a", "pybdsf-island-0-source-0", 1, (0.0, 0.0), 2.0
+    )
+    source = AlignedSource(
+        "pybdsf-island-0-source-0",
+        ("gaussian-a",),
+        (1,),
+        (0.0, 0.0),
+        2.0,
+    )
+
+    with pytest.raises(ValueError, match="modelled native islands"):
+        compile_aligned_summary(
+            replace(
+                _input(),
+                finder_id="released-pybdsf",
+                sources=(source,),
+                components=(component,),
+                truth_label_plane=np.ones((1, 2), dtype=np.int32),
+                native_owner_label_plane=native,
+                source_union_label_plane=np.asarray(((1, 0),)),
+                native_topology_domain="island-owner",
+                source_union_derivation=(
+                    "pybdsf-source-model-dominance-v1-derived-topology"
+                ),
+                unowned_native_support_labels=(),
+                published_support_mask=native > 0,
+            )
+        )
 
 
 @pytest.mark.parametrize(
@@ -480,6 +628,16 @@ def _paired_summaries() -> list[dict[str, object]]:
                 finder_id=finder_id,
                 input_id=f"fixture-seed-{seed}",
                 seed=seed,
+                source_union_derivation=(
+                    "hebog-association-membership-v1-direct-topology"
+                    if finder_id == "current-hebog"
+                    else "pybdsf-source-model-dominance-v1-derived-topology"
+                ),
+                native_topology_domain=(
+                    "component-owner"
+                    if finder_id == "current-hebog"
+                    else "island-owner"
+                ),
             )
         )
         for seed in range(4)
