@@ -1,0 +1,31 @@
+{
+  "authorization": {
+    "another_replay": false,
+    "current_hebog_execution": true,
+    "cutover": false,
+    "existing_dask_comparison": true,
+    "held_out_execution": true,
+    "optimization": false,
+    "release": false,
+    "released_pybdsf_execution": true,
+    "rescoring": false,
+    "tuning": false,
+    "viewed_data_execution": false
+  },
+  "authorization_record": {
+    "approved_on": "2026-09-07",
+    "immediate_statement": "Please monitor hourly and if there are any bugs remaining please fix them and retry.",
+    "standing_retry_statement": "Please repair the evaluator and make any other fixes required to complete the run. I approve of all re-tries."
+  },
+  "decision_id": "phase-5-compact-held-out-source-union-spawn-repair-execution-decision",
+  "expected_execution_sha256": "f70adb978b45ca36d75ad2b81a8e57bb3b50e1fc83c39937ac0ee51e93cb7ef0",
+  "identity_review": {
+    "path": "config/contracts/phase-5-compact-held-out-source-union-spawn-repair-identity-review.json",
+    "sha256": "c498a90dd85e69d6e7d9ed80709b296d1f4d1dd2421b8b82aa52efd42d713ac9"
+  },
+  "one_use": true,
+  "output": "benchmark-results/phase-5/compact-held-out-source-union-sentinel-spawn-repair.json",
+  "schema_version": 1,
+  "status": "authorized-for-one-compact-held-out-source-union-sentinel",
+  "workers": 2
+}

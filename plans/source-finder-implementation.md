@@ -966,6 +966,25 @@ remaining steps in order:
    another new write-once namespace. The standing process-repair and retry
    approval authorizes this replacement once; complete its immutable
    preflight and execution before advancing to item 3.
+
+   That replacement also ended before accepting a pair summary, with
+   operational-fail terminal SHA-256 `a6a119fe...`. Its Gaussian-membership
+   child is correct, but the parent installed it through a mutable module
+   global. macOS `ProcessPoolExecutor` spawn workers re-imported the previous
+   importable pair worker and therefore selected the previous column-case
+   child. This is process dispatch only: no science, comparator configuration,
+   truth, evaluator, threshold, margin, seed, or gate changed.
+
+   A third red-first repair now puts the complete pair worker in a stable
+   importable module and selects the Gaussian-count child explicitly inside
+   every spawned process. A real fresh-spawn fixture proves the selected child
+   and the parent runner verifies the importable callable identity.
+   Non-executable identity SHA-256 `c498a90d...`, implementation decision
+   `1ff50535...`, and expected execution `f70adb97...` preserve the same 168
+   seeds, 348 finder executions, two workers, 12 existing-Dask comparisons,
+   science, comparator, evaluator, and gates in a distinct write-once
+   namespace. Pass its complete immutable no-write preflight and consume only
+   that retry before advancing to item 3.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,

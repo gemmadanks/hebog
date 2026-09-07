@@ -17155,3 +17155,42 @@ and consume the exact replacement authority once.
 **Immediate next step:** run complete validation, commit the second isolated
 repair, pass its immutable-checkout no-write preflight, and consume its exact
 one-use authority.
+
+## 2026-09-07 — Repair source-union sentinel spawn dispatch
+
+**Plan phase:** Phase 5 closeout
+
+- The grouped-Gaussian replacement ran from immutable commit `332d110...` and
+  published operational-fail terminal SHA-256 `a6a119fe...`. It accepted no
+  pair summary and contains no scientific result. The write-once terminal is
+  preserved unchanged.
+- The Gaussian-count child was correct, but the host overlay changed the
+  previous worker's comparator selector only in the parent process. Fresh
+  macOS spawn workers imported the previous pair-worker function and invoked
+  the column-case child, reproducing the missing-`N_gaus` failure. This is a
+  process-dispatch defect; candidate science, released-PyBDSF configuration,
+  analytic truth, evaluator, gates, margins, and the 168 fresh seeds remain
+  unchanged.
+- Added a red-first regression that initially failed because the spawn-safe
+  module, runner, and freezer did not exist. The repair places the complete
+  pair worker in a stable importable module and selects the grouped-Gaussian
+  child explicitly within that module. A real fresh `spawn` process now
+  returns the repaired child, and the runner installs and restores that exact
+  importable worker.
+- All 143 focused sentinel-lineage cases pass. Repository coverage passes
+  2,985 tests with two expected xfails at 94.85% branch-aware coverage;
+  `just check` passes 2,801 tests with two expected xfails. The 27 frozen
+  equivalence cases, strict documentation build, and complete pre-commit hook
+  suite also pass.
+- Froze non-executable implementation decision SHA-256 `1ff50535...` and
+  identity-review SHA-256 `c498a90d...`. Expected execution SHA-256 is
+  `f70adb97...`, preserving the same 168 fresh seeds, 348 finder executions,
+  two process workers, 12 existing-Dask comparisons, candidate, comparator,
+  evaluator, and gates in a distinct output namespace. Recorded a new exact
+  one-use decision under the user's immediate monitoring request and standing
+  retry authority.
+
+**Immediate next step:** commit the spawn repair and frozen authority, create
+an immutable execution checkout, pass the complete no-write preflight, and
+consume the retry exactly once. Monitor it hourly without inspecting partial
+scientific state. Do not change or rescore scientific evidence.
