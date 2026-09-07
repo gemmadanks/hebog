@@ -17194,3 +17194,37 @@ one-use authority.
 an immutable execution checkout, pass the complete no-write preflight, and
 consume the retry exactly once. Monitor it hourly without inspecting partial
 scientific state. Do not change or rescore scientific evidence.
+
+## 2026-09-07 — Complete the source-aligned sentinel with scientific failure
+
+**Plan phase:** Phase 5 closeout
+
+- The spawn-safe retry completed from immutable commit `235f55a...`, accepted
+  all 168 Hebog and 168 released-PyBDSF summaries, completed all 12
+  caller-owned existing-Dask comparisons, and atomically published terminal
+  SHA-256 `ca03240d...`. Candidate/source/configuration, manifest, all program
+  bindings, identity `c498a90d...`, decision `be0c4c23...`, pinned comparator
+  image, checkout, and terminal provenance verify exactly. The 12 Dask science
+  projections equal their Serial references.
+- The terminal records `status=fail` and `passed=false`; it is scientific, not
+  operational. Both finders were compared independently with the same analytic
+  injected truth before applying the frozen PyBDSF-relative practical margins.
+  Twenty-four of 42 cells pass and 18 fail, with 59 failed cell-endpoints.
+- Failure concentrations are reliability in 13 cells, integrated-flux median
+  and p95 in eight each, mean-offset or position endpoints in several cells,
+  and compact connected-source completeness/association. The three-peak guard
+  reports Hebog/PyBDSF completeness `0.3333/1.0`, merge fraction `1.0/0.3333`,
+  median position error `1.3184/0.0337`, and median flux error
+  `1.0681/0.0521`. The unequal two-peak guard reports completeness `0.5/1.0`,
+  position error `1.0197/0.0345`, and flux error `2.0598/0.0327`. Both support
+  IoU comparisons pass, isolating source association and measurement from
+  binary support quality.
+- The completed fresh sentinel preserves the powered cumulative result but
+  falsifies the stronger source-level closeout claim for candidate
+  `95cfc76...`. Its one-look role forbids tuning, rescoring, or qualification
+  reuse, and a scientific failure does not authorize an automatic retry.
+
+**Immediate next step:** preserve and document this terminal, complete the
+repository validation required for the terminal record, and stop the monitor.
+Phase 5 remains open pending a new prospective scientific decision; do not
+finalize readiness for candidate `95cfc76...`.

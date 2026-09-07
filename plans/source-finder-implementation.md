@@ -985,6 +985,21 @@ remaining steps in order:
    science, comparator, evaluator, and gates in a distinct write-once
    namespace. Pass its complete immutable no-write preflight and consume only
    that retry before advancing to item 3.
+
+   The spawn-safe retry completed all 168 Hebog and 168 released-PyBDSF runs
+   plus all 12 caller-owned-Dask comparisons and published scientific terminal
+   SHA-256 `ca03240d...` with `status=fail`. Provenance and execution shape
+   verify exactly; this is not an operational failure. Both finders were
+   measured independently against the same analytic injected truth, then the
+   frozen practical-margin parity rule was applied. Twenty-four of 42 cells
+   pass and 18 fail, with 59 failed cell-endpoints. The dominant failures are
+   reliability in 13 cells, integrated-flux median and p95 in eight each,
+   position or mean-offset endpoints in multiple cells, and severe
+   completeness/association failures in the connected two- and three-peak
+   compact guards. All 12 Serial/existing-Dask comparisons pass. This
+   predeclared one-look sentinel therefore blocks closeout for candidate
+   `95cfc76...`; it must not be tuned, rescored, or retried as qualification
+   evidence.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,

@@ -2052,6 +2052,79 @@ or freeze an execution identity. A new seed-disjoint sentinel identity still
 requires a separate prospective freeze and exact one-use approval. Phase 5
 remains open.
 
+## Source-aligned compact held-out sentinel terminal
+
+**Terminal date:** 2026-09-07
+
+**Evidence role:** fresh seed-disjoint regression sentinel; predeclared
+one-look release blocker, not an independently powered parity claim
+
+**Terminal:**
+`compact-held-out-source-union-sentinel-spawn-repair.json`, SHA-256
+`ca03240db8452d84479139e848c0467815fdac9cea02168283fe69f52be8b63a`
+
+The source-aligned successor completed from immutable commit `235f55a...`
+after three preserved process-only failures exposed the native PyBDSF source
+schema and macOS spawn-dispatch boundaries. The final process executed all 168
+current-Hebog Serial cases, all 168 released-PyBDSF cases, and all 12
+caller-owned existing-Dask comparisons. Candidate revision `95cfc76...`,
+source tree `8da21e86...`, configuration `2c907949...`, fresh manifest
+`1c2ce27a...`, identity `c498a90d...`, decision `be0c4c23...`, every bound
+program, the pinned released-PyBDSF container, and the immutable checkout all
+verify. All 12 Serial/existing-Dask science projections agree. The terminal is
+therefore a completed scientific result, not an operational failure.
+
+Both finders were independently matched to the same analytic injected truth.
+The `candidate_cell_median` and `released_pybdsf_cell_median` values are each
+truth-referenced measurements; PyBDSF is the comparator for the frozen
+practical-margin test and is not treated as ground truth. Source science now
+uses like associated-source/source-union semantics, components remain
+report-only diagnostics, binary support masks remain binding, and absolute
+objectives remain report-only as predeclared.
+
+The result is `status=fail` and `passed=false`. Twenty-four of 42 cells pass;
+18 fail with 59 failed cell-endpoints:
+
+| Binding parity endpoint | Failed cells |
+| --- | ---: |
+| Reliability | 13 |
+| Integrated-flux median / p95 error | 8 / 8 |
+| Absolute mean x / y offset | 5 / 4 |
+| Position median / p95 error | 4 / 4 |
+| Mask recall / precision | 4 / 2 |
+| Completeness | 2 |
+| Duplicate / split fraction | 2 / 2 |
+| Merge fraction | 1 |
+| Mask IoU | 0 |
+
+The strongest compact failures are scientifically material. In the connected
+three-peak tile-corner guard, Hebog completeness is `0.3333` versus PyBDSF
+`1.0`, merge fraction is `1.0` versus `0.3333`, median position error is
+`1.3184` versus `0.0337`, and median integrated-flux error is `1.0681` versus
+`0.0521`. In the unequal connected two-peak guard, completeness is `0.5`
+versus `1.0`, median position error is `1.0197` versus `0.0345`, and median
+integrated-flux error is `2.0598` versus `0.0327`. Their support-mask IoU
+values remain comparable, so good binary support does not compensate for
+incorrect associated-source separation and measurement.
+
+The extended failures are less uniform but recurrent. Reliability exceeds the
+frozen adverse margin in 13 cells, and the scale-12 beam-B shell strata also
+show flux and position regressions. For example, the above-trigger cell has
+reliability `0.0625` versus `0.1181`, median flux error `0.9473` versus
+`0.8745`, and median position error `6.0840` versus `5.9977`, while mask IoU
+still passes (`0.9344` versus `0.9417`). These values are poor against truth
+for both finders in some extended regimes, but Hebog is additionally outside
+the predeclared PyBDSF-relative margins.
+
+This compact sentinel does not erase the powered cumulative campaign's earlier
+parity result under its scoped retention exception. It does show that the
+stronger source-level parity claim does not generalize to this fresh
+population, and its predeclared falsification role therefore blocks Phase 5
+closeout for candidate `95cfc76...`. The terminal must not be tuned, rescored,
+or rerun as qualification evidence. Any further candidate work requires a
+prospective scientific decision and new development data; no automatic retry
+is appropriate for this scientific failure.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
