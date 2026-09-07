@@ -17071,3 +17071,20 @@ finder. Do not rescore the viewed sentinel terminal.
 **Immediate next step:** after repository-wide validation and review, obtain
 exact one-use human approval of identity `7d133492...` and expected execution
 `c897af7c...`. Do not reuse a prior decision or rescore the viewed sentinel.
+
+## 2026-09-07 — Authorize the source-aligned compact held-out sentinel
+
+**Plan phase:** Phase 5 closeout
+
+- The scientific owner approved the immediately preceding exact one-use
+  request for identity-review SHA-256 `7d133492...` and expected-execution
+  SHA-256 `c897af7c...`: 168 current-Hebog Serial runs, 168 released-PyBDSF
+  runs, 12 existing-Dask comparisons, two workers, and one atomic terminal.
+- Recorded the exact statement and scope in
+  `phase-5-compact-held-out-source-union-sentinel-execution-decision.json`.
+  Another replay, optimization, tuning, rescoring, cutover, release, and
+  viewed-data execution remain false.
+
+**Immediate next step:** validate and commit the decision, create an immutable
+execution checkout, pass the complete no-write preflight there, and consume
+the authority exactly once. Monitor without inspecting partial science.
