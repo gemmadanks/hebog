@@ -1990,6 +1990,48 @@ step is a separate prospective review of finder-specific source-union
 extraction followed, if accepted, by a newly frozen seed-disjoint sentinel
 identity and exact one-use execution approval. Phase 5 remains open.
 
+### Prospective finder-specific source-union adapter review
+
+The separate non-executable adapter review is complete as exact review
+`02b46eca...`. It inspected only the bound schemas and control flow; it did not
+read the viewed sentinel summaries, execute either finder, or alter the
+candidate. Both finder products remain independently compared with the same
+analytic injected truth. PyBDSF is a comparator, never the truth source.
+
+Hebog can provide source-union ownership without inference. Its association
+record partitions every stable measurement component into one catalogue
+source, and each component records the exact positive label it owns. The
+adapter can therefore relabel those component pixels by their canonical source
+membership and use the terminal source catalogue's flux and position. Any
+catalogue, membership, component, or positive-label mismatch must fail closed.
+
+Released PyBDSF 1.14.1 does not export a source-owner plane. It exports the
+island mask and provides separate `srl` source and `gaul` Gaussian catalogues.
+For a future, explicitly identified validation diagnostic, the review
+recommends retaining native `srl` fluxes and centroids and grouping accepted
+Gaussians by `(Isl_id, Source_id)`. A multi-source island is partitioned by
+which source's summed accepted-Gaussian model is largest at each island pixel,
+with canonical source identity breaking an exact tie. This derived topology is
+named `pybdsf-source-model-dominance-v1-derived-topology`; it must never be
+described as a native PyBDSF export. The Gaussian rows remain diagnostic-only.
+
+PyBDSF may also retain an island after all fits are rejected. Such a fitless
+island must remain in binding binary-mask precision, recall, and IoU, but it
+cannot acquire a fabricated source owner. The aligned fixture contract must be
+amended so whole fitless islands may remain explicitly unowned, with their
+count, pixel count, and membership digest retained. A modelled island must
+still be completely and uniquely partitioned. Dropping fitless support,
+duplicating a whole island for multiple sources, or using nearest-centroid
+ownership is forbidden.
+
+The review authorizes no implementation or execution. Exact named approval of
+review `02b46eca...` is required before test-first, fixture-only adapter work.
+The fixture suite must cover both direct Hebog projection and PyBDSF model
+dominance, exact ties, missing membership, zero-owned sources, mixed modelled
+and fitless islands, array-free provenance, and Serial/existing-Dask order and
+worker invariance. Only then may a new seed-disjoint sentinel identity be
+frozen for separate one-use approval. Phase 5 remains open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

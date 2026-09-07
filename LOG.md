@@ -16917,3 +16917,51 @@ fixtures pass, and require separate exact execution approval.
 **Immediate next step:** obtain a separate prospective review before
 implementing finder-specific source-union adapters, freezing a new
 seed-disjoint sentinel identity, or seeking one-use execution approval.
+
+## 2026-09-07 — Review finder-specific source-union adapters prospectively
+
+**Plan phase:** Phase 5 closeout
+
+- Completed the separate non-executable source-union adapter review as exact
+  file SHA-256 `02b46eca...` (canonical content SHA-256 `2115d296...`). The
+  review used read-only schema and control-flow inspection, did not read the
+  viewed 168-image summaries, and executed neither Hebog nor PyBDSF.
+- Bound the approved root-cause review, aligned evidence contract, unchanged
+  gate evaluator, historical runner and PyBDSF child, current Hebog public and
+  association schemas, catalogue loaders, candidate identity, and released
+  PyBDSF 1.14.1 container and dependency identities.
+- Confirmed that Hebog's adapter is a lossless projection: its persisted
+  association memberships partition stable measurement-component labels and
+  its terminal source catalogue already contains the binding source flux and
+  position.
+- Confirmed that released PyBDSF exposes native source and Gaussian catalogues
+  and island ownership, but no exportable source-owner image. Recommended a
+  prospective, explicitly named
+  `pybdsf-source-model-dominance-v1-derived-topology` diagnostic inside the
+  pinned child. It uses native `srl` source observables, accepted `gaul`
+  membership, and a summed-Gaussian model-dominance partition within each
+  multi-source island with a canonical exact-tie rule.
+- Identified a previously uncovered contract edge: PyBDSF can retain a
+  fitless island with no real catalogue source. The binary-mask lane must keep
+  all such pixels, while source topology leaves the whole island explicitly
+  unowned and retains array-free count and membership evidence. A modelled
+  island must remain completely and uniquely owned. Dummy sources, dropped
+  support, duplicated islands, and nearest-centroid partitions are forbidden.
+- Added eight red-first review contracts, initially failing because the review
+  and builder did not exist. The completed contracts bind both adapter designs,
+  the fitless-support amendment, rejected shortcuts, the fixture matrix,
+  write-once review output, and the requirement for a new exact approval.
+- The eight new contracts and 27 aligned evaluator/Serial-Dask lineage cases
+  pass together. Ruff and focused Pyright pass; `just check` passes 2,748
+  tests plus two expected xfails; the strict documentation build and full
+  `just pre-commit` suite pass. Coverage and equivalence were not repeated
+  because this review changes no production or scientific execution path.
+  The existing 226 MB owner-domain terminal was held only for lifecycle checks
+  under a restoration trap and was restored unchanged at SHA-256
+  `fe4afbe9...`.
+
+**Immediate next step:** obtain named approval of exact review `02b46eca...`
+before test-first, fixture-only implementation of the two adapters and the
+fitless-support contract amendment. Do not execute either finder or freeze a
+new sentinel identity until all fixtures and Serial/existing-Dask invariance
+pass.

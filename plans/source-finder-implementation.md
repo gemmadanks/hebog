@@ -860,6 +860,31 @@ remaining steps in order:
    new run, separately review and freeze the finder-specific source-union
    adapters and a new seed-disjoint sentinel identity, then obtain exact
    one-use execution approval.
+
+   The separate non-executable adapter review is complete as exact review
+   `02b46eca...`. Hebog has a direct, lossless adapter: project its persisted
+   association memberships through the stable measurement-component owner
+   plane and use the terminal associated-source catalogue for source flux and
+   position. Released PyBDSF 1.14.1 exposes source and Gaussian catalogues plus
+   an island plane, but no source-owner image. Its prospective adapter must
+   therefore write a clearly named
+   `pybdsf-source-model-dominance-v1-derived-topology` diagnostic inside the
+   pinned child: use native `srl` rows for source observables, group accepted
+   `gaul` rows by `(Isl_id, Source_id)`, and partition a multi-source island by
+   the largest summed source Gaussian model with a frozen canonical tie-break.
+   Whole islands with no accepted source remain unowned source topology while
+   continuing to count in the binding binary-mask lane; fabricating a source,
+   dropping that mask support, or duplicating an island for every source is
+   forbidden. This requires a fixture-only amendment to the aligned contract,
+   which currently requires every native pixel to have a source owner.
+
+   The review compared both finder schemas to the same analytic-truth
+   evaluator and does not treat PyBDSF as truth. It read no viewed summaries,
+   executed neither finder, changed no source-finding science, and authorizes
+   no implementation or run. Named approval of exact review `02b46eca...` is
+   required before red-first adapter and fitless-support fixtures. Only after
+   those fixtures and Serial/existing-Dask invariance pass may a new
+   seed-disjoint sentinel identity be frozen and separately approved.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,
