@@ -1956,6 +1956,40 @@ fixture-only evaluator alignment. A new seed-disjoint sentinel can be frozen
 only after all fixtures pass and requires its own approval. The old terminal
 remains `fail`, and Phase 5 remains open.
 
+### Prospective source-level evaluator alignment
+
+The scientific owner approved exact review `f94d0455...` on 2026-09-07, and
+the fixture-only alignment is now implemented. It did not read or rescore the
+168 viewed sentinel pairs, execute either finder, or modify `src/hebog`. The
+candidate source-tree identity therefore remains unchanged.
+
+The prospective evidence contract has two deliberately separate levels. Its
+binding catalogue contains associated astronomical sources and is measured
+against an explicit source-union owner plane. Its individual Gaussian or
+Hebog-component catalogue is retained as a report-only diagnostic; topology
+metrics are present only when the native plane is genuinely component-owned.
+Positive-support precision, recall, and IoU remain direct binding metrics.
+The implementation refuses to derive source-union ownership from nearest
+component positions, because that would introduce an unreviewed scientific
+partition rule. A future finder-specific adapter must instead provide the
+exact union and prove that it covers the native positive support once.
+
+The array-free schema retains source/component identities, exact membership,
+native owner labels, source-union labels, pixel counts, membership digests,
+individual and grouped fluxes, and both centres. It rejects inconsistent or
+rehashed ownership records before invoking the byte-identical frozen parent
+evaluator. Fixture coverage includes multi-Gaussian and multi-component
+sources, multiple sources sharing one island, three-peak connected topology,
+valid empty results, residual mask/flux/position risks, trigger strata, and
+malformed products. Serial and caller-owned two-worker existing-Dask results
+are identical under reversed completion order.
+
+This is process evidence, not a replacement scientific result. Terminal
+`f542c7db...` remains an immutable failure and has not been rescored. The next
+step is a separate prospective review of finder-specific source-union
+extraction followed, if accepted, by a newly frozen seed-disjoint sentinel
+identity and exact one-use execution approval. Phase 5 remains open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

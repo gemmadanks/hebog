@@ -835,6 +835,31 @@ remaining steps in order:
    Serial/existing-Dask gate passes may a new seed-disjoint sentinel identity
    be frozen and separately approved. Phase 5 remains open until that new
    like-semantics sentinel passes.
+
+   The scientific owner approved exact review `f94d0455...` on 2026-09-07.
+   The authorized fixture-only implementation is complete without modifying
+   `src/hebog` or either finder's products. The prospective schema makes
+   source rows and individual components separate records, binds truth
+   metrics only to an explicitly supplied source-union owner plane, leaves
+   component topology report-only, and retains positive-support mask metrics
+   as binding. It deliberately rejects attempts to infer a source partition
+   from component positions: a future finder-specific adapter must supply and
+   validate the exact source union. Array-free records retain canonical source
+   membership, component ownership, union counts and membership digests, and
+   fail closed when those fields or their outer digest disagree. The aligned
+   wrapper validates these semantics before calling the byte-identical frozen
+   parent evaluator, so no threshold, margin, confidence rule, or gate changed.
+
+   The fixture matrix and caller-owned two-worker existing-Dask comparison
+   pass, including multi-Gaussian PyBDSF sources, multi-component Hebog
+   sources, two sources sharing one native island, connected three-peak
+   topology, empty results, residual flux/position errors, adaptive-trigger
+   strata, relabel-invariant masks, malformed ownership, and execution-order
+   invariance. This establishes the evaluator contract only; it neither
+   rescored the viewed 168-image terminal nor established parity. Before any
+   new run, separately review and freeze the finder-specific source-union
+   adapters and a new seed-disjoint sentinel identity, then obtain exact
+   one-use execution approval.
 3. [ ] **Confirm the exact candidate's engineering and public contract.** Run
    focused regression and executor-invariance tests, `just coverage`,
    `just check`, `just test-equivalence`, `just docs-build`,

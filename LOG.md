@@ -16870,3 +16870,50 @@ qualification data.
 before test-first, fixture-only evaluator alignment. Do not execute or rescore
 the viewed population. Freeze a new seed-disjoint sentinel only after all
 fixtures pass, and require separate exact execution approval.
+
+## 2026-09-07 — Align the prospective compact sentinel evaluator by source
+
+**Plan phase:** Phase 5 closeout
+
+- Recorded the scientific owner's approval of exact root-cause review
+  `f94d0455...` and stayed within its fixture-only boundary. No candidate,
+  PyBDSF, replay, qualification, viewed-data, tuning, cutover, or release
+  execution occurred, and no file under `src/hebog` changed.
+- Added red-first fixtures for associated-source binding, grouped PyBDSF
+  Gaussians, Hebog component unions, two sources sharing one island, connected
+  three-peak topology, individual-versus-grouped flux, source/component
+  centres, reliability, binary masks, valid empty products, adaptive-trigger
+  strata, and malformed ownership. The first focused run failed because the
+  alignment module did not exist; additional retained-record tests then failed
+  because rehashed component/source-union inconsistencies were not yet checked.
+- Implemented a validation-only, in-memory schema that binds truth metrics to
+  source rows and an explicit source-union owner plane. Components retain
+  individual flux and centres in a report-only diagnostic. Island-owned
+  Gaussian topology cannot masquerade as component-owned topology, and binary
+  mask metrics remain based on positive support. The compiler intentionally
+  refuses to invent unions by nearest-component assignment.
+- Retained array-free source/component identities, exact membership, native
+  owner labels, canonical source-union labels, pixel counts and membership
+  digests. The validator independently checks those fields before its canonical
+  outer digest, so recomputing the digest cannot make malformed ownership
+  admissible.
+- Added a prospective evaluator wrapper that first enforces the new semantic
+  schema and then loads the exact historical parent evaluator SHA-256
+  `6f2a05fb...`. This preserves every frozen endpoint, threshold, practical
+  margin, confidence rule, and decision gate.
+- Kept all new evaluator code under `scripts/validation` so the sealed
+  production candidate source-tree SHA-256 `8da21e86...` remains unchanged.
+  The historical compact-sentinel no-write verifier continues to pass.
+- Twenty-seven new fixture/Serial-Dask cases and the 48-test repair lineage
+  pass with Ruff and Pyright. `just coverage` passes 2,923 tests plus two
+  expected xfails at 94.85%; `just check` passes 2,740 tests plus two expected
+  xfails; 27 frozen equivalence tests and the strict documentation build pass.
+  The first unisolated coverage/check attempts encountered the intentional
+  write-once verifier precondition because the 236 MB owner-domain terminal
+  already exists. The successful runs temporarily held that exact ignored
+  evidence aside under a restoration trap; its restored SHA-256 remains
+  `fe4afbe...`.
+
+**Immediate next step:** obtain a separate prospective review before
+implementing finder-specific source-union adapters, freezing a new
+seed-disjoint sentinel identity, or seeking one-use execution approval.
