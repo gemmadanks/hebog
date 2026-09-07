@@ -17228,3 +17228,76 @@ scientific state. Do not change or rescore scientific evidence.
 repository validation required for the terminal record, and stop the monitor.
 Phase 5 remains open pending a new prospective scientific decision; do not
 finalize readiness for candidate `95cfc76...`.
+
+## 2026-09-07 — Repair CI historical-identity checkout
+
+**Plan phase:** Phase 5 engineering validation; no scientific change
+
+- Reproduced the reported public-interface identity failure in a temporary
+  depth-one clone. Git treats the shallow boundary as the file's introduction,
+  so the test reads today's source record (`f550fca3...`) instead of the
+  original reviewed record (`d2ea4efa...`) at `3e79b743...`. The frozen review
+  is correct; this is distinct from the retained-output fixture failure F6.
+- Configured full Git history in both CI jobs that execute the unit suite:
+  the pre-commit pytest hook and the portable test matrix. Added a fail-closed
+  shallow-history diagnostic before historical lookup, retaining every hash
+  and composition assertion. No frozen review, candidate code, campaign
+  output, or scientific rule changed.
+- Confirmed red before editing: the shallow clone reproduces the exact CI
+  mismatch. Fetching its full history makes all nine public-profile tests
+  pass without changing their expected hashes. All nine updated local tests
+  also pass; a bounded mocked shallow response verifies that the new guard
+  stops before historical lookup with an actionable checkout message.
+- `just check` passes formatting, Ruff, Pyright and 2,579 tests before the
+  already diagnosed F6 verifier test fails on the preserved real cumulative
+  output; two tests are expected xfails. That separate fixture-isolation
+  repair remains queued, and no evidence was deleted to bypass it. Reviewed
+  the scoped diff against `CODE_REVIEW.md`; coverage and scientific campaigns
+  are not applicable to this CI/test-diagnostic-only change. The clean-hook
+  rule still prevents committing while F6 remains; no push was performed.
+
+**Immediate next step:** repair F6's temporary-fixture isolation, then resume
+the prospective scientific repair contract. The current CI fix changes only
+history availability and error reporting, not the Phase 5 scientific outcome.
+
+## 2026-09-07 — Isolate the campaign verifier fixture and unblock commits
+
+**Plan phase:** Phase 5 engineering validation; F6 repaired
+
+- Reproduced the local `FileExistsError` before editing the failing test.
+  Replaced its real campaign namespace with temporary roots, current/incumbent
+  scratch paths and a synthetic product seal. Only the expensive inherited
+  rehash is stubbed; real invocation, file/canonical checksum, seal semantics,
+  parent identity and write-once guards remain active. Scoped bindings restore
+  the historical module after fixture teardown.
+- Added regression cases for absent output, preserved output files and
+  directories, byte-tampered seals, correctly hashed invalid execution counts
+  and changed output paths. Static candidate bindings now compare to the
+  checked-in review, without reading the live product seal.
+- Separated current freezer-output tests from historical fixture identities.
+  Current records bind current test bytes and maintain their implementation /
+  identity / decision checksum links; the closed review's fixture hashes are
+  independently verified from their original Git revision. No closed review
+  or frozen executable was rewritten to accommodate a test repair.
+- The first full check exposed another dependency: the earlier CI diagnostic
+  had changed a public-profile test hashed into the fast-lane identity. Moved
+  that diagnostic to `tests/unit/test_ci_history.py`, restoring the original
+  profile test's exact bytes. Full-history CI checkout remains required.
+- Validation passes: 36 focused tests, including the real fast-lane no-write
+  preflight, historical parent tests and public-profile checks; and
+  `just check`, with 2,808 passes, 229 deselections and two expected xfails.
+  The standalone shallow-history diagnostic also rejects a mocked shallow
+  response with its actionable checkout message. Reviewed the changes
+  against `CODE_REVIEW.md`; final hooks are required before each local commit.
+  Production coverage and scientific/performance campaigns were not rerun
+  for test, CI and documentation changes; no new science or speed claim is
+  made.
+- Marked F6 repaired in the pending plan and audit. Source code, scripts,
+  contracts and the sentinel terminal remain unchanged; its SHA-256 is still
+  `ca03240db8452d84479139e848c0467815fdac9cea02168283fe69f52be8b63a`.
+  Preserve the scientific failure and keep the engineering fix separate from
+  the audit/repair-plan commit. Nothing is to be pushed.
+
+**Immediate next step:** prepare R0's prospective scientific repair contract.
+The test-isolation blocker is resolved; scientific fixes and new campaigns
+are not authorized or performed by this engineering repair.

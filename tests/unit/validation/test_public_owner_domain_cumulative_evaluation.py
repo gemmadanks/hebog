@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
 import runpy
 import subprocess
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -36,10 +38,6 @@ _IMPLEMENTATION = (
 )
 _IDENTITY = _ROOT / f"config/contracts/{_PREFIX}-identity-review.json"
 _DECISION = _ROOT / f"config/contracts/{_PREFIX}-execution-decision.json"
-_PRODUCT_SEAL = (
-    _ROOT / "benchmark-results/phase-5/"
-    "public-owner-domain-cumulative-product-set.json"
-)
 _CANDIDATE = {
     "configuration_sha256": (
         "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
@@ -52,6 +50,9 @@ _CANDIDATE = {
         "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
     ),
 }
+VerifierFixture = tuple[
+    dict[str, Any], argparse.Namespace, list[argparse.Namespace]
+]
 
 
 def _completion() -> Any:
@@ -77,6 +78,72 @@ def _arguments(module: Any, output: Path) -> argparse.Namespace:
         verify_only=True,
         smoke_only=False,
     )
+
+
+@pytest.fixture
+def isolated_product_verifier(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[VerifierFixture]:
+    """Exercise real seal/namespace guards without live campaign products."""
+    module = _completion()
+    arguments = _arguments(module, module._OUTPUT)
+    arguments.repository_root = tmp_path
+    arguments.current_scratch = tmp_path / "current"
+    arguments.incumbent_scratch = tmp_path / "incumbent"
+    calls: list[argparse.Namespace] = []
+    with (
+        module._configured_completion() as parent,
+        monkeypatch.context() as bindings,
+    ):
+        bindings.setitem(parent, "_ROOT", tmp_path)
+        bindings.setitem(parent, "_CURRENT_SCRATCH", arguments.current_scratch)
+        bindings.setitem(
+            parent, "_INCUMBENT_SCRATCH", arguments.incumbent_scratch
+        )
+        seal = {
+            "status": "complete",
+            "candidate_execution_count": parent["_EXPECTED_INPUT_COUNT"],
+            "candidate_revision": parent["_CURRENT_REVISION"],
+            "candidate_source_tree_sha256": (
+                parent["_CURRENT_SOURCE_TREE_SHA256"]
+            ),
+            "candidate_configuration_sha256": (
+                parent["_CURRENT_CONFIGURATION_SHA256"]
+            ),
+            "candidate_product_set_sha256": (
+                parent["_CURRENT_PRODUCT_SET_SHA256"]
+            ),
+            "identity_review_sha256": parent[
+                "_CURRENT_REPLAY_IDENTITY_SHA256"
+            ],
+            "execution_decision_sha256": (
+                parent["_CURRENT_REPLAY_DECISION_SHA256"]
+            ),
+            "pybdsf_execution_count": 0,
+            "reference_run_count": parent["_EXPECTED_REFERENCE_RUN_COUNT"],
+        }
+        canonical = canonical_sha256(seal)
+        seal["record_canonical_sha256"] = canonical
+        seal_path = tmp_path / arguments.product_seal
+        seal_path.parent.mkdir(parents=True)
+        seal_path.write_text(json.dumps(seal), encoding="utf-8")
+        bindings.setitem(
+            parent, "_CURRENT_PRODUCT_SEAL_SHA256", file_sha256(seal_path)
+        )
+        bindings.setitem(
+            parent, "_CURRENT_PRODUCT_SEAL_CANONICAL_SHA256", canonical
+        )
+
+        def verify_products(value: argparse.Namespace) -> dict[str, object]:
+            calls.append(value)
+            return parent["_expected_parent_products"]()
+
+        bindings.setitem(
+            parent,
+            "_load_parent_completion",
+            lambda: {"verify_products": verify_products},
+        )
+        yield parent, arguments, calls
 
 
 def test_evaluator_changes_only_the_current_candidate_identity() -> None:
@@ -135,9 +202,8 @@ def test_completion_retargets_only_current_products_and_output() -> None:
         verified["current_product_set_sha256"]
         == _CANDIDATE["product_set_sha256"]
     )
-    assert verified["candidate_product_seal_sha256"] == file_sha256(
-        _PRODUCT_SEAL
-    )
+    identity = json.loads(_IDENTITY.read_text(encoding="utf-8"))
+    assert verified == identity["verified_products"]
     assert expected_execution["completion_program_sha256"] == file_sha256(
         _COMPLETION
     )
@@ -147,27 +213,86 @@ def test_completion_retargets_only_current_products_and_output() -> None:
 
 
 def test_product_verifier_binds_seal_and_complete_parent_rehash(
-    monkeypatch: pytest.MonkeyPatch,
+    isolated_product_verifier: VerifierFixture,
 ) -> None:
     """The atomic seal gates the inherited complete product verifier."""
-    module = _completion()
-    arguments = _arguments(module, module._OUTPUT)
-    calls: list[argparse.Namespace] = []
+    parent, arguments, calls = isolated_product_verifier
 
-    def verify_products(value: argparse.Namespace) -> dict[str, object]:
-        calls.append(value)
-        return module._expected_parent_products()
-
-    with module._configured_completion() as parent:
-        monkeypatch.setitem(
-            parent,
-            "_load_parent_completion",
-            lambda: {"verify_products": verify_products},
-        )
-        verified = parent["verify_products"](arguments)
+    verified = parent["verify_products"](arguments)
 
     assert calls == [arguments]
-    assert verified == module.expected_verified_products()
+    assert verified == parent["expected_verified_products"]()
+    assert verified["candidate_product_seal_sha256"] == file_sha256(
+        arguments.repository_root / arguments.product_seal
+    )
+    assert not (arguments.repository_root / arguments.output).exists()
+
+
+@pytest.mark.parametrize("output_kind", ["file", "directory"])
+def test_product_verifier_preserves_existing_output(
+    isolated_product_verifier: VerifierFixture, output_kind: str
+) -> None:
+    """Existing terminals stop verification and remain untouched."""
+    parent, arguments, calls = isolated_product_verifier
+    output = arguments.repository_root / arguments.output
+    if output_kind == "file":
+        output.write_bytes(b"preserved terminal")
+    else:
+        output.mkdir()
+
+    with pytest.raises(FileExistsError, match="evaluation output exists"):
+        parent["verify_products"](arguments)
+
+    assert calls == []
+    if output_kind == "file":
+        assert output.read_bytes() == b"preserved terminal"
+    else:
+        assert output.is_dir()
+        assert list(output.iterdir()) == []
+
+
+@pytest.mark.parametrize("valid_checksum", [False, True])
+def test_product_verifier_rejects_changed_seal_before_parent(
+    isolated_product_verifier: VerifierFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    valid_checksum: bool,
+) -> None:
+    """Both byte tampering and a correctly hashed wrong count fail closed."""
+    parent, arguments, calls = isolated_product_verifier
+    path = arguments.repository_root / arguments.product_seal
+    seal = json.loads(path.read_text(encoding="utf-8"))
+    seal.pop("record_canonical_sha256")
+    seal["candidate_execution_count"] -= 1
+    seal["record_canonical_sha256"] = canonical_sha256(seal)
+    path.write_text(json.dumps(seal), encoding="utf-8")
+    with monkeypatch.context() as bindings:
+        if valid_checksum:
+            bindings.setitem(
+                parent, "_CURRENT_PRODUCT_SEAL_SHA256", file_sha256(path)
+            )
+            bindings.setitem(
+                parent,
+                "_CURRENT_PRODUCT_SEAL_CANONICAL_SHA256",
+                seal["record_canonical_sha256"],
+            )
+        message = "seal is malformed" if valid_checksum else "seal changed"
+        with pytest.raises(ValueError, match=message):
+            parent["verify_products"](arguments)
+
+    assert calls == []
+
+
+def test_product_verifier_rejects_changed_output_path(
+    isolated_product_verifier: VerifierFixture,
+) -> None:
+    """An isolated fixture still enforces the exact invocation identity."""
+    parent, arguments, calls = isolated_product_verifier
+    arguments.output = Path("different-output.json")
+
+    with pytest.raises(ValueError, match="evaluation output changed"):
+        parent["verify_products"](arguments)
+
+    assert calls == []
 
 
 def test_bounded_smoke_reaches_all_terminal_seams(tmp_path: Path) -> None:
@@ -222,16 +347,54 @@ def test_freezer_records_are_non_executable_then_one_use() -> None:
 
 
 def test_freezer_writes_once(tmp_path: Path) -> None:
-    """The exact replacement records reproduce without overwrite."""
+    """Current fixture identities are recorded without changing closed ones."""
     freezer = runpy.run_path(str(_FREEZER))
     arguments = argparse.Namespace(repository_root=_ROOT, output_root=tmp_path)
 
     freezer["freeze_records"](arguments)
-    for expected in (_IMPLEMENTATION, _IDENTITY, _DECISION):
-        generated = tmp_path / expected.relative_to(_ROOT)
-        assert generated.read_bytes() == expected.read_bytes()
+    implementation, identity, decision = (
+        json.loads((tmp_path / path.relative_to(_ROOT)).read_text("utf-8"))
+        for path in (_IMPLEMENTATION, _IDENTITY, _DECISION)
+    )
+    for record in (implementation, identity):
+        for binding in record["fixture_bindings"].values():
+            assert binding["sha256"] == file_sha256(_ROOT / binding["path"])
+    reviewed = json.loads(_IDENTITY.read_text(encoding="utf-8"))
+    assert identity["program_bindings"] == reviewed["program_bindings"]
+    assert identity["expected_execution"] == reviewed["expected_execution"]
+    assert identity["implementation"]["sha256"] == canonical_sha256(
+        implementation
+    )
+    assert decision["identity_review_sha256"] == canonical_sha256(identity)
     with pytest.raises(FileExistsError, match="refusing to overwrite"):
         freezer["freeze_records"](arguments)
+
+
+def test_frozen_fixture_bindings_match_historical_revision() -> None:
+    """Closed review hashes bind original tests, not later test repairs."""
+    review = json.loads(_IDENTITY.read_text(encoding="utf-8"))
+    revision = subprocess.run(
+        (
+            "git",
+            "log",
+            "--diff-filter=A",
+            "--format=%H",
+            "--",
+            _IDENTITY.relative_to(_ROOT).as_posix(),
+        ),
+        cwd=_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()[0]
+    for binding in review["fixture_bindings"].values():
+        contents = subprocess.run(
+            ("git", "show", f"{revision}:{binding['path']}"),
+            cwd=_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        assert hashlib.sha256(contents).hexdigest() == binding["sha256"]
 
 
 def test_freezer_direct_cli_resolves_repository_modules(

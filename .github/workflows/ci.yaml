@@ -19,6 +19,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # The pytest hook verifies frozen files against their Git history.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -56,6 +59,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Historical identity tests must see the original review commits.
+          fetch-depth: 0
 
       - name: Install uv and set python version
         uses: astral-sh/setup-uv@v7
