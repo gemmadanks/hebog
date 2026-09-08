@@ -61,13 +61,14 @@ def derive_retained_pybdsf_source_unions(
         if not keys:
             unowned.append(label)
             continue
-        y_pixels, x_pixels = np.nonzero(inputs.labels == label)
+        coordinate_yx = np.argwhere(inputs.labels == label)
+        y_pixels, x_pixels = coordinate_yx[:, 0], coordinate_yx[:, 1]
         if len(keys) == 1:
             owners[y_pixels, x_pixels] = label_by_key[keys[0]]
         else:
-            coordinates = np.column_stack((x_pixels, y_pixels)).astype(
-                np.float64
-            )
+            # Preserve v1's layout as well as values: einsum can otherwise
+            # change round-off and hence ownership for nearly tied models.
+            coordinates = np.asarray(coordinate_yx[:, ::-1], dtype=np.float64)
             models = np.asarray(
                 [
                     native._source_log_model(

@@ -18039,3 +18039,29 @@ then prepare a separate exact evaluation-only continuation. The hourly R6
 monitor remains paused. Preserve the original candidate, all captures and
 the 808 completed evaluations; do not restart, tune, rescore or infer a
 scientific pass from fixture validation.
+
+### Final synthetic arithmetic audit
+
+- Implementation commit `3261a9c57beabb3670d910ce7e1ed2596172b07c`
+  passed clean hooks and is local only. Before freezing its identities, a
+  further synthetic audit found that the new adapter constructed coordinates
+  with a different array layout. Reusing the same optimized model kernel
+  was not sufficient to preserve floating-point arithmetic: 5,910 model
+  samples differed across 30 generated models. No retained data was scored.
+- A new near-tie anisotropic regression failed on the layout mismatch before
+  the correction. The adapter now uses the historical coordinate construction
+  exactly. The regression checks layout, exact model values and exact pixel
+  ownership; vectorized assignment still avoids the old per-pixel loop.
+  The original hash-bound adapter and scientific kernels remain unchanged.
+  This closes the finding missed by the earlier review; it is not a claim
+  that all possible numerical or downstream failures have been eliminated.
+- The corrected focused suite passed 65 tests, including caller-owned Dask,
+  with all 42 adapter statements and eight branches covered. `just coverage`
+  passed 3,345 tests, 153 deselected and two existing xfails in 285.35 s;
+  branch-aware coverage remains 95.11482398239824%. The changed package
+  validation modules have no missing lines or branches; the amendment now
+  has 98 covered changed executable lines. `just check` passed 3,124 tests
+  in 206.10 s after correcting a test-only type annotation. All 27 frozen
+  equivalence tests passed in 36.71 s and strict docs built in 6.07 s.
+  Final `CODE_REVIEW.md` review found no remaining actionable issue in this
+  correction. R6 remains paused and all retained products remain untouched.

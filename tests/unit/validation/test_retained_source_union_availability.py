@@ -19,6 +19,58 @@ amended: Any = importlib.import_module(
 )
 
 
+def test_model_arithmetic_preserves_historical_coordinate_layout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Array layout must not perturb model arithmetic near ownership ties."""
+    rng = np.random.default_rng(20260908)
+    labels = (rng.random((31, 47)) > 0.2).astype(np.int32)
+    coordinate_yx = np.argwhere(labels == 1)
+    historical_xy = np.asarray(coordinate_yx[:, ::-1], dtype=np.float64)
+    sources = tuple(
+        native.PyBdsfSourceRow(0, index, centre, 3.0, 1)
+        for index, centre in enumerate(((12.3, 14.7), (12.3, 14.7 + 1e-12)))
+    )
+    gaussians = tuple(
+        native.PyBdsfGaussianRow(
+            f"model-{index}",
+            0,
+            index,
+            row.centre_xy,
+            5.0,
+            2.0,
+            ((2.7, 0.63), (0.63, 1.4)),
+        )
+        for index, row in enumerate(sources)
+    )
+    model = native._source_log_model
+    expected_models = np.asarray(
+        [model(historical_xy, (gaussian,)) for gaussian in gaussians]
+    )
+    calls: list[Any] = []
+
+    def check_layout(coordinates: Any, components: Any) -> Any:
+        np.testing.assert_array_equal(coordinates, historical_xy)
+        assert coordinates.strides == historical_xy.strides
+        result = model(coordinates, components)
+        np.testing.assert_array_equal(result, model(historical_xy, components))
+        calls.append(components)
+        return result
+
+    monkeypatch.setattr(native, "_source_log_model", check_layout)
+    result = amended.derive_retained_pybdsf_source_unions(
+        source_rows=sources[::-1],
+        gaussian_rows=gaussians[::-1],
+        native_island_labels=labels,
+    )
+    assert len(calls) == 2
+    expected = np.zeros_like(labels)
+    expected[coordinate_yx[:, 0], coordinate_yx[:, 1]] = (
+        np.argmax(expected_models, axis=0) + 1
+    )
+    np.testing.assert_array_equal(result.source_union_label_plane, expected)
+
+
 @pytest.mark.parametrize("coincident", (False, True))
 @pytest.mark.parametrize("reverse", (False, True))
 def test_source_label_holes_and_ties_preserve_native_membership(

@@ -76,6 +76,10 @@ Gaussian model arithmetic and native catalogue records. It preserves pixel
 winners and stable ties, including gaps in source label numbering. A source
 with no winning pixels receives `support_label=None`; no pixel is allocated
 to make its label exist, and no source or component row is removed.
+The coordinate construction also retains the historical array layout: a
+synthetic final audit caught layout-dependent rounding in the reused model
+kernel. A test-first correction verifies exact model values and pixel winners
+for nearly tied anisotropic models, not only visibly separated sources.
 
 The R6 validation catalogue record accepts that explicit optional label;
 the historical record and compiler remain unchanged. The amended compiler
