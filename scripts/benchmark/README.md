@@ -620,3 +620,52 @@ Regression evidence may evaluate a revised draft protocol; the audit records
 both protocol hashes and makes that difference explicit. Final qualification
 must use the exact reviewed protocol hash captured by every implementation
 shard and may not use this planning exception.
+
+## Source-catalogue repair cumulative replay (R6)
+
+The R6 tools under `scripts/validation/source_catalogue_*.py` retain native
+measurements independently of the final evaluator. They do not reuse the old
+candidate's scientific pass. `source_catalogue_replay_plan.build_replay_plan`
+constructs a non-executable plan from the reviewed candidate, original
+population, sealed native reference files, historical incumbent checkout,
+explicit disk/time admission and new absent scratch/output paths. Commit the
+tooling first and bind its immutable execution checkout; do not freeze an
+uncommitted source tree. Record the exact plan and separate one-use
+authorization hashes before execution.
+
+From that immutable checkout, with its `src` and repository root on
+`PYTHONPATH`, use the main checkout's pinned environment:
+
+```console
+python -m scripts.validation.run_source_catalogue_cumulative_replay \
+  --plan /absolute/path/to/frozen-plan.json \
+  --plan-sha256 <exact-file-sha256> \
+  --preflight-only
+```
+
+The complete preflight reads all 2,400 input bundles and 9,600 retained
+reference runs, validates native success and artifact identities, probes
+historical imports without executing a finder, and refuses consumed output
+paths. Execution uses the same command without `--preflight-only`, adding
+`--authorization /absolute/path/to/one-use-decision.json` and its
+`--authorization-sha256`. Set `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`,
+`MKL_NUM_THREADS` and `NUMBA_NUM_THREADS` to `1`; the command owns exactly two
+spawned workers and supplies an existing two-worker Dask client to the library.
+
+Stages are capture, existing-Dask comparison, per-image truth evaluation and
+final aggregation. Per-pair records, a capture seal, Dask comparison records
+and an evaluation seal precede the atomic terminal. Completed products are
+never overwritten or deleted after failure; pending work is cancelled.
+There is no automatic retry or resume switch. Any process repair must bind
+a new exact execution identity and reuse verified complete products through
+a separately reviewed completion path. A scientific failure is terminal,
+not permission to tune or rescore its data.
+
+While a run is active, inspect only process health, completion counts in
+`progress.log`, free disk space and terminal existence. After it ends, verify
+all provenance and interpret compact science followed by Continuum, with
+each finder measured independently against analytic truth. All original
+binding comparisons and safety checks must pass; an earlier uncertainty
+waiver does not transfer. Native background diagnostics unavailable in old
+reference products remain unavailable. Retained current background errors
+are in Jy/beam and relative RMS errors are fractional, not both in sigma.

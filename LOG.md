@@ -17614,3 +17614,92 @@ campaign or fresh sentinel has started; prior scientific failure is unchanged.
   restores the notebook runner's exact identity check, not qualification or
   automatic execution permission. R6 will freeze a separate executable
   protocol under the owner's standing R0--R6 authority.
+
+### R6 durable cumulative tooling and reference-reuse audit
+
+- Implemented an importable two-worker capture/evaluation runner without
+  changing `src/hebog`, the R5 candidate, scientific rules or populations.
+  Each current public bundle and authentic historical incumbent bundle is
+  preserved before truth evaluation. Complete per-image observations and
+  native/truth-linked diagnostics are retained before late statistics.
+  Separate capture/evaluation seals and the final atomic terminal reject
+  duplicate writes. Worker errors cancel pending futures and preserve already
+  dispatched products; there is no automatic replay or overwrite.
+- Reuse audit hashed all 2,400 retained input bundles and 9,600 native
+  reference runs in approximately 595 seconds. The original ordered input
+  set `8a09a566...`, reference set `d6d88605...`, reconstructed terminal
+  `48209eae...` and closed baseline remain unchanged. All reference statuses
+  are native `success`. Operational released/master PyBDSF and compact
+  Aegean products retain their actual runtime identities; controlled products
+  remain authenticated but are not substituted into operational comparisons.
+  The authentic incumbent scratch is absent, so new incumbent products use
+  checkout `c1614c2...` with source `a082cbe4...`, not assumed equality or a
+  reference alias. A read-only import/provenance probe passed before any
+  engineering rehearsal.
+- Retained the original 800 compact and 1,600 Continuum inputs, 1,187 binding
+  comparisons, five safety requirements and 50,000-resample confidence rules.
+  Both finders are evaluated independently against analytic truth. Native
+  PyBDSF source observables use the already reviewed source-union adapter;
+  no new PyBDSF execution is required. Missing historical background/RMS
+  diagnostics remain unavailable. Current background-error diagnostics are
+  explicitly Jy/beam, while relative RMS errors are fractional. The
+  qualification-stage historical interval engine is only an analysis view:
+  the terminal explicitly labels this evidence regression, not fresh
+  qualification. No previous uncertainty waiver transfers.
+- Test sequencing deviation: some new R6 assembly/native-reader/evaluator
+  glue was composed before its fixture tests, rather than red-first as R0
+  requested. Do not describe the entire R6 change as TDD. Exact authorization,
+  task relationships, failed-native-result rejection, diagnostic units and
+  pending-work cancellation have explicit failing behavioural checks followed
+  by fixes. All new behaviour is tested in this same coherent tooling change;
+  no failing state, coverage exclusion or weakened assertion is committed.
+- The real late compact statistical-engine fixture passed before launch
+  (approximately eight minutes); it remains a named slow synthetic test.
+  Fast fixtures exercise all 1,187 comparison/decision seams, native readers,
+  identity/census errors, arbitrary completion order and atomic late failures.
+  Two real spawned public captures and caller-owned two-worker Dask checks
+  pass, including an injected scientific mismatch. These tests need neither
+  campaign output directories nor PyBDSF.
+- Five new synthetic engineering seeds `2026991001--2026991005`, one per
+  population geometry, exercised actual current/historical capture and native
+  readback. Two rehearsal attempts correctly rejected inconsistent fixture
+  metadata before historical execution; their existing products remain
+  preserved. Corrected, validated development metadata passed all five pairs.
+  This is not a speedup benchmark or a parity decision. One pair took 8.82 s
+  at 512 pixels and 13.37--14.45 s at 1,024 pixels. The weighted physical
+  capture projection is 36.01 GiB; ideal two-worker capture time is 4.10 h,
+  excluding evaluation, statistics and contention. Host free space was
+  116 GiB. A native current/incumbent Continuum diagnostic rehearsal took
+  1.32 s and retained 81,521/47,903-byte array-free records.
+  Evidence lives under the ignored
+  `source-catalogue-r6-rehearsal/attempt3/` Phase 5 namespace; summary SHA-256
+  `c5c48e7dd6724538dc07d3b58e2dcd9d25f55b96ba4b7b1ecacbeafaa2155cc9`,
+  diagnostic engineering summary
+  `cb06583a2dee7e03f1871d2d1ba87e032ed6d4765bc8b7ae47e799298b92d660`.
+
+- Final repository validation: `just coverage` passed 3,273 tests with 153
+  deselected and two existing xfails; the additional joint geometry,
+  measurement, boundary and process ladder passed 159 tests. Combined
+  branch-aware package coverage is 95.1262%, above the comparable R5
+  95.1193%; no package science changed during R6 tooling. `just check` passed
+  3,063 tests with 363 deselected and two existing xfails, with Ruff and
+  Pyright clean. Frozen equivalence fixtures passed 27 tests, and strict
+  documentation builds passed. The historical statistical-engine fixture
+  is additional to the fast coverage lane, not silently omitted evidence.
+  The final isolated R6 suite passed 121 tests in 48.01 s: all 725 executable
+  statements and all 204 branches across its seven new tooling modules are
+  covered (100%); the previously passed full statistical fixture is the one
+  deselected slow test.
+- Review against `CODE_REVIEW.md` traced native observable/ownership
+  preservation, exact historical imports, task and artifact provenance,
+  failure cancellation, write-once stages, unchanged comparison rules and
+  the distinction between regression and fresh qualification. No remaining
+  actionable finding was identified. Synthetic coverage cannot establish
+  scientific parity; the full cumulative gate remains unexecuted.
+
+**Next:** commit the validated tooling, then freeze the exact execution plan
+with conservative disk/time admission and perform the complete immutable-
+checkout no-write preflight. The cumulative estimate is 10--24 hours, not a
+guarantee or the separate final sentinel's sub-12-hour budget. No R6
+cumulative replay or fresh sentinel has started. A completed scientific
+failure remains terminal.

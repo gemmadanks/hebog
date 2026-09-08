@@ -708,6 +708,22 @@ R6 has not executed. The repaired default
 is explicitly `development-unqualified`
 and cannot use the previous candidate's qualification or notebook identity.
 
+**R6 preparation (2026-09-08):** Retain the complete 2,400-image regression
+population, all 1,187 binding comparisons and the original 50,000-resample
+confidence rules. The 9,600 native reference runs are reusable only after
+their original ordered product-set identities and every artifact pass the
+no-write audit. The new current candidate needs fresh products; the absent
+incumbent products require the exact historical producer, not structural
+equality or a PyBDSF alias. The new orchestration captures both products
+before truth evaluation, then preserves array-free per-image diagnostics
+before final statistics. A late process error must not erase these stages.
+Two spawned workers and 12 caller-owned existing-Dask comparisons cover all
+five datasets; no new PyBDSF runs are needed for this cumulative replay.
+Fixture checks include the real late statistical engine, native failed-run
+rejection, checksum/census validation, duplicate refusal and cancellation of
+pending work after worker failure. The executable identity, disk/time
+admission and exhaustive immutable-checkout preflight still precede launch.
+
 The exact-public-background pass reproduced an additional R3 defect:
 the scale-12 compact-core/halo boundary cell loses 35.4% of flux, while
 the same development pixels with analytic background lose 13.5%. Isolation
