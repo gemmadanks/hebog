@@ -1,0 +1,77 @@
+# R6 native-reference adapter review
+
+Review date: 2026-09-08.
+
+This is a later process review, separate from the
+[original source-finding audit](phase-5-source-catalogue-science-audit.md).
+R6 completed its captures and Dask comparisons but stopped while
+converting a retained PyBDSF catalogue into the validation-only source union.
+No terminal science decision exists, and no metrics were changed or rescored
+for this review.
+
+## Gaussian identifiers: repaired, not executed
+
+The adapter used `(Isl_id, Source_id, Gaus_id)` as a unique key. Retained
+wavelet products reuse Gaussian numbers across `Wave_id`; 153 of the 3,200
+Continuum catalogues contain such collisions. One pinned-master catalogue
+also repeats `(2, 2, 16, 2)` with different native positions, fluxes and
+shapes. These are distinct model rows, not byte-identical duplicates.
+[PyBDSF's catalogue documentation](https://pybdsf.readthedocs.io/en/stable/write_catalog.html)
+defines separate island, source, Gaussian and wave identifiers; the retained
+export demonstrates why Gaussian numbering alone cannot identify its rows.
+
+The adapter-only correction includes the wave and, for a repeated full key,
+an exact native-model fingerprint. It neither changes nor drops a Gaussian,
+alters native `srl` positions/fluxes, or changes its source membership.
+Indistinguishable duplicate models still fail; differing error bars alone
+cannot justify duplicate rows. Existing lexical model-summation order is
+preserved wherever the shorter keys were unique. Synthetic cross-wave,
+same-wave, reversed-order and byte-order cases cover the boundary.
+
+All 16 PyBDSF reference views behind the eight completed Continuum inputs
+retain exactly equal source observables, diagnostic catalogue rows, source
+union arrays and publication masks. This is projection-equivalence evidence,
+not another evaluation against truth. Historical programs and records remain
+byte-identical, and the repaired adapter has not been used for a retry.
+
+## Empty exclusive ownership: prospective decision required
+
+With the ID repair in place, a full read-only projection audit succeeds for
+3,150 reference catalogues and rejects 50 across 28 inputs with
+`PyBDSF source owns no native pixels`: 23 released and 27 pinned-master.
+These are adapter failures, not failed scientific endpoints. No other
+exception class appeared in this bounded adapter audit; this is not proof
+that every downstream evaluation path is bug-free.
+
+A synthetic reproduction uses two valid native sources with the same centre
+and Gaussian shape but unequal amplitudes. The stronger model wins every
+native island pixel, leaving the weaker source in the catalogue but absent
+from the exclusive owner plane. The same contradiction can occur for nearby
+overlapping models. Neither source count nor file integrity is the defect.
+
+The frozen `phase-5-compact-held-out-sentinel-source-union-adapter-pre-review.json`
+explicitly requires each source to own a pixel and includes a fail-closed
+zero-owner test. The downstream matcher also rejects an asserted support
+label absent from its plane. Deleting the adapter assertion therefore both
+weakens the reviewed contract and leaves a later failure. Dropping the source,
+allocating an arbitrary pixel or switching it to the whole island would
+silently alter catalogue denominators or topology and is not acceptable.
+
+**Recommended prospective remedy:** retain native source/component records
+unchanged and represent absent exclusive derived support explicitly, separately
+from catalogue measurement availability. Review how that representation
+enters the already-defined centroid/overlap matching rules and topology
+diagnostics, without changing thresholds, denominators, confidence rules or
+comparator identities. Test the representation and all downstream compiler
+seams with synthetic dominated, coincident, separated, fitless and unavailable
+cases before adopting it. Preserve every formerly valid projection exactly.
+This needs a scientific-owner amendment to the explicit nonempty-owner rule,
+not a silent process-bug waiver.
+
+After that decision, freeze a new evaluation-only continuation. The original
+2,400 paired products and 12 Dask comparisons are preserved, as are all 800
+compact and eight Continuum completed evaluations (4,032 finder records with
+verified checksums and capture/census bindings). No finder reruns are needed
+for this adapter work. Reuse the verified completed records where equivalent,
+evaluate only missing inputs, and keep the original R6 candidate isolated
+from the later notebook-only repairs. Do not tune or rescore closed results.

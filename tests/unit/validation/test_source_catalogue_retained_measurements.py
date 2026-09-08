@@ -13,11 +13,12 @@ import runpy
 import sys
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
 from astropy.io import fits
+from astropy.wcs import WCS
 
 from hebog.algorithms.source_association import (
     build_detection_component_records,
@@ -76,6 +77,27 @@ def test_pybdsf_reader_preserves_native_source_flux_and_unowned_mask(
     tmp_path: Path,
     empty: bool,
 ) -> None:
+    header, artifacts = _pybdsf_files(tmp_path, empty=empty)
+    before = {role: file_sha256(path) for role, path in artifacts.items()}
+    view = reader.read_pybdsf_sources(artifacts, header)
+    assert len(view.sources) == (0 if empty else 1)
+    assert len(view.measured_components) == (0 if empty else 1)
+    if not empty:
+        assert view.sources[0].integrated_flux_jy == 3
+        assert view.measured_sources[0].integrated_flux_jy == 3
+    assert view.publication[5, 5]
+    assert view.union_labels[5, 5] == 0
+    assert np.isnan(view.background).all()
+    assert np.isnan(view.rms).all()
+    assert {
+        role: file_sha256(path) for role, path in artifacts.items()
+    } == before
+
+
+def _pybdsf_files(
+    tmp_path: Path, *, empty: bool = False
+) -> tuple[fits.Header, dict[str, Path]]:
+    """Write a tiny native source/Gaussian bundle, not campaign evidence."""
     helpers = runpy.run_path(
         str(
             Path(__file__).with_name(
@@ -136,20 +158,187 @@ def test_pybdsf_reader_preserves_native_source_flux_and_unowned_mask(
         path = tmp_path / f"{role}.fits"
         fits.PrimaryHDU(values).writeto(path)
         artifacts[role] = path
+    return header, artifacts
+
+
+@pytest.mark.parametrize("reverse", (False, True))
+@pytest.mark.parametrize("duplicate_wave", (False, True))
+def test_retained_gaussian_membership_includes_native_wave_identity(
+    tmp_path: Path, reverse: bool, duplicate_wave: bool
+) -> None:
+    """Wave-local Gaussian numbers differ from true duplicated native rows."""
+    header, artifacts = _pybdsf_files(tmp_path)
+    path = artifacts["gaussian-catalogue-fits"]
+    rows = np.repeat(cast(np.ndarray, fits.getdata(path, ext=1)), 2)
+    rows["Gaus_id"] = 13
+    rows["Wave_id"] = (2, 2 if duplicate_wave else 3)
+    if reverse:
+        rows = rows[::-1].copy()
+    fits.HDUList([fits.PrimaryHDU(), fits.BinTableHDU(rows)]).writeto(
+        path, overwrite=True
+    )
     before = {role: file_sha256(path) for role, path in artifacts.items()}
-    view = reader.read_pybdsf_sources(artifacts, header)
-    assert len(view.sources) == (0 if empty else 1)
-    assert len(view.measured_components) == len(rows)
-    if not empty:
+    if duplicate_wave:
+        with pytest.raises(ValueError, match=r"membership.*inconsistent"):
+            reader.read_pybdsf_sources(artifacts, header)
+    else:
+        view = reader.read_pybdsf_sources(artifacts, header)
+        assert len(view.sources) == 1
         assert view.sources[0].integrated_flux_jy == 3
-        assert view.measured_sources[0].integrated_flux_jy == 3
-    assert view.publication[5, 5]
-    assert view.union_labels[5, 5] == 0
-    assert np.isnan(view.background).all()
-    assert np.isnan(view.rms).all()
+        assert len(view.measured_components) == 2
+        assert {row.identifier for row in view.measured_components} == {
+            "pybdsf-island-0-source-0-wave-2-gaussian-13",
+            "pybdsf-island-0-source-0-wave-3-gaussian-13",
+        }
+        assert np.all(view.union_labels[:2, :2] == 1)
+        assert view.union_labels[5, 5] == 0
+        assert view.publication[5, 5]
     assert {
         role: file_sha256(path) for role, path in artifacts.items()
     } == before
+
+
+def test_wave_identity_preserves_previously_evaluable_model_partition(
+    tmp_path: Path,
+) -> None:
+    """Native models, not row order or wave ordering, own source support."""
+    header, artifacts = _pybdsf_files(tmp_path)
+    sources = np.repeat(
+        cast(np.ndarray, fits.getdata(artifacts["source-catalogue-fits"], 1)),
+        2,
+    )
+    gaussians = np.repeat(
+        cast(
+            np.ndarray, fits.getdata(artifacts["gaussian-catalogue-fits"], 1)
+        ),
+        4,
+    )
+    sources["Source_id"] = (0, 1)
+    sources["Total_flux"] = (3, 7)
+    gaussians["Source_id"] = (0, 0, 1, 1)
+    gaussians["Gaus_id"] = (1, 10, 2, 21)
+    gaussians["Wave_id"] = (3, 0, 1, 2)
+    positions = np.asarray(
+        WCS(header).celestial.all_pix2world(
+            [[1, 1], [1.5, 1], [5, 1], [5.5, 1]], 0
+        )
+    )
+    gaussians["RA"], gaussians["DEC"] = positions.T
+    sources["RA"], sources["DEC"] = positions[[0, 2]].T
+    labels = np.ones((8, 8), dtype=np.int32)
+    labels[6:, :] = 2  # Fitless native island remains published but unowned.
+    arguments = {
+        "source_table": sources,
+        "gaussian_table": gaussians,
+        "native_island_labels": labels,
+        "header": header,
+    }
+    previous = reader.native_pybdsf.projection_from_catalogue_tables(
+        **arguments
+    )
+    current = reader.project_pybdsf_source_unions(**arguments)
+    reversed_rows = reader.project_pybdsf_source_unions(
+        **{
+            **arguments,
+            "source_table": sources[::-1],
+            "gaussian_table": gaussians[::-1],
+        }
+    )
+    assert current.sources == reversed_rows.sources
+    assert current.components == reversed_rows.components
+    for projection in (previous, reversed_rows):
+        np.testing.assert_array_equal(
+            current.source_union_label_plane,
+            projection.source_union_label_plane,
+        )
+    assert [row.integrated_flux_jy for row in current.sources] == [3, 7]
+    assert set(np.unique(current.source_union_label_plane)) == {
+        0,
+        1,
+        2,
+    }
+    assert current.unowned_native_support_labels == (2,)
+
+
+def test_valid_native_source_can_have_no_dominant_pixels(
+    tmp_path: Path,
+) -> None:
+    """Identical centres with unequal amplitudes expose the frozen seam."""
+    header, artifacts = _pybdsf_files(tmp_path)
+    for role in ("source-catalogue-fits", "gaussian-catalogue-fits"):
+        path = artifacts[role]
+        rows = np.repeat(cast(np.ndarray, fits.getdata(path, 1)), 2)
+        rows["Source_id"] = (0, 1)
+        rows["Total_flux"] = (3, 1)
+        if role == "gaussian-catalogue-fits":
+            rows["Gaus_id"] = (0, 1)
+            rows["Peak_flux"] = (2, 1)
+        fits.HDUList([fits.PrimaryHDU(), fits.BinTableHDU(rows)]).writeto(
+            path, overwrite=True
+        )
+    # Do not waive the frozen nonempty-owner rule as an ID repair. A new
+    # topology policy must say how this native source remains represented.
+    with pytest.raises(ValueError, match="source owns no native pixels"):
+        reader.read_pybdsf_sources(artifacts, header)
+
+
+def test_model_identity_ignores_row_byte_order_but_not_true_duplicates(
+    tmp_path: Path,
+) -> None:
+    """FITS encoding and error bars do not invent distinct native models."""
+    _, artifacts = _pybdsf_files(tmp_path)
+    rows = np.repeat(
+        cast(
+            np.ndarray, fits.getdata(artifacts["gaussian-catalogue-fits"], 1)
+        ),
+        2,
+    )
+    rows["RA"] = (30, 30.1)
+    suffixes = reader._model_suffixes(rows)
+    assert len(set(suffixes)) == 2
+    assert (
+        reader._model_suffixes(rows.astype(rows.dtype.newbyteorder("<")))
+        == suffixes
+    )
+    rows["RA"] = 30
+    rows["E_RA"] = (0.01, 0.02)
+    with pytest.raises(ValueError, match=r"membership.*inconsistent"):
+        reader._model_suffixes(rows)
+
+
+def test_distinct_native_models_with_repeated_full_key_are_not_dropped(
+    tmp_path: Path,
+) -> None:
+    """A native numbering collision cannot erase a distinct model row."""
+    header, artifacts = _pybdsf_files(tmp_path)
+    path = artifacts["gaussian-catalogue-fits"]
+    rows = np.repeat(cast(np.ndarray, fits.getdata(path, 1)), 2)
+    rows["Gaus_id"], rows["Wave_id"] = 16, 2
+    positions = np.asarray(
+        WCS(header).celestial.all_pix2world([[0, 0], [1, 1]], 0)
+    )
+    rows["RA"], rows["DEC"] = positions.T
+    rows["Total_flux"] = (1, 2)
+    views: list[Any] = []
+    for ordered in (rows, rows[::-1].copy()):
+        fits.HDUList([fits.PrimaryHDU(), fits.BinTableHDU(ordered)]).writeto(
+            path, overwrite=True
+        )
+        before = file_sha256(path)
+        view = reader.read_pybdsf_sources(artifacts, header)
+        assert file_sha256(path) == before
+        assert view.sources[0].integrated_flux_jy == 3
+        assert len(view.measured_components) == 2
+        assert len({row.identifier for row in view.measured_components}) == 2
+        assert sorted(
+            row.integrated_flux_jy for row in view.measured_components
+        ) == [1, 2]
+        views.append(view)
+    assert views[0].sources == views[1].sources
+    assert sorted(
+        views[0].measured_components, key=lambda row: row.identifier
+    ) == sorted(views[1].measured_components, key=lambda row: row.identifier)
+    np.testing.assert_array_equal(views[0].union_labels, views[1].union_labels)
 
 
 @pytest.mark.parametrize("overlap", (False, True))

@@ -730,14 +730,55 @@ checkout, the unchanged repaired candidate, a 90-GiB disk admission and the
 disclosed 10--24-hour cumulative estimate. Complete immutable no-write
 preflight passed all 2,400 inputs and 9,600 retained reference runs (record
 `3b2f84c8...`). Authorization commit `99b6797...` precedes the single
-approved replay command, now running in managed session `19330`; it repeats
+approved replay command, launched in managed session `19330`; it repeated
 the preflight before capture. Hourly monitor
 `monitor-phase-5-source-catalogue-r6` follows this exact execution without
 inspecting partial science. The atomic terminal will be
 `benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json`.
-R6 remains in progress, not passed. The final fresh sentinel's
+The process subsequently failed in evaluation; see the adapter review below.
+R6 remains incomplete, not passed. The final fresh sentinel's
 sub-12-hour target is separate and remains conditional on the cumulative
 gate passing. No old pass or uncertainty acceptance transfers.
+
+**R6 evaluation failure and adapter review (2026-09-08):** Session `19330`
+exited with status 1 after completing all 2,400 capture pairs and 12 Dask
+comparisons. The terminal remains absent. All 800 compact and eight
+Continuum evaluations are durable: 4,032 complete finder records pass their
+file/record checksums and capture/census checks. Preserve them and both
+product sets; neither finder nor Dask needs to be rerun for an evaluator
+repair. The main-checkout adapter now distinguishes wave-local Gaussian IDs
+and distinct native models sharing a full exported key, without changing
+source membership, measurements, masks or gates. True duplicate models fail
+closed. The 16 reference views behind the eight completed Continuum inputs
+are exactly unchanged by this ID correction; their scores were not rerun.
+
+A full read-only adapter audit of all 3,200 operational Continuum PyBDSF
+catalogues then found 50 further projection failures across 28 inputs:
+23 released and 27 pinned-master catalogues contain a source with no
+exclusive model-dominance pixels. This is not a parity result. The frozen
+source-union review explicitly requires every real source to own pixels;
+removing that guard, dropping a source or inventing support would not be an
+ID/process repair. The [dated audit](../docs/reference/phase-5-r6-native-reference-adapter-review.md)
+records the synthetic reproduction and prospective remedy. Before retry:
+
+1. Obtain scientific-owner approval of a prospective representation for
+   native catalogue sources without exclusive derived support. Preserve their
+   native positions, fluxes and membership; distinguish unavailable derived
+   topology from absent catalogue measurements. Keep the existing matching
+   rules and every denominator, threshold and comparator explicit. Do not
+   weaken the frozen nonempty-owner invariant without an approved amendment.
+2. Implement only that approved adapter boundary test-first; cover both
+   finders, dominated/coincident sources, missing support, true duplicates,
+   empty/fitless islands, row-order invariance and every affected downstream
+   compiler seam. Preserve previously valid projections exactly. No source
+   finding, tuning or viewed-result rescoring belongs in this step.
+3. Freeze an evaluation-only continuation with exhaustive no-write validation
+   of all retained products and reusable records, then use the standing R6
+   repair authority for the exact new execution. Keep the original candidate
+   imports isolated from the later notebook repairs. Reuse the 808 completed
+   evaluations wherever verified equivalent, evaluate only missing inputs,
+   and retain their seal before late aggregation. No continuation or new
+   execution identity has been launched or authorized by this partial repair.
 
 **Concurrent notebook WCS repair (2026-09-08; complete):** The public SDC1
 refresh exposed a valid FK5/SIN input reaching the ICRS-only beam-geometry

@@ -2159,6 +2159,39 @@ Every binding gate must pass before a new unopened seed-disjoint sentinel;
 a completed scientific failure is terminal and may not be tuned or rescored.
 R6 and Phase 5 therefore remain open.
 
+## 2026-09-08: R6 stops at the retained-reference adapter
+
+This is a process-failure record, not a scientific pass or failure. The
+unchanged candidate `db8936b...` and immutable execution `1b1cbae...`
+completed all 2,400 current/incumbent capture pairs and 12 existing-Dask
+comparisons. Managed session `19330` exited with status 1; its failure record
+is `1242e7ff...`, recorded at 09:47:24 UTC. The atomic R6 decision is absent.
+No binding science, Dask pass verdict or runtime conclusion is inferred from
+these completion counts.
+
+The adapter omitted `Wave_id` from Gaussian identity and rejected distinct
+native rows as duplicate membership. A metadata audit found 153 catalogues
+with repeated island/source/Gaussian keys and one with a repeated full
+wave-aware key but distinct native model measurements. The test-first ID
+repair preserves all native rows and masks and retains rejection of genuinely
+indistinguishable duplicates. No candidate science or frozen gate changed.
+
+The subsequent no-scoring audit of all 3,200 Continuum reference projections
+found 50 additional failures across 28 inputs (23 released-PyBDSF and 27
+pinned-master). A real catalogue source need not win any pixel under exclusive
+model dominance. The frozen adapter explicitly rejects that situation; the
+[prospective review task](phase-5-r6-native-reference-adapter-review.md)
+must resolve its representation before a retry. No native source may be
+silently dropped, given artificial support or treated as truth.
+
+The capture seal `e1bc9a91...`, Dask record `16de0eeb...` and all completed
+evaluations remain intact. Eight hundred compact and eight Continuum inputs
+have 4,032 verified array-free finder records; their ordered completion-marker
+set digest is `f976ea97...`. All 16 reference views behind those completed
+Continuum inputs are exactly unchanged by the ID repair, without rescoring.
+An approved evaluator continuation can reuse verified durable work rather
+than rerun the finders. R6 and Phase 5 remain open; no retry has started.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

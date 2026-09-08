@@ -17906,3 +17906,79 @@ implementation. No viewed-data execution, rescoring or R6 restart occurred.
   numerical problem has been resolved. Any warning identifies unavailable
   Gaussian measurements that still need investigation. R6 retains its
   original source identity and running environment; no evidence transfers.
+
+## 2026-09-08 — R6 retained-reference identity repair and topology blocker
+
+- The hourly check found managed session `19330` exited with status 1.
+  Its preserved failure, recorded at 09:47:24 UTC, has SHA-256
+  `1242e7ff0d561aac3050ee871e41df196d3293887107441542f9147e35e7b5fb`.
+  All 2,400 current/incumbent capture pairs and 12 existing-Dask comparisons
+  completed before evaluation failed. The atomic cumulative decision is
+  absent; completion counts do not establish a scientific or Dask pass.
+  The immutable execution remains clean at `1b1cbae...`, candidate
+  `db8936b...`; no process or finder was restarted.
+- The failing adapter omitted `Wave_id` from Gaussian identity. A checksum-
+  verified native metadata census found 153 of 3,200 Continuum PyBDSF
+  catalogues with repeated island/source/Gaussian keys. One pinned-master
+  export also repeats the full `(2, 2, 16, 2)` key for distinct native model
+  rows. Synthetic regression tests failed at the exact duplicate-membership
+  guard before implementation. The adapter correction retains wave identity
+  and uses exact native-model fingerprints only for full-key collisions.
+  No row, source measurement, source membership, published mask or threshold
+  changes. Indistinguishable duplicate models still fail; differing error
+  bars alone do not make a new model. Row/byte-order and previously-valid
+  partition tests pass. No package source or notebook producer changed.
+- A full no-scoring projection audit of all 3,200 operational Continuum
+  references then found 3,150 successes and 50 failures across 28 inputs:
+  23 released and 27 pinned-master records raise
+  `PyBDSF source owns no native pixels`. No other exception class appeared
+  in this bounded audit. A synthetic two-source, unequal-amplitude example
+  reproduces a valid catalogue source losing every pixel under exclusive
+  model dominance. The frozen adapter review explicitly requires nonempty
+  source ownership; the downstream matcher rejects absent labels too.
+  Dropping a native row, inventing support or deleting the assertion is not
+  an authorized ID repair. The separate dated R6 adapter review records the
+  prospective representation decision needed before continuation. Original
+  hash-bound audit/contract documents remain byte-identical.
+- Durable evidence is preserved: capture seal
+  `e1bc9a915d213bc07dd87934bbc46dc09c2460897c28446b3ea39f0fee5a719a`,
+  Dask record
+  `16de0eeb6449626df2b31a1e4451f6fffe31dab20fafb456156b1ffb7ec7479f`.
+  All 800 compact and eight Continuum completion markers and 4,032 finder
+  records pass their file/record digests and exact capture/census checks.
+  The ordered completion-marker set digest is
+  `f976ea9713e312fed688594bcd90c72bb0eedd7b84e62c057a120f6ab884a8be`.
+  The two incomplete evaluation directories are untouched. All 16 reference
+  views behind the completed Continuum inputs retain exactly equal source
+  observables, diagnostic catalogues, owner planes and publication masks
+  under the ID correction; no truth scores were recomputed. Verified durable
+  records can be reused after the prospective boundary is resolved.
+- Focused validation passed 36 adapter/input-evaluator tests in 6.17 s;
+  separate branch-aware script coverage covers all 32 changed executable
+  lines and every changed branch. Isolated `just coverage` passed 3,310 tests,
+  153 deselected and two existing xfails in 278.87 s, at 95.1041%, exactly the
+  prior like-scope project percentage. An initial concurrent script-coverage
+  invocation contaminated the default coverage database with the script;
+  the isolated repeat uses a separate database and is the reported result.
+  The 27 frozen equivalence tests pass in 39.00 s. `just check` passes 3,090
+  tests with 373 deselected and two existing xfails in 218.56 s. Ruff,
+  Pyright and strict documentation build pass. Review against
+  `CODE_REVIEW.md` found no remaining actionable defect in the bounded ID
+  correction; the separate topology-contract blocker remains explicit.
+- A supplementary clean-checkout baseline test attempt was stopped after
+  56 legacy tests failed on absent ignored campaign evidence (2,794 passed
+  before interruption). It is not a valid coverage comparison and is not
+  claimed as passing. This existing test-portability limitation is separate
+  from the adapter repair; no assertions, markers or historical records were
+  weakened to hide it. The normal main-checkout suite and the new synthetic
+  adapter tests do not use that incomplete baseline result. Only the clean
+  disposable baseline checkout was removed afterward; its code is retained
+  in commit `766f896` and all R6 evidence remains untouched.
+
+**Next:** the bounded ID repair and review require clean final hooks before
+their local commit. The hourly R6 monitor is paused because no R6 process is running and
+the explicit nonempty-owner contract needs a scientific-owner decision.
+After that approval, implement the narrowly reviewed adapter boundary, freeze
+an evaluation-only continuation and exhaustively verify reusable products.
+No retry identity or execution was started. Do not change R6's candidate to
+the later notebook repairs, alter gates, tune, rescore or mark R6 complete.
