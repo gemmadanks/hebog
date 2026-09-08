@@ -128,6 +128,17 @@ does not automatically qualify the repaired notebook producer. Existing
 refresh staging from a different source identity cannot be resumed as the
 repaired implementation, and frozen reviews must not be edited in place.
 
+Numerical decomposition failure during a joint Gaussian fit does not abort
+the whole diagnostic image. All components in that coupled fit are retained
+as unavailable measurements with reason `fit-linear-algebra-failure`; no
+Gaussian parameters, uncertainties or optimizer diagnostics are invented.
+Independent parent islands continue normally. The runner emits one warning
+per affected image and retains the exact component IDs in
+`measurement_dispositions`. A successfully published bundle is not evidence
+that every component was measured or that scientific parity passed. Existing
+availability gates continue to count those missing measurements. The solver,
+fit bounds and detection thresholds are unchanged.
+
 `confirm_phase5_astrometry_follow_up.py` is the one-look Step 2C-HR
 confirmation runner. It requires the named human decision, verifies the frozen
 protocol, base residual-B3 protocol, development decision and ignored evidence,

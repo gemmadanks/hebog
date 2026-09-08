@@ -167,6 +167,15 @@ An island's signed flux statistic can be non-positive without being a valid
 positive source measurement. These schema changes reject stale products
 without a legacy reader.
 
+A joint Gaussian linear-algebra exception is retained as
+`fit-linear-algebra-failure` for every component in that coupled fit. These
+components have no published Gaussian row. The internal failed-fit record
+has no optimizer diagnostics when a complete validated report is unavailable;
+counts, parameters and uncertainties are not fabricated. Independent parents
+continue, and an independently valid signed-aperture source remains subject
+to its existing admission rules. Successful product publication does not
+imply that all measurements or scientific gates passed.
+
 The prospective source-measurement evidence summary is schema version 4.
 It binds source-level catalogue metrics and published source-union topology
 separately from binary published-mask metrics. Gaussian-component diagnostics

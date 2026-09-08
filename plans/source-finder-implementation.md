@@ -752,6 +752,22 @@ non-executable notebook identity; no viewed-input finder rerun or rescoring
 was performed. R6 continues to describe candidate `db8936b...`, not an
 automatic pass for this correction.
 
+**Concurrent notebook joint-fit failure repair (2026-09-08):** The next
+refresh exposed an uncaught numerical decomposition exception inside the new
+joint Gaussian solver. An exception before an optimizer result existed
+bypassed the existing typed non-convergence outcome. The main-checkout
+repair retains every affected joint-fit component as unavailable, with
+`fit-linear-algebra-failure`, and continues independent parent islands. It
+does not fabricate a Gaussian, retry with a different solver, change fit
+bounds or waive a measurement-availability gate. The diagnostic runner emits
+one warning per affected image and preserves component dispositions.
+Synthetic solver/covariance/publication fault tests, exact ICRS/FK5 notebook
+paths and Serial/existing-Dask invariance establish this failure contract.
+The particular real fit's numerical cause remains unconfirmed; this repair
+prevents whole-image loss rather than claiming that the fit now converges.
+Freeze its separate non-executable notebook identity after validation. R6
+continues unchanged and does not qualify this later correction.
+
 The exact-public-background pass reproduced an additional R3 defect:
 the scale-12 compact-core/halo boundary cell loses 35.4% of flux, while
 the same development pixels with analytic background lose 13.5%. Isolation

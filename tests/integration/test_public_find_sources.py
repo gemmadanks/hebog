@@ -18,6 +18,7 @@ from distributed import Client, LocalCluster
 
 import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
+from hebog.algorithms import fitting as fitting_algorithm
 from hebog.data_models import PublicSourceFindingDiagnostics
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io import (
@@ -718,10 +719,19 @@ def test_public_preview_rejects_inputs_beyond_qualified_envelope(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("fit_outcome", ("normal", "linear-algebra-failure"))
 def test_serial_and_existing_dask_publish_identical_scientific_products(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fit_outcome: str,
 ) -> None:
     """Caller-owned execution policy cannot alter any scientific bytes."""
+    if fit_outcome == "linear-algebra-failure":
+
+        def fail(*_args: object, **_kwargs: object) -> None:
+            raise np.linalg.LinAlgError("SVD did not converge for slice = 0.")
+
+        monkeypatch.setattr(fitting_algorithm, "least_squares", fail)
     _write_image(tmp_path / "image.fits", _ring_image())
     serial = hebog.find_sources(
         _request(tmp_path, output_name="serial"),
@@ -752,6 +762,14 @@ def test_serial_and_existing_dask_publish_identical_scientific_products(
         dask.mask.content_sha256,
         dask.diagnostics.content_sha256,
     )
+    if fit_outcome == "linear-algebra-failure":
+        diagnostic = read_diagnostics_product(serial.diagnostics_path)
+        assert isinstance(diagnostic, PublicSourceFindingDiagnostics)
+        assert any(
+            row.reason == "fit-linear-algebra-failure"
+            and not row.catalogue_row_published
+            for row in diagnostic.measurement_dispositions
+        )
 
 
 @pytest.mark.integration

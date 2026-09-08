@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import runpy
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
@@ -19,6 +20,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 from hebog import public_api
+from hebog.algorithms import fitting as fitting_algorithm
 from hebog.validation.external_runners import (
     canonical_sha256,
     source_tree_sha256,
@@ -304,3 +306,67 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
         ),
     )
     np.testing.assert_allclose(observed, centre, atol=0.001)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("frame", ("icrs", "fk5"))
+@pytest.mark.parametrize("failure_mode", ("first", "all"))
+def test_notebook_retains_numerical_fit_failures_without_aborting_image(
+    tmp_path: Path,
+    current_fixture_identity: str,
+    monkeypatch: pytest.MonkeyPatch,
+    frame: str,
+    failure_mode: str,
+) -> None:
+    """Unmeasured Gaussians remain visible without discarding other islands."""
+    image = _geometry_matrix_image()
+    header = _header(image.shape)
+    if frame == "fk5":
+        header["RADESYS"] = "FK5"
+        header["EQUINOX"] = 1950.0
+        header["CTYPE1"] = "RA---SIN"
+        header["CTYPE2"] = "DEC--SIN"
+    input_path = tmp_path / "input.fits"
+    output = tmp_path / "result"
+    fits.PrimaryHDU(image, header).writeto(input_path)
+    original = cast(Callable[..., Any], fitting_algorithm.least_squares)
+    calls = 0
+
+    def solver(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        if failure_mode == "all" or calls == 1:
+            raise np.linalg.LinAlgError("SVD did not converge for slice = 0.")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", solver)
+    with pytest.warns(
+        RuntimeWarning, match="Gaussian components unavailable"
+    ) as notices:
+        _RUNNER["run_public_hebog"](
+            input_path=input_path,
+            output=output,
+            case_id="synthetic-numerical-failure",
+            core=None,
+            configuration_sha256=current_fixture_identity,
+        )
+    assert len(notices) == 1
+    terminal = json.loads((output / "result.json").read_text())
+    assert terminal["status"] == "success"  # Publication, not science parity.
+    components = [
+        row
+        for row in terminal["measurement_dispositions"]
+        if row["object_kind"] == "component"
+    ]
+    missing = [row for row in components if row["status"] == "unavailable"]
+    assert missing
+    assert all(
+        row["reason"] == "fit-linear-algebra-failure" for row in missing
+    )
+    assert all(not row["catalogue_row_published"] for row in missing)
+    assert all(row["estimator"] is None for row in missing)
+    published = [row for row in components if row["catalogue_row_published"]]
+    assert terminal["component_count"] == len(published)
+    assert bool(published) == (failure_mode == "first")
+    assert calls > 1
+    assert np.any(cast(np.ndarray, fits.getdata(output / "segment_mask.fits")))

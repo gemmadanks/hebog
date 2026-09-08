@@ -190,11 +190,19 @@ class ValidCompactGaussianFit:
 
 @dataclass(frozen=True, slots=True)
 class FailedCompactGaussianFit:
-    """An attempted fit that did not yield acceptable parameters."""
+    """An attempted fit that did not yield acceptable parameters.
+
+    Diagnostics are absent when numerical decomposition prevented a complete
+    validated report; unknown work counts or residuals are not fabricated.
+    """
 
     moment: ValidMomentMeasurement
-    reason: Literal["fit-non-convergence", "fit-invalid-result"]
-    diagnostics: GaussianFitDiagnostics
+    reason: Literal[
+        "fit-non-convergence",
+        "fit-invalid-result",
+        "fit-linear-algebra-failure",
+    ]
+    diagnostics: GaussianFitDiagnostics | None
     quality_flags: tuple[str, ...]
     status: Literal["failed"] = "failed"
 

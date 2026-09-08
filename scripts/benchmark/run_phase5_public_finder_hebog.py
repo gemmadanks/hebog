@@ -10,6 +10,7 @@ import argparse
 import json
 import re
 import runpy
+import warnings
 from dataclasses import asdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -24,6 +25,7 @@ from astropy.wcs import WCS
 from hebog import public_api
 from hebog.config import SourceFinderConfig
 from hebog.data_models import ImageBounds, SourceFinderRequest
+from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.data_models.source_association import SourceAssociationResult
 from hebog.executors import SerialExecutor
 from hebog.io import FitsImageSource
@@ -125,6 +127,24 @@ def _write_plane(
     ).writeto(path)
 
 
+def _warn_numerical_fit_failures(
+    case_id: str, dispositions: tuple[MeasurementDisposition, ...]
+) -> None:
+    """Report incomplete Gaussian measurements once per diagnostic image."""
+    count = sum(
+        row.object_kind == "component"
+        and row.reason == "fit-linear-algebra-failure"
+        for row in dispositions
+    )
+    if count:
+        warnings.warn(
+            f"{case_id}: {count} Gaussian components unavailable "
+            "after numerical fit failure; see measurement_dispositions",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+
 def _build_public_bundle(  # noqa: PLR0913
     *,
     input_path: Path,
@@ -163,6 +183,7 @@ def _build_public_bundle(  # noqa: PLR0913
     projection = project_public_measurements(
         products, published_catalogue, public_mask, header
     )
+    _warn_numerical_fit_failures(case_id, projection.dispositions)
     published_source_ids = {
         row.source_id for row in published_catalogue.sources
     }

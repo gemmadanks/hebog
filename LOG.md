@@ -17837,3 +17837,48 @@ No real notebook refresh, replay, rescoring or R6 restart was performed.
   and completed notebook products are preserved, not resumed or overwritten
   as the repair. R6 remains separate and unchanged; no finder was run on any
   viewed input as part of this task.
+
+## 2026-09-08 — Preserve notebook results after numerical joint-fit failure
+
+- The next reported refresh failure is distinct from the repaired FK5
+  boundary: SciPy's bounded least-squares solver raised `LinAlgError` during
+  SVD before returning an optimizer result. The new joint fitter handled
+  a returned non-convergence status, but not this exception. The particular
+  real fit's numerical cause remains unconfirmed; no real image pixels or
+  partial R6 science were inspected or rerun for this repair.
+- Test-first fault injection reproduced three unhandled exception paths:
+  solver, covariance and component-result publication. Four exact synthetic
+  notebook cases also failed as intended: ICRS/FK5 crossed with the first
+  fit or every fit failing. The repair catches only `LinAlgError` around
+  the coupled solve/covariance/publication boundary. Every member retains
+  its original moment and an explicit `fit-linear-algebra-failure` outcome,
+  without a fabricated Gaussian or optimizer diagnostics. Independent
+  parents continue. Programming errors still propagate; no alternative
+  solver, automatic numerical retry, threshold or fit-bound change was made.
+- Public measurement dispositions retain the unavailable component IDs
+  and omit their Gaussian rows. Independently valid signed-aperture source
+  measurements retain the existing admission rules. The diagnostic runner
+  emits one warning per affected image, tested red before implementation.
+  Successful bundle publication does not mean every fit succeeded or any
+  scientific gate passed. No availability gate was waived.
+- The focused fitting, catalogue, component, exact notebook and public API
+  suite passed 168 tests in 16.37 s, including Serial/existing-Dask equality
+  under injected numerical failure. Source-stable `just coverage` passed
+  3,301 tests with 153 deselected and two existing xfails in 281.29 s, at
+  95.1041% branch-aware coverage (previous like-scope lane: 95.0822%). All
+  12 changed executable package lines and changed package branch origins
+  are covered. Separate exact-runner coverage passed 15 synthetic tests in
+  9.43 s and covered all seven changed runner executable lines and branches.
+  The 27 frozen equivalence fixtures passed in 36.58 s. `just check` passed
+  3,081 tests with 373 deselected and two existing xfails in 204.82 s;
+  strict documentation, Ruff and Pyright checks passed. Final hooks follow.
+- Review against `CODE_REVIEW.md` found no remaining actionable issue in
+  this bounded repair. It prevents whole-image loss after numerical failure;
+  it does not claim to make the failed real fit converge. No dependencies,
+  scientific gates, frozen review or R6 checkout/environment changed. R6
+  evidence remains bound to its original candidate, not this correction.
+
+**Next:** finish clean hooks, commit the repair, then
+freeze a separate non-executable notebook identity and verify the strict
+runner guard. Preserve old staging and results; do not resume them as this
+implementation. No viewed-data execution, rescoring or R6 restart occurred.

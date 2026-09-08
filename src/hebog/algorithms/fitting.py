@@ -2203,6 +2203,17 @@ def fit_compact_gaussian_mixture(  # noqa: PLR0913
         _mixture_initial_bounds(context.moment, context.region, samples)
         for context in contexts
     )
+    return _solve_joint_components(samples, contexts, initial_bounds)
+
+
+def _solve_joint_components(
+    samples: _FitSamples,
+    contexts: tuple[_FitPublicationContext, ...],
+    initial_bounds: tuple[tuple[np.ndarray, np.ndarray, np.ndarray], ...],
+) -> tuple[CompactGaussianFitResult, ...]:
+    """Solve admitted joint work and publish all neighbours atomically."""
+    config = samples.config
+    geometry = samples.geometry
     initial, lower, upper = (
         np.concatenate([values[index] for values in initial_bounds])
         for index in range(3)
@@ -2220,27 +2231,48 @@ def fit_compact_gaussian_mixture(  # noqa: PLR0913
             / samples.rms[:, None]
         )
 
-    result = least_squares(
-        residual,
-        initial,
-        jac=jacobian,  # pyright: ignore[reportArgumentType]
-        bounds=(lower, upper),
-        method="trf",
-        x_scale="jac",
-        ftol=config.convergence_tolerance,
-        xtol=config.convergence_tolerance,
-        gtol=config.convergence_tolerance,
-        max_nfev=config.maximum_function_evaluations,
-    )
-    covariance = _parameter_covariance(
-        np.asarray(result.jac),
-        np.column_stack((samples.x, samples.y)),
-        geometry,
-        correlated_point_estimator=samples.point_estimator == "correlated-gls",
-    )
-    return tuple(
-        _publish_mixture_component(
-            context, samples, result, covariance, initial_bounds[index], index
+    try:
+        result = least_squares(
+            residual,
+            initial,
+            jac=jacobian,  # pyright: ignore[reportArgumentType]
+            bounds=(lower, upper),
+            method="trf",
+            x_scale="jac",
+            ftol=config.convergence_tolerance,
+            xtol=config.convergence_tolerance,
+            gtol=config.convergence_tolerance,
+            max_nfev=config.maximum_function_evaluations,
         )
-        for index, context in enumerate(contexts)
-    )
+        covariance = _parameter_covariance(
+            np.asarray(result.jac),
+            np.column_stack((samples.x, samples.y)),
+            geometry,
+            correlated_point_estimator=(
+                samples.point_estimator == "correlated-gls"
+            ),
+        )
+        return tuple(
+            _publish_mixture_component(
+                context,
+                samples,
+                result,
+                covariance,
+                initial_bounds[index],
+                index,
+            )
+            for index, context in enumerate(contexts)
+        )
+    except np.linalg.LinAlgError:
+        # A joint solve and its covariance are coupled: never salvage a
+        # subset of neighbours or invent diagnostics when decomposition
+        # fails. Other parent islands can still be measured independently.
+        return tuple(
+            FailedCompactGaussianFit(
+                moment=context.moment,
+                reason="fit-linear-algebra-failure",
+                diagnostics=None,
+                quality_flags=("joint-gaussian-fit", "fit-failed"),
+            )
+            for context in contexts
+        )

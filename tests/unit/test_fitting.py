@@ -378,6 +378,60 @@ def test_joint_iteration_limit_preserves_typed_failure() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "failure_site",
+    ("least_squares", "_parameter_covariance", "_publish_mixture_component"),
+)
+def test_joint_linear_algebra_failure_preserves_every_component(
+    failure_site: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An interrupted numerical solve has no invented fit diagnostics."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+
+    def fail(*_args: object, **_kwargs: object) -> None:
+        raise np.linalg.LinAlgError("SVD did not converge for slice = 0.")
+
+    monkeypatch.setattr(fitting_algorithm, failure_site, fail)
+    fitted = fit_compact_gaussian_mixture(
+        compact,
+        tuple(reversed(moments)),
+        geometry,
+        _fit_config(background_model="fixed-zero"),
+    )
+    assert len(fitted) == len(moments)
+    for result, moment in zip(fitted, moments, strict=True):
+        assert isinstance(result, FailedCompactGaussianFit)
+        assert result.moment is moment
+        assert result.reason == "fit-linear-algebra-failure"
+        assert result.diagnostics is None
+        assert "joint-gaussian-fit" in result.quality_flags
+        assert "fit-failed" in result.quality_flags
+
+
+@pytest.mark.parametrize("exception", (ValueError, TypeError, RuntimeError))
+def test_joint_solver_does_not_hide_programming_errors(
+    exception: type[Exception], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only numerical linear-algebra failure is an expected fit outcome."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+
+    def fail(*_args: object, **_kwargs: object) -> None:
+        raise exception("unexpected implementation error")
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", fail)
+    with pytest.raises(exception, match="unexpected implementation error"):
+        fit_compact_gaussian_mixture(
+            compact,
+            moments,
+            geometry,
+            _fit_config(background_model="fixed-zero"),
+        )
+
+
 def test_joint_fit_does_not_ignore_an_unmeasurable_neighbour() -> None:
     """Dropping an unfitted neighbour would bias every surviving model."""
     compact = _joint_input()
@@ -1488,6 +1542,7 @@ def test_iteration_limit_returns_typed_failure_with_initializer() -> None:
     assert isinstance(result, FailedCompactGaussianFit)
     assert result.reason == "fit-non-convergence"
     assert all(np.isfinite(result.moment.initializer.centroid_xy))
+    assert result.diagnostics is not None
     assert result.diagnostics.function_evaluations == 1
     assert result.quality_flags == ("fit-non-convergence",)
 
