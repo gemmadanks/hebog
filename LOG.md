@@ -18224,3 +18224,31 @@ scientific pass from fixture validation.
   It runs no finder and computes no scientific score. The monitor remains
   paused until preflight and final identity checks pass and the exact
   continuation is launched. No scientific verdict has been inferred.
+
+### Exhaustive admission and single launch
+
+- The immutable preflight-only command exited zero with `preflight-pass`,
+  `finder_execution_started=false` and `evaluation_started=false`. It checked
+  all 2,400 capture pairs, 9,600 reference runs, 12 retained Dask comparisons,
+  808 completed inputs and the exact 1,592 pending-input inventory, including
+  the preserved failure directories and historical program/import identities.
+  Its printed result is retained under the ignored evidence namespace as
+  `r6-evaluation-continuation-preflight.json`, SHA-256
+  `76a4fdcb2d5e53084a0b8d1c9c568ed382d14fd294e701b1cc13cda7ca107980`.
+- Both portable freeze tests passed in 1.49 s without campaign outputs. The
+  exact authority check passed; final hooks (including docs, types and the
+  quick test suite) passed without changing files. Review found no additional
+  actionable issue. The frozen records were committed locally at
+  `522db3bedb58ee6370856ecac37094fa445a310d`; nothing was pushed.
+- After rechecking clean code, exact record hashes, absent scratch/terminal
+  and more than 60 GiB free space, launched the one authorized continuation
+  outside the sandbox in managed session `70321` at approximately 20:37 UTC.
+  It repeats exhaustive admission before its two-worker missing-input stage;
+  no completed input is rescored and no finder or Dask comparison is rerun.
+  The source package and notebook files were not changed by this work.
+- Restored the existing `monitor-phase-5-source-catalogue-r6` heartbeat to
+  hourly active monitoring of this exact identity/session. It reports only
+  material changes and inspects no intermediate science. Original session
+  `19330` remains failed and is not restarted. The original scientific
+  terminal is still absent; R6 and Phase 5 remain open pending the binding
+  cumulative verdict and any separately admitted prospective sentinel.

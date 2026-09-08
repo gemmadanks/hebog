@@ -791,15 +791,14 @@ records the synthetic reproduction and prospective remedy. Before retry:
    identity `4a36dfa1...` updates its package hash while preserving the exact
    scientific composition and configuration. Its read-only guard passes;
    no R6 result transfers and no notebook refresh was run.
-3. Freeze an evaluation-only continuation with exhaustive no-write validation
-   of all retained products and reusable records, then use the standing R6
-   repair authority for the exact new execution. Keep the original candidate
-   imports isolated from the later notebook repairs. Reuse the 808 completed
-   evaluations wherever verified equivalent, evaluate only missing inputs,
-   and retain their seal before late aggregation. No continuation or new
-   execution identity has been launched by this implementation. The hourly
-   monitor remains paused until an exact continuation is ready and launched.
-   Prepare this in two explicit steps:
+3. **In progress — evaluation-only continuation (2026-09-08):** the separate
+   exhaustive no-write preflight passed and the exact continuation launched
+   in managed session `70321` under standing R6 repair authority. It repeats
+   admission before evaluating only the 1,592 missing inputs, reuses the 808
+   completed evaluations byte-for-byte and retains their combined seal before
+   late aggregation. Original candidate captures remain isolated from later
+   notebook repairs. Hourly monitoring is active; no scientific verdict is
+   available. The preparation comprised two explicit steps:
    - **Complete — reusable-evidence inventory (2026-09-08):** immutable
      auditor `3fc57fc...` verified all 2,400 capture pairs, 9,600 reference
      runs, 12 retained Dask comparisons and 808 completed inputs / 4,032
@@ -809,12 +808,11 @@ records the synthetic reproduction and prospective remedy. Before retry:
      records. Corrupt completions fail closed, never silently becoming
      missing work. Exactly 1,592 inputs still need evaluation; the original
      terminal remains absent and no scientific verdict has been inferred.
-   - Bind that inventory into a separate evaluation-only entry point and
-     immutable checkout. Before launch, exercise missing-input dispatch,
-     byte-for-byte record reuse, the combined evidence seal and late failure
-     retention on synthetic fixtures. Repeat exhaustive no-write admission
-     under the exact new decision. The inventory alone is not a launch
-     preflight or execution authority.
+   - **Complete — entry point, immutable freeze and standalone admission:**
+     bind the inventory into the separate evaluation-only entry point and
+     immutable checkout; exercise missing-input dispatch, byte-for-byte reuse,
+     combined evidence seal and late-failure retention on synthetic fixtures.
+     The inventory alone is not a launch preflight or execution authority.
      The continuation entry point and its plan freezer now have test-first
      synthetic dispatch, two-worker spawn, corruption, unavailable-support,
      authority and late-failure coverage. They preserve the original output
@@ -825,8 +823,10 @@ records the synthetic reproduction and prospective remedy. Before retry:
      Immutable implementation `b64228d...` is now frozen with plan
      `c99f9f86...`, identity review `6ebd6664...`, exact execution
      `1b73bd62...` and separate one-use decision `3bc1e1e1...` under standing
-     R6 authority. Exhaustive no-write admission is in progress before launch;
-     no finder rerun is required. The original terminal remains absent.
+     R6 authority. Standalone exhaustive admission passed, retained as
+     `76a4fdcb...`; the launched command repeats it before dispatch. No finder
+     rerun is required. The original terminal remains absent. Next, interpret
+     the exact terminal against all binding gates before any sentinel launch.
 
 **Concurrent notebook WCS repair (2026-09-08; complete):** The public SDC1
 refresh exposed a valid FK5/SIN input reaching the ICRS-only beam-geometry

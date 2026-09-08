@@ -2261,6 +2261,16 @@ freeze without local campaign outputs. Exhaustive no-write admission must
 pass before launch. No new scientific score or verdict is reported by this
 freeze; R6 and Phase 5 remain open.
 
+The exhaustive standalone preflight subsequently exited zero, confirming
+all retained artifacts and reusable records without running a finder or
+computing scientific scores. Its retained result has SHA-256
+`76a4fdcb2d5e53084a0b8d1c9c568ed382d14fd294e701b1cc13cda7ca107980`.
+Frozen records are committed at `522db3b...`. The single continuation is now
+launched outside the sandbox in managed session `70321`; it repeats admission
+before dispatch. Hourly monitoring is active. There is no new terminal or
+scientific verdict yet, and no finder or Dask rerun is authorized by this
+continuation.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
