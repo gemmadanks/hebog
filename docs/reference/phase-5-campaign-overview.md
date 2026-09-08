@@ -2215,6 +2215,28 @@ and 808 completed evaluations remain untouched. R6 and Phase 5 remain open
 until a separately frozen evaluation-only continuation completes and its
 binding scientific gates are interpreted.
 
+## 2026-09-08: R6 reusable-evidence inventory (no scientific evaluation)
+
+The immutable auditor at `3fc57fc...` completed exhaustive read-only
+verification of all 2,400 current/incumbent capture pairs, 9,600 retained
+reference runs and 12 saved Serial/existing-Dask comparisons. It verified
+808 completed inputs (800 compact and eight Continuum), comprising 4,032
+finder records, for byte-for-byte reuse. Exactly 1,592 inputs remain pending.
+Both empty directories left by the failed evaluation are preserved.
+
+The atomic inventory has SHA-256
+`e0d1571d092b47c6e34bec5c3cd23a11d6cb0acc14124befd057fc0d9dfa59a5`;
+its non-executable identity review is `4d4fb7c5...`. It retains original
+candidate `db8936b...`, separately from later notebook repairs. No finder,
+Dask comparison or truth-score evaluation was rerun. The original scientific
+terminal is still absent: this is evidence-integrity confirmation, not a
+parity result or authorization to launch.
+
+The next step is a separate evaluation-only continuation, with synthetic
+resume and late-failure tests, a frozen exact execution decision and repeated
+exhaustive launch admission. The monitor stays paused until that continuation
+is launched. R6 and Phase 5 remain open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

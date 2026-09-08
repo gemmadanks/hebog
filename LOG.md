@@ -18128,3 +18128,29 @@ scientific pass from fixture validation.
   exact launch preflight. The original monitor remains paused. This work
   does not authorize or launch a retry and does not establish a scientific
   pass; 1,592 inputs still need their first completed evaluation.
+
+### Immutable inventory freeze
+
+- Repeated the exhaustive audit from clean immutable checkout
+  `/private/tmp/hebog-r6-continuation-inventory` at
+  `3fc57fcf99b3aa02601d0198e74b40620cdaf0c0`. It exited zero and atomically
+  published the non-executable inventory, SHA-256
+  `e0d1571d092b47c6e34bec5c3cd23a11d6cb0acc14124befd057fc0d9dfa59a5`.
+  The separate identity-review file has SHA-256
+  `4d4fb7c51fabfeef37a18d863517d74efe0b5439329eab416c6b9a5815676f43`.
+  The immutable checkout remained clean; no original products, completed
+  records or failure directories were changed.
+- The inventory confirms 2,400 capture pairs, 9,600 reference runs, 12 saved
+  Dask comparisons, 808 complete inputs / 4,032 finder records, 1,592 pending
+  inputs and two empty failed directories. The original terminal remains
+  absent. Its authority flags are all false and scientific verdict is null;
+  this is not a retry identity, launch preflight or scientific pass.
+- The synthetic campaign-evidence and inventory suites passed 70 tests in
+  533.56 s, including the real late statistical engine on synthetic records.
+  The additional portable identity test verifies explicit historical Git
+  bytes without reading the ignored campaign directory; all 56 focused
+  inventory/identity tests pass in 12.66 s. No campaign scores were computed.
+- Next: implement and fixture-test the separate evaluation-only continuation,
+  bind this inventory and the approved support amendment, freeze the exact
+  decision/checkout, and repeat exhaustive launch admission under standing
+  R6 authority. The monitor remains paused and no retry has been launched.

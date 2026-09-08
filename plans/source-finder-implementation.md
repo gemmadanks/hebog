@@ -800,10 +800,15 @@ records the synthetic reproduction and prospective remedy. Before retry:
    execution identity has been launched by this implementation. The hourly
    monitor remains paused until an exact continuation is ready and launched.
    Prepare this in two explicit steps:
-   - Audit and freeze the original capture, Dask and reusable-record inventory
-     without running a finder or recomputing truth scores. Preserve both
-     incomplete directories as well as completed records; reject corrupt
-     completions rather than silently treating them as missing work.
+   - **Complete — reusable-evidence inventory (2026-09-08):** immutable
+     auditor `3fc57fc...` verified all 2,400 capture pairs, 9,600 reference
+     runs, 12 retained Dask comparisons and 808 completed inputs / 4,032
+     finder records, without running a finder or recomputing truth scores.
+     Inventory SHA-256 `e0d1571d...` and non-executable identity review
+     `4d4fb7c5...` preserve both empty failed directories and all completed
+     records. Corrupt completions fail closed, never silently becoming
+     missing work. Exactly 1,592 inputs still need evaluation; the original
+     terminal remains absent and no scientific verdict has been inferred.
    - Bind that inventory into a separate evaluation-only entry point and
      immutable checkout. Before launch, exercise missing-input dispatch,
      byte-for-byte record reuse, the combined evidence seal and late failure
