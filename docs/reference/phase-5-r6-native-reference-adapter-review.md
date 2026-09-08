@@ -34,7 +34,7 @@ union arrays and publication masks. This is projection-equivalence evidence,
 not another evaluation against truth. Historical programs and records remain
 byte-identical, and the repaired adapter has not been used for a retry.
 
-## Empty exclusive ownership: prospective decision required
+## Empty exclusive ownership: approved amendment
 
 With the ID repair in place, a full read-only projection audit succeeds for
 3,150 reference catalogues and rejects 50 across 28 inputs with
@@ -65,10 +65,49 @@ diagnostics, without changing thresholds, denominators, confidence rules or
 comparator identities. Test the representation and all downstream compiler
 seams with synthetic dominated, coincident, separated, fitless and unavailable
 cases before adopting it. Preserve every formerly valid projection exactly.
-This needs a scientific-owner amendment to the explicit nonempty-owner rule,
-not a silent process-bug waiver.
+The scientific owner approved this amendment on 2026-09-08. It is recorded in
+`config/contracts/phase-5-r6-unavailable-source-support-amendment.json`;
+the original hash-bound review and v1 adapter remain unchanged.
 
-After that decision, freeze a new evaluation-only continuation. The original
+### Implemented representation and fixture gates
+
+The R6-only v2 projection reuses the original native membership checks,
+Gaussian model arithmetic and native catalogue records. It preserves pixel
+winners and stable ties, including gaps in source label numbering. A source
+with no winning pixels receives `support_label=None`; no pixel is allocated
+to make its label exist, and no source or component row is removed.
+
+The R6 validation catalogue record accepts that explicit optional label;
+the historical record and compiler remain unchanged. The amended compiler
+reuses the historical matching, strata and metric kernels through a narrow
+read-only record boundary. An asserted positive label still has to exist.
+Matching uses the
+unchanged centroid-in-one-beam-dilation rule when overlap is unavailable;
+it does not invent overlap, shrink a denominator or relax a threshold.
+Unmatched sources still count against reliability. Topology statistics
+describe actual support; an unavailable source is not an additional support
+island. The binary mask remains the actual published mask, including fitless
+islands, independently of model ownership.
+
+Source diagnostics are schema **2**, with explicit
+`unavailable_source_support_ids` and JSON `null` support labels. Source
+measurement summaries are schema **5**: source counts retain every native
+row, source-union counts count available supports, and
+`unavailable_source_support_count` states the difference. These are current
+validation schemas, not modifications or migrations of saved campaign
+records. Existing completed records must remain byte-identical; any future
+reuse is checked by the separately frozen continuation.
+
+Synthetic tests cover dominated and coincident models, stable equal-model
+ties, separated sources, unowned/empty islands, non-square planes, row order,
+true duplicate or invalid membership, unavailable-support centroid boundary
+cases, independent finder-to-truth measurements, reliability denominators,
+publication masks, exact record serialization, and Serial/existing-Dask
+equivalence. No finder, retained-data scoring or R6 retry is part of this
+implementation. This does not assert that downstream campaign evaluation is
+bug-free or that R6 has passed.
+
+Next, freeze a new evaluation-only continuation. The original
 2,400 paired products and 12 Dask comparisons are preserved, as are all 800
 compact and eight Continuum completed evaluations (4,032 finder records with
 verified checksums and capture/census bindings). No finder reruns are needed

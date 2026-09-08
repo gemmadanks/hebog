@@ -11,11 +11,13 @@ import numpy as np
 from hebog.validation.external_runners import canonical_sha256
 from hebog.validation.external_successor_compiler import (
     _mask_metrics,  # pyright: ignore[reportPrivateUsage]
-    measure_continuum_image,
 )
 from hebog.validation.source_catalogue_diagnostics import (
     SourceDiagnosticInput,
     compile_source_diagnostics,
+)
+from hebog.validation.source_catalogue_measurements import (
+    measure_source_catalogue_image,
 )
 
 
@@ -36,7 +38,7 @@ def compile_source_measurement_summary(
     """Compile binding source statistics without fabricating components."""
     diagnostic = compile_source_diagnostics(batch.diagnostics)
     _validate_publication(batch)
-    measured = measure_continuum_image(
+    measured = measure_source_catalogue_image(
         batch.diagnostics.truth,
         batch.diagnostics.sources,
         truth_label_plane=batch.diagnostics.truth_labels,
@@ -54,7 +56,7 @@ def compile_source_measurement_summary(
     )
     sources = batch.diagnostics.sources
     record = {
-        "schema_version": 4,
+        "schema_version": 5,
         "input_id": batch.diagnostics.input_id,
         "finder_id": batch.diagnostics.finder_id,
         "cell_id": batch.cell_id,
@@ -68,7 +70,12 @@ def compile_source_measurement_summary(
         },
         "counts": {
             "source_count": len(sources),
-            "source_union_count": len(sources),
+            "source_union_count": sum(
+                row.support_label is not None for row in sources
+            ),
+            "unavailable_source_support_count": sum(
+                row.support_label is None for row in sources
+            ),
             "gaussian_component_count": sum(
                 row.object_kind == "component" and row.catalogue_row_published
                 for row in batch.diagnostics.dispositions
@@ -107,11 +114,15 @@ def _validate_publication(batch: SourceEvidenceInput) -> None:
     ):
         raise ValueError("source evidence must use exact published support")
     source_ids = {row.identifier for row in diagnostic.sources}
-    source_labels = {row.support_label for row in diagnostic.sources}
+    source_labels = tuple(
+        row.support_label
+        for row in diagnostic.sources
+        if row.support_label is not None
+    )
     if (
         len(source_ids) != len(diagnostic.sources)
-        or len(source_labels) != len(diagnostic.sources)
-        or source_labels != set(np.unique(unions)) - {0}
+        or len(source_labels) != len(set(source_labels))
+        or set(source_labels) != set(np.unique(unions)) - {0}
     ):
         raise ValueError("source evidence must retain exact source unions")
     dispositions = diagnostic.dispositions

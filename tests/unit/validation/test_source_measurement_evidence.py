@@ -13,6 +13,9 @@ from hebog.validation.external_successor_compiler import (
     ContinuumTruthObject,
 )
 from hebog.validation.source_catalogue_diagnostics import SourceDiagnosticInput
+from hebog.validation.source_catalogue_measurements import (
+    SourceCatalogueMeasurement,
+)
 from hebog.validation.source_measurement_evidence import (
     SourceEvidenceInput,
     compile_source_measurement_summary,
@@ -99,6 +102,38 @@ def test_each_finder_is_independently_compared_with_analytic_truth() -> None:
         ]
         == -0.4
     )
+
+
+@pytest.mark.parametrize("finder", ("current-hebog", "released-pybdsf"))
+def test_source_summary_distinguishes_missing_support_from_missing_fit(
+    finder: str,
+) -> None:
+    batch = source_evidence_fixture(finder=finder)
+    diagnostic = batch.diagnostics
+    summary = compile_source_measurement_summary(
+        replace(
+            batch,
+            diagnostics=replace(
+                diagnostic,
+                sources=(
+                    SourceCatalogueMeasurement("source", None, (13, 10), 10),
+                ),
+                source_union_labels=np.zeros_like(
+                    diagnostic.source_union_labels
+                ),
+            ),
+        )
+    )
+    assert summary["schema_version"] == 5
+    assert summary["counts"]["source_count"] == 1
+    assert summary["counts"]["source_union_count"] == 0
+    assert summary["counts"]["unavailable_source_support_count"] == 1
+    assert summary["metrics"]["completeness"] == 1
+    assert summary["metrics"]["integrated-flux-p95"] == [0]
+    assert summary["metrics"]["mask-iou"] == 1
+    assert summary["diagnostics"]["unavailable_source_support_ids"] == [
+        "source"
+    ]
 
 
 def test_unowned_published_support_still_penalizes_binary_mask() -> None:

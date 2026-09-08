@@ -761,24 +761,39 @@ removing that guard, dropping a source or inventing support would not be an
 ID/process repair. The [dated audit](../docs/reference/phase-5-r6-native-reference-adapter-review.md)
 records the synthetic reproduction and prospective remedy. Before retry:
 
-1. Obtain scientific-owner approval of a prospective representation for
-   native catalogue sources without exclusive derived support. Preserve their
+1. **Complete — scientific-owner approval (2026-09-08):** approval covers a
+   prospective representation for native catalogue sources without exclusive
+   derived support. Preserve their
    native positions, fluxes and membership; distinguish unavailable derived
    topology from absent catalogue measurements. Keep the existing matching
    rules and every denominator, threshold and comparator explicit. Do not
-   weaken the frozen nonempty-owner invariant without an approved amendment.
-2. Implement only that approved adapter boundary test-first; cover both
+   replace the frozen nonempty-owner invariant outside the approved R6
+   amendment. The historical review and v1 implementation remain unchanged.
+2. **Complete — implementation and fixture validation:** the approved
+   adapter boundary was implemented test-first; tests cover both
    finders, dominated/coincident sources, missing support, true duplicates,
    empty/fitless islands, row-order invariance and every affected downstream
    compiler seam. Preserve previously valid projections exactly. No source
    finding, tuning or viewed-result rescoring belongs in this step.
+   The R6 v2 projection retains optional support labels without changing
+   native rows or pixel winners. Diagnostics schema 2 records unavailable
+   source support; source summary schema 5 distinguishes catalogue and actual
+   source-union counts. Missing asserted labels still fail. Synthetic
+   compiler and Serial/existing-Dask gates precede a non-executable freeze.
+   The portable coverage suite passed 3,342 tests at 95.1148%, with every
+   changed executable line and branch covered; 27 frozen equivalence tests
+   and the handoff checks pass. Historical compiler/adapter bytes are intact.
+   Shared validation-module edits change the package hash but not finder
+   science; refresh the separate non-executable notebook identity without
+   transferring any R6 result or running a notebook refresh.
 3. Freeze an evaluation-only continuation with exhaustive no-write validation
    of all retained products and reusable records, then use the standing R6
    repair authority for the exact new execution. Keep the original candidate
    imports isolated from the later notebook repairs. Reuse the 808 completed
    evaluations wherever verified equivalent, evaluate only missing inputs,
    and retain their seal before late aggregation. No continuation or new
-   execution identity has been launched or authorized by this partial repair.
+   execution identity has been launched by this implementation. The hourly
+   monitor remains paused until an exact continuation is ready and launched.
 
 **Concurrent notebook WCS repair (2026-09-08; complete):** The public SDC1
 refresh exposed a valid FK5/SIN input reaching the ICRS-only beam-geometry

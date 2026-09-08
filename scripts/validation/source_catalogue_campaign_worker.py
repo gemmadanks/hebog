@@ -23,7 +23,6 @@ from hebog.validation.diagnostic_retention import _atomic_json
 from hebog.validation.external_runners import canonical_sha256, file_sha256
 from hebog.validation.external_successor_compiler import (
     _mask_metrics,
-    measure_continuum_image,
 )
 from hebog.validation.products import write_comparison_catalogue
 from hebog.validation.public_measurement_projection import (
@@ -32,6 +31,9 @@ from hebog.validation.public_measurement_projection import (
 from hebog.validation.source_catalogue_diagnostics import (
     SourceDiagnosticInput,
     compile_source_diagnostics,
+)
+from hebog.validation.source_catalogue_measurements import (
+    measure_source_catalogue_image,
 )
 
 
@@ -196,7 +198,7 @@ def compile_continuum_record(
     ):
         raise ValueError("continuum record publication domain changed")
     source_diagnostics = compile_source_diagnostics(diagnostic)
-    measured = measure_continuum_image(
+    measured = measure_source_catalogue_image(
         diagnostic.truth,
         diagnostic.sources,
         truth_label_plane=diagnostic.truth_labels,

@@ -260,10 +260,12 @@ def test_wave_identity_preserves_previously_evaluable_model_partition(
     assert current.unowned_native_support_labels == (2,)
 
 
+@pytest.mark.parametrize("reverse", (False, True))
 def test_valid_native_source_can_have_no_dominant_pixels(
     tmp_path: Path,
+    reverse: bool,
 ) -> None:
-    """Identical centres with unequal amplitudes expose the frozen seam."""
+    """Retain a dominated native source without fabricating owner pixels."""
     header, artifacts = _pybdsf_files(tmp_path)
     for role in ("source-catalogue-fits", "gaussian-catalogue-fits"):
         path = artifacts[role]
@@ -273,13 +275,34 @@ def test_valid_native_source_can_have_no_dominant_pixels(
         if role == "gaussian-catalogue-fits":
             rows["Gaus_id"] = (0, 1)
             rows["Peak_flux"] = (2, 1)
+        if reverse:
+            rows = rows[::-1].copy()
         fits.HDUList([fits.PrimaryHDU(), fits.BinTableHDU(rows)]).writeto(
             path, overwrite=True
         )
-    # Do not waive the frozen nonempty-owner rule as an ID repair. A new
-    # topology policy must say how this native source remains represented.
+    # The historical adapter remains frozen; only the approved R6 projection
+    # adopts explicit unavailable exclusive support.
     with pytest.raises(ValueError, match="source owns no native pixels"):
-        reader.read_pybdsf_sources(artifacts, header)
+        reader.native_pybdsf.projection_from_catalogue_tables(
+            source_table=fits.getdata(artifacts["source-catalogue-fits"], 1),
+            gaussian_table=fits.getdata(
+                artifacts["gaussian-catalogue-fits"], 1
+            ),
+            native_island_labels=fits.getdata(artifacts["island-labels-fits"]),
+            header=header,
+        )
+    before = {role: file_sha256(path) for role, path in artifacts.items()}
+    view = reader.read_pybdsf_sources(artifacts, header)
+    assert [row.support_label for row in view.sources] == [1, None]
+    assert [row.integrated_flux_jy for row in view.sources] == [3, 1]
+    assert len(view.measured_sources) == len(view.measured_components) == 2
+    assert np.all(view.union_labels[:2, :2] == 1)
+    assert not np.any(view.union_labels == 2)
+    assert view.publication[5, 5]  # Fitless island remains published.
+    assert view.union_labels[5, 5] == 0
+    assert {
+        role: file_sha256(path) for role, path in artifacts.items()
+    } == before
 
 
 def test_model_identity_ignores_row_byte_order_but_not_true_duplicates(

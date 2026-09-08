@@ -25,8 +25,10 @@ from scripts.benchmark import (
 from scripts.validation.compact_sentinel_source_unions import (
     PyBdsfGaussianRow,
     PyBdsfSourceRow,
-    SourceUnionProjection,
-    derive_pybdsf_source_model_dominance,
+)
+from scripts.validation.source_catalogue_source_unions import (
+    RetainedSourceUnionProjection,
+    derive_retained_pybdsf_source_unions,
 )
 
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
@@ -46,6 +48,10 @@ from hebog.validation.products import (
     load_pybdsf_catalogue,
     load_pybdsf_gaussian_catalogue,
 )
+from hebog.validation.source_catalogue_measurements import (
+    SourceCatalogueMeasurement,
+    SourceCatalogueRow,
+)
 
 native_pybdsf = (
     run_phase5_compact_held_out_source_union_pybdsf_gaussian_count_repair
@@ -56,7 +62,7 @@ native_pybdsf = (
 class FinderMeasurementView:
     """Worker-local arrays and native rows, independent of injected truth."""
 
-    sources: tuple[ContinuumCatalogueObject, ...]
+    sources: tuple[SourceCatalogueRow, ...]
     union_labels: np.ndarray
     publication: np.ndarray
     stages: dict[str, np.ndarray]
@@ -183,9 +189,15 @@ def read_pybdsf_sources(
     )
     sources = tuple(
         ContinuumCatalogueObject(
-            row.identifier, index, row.centre_xy, row.integrated_flux_jy
+            row.identifier, label, row.centre_xy, row.integrated_flux_jy
         )
-        for index, row in enumerate(projection.sources, start=1)
+        if label is not None
+        else SourceCatalogueMeasurement(
+            row.identifier, None, row.centre_xy, row.integrated_flux_jy
+        )
+        for row, label in zip(
+            projection.sources, projection.source_support_labels, strict=True
+        )
     )
     publication = load_fits_plane(artifacts["island-mask-fits"]) > 0
     # Historical native products did not retain operational background/RMS.
@@ -275,7 +287,7 @@ def project_pybdsf_source_unions(
     gaussian_table: np.ndarray,
     native_island_labels: np.ndarray,
     header: fits.Header,
-) -> SourceUnionProjection:
+) -> RetainedSourceUnionProjection:
     """Preserve wave-local Gaussian identities in the native source union.
 
     The wave suffix preserves the old lexical order when its shorter keys
@@ -284,7 +296,7 @@ def project_pybdsf_source_unions(
     Indistinguishable duplicates still fail before the topology validator.
     """
     if source_table.size == 0 and gaussian_table.size == 0:
-        return derive_pybdsf_source_model_dominance(
+        return derive_retained_pybdsf_source_unions(
             source_rows=(),
             gaussian_rows=(),
             native_island_labels=native_island_labels,
@@ -341,7 +353,7 @@ def project_pybdsf_source_unions(
                 ),
             )
         )
-    return derive_pybdsf_source_model_dominance(
+    return derive_retained_pybdsf_source_unions(
         source_rows=sources,
         gaussian_rows=tuple(gaussians),
         native_island_labels=native_island_labels,

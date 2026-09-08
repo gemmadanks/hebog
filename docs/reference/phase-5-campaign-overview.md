@@ -2192,6 +2192,29 @@ Continuum inputs are exactly unchanged by the ID repair, without rescoring.
 An approved evaluator continuation can reuse verified durable work rather
 than rerun the finders. R6 and Phase 5 remain open; no retry has started.
 
+## 2026-09-08: R6 unavailable-support amendment (fixture-only)
+
+The scientific owner approved retaining valid native catalogue sources with
+no exclusive model-dominance pixels. The R6 v2 adapter now represents their
+support as unavailable while preserving every native source/component row,
+position, flux, pixel winner and fitless published island. Matching uses the
+existing centroid clause when overlap is unavailable; unmatched catalogue
+rows remain in reliability denominators. Diagnostics explicitly distinguish
+catalogue measurements from derived support availability.
+
+The historical v1 adapter, its review and the old successor compiler remain
+byte-identical. The isolated amended compiler reuses the same matching and
+metric kernels. Synthetic normal, boundary, corruption and two-worker
+existing-Dask tests cover the new representation; no real finder, evaluation
+retry, viewed-data rescoring or qualification was run. This is repair
+evidence, not a new science/parity result.
+
+The [R6 adapter review](phase-5-r6-native-reference-adapter-review.md) describes
+the amended schemas and remaining continuation step. All retained R6 products
+and 808 completed evaluations remain untouched. R6 and Phase 5 remain open
+until a separately frozen evaluation-only continuation completes and its
+binding scientific gates are interpreted.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

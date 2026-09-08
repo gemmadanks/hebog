@@ -17982,3 +17982,60 @@ After that approval, implement the narrowly reviewed adapter boundary, freeze
 an evaluation-only continuation and exhaustively verify reusable products.
 No retry identity or execution was started. Do not change R6's candidate to
 the later notebook repairs, alter gates, tune, rescore or mark R6 complete.
+
+## 2026-09-08 — Approved R6 unavailable-support amendment
+
+- The scientific owner approved the explicit unavailable-support adapter
+  representation and tests. Amendment
+  `phase-5-r6-unavailable-source-support-amendment.json` has SHA-256
+  `94200d4584702d30d42cc4f550b0c40b9e09f0c791391ebe272f8d605f20156b`.
+  It authorizes implementation and fixtures only, not an execution retry.
+- Synthetic tests first reproduced the native zero-owner exception and the
+  compiler's rejection of optional support. A further source-summary fixture
+  exposed the same assumption at the publication census. The amended R6
+  projection retains every native source/component row and its observables;
+  deterministic native model winners remain unchanged. Sources without a
+  winning pixel carry explicit unavailable support, not fabricated pixels or
+  dropped measurements. Fitless islands remain in the public mask.
+- The validation compiler retains the original matching, metric arithmetic,
+  strata and denominators. Missing support adds no overlap evidence; the
+  existing one-beam centroid clause still applies, and unmatched native rows
+  remain in reliability. Diagnostics schema 2 explicitly lists unavailable
+  source-support IDs. Source summaries use schema 5 and distinguish source
+  counts from actual source-union counts. Positive labels must still exist;
+  native identity, duplicate, measurement and ownership corruption fail.
+- Wider checks exposed a historical checksum binding on the successor
+  compiler. It was restored byte-for-byte and the amended admission boundary
+  isolated in `source_catalogue_measurements.py`, reusing its existing
+  scientific kernels. The original source-union adapter, original compiler,
+  frozen pre-review and all saved R6 evidence are unchanged. No old review
+  was rewritten or assertion weakened to bypass its checksum.
+- Focused adapter/compiler/Dask validation passed 112 tests; the expanded
+  coverage-focused subset passed 92 tests in 9.31 s. All 97 changed
+  executable lines and every changed branch are covered, including both new
+  modules. Cases include coincident/equal-model ties, dominated and separated
+  sources, label holes, empty/fitless and non-square images, row-order
+  invariance, corrupt membership, native measurement validation, exact
+  centroid eligibility boundaries, and Serial/existing-Dask record equality.
+  Previously valid synthetic metrics and pixel partitions compare exactly
+  with the original implementation. This is not a retained-data rescore.
+- `just coverage` passed 3,342 tests, 153 deselected and two existing xfails
+  in 286.56 s. Branch-aware project coverage is 95.11482398239824%, above
+  the prior 95.10405181918412%; all changed package modules are fully covered.
+  `just check` passed 3,121 tests, 374 deselected and two existing xfails in
+  209.60 s. The 27 frozen equivalence tests passed in 35.88 s; Ruff, Pyright
+  and strict docs build passed. Review against `CODE_REVIEW.md` found no
+  remaining actionable defect in this bounded amendment. Final hooks precede
+  the local commit; no push is authorized.
+- The package SHA changes to
+  `35a1b408ac68463d91794458dab49bd94f9866e0962dd2cf32e672f87a3d4b72`
+  because validation modules changed. The notebook scientific composition
+  remains exactly `004961f6...`, with no algorithm or configuration change.
+  A separate non-executable identity refresh will preserve its guard; no
+  notebook refresh or candidate execution is performed here.
+
+**Next:** freeze the validated implementation and notebook package identities,
+then prepare a separate exact evaluation-only continuation. The hourly R6
+monitor remains paused. Preserve the original candidate, all captures and
+the 808 completed evaluations; do not restart, tune, rescore or infer a
+scientific pass from fixture validation.

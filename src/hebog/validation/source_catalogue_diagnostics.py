@@ -17,9 +17,9 @@ from hebog.validation.external_comparison import (
 )
 from hebog.validation.external_runners import canonical_sha256
 from hebog.validation.external_successor_compiler import (
-    ContinuumCatalogueObject,
     ContinuumTruthObject,
 )
+from hebog.validation.source_catalogue_measurements import SourceCatalogueRow
 
 _IMAGE_DIMENSIONS = 2
 
@@ -31,7 +31,7 @@ class SourceDiagnosticInput:
     input_id: str
     finder_id: str
     truth: tuple[ContinuumTruthObject, ...]
-    sources: tuple[ContinuumCatalogueObject, ...]
+    sources: tuple[SourceCatalogueRow, ...]
     truth_labels: np.ndarray
     source_union_labels: np.ndarray
     stage_masks: Mapping[str, np.ndarray]
@@ -80,7 +80,7 @@ def _validate_input(batch: SourceDiagnosticInput) -> None:
 
 
 def _association_object(
-    row: ContinuumTruthObject | ContinuumCatalogueObject,
+    row: ContinuumTruthObject | SourceCatalogueRow,
 ) -> AssociationObject:
     """Use the exact source-union matching domain of the frozen compiler."""
     return AssociationObject(
@@ -151,11 +151,16 @@ def compile_source_diagnostics(batch: SourceDiagnosticInput) -> dict[str, Any]:
         for name, mask in sorted(batch.stage_masks.items())
     }
     record = {
-        "schema_version": 1,
+        "schema_version": 2,
         "input_id": batch.input_id,
         "finder_id": batch.finder_id,
         "truth_records": [asdict(row) for row in batch.truth],
         "source_records": [asdict(row) for row in batch.sources],
+        "unavailable_source_support_ids": sorted(
+            row.identifier
+            for row in batch.sources
+            if row.support_label is None
+        ),
         "all_measured_source_records": [
             asdict(row) for row in batch.measured_sources
         ],
