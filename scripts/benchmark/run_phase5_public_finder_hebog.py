@@ -46,7 +46,8 @@ _PROTOCOL = runpy.run_path(
 )
 _PUBLIC_IDENTITY = (
     _ROOT
-    / "config/contracts/phase-5-notebook-fk5-wcs-repair-identity-review.json"
+    / "config/contracts"
+    / "phase-5-notebook-joint-fit-failure-identity-review.json"
 )
 _PUBLIC_CONFIG = SourceFinderConfig(5.0, 3.0, 7, profile="continuum")
 

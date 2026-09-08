@@ -752,7 +752,7 @@ non-executable notebook identity; no viewed-input finder rerun or rescoring
 was performed. R6 continues to describe candidate `db8936b...`, not an
 automatic pass for this correction.
 
-**Concurrent notebook joint-fit failure repair (2026-09-08):** The next
+**Concurrent notebook joint-fit failure repair (2026-09-08; complete):** The next
 refresh exposed an uncaught numerical decomposition exception inside the new
 joint Gaussian solver. An exception before an optimizer result existed
 bypassed the existing typed non-convergence outcome. The main-checkout
@@ -765,8 +765,12 @@ Synthetic solver/covariance/publication fault tests, exact ICRS/FK5 notebook
 paths and Serial/existing-Dask invariance establish this failure contract.
 The particular real fit's numerical cause remains unconfirmed; this repair
 prevents whole-image loss rather than claiming that the fit now converges.
-Freeze its separate non-executable notebook identity after validation. R6
-continues unchanged and does not qualify this later correction.
+Repair commit `1d65277...` passed 3,301 coverage tests (95.1041%) and 27
+frozen equivalence fixtures, with all changed lines and branches covered.
+`phase-5-notebook-joint-fit-failure-identity-review.json` freezes its separate
+non-executable notebook identity, with configuration unchanged and no
+qualification transfer. R6 continues unchanged and does not qualify this
+later correction.
 
 The exact-public-background pass reproduced an additional R3 defect:
 the scale-12 compact-core/halo boundary cell loses 35.4% of flux, while

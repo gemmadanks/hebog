@@ -17882,3 +17882,27 @@ No real notebook refresh, replay, rescoring or R6 restart was performed.
 freeze a separate non-executable notebook identity and verify the strict
 runner guard. Preserve old staging and results; do not resume them as this
 implementation. No viewed-data execution, rescoring or R6 restart occurred.
+
+### Separate notebook identity after the joint-fit failure repair
+
+- Clean `just pre-commit` hooks preceded local implementation commit
+  `1d65277b5a0c930813590802bc0fc8bab040835c`. The new non-executable
+  `phase-5-notebook-joint-fit-failure-identity-review.json` binds that commit,
+  source SHA-256
+  `c2398c10709ab62527b5e26faa0581aaae3783acdd6a6507c49af700bc68279e`
+  and composition SHA-256
+  `004961f61a84f58e9d3405ad27a3604b9415154d25b5396e60a9af445eab0aff`.
+  Review file SHA-256 is
+  `a219d951a2fccfdf366d6b9ea919aba61d4a94b2075a3ce78ef4068c79c68885`.
+  Configuration remains `5eca0efc...`, execution authorities are false,
+  and qualification status remains development-unqualified.
+- The notebook selects this new identity without weakening its guard or
+  editing historical reviews. The read-only source/composition/configuration
+  check passed. Historical-byte identity, refresh, WCS and exact synthetic
+  notebook tests passed 29 cases in 10.20 s. A fresh refresh selects the
+  repair; old staging and notebook products remain preserved, not resumed
+  or overwritten as this implementation.
+- This is a bounded failure-handling repair, not evidence that the real
+  numerical problem has been resolved. Any warning identifies unavailable
+  Gaussian measurements that still need investigation. R6 retains its
+  original source identity and running environment; no evidence transfers.
