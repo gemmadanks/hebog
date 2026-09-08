@@ -17598,3 +17598,19 @@ campaign or fresh sentinel has started; prior scientific failure is unchanged.
   unmatched historical timing comparisons and R6 scientific gates remain
   explicit. Clean hooks precede the local breaking repair commit; the next
   commit will bind that candidate in a non-executable identity review.
+
+### R5 candidate freeze
+
+- All final pre-commit hooks passed without changes before repair commit
+  `db8936b512370a1491f36845592fe3e8a24107ad`. The new non-executable review
+  binds that commit, source `43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf`,
+  configuration `5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4`
+  and composition `ef1322ca33e688d4e1a021468c8de39a0b691fbbe55697cf215bee375e1eb414`.
+  The 5/3/7 thresholds are unchanged; the serialized current configuration
+  identity is new and must not be represented as the historical hash.
+- A campaign-independent test verifies the review against committed Git
+  bytes, including the complete source tree, ordered composition and R0
+  documents. It does not bind later HEAD or require ignored outputs. This
+  restores the notebook runner's exact identity check, not qualification or
+  automatic execution permission. R6 will freeze a separate executable
+  protocol under the owner's standing R0--R6 authority.

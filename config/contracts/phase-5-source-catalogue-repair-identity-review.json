@@ -1,0 +1,55 @@
+{
+  "algorithm_candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "source_tree_sha256": "43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf"
+  },
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "viewed_data_rescoring": false
+  },
+  "configuration": {
+    "detection_threshold_sigma": 5.0,
+    "island_threshold_sigma": 3.0,
+    "maximum_island_pixels": null,
+    "minimum_island_pixels": 7,
+    "profile": "continuum"
+  },
+  "date": "2026-09-08",
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_documents": {
+    "audit": {
+      "path": "docs/reference/phase-5-source-catalogue-science-audit.md",
+      "sha256": "ff1990784b1ad4107df8bc8d0a4fb8b1968631ef65994b5485f636e0ba902a30"
+    },
+    "contract": {
+      "path": "docs/reference/phase-5-source-catalogue-repair-contract.md",
+      "sha256": "f207821db37961706287f650b9e6584605ea4bc096bf46ef9d0c8f3edb2b7238"
+    }
+  },
+  "qualification_status": "development-unqualified",
+  "schema_version": 1,
+  "scientific_composition": "phase-5-native-component-and-source-measurements-v9",
+  "scientific_composition_sha256": "ef1322ca33e688d4e1a021468c8de39a0b691fbbe55697cf215bee375e1eb414",
+  "status": "frozen-non-executable",
+  "validation": {
+    "changed_executable_lines_covered": 963,
+    "changed_executable_lines_total": 963,
+    "changed_package_branches_all_covered": true,
+    "combined_branch_aware_coverage_percent": 95.11934326710816,
+    "coverage_tests_passed": 3151,
+    "development_geometry_cases": 108,
+    "equivalence_tests_passed": 27,
+    "full_check_tests_passed": 2950,
+    "joint_boundary_process_tests_passed": 171,
+    "pre_commit": "passed-clean",
+    "public_runtime_summary_sha256": "63773bb1f4c6e2d8a942a46377e266f654b8425e901d094d09a5f14a0668136e",
+    "stage_runtime_matrix_sha256": "aaa254b5767b3227b967963f797039d817af4c8fbd4d2eeeb366660d7787c72e"
+  }
+}

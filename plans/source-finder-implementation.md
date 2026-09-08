@@ -700,8 +700,11 @@ branch-aware coverage, 963/963 changed executable lines and all changed
 branches covered, 2,950 normal checks, 27 equivalence fixtures, strict docs
 and wheel smoke. The frozen 3,000-pixel incremental stage medians are
 5.56--5.60 seconds against the 6-second budget. This is not all-tier runtime
-retention or a PyBDSF/Rapthor speedup claim. Clean hooks and the non-executable
-candidate freeze remain; R6 has not executed. The repaired default
+retention or a PyBDSF/Rapthor speedup claim. Clean hooks passed and candidate
+`db8936b512370a1491f36845592fe3e8a24107ad` is frozen by
+`config/contracts/phase-5-source-catalogue-repair-identity-review.json`,
+source `43fb41f2...`, configuration `5eca0efc...`, composition `ef1322ca...`.
+R6 has not executed. The repaired default
 is explicitly `development-unqualified`
 and cannot use the previous candidate's qualification or notebook identity.
 
@@ -767,7 +770,7 @@ All of this is development evidence, not replacement parity or qualification.
   and Dask comparisons alongside the terminal, with checksum verification
   and a cleanup guard. Distinguish measurement-only pixels from published
   mask pixels rather than requiring their footprints to be identical.
-- [ ] **R5 — Pass the short joint regression ladder before a long run.**
+- [x] **R5 — Pass the short joint regression ladder before a long run.**
   Confirm each intended TDD red failure, then normal, boundary and error
   branches. Exercise the exact `hebog.find_sources` and notebook-runner
   compositions on synthetic development fixtures, not only internal kernels.
