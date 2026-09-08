@@ -17735,3 +17735,35 @@ failure remains terminal.
   digest was recorded; the review and all closed artifacts remain unchanged.
   Complete immutable preflight is now in progress. Neither the capture
   scratch nor the terminal namespace has been consumed by finder execution.
+
+### R6 cumulative launch and hourly monitoring
+
+- The separate complete immutable no-write preflight exited successfully:
+  all 2,400 input bundles, 9,600 retained native reference runs, current and
+  historical producer identities, task metadata, absent outputs and 90-GiB
+  disk admission passed. Its write-once evidence record is
+  `source-catalogue-repair-cumulative-preflight.json`, SHA-256
+  `3b2f84c891cbccde0e479c0a5e8d629a7124f28393e856b189d09ee95b5ce9b1`;
+  `finder_execution_started=false` describes that preflight, not the later
+  approved command. The preflight hashed product bytes without interpreting
+  scientific measurements.
+- Clean hooks preceded exact authorization commit
+  `99b6797cbf3a8900535e268d44c78d479b3d3618`. The single approved command was
+  launched outside the sandbox in managed session `19330`, using the frozen
+  plan and one-use decision. It repeats the full preflight before creating
+  `/private/tmp/hebog-r6-cumulative-products-db8936b`. The final write-once
+  output will be
+  `benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json`.
+  No duplicate, PyBDSF execution or qualification run was started.
+- Hourly same-task monitor `monitor-phase-5-source-catalogue-r6` is active.
+  While the process runs it may inspect only health, completion counts,
+  disk and terminal existence; it reports material stage changes, problems
+  and completion. It preserves products after errors, requires a newly
+  frozen exact identity for any process repair, and cannot tune or waive a
+  scientific failure. The launch check found a healthy process still in its
+  repeated no-write preflight, with capture progress and terminal absent.
+  After that repeated preflight, the progress log confirmed capture had
+  begun successfully: 8/2,400 pairs at 04:38 UTC. No partial scientific
+  measurements were inspected.
+  R0--R5 are complete; R6 is in progress, not passed. Its fresh sentinel and
+  eventual Phase 5 readiness remain conditional on the cumulative result.

@@ -704,7 +704,7 @@ retention or a PyBDSF/Rapthor speedup claim. Clean hooks passed and candidate
 `db8936b512370a1491f36845592fe3e8a24107ad` is frozen by
 `config/contracts/phase-5-source-catalogue-repair-identity-review.json`,
 source `43fb41f2...`, configuration `5eca0efc...`, composition `ef1322ca...`.
-R6 has not executed. The repaired default
+At the R5 freeze, R6 had not executed. The repaired default
 is explicitly `development-unqualified`
 and cannot use the previous candidate's qualification or notebook identity.
 
@@ -727,8 +727,15 @@ Tooling is now committed as `1b1cbae8cf8f05184cb2d095ced87175e2969849`.
 The exact non-executable plan `af35c5b3...`, review `9b6913b9...`, one-use
 decision `a9b0975b...` and expected execution `aea1f477...` bind its immutable
 checkout, the unchanged repaired candidate, a 90-GiB disk admission and the
-disclosed 10--24-hour cumulative estimate. Complete no-write preflight is in
-progress; finder execution has not started. The final fresh sentinel's
+disclosed 10--24-hour cumulative estimate. Complete immutable no-write
+preflight passed all 2,400 inputs and 9,600 retained reference runs (record
+`3b2f84c8...`). Authorization commit `99b6797...` precedes the single
+approved replay command, now running in managed session `19330`; it repeats
+the preflight before capture. Hourly monitor
+`monitor-phase-5-source-catalogue-r6` follows this exact execution without
+inspecting partial science. The atomic terminal will be
+`benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json`.
+R6 remains in progress, not passed. The final fresh sentinel's
 sub-12-hour target is separate and remains conditional on the cumulative
 gate passing. No old pass or uncertainty acceptance transfers.
 

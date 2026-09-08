@@ -2125,6 +2125,40 @@ or rerun as qualification evidence. Any further candidate work requires a
 prospective scientific decision and new development data; no automatic retry
 is appropriate for this scientific failure.
 
+## 2026-09-08: repaired candidate cumulative replay underway
+
+This is a launch record, not a scientific result. The owner-approved R0--R5
+repairs are committed as candidate `db8936b...`, source `43fb41f2...`,
+configuration `5eca0efc...`. Development, public-interface, Serial/Dask and
+engineering checks pass, but the candidate remains `development-unqualified`.
+Neither the earlier cumulative pass nor its incumbent-uncertainty acceptance
+transfers to the repaired source and measurement semantics.
+
+R6 asks whether the repaired candidate retains compact science and native
+source-level Continuum performance against the authentic incumbent and both
+PyBDSF references, with applicable Aegean checks. It keeps all 800 compact
+and 1,600 Continuum regression images, 1,187 binding comparisons, five safety
+checks and the original 50,000-resample confidence rules. Each finder is
+measured independently against analytic injected truth; PyBDSF is not truth.
+The 9,600 retained native reference runs passed an exhaustive identity and
+artifact audit. No new PyBDSF execution is required for this cumulative stage.
+
+Immutable tooling commit `1b1cbae...`, exact plan `af35c5b3...`, review
+`9b6913b9...` and one-use decision `a9b0975b...` bind the execution. The
+complete no-write preflight passed before launch; record `3b2f84c8...`
+preserves that result. The approved two-worker command is managed session
+`19330`, with hourly monitoring. It captures 2,400 current and 2,400
+historical-incumbent bundles, runs 12 existing-Dask comparisons, retains
+complete per-image diagnostics, and only then compiles the atomic decision.
+The disclosed estimate is 10--24 hours, with 90 GiB disk admission including
+reserve. This is separate from the fresh sentinel's sub-12-hour target.
+
+No endpoint result is available yet. The terminal will be
+`benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json`.
+Every binding gate must pass before a new unopened seed-disjoint sentinel;
+a completed scientific failure is terminal and may not be tuned or rescored.
+R6 and Phase 5 therefore remain open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:
