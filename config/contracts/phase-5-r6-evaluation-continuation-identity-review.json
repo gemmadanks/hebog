@@ -1,0 +1,98 @@
+{
+  "approved_amendment_sha256": "94200d4584702d30d42cc4f550b0c40b9e09f0c791391ebe272f8d605f20156b",
+  "authorizations": {
+    "candidate_execution": false,
+    "cutover": false,
+    "dask_execution": false,
+    "evaluation_retry": false,
+    "incumbent_execution": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "tuning": false,
+    "viewed_data_rescoring": false
+  },
+  "candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "source_tree_sha256": "43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf"
+  },
+  "date": "2026-09-08",
+  "entry_point_sha256": {
+    "scripts/validation/continue_source_catalogue_evaluation.py": "86db40dfd008103ea7b8f22b13786d567775e4dbecf87c964533a76ea3280a6d",
+    "scripts/validation/source_catalogue_continuation_plan.py": "96d35ecbc2a13623434d19badf57537b2f286cdbef28e3d56826f02a888c1d92"
+  },
+  "evaluator_source_tree_sha256": "35a1b408ac68463d91794458dab49bd94f9866e0962dd2cf32e672f87a3d4b72",
+  "execution_checkout": "/private/tmp/hebog-r6-evaluation-continuation-b64228d",
+  "expected_execution_sha256": "1b73bd62d384154ea4536988bae107b6adcfb283efd81046637e1320c844ee7a",
+  "frozen_science": {
+    "binding_comparison_count": 1187,
+    "candidate_substitution": false,
+    "closed_evidence_changes": false,
+    "completed_record_rescoring": false,
+    "confidence_rule_changes": false,
+    "ground_truth": "independent analytic injected truth; PyBDSF is not truth",
+    "safety_check_count": 5,
+    "threshold_or_margin_changes": false
+  },
+  "implementation_revision": "b64228db5a303ef2a419b32650fd99abcee6482f",
+  "incumbent": {
+    "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "execution_revision": "c1614c2e1b7f8a47877c20a97bb732541ae039d2",
+    "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+  },
+  "inventory": {
+    "path": "/Users/gemma.danks/Projects/hebog/benchmark-results/phase-5/r6-evaluation-continuation-inventory.json",
+    "sha256": "e0d1571d092b47c6e34bec5c3cd23a11d6cb0acc14124befd057fc0d9dfa59a5"
+  },
+  "inventory_identity_review": {
+    "path": "/Users/gemma.danks/Projects/hebog/config/contracts/phase-5-r6-continuation-inventory-identity-review.json",
+    "sha256": "4d4fb7c51fabfeef37a18d863517d74efe0b5439329eab416c6b9a5815676f43"
+  },
+  "new_dask_comparisons": 0,
+  "new_finder_executions": 0,
+  "new_input_evaluations": 1592,
+  "output": "/Users/gemma.danks/Projects/hebog/benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json",
+  "plan_canonical_sha256": "1b73bd62d384154ea4536988bae107b6adcfb283efd81046637e1320c844ee7a",
+  "plan_path": "benchmark-results/phase-5/r6-evaluation-continuation-plan.json",
+  "plan_sha256": "c99f9f86857139bbb992ff873a337cdfb09e04b376a1600bf3a07956db88721f",
+  "program_count": 174,
+  "program_set_sha256": "894022b627c871e568a2898d315b9536122799f60d92327903aa7cb74264ad27",
+  "repair_identity_review_sha256": "259cf6a4822f4313cde21ceebb5721caad8a1934994a272125442ea393432665",
+  "required_admission": "Repeat exhaustive no-write verification of all retained artifacts, records, historical imports and frozen identities from the exact clean checkout, require absent scratch and original terminal, then admit only a separately bound one-use evaluation-only decision.",
+  "required_free_bytes": 8589934592,
+  "retained_evidence": {
+    "capture_pair_count": 2400,
+    "complete_finder_record_count": 4032,
+    "existing_dask_comparison_count": 12,
+    "partial_directory_count": 2,
+    "partial_file_count": 0,
+    "reference_run_count": 9600
+  },
+  "reused_input_evaluations": 808,
+  "review_result": "Synthetic normal, boundary, corruption, immutable-identity and two-worker spawn fixtures pass. Per-input records are checked immediately and the combined seal precedes unchanged final statistics. No actionable CODE_REVIEW.md findings remain. This review itself authorizes no execution and establishes no scientific verdict.",
+  "runtime": {
+    "dependency_inventory_sha256": "10788ccd1804f6280454cc5c2386a1551eef084c2b40908f513e365c266f43b6",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.14.2"
+  },
+  "schema_version": 1,
+  "scratch": "/private/tmp/hebog-r6-evaluation-continuation-products-b64228d",
+  "status": "frozen-non-executable",
+  "validation": {
+    "changed_code_coverage_percent": 100,
+    "equivalence_tests": 27,
+    "explicit_pyright": "pass",
+    "focused_tests": 92,
+    "handoff_tests": 3271,
+    "new_script_branches": 64,
+    "new_script_statements": 211,
+    "portable_coverage_tests": 3493,
+    "pre_commit": "pass",
+    "project_coverage_percent": 95.11482398239824,
+    "scientific_execution_started": false,
+    "strict_docs": "pass"
+  },
+  "workers": 2
+}

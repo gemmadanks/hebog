@@ -18195,3 +18195,32 @@ scientific pass from fixture validation.
   parity; no remote Codecov patch report is available locally. Finish the
   final handoff checks, freeze the immutable identity and repeat exhaustive
   no-write admission before the exact continuation. No R6 retry has started.
+
+### Exact continuation freeze
+
+- Implementation commit `b64228db5a303ef2a419b32650fd99abcee6482f`
+  passed the final `just check` (3,271 tests) and all `just pre-commit` hooks.
+  The clean immutable execution checkout is
+  `/private/tmp/hebog-r6-evaluation-continuation-b64228d`. Its separate
+  evaluator package hash is `35a1b408...`; the captured scientific candidate
+  remains `db8936b...` / `43fb41f2...`, not the later notebook candidate.
+- Frozen plan SHA-256 is
+  `c99f9f86857139bbb992ff873a337cdfb09e04b376a1600bf3a07956db88721f`;
+  canonical expected execution is
+  `1b73bd62d384154ea4536988bae107b6adcfb283efd81046637e1320c844ee7a`.
+  The non-executable identity-review file is
+  `6ebd6664fdd0255f9c5f49ee866383ceae300bc4907c63718fd029f2faeb27b3`;
+  the separate one-use evaluation-only decision is
+  `3bc1e1e1eeff4f889b6c17d5e8fe7072ad5061bf186595d744c3a6ff7fc88963`.
+  It records standing R0--R6 repair authority and the approved amendment;
+  the old consumed replay decision is not reused.
+- The plan binds all 174 validation programs, with canonical program-set
+  SHA-256 `894022b6...`, and the original dependency inventory and thread
+  budget. Portable identity tests use explicit historical Git bytes, not
+  ignored campaign files. New scratch is
+  `/private/tmp/hebog-r6-evaluation-continuation-products-b64228d`;
+  the original R6 terminal path remains unchanged and absent.
+- Started the exhaustive preflight-only command from that immutable checkout.
+  It runs no finder and computes no scientific score. The monitor remains
+  paused until preflight and final identity checks pass and the exact
+  continuation is launched. No scientific verdict has been inferred.

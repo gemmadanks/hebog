@@ -822,8 +822,11 @@ records the synthetic reproduction and prospective remedy. Before retry:
      separate scratch; the combined seal precedes unchanged aggregation.
      The 92 focused fixtures cover every new executable line and branch;
      3,493 portable coverage tests pass at unchanged 95.1148% coverage.
-     Complete the exact immutable freeze/preflight before launching under
-     standing R6 authority. No finder rerun is required.
+     Immutable implementation `b64228d...` is now frozen with plan
+     `c99f9f86...`, identity review `6ebd6664...`, exact execution
+     `1b73bd62...` and separate one-use decision `3bc1e1e1...` under standing
+     R6 authority. Exhaustive no-write admission is in progress before launch;
+     no finder rerun is required. The original terminal remains absent.
 
 **Concurrent notebook WCS repair (2026-09-08; complete):** The public SDC1
 refresh exposed a valid FK5/SIN input reaching the ICRS-only beam-geometry

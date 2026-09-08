@@ -2237,6 +2237,30 @@ resume and late-failure tests, a frozen exact execution decision and repeated
 exhaustive launch admission. The monitor stays paused until that continuation
 is launched. R6 and Phase 5 remain open.
 
+## 2026-09-08: R6 evaluation-only continuation freeze
+
+The continuation tooling is committed at `b64228d...` and isolated in a
+clean immutable checkout. It reuses all 808 completed inputs byte-for-byte
+and evaluates only the 1,592 missing inputs, using two workers and no finder
+or Dask reruns. The original scientific candidate `db8936b...`, analytic
+truth, population, thresholds, margins and statistical rules remain bound.
+The amended evaluator is a separate identity, not a new scientific candidate.
+
+Plan file SHA-256 is
+`c99f9f86857139bbb992ff873a337cdfb09e04b376a1600bf3a07956db88721f`;
+expected execution SHA-256 is
+`1b73bd62d384154ea4536988bae107b6adcfb283efd81046637e1320c844ee7a`.
+The non-executable review `6ebd6664...` and separate one-use decision
+`3bc1e1e1...` bind the retained inventory, approved support amendment,
+immutable code, original environment, new scratch and original terminal path.
+The decision records the owner's standing R0--R6 repair authority.
+
+Synthetic dispatch, two-worker spawn, preservation and failure tests pass;
+every new executable line and branch is covered. Portable tests verify the
+freeze without local campaign outputs. Exhaustive no-write admission must
+pass before launch. No new scientific score or verdict is reported by this
+freeze; R6 and Phase 5 remain open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

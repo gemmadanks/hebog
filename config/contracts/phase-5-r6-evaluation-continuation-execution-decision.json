@@ -1,0 +1,57 @@
+{
+  "approved_amendment_sha256": "94200d4584702d30d42cc4f550b0c40b9e09f0c791391ebe272f8d605f20156b",
+  "authority_interpretation": "One exact evaluation-only continuation under standing R0--R6 repair authority and the separately approved unavailable-source-support amendment. The consumed original replay decision is historical provenance only. No candidate, incumbent, PyBDSF or Dask execution; no completed-record rescoring or changed scientific gate.",
+  "candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "source_tree_sha256": "43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf"
+  },
+  "date": "2026-09-08",
+  "execution_checkout": "/private/tmp/hebog-r6-evaluation-continuation-b64228d",
+  "execution_count": 1,
+  "execution_revision": "b64228db5a303ef2a419b32650fd99abcee6482f",
+  "expected_execution_sha256": "1b73bd62d384154ea4536988bae107b6adcfb283efd81046637e1320c844ee7a",
+  "failure_policy": "Never start a duplicate or overwrite a file. Preserve completed records and the combined pre-aggregation seal. A process failure requires a new exact freeze and admission under standing repair authority. A completed scientific failure is terminal evidence, not a retry trigger.",
+  "identity_review_path": "config/contracts/phase-5-r6-evaluation-continuation-identity-review.json",
+  "identity_review_sha256": "6ebd6664fdd0255f9c5f49ee866383ceae300bc4907c63718fd029f2faeb27b3",
+  "incumbent": {
+    "configuration_sha256": "88ac8bea8e865c765d5f346235642f88b298140955af67ada99b9f9bf6187523",
+    "execution_revision": "c1614c2e1b7f8a47877c20a97bb732541ae039d2",
+    "revision": "85d580713664b962ae256a98b065849cf8eb9283",
+    "source_tree_sha256": "a082cbe4b3416f787b455bb5a06be1eb66cb33ec807c74fa48056dfe8c630696"
+  },
+  "inventory_sha256": "e0d1571d092b47c6e34bec5c3cd23a11d6cb0acc14124befd057fc0d9dfa59a5",
+  "new_dask_comparisons": 0,
+  "new_finder_executions": 0,
+  "new_input_evaluations": 1592,
+  "output": "/Users/gemma.danks/Projects/hebog/benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json",
+  "owner_authority": "Please complete tasks R0--R6. I approve of any fixes and replays required for these tasks.",
+  "plan_sha256": "c99f9f86857139bbb992ff873a337cdfb09e04b376a1600bf3a07956db88721f",
+  "prerequisites": [
+    "Exact clean committed checkout, isolated evaluator imports and original dependency/thread identities.",
+    "Exhaustive no-write verification of 2400 capture pairs, 9600 retained references, 12 retained Dask comparisons and every reusable record.",
+    "Both scratch and original atomic terminal absent; at least 8 GiB free.",
+    "Unchanged original candidate, truth, population, thresholds, margins, confidence rules, 1187 binding comparisons and five safety checks."
+  ],
+  "required_free_bytes": 8589934592,
+  "reused_input_evaluations": 808,
+  "schema_version": 1,
+  "scratch": "/private/tmp/hebog-r6-evaluation-continuation-products-b64228d",
+  "status": "authorized-for-one-r6-evaluation-only-continuation",
+  "unauthorized_operations": [
+    "source-finding changes",
+    "candidate execution",
+    "incumbent execution",
+    "PyBDSF execution",
+    "new Dask comparisons",
+    "qualification",
+    "tuning",
+    "optimization",
+    "viewed-data rescoring",
+    "gate weakening",
+    "cutover",
+    "release",
+    "pushing"
+  ],
+  "workers": 2
+}
