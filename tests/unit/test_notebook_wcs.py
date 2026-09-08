@@ -118,7 +118,7 @@ def test_source_aperture_positions_are_icrs(frame: str) -> None:
 
 @pytest.mark.parametrize("frame", ("icrs", "fk5"))
 def test_core_and_truth_projection_transform_icrs_rows(frame: str) -> None:
-    """A precessed row stays inside its true half-open pixel core."""
+    """A transformed row stays inside its true half-open pixel core."""
     header = _header(frame)
     expected = cast(Any, WCS(header).pixel_to_world(16.25, 12.75)).icrs
     row = CatalogueSource(

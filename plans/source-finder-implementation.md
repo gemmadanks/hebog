@@ -739,16 +739,18 @@ R6 remains in progress, not passed. The final fresh sentinel's
 sub-12-hour target is separate and remains conditional on the cumulative
 gate passing. No old pass or uncertainty acceptance transfers.
 
-**Concurrent notebook WCS repair (2026-09-08):** The public SDC1 refresh
-exposed a valid FK5/SIN input reaching the ICRS-only beam-geometry helper.
-Repair only the main checkout, with synthetic test-first evidence for native
-beam-axis rotation, ICRS source/component positions, half-open core selection
-and catalogue-to-pixel round trips. Preserve the original FITS headers, all
-frozen reviews and R6's execution checkout/environment. The public API's
-ICRS-only admission rule and scientific gates remain unchanged. Record a
-separate non-executable notebook identity after validation; no viewed-input
-finder rerun or rescoring is part of this repair. R6 continues to describe
-candidate `db8936b...`, not an automatic pass for this correction.
+**Concurrent notebook WCS repair (2026-09-08; complete):** The public SDC1
+refresh exposed a valid FK5/SIN input reaching the ICRS-only beam-geometry
+helper. Main-checkout repair `b6ad935...` has synthetic test-first evidence
+for native beam-axis rotation, ICRS source/component positions, half-open
+core selection and catalogue-to-pixel round trips (110 focused tests; all
+changed package lines and branches covered). Original FITS headers, frozen
+reviews and R6's execution checkout/environment are preserved. The public
+API's ICRS-only admission rule and scientific gates remain unchanged.
+`phase-5-notebook-fk5-wcs-repair-identity-review.json` freezes the separate
+non-executable notebook identity; no viewed-input finder rerun or rescoring
+was performed. R6 continues to describe candidate `db8936b...`, not an
+automatic pass for this correction.
 
 The exact-public-background pass reproduced an additional R3 defect:
 the scale-12 compact-core/halo boundary cell loses 35.4% of flux, while

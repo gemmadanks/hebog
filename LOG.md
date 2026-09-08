@@ -17813,3 +17813,27 @@ failure remains terminal.
 non-executable notebook-producer identity and verify the strict runner guard.
 Do not resume older staging as this implementation or edit its frozen review.
 No real notebook refresh, replay, rescoring or R6 restart was performed.
+
+### Separate notebook identity after the WCS repair
+
+- Clean `just pre-commit` hooks preceded local implementation commit
+  `b6ad935c75475fbe9bddeee60eb7f733d9c7887f`. The new non-executable
+  `phase-5-notebook-fk5-wcs-repair-identity-review.json` binds that commit,
+  source SHA-256
+  `bb061e9cc5f5f6604ad6bc23a9534b849f1f9c24ca069b1b8ee377a3bb4bc43c`
+  and composition SHA-256
+  `5e50aefce840934351eb87abd4452c4faf81da752e93d9395ce62bc237a9be10`.
+  Review file SHA-256 is
+  `8b0d54ed291512ceff56928e625fc44c1bdc0e938f6d4429ddadf9e6f4187ff0`.
+  The configuration is unchanged at `5eca0efc...`; all execution authorities
+  in the new record are false and its status remains development-unqualified.
+- The notebook runner now selects this new record without weakening its
+  source/composition checksum checks or modifying any historical review.
+  Its read-only identity check succeeded. Campaign-independent tests bind
+  both the R6 candidate's old review and the notebook's new review to their
+  respective committed source bytes and documented contract. The identity,
+  refresh, WCS and exact synthetic runner suite passed 24 tests in 8.23 s.
+- A new notebook refresh can now select the repaired identity. Older staging
+  and completed notebook products are preserved, not resumed or overwritten
+  as the repair. R6 remains separate and unchanged; no finder was run on any
+  viewed input as part of this task.

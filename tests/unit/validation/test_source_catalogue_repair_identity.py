@@ -10,18 +10,26 @@ import subprocess
 import tarfile
 from pathlib import Path
 
+import pytest
+
 from hebog.validation.external_runners import canonical_sha256
 
 _ROOT = Path(__file__).parents[3]
-_REVIEW = (
-    _ROOT
-    / "config/contracts/phase-5-source-catalogue-repair-identity-review.json"
+
+
+@pytest.mark.parametrize(
+    "review_name",
+    (
+        "phase-5-source-catalogue-repair-identity-review.json",
+        "phase-5-notebook-fk5-wcs-repair-identity-review.json",
+    ),
 )
-
-
-def test_repair_identity_binds_committed_science_without_outputs() -> None:
+def test_repair_identity_binds_committed_science_without_outputs(
+    review_name: str,
+) -> None:
     """Later science cannot invalidate or silently rewrite this identity."""
-    review = json.loads(_REVIEW.read_bytes())
+    path = _ROOT / "config/contracts" / review_name
+    review = json.loads(path.read_bytes())
     assert review["status"] == "frozen-non-executable"
     assert review["finder_execution_started"] is False
     assert review["execution_identity"] is None
