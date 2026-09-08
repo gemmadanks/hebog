@@ -23,6 +23,7 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
     import numpy.typing as npt
+    from astropy.coordinates import SkyCoord
     from astropy.io import fits
     from astropy.wcs import WCS
 
@@ -88,6 +89,7 @@ def _():
         DatasetRecord,
         Path,
         RunOverlay,
+        SkyCoord,
         WCS,
         compare_support_component,
         dataclasses,
@@ -117,6 +119,7 @@ def _(
     DatasetRecord,
     Path,
     RunOverlay,
+    SkyCoord,
     WCS,
     dataclasses,
     fits,
@@ -525,6 +528,8 @@ def _(
     def _to_pixel_positions(
         wcs: WCS,
         sources: tuple[CatalogueSource, ...],
+        *,
+        coordinate_frame: str = "native",
     ) -> tuple[tuple[float, ...], tuple[float, ...]]:
         if not sources:
             return (), ()
@@ -538,7 +543,20 @@ def _(
             ],
             dtype=np.float64,
         )
-        pixels = wcs.all_world2pix(world, 0)
+        if coordinate_frame == "icrs":
+            pixels = np.column_stack(
+                wcs.world_to_pixel(
+                    SkyCoord(
+                        world[:, 0], world[:, 1], unit="deg", frame="icrs"
+                    )
+                )
+            )
+        elif coordinate_frame == "native":
+            pixels = wcs.all_world2pix(world, 0)
+        else:
+            raise ValueError(
+                f"Unsupported catalogue coordinate frame: {coordinate_frame}"
+            )
         finite = np.all(np.isfinite(pixels), axis=1)
         return (
             tuple(float(value) for value in pixels[finite, 0]),
@@ -666,6 +684,7 @@ def _(
                 )
                 continue
 
+            coordinate_frame = "native"
             if case.kind == "external":
                 result = load_external_run_result(
                     result_path,
@@ -693,6 +712,11 @@ def _(
                     result_path,
                     result.get("artifacts", {}),
                 )
+                semantics = result.get("catalogue_semantics", {})
+                if isinstance(semantics, dict):
+                    coordinate_frame = str(
+                        semantics.get("coordinate_frame", "native")
+                    )
 
             key = f"{finder_id}/{mode}"
             if status != "success":
@@ -733,9 +757,11 @@ def _(
                     notes.append(f"Hebog catalogue load failed: {error}")
 
             try:
-                source_x, source_y = _to_pixel_positions(wcs, source_catalogue)
+                source_x, source_y = _to_pixel_positions(
+                    wcs, source_catalogue, coordinate_frame=coordinate_frame
+                )
                 component_x, component_y = _to_pixel_positions(
-                    wcs, component_catalogue
+                    wcs, component_catalogue, coordinate_frame=coordinate_frame
                 )
             except (TypeError, ValueError) as error:
                 source_x, source_y = (), ()

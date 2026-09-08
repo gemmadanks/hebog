@@ -22,7 +22,10 @@ import numpy.typing as npt
 from astropy.io import fits
 from scipy.ndimage import find_objects, label
 
-from hebog.algorithms.astrometry import compact_geometry_at_pixel
+from hebog.algorithms.astrometry import (
+    celestial_wcs_from_metadata,
+    compact_geometry_from_wcs,
+)
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import SourceFinderConfig
@@ -197,8 +200,9 @@ def _scientific_composition_sha256() -> str:
 def _beam_shape_pixels(metadata: ImageMetadata) -> BeamShapePixels:
     """Transform the restoring beam into local image-pixel coordinates."""
     height, width = metadata.shape_yx
-    geometry = compact_geometry_at_pixel(
-        metadata,
+    geometry = compact_geometry_from_wcs(
+        metadata.beam,
+        celestial_wcs_from_metadata(metadata),
         ((width - 1) / 2.0, (height - 1) / 2.0),
     )
     covariance = geometry.restoring_beam_covariance_pixels_squared

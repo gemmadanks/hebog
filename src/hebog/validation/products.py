@@ -27,6 +27,7 @@ from hebog.algorithms.astrometry import (
     deconvolve_gaussian_shapes,
     local_tangent_plane_transform_from_wcs,
     moment_equivalent_gaussian_shape,
+    restoring_beam_in_icrs,
     transform_compact_fit_at_tangent,
 )
 from hebog.algorithms.component_measurement import ComponentMeasurements
@@ -1042,16 +1043,15 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
             continue
         integrated_flux = integrated_weight / beam_area_pixels
         peak_flux = float(np.max(residual[support]))
-        right_ascension, declination = celestial_wcs.all_pix2world(
-            [estimate.centroid_xy],
-            0,
-        )[0]
+        position = cast(
+            Any, celestial_wcs.pixel_to_world(*estimate.centroid_xy)
+        ).icrs
         identifier = f"hebog-segment-{label_value}"
         output.append(
             CatalogueSource(
                 identifier=identifier,
-                right_ascension_degrees=float(right_ascension),
-                declination_degrees=float(declination),
+                right_ascension_degrees=float(position.ra.deg),
+                declination_degrees=float(position.dec.deg),
                 peak_flux_jy_per_beam=peak_flux,
                 integrated_flux_jy=integrated_flux,
                 association_integrated_flux_jy=integrated_flux,
@@ -1160,7 +1160,7 @@ def _moment_shape_fields(
         fitted = moment_equivalent_gaussian_shape(covariance, transform)
         deconvolution = deconvolve_gaussian_shapes(
             fitted,
-            beam,
+            restoring_beam_in_icrs(beam, celestial_wcs, centroid_xy),
             relative_tolerance=1e-10,
         )
     except (TypeError, ValueError, np.linalg.LinAlgError):
@@ -1328,10 +1328,10 @@ def _fitted_component_row(
         cast(float, header["BMIN"]),
         cast(float, header.get("BPA", 0.0)),
     )
-    tangent = local_tangent_plane_transform_from_wcs(
-        WCS(header, relax=True).celestial,
-        fitted.parameters.centroid_xy,
-    )
+    wcs = WCS(header, relax=True).celestial
+    position = fitted.parameters.centroid_xy
+    tangent = local_tangent_plane_transform_from_wcs(wcs, position)
+    beam = restoring_beam_in_icrs(beam, wcs, position)
     sky = transform_compact_fit_at_tangent(fitted, beam, tangent)
     return CatalogueSource(
         identifier=f"hebog-segment-{index}",

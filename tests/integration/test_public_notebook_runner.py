@@ -13,6 +13,8 @@ from typing import Any, cast
 
 import numpy as np
 import pytest
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 
@@ -112,15 +114,27 @@ def _geometry_matrix_image() -> np.ndarray[Any, np.dtype[np.float64]]:
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("frame", ("icrs", "fk5", "implicit-fk5"))
 def test_exact_notebook_runner_completes_geometry_matrix(
     tmp_path: Path,
     current_fixture_identity: str,
+    frame: str,
 ) -> None:
     """The exact notebook path publishes aligned products for edge cases."""
     input_path = tmp_path / "input.fits"
     output = tmp_path / "result"
     image = _geometry_matrix_image()
-    fits.PrimaryHDU(image, _header(image.shape)).writeto(input_path)
+    header = _header(image.shape)
+    if frame != "icrs":
+        header["CTYPE1"] = "RA---SIN"
+        header["CTYPE2"] = "DEC--SIN"
+        if frame == "implicit-fk5":
+            del header["RADESYS"]
+            header["EPOCH"] = 2000.0
+        else:
+            header["RADESYS"] = "FK5"
+            header["EQUINOX"] = 1950.0
+    fits.PrimaryHDU(image, header).writeto(input_path)
 
     result = cast(
         dict[str, object],
@@ -155,6 +169,10 @@ def test_exact_notebook_runner_completes_geometry_matrix(
         == terminal["source_count"] + terminal["component_count"]
     )
     assert terminal["scientific_composition"] == public_api._COMPOSITION_NAME
+    assert terminal["catalogue_semantics"]["coordinate_frame"] == "icrs"
+    assert fits.getheader(output / "segment_mask.fits").get(
+        "RADESYS"
+    ) == header.get("RADESYS")
 
 
 @pytest.mark.integration
@@ -184,14 +202,21 @@ def test_exact_notebook_runner_publishes_empty_and_all_nan(
 
 @pytest.mark.integration
 @pytest.mark.parametrize("rotation", (0.0, 37.0, 90.0))
+@pytest.mark.parametrize("frame", ("icrs", "fk5"))
 def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
     tmp_path: Path,
     current_fixture_identity: str,
     monkeypatch: pytest.MonkeyPatch,
     rotation: float,
+    frame: str,
 ) -> None:
     """Native flux, sky shape and errors survive the complete FITS boundary."""
     header = _header((96, 128))
+    if frame == "fk5":
+        header["RADESYS"] = "FK5"
+        header["EQUINOX"] = 1950.0
+        header["CTYPE1"] = "RA---SIN"
+        header["CTYPE2"] = "DEC--SIN"
     header["BMAJ"] = 4 / 3600
     header["BMIN"] = 2 / 3600
     header["BPA"] = 23.0
@@ -245,7 +270,12 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
     shape = component["fitted_shape"]
     assert shape["major_fwhm_degrees"] * 3600 == pytest.approx(7, rel=0.005)
     assert shape["minor_fwhm_degrees"] * 3600 == pytest.approx(4, rel=0.005)
-    assert shape["position_angle_degrees"] == pytest.approx(23, abs=0.01)
+    native_center = cast(Any, WCS(header).celestial.pixel_to_world(*centre))
+    direction = native_center.directional_offset_by(23 * u.deg, 1 * u.arcsec)
+    expected_pa = native_center.icrs.position_angle(direction.icrs).deg % 180
+    assert shape["position_angle_degrees"] == pytest.approx(
+        expected_pa, abs=0.01
+    )
     for key in (
         "major_fwhm_error_degrees",
         "minor_fwhm_error_degrees",
@@ -263,15 +293,14 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
     # The scalar field is reserved for a major-axis-only resolution result.
     assert component["deconvolved_major_fwhm_degrees"] is None
     observed = cast(
-        np.ndarray,
-        WCS(header).celestial.all_world2pix(
-            [
-                [
-                    component["right_ascension_degrees"],
-                    component["declination_degrees"],
-                ]
-            ],
-            0,
+        tuple[float, float],
+        WCS(header).celestial.world_to_pixel(
+            SkyCoord(
+                component["right_ascension_degrees"],
+                component["declination_degrees"],
+                unit="deg",
+                frame="icrs",
+            )
         ),
-    )[0]
+    )
     np.testing.assert_allclose(observed, centre, atol=0.001)

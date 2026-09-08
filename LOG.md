@@ -17767,3 +17767,49 @@ failure remains terminal.
   measurements were inspected.
   R0--R5 are complete; R6 is in progress, not passed. Its fresh sentinel and
   eventual Phase 5 readiness remain conditional on the cumulative result.
+
+## 2026-09-08 — Notebook FK5 WCS boundary repair alongside immutable R6
+
+- The failed SDC1 notebook refresh reached an ICRS-only beam-geometry
+  helper with valid FK5/SIN metadata. The FITS `BLANK` and `DATE-OBS`
+  warnings were not the exception's cause. A header-only census of the
+  13 existing notebook inputs found ten FK5 and three ICRS images; no image
+  pixels, partial R6 science or new finder results were inspected.
+- Synthetic tests first reproduced the rejected FK5 background geometry
+  and inconsistent catalogue/pixel coordinate interpretation. The repair
+  uses Astropy's existing coordinate transforms, preserving native FITS
+  headers and rotating the local restoring beam with the ICRS tangent basis.
+  Source-aperture and Gaussian-component positions now share ICRS semantics;
+  core selection, diagnostic truth projection and notebook overlays convert
+  them back into the input frame. The notebook reads the producer's explicit
+  coordinate-frame declaration; native external rows retain their existing
+  interpretation. ICRS beam geometry and aperture coordinates retain exact
+  regression checks. Unsupported beam frames still fail explicitly.
+- Final focused validation passed 110 tests in 13.33 s, covering explicit
+  FK5 J1950, implicit FK5 `EPOCH=2000`, SIN projection, RA wrap, unequal and
+  rotated pixels, native beam axes, fitted/deconvolved shapes and errors,
+  half-open core selection, catalogue round trips, empty/all-NaN inputs and
+  refresh guards. The earlier focused executor suite also passed its
+  Serial/existing-Dask checks; its first sandbox-only socket-bind failure
+  was rerun successfully with local socket access, without changing tests.
+- Source-stable `just coverage` passed 3,289 tests with 153 deselected and
+  two existing xfails in 289.93 s, at 95.0822% branch-aware coverage. All 27
+  changed executable package lines and all changed package branch origins
+  are covered. This is the portable coverage lane; the prior 95.1262% R6
+  figure additionally included the separate slow joint/boundary ladder and
+  is not a like-scope baseline. The 27 frozen equivalence tests passed in
+  42.61 s. `just check` passed 3,074 tests with 368 deselected and two existing
+  xfails in 224.55 s. Strict Marimo, Ruff, Pyright and documentation checks
+  also passed.
+- Review against `CODE_REVIEW.md` found no remaining actionable issue.
+  No dependencies, thresholds, gates, frozen reviews or qualification scope
+  changed. The public `find_sources()` preview remains ICRS-only. All work
+  is confined to the main checkout; R6's clean execution checkout remains
+  at `1b1cbae8cf8f05184cb2d095ced87175e2969849`, with its original candidate
+  and environment. These fixture results are neither powered parity nor a
+  transfer of R6 evidence to the repaired source identity.
+
+**Next:** finish repository hooks and commit the repair, then freeze a new
+non-executable notebook-producer identity and verify the strict runner guard.
+Do not resume older staging as this implementation or edit its frozen review.
+No real notebook refresh, replay, rescoring or R6 restart was performed.

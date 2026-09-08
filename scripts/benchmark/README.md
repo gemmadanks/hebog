@@ -110,6 +110,24 @@ wrapper are not included unless the standard public runner is deliberately
 updated to activate them. These public refreshes remain diagnostic evidence:
 they authorize neither qualification nor performance claims.
 
+The diagnostic runner supports ICRS and FK5 equatorial input WCS, including
+the FK5 frame inferred from SDC1 `EPOCH` headers. It preserves the original
+FITS WCS and transforms the local restoring-beam position angle together with
+the coordinates. Its source and Gaussian-component rows are both ICRS,
+declared in `catalogue_semantics.coordinate_frame`. Core selection, diagnostic
+pixel matching and notebook plotting transform those rows back into the
+input frame; native reference catalogues keep their own interpretation.
+Changing a header's frame label without transforming coordinates is not a
+supported workaround. The public `hebog.find_sources()` preview's ICRS-only
+admission rule is unchanged; this diagnostic boundary does not extend its
+qualification scope.
+
+The FK5 repair is a different source identity from the R6 candidate frozen
+at `db8936b...`. R6 can continue in its immutable checkout, but its result
+does not automatically qualify the repaired notebook producer. Existing
+refresh staging from a different source identity cannot be resumed as the
+repaired implementation, and frozen reviews must not be edited in place.
+
 `confirm_phase5_astrometry_follow_up.py` is the one-look Step 2C-HR
 confirmation runner. It requires the named human decision, verifies the frozen
 protocol, base residual-B3 protocol, development decision and ignored evidence,

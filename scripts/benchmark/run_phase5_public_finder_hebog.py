@@ -17,6 +17,7 @@ from time import monotonic
 from typing import Any, cast
 
 import numpy as np
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 
@@ -87,10 +88,13 @@ def _core_catalogue(
     for source in catalogue:
         x_pixel, y_pixel = cast(
             tuple[float, float],
-            celestial.all_world2pix(
-                source.right_ascension_degrees,
-                source.declination_degrees,
-                0,
+            celestial.world_to_pixel(
+                SkyCoord(
+                    source.right_ascension_degrees,
+                    source.declination_degrees,
+                    unit="deg",
+                    frame="icrs",
+                )
             ),
         )
         if (
@@ -304,6 +308,7 @@ def _build_public_bundle(  # noqa: PLR0913
             asdict(row) for row in projection.measured_components
         ],
         "catalogue_semantics": {
+            "coordinate_frame": "icrs",
             "comparison_rows": "gaussian-components",
             "source_rows": "associated-sources",
             "support_rows": "connected-islands",

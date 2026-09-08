@@ -5,9 +5,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import cast
 
 import numpy as np
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 
@@ -42,12 +42,16 @@ def _rows(
         raise ValueError("public rows must have their exact measurements")
     result: list[ContinuumCatalogueObject] = []
     for row in selected:
-        coordinates = cast(
-            np.ndarray,
-            celestial.all_world2pix(
-                [[row.right_ascension_degrees, row.declination_degrees]], 0
-            ),
-        )[0]
+        coordinates = np.asarray(
+            celestial.world_to_pixel(
+                SkyCoord(
+                    row.right_ascension_degrees,
+                    row.declination_degrees,
+                    unit="deg",
+                    frame="icrs",
+                )
+            )
+        )
         if not np.isfinite(coordinates).all():
             raise ValueError("public measurement position must be finite")
         result.append(

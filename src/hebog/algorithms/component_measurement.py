@@ -16,8 +16,7 @@ from astropy.wcs import WCS
 from scipy.ndimage import binary_fill_holes, find_objects, label
 
 from hebog.algorithms.astrometry import (
-    compact_geometry_from_transform,
-    local_tangent_plane_transform_from_wcs,
+    compact_geometry_from_wcs,
 )
 from hebog.algorithms.deblending import DeblendedRegion
 from hebog.algorithms.extended_measurement import (
@@ -530,9 +529,7 @@ def _cross_parent_loop_groups(  # noqa: PLR0913, PLR0917
             (bounds.x_start + bounds.x_stop - 1) / 2,
             (bounds.y_start + bounds.y_stop - 1) / 2,
         )
-        geometry = compact_geometry_from_transform(
-            beam, local_tangent_plane_transform_from_wcs(wcs, center)
-        )
+        geometry = compact_geometry_from_wcs(beam, wcs, center)
         covariance = geometry.restoring_beam_covariance_pixels_squared
         assert covariance is not None
         xx, xy, yy = covariance
@@ -759,9 +756,7 @@ def measure_component_models(  # noqa: PLR0913, PLR0917, PLR0915
             (bounds.x_start + bounds.x_stop - 1) / 2,
             (bounds.y_start + bounds.y_stop - 1) / 2,
         )
-        geometry = compact_geometry_from_transform(
-            beam, local_tangent_plane_transform_from_wcs(wcs, center_xy)
-        )
+        geometry = compact_geometry_from_wcs(beam, wcs, center_xy)
         moments = measure_compact_moments(compact, geometry, moment_config)[1:]
         fitted = fit_compact_gaussian_mixture(
             compact, moments, geometry, fit_config

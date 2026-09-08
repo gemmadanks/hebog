@@ -7,12 +7,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from math import cos, isfinite, log, pi, sqrt
 
 import numpy as np
 import numpy.typing as npt
+from astropy import units as u
 from astropy.io import fits
 from astropy.wcs import WCS
+from astropy.wcs.utils import wcs_to_celestial_frame
 
 from hebog.algorithms.measurement import (
     fitted_gaussian_integrated_flux_jy,
@@ -190,6 +193,49 @@ def compact_geometry_from_transform(
         restoring_beam_solid_angle_steradians=beam_solid_angle,
         restoring_beam_covariance_pixels_squared=covariance_values,
         noise_correlation_covariance_pixels_squared=covariance_values,
+    )
+
+
+def restoring_beam_in_icrs(
+    beam: RestoringBeam,
+    celestial_wcs: WCS,
+    position_xy: tuple[float, float],
+) -> RestoringBeam:
+    """Rotate a native equatorial FITS beam PA into local ICRS axes.
+
+    FK5 equinox precession rotates local north along with the coordinates.
+    Transform a one-arcsecond directional offset using Astropy, preserving
+    the angular beam axes. ICRS returns the original beam without arithmetic.
+    This boundary supports ICRS/FK5, not frames with non-rotational geometry.
+    """
+    if not celestial_wcs.has_celestial:
+        raise ValueError("beam geometry requires a celestial WCS")
+    frame = wcs_to_celestial_frame(celestial_wcs)
+    if frame.name == "icrs":
+        return beam
+    if frame.name != "fk5":
+        raise ValueError("beam geometry requires an ICRS or FK5 celestial WCS")
+    center = celestial_wcs.celestial.pixel_to_world(*position_xy)
+    direction = center.directional_offset_by(
+        beam.position_angle_degrees * u.deg, 1.0 * u.arcsec
+    )
+    return replace(
+        beam,
+        position_angle_degrees=float(
+            center.icrs.position_angle(direction.icrs).deg % 180.0
+        ),
+    )
+
+
+def compact_geometry_from_wcs(
+    beam: RestoringBeam,
+    celestial_wcs: WCS,
+    position_xy: tuple[float, float],
+) -> CompactMeasurementGeometry:
+    """Transform native beam and pixels into the same ICRS tangent basis."""
+    return compact_geometry_from_transform(
+        restoring_beam_in_icrs(beam, celestial_wcs, position_xy),
+        local_tangent_plane_transform_from_wcs(celestial_wcs, position_xy),
     )
 
 
