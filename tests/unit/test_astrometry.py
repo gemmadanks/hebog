@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 from astropy.wcs import WCS
 
+from hebog.algorithms import astrometry
 from hebog.algorithms.astrometry import (
     compact_geometry_at_pixel,
     deconvolve_gaussian_shapes,
@@ -513,6 +514,82 @@ def test_missing_formal_covariance_produces_null_errors_and_flag() -> None:
     assert result.flux.peak_flux_error_jy_per_beam is None
     assert result.flux.integrated_flux_error_jy is None
     assert "position-flux-uncertainty-unavailable" in result.quality_flags
+
+
+@pytest.mark.parametrize("angle", (0.0, 89.99999, 179.99999))
+def test_fitted_shape_errors_follow_native_covariance_across_pa_wrap(
+    angle: float,
+) -> None:
+    """Position-angle wrapping must not amplify a local covariance."""
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.00005,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.0001,
+        shape_parameter_covariance=(0.05**2, 0.0, 0.0, 0.03**2, 0.0, 0.01**2),
+    )
+    result = transform_compact_gaussian_fit(
+        _fit(angle_degrees=angle, uncertainty=uncertainty),
+        _metadata(),
+    )
+    assert result.fitted_shape.major_fwhm_error_degrees == pytest.approx(
+        _FWHM_PER_SIGMA * 0.001 * 0.05,
+        rel=1e-4,
+    )
+    assert result.fitted_shape.minor_fwhm_error_degrees == pytest.approx(
+        _FWHM_PER_SIGMA * 0.001 * 0.03,
+        rel=1e-4,
+    )
+    assert result.fitted_shape.position_angle_error_degrees == pytest.approx(
+        np.rad2deg(0.01),
+        rel=1e-4,
+    )
+
+
+@pytest.mark.parametrize(
+    "case", ("circular", "invalid-covariance", "large-error")
+)
+def test_native_shape_error_boundary_remains_explicit(case: str) -> None:
+    """Unidentified angles and invalid propagated variances are unavailable."""
+    covariance = (0.0025, 0.0, 0.0, 0.0009, 0.0, 0.0001)
+    if case == "invalid-covariance":
+        covariance = (-1.0, 0.0, 0.0, -1.0, 0.0, -1.0)
+    elif case == "large-error":
+        covariance = (0.0025, 0.0, 0.0, 1e10, 0.0, 0.0001)
+    uncertainty = GaussianFitUncertainty(
+        amplitude_error_jy_per_beam=0.001,
+        centroid_covariance_xx_pixels_squared=0.04,
+        centroid_covariance_xy_pixels_squared=0.0,
+        centroid_covariance_yy_pixels_squared=0.04,
+        integrated_flux_error_jy=0.001,
+        shape_parameter_covariance=covariance,
+    )
+    fitted = _fit(
+        major_sigma_pixels=2.2,
+        minor_sigma_pixels=2.2 if case == "circular" else 1.4,
+        uncertainty=uncertainty,
+    )
+    shape = GaussianShape(
+        major_fwhm_degrees=2.2 * _FWHM_PER_SIGMA * 0.001,
+        minor_fwhm_degrees=fitted.parameters.minor_sigma_pixels
+        * _FWHM_PER_SIGMA
+        * 0.001,
+        position_angle_degrees=90.0,
+        major_fwhm_error_degrees=None,
+        minor_fwhm_error_degrees=None,
+        position_angle_error_degrees=None,
+    )
+    projected = astrometry._fitted_shape_with_errors(  # pyright: ignore[reportPrivateUsage]
+        shape, fitted, np.eye(2) * 0.001
+    )
+    if case in {"circular", "invalid-covariance"}:
+        assert projected == shape
+    else:
+        assert projected.major_fwhm_error_degrees is not None
+        assert projected.minor_fwhm_error_degrees is not None
+        assert np.isfinite(projected.major_fwhm_error_degrees)
+        assert np.isfinite(projected.minor_fwhm_error_degrees)
 
 
 def test_extension_requires_two_sigma_flux_ratio_significance() -> None:

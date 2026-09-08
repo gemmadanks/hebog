@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import runpy
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any, cast
 
@@ -120,21 +123,37 @@ def test_decision_authorizes_only_one_two_worker_fast_lane() -> None:
 
 def test_complete_no_write_preflight_uses_an_isolated_namespace(
     tmp_path: Path,
+    frozen_campaign_root: Path,
 ) -> None:
     """All 300 executions must verify before any output is created."""
-    runner = runpy.run_path(str(_RUNNER))
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
-
-    result = runner["verify_no_write"](
-        repository_root=_ROOT,
-        manifest_path=_MANIFEST,
-        identity_path=_IDENTITY,
-        scratch=scratch,
-        output=output,
-        enforce_execution_paths=False,
-        verify_process_pool=False,
+    # Verify with the historical imports too; never make current science
+    # impersonate a closed identity or read real ignored campaign outputs.
+    checked = subprocess.run(
+        (
+            sys.executable,
+            "-c",
+            "import json, sys; from pathlib import Path; "
+            "from scripts.validation.run_phase5_public_owner_domain_fast_lane "
+            "import verify_no_write; "
+            "print(json.dumps(verify_no_write(repository_root=Path.cwd(), "
+            "manifest_path=Path(sys.argv[1]), "
+            "identity_path=Path(sys.argv[2]), "
+            "scratch=Path(sys.argv[3]), output=Path(sys.argv[4]), "
+            "enforce_execution_paths=False, verify_process_pool=False)))",
+            str(frozen_campaign_root / _MANIFEST.relative_to(_ROOT)),
+            str(frozen_campaign_root / _IDENTITY.relative_to(_ROOT)),
+            str(scratch),
+            str(output),
+        ),
+        cwd=frozen_campaign_root,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": str(frozen_campaign_root / "src")},
     )
+    result = json.loads(checked.stdout)
 
     assert result["status"] == "pass"
     assert result["candidate_execution_count"] == 144
@@ -145,16 +164,31 @@ def test_complete_no_write_preflight_uses_an_isolated_namespace(
     assert not output.exists()
 
 
-def test_freezer_reproduces_all_frozen_records(tmp_path: Path) -> None:
+def test_freezer_reproduces_all_frozen_records(
+    tmp_path: Path,
+    frozen_campaign_root: Path,
+) -> None:
     """The freezer must deterministically reproduce every exact record."""
-    freezer = runpy.run_path(str(_FREEZER))
-    arguments = type(
-        "Arguments",
-        (),
-        {"repository_root": _ROOT, "output_root": tmp_path},
-    )()
-
-    freezer["freeze_records"](arguments)
+    # Its runpy/importlib composition adds the selected root to sys.path.
+    # Keep both that path and namespace-package caches out of current tests.
+    subprocess.run(
+        (
+            sys.executable,
+            "-c",
+            "import runpy, sys; from pathlib import Path; "
+            "from argparse import Namespace; "
+            "program = runpy.run_path(sys.argv[1]); "
+            "program['freeze_records'](Namespace("
+            "repository_root=Path.cwd(), output_root=Path(sys.argv[2])))",
+            str(frozen_campaign_root / _FREEZER.relative_to(_ROOT)),
+            str(tmp_path),
+        ),
+        cwd=frozen_campaign_root,
+        env={**os.environ, "PYTHONPATH": str(frozen_campaign_root / "src")},
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
     for path in (_IMPLEMENTATION, _IDENTITY, _DECISION):
         reproduced = tmp_path / path.relative_to(_ROOT)

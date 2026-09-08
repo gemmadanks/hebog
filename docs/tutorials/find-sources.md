@@ -4,9 +4,10 @@ This tutorial runs Hebog as a standalone scientific library. It uses no
 Rapthor, Prefect, LSMTool, or private Dask cluster.
 
 The interface is currently a bounded Phase 5 scientific preview. The code is
-implemented, and its underlying regression evidence matches or outperforms
-both governed PyBDSF references, but the exact public release candidate still
-requires fresh held-out qualification and independent acceptance.
+implemented, but the current source-catalogue repairs are development science.
+Earlier PyBDSF parity results do not qualify this changed implementation. It
+requires joint development checks, candidate-bound cumulative evidence, fresh
+held-out qualification and independent acceptance.
 
 ## Prepare the input
 
@@ -15,7 +16,7 @@ before its final two spatial axes. The image must have:
 
 - pixel values in `Jy/beam`;
 - an ICRS celestial WCS;
-- finite positive `BMAJ` and `BMIN` restoring-beam axes plus `BPA`;
+- finite positive `BMAJ` and `BMIN` restoring-beam axes (`BPA` defaults to zero);
 - a positive reference frequency in `RESTFRQ`, `RESTFREQ`, or a frequency WCS
   axis; and
 - no more than 1,024 pixels along either spatial axis.
@@ -23,7 +24,7 @@ before its final two spatial axes. The image must have:
 NaN pixels are allowed and are excluded from the analysis. Missing or invalid
 physical metadata fails clearly before any output bundle is published.
 
-## Run the Phase 5 reference continuum profile
+## Run the development continuum profile
 
 The output directory must not already exist. Hebog treats it as one atomic,
 caller-owned product bundle.
@@ -54,10 +55,9 @@ print(result.catalogue_path)
 ```
 
 `continuum` is the default profile. The values 5 sigma, 3 sigma, and seven
-pixels define the evaluated Phase 5 reference configuration. Its diagnostics
-report `configuration_qualification="phase-5-reference"`; this identifies the
-configuration covered by the Phase 5 evidence without claiming release or
-Rapthor cutover readiness.
+pixels retain the Phase 5 reference thresholds. The repaired implementation
+reports `configuration_qualification="development-unqualified"`: matching
+historical thresholds does not transfer qualification to changed science.
 
 Callers may select other valid thresholds and island-size limits. Hebog uses
 those values throughout background masking, direct and multiscale detection,
@@ -132,9 +132,31 @@ configuration, reviewed profile, and implementation produced the result.
 The three catalogue populations have deliberately different meanings:
 
 - a support island is one connected detected footprint in the mask;
-- a Gaussian component is one fitted peak within that footprint; and
-- a source is the associated physical-source hypothesis and may contain one
-  or several Gaussian components.
+- a detection component has a stable owned region and may or may not admit a
+  Gaussian fit; only successful fits appear in `gaussian_components`; and
+- a source is an image-domain association hypothesis. It can contain several
+  components and span several disconnected islands; two independent compact
+  sources can also share one island.
+
+`source.island_id` and `source.additional_island_ids` enumerate its detected
+islands. They do not describe the larger, source-owned measurement aperture.
+The published mask contains detections, not every pixel used for photometry.
+
+Compact positions, fluxes and shapes use bounded joint Gaussian fits to the
+original background-subtracted pixels, including signed background context.
+Irregular extended flux uses a signed, non-overlapping source-owned aperture.
+Its centroid can lie between peaks or inside a shell's hole. A denoised
+position fallback is explicitly flagged; positive-only pixels never silently
+replace a failed signed flux estimate. An aperture shape is unavailable,
+not a claimed fitted Gaussian or an unresolved source.
+
+`diagnostics.measurement_dispositions` retains every component and associated
+source, including unavailable or bounded-work-deferred measurements. Each
+entry gives its estimator or failure reason, source membership and whether
+a catalogue row was published. A failed fit does not discard its detection
+or abort an unrelated valid source. Missing uncertainty remains unavailable,
+not zero. The current catalogue JSON, catalogue FITS and public diagnostics
+schemas are versions 3, 4 and 6 respectively; stale versions fail clearly.
 
 For a component-level comparison with a PyBDSF Gaussian catalogue, compare
 `catalogue.gaussian_components`, not `catalogue.sources`. Plotting one marker

@@ -17395,3 +17395,206 @@ are not authorized or performed by this engineering repair.
 
 **Immediate next step:** R1 red-first source-separation and extended-retention
 tests, followed by the R2--R5 measurement, publication and short-ladder gates.
+
+## 2026-09-08 — Implement source-catalogue repairs and expand the joint ladder
+
+**Plan phase:** R1--R5 in progress; no replacement campaign started
+
+- Reproduced connected independent pairs/triples/quads merging, truncated
+  Gaussian shapes, overlapping single-fit flux bias, signed-centroid
+  cancellation, and mixed valid/degenerate public-owner failures before
+  their repairs. Reused bounded SciPy fitting, the existing noise covariance
+  and WCS/beam machinery; added joint native fits rather than another fitter.
+  Native fits retain original signed pixels. Irregular extended measurements
+  remain explicitly source-owned signed apertures with unavailable shapes.
+- Kept detected islands, component ownership and measurement apertures
+  separate. Added canonical per-object measured/unavailable/deferred
+  dispositions, including source membership and actual catalogue admission.
+  The current catalogue JSON/FITS/public-diagnostics schemas are 3/4/6.
+  Diagnostic packets retain full array-free truth-match edges, signed errors,
+  stage counts and Dask records before the checksum-verified manifest;
+  cleanup guards reject missing or substituted records. Campaign wiring and
+  complete branch/retention validation remain part of the open R4/R5 work.
+- The 36-cell analytic-background/RMS development check first found three
+  largest-shell cells fragmented into 15--16 sources. Their support already
+  covered the truth; the loss was source association, not background error.
+  Bounded reconciliation now uses fitted arc/loop evidence beyond a wavelet
+  parent's footprint. The 36-cell matrix then passed alongside the initial
+  compact/extended tests (58 tests total). A new shell-plus-independent-compact
+  neighbour check subsequently exposed whole-parent over-grouping; retaining
+  loop memberships and independently checking the remaining compact model
+  fixes that counterexample. Full joint validation remains open.
+- The exact notebook runner was still frozen to old science and treated
+  source-free images as failures. Updated its current implementation to reuse
+  the public analysis composition, including WCS-correct beam conversion,
+  without a parallel background implementation. Synthetic current-bound
+  geometry, empty and all-NaN entry-point tests pass (three tests). The
+  replacement identity is deliberately absent until R5 passes; historical
+  identities and programs remain verifiable in Git. No notebook/public data
+  was rerun. New default provenance is `development-unqualified`.
+- Added further temporary-fixture isolation for consumed historical campaign
+  namespaces. Historical reviews still bind their frozen source/test sets;
+  current tests no longer require ignored output directories to be absent.
+  No campaign result or closed review was removed or rewritten.
+- Validation so far is focused, not the final R5 gate: 105 public/product/
+  diagnostic tests, 84 association/astrometry/repair tests and the additional
+  matrix checks have passed at their respective intermediate revisions.
+  The expanded noisy matrix, complete coverage/changed-branch review, Dask,
+  full checks, docs, package smoke and clean hooks must still pass after all
+  edits. No candidate freeze, cumulative replay or fresh sentinel has begun.
+
+**Immediate next step:** finish the joint noisy/background/entry-point and
+failure-branch ladder, then validate and review the coherent repair before
+freezing any R6 execution identity. Closed qualification remains unchanged.
+
+### Joint noisy ladder and publication-boundary follow-through
+
+- The 36 development geometries now pass together with and without new,
+  disjoint correlated-noise seeds `2026980001`--`2026980036`. The combined
+  101-test short run includes compact/extended source truth, notebook entry
+  points, and signed denoised-position reconstruction. This is development
+  evidence, not powered parity or held-out qualification.
+- The noisy matrix reproduced fit-at-bound shell fragmentation, wholly
+  pruned measurement owners, missing core/halo aperture wings, and residual
+  halo fragments. Reconciliation now retains fit quality flags while using
+  valid fitted arc morphology; measurement support is evaluated independently
+  of compact-model admission; independently supported compact neighbours
+  remain protected. A wholly pruned row keeps its disposition, not a
+  fabricated detection island.
+- Corrected a test-policy mismatch introduced during this repair: older
+  adaptive-lane absolute mask targets are not the current binding parity
+  gates. Current frozen policy makes these objectives report-only. Preserve
+  noisy cell 26 IoU `0.57738095`, cell 33 IoU `0.52469136`, and cell 34 recall
+  `0.71564885` below their respective `0.60`/`0.75` objectives. Analytic mask
+  assertions and noisy source completeness, split, and flux assertions remain;
+  unchanged comparative PyBDSF/incumbent gates must still pass. No threshold,
+  margin, comparator, confidence rule, or closed result was changed.
+- Found that the previous position-only reconstruction added a significant
+  residual to the original signal. The replacement is the signed B3 coarse
+  plane plus significant signed detail planes, with original-pixel fallback
+  where filtering is unavailable. Flux, detection and published mask never
+  use this position-only reconstruction. Six focused tests cover its noise,
+  sign, validity and reconstruction boundaries.
+- First full coverage run: `3086 passed`, four failed, two pre-existing
+  xfails, 116 deselected; branch-aware project coverage `94.81%`. One failure
+  was an outdated expected flag tuple. Three came from a temporary historical
+  checkout leaking into the test process's import path. Reproduced the leak
+  explicitly and isolated its freezer in a subprocess; 13 ordered provenance
+  tests then passed without weakening frozen-path checks.
+- R4 follow-through now rejects malformed or contradictory Dask equivalence
+  claims before creating an evidence directory and preserves genuine failures.
+  The current public projection admits valid signed-aperture sources without
+  fabricated Gaussian rows, excludes measurement-only pixels from published
+  source-union matching, and retains all unpublished measurements separately.
+  The notebook bundle uses actual public admission flags and retains full-input
+  measurement records even when a plotting core excludes a row. Additional
+  boundary/branch checks and campaign wiring remain in progress.
+
+### Exact public background and reconciliation boundary checks
+
+- Expanded the same 36 independent development geometries to 108 cases:
+  noiseless analytic background/RMS, new correlated-noise realizations with
+  known background/RMS, and the actual public FITS/Zarr background/RMS path.
+  All variants use the current public catalogue admission and source-union
+  projection, retaining complete per-image diagnostics on failure.
+- The initial actual-background variant passed 35/36 cases. The scale-12
+  mixed compact/extended boundary case lost `35.3687%` of its true flux.
+  Holding the exact development pixels and actual RMS fixed but supplying
+  analytic background reduced the loss to approximately `13.5%`; supplying
+  analytic RMS alone did not repair it. Positive background bias contributed
+  `0.00678063 Jy` inside the original aperture and also reduced its extent.
+  Preserved the initial failing fixture under
+  `/private/tmp/hebog-r5-public-background-fixtures/`.
+- The fine-grid source protection now includes the existing beam-aware,
+  seeded, adjacent-scale persistent emission connected to the bright core.
+  Fine windows keep their existing exclusion/guard and coarse fallback;
+  filtering reads explicit bounded halos. Thresholds, published-mask rules,
+  noise model and scale policy are unchanged. This reuses Hebog's existing
+  filters, consistent with iterative source masking for background estimation
+  described in the [Photutils background guide](https://photutils.readthedocs.io/en/stable/user_guide/background.html).
+  No new dependency or source-finder implementation was copied.
+- All 108 geometry cases then passed; 65 focused background/public-entry and
+  Serial/existing-Dask tests passed, as did Pyright. A subsequent changed-
+  branch review exposed a distinct two-shell boundary absent from the first
+  ladder: orientation alone could attach remote arcs inside a shared
+  reconciliation context. An analytic red test reproduced the merged group.
+  Requiring membership of the same connected filled-loop region fixes it;
+  all four outside-context coordinate boundaries and the combined 142-case
+  compact/extended ladder now pass. Independent compact neighbours remain
+  protected.
+- Completed source-evidence fixtures through two real spawned processes and
+  the frozen evaluator/atomic-publication seam, for both a passing and a
+  failing synthetic decision. This does not execute PyBDSF. Review also
+  reproduced contradictory Dask `equal` flags with three red tests; retention
+  now rejects flags inconsistent with scientific hashes before writing.
+- Before the final connected-loop edit, `just coverage` passed 3,144 tests
+  with two existing xfails and 152 deselections; appending the 137-case joint
+  geometry/retention/Dask run gave `95.11%` branch-aware project coverage and
+  `954/954` changed executable lines covered. The remaining loop branch led
+  to the boundary test and correction above, not a coverage exclusion.
+  `just check` passed 2,946 tests, strict docs, 27 frozen equivalence fixtures
+  and the isolated wheel smoke test also passed. Final post-edit validation
+  and clean hooks are required before the implementation commit.
+
+**Immediate next step:** complete R5's isolated engineering timings and final
+checks, freeze the new non-executable candidate, then prepare R6's exact
+cumulative execution and reference-reuse review. No replacement cumulative
+campaign or fresh sentinel has started; prior scientific failure is unchanged.
+
+### Isolated R5 engineering timings
+
+- Timed the unchanged repaired source tree
+  `43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf`
+  without concurrent test workloads. The actual `hebog.find_sources` Serial
+  path, from synthetic FITS input through the final bundle, completed one
+  warm-up and five measurements for each sparse/normal/extended cell at
+  256, 512 and 1,024 pixels. Median ranges are respectively
+  `0.6814--0.9045`, `1.7117--2.1190` and `6.2821--7.7124` seconds.
+  Maximum sampled process RSS at 1,024 pixels is approximately 0.99 GB.
+  Retained the inputs, reproducible driver, environment and all repetitions
+  under `benchmark-results/phase-5/source-catalogue-r5-runtime/`;
+  summary SHA-256 is `63773bb1f4c6e2d8a942a46377e266f654b8425e901d094d09a5f14a0668136e`.
+- The separate frozen incremental multiscale protocol is unchanged
+  (`a581fc4226b9d0dc5fb20ae74ae272b9b4fe66df9901c3c5e9ebf8f50dcd3fea`).
+  Its complete 18-cell primary/crossover matrix passed the 6-second
+  3,000-pixel four-worker Dask stage budget: sparse `5.5597`, normal `5.6004`,
+  extended `5.5826` seconds median. Retained every warm-up, measurement and
+  resource record under `source-catalogue-r5-incremental-runtime/` in the
+  same ignored Phase 5 evidence namespace; matrix SHA-256 is
+  `aaa254b5767b3227b967963f797039d817af4c8fbd4d2eeeb366660d7787c72e`.
+  This budget excludes preceding setup and is not a six-second full public
+  source-finding budget.
+- Compared the saved instrumentation-corrected historical curve with the
+  same protocol. Representative Dask medians differ by `-1.96%`, `+0.42%`
+  and `-1.06%`. The 512-pixel Serial cells and extended 1,024-pixel Dask
+  crossover are `5.95--10.36%` slower in these non-contemporaneous samples.
+  Environment hashes differ; this is not a matched regression or speedup
+  decision. Do not claim all-tier performance retention, PyBDSF/Rapthor
+  speedup, or qualification from these engineering measurements. The old
+  matrix writer's stock "first reviewed curve" text is historical boilerplate,
+  not the interpretation of this new curve.
+
+### Final R1--R5 implementation validation
+
+- Post-repair `just coverage`: 3,151 passed, 152 deselected, two pre-existing
+  xfails. Appending the complete development geometry, loop/compact boundary,
+  retention and process/Dask tests passed 171 tests. Combined branch-aware
+  project coverage is `95.1193%`; all `963/963` changed executable package
+  lines and every changed branch are covered. The new component-measurement
+  module has 100% line and branch coverage. No coverage exclusions or waived
+  changed branches were added; a remote Codecov patch report is unavailable
+  for this unpushed local change.
+- `just check`: 2,950 passed, 353 deselected, two existing xfails; Ruff
+  formatting/lint and Pyright pass. All 27 frozen equivalence tests pass.
+  Strict documentation and isolated wheel build/install/import pass.
+  Analytic fixtures emit Astropy's known 4-axis-header/2D-image warning;
+  rotated-WCS position/shape assertions pass. No campaign data is required by
+  these checks.
+- Reviewed the complete repair against `CODE_REVIEW.md`, including bounded
+  fitting/reconciliation, model/measurement/publication separation, failure
+  dispositions, exact historical fixture isolation and write-once diagnostics.
+  No remaining actionable implementation finding was identified. This does
+  not claim the new science is qualified: the noisy report-only objectives,
+  unmatched historical timing comparisons and R6 scientific gates remain
+  explicit. Clean hooks precede the local breaking repair commit; the next
+  commit will bind that candidate in a non-executable identity review.

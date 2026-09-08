@@ -14,6 +14,7 @@ from astropy.wcs import WCS  # pyright: ignore[reportMissingTypeStubs]
 
 from hebog.algorithms.multiscale_association import ScaleDetectionPlane
 from hebog.data_models.multiscale import ScaleDetection
+from hebog.validation import products as product_builder
 from hebog.validation.products import (
     build_hebog_reconstructed_source_catalogues,
     build_hebog_segment_catalogue,
@@ -101,6 +102,33 @@ def _measure(  # noqa: PLR0913
         measurement_aperture_radius_beams=radius,
         position_signal_jy_per_beam=image,
     )
+
+
+def test_undeclared_missing_row_still_fails_closed_without_dispositions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Closed callers cannot silently adopt the new explicit-absence path."""
+    image = np.zeros((17, 17))
+    image[7:10, 7:10] = 10
+    labels = (image > 0).astype(np.int32)
+
+    def missing_row(*_args: object, **_kwargs: object):
+        return ()
+
+    monkeypatch.setattr(
+        product_builder, "_reconstructed_source_rows", missing_row
+    )
+    plane = _plane(
+        (
+            (
+                "feature",
+                tuple((y, x) for y in range(7, 10) for x in range(7, 10)),
+            ),
+        ),
+        image.shape,
+    )
+    with pytest.raises(ValueError, match="no measurable catalogue row"):
+        _measure(labels, image, (plane,))
 
 
 @pytest.mark.parametrize("extent_beams", (4, 8, 12))

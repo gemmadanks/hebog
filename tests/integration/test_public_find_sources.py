@@ -7,8 +7,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from dataclasses import replace
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import numpy as np
 import pytest
@@ -19,12 +20,19 @@ import hebog
 from hebog import SourceFinderConfig, SourceFinderRequest, public_api
 from hebog.data_models import PublicSourceFindingDiagnostics
 from hebog.executors import DaskExecutor, SerialExecutor
-from hebog.io import read_catalogue_fits_product, read_diagnostics_product
+from hebog.io import (
+    FitsImageSource,
+    read_catalogue_fits_product,
+    read_diagnostics_product,
+)
 from hebog.pipeline import (
     InvalidSourceFinderInputError,
     SourceFinderImageTooLargeError,
     SourceFinderOutputExistsError,
     UnsupportedSourceFinderConfigurationError,
+)
+from hebog.validation.public_measurement_projection import (
+    project_public_measurements,
 )
 
 Input = TypeVar("Input")
@@ -114,6 +122,391 @@ def _request(
 
 
 @pytest.mark.integration
+def test_measurement_owner_without_published_support_has_no_public_row(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Publication pruning must not create dangling island references."""
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 25) ** 2 + (yy - 32) ** 2) / 8)
+    signal += 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
+    _write_image(tmp_path / "image.fits", signal)
+    original = public_api._analyse_image  # pyright: ignore[reportPrivateUsage]
+    retained = []
+
+    def analysis(*args: Any, **kwargs: Any):
+        result = original(*args, **kwargs)
+        assert result.terminal is not None
+        terminal = result.terminal
+        mask = terminal.detection.retained_mask.copy()
+        mask[:, :48] = False
+        detection = replace(
+            terminal.detection,
+            retained_mask=mask,
+            component_labels=np.where(
+                mask, terminal.detection.component_labels, 0
+            ),
+        )
+        updated = replace(
+            result, terminal=replace(terminal, detection=detection)
+        )
+        retained.append(updated.terminal)
+        return updated
+
+    def background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(public_api, "_analyse_image", analysis)
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert result.source_count == result.gaussian_component_count == 1
+    assert result.island_count == 1
+    sources = [
+        row
+        for row in diagnostics.measurement_dispositions
+        if row.object_kind == "source"
+    ]
+    assert len(sources) == 2
+    assert sum(row.catalogue_row_published for row in sources) == 1
+    assert all(row.status == "measured" for row in sources)
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    projection = project_public_measurements(
+        retained[0],
+        read_catalogue_fits_product(result.catalogue),
+        mask,
+        _header(signal.shape),
+    )
+    assert len(projection.sources) == 1
+    assert len(projection.measured_sources) == 2
+    assert not np.any(projection.source_union_labels[:, :48])
+    assert (
+        sum(row.catalogue_row_published for row in projection.dispositions)
+        == 2
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("owner_pixels", (1, 7))
+def test_public_degenerate_owner_does_not_abort_a_healthy_neighbour(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    owner_pixels: int,
+) -> None:
+    """An admitted thin owner is retained without inventing a Gaussian."""
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
+    signal[32, 12 : 12 + owner_pixels] = 10.0
+    _write_image(tmp_path / "image.fits", signal)
+
+    def analytic_background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    original_catalogue = public_api._public_catalogue  # pyright: ignore[reportPrivateUsage]
+    projections = []
+
+    def projected_catalogue(
+        products: Any, metadata: Any, *, run_id: str, profile: str
+    ):
+        catalogue, mask = original_catalogue(
+            products, metadata, run_id=run_id, profile=profile
+        )
+        projections.append(
+            project_public_measurements(
+                products.terminal, catalogue, mask, _header(signal.shape)
+            )
+        )
+        return catalogue, mask
+
+    monkeypatch.setattr(public_api, "_public_catalogue", projected_catalogue)
+
+    monkeypatch.setattr(
+        public_api, "_estimate_background_rms", analytic_background
+    )
+    result = hebog.find_sources(
+        _request(tmp_path),
+        SourceFinderConfig(5.0, 3.0, owner_pixels),
+        SerialExecutor(),
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    assert len(catalogue.sources) == 2
+    assert len(catalogue.gaussian_components) == 1
+    unavailable = [
+        entry
+        for entry in diagnostics.measurement_dispositions
+        if entry.object_kind == "component" and entry.status == "unavailable"
+    ]
+    assert len(unavailable) == 1
+    assert unavailable[0].reason in {
+        "underdetermined-region",
+        "singular-covariance",
+    }
+    mask = np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    assert mask[32, 12 : 12 + owner_pixels].all()
+    projection = projections[0]
+    assert len(projection.sources) == 2
+    assert len(projection.components) == 1
+    assert len(projection.measured_sources) == 2
+    assert len(projection.measured_components) == 1
+    assert {row.identifier for row in projection.sources} == {
+        row.source_id for row in catalogue.sources
+    }
+    assert np.array_equal(projection.publication_mask, mask)
+    assert np.array_equal(projection.source_union_labels > 0, mask)
+    assert (
+        sum(row.catalogue_row_published for row in projection.dispositions)
+        == 3
+    )
+    assert not projection.source_union_labels.flags.writeable
+
+
+@pytest.mark.integration
+def test_pruned_component_of_a_published_source_keeps_its_disposition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An extended source can remain published after one owner is pruned."""
+    yy, xx = np.mgrid[:97, :97]
+    radius = np.hypot(xx - 48, yy - 48)
+    angle = np.arctan2(yy - 48, xx - 48)
+    signal = (
+        6
+        * (1 + 0.6 * np.cos(6 * angle))
+        * np.exp(-0.5 * ((radius - 18) / 2) ** 2)
+    )
+    _write_image(tmp_path / "image.fits", signal)
+    original = public_api._analyse_image  # pyright: ignore[reportPrivateUsage]
+
+    def background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    def prune_one_component(*args: Any, **kwargs: Any):
+        products = original(*args, **kwargs)
+        terminal = products.terminal
+        assert terminal is not None
+        assert len(terminal.catalogue) == 1
+        assert len(terminal.component_catalogue) == 6
+        labels = terminal.measurement_component_labels
+        removed = terminal.source_association.components[0].label_value
+        mask = terminal.detection.retained_mask & (labels != removed)
+        return replace(
+            products,
+            terminal=replace(
+                terminal,
+                detection=replace(
+                    terminal.detection,
+                    retained_mask=mask,
+                    component_labels=np.where(
+                        mask, terminal.detection.component_labels, 0
+                    ),
+                ),
+            ),
+        )
+
+    monkeypatch.setattr(public_api, "_estimate_background_rms", background)
+    monkeypatch.setattr(public_api, "_analyse_image", prune_one_component)
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    assert result.source_count == 1
+    assert result.gaussian_component_count == 5
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    components = tuple(
+        row
+        for row in diagnostics.measurement_dispositions
+        if row.object_kind == "component"
+    )
+    assert len(components) == 6
+    assert all(row.status == "measured" for row in components)
+    assert sum(row.catalogue_row_published for row in components) == 5
+
+
+@pytest.mark.integration
+def test_two_sources_share_one_actual_detection_island(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Island counts describe connectivity, not the number of source rows."""
+    yy, xx = np.mgrid[:65, :65]
+    signal = sum(
+        peak * np.exp(-((xx - cx) ** 2 + (yy - 32) ** 2) / 8)
+        for peak, cx in ((10, 28), (9.5, 35))
+    )
+    _write_image(tmp_path / "image.fits", np.asarray(signal))
+
+    def analytic_background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    monkeypatch.setattr(
+        public_api, "_estimate_background_rms", analytic_background
+    )
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    assert result.source_count == result.gaussian_component_count == 2
+    assert result.island_count == 1
+    assert {source.island_id for source in catalogue.sources} == {
+        catalogue.islands[0].island_id
+    }
+    assert catalogue.islands[0].pixel_count == np.count_nonzero(
+        np.asarray(fits.getdata(result.mask_path), dtype=np.bool_)
+    )
+
+
+@pytest.mark.integration
+def test_current_projection_rejects_inconsistent_public_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Malformed ownership, rows or dispositions cannot become parity input."""
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 48) ** 2 + (yy - 32) ** 2) / 8)
+    path = tmp_path / "image.fits"
+    _write_image(path, signal)
+
+    def analytic_background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    monkeypatch.setattr(
+        public_api,
+        "_estimate_background_rms",
+        analytic_background,
+    )
+    source = FitsImageSource(path)
+    metadata = source.metadata()
+    header = _header(signal.shape)
+    products = public_api._analyse_image(  # pyright: ignore[reportPrivateUsage]
+        _request(tmp_path),
+        source,
+        metadata,
+        SerialExecutor(),
+        tmp_path / "scratch",
+        config=_config(),
+        header=header,
+    )
+    terminal = products.terminal
+    assert terminal is not None
+    catalogue, mask = public_api._public_catalogue(  # pyright: ignore[reportPrivateUsage]
+        products, metadata, run_id="fixture", profile="continuum"
+    )
+    assert len(catalogue.sources) == 1
+    for invalid_mask in (mask.astype(np.int32), mask[np.newaxis]):
+        with pytest.raises(ValueError, match="Boolean"):
+            project_public_measurements(
+                terminal, catalogue, invalid_mask, header
+            )
+    for invalid_mask in (mask[:-1], ~mask, np.zeros_like(mask)):
+        with pytest.raises(ValueError, match="ownership or publication"):
+            project_public_measurements(
+                terminal, catalogue, invalid_mask, header
+            )
+    for broken, message in (
+        (
+            replace(
+                terminal,
+                measurement_component_labels=-terminal.measurement_component_labels,
+            ),
+            "ownership",
+        ),
+        (replace(terminal, measurement_dispositions=()), "dispositions"),
+        (replace(terminal, catalogue=()), "exact measurements"),
+        (replace(terminal, component_catalogue=()), "exact measurements"),
+        (
+            replace(
+                terminal,
+                catalogue=(
+                    replace(
+                        terminal.catalogue[0],
+                        right_ascension_degrees=0.0,
+                        declination_degrees=30.0,
+                    ),
+                ),
+            ),
+            "position must be finite",
+        ),
+    ):
+        with pytest.raises(ValueError, match=message):
+            project_public_measurements(broken, catalogue, mask, header)
+    changed = catalogue.model_copy(
+        update={
+            "sources": (
+                catalogue.sources[0].model_copy(
+                    update={"source_id": "wrong-source"}
+                ),
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="memberships"):
+        project_public_measurements(terminal, changed, mask, header)
+    # A retained measurement alone cannot stand in for published support.
+    pruned = replace(
+        terminal,
+        detection=replace(
+            terminal.detection,
+            retained_mask=np.zeros_like(mask),
+            component_labels=np.zeros_like(
+                terminal.detection.component_labels
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="no published support"):
+        project_public_measurements(
+            pruned, catalogue, np.zeros_like(mask), header
+        )
+    with pytest.raises(ValueError, match="absent terminal"):
+        project_public_measurements(None, catalogue, mask, header)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("negative_context", (-0.05, -1.0))
+def test_signed_aperture_failure_never_becomes_positive_only_flux(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    negative_context: float,
+) -> None:
+    """The public result keeps detection but does not invent positive flux."""
+    yy, xx = np.mgrid[:65, :97]
+    signal = 10 * np.exp(-((xx - 70) ** 2 + (yy - 32) ** 2) / 8)
+    signal[20:45, 2:30] = negative_context
+    signal[32, 12:19] = 10.0
+    _write_image(tmp_path / "image.fits", signal)
+
+    def analytic_background(*_args: object, **_kwargs: object):
+        return np.zeros_like(signal), np.ones_like(signal)
+
+    monkeypatch.setattr(
+        public_api, "_estimate_background_rms", analytic_background
+    )
+    result = hebog.find_sources(
+        _request(tmp_path), _config(), SerialExecutor()
+    )
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    diagnostics = read_diagnostics_product(result.diagnostics)
+    assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
+    missing = [
+        entry
+        for entry in diagnostics.measurement_dispositions
+        if entry.object_kind == "source" and entry.status == "unavailable"
+    ]
+    assert len(missing) == (1 if negative_context == -1 else 0)
+    assert len(catalogue.sources) == (1 if negative_context == -1 else 2)
+    assert result.island_count == 2
+    assert np.asarray(fits.getdata(result.mask_path), dtype=bool)[
+        32, 12:19
+    ].all()
+    assert not any(
+        "exact-owner-positive-residual-flux" in row.quality_flags
+        for row in catalogue.sources
+    )
+
+
+@pytest.mark.integration
 def test_public_find_sources_materializes_the_qualified_continuum_view(
     tmp_path: Path,
 ) -> None:
@@ -127,7 +520,7 @@ def test_public_find_sources_materializes_the_qualified_continuum_view(
     assert result.run_id == "public-contract"
     assert result.source_count == 1
     assert result.gaussian_component_count == 4
-    assert result.island_count == 1
+    assert result.island_count == 4
     assert result.wall_seconds >= 0.0
     assert result.catalogue_path == tmp_path / "products/catalogue.fits"
     assert result.rms_path == tmp_path / "products/rms.fits"
@@ -145,13 +538,14 @@ def test_public_find_sources_materializes_the_qualified_continuum_view(
     catalogue = read_catalogue_fits_product(result.catalogue)
     diagnostics = read_diagnostics_product(result.diagnostics)
     assert len(catalogue.sources) == 1
+    assert len(catalogue.sources[0].additional_island_ids) == 3
     assert len(catalogue.gaussian_components) == 4
     assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
     assert diagnostics.source_count == 1
     assert diagnostics.deblended_parent_count == 0
     assert diagnostics.deferred_deblend_parent_count == 0
     assert diagnostics.profile == "continuum"
-    assert diagnostics.configuration_qualification == "phase-5-reference"
+    assert diagnostics.configuration_qualification == "development-unqualified"
     assert diagnostics.provenance.input_sha256
     assert diagnostics.provenance.scientific_composition_sha256
 
@@ -176,6 +570,20 @@ def test_compact_profile_is_explicit_and_retains_component_sources(
     assert isinstance(diagnostics, PublicSourceFindingDiagnostics)
     assert diagnostics.profile == "compact"
     assert diagnostics.profile_limitations == ("extended-emission-incomplete",)
+    catalogue = read_catalogue_fits_product(result.catalogue)
+    published_sources = tuple(
+        entry
+        for entry in diagnostics.measurement_dispositions
+        if entry.object_kind == "source" and entry.catalogue_row_published
+    )
+    assert {entry.object_id for entry in published_sources} == {
+        row.source_id for row in catalogue.sources
+    }
+    assert len(published_sources) == 4
+    assert all(
+        entry.member_component_ids == (entry.object_id,)
+        for entry in published_sources
+    )
 
 
 @pytest.mark.integration
@@ -245,7 +653,7 @@ def test_custom_thresholds_change_science_and_are_marked_unqualified(
     assert isinstance(custom_diagnostics, PublicSourceFindingDiagnostics)
     assert (
         qualified_diagnostics.configuration_qualification
-        == "phase-5-reference"
+        == "development-unqualified"
     )
     assert (
         custom_diagnostics.configuration_qualification == "custom-unqualified"

@@ -1,5 +1,7 @@
 # pyright: reportUnknownMemberType=false
 # pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownVariableType=false
+# pyright: reportUnknownArgumentType=false
 """Outer I/O implementation of the public source-finding facade."""
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from typing import Any, Literal, cast
 import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
+from scipy.ndimage import find_objects, label
 
 from hebog.algorithms.astrometry import compact_geometry_at_pixel
 from hebog.algorithms.multiscale import BeamShapePixels
@@ -40,6 +43,7 @@ from hebog.data_models import (
     SpectralModel,
 )
 from hebog.data_models.images import ImageMetadata
+from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.executors import Executor
 from hebog.io import FitsImageSource, ZarrProductSink
 from hebog.io.materialization import (
@@ -62,23 +66,28 @@ _TILE_SHAPE_YX = (128, 128)
 _DETECTION_THRESHOLD_SIGMA = 5.0
 _ISLAND_THRESHOLD_SIGMA = 3.0
 _MINIMUM_ISLAND_PIXELS = 7
-_COMPOSITION_NAME = (
-    "phase-5-configurable-deblended-component-and-source-topology-v8"
-)
+_COMPOSITION_NAME = "phase-5-native-component-and-source-measurements-v9"
 _PROFILE_RESOURCE = "phase_5_continuum_review.json"
 _FWHM_PER_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 _SCIENTIFIC_MODULES = (
     "hebog.algorithms.astrometry",
     "hebog.algorithms.background",
+    "hebog.algorithms.component_measurement",
     "hebog.algorithms.component_topology",
+    "hebog.algorithms.deblending",
     "hebog.algorithms.detection",
     "hebog.algorithms.extended_measurement",
+    "hebog.algorithms.fitting",
     "hebog.algorithms.labelling",
     "hebog.algorithms.measurement",
     "hebog.algorithms.multiscale",
     "hebog.algorithms.multiscale_association",
     "hebog.algorithms.reconciliation",
     "hebog.algorithms.source_association",
+    "hebog.data_models.catalogues",
+    "hebog.data_models.fitting",
+    "hebog.data_models.measurement_diagnostics",
+    "hebog.data_models.source_finding",
     "hebog.public_api",
     "hebog.public_science",
     "hebog.stages.background",
@@ -128,8 +137,8 @@ def _canonical_sha256(value: object) -> str:
 
 def _configuration_qualification(
     config: SourceFinderConfig,
-) -> Literal["phase-5-reference", "custom-unqualified"]:
-    """Classify caller science without restricting executable thresholds."""
+) -> Literal["development-unqualified", "custom-unqualified"]:
+    """Do not transfer historical qualification to the repaired finder."""
     if (
         config.detection_threshold_sigma != _DETECTION_THRESHOLD_SIGMA
         or config.island_threshold_sigma != _ISLAND_THRESHOLD_SIGMA
@@ -137,7 +146,7 @@ def _configuration_qualification(
         or config.maximum_island_pixels is not None
     ):
         return "custom-unqualified"
-    return "phase-5-reference"
+    return "development-unqualified"
 
 
 def _qualified_metadata(metadata: ImageMetadata) -> None:
@@ -236,6 +245,9 @@ def _estimate_background_rms(  # noqa: PLR0913
     generation_id: str,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """Run the exact candidate-owned bounded background/RMS stage."""
+    from hebog.stages.background import (  # noqa: PLC0415
+        MultiscaleSourceProtection,
+    )
     from hebog.validation.hebog_campaign import (  # noqa: PLC0415
         phase_five_corrected_candidate_configs,
     )
@@ -260,6 +272,19 @@ def _estimate_background_rms(  # noqa: PLR0913
         detection_config,
         executor,
         sink,
+        multiscale_protection=(
+            MultiscaleSourceProtection(
+                _beam_shape_pixels(metadata),
+                config,
+                float(
+                    json.loads(_profile_bytes())["matrix"][
+                        "support_fraction_bounds"
+                    ][0]
+                ),
+            )
+            if config.profile == "continuum"
+            else None
+        ),
     )
     bounds = _full_bounds(metadata)
     return (
@@ -345,6 +370,7 @@ def _source_candidate(
     island_id: str,
     local_rms: float,
     reference_frequency_hz: float,
+    additional_island_ids: tuple[str, ...] = (),
 ) -> SourceCandidate:
     """Project one evaluated source without changing its measurements."""
     quality_flags = set(value.quality_flags)
@@ -355,6 +381,7 @@ def _source_candidate(
     return SourceCandidate(
         source_id=str(value.identifier),
         island_id=island_id,
+        additional_island_ids=additional_island_ids,
         position=SkyPosition(
             right_ascension_degrees=float(value.right_ascension_degrees),
             declination_degrees=float(value.declination_degrees),
@@ -430,6 +457,69 @@ def _memberships(terminal: Any, profile: str) -> tuple[Any, ...]:
     )
 
 
+def _detection_islands(
+    products: _ScientificProducts,
+    metadata: ImageMetadata,
+    publication_mask: npt.NDArray[np.bool_],
+    measurement_labels: npt.NDArray[np.integer[Any]],
+) -> tuple[list[Island], dict[int, tuple[str, ...]]]:
+    """Keep true mask connectivity separate from fitted source associations."""
+    labels, _ = cast(
+        tuple[npt.NDArray[np.int32], int],
+        label(publication_mask, np.ones((3, 3), dtype=np.bool_)),
+    )
+    beam = _beam_shape_pixels(metadata)
+    beam_area = (
+        np.pi
+        * beam.major_fwhm_pixels
+        * beam.minor_fwhm_pixels
+        / (4.0 * np.log(2.0))
+    )
+    islands: list[Island] = []
+    identifiers: dict[int, str] = {}
+    for index, bounds in enumerate(find_objects(labels), start=1):
+        assert bounds is not None
+        support = labels[bounds] == index
+        first_y, first_x = np.unravel_index(np.argmax(support), support.shape)
+        identifier = (
+            f"island-detection-{int(first_y) + bounds[0].start}"
+            f"-{int(first_x) + bounds[1].start}"
+        )
+        identifiers[index] = identifier
+        residual = (products.image[bounds] - products.background[bounds])[
+            support
+        ]
+        local_rms = products.rms[bounds][support]
+        islands.append(
+            Island(
+                island_id=identifier,
+                pixel_count=int(support.sum()),
+                integrated_flux_jy=float(residual.sum() / beam_area),
+                integrated_flux_error_jy=None,
+                local_rms_jy_per_beam=float(np.median(local_rms)),
+                mean_brightness_jy_per_beam=float(residual.mean()),
+            )
+        )
+    positive = publication_mask & (measurement_labels > 0)
+    pairs = np.unique(
+        np.column_stack(
+            (
+                measurement_labels[positive],
+                labels[positive],
+            )
+        ),
+        axis=0,
+    )
+    owners: dict[int, list[str]] = {}
+    for component_index, island_index in pairs:
+        owners.setdefault(int(component_index), []).append(
+            identifiers[int(island_index)]
+        )
+    return islands, {
+        index: tuple(sorted(values)) for index, values in owners.items()
+    }
+
+
 def _public_catalogue(
     products: _ScientificProducts,
     metadata: ImageMetadata,
@@ -457,46 +547,66 @@ def _public_catalogue(
     source_rows = {source.identifier: source for source in terminal.catalogue}
     source_candidates: list[SourceCandidate] = []
     gaussian_components: list[GaussianComponent] = []
-    islands: list[Island] = []
-    publication_mask = np.zeros(metadata.shape_yx, dtype=np.bool_)
+    publication_mask = np.array(
+        terminal.detection.retained_mask, dtype=np.bool_, copy=True
+    )
+    islands, component_islands = _detection_islands(
+        products, metadata, publication_mask, labels
+    )
+    measured_components = {
+        entry.object_id
+        for entry in terminal.measurement_dispositions
+        if entry.object_kind == "component" and entry.status == "measured"
+    }
     for membership in _memberships(terminal, profile):
         source_id = membership.source_id
         source_row = (
-            source_rows[source_id]
+            source_rows.get(source_id)
             if profile == "continuum"
-            else component_rows[source_id]
+            else component_rows.get(source_id)
         )
+        if source_row is None or (
+            "exact-owner-positive-residual-flux" in source_row.quality_flags
+        ):
+            continue
         label_values = tuple(
             components_by_id[component_id].label_value
             for component_id in membership.component_ids
         )
-        support, local_rms, mean_brightness = _support_statistics(
+        _, local_rms, _ = _support_statistics(
             labels,
             label_values,
             products,
         )
-        publication_mask |= support
+        island_ids = tuple(
+            sorted(
+                {
+                    island
+                    for value in label_values
+                    for island in component_islands.get(value, ())
+                }
+            )
+        )
+        if not island_ids:
+            # A measured owner may have lost all publication support. Keep
+            # its disposition, not a catalogue row with a fictitious island.
+            continue
         source_candidates.append(
             _source_candidate(
                 source_row,
-                island_id=source_id,
+                island_id=island_ids[0],
+                additional_island_ids=island_ids[1:],
                 local_rms=local_rms,
                 reference_frequency_hz=metadata.reference_frequency_hz,
             )
         )
-        islands.append(
-            Island(
-                island_id=source_id,
-                pixel_count=int(np.count_nonzero(support)),
-                integrated_flux_jy=float(source_row.integrated_flux_jy),
-                integrated_flux_error_jy=source_row.integrated_flux_error_jy,
-                local_rms_jy_per_beam=local_rms,
-                mean_brightness_jy_per_beam=mean_brightness,
-            )
-        )
         for component_id in membership.component_ids:
+            if component_id not in measured_components:
+                continue
             component_row = component_rows[component_id]
             component_label = components_by_id[component_id].label_value
+            if component_label not in component_islands:
+                continue
             _, component_rms, _ = _support_statistics(
                 labels,
                 (component_label,),
@@ -504,19 +614,21 @@ def _public_catalogue(
             )
             candidate = _source_candidate(
                 component_row,
-                island_id=source_id,
+                island_id=component_islands[component_label][0],
+                additional_island_ids=component_islands[component_label][1:],
                 local_rms=component_rms,
                 reference_frequency_hz=metadata.reference_frequency_hz,
             )
             if candidate.fitted_shape is None:
                 raise SourceFinderError(
-                    "evaluated Gaussian component has no fitted shape"
+                    "measured Gaussian has no fitted shape"
                 )
             gaussian_components.append(
                 GaussianComponent(
                     gaussian_component_id=component_id,
                     source_id=source_id,
-                    island_id=source_id,
+                    island_id=candidate.island_id,
+                    additional_island_ids=candidate.additional_island_ids,
                     position=candidate.position,
                     flux=candidate.flux,
                     spectral_model=candidate.spectral_model,
@@ -539,6 +651,55 @@ def _public_catalogue(
     )
     publication_mask.setflags(write=False)
     return catalogue, publication_mask
+
+
+def _public_dispositions(
+    terminal: Any | None, catalogue: SourceCatalogue, profile: str
+) -> tuple[MeasurementDisposition, ...]:
+    """Link all measured/absent identities to the selected public profile."""
+    if terminal is None:
+        return ()
+    components = tuple(
+        entry
+        for entry in terminal.measurement_dispositions
+        if entry.object_kind == "component"
+    )
+    sources = (
+        tuple(
+            entry.model_copy(
+                update={
+                    "object_kind": "source",
+                    "member_component_ids": (entry.object_id,),
+                }
+            )
+            for entry in components
+        )
+        if profile == "compact"
+        else tuple(
+            entry
+            for entry in terminal.measurement_dispositions
+            if entry.object_kind == "source"
+        )
+    )
+    published = {
+        "source": {row.source_id for row in catalogue.sources},
+        "component": {
+            row.gaussian_component_id for row in catalogue.gaussian_components
+        },
+    }
+    return tuple(
+        entry.model_copy(
+            update={
+                "catalogue_row_published": (
+                    entry.object_id in published[entry.object_kind]
+                ),
+            }
+        )
+        for entry in sorted(
+            (*components, *sources),
+            key=lambda item: (item.object_kind, item.object_id),
+        )
+    )
 
 
 def _final_product(product: Any, output: Path) -> Any:
@@ -607,6 +768,9 @@ def _materialize_bundle(  # noqa: PLR0913
             if products.terminal is not None
             else 0
         ),
+        measurement_dispositions=_public_dispositions(
+            products.terminal, catalogue, config.profile
+        ),
         rms_scientific_status=cast(Any, rms_status),
         provenance=PublicSourceFindingProvenance(
             input_sha256=input_sha256,
@@ -645,7 +809,7 @@ def find_sources(
 
     The Phase 5 scientific preview supports ICRS ``Jy/beam`` images no larger
     than 1024 pixels on either axis. Caller thresholds are executed exactly;
-    diagnostics distinguish the Phase 5 reference configuration from custom
+    diagnostics distinguish the unqualified development candidate from custom
     unqualified science. ``compact`` intentionally omits extended-emission
     association.
     """

@@ -42,9 +42,9 @@ from hebog.io.base import ImageBounds, ImageWindow
 from hebog.io.fits import FitsImageSource, InvalidFitsImageError
 
 _CONTENT_SCHEMA_VERSION = 1
-_CATALOGUE_SCHEMA_VERSION = 3
+_CATALOGUE_SCHEMA_VERSION = 4
 _CONTINUUM_DIAGNOSTICS_SCHEMA_VERSION = 2
-_PUBLIC_DIAGNOSTICS_SCHEMA_VERSION = 5
+_PUBLIC_DIAGNOSTICS_SCHEMA_VERSION = 6
 _DIAGNOSTICS_SCHEMA_VERSIONS = frozenset(
     {
         _CONTENT_SCHEMA_VERSION,
@@ -69,6 +69,7 @@ _ISLAND_COLUMNS = (
 )
 _MEASURED_COLUMNS = (
     "ISLAND_ID",
+    "ADDITIONAL_ISLAND_IDS",
     "RIGHT_ASCENSION",
     "RIGHT_ASCENSION_ERROR",
     "DECLINATION",
@@ -107,6 +108,7 @@ _COMPONENT_COLUMNS = (
 )
 _CATALOGUE_COLUMN_UNITS: dict[str, str | None] = {
     "ISLAND_ID": None,
+    "ADDITIONAL_ISLAND_IDS": None,
     "SOURCE_ID": None,
     "GAUSSIAN_COMPONENT_ID": None,
     "PIXEL_COUNT": None,
@@ -410,6 +412,10 @@ def _measured_columns(
     deconvolved = [value.deconvolved_shape for value in values]
     columns = [
         _string_column("ISLAND_ID", [value.island_id for value in values]),
+        _string_column(
+            "ADDITIONAL_ISLAND_IDS",
+            [",".join(value.additional_island_ids) for value in values],
+        ),
         _float_column(
             "RIGHT_ASCENSION",
             [value.right_ascension_degrees for value in positions],
@@ -641,6 +647,9 @@ def _measured_fields(row: Any) -> dict[str, Any]:
     )
     return {
         "island_id": _text(row["ISLAND_ID"]),
+        "additional_island_ids": tuple(
+            filter(None, _text(row["ADDITIONAL_ISLAND_IDS"]).split(","))
+        ),
         "position": SkyPosition(
             right_ascension_degrees=float(row["RIGHT_ASCENSION"]),
             right_ascension_error_degrees=_optional_float(
@@ -679,11 +688,11 @@ def _measured_fields(row: Any) -> dict[str, Any]:
 
 
 def _require_catalogue_structure(hdus: fits.HDUList) -> None:
-    """Require exact version-two HDUs and column names."""
+    """Require the exact current HDUs, columns, units and vector types."""
     expected_hdus = ("PRIMARY", "ISLANDS", "SOURCES", "GAUSSIAN_COMPONENTS")
     if tuple(hdu.name for hdu in hdus) != expected_hdus:
         raise InvalidMaterializedProductError(
-            "catalogue FITS structure does not match schema version 3"
+            "catalogue FITS structure does not match schema version 4"
         )
     expected_columns = (
         _ISLAND_COLUMNS,

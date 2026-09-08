@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import importlib
 import json
 import runpy
@@ -218,16 +217,27 @@ def test_bounded_plan_covers_all_products_without_writes(
     assert not output.exists()
 
 
-def test_freezer_reproduces_all_records(tmp_path: Path) -> None:
-    """The exact cumulative records must reproduce byte for byte."""
+def test_closed_record_builders_reproduce_without_campaign_data(
+    tmp_path: Path,
+    frozen_campaign_root: Path,
+) -> None:
+    """Historical serialization is not an execution preflight or data read."""
     freezer = runpy.run_path(str(_FREEZER))
-    arguments = argparse.Namespace(repository_root=_ROOT, output_root=tmp_path)
-
-    freezer["freeze_records"](arguments)
-
-    for path in (_IMPLEMENTATION, _IDENTITY, _DECISION):
+    records = freezer["_configured_records"]()
+    implementation = freezer["build_implementation"](
+        frozen_campaign_root, records
+    )
+    identity = freezer["build_identity"](
+        frozen_campaign_root, records, implementation
+    )
+    decision = freezer["build_decision"](records, identity)
+    for path, document in zip(
+        (_IMPLEMENTATION, _IDENTITY, _DECISION),
+        (implementation, identity, decision),
+        strict=True,
+    ):
         reproduced = tmp_path / path.relative_to(_ROOT)
+        freezer["_write_once"](reproduced, document)
         assert reproduced.read_bytes() == path.read_bytes()
-
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        freezer["freeze_records"](arguments)
+        with pytest.raises(FileExistsError, match="refusing to overwrite"):
+            freezer["_write_once"](reproduced, document)

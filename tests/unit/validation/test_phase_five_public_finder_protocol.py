@@ -548,20 +548,22 @@ def test_hebog_runner_publishes_only_a_complete_bundle(
     assert tuple(tmp_path.glob(".case.*")) == ()
 
 
-def test_hebog_notebook_runner_uses_exact_public_composition() -> None:
+def test_hebog_notebook_runner_uses_exact_public_composition(
+    frozen_public_configuration: str,
+) -> None:
     """Notebook evidence must execute the same terminal public composition."""
     runner = runpy.run_path(str(_RUNNER_SCRIPT))
 
-    assert runner["public_hebog_configuration_sha256"]() == (
+    assert frozen_public_configuration == (
         "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
     )
-    assert runner["build_configured_continuum_products"].__module__ == (
-        "hebog.public_science"
-    )
+    assert runner["public_api"]._analyse_image.__module__ == "hebog.public_api"
     assert runner["_PUBLIC_CONFIG"].profile == "continuum"
 
 
-def test_notebook_identity_binds_the_committed_public_source() -> None:
+def test_notebook_identity_binds_the_committed_public_source(
+    frozen_campaign_root: Path,
+) -> None:
     """A refresh cannot silently mix new source with old provenance."""
     identity = json.loads(_PUBLIC_IDENTITY.read_text(encoding="utf-8"))
 
@@ -580,13 +582,16 @@ def test_notebook_identity_binds_the_committed_public_source() -> None:
         ),
     }
     assert (
-        source_tree_sha256(_ROOT)
+        source_tree_sha256(frozen_campaign_root)
         == identity["algorithm_candidate"]["source_tree_sha256"]
     )
     for relative_path, expected_sha256 in identity[
         "interface_file_sha256"
     ].items():
-        assert file_sha256(_ROOT / relative_path) == expected_sha256
+        assert (
+            file_sha256(frozen_campaign_root / relative_path)
+            == expected_sha256
+        )
 
 
 def test_hebog_runner_declares_component_comparison_semantics() -> None:

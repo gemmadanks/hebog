@@ -137,7 +137,7 @@ def test_catalogue_round_trip_is_canonical_and_pickle_safe() -> None:
     """Executor payloads and persisted schema metadata are deterministic."""
     catalogue = _catalogue()
 
-    assert catalogue.schema_version == 2
+    assert catalogue.schema_version == 3
     assert catalogue.coordinate_frame == "icrs"
     assert catalogue.sources[0].deconvolved_shape is None
     assert catalogue.sources[0].position.declination_error_degrees is None
@@ -176,6 +176,56 @@ def test_empty_catalogue_is_valid_without_dummy_science_rows() -> None:
         SourceCatalogue.from_json_bytes(catalogue.canonical_json_bytes())
         == catalogue
     )
+
+
+def test_source_can_explicitly_associate_components_across_islands() -> None:
+    """A physical source association need not be one connected island."""
+    document = _document(_source())
+    document["additional_island_ids"] = ("island-00002",)
+    source = SourceCandidate.model_validate(document)
+    catalogue = SourceCatalogue.create(
+        catalogue_id="catalogue-cross-island",
+        coordinate_frame="icrs",
+        position_epoch="J2000.0",
+        reference_frequency_hz=150_000_000.0,
+        islands=(_island(), _island(island_id="island-00002")),
+        sources=(source,),
+        gaussian_components=(
+            _component(),
+            _component(
+                component_id="gaussian-component-00002",
+                island_id="island-00002",
+            ),
+        ),
+    )
+    assert catalogue.sources[0].additional_island_ids == ("island-00002",)
+
+
+@pytest.mark.parametrize("flux", (-0.02, 0.0))
+def test_island_signed_sum_is_not_a_source_flux_admission(flux: float) -> None:
+    """A detected support region survives an unmeasurable signed flux."""
+    document = _document(_island())
+    document["integrated_flux_jy"] = flux
+    assert Island.model_validate(document).integrated_flux_jy == flux
+
+
+@pytest.mark.parametrize(
+    "identifiers",
+    (
+        ("island-00001",),
+        ("island-00003", "island-00002"),
+        ("island-00002", "island-00002"),
+        ("bad/id",),
+    ),
+)
+def test_additional_islands_must_be_valid_unique_and_canonical(
+    identifiers: tuple[str, ...],
+) -> None:
+    """The first ID is canonical; additional islands cannot duplicate it."""
+    document = _document(_source())
+    document["additional_island_ids"] = identifiers
+    with pytest.raises(ValueError, match=r"island IDs|domain identifier"):
+        SourceCandidate.model_validate(document)
 
 
 def test_source_candidate_can_use_non_gaussian_measurements() -> None:
@@ -394,7 +444,7 @@ def test_measurements_reject_noncanonical_physical_values(
             "quality flags must be unique and canonical",
         ),
         (_island(), {"pixel_count": 0}, "pixel count"),
-        (_island(), {"integrated_flux_jy": 0.0}, "integrated flux"),
+        (_island(), {"integrated_flux_jy": float("nan")}, "integrated flux"),
         (
             _island(),
             {"local_rms_jy_per_beam": float("nan")},

@@ -43,6 +43,7 @@ from hebog.data_models.partitioning import TilePartition
 SegmentPositionUnavailableReason = Literal[
     "empty-finite-support",
     "nonpositive-segment-flux",
+    "ill-conditioned-segment-position",
 ]
 _IMAGE_DIMENSIONS = 2
 _SUB_BEAM_OPENING_WIDTH_PIXELS = 3
@@ -852,6 +853,7 @@ class DetectedSegmentPosition:
     support_pixel_count: int
     integrated_weight: float
     unavailable_reason: SegmentPositionUnavailableReason | None
+    weighting: Literal["signed-original", "denoised"] = "signed-original"
 
 
 def _unavailable_position(
@@ -919,6 +921,16 @@ def measure_detected_segment_position(
             support_pixel_count=support_pixel_count,
             integrated_weight=integrated_weight,
         )
+    conditioning = float(np.sum(np.abs(weights))) / integrated_weight
+    epsilon = np.finfo(np.float64).eps
+    if not np.isfinite(conditioning) or conditioning * epsilon > np.sqrt(
+        epsilon
+    ):
+        return _unavailable_position(
+            "ill-conditioned-segment-position",
+            support_pixel_count=support_pixel_count,
+            integrated_weight=integrated_weight,
+        )
     y_pixels, x_pixels = np.nonzero(finite_support)
     centroid_xy = (
         float(
@@ -928,6 +940,28 @@ def measure_detected_segment_position(
             np.sum(y_pixels * weights, dtype=np.float64) / integrated_weight
         ),
     )
+    # Signed cancellation can give a finite but physically unusable centroid.
+    # Test the support rectangle, not mask membership: a shell's centre can
+    # legitimately lie in its hole. Do not clamp the result to a bright pixel.
+    roundoff = (
+        epsilon
+        * support_pixel_count
+        * conditioning
+        * max(signal_jy_per_beam.shape)
+    )
+    if not (
+        x_pixels.min() - roundoff
+        <= centroid_xy[0]
+        <= x_pixels.max() + roundoff
+        and y_pixels.min() - roundoff
+        <= centroid_xy[1]
+        <= y_pixels.max() + roundoff
+    ):
+        return _unavailable_position(
+            "ill-conditioned-segment-position",
+            support_pixel_count=support_pixel_count,
+            integrated_weight=integrated_weight,
+        )
     peak_flat_index = int(
         np.argmax(np.where(finite_support, signal_jy_per_beam, -np.inf))
     )

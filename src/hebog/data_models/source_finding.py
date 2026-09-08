@@ -11,6 +11,8 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from hebog.data_models.measurement_diagnostics import MeasurementDisposition
+
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _DOMAIN_IDENTIFIER = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 _PRODUCT_MEDIA_TYPES = {
@@ -240,7 +242,7 @@ class PublicSourceFindingProvenance(BaseModel):
     scientific_profile_sha256: str
     scientific_composition_sha256: str
     scientific_composition: Literal[
-        "phase-5-configurable-deblended-component-and-source-topology-v8"
+        "phase-5-native-component-and-source-measurements-v9"
     ]
     schema_version: Literal[1] = 1
 
@@ -259,7 +261,7 @@ class PublicSourceFindingProvenance(BaseModel):
 
 
 class PublicSourceFindingDiagnostics(BaseModel):
-    """Version-five public-run diagnostics with reproducible provenance."""
+    """Public-run diagnostics retain explicit measurement dispositions."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
@@ -267,16 +269,17 @@ class PublicSourceFindingDiagnostics(BaseModel):
     profile: Literal["continuum", "compact"]
     profile_limitations: tuple[Literal["extended-emission-incomplete"], ...]
     configuration_qualification: Literal[
-        "phase-5-reference", "custom-unqualified"
+        "development-unqualified", "custom-unqualified"
     ]
     source_count: int
     gaussian_component_count: int
     island_count: int
     deblended_parent_count: int = 0
     deferred_deblend_parent_count: int = 0
+    measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
     rms_scientific_status: Literal["valid", "unavailable"]
     provenance: PublicSourceFindingProvenance
-    schema_version: Literal[5] = 5
+    schema_version: Literal[6] = 6
 
     @model_validator(mode="after")
     def _validate_diagnostics(self) -> Self:
@@ -302,6 +305,35 @@ class PublicSourceFindingDiagnostics(BaseModel):
             raise ValueError(
                 "public diagnostics limitations must match the profile"
             )
+        entries = self.measurement_dispositions
+        identities = tuple(
+            (item.object_kind, item.object_id) for item in entries
+        )
+        components = {
+            item.object_id
+            for item in entries
+            if item.object_kind == "component"
+        }
+        sources = tuple(
+            item for item in entries if item.object_kind == "source"
+        )
+        members = tuple(
+            member for item in sources for member in item.member_component_ids
+        )
+        if (
+            identities != tuple(sorted(set(identities)))
+            or len(members) != len(set(members))
+            or set(members) != components
+            or sum(item.catalogue_row_published for item in sources)
+            != self.source_count
+            or sum(
+                item.catalogue_row_published
+                for item in entries
+                if item.object_kind == "component"
+            )
+            != self.gaussian_component_count
+        ):
+            raise ValueError("public measurement census is inconsistent")
         return self
 
     def canonical_json_bytes(self) -> bytes:

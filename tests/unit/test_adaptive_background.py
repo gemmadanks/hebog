@@ -8,18 +8,21 @@ from typing import TypeVar
 import numpy as np
 import pytest
 
+from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
+    SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds, TilePartition
 from hebog.executors import SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.stages.background import (
     BackgroundRmsGrids,
+    MultiscaleSourceProtection,
     estimate_background_rms_grids,
     estimate_background_rms_tile,
     prepare_background_rms_tile_request,
@@ -28,6 +31,19 @@ from hebog.stages.background import (
 
 Input = TypeVar("Input")
 Output = TypeVar("Output")
+
+
+@pytest.mark.parametrize("fraction", (0.0, 1.1, float("nan"), float("inf")))
+def test_multiscale_protection_rejects_invalid_filter_support(
+    fraction: float,
+) -> None:
+    """Invalid filtering policy must fail even when no source is discovered."""
+    with pytest.raises(ValueError, match="support fraction"):
+        MultiscaleSourceProtection(
+            BeamShapePixels(4.0, 3.0, 0.0),
+            SourceFinderConfig(5.0, 3.0, 7),
+            fraction,
+        )
 
 
 class _ArrayImageSource:

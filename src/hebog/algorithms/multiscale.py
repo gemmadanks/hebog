@@ -816,6 +816,42 @@ def evaluate_residual_atrous(
     )
 
 
+def reconstruct_denoised_atrous(
+    result: ResidualAtrousResult,
+    *,
+    significance_sigma: float,
+) -> npt.NDArray[np.float64]:
+    """Reconstruct brightness from coarse emission and signed coefficients.
+
+    This estimates image brightness, not a discovery significance or flux.
+    Both coefficient signs are retained symmetrically. The coarse plane is
+    essential: dropping it removes broad emission, while adding the complete
+    detail sum to the original image sharpens noise instead of denoising it.
+    Callers retain the original RMS and discovery thresholds for publication.
+    """
+    if not isfinite(significance_sigma) or significance_sigma < 0.0:
+        raise ValueError(
+            "shrinkage significance must be finite and non-negative"
+        )
+    reconstructed = np.array(
+        result.coarse_smoothing_jy_per_beam, dtype=np.float64, copy=True
+    )
+    for response in result.responses:
+        coefficient = response.response_jy_per_beam
+        significant = (
+            response.scientifically_valid
+            & np.isfinite(coefficient)
+            & (
+                np.abs(coefficient)
+                >= significance_sigma * response.effective_rms_jy_per_beam
+            )
+        )
+        np.add(
+            reconstructed, coefficient, out=reconstructed, where=significant
+        )
+    return _read_only(reconstructed)
+
+
 def reconstruct_significant_atrous(
     result: ResidualAtrousResult,
     *,

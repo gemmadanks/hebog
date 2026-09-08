@@ -10,6 +10,7 @@ import pytest
 from hebog.algorithms.source_association import (
     associate_detection_components,
     build_detection_component_records,
+    constrain_source_memberships,
     reduce_source_associations,
 )
 from hebog.data_models.source_association import (
@@ -121,6 +122,52 @@ def test_single_component_forms_one_singleton_source() -> None:
     assert result.memberships[0].component_ids == (
         result.components[0].component_id,
     )
+
+
+def test_compact_constraints_preserve_labels_and_unconstrained_members() -> (
+    None
+):
+    """Separating one component does not discard the remaining association."""
+    labels = _labels(values=(9, 2, 31))
+    records = _records(labels)
+    original = _associate(labels, records)
+    constrained = constrain_source_memberships(original, (frozenset((9,)),))
+    singleton = next(
+        row.component_id for row in records if row.label_value == 9
+    )
+    assert (singleton,) in tuple(
+        row.component_ids for row in constrained.memberships
+    )
+    assert constrained.components == original.components
+    assert constrained.edges == original.edges
+    assert constrain_source_memberships(constrained, ()) == constrained
+    order_one = constrain_source_memberships(
+        original,
+        (frozenset((9,)), frozenset((2, 31))),
+    )
+    order_two = constrain_source_memberships(
+        original,
+        (frozenset((31, 2)), frozenset((9,))),
+    )
+    assert order_one == order_two
+
+
+@pytest.mark.parametrize(
+    "groups",
+    (
+        (frozenset[int](),),
+        (frozenset((9,)), frozenset((9,))),
+        (frozenset((999,)),),
+    ),
+)
+def test_compact_constraints_reject_invalid_component_claims(
+    groups: tuple[frozenset[int], ...],
+) -> None:
+    labels = _labels()
+    with pytest.raises(ValueError, match="compact model group"):
+        constrain_source_memberships(
+            _associate(labels, _records(labels)), groups
+        )
 
 
 def test_high_dynamic_range_fragments_use_normalized_continuity() -> None:

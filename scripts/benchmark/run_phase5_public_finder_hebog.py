@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import runpy
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
@@ -20,134 +21,59 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 from hebog import public_api
-from hebog.algorithms.multiscale import BeamShapePixels
-from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import SourceFinderConfig
-from hebog.data_models import ImageBounds
+from hebog.data_models import ImageBounds, SourceFinderRequest
+from hebog.data_models.source_association import SourceAssociationResult
 from hebog.executors import SerialExecutor
-from hebog.io import FitsImageSource, ZarrProductSink
-from hebog.public_science import build_configured_continuum_products
-from hebog.stages.detection import run_detection_stage
-from hebog.validation.contracts import load_phase_five_corrective_a_review
-from hebog.validation.external_runners import source_tree_sha256
-from hebog.validation.hebog_campaign import (
-    _ArrayImageSource,
-    phase_five_corrected_candidate_configs,
+from hebog.io import FitsImageSource
+from hebog.validation.external_runners import (
+    canonical_sha256,
+    source_tree_sha256,
 )
 from hebog.validation.products import (
-    load_fits_plane,
     write_comparison_catalogue,
+)
+from hebog.validation.public_measurement_projection import (
+    project_public_measurements,
 )
 
 _ROOT = Path(__file__).parents[2]
 _PROTOCOL = runpy.run_path(
     str(_ROOT / "scripts/validation/phase5_public_finder_protocol.py")
 )
-_BASE_REVIEW = _ROOT / "config/contracts/phase-5-corrective-a-review.json"
 _PUBLIC_IDENTITY = (
-    _ROOT / "config/contracts/phase-5-public-publication-owner-domain-"
-    "identity-review.json"
+    _ROOT
+    / "config/contracts/phase-5-source-catalogue-repair-identity-review.json"
 )
 _PUBLIC_CONFIG = SourceFinderConfig(5.0, 3.0, 7, profile="continuum")
-_FINAL_CANDIDATE_REVISION = "95cfc76ded56556dc3ad6894410962d34f0d5604"
-_FINAL_SOURCE_TREE_SHA256 = (
-    "8da21e86afc5035da0704724a9d29104ea8b0e4d55fa4a98f0c5f3efca9a75a5"
-)
-_FINAL_CONFIGURATION_SHA256 = (
-    "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
-)
-_FINAL_COMPOSITION_SHA256 = (
-    "8abdeb44a3838c8e1e56d7827a27da1a4f833a18f83756ab12a03a1b7a7e2398"
-)
 
 
 def public_hebog_configuration_sha256() -> str:
-    """Return the exact final public candidate's governed science identity."""
+    """Verify a newly frozen repair identity; old passes do not transfer."""
     value: object = json.loads(_PUBLIC_IDENTITY.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
         raise ValueError("final public-interface identity is malformed")
     record = cast(dict[str, object], value)
     candidate = record.get("algorithm_candidate")
+    if not isinstance(candidate, dict) or not re.fullmatch(
+        r"[0-9a-f]{40}", str(candidate.get("revision", ""))
+    ):
+        raise ValueError("public-interface candidate identity is malformed")
+    configuration = canonical_sha256(asdict(_PUBLIC_CONFIG))
     expected = {
-        "configuration_sha256": _FINAL_CONFIGURATION_SHA256,
-        "revision": _FINAL_CANDIDATE_REVISION,
-        "source_tree_sha256": _FINAL_SOURCE_TREE_SHA256,
+        "configuration_sha256": configuration,
+        "revision": candidate["revision"],
+        "source_tree_sha256": source_tree_sha256(_ROOT),
     }
     if (
         candidate != expected
         or record.get("status") != "frozen-non-executable"
         or record.get("scientific_composition_sha256")
-        != _FINAL_COMPOSITION_SHA256
-        or source_tree_sha256(_ROOT) != _FINAL_SOURCE_TREE_SHA256
-        or public_api._scientific_composition_sha256()
-        != _FINAL_COMPOSITION_SHA256
+        != public_api._scientific_composition_sha256()
+        or record.get("scientific_composition") != public_api._COMPOSITION_NAME
     ):
         raise ValueError("final public-interface identity changed")
-    return _FINAL_CONFIGURATION_SHA256
-
-
-def _estimate_background_rms(
-    image: np.ndarray,
-    output: Path,
-    *,
-    generation_id: str,
-    config: SourceFinderConfig,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Run only the qualified candidate-owned background/RMS stage."""
-    source = _ArrayImageSource(image)
-    manifest = plan_image_partitions(
-        image_shape_yx=tuple(image.shape),
-        tile_core_shape_yx=(128, 128),
-        halo_yx=(0, 0),
-    )
-    sink = ZarrProductSink(
-        output / "products.zarr",
-        manifest,
-        generation_id=generation_id,
-    )
-    run_detection_stage(
-        source,
-        manifest,
-        replace(
-            phase_five_corrected_candidate_configs()[0],
-            source_finder=config,
-        ),
-        SerialExecutor(),
-        sink,
-    )
-    bounds = ImageBounds(0, image.shape[0], 0, image.shape[1])
-    return (
-        np.asarray(
-            sink.read_completed_window("background", bounds),
-            dtype=np.float64,
-        ),
-        np.asarray(
-            sink.read_completed_window("rms", bounds),
-            dtype=np.float64,
-        ),
-    )
-
-
-def _beam_pixels(header: fits.Header) -> BeamShapePixels:
-    """Translate standard FITS beam cards to qualified pixel units."""
-    try:
-        major = float(cast(Any, header["BMAJ"])) / abs(
-            float(cast(Any, header["CDELT2"]))
-        )
-        minor = float(cast(Any, header["BMIN"])) / abs(
-            float(cast(Any, header["CDELT1"]))
-        )
-        angle = float(cast(Any, header.get("BPA", 0.0)) or 0.0)
-    except (KeyError, TypeError, ValueError, ZeroDivisionError) as error:
-        raise ValueError(
-            "public FITS beam or pixel scale is invalid"
-        ) from error
-    # Celestial WCS serialization can round equal axis scales in opposite
-    # directions. Preserve an exactly circular sky beam without allowing a
-    # materially inverted FITS beam to pass the domain invariant.
-    if minor > major and minor - major <= 1e-12 * max(major, minor):
-        major = minor = (major + minor) / 2.0
-    return BeamShapePixels(major, minor, angle)
+    return configuration
 
 
 def _core_catalogue(
@@ -208,31 +134,59 @@ def _build_public_bundle(  # noqa: PLR0913
     observed_configuration = public_hebog_configuration_sha256()
     if observed_configuration != configuration_sha256:
         raise ValueError("qualified Hebog configuration checksum changed")
-    metadata = FitsImageSource(input_path).metadata()
-    image = load_fits_plane(input_path)
-    if tuple(image.shape) != metadata.shape_yx:
-        raise ValueError("public FITS pixels and metadata shapes differ")
+    source = FitsImageSource(input_path)
+    metadata = source.metadata()
     output.mkdir(parents=True)
     started = monotonic()
-    background, rms = _estimate_background_rms(
-        image,
-        work_directory,
-        generation_id=case_id,
-        config=_PUBLIC_CONFIG,
-    )
     header = cast(fits.Header, fits.getheader(input_path))
-    review = load_phase_five_corrective_a_review(_BASE_REVIEW)
-    products = build_configured_continuum_products(
-        image,
-        background,
-        rms,
-        header,
-        beam=_beam_pixels(header),
-        review=review,
+    scientific = public_api._analyse_image(
+        SourceFinderRequest(input_path, output, case_id),
+        source,
+        metadata,
+        SerialExecutor(),
+        work_directory,
         config=_PUBLIC_CONFIG,
+        header=header,
     )
-    if products is None:
-        raise ValueError("public comparison contains no accepted islands")
+    background, rms = scientific.background, scientific.rms
+    products = scientific.terminal
+    published_catalogue, public_mask = public_api._public_catalogue(
+        scientific,
+        metadata,
+        run_id=case_id,
+        profile=_PUBLIC_CONFIG.profile,
+    )
+    projection = project_public_measurements(
+        products, published_catalogue, public_mask, header
+    )
+    published_source_ids = {
+        row.source_id for row in published_catalogue.sources
+    }
+    published_component_ids = {
+        row.gaussian_component_id
+        for row in published_catalogue.gaussian_components
+    }
+    association = (
+        products.source_association
+        if products is not None
+        else SourceAssociationResult((), (), (), ())
+    )
+    empty_labels = np.zeros(metadata.shape_yx, dtype=np.int32)
+    publication_labels = (
+        products.detection.component_labels
+        if products is not None
+        else empty_labels
+    )
+    component_labels = (
+        products.measurement_component_labels
+        if products is not None
+        else empty_labels
+    )
+    publication_mask = (
+        products.detection.retained_mask
+        if products is not None
+        else np.zeros(metadata.shape_yx, dtype=np.bool_)
+    )
     selected_core = core or ImageBounds(
         y_start=0,
         y_stop=metadata.shape_yx[0],
@@ -253,9 +207,25 @@ def _build_public_bundle(  # noqa: PLR0913
     mask_path = output / "segment_mask.fits"
     background_path = output / "background.fits"
     rms_path = output / "rms.fits"
-    core_sources = _core_catalogue(products.catalogue, header, selected_core)
+    core_sources = _core_catalogue(
+        tuple(
+            row
+            for row in products.catalogue
+            if row.identifier in published_source_ids
+        )
+        if products is not None
+        else (),
+        header,
+        selected_core,
+    )
     core_components = _core_catalogue(
-        products.component_catalogue,
+        tuple(
+            row
+            for row in products.component_catalogue
+            if row.identifier in published_component_ids
+        )
+        if products is not None
+        else (),
         header,
         selected_core,
     )
@@ -263,25 +233,21 @@ def _build_public_bundle(  # noqa: PLR0913
     write_comparison_catalogue(component_catalogue_path, core_components)
     _PROTOCOL["write_once_json"](
         association_path,
-        asdict(products.source_association),
+        asdict(association),
     )
     _write_plane(
         labels_path,
-        np.asarray(
-            products.detection.component_labels[slices], dtype=np.int32
-        ),
+        np.asarray(publication_labels[slices], dtype=np.int32),
         core_header,
     )
     _write_plane(
         component_labels_path,
-        np.asarray(
-            products.measurement_component_labels[slices], dtype=np.int32
-        ),
+        np.asarray(component_labels[slices], dtype=np.int32),
         core_header,
     )
     _write_plane(
         mask_path,
-        np.asarray(products.detection.retained_mask[slices], dtype=np.uint8),
+        np.asarray(publication_mask[slices], dtype=np.uint8),
         core_header,
     )
     _write_plane(
@@ -306,7 +272,7 @@ def _build_public_bundle(  # noqa: PLR0913
         "segment-mask-fits": mask_path,
     }
     result: dict[str, object] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "result_id": f"phase-5-public-finder-{case_id}",
         "status": "success",
         "case_id": case_id,
@@ -314,11 +280,29 @@ def _build_public_bundle(  # noqa: PLR0913
         "input_sha256": _PROTOCOL["file_sha256"](input_path),
         "source_count": len(core_sources),
         "component_count": len(core_components),
-        "association_edge_count": len(products.source_association.edges),
-        "deblended_parent_count": products.deblended_parent_count,
+        "association_edge_count": len(association.edges),
+        "deblended_parent_count": (
+            products.deblended_parent_count if products is not None else 0
+        ),
         "deferred_deblend_parent_count": (
             products.deferred_deblend_parent_count
+            if products is not None
+            else 0
         ),
+        "scientific_composition": public_api._COMPOSITION_NAME,
+        "scientific_composition_sha256": (
+            public_api._scientific_composition_sha256()
+        ),
+        "measurement_dispositions": [
+            row.model_dump(mode="json") for row in projection.dispositions
+        ],
+        "measurement_diagnostic_domain": "full-input-before-core-crop",
+        "all_measured_source_records": [
+            asdict(row) for row in projection.measured_sources
+        ],
+        "all_measured_component_records": [
+            asdict(row) for row in projection.measured_components
+        ],
         "catalogue_semantics": {
             "comparison_rows": "gaussian-components",
             "source_rows": "associated-sources",
@@ -340,6 +324,9 @@ def _build_public_bundle(  # noqa: PLR0913
             for role, path in sorted(artifacts.items())
         },
     }
+    if public_hebog_configuration_sha256() != observed_configuration:
+        raise ValueError("public science changed during bundle construction")
+    result = json.loads(json.dumps(result, allow_nan=False))
     _PROTOCOL["write_once_json"](output / "result.json", result)
     return result
 

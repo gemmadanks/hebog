@@ -21,6 +21,8 @@ _OmissionReason = Literal[
     "non-positive-measurement",
     "singular-covariance",
     "underdetermined-region",
+    "joint-fit-work-limit",
+    "joint-peer-unavailable",
 ]
 
 

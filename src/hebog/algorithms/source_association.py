@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections import Counter, deque
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 from itertools import combinations
 from math import isfinite
@@ -1808,6 +1808,66 @@ def _source_memberships(
             ),
             key=lambda item: item.source_id,
         )
+    )
+
+
+def constrain_source_memberships(
+    association: SourceAssociationResult,
+    measured_groups: tuple[frozenset[int], ...],
+) -> SourceAssociationResult:
+    """Apply compact-model or resolved-morphology evidence before publication.
+
+    Unconstrained components retain their hierarchy membership. Constrained
+    labels belong to exactly one scientifically supported group; a shared
+    coarse feature alone cannot re-merge independent compact groups.
+    """
+    by_label = {
+        item.label_value: item.component_id for item in association.components
+    }
+    labels = [value for group in measured_groups for value in group]
+    if any(not group for group in measured_groups) or len(labels) != len(
+        set(labels)
+    ):
+        raise ValueError("compact model groups must be nonempty and disjoint")
+    if not set(labels) <= by_label.keys():
+        raise ValueError("compact model group has an unknown component label")
+    constrained = {
+        by_label[value] for group in measured_groups for value in group
+    }
+    groups = tuple(
+        frozenset(set(item.component_ids) - constrained)
+        for item in association.memberships
+        if set(item.component_ids) - constrained
+    ) + tuple(
+        frozenset(by_label[value] for value in group)
+        for group in measured_groups
+    )
+    memberships = _source_memberships(groups)
+    diagnostics = association.hierarchy_diagnostics
+    if diagnostics is not None:
+        diagnostics = replace(
+            diagnostics,
+            catalogue_source_count=len(memberships),
+            membership_size_histogram=tuple(
+                sorted(
+                    Counter(
+                        len(item.component_ids) for item in memberships
+                    ).items()
+                )
+            ),
+            unique_convergence_count=sum(
+                len(item.component_ids) > 1 for item in memberships
+            ),
+        )
+    return replace(
+        association,
+        memberships=memberships,
+        ambiguous_component_ids=tuple(
+            value
+            for value in association.ambiguous_component_ids
+            if value not in constrained
+        ),
+        hierarchy_diagnostics=diagnostics,
     )
 
 

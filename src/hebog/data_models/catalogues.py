@@ -194,7 +194,7 @@ class SpectralModel(_CatalogueModel):
 
 
 class Island(_CatalogueModel):
-    """One connected above-threshold pixel region."""
+    """One connected detection region with signed original-pixel flux."""
 
     island_id: str
     pixel_count: int
@@ -209,11 +209,8 @@ class Island(_CatalogueModel):
         _require_domain_identifier(self.island_id, field_name="island ID")
         if self.pixel_count <= 0:
             raise ValueError("island pixel count must be positive")
-        if (
-            not isfinite(self.integrated_flux_jy)
-            or self.integrated_flux_jy <= 0
-        ):
-            raise ValueError("island integrated flux must be positive")
+        if not isfinite(self.integrated_flux_jy):
+            raise ValueError("island integrated flux must be finite")
         _require_optional_errors(
             (self.integrated_flux_error_jy,),
             field_name="island flux error",
@@ -232,6 +229,7 @@ class _MeasuredCatalogueObject(_CatalogueModel):
     """Shared physical fields for source and Gaussian-component records."""
 
     island_id: str
+    additional_island_ids: tuple[str, ...] = ()
     position: SkyPosition
     flux: FluxMeasurement
     spectral_model: SpectralModel
@@ -256,6 +254,13 @@ class _MeasuredCatalogueObject(_CatalogueModel):
     def _validate_island_id(self) -> Self:
         """Require a stable island association and honest deconvolution."""
         _require_domain_identifier(self.island_id, field_name="island ID")
+        island_ids = (self.island_id, *self.additional_island_ids)
+        for identifier in self.additional_island_ids:
+            _require_domain_identifier(identifier, field_name="island ID")
+        if island_ids != tuple(sorted(set(island_ids))):
+            raise ValueError(
+                "measured island IDs must be unique and canonical"
+            )
         major_only = self.deconvolved_major_fwhm_degrees
         if major_only is not None and (
             not isfinite(major_only) or major_only <= 0
@@ -298,7 +303,7 @@ class SourceCandidate(_MeasuredCatalogueObject):
 
 
 class GaussianComponent(_MeasuredCatalogueObject):
-    """One fitted Gaussian assigned to exactly one source and island."""
+    """One fitted Gaussian with explicit source and support-island links."""
 
     gaussian_component_id: str
     source_id: str
@@ -325,7 +330,7 @@ class SourceCatalogue(_CatalogueModel):
     islands: tuple[Island, ...]
     sources: tuple[SourceCandidate, ...]
     gaussian_components: tuple[GaussianComponent, ...]
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
 
     @model_validator(mode="after")
     def _validate_catalogue(self) -> Self:
@@ -369,7 +374,9 @@ class SourceCatalogue(_CatalogueModel):
         islands_by_id = {island.island_id: island for island in self.islands}
         sources_by_id = {source.source_id: source for source in self.sources}
         for source in self.sources:
-            if source.island_id not in islands_by_id:
+            if {source.island_id, *source.additional_island_ids} - (
+                islands_by_id.keys()
+            ):
                 raise ValueError("source references an unknown island")
         for component in self.gaussian_components:
             source = sources_by_id.get(component.source_id)
@@ -377,7 +384,10 @@ class SourceCatalogue(_CatalogueModel):
                 raise ValueError(
                     "Gaussian component references an unknown source"
                 )
-            if component.island_id != source.island_id:
+            if {component.island_id, *component.additional_island_ids} - {
+                source.island_id,
+                *source.additional_island_ids,
+            }:
                 raise ValueError(
                     "source and Gaussian component must share an island"
                 )

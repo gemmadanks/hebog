@@ -209,6 +209,8 @@ class UnavailableCompactGaussianFit:
         "non-positive-measurement",
         "singular-covariance",
         "underdetermined-region",
+        "joint-fit-work-limit",
+        "joint-peer-unavailable",
     ]
     quality_flags: tuple[str, ...]
     status: Literal["unavailable"] = "unavailable"

@@ -31,7 +31,18 @@ from hebog.algorithms.background import (
     subset_rms_grid_geometry,
 )
 from hebog.algorithms.detection import normalize_residual
-from hebog.config import BackgroundRmsConfig, RmsGridConfig
+from hebog.algorithms.multiscale import (
+    BeamShapePixels,
+    ScaleFilterBank,
+    build_scale_filter_bank,
+    calibrated_scale_snrs,
+    evaluate_scale_filter_bank,
+    prepare_scale_filter_inputs,
+)
+from hebog.algorithms.multiscale_association import (
+    persistent_seeded_scale_support,
+)
+from hebog.config import BackgroundRmsConfig, RmsGridConfig, SourceFinderConfig
 from hebog.data_models.partitioning import ImageBounds, TilePartition
 from hebog.executors.base import Executor
 from hebog.io.base import ImageWindow
@@ -118,6 +129,49 @@ class _AdaptiveRegionRequest:
     grid: RmsGridGeometry
     coarse: PreparedRmsGrid
     positions_yx: tuple[tuple[float, float], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MultiscaleSourceProtection:
+    """Caller-supplied beam and detection policy for fine-grid protection."""
+
+    beam: BeamShapePixels
+    source_finder: SourceFinderConfig
+    minimum_support_fraction: float
+
+    def __post_init__(self) -> None:
+        """Validate filter admission before any image or candidate exists."""
+        if not isfinite(self.minimum_support_fraction) or not (
+            0.0 < self.minimum_support_fraction <= 1.0
+        ):
+            raise ValueError(
+                "multiscale protection support fraction is invalid"
+            )
+
+
+def _protection_filter_bank(
+    policy: MultiscaleSourceProtection,
+) -> ScaleFilterBank:
+    """Match the existing source-owned persistent measurement scales."""
+    return build_scale_filter_bank(
+        policy.beam,
+        family="beam-aware-matched-filter",
+        scales=((1, 1.0), (2, 2.0), (3, 4.0)),
+        truncation_sigma=4.0,
+        noise_correlation=policy.beam,
+    )
+
+
+def _filter_read_bounds(grid: RmsGridGeometry, halo: int) -> ImageBounds:
+    """Include filtering context beyond the fine estimator windows."""
+    bounds = _grid_read_bounds(grid)
+    height, width = grid.image_shape_yx
+    return ImageBounds(
+        max(0, bounds.y_start - halo),
+        min(height, bounds.y_stop + halo),
+        max(0, bounds.x_start - halo),
+        min(width, bounds.x_stop + halo),
+    )
 
 
 def _estimate_source_batch(
@@ -281,6 +335,7 @@ def estimate_background_rms_grids(  # noqa: PLR0913
     *,
     bright_candidate_positions_yx: tuple[tuple[float, float], ...],
     source_protection_island_threshold_sigma: float | None = None,
+    multiscale_protection: MultiscaleSourceProtection | None = None,
 ) -> BackgroundRmsGrids:
     """Estimate cached global coarse and sparse adaptive RMS summaries."""
     if min(image_shape_yx) < 1:
@@ -321,6 +376,7 @@ def estimate_background_rms_grids(  # noqa: PLR0913
         source_protection_island_threshold_sigma=(
             source_protection_island_threshold_sigma
         ),
+        multiscale_protection=multiscale_protection,
     )
 
 
@@ -413,9 +469,17 @@ def _estimate_source_protected_adaptive_region(
     source: _WindowReadable,
     config: RmsGridConfig,
     island_threshold_sigma: float,
+    multiscale_protection: MultiscaleSourceProtection | None = None,
 ) -> AdaptiveRmsRegion:
     """Estimate a fine grid without sampling bright-source support."""
-    bounds = _grid_read_bounds(request.grid)
+    bank = (
+        _protection_filter_bank(multiscale_protection)
+        if multiscale_protection is not None
+        else None
+    )
+    bounds = _filter_read_bounds(
+        request.grid, bank.maximum_halo_pixels if bank is not None else 0
+    )
     image_window = source.read_window(bounds)
     if image_window.bounds != bounds:
         raise ValueError("image source returned different window bounds")
@@ -442,6 +506,38 @@ def _estimate_source_protected_adaptive_region(
         request.positions_yx,
         island_threshold_sigma=island_threshold_sigma,
     )
+    if multiscale_protection is not None and bank is not None:
+        policy = multiscale_protection
+        residual = np.asarray(image_window.values - coarse.background)
+        responses = evaluate_scale_filter_bank(
+            prepare_scale_filter_inputs(
+                image_window.values,
+                scientifically_valid,
+                coarse.background,
+                coarse.rms,
+            ),
+            bank,
+            minimum_support_fraction=policy.minimum_support_fraction,
+        )
+        persistent = persistent_seeded_scale_support(
+            calibrated_scale_snrs(
+                responses.responses,
+                minimum_support_fraction=policy.minimum_support_fraction,
+            ),
+            residual,
+            scientifically_valid,
+            detection_sigma=policy.source_finder.detection_threshold_sigma,
+            island_sigma=policy.source_finder.island_threshold_sigma,
+            minimum_pixels=policy.source_finder.minimum_island_pixels,
+        )
+        # Only scale support connected to the already discovered bright
+        # candidate affects its estimator. This does not publish detections.
+        labels, _ = cast(
+            tuple[npt.NDArray[np.int32], int],
+            ndimage.label(persistent | connected_protection, np.ones((3, 3))),
+        )
+        selected = np.unique(labels[connected_protection])
+        connected_protection = np.isin(labels, selected[selected > 0])
     protected = _guard_source_protection(
         connected_protection,
         scientifically_valid,
@@ -486,6 +582,7 @@ def _adaptive_region_request(
     *,
     global_geometry: RmsGridGeometry,
     coarse: PreparedRmsGrid,
+    filter_halo_pixels: int = 0,
 ) -> _AdaptiveRegionRequest:
     """Bind one candidate region to its fine and coarse bounded summaries."""
     fine_grid = subset_rms_grid_geometry(global_geometry, region.bounds)
@@ -493,7 +590,7 @@ def _adaptive_region_request(
         grid=fine_grid,
         coarse=subset_prepared_rms_grid(
             coarse,
-            _grid_read_bounds(fine_grid),
+            _filter_read_bounds(fine_grid, filter_halo_pixels),
         ),
         positions_yx=region.positions_yx,
     )
@@ -536,6 +633,7 @@ def refine_background_rms_grids(  # noqa: PLR0913
     *,
     bright_candidate_positions_yx: tuple[tuple[float, float], ...],
     source_protection_island_threshold_sigma: float | None = None,
+    multiscale_protection: MultiscaleSourceProtection | None = None,
 ) -> BackgroundRmsGrids:
     """Estimate sparse adaptive cells while reusing a prepared coarse grid."""
     if coarse_grids.adaptive_regions:
@@ -587,6 +685,13 @@ def refine_background_rms_grids(  # noqa: PLR0913
             region,
             global_geometry=global_adaptive_geometry,
             coarse=coarse_grids.coarse,
+            filter_halo_pixels=(
+                _protection_filter_bank(
+                    multiscale_protection
+                ).maximum_halo_pixels
+                if multiscale_protection is not None
+                else 0
+            ),
         )
         for region in candidate_regions
     )
@@ -595,6 +700,7 @@ def refine_background_rms_grids(  # noqa: PLR0913
         source=source,
         config=adaptive_config.grid,
         island_threshold_sigma=source_protection_island_threshold_sigma,
+        multiscale_protection=multiscale_protection,
     )
     adaptive_regions = tuple(executor.map_batches(estimate_region, requests))
     return BackgroundRmsGrids(

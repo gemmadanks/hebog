@@ -59,12 +59,17 @@ def test_risk_acceptance_preserves_the_incomplete_terminal_result() -> None:
     assert not any(acceptance["execution_authorizations"].values())
 
 
-def test_production_audit_freezes_exact_candidate() -> None:
-    """Only a clean exact public path may advance to held-out design."""
+def test_production_audit_freezes_exact_candidate(
+    frozen_campaign_root: Path,
+) -> None:
+    """A historical audit binds its candidate, not later repaired science."""
     audit = _document(_PRODUCTION_AUDIT)
 
     assert audit["candidate"] == _CANDIDATE
-    assert source_tree_sha256(_ROOT) == _CANDIDATE["source_tree_sha256"]
+    assert (
+        source_tree_sha256(frozen_campaign_root)
+        == _CANDIDATE["source_tree_sha256"]
+    )
     assert audit["status"] == "pass-no-release-blocking-defects"
     assert audit["decision"] == {
         "candidate_identity_unchanged": True,

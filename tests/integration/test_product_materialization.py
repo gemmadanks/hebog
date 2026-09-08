@@ -285,7 +285,7 @@ def test_catalogue_fits_round_trip_preserves_internal_schema(
 
     assert product.product_role == "source-catalogue"
     assert product.media_type == "application/fits"
-    assert product.content_schema_version == 3
+    assert product.content_schema_version == 4
     assert product.scientific_status == "valid"
     assert product.byte_count == path.stat().st_size
     assert (
@@ -437,7 +437,7 @@ def test_catalogue_reader_rejects_unknown_schema_and_structure(
     path = tmp_path / "catalogue.fits"
     write_catalogue_fits_product(path, _catalogue())
     with fits.open(path, mode="update", checksum=False) as hdus:
-        hdus[0].header["HBGSCHE"] = 4
+        hdus[0].header["HBGSCHE"] = 999
 
     with pytest.raises(UnsupportedMaterializedProductError, match="schema"):
         read_catalogue_fits_product(path)
@@ -1222,7 +1222,7 @@ def test_diagnostics_reader_rejects_corrupt_or_unsupported_json(
         read_diagnostics_product(tmp_path / "missing.json")
 
     document = _diagnostics().model_dump(mode="json")
-    document["schema_version"] = 6
+    document["schema_version"] = 999
     path.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(UnsupportedMaterializedProductError, match="schema"):
         read_diagnostics_product(path)

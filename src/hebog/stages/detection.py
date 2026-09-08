@@ -37,6 +37,7 @@ from hebog.io.zarr import ZarrProductSink
 from hebog.stages.background import (
     BackgroundRmsGrids,
     BackgroundRmsTileRequest,
+    MultiscaleSourceProtection,
     estimate_background_rms_grids,
     interpolate_background_rms_tile,
     prepare_background_rms_tile_request,
@@ -240,12 +241,14 @@ def _write_source_filtering_mask(
     )
 
 
-def run_detection_stage(
+def run_detection_stage(  # noqa: PLR0913
     source: _WindowReadable,
     manifest: PartitionManifest,
     config: DetectionStageConfig,
     executor: Executor,
     sink: ZarrProductSink,
+    *,
+    multiscale_protection: MultiscaleSourceProtection | None = None,
 ) -> DetectionStageResult:
     """Run bounded compact detection and publish one complete generation.
 
@@ -272,6 +275,7 @@ def run_detection_stage(
         config=config,
         executor=executor,
         sink=sink,
+        multiscale_protection=multiscale_protection,
     )
 
 
@@ -283,6 +287,7 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
     config: DetectionStageConfig,
     executor: Executor,
     sink: ZarrProductSink,
+    multiscale_protection: MultiscaleSourceProtection | None = None,
 ) -> DetectionStageResult:
     """Run Phase 3 from one immutable Phase 2 coarse-grid result.
 
@@ -318,6 +323,7 @@ def run_detection_from_coarse_grids(  # noqa: PLR0913
             if config.source_finder.profile == "continuum"
             else None
         ),
+        multiscale_protection=multiscale_protection,
     )
     for product_name, dtype in (
         ("background", np.dtype("<f8")),

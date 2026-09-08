@@ -8,17 +8,20 @@ import numpy as np
 import pytest
 from distributed import Client
 
+from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.config import (
     AdaptiveRmsConfig,
     BackgroundRmsConfig,
     RmsGridConfig,
     RmsWindowStatisticsConfig,
+    SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds
 from hebog.executors import DaskExecutor, SerialExecutor
 from hebog.io.base import ImageWindow
 from hebog.stages.background import (
+    MultiscaleSourceProtection,
     estimate_background_rms_grids,
     estimate_background_rms_tile,
     prepare_background_rms_tile_request,
@@ -72,7 +75,10 @@ def _config() -> BackgroundRmsConfig:
     )
 
 
-def test_dask_and_serial_background_stages_are_equivalent() -> None:
+@pytest.mark.parametrize("multiscale", (False, True))
+def test_dask_and_serial_background_stages_are_equivalent(
+    multiscale: bool,
+) -> None:
     """Executor choice does not alter grids or owned tile outputs."""
     y, x = np.indices((40, 44), dtype=np.float64)
     image = 1.0 + 0.01 * y + np.where((x + y) % 2 == 0, -1.0, 1.0)
@@ -81,6 +87,15 @@ def test_dask_and_serial_background_stages_are_equivalent() -> None:
     positions = ((20.0, 22.0),)
     source = _ArrayImageSource(image)
     config = _config()
+    protection = (
+        MultiscaleSourceProtection(
+            BeamShapePixels(2.0, 1.5, 20.0),
+            SourceFinderConfig(5.0, 3.0, 7),
+            0.5,
+        )
+        if multiscale
+        else None
+    )
     serial_grids = estimate_background_rms_grids(
         source,
         image.shape,
@@ -88,6 +103,7 @@ def test_dask_and_serial_background_stages_are_equivalent() -> None:
         SerialExecutor(),
         bright_candidate_positions_yx=positions,
         source_protection_island_threshold_sigma=3.0,
+        multiscale_protection=protection,
     )
 
     with Client(
@@ -104,6 +120,7 @@ def test_dask_and_serial_background_stages_are_equivalent() -> None:
             dask_executor,
             bright_candidate_positions_yx=positions,
             source_protection_island_threshold_sigma=3.0,
+            multiscale_protection=protection,
         )
         manifest = plan_image_partitions(
             image_shape_yx=image.shape,

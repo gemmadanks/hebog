@@ -425,8 +425,12 @@ def test_hebog_moment_catalogue_reports_singular_shape_unavailable() -> None:
     assert source.deconvolution_status == "unavailable"
     assert source.deconvolved_shape is None
     assert source.quality_flags == (
+        "aperture-flux-uncertainty-unavailable",
+        "position-signed-original",
+        "position-uncertainty-unavailable",
         "segment-moment-equivalent-shape",
         "shape-unavailable",
+        "source-owned-signed-aperture",
     )
 
 

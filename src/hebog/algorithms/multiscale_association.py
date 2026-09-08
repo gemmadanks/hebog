@@ -30,6 +30,47 @@ _COMPACT_CONTEXT_RADIUS_BEAMS = 0.5
 _MINIMUM_PERSISTENT_SCALE_COUNT = 2
 
 
+def persistent_seeded_scale_support(  # noqa: PLR0913
+    scale_snrs: tuple[npt.NDArray[np.float64], ...],
+    residual: npt.NDArray[np.float64],
+    valid: npt.NDArray[np.bool_],
+    *,
+    detection_sigma: float,
+    island_sigma: float,
+    minimum_pixels: int,
+) -> npt.NDArray[np.bool_]:
+    """Apply one seeded adjacent-scale rule to non-publication support.
+
+    Callers provide noise-calibrated, beam-aware responses. Source-protected
+    statistics and source-owned photometry can reuse this support without
+    admitting new catalogue detections or changing a published mask.
+    """
+    planes: list[ScaleDetectionPlane] = []
+    for order, snr in enumerate(scale_snrs, start=1):
+        labels, count = cast(
+            tuple[npt.NDArray[np.int32], int],
+            connected_component_labels(
+                valid & (snr >= island_sigma), np.ones((3, 3))
+            ),
+        )
+        sizes = np.bincount(labels.ravel(), minlength=count + 1)
+        seeded = np.unique(labels[valid & (snr >= detection_sigma)])
+        accepted = np.zeros(count + 1, dtype=np.bool_)
+        accepted[seeded] = sizes[seeded] >= minimum_pixels
+        accepted[0] = False
+        planes.append(
+            build_scale_detection_plane(
+                accepted[labels],
+                residual,
+                snr,
+                valid,
+                scale_order=order,
+                nominal_scale_beam_fwhm=float(2 ** (order - 1)),
+            )
+        )
+    return persistent_adjacent_scale_support(tuple(planes))
+
+
 def compact_context_halo_pixels(beam_major_fwhm_pixels: float) -> int:
     """Return the reviewed half-major-beam context radius in pixels."""
     if (

@@ -15,7 +15,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.linalg import solve_triangular
 from scipy.ndimage import map_coordinates
-from scipy.optimize import least_squares
+from scipy.optimize import OptimizeResult, least_squares
 from scipy.signal import fftconvolve
 from scipy.special import ndtr
 
@@ -1949,4 +1949,298 @@ def fit_compact_gaussian(
         selected,
         position_estimate,
         component_candidate,
+    )
+
+
+def _mixture_initial_bounds(
+    moment: ValidMomentMeasurement,
+    region: DeblendedRegion,
+    samples: _FitSamples,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Reuse the free Gaussian parameterization on one owned seed."""
+    config = samples.config
+    initial = moment.initializer
+    lower = np.asarray(
+        (
+            np.finfo(np.float64).tiny,
+            max(
+                region.bounds.x_start - 0.5 - config.center_margin_pixels,
+                samples.x.min() - 0.5,
+            ),
+            max(
+                region.bounds.y_start - 0.5 - config.center_margin_pixels,
+                samples.y.min() - 0.5,
+            ),
+            config.minimum_sigma_pixels,
+            config.minimum_sigma_pixels,
+            -pi,
+        ),
+        dtype=np.float64,
+    )
+    upper = np.asarray(
+        (
+            samples.values.max() * config.maximum_amplitude_factor,
+            min(
+                region.bounds.x_stop - 0.5 + config.center_margin_pixels,
+                samples.x.max() + 0.5,
+            ),
+            min(
+                region.bounds.y_stop - 0.5 + config.center_margin_pixels,
+                samples.y.max() + 0.5,
+            ),
+            config.maximum_sigma_pixels,
+            config.maximum_sigma_pixels,
+            pi,
+        ),
+        dtype=np.float64,
+    )
+    parameters = np.asarray(
+        (
+            initial.amplitude_jy_per_beam,
+            *initial.centroid_xy,
+            initial.major_sigma_pixels,
+            initial.minor_sigma_pixels,
+            np.deg2rad(initial.major_axis_angle_degrees),
+        ),
+        dtype=np.float64,
+    )
+    return np.clip(parameters, lower, upper), lower, upper
+
+
+def _mixture_model(
+    parameters: np.ndarray, x: np.ndarray, y: np.ndarray
+) -> np.ndarray:
+    """Sum component models; background has already been subtracted once."""
+    return np.sum(
+        [
+            _gaussian_values(np.append(row, 0.0), x, y)
+            for row in parameters.reshape(-1, 6)
+        ],
+        axis=0,
+    )
+
+
+def _mixture_jacobian(
+    parameters: np.ndarray, x: np.ndarray, y: np.ndarray
+) -> np.ndarray:
+    """Reuse the analytic Gaussian derivative for one joint solve."""
+    return np.concatenate(
+        [
+            _gaussian_parameter_jacobian(np.append(row, 0.0), x, y)[:, :6]
+            for row in parameters.reshape(-1, 6)
+        ],
+        axis=1,
+    )
+
+
+def _publish_mixture_component(  # noqa: PLR0913, PLR0917
+    context: _FitPublicationContext,
+    samples: _FitSamples,
+    result: OptimizeResult,
+    covariance: np.ndarray | None,
+    initial_bounds: tuple[np.ndarray, np.ndarray, np.ndarray],
+    index: int,
+) -> CompactGaussianFitResult:
+    """Publish a marginal fit with joint residual and covariance evidence."""
+    optimizer = result
+    block = slice(6 * index, 6 * (index + 1))
+    parameters = np.asarray(optimizer.x[block], dtype=np.float64)
+    full_parameters = np.append(parameters, 0.0)
+    _, lower, upper = initial_bounds
+    diagnostics = _diagnostics(
+        converged=bool(optimizer.success),
+        function_evaluations=int(optimizer.nfev),
+        evidence=_FitEvidence(
+            parameters=parameters,
+            lower_bounds=lower,
+            upper_bounds=upper,
+            jacobian=np.asarray(optimizer.jac[:, block]),
+            x=samples.x,
+            y=samples.y,
+            weighted_residual=np.asarray(optimizer.fun),
+            parameter_names=_FREE_FIXED_BACKGROUND_PARAMETER_NAMES,
+            model_identity="free-elliptical",
+            full_parameters=full_parameters,
+            fallback_reason=None,
+            point_estimator=samples.point_estimator,
+            point_estimator_fallback_reason=samples.point_estimator_fallback_reason,
+        ),
+    )
+    degrees_of_freedom = samples.x.size - optimizer.x.size
+    diagnostics = replace(
+        diagnostics,
+        degrees_of_freedom=int(degrees_of_freedom),
+        reduced_chi_squared=(
+            diagnostics.chi_squared / degrees_of_freedom
+            if degrees_of_freedom > 0
+            else None
+        ),
+    )
+    candidate = _FitCandidate(
+        success=bool(optimizer.success),
+        optimizer_parameters=parameters,
+        full_parameters=full_parameters,
+        jacobian=np.asarray(optimizer.jac[:, block]),
+        covariance=None if covariance is None else covariance[block, block],
+        diagnostics=diagnostics,
+    )
+    if not candidate.success or not _numerically_valid(
+        candidate, context.config
+    ):
+        return FailedCompactGaussianFit(
+            moment=context.moment,
+            reason="fit-non-convergence"
+            if not candidate.success
+            else "fit-invalid-result",
+            diagnostics=diagnostics,
+            quality_flags=("joint-gaussian-fit", "fit-failed"),
+        )
+    fitted = _valid_fit_result(context, candidate, position_estimate=None)
+    return replace(
+        fitted,
+        quality_flags=tuple(
+            sorted({*fitted.quality_flags, "joint-gaussian-fit"})
+        ),
+        # A neighbour-contaminated per-component aperture is not joint flux.
+        association_aperture=None,
+    )
+
+
+def fit_compact_gaussian_mixture(  # noqa: PLR0913
+    compact: CompactMomentInput,
+    moments: tuple[CompactMomentMeasurement, ...],
+    geometry: CompactMeasurementGeometry,
+    config: CompactGaussianFitConfig,
+    *,
+    maximum_parameters: int = 96,
+    maximum_jacobian_elements: int = 1_000_000,
+) -> tuple[CompactGaussianFitResult, ...]:
+    """Fit bounded neighbouring components jointly on original pixels.
+
+    This extends the existing free-ellipse solver, derivative, noise transform
+    and covariance machinery. It does not add components or change detection.
+    Callers supply one bounded parent plus context, excluding foreign owners.
+    Work admission precedes allocation of the joint Jacobian. The background
+    is fixed at the caller's independently estimated background map.
+    """
+    if config.background_model != "fixed-zero":
+        raise ValueError(
+            "joint compact fitting requires fixed-zero background"
+        )
+    if (
+        type(maximum_parameters) is not int
+        or type(maximum_jacobian_elements) is not int
+        or maximum_parameters < len(_FREE_FIXED_BACKGROUND_PARAMETER_NAMES)
+        or maximum_jacobian_elements < 1
+    ):
+        raise ValueError(
+            "joint fit work limits must be positive and admit six parameters"
+        )
+    by_id = {moment.target.object_id: moment for moment in moments}
+    if len(by_id) != len(moments) or set(by_id) != {
+        region.region_id for region in compact.regions
+    }:
+        raise ValueError(
+            "joint moments must identify every component exactly once"
+        )
+    ordered = tuple(by_id[region.region_id] for region in compact.regions)
+    if not ordered:
+        return ()
+    available = tuple(_unavailable_fit(moment, config) for moment in ordered)
+    if any(item is not None for item in available):
+        return tuple(
+            absent
+            if absent is not None
+            else UnavailableCompactGaussianFit(
+                moment=moment,
+                reason="joint-peer-unavailable",
+                quality_flags=("fit-unavailable", "joint-peer-unavailable"),
+            )
+            for moment, absent in zip(ordered, available, strict=True)
+        )
+    valid = (
+        np.asarray(compact.valid_pixels)
+        & np.isfinite(compact.physical_residual)
+        & np.isfinite(compact.rms)
+        & (compact.rms > 0.0)
+    )
+    parameter_count = 6 * len(ordered)
+    pixel_count = int(np.count_nonzero(valid))
+    if (
+        parameter_count > maximum_parameters
+        or parameter_count * pixel_count > maximum_jacobian_elements
+    ):
+        return tuple(
+            UnavailableCompactGaussianFit(
+                moment=moment,
+                reason="joint-fit-work-limit",
+                quality_flags=("fit-unavailable", "joint-fit-work-limit"),
+            )
+            for moment in ordered
+        )
+    if pixel_count <= parameter_count:
+        return tuple(
+            UnavailableCompactGaussianFit(
+                moment=moment,
+                reason="underdetermined-region",
+                quality_flags=("fit-unavailable",),
+            )
+            for moment in ordered
+        )
+    bounds = getattr(compact, "array_bounds", compact.island.bounds)
+    samples = _fit_samples_from_mask(compact, valid, bounds, geometry, config)
+    contexts = tuple(
+        _FitPublicationContext(
+            compact,
+            region,
+            cast(ValidMomentMeasurement, moment),
+            geometry,
+            config,
+        )
+        for region, moment in zip(compact.regions, ordered, strict=True)
+    )
+    initial_bounds = tuple(
+        _mixture_initial_bounds(context.moment, context.region, samples)
+        for context in contexts
+    )
+    initial, lower, upper = (
+        np.concatenate([values[index] for values in initial_bounds])
+        for index in range(3)
+    )
+
+    def residual(parameters: np.ndarray) -> np.ndarray:
+        return samples.residual_transform(
+            (_mixture_model(parameters, samples.x, samples.y) - samples.values)
+            / samples.rms
+        )
+
+    def jacobian(parameters: np.ndarray) -> np.ndarray:
+        return samples.residual_transform(
+            _mixture_jacobian(parameters, samples.x, samples.y)
+            / samples.rms[:, None]
+        )
+
+    result = least_squares(
+        residual,
+        initial,
+        jac=jacobian,  # pyright: ignore[reportArgumentType]
+        bounds=(lower, upper),
+        method="trf",
+        x_scale="jac",
+        ftol=config.convergence_tolerance,
+        xtol=config.convergence_tolerance,
+        gtol=config.convergence_tolerance,
+        max_nfev=config.maximum_function_evaluations,
+    )
+    covariance = _parameter_covariance(
+        np.asarray(result.jac),
+        np.column_stack((samples.x, samples.y)),
+        geometry,
+        correlated_point_estimator=samples.point_estimator == "correlated-gls",
+    )
+    return tuple(
+        _publish_mixture_component(
+            context, samples, result, covariance, initial_bounds[index], index
+        )
+        for index, context in enumerate(contexts)
     )

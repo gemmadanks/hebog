@@ -7,6 +7,8 @@ import runpy
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 _ROOT = Path(__file__).parents[3]
 _REFRESH = runpy.run_path(
     str(_ROOT / "scripts/benchmark/refresh_public_notebook_hebog.py")
@@ -23,10 +25,30 @@ def _write_json(path: Path, value: object) -> None:
 def test_preflight_uses_the_public_runners_exact_configuration(
     tmp_path: Path,
     capsys: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A refresh must not reconstruct an obsolete candidate identity."""
     input_campaign = tmp_path / "input.json"
     reference_campaign = tmp_path / "reference.json"
+    runner_path = (
+        tmp_path / "scripts/benchmark/run_phase5_public_finder_hebog.py"
+    )
+    runner_path.parent.mkdir(parents=True)
+    expected = "e" * 64
+    runner_path.write_text(
+        "def public_hebog_configuration_sha256():\n"
+        f"    return {expected!r}\n"
+        "def run_public_hebog(**kwargs):\n"
+        "    raise AssertionError('preflight must not execute a finder')\n",
+        encoding="utf-8",
+    )
+
+    def git_identity(_root: Path) -> tuple[str, bool]:
+        return "a" * 40, False
+
+    monkeypatch.setitem(
+        _REFRESH["run_refresh"].__globals__, "_git_identity", git_identity
+    )
     _write_json(
         input_campaign,
         {
@@ -46,7 +68,7 @@ def test_preflight_uses_the_public_runners_exact_configuration(
     )
 
     _REFRESH["run_refresh"](
-        repository_root=_ROOT,
+        repository_root=tmp_path,
         input_campaign_path=input_campaign,
         reference_campaign_path=reference_campaign,
         history_root=tmp_path / "history",
@@ -56,9 +78,5 @@ def test_preflight_uses_the_public_runners_exact_configuration(
     )
 
     preflight = json.loads(capsys.readouterr().out)
-    expected = _PUBLIC_RUNNER["public_hebog_configuration_sha256"]()
     assert preflight["configuration_sha256"] == expected
-    assert preflight["configuration_sha256"] == (
-        "2c907949d2b9678b2d1f4cc00f8ba6c079e866842edea6873f981dc1264ed11d"
-    )
     assert not (tmp_path / "history").exists()

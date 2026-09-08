@@ -263,16 +263,24 @@ def test_compiler_requires_every_exact_pair_and_no_extra_summary() -> None:
 
 def test_runner_verify_only_is_no_write_and_execution_needs_new_authority(
     tmp_path: Path,
+    frozen_campaign_root: Path,
+    frozen_public_configuration: str,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Implementation approval cannot be mistaken for execution approval."""
     runner = _program(_RUNNER)
+    monkeypatch.setitem(
+        runner["verify_no_write"].__globals__,
+        "public_hebog_configuration_sha256",
+        lambda: frozen_public_configuration,
+    )
     scratch = tmp_path / "scratch"
     output = tmp_path / "decision.json"
 
     verified = runner["verify_no_write"](
-        repository_root=_ROOT,
-        manifest_path=_MANIFEST,
-        identity_path=_IDENTITY,
+        repository_root=frozen_campaign_root,
+        manifest_path=frozen_campaign_root / _MANIFEST.relative_to(_ROOT),
+        identity_path=frozen_campaign_root / _IDENTITY.relative_to(_ROOT),
         scratch=scratch,
         output=output,
         minimum_free_disk_gib=0,
@@ -340,9 +348,9 @@ def test_separate_exact_decision_can_open_only_the_frozen_shape(
         runner["verify_execution_authority"](arguments)
 
 
-def test_frozen_identity_binds_complete_program_and_stays_non_executable() -> (
-    None
-):
+def test_frozen_identity_binds_complete_program_and_stays_non_executable(
+    frozen_campaign_root: Path,
+) -> None:
     """Every future execution seam is immutable before approval."""
     identity = json.loads(_IDENTITY.read_text(encoding="utf-8"))
     implementation = json.loads(_IMPLEMENTATION.read_text(encoding="utf-8"))
@@ -355,7 +363,10 @@ def test_frozen_identity_binds_complete_program_and_stays_non_executable() -> (
     assert identity["population"]["image_count"] == 168
     assert identity["execution_contract"]["total_finder_executions"] == 348
     for binding in identity["program_bindings"].values():
-        assert file_sha256(_ROOT / binding["path"]) == binding["sha256"]
+        assert (
+            file_sha256(frozen_campaign_root / binding["path"])
+            == binding["sha256"]
+        )
 
 
 def test_freezer_collision_writes_nothing_else(

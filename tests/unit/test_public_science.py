@@ -14,7 +14,9 @@ from astropy.io import fits
 
 from hebog import public_science
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.source_association import reduce_source_associations
 from hebog.config import SourceFinderConfig
+from hebog.data_models.source_association import DetectionComponentRecord
 from hebog.public_science import (
     _aligned_plane,
     _execution_review,
@@ -225,6 +227,21 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         return_products,
     )
 
+    # This seam test supplies topology products, not a multiscale hierarchy.
+    # The complete physical hierarchy is exercised by the analytic tests below.
+    def independent_memberships(
+        records: tuple[DetectionComponentRecord, ...],
+        *_args: object,
+        **_kwargs: object,
+    ):
+        return reduce_source_associations(records, ())
+
+    monkeypatch.setattr(
+        public_science,
+        "associate_components_by_multiscale_hierarchy",
+        independent_memberships,
+    )
+
     def capture_catalogues(
         image: np.ndarray,
         background: np.ndarray,
@@ -241,6 +258,8 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
             source_catalogue=(),
             component_catalogue=(),
             association=object(),
+            measurement_dispositions=(),
+            support_stages=(),
         )
 
     monkeypatch.setattr(
@@ -258,7 +277,7 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
         normalized,
         np.zeros(normalized.shape, dtype=np.float64),
         np.ones(normalized.shape, dtype=np.float64),
-        fits.Header(),
+        _header(normalized.shape),
         beam=BeamShapePixels(5.0, 4.0, 0.0),
         review=review,
         config=SourceFinderConfig(5.0, 3.0, 7),
@@ -274,10 +293,8 @@ def test_configured_builder_deblends_components_before_catalogue_measurement(
     )
 
 
-def test_configured_builder_publishes_components_and_associated_source() -> (
-    None
-):
-    """A connected two-peak island has two components in one source."""
+def test_configured_builder_publishes_independent_connected_sources() -> None:
+    """Independent Gaussian models remain two sources in one island."""
     yy, xx = np.mgrid[:65, :65]
     normalized = 10.0 * np.exp(
         -((yy - 32) ** 2 + (xx - 29) ** 2) / 8.0
@@ -301,14 +318,14 @@ def test_configured_builder_publishes_components_and_associated_source() -> (
     assert result is not None
     assert result.detection.component_count == 1
     assert len(result.component_catalogue) == 2
-    assert len(result.catalogue) == 1
-    assert result.catalogue[0].component_count == 2
+    assert len(result.catalogue) == 2
+    assert all(row.component_count == 1 for row in result.catalogue)
     assert result.deblended_parent_count == 1
     assert result.deferred_deblend_parent_count == 0
     assert tuple(
         len(membership.component_ids)
         for membership in result.source_association.memberships
-    ) == (2,)
+    ) == (1, 1)
 
 
 def test_configured_builder_retains_three_components_in_one_parent() -> None:
@@ -338,11 +355,11 @@ def test_configured_builder_retains_three_components_in_one_parent() -> None:
     assert result is not None
     assert result.detection.component_count == 1
     assert len(result.component_catalogue) == 3
-    assert len(result.catalogue) == 1
-    assert result.catalogue[0].component_count == 3
+    assert len(result.catalogue) == 3
+    assert all(row.component_count == 1 for row in result.catalogue)
     assert result.deblended_parent_count == 1
     assert result.deferred_deblend_parent_count == 0
     assert tuple(
         len(membership.component_ids)
         for membership in result.source_association.memberships
-    ) == (3,)
+    ) == (1, 1, 1)

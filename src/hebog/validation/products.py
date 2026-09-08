@@ -27,7 +27,9 @@ from hebog.algorithms.astrometry import (
     deconvolve_gaussian_shapes,
     local_tangent_plane_transform_from_wcs,
     moment_equivalent_gaussian_shape,
+    transform_compact_fit_at_tangent,
 )
+from hebog.algorithms.component_measurement import ComponentMeasurements
 from hebog.algorithms.extended_measurement import (
     DetectedSegmentPosition,
     assign_persistent_source_support,
@@ -43,9 +45,12 @@ from hebog.algorithms.source_association import (
     associate_components_by_multiscale_hierarchy,
     associate_detection_components,
     build_detection_component_records,
+    constrain_source_memberships,
 )
 from hebog.data_models.catalogues import GaussianShape
+from hebog.data_models.fitting import ValidCompactGaussianFit
 from hebog.data_models.images import RestoringBeam
+from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.data_models.source_association import (
     CatalogueSourceMembership,
     SourceAssociationResult,
@@ -909,8 +914,19 @@ def _segment_position(
                 selected = denoised_position_signal
     estimate = measure_detected_segment_position(selected, support)
     if not estimate.available and denoised_position_signal is not None:
-        return measure_detected_segment_position(residual, support)
-    return estimate
+        alternative = (
+            residual
+            if selected is denoised_position_signal
+            else denoised_position_signal
+        )
+        selected = alternative
+        estimate = measure_detected_segment_position(selected, support)
+    return replace(
+        estimate,
+        weighting="denoised"
+        if selected is denoised_position_signal
+        else "signed-original",
+    )
 
 
 def build_hebog_segment_catalogue(  # noqa: PLR0913
@@ -1042,7 +1058,20 @@ def build_hebog_segment_catalogue(  # noqa: PLR0913
                 deconvolution_status="unavailable",
                 island_identifier=identifier,
                 component_count=1,
-                quality_flags=quality_flags,
+                quality_flags=tuple(
+                    sorted(
+                        {
+                            *quality_flags,
+                            f"position-{estimate.weighting}",
+                            "positive-exact-owner-flux"
+                            if "exact-owner-positive-residual-flux"
+                            in quality_flags
+                            else "source-owned-signed-aperture",
+                            "aperture-flux-uncertainty-unavailable",
+                            "position-uncertainty-unavailable",
+                        }
+                    )
+                ),
             )
         )
     return tuple(output)
@@ -1054,6 +1083,9 @@ def _catalogue_ellipse(shape: GaussianShape) -> CatalogueEllipse:
         major_fwhm_degrees=shape.major_fwhm_degrees,
         minor_fwhm_degrees=shape.minor_fwhm_degrees,
         position_angle_degrees=shape.position_angle_degrees,
+        major_fwhm_error_degrees=shape.major_fwhm_error_degrees,
+        minor_fwhm_error_degrees=shape.minor_fwhm_error_degrees,
+        position_angle_error_degrees=shape.position_angle_error_degrees,
     )
 
 
@@ -1253,6 +1285,8 @@ class AssociatedMomentCatalogues:
     component_catalogue: tuple[CatalogueSource, ...]
     source_catalogue: tuple[CatalogueSource, ...]
     association: SourceAssociationResult
+    measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
+    support_stages: tuple[tuple[str, npt.NDArray[np.bool_]], ...] = ()
 
 
 def _source_label_plane(
@@ -1283,6 +1317,216 @@ def _source_label_plane(
     return output, memberships_by_label
 
 
+def _fitted_component_row(
+    index: int,
+    fitted: ValidCompactGaussianFit,
+    header: fits.Header,
+) -> CatalogueSource:
+    """Publish native model measurements, not threshold-truncated moments."""
+    beam = RestoringBeam(
+        cast(float, header["BMAJ"]),
+        cast(float, header["BMIN"]),
+        cast(float, header.get("BPA", 0.0)),
+    )
+    tangent = local_tangent_plane_transform_from_wcs(
+        WCS(header, relax=True).celestial,
+        fitted.parameters.centroid_xy,
+    )
+    sky = transform_compact_fit_at_tangent(fitted, beam, tangent)
+    return CatalogueSource(
+        identifier=f"hebog-segment-{index}",
+        right_ascension_degrees=sky.position.right_ascension_degrees,
+        declination_degrees=sky.position.declination_degrees,
+        right_ascension_error_degrees=sky.position.right_ascension_error_degrees,
+        declination_error_degrees=sky.position.declination_error_degrees,
+        peak_flux_jy_per_beam=sky.fitted_flux.peak_flux_jy_per_beam,
+        integrated_flux_jy=sky.fitted_flux.integrated_flux_jy,
+        peak_flux_error_jy_per_beam=sky.fitted_flux.peak_flux_error_jy_per_beam,
+        integrated_flux_error_jy=sky.fitted_flux.integrated_flux_error_jy,
+        fitted_shape=_catalogue_ellipse(sky.fitted_shape),
+        deconvolved_shape=None
+        if sky.deconvolved_shape is None
+        else _catalogue_ellipse(sky.deconvolved_shape),
+        deconvolved_major_fwhm_degrees=sky.deconvolved_major_fwhm_degrees,
+        deconvolution_status=sky.deconvolution_status,
+        quality_flags=tuple(
+            sorted({*sky.quality_flags, "original-pixel-gaussian-model"})
+        ),
+    )
+
+
+def _apply_component_measurements(
+    sources: tuple[CatalogueSource, ...],
+    measurements: ComponentMeasurements | None,
+    header: fits.Header,
+) -> tuple[tuple[CatalogueSource, ...], set[int]]:
+    """Substitute original-pixel fits and identify compact model groups."""
+    if measurements is None:
+        return sources, set()
+    replacements = {
+        f"hebog-segment-{index}": _fitted_component_row(index, fitted, header)
+        for index, fitted in measurements.fits
+        if isinstance(fitted, ValidCompactGaussianFit)
+    }
+    return (
+        tuple(
+            sorted(
+                {
+                    **{row.identifier: row for row in sources},
+                    **replacements,
+                }.values(),
+                key=lambda row: row.identifier,
+            )
+        ),
+        {index for group in measurements.compact_groups for index in group},
+    )
+
+
+def _measurement_dispositions(
+    association: SourceAssociationResult,
+    measurements: ComponentMeasurements,
+    sources: tuple[CatalogueSource, ...],
+) -> tuple[MeasurementDisposition, ...]:
+    """Retain all detections, even when no valid measured row exists."""
+    by_label = dict(measurements.fits)
+    dispositions = []
+    for record in association.components:
+        fitted = by_label.get(record.label_value)
+        measured = isinstance(fitted, ValidCompactGaussianFit)
+        reason = (
+            None
+            if measured
+            else (
+                fitted.reason if fitted is not None else "parent-work-deferred"
+            )
+        )
+        deferred = reason in {"joint-fit-work-limit", "parent-work-deferred"}
+        dispositions.append(
+            MeasurementDisposition(
+                object_kind="component",
+                object_id=record.component_id,
+                status="measured"
+                if measured
+                else ("deferred" if deferred else "unavailable"),
+                estimator="original-pixel-gaussian-model"
+                if measured
+                else None,
+                reason=reason,
+            )
+        )
+    by_id = {row.identifier: row for row in sources}
+    for membership in association.memberships:
+        row = by_id.get(membership.source_id)
+        gaussian = row is not None and (
+            "original-pixel-gaussian-model" in row.quality_flags
+        )
+        dispositions.append(
+            MeasurementDisposition(
+                object_kind="source",
+                object_id=membership.source_id,
+                status="unavailable" if row is None else "measured",
+                estimator=None
+                if row is None
+                else (
+                    "original-pixel-gaussian-model"
+                    if gaussian
+                    else "source-owned-signed-aperture"
+                ),
+                reason="non-positive-or-unavailable-signed-measurement"
+                if row is None
+                else None,
+                member_component_ids=membership.component_ids,
+            )
+        )
+    return tuple(
+        sorted(
+            dispositions, key=lambda item: (item.object_kind, item.object_id)
+        )
+    )
+
+
+def _reconstructed_source_rows(  # noqa: PLR0913
+    measured_sources: tuple[CatalogueSource, ...],
+    components: tuple[CatalogueSource, ...],
+    membership_by_label: dict[int, CatalogueSourceMembership],
+    association: SourceAssociationResult,
+    *,
+    compact_ids: set[str],
+    require_signed_aperture: bool,
+) -> tuple[CatalogueSource, ...]:
+    """Choose each source's own estimator, independently of auxiliary rows."""
+    measured_by_label: dict[int, CatalogueSource] = {}
+    for row in measured_sources:
+        prefix = "hebog-segment-"
+        if not row.identifier.startswith(prefix):
+            raise ValueError("measured source identity is malformed")
+        measured_by_label[int(row.identifier[len(prefix) :])] = row
+    by_id = {row.identifier: row for row in components}
+    output = []
+    for source_label, membership in membership_by_label.items():
+        source = measured_by_label.get(source_label)
+        if len(membership.component_ids) == 1 and (
+            membership.component_ids[0] in compact_ids
+        ):
+            source = by_id[membership.component_ids[0]]
+        if source is None or (
+            require_signed_aperture
+            and ("exact-owner-positive-residual-flux" in source.quality_flags)
+        ):
+            continue
+        if require_signed_aperture and (
+            "original-pixel-gaussian-model" not in source.quality_flags
+        ):
+            # Threshold-support moments are descriptors, not fitted or
+            # beam-deconvolved shapes of an irregular astrophysical source.
+            source = replace(
+                source,
+                fitted_shape=None,
+                deconvolved_shape=None,
+                deconvolved_major_fwhm_degrees=None,
+                deconvolution_status="unavailable",
+                quality_flags=tuple(
+                    sorted(
+                        (
+                            set(source.quality_flags)
+                            - {
+                                "segment-moment-equivalent-shape",
+                                "resolved",
+                                "unresolved",
+                                "major-axis-only",
+                            }
+                        )
+                        | {"shape-unavailable", "resolution-unavailable"}
+                    )
+                ),
+            )
+        flags = {*source.quality_flags, "reconstructed-catalogue-source"}
+        # A component's fitted estimator and uncertainties do not describe
+        # a source-owned aperture. Retain them with their component context.
+        flags.update(
+            f"member-{flag}"
+            for component_id in membership.component_ids
+            for component in (by_id.get(component_id),)
+            if component is not None
+            for flag in component.quality_flags
+        )
+        if any(
+            component_id in association.ambiguous_component_ids
+            for component_id in membership.component_ids
+        ):
+            flags.add("ambiguous-multiscale-parent")
+        output.append(
+            replace(
+                source,
+                identifier=membership.source_id,
+                island_identifier=membership.source_id,
+                component_count=len(membership.component_ids),
+                quality_flags=tuple(sorted(flags)),
+            )
+        )
+    return tuple(sorted(output, key=lambda item: item.identifier))
+
+
 def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     image_jy_per_beam: npt.ArrayLike,
     background_jy_per_beam: npt.ArrayLike,
@@ -1298,6 +1542,7 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
     measurement_aperture_radius_beams: float = 4.0,
     position_signal_jy_per_beam: npt.ArrayLike | None = None,
     denoised_position_maximum_peak_to_mean_ratio: float = 3.0,
+    component_measurements: ComponentMeasurements | None = None,
 ) -> AssociatedMomentCatalogues:
     """Measure each common-parent catalogue source exactly once.
 
@@ -1351,6 +1596,11 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         ),
     )
     records = build_detection_component_records(direct, residual, valid)
+    component_sources, compact_labels = _apply_component_measurements(
+        component_sources,
+        component_measurements,
+        header,
+    )
     association = associate_components_by_multiscale_hierarchy(
         records,
         direct,
@@ -1358,6 +1608,19 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         valid,
         significant_multiscale_support=significant_multiscale_support,
     )
+    if component_measurements is not None:
+        association = constrain_source_memberships(
+            association,
+            (
+                *component_measurements.compact_groups,
+                *component_measurements.extended_groups,
+            ),
+        )
+    compact_ids = {
+        record.component_id
+        for record in records
+        if record.label_value in compact_labels
+    }
     stable_components = _stable_component_catalogue(
         component_sources,
         association,
@@ -1366,9 +1629,19 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         labels,
         association,
     )
+    persistent_support = persistent_adjacent_scale_support(
+        scale_detection_planes
+    )
+    if (
+        component_measurements is not None
+        and component_measurements.measurement_support is not None
+    ):
+        persistent_support = (
+            persistent_support | component_measurements.measurement_support
+        )
     source_measurement_labels = assign_persistent_source_support(
         source_labels,
-        persistent_adjacent_scale_support(scale_detection_planes),
+        persistent_support,
         valid,
     )
     measured_sources = build_hebog_segment_moment_catalogue(
@@ -1386,50 +1659,61 @@ def build_hebog_reconstructed_source_catalogues(  # noqa: PLR0913, PLR0917
         ),
         aperture_tie_policy="canonical-source",
     )
-    components_by_id = {item.identifier: item for item in stable_components}
-    output: list[CatalogueSource] = []
-    for source in measured_sources:
-        prefix = "hebog-segment-"
-        if not source.identifier.startswith(prefix):
-            raise ValueError("measured source identity is malformed")
-        source_label = int(source.identifier[len(prefix) :])
-        membership = membership_by_label[source_label]
-        member_flags = {
-            flag
-            for component_id in membership.component_ids
-            for component in (components_by_id.get(component_id),)
-            if component is not None
-            for flag in component.quality_flags
-        }
-        flags = {
-            *source.quality_flags,
-            *member_flags,
-            "reconstructed-catalogue-source",
-        }
-        if any(
-            component_id in association.ambiguous_component_ids
-            for component_id in membership.component_ids
-        ):
-            flags.add("ambiguous-multiscale-parent")
-        output.append(
-            replace(
-                source,
-                identifier=membership.source_id,
-                island_identifier=membership.source_id,
-                component_count=len(membership.component_ids),
-                quality_flags=tuple(sorted(flags)),
-            )
-        )
-    if len(output) != len(association.memberships):
+    output = _reconstructed_source_rows(
+        measured_sources,
+        stable_components,
+        membership_by_label,
+        association,
+        compact_ids=compact_ids,
+        require_signed_aperture=component_measurements is not None,
+    )
+    if component_measurements is None and len(output) != len(
+        association.memberships
+    ):
         raise ValueError(
             "reconstructed source has no measurable catalogue row"
         )
+    support_stages = (
+        (
+            ("persistent", persistent_support),
+            ("source-union", source_labels > 0),
+            ("source-owned-persistent", source_measurement_labels > 0),
+            (
+                "source-measurement",
+                expand_source_measurement_labels(
+                    source_measurement_labels,
+                    valid,
+                    radius_pixels=ceil(
+                        measurement_aperture_radius_beams
+                        * beam_major_fwhm_pixels
+                    ),
+                )
+                > 0,
+            ),
+        )
+        if component_measurements is not None
+        else ()
+    )
+    for _, mask in support_stages:
+        mask.setflags(write=False)
     return AssociatedMomentCatalogues(
-        component_catalogue=stable_components,
-        source_catalogue=tuple(
-            sorted(output, key=lambda item: item.identifier)
+        component_catalogue=stable_components
+        if component_measurements is None
+        else tuple(
+            row
+            for row in stable_components
+            if "original-pixel-gaussian-model" in row.quality_flags
         ),
+        source_catalogue=output,
         association=association,
+        support_stages=support_stages,
+        measurement_dispositions=()
+        if component_measurements is None
+        else (
+            _measurement_dispositions(
+                association, component_measurements, tuple(output)
+            )
+        ),
     )
 
 

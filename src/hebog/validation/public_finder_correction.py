@@ -21,6 +21,7 @@ from hebog.data_models.catalogues import (
     SourceCandidate,
     SpectralModel,
 )
+from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 from hebog.data_models.source_association import SourceAssociationResult
 from hebog.validation.comparison import CatalogueEllipse, CatalogueSource
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
@@ -113,6 +114,8 @@ class PublicFinderCorrectionContinuumProducts:
     source_association: SourceAssociationResult
     deblended_parent_count: int = 0
     deferred_deblend_parent_count: int = 0
+    measurement_dispositions: tuple[MeasurementDisposition, ...] = ()
+    support_stages: tuple[tuple[str, npt.NDArray[np.bool_]], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

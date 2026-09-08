@@ -16,7 +16,10 @@ from scipy.special import ndtr
 
 from hebog.algorithms import fitting as fitting_algorithm
 from hebog.algorithms.deblending import DeblendedRegion
-from hebog.algorithms.fitting import fit_compact_gaussian
+from hebog.algorithms.fitting import (
+    fit_compact_gaussian,
+    fit_compact_gaussian_mixture,
+)
 from hebog.algorithms.measurement import measure_compact_moments
 from hebog.algorithms.reconciliation import DetectedIsland
 from hebog.config import CompactGaussianFitConfig, CompactMomentConfig
@@ -27,7 +30,10 @@ from hebog.data_models.fitting import (
     UnavailableCompactGaussianFit,
     ValidCompactGaussianFit,
 )
-from hebog.data_models.measurement import CompactMeasurementGeometry
+from hebog.data_models.measurement import (
+    CompactMeasurementGeometry,
+    UnavailableMomentMeasurement,
+)
 from hebog.data_models.partitioning import ImageBounds
 
 
@@ -206,6 +212,290 @@ def _fit(
         selected_geometry,
         config or _fit_config(),
     )
+
+
+def _joint_input() -> _FitInput:
+    """Overlapping ellipses with immutable initialization owners."""
+    first = _gaussian_input(
+        amplitude=10.0,
+        centroid_xy=(12.0, 12.0),
+        sigma_axes=(2.0, 1.5),
+        angle_degrees=0.0,
+        shape_yx=(25, 33),
+        origin_yx=(0, 0),
+        rms_value=1.0,
+    )
+    second = _gaussian_input(
+        amplitude=7.0,
+        centroid_xy=(19.0, 12.0),
+        sigma_axes=(2.0, 1.5),
+        angle_degrees=0.0,
+        shape_yx=(25, 33),
+        origin_yx=(0, 0),
+        rms_value=1.0,
+    )
+    signal = first.physical_residual + second.physical_residual
+    _, xx = np.mgrid[: signal.shape[0], : signal.shape[1]]
+    labels = np.where(signal >= 3.0, np.where(xx <= 15, 1, 2), 0).astype(
+        np.int32
+    )
+    regions = []
+    for index in (1, 2):
+        support = labels == index
+        ys, xs = np.nonzero(support)
+        peak = np.unravel_index(
+            np.argmax(np.where(support, signal, -np.inf)), signal.shape
+        )
+        regions.append(
+            replace(
+                first.regions[0],
+                region_id=f"component-{index}",
+                region_label=index,
+                pixel_count=int(support.sum()),
+                bounds=ImageBounds(
+                    int(ys.min()),
+                    int(ys.max() + 1),
+                    int(xs.min()),
+                    int(xs.max() + 1),
+                ),
+                peak_position_yx=(int(peak[0]), int(peak[1])),
+                peak_signal_to_noise=float(signal[peak]),
+                first_pixel_yx=(int(ys[0]), int(xs[0])),
+            )
+        )
+    return replace(
+        first,
+        island=replace(
+            first.island, pixel_count=int(np.count_nonzero(labels))
+        ),
+        physical_residual=signal,
+        regions=tuple(regions),
+        region_labels=labels,
+    )
+
+
+def test_joint_fit_separates_neighbour_flux_and_keeps_marginal_errors() -> (
+    None
+):
+    """Fit all neighbours simultaneously, including below-threshold wings."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    fits = fit_compact_gaussian_mixture(
+        compact, moments, geometry, _fit_config(background_model="fixed-zero")
+    )
+    for fitted, amplitude, center in zip(
+        fits, (10.0, 7.0), (12.0, 19.0), strict=True
+    ):
+        assert isinstance(fitted, ValidCompactGaussianFit)
+        assert fitted.parameters.centroid_xy == pytest.approx(
+            (center, 12.0), abs=1e-6
+        )
+        assert fitted.parameters.integrated_flux_jy == pytest.approx(
+            amplitude * 2 * np.pi * 3 / 8, rel=1e-6
+        )
+        assert fitted.uncertainty is not None
+        assert fitted.uncertainty.integrated_flux_error_jy > 0.0
+        assert (
+            fitted.diagnostics.degrees_of_freedom
+            == compact.physical_residual.size - 12
+        )
+        assert fitted.association_aperture is None
+        assert "joint-gaussian-fit" in fitted.quality_flags
+
+
+def test_joint_gaussian_jacobian_matches_independent_finite_difference() -> (
+    None
+):
+    """Each neighbour contributes its own six exact model derivatives."""
+    params = np.array(
+        (10, 1, 2, 2, 1.5, 0.3, 7, 4, 2, 2.3, 1.8, -0.2), dtype=float
+    )
+    x, y = (
+        np.array((0, 1, 3, 4), dtype=float),
+        np.array((2, 0, 1, 3), dtype=float),
+    )
+    actual = fitting_algorithm._mixture_jacobian(params, x, y)
+    for index in range(params.size):
+        step = np.zeros_like(params)
+        step[index] = 1e-6
+        derivative = (
+            fitting_algorithm._mixture_model(params + step, x, y)
+            - fitting_algorithm._mixture_model(params - step, x, y)
+        ) / 2e-6
+        np.testing.assert_allclose(
+            actual[:, index], derivative, atol=1e-8, rtol=1e-6
+        )
+
+
+@pytest.mark.parametrize(
+    "limits", ({"maximum_parameters": 6}, {"maximum_jacobian_elements": 100})
+)
+def test_joint_fit_admits_work_before_allocating_optimizer(
+    limits: dict[str, int],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Large parent fits have an explicit unavailable result, not an OOM."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+
+    def forbidden(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("optimizer must not start for unadmitted work")
+
+    monkeypatch.setattr(fitting_algorithm, "least_squares", forbidden)
+    fits = fit_compact_gaussian_mixture(
+        compact,
+        moments,
+        geometry,
+        _fit_config(background_model="fixed-zero"),
+        **limits,
+    )
+    assert all(
+        isinstance(fitted, UnavailableCompactGaussianFit)
+        and fitted.reason == "joint-fit-work-limit"
+        for fitted in fits
+    )
+
+
+def test_joint_iteration_limit_preserves_typed_failure() -> None:
+    """A partial joint solve cannot publish apparent converged components."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    fits = fit_compact_gaussian_mixture(
+        compact,
+        moments,
+        geometry,
+        _fit_config(
+            background_model="fixed-zero", maximum_function_evaluations=1
+        ),
+    )
+    assert all(
+        isinstance(fitted, FailedCompactGaussianFit)
+        and fitted.reason == "fit-non-convergence"
+        for fitted in fits
+    )
+
+
+def test_joint_fit_does_not_ignore_an_unmeasurable_neighbour() -> None:
+    """Dropping an unfitted neighbour would bias every surviving model."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    missing = UnavailableMomentMeasurement(
+        moments[1].target, "non-positive-measurement"
+    )
+    fitted = fit_compact_gaussian_mixture(
+        compact,
+        (moments[0], missing),
+        geometry,
+        _fit_config(background_model="fixed-zero"),
+    )
+    assert isinstance(fitted[0], UnavailableCompactGaussianFit)
+    assert fitted[0].reason == "joint-peer-unavailable"
+    assert isinstance(fitted[1], UnavailableCompactGaussianFit)
+    assert fitted[1].reason == "non-positive-measurement"
+
+
+def test_joint_empty_and_invalid_invocations_fail_before_fitting() -> None:
+    """Joint work requires an exact component census and fixed background."""
+    compact = _joint_input()
+    geometry = _geometry()
+    config = _fit_config(background_model="fixed-zero")
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    assert (
+        fit_compact_gaussian_mixture(
+            replace(compact, regions=()), (), geometry, config
+        )
+        == ()
+    )
+    for wrong in (moments[:1], (moments[0], moments[0])):
+        with pytest.raises(ValueError, match="exactly once"):
+            fit_compact_gaussian_mixture(compact, wrong, geometry, config)
+    for limits in (
+        {"maximum_parameters": 5},
+        {"maximum_jacobian_elements": 0},
+        {"maximum_parameters": float("nan")},
+        {"maximum_jacobian_elements": float("inf")},
+        {"maximum_parameters": 96.5},
+        {"maximum_jacobian_elements": True},
+    ):
+        with pytest.raises(ValueError, match="work limits"):
+            fit_compact_gaussian_mixture(
+                compact,
+                moments,
+                geometry,
+                config,
+                **limits,  # pyright: ignore[reportArgumentType]
+            )
+    with pytest.raises(ValueError, match="fixed-zero"):
+        fit_compact_gaussian_mixture(
+            compact,
+            moments,
+            geometry,
+            replace(config, background_model="fitted-offset"),
+        )
+
+
+def test_joint_context_requires_more_pixels_than_parameters() -> None:
+    """Loss of valid fit samples cannot produce an underdetermined model."""
+    compact = _joint_input()
+    geometry = _geometry()
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    valid = np.zeros_like(compact.valid_pixels)
+    valid.ravel()[:12] = True
+    fitted = fit_compact_gaussian_mixture(
+        replace(compact, valid_pixels=valid),
+        moments,
+        geometry,
+        _fit_config(background_model="fixed-zero"),
+    )
+    assert all(
+        isinstance(item, UnavailableCompactGaussianFit)
+        and item.reason == "underdetermined-region"
+        for item in fitted
+    )
+
+
+@pytest.mark.parametrize("seed", (11, 29, 47))
+def test_joint_measurements_with_varying_noise_invalids_and_signed_context(
+    seed: int,
+) -> None:
+    """Original-pixel noise is not rectified or hidden by positive support."""
+    compact = _joint_input()
+    geometry = _geometry()
+    _yy, xx = np.indices(compact.physical_residual.shape)
+    rms = np.asarray(0.25 + 0.005 * xx, dtype=np.float64)
+    signal = compact.physical_residual + rms * np.random.default_rng(
+        seed
+    ).standard_normal(rms.shape)
+    valid = np.ones_like(signal, dtype=np.bool_)
+    valid[2:4, 5:7] = False
+    signal[~valid] = np.nan
+    compact = replace(
+        compact, physical_residual=signal, rms=rms, valid_pixels=valid
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    fitted = fit_compact_gaussian_mixture(
+        compact,
+        tuple(reversed(moments)),
+        geometry,
+        _fit_config(background_model="fixed-zero"),
+    )
+    assert np.any(signal[valid] < 0)
+    for result, amplitude, center in zip(
+        fitted, (10.0, 7.0), (12.0, 19.0), strict=True
+    ):
+        assert isinstance(result, ValidCompactGaussianFit)
+        assert result.uncertainty is not None
+        expected_flux = amplitude * 2 * np.pi * 3 / 8
+        assert abs(result.parameters.integrated_flux_jy - expected_flux) <= (
+            3 * result.uncertainty.integrated_flux_error_jy
+        )
+        np.testing.assert_allclose(
+            result.parameters.centroid_xy, (center, 12.0), atol=0.5, rtol=0
+        )
 
 
 def test_scipy_fit_recovers_noiseless_subpixel_gaussian() -> None:

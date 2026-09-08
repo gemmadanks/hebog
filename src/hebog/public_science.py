@@ -4,14 +4,28 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
+from astropy.wcs import WCS
 
+from hebog.algorithms.component_measurement import measure_component_models
 from hebog.algorithms.component_topology import deblend_component_topology
-from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.multiscale import (
+    BeamShapePixels,
+    build_residual_atrous_plan,
+    evaluate_residual_atrous,
+    prepare_scale_filter_inputs,
+    reconstruct_denoised_atrous,
+)
+from hebog.algorithms.source_association import (
+    associate_components_by_multiscale_hierarchy,
+    build_detection_component_records,
+)
 from hebog.config import SourceFinderConfig
+from hebog.data_models.images import RestoringBeam
 from hebog.validation.contracts import PhaseFiveCorrectiveAReview
 from hebog.validation.hebog_campaign import (
     phase_five_corrected_candidate_configs,
@@ -169,6 +183,63 @@ def build_configured_continuum_products(  # noqa: PLR0913
         valid,
         deblend_config,
     )
+    _, _, moment_config, fit_config, _ = (
+        phase_five_corrected_candidate_configs()
+    )
+    association = associate_components_by_multiscale_hierarchy(
+        build_detection_component_records(
+            topology.direct_component_labels, image - background, valid
+        ),
+        topology.direct_component_labels,
+        retained.scale_detection_planes,
+        valid,
+        significant_multiscale_support=retained.significant_multiscale_support,
+    )
+    parent_by_id = {
+        component_id: index
+        for index, membership in enumerate(association.memberships, 1)
+        for component_id in membership.component_ids
+    }
+    parent_lookup = np.zeros(
+        int(topology.measurement_component_labels.max()) + 1, dtype=np.int32
+    )
+    for record in association.components:
+        parent_lookup[record.label_value] = parent_by_id[record.component_id]
+    measurements = measure_component_models(
+        image - background,
+        rms,
+        positive_rms,
+        topology.direct_component_labels,
+        topology.measurement_component_labels,
+        parent_lookup[topology.measurement_component_labels],
+        WCS(header, relax=True).celestial,
+        RestoringBeam(
+            cast(float, header["BMAJ"]),
+            cast(float, header["BMIN"]),
+            cast(float, header["BPA"]) if "BPA" in header else 0.0,
+        ),
+        moment_config,
+        replace(fit_config, integrated_flux_bias_correction_sigma=0.0),
+        detection_sigma=config.detection_threshold_sigma,
+        island_sigma=config.island_threshold_sigma,
+        minimum_pixels=config.minimum_island_pixels,
+        maximum_bounds_pixels=deblend_config.maximum_compact_bounds_pixels,
+        atrous_plan=build_residual_atrous_plan(beam, noise_correlation=beam),
+        minimum_support_fraction=review.matrix.support_fraction_bounds[0],
+    )
+    position_transform = evaluate_residual_atrous(
+        prepare_scale_filter_inputs(image, valid, background, rms),
+        build_residual_atrous_plan(beam, noise_correlation=beam),
+        minimum_support_fraction=review.matrix.support_fraction_bounds[0],
+    )
+    denoised_position = reconstruct_denoised_atrous(
+        position_transform, significance_sigma=config.island_threshold_sigma
+    )
+    # An insufficient filter halo is unavailable, not a reason to discard
+    # a valid edge source. Its original signed position remains available.
+    position_signal = np.where(
+        np.isfinite(denoised_position), denoised_position, image - background
+    )
     catalogues = build_hebog_reconstructed_source_catalogues(
         image,
         background,
@@ -183,9 +254,24 @@ def build_configured_continuum_products(  # noqa: PLR0913
         measurement_aperture_radius_beams=(
             CONTINUUM_MEASUREMENT_APERTURE_RADIUS_BEAMS
         ),
-        position_signal_jy_per_beam=retained.position_signal_jy_per_beam,
+        position_signal_jy_per_beam=position_signal,
+        component_measurements=measurements,
     )
     valid.setflags(write=False)
+    support_stages = tuple(
+        sorted(
+            (
+                *catalogues.support_stages,
+                ("direct", topology.direct_component_labels > 0),
+                ("multiscale", retained.significant_multiscale_support),
+                ("component-owner", topology.measurement_component_labels > 0),
+                ("publication", retained.detection.retained_mask),
+            ),
+            key=lambda item: item[0],
+        )
+    )
+    for _, mask in support_stages:
+        mask.setflags(write=False)
     return PublicFinderCorrectionContinuumProducts(
         detection=retained.detection,
         measurement_component_labels=(topology.measurement_component_labels),
@@ -195,4 +281,6 @@ def build_configured_continuum_products(  # noqa: PLR0913
         source_association=catalogues.association,
         deblended_parent_count=topology.deblended_parent_count,
         deferred_deblend_parent_count=topology.deferred_parent_count,
+        measurement_dispositions=catalogues.measurement_dispositions,
+        support_stages=support_stages,
     )

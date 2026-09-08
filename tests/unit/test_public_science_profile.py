@@ -13,12 +13,34 @@ from pathlib import Path
 
 import pytest
 
+from hebog import public_api
+from hebog.config import SourceFinderConfig
 from hebog.data_models import (
     PublicSourceFindingDiagnostics,
     PublicSourceFindingProvenance,
 )
+from hebog.data_models.measurement_diagnostics import MeasurementDisposition
 
 _ROOT = Path(__file__).parents[2]
+
+
+def test_repaired_science_cannot_inherit_reference_qualification() -> None:
+    """Matching old thresholds is not qualification of a changed finder."""
+    assert (
+        public_api._configuration_qualification(
+            SourceFinderConfig(5.0, 3.0, 7)
+        )
+        == "development-unqualified"
+    )
+    assert public_api._COMPOSITION_NAME == (
+        "phase-5-native-component-and-source-measurements-v9"
+    )
+    assert {
+        "hebog.algorithms.component_measurement",
+        "hebog.algorithms.fitting",
+        "hebog.algorithms.deblending",
+        "hebog.data_models.measurement_diagnostics",
+    } <= set(public_api._SCIENTIFIC_MODULES)
 
 
 def _provenance() -> PublicSourceFindingProvenance:
@@ -29,7 +51,7 @@ def _provenance() -> PublicSourceFindingProvenance:
         scientific_profile_sha256="3" * 64,
         scientific_composition_sha256="4" * 64,
         scientific_composition=(
-            "phase-5-configurable-deblended-component-and-source-topology-v8"
+            "phase-5-native-component-and-source-measurements-v9"
         ),
     )
 
@@ -57,12 +79,13 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         run_id="public-test",
         profile="compact",
         profile_limitations=("extended-emission-incomplete",),
-        configuration_qualification="phase-5-reference",
+        configuration_qualification="development-unqualified",
         source_count=1,
         gaussian_component_count=1,
         island_count=1,
         deblended_parent_count=1,
         deferred_deblend_parent_count=0,
+        measurement_dispositions=_dispositions(),
         rms_scientific_status="valid",
         provenance=_provenance(),
     )
@@ -73,9 +96,65 @@ def test_public_diagnostics_round_trip_exact_provenance() -> None:
         )
         == diagnostics
     )
-    assert diagnostics.schema_version == 5
+    assert diagnostics.schema_version == 6
     assert diagnostics.deblended_parent_count == 1
     assert diagnostics.deferred_deblend_parent_count == 0
+
+
+def _dispositions() -> tuple[MeasurementDisposition, ...]:
+    """A single measured component with one public singleton source."""
+    component = MeasurementDisposition(
+        object_kind="component",
+        object_id="component-one",
+        status="measured",
+        estimator="original-pixel-gaussian-model",
+        reason=None,
+        catalogue_row_published=True,
+    )
+    return (
+        component,
+        component.model_copy(
+            update={
+                "object_kind": "source",
+                "object_id": "source-one",
+                "member_component_ids": (component.object_id,),
+            }
+        ),
+    )
+
+
+@pytest.mark.parametrize("defect", ("missing", "duplicate", "member", "count"))
+def test_public_diagnostics_require_a_complete_measurement_census(
+    defect: str,
+) -> None:
+    """Published counts and retained identities must not silently diverge."""
+    entries = _dispositions()
+    if defect == "missing":
+        entries = ()
+    elif defect == "duplicate":
+        entries = (*entries, entries[0])
+    elif defect == "member":
+        entries = (
+            entries[0],
+            entries[1].model_copy(
+                update={
+                    "member_component_ids": ("not-a-component",),
+                }
+            ),
+        )
+    with pytest.raises(ValueError, match="measurement census"):
+        PublicSourceFindingDiagnostics(
+            run_id="census",
+            profile="continuum",
+            profile_limitations=(),
+            configuration_qualification="custom-unqualified",
+            source_count=2 if defect == "count" else 1,
+            gaussian_component_count=1,
+            island_count=1,
+            measurement_dispositions=entries,
+            rms_scientific_status="valid",
+            provenance=_provenance(),
+        )
 
 
 def test_public_provenance_rejects_non_sha_identity() -> None:
@@ -112,7 +191,7 @@ def test_public_diagnostics_reject_inconsistent_identity_and_profile(
                 "run_id": run_id,
                 "profile": profile,
                 "profile_limitations": limitations,
-                "configuration_qualification": "phase-5-reference",
+                "configuration_qualification": "development-unqualified",
                 "source_count": 0,
                 "gaussian_component_count": 0,
                 "island_count": 0,
@@ -149,7 +228,7 @@ def test_public_diagnostics_reject_negative_deblend_disposition() -> None:
             run_id="public-test",
             profile="continuum",
             profile_limitations=(),
-            configuration_qualification="phase-5-reference",
+            configuration_qualification="development-unqualified",
             source_count=1,
             gaussian_component_count=1,
             island_count=1,

@@ -680,6 +680,44 @@ comparators, margins, and truth definitions. Do not tune on its viewed seeds
 or restore it to a pass through component-only scoring. Complete these tasks
 in order before attempting the remaining closeout gates:
 
+**R1--R4 implemented and fixture-validated (2026-09-08):** Native joint
+measurements, morphology-constrained source association, conditioned signed
+estimates, explicit unavailable/deferred owners and durable diagnostic
+retention have red-first tests. The joint ladder covers all 36 development
+geometries without noise, with independently seeded correlated noise and
+analytic background/RMS, and through the actual public background/RMS path
+(108 cases). The final combined compact/extended boundary run passes 142
+tests, including disconnected shells sharing one reconciliation context.
+Three noisy analytic-background mask objectives remain below
+their report-only targets: cells 26 and 33 have IoU 0.57738 and 0.52469, and
+cell 34 has recall 0.71565. These are retained observations, not waived parity
+gates. An initial test incorrectly made the historical adaptive-lane absolute
+targets binding; it now follows the current frozen report-only policy while
+preserving the misses. Comparative PyBDSF and incumbent gates are unchanged
+and still required. R5's full checks and engineering budget recheck pass:
+3,151 coverage tests plus 171 joint/boundary/process checks, 95.1193%
+branch-aware coverage, 963/963 changed executable lines and all changed
+branches covered, 2,950 normal checks, 27 equivalence fixtures, strict docs
+and wheel smoke. The frozen 3,000-pixel incremental stage medians are
+5.56--5.60 seconds against the 6-second budget. This is not all-tier runtime
+retention or a PyBDSF/Rapthor speedup claim. Clean hooks and the non-executable
+candidate freeze remain; R6 has not executed. The repaired default
+is explicitly `development-unqualified`
+and cannot use the previous candidate's qualification or notebook identity.
+
+The exact-public-background pass reproduced an additional R3 defect:
+the scale-12 compact-core/halo boundary cell loses 35.4% of flux, while
+the same development pixels with analytic background lose 13.5%. Isolation
+identifies positive fine-grid background contamination, not RMS calibration.
+The prospective correction extends bright-source statistical protection with
+the existing beam-aware, seeded, adjacent-scale support before estimating
+fine windows. It changes neither detection thresholds nor the published mask
+definition and retains coarse fallback. The complete joint ladder and both
+source-protection Serial/existing-Dask variants pass. A separate two-loop
+fixture exposed remote arcs being associated by orientation alone; requiring
+the same connected filled-loop region preserves distinct shell memberships.
+All of this is development evidence, not replacement parity or qualification.
+
 - [x] **R0 — Freeze the prospective scientific repair contract.** Specify
   independent compact sources versus components of one extended source;
   source/component/island identities; positions, shapes, integrated-flux and
@@ -691,8 +729,8 @@ in order before attempting the remaining closeout gates:
   Reuse existing compact fitting, astrometry, and uncertainty machinery where
   suitable; do not add
   an alternative fitter without a demonstrated gap. The dated repair contract
-  records the selected approach and red-first acceptance; R1 is next.
-- [ ] **R1 — Preserve source separation without fragmenting extended objects.**
+  records the selected approach and red-first acceptance.
+- [x] **R1 — Preserve source separation without fragmenting extended objects.**
   Add failing analytic tests for independent connected unequal pairs and
   three-or-more peaks alongside single-source shells, filaments, and mixed
   emission. Then correct hierarchy grouping so persistent shared support
@@ -701,7 +739,7 @@ in order before attempting the remaining closeout gates:
   reliability, splits, merges, and positions. A better mask or component
   count alone cannot pass this task; previously successful extended groups
   must remain intact.
-- [ ] **R2 — Correct compact measurements and unstable source estimates.**
+- [x] **R2 — Correct compact measurements and unstable source estimates.**
   Validate bounded compact fitting against analytic flux, position, size and
   deconvolution truth over SNR, unequal neighbours, correlated/varying noise,
   negative backgrounds, invalid pixels and edges. Keep irregular extended
@@ -710,7 +748,7 @@ in order before attempting the remaining closeout gates:
   and positive-support flux fallback discontinuity/bias. Report estimator,
   uncertainty or unavailability honestly; do not clamp all source centroids
   to a peak or mask, since a real shell centroid can lie in its empty centre.
-- [ ] **R3 — Localize and correct remaining support/reliability losses.**
+- [x] **R3 — Localize and correct remaining support/reliability losses.**
   On independent development fixtures, retain bounded attribution across
   coarse/adaptive background and RMS, direct seeds, multiscale support,
   persistence/pruning, component owners, source unions and publication.
@@ -719,7 +757,7 @@ in order before attempting the remaining closeout gates:
   beam/scale, trigger, noise and boundary groups, including the known failing
   geometries. Correct only demonstrated causes; do not assume every loss
   comes from adaptive background or globally relax detection thresholds.
-- [ ] **R4 — Complete public failure handling and diagnostic retention.**
+- [x] **R4 — Complete public failure handling and diagnostic retention.**
   Add red end-to-end cases for one-pixel/custom-minimum and seven-collinear
   admitted owners, unavailable moment shapes, bounded deblend deferrals, and
   mixed measurable/unmeasurable owners. Publish reviewed explicit dispositions

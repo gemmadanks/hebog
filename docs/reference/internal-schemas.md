@@ -14,7 +14,7 @@ must not silently reinterpret persisted data. Stale development products may
 be rejected and recreated rather than supported through legacy readers or
 migration code.
 
-## Source catalogue schema version 2
+## Source catalogue schema version 3
 
 `SourceCatalogue` represents one MFS catalogue. Catalogue metadata explicitly
 records:
@@ -26,8 +26,10 @@ records:
   Gaussian components.
 
 The three identities are deliberately distinct. A `SourceCandidate` belongs
-to one `Island`; a `GaussianComponent` belongs to one source and the same
-island. The catalogue validates those references, rejects duplicate IDs, and
+to a primary `Island` and zero or more `additional_island_ids`; a
+`GaussianComponent` belongs to one source and a subset of that source's
+islands. All island references are distinct and canonical. The catalogue
+validates those references, rejects duplicate IDs, and
 requires canonical ID order so worker completion order cannot change the
 persisted bytes. An island may have no accepted source when measurement or
 fitting fails, and a source may have no fitted Gaussian when a non-Gaussian
@@ -53,13 +55,17 @@ A major-axis-only deconvolution stores one positive
 angle. NaN and legacy zero sentinels are not null values. A fitted Gaussian
 always has a fitted shape; a source-level fitted shape may be unavailable.
 
-For a compact Gaussian, the fitted pixel record retains the free-model
-infinite-plane integral. The celestial component/source record reports peak as
-integrated flux when extension is not significant, and the free-model integral
-only when extension passes the configured uncertainty test. This is a current
-catalogue semantic, not a change to the meaning of the retained fit parameter.
+The current public v9 composition reports the native fitted Gaussian integral
+for compact components and compact singleton sources. It does not substitute
+peak brightness for integrated flux because threshold-truncated moments look
+unresolved. Shape, flux and position errors propagate the fitted covariance;
+missing or singular errors remain unavailable. Irregular extended-source
+measurements use signed, source-owned apertures and explicitly unavailable
+fitted/deconvolved shapes. Estimator flags distinguish these from other
+governed pipeline measurements; different estimators must not be pooled as
+like-semantics evidence.
 
-The version-three internal catalogue FITS encoding contains exactly three
+The version-four internal catalogue FITS encoding contains exactly three
 binary-table extensions: `ISLANDS`, `SOURCES`, and
 `GAUSSIAN_COMPONENTS`. Column names are Hebog domain names with explicit FITS
 units, not PyBDSF compatibility names. At this serialization boundary only,
@@ -138,16 +144,39 @@ schema version 1 so its diagnostics bytes do not change. When a
 `MaterializedProduct` record is supplied, the reader also requires its declared
 content schema to match the canonical JSON payload.
 
-`PublicSourceFindingDiagnostics` schema version 5 records the public profile,
+`PublicSourceFindingDiagnostics` schema version 6 records the public profile,
 profile limitations, population counts, RMS status, exact provenance, and the
 numbers of connected parents that were deblended or retained through the
 bounded deblend fallback. Its
-`configuration_qualification` is `phase-5-reference` only for the evaluated
+`configuration_qualification` is `development-unqualified` for the repaired
 5-sigma/3-sigma, seven-pixel configuration without a maximum island cut; all
 other valid caller configurations are `custom-unqualified`. The configuration
 SHA-256 still binds every threshold, island-size limit, and profile choice.
 This label separates execution from scientific qualification: custom settings
-are supported computations but do not inherit the reference evidence.
+are supported computations but do not inherit the reference evidence. The
+changed default science does not inherit historical qualification either.
+
+Its canonical `measurement_dispositions` records each detected component and
+associated source exactly once. A source's member IDs partition the component
+population. Status is `measured`, `unavailable` or `deferred`, with exactly the
+appropriate estimator or failure reason. `catalogue_row_published` separates
+measurement availability from public row admission; its per-kind counts must
+match the catalogue counts. No Gaussian row is invented for a degenerate
+owner. Catalogue FITS `ADDITIONAL_ISLAND_IDS` preserves the multi-island links.
+An island's signed flux statistic can be non-positive without being a valid
+positive source measurement. These schema changes reject stale products
+without a legacy reader.
+
+The prospective source-measurement evidence summary is schema version 4.
+It binds source-level catalogue metrics and published source-union topology
+separately from binary published-mask metrics. Gaussian-component diagnostics
+are non-binding; unavailable Gaussian fits do not invalidate an otherwise
+valid signed-aperture source. Array-free records retain all measurement
+dispositions, including unpublished rows, truth-match edges, signed residuals,
+and support-stage counts. A write-once diagnostic packet publishes the full
+record and Dask-comparison census before its checksum-verified manifest and
+the final decision. Scratch cleanup requires the actual retained records,
+not only their digests; a failed scientific decision is retained unchanged.
 
 Version 2 replaces the earlier path-only `SourceFinderResult` constructor.
 The `catalogue_path`, `rms_path`, `mask_path`, and `diagnostics_path`

@@ -175,16 +175,24 @@ def test_pybdsf_child_accepts_schema_free_empty_catalogues() -> None:
 
 def test_runner_preflight_is_no_write_and_needs_new_authority(
     tmp_path: Path,
+    frozen_campaign_root: Path,
+    frozen_public_configuration: str,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A frozen identity cannot execute either finder by itself."""
     runner = _program(_RUNNER)
+    monkeypatch.setitem(
+        runner["verify_no_write"].__globals__,
+        "public_hebog_configuration_sha256",
+        lambda: frozen_public_configuration,
+    )
     scratch = tmp_path / "scratch"
     output = tmp_path / "terminal.json"
 
     verified = runner["verify_no_write"](
-        repository_root=_ROOT,
-        manifest_path=_MANIFEST,
-        identity_path=_IDENTITY,
+        repository_root=frozen_campaign_root,
+        manifest_path=frozen_campaign_root / _MANIFEST.relative_to(_ROOT),
+        identity_path=frozen_campaign_root / _IDENTITY.relative_to(_ROOT),
         scratch=scratch,
         output=output,
         minimum_free_disk_gib=0,
@@ -208,7 +216,9 @@ def test_runner_preflight_is_no_write_and_needs_new_authority(
         )
 
 
-def test_identity_binds_aligned_program_and_remains_non_executable() -> None:
+def test_identity_binds_aligned_program_and_remains_non_executable(
+    frozen_campaign_root: Path,
+) -> None:
     """Every alignment and adapter seam is immutable before approval."""
     identity = json.loads(_IDENTITY.read_text(encoding="utf-8"))
     implementation = json.loads(_IMPLEMENTATION.read_text(encoding="utf-8"))
@@ -229,7 +239,10 @@ def test_identity_binds_aligned_program_and_remains_non_executable() -> None:
         "source_union_runner",
     }.issubset(identity["program_bindings"])
     for binding in identity["program_bindings"].values():
-        assert file_sha256(_ROOT / binding["path"]) == binding["sha256"]
+        assert (
+            file_sha256(frozen_campaign_root / binding["path"])
+            == binding["sha256"]
+        )
 
 
 def test_freezer_collision_writes_nothing_else(
