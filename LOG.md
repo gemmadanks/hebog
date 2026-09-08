@@ -18154,3 +18154,44 @@ scientific pass from fixture validation.
   bind this inventory and the approved support amendment, freeze the exact
   decision/checkout, and repeat exhaustive launch admission under standing
   R6 authority. The monitor remains paused and no retry has been launched.
+
+## 2026-09-08: R6 evaluation-only continuation implementation
+
+- Added a separate plan freezer and evaluation-only entry point, reusing the
+  existing importable evaluator, two-worker stage runner, array-free record
+  retention, atomic no-replace publisher and unchanged statistical engine.
+  The original `db8936b...` candidate remains bound to saved captures; later
+  notebook repairs do not become a substitute candidate. No package,
+  scientific threshold, native measurement, matching rule or closed evidence
+  was changed.
+- Test-first fixtures establish missing-only dispatch, byte-for-byte reuse,
+  strict completion/schema/capture checks, new-directory isolation and a
+  combined evidence seal before aggregation. Injected evaluation and late
+  aggregation failures preserve completed work; completed scientific failure
+  is terminal. A new fault-injection test exposed missing post-aggregation
+  plan/Dask rechecks in the initial continuation implementation; publication
+  now rejects that drift. No real-data evaluation was used to develop this.
+- Added immediate per-input validation inside the importable worker after a
+  synthetic red/green test for malformed completion records. This makes
+  schema/capture errors fail promptly while retaining their durable files,
+  rather than discovering them only after all missing inputs finish.
+- The immutable plan binds all validation-program bytes, evaluator package,
+  original candidate and runtime, inventory, two-worker budget and unchanged
+  scientific output. Exact continuation authority is checked before and after
+  exhaustive no-write admission. The consumed replay decision cannot launch
+  it. The new scratch reserves 8 GiB free for array-free records, without
+  duplicating native images. Original capture/evaluation directories are
+  protected; no resume or overwrite switch is provided.
+- Final focused validation passed 92 tests in 14.55 s, including the actual
+  two-process spawn seam on synthetic records. Both new scripts have all
+  211 executable lines and 64 branches covered, with no exclusions. The
+  repeated portable coverage run passed 3,493 tests (153 deselected and two
+  expected failures) in 346.03 s; project coverage remains exactly 95.1148%.
+  The 27 frozen equivalence tests and strict docs build pass; explicit
+  Pyright validation of the new scripts and tests reports no errors.
+- Reviewed the complete change against `CODE_REVIEW.md`: no outstanding
+  actionable findings. No dependency, package or historical program changed.
+  Fixtures establish preservation and execution behavior, not scientific
+  parity; no remote Codecov patch report is available locally. Finish the
+  final handoff checks, freeze the immutable identity and repeat exhaustive
+  no-write admission before the exact continuation. No R6 retry has started.

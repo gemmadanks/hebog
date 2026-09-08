@@ -815,6 +815,15 @@ records the synthetic reproduction and prospective remedy. Before retry:
      retention on synthetic fixtures. Repeat exhaustive no-write admission
      under the exact new decision. The inventory alone is not a launch
      preflight or execution authority.
+     The continuation entry point and its plan freezer now have test-first
+     synthetic dispatch, two-worker spawn, corruption, unavailable-support,
+     authority and late-failure coverage. They preserve the original output
+     identity, reuse 808 inputs and admit only the 1,592 missing inputs in
+     separate scratch; the combined seal precedes unchanged aggregation.
+     The 92 focused fixtures cover every new executable line and branch;
+     3,493 portable coverage tests pass at unchanged 95.1148% coverage.
+     Complete the exact immutable freeze/preflight before launching under
+     standing R6 authority. No finder rerun is required.
 
 **Concurrent notebook WCS repair (2026-09-08; complete):** The public SDC1
 refresh exposed a valid FK5/SIN input reaching the ICRS-only beam-geometry

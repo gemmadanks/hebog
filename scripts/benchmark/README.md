@@ -737,3 +737,58 @@ synthetic resume/late-aggregation tests. It must reuse these records without
 rescoring, evaluate only missing inputs, seal the combined evidence before
 the unchanged statistical engine, and preserve any terminal scientific
 failure. Do not restart the original replay command to resume evaluation.
+
+### Evaluation-only continuation
+
+The separate `source_catalogue_continuation_plan` command freezes the audited
+inventory into a non-executable plan. Run it from a clean immutable checkout
+of the committed tooling, using that checkout's `src` and repository root on
+`PYTHONPATH` and the original pinned environment. Set the four single-thread
+kernel variables listed above for preflight and execution.
+
+```console
+python -m scripts.validation.source_catalogue_continuation_plan \
+  --inventory /absolute/path/to/r6-evaluation-continuation-inventory.json \
+  --inventory-sha256 <inventory-file-sha256> \
+  --inventory-review /absolute/path/to/inventory-identity-review.json \
+  --inventory-review-sha256 <inventory-review-file-sha256> \
+  --scratch /absolute/path/to/new-absent-evaluation-directory \
+  --output-plan /absolute/path/to/new-continuation-plan.json
+```
+
+This binds the original candidate separately from the amended evaluator,
+all validation-program bytes, the original environment and unchanged
+scientific terminal path. The frozen continuation uses two spawned workers,
+808 verified completed inputs and 1,592 missing inputs, with zero finder or
+new Dask executions. Its disk admission reserves 8 GiB of free space for
+array-free evaluation records and final statistics; it does not duplicate
+native image products. Freezing is not the exhaustive launch preflight.
+
+Create a separate identity review binding the plan's exact file and canonical
+hashes. Its expected execution digest is the canonical plan hash. Then run:
+
+```console
+python -m scripts.validation.continue_source_catalogue_evaluation \
+  --plan /absolute/path/to/new-continuation-plan.json \
+  --plan-sha256 <continuation-plan-file-sha256> \
+  --identity-review /absolute/path/to/continuation-identity-review.json \
+  --identity-review-sha256 <continuation-review-file-sha256> \
+  --preflight-only
+```
+
+Admission repeats the exhaustive inventory audit, including all retained
+capture/reference artifacts and saved Dask identities, without rescoring.
+Execution requires the separate exact one-use evaluation-only decision:
+remove `--preflight-only` and add `--authorization` and
+`--authorization-sha256`. The execution command repeats admission; a previous
+preflight is not a shortcut. The original replay decision is rejected.
+
+Missing records are written only under the new scratch. Completed v1 records
+are reused byte-for-byte; new Continuum diagnostics use the approved v2
+unavailable-support representation. Each worker validates its completion
+immediately, so invalid records stop dispatch before late aggregation.
+A combined `evaluation-seal.json` is
+published before the unchanged late statistical engine. Process failures
+retain that seal and all completed per-input records. A completed scientific
+failure is published as terminal evidence, not retried or tuned. There is no
+resume/overwrite switch: a later process repair requires another exact freeze.
