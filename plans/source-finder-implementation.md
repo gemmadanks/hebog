@@ -723,6 +723,14 @@ Fixture checks include the real late statistical engine, native failed-run
 rejection, checksum/census validation, duplicate refusal and cancellation of
 pending work after worker failure. The executable identity, disk/time
 admission and exhaustive immutable-checkout preflight still precede launch.
+Tooling is now committed as `1b1cbae8cf8f05184cb2d095ced87175e2969849`.
+The exact non-executable plan `af35c5b3...`, review `9b6913b9...`, one-use
+decision `a9b0975b...` and expected execution `aea1f477...` bind its immutable
+checkout, the unchanged repaired candidate, a 90-GiB disk admission and the
+disclosed 10--24-hour cumulative estimate. Complete no-write preflight is in
+progress; finder execution has not started. The final fresh sentinel's
+sub-12-hour target is separate and remains conditional on the cumulative
+gate passing. No old pass or uncertainty acceptance transfers.
 
 The exact-public-background pass reproduced an additional R3 defect:
 the scale-12 compact-core/halo boundary cell loses 35.4% of flux, while

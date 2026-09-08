@@ -1,0 +1,47 @@
+{
+  "authority_interpretation": "One exact cumulative regression replay under the prospective R0 contract. This does not reopen a closed qualification, change any gate, or authorize release, cutover or pushing.",
+  "authorized_operations": {
+    "cumulative_candidate_execution": true,
+    "current_existing_dask_comparisons": true,
+    "cutover": false,
+    "fresh_qualification": false,
+    "historical_incumbent_execution": true,
+    "pushing": false,
+    "pybdsf_execution": false,
+    "release": false,
+    "retained_reference_evaluation": true,
+    "tuning": false,
+    "viewed_qualification_rescoring": false
+  },
+  "candidate": {
+    "configuration_sha256": "5eca0efc1995f206900506c87f2ca3cba6aa4a2f1a5155bc3e58863bf3cb75c4",
+    "revision": "db8936b512370a1491f36845592fe3e8a24107ad",
+    "source_tree_sha256": "43fb41f20069a31627f0dbec09bdf1484bd2a04d633fe6563b94b09a554dd2cf"
+  },
+  "candidate_serial_executions": 2400,
+  "date": "2026-09-08",
+  "execution_checkout": "/private/tmp/hebog-r6-cumulative-evaluation-1b1cbae",
+  "execution_count": 1,
+  "execution_revision": "1b1cbae8cf8f05184cb2d095ced87175e2969849",
+  "existing_dask_comparisons": 12,
+  "expected_execution_sha256": "aea1f47701b99cbbeede08542666690bbd82cea2cb9520965208a04169115a77",
+  "failure_policy": "Preserve all completed products and stage records. No duplicate or automatic restart. A process repair requires a new exact frozen identity under standing R0--R6 authority; a scientific failure remains terminal and is not permission to tune or rescore.",
+  "identity_review_path": "config/contracts/phase-5-source-catalogue-repair-cumulative-identity-review.json",
+  "identity_review_sha256": "9b6913b90f45098020643df926ace77f9d4ffdf2c3691711d551911441266ecc",
+  "incumbent_executions": 2400,
+  "output": "/Users/gemma.danks/Projects/hebog/benchmark-results/phase-5/source-catalogue-repair-cumulative-decision.json",
+  "owner_authority": "Please complete tasks R0--R6. I approve of any fixes and replays required for these tasks.",
+  "plan_sha256": "af35c5b394275ca772ebffdc13238b11084653ad248a95add8a7c3ee8e3c9ac0",
+  "prerequisites": [
+    "Validated, clean immutable checkout and exact program/source/configuration identities.",
+    "Complete no-write validation of all 2400 input bundles and 9600 retained native reference runs.",
+    "Exact historical incumbent producer probe; all scratch and terminal paths absent.",
+    "At least 90 GiB host space available; two workers with one-thread kernels.",
+    "Frozen population, 1187 binding comparisons, five safety checks and original confidence rules."
+  ],
+  "pybdsf_executions": 0,
+  "schema_version": 1,
+  "scratch": "/private/tmp/hebog-r6-cumulative-products-db8936b",
+  "status": "authorized-for-one-source-catalogue-cumulative-replay",
+  "workers": 2
+}

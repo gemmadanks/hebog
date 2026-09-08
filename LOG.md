@@ -17703,3 +17703,35 @@ checkout no-write preflight. The cumulative estimate is 10--24 hours, not a
 guarantee or the separate final sentinel's sub-12-hour budget. No R6
 cumulative replay or fresh sentinel has started. A completed scientific
 failure remains terminal.
+
+### R6 exact cumulative identity freeze
+
+- Clean hooks preceded tooling commit
+  `1b1cbae8cf8f05184cb2d095ced87175e2969849`. Its immutable checkout is
+  `/private/tmp/hebog-r6-cumulative-evaluation-1b1cbae`; the source remains
+  candidate `db8936b...`, source `43fb41f2...`, configuration `5eca0efc...`.
+  The exact ignored plan is `source-catalogue-repair-cumulative-plan.json`,
+  file SHA-256 `af35c5b394275ca772ebffdc13238b11084653ad248a95add8a7c3ee8e3c9ac0`.
+  Review `9b6913b90f45098020643df926ace77f9d4ffdf2c3691711d551911441266ecc`
+  binds expected execution
+  `aea1f47701b99cbbeede08542666690bbd82cea2cb9520965208a04169115a77`.
+  One-use decision
+  `a9b0975b613cf4e86ccbb15d6553e6c62c61886c06afdf5382501168b80b32fb`
+  records the owner's standing R0--R6 approval, not a newly requested or
+  fabricated exact-hash approval. It authorizes 2,400 current captures,
+  2,400 authentic-incumbent captures, 12 existing-Dask comparisons and zero
+  PyBDSF executions, after the exhaustive no-write preflight passes.
+- Disk admission rounds the engineering projection up to 90 GiB: 55 GiB
+  captures with growth allowance, 12 GiB diagnostics, 3 GiB temporary work
+  and 20 GiB reserve. Free space at freeze was 124,019,331,072 bytes.
+  The disclosed cumulative estimate remains 10--24 hours, with ideal capture
+  alone approximately 4.10 hours; it is not a guarantee. The separate fresh
+  final sentinel retains its sub-12-hour target and cannot start before all
+  cumulative gates pass.
+- A campaign-independent test binds the review to its explicit committed
+  program revision and the decision to the exact review/plan identities.
+  It reads no ignored campaign output. The plan/runner suite passes 65 tests.
+  JSON formatting changed only the new, unconsumed decision before its final
+  digest was recorded; the review and all closed artifacts remain unchanged.
+  Complete immutable preflight is now in progress. Neither the capture
+  scratch nor the terminal namespace has been consumed by finder execution.

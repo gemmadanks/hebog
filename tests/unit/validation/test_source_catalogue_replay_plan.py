@@ -7,9 +7,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import runpy
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -24,6 +26,42 @@ sys.path.insert(0, str(_ROOT))
 planning: Any = importlib.import_module(
     "scripts.validation.source_catalogue_replay_plan"
 )
+
+
+def test_frozen_r6_review_uses_committed_bytes_not_campaign_outputs() -> None:
+    review_path = _ROOT / (
+        "config/contracts/"
+        "phase-5-source-catalogue-repair-cumulative-identity-review.json"
+    )
+    review = json.loads(review_path.read_bytes())
+    authority = json.loads(
+        (
+            _ROOT / "config/contracts/"
+            "phase-5-source-catalogue-repair-cumulative-execution-decision.json"
+        ).read_bytes()
+    )
+    assert review["status"] == "frozen-non-executable"
+    assert not any(review["authorizations"].values())
+    assert authority["identity_review_sha256"] == file_sha256(review_path)
+    assert authority["plan_sha256"] == review["plan_sha256"]
+    assert authority["execution_count"] == 1
+    assert (
+        authority["expected_execution_sha256"]
+        == (canonical_sha256(review["execution"]))
+        == review["expected_execution_sha256"]
+    )
+    assert review["scientific_policy"]["binding_comparisons"] == 1187
+    assert review["scientific_policy"]["bootstrap_resamples"] == 50000
+    assert review["execution"]["pybdsf_executions"] == 0
+    revision = review["execution"]["execution_revision"]
+    for relative, expected in review["program_sha256"].items():
+        contents = subprocess.run(
+            ("git", "show", f"{revision}:{relative}"),
+            cwd=_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        assert hashlib.sha256(contents).hexdigest() == expected
 
 
 def _census() -> dict[str, Any]:
