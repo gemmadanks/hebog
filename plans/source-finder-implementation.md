@@ -799,6 +799,17 @@ records the synthetic reproduction and prospective remedy. Before retry:
    and retain their seal before late aggregation. No continuation or new
    execution identity has been launched by this implementation. The hourly
    monitor remains paused until an exact continuation is ready and launched.
+   Prepare this in two explicit steps:
+   - Audit and freeze the original capture, Dask and reusable-record inventory
+     without running a finder or recomputing truth scores. Preserve both
+     incomplete directories as well as completed records; reject corrupt
+     completions rather than silently treating them as missing work.
+   - Bind that inventory into a separate evaluation-only entry point and
+     immutable checkout. Before launch, exercise missing-input dispatch,
+     byte-for-byte record reuse, the combined evidence seal and late failure
+     retention on synthetic fixtures. Repeat exhaustive no-write admission
+     under the exact new decision. The inventory alone is not a launch
+     preflight or execution authority.
 
 **Concurrent notebook WCS repair (2026-09-08; complete):** The public SDC1
 refresh exposed a valid FK5/SIN input reaching the ICRS-only beam-geometry

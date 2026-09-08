@@ -698,3 +698,42 @@ binding comparisons and safety checks must pass; an earlier uncertainty
 waiver does not transfer. Native background diagnostics unavailable in old
 reference products remain unavailable. Retained current background errors
 are in Jy/beam and relative RMS errors are fractional, not both in sigma.
+
+### Read-only continuation inventory
+
+After the original process has stopped, first verify which retained records
+can be reused. This command cannot run a finder, create a Dask cluster,
+evaluate missing inputs or produce a scientific verdict:
+
+```console
+python -m scripts.validation.audit_source_catalogue_continuation \
+  --plan /absolute/path/to/original-plan.json \
+  --plan-sha256 <original-plan-file-sha256> \
+  --original-review /absolute/path/to/original-identity-review.json \
+  --original-review-sha256 <original-review-file-sha256> \
+  --repair-review /absolute/path/to/unavailable-support-identity-review.json \
+  --repair-review-sha256 <repair-review-file-sha256>
+```
+
+The default is no-write. An optional `--inventory` path atomically retains
+the audit in a separate, absent evidence file, never in either immutable
+checkout, the original scratch, or the scientific terminal path. The inventory
+is non-executable and does not renew the consumed original authority.
+
+The audit hashes both capture sets and every native artifact, verifies the
+original candidate separately from the amended evaluator, and recomputes only
+the saved Serial/Dask *identity hashes*, not finder outputs or truth scores.
+Completed per-image records retain their original bytes and schema: corrupt
+markers, changed captures, duplicate/missing finders and mismatched nested
+diagnostics fail closed. The already-reviewed positive-support records need
+no schema migration. Partial directories, including empty failed directories,
+are recorded for preservation, not admitted as completed work. The frozen
+marker-set digest prevents new or missing records from silently changing the
+reusable population.
+
+A later continuation still needs its own frozen code, exact identity and
+decision, new evaluation directory, complete no-write launch preflight and
+synthetic resume/late-aggregation tests. It must reuse these records without
+rescoring, evaluate only missing inputs, seal the combined evidence before
+the unchanged statistical engine, and preserve any terminal scientific
+failure. Do not restart the original replay command to resume evaluation.

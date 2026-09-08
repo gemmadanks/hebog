@@ -18088,3 +18088,43 @@ scientific pass from fixture validation.
   and the pending exact continuation. Next is evaluation-only preparation and
   exhaustive no-write reuse verification, not another source-finder run or a
   scientific pass claim.
+
+## 2026-09-08: R6 read-only continuation inventory tooling
+
+- Implemented a separate audit entry point with no finder, scheduler or
+  evaluation operation. It reuses the existing JSON bindings, native-artifact
+  verifier, capture-science hashes and atomic no-replace publisher rather than
+  introducing another evidence format or resume mechanism. The inventory is
+  explicitly non-executable and retains the original candidate `db8936b...`,
+  not the notebook candidate. No package or source-finding file changed.
+- Test-first fixtures reject corrupt or substituted completed records,
+  changed capture/configuration/recipe provenance, incomplete or duplicated
+  census, wrong historical source-support schema, relocated products and
+  missing Dask comparisons. Empty failed directories are recorded for
+  preservation. Completed records retain their exact bytes and digests;
+  invalid completions never become permission to recompute them.
+- The development no-write audit verified all 2,400 current/incumbent pairs,
+  9,600 retained reference runs, 12 saved Dask comparisons and 808 completed
+  inputs / 4,032 finder records. Capture, Dask and completion-marker seals
+  remain `e1bc9a91...`, `16de0eeb...` and `f976ea97...`. The original failure
+  record binds SHA-256
+  `1242e7ff0d561aac3050ee871e41df196d3293887107441542f9147e35e7b5fb`.
+  No truth scores or final confidence intervals were recomputed. The first
+  verifier iterations incorrectly interpreted mixed metadata keys as local
+  paths/JSON; synthetic regressions now cover both opaque byte bindings and
+  the frozen absolute external-evidence layout. No retained data changed.
+- Focused coverage passes 55 tests with all 189 new executable lines and
+  all 94 branches covered, without exclusions. The portable coverage suite
+  passes 3,399 tests (153 deselected, two existing xfails) in 276.19 s;
+  branch-aware project coverage remains exactly 95.11482398239824%. The
+  additional audit-program mutation regression passes in the final focused
+  suite. `just check` passes 3,179 tests in 206.65 s; 27 frozen equivalence
+  tests pass in 38.50 s, and strict docs build in 6.28 s. Final code review
+  found no actionable issue in the audit; this is not an absence-of-bugs
+  guarantee for the future continuation runner.
+- Next: repeat the exhaustive audit from the committed immutable tooling and
+  atomically freeze its separate inventory; then bind a distinct
+  evaluation-only continuation, synthetic dispatch/late-failure tests and
+  exact launch preflight. The original monitor remains paused. This work
+  does not authorize or launch a retry and does not establish a scientific
+  pass; 1,592 inputs still need their first completed evaluation.
