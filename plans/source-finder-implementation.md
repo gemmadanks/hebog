@@ -780,12 +780,17 @@ records the synthetic reproduction and prospective remedy. Before retry:
    source support; source summary schema 5 distinguishes catalogue and actual
    source-union counts. Missing asserted labels still fail. Synthetic
    compiler and Serial/existing-Dask gates precede a non-executable freeze.
-   The portable coverage suite passed 3,342 tests at 95.1148%, with every
+   A final synthetic audit added an exact-layout/model/ownership near-tie
+   regression and correction, preserving historical floating-point arithmetic.
+   The portable coverage suite passed 3,345 tests at 95.1148%, with every
    changed executable line and branch covered; 27 frozen equivalence tests
    and the handoff checks pass. Historical compiler/adapter bytes are intact.
    Shared validation-module edits change the package hash but not finder
-   science; refresh the separate non-executable notebook identity without
-   transferring any R6 result or running a notebook refresh.
+   science. Implementation `f9f62c2...` is bound by the non-executable R6
+   unavailable-support identity review `259cf6a4...`. The separate notebook
+   identity `4a36dfa1...` updates its package hash while preserving the exact
+   scientific composition and configuration. Its read-only guard passes;
+   no R6 result transfers and no notebook refresh was run.
 3. Freeze an evaluation-only continuation with exhaustive no-write validation
    of all retained products and reusable records, then use the standing R6
    repair authority for the exact new execution. Keep the original candidate

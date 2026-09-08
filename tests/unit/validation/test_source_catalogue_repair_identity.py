@@ -23,6 +23,7 @@ _ROOT = Path(__file__).parents[3]
         "phase-5-source-catalogue-repair-identity-review.json",
         "phase-5-notebook-fk5-wcs-repair-identity-review.json",
         "phase-5-notebook-joint-fit-failure-identity-review.json",
+        "phase-5-notebook-support-amendment-identity-review.json",
     ),
 )
 def test_repair_identity_binds_committed_science_without_outputs(
@@ -79,3 +80,31 @@ def test_repair_identity_binds_committed_science_without_outputs(
             hashlib.sha256(records[record["path"]]).hexdigest()
             == record["sha256"]
         )
+
+
+def test_unavailable_support_identity_binds_only_reviewed_implementation() -> (
+    None
+):
+    """The repair freeze grants no retry or candidate execution authority."""
+    path = (
+        _ROOT
+        / "config/contracts"
+        / "phase-5-r6-unavailable-source-support-identity-review.json"
+    )
+    review = json.loads(path.read_bytes())
+    assert review["status"] == "frozen-non-executable"
+    assert review["execution_identity"] is None
+    assert review["finder_execution_started"] is False
+    assert not any(review["authorizations"].values())
+    assert (
+        review["retained_candidate"]["revision"]
+        == "db8936b512370a1491f36845592fe3e8a24107ad"
+    )
+    for relative, expected in review["implementation_file_sha256"].items():
+        payload = subprocess.run(
+            ("git", "show", f"{review['implementation_revision']}:{relative}"),
+            cwd=_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        assert hashlib.sha256(payload).hexdigest() == expected

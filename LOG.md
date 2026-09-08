@@ -18065,3 +18065,26 @@ scientific pass from fixture validation.
   equivalence tests passed in 36.71 s and strict docs built in 6.07 s.
   Final `CODE_REVIEW.md` review found no remaining actionable issue in this
   correction. R6 remains paused and all retained products remain untouched.
+
+### Non-executable freeze and notebook guard
+
+- The main amendment `3261a9c...` and final arithmetic correction
+  `f9f62c249657d66ddaf640b42778739e5c2aa956` passed clean hooks and are
+  committed locally only. The R6 unavailable-support identity review has
+  SHA-256 `259cf6a4822f4313cde21ceebb5721caad8a1934994a272125442ea393432665`.
+  It binds exact corrected implementation bytes, the approved amendment and
+  expected retained evidence; it grants no execution authority. The retained
+  candidate remains `db8936b...`, not the notebook's later package revision.
+- The separate notebook support-amendment identity has SHA-256
+  `4a36dfa1606af214ef17fefb7c535971ce888e865ca69340bdc509642c73bc0e`.
+  Its package hash binds the committed validation modules while the
+  scientific composition stays `004961f6...`. Configuration and its canonical
+  floating-point encoding remain unchanged. The notebook selector points to
+  this new review; original review files and guard assertions are unchanged.
+- Historical-byte identity, refresh and synthetic notebook checks passed
+  21 tests in 8.61 s. The read-only notebook guard also passes. No notebook
+  input, finder, evaluation or qualification was run. The monitor remains
+  paused, with its prompt acknowledging the approved, implemented amendment
+  and the pending exact continuation. Next is evaluation-only preparation and
+  exhaustive no-write reuse verification, not another source-finder run or a
+  scientific pass claim.
