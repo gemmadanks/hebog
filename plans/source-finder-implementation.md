@@ -1043,6 +1043,29 @@ All of this is development evidence, not replacement parity or qualification.
     campaign output directory. Every execution authorization is false.
   - [ ] **R6-R6 — Admit replacement cumulative and then fresh evidence.**
     Follow the unchanged scientific gates and authority boundaries below.
+    The [replacement admission review](../docs/reference/phase-5-r6-replacement-admission-review.md)
+    is complete (2026-09-09); admission itself is not complete:
+
+    - [x] Review exact reuse: 2,400 incumbent, 4,800 dual-PyBDSF and 800
+      Aegean evaluation records remain reusable byte-for-byte. Preserve all
+      2,400 inputs, 9,600 reference runs and the failed R6 terminal. The new
+      candidate still needs 2,400 Serial captures/evaluations, 12 existing-Dask
+      comparisons and new paired statistics; no old verdict transfers.
+    - [ ] **Immediate next task:** test-first reuse-aware orchestration and
+      synthetic end-to-end/reuse/failure checks. The old pair runner executes
+      the incumbent and evaluates every finder, so do not launch it unchanged
+      or edit its consumed decision. Reuse scientific functions and immutable
+      comparator records without introducing a second scoring definition.
+    - [ ] Measure an independent representative fixture cost/size ladder, then
+      resolve resource admission. Provisional budget is 68 GiB free versus
+      59.08 GiB observed (about 9 GiB short); tentative total time is 9--14 h,
+      not a guarantee or proof of the final campaign's sub-12-hour target.
+      Preserve evidence, thresholds, comparators and all risk geometries.
+    - [ ] Freeze the exact reusable inventory, committed program closure,
+      runtime and new write-once paths after tests and resource checks; repeat
+      exhaustive no-write validation before resolving exact execution authority.
+    - [ ] Complete replacement cumulative gates, then separately admit fresh
+      seed-disjoint evidence. No execution or monitor starts from this review.
 
   Review which earlier reference products can be reused byte-for-byte and
   which changed candidate paths require new cumulative measurements. Previous

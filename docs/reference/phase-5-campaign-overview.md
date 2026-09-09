@@ -2471,6 +2471,24 @@ bound cumulative evidence before fresh qualification. Engineering validation
 and the non-executable freeze are recorded in the plan and `LOG.md`; neither
 grants execution authority. R6 and Phase 5 remain open.
 
+## 2026-09-09: Replacement R6 reuse reviewed; admission remains pending
+
+The [replacement admission review](phase-5-r6-replacement-admission-review.md)
+confirms that 8,000 comparator evaluation records can be reused byte-for-byte:
+2,400 incumbent, 4,800 dual-PyBDSF and 800 Aegean. Their finders and
+truth-relative metric semantics are unchanged. The repaired candidate needs
+2,400 new Serial captures/evaluations, 12 existing-Dask comparisons and new
+paired statistics. No historical current-Hebog verdict or uncertainty waiver
+transfers. All 2,400 inputs and known-risk populations remain in scope.
+
+An exhaustive read-only recheck verified all original input/reference products,
+capture pairs and 10,400 completed records; it ran no finder or evaluator.
+Fixture-only reuse-aware orchestration and cost/size validation are next.
+Provisional admission needs 68 GiB free versus 59.08 GiB observed; the tentative
+9--14-hour total is not a guarantee or confirmation of the final campaign's
+sub-12-hour target. No new run, output namespace, execution decision or monitor
+was created. The existing failed terminal remains unchanged; Phase 5 is open.
+
 ## Required format for future snapshots
 
 Append future terminal results to this page using the same order:

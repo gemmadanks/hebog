@@ -1,0 +1,120 @@
+{
+  "admission": {
+    "capture_growth_factor": 1.5,
+    "diagnostic_budget_bytes": 2147483648,
+    "estimate_is_guarantee": false,
+    "execution_admitted": false,
+    "final_campaign_budget_hours": 12,
+    "final_campaign_budget_proven": false,
+    "free_bytes_observed": 63433973760,
+    "planning_total_hours": [
+      9,
+      14
+    ],
+    "provisional_free_bytes": 73014444032,
+    "reserved_headroom_bytes": 21474836480,
+    "status": "pending-tooling-cost-probe-space-and-exact-freeze",
+    "working_budget_bytes": 3221225472
+  },
+  "authorizations": {
+    "aegean_execution": false,
+    "candidate_execution": false,
+    "cutover": false,
+    "evaluation": false,
+    "incumbent_execution": false,
+    "pybdsf_execution": false,
+    "qualification": false,
+    "release": false,
+    "replay": false,
+    "tuning": false,
+    "viewed_data_rescoring": false
+  },
+  "candidate_revision": "4d0783728aaad3db1928972a73a28e71ace0f438",
+  "closed_evidence": {
+    "capture_seal_sha256": "e1bc9a915d213bc07dd87934bbc46dc09c2460897c28446b3ea39f0fee5a719a",
+    "evaluation_seal_sha256": "d14205d922e3a46b1cd93be3de84d745910b68f89a12f3ed00f5cb5f9d22ae5b",
+    "historical_terminal_verification_sha256": "5dde3be99d28a80b9bc1e1a23d57d4cac5db34d82e37b801e6c8e0a8030cdedf",
+    "old_candidate_records_reusable": false,
+    "old_current_capture_bytes": 30160058240,
+    "old_current_record_bytes": 268301720,
+    "old_dask_comparisons_reusable": false,
+    "old_incumbent_capture_bytes": 8509292168,
+    "old_verdict_reusable": false,
+    "reusable_binding_index_fields": [
+      "input_id",
+      "finder_id",
+      "path",
+      "sha256"
+    ],
+    "reusable_binding_index_order": [
+      "input_id",
+      "finder_id"
+    ],
+    "reusable_binding_index_sha256": "c3fdb6c3ae0e51bbaae1b4f3f46cfe32b5493b2d054ffca080fee26e4db80d25",
+    "reusable_record_bytes": 766667871,
+    "reusable_records": {
+      "aegean": 800,
+      "incumbent-hebog": 2400,
+      "pinned-pybdsf-master": 2400,
+      "released-pybdsf": 2400
+    },
+    "terminal_sha256": "7146f2e857c9473117c16d29f5bd8d55a2790c66d1c1643cd79b96aa8cc51d72"
+  },
+  "date": "2026-09-09",
+  "documents": {
+    "config/contracts/phase-5-prospective-paired-population.json": "0bd3e6a6e505f8fb307a108d90e932f6b3f16ae5fc6c654ab4c82de14f483687",
+    "config/contracts/phase-5-prospective-science-endpoint-registry.json": "095354bce2f34ae257574f9168770a194f1f5b00024db0ec5bcafdafba006a7e",
+    "config/contracts/phase-5-r6-estimator-repair-identity-review.json": "f7afe3c18cf2c1c98397e688b58d62b88052c15d6c0705d1930e24c22e43f78f",
+    "config/contracts/phase-5-r6-unavailable-source-support-amendment.json": "94200d4584702d30d42cc4f550b0c40b9e09f0c791391ebe272f8d605f20156b",
+    "docs/reference/phase-5-r6-replacement-admission-review.md": "9cf115c3eb6ca5ed7934d2334d829a95230d36c4c07d1388d5f537f41dc00504"
+  },
+  "execution_identity": null,
+  "finder_execution_started": false,
+  "frozen_rules": {
+    "binding_comparisons": 1187,
+    "bootstrap_resamples": 50000,
+    "bootstrap_seed": 20260810,
+    "compact_inputs": 800,
+    "continuum_inputs": 1600,
+    "previous_uncertainty_acceptance_transfers": false,
+    "safety_checks": 5,
+    "scientific_failure_is_terminal": true,
+    "truth": "independent-analytic-injected"
+  },
+  "prospective_work": {
+    "aegean_executions": 0,
+    "current_serial_captures": 2400,
+    "existing_dask_comparisons": 12,
+    "incumbent_executions": 0,
+    "new_current_evaluation_records": 2400,
+    "new_terminal_decisions": 1,
+    "pybdsf_executions": 0,
+    "retained_reference_runs": 9600,
+    "reused_comparator_records": 8000,
+    "total_evaluation_records": 10400,
+    "workers": 2
+  },
+  "reference_evaluator_revision": "b64228db5a303ef2a419b32650fd99abcee6482f",
+  "required_next_step": "Fixture-only reuse-aware orchestration and representative cost/size validation, then exact immutable inventory/program/runtime/resource freeze and no-write preflight before resolving execution authority.",
+  "schema_version": 1,
+  "status": "prospective-reuse-review-complete-admission-pending",
+  "unchanged_products_reader_definitions": [
+    "_aegean_ellipse",
+    "_aegean_source",
+    "_load_aegean_islands",
+    "load_aegean_catalogue",
+    "load_comparison_catalogue",
+    "load_fits_plane",
+    "load_mask_plane",
+    "load_pybdsf_catalogue",
+    "load_pybdsf_gaussian_catalogue",
+    "load_reference_product_manifest"
+  ],
+  "unchanged_programs": {
+    "scripts/validation/source_catalogue_campaign_evidence.py": "cf1d0dd54b32f3bf545512d505aae56f815b81d9454f11aa3399561533293377",
+    "scripts/validation/source_catalogue_campaign_worker.py": "ee5fab307b3ad8e2772bb3c9ffa0da9aa34b129827154060167d37666f70e2f3",
+    "scripts/validation/source_catalogue_input_evaluation.py": "76ae17a6039f0f32eb3c448223a3d1b9f6895c48247b52e9d7acd2453cd17d82",
+    "scripts/validation/source_catalogue_retained_measurements.py": "270cce2303a2f282de6f47df87047a829968301eb7d45e7b5ba3749ff4787ade",
+    "scripts/validation/source_catalogue_source_unions.py": "81a62493b5797ee067b8b8ad30a238b5bc482533062458e6f25a484b115f1058"
+  }
+}

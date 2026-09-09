@@ -18479,3 +18479,66 @@ scientific pass from fixture validation.
   No new campaign namespace, execution decision or retry was created. The
   original failed R6 verdict and all historical identities remain unchanged;
   neither Phase 5 nor scientific parity for this candidate is declared done.
+
+## 2026-09-09 — Review replacement R6 reuse and resource admission
+
+- Completed the next prospective reuse/admission review, bound by
+  `phase-5-r6-replacement-admission-review.json`, SHA-256
+  `6b17893caf8c00e4ea77ec1bed89d709137332b1dcf844dbf96eca6504d0e54b`.
+  Candidate remains `4d07837...` / source `cc1db52e...` / configuration
+  `5eca0efc...`. All execution authorities are false; this is not an
+  executable freeze. No package, finder, evaluator, configuration, dependency
+  or notebook behaviour was changed. No campaign namespace, execution
+  decision or monitor was created, and no evidence was deleted or rescored.
+- Repeated the existing post-terminal verifier `4fd0c9f5...` from immutable
+  continuation `b64228db...`, using its original environment/imports. It
+  exited zero, 07:26:33--07:34:26 UTC: all 2,400 input bundles, 9,600 reference
+  runs, 4,800 native captures, 12 old Dask comparisons and 10,400 completed
+  evaluation records verified. No finder/evaluator was called. Original
+  failed terminal `7146f2e8...`, capture seal `e1bc9a91...`, combined evaluation
+  seal `d14205d9...` and both original partial directories remain intact.
+- Confirmed 8,000 reusable comparator records: 2,400 incumbent, 2,400 released
+  PyBDSF, 2,400 pinned master and 800 Aegean. The sorted original-binding index
+  is `c3fdb6c3...`, containing 766,667,871 logical bytes. Central native
+  reader, adapter, evaluator and statistical modules are unchanged between
+  the old continuation and the repaired implementation; native reader ASTs
+  in the otherwise changed `products.py` are unchanged. Reference values are
+  independently truth-relative, not truth labels supplied by PyBDSF. Final
+  admission must additionally bind the complete transitive program/contract
+  closure and every reusable record's original context.
+- The new candidate still requires 2,400 Serial captures/evaluations, 12 new
+  existing-Dask comparisons and new paired statistics. Keep the full fixed
+  population, 1,187 comparisons, five safety checks and original confidence
+  rules. Do not transfer previous candidate observations, Dask results,
+  verdicts or human uncertainty acceptance. The old full-pair runner would
+  rerun the incumbent and reevaluate references; the next task is a narrow,
+  test-first reuse-aware path plus independent fixture cost/size validation.
+- Read-only storage census found 30,160,058,240 old current capture bytes and
+  8,509,292,168 incumbent capture bytes. Proposed 68 GiB free budget allows
+  1.5x old candidate volume, 2 GiB new records, 3 GiB working space and 20 GiB
+  headroom; the snapshot has 59.08 GiB free, about 9 GiB short. This allowance
+  is provisional, not a proven upper bound. Old capture completion span was
+  4 h 35 min; old final statistics alone took about 3 h 9 min. A tentative
+  9--14-hour replacement envelope needs a measured short cost ladder before
+  admission and does not establish the final campaign's sub-12-hour target.
+  No inputs, risk geometries, comparators or resamples were removed for cost.
+- Fast synthetic capture/readback, two-process/existing-Dask, evaluator,
+  retention/late-failure and provenance validation passes 88 tests (one marked
+  slow test deselected), including four new output-directory-independent
+  review tests. The initial unfiltered focused invocation included a marked
+  slow bootstrap test and was stopped after 52 passes / 436 s; it did not
+  finish and is not claimed as passed. The fast rerun completed in 48.93 s.
+  The initial Ruff line-length and Pyright empty-list annotation findings
+  were fixed; the JSON hook sorted the new inert record and then passed
+  without modification. Strict documentation builds pass.
+- Reviewed the full review/plan/test diff against `CODE_REVIEW.md`: no
+  actionable findings remain. Production patch coverage is not applicable;
+  coverage, equivalence and wheel builds were not rerun for this documentation
+  and provenance-test-only change. The prior implementation's 95.1906%
+  coverage is historical evidence, not a fresh measurement. `just check`
+  passes Ruff, Pyright and 3,309 tests (379 deselected, two expected failures)
+  in 254.61 s. The four review tests also pass after the final explicit
+  candidate/evaluator linkage assertions. Explicit unstaged-file hooks pass;
+  run clean final all-file hooks immediately before the local commit.
+  R6/Phase 5 remain open; resource admission and an exact executable freeze
+  remain outstanding, with no new scientific verdict.
